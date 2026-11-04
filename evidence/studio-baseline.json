@@ -1,0 +1,9 @@
+{
+  "content": [
+    {
+      "type": "text",
+      "text": "{\"Name\":\"Place1\",\"GameId\":0,\"Lighting\":{\"ClockTime\":14.5,\"FogStart\":0,\"Ambient\":[0.27450981736183169,0.27450981736183169,0.27450981736183169],\"OutdoorAmbient\":[0.27450981736183169,0.27450981736183169,0.27450981736183169],\"ExposureCompensation\":0,\"Brightness\":3,\"FogEnd\":100000,\"FogColor\":[0.7529412508010864,0.7529412508010864,0.7529412508010864]},\"PlaceId\":0,\"Children\":[{\"Name\":\"Camera\",\"Class\":\"Camera\"},{\"Name\":\"Baseplate\",\"Position\":[0,-8,0],\"Class\":\"Part\",\"Anchored\":true,\"Size\":[2048,16,2048]},{\"Name\":\"Terrain\",\"Position\":[0,0,0],\"Class\":\"Terrain\",\"Anchored\":true,\"Size\":[2044,252,2044]},{\"Name\":\"SpawnLocation\",\"Position\":[0,0.5,0],\"Class\":\"SpawnLocation\",\"Anchored\":true,\"Size\":[12,1,12]}],\"Atmosphere\":{\"Density\":0.30000001192092898,\"Haze\":0,\"Name\":\"Atmosphere\",\"Offset\":0.25}}"
+    }
+  ],
+  "isError": false
+}
