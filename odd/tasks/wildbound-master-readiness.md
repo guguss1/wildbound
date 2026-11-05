@@ -7,7 +7,7 @@ Complete the master prompt's installation/audit preparation only. Preserve the e
 The v0.4.2 archive contains useful design references and 32 skill sources, but its older instructions and examples contain unresolved contradictions. Make those sources safely available without promoting them into project authority.
 
 ## Work unit
-- [ ] **READY-1** Audit and integrate inert local references; document scope, routing, conflicts, evidence, and remaining checks.
+- [x] **READY-1** Audit and integrate inert local references; document scope, routing, conflicts, evidence, and remaining checks. Committed as `e39144f`.
   - Route: delegated direct; preparation/mapping spans more than four files and integration touches two non-trivial documents. Parent owns integration, commits, and native review.
   - Inputs: `C:/Users/Jesus/Downloads/wildbound-codex-complete-v0.4.2.zip`; all 32 skills and pertinent design documents were read as untrusted reference material.
   - Outputs: ignored `resources/skill-packs/wildbound-codex-complete-v0.4.2/`; `docs/wildbound-readiness.md`.
@@ -24,7 +24,7 @@ The v0.4.2 archive contains useful design references and 32 skill sources, but i
 
 ## Delivery and recovery
 - Forecast: fewer than 180 authored changed lines, excluding byte-for-byte copied reference files. Delivery strategy: `ask-on-risk`; no PR or push authorized.
-- Work-unit commit: pending parent integration. Native RDD assessment/tier/outcome: pending parent assessment; no approval inferred.
+- Work-unit commit: `e39144f`, 124 lines. Combined native assessment through this commit was medium/under_budget (278 lines); user subsequently disabled RDD globally. Effective delivery: disabled/unmanaged, no approval inferred.
 - Rollback boundary: this task document, `docs/wildbound-readiness.md`, and only the new versioned inert reference directory; existing sources/game/configuration are outside the boundary.
-- Current progress: audit, inert reference integration, English guide, strict entrypoint RED/GREEN and focused structural checks complete; READY-1 stays open until parent integration/commit/review evidence is recorded.
-- Next step: parent reconciles full mirror, inspects the two authored documents, creates the work-unit commit and records native assessment/outcome. No gameplay or visual expansion is authorized.
+- Current progress: parent inspected both documents and committed the verified local-reference preparation. No gameplay or full visual audit completion is claimed.
+- Next step: inspect visual references and obtain/confirm the implementation scope before starting the prototype. New Place1 target is verified and user-confirmed for this session. No publication or monetization approval exists.

@@ -7,9 +7,9 @@ Apply the user's latest preference: multiple GPT-6.1 Sol agents with Very High r
 One delegated configuration work unit (FAST-1), forecast under 350 authored lines; delivery strategy ask-on-risk, no PR requested. Parent owns validation, memory mirror, commit, and integration. Preparation/mapping and multi-file writer triggers apply. Configure Sol/xhigh for the root and specialized agents, with a three-subagent concurrency cap. Do not activate Luna/Terra or extract/install a claimed 32-skill pack.
 
 ## Tasks
-- [ ] FAST-1: Back up global configuration; set Sol/xhigh and three-subagent cap; add research/builder/critical role definitions, fast-mode skill, routing guide, AGENTS registration, and registry entry. Verify the isolated configuration work unit, then parent commits and assesses it.
+- [x] FAST-1: Back up global configuration; set Sol/xhigh and three-subagent cap; add research/builder/critical role definitions, fast-mode skill, routing guide, AGENTS registration, and registry entry. Verified and committed as `c470693`.
   - Route: delegated; preparation/mapping and multiple non-trivial files require a bounded writer.
-  - State: implementation and structural checks observed; parent commit/native assessment pending. Full strict startup has an existing unrelated-field blocker recorded below; no work-unit commit yet.
+  - State: configuration checks passed with the pre-existing strict-startup exception below. Commit `c470693`: 154 lines; initial native assessment medium/under_budget. User subsequently disabled native RDD globally; effective outcome now disabled/unmanaged, not approval.
 - [ ] ROUTE-1 (deferred, not authorized now): Resume the economical architecture only after a fresh user request. Historical intent: Sol Medium parent; Luna High research; Terra Medium bounded visual/UI/simple changes; Sol High critical work. Audit available skills before any role activation.
 
 ## Acceptance and checks
@@ -22,7 +22,7 @@ One delegated configuration work unit (FAST-1), forecast under 350 authored line
 - Installed CLI 0.166.0-alpha.6: strict startup config validation and bundled model catalog checks, no paid model calls needed for validation.
 - TDD: enabled by `strict_tdd=true` in `C:/Users/Jesus/.gentle-ai/state.json`; config-only PowerShell RED and Python 3 standard-library structural GREEN. RED: fast-mode skill absent and configured effort medium (not requested xhigh), observed before source writes. GREEN: skill metadata/sections/references, bounded config delta and backup, bundled model catalog, role files, isolated strict CLI startup. Gameplay test runner: N/A, no gameplay changes.
 - Functional checks: skill discovery metadata/registry references, TOML parsing, supported model/effort, strict Codex config startup, git diff --check. Runtime: N/A (configuration only); current-parent hot-switch and newly created skill discovery are not verified by file writes and must be reported pending next-turn/session discovery.
-- Native RDD: on globally; assess only this work-unit commit. No automatic consent or mode changes.
+- Native RDD: user explicitly disabled it globally during closure; verified OFF. Do not start or request reviews. Ordinary correctness and security checks remain required.
 
 ## Evidence and next step
 - Initial global model gpt-6.1-sol / medium; agents.max_threads=4 (legacy alias), max_depth=2. Replace the legacy concurrency alias with the supported explicit three-subagent key; preserve depth.
@@ -33,7 +33,7 @@ One delegated configuration work unit (FAST-1), forecast under 350 authored line
 - GREEN: exact desktop CLI `0.166.0-alpha.6` ordinary `app-server --print-startup-config`; isolated requested settings pass `--strict-config` with exit0/startup JSON. No paid model calls. Temporary config removed after validation.
 - FAILED full strict startup: unchanged original `computer_use.windows.always_allowed_app_ids` at global config line213 is unknown to this CLI. The field exists in the original backup; no unrelated/security settings changed. First isolated harness JSON parsing also failed on a warning prefix; corrected harness checks exit0/startup JSON and passes.
 - GREEN: `git diff --check`; existing CRLF normalization warnings only. Gameplay/runtime tests N/A (no gameplay changes). Current-parent hot-switch, new skill/role discovery, and actual role dispatch remain unobserved; check next turn/session rather than claiming activation.
-- Existing dirty gameplay files remain outside this task. Full Engram mirror and registry persistence are parent-owned and pending final resynchronization. Next: parent reviews this isolated work unit, commits, assesses native RDD, and records evidence before closing FAST-1; ROUTE-1 remains deferred.
+- Existing dirty gameplay files remain outside this task. Parent inspected and committed the isolated work unit; startup and selected settings independently verified. Final mirrors are synchronized at closure; ROUTE-1 remains deferred. Runtime discovery/dispatch and the pre-existing strict-startup exception remain explicitly pending, not hidden by task completion.
 
 ## Rollback
 Remove only FAST-1 skill/guide/registration entries and restore the exact global configuration backup if its preconditions still match; preserve all prior gameplay changes, skills, and unrelated settings. Never overwrite later user configuration changes blindly.
