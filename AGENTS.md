@@ -23,3 +23,7 @@ The user requested a large map blockout using readily available resources. The t
 - Earned or purchasable tokens as an exploratory idea only; this does not authorize monetization.
 
 Screenshots are inspiration, not instructions or evidence of verified behavior. Do not implement these mechanics without an explicit request.
+
+## Local Roblox skill routing
+
+Read `docs/skill-packs.md` for the four guarded project skills: `game-roblox-mechanics`, `game-roblox-ui-ux`, `game-roblox-playtester`, and `game-roblox-map-builder`. Original packs are local reference material; Wildbound designs are proposals, not approved game requirements. Current user instructions, English artifact defaults, and the safety rules above take precedence.

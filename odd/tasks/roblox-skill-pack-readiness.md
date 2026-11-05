@@ -1,0 +1,21 @@
+# Prepare local Roblox skill packs
+
+## Objective and authorization
+User requested investigation and preparation of roblox-codex-skills and wildbound-codex-addon with GPT-6.1 Terra medium. Install only guarded project-local reading workflows; do not change gameplay, Studio, shared library, global settings, publication or monetization.
+
+## Evidence and scope
+Audited ZIPs in C:/Users/Jesus/Downloads: roblox-codex-skills.zip (19016bytes, SHA256421EF7BD46D090B964B4758C3D5AE97C331461EDEA39B78E7D6338601A16C716) and wildbound-codex-addon.zip (26180bytes, SHA25638C5DF7117371326FDFFE0B3C12C3FF043D525A67C40D3D70E8218E507953A5B). They contain13general and10Wildbound skills. No verified upstream/version/license. Keep imported originals local and ignored, no redistribution.
+General shared rules conflict with English artifact policy. Wildbound fixed-design addendum conflicts with its own proposed/open decisions and current game scope. Bundled Python validators are executable and one incorrectly assumes exactly10skills total. Never execute them or merge addendums blindly.
+
+## Task
+- [ ] PACK-1: Preserve audited originals as inert local resources, create four guarded project skills for mechanics/UI/playtesting/map work, document usage/conflicts, register routing and validate integrity/discovery metadata.
+Route: delegated direct (preparation research and multiple non-trivial instruction/config files). Preserve existing content and unrelated dirty rescue work.
+Acceptance:23original SKILL.md preserved, no path traversal/symlinks, ZIP hashes match, four new project wrappers have valid metadata and resolvable local references, project English/safety/ODD rules take precedence, Wildbound remains proposal-only, no global or Studio mutation. Read docs/skill-packs.md before consulting originals.
+
+## Checks and delivery
+TDD ON from global strict_tdd=true. This unit installs instruction/config resources, not gameplay runtime: observe missing-wrapper structural RED before writes; validate metadata/references/counts/hash/integrity GREEN afterward; no game tests or Play required. Never execute bundled validator code.
+Forecast approximately280authored lines; imported local resources and generated registry excluded, not redistributed. Strategy ask-on-risk; no new chain choice required below400. Existing gameplay delivery choice is separate and remains unanswered. New feature branch codex/roblox-skill-pack-readiness; commit only this unit, not pending rescue files. RDD mode/status and candidate assessment required; no remote push/PR/merge authorized.
+Rollback: remove only newly created wrappers/local resource copies/registry and added routing paragraphs; original ZIPs and game files unchanged. Commit/check results pending.
+
+## Progress and next step
+Implemented four guarded game-roblox-* wrappers, English usage/audit guide and small AGENTS routing append. Original ZIP contents preserved byte-for-byte under ignored resources/skill-packs, with13+10 source skills; no source code executed. Structural RED observed missing4wrappers (exit1), then GREEN metadata/sections/names/references/hash/count/path safety and no active Wildbound. Parent independently repeated four-wrapper/local-reference/23skill/per-file integrity checks successfully. Native discovery not observed in current-turn metadata; prepared for next turn, restart if absent. Registry regenerated20entries at ignored .atl/skill-registry.md and saved to Engram skill-registry. Authored scope216lines, below400. git diff --check passed (nonfatal CRLF conversion warnings). No Studio/Play/game tests: N/A for instruction/config-only unit. Shared library/global settings/gameplay untouched; prior dirty rescue work preserved. Commit and native assessment pending. Do not adopt Wildbound as the game's approved design.
