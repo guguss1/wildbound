@@ -1,6 +1,7 @@
 -- Touch-first capture screen (M3.4). Presentation only: the server owns every outcome, and this script
--- reports nothing about the session except the Stop button's token. The ring is drawn from the server clock.
--- All wording, colours, shapes and placement come from the pure modules WildboundCaptureView and WildboundHudLayout.
+-- reports nothing about the session except the token of the Stop and Seal buttons. The ring and the seal marker
+-- are drawn from the server clock. Wording comes from WildboundText (Spanish, H3); colours, shapes and placement
+-- from the pure modules WildboundCaptureView and WildboundHudLayout.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -14,11 +15,13 @@ end
 local sessionModule = ReplicatedStorage:WaitForChild("WildboundCaptureSession", 10)
 local viewModule = ReplicatedStorage:WaitForChild("WildboundCaptureView", 10)
 local layoutModule = ReplicatedStorage:WaitForChild("WildboundHudLayout", 10)
-if not (sessionModule and viewModule and layoutModule) then
+local textModule = ReplicatedStorage:WaitForChild("WildboundText", 10)
+if not (sessionModule and viewModule and layoutModule and textModule) then
 	warn("Wildbound capture screen: shared modules are missing; controller refused.")
 	return
 end
 local Session, View, Layout = require(sessionModule), require(viewModule), require(layoutModule)
+local Text = require(textModule)
 
 local function make(className, properties, parent)
 	local item = Instance.new(className)
@@ -45,11 +48,29 @@ local track = make("Frame", { Name = "Track", BorderSizePixel = 0 }, panel)
 make("UICorner", { CornerRadius = UDim.new(0, 5) }, track)
 local fill = make("Frame", { Name = "Fill", BorderSizePixel = 0, Size = UDim2.fromScale(0, 1) }, track)
 make("UICorner", { CornerRadius = UDim.new(0, 5) }, fill)
-local stop = make("TextButton", { Name = "StopButton", Visible = false, Text = "Stop", Font = Enum.Font.GothamBold,
-	TextSize = 20, BackgroundColor3 = Color3.fromRGB(70, 30, 30), TextColor3 = Color3.fromRGB(255, 255, 255),
-	AutoButtonColor = true }, gui)
+local stop = make("TextButton", { Name = "StopButton", Visible = false, Text = Text.CAPTURE_VIEW.stop,
+	Font = Enum.Font.GothamBold, TextSize = 18, BackgroundColor3 = Color3.fromRGB(70, 30, 30),
+	TextColor3 = Color3.fromRGB(255, 255, 255), AutoButtonColor = true }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 10) }, stop)
 make("UIStroke", { Thickness = 3, Color = Color3.fromRGB(255, 255, 255), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, stop)
+-- H1 seal step: the band and the moving marker sit on the meter track; the Seal button takes the Stop spot while the
+-- seal is open, because the seal lasts under two seconds and the press must be easy on a phone.
+local band = make("Frame", { Name = "SealBand", Visible = false, BorderSizePixel = 0,
+	BackgroundColor3 = Color3.fromRGB(255, 236, 170), Size = UDim2.fromScale(0, 1) }, track)
+make("UICorner", { CornerRadius = UDim.new(0, 4) }, band)
+local marker = make("Frame", { Name = "SealMarker", Visible = false, BorderSizePixel = 0, AnchorPoint = Vector2.new(0.5, 0.5),
+	BackgroundColor3 = Color3.fromRGB(255, 255, 255), Size = UDim2.new(0, 6, 1, 10), ZIndex = 3 }, track)
+make("UIStroke", { Thickness = 2, Color = Color3.fromRGB(20, 20, 20) }, marker)
+local sealButton = make("TextButton", { Name = "SealButton", Visible = false, Text = Text.CAPTURE_VIEW.sealButton,
+	Font = Enum.Font.GothamBlack, TextSize = 16, BackgroundColor3 = Color3.fromRGB(30, 90, 140),
+	TextColor3 = Color3.fromRGB(255, 255, 255), AutoButtonColor = true }, gui)
+make("UICorner", { CornerRadius = UDim.new(0, 10) }, sealButton)
+make("UIStroke", { Thickness = 3, Color = Color3.fromRGB(255, 255, 255), ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, sealButton)
+-- One line for the nearest Lumipol's reaction (A1 brain), shown where the panel sits when no capture runs.
+local hint = make("TextLabel", { Name = "ReactionHint", Visible = false, BackgroundTransparency = 0.25,
+	BackgroundColor3 = Color3.fromRGB(20, 24, 28), TextColor3 = Color3.fromRGB(255, 236, 170), Font = Enum.Font.GothamBold,
+	TextSize = 14, TextWrapped = true, Text = "" }, gui)
+make("UICorner", { CornerRadius = UDim.new(0, 8) }, hint)
 
 local connections = {}
 local function listen(signal, callback)
@@ -75,6 +96,9 @@ local function applyLayout()
 	end
 	panel.Position, panel.Size = UDim2.fromOffset(spot.panel.x, spot.panel.y), UDim2.fromOffset(spot.panel.w, spot.panel.h)
 	stop.Position, stop.Size = UDim2.fromOffset(spot.stop.x, spot.stop.y), UDim2.fromOffset(spot.stop.w, spot.stop.h)
+	sealButton.Position, sealButton.Size = stop.Position, stop.Size
+	hint.Position, hint.Size = UDim2.fromOffset(spot.panel.x, spot.panel.y + spot.panel.h - 30),
+		UDim2.fromOffset(spot.panel.w, 30)
 	local roomy = spot.panel.h >= 70
 	headline.TextSize = spot.textSize + 1
 	headline.Position, headline.Size = UDim2.fromOffset(52, 5), UDim2.fromOffset(spot.panel.w - 60, 22)
@@ -147,9 +171,45 @@ local function requestStop()
 	actionRemote:FireServer("CaptureCancel", token)
 end
 listen(stop.Activated, requestStop)
+-- H1: one press, no timing data. The server judges it by its own clock.
+local lastSeal = 0
+local function requestSeal()
+	local token = View.sealToken(held)
+	if not token or not actionRemote then return end
+	local now = os.clock()
+	if now - lastSeal < 0.4 then return end
+	lastSeal = now
+	actionRemote:FireServer("CaptureSeal", token)
+end
+listen(sealButton.Activated, requestSeal)
 listen(UserInputService.InputBegan, function(input, processed)
-	if not processed and input.KeyCode == Enum.KeyCode.X and View.stopToken(held) then requestStop() end
+	if processed then return end
+	if View.sealToken(held) and (input.KeyCode == Enum.KeyCode.E or input.KeyCode == Enum.KeyCode.ButtonR2) then
+		requestSeal()
+	elseif input.KeyCode == Enum.KeyCode.X and View.stopToken(held) then
+		requestStop()
+	end
 end)
+
+-- The nearest Lumipol's reaction, read from its replicated Mode and Peek attributes.
+local HINT_RANGE = 30
+local function reactionHint(root)
+	local map = workspace:FindFirstChild("WildboundP0")
+	local runtime = map and map:FindFirstChild("WildboundRuntime")
+	if not runtime or not root then return nil end
+	local best, bestDistance = nil, HINT_RANGE
+	for _, model in ipairs(runtime:GetChildren()) do
+		if model.Name == "Lumipol" and model:IsA("Model") then
+			local pivot = model:GetPivot().Position
+			local distance = (Vector3.new(pivot.X, 0, pivot.Z) - Vector3.new(root.Position.X, 0, root.Position.Z)).Magnitude
+			if distance < bestDistance then best, bestDistance = model, distance end
+		end
+	end
+	if not best then return nil end
+	local mode = best:GetAttribute("Mode")
+	if mode == "Hide" and best:GetAttribute("Peek") == true then mode = "Peek" end
+	return Text.HINTS[mode]
+end
 
 local function reducedEffects()
 	local world = playerGui:FindFirstChild("WildboundWorldUI")
@@ -174,9 +234,14 @@ listen(RunService.RenderStepped, function(dt)
 		ringDistance = math.sqrt((root.Position.X - cx) ^ 2 + (root.Position.Z - cz) ^ 2)
 	end
 	local view = View.status(held, { age = now - receivedAt, sinceEnd = endedAt and (now - endedAt) or nil,
-		ringDistance = ringDistance, reduced = reducedEffects(), compact = spot.compact })
+		ringDistance = ringDistance, reduced = reducedEffects(), compact = spot.compact, serverNow = serverNow })
+	local sealing = view.visible and view.state == "Seal" and View.sealToken(held) ~= nil
 	panel.Visible = view.visible
-	stop.Visible = view.visible and View.stopToken(held) ~= nil
+	stop.Visible = view.visible and View.stopToken(held) ~= nil and not sealing
+	sealButton.Visible = sealing
+	local hintText = not view.visible and reactionHint(root) or nil
+	hint.Visible = hintText ~= nil
+	if hintText and hint.Text ~= hintText then hint.Text = hintText end
 	if not view.visible then
 		hideRing()
 		if held and held.phase ~= "Active" then setCapturing(false) end
@@ -187,7 +252,12 @@ listen(RunService.RenderStepped, function(dt)
 	headline.Text, headline.TextColor3 = view.headline, rgb(tone.text)
 	detail.Text, detail.TextColor3 = view.detail, rgb(tone.text)
 	track.BackgroundColor3, fill.BackgroundColor3 = rgb(tone.track), rgb(tone.fill)
-	fill.Size = UDim2.fromScale(view.fraction, 1)
+	fill.Size = UDim2.fromScale(sealing and 0 or view.fraction, 1)
+	band.Visible, marker.Visible = sealing, sealing
+	if sealing and view.band then
+		band.Position, band.Size = UDim2.fromScale(view.band.lo, 0), UDim2.fromScale(view.band.hi - view.band.lo, 1)
+		marker.Position = UDim2.fromScale(view.fraction, 0.5)
+	end
 	badge.TextColor3 = rgb(tone.fill)
 	-- The direction cue is an arrow plus a word, so it works without colour. It replaces the glyph while it applies.
 	badge.Text, badge.Rotation = view.glyph, 0
@@ -197,7 +267,7 @@ listen(RunService.RenderStepped, function(dt)
 		local degrees, word = View.arrow(root.Position.X, root.Position.Z, cx, cz, look and look.X or 0, look and look.Z or -1)
 		if degrees then
 			badge.Text, badge.Rotation = "^", degrees
-			if detail.Visible then detail.Text = "Move " .. word .. "." end
+			if detail.Visible then detail.Text = View.moveLine(word) end
 		end
 	end
 	panelStroke.Thickness = view.state == "Outside" and 5 or 3

@@ -545,3 +545,15 @@ Cover: the server reads props named `FK_Evergreen_Trunk`, `FK_DeadTree_Wood`, `F
 Server wiring (`WildboundServer.server.luau`): the nearest live player's speed is `HumanoidRootPart.AssemblyLinearVelocity` without its vertical part. Each Lumipol model carries `Mode` and `Peek` attributes for the client. A sealed capture calls `Wild.capture` before the model is removed.
 
 Keyboard players walk at 16 studs/s, so on a keyboard only stopping short or the gentle slots avoid alarm; a partly tilted thumbstick walks slower. No crouch exists yet; delivery D adds stamina sprint and may add a sneak.
+
+### A2. Seal step (H1) and the wary refusal
+
+The calm ring is unchanged. When the meter fills, the session does not grant: it opens a seal step (`stage = "Seal"`). The marker waits 0.4 s, then sweeps the bar from 0 to 1 in 1.6 s. The band is 0.20 of the bar wide on wild slots (0.32 s) and 0.36 on the Safe slots (0.58 s), placed by a server roll so it spans 0.30 to 0.95 of the bar. A press is a single `Action("CaptureSeal", token)` with no timing data. `CaptureSession:seal(token, key, obs)` judges it by the server's clock when the request arrived: a hit means the marker had reached the band and had left it no more than **0.15 s** earlier. That 0.15 s is the latency allowance for the tap's trip to the server; it widens the band only on its late edge, by 0.09 of the bar. A press before the marker moves, or while still calming, is ignored (`NotReady`, no penalty). A miss, or no press by 0.15 s after the sweep, ends `SealMissed`: the Lumipol flees and hides, the 6 s retry wait starts, and it counts toward the three-failure hold-off. Bag and collection room are read again at the press. During the seal only leaving (`TooFar`), death and a strike end it; the ring is no longer judged. The reservation holds throughout, so a second player gets `Reserved` and cannot seal someone else's session (`InvalidToken`).
+
+A start on a wary Lumipol (`Alert`, `Flee`, or hiding before the peek) is refused as `Wary` after the claim checks. The server also hides the prompt then.
+
+`SealMissed` was added to the analytics vocabulary (`WildboundAnalytics.EVENTS.capture_end`), which the wiring contract pins to the rule's endings.
+
+### A3 (words). Spanish text module (H3)
+
+`ReplicatedStorage.WildboundText` holds every player-facing string on the capture path: ending and refusal notices (64 bytes at most), ending headlines with phone forms (14 bytes at most), ring, seal and Stop words, arrow words, the Lumipol prompt (`Calmar`) and the reaction hints. The capture rule keeps no words any more: `CaptureSession.NOTICES` is gone because the rule's purity contract forbids `require`; the server fills `notice` from the text module. `WildboundCaptureView` requires its sibling `WildboundText`. Other HUD and camp strings stay English until delivery F.

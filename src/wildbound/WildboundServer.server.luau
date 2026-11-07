@@ -9,6 +9,8 @@ local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"))
+-- H3: the capture path's player-facing words, in Spanish.
+local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
 -- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
@@ -113,9 +115,9 @@ local notices = {
 	NeedsPrerequisite = "Learn the first skill of this branch first.",
 	EffectPending = "This skill's effect is not in the build yet, so it cannot be bought.",
 }
--- The capture rule owns the words for its own refusals and endings.
-for reason, text in pairs(Capture.NOTICES) do
-	if notices[reason] == nil and text ~= "" then notices[reason] = text end
+-- The capture path's own refusals and endings read the shared text module first (H3).
+local function captureNotice(reason)
+	return Text.CAPTURE_NOTICES[reason] or notices[reason] or Text.CAPTURE_NOTICES.InvalidPlayer
 end
 -- Walk speed is the slower of the egg speed (M3.5) and the pouch load step (M5.2). Set when a reply is
 -- sent and for each new character.
@@ -351,7 +353,7 @@ local function startCapture(player, entry)
 	local root = rootOf(player)
 	local snapshot = state:snapshot(player.UserId)
 	if not alive or not root or not snapshot then
-		reply(player, "Capture", false, "InvalidContext")
+		send(player, "Capture", false, captureNotice("InvalidContext"))
 		return
 	end
 	local bag, collection = state:captureRoom(player.UserId)
@@ -362,10 +364,12 @@ local function startCapture(player, entry)
 		distance = distance, x = position.X, y = position.Y, z = position.Z,
 		encounterStatus = state:encounterStatus(entry.id) or "Gone",
 		slotRefusal = Wild.slotRefusal(entry.slot.tier, snapshot), bagRoom = bag, collectionRoom = collection,
+		-- Delivery A: a scared Lumipol refuses; the seal band is wide on Safe slots and placed by a server roll.
+		wary = Wild.wary(entry.brain), tier = entry.slot.tier, sealRoll = rng:NextNumber(),
 	})
 	if not ok then
 		counters.rejected += 1
-		reply(player, "Capture", false, result)
+		send(player, "Capture", false, captureNotice(result))
 		return
 	end
 	counters.started += 1
@@ -383,7 +387,7 @@ handleEnding = function(out)
 	local entry = entries[out.encounterId]
 	local player = playersByUserId[out.playerKey]
 	local now = workspace:GetServerTimeNow()
-	local notice, granted = out.notice, false
+	local notice, granted = Text.CAPTURE_NOTICES[out.reason] or "", false
 	if out.grant then
 		local alive = player ~= nil and context(player) == true
 		local ok, reason = state:completeCapture(out.playerKey, out.encounterId, alive,
@@ -395,7 +399,7 @@ handleEnding = function(out)
 		else
 			-- The rule said finished but the bag disagreed. Nothing is granted and the Lumipol still goes.
 			counters.grantRefused += 1
-			notice = notices[reason] or "That action is not available."
+			notice = captureNotice(reason)
 		end
 		if entry then
 			removeEntry(entry, now)
@@ -441,7 +445,8 @@ spawnEncounter = function(slot)
 	local isEgg = slot.kind == "Egg"
 	local entry = { id = id, slot = slot, model = model, body = body, bodyY = body.Position.Y }
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
-	entry.prompt = prompt(body, isEgg and "Collect" or "Calm", isEgg and "Lumipol egg" or "Lumipol", 10, isEgg and 0.25 or 0)
+	entry.prompt = prompt(body, isEgg and "Collect" or Text.PROMPTS.calm, isEgg and "Lumipol egg" or Text.PROMPTS.lumipol, 10,
+		isEgg and 0.25 or 0)
 	if not isEgg then
 		entry.brain = Wild.newBrain(slot, rand, { cover = coverCandidates })
 		model:SetAttribute("Mode", entry.brain.mode)
@@ -753,13 +758,20 @@ end
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
 	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Protect" and action ~= "Hatch"
-		and action ~= "CaptureCancel" and not ECONOMY_ACTIONS[action] then return end
+		and action ~= "CaptureCancel" and action ~= "CaptureSeal" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
 		send(player, action, true, "Session only: collection resets when you leave this server.")
 		return
 	end
 	if type(uid) ~= "string" or #uid == 0 or #uid > 128 or not allowed(player, action) then return end
+	if action == "CaptureSeal" then
+		-- H1: the token is untrusted and carries no timing. The rule judges the press by this server's clock when the
+		-- request arrived, with values read here. A wrong owner, a stale token or an early press is ignored silently.
+		local ok, out = capture:seal(uid, player.UserId, observe(player, workspace:GetServerTimeNow()))
+		if ok and out then handleEnding(out) end
+		return
+	end
 	if action == "CaptureCancel" then
 		-- The token is untrusted. A wrong owner, a stale or a made-up one is ignored without a reply.
 		local ok, out = capture:cancel(uid, player.UserId, workspace:GetServerTimeNow())

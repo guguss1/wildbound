@@ -2,7 +2,10 @@
 -- ring is drawn from the server clock, where the panel and the Stop button sit. Nothing here reads a service
 -- or touches an interface object; the clock and every measurement are passed in. Shared with the client.
 -- See docs/mechanics/wildbound-capture.md (Touch UI flow) and docs/ui/wildbound-world.md.
+-- Delivery A: every word comes from the shared Spanish text module (H3), and the seal step has its own state (H1).
 local View = {}
+local Text = require(script.Parent:WaitForChild("WildboundText"))
+local WORDS = Text.CAPTURE_VIEW
 
 -- Hypotheses. CALM_REQUIRED, OUTSIDE_LIMIT and RING_VISIBLE copy the capture rule's numbers (a contract checks).
 View.CONSTANTS = table.freeze({
@@ -56,18 +59,8 @@ end
 
 local PHASES = table.freeze({ Active = true, Completed = true, Failed = true, Cancelled = true })
 
--- Headline per ending reason: { full, short }. The short form is for phone panels, at most 16 characters.
-local REASONS = table.freeze({
-	LeftRing = table.freeze({ "You left the ring", "Left the ring" }),
-	TimedOut = table.freeze({ "Too restless", "Too restless" }),
-	TooFar = table.freeze({ "Too far from it", "Too far away" }),
-	Struck = table.freeze({ "Silueta struck you", "Silueta struck!" }),
-	Defeated = table.freeze({ "You were defeated", "Defeated" }),
-	Cancelled = table.freeze({ "You stopped", "You stopped" }),
-	Lost = table.freeze({ "Lumipol is gone", "It is gone" }),
-	LostTrack = table.freeze({ "Lost track of you", "Lost track" }),
-	Watchdog = table.freeze({ "Capture stopped", "Capture stopped" }),
-})
+-- Headline per ending reason: { full, short }, from the text module. The short form is for phone panels.
+local REASONS = Text.CAPTURE_HEADLINES
 
 function View.reasonText(reason, compact)
 	local row = type(reason) == "string" and REASONS[reason]
@@ -77,6 +70,7 @@ end
 
 local GLYPHS = table.freeze({
 	Calm = "o", Slow = "||", Step = ">", Outside = "!", Waiting = "...", Caught = "OK", Failed = "X", Stopped = "=",
+	Seal = "<>",
 })
 
 local function hidden()
@@ -89,6 +83,17 @@ local function fractionOf(calm)
 	return math.clamp(calm / K.CALM_REQUIRED, 0, 1)
 end
 
+local function validSeal(seal)
+	return type(seal) == "table" and finite(seal.startedAt) and finite(seal.sweep) and seal.sweep > 0
+		and finite(seal.lo) and finite(seal.hi) and seal.lo >= 0 and seal.lo < seal.hi and seal.hi <= 1
+end
+
+-- H1: where the seal marker is on the bar at this server time, 0 to 1. It waits at 0 until the sweep starts.
+function View.sealMarker(seal, serverNow)
+	if not validSeal(seal) or not finite(serverNow) then return nil end
+	return math.clamp((serverNow - seal.startedAt) / seal.sweep, 0, 1)
+end
+
 local function view(state, tonename, headline, detail, fraction, extra)
 	local value = { visible = true, state = state, glyph = GLYPHS[state], headline = headline, detail = detail,
 		fraction = fraction, tone = tonename, ringStyle = "hidden", ringTone = "inside", arrow = false, pulse = false }
@@ -96,9 +101,10 @@ local function view(state, tonename, headline, detail, fraction, extra)
 	return value
 end
 
--- snap is the held CaptureState snapshot. info = { age, sinceEnd, ringDistance, reduced, compact }:
+-- snap is the held CaptureState snapshot. info = { age, sinceEnd, ringDistance, reduced, compact, serverNow }:
 -- age is seconds since the last push, sinceEnd seconds since the ending arrived, ringDistance the studs
--- from the player to the ring centre. Priority while active: waiting, outside, slow, step, calm.
+-- from the player to the ring centre, serverNow the synced server clock for the seal marker.
+-- Priority while active: waiting, seal, outside, slow, step, calm.
 function View.status(snap, info)
 	info = type(info) == "table" and info or {}
 	if type(snap) ~= "table" or not PHASES[snap.phase] or not validToken(snap.token) then return hidden() end
@@ -107,24 +113,28 @@ function View.status(snap, info)
 	if snap.phase == "Active" then
 		local stale = not finite(info.age) or info.age < 0 or info.age > K.STALE_AFTER
 		if stale then
-			return view("Waiting", "waiting", compact and "Waiting..." or "Waiting for server...",
-				"No news from the server. The ring keeps its last place.", fraction, { ringStyle = "dashed" })
+			return view("Waiting", "waiting", compact and WORDS.waitingShort or WORDS.waiting, WORDS.waitingDetail, fraction,
+				{ ringStyle = "dashed" })
+		end
+		if snap.stage == "Seal" and validSeal(snap.seal) then
+			return view("Seal", "step", compact and WORDS.sealShort or WORDS.seal, WORDS.sealDetail,
+				View.sealMarker(snap.seal, info.serverNow) or 0, { band = { lo = snap.seal.lo, hi = snap.seal.hi } })
 		end
 		if snap.inside ~= true then
 			local spent = finite(snap.outsideFor) and snap.outsideFor or 0
 			local left = math.clamp(K.OUTSIDE_LIMIT - spent, 0, K.OUTSIDE_LIMIT)
-			local line = (compact and "Back in! " or "Back into the ring ") .. ("%.1fs"):format(left)
-			return view("Outside", "outside", line, "Get back inside before time runs out.", fraction,
+			local line = (compact and WORDS.outsideShort or WORDS.outside) .. ("%.1fs"):format(left)
+			return view("Outside", "outside", line, WORDS.outsideDetail, fraction,
 				{ ringStyle = "dashed", ringTone = "outside", arrow = true })
 		end
 		if snap.moving == true then
-			return view("Slow", "slow", "Slow down", "Stand still to fill the bar.", fraction, { ringStyle = "solid" })
+			return view("Slow", "slow", WORDS.slow, WORDS.slowDetail, fraction, { ringStyle = "solid" })
 		end
 		if finite(info.ringDistance) and info.ringDistance >= K.RING_VISIBLE - K.STEP_MARGIN then
-			return view("Step", "step", "Step this way", "Take one step toward the ring's middle.", fraction,
+			return view("Step", "step", WORDS.step, WORDS.stepDetail, fraction,
 				{ ringStyle = "solid", arrow = true, pulse = info.reduced ~= true })
 		end
-		return view("Calm", "calm", "Stay still...", "Stay inside the glowing ring.", fraction,
+		return view("Calm", "calm", WORDS.calm, WORDS.calmDetail, fraction,
 			{ ringStyle = "solid", pulse = info.reduced ~= true })
 	end
 	local showing = finite(info.sinceEnd) and info.sinceEnd >= 0 and info.sinceEnd < K.RESULT_SECONDS
@@ -132,10 +142,12 @@ function View.status(snap, info)
 	if snap.reason == "Disconnected" then showing = false end
 	local value
 	if snap.phase == "Completed" then
-		-- The headline already says "Caught!", so the line under it starts after that word.
-		value = view("Caught", "good", "Caught!", (notice:gsub("^Caught!%s*", "")), 1)
+		-- The headline already says the Caught word, so the line under it starts after it.
+		local detail = notice
+		if detail:sub(1, #WORDS.caught) == WORDS.caught then detail = (detail:sub(#WORDS.caught + 1):gsub("^%s+", "")) end
+		value = view("Caught", "good", WORDS.caught, detail, 1)
 	else
-		local headline = View.reasonText(snap.reason, compact) or "Capture ended"
+		local headline = View.reasonText(snap.reason, compact) or WORDS.ended
 		value = view(snap.phase == "Cancelled" and "Stopped" or "Failed", "failed", headline, notice, fraction)
 	end
 	value.visible = showing
@@ -145,6 +157,12 @@ end
 -- The token the Stop button sends back. Only a running session has one.
 function View.stopToken(snap)
 	if type(snap) ~= "table" or snap.phase ~= "Active" or not validToken(snap.token) then return nil end
+	return snap.token
+end
+
+-- H1: the token the Seal button sends back. Only a running session with an open seal has one.
+function View.sealToken(snap)
+	if View.stopToken(snap) == nil or snap.stage ~= "Seal" or not validSeal(snap.seal) then return nil end
 	return snap.token
 end
 
@@ -166,6 +184,7 @@ function View.merge(held, incoming)
 	else
 		merged.ring = nil
 	end
+	merged.seal = validSeal(incoming.seal) and table.clone(incoming.seal) or nil
 	return merged
 end
 
@@ -180,8 +199,12 @@ function View.arrow(px, pz, cx, cz, lookX, lookZ)
 	local fx, fz = lookX / length, lookZ / length
 	local rx, rz = -fz, fx
 	local degrees = math.deg(math.atan2(dx * rx + dz * rz, dx * fx + dz * fz)) % 360
-	local words = { "ahead", "ahead right", "right", "back right", "back", "back left", "left", "ahead left" }
-	return degrees, words[math.floor((degrees + 22.5) / 45) % 8 + 1]
+	return degrees, Text.ARROWS[math.floor((degrees + 22.5) / 45) % 8 + 1]
+end
+
+-- The detail line under the arrow: "Muévete <word>."
+function View.moveLine(word)
+	return WORDS.move:format(tostring(word))
 end
 
 -- The ring as short straight segments on the ground. rotY turns a part whose long side runs along X so it

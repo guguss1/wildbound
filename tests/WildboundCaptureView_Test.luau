@@ -2,7 +2,8 @@
 -- require(freshSessionClone), freshViewClone.Source). Pure view-model for the touch capture screen: what each
 -- state says, which shape marks it, how the world ring is drawn from the server clock, where the panel and the
 -- Stop button sit. Nothing here touches an interface object. CAP numbers refer to docs/mechanics/wildbound-capture.md.
-return function(View, Layout, CaptureSession, source)
+-- Delivery A: the words come from WildboundText (passed fifth), and the seal step has its own state (H1, H3).
+return function(View, Layout, CaptureSession, source, Text)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -22,6 +23,7 @@ return function(View, Layout, CaptureSession, source)
 	local NAN, INF = 0 / 0, math.huge
 	local K = View.CONSTANTS
 	local S = CaptureSession.CONSTANTS
+	local V, N = Text.CAPTURE_VIEW, Text.CAPTURE_NOTICES
 
 	local function active(extra)
 		local snap = { token = "cap:1", phase = "Active", calm = 1.5, inside = true, moving = false,
@@ -30,7 +32,7 @@ return function(View, Layout, CaptureSession, source)
 		return snap
 	end
 	local function ended(phase, reason, extra)
-		local snap = { token = "cap:1", phase = phase, reason = reason, notice = CaptureSession.NOTICES[reason] or "",
+		local snap = { token = "cap:1", phase = phase, reason = reason, notice = N[reason] or "",
 			calm = 2, inside = true, moving = false, outsideFor = 0, deadline = 12 }
 		for key, value in pairs(extra or {}) do snap[key] = value end
 		return snap
@@ -53,6 +55,9 @@ return function(View, Layout, CaptureSession, source)
 	end
 	local function overlap(a, b) return Layout.overlapArea(a, b) end
 
+	-- An open seal: the marker starts at server time 100 and crosses the bar in 1.6 s; the band is 0.4 to 0.6.
+	local SEAL = { startedAt = 100, sweep = 1.6, lo = 0.4, hi = 0.6 }
+
 	-- Status --------------------------------------------------------------------------------------
 
 	case("nothing to show without a snapshot, or with a junk one", function()
@@ -70,7 +75,7 @@ return function(View, Layout, CaptureSession, source)
 		local view = View.status(active({ calm = 2.25 }), info())
 		equal(view.visible, true)
 		equal(view.state, "Calm")
-		equal(view.headline, "Stay still...")
+		equal(view.headline, V.calm)
 		near(view.fraction, 0.5, 1e-9)
 		equal(view.ringStyle, "solid")
 		equal(view.arrow, false)
@@ -88,7 +93,7 @@ return function(View, Layout, CaptureSession, source)
 	case("moving too fast inside the ring says slow down and keeps the ring solid", function()
 		local view = View.status(active({ moving = true }), info())
 		equal(view.state, "Slow")
-		equal(view.headline, "Slow down")
+		equal(view.headline, V.slow)
 		equal(view.ringStyle, "solid")
 		equal(view.arrow, false)
 	end)
@@ -96,7 +101,7 @@ return function(View, Layout, CaptureSession, source)
 	case("outside the ring: words, a countdown, a dashed ring and an arrow back", function()
 		local view = View.status(active({ inside = false, outsideFor = 0.7 }), info())
 		equal(view.state, "Outside")
-		assert(view.headline:find("Back into the ring"), view.headline)
+		assert(view.headline:find(V.outside, 1, true), view.headline)
 		assert(view.headline:find("1.8s"), "countdown missing: " .. view.headline)
 		equal(view.ringStyle, "dashed")
 		equal(view.arrow, true)
@@ -118,7 +123,7 @@ return function(View, Layout, CaptureSession, source)
 		equal(early.arrow, false)
 		local view = View.status(active(), info({ ringDistance = edge }))
 		equal(view.state, "Step")
-		equal(view.headline, "Step this way")
+		equal(view.headline, V.step)
 		equal(view.arrow, true)
 		equal(view.ringStyle, "solid")
 		equal(View.status(active(), info({ ringDistance = 99 })).state, "Step")
@@ -140,7 +145,7 @@ return function(View, Layout, CaptureSession, source)
 	case("a server that went quiet reads as waiting, and claims nothing else", function()
 		local view = View.status(active({ calm = 4, inside = false }), info({ age = K.STALE_AFTER + 0.01 }))
 		equal(view.state, "Waiting")
-		equal(view.headline, "Waiting for server...")
+		equal(view.headline, V.waiting)
 		equal(view.arrow, false)
 		equal(View.status(active(), info({ age = K.STALE_AFTER })).state, "Calm")
 		equal(View.status(active(), info({ age = NAN })).state, "Waiting")
@@ -152,17 +157,17 @@ return function(View, Layout, CaptureSession, source)
 		local view = View.status(ended("Completed", "Completed", { calm = 4.5 }), info({ age = 99 }))
 		equal(view.visible, true)
 		equal(view.state, "Caught")
-		equal(view.headline, "Caught!")
+		equal(view.headline, V.caught)
 		near(view.fraction, 1)
 		equal(view.ringStyle, "hidden")
-		assert(view.detail:find("bag"), view.detail)
-		equal(View.status(ended("Completed", "Completed"), info({ compact = true })).headline, "Caught!")
+		assert(view.detail:find("campamento", 1, true), view.detail)
+		equal(View.status(ended("Completed", "Completed"), info({ compact = true })).headline, V.caught)
 	end)
 
 	case("the Caught line does not repeat its headline, and no line is too long for two lines", function()
 		local caught = View.status(ended("Completed", "Completed"), info())
-		assert(not caught.detail:find("^Caught!"), "repeats the headline: " .. caught.detail)
-		assert(caught.detail:find("bag"), caught.detail)
+		assert(caught.detail:sub(1, #V.caught) ~= V.caught, "repeats the headline: " .. caught.detail)
+		assert(caught.detail:find("campamento", 1, true), caught.detail)
 		for _, snap in ipairs({ active(), active({ moving = true }), active({ inside = false }), ended("Failed", "LeftRing"),
 			ended("Failed", "Struck"), ended("Failed", "TimedOut"), ended("Failed", "TooFar"), ended("Completed", "Completed") }) do
 			local view = View.status(snap, info({ age = 0.2 }))
@@ -171,7 +176,8 @@ return function(View, Layout, CaptureSession, source)
 	end)
 
 	case("every way a capture can end has a headline, a short form and the server's own words", function()
-		local reasons = { "LeftRing", "TimedOut", "TooFar", "Struck", "Defeated", "Cancelled", "Lost", "LostTrack", "Watchdog" }
+		local reasons = { "LeftRing", "TimedOut", "TooFar", "Struck", "Defeated", "Cancelled", "Lost", "LostTrack", "Watchdog",
+			"SealMissed" }
 		local seen = {}
 		for _, reason in ipairs(reasons) do
 			local phase = reason == "Cancelled" and "Cancelled" or "Failed"
@@ -180,7 +186,8 @@ return function(View, Layout, CaptureSession, source)
 			assert(full.visible and short.visible, reason .. " must show")
 			assert(full.headline ~= "" and short.headline ~= "", reason .. " has no text")
 			assert(#short.headline <= 16, reason .. " short form too long: " .. short.headline)
-			equal(full.detail, CaptureSession.NOTICES[reason], reason)
+			equal(full.detail, N[reason], reason)
+			equal(full.headline, Text.CAPTURE_HEADLINES[reason][1], reason)
 			assert(not seen[full.headline], "two reasons share the headline " .. full.headline)
 			seen[full.headline] = true
 			equal(full.ringStyle, "hidden")
@@ -201,7 +208,7 @@ return function(View, Layout, CaptureSession, source)
 	case("an unknown ending reason still says something plain", function()
 		local view = View.status(ended("Failed", "Mystery", { notice = "" }), info())
 		equal(view.visible, true)
-		equal(view.headline, "Capture ended")
+		equal(view.headline, V.ended)
 		equal(View.status(ended("Failed", nil, { notice = "Odd one." }), info()).detail, "Odd one.")
 	end)
 
@@ -222,6 +229,7 @@ return function(View, Layout, CaptureSession, source)
 			View.status(active(), info({ ringDistance = 4.4 })), View.status(active({ inside = false }), info()),
 			View.status(active(), info({ age = 5 })), View.status(ended("Completed", "Completed"), info()),
 			View.status(ended("Failed", "LeftRing"), info()), View.status(ended("Cancelled", "Cancelled"), info()),
+			View.status(active({ stage = "Seal", seal = SEAL }), info({ serverNow = 101 })),
 		}
 		local glyphs, words, tones = {}, {}, {}
 		for _, view in ipairs(states) do
@@ -232,7 +240,7 @@ return function(View, Layout, CaptureSession, source)
 			tones[view.tone] = true
 			assert(View.TONES[view.tone], "unknown tone " .. tostring(view.tone))
 		end
-		equal(#states, 8)
+		equal(#states, 9)
 	end)
 
 	case("every tone keeps readable text and a visible meter", function()
@@ -267,6 +275,71 @@ return function(View, Layout, CaptureSession, source)
 		equal(View.stopToken(nil), nil)
 		equal(View.stopToken("cap:1"), nil)
 	end)
+
+	-- The seal step (H1) ---------------------------------------------------------------------------
+
+	case("H1: an open seal shows its own words, a marker drawn from the server clock and the band, and no ring", function()
+		local view = View.status(active({ stage = "Seal", seal = SEAL }), info({ serverNow = 100.8 }))
+		equal(view.visible, true)
+		equal(view.state, "Seal")
+		equal(view.headline, V.seal)
+		equal(view.detail, V.sealDetail)
+		near(view.fraction, 0.5, 1e-9)
+		equal(view.ringStyle, "hidden")
+		equal(view.arrow, false)
+		near(view.band.lo, 0.4); near(view.band.hi, 0.6)
+		equal(View.status(active({ stage = "Seal", seal = SEAL }), info({ serverNow = 100.8, compact = true })).headline, V.sealShort)
+	end)
+
+	case("H1: the marker is clamped to the bar and waits at 0 before the sweep starts", function()
+		near(View.sealMarker(SEAL, 99), 0); near(View.sealMarker(SEAL, 100), 0)
+		near(View.sealMarker(SEAL, 100.4), 0.25, 1e-9); near(View.sealMarker(SEAL, 200), 1)
+		equal(View.sealMarker(SEAL, NAN), nil); equal(View.sealMarker(nil, 100), nil)
+		equal(View.sealMarker({ startedAt = 0, sweep = 0, lo = 0.4, hi = 0.6 }, 1), nil, "a zero sweep")
+	end)
+
+	case("H1: a seal outranks the ring cues, but a quiet server still reads as waiting", function()
+		equal(View.status(active({ stage = "Seal", seal = SEAL, inside = false, moving = true }), info({ serverNow = 100.5 })).state, "Seal")
+		equal(View.status(active({ stage = "Seal", seal = SEAL }), info({ serverNow = 100.5, age = 9 })).state, "Waiting")
+		equal(View.status(active({ stage = "Seal" }), info({ serverNow = 100.5 })).state, "Calm", "a seal stage without a band")
+		equal(View.status(active({ stage = "Seal", seal = SEAL }), info({ serverNow = NAN })).fraction, 0)
+	end)
+
+	case("H1: the seal button needs a live token in an open seal", function()
+		equal(View.sealToken(active({ stage = "Seal", seal = SEAL })), "cap:1")
+		equal(View.sealToken(active()), nil)
+		equal(View.sealToken(active({ stage = "Seal" })), nil)
+		equal(View.sealToken(ended("Failed", "SealMissed", { stage = "Seal", seal = SEAL })), nil)
+		equal(View.sealToken(nil), nil)
+		equal(View.stopToken(active({ stage = "Seal", seal = SEAL })), "cap:1", "Stop still works during the seal")
+	end)
+
+	case("H1: a seal push is held with its band; a junk band is dropped", function()
+		local held = View.merge(nil, active({ stage = "Seal", seal = SEAL }))
+		equal(held.seal.lo, 0.4)
+		assert(held.seal ~= SEAL, "copied")
+		local bad = View.merge(nil, active({ stage = "Seal", seal = { startedAt = NAN, sweep = 1.6, lo = 0.4, hi = 0.6 } }))
+		equal(bad.seal, nil)
+		local flipped = View.merge(nil, active({ stage = "Seal", seal = { startedAt = 1, sweep = 1.6, lo = 0.7, hi = 0.6 } }))
+		equal(flipped.seal, nil)
+	end)
+
+	case("H1: a missed seal has its own headline and the server's words", function()
+		local view = View.status(ended("Failed", "SealMissed"), info())
+		equal(view.state, "Failed")
+		equal(view.headline, Text.CAPTURE_HEADLINES.SealMissed[1])
+		equal(view.detail, N.SealMissed)
+	end)
+
+	case("H3: the view's words all come from WildboundText", function()
+		equal(View.reasonText("LeftRing", false), Text.CAPTURE_HEADLINES.LeftRing[1])
+		equal(View.reasonText("LeftRing", true), Text.CAPTURE_HEADLINES.LeftRing[2])
+		assert(source:find("WildboundText", 1, true), "reads the text module")
+		for _, english in ipairs({ "Stay still", "Slow down", "Step this way", "Caught!", "Back in", "Capture ended" }) do
+			assert(not source:find(english, 1, true), "English left in the view: " .. english)
+		end
+	end)
+
 
 	-- Holding the snapshot ------------------------------------------------------------------------
 
@@ -308,15 +381,17 @@ return function(View, Layout, CaptureSession, source)
 		near(angle(5, 0, 1, 0), 0, 1e-6, "looking east")
 		near(angle(0, 5, 1, 0), 90, 1e-6, "looking east, ring south")
 		near(angle(3, -3, 0, -1), 45, 1e-6, "ahead right")
+		local W = Text.ARROWS
 		local _, word = View.arrow(0, 0, 0, -5, 0, -1)
-		equal(word, "ahead")
-		equal(select(2, View.arrow(0, 0, 5, -1, 0, -1)), "right")
-		equal(select(2, View.arrow(0, 0, 4, -4, 0, -1)), "ahead right")
-		equal(select(2, View.arrow(0, 0, 0, 5, 0, -1)), "back")
-		equal(select(2, View.arrow(0, 0, -5, 4, 0, -1)), "back left")
-		equal(select(2, View.arrow(0, 0, -5, 0, 0, -1)), "left")
-		equal(select(2, View.arrow(0, 0, -4, -4, 0, -1)), "ahead left")
-		equal(select(2, View.arrow(0, 0, 4, 4, 0, -1)), "back right")
+		equal(word, W[1])
+		equal(select(2, View.arrow(0, 0, 5, -1, 0, -1)), W[3])
+		equal(select(2, View.arrow(0, 0, 4, -4, 0, -1)), W[2])
+		equal(select(2, View.arrow(0, 0, 0, 5, 0, -1)), W[5])
+		equal(select(2, View.arrow(0, 0, -5, 4, 0, -1)), W[6])
+		equal(select(2, View.arrow(0, 0, -5, 0, 0, -1)), W[7])
+		equal(select(2, View.arrow(0, 0, -4, -4, 0, -1)), W[8])
+		equal(select(2, View.arrow(0, 0, 4, 4, 0, -1)), W[4])
+		equal(View.moveLine(W[3]), V.move:format(W[3]))
 	end)
 
 	case("the arrow has no answer for a degenerate input", function()
@@ -479,9 +554,11 @@ return function(View, Layout, CaptureSession, source)
 				View.status(active(), info({ compact = compact, ringDistance = 4 })).headline,
 				View.status(active(), info({ compact = compact, age = 9 })).headline,
 			}
-			for _, reason in ipairs({ "LeftRing", "TimedOut", "TooFar", "Struck", "Defeated", "Cancelled", "Lost", "LostTrack", "Watchdog" }) do
+			for _, reason in ipairs({ "LeftRing", "TimedOut", "TooFar", "Struck", "Defeated", "Cancelled", "Lost", "LostTrack", "Watchdog",
+				"SealMissed" }) do
 				table.insert(lines, View.status(ended("Failed", reason), info({ compact = compact })).headline)
 			end
+			table.insert(lines, View.status(active({ stage = "Seal", seal = SEAL }), info({ compact = compact, serverNow = 101 })).headline)
 			for _, line in ipairs(lines) do
 				assert(#line <= spot.chars, device.name .. ": \"" .. line .. "\" is " .. #line .. " characters, room for " .. spot.chars)
 			end

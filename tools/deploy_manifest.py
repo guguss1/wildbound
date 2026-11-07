@@ -115,6 +115,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundFunnel.luau", "ServerScriptService.WildboundFunnel"),
     ("tests/WildboundFunnel_Test.luau", "ServerStorage.WildboundFunnel_Test"),
     ("tests/WildboundAnalyticsWiring_Test.luau", "ServerStorage.WildboundAnalyticsWiring_Test"),
+    # Delivery A, capture redesign: the shared Spanish text module (H3)
+    ("src/wildbound/WildboundText.luau", "ReplicatedStorage.WildboundText"),
+    ("tests/WildboundText_Test.luau", "ServerStorage.WildboundText_Test"),
 ]
 
 

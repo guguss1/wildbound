@@ -1,5 +1,7 @@
 -- Invoke with require(freshTestClone)(require(freshCaptureClone), freshCaptureClone.Source) in Studio
 -- Edit or Server. Time and positions are injected. CAP numbers refer to docs/mechanics/wildbound-capture.md.
+-- Delivery A (H1): a full calm meter opens a timed seal step; only a press inside the band completes. The rule names
+-- reasons only; the words live in WildboundText (tests/WildboundText_Test.luau).
 return function(CaptureSession, source)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -51,7 +53,20 @@ return function(CaptureSession, source)
 	local function center(view, now)
 		return CaptureSession.ringCenter(view.ring, now - view.ring.startedAt)
 	end
-	-- Samples at the fixed step from step `first`, placing the player with place(now). Stops on an ending.
+	-- The middle of an open seal band, in server seconds.
+	local function sealMiddle(seal)
+		return seal.startedAt + seal.sweep * (seal.lo + seal.hi) / 2
+	end
+	-- Presses the seal at the band's middle for the session's own player.
+	local function hit(capture, token, seal, extra)
+		local session = capture.sessions[token]
+		local obs = { now = sealMiddle(seal), alive = true, life = session and session.life, bagRoom = true,
+			collectionRoom = true }
+		for key, value in pairs(extra or {}) do obs[key] = value end
+		return capture:seal(token, session and session.playerKey, obs)
+	end
+	-- Samples at the fixed step from step `first`, placing the player with place(now). Stops on an ending. A full
+	-- meter opens the seal step; run presses it at the band's middle and returns that ending with the calm time.
 	local function run(capture, view, first, last, place)
 		local out
 		for k = first, last do
@@ -59,6 +74,10 @@ return function(CaptureSession, source)
 			local x, z, extra = place(now, k)
 			out = capture:sample(view.token, at(now, x, z, extra))
 			if not out or out.phase ~= "Active" then return out, now end
+			if out.stage == "Seal" then
+				local _, ended = hit(capture, view.token, out.seal)
+				return ended, now
+			end
 		end
 		return out, view.ring.startedAt + last * C.SAMPLE
 	end
@@ -468,10 +487,10 @@ return function(CaptureSession, source)
 			ended = k * 0.05
 			local x, z = center(view, ended)
 			out = capture:sample(view.token, at(ended, x, z))
-			if out.phase ~= "Active" then break end
+			if out.phase ~= "Active" or out.stage == "Seal" then break end
 		end
-		equal(out.reason, "Completed")
-		assert(ended + 1e-6 >= C.CALM_REQUIRED, "completed at " .. ended)
+		equal(out.stage, "Seal")
+		assert(ended + 1e-6 >= C.CALM_REQUIRED, "the seal opened at " .. ended)
 	end)
 
 	-- Who may end what.
@@ -496,7 +515,7 @@ return function(CaptureSession, source)
 		local ok, out = capture:cancel(view.token, 1, 1)
 		equal(ok, true)
 		equal(out.phase, "Cancelled"); equal(out.reason, "Cancelled"); equal(out.grant, false)
-		equal(out.spook, true); equal(out.notice, CaptureSession.NOTICES.Cancelled)
+		equal(out.spook, true); equal(out.notice, nil)
 		nothingHeld(capture)
 		for _ = 1, 20 do
 			local again, why = capture:cancel(view.token, 1, 1.1)
@@ -595,7 +614,7 @@ return function(CaptureSession, source)
 		local view = start(capture)
 		local out = capture:drop(1, 1)
 		equal(out.reason, "Disconnected"); equal(out.phase, "Cancelled"); equal(out.grant, false)
-		equal(out.spook, false); equal(out.notice, ""); equal(out.retryAt, nil)
+		equal(out.spook, false); equal(out.notice, nil); equal(out.retryAt, nil)
 		nothingHeld(capture)
 		equal(capture:encounterState(ID, 1), "Free")
 		start(capture, { playerKey = 2, life = lifeB, now = 1 })
@@ -682,7 +701,7 @@ return function(CaptureSession, source)
 		local out = run(capture, view, 1, 40, followRing(view))
 		equal(out.reason, "Completed"); equal(out.phase, "Completed"); equal(out.grant, true)
 		equal(out.encounterId, ID); equal(out.playerKey, 1); equal(out.spook, false); equal(out.retryAt, nil)
-		equal(out.notice, CaptureSession.NOTICES.Completed)
+		equal(out.notice, nil)
 		nothingHeld(capture)
 		for _ = 1, 10 do
 			equal(capture:sample(view.token, at(6, 7, 0)), nil)
@@ -913,7 +932,7 @@ return function(CaptureSession, source)
 		local view = start(capture)
 		local out = capture:retire(ID, 1)
 		equal(out.reason, "Lost"); equal(out.grant, false); equal(out.spook, false); equal(out.retryAt, nil)
-		equal(out.notice, CaptureSession.NOTICES.Lost)
+		equal(out.notice, nil)
 		nothingHeld(capture)
 		equal(capture:sample(view.token, at(1.2, 7, 0)), nil)
 		equal(capture.counters.anomaly, 0)
@@ -1204,7 +1223,7 @@ return function(CaptureSession, source)
 		local view = start(capture)
 		local snapshot = CaptureSession.toSnapshot(view)
 		local allowed = { token = true, phase = true, calm = true, inside = true, moving = true,
-			outsideFor = true, deadline = true, ring = true }
+			outsideFor = true, deadline = true, ring = true, stage = true }
 		for key in pairs(snapshot) do assert(allowed[key], "extra field " .. tostring(key)) end
 		equal(snapshot.playerKey, nil); equal(snapshot.encounterId, nil)
 		equal(snapshot.token, view.token); equal(snapshot.phase, "Active")
@@ -1227,7 +1246,8 @@ return function(CaptureSession, source)
 		equal(snapshot.ring, nil)
 		equal(snapshot.moving, false); equal(snapshot.inside, true)
 		near(snapshot.calm, 0.2)
-		assert(count(snapshot) <= 7, "per-sample snapshot too large: " .. count(snapshot))
+		equal(snapshot.stage, "Calm")
+		assert(count(snapshot) <= 8, "per-sample snapshot too large: " .. count(snapshot))
 	end)
 
 	case("the ending snapshot carries the phase, the reason, the text and the retry moment", function()
@@ -1236,7 +1256,7 @@ return function(CaptureSession, source)
 		local _, out = capture:cancel(view.token, 1, 1)
 		local snapshot = CaptureSession.toSnapshot(out)
 		equal(snapshot.phase, "Cancelled"); equal(snapshot.reason, "Cancelled")
-		equal(snapshot.notice, CaptureSession.NOTICES.Cancelled)
+		equal(snapshot.notice, nil)
 		equal(snapshot.retryAt, 1 + C.RETRY_COOLDOWN)
 		equal(snapshot.ring, nil); equal(snapshot.playerKey, nil); equal(snapshot.encounterId, nil)
 		equal(snapshot.grant, nil)
@@ -1296,33 +1316,211 @@ return function(CaptureSession, source)
 		equal(capture:encounterState(ID, NAN), "Free")
 	end)
 
-	-- Reasons the player can state.
-	case("every reason has text short enough for a phone, and only leaving is silent", function()
-		local reasons = { "Completed", "LeftRing", "TimedOut", "TooFar", "Struck", "Defeated", "Cancelled",
-			"Lost", "LostTrack", "Watchdog", "BackpackFull", "CollectionFull", "AlreadyCapturing", "InvalidContext",
-			"InvalidEncounter", "AlreadyClaimed", "Reserved", "RetryWait", "FirstCaptureOnly", "FirstCapturePending",
-			"InvalidPlayer" }
-		for _, reason in ipairs(reasons) do
-			local text = CaptureSession.NOTICES[reason]
-			assert(type(text) == "string" and #text > 0 and #text <= 64, reason .. " text: " .. tostring(text))
-		end
-		equal(CaptureSession.NOTICES.Disconnected, "")
+	-- Reasons, not words (H3): the words live in WildboundText.
+	case("H3: endings carry a reason and no words; the rule keeps no text table", function()
+		equal(CaptureSession.NOTICES, nil)
+		local capture = fresh()
+		local view = start(capture)
+		local _, out = capture:cancel(view.token, 1, 1)
+		equal(out.reason, "Cancelled"); equal(out.notice, nil)
 	end)
 
-	case("the failure texts name their cause", function()
-		local N = CaptureSession.NOTICES
-		assert(string.find(N.LeftRing, "ring", 1, true), N.LeftRing)
-		assert(string.find(N.TooFar, "far", 1, true), N.TooFar)
-		assert(string.find(N.Struck, "Silueta", 1, true), N.Struck)
-		assert(string.find(N.Defeated, "defeated", 1, true), N.Defeated)
-		assert(string.find(N.TimedOut, "Stand still", 1, true), N.TimedOut)
-		assert(string.find(N.Cancelled, "stopped", 1, true), N.Cancelled)
-		assert(string.find(N.Completed, "Extract", 1, true), N.Completed)
+	-- The seal step (H1).
+	local function calmFull(capture, view)
+		for k = 1, 60 do
+			local now = k * C.SAMPLE
+			local x, z = center(view, now)
+			local out = capture:sample(view.token, at(now, x, z))
+			if out.phase ~= "Active" or out.stage == "Seal" then return out, now end
+		end
+		error("the meter never filled")
+	end
+	local function press(capture, token, now, extra, key)
+		local obs = { now = now, alive = true, life = lifeA, bagRoom = true, collectionRoom = true }
+		for name, value in pairs(extra or {}) do obs[name] = value end
+		return capture:seal(token, key or 1, obs)
+	end
+
+	case("H1: seal constants: a short delay, a 1.6 s sweep, a wide Safe band and a documented latency allowance", function()
+		equal(C.SEAL_DELAY, 0.4); equal(C.SEAL_SWEEP, 1.6); equal(C.SEAL_LATENCY, 0.15)
+		equal(C.SEAL_BAND, 0.2); equal(C.SEAL_BAND_SAFE, 0.36)
+		assert(C.SEAL_LO_MIN > 0 and C.SEAL_HI_MAX < 1 and C.SEAL_LO_MIN + C.SEAL_BAND_SAFE <= C.SEAL_HI_MAX, "band room")
+	end)
+
+	case("H1: a full meter opens the seal step instead of granting, and the encounter stays reserved", function()
+		local capture = fresh()
+		local view = start(capture)
+		local out, calmAt = calmFull(capture, view)
+		equal(out.phase, "Active"); equal(out.stage, "Seal"); equal(out.grant, nil)
+		near(calmAt, C.CALM_REQUIRED, C.SAMPLE + 1e-6)
+		local seal = out.seal
+		assert(table.isfrozen(seal), "seal frozen")
+		near(seal.startedAt, calmAt + C.SEAL_DELAY); equal(seal.sweep, C.SEAL_SWEEP)
+		near(seal.hi - seal.lo, C.SEAL_BAND)
+		assert(seal.lo >= C.SEAL_LO_MIN - 1e-9 and seal.hi <= C.SEAL_HI_MAX + 1e-9, "band inside the bar")
+		equal(capture.reservations[ID], view.token)
+		equal(capture:encounterState(ID, calmAt), "Reserved")
+		assert(out.deadline + 1e-9 >= seal.startedAt + seal.sweep + C.SEAL_LATENCY, "deadline covers the sweep")
+		local snapshot = CaptureSession.toSnapshot(out)
+		equal(snapshot.stage, "Seal"); equal(snapshot.seal.lo, seal.lo)
+		refused(capture, { playerKey = 2, life = lifeB, now = calmAt }, "Reserved", "a second player during the seal")
+	end)
+
+	case("H1: a press inside the band completes; both band edges count", function()
+		for _, edge in ipairs({ "lo", "mid", "hi" }) do
+			local capture = fresh()
+			local view = start(capture)
+			local out = calmFull(capture, view)
+			local seal = out.seal
+			local fraction = edge == "lo" and seal.lo or edge == "hi" and seal.hi or (seal.lo + seal.hi) / 2
+			local ok, ended = press(capture, view.token, seal.startedAt + seal.sweep * fraction)
+			equal(ok, true, edge)
+			equal(ended.reason, "Completed", edge); equal(ended.grant, true); equal(ended.phase, "Completed")
+			nothingHeld(capture)
+			equal(capture:encounterState(ID, 9), "Captured")
+		end
+	end)
+
+	case("H1: the latency allowance: a press up to SEAL_LATENCY after the band still hits, later misses", function()
+		local capture = fresh()
+		local view = start(capture)
+		local seal = calmFull(capture, view).seal
+		local bandEnd = seal.startedAt + seal.sweep * seal.hi
+		local _, ended = press(capture, view.token, bandEnd + C.SEAL_LATENCY - 0.01)
+		equal(ended.reason, "Completed")
+		local other = fresh()
+		local second = start(other)
+		local late = calmFull(other, second).seal
+		local _, missed = press(other, second.token, late.startedAt + late.sweep * late.hi + C.SEAL_LATENCY + 0.02)
+		equal(missed.reason, "SealMissed")
+	end)
+
+	case("H1: a press before the band misses: the Lumipol flees, a retry wait starts and it counts as a failure", function()
+		local capture = fresh()
+		local view = start(capture)
+		local seal = calmFull(capture, view).seal
+		local ok, ended = press(capture, view.token, seal.startedAt + seal.sweep * seal.lo - 0.05)
+		equal(ok, true)
+		equal(ended.reason, "SealMissed"); equal(ended.phase, "Failed"); equal(ended.grant, false)
+		equal(ended.spook, true)
+		assert(ended.retryAt and ended.retryAt > seal.startedAt, "a retry wait")
+		equal(capture.failures["n:1"][ID], 1)
+		nothingHeld(capture)
+		equal(capture:encounterState(ID, seal.startedAt + 1), "Spooked")
+	end)
+
+	case("H1: no press: the first sample after the sweep and its allowance ends SealMissed", function()
+		local capture = fresh()
+		local view = start(capture)
+		local out, calmAt = calmFull(capture, view)
+		local seal = out.seal
+		local closeAt = seal.startedAt + seal.sweep + C.SEAL_LATENCY
+		local now, ended = calmAt, nil
+		while not ended do
+			now += C.SAMPLE
+			local result = capture:sample(view.token, at(now, center(view, now)))
+			if result.phase ~= "Active" then ended = result else equal(result.stage, "Seal") end
+		end
+		equal(ended.reason, "SealMissed")
+		assert(now > closeAt and now <= closeAt + C.SAMPLE + 1e-6, "ended at " .. now)
+	end)
+
+	case("H1: during the seal the ring no longer matters, but leaving, dying and a strike still end it", function()
+		local capture = fresh()
+		local view = start(capture)
+		local _, calmAt = calmFull(capture, view)
+		local cx, cz = center(view, calmAt + 0.2)
+		local out = capture:sample(view.token, at(calmAt + 0.2, cx + 6, cz)) -- outside the ring, inside TooFar
+		equal(out.phase, "Active"); equal(out.stage, "Seal"); equal(out.inside, true, "the ring stopped being judged")
+		local far = capture:sample(view.token, at(calmAt + 0.4, 30, 0))
+		equal(far.reason, "TooFar")
+		for _, reason in ipairs({ "Defeated", "Struck" }) do
+			local other = fresh()
+			local second = start(other)
+			local _, t = calmFull(other, second)
+			local x, z = center(second, t + 0.2)
+			if reason == "Struck" then other:notifyStruck(1) end
+			local ended = other:sample(second.token, at(t + 0.2, x, z, reason == "Defeated" and { alive = false } or nil))
+			equal(ended.reason, reason)
+		end
+	end)
+
+	case("H1: a dead player's or a full bag's press does not complete", function()
+		for _, row in ipairs({ { extra = { alive = false }, reason = "Defeated" }, { extra = { life = lifeB }, reason = "Defeated" },
+			{ extra = { bagRoom = false }, reason = "BackpackFull" }, { extra = { collectionRoom = false }, reason = "CollectionFull" } }) do
+			local capture = fresh()
+			local view = start(capture)
+			local seal = calmFull(capture, view).seal
+			local _, ended = press(capture, view.token, sealMiddle(seal), row.extra)
+			equal(ended.reason, row.reason); equal(ended.grant, false)
+		end
+	end)
+
+	case("H1: only the owner's live token can seal; a press while calming or before the sweep is ignored", function()
+		local capture = fresh()
+		local view = start(capture)
+		equal(select(2, press(capture, view.token, 1)), "NotReady", "still calming")
+		local out = calmFull(capture, view)
+		local seal = out.seal
+		equal(select(2, press(capture, view.token, seal.startedAt - 0.1)), "NotReady", "before the marker moves")
+		for _, token in ipairs({ "", "cap:99", 1, NAN, {}, string.rep("t", 200) }) do
+			equal(select(2, press(capture, token, sealMiddle(seal))), "InvalidToken")
+		end
+		equal(select(2, press(capture, view.token, sealMiddle(seal), nil, 2)), "InvalidToken", "another player")
+		equal(select(2, capture:seal(view.token, 1, nil)), "NotReady", "no observation")
+		equal(select(2, press(capture, view.token, NAN)), "NotReady", "bad clock")
+		equal(capture.reservations[ID], view.token, "nothing above ended the session")
+		local ok, ended = press(capture, view.token, sealMiddle(seal))
+		equal(ok, true); equal(ended.reason, "Completed")
+		equal(select(2, press(capture, view.token, sealMiddle(seal))), "InvalidToken", "a replay")
+	end)
+
+	case("H1: two players, one Lumipol: one claim, and the loser cannot seal the winner's session", function()
+		local capture = fresh()
+		local view = start(capture)
+		refused(capture, { playerKey = 2, life = lifeB }, "Reserved")
+		local seal = calmFull(capture, view).seal
+		equal(select(2, press(capture, view.token, sealMiddle(seal), { life = lifeB }, 2)), "InvalidToken")
+		local _, ended = press(capture, view.token, sealMiddle(seal))
+		equal(ended.grant, true)
+		refused(capture, { playerKey = 2, life = lifeB, now = 9 }, "AlreadyClaimed")
+	end)
+
+	case("H1: the Safe tier gets the wide band; the roll places the band across the bar", function()
+		local function band(extra)
+			local capture = fresh()
+			local view = start(capture, extra)
+			return calmFull(capture, view).seal
+		end
+		local safe = band({ tier = "Safe" })
+		near(safe.hi - safe.lo, C.SEAL_BAND_SAFE)
+		near(band({ tier = "Territory" }).hi - band({ tier = "Territory" }).lo, C.SEAL_BAND)
+		near(band({ sealRoll = 0 }).lo, C.SEAL_LO_MIN)
+		near(band({ sealRoll = 0.999999 }).hi, C.SEAL_HI_MAX, 1e-5)
+		local middle = band({ sealRoll = 0.5 })
+		for _, roll in ipairs({ NAN, INF, -1, 2, "x" }) do
+			near(band({ sealRoll = roll }).lo, middle.lo, 1e-9, "a bad roll reads as 0.5: " .. tostring(roll))
+		end
+	end)
+
+	case("H1: the watchdog waits for the seal's own end", function()
+		local capture = fresh()
+		local view = start(capture)
+		local out = calmFull(capture, view)
+		equal(#capture:sweep(out.deadline + C.WATCHDOG_GRACE - 0.01), 0)
+		equal(#capture:sweep(out.deadline + C.WATCHDOG_GRACE), 1)
+	end)
+
+	case("A1: a wary Lumipol refuses a start after the claim checks, reserving nothing", function()
+		local capture = fresh()
+		refused(capture, { wary = true }, "Wary")
+		nothingHeld(capture)
+		start(capture, { wary = false })
+		refused(capture, { playerKey = 2, life = lifeB, wary = true }, "Reserved", "a reserved one says Reserved")
 	end)
 
 	case("constants and tables are frozen", function()
 		assert(table.isfrozen(C), "constants")
-		assert(table.isfrozen(CaptureSession.NOTICES), "notices")
 		local view = start(fresh())
 		assert(table.isfrozen(view.ring), "ring")
 	end)
@@ -1392,6 +1590,12 @@ return function(CaptureSession, source)
 					local x, z = center(positions[player], now)
 					local out = capture:sample(token, at(now, x, z))
 					ended(out)
+					if out and out.phase == "Active" and out.stage == "Seal" then
+						local press = rng:NextNumber() < 0.6 and sealMiddle(out.seal) or now + rng:NextNumber(0, 3)
+						local ok, sealed = capture:seal(token, player, { now = press, alive = true, life = lifeA,
+							bagRoom = true, collectionRoom = true })
+						if ok then ended(sealed) end
+					end
 				end
 			elseif roll < 0.84 then
 				local other = tokens[rng:NextInteger(1, 3)] or "cap:0"

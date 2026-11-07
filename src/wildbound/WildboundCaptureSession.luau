@@ -1,6 +1,8 @@
 -- Pure capture rule: one session per player, one owner per encounter, skill read from server positions.
 -- Inputs are server-read values passed by value and the clock is injected. Clients supply nothing here
--- except an untrusted token on cancel. See docs/mechanics/wildbound-capture.md for states and wiring.
+-- except an untrusted token on cancel and on seal. See docs/mechanics/wildbound-capture.md for states and wiring.
+-- Delivery A (H1): a full calm meter opens a timed seal step judged by the server's clock alone. The rule names
+-- reasons only; the words a player reads live in WildboundText (H3).
 local CaptureSession = {}
 CaptureSession.__index = CaptureSession
 
@@ -41,32 +43,18 @@ CaptureSession.CONSTANTS = table.freeze({
 	LONG_COOLDOWN = 45,
 	SPOOK_SECONDS = 2,
 	MAX_FAILS = 3,
-})
-
--- Text is authoritative: a player should be able to repeat back why a capture ended.
-CaptureSession.NOTICES = table.freeze({
-	Completed = "Caught! Lumipol is in your bag. Extract at camp to keep it.",
-	LeftRing = "You left the ring. Step back in when it drifts.",
-	TimedOut = "Too restless. Stand still inside the ring.",
-	TooFar = "You moved too far from the Lumipol.",
-	Struck = "Silueta struck you. The Lumipol fled.",
-	Defeated = "You were defeated. The Lumipol fled.",
-	Cancelled = "You stopped. The Lumipol backed away.",
-	Disconnected = "",
-	Lost = "The Lumipol is gone.",
-	LostTrack = "Lost track of you. The Lumipol is free again.",
-	Watchdog = "The capture stopped. Try again.",
-	BackpackFull = "Bag full. Return to camp to extract.",
-	CollectionFull = "Session collection limit reached (100 items).",
-	AlreadyCapturing = "Finish calming this Lumipol first.",
-	InvalidContext = "Move closer while alive and try again.",
-	InvalidEncounter = "This encounter is no longer available.",
-	InvalidPlayer = "That action is not available.",
-	AlreadyClaimed = "Someone collected this encounter.",
-	Reserved = "Another player is calming this Lumipol.",
-	RetryWait = "It is still wary. Try again in a few seconds.",
-	FirstCaptureOnly = "This one is too shy now. Look for Lumipols in the fog.",
-	FirstCapturePending = "Extract the Lumipol you are carrying first.",
+	-- H1 seal step. The marker waits SEAL_DELAY after the meter fills, then sweeps the bar from 0 to 1 in SEAL_SWEEP
+	-- seconds. The band is SEAL_BAND of the bar wide (SEAL_BAND_SAFE on Safe slots), placed by a server roll inside
+	-- [SEAL_LO_MIN, SEAL_HI_MAX]. A press counts when it arrives while the marker is in the band or up to SEAL_LATENCY
+	-- seconds after it left: the latency allowance for the trip from the player's tap to the server. The client sends
+	-- no timing; the server judges by its own clock when the request arrives.
+	SEAL_DELAY = 0.4,
+	SEAL_SWEEP = 1.6,
+	SEAL_BAND = 0.2,
+	SEAL_BAND_SAFE = 0.36,
+	SEAL_LO_MIN = 0.3,
+	SEAL_HI_MAX = 0.95,
+	SEAL_LATENCY = 0.15,
 })
 
 -- How each reason ends a session. `fail` counts toward MAX_FAILS. A server fault costs the player nothing.
@@ -84,6 +72,7 @@ local ENDINGS = table.freeze({
 	Lost = { phase = "Failed" },
 	LostTrack = { phase = "Failed" },
 	Watchdog = { phase = "Failed" },
+	SealMissed = { phase = "Failed", spook = true, retry = true, fail = true },
 })
 
 local C = CaptureSession.CONSTANTS
@@ -167,7 +156,8 @@ end
 
 -- Checks run in the order of the capture document, with no yield before the reservation.
 -- input = { playerKey, encounterId, dir, lumipolX, lumipolZ, now, alive, life, distance, x, y, z,
---           encounterStatus = "Open" | "Claimed" | other, slotRefusal?, bagRoom, collectionRoom }
+--           encounterStatus = "Open" | "Claimed" | other, slotRefusal?, bagRoom, collectionRoom,
+--           wary?, tier?, sealRoll? (0 to 1, a server roll for the band's place) }
 -- Returns true, view or false, reason.
 function CaptureSession:begin(input)
 	if type(input) ~= "table" then return false, "InvalidContext" end
@@ -188,6 +178,8 @@ function CaptureSession:begin(input)
 	local playerRetries = self.retries[key]
 	local hold = playerRetries and playerRetries[encounterId]
 	if hold and waiting(hold.untilAt, now, hold.span) then return false, "RetryWait" end
+	-- A1: the server's brain says it is too scared to be calmed (Alert, Flee, or hiding before it peeks).
+	if input.wary == true then return false, "Wary" end
 	if input.slotRefusal ~= nil then
 		return false, SLOT_REFUSALS[input.slotRefusal] and input.slotRefusal or "InvalidContext"
 	end
@@ -202,7 +194,7 @@ function CaptureSession:begin(input)
 		ring = buildRing(input), startedAt = now, deadline = now + C.TIME_LIMIT,
 		hardDeadline = now + C.TIME_LIMIT + C.MAX_STALL_EXTENSION, lastSample = now,
 		lastX = input.x, lastZ = input.z, pathTotal = 0, trail = { { t = now, c = 0 } }, calm = 0, outsideFor = 0, inside = true, moving = false,
-		struck = false, badSamples = 0,
+		struck = false, badSamples = 0, stage = "Calm", tier = input.tier, sealRoll = input.sealRoll, seal = nil,
 	}
 	self.sessions[token] = session
 	self.byPlayer[key] = token
@@ -212,7 +204,25 @@ end
 
 local function activeView(session)
 	return { token = session.token, phase = "Active", calm = session.calm, inside = session.inside,
-		moving = session.moving, outsideFor = session.outsideFor, deadline = session.deadline }
+		moving = session.moving, outsideFor = session.outsideFor, deadline = session.deadline, stage = session.stage,
+		seal = session.seal }
+end
+
+-- H1: the band for this session. A missing or unusable roll places it in the middle of its range.
+local function openSeal(session, now)
+	local width = session.tier == "Safe" and C.SEAL_BAND_SAFE or C.SEAL_BAND
+	local roll = session.sealRoll
+	if not finite(roll) or roll < 0 or roll > 1 then roll = 0.5 end
+	local lo = C.SEAL_LO_MIN + roll * (C.SEAL_HI_MAX - C.SEAL_LO_MIN - width)
+	session.stage = "Seal"
+	session.seal = table.freeze({ startedAt = now + C.SEAL_DELAY, sweep = C.SEAL_SWEEP, lo = lo, hi = lo + width })
+	local closes = session.seal.startedAt + C.SEAL_SWEEP + C.SEAL_LATENCY
+	session.deadline = math.max(session.deadline, closes)
+	session.hardDeadline = math.max(session.hardDeadline, closes)
+end
+
+local function sealCloses(session)
+	return session.seal.startedAt + session.seal.sweep + C.SEAL_LATENCY
 end
 
 -- The current state with the ring, for the first push and for a resync. Fresh table on every call.
@@ -259,7 +269,7 @@ local function finish(self, session, reason, now)
 		self.retries[session.key][session.encounterId] = { untilAt = retryAt, span = span }
 	end
 	local out = activeView(session)
-	out.phase, out.reason, out.notice = rule.phase, reason, CaptureSession.NOTICES[reason]
+	out.phase, out.reason = rule.phase, reason
 	-- Kept for the adapter's sake: a failure never removes a Lumipol any more. Only retire() does.
 	out.grant, out.leaves, out.spook = reason == "Completed", false, rule.spook == true
 	out.spookUntil, out.retryAt = rule.spook and at + C.SPOOK_SECONDS or nil, retryAt
@@ -317,6 +327,14 @@ function CaptureSession:sample(token, obs)
 		end
 	end
 	if session.struck then return finish(self, session, "Struck", now) end
+	-- H1: while the seal is open only the clock matters; the ring and the meter are done.
+	if session.stage == "Seal" then
+		if not clockOk or not placed then return badSample(self, session, now) end
+		session.badSamples = 0
+		session.lastSample, session.lastX, session.lastZ = now, obs.x, obs.z
+		if now > sealCloses(session) + EPSILON then return finish(self, session, "SealMissed", now) end
+		return activeView(session)
+	end
 	-- A server hitch cannot end the session early, but repeated hitches cannot hold the Lumipol forever.
 	if clockOk and placed and dt > C.STALL_AFTER + EPSILON then
 		session.deadline = math.min(session.deadline + dt, session.hardDeadline)
@@ -343,9 +361,32 @@ function CaptureSession:sample(token, obs)
 	if session.calm + EPSILON >= C.CALM_REQUIRED then
 		if obs.bagRoom ~= true then return finish(self, session, "BackpackFull", now) end
 		if obs.collectionRoom ~= true then return finish(self, session, "CollectionFull", now) end
-		return finish(self, session, "Completed", now)
+		openSeal(session, now)
 	end
 	return activeView(session)
+end
+
+-- H1: the owner pressed Seal. obs = { now, alive, life, bagRoom, collectionRoom }, all read by the server when the
+-- request arrived; the client sends only the token. Returns false, "InvalidToken" for a wrong owner, a stale or a
+-- malformed token, false, "NotReady" while calming or before the marker moves (no penalty), else true, ending.
+function CaptureSession:seal(token, key, obs)
+	local session = validId(token) and self.sessions[token]
+	if not session or session.key ~= playerKey(key) then return false, "InvalidToken" end
+	if session.stage ~= "Seal" or type(obs) ~= "table" or not finite(obs.now) then return false, "NotReady" end
+	local now = obs.now
+	local seal = session.seal
+	if now < seal.startedAt then return false, "NotReady" end
+	if obs.alive ~= true or obs.life ~= session.life then return true, finish(self, session, "Defeated", now) end
+	if self.reservations[session.encounterId] ~= token then
+		self.counters.anomaly += 1
+		return true, finish(self, session, "Lost", now)
+	end
+	local reached = (now - seal.startedAt) / seal.sweep
+	local left = (now - C.SEAL_LATENCY - seal.startedAt) / seal.sweep
+	if reached + EPSILON < seal.lo or left > seal.hi + EPSILON then return true, finish(self, session, "SealMissed", now) end
+	if obs.bagRoom ~= true then return true, finish(self, session, "BackpackFull", now) end
+	if obs.collectionRoom ~= true then return true, finish(self, session, "CollectionFull", now) end
+	return true, finish(self, session, "Completed", now)
 end
 
 -- A strike applies only to a session already running when it lands. Returns whether one was marked.
@@ -436,14 +477,14 @@ function CaptureSession:encounterState(encounterId, now)
 end
 
 -- The value for the owner's snapshot. Never names the player or the encounter. Detached copy.
--- Active: seven fields, plus the ring only from view(), since the ring never changes during a session.
--- Ended: adds reason, notice and retryAt.
+-- Active: eight fields with the stage, plus the ring only from view(), since the ring never changes during a
+-- session, and the seal once it is open. Ended: adds reason and retryAt; the server adds the notice's words.
 function CaptureSession.toSnapshot(view)
 	if type(view) ~= "table" or not PHASES[view.phase] then return nil end
 	return { token = view.token, phase = view.phase, calm = view.calm, inside = view.inside,
-		moving = view.moving, outsideFor = view.outsideFor, deadline = view.deadline,
-		ring = view.ring and table.clone(view.ring) or nil, reason = view.reason, notice = view.notice,
-		retryAt = view.retryAt }
+		moving = view.moving, outsideFor = view.outsideFor, deadline = view.deadline, stage = view.stage,
+		ring = view.ring and table.clone(view.ring) or nil, seal = view.seal and table.clone(view.seal) or nil,
+		reason = view.reason, notice = view.notice, retryAt = view.retryAt }
 end
 
 return CaptureSession
