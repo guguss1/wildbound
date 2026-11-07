@@ -59,7 +59,7 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W3b | 3 | Server and HUD wiring, M2.2, M2.3, M2.6, compact phone HUD | Sonnet, Studio writer | After W3a |
 | W4a | 4 | Capture and economy proposals, M3.1, M5.1 | Opus high | Done, `af0900c` |
 | W4b | 4 | Lumipol v2 and search pose clip, local only | Sonnet, Blender | Pending |
-| W5 | 5 | Skill capture code, M3.2 to M3.5, no uploads | Opus high, Sonnet | After W3 |
+| W5 | 5 | Skill capture code, M3.2 to M3.5, no uploads | Opus high, Sonnet | Done, `620ef97`, `9f436d6` to `7567957`; parent reran state 25, capture 103, wild 34, capture view 40. Open: moving back and forth inside the ring counts as still; wander smoothing; phone taps, rejoin, Reduced off, muted and latency not run; equipped companion glow may still bloom |
 | W6 | 6 | Fair damage code, M4.2 to M4.8, `damageMode` default off. First item, from the audit: `WildboundWorld.server.luau:33` sets damage on whenever streaming is off and `:282-284` calls `TakeDamage`; replace it with an explicit flag defaulting to off, test first. Also from the audit: attack chip ends up to about 0.22 s before the strike, and the HUD allocates every frame | Opus high, Sonnet | After W5 |
 | W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | After W6 |
 | W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Pending |
