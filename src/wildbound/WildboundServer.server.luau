@@ -20,6 +20,7 @@ local Refuge = require(ReplicatedStorage:WaitForChild("WildboundRefuge"))
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
 local Spawn = require(script.Parent:WaitForChild("WildboundSpawn"))
+local Relief = require(script.Parent:WaitForChild("WildboundRelief"))
 -- Dread pass (D2, D3, D-D5): stamina, sprint and its two costs (noise, a frightened carried Lumipol).
 local Stamina = require(script.Parent:WaitForChild("WildboundStamina"))
 local state = State.new(Economy, EconomyConfig)
@@ -532,7 +533,18 @@ local entries, slotState = {}, {}
 local sessionMeta = {}
 local captureLog = {}
 local counters = { started = 0, completed = 0, failed = 0, cancelled = 0, grantRefused = 0, rejected = 0 }
-local groundY = creatureMarker.Position.Y
+-- Expedition relief (R5): every creature, egg and drop stands on the ground at its own position, from the shared
+-- height rule over ServerStorage.WildboundReliefLayout (a flat floor when the layout is missing or broken). Visuals
+-- keep the creature marker's lift over the floor top, now over their own ground.
+local reliefLayoutModule = ServerStorage:FindFirstChild("WildboundReliefLayout")
+local reliefLoaded, reliefLayout = pcall(function()
+	return reliefLayoutModule and reliefLayoutModule:IsA("ModuleScript") and require(reliefLayoutModule) or nil
+end)
+local relief = Relief.new(reliefLoaded and reliefLayout or nil)
+local MARKER_LIFT = creatureMarker.Position.Y - Relief.FLOOR_TOP
+local function groundAt(x, z)
+	return relief:heightAt(x, z) + MARKER_LIFT
+end
 local handleEnding
 
 -- A1: cover for hiding Lumipol, read once from the dressed map's props and passed to the pure brain as data.
@@ -776,11 +788,12 @@ spawnEncounter = function(slot)
 	serial += 1
 	local id = slot.kind .. ":" .. serial
 	if not state:registerEncounter(id, slot.kind) then return end
-	local model, body = visual(slot.kind, Vector3.new(slot.x, groundY, slot.z))
+	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z), slot.z))
 	model:SetAttribute("EncounterId", id)
 	model:SetAttribute("Slot", slot.id)
 	local isEgg = slot.kind == "Egg"
-	local entry = { id = id, slot = slot, model = model, body = body, bodyY = body.Position.Y }
+	-- A wandering creature keeps this lift over whatever ground it walks onto.
+	local entry = { id = id, slot = slot, model = model, body = body, lift = body.Position.Y - relief:heightAt(slot.x, slot.z) }
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
 	entry.prompt = prompt(body, isEgg and "Collect" or Text.PROMPTS.calm, isEgg and "Lumipol egg" or Text.PROMPTS.lumipol, 10,
 		isEgg and 0.25 or 0)
@@ -855,7 +868,7 @@ local function spawnDrop(player, entry, towardX, towardZ)
 	-- Clamped to the fog forest, where every strike happens.
 	local x = math.clamp(from.X + offset.X, -45, 165)
 	local z = math.clamp(from.Z + offset.Z, -165, 35)
-	local model, body = visual(entry.kind, Vector3.new(x, groundY, z))
+	local model, body = visual(entry.kind, Vector3.new(x, groundAt(x, z), z))
 	model.Name = "DroppedItem"
 	model:SetAttribute("OwnerUserId", player.UserId)
 	local drop = { owner = player, uid = entry.uid, model = model }
@@ -1053,7 +1066,7 @@ local function stepWildlife(now)
 			if entry.model:GetAttribute("Mode") ~= brain.mode then entry.model:SetAttribute("Mode", brain.mode) end
 			if entry.model:GetAttribute("Peek") ~= brain.peek then entry.model:SetAttribute("Peek", brain.peek) end
 			if brain.moved or math.abs(brain.fx - fx) > 1e-3 or math.abs(brain.fz - fz) > 1e-3 then
-				local at = Vector3.new(brain.x, entry.bodyY, brain.z)
+				local at = Vector3.new(brain.x, relief:heightAt(brain.x, brain.z) + entry.lift, brain.z)
 				entry.model:PivotTo(CFrame.lookAt(at, at + Vector3.new(brain.fx, 0, brain.fz)))
 			end
 		end

@@ -129,5 +129,32 @@ return function(Path, source)
 		end
 	end)
 
+	-- Expedition relief (R5): La Silueta walks on the relief. The world script asks for each step's ground from
+	-- WildboundRelief and keeps the relief folder out of its obstacle cast; this rule only does the arithmetic.
+	local SLOPE = math.tan(math.rad(20))
+	local function ramp(x) return 0.5 + math.max(0, x) * SLOPE end
+	local function ground(x, _z) return ramp(x) end
+
+	case("R5: a step's height follows the relief", function()
+		local x, y, z = Path.groundStep(0, 0, 1, 0, 2, ground, 3.2)
+		assert(math.abs(x - 2) < 1e-9 and math.abs(z) < 1e-9, "the step keeps its horizontal length")
+		assert(math.abs(y - (ramp(2) + 3.2)) < 1e-9, "the body rides the ground plus its lift: " .. tostring(y))
+		local _, down = Path.groundStep(10, 0, -1, 0, 4, ground, 3.2)
+		assert(math.abs(down - (ramp(6) + 3.2)) < 1e-9, "walking down follows the slope too")
+		assert(math.abs(Path.lift(ground, 5, 0, 3.2) - (ramp(5) + 3.2)) < 1e-9, "lift is ground plus offset")
+	end)
+
+	case("R5: a rising slope is not a blocked step", function()
+		local x, y, z = Path.groundStep(0, 0, 3, 4, 5, ground, 3.2)
+		assert(math.abs(x - 3) < 1e-9 and math.abs(z - 4) < 1e-9, "the full horizontal step is taken up the slope")
+		assert(y > 3.7, "and it rises")
+		local flatX, flatY = Path.groundStep(0, 0, 1, 0, 1, nil, 3.2)
+		assert(flatX == 1 and math.abs(flatY - 3.7) < 1e-9, "no ground function means the floor top 0.5")
+		local _, badY = Path.groundStep(0, 0, 1, 0, 1, function() return 0 / 0 end, 3.2)
+		assert(math.abs(badY - 3.7) < 1e-9, "a broken ground reading falls back to the floor")
+		assert(Path.groundStep(0, 0, 0, 0, 1, ground, 3.2) == nil, "no direction, no step")
+		assert(Path.groundStep(0 / 0, 0, 1, 0, 1, ground, 3.2) == nil, "a bad start is refused")
+	end)
+
 	return result
 end

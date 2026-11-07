@@ -161,6 +161,8 @@ DEFAULT_MAPPINGS = [
     # Expedition relief, R2: the pure height rule (server only)
     ("src/wildbound/WildboundRelief.luau", "ServerScriptService.WildboundRelief"),
     ("tests/WildboundRelief_Test.luau", "ServerStorage.WildboundRelief_Test"),
+    # Expedition relief, R5: source contracts for the guardian and creatures on the relief
+    ("tests/WildboundReliefWiring_Test.luau", "ServerStorage.WildboundReliefWiring_Test"),
 ]
 
 

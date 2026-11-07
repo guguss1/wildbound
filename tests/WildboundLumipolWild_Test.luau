@@ -1,7 +1,8 @@
--- Invoke with require(freshTestClone)(require(freshWildClone), require(freshRulesClone), freshWildClone.Source).
+-- Invoke with require(freshTestClone)(require(freshWildClone), require(freshRulesClone), freshWildClone.Source,
+-- require(freshReliefClone), require(freshReliefLayoutClone)). The last two serve the relief case (R5).
 -- Pure rules for wild Lumipol: spawn slots, behavior, first-capture eligibility and egg carry cost.
 -- Randomness is injected, so every case is deterministic. CAP numbers refer to docs/mechanics/wildbound-capture.md.
-return function(Wild, Rules, source)
+return function(Wild, Rules, source, Relief, reliefLayout)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -783,6 +784,23 @@ return function(Wild, Rules, source)
 		assert(type(source) == "string" and #source > 500, "source missing")
 		for _, banned in ipairs({ "GetService", "os.clock", "os.time", "tick%(%)", "Random.new", "math.random", "workspace", "game%." }) do
 			assert(not source:find(banned), "source uses " .. banned)
+		end
+	end)
+
+	-- Expedition relief (R5): the inventory server stands each creature, egg and nest on the relief at its own
+	-- position. Every slot sits on flat relief ground (the floor top, within 5 studs), so a spawn is level.
+	case("R5: slot ground comes from the relief", function()
+		assert(Relief and reliefLayout, "relief module and layout given")
+		local relief = Relief.new(reliefLayout)
+		for _, slot in ipairs(Wild.SLOTS) do
+			for dx = -5, 5, 1 do
+				for dz = -5, 5, 1 do
+					if dx * dx + dz * dz <= 25 then
+						local y = relief:heightAt(slot.x + dx, slot.z + dz)
+						assert(y == Relief.FLOOR_TOP, ("%s is not on flat ground at %d, %d (%.2f)"):format(slot.id, dx, dz, y))
+					end
+				end
+			end
 		end
 	end)
 

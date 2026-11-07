@@ -15,6 +15,7 @@ local Ambush = require(script.Parent:WaitForChild("WildboundAmbush"))
 -- around the solid trunk cores. docs/mechanics/wildbound-guardian.md.
 local Brain = require(script.Parent:WaitForChild("WildboundGuardianBrain"))
 local GuardianPath = require(script.Parent:WaitForChild("WildboundGuardianPath"))
+local Relief = require(script.Parent:WaitForChild("WildboundRelief"))
 -- Delivery D6 and D8: hiding spots and the per-player threat level the client plays audio from.
 local Hide = require(script.Parent:WaitForChild("WildboundHide"))
 local Threat = require(script.Parent:WaitForChild("WildboundThreatLevel"))
@@ -27,6 +28,18 @@ local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
 	warn("Wildbound world: map and inventory network are required.")
 	return
+end
+-- Expedition relief (R5): La Silueta walks on the relief. Its height at any point comes from the shared height rule
+-- over ServerStorage.WildboundReliefLayout (a flat floor when the layout is missing or broken), and the relief parts
+-- never block a step: they are ground, not walls.
+local reliefLayoutModule = ServerStorage:FindFirstChild("WildboundReliefLayout")
+local reliefLoaded, reliefLayout = pcall(function()
+	return reliefLayoutModule and reliefLayoutModule:IsA("ModuleScript") and require(reliefLayoutModule) or nil
+end)
+local relief = Relief.new(reliefLoaded and reliefLayout or nil)
+local reliefFolder = map:FindFirstChild("Relief")
+local function groundAt(x, z)
+	return relief:heightAt(x, z)
 end
 local eligibility = network:WaitForChild("Eligibility", 15)
 if not eligibility or not eligibility:IsA("BindableFunction") then
@@ -160,7 +173,12 @@ local function primitive(name, size, position, color, transparency)
 	part.Parent = guardian
 	return part
 end
-local home = Vector3.new(Rules.HOME_X, 3.7, Rules.HOME_Z)
+-- The 6.4-stud gameplay body stands on the ground: its centre is 3.2 studs over the ground under it.
+local BODY_LIFT = 3.2
+local function bodyAt(x, z)
+	return Vector3.new(x, GuardianPath.lift(groundAt, x, z, BODY_LIFT), z)
+end
+local home = bodyAt(Rules.HOME_X, Rules.HOME_Z)
 local body = primitive("Body", Vector3.new(2.8, 6.4, 2.2), home, Color3.fromRGB(70, 88, 87), 0.86)
 local head = primitive("Head", Vector3.new(2, 2, 2), home + Vector3.new(0, 3.5, 0), Color3.fromRGB(92, 111, 107), 0.82)
 head.Shape = Enum.PartType.Ball
@@ -224,12 +242,12 @@ for index, point in ipairs(patrol) do patrolOffsets[index] = point - home end
 local lastHuntAt, acquireBlockedUntil = -math.huge, 0
 local ambushNextAt = startedAt + Ambush.nextDelay(Rules.cycle(startedAt - originTime).phase, rng:NextNumber())
 local function setCenter(x, z)
-	center = Vector3.new(x, home.Y, z)
+	center = bodyAt(x, z)
 	patrol = {}
 	for _, offset in ipairs(patrolOffsets) do
 		-- Clamped like every step, so a corner outside the leash can still be reached.
 		local px, pz = Rules.clampTerritory(center.X + offset.X, center.Z + offset.Z)
-		table.insert(patrol, Vector3.new(px, home.Y, pz))
+		table.insert(patrol, bodyAt(px, pz))
 	end
 	patrolIndex = 1
 end
@@ -351,7 +369,8 @@ end
 -- Every step refuses to walk into geometry: a sphere about the body's half-width is cast along the step, ignoring the
 -- guardian, every character and anything that does not collide. Since D-C1 the trunk cores are solid, so this never
 -- slides through a tree. Measured in delivery C2: PathfindingService's coarse navmesh can route a little closer to a
--- core than the body allows, so a blocked step tries to slide past at up to 70 degrees before it gives up.
+-- core than the body allows, so a blocked step tries to slide past at up to 70 degrees before it gives up. Since the
+-- relief (R5) each step rides the ground and the relief folder is left out of the cast: a rising slope is not a wall.
 local SLIDE_ANGLES = { 0, math.rad(35), -math.rad(35), math.rad(70), -math.rad(70) }
 local function stepToward(destination, speed, dt)
 	local position = body.Position
@@ -363,6 +382,7 @@ local function stepToward(destination, speed, dt)
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then table.insert(excluded, player.Character) end
 	end
+	if reliefFolder then table.insert(excluded, reliefFolder) end
 	params.FilterDescendantsInstances = excluded
 	params.IgnoreWater = true
 	-- Only what collides blocks a step, like the PathfindingService routes: the visible trunk meshes are sight-only
@@ -371,9 +391,10 @@ local function stepToward(destination, speed, dt)
 	local length = math.min(difference.Magnitude, speed * dt)
 	for index, angle in ipairs(SLIDE_ANGLES) do
 		local direction = CFrame.Angles(0, angle, 0):VectorToWorldSpace(difference.Unit)
-		local nextPosition = position + direction * length
-		local x, z = Rules.clampTerritory(nextPosition.X, nextPosition.Z)
-		nextPosition = Vector3.new(x, home.Y, z)
+		local stepX, _, stepZ = GuardianPath.groundStep(position.X, position.Z, direction.X, direction.Z, length, groundAt,
+			BODY_LIFT)
+		local x, z = Rules.clampTerritory(stepX, stepZ)
+		local nextPosition = bodyAt(x, z)
 		local move = nextPosition - position
 		if move.Magnitude > 0.01 and not workspace:Spherecast(position, 1, move, params) then
 			if index > 1 then navStats.slideSteps += 1 end
@@ -393,8 +414,8 @@ end
 -- Asks PathfindingService for a route without blocking the gameplay step. Only the latest request is followed.
 local function requestPlan(goal, now)
 	local serial = GuardianPath.begin(nav, goal.X, goal.Z, now)
-	local from = Vector3.new(body.Position.X, 3, body.Position.Z)
-	local to = Vector3.new(goal.X, 3, goal.Z)
+	local from = Vector3.new(body.Position.X, GuardianPath.lift(groundAt, body.Position.X, body.Position.Z, 2.5), body.Position.Z)
+	local to = Vector3.new(goal.X, GuardianPath.lift(groundAt, goal.X, goal.Z, 2.5), goal.Z)
 	task.spawn(function()
 		local started = os.clock()
 		local route = PathfindingService:CreatePath({ AgentRadius = 2, AgentHeight = 7, AgentCanJump = false,
@@ -418,11 +439,11 @@ end
 -- enter geometry. The goal is clamped to the territory first, so no route ever leads into camp.
 local function navigate(goal, speed, dt, now)
 	local gx, gz = Rules.clampTerritory(goal.X, goal.Z)
-	goal = Vector3.new(gx, home.Y, gz)
+	goal = bodyAt(gx, gz)
 	if GuardianPath.needsPlan(nav, gx, gz, now) then requestPlan(goal, now) end
 	local x, z = GuardianPath.steer(nav, body.Position.X, body.Position.Z, now)
 	if x then
-		stepToward(Vector3.new(x, home.Y, z), speed, dt)
+		stepToward(bodyAt(x, z), speed, dt)
 	else
 		navStats.directSteps += 1
 		stepToward(goal, speed, dt)
@@ -585,7 +606,7 @@ local function tryAmbush(now, phase)
 		players = positions, anchors = anchors, guardianX = body.Position.X, guardianZ = body.Position.Z,
 		lastHuntAt = lastHuntAt, anyPlayerInFog = anyFog })
 	if out.move then
-		guardian:PivotTo(CFrame.new(out.x, home.Y, out.z))
+		guardian:PivotTo(CFrame.new(bodyAt(out.x, out.z)))
 		setCenter(out.x, out.z)
 		acquireBlockedUntil = now + 3
 		FairStrike.clearDwell(ledger)
@@ -648,7 +669,7 @@ local function step(now, dt)
 				setMode(out.mode)
 			end
 			if out.destination then
-				navigate(Vector3.new(out.destination.x, home.Y, out.destination.z), out.speed, dt, now)
+				navigate(bodyAt(out.destination.x, out.destination.z), out.speed, dt, now)
 			elseif out.face then
 				face(out.face)
 			end

@@ -95,4 +95,24 @@ function Path.steer(state, gx, gz, now)
 	return point.x, point.z
 end
 
+-- Expedition relief (R5): the body's height over the ground at (x, z). `ground` is a function (x, z) -> Y, usually
+-- WildboundRelief's heightAt; without one, or with a broken reading, the floor top 0.5 is used.
+local FLOOR_TOP = 0.5
+function Path.lift(ground, x, z, offset)
+	local y = type(ground) == "function" and ground(x, z) or FLOOR_TOP
+	if not finite(y) then y = FLOOR_TOP end
+	return y + (finite(offset) and offset or 0)
+end
+
+-- One step of `length` studs measured on the ground plane from (x, z) along (dirX, dirZ), lifted to the ground at
+-- its end. A slope never shortens or refuses a step here: only colliding geometry, cast by the world script with
+-- the relief excluded, can block it. Returns nil for a bad start or no direction.
+function Path.groundStep(x, z, dirX, dirZ, length, ground, offset)
+	if not finite(x) or not finite(z) or not finite(dirX) or not finite(dirZ) or not finite(length) then return nil end
+	local size = math.sqrt(dirX * dirX + dirZ * dirZ)
+	if size < 1e-9 then return nil end
+	local nx, nz = x + dirX / size * length, z + dirZ / size * length
+	return nx, Path.lift(ground, nx, nz, offset), nz
+end
+
 return Path
