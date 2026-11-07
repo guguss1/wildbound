@@ -54,7 +54,7 @@ return function(builder)
         local positions = {
             CampCenter = Vector2.new(-140, 140), ExtractionMarker = Vector2.new(-140, 140),
             HatchMarker = Vector2.new(-140, 140), ProtectionMarker = Vector2.new(-140, 140),
-            LumipolMarker = Vector2.new(-95, 75), EggMarker = Vector2.new(110, -130),
+            LumipolMarker = Vector2.new(-95, 75), EggMarker = Vector2.new(35, -99),
             GuardianMarker = Vector2.new(0, -85),
         }
         for name, expected in pairs(positions) do
@@ -63,6 +63,21 @@ return function(builder)
             expect((Vector2.new(marker.Position.X, marker.Position.Z) - expected).Magnitude <= 25, name .. ' is outside its intended zone')
             expect(not marker.CanCollide, name .. ' must not obstruct traversal')
         end
+    end)
+    check('nest inside guardian reach', function()
+        expect(root ~= nil, 'root missing')
+        local egg = root:FindFirstChild('EggMarker', true)
+        local guardian = root:FindFirstChild('GuardianMarker', true)
+        expect(egg and guardian, 'EggMarker and GuardianMarker required')
+        expect((egg.Position - guardian.Position).Magnitude <= 80, 'nest must sit inside the 80-stud guardian leash')
+        local stones = 0
+        for _, decoration in root:GetDescendants() do
+            if decoration.Name == 'NestStone' then
+                stones += 1
+                expect((decoration.Position - egg.Position).Magnitude <= 12, 'nest stones must ring the egg marker')
+            end
+        end
+        expect(stones >= 8, 'nest ring requires at least eight stones')
     end)
     check('route and decorations', function()
         expect(root ~= nil, 'root missing')

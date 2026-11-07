@@ -2,7 +2,7 @@
 
 ## Intended loop
 
-An editable 400 × 400 stud square, centered at the origin, with ground top at Y = 0.5. The 14-stud-wide route connects camp (-140, 140) → Lumipol clearing (-95, 75) → ruin (0, -85) → egg nest (110, -130) → marsh (115, 15) → shelter (105, 125) → camp (X, Z coordinates). This is a prototype route, not a measured traversal time or final world boundary.
+An editable 400 × 400 stud square, centered at the origin, with ground top at Y = 0.5. The 14-stud-wide route connects camp (-140, 140) → Lumipol clearing (-95, 75) → ruin (0, -85) → egg nest (35, -99) → marsh (115, 15) → shelter (105, 125) → camp (X, Z coordinates). This is a prototype route, not a measured traversal time or final world boundary.
 
 ## Landmarks and markers
 
@@ -14,7 +14,9 @@ An editable 400 × 400 stud square, centered at the origin, with ground top at Y
 | ProtectionMarker | -135 | 1.5 | 134 |
 | LumipolMarker | -95 | 1.5 | 75 |
 | GuardianMarker | 0 | 1.5 | -85 |
-| EggMarker | 110 | 1.5 | -130 |
+| EggMarker | 35 | 1.5 | -99 |
+
+The nest sits 37.7 studs from the guardian home, inside the 80-stud leash, so the main objective carries encounter risk.
 
 Markers are invisible, anchored, non-colliding placeholders; they are not spawn points or gameplay implementations. The amber camp, cyan clearing beacon, stone ruin/nest, teal pool, and shelter are primitive stand-ins. Trees use a fixed seed; decorations do not collide. Route sightlines and landmark readability require playtesting, not inference from this design.
 
@@ -24,6 +26,6 @@ Markers are invisible, anchored, non-colliding placeholders; they are not spawn 
 
 ## Pending verification and assets
 
-- Run the standalone `tests/WildboundP0Map_Test.luau` contract in an authorized Studio environment; RED/GREEN and all runtime checks remain pending.
+- The standalone `tests/WildboundP0Map_Test.luau` contract passes 6/6 in Studio on fresh clones after the nest move; RED was observed first, on 2026-11-07. Runtime checks remain pending.
 - Walk the loop; assess path joins, camp clearance, collision, sightlines, NPC navigation, touch readability and frame rate on PC/mobile. No measured travel time or device results yet.
 - Replace primitive creature, trees, camp, ruin, nest and shelter with approved original assets after visual review. Decide boundary treatment and atmosphere separately; do not change global settings without authorization.

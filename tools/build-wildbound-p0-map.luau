@@ -16,7 +16,7 @@ local points = {
     Vector3.new(-140, 0, 140), -- camp
     Vector3.new(-95, 0, 75), -- clearing
     Vector3.new(0, 0, -85), -- ruin
-    Vector3.new(110, 0, -130), -- egg nest
+    Vector3.new(35, 0, -99), -- egg nest
     Vector3.new(115, 0, 15), -- marsh
     Vector3.new(105, 0, 125), -- shelter
 }
@@ -98,7 +98,7 @@ function Builder.build(parent)
     addMarker(markers, 'ProtectionMarker', -135, 134)
     addMarker(markers, 'LumipolMarker', -95, 75)
     addMarker(markers, 'GuardianMarker', 0, -85)
-    addMarker(markers, 'EggMarker', 110, -130)
+    addMarker(markers, 'EggMarker', 35, -99)
 
     -- Readable, nonblocking landmark shapes; marker interactions are added elsewhere.
     part(decorations, 'CampfireBase', Vector3.new(5, 0.5, 5), CFrame.new(-140, 0.8, 140), palette.stone, nil, false)
@@ -116,7 +116,7 @@ function Builder.build(parent)
     end
     for index = 1, 8 do
         local angle = index * math.pi / 4
-        local x, z = 110 + math.cos(angle) * 9, -130 + math.sin(angle) * 9
+        local x, z = 35 + math.cos(angle) * 9, -99 + math.sin(angle) * 9
         local rock = part(decorations, 'NestStone', Vector3.new(4, 2, 3), CFrame.new(x, 1.5, z), palette.stone, Enum.Material.Slate, false)
         rock.Shape = Enum.PartType.Ball
     end
