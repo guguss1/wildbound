@@ -1,0 +1,101 @@
+{
+  "generator": "tools/build-silueta-search-v1.py",
+  "blender_version": "5.1.2",
+  "status": "unvalidated",
+  "uploaded": false,
+  "design_changed": false,
+  "new_rig_triangles": 1288,
+  "not_verified": "in-game look, Studio import and AnimationId, mobile readability, and whether players read it as a search; upload stays pending and needs the user's consent",
+  "clip": "Search_v1",
+  "action": {
+    "name": "SiluetaV3_Search_v1",
+    "frame_start": 1,
+    "frame_end": 73,
+    "duration_seconds": 2.4,
+    "sampled_frames": 73,
+    "finite": true,
+    "root_max_error": 0.0,
+    "endpoint_mesh_error_m": 0.0,
+    "loop": true,
+    "max_world_vertex_displacement_m": {
+      "SiluetaV3_Body": 0.06756043842670949,
+      "SiluetaV3_ArmLeft": 0.18550712448264836,
+      "SiluetaV3_ArmRight": 0.19265955312501676,
+      "SiluetaV3_BranchCrown": 0.7042725801112403,
+      "SiluetaV3_RaggedMantle": 0.1000643497368619,
+      "SiluetaV3_Head": 0.1604619249948794,
+      "SiluetaV3_Eyes": 0.12929908835722165,
+      "SiluetaV3_Neck": 0.0486231456167755,
+      "SiluetaV3_BarkRidges": 0.06662840882443458
+    }
+  },
+  "files": {
+    "blend": "assets/blender/silueta-horror-rig-v3-search-v1.blend",
+    "fbx": "assets/exports/silueta-horror-rig-v3-search-v1.fbx",
+    "qa_render": "assets/blender/silueta-horror-rig-v3-search-v1-qa.png",
+    "fbx_sha256": "e421d58d0e76f484cf3d98cadccb1eb33ad52690c2698df98c2ee4798b8f18de",
+    "fbx_bytes": 441420
+  },
+  "fbx_settings": {
+    "use_selection": true,
+    "object_types": [
+      "ARMATURE",
+      "MESH"
+    ],
+    "apply_unit_scale": true,
+    "apply_scale_options": "FBX_SCALE_UNITS",
+    "global_scale": 1,
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "add_leaf_bones": false,
+    "use_armature_deform_only": false,
+    "bake_anim_use_nla_strips": false,
+    "bake_anim_use_all_actions": false,
+    "bake_anim_force_startend_keying": true,
+    "bake_anim_simplify_factor": 0
+  },
+  "original_files": {
+    "before": {
+      "silueta-horror-rig-v3.blend": "7b10270784c135d71cee7fcdcc5f54b9b7de70b00b7ef26e7c37e27d16765e64",
+      "silueta-horror-rig-v3.glb": "b3a84f5ded238228abe12e46dd8498d1dee196f5f8ec0db202754d2cb704b406",
+      "silueta-horror-rig-v3-model.fbx": "a7e10a43d217c413eba07f99399a93b8d5312cd12878d375e22d18808d43291f",
+      "silueta-horror-rig-v3-idle.fbx": "f6dd2648b4dbd4e3ee06237f67cee1808e6dc4e22dc02a47a7965cb9cfbbf1f0",
+      "silueta-horror-rig-v3-locomotion.fbx": "508fdb93f14a4f9c2b1f2783f4e6cd615ba451c9864a60d38aaed116bdb6c2dc",
+      "silueta-horror-rig-v3-telegraph.fbx": "edb505ae22310d07cc89d8bdb2886e0c03c1fdbd192d6d234e3c3e798148c5b9",
+      "silueta-horror-rig-v3-attack.fbx": "4b0db223ede75d361682293926a5d25c3b8fe40a04ac5504352dbf94cbcc2336"
+    },
+    "after": {
+      "silueta-horror-rig-v3.blend": "7b10270784c135d71cee7fcdcc5f54b9b7de70b00b7ef26e7c37e27d16765e64",
+      "silueta-horror-rig-v3.glb": "b3a84f5ded238228abe12e46dd8498d1dee196f5f8ec0db202754d2cb704b406",
+      "silueta-horror-rig-v3-model.fbx": "a7e10a43d217c413eba07f99399a93b8d5312cd12878d375e22d18808d43291f",
+      "silueta-horror-rig-v3-idle.fbx": "f6dd2648b4dbd4e3ee06237f67cee1808e6dc4e22dc02a47a7965cb9cfbbf1f0",
+      "silueta-horror-rig-v3-locomotion.fbx": "508fdb93f14a4f9c2b1f2783f4e6cd615ba451c9864a60d38aaed116bdb6c2dc",
+      "silueta-horror-rig-v3-telegraph.fbx": "edb505ae22310d07cc89d8bdb2886e0c03c1fdbd192d6d234e3c3e798148c5b9",
+      "silueta-horror-rig-v3-attack.fbx": "4b0db223ede75d361682293926a5d25c3b8fe40a04ac5504352dbf94cbcc2336"
+    },
+    "unchanged": true
+  },
+  "qa_layout": "columns left to right: Idle rest, Search_v1 at 25%, 50%, 75% of the loop, Telegraph hold; top row from the preview camera, bottom row from the front",
+  "roundtrip": {
+    "armatures": 1,
+    "bones": 18,
+    "meshes": 9,
+    "triangles": 1288,
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "actions": 1,
+    "animated_channels": 189,
+    "keyed_frames": 73,
+    "frame_range": [
+      2.0,
+      74.0
+    ],
+    "scene_fps": 30,
+    "duration_seconds": 2.4,
+    "note": "Blender shifts an imported take by one frame (docs/assets/silueta-rig.md:57)."
+  }
+}
