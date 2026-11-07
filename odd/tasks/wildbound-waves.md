@@ -64,7 +64,7 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | Done, partial. Part 1 `dd5228b` to `843248c`; part 2 `ea1836e` to `25aeb05`. Cycle now 720 s. Parent reran on fresh clones: state 61, rules 31, economy 19, camp view 13, gather field 11; Python 876 OK; `damageMode` off, streaming on. Writer reports 575 Studio contracts. Open: five skill effects are `EffectPending` and refused before payment; bond level effects unwired; dodge event never fired; camp list shows about 1.5 rows on a sideways Galaxy A06. Not run: two clients, phone taps, totem, capsule, Reinforced Pack |
 | W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Done, `d15f2a6` |
 | W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6, plus five fixes from W5 to W7 | Sonnet, Studio writer | Done, partial. Fixes `10c9ec0`, `c03cea6`, `518d1a5`, `88352d1`, `c5a53b9`; W9 proper `34fd4de`, `e1742a7` and the commit after them. Docs `docs/ui/wildbound-start-and-settings.md`. Not run: any tap, real phone, muted client, two clients, live capture shuffle |
-| W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Pending |
+| W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Done, partial. `3f644f4`, `d9f952a`, `142b15b`, `d4a98da` and the commit after them. Record 18, fake store 13, persistence 30 contracts; no live wiring, no data store call. Open: economy reducers, State durable IDs, flag and player wiring (M6.4), adapter (M6.3), real tests after D8 |
 | F1 | Gate | Ten testers. Agents prepare the kit and analyze results | Humans | Needs people |
 | W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Done, read by parent |
 | W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | Done, 11 species, `1327955` to `a7f9989`, 36 tests; parent reran |
@@ -92,6 +92,8 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 
 - W9 (2026-11-07, overnight): wrong camp prompt, stillness window, world cleanup guard, dropped-item notice and sideways camp list fixed test first; start screen, three-step tutorial and Settings built as pure modules plus one controller. Studio suites rerun on fresh clones: 637 passed, 0 failed; Python 876 OK, 28 skipped. `damageMode` off, streaming on, Studio in Edit mode. Decisions W9-1 to W9-9 are in the W9 doc for review.
 
+- W10 (2026-11-07, overnight): saved-progress record schema 1, session lock, failed-load guard, autosave, leave, close and ledger commits built as pure modules against an in-memory fake store, test first. RED against empty stubs: record 1/17, fake 1/12, persistence 1/29; GREEN 18, 13 and 30. Studio suites rerun on fresh clones: 698 passed, 0 failed; Python 876 OK, 28 skipped. Hashes match. No data store call, nothing wired live, `damageMode` off, streaming on, Studio in Edit mode. Decisions W10-1 to W10-17 are in `docs/mechanics/wildbound-persistence.md` for review.
+
 ## Next step
 
-W10 fake-store contracts and W16 analytics. W9 follow-ups: a click test on a real phone, a tutorial baseline for Replay, audio and graphics settings once something uses them.
+W16 analytics. W10 follow-ups: M6.4 reducers and wiring behind an off flag, then D8 before M6.3 and M6.6. W9 follow-ups: a click test on a real phone, a tutorial baseline for Replay, audio and graphics settings once something uses them.

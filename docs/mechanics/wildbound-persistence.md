@@ -2,7 +2,7 @@
 
 Units M6.1 (schema) and M6.2 (fake-store contract list), wave W10. Implements B17 and D10, and defines the durable case that `docs/mechanics/wildbound-economy-p0.md:167` left open.
 
-**Status: proposal, written 2026-11-07. Nothing here is built or run.** No DataStore was called, no API access was enabled, no experience was created. All numbers are hypotheses. No code on the Roblox page was copied, and none may be used untested (`docs/wildbound-roadmap.md:341`). Real tests wait for D8, which the user has not taken (`odd/tasks/wildbound-waves.md:20`, `:40`).
+**Status: proposal, written 2026-11-07. W10 built the pure record, the session logic and the fake store; see Implementation status. Nothing is wired into the running game.** No DataStore was called, no API access was enabled, no experience was created. All numbers are hypotheses. No code on the Roblox page was copied, and none may be used untested (`docs/wildbound-roadmap.md:341`). Real tests wait for D8, which the user has not taken (`odd/tasks/wildbound-waves.md:20`, `:40`).
 
 **Labels.** Verified = read in this repository, with file and line. Roblox = read on a Roblox page, section 11. Proposal = decided here for your review. Unverified = neither read nor tested.
 
@@ -497,6 +497,27 @@ Section 8 contracts covered by PS cases: F1.1 to F1.10 (PS-1 to PS-10), F2.2 and
 | W10-15 | `LockLost`, `Diverged` and a vanished record revoke the session; no further writes | Contract F1.10 and F5.2 |
 | W10-16 | Close runs players through an injected `spawn` (task.spawn by default) and waits up to the budget | Parallel in production, deterministic in tests |
 | W10-17 | IDs reserved by `allocateUid` or `newOp` are never reused in the session even if the write fails | Gaps are harmless; reuse could collide |
+
+Full rerun after the wave, fresh clones in Studio Edit: all 28 Wildbound suites 698 passed, 0 failed (637 before plus 61 new). Python tools 876 OK, 28 skipped. Repository and Studio sources match by normalized SHA-256 for all six new files. `WildboundFlags` reads `damageMode = "off"` with no private place ids; streaming on; Studio left in Edit mode.
+
+### Where section 3 to 8 needed correcting
+
+| Section | Text | Correction |
+| --- | --- | --- |
+| 3, `atRisk.expedition` | `id`, `leftCamp`, `territorySeconds` | Not in `WildboundState`; stored State's real fields plus `elapsedSeconds` (W10-2). Trip IDs (`nextTrip`) are kept but unused until State has a trip identity |
+| 3, migration | "the ladder is empty" | A version 0 step ships (W10-5) |
+| 3, record | no field identifies a write | `lastWriteId` added (W10-1) |
+| 3, validation | "Counters: `nextUid` at or below any used number" | Holds, but the session also reserves IDs ahead of the record, so every write raises `nextUid` to the session counter first |
+| 5, write-first step 4 | `reduce(copy(profile), op)` | The reducer runs on a copy of the saved record, not the State profile; the profile is rebuilt from the committed record |
+| 2, flag | `persistenceMode = "off"` | Not added this wave (W10-8) |
+| 4, lock expiry | compares the store's update time | Still needs a server clock for "now"; the adapter must give seconds |
+
+### Before any real data store use
+
+1. D8: the user approves and creates a separate test experience; Studio API access only there.
+2. M6.3: `WildboundStoreRoblox`, the only file allowed to name the service, with its own source check; recheck section 11 pages; settle R1 to R4.
+3. M6.4: reducers for extract, hatch, capsule, craft, upgrade, learn, equip, defeat, drop and away; durable IDs in State; the `persistenceMode` flag defaulting to off with an empty place list; `PlayerAdded`, `PlayerRemoving` and `BindToClose` wiring; the failed-load choice screen; contracts F2.7, F2.8, F3.4 to F3.8, F4.3, F4.6, F4.7, F5.6, D10.1 to D10.8.
+4. M6.6: R5 to R10 on real servers and phones in that experience, with the user's named destination.
 
 Known limits, for M6.4: a release while an op is `Unknown` writes the profile only if the op did not land (otherwise `Diverged` stops it); folding an in-flight op into the final write is not built. After `Committed` the caller must rebuild its State profile from the returned record, or the next checkpoint would write the old memory over it (revision checks stop a stale write only across servers, not inside one).
 
