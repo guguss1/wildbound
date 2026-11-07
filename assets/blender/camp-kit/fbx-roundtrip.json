@@ -46,7 +46,7 @@
     },
     "CP_HatchAltar": {
       "model": {
-        "triangles": 292,
+        "triangles": 286,
         "size": [
           5.0,
           5.0,
@@ -92,7 +92,7 @@
     },
     "CP_EggNest": {
       "model": {
-        "triangles": 526,
+        "triangles": 542,
         "size": [
           17.0,
           17.0,
@@ -116,7 +116,7 @@
     },
     "CP_MarshShelter": {
       "model": {
-        "triangles": 690,
+        "triangles": 682,
         "size": [
           18.0,
           12.0,

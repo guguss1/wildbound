@@ -306,6 +306,107 @@ class CampKitReport(unittest.TestCase):
         self.assertGreaterEqual(min(v[2] for v in lamp), 5.5)
 
 
+def hull_area(points):
+    """Area of the convex hull of 2D points (monotone chain)."""
+    pts = sorted(set((round(p[0], 6), round(p[1], 6)) for p in points))
+    if len(pts) < 3:
+        return 0.0
+
+    def half(sequence):
+        out = []
+        for p in sequence:
+            while len(out) >= 2 and ((out[-1][0] - out[-2][0]) * (p[1] - out[-2][1])
+                                     - (out[-1][1] - out[-2][1]) * (p[0] - out[-2][0])) <= 0:
+                out.pop()
+            out.append(p)
+        return out[:-1]
+
+    ring = half(pts) + half(reversed(pts))
+    return abs(sum(ring[i][0] * ring[(i + 1) % len(ring)][1] - ring[(i + 1) % len(ring)][0] * ring[i][1]
+                   for i in range(len(ring)))) / 2.0
+
+
+class CampKitReads(unittest.TestCase):
+    """Visual reads of the W16 art pass. Each one failed on the geometry it replaced: a round cauldron, bipyramid
+    gems for eggs and a flat-bottomed table top for the marsh roof."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(CampKitAssets.GEOMETRY)
+
+    def part(self, name, label):
+        return self.geometry[name]["parts"][f"{name}_{label}"]
+
+    def test_hatch_altar_is_a_square_cut_slab_stack_not_a_round_cauldron(self):
+        name = "CP_HatchAltar"
+        stone = self.part(name, "Stone")
+        points = [tuple(v) for v in stone["vertices"]]
+        reach = max(math.hypot(p[0], p[1]) for p in points)
+        fill = hull_area(points) / (math.pi * reach * reach)
+        self.assertLessEqual(fill, 0.8, f"the footprint fills {fill:.2f} of its circle: that is a round pot")
+        self.assertGreaterEqual(len(shells(stone)), 6, "base slab, step, plinth, top frame, rim stones, rubble")
+
+    def test_hatch_altar_has_a_wide_capstone_over_a_narrower_plinth_and_a_shallow_dish(self):
+        name = "CP_HatchAltar"
+        stone = self.part(name, "Stone")
+        found = []
+        for shell in shells(stone):
+            points = shell_points(shell)
+            extent = max(max(p[i] for p in points) - min(p[i] for p in points) for i in (0, 1))
+            found.append((min(p[2] for p in points), max(p[2] for p in points), extent))
+        self.assertTrue(any(low >= 2.0 and extent >= 4.0 for low, _, extent in found), "a capstone frame")
+        self.assertTrue(any(low >= 1.0 and high <= 2.6 and extent <= 3.6 for low, high, extent in found),
+                        "a plinth narrower than the capstone")
+        vertices = stone["vertices"]
+        centre = [v[2] for v in vertices if math.hypot(v[0], v[1]) < 1.0]
+        rim = [v[2] for v in vertices if 1.3 < math.hypot(v[0], v[1]) < 2.4 and v[2] > 2.5]
+        self.assertTrue(centre and rim)
+        self.assertLessEqual(max(rim) - max(centre), 1.0, "a shallow offering dish, not a deep bowl")
+
+    def test_eggs_have_a_blunt_crown_not_the_points_of_a_gem(self):
+        eggs = shells(self.part("CP_EggNest", "Egg"))
+        self.assertEqual(len(eggs), 3)
+
+        def spread(points):
+            middle = centroid(points)
+            return max(math.hypot(p[0] - middle[0], p[1] - middle[1]) for p in points)
+
+        for shell in eggs:
+            points = shell_points(shell)
+            low, top = min(p[2] for p in points), max(p[2] for p in points)
+            height = top - low
+            crown = [p for p in points if p[2] >= top - 0.12 * height]
+            self.assertGreaterEqual(len(crown), 4, "a flat top ring, not a single tip")
+            self.assertGreaterEqual(spread(crown) / spread(points), 0.38,
+                                    "an egg ends in a blunt dome; a gem ends in a point")
+            width = max(max(p[i] for p in points) - min(p[i] for p in points) for i in (0, 1))
+            self.assertTrue(1.15 <= height / width <= 1.8, "an egg is a good deal taller than wide")
+
+    def test_egg_specks_are_small_and_scattered_over_every_egg(self):
+        specks = shells(self.part("CP_EggNest", "Neon_Speck"))
+        self.assertGreaterEqual(len(specks), 5)
+        for shell in specks:
+            points = shell_points(shell)
+            size = max(max(p[i] for p in points) - min(p[i] for p in points) for i in range(3))
+            self.assertLessEqual(size, 0.3, "subtle speckle, not cyan studs")
+
+    def test_marsh_roof_is_a_pitched_run_of_irregular_planks_that_overhang(self):
+        name = "CP_MarshShelter"
+        roof = self.part(name, "Roof")
+        self.assertGreaterEqual(len(shells(roof)), 14, "separate planks, ridge and cap")
+        verts = roof["vertices"]
+
+        def underside(low, high):
+            return min(v[2] for v in verts if low <= abs(v[1]) <= high)
+
+        self.assertGreaterEqual(underside(0.4, 1.5) - underside(4.8, 6.4), 1.5,
+                                "the underside rises to the ridge: a flat underside reads as a table top")
+        eaves = [v[2] for v in verts if abs(v[1]) > 4.8]
+        self.assertGreaterEqual(max(eaves) - min(eaves), 0.9, "ragged eaves, not one straight edge")
+        ends = sorted({round(v[0], 1) for v in verts if abs(v[1]) > 5.0})
+        self.assertGreaterEqual(len(ends), 10, "plank ends are at many different positions")
+
+
 class CampKitFitsTheMap(unittest.TestCase):
     """The kit replaces the primitive stand-ins, so it must fit their footprints and marker positions."""
 

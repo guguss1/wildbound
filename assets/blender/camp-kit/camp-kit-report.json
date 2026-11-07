@@ -165,20 +165,20 @@
     },
     "CP_HatchAltar": {
       "status": "unvalidated",
-      "triangles": 292,
+      "triangles": 286,
       "size": [
         5.0,
         5.0,
         3.0
       ],
       "bbox_min": [
-        -2.5024,
-        -2.5438,
+        -2.5,
+        -2.5,
         0.0
       ],
       "bbox_max": [
-        2.4976,
-        2.4562,
+        2.5,
+        2.5,
         3.0
       ],
       "base_center": [
@@ -189,9 +189,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0158,
-        1.0086,
-        1.0
+        0.9378,
+        0.9698,
+        0.9903
       ],
       "parts": [
         {
@@ -199,7 +199,7 @@
           "material": "CP_HatchAltar_Stone",
           "material_count": 1,
           "palette_name": "FK_Charcoal",
-          "triangles": 158,
+          "triangles": 152,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -318,7 +318,7 @@
     },
     "CP_EggNest": {
       "status": "unvalidated",
-      "triangles": 526,
+      "triangles": 542,
       "size": [
         17.0,
         17.0,
@@ -374,7 +374,7 @@
           "material": "CP_EggNest_Egg",
           "material_count": 1,
           "palette_name": "FK_PaleWood",
-          "triangles": 78,
+          "triangles": 90,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -385,7 +385,7 @@
           "material": "CP_EggNest_Neon_Speck",
           "material_count": 1,
           "palette_name": "FK_Neon_MarkerCyan",
-          "triangles": 60,
+          "triangles": 64,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.75,
@@ -400,20 +400,20 @@
     },
     "CP_MarshShelter": {
       "status": "unvalidated",
-      "triangles": 690,
+      "triangles": 682,
       "size": [
         18.0,
         12.0,
         11.0
       ],
       "bbox_min": [
-        -9.0019,
-        -5.9847,
+        -9.0349,
+        -5.7776,
         0.0
       ],
       "bbox_max": [
-        8.9981,
-        6.0153,
+        8.9651,
+        6.2224,
         11.0
       ],
       "base_center": [
@@ -424,9 +424,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0,
-        0.9877,
-        0.9903
+        0.9945,
+        1.0179,
+        0.9902
       ],
       "parts": [
         {
@@ -445,7 +445,7 @@
           "material": "CP_MarshShelter_Roof",
           "material_count": 1,
           "palette_name": "FK_Rope",
-          "triangles": 298,
+          "triangles": 290,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,

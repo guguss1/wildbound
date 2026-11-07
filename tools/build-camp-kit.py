@@ -107,10 +107,60 @@ def tongue(part, base, direction, radius, height, sides=5, phase=0.0):
              frame=kc.basis(direction), phase=phase)
 
 
-def egg(part, center, radius, half_height, axis, sides=5, phase=0.0):
-    """An ovoid: a short faceted lathe with a small flat cap at each pole."""
-    kc.lathe(part, kc.arc_profile(radius, half_height, 2, bottom=-72.0, top=72.0), sides, W, center=center,
-             frame=kc.basis(axis), phase=phase)
+def egg_profile(radius, half_height, runt=False):
+    """Six-sided egg: a cone that sits in the nest, a low belly and a blunt flat-topped dome. The runt has one
+    ring fewer, which keeps the three eggs inside their 90 triangle part budget."""
+    if runt:
+        return [(0.0, -0.95 * half_height), (radius, -0.1 * half_height), (radius * 0.62, 0.78 * half_height)]
+    return [(0.0, -0.95 * half_height), (radius, -0.15 * half_height), (radius * 0.92, 0.42 * half_height),
+            (radius * 0.5, 0.9 * half_height)]
+
+
+def profile_radius(profile, z):
+    """Radius of a lathe profile at height z, linearly between its points."""
+    for (r0, z0), (r1, z1) in zip(profile, profile[1:]):
+        if z0 <= z <= z1:
+            return r0 + (r1 - r0) * (z - z0) / (z1 - z0)
+    return 0.0
+
+
+def egg(part, rng, center, radius, half_height, axis, sides=6, phase=0.0, runt=False):
+    """An ovoid turned from its profile, with a little seeded jitter so no two eggs match."""
+    kc.lathe(part, egg_profile(radius, half_height, runt), sides, W, center=center, frame=kc.basis(axis), phase=phase,
+             jitter=0.035, rng=rng)
+
+
+def chunk(part, rng, x, y, z0, z1, wx, wy, taper=0.94, jitter=0.1, yaw=0.0, lean=(0.0, 0.0), chip=0.0):
+    """A hewn block: moved corners, a taper, a lean, and optionally one top corner knocked off and pulled in."""
+    sx, sy = wx / 2, wy / 2
+    cos_y, sin_y = math.cos(yaw), math.sin(yaw)
+    knocked = rng.randrange(4) if chip else -1
+    ring = [(-sx, -sy), (sx, -sy), (sx, sy), (-sx, sy)]
+
+    def corner(index, px, py, top):
+        scale = taper if top else 1.0
+        qx, qy = px * scale, py * scale
+        dx, dy = (lean[0], lean[1]) if top else (0.0, 0.0)
+        z = z1 + rng.uniform(-jitter, jitter) * 0.5 if top else z0
+        if top and index == knocked:
+            qx, qy, z = qx * (1.0 - chip * 0.4), qy * (1.0 - chip * 0.4), z - chip
+        return (x + qx * cos_y - qy * sin_y + dx + rng.uniform(-jitter, jitter),
+                y + qx * sin_y + qy * cos_y + dy + rng.uniform(-jitter, jitter), z)
+
+    kc.hexahedron(part, [corner(i, px, py, False) for i, (px, py) in enumerate(ring)]
+                  + [corner(i, px, py, True) for i, (px, py) in enumerate(ring)], W)
+
+
+def slab_frame(part, rng, half_x, half_y, width, z0, z1, jitter=0.05):
+    """A closed rectangular ring of stone with mitred corners: a capstone with a pocket in the middle."""
+    rings = []
+    for sx, sy in ((1, 1), (-1, 1), (-1, -1), (1, -1)):
+        j = lambda: rng.uniform(-jitter, jitter)  # noqa: E731
+        rings.append([(sx * (half_x - width) + j(), sy * (half_y - width) + j(), z0),
+                      (sx * half_x + j(), sy * half_y + j(), z0),
+                      (sx * half_x + j(), sy * half_y + j(), z1 + j()),
+                      (sx * (half_x - width) + j(), sy * (half_y - width) + j(), z1 + j())])
+    kc.loft_closed(part, rings, W)
 
 
 def moss_clump(part, rng, x, y, z, radius, height, sides=5):
@@ -183,22 +233,33 @@ def build_camp_shelter(asset):
 
 
 def build_hatch_altar(asset):
+    """A low square-cut altar of stacked slabs: a chipped base, a step, a leaning plinth with four glowing runes,
+    a capstone frame round a shallow offering dish, three rim stones and a fallen fourth."""
     rng = asset.rng
     stone_part, moss, runes = asset.part("Stone"), asset.part("Moss"), asset.part("Neon_Rune")
-    # A stepped octagonal pedestal with a shallow dish on top and a raised rim.
-    profile = [(2.5, 0.0), (2.5, 0.5), (2.0, 0.72), (1.85, 0.72), (1.62, 1.9), (1.98, 2.3), (2.2, 2.7),
-               (2.2, 3.0), (1.5, 3.0), (1.1, 2.45), (0.0, 2.35)]
-    kc.lathe(stone_part, profile, 8, W, jitter=0.035, rng=rng, twist=0.03, phase=0.2)
-    # Four glowing runes, one on each side of the column.
-    rune = [(0.0, -0.5), (0.2, -0.28), (0.2, 0.28), (0.0, 0.5), (-0.2, 0.28), (-0.2, -0.28)]
-    for k in range(4):
-        angle = math.pi / 4 + k * math.pi / 2
-        radial = (math.cos(angle), math.sin(angle), 0.0)
-        tangent = (-math.sin(angle), math.cos(angle), 0.0)
-        origin = (radial[0] * 1.68, radial[1] * 1.68, 1.3)
-        slab(runes, rune, origin, tangent, (0.0, 0.0, 1.0), radial, 0.12, W)
-    for angle, z, r in ((0.5, 0.72, 0.38), (2.7, 0.72, 0.3), (4.4, 0.72, 0.34)):
-        moss_clump(moss, rng, math.cos(angle) * 1.95, math.sin(angle) * 1.95, z, r, r * 0.9)
+    chunk(stone_part, rng, 0.0, 0.0, 0.0, 0.75, 5.0, 4.8, taper=0.9, jitter=0.1, yaw=0.03, chip=0.3)
+    chunk(stone_part, rng, 0.08, -0.06, 0.7, 1.45, 4.1, 3.7, taper=0.95, jitter=0.09, yaw=-0.07, chip=0.22)
+    chunk(stone_part, rng, 0.0, 0.0, 1.4, 2.35, 3.3, 3.0, taper=0.96, jitter=0.07, lean=(0.1, -0.05))
+    slab_frame(stone_part, rng, 2.35, 2.1, 1.2, 2.3, 2.65)
+    chunk(stone_part, rng, 0.05, 0.0, 2.3, 2.42, 1.5, 1.3, taper=0.92, jitter=0.05, yaw=0.2)  # the offering stone
+    for (x, y), top, size in (((-1.95, -1.7), 3.0, 0.85), ((1.95, -1.65), 2.85, 0.8), ((1.9, 1.7), 2.95, 0.8)):
+        chunk(stone_part, rng, x, y, 2.6, top, size, size, taper=0.82, jitter=0.07, yaw=rng.uniform(-0.3, 0.3),
+              chip=0.2)
+    chunk(stone_part, rng, -2.15, 2.1, 0.0, 0.5, 0.95, 0.8, taper=0.8, jitter=0.07, yaw=0.6)  # the fallen rim stone
+    chunk(stone_part, rng, 2.2, -2.2, 0.0, 0.35, 0.6, 0.55, taper=0.75, jitter=0.05, yaw=0.3)
+    chunk(stone_part, rng, -2.2, -0.9, 0.0, 0.3, 0.55, 0.5, taper=0.75, jitter=0.05, yaw=1.0)
+    rune = [(0.0, -0.4), (0.16, -0.22), (0.16, 0.22), (0.0, 0.4), (-0.16, 0.22), (-0.16, -0.22)]
+    # Four glowing runes, one on each face of the plinth; each is a different size, height and offset, so the
+    # two that face the camera do not read as a pair of eyes.
+    for radial, face, shift, rise, grow in (((1.0, 0.0, 0.0), 1.6, 0.55, 1.95, 1.1), ((0.0, 1.0, 0.0), 1.45, -0.6, 1.8, 0.8),
+                                            ((-1.0, 0.0, 0.0), 1.6, -0.45, 1.88, 0.95),
+                                            ((0.0, -1.0, 0.0), 1.45, 0.5, 1.82, 1.2)):
+        tangent = (-radial[1], radial[0], 0.0)
+        shape = [(a * 0.75 * grow, b * grow) for a, b in rune]
+        origin = (radial[0] * (face - 0.1) + tangent[0] * shift, radial[1] * (face - 0.1) + tangent[1] * shift, rise)
+        slab(runes, shape, origin, tangent, (0.0, 0.0, 1.0), radial, 0.25, W)
+    for x, y, r in ((-1.9, -1.7, 0.38), (2.0, 1.75, 0.3), (0.2, -2.0, 0.34)):
+        moss_clump(moss, rng, x, y, 0.62, r, r * 0.9)
 
 
 def build_extraction_marker(asset):
@@ -241,20 +302,23 @@ def build_egg_nest(asset):
         base = (math.cos(angle) * 5.2, math.sin(angle) * 5.2, 2.0)
         tip = (math.cos(angle + 0.2) * (5.2 + length), math.sin(angle + 0.2) * (5.2 + length), 3.1 + rng.uniform(0, 0.6))
         rough_tube(twigs, rng, [base, tip], [0.2, 0.07], sides=4, rough=0.04)
-    # Three eggs in the bowl and a few glowing specks on them.
-    for k, angle in enumerate((math.pi / 2, math.pi / 2 + TAU / 3, math.pi / 2 + 2 * TAU / 3)):
+    # Three eggs in the bowl and a few small glowing specks on their upper halves.
+    for k, (angle, grow, tilt) in enumerate(((math.pi / 2, 1.0, 0.2), (math.pi / 2 + TAU / 3, 0.93, 0.26),
+                                             (math.pi / 2 + 2 * TAU / 3, 1.05, 0.15))):
         centre = (math.cos(angle) * 2.8, math.sin(angle) * 2.8, 0.85 + 1.58)
-        tilt = 0.2
         axis = (math.cos(angle) * math.sin(tilt), math.sin(angle) * math.sin(tilt), math.cos(tilt))
-        egg(eggs, centre, 1.15, 1.66, axis, phase=0.3 * k)
-        for spot in range(2 if k < 2 else 1):
-            theta = angle + math.pi + (spot - 0.5) * 1.0 + rng.uniform(-0.2, 0.2)
-            reach = 0.98
-            z = centre[2] + 0.55 - 0.55 * spot
-            point = (centre[0] + math.cos(theta) * reach, centre[1] + math.sin(theta) * reach, z)
-            out = (math.cos(theta), math.sin(theta), 0.1)
-            kc.lathe(specks, [(0.17, 0.0), (0.17, 0.12)], 4, W, center=add(point, mul(out, -0.04)),
-                     frame=kc.basis(out))
+        radius, half = 1.1 * grow, 1.75 * grow
+        egg(eggs, rng, centre, radius, half, axis, phase=0.3 * k, runt=k == 1)
+        u, v, w = kc.basis(axis)
+        profile = egg_profile(radius, half, runt=k == 1)
+        for spot in range(3 if k < 2 else 2):
+            theta = angle + math.pi + (spot - 1.0) * 0.9 + rng.uniform(-0.25, 0.25)
+            height = half * (0.1 + 0.28 * spot)
+            reach = profile_radius(profile, height) - 0.03
+            out = add(mul(u, math.cos(theta)), mul(v, math.sin(theta)))
+            point = add(add(centre, mul(w, height)), mul(out, reach))
+            kc.lathe(specks, [(0.1, 0.0), (0.1, 0.075)], 3, W, center=point, frame=kc.basis(add(out, mul(w, 0.25))),
+                     phase=rng.uniform(0.0, TAU))
 
 
 def build_marsh_shelter(asset):
@@ -265,41 +329,62 @@ def build_marsh_shelter(asset):
     for x in (-7.0, 7.0):
         for y in (-4.0, 4.0):
             lean = (rng.uniform(-0.15, 0.15), rng.uniform(-0.15, 0.15))
-            rough_tube(posts, rng, [(x, y, 0.0), (x + lean[0] * 0.5, y + lean[1] * 0.5, 4.6),
-                                    (x + lean[0], y + lean[1], 9.2)],
+            rough_tube(posts, rng, [(x, y, 0.0), (x + lean[0] * 0.5, y + lean[1] * 0.5, 4.5),
+                                    (x + lean[0], y + lean[1], 8.9)],
                        [0.88, 0.76, 0.68], sides=6, rough=0.05, twist=0.2, flutes=0.08)
             side = -1.0 if x > 0 else 1.0
             rough_tube(posts, rng, [(x * 0.97, y, 5.6), (x + side * 2.7, y, 7.45)], [0.17, 0.14], sides=5, rough=0.05)
     for y in (-4.0, 4.0):
         rough_tube(posts, rng, [(-7.6, y, 7.45), (0.0, y, 7.5), (7.6, y, 7.45)], [0.3, 0.32, 0.3], sides=5, rough=0.05)
-    # The roof: a gable wedge along X with overlapping thatch courses laid on both slopes.
-    rings = []
-    for x in (-9.0, -4.5, 0.0, 4.5, 9.0):
-        j = lambda: rng.uniform(-0.1, 0.1)  # noqa: E731
-        rings.append([(x, -6.0 + j(), 7.8 + j()), (x, 6.0 + j(), 7.8 + j()), (x, 5.9, 8.5 + j()),
-                      (x, 0.55, 10.7), (x, -0.55, 10.7), (x, -5.9, 8.5 + j())])
-    loft(roof, rings, W)
-    rough_tube(roof, rng, [(-8.7, 0.0, 10.65), (0.0, 0.0, 10.7), (8.7, 0.0, 10.65)], [0.36, 0.42, 0.36], sides=5,
+    # The roof: a ridge beam and two pitched runs of loose planks, each with its own length, taper, pitch and a
+    # ragged diagonal end, then a second, shorter course laid over the upper half. The underside climbs to the
+    # ridge, so the roof reads as a lean of boards on a frame and not as a table top.
+    rough_tube(roof, rng, [(-9.0, 0.0, 10.55), (0.0, 0.0, 10.7), (9.0, 0.0, 10.55)], [0.4, 0.46, 0.4], sides=5,
                rough=0.06)
+    edges = [-9.0, -6.5, -4.1, -1.5, 1.2, 3.8, 6.4, 9.0]
     for side in (1, -1):
-        down = (0.0, side * 5.35, -2.2)
-        length = math.hypot(*down)
-        v = (0.0, down[1] / length, down[2] / length)
-        normal = (0.0, side * 2.2 / length, 5.35 / length)
-        u = (1.0, 0.0, 0.0)
-        for course, reach in enumerate((0.5, 1.9, 3.3)):
-            origin = (0.0, side * (0.55 + reach * v[1] * side), 10.7 + reach * v[2])
-            outline = [(-8.6, 0.05), (-4.3, 0.0), (4.3, 0.0), (8.6, 0.05), (8.8, 1.4), (5.0, 1.9), (1.5, 1.5),
-                       (-1.8, 2.0), (-5.5, 1.5), (-8.9, 1.8)]
-            outline = [(a + rng.uniform(-0.1, 0.1), b * rng.uniform(0.92, 1.08)) for a, b in outline]
-            slab(roof, outline, origin, u, v, normal, 0.35, W)
-    # Moss on the lower slopes and at two post feet.
-    for x, y, z in ((-4.5, 4.4, 9.45), (3.5, -4.3, 9.5), (6.5, 3.9, 9.2), (-7.2, -4.2, 0.0)):
+        for k in range(7):
+            x0, x1 = edges[k] + rng.uniform(-0.25, 0.25), edges[k + 1] + rng.uniform(-0.25, 0.25) - 0.1
+            plank(roof, rng, side, 0.55, 10.52, x0, x1, rng.uniform(4.4, 5.6), 0.36, 0.2)
+        for x0, x1 in ((-8.2, -5.4), (-3.2, -0.2), (1.9, 4.9), (6.0, 8.6)):
+            plank(roof, rng, side, 0.8, 10.78, x0 + rng.uniform(-0.2, 0.2), x1 + rng.uniform(-0.2, 0.2),
+                  rng.uniform(2.6, 3.6), 0.28, 0.12)
+    # Moss on the roof slopes and at a post foot.
+    for x, y, z in ((-4.5, 3.0, roof_top(3.0) - 0.1), (3.5, -2.6, roof_top(2.6) - 0.1),
+                    (6.5, 3.9, roof_top(3.9) - 0.1), (-7.2, -4.2, 0.0)):
         moss_clump(moss, rng, x, y, z, 0.7, 0.5)
-    # A lantern hangs under the roof on a short chain.
-    rough_tube(iron, rng, [(0.0, 0.0, 7.95), (0.0, 0.0, 7.6), (0.0, 0.0, 7.25)], [0.09, 0.09, 0.09], sides=4, rough=0.0)
+    # A lantern hangs from the ridge on a short chain.
+    rough_tube(iron, rng, [(0.0, 0.0, 10.3), (0.0, 0.0, 8.7), (0.0, 0.0, 7.25)], [0.09, 0.09, 0.09], sides=4,
+               rough=0.0)
     kc.box(iron, (0.0, 0.0, 7.8), (0.4, 0.4, 0.3), W)
     kc.lathe(lamp, [(0.38, 0.0), (0.5, 0.3), (0.5, 0.6), (0.3, 0.9)], 6, W, center=(0.0, 0.0, 6.35))
+
+
+SLOPE = (10.52 - 8.1) / 5.4  # fall of the roof per stud of run
+
+
+def roof_top(run):
+    """Height of the upper plank course at a run (distance from the ridge)."""
+    return 10.52 - SLOPE * (run - 0.55)
+
+
+def plank(part, rng, side, start, top, x0, x1, length, thick, pitch_jitter):
+    """One loose board running down a slope: tapered toward the eave, with a diagonal ragged end."""
+    pitch = math.atan(SLOPE) + rng.uniform(-pitch_jitter, pitch_jitter) * 0.2
+    down = (0.0, side * math.cos(pitch), -math.sin(pitch))
+    normal = (0.0, side * math.sin(pitch), math.cos(pitch))
+    xc = (x0 + x1) / 2
+    ends = (length * rng.uniform(0.9, 1.1), length * rng.uniform(0.9, 1.1))
+    ring = []
+    for column, (cx, run) in enumerate(((x0, 0.0), (x1, 0.0), (xc + (x1 - xc) * 0.86, ends[1]),
+                                        (xc + (x0 - xc) * 0.86, ends[0]))):
+        point = (cx + rng.uniform(-0.05, 0.05), side * start, top - thick)
+        ring.append(add(point, mul(down, run)))
+    area = sum(a[0] * b[1] - b[0] * a[1] for a, b in zip(ring, ring[1:] + ring[:1]))
+    if area < 0:
+        ring.reverse()
+    lifted = [add(p, mul(normal, thick + rng.uniform(-0.04, 0.04))) for p in ring]
+    kc.hexahedron(part, ring + lifted, W)
 
 
 # name: size, colors by part (palette name, hex), builder, seed, tags
