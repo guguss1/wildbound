@@ -316,5 +316,64 @@ class CrypticRuinsReads(unittest.TestCase):
         self.assertGreaterEqual(len(cheeks), 2, "a broken wall on each side")
 
 
+def aligned_share(part, degrees=4.0):
+    """Share of a part's visible surface area (faces that do not point straight down) that stands within `degrees`
+    of an axis plane, which is what a clean box face looks like. Undersides are left out: they sit on the ground or
+    on the next block and nobody sees them."""
+    vertices = part["vertices"]
+    total = aligned = 0.0
+    for triple in part["triangles"]:
+        a, b, c = (vertices[i] for i in triple)
+        u = [b[k] - a[k] for k in range(3)]
+        v = [c[k] - a[k] for k in range(3)]
+        cross = (u[1] * v[2] - u[2] * v[1], u[2] * v[0] - u[0] * v[2], u[0] * v[1] - u[1] * v[0])
+        size = math.sqrt(sum(x * x for x in cross))
+        if size < 1e-9:
+            continue
+        if cross[2] / size <= -0.5:
+            continue
+        total += size / 2.0
+        if max(abs(x) for x in cross) / size >= math.cos(math.radians(degrees)):
+            aligned += size / 2.0
+    return aligned / total
+
+
+class CrypticRuinsWeathering(unittest.TestCase):
+    """The W16 art pass. A first build passes every rule above and still reads as clean blocks: most of the
+    reliquary surface and three quarters of the wall sit exactly on an axis plane. The plinth is left out: its
+    top is a walk surface and must stay flat. Leaning, chipped and uneven stone
+    breaks that, and the limits below sit between the old blocks and the weathered ones."""
+
+    LIMITS = {"CR_Colonnade": 0.48, "CR_BrokenWall": 0.55, "CR_Archway": 0.5, "CR_Reliquary": 0.65}
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(CrypticRuinsKit.GEOMETRY)
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    def test_stone_faces_are_not_clean_box_faces(self):
+        for asset, limit in self.LIMITS.items():
+            with self.subTest(asset=asset):
+                share = aligned_share(self.part(asset, "Stone"))
+                self.assertLessEqual(share, limit, f"{share:.2f} of the stone surface is axis aligned")
+
+    def test_reliquary_is_a_strapped_chest_with_a_domed_lid_askew_on_its_top(self):
+        asset = "CR_Reliquary"
+        triangles = part_triangles(self.part(asset, "Stone"))
+        crown = top_height(triangles, 2.2, 0.0)
+        shoulder = top_height(triangles, 2.2, 1.4)
+        self.assertIsNotNone(crown)
+        self.assertIsNotNone(shoulder)
+        self.assertGreaterEqual(crown - shoulder, 0.3, "a lid with a crown, not a flat slab")
+        trim = shells(self.part(asset, "Trim"))
+        self.assertGreaterEqual(len(trim), 5, "straps and a lock plate")
+        tall = [s for s in trim if max(v[2] for v in s) - min(v[2] for v in s) >= 1.2]
+        self.assertGreaterEqual(len(tall), 3, "straps run the height of the body")
+        front = [s for s in tall if max(v[1] for v in s) <= -1.2]
+        self.assertGreaterEqual(len(front), 3, "the straps are on the front face")
+
+
 if __name__ == "__main__":
     unittest.main()
