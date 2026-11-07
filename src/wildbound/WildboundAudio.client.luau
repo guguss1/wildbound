@@ -93,7 +93,7 @@ local function newSound(slot, parent)
 	sound.SoundGroup = groups[entry.group]
 	if entry.spatial then
 		sound.RollOffMode = Enum.RollOffMode.InverseTapered
-		sound.RollOffMinDistance, sound.RollOffMaxDistance = 8, 60
+		sound.RollOffMinDistance, sound.RollOffMaxDistance = Mix.rollOff(slot)
 	end
 	count += 1
 	sound.Destroying:Once(function() count -= 1 end)
@@ -165,7 +165,8 @@ local duckUntil = 0
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
 	local parent = body
-	if kind ~= "signature" then
+	-- The signature and the groan come from its body; everything else sounds from the forest toward it.
+	if kind ~= "signature" and kind ~= "groan" then
 		local point = root and Mix.cuePosition(root.Position.X, root.Position.Z, body and body.Position.X,
 			body and body.Position.Z, rng:NextNumber(), rng:NextNumber())
 		if not point then return end
@@ -195,7 +196,7 @@ local function update(dt)
 	for slot, volume in pairs(targets) do
 		if slot == "breathing" then
 			setLayer(slot, body and volume or 0, reduced, body)
-		elseif slot ~= "steps" then
+		elseif slot ~= "steps" and slot ~= "giantSteps" and slot ~= "approach" and slot ~= "creak" then
 			setLayer(slot, volume, reduced)
 		end
 	end
@@ -212,6 +213,11 @@ local function update(dt)
 		guardianSpeed += (moved / dt - guardianSpeed) * 0.3
 		lastBodyPosition = body.Position
 	end
+	-- Dread pass: the giant's thumps loop on its body at its gait, over a far approach bed and creaking trees.
+	setLayer("giantSteps", body and targets.giantSteps or 0, reduced, body)
+	setLayer("approach", body and targets.approach or 0, reduced, body)
+	setLayer("creak", body and targets.creak or 0, reduced, body)
+	if layers.giantSteps then layers.giantSteps.PlaybackSpeed = Mix.gait(guardianSpeed) end
 	local interval = Mix.stepInterval(guardianSpeed)
 	if body and targets.steps > 0 and interval and now - state.lastStep >= interval then
 		local steps = 0
@@ -234,7 +240,7 @@ local function update(dt)
 	end
 	if level ~= state.level then state.nextAt = {} end
 	state.level = level
-	for _, kind in ipairs({ "snap", "dirt", "whisper", "signature" }) do
+	for _, kind in ipairs({ "snap", "dirt", "whisper", "signature", "crack", "groan" }) do
 		local due = state.nextAt[kind]
 		if due == nil then
 			local delay = Mix.nextDelay(kind, level, reduced, rng:NextNumber())
@@ -244,7 +250,7 @@ local function update(dt)
 			local active = 0
 			for _, child in ipairs(workspace.Terrain:GetChildren()) do if child.Name == "WildboundCue" then active += 1 end end
 			local once = kind == "signature" and reduced and state.signatures >= 1
-			if active < Mix.LIMITS.snaps and not once and (kind ~= "signature" or body) then
+			if active < Mix.LIMITS.snaps and not once and ((kind ~= "signature" and kind ~= "groan") or body) then
 				cue(kind, level, reduced, body, root)
 				if kind == "signature" then state.signatures += 1 end
 			end

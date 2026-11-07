@@ -10,6 +10,9 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 CATALOG = REPO / "src/wildbound/WildboundAudioCatalog.luau"
 SHORTLIST = REPO / "docs/audio/wildbound-horror-audio-shortlist.md"
+# Dread pass: the giant footstep, crack, groan and creak ids come from the second research shortlist.
+DREAD_SHORTLIST = REPO / "docs/audio/wildbound-dread-assets-shortlist.md"
+DREAD_IDS = {"9125404769", "9125404774", "9125404796", "9126239755", "9114628321", "9120262025"}
 WILDBOUND = REPO / "src/wildbound"
 
 
@@ -23,12 +26,16 @@ class AudioCatalog(unittest.TestCase):
     def test_d9_every_catalog_id_is_on_the_shortlist_and_not_rejected(self):
         ids = catalog_ids()
         self.assertGreaterEqual(len(ids), 20)
-        lines = SHORTLIST.read_text(encoding="utf-8").splitlines()
+        lines = SHORTLIST.read_text(encoding="utf-8").splitlines() + DREAD_SHORTLIST.read_text(encoding="utf-8").splitlines()
         for asset in sorted(ids):
             found = [line for line in lines if asset in line]
             self.assertTrue(found, f"{asset} is not on the shortlist")
             for line in found:
                 self.assertNotIn("rejected", line.lower(), f"{asset} is rejected on the shortlist")
+
+    def test_dread_pass_footstep_ids_are_in_the_catalog(self):
+        missing = DREAD_IDS - catalog_ids()
+        self.assertFalse(missing, f"dread pass ids missing from the catalog: {sorted(missing)}")
 
     def test_d9_no_other_script_names_an_audio_id(self):
         for path in WILDBOUND.glob("*.luau"):

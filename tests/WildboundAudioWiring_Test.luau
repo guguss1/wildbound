@@ -60,5 +60,14 @@ return function(source)
 		assert(not source:find("FireServer", 1, true) and not source:find("InvokeServer", 1, true), "audio never talks to the server")
 	end)
 
+	case("Dread pass: the giant's steps loop on its body at its gait, roll off far, and the new cues play", function()
+		has("sound.RollOffMinDistance, sound.RollOffMaxDistance = Mix.rollOff(slot)")
+		has("Mix.gait(guardianSpeed)")
+		for _, slot in ipairs({ "giantSteps", "approach", "creak" }) do
+			has('setLayer("' .. slot .. '", body and targets.' .. slot .. ' or 0, reduced, body)', slot .. " on the body")
+		end
+		has('{ "snap", "dirt", "whisper", "signature", "crack", "groan" }', "the new one-shots are scheduled")
+	end)
+
 	return result
 end

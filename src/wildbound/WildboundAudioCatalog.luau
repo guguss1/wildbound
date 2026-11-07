@@ -1,7 +1,8 @@
 -- Every horror audio asset id in one place (delivery D9, decision D-D3: shortlist approximations until the user
 -- provides licensed uploads, so swapping a sound means editing only this table). Ids come only from
--- docs/audio/wildbound-horror-audio-shortlist.md; tools/test_wildbound_audio_catalog.py checks that. The first id
--- of a slot is the primary; a later one is the fallback when the first fails to load. Data only.
+-- docs/audio/wildbound-horror-audio-shortlist.md and wildbound-dread-assets-shortlist.md;
+-- tools/test_wildbound_audio_catalog.py checks that. The first id of a slot is the primary; a later one is the
+-- fallback when the first fails to load. Data only.
 local Catalog = {}
 
 Catalog.GROUPS = table.freeze({ "Ambient", "Music", "Threat", "Chase", "Impact" })
@@ -34,6 +35,13 @@ Catalog.SOUNDS = table.freeze({
 	hiddenBreath = slot("Impact", { 9113586909 }, { loop = true }),
 	unease = slot("Threat", { 9118057295 }, { spatial = true, pitch = 1.4 }),
 	fear = slot("Threat", { 9118050871 }, { spatial = true }),
+	-- Dread pass: the giant's footsteps and weight, from docs/audio/wildbound-dread-assets-shortlist.md. The giant
+	-- thumps loop on its body at its gait (the second id is the fallback), the longest take is the approach bed.
+	giantSteps = slot("Threat", { 9125404769, 9125404774 }, { loop = true, spatial = true }),
+	approach = slot("Threat", { 9125404796 }, { loop = true, spatial = true }),
+	crack = slot("Threat", { 9126239755 }, { spatial = true }),
+	groan = slot("Chase", { 9114628321 }, { spatial = true, pitch = 0.7 }),
+	creak = slot("Threat", { 9120262025 }, { loop = true, spatial = true }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.

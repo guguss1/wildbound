@@ -36,15 +36,16 @@ return function(Mix, Catalog)
 		near(closeBy.wind, 0.14, "wind x 0.7")
 		near(closeBy.birds, 0)
 		near(closeBy.breathing, 0.30)
-		near(closeBy.steps, 0.35)
+		near(closeBy.steps, 0.40, "dread pass: was 0.35")
 		local chase = Mix.targets("Chase", "Night", false)
 		near(chase.wind, 0.14 * 0.4, "wind x 0.4")
 		near(chase.chaseMusic, 0.35)
 		near(chase.pulse, 0.12)
-		near(chase.steps, 0.40)
+		near(chase.steps, 0.45, "dread pass: was 0.40")
 		near(chase.unsettling, 0)
-		near(Mix.stepPitch("Chase"), 1.15)
-		near(Mix.stepPitch("Near"), 1)
+		-- Deliberately changed in the dread pass: a heavy, slow walk (0.85) and a run (1.2) instead of 1 and 1.15.
+		near(Mix.stepPitch("Chase"), 1.2)
+		near(Mix.stepPitch("Near"), 0.85)
 	end)
 
 	case("D9: invariants hold for every level, time and Reduced", function()
@@ -59,9 +60,9 @@ return function(Mix, Catalog)
 						loudestMusic = math.max(loudestMusic, t[slot])
 					end
 					if level == "Near" or level == "Chase" then
-						assert(math.max(t.steps, t.breathing) >= loudestMusic, label .. ": guardian cues under the music")
+						assert(math.max(t.steps, t.breathing, t.giantSteps) >= loudestMusic, label .. ": guardian cues under the music")
 					end
-					for _, shot in ipairs({ "snap", "dirt", "whisper", "signature", "hit", "stinger" }) do
+					for _, shot in ipairs({ "snap", "dirt", "whisper", "signature", "hit", "stinger", "crack", "groan" }) do
 						assert(Mix.oneShot(shot, reduced).volume <= 0.35 + 1e-9, label .. ": " .. shot .. " above 0.35")
 					end
 					for slot, volume in pairs(t) do
@@ -88,7 +89,9 @@ return function(Mix, Catalog)
 		near(Mix.oneShot("stinger", true).volume, 0.25)
 		assert(Mix.nextDelay("whisper", "Distant", true, 0.5) == nil, "whispers off")
 		near(Mix.nextDelay("snap", "Distant", true, 0), 8, "snaps kept")
-		near(Mix.targets("Near", "Day", true).steps, 0.35, "steps unchanged")
+		near(Mix.targets("Near", "Day", true).steps, 0.40, "steps unchanged")
+		near(Mix.targets("Near", "Day", true).giantSteps, 0.30, "the giant's steps unchanged")
+		near(Mix.oneShot("groan", true).volume, 0.15, "the groan softer")
 		near(Mix.fadeSeconds("wind", true, true), 2, "every layer fades in over 2 s")
 	end)
 
@@ -115,10 +118,44 @@ return function(Mix, Catalog)
 		assert(lost and math.abs(math.sqrt(lost.x ^ 2 + lost.z ^ 2) - 15) < 1e-6, "random bearing without a guardian")
 	end)
 
-	case("D9: step interval is 5 / speed", function()
-		near(Mix.stepInterval(4), 1.25)
-		near(Mix.stepInterval(10), 0.5)
+	-- Deliberately changed in the dread pass: a 17-stud giant strides 9 studs, not 5.
+	case("Dread pass: step interval is a giant's 9-stud stride over speed", function()
+		near(Mix.stepInterval(4), 2.25)
+		near(Mix.stepInterval(10), 0.9)
 		assert(Mix.stepInterval(0) == nil and Mix.stepInterval(0 / 0) == nil and Mix.stepInterval(-3) == nil, "no steps when still")
+	end)
+
+	case("Dread pass: you hear its steps before you see it", function()
+		-- The fog hides it from about 48 to 140 studs (docs/ui/wildbound-world.md); its steps carry to 150.
+		for _, slot in ipairs({ "steps", "giantSteps", "approach" }) do
+			local min, max = Mix.rollOff(slot)
+			assert(min >= 10 and max >= 150, slot .. " rolls off too soon: " .. tostring(min) .. ", " .. tostring(max))
+		end
+		local min, max = Mix.rollOff("snap")
+		near(min, 8, "other cues keep 8"); near(max, 60, "other cues keep 60")
+		for _, time in ipairs(TIMES) do
+			local distant = Mix.targets("Distant", time, false)
+			near(distant.steps, 0.25, time .. " distant steps")
+			near(distant.giantSteps, 0.18, time .. " distant giant steps")
+			near(distant.approach, 0.12, time .. " approach bed")
+			near(Mix.targets("Safe", time, false).giantSteps, 0, time .. " silent when safe")
+		end
+		near(Mix.targets("Near", "Night", false).giantSteps, 0.30)
+		near(Mix.targets("Chase", "Night", false).giantSteps, 0.35)
+		near(Mix.targets("Chase", "Night", false).approach, 0, "the bed gives way to the chase")
+		near(Mix.targets("Near", "Night", false).creak, 0.12, "trees creak when it is near")
+		assert(Mix.gait(4) < 1 and Mix.gait(10) > 1 and Mix.gait(30) <= 1.3 and Mix.gait(0) >= 0.7, "walk slow, run fast")
+		assert(Mix.gait(0 / 0) == 1, "bad speed keeps the clip's own pace")
+		near(Mix.oneShot("crack", false).volume, 0.25); near(Mix.oneShot("groan", false).volume, 0.30)
+		near(Mix.nextDelay("crack", "Near", false, 0), 8); near(Mix.nextDelay("crack", "Near", false, 1), 16)
+		near(Mix.nextDelay("groan", "Chase", false, 0), 10); near(Mix.nextDelay("groan", "Chase", false, 1), 18)
+		assert(Mix.nextDelay("crack", "Safe", false, 0.5) == nil, "no cracks when safe")
+		-- Ids from docs/audio/wildbound-dread-assets-shortlist.md, kept in the catalog only.
+		local ids = function(slot) return table.concat(Catalog.SOUNDS[slot].ids, ",") end
+		assert(ids("giantSteps") == "9125404769,9125404774" and Catalog.SOUNDS.giantSteps.loop, "giant thumps loop")
+		assert(ids("approach") == "9125404796" and ids("crack") == "9126239755" and ids("creak") == "9120262025", "beds")
+		assert(ids("groan") == "9114628321" and math.abs(Catalog.SOUNDS.groan.pitch - 0.7) < 1e-9, "groan pitched down")
+		assert(ids("steps") == "9114080709,9114079718", "the single thump stays the stride one-shot")
 	end)
 
 	case("D9: jumpscare refuses within 15 s, twice per life, and when unloaded", function()
