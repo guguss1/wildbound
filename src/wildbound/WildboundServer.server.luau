@@ -66,6 +66,9 @@ totemEvent.Name, totemEvent.Parent = "TotemChanged", network
 -- M5.6 reverse event: the world script reports a pulse that revealed Silueta to a player in the fog.
 local pulseHit = Instance.new("BindableEvent")
 pulseHit.Name, pulseHit.Parent = "PulseHit", network
+-- Delivery C1: capture noise for La Silueta (ring at the start, seal at the tap), with the slot tier. Server only.
+local noiseEvent = Instance.new("BindableEvent")
+noiseEvent.Name, noiseEvent.Parent = "GuardianNoise", network
 network.Parent = ReplicatedStorage
 
 -- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
@@ -684,8 +687,10 @@ local function startCapture(player, entry)
 	local mode, guardianDistance = guardianReading(position)
 	sessionMeta[result.token] = { startedAt = now, slot = entry.slot.id, tier = entry.slot.tier,
 		inTerritory = Rules.inTerritory(position.X, position.Z), guardianMode = mode,
-		guardianDistance = guardianDistance and math.floor(guardianDistance * 10 + 0.5) / 10 or nil }
+		guardianDistance = guardianDistance and math.floor(guardianDistance * 10 + 0.5) / 10 or nil,
+		x = lumipol.X, z = lumipol.Z }
 	captureRemote:FireClient(player, Capture.toSnapshot(result))
+	noiseEvent:Fire("ring", entry.slot.tier or "Fog", lumipol.X, lumipol.Z)
 end
 
 -- Every ending passes through here: grant, spook or release, the final push, and the log.
@@ -1155,7 +1160,10 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if action == "CaptureSeal" then
 		-- H1: the token is untrusted and carries no timing. The rule judges the press by this server's clock when the
 		-- request arrived, with values read here. A wrong owner, a stale token or an early press is ignored silently.
+		local meta = sessionMeta[uid]
 		local ok, out = capture:seal(uid, player.UserId, observe(player, workspace:GetServerTimeNow()))
+		-- Delivery C1: an accepted seal tap is the loud part of a capture.
+		if ok and meta then noiseEvent:Fire("seal", meta.tier or "Fog", meta.x, meta.z) end
 		if ok and out then handleEnding(out) end
 		return
 	end

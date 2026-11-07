@@ -8,19 +8,24 @@ every patrol phase it could be in when the player arrived.
 It models GEOMETRY AND TIMING ONLY. It says nothing about fun or balance.
 
 What is modelled (all constants are parsed from the sources, never copied):
-  * detection range, chase speed, attack range, telegraph, chase limit, leash,
-    fog rectangle and safe circles from src/wildbound/WildboundWorldRules.luau;
-  * alert time, patrol speed, patrol waypoints and the 0.2 s step from
-    src/wildbound/WildboundWorld.server.luau;
+  * attack range, telegraph, leash, fog rectangle and safe circles from
+    src/wildbound/WildboundWorldRules.luau;
+  * since delivery C, detection range and chase speed by day and by night, and
+    the Day alert time, patrol speed and chase limit, from the profiles in
+    src/wildbound/WildboundGuardianBrain.luau (the world script reads them);
+  * patrol waypoints and the 0.2 s step from src/wildbound/WildboundWorld.server.luau;
   * the layout JSON is cross-checked against both and must agree;
   * capture and egg coordinates and CALM_REQUIRED from the capture document;
   * the Lumipol marker from tools/build-wildbound-p0-map.luau.
 Any parse failure or disagreement raises and exits non-zero.
 
 What is NOT modelled:
-  * trunks and props stopping steering (the server steers in a straight line
-    and, once hunting a visible target, skips its obstacle raycast, so this
-    matches the code but not what colliding props would do in play);
+  * routing around the solid trunk cores (delivery C2: the server follows
+    PathfindingService routes, so real approaches are longer than the straight
+    line used here, which is the worst case for the player);
+  * Night's own patrol speed, alert time and chase limit (the Day values are
+    used for both phases; Night only changes speed and detection here);
+  * suspicion, capture noise and searching (delivery C1);
   * line of sight: in play trunks block acquisition, so detection here is the
     worst case for the player;
   * the 60 Hz Heartbeat granularity of the 0.2 s step (real steps are 0.2 s to
@@ -45,6 +50,7 @@ from pathlib import Path
 REPO = Path(__file__).resolve().parent.parent
 RULES_PATH = "src/wildbound/WildboundWorldRules.luau"
 SERVER_PATH = "src/wildbound/WildboundWorld.server.luau"
+BRAIN_PATH = "src/wildbound/WildboundGuardianBrain.luau"
 LAYOUT_PATH = "assets/maps/forest-layout/forest-layout-v1.json"
 CAPTURE_PATH = "docs/mechanics/wildbound-capture.md"
 BUILDER_PATH = "tools/build-wildbound-p0-map.luau"
@@ -126,23 +132,27 @@ def parse_rules(text):
 
 
 STEERING_CHECKS = (
-    ("steering", r"moveToward\(decision\.destination, parameters\.speed, dt",
-     "Hunt steering is no longer a straight move at parameters.speed"),
+    ("steering", r"navigate\(decision\.destination, parameters\.speed, dt",
+     "Hunt steering no longer moves at parameters.speed"),
+    ("hunt profile", r"local parameters = \{ speed = profile\.hunt, detectionRange = profile\.detection \}",
+     "hunt speed and detection no longer come from the brain profile"),
     ("telegraph", r"telegraphEndsAt = now \+ Rules\.TELEGRAPH_SECONDS",
      "telegraph length is no longer Rules.TELEGRAPH_SECONDS"),
     ("attack trigger", r"candidate\.distance <= Rules\.ATTACK_RANGE",
      "telegraph is no longer started by Rules.ATTACK_RANGE"),
-    ("chase limit", r"now - chaseStartedAt >= Rules\.MAX_CHASE_SECONDS",
-     "chase limit is no longer Rules.MAX_CHASE_SECONDS"),
+    ("chase limit", r"Brain\.chaseExpired\(chaseStartedAt, now, phase\)",
+     "chase limit is no longer the brain profile's chaseSeconds"),
+    ("alert", r"alertEndsAt = now \+ Brain\.engage\(brain, now, phase\)",
+     "alert time is no longer the brain profile's alertSeconds"),
+    ("patrol speed", r"navigate\(patrol\[patrolIndex\], profile\.patrol, dt, now\)",
+     "patrol speed is no longer the brain profile's patrol speed"),
 )
 
 
 def parse_server(text):
-    """Alert time, patrol speed, patrol waypoints and step from the server script."""
+    """Patrol waypoints and step from the server script; the steering checks pin where speeds come from."""
     out = {}
     patterns = {
-        "ALERT": rf"alertEndsAt, chaseStartedAt = nearest, nearestLife, now \+ {NUM}, now",
-        "PATROL_SPEED": rf"moveToward\(patrol\[patrolIndex\], {NUM}, dt\)",
         "STEP": rf"if accumulator >= {NUM} then",
     }
     for key, pattern in patterns.items():
@@ -193,9 +203,36 @@ def parse_lumipol_marker(text):
     return float(found.group(1)), float(found.group(2))
 
 
-def build_world(rules_text, server_text, layout, capture_text, builder_text):
+PROFILE_KEYS = ("patrol", "hunt", "chaseSeconds", "alertSeconds", "detection")
+
+
+def parse_brain(text):
+    """Day and Night profiles from WildboundGuardianBrain.luau. Raises ParseError if any is missing."""
+    out = {}
+    for name, pattern in (("Day", r"local DAY = \{(.*?)\}"), ("Night", r"\bNight = \{(.*?)\}")):
+        block = re.search(pattern, text, re.S)
+        if not block:
+            raise ParseError(f"{BRAIN_PATH}: {name} profile not found")
+        values = {}
+        for key in PROFILE_KEYS:
+            found = re.search(rf"\b{key} = {NUM}", block.group(1))
+            if not found:
+                raise ParseError(f"{BRAIN_PATH}: {name}.{key} not found")
+            values[key] = float(found.group(1))
+        out[name] = values
+    return out
+
+
+def build_world(rules_text, server_text, layout, capture_text, builder_text, brain_text=None):
     rules = parse_rules(rules_text)
     server = parse_server(server_text)
+    if brain_text is None:
+        try:
+            brain_text = (REPO / BRAIN_PATH).read_text(encoding="utf-8")
+        except OSError as error:
+            raise ParseError(f"cannot read {BRAIN_PATH}: {error}") from error
+    brain = parse_brain(brain_text)
+    day_profile, night_profile = brain["Day"], brain["Night"]
     spots = parse_capture(capture_text)
     calm = parse_calm_required(capture_text)
     marker = parse_lumipol_marker(builder_text)
@@ -229,17 +266,17 @@ def build_world(rules_text, server_text, layout, capture_text, builder_text):
     if problems:
         raise ConsistencyError("; ".join(problems))
 
-    model = Model(server["STEP"], server["PATROL_SPEED"], server["ALERT"],
+    model = Model(server["STEP"], day_profile["patrol"], day_profile["alertSeconds"],
                   float(rules["TELEGRAPH_SECONDS"]), float(rules["ATTACK_RANGE"]),
-                  float(rules["MAX_CHASE_SECONDS"]))
+                  day_profile["chaseSeconds"])
     objectives = [
         Objective("nest", float(nest[0]), float(nest[1]), None),
         Objective("old nest", float(old_nest[0]), float(old_nest[1]), None),
         Objective("lumipol marker", marker[0], marker[1], None),
     ] + [Objective("capture " + s.slot, s.x, s.z, s.doc_share) for s in spots]
     return World(home[0], home[1], float(rules["HOME_LEASH"]), fog, safe, patrol,
-                 Speeds(float(rules["BASE"].speed), float(rules["BASE"].detection_range)),
-                 Speeds(float(rules["NIGHT"].speed), float(rules["NIGHT"].detection_range)),
+                 Speeds(day_profile["hunt"], day_profile["detection"]),
+                 Speeds(night_profile["hunt"], night_profile["detection"]),
                  model, objectives, calm)
 
 
@@ -253,7 +290,8 @@ def load_world(repo=REPO):
             raise ParseError(f"cannot read {rel}: {error}") from error
 
     layout = json.loads(read(LAYOUT_PATH))
-    return build_world(read(RULES_PATH), read(SERVER_PATH), layout, read(CAPTURE_PATH), read(BUILDER_PATH))
+    return build_world(read(RULES_PATH), read(SERVER_PATH), layout, read(CAPTURE_PATH), read(BUILDER_PATH),
+                       read(BRAIN_PATH))
 
 
 # ---- Geometry -------------------------------------------------------------

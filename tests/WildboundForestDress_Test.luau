@@ -22,6 +22,10 @@ return function(builder, forest, templates, layout)
     end
 
     local QUERY_PARTS = { FK_Evergreen_Trunk = true, FK_DeadTree_Wood = true }
+    -- Delivery C, D-C1: each tree carries one invisible solid core, so players and La Silueta's paths go around
+    -- trunks. It also answers sight rays, like the trunk it sits in.
+    local CORE = 'FK_TrunkCore'
+    local CORE_RADIUS = { FK_Evergreen = 2.5, FK_DeadTree = 3.4 }
     local TREES = { FK_Evergreen = true, FK_DeadTree = true }
     local NODE_ORDER = { 'camp', 'clearing', 'ruin', 'nest', 'marsh', 'shelter' }
     local FLOOR_Y = 0.5
@@ -201,7 +205,7 @@ return function(builder, forest, templates, layout)
         expect(kit, 'ForestKit missing')
         local queryParts = 0
         for _, part in kit:GetDescendants() do
-            if part:IsA('BasePart') then
+            if part:IsA('BasePart') and part.Name ~= CORE then
                 expect(part.Anchored, part:GetFullName() .. ' must be anchored')
                 expect(not part.CanCollide, part.Name .. ' must not collide')
                 expect(not part.CanTouch, part.Name .. ' must not fire Touched')
@@ -217,6 +221,87 @@ return function(builder, forest, templates, layout)
             trees += layout.totals.by_name[prop].count
         end
         expect(queryParts == trees, string.format('expected %d query trunks, found %d', trees, queryParts))
+    end)
+
+    check('every tree has one invisible solid trunk core sized from the layout, nothing else collides', function()
+        expect(kit, 'ForestKit missing')
+        expect(type(forest.CORE_RADIUS) == 'table', 'the dress module must expose CORE_RADIUS')
+        for prop, radius in CORE_RADIUS do
+            expect(forest.CORE_RADIUS[prop] == radius, prop .. ' core radius differs')
+            expect(layout.inputs.props[prop].core_r == radius, prop .. ' core radius differs from the layout plan')
+        end
+        local cores = 0
+        for _, item in ipairs(layout) do
+            local model = kit[item.id]
+            local found = {}
+            for _, part in model:GetDescendants() do
+                if part.Name == CORE then table.insert(found, part) end
+            end
+            if TREES[item.name] then
+                expect(#found == 1, item.id .. ' needs exactly one ' .. CORE .. ', found ' .. #found)
+                local core = found[1]
+                cores += 1
+                expect(core:IsA('Part') and core.Shape == Enum.PartType.Cylinder, item.id .. ' core must be a cylinder Part')
+                expect(core.Anchored and core.CanCollide and core.CanQuery and not core.CanTouch, item.id .. ' core flags')
+                expect(core.Transparency == 1 and core.CastShadow == false, item.id .. ' core must be invisible')
+                local pivot = model:GetPivot().Position
+                local radius = CORE_RADIUS[item.name] * item.scale
+                expect(math.abs(core.Size.Y / 2 - radius) < TOLERANCE and math.abs(core.Size.Z / 2 - radius) < TOLERANCE,
+                    string.format('%s core radius %.3f, wanted %.3f', item.id, core.Size.Y / 2, radius))
+                expect(math.abs(core.Position.X - pivot.X) < TOLERANCE and math.abs(core.Position.Z - pivot.Z) < TOLERANCE,
+                    item.id .. ' core must stand on the trunk axis')
+                expect(core.CFrame.XVector:Dot(Vector3.yAxis) > 0.999, item.id .. ' core axis must be vertical')
+                local bottom, top = core.Position.Y - core.Size.X / 2, core.Position.Y + core.Size.X / 2
+                expect(math.abs(bottom - FLOOR_Y) < TOLERANCE and top - FLOOR_Y >= 12, item.id .. ' core must stand 12+ studs on the floor')
+            else
+                expect(#found == 0, item.id .. ' must not have a trunk core')
+            end
+            for _, part in model:GetDescendants() do
+                if part:IsA('BasePart') and part.CanCollide then
+                    expect(part.Name == CORE, part:GetFullName() .. ' collides but is not a trunk core')
+                end
+            end
+        end
+        local trees = layout.totals.by_name.FK_Evergreen.count + layout.totals.by_name.FK_DeadTree.count
+        expect(cores == trees, string.format('expected %d cores, found %d', trees, cores))
+    end)
+
+    check('trunk cores keep the 14-stud route clear', function()
+        expect(kit, 'ForestKit missing')
+        local legs = routeLegs(root)
+        local closest = math.huge
+        for _, item in ipairs(layout) do
+            if TREES[item.name] then
+                local core = kit[item.id]:FindFirstChild(CORE, true)
+                for index, leg in ipairs(legs) do
+                    local edge = segmentDistance(core.Position.X, core.Position.Z, leg) - core.Size.Y / 2
+                    closest = math.min(closest, edge)
+                    expect(edge >= HALF_ROUTE, string.format('%s core reaches %.2f studs from route leg %d', item.id, edge, index))
+                end
+            end
+        end
+        note(string.format('closest trunk core edge to a route centerline: %.2f studs', closest))
+    end)
+
+    check('addTrunkCores patches an already dressed kit once and only trees', function()
+        expect(kit, 'ForestKit missing')
+        local copy = kit:Clone()
+        local removed = 0
+        for _, part in copy:GetDescendants() do
+            if part.Name == CORE then part:Destroy(); removed += 1 end
+        end
+        expect(removed > 0, 'the copy must lose its cores first')
+        expect(forest.addTrunkCores(copy) == removed, 'addTrunkCores must add one core per tree')
+        expect(forest.addTrunkCores(copy) == 0, 'a second patch must add nothing')
+        for _, item in ipairs(layout) do
+            local original, patched = kit[item.id]:FindFirstChild(CORE, true), copy[item.id]:FindFirstChild(CORE, true)
+            expect((original == nil) == (patched == nil), item.id .. ' core presence differs after the patch')
+            if original then
+                expect((original.Position - patched.Position).Magnitude < TOLERANCE
+                    and (original.Size - patched.Size).Magnitude < TOLERANCE, item.id .. ' patched core differs')
+            end
+        end
+        copy:Destroy()
     end)
 
     check('each lantern glass carries one short-range PointLight without shadows, nothing else is lit', function()
@@ -408,7 +493,7 @@ return function(builder, forest, templates, layout)
     local function queryTrunks()
         local list = {}
         for _, part in kit:GetDescendants() do
-            if part:IsA('BasePart') and QUERY_PARTS[part.Name] then
+            if part:IsA('BasePart') and (QUERY_PARTS[part.Name] or part.Name == CORE) then
                 table.insert(list, part)
             end
         end
@@ -461,7 +546,7 @@ return function(builder, forest, templates, layout)
                 local model = kit[item.id]
                 local center = model:GetPivot().Position
                 local into = castWorld(Vector3.new(center.X - 6, EYE_Y, center.Z), Vector3.new(center.X, EYE_Y, center.Z))
-                expect(into and into.Instance:IsDescendantOf(model) and QUERY_PARTS[into.Instance.Name],
+                expect(into and into.Instance:IsDescendantOf(model) and (QUERY_PARTS[into.Instance.Name] or into.Instance.Name == CORE),
                     item.id .. ' must block a ray aimed at its trunk, got ' .. describe(into, center))
                 local aside = layout.inputs.props[item.name].core_r * item.scale + 2
                 local beside = castWorld(Vector3.new(center.X - 8, EYE_Y, center.Z + aside), Vector3.new(center.X + 8, EYE_Y, center.Z + aside))

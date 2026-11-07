@@ -38,7 +38,7 @@ HOME, LEASH = (0, -85), 80
 FOG = (-45, 165, -165, 35)
 SAFE = [((-140, 140), 35), ((105, 125), 22)]
 PATROL = [(16, -85), (0, -69), (-16, -85), (0, -101)]  # E, S, W, N
-DAY, NIGHT = (6, 28), (8, 38)                          # (speed, detection range)
+DAY, NIGHT = (8, 26), (11, 38)                         # (hunt speed, detection) from the brain, delivery C
 
 # One simple model used by the hand cases: 0.2 s step, 1.2 s alert, 1.4 s
 # telegraph, attack range 7, chase limit 10 s, patrol speed 3.
@@ -70,7 +70,7 @@ class SourceParsing(unittest.TestCase):
         self.assertEqual((world.day.speed, world.day.detection_range), DAY)
         self.assertEqual((world.night.speed, world.night.detection_range), NIGHT)
         m = world.model
-        self.assertEqual((m.step_s, m.patrol_speed, m.alert_s), (0.2, 3.0, 1.2))
+        self.assertEqual((m.step_s, m.patrol_speed, m.alert_s), (0.2, 4.0, 1.2))
         self.assertEqual((m.telegraph_s, m.attack_range, m.max_chase_s), (1.4, 7.0, 10.0))
 
     def test_objectives_come_from_the_sources(self):
@@ -104,8 +104,8 @@ class SourceParsing(unittest.TestCase):
 
     def test_changed_steering_assumption_fails_loudly(self):
         t = texts()
-        broken = t["server"].replace("moveToward(decision.destination, parameters.speed, dt",
-                                     "moveToward(decision.destination, 99, dt")
+        broken = t["server"].replace("navigate(decision.destination, parameters.speed, dt",
+                                     "navigate(decision.destination, 99, dt")
         with self.assertRaisesRegex(sp.ParseError, "steering"):
             sp.parse_server(broken)
 

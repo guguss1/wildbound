@@ -3,6 +3,8 @@ local Visual = {}
 Visual.__index = Visual
 
 local ACTIONS = { "Idle", "Locomotion", "Telegraph", "Attack" }
+-- States that walk when the body moves. Delivery C adds walking to a noise and searching; suspicion stands still.
+local WALKING = table.freeze({ Patrol = true, Hunt = true, Retreat = true, Investigate = true, Search = true })
 local WARNING_SECONDS, STRIKE_POSE_SECONDS, ATTACK_SECONDS = 1.4, 0.23, 1
 local LENGTHS = { Idle = 3, Locomotion = 2, Telegraph = WARNING_SECONDS, Attack = ATTACK_SECONDS }
 local READINESS_TIMEOUT = 5
@@ -204,7 +206,7 @@ function Visual:step()
 		self:_play("Attack", math.max(0, now - self._attackStart))
 	else
 		self._completed = false
-		local moving = self._moving and (self._state == "Patrol" or self._state == "Hunt" or self._state == "Retreat")
+		local moving = self._moving and WALKING[self._state] == true
 		self:_play(moving and "Locomotion" or "Idle")
 	end
 end

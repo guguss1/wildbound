@@ -1,6 +1,7 @@
 -- Local-source P0 world adapter. Deploy beside WildboundWorldRules after authorized testing resumes.
 local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
+local PathfindingService = game:GetService("PathfindingService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -10,6 +11,10 @@ local Hunt = require(script.Parent:WaitForChild("WildboundSiluetaHunt"))
 local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local Ambush = require(script.Parent:WaitForChild("WildboundAmbush"))
+-- Delivery C: the non-combat brain (suspicion, capture noise, search, day and night profiles) and route following
+-- around the solid trunk cores. docs/mechanics/wildbound-guardian.md.
+local Brain = require(script.Parent:WaitForChild("WildboundGuardianBrain"))
+local GuardianPath = require(script.Parent:WaitForChild("WildboundGuardianPath"))
 -- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
 -- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
 local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
@@ -43,6 +48,9 @@ local totemHolders = setmetatable({}, { __mode = "k" })
 -- M5.6 bond: a pulse that revealed Silueta to a player in the fog is reported on a server-only event.
 local pulseHit = network:FindFirstChild("PulseHit")
 if pulseHit and not pulseHit:IsA("BindableEvent") then pulseHit = nil end
+-- Delivery C1: capture noise from the inventory script (ring and seal, with the slot tier). Missing means silence.
+local noiseEvent = network:FindFirstChild("GuardianNoise")
+if noiseEvent and not noiseEvent:IsA("BindableEvent") then noiseEvent = nil end
 local totemEvent = network:FindFirstChild("TotemChanged")
 if totemEvent and totemEvent:IsA("BindableEvent") then
 	totemEvent.Event:Connect(function(player, active)
@@ -98,10 +106,15 @@ if not telemetry then
 end
 local ledger = FairStrike.new()
 if flagMisconfigured then FairStrike.count(ledger, "flagMisconfigured") end
-local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0 }
+local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0, noises = 0, noisesHeard = 0 }
+-- Delivery C2: route planning around the trunk cores, measured on the real map (docs/mechanics/wildbound-guardian.md).
+local nav = GuardianPath.new()
+local navStats = { lastPlanMs = 0, maxPlanMs = 0, directSteps = 0, blockedSteps = 0, slideSteps = 0 }
 local function publish()
 	for key, value in pairs(ledger.counters) do telemetry:SetAttribute("FS_" .. key:gsub("%.", "_"), value) end
 	for key, value in pairs(extra) do telemetry:SetAttribute("FSx_" .. key, value) end
+	for key, value in pairs(nav.counters) do telemetry:SetAttribute("Nav_" .. key, value) end
+	for key, value in pairs(navStats) do telemetry:SetAttribute("Nav_" .. key, value) end
 	telemetry:SetAttribute("FS_identityHolds", FairStrike.identityHolds(ledger.counters))
 	telemetry:SetAttribute("FS_damageMode", damageMode)
 end
@@ -165,6 +178,8 @@ local records, connections = {}, {}
 local stopped = false
 -- A late-started world has an initial non-attacking grace before proximity acquisition.
 local mode, target = "Retreat", nil
+local brain = Brain.new(startedAt)
+local COMBAT = { Alert = true, Hunt = true, Telegraph = true }
 local targetLife, huntState = nil, nil
 local alertEndsAt, telegraphEndsAt, recoveryEndsAt = 0, 0, startedAt + 3
 local chaseStartedAt, lastAttackAt, revealedUntil = 0, -Rules.ATTACK_COOLDOWN, 0
@@ -248,6 +263,7 @@ end
 
 local function setMode(nextMode)
 	mode = nextMode
+	if brain.mode ~= nextMode then Brain.set(brain, nextMode, workspace:GetServerTimeNow()) end
 	guardian:SetAttribute("State", mode)
 	-- Present after the fixed step has latched movement, not with the previous sample.
 	if visual then visual:setState(mode, mode == "Telegraph" and telegraphEndsAt or nil, true) end
@@ -291,28 +307,99 @@ local function clearTarget(now, completedPresentation, reason)
 		reason = lifeEnded and "lifeChanged" or "chase"
 	end
 	cancelOpenAttack(reason)
+	GuardianPath.clear(nav)
 	target, targetLife, huntState, telegraphEndsAt = nil, nil, nil, 0
 	guardian:SetAttribute("TelegraphEndsAt", 0)
 	recoveryEndsAt = now + 3
 	setMode("Retreat")
 end
 
-local function moveToward(destination, speed, dt, checkObstacle)
+-- Every step refuses to walk into geometry: a sphere about the body's half-width is cast along the step, ignoring the
+-- guardian, every character and anything that does not collide. Since D-C1 the trunk cores are solid, so this never
+-- slides through a tree. Measured in delivery C2: PathfindingService's coarse navmesh can route a little closer to a
+-- core than the body allows, so a blocked step tries to slide past at up to 70 degrees before it gives up.
+local SLIDE_ANGLES = { 0, math.rad(35), -math.rad(35), math.rad(70), -math.rad(70) }
+local function stepToward(destination, speed, dt)
 	local position = body.Position
 	local difference = Vector3.new(destination.X - position.X, 0, destination.Z - position.Z)
-	if difference.Magnitude < 0.05 then return end
-	local nextPosition = position + difference.Unit * math.min(difference.Magnitude, speed * dt)
-	local x, z = Rules.clampTerritory(nextPosition.X, nextPosition.Z)
-	nextPosition = Vector3.new(x, home.Y, z)
-	if checkObstacle then
-		local params = RaycastParams.new()
-		params.FilterType = Enum.RaycastFilterType.Exclude
-		params.FilterDescendantsInstances = { runtime }
-		params.IgnoreWater = true
-		if workspace:Raycast(position, nextPosition - position, params) then return end
+	if difference.Magnitude < 0.05 then return false end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local excluded = { runtime }
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then table.insert(excluded, player.Character) end
 	end
-	-- This greybox has a flat floor and non-colliding decorations; this is steering, not pathfinding.
-	guardian:PivotTo(CFrame.lookAt(nextPosition, nextPosition + difference.Unit))
+	params.FilterDescendantsInstances = excluded
+	params.IgnoreWater = true
+	-- Only what collides blocks a step, like the PathfindingService routes: the visible trunk meshes are sight-only
+	-- and flare wider than the cores at body height.
+	params.RespectCanCollide = true
+	local length = math.min(difference.Magnitude, speed * dt)
+	for index, angle in ipairs(SLIDE_ANGLES) do
+		local direction = CFrame.Angles(0, angle, 0):VectorToWorldSpace(difference.Unit)
+		local nextPosition = position + direction * length
+		local x, z = Rules.clampTerritory(nextPosition.X, nextPosition.Z)
+		nextPosition = Vector3.new(x, home.Y, z)
+		local move = nextPosition - position
+		if move.Magnitude > 0.01 and not workspace:Spherecast(position, 1, move, params) then
+			if index > 1 then navStats.slideSteps += 1 end
+			-- Speed times the fixed step bounds every move: there is no teleport and no lunge.
+			guardian:PivotTo(CFrame.lookAt(nextPosition, nextPosition + direction))
+			return true
+		end
+	end
+	navStats.blockedSteps += 1
+	return false
+end
+
+local function flatDistance(a, b)
+	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
+end
+
+-- Asks PathfindingService for a route without blocking the gameplay step. Only the latest request is followed.
+local function requestPlan(goal, now)
+	local serial = GuardianPath.begin(nav, goal.X, goal.Z, now)
+	local from = Vector3.new(body.Position.X, 3, body.Position.Z)
+	local to = Vector3.new(goal.X, 3, goal.Z)
+	task.spawn(function()
+		local started = os.clock()
+		local route = PathfindingService:CreatePath({ AgentRadius = 2, AgentHeight = 7, AgentCanJump = false,
+			AgentCanClimb = false, WaypointSpacing = 4 })
+		local ok = pcall(function() route:ComputeAsync(from, to) end)
+		local points
+		if ok and route.Status == Enum.PathStatus.Success then
+			points = {}
+			for _, waypoint in ipairs(route:GetWaypoints()) do
+				table.insert(points, { x = waypoint.Position.X, z = waypoint.Position.Z })
+			end
+		end
+		route:Destroy()
+		local spent = math.floor((os.clock() - started) * 1000 + 0.5)
+		navStats.lastPlanMs, navStats.maxPlanMs = spent, math.max(navStats.maxPlanMs, spent)
+		if not stopped then GuardianPath.finish(nav, serial, points ~= nil, points, workspace:GetServerTimeNow()) end
+	end)
+end
+
+-- Walks toward goal at speed: along the planned route when there is one, else a direct step that still refuses to
+-- enter geometry. The goal is clamped to the territory first, so no route ever leads into camp.
+local function navigate(goal, speed, dt, now)
+	local gx, gz = Rules.clampTerritory(goal.X, goal.Z)
+	goal = Vector3.new(gx, home.Y, gz)
+	if GuardianPath.needsPlan(nav, gx, gz, now) then requestPlan(goal, now) end
+	local x, z = GuardianPath.steer(nav, body.Position.X, body.Position.Z, now)
+	if x then
+		stepToward(Vector3.new(x, home.Y, z), speed, dt)
+	else
+		navStats.directSteps += 1
+		stepToward(goal, speed, dt)
+	end
+end
+
+local function face(point)
+	local position = body.Position
+	local toward = Vector3.new(point.x - position.X, 0, point.z - position.Z)
+	if toward.Magnitude < 0.05 or body.CFrame.LookVector:Dot(toward.Unit) > 0.99 then return end
+	guardian:PivotTo(CFrame.lookAt(position, position + toward.Unit))
 end
 
 local function isMarked(player)
@@ -468,12 +555,27 @@ local function tryAmbush(now, phase)
 	publish()
 end
 
+-- The quarry got away but is still alive: search where it was last seen (clamped to the territory). A dead or
+-- departed quarry, or a finished attack, sends the guardian home instead.
+local function loseTarget(now, phase)
+	local last = huntState and huntState.lastPosition
+	local alive = target ~= nil and target.Character == targetLife and characterContext(target) ~= nil
+	clearTarget(now)
+	if last and alive then
+		Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)
+		setMode("Search")
+	end
+end
+
 local function step(now, dt)
 	local cycle = Rules.cycle(now - originTime)
-	local parameters = Rules.guardianParameters(cycle.phase, true)
-	if mode == "Patrol" then
+	local phase = cycle.phase
+	-- Delivery C1: day and night profiles come from the brain. Day is the calmest phase, Night the most active.
+	local profile = Brain.profile(phase)
+	local parameters = { speed = profile.hunt, detectionRange = profile.detection }
+	if not COMBAT[mode] then
 		local nearest, nearestDistance, nearestLife
-		if now >= acquireBlockedUntil then
+		if now >= acquireBlockedUntil and Brain.canDetect(brain, now, recoveryEndsAt) then
 			for player in pairs(records) do
 				local candidate = targetContext(player, detectionFor(player, parameters.detectionRange))
 				if candidate and (not nearestDistance or candidate.distance < nearestDistance) then
@@ -482,19 +584,35 @@ local function step(now, dt)
 			end
 		end
 		if nearest then
-			target, targetLife, alertEndsAt, chaseStartedAt = nearest, nearestLife, now + 1.2, now
+			target, targetLife, chaseStartedAt = nearest, nearestLife, now
+			alertEndsAt = now + Brain.engage(brain, now, phase)
+			GuardianPath.clear(nav)
 			setMode("Alert")
+		elseif mode == "Patrol" then
+			if flatDistance(body.Position, patrol[patrolIndex]) < 2 then patrolIndex = patrolIndex % #patrol + 1 end
+			navigate(patrol[patrolIndex], profile.patrol, dt, now)
+			tryAmbush(now, phase)
+		elseif mode == "Retreat" then
+			navigate(center, profile.retreat, dt, now)
+			if now >= recoveryEndsAt and flatDistance(body.Position, center) < 2 then setMode("Patrol") end
 		else
-			if (body.Position - patrol[patrolIndex]).Magnitude < 1 then patrolIndex = patrolIndex % #patrol + 1 end
-			moveToward(patrol[patrolIndex], 3, dt)
-			tryAmbush(now, cycle.phase)
+			-- Suspicious, Investigate and Search.
+			local out = Brain.step(brain, now, body.Position.X, body.Position.Z, phase, Rules.clampTerritory)
+			if out.mode ~= mode then
+				GuardianPath.clear(nav)
+				setMode(out.mode)
+			end
+			if out.destination then
+				navigate(Vector3.new(out.destination.x, home.Y, out.destination.z), out.speed, dt, now)
+			elseif out.face then
+				face(out.face)
+			end
 		end
-	elseif mode == "Retreat" then
-		moveToward(center, 6, dt)
-		if now >= recoveryEndsAt and (body.Position - center).Magnitude < 1 then setMode("Patrol") end
 	else
 		local candidate = targetContext(target, Rules.CHASE_RANGE, mode == "Hunt")
-		if not candidate or candidate.character ~= targetLife or now - chaseStartedAt >= Rules.MAX_CHASE_SECONDS then
+		if not candidate or candidate.character ~= targetLife then
+			loseTarget(now, phase)
+		elseif Brain.chaseExpired(chaseStartedAt, now, phase) then
 			clearTarget(now)
 		elseif mode == "Alert" then
 			if now >= alertEndsAt then
@@ -519,7 +637,7 @@ local function step(now, dt)
 			end
 			local decision = Hunt.step(huntState, now, current, candidates)
 			if decision.expired then
-				clearTarget(now)
+				loseTarget(now, phase)
 			else
 				if decision.switched then
 					target, targetLife = playersById[decision.id], decision.life
@@ -532,7 +650,7 @@ local function step(now, dt)
 					setMode("Telegraph")
 					issueAttack(now)
 				elseif decision.destination then
-					moveToward(decision.destination, parameters.speed, dt, not decision.canAttack)
+					navigate(decision.destination, parameters.speed, dt, now)
 				end
 			end
 		elseif mode == "Telegraph" and now >= telegraphEndsAt then
@@ -678,6 +796,27 @@ pcall(function()
 		extra.serverPersistentLoaded += 1
 	end))
 end)
+-- Delivery C1: capture noise. Server-to-server only; every value is still checked. It never interrupts a fight, and a
+-- guardian still recovering from an attack ignores it.
+if noiseEvent then
+	table.insert(connections, noiseEvent.Event:Connect(function(kind, tier, x, z)
+		if stopped or (kind ~= "ring" and kind ~= "seal") or type(tier) ~= "string" or not Rules.finite(x) or not Rules.finite(z) then
+			return
+		end
+		extra.noises += 1
+		local now = workspace:GetServerTimeNow()
+		if COMBAT[mode] or now < recoveryEndsAt then return publish() end
+		local phase = Rules.cycle(now - originTime).phase
+		local position = body.Position
+		if Brain.hear(brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, Rules.clampTerritory) then
+			extra.noisesHeard += 1
+			GuardianPath.clear(nav)
+			setMode(brain.mode)
+			telemetry:SetAttribute("FSx_lastNoise", ("%s,%s,%.0f,%.0f,%s"):format(kind, tier, x, z, brain.mode))
+		end
+		publish()
+	end))
+end
 -- A replaced or removed guardian closes its attack; its old ids then classify as forged (FS-15).
 table.insert(connections, guardian.AncestryChanged:Connect(function()
 	if guardian.Parent ~= runtime then
