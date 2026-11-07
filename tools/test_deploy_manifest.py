@@ -243,6 +243,9 @@ class DefaultMappingTests(unittest.TestCase):
         # forest dress unit (another agent; may be absent)
         "tools/dress-wildbound-forest.luau": "ServerStorage.WildboundForestDress",
         "tests/WildboundForestDress_Test.luau": "ServerStorage.WildboundForestDress_Test",
+        # docs/mechanics/wildbound-awareness.md and Studio observation (M2.1)
+        "src/wildbound/WildboundSiluetaAwareness.luau": "ServerScriptService.WildboundSiluetaAwareness",
+        "tests/WildboundSiluetaAwareness_Test.luau": "ServerStorage.WildboundSiluetaAwareness_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

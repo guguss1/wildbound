@@ -58,6 +58,9 @@ DEFAULT_MAPPINGS = [
     # Forest dress unit; the files may not exist yet and are then reported missing
     ("tools/dress-wildbound-forest.luau", "ServerStorage.WildboundForestDress"),
     ("tests/WildboundForestDress_Test.luau", "ServerStorage.WildboundForestDress_Test"),
+    # docs/mechanics/wildbound-awareness.md and Studio observation (M2.1)
+    ("src/wildbound/WildboundSiluetaAwareness.luau", "ServerScriptService.WildboundSiluetaAwareness"),
+    ("tests/WildboundSiluetaAwareness_Test.luau", "ServerStorage.WildboundSiluetaAwareness_Test"),
 ]
 
 
