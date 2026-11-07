@@ -53,6 +53,11 @@ SPECS = {
         "parts": {"Wings": ("B9AE98", 280), "Body": ("5A5560", 110), "Neon_Spots": ("C9A24A", 60)},
         "bones": ("Root", "Body", "WingL", "WingR"),
     },
+    "SP_Espejuelo": {
+        "size": (2.8, 1.0, 4.2), "tris": 400,
+        "parts": {"Slab": ("C9CFD6", 180), "Frame": ("3B3440", 130), "Legs": ("2A2630", 90)},
+        "bones": ("Root", "Slab", "LegL", "LegR"),
+    },
 }
 
 

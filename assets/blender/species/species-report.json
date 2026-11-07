@@ -574,6 +574,106 @@
           "lowest_z": 0.0008
         }
       }
+    },
+    "SP_Espejuelo": {
+      "status": "unvalidated",
+      "triangles": 316,
+      "size": [
+        2.8,
+        1.0,
+        4.2
+      ],
+      "bbox_min": [
+        -1.4,
+        -0.4119,
+        -0.0
+      ],
+      "bbox_max": [
+        1.4,
+        0.5881,
+        4.2
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.037,
+        1.0973,
+        1.0086
+      ],
+      "bones": [
+        "Root",
+        "Slab",
+        "LegL",
+        "LegR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Espejuelo_Slab",
+          "material": "SP_Espejuelo_Slab",
+          "material_count": 1,
+          "triangles": 140,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "C9CFD6",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Espejuelo_Frame",
+          "material": "SP_Espejuelo_Frame",
+          "material_count": 1,
+          "triangles": 96,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3B3440",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Espejuelo_Legs",
+          "material": "SP_Espejuelo_Legs",
+          "material_count": 1,
+          "triangles": 80,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2A2630",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Espejuelo.fbx",
+        "Idle": "assets/exports/species/SP_Espejuelo_Idle.fbx",
+        "Move": "assets/exports/species/SP_Espejuelo_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Espejuelo.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Espejuelo_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0104
+        },
+        "Move": {
+          "action": "SP_Espejuelo_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0404
+        }
+      }
     }
   }
 }

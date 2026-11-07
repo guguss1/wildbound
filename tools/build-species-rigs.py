@@ -54,6 +54,8 @@ SPECS = {
                       "colors": {"Body": "C7D6DF", "Legs": "4A5560", "Tail": "9CCBE0", "Neon_Eye": "7FE0F0"}},
     "SP_Polvilla": {"size": (4.4, 1.6, 4.0),
                     "colors": {"Wings": "B9AE98", "Body": "5A5560", "Neon_Spots": "C9A24A"}},
+    "SP_Espejuelo": {"size": (2.8, 1.0, 4.2),
+                     "colors": {"Slab": "C9CFD6", "Frame": "3B3440", "Legs": "2A2630"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -328,8 +330,62 @@ def build_polvilla():
     return asset
 
 
+def bar(part, start, end, half_width, half_depth, hint, weigh):
+    """A rectangular bar from start to end; hint picks the side the depth faces."""
+    axis = unit(sub(end, start))
+    side = unit(cross(axis, hint))
+    depth = cross(side, axis)
+    corners = ((-half_width, -half_depth), (half_width, -half_depth), (half_width, half_depth),
+               (-half_width, half_depth))
+    rings = [[add(add(point, mul(side, w)), mul(depth, d)) for w, d in corners] for point in (start, end)]
+    loft(part, rings, weigh)
+
+
+def build_espejuelo():
+    asset = Asset("SP_Espejuelo", seed=61)
+    slab_part, frame, legs = asset.part("Slab"), asset.part("Frame"), asset.part("Legs")
+    on_slab = rigid("Slab")
+    tilt = math.radians(9)
+    centre = (0.0, 0.0, 2.5)
+    u, v = (1.0, 0.0, 0.0), (0.0, math.sin(tilt), math.cos(tilt))
+    n = (0.0, -math.cos(tilt), math.sin(tilt))
+
+    def at(a, b, offset=0.0):
+        return add(madd(madd(centre, u, a), v, b), mul(n, offset))
+
+    # Tilted diamond: twelve outline points, raised in facets toward the middle. Flat colour.
+    corners = ((0.0, 1.5), (1.2, 0.0), (0.0, -1.5), (-1.2, 0.0))
+    outline = []
+    for (a0, b0), (a1, b1) in zip(corners, corners[1:] + corners[:1]):
+        outline.extend((a0 + (a1 - a0) * t, b0 + (b1 - b0) * t) for t in (0.0, 1 / 3, 2 / 3))
+    rings = [[at(a * s, b * s, off) for a, b in outline]
+             for s, off in ((1.0, -0.12), (1.0, 0.0), (0.94, 0.06), (0.72, 0.1), (0.46, 0.14), (0.2, 0.17))]
+    loft(slab_part, rings, on_slab)
+
+    # Dark frame: a bar along each edge and a stud on each corner.
+    for (a0, b0), (a1, b1) in zip(corners, corners[1:] + corners[:1]):
+        bar(frame, at(a0, b0, 0.02), at(a1, b1, 0.02), 0.1, 0.18, n, on_slab)
+    for a, b in corners:
+        out = unit((a, b, 0.0)) if (a or b) else (0, 1, 0)
+        bar(frame, at(a - out[0] * 0.15, b - out[1] * 0.15, 0.02), at(a + out[0] * 0.15, b + out[1] * 0.15, 0.02),
+            0.14, 0.2, n, on_slab)
+
+    # Two thin legs with flat feet.
+    for name, x in (("LegL", 0.4), ("LegR", -0.4)):
+        weigh = rigid(name)
+        tube(legs, [(x, -0.15, 1.45), (x * 1.05, -0.1, 1.05), (x * 1.1, 0.0, 0.55), (x * 1.1, 0.0, 0.1)],
+             [0.1, 0.085, 0.08, 0.08], 4, weigh)
+        kc.box(legs, (x * 1.1, -0.1, 0.05), (0.4, 0.7, 0.1), weigh)
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Slab", "Root", (0, 0, 2.5), (0, -0.3, 3.2))
+    asset.bone("LegL", "Slab", (0.4, -0.15, 1.45), (0.44, 0.0, 0.1))
+    asset.bone("LegR", "Slab", (-0.4, -0.15, 1.45), (-0.44, 0.0, 0.1))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
-            "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla}
+            "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo}
 ORDER = tuple(SPECS)
 
 

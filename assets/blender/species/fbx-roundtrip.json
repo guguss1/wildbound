@@ -581,6 +581,111 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Espejuelo": {
+      "model": {
+        "triangles": 316,
+        "size": [
+          2.8,
+          1.0,
+          4.2
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Slab",
+          "LegL",
+          "LegR"
+        ],
+        "objects": [
+          "SP_Espejuelo",
+          "SP_Espejuelo_Frame",
+          "SP_Espejuelo_Legs",
+          "SP_Espejuelo_Slab"
+        ],
+        "materials": [
+          "SP_Espejuelo_Frame",
+          "SP_Espejuelo_Legs",
+          "SP_Espejuelo_Slab"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 316,
+          "size": [
+            2.8132,
+            1.0083,
+            4.2
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Slab",
+            "LegL",
+            "LegR"
+          ],
+          "objects": [
+            "SP_Espejuelo",
+            "SP_Espejuelo_Frame",
+            "SP_Espejuelo_Legs",
+            "SP_Espejuelo_Slab"
+          ],
+          "materials": [
+            "SP_Espejuelo_Frame",
+            "SP_Espejuelo_Legs",
+            "SP_Espejuelo_Slab"
+          ],
+          "actions": [
+            "SP_Espejuelo|WildboundSpecies"
+          ],
+          "animated_channels": 49,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 316,
+          "size": [
+            2.817,
+            1.0108,
+            4.2
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Slab",
+            "LegL",
+            "LegR"
+          ],
+          "objects": [
+            "SP_Espejuelo",
+            "SP_Espejuelo_Frame",
+            "SP_Espejuelo_Legs",
+            "SP_Espejuelo_Slab"
+          ],
+          "materials": [
+            "SP_Espejuelo_Frame",
+            "SP_Espejuelo_Legs",
+            "SP_Espejuelo_Slab"
+          ],
+          "actions": [
+            "SP_Espejuelo|WildboundSpecies"
+          ],
+          "animated_channels": 49,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }

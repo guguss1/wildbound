@@ -30,6 +30,7 @@ BONES = {
     "SP_Cestillo": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
     "SP_Zancanieve": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
     "SP_Polvilla": ("Root", "Body", "WingL", "WingR"),
+    "SP_Espejuelo": ("Root", "Slab", "LegL", "LegR"),
 }
 
 
@@ -119,6 +120,17 @@ MOTION = {
             "Body": (term("lz", 0.14, 2, 0, "rise"), term("rx", 0.08, 1, 0.0), term("ry", 0.04, 2, 0.25)),
             "WingL": (term("ry", 0.26, 3, 0.10),),
             "WingR": (term("ry", -0.26, 3, 0.10),),
+        },
+    },
+    # A tilted mirror plate: sways in place, rocks from side to side on two thin legs.
+    "SP_Espejuelo": {
+        "Idle": {
+            "Slab": (term("lz", 0.05, 1, 0, "rise"), term("ry", 0.04, 1, 0.0), term("rz", 0.03, 1, 0.25)),
+        },
+        "Move": {
+            "Slab": (term("lz", 0.06, 2, 0, "rise"), term("ry", 0.07, 1, 0.0), term("rz", 0.04, 2, 0.25)),
+            "LegL": (term("rx", 0.32, 1, 0.0),),
+            "LegR": (term("rx", 0.32, 1, 0.5),),
         },
     },
 }
