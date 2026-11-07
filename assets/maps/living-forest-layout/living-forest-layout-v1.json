@@ -1,0 +1,1669 @@
+{
+ "name": "living-forest-layout-v1",
+ "status": "draft, unvalidated: never imported into Roblox, played or measured on a device",
+ "seed": 20261108,
+ "map_size": 400.0,
+ "caps": {
+  "instances": 180,
+  "triangles": 40000
+ },
+ "totals": {
+  "instances": 162,
+  "triangles_measured": 32236,
+  "triangles_budget": 36000,
+  "mesh_parts": 340,
+  "by_name": {
+   "LF_Broadleaf": {
+    "count": 46,
+    "triangles": 19688
+   },
+   "LF_ResinStump": {
+    "count": 10,
+    "triangles": 1640
+   },
+   "LF_FlowerClump": {
+    "count": 60,
+    "triangles": 4800
+   },
+   "LF_StreamStone": {
+    "count": 24,
+    "triangles": 1824
+   },
+   "LF_HollowArch": {
+    "count": 2,
+    "triangles": 988
+   },
+   "LF_TrailPost": {
+    "count": 16,
+    "triangles": 2336
+   },
+   "LF_LogBridge": {
+    "count": 4,
+    "triangles": 960
+   }
+  }
+ },
+ "route": {
+  "nodes": [
+   [
+    -185.0,
+    70.0
+   ],
+   [
+    -125.0,
+    30.0
+   ],
+   [
+    -70.0,
+    -25.0
+   ],
+   [
+    -5.0,
+    -75.0
+   ],
+   [
+    55.0,
+    -20.0
+   ],
+   [
+    115.0,
+    35.0
+   ],
+   [
+    160.0,
+    110.0
+   ],
+   [
+    185.0,
+    165.0
+   ]
+  ],
+  "names": [
+   "gate_west",
+   "glade",
+   "ford_west",
+   "hollow",
+   "meadow",
+   "ford_east",
+   "ridge",
+   "gate_east"
+  ],
+  "length": 542.567,
+  "walk_seconds": 33.91,
+  "corridor_width": 14.0
+ },
+ "streams": [
+  {
+   "name": "S1",
+   "nodes": [
+    [
+     -195.0,
+     -110.0
+    ],
+    [
+     -140.0,
+     -45.0
+    ],
+    [
+     -80.0,
+     22.0
+    ],
+    [
+     -55.0,
+     50.0
+    ],
+    [
+     -28.0,
+     52.0
+    ],
+    [
+     -8.0,
+     28.0
+    ],
+    [
+     8.0,
+     -12.0
+    ],
+    [
+     40.0,
+     -70.0
+    ],
+    [
+     58.0,
+     -110.0
+    ],
+    [
+     62.0,
+     -195.0
+    ]
+   ],
+   "water_width": 12.0,
+   "length": 509.218
+  },
+  {
+   "name": "S2",
+   "nodes": [
+    [
+     30.0,
+     100.0
+    ],
+    [
+     52.0,
+     62.0
+    ],
+    [
+     104.0,
+     -8.0
+    ],
+    [
+     122.0,
+     -38.0
+    ],
+    [
+     150.0,
+     -52.0
+    ],
+    [
+     186.0,
+     -30.0
+    ],
+    [
+     190.0,
+     22.0
+    ],
+    [
+     168.0,
+     50.0
+    ],
+    [
+     120.0,
+     98.0
+    ],
+    [
+     100.0,
+     128.0
+    ],
+    [
+     95.0,
+     150.0
+    ],
+    [
+     90.0,
+     195.0
+    ]
+   ],
+   "water_width": 12.0,
+   "length": 499.129
+  }
+ ],
+ "crossings": [
+  {
+   "stream": "S1",
+   "point": [
+    -97.48,
+    2.48
+   ],
+   "angle_deg": 86.845,
+   "route_arc": 111.03,
+   "water_chord": 12.018,
+   "bridge_id": "bridge-01"
+  },
+  {
+   "stream": "S1",
+   "point": [
+    26.718,
+    -45.926
+   ],
+   "angle_deg": 76.376,
+   "route_arc": 274.926,
+   "water_chord": 12.347,
+   "bridge_id": "bridge-02"
+  },
+  {
+   "stream": "S2",
+   "point": [
+    89.453,
+    11.582
+   ],
+   "angle_deg": 84.097,
+   "route_arc": 360.031,
+   "water_chord": 12.064,
+   "bridge_id": "bridge-03"
+  },
+  {
+   "stream": "S2",
+   "point": [
+    140.5,
+    77.5
+   ],
+   "angle_deg": 75.964,
+   "route_arc": 444.25,
+   "water_chord": 12.369,
+   "bridge_id": "bridge-04"
+  }
+ ],
+ "chains": [
+  {
+   "stream": "S1",
+   "arc": 405.0,
+   "center": [
+    50.152,
+    -92.56
+   ],
+   "stone_ids": [
+    "stone-01",
+    "stone-02",
+    "stone-03"
+   ]
+  },
+  {
+   "stream": "S1",
+   "arc": 230.0,
+   "center": [
+    -37.67,
+    51.284
+   ],
+   "stone_ids": [
+    "stone-04",
+    "stone-05",
+    "stone-06"
+   ]
+  },
+  {
+   "stream": "S1",
+   "arc": 115.0,
+   "center": [
+    -120.084,
+    -22.761
+   ],
+   "stone_ids": [
+    "stone-07",
+    "stone-08",
+    "stone-09"
+   ]
+  },
+  {
+   "stream": "S1",
+   "arc": 305.0,
+   "center": [
+    4.651,
+    -3.626
+   ],
+   "stone_ids": [
+    "stone-10",
+    "stone-11",
+    "stone-12"
+   ]
+  },
+  {
+   "stream": "S2",
+   "arc": 140.0,
+   "center": [
+    108.574,
+    -15.623
+   ],
+   "stone_ids": [
+    "stone-13",
+    "stone-14",
+    "stone-15"
+   ]
+  },
+  {
+   "stream": "S2",
+   "arc": 70.0,
+   "center": [
+    67.559,
+    41.056
+   ],
+   "stone_ids": [
+    "stone-16",
+    "stone-17",
+    "stone-18"
+   ]
+  },
+  {
+   "stream": "S2",
+   "arc": 305.0,
+   "center": [
+    181.81,
+    32.423
+   ],
+   "stone_ids": [
+    "stone-19",
+    "stone-20",
+    "stone-21"
+   ]
+  },
+  {
+   "stream": "S2",
+   "arc": 415.0,
+   "center": [
+    109.037,
+    114.445
+   ],
+   "stone_ids": [
+    "stone-22",
+    "stone-23",
+    "stone-24"
+   ]
+  }
+ ],
+ "density": {
+  "canopy_cover_fraction": 0.1743,
+  "props_per_1000_sq_studs": 1.012,
+  "flower_patches": [
+   4,
+   6,
+   6,
+   6,
+   4,
+   5,
+   4,
+   6,
+   3,
+   6,
+   2,
+   1,
+   5,
+   2
+  ]
+ },
+ "instances": [
+  {
+   "name": "LF_Broadleaf",
+   "x": -133.551,
+   "z": 107.766,
+   "rotation_y_deg": 258.093,
+   "scale": 1.006,
+   "id": "tree-01"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -118.519,
+   "z": 51.09,
+   "rotation_y_deg": 243.867,
+   "scale": 1.018,
+   "id": "tree-02"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -149.176,
+   "z": 85.19,
+   "rotation_y_deg": 297.776,
+   "scale": 0.988,
+   "id": "tree-03"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -108.907,
+   "z": 102.847,
+   "rotation_y_deg": 329.684,
+   "scale": 1.075,
+   "id": "tree-04"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -104.384,
+   "z": 62.996,
+   "rotation_y_deg": 36.908,
+   "scale": 1.132,
+   "id": "tree-05"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -107.949,
+   "z": 86.236,
+   "rotation_y_deg": 193.942,
+   "scale": 1.027,
+   "id": "tree-06"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -86.121,
+   "z": -42.472,
+   "rotation_y_deg": 220.789,
+   "scale": 1.013,
+   "id": "tree-07"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -70.444,
+   "z": -62.259,
+   "rotation_y_deg": 347.405,
+   "scale": 1.121,
+   "id": "tree-08"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -116.74,
+   "z": -72.999,
+   "rotation_y_deg": 82.917,
+   "scale": 1.012,
+   "id": "tree-09"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -94.227,
+   "z": -68.315,
+   "rotation_y_deg": 342.107,
+   "scale": 1.107,
+   "id": "tree-10"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -120.176,
+   "z": -52.181,
+   "rotation_y_deg": 29.296,
+   "scale": 1.004,
+   "id": "tree-11"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -104.674,
+   "z": -32.463,
+   "rotation_y_deg": 223.345,
+   "scale": 1.024,
+   "id": "tree-12"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 140.69,
+   "z": -6.774,
+   "rotation_y_deg": 140.908,
+   "scale": 1.112,
+   "id": "tree-13"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 174.809,
+   "z": -14.935,
+   "rotation_y_deg": 325.118,
+   "scale": 1.093,
+   "id": "tree-14"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 160.384,
+   "z": -29.385,
+   "rotation_y_deg": 77.291,
+   "scale": 1.066,
+   "id": "tree-15"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 130.365,
+   "z": -56.751,
+   "rotation_y_deg": 125.172,
+   "scale": 0.935,
+   "id": "tree-16"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 126.238,
+   "z": 0.939,
+   "rotation_y_deg": 61.715,
+   "scale": 1.093,
+   "id": "tree-17"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 128.052,
+   "z": -17.215,
+   "rotation_y_deg": 342.908,
+   "scale": 1.079,
+   "id": "tree-18"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 16.309,
+   "z": -77.106,
+   "rotation_y_deg": 249.738,
+   "scale": 1.111,
+   "id": "tree-19"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 17.369,
+   "z": -117.931,
+   "rotation_y_deg": 48.348,
+   "scale": 0.99,
+   "id": "tree-20"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 44.417,
+   "z": -115.327,
+   "rotation_y_deg": 115.827,
+   "scale": 1.04,
+   "id": "tree-21"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 3.948,
+   "z": -107.277,
+   "rotation_y_deg": 302.536,
+   "scale": 1.147,
+   "id": "tree-22"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -0.421,
+   "z": -89.041,
+   "rotation_y_deg": 196.164,
+   "scale": 1.06,
+   "id": "tree-23"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 40.312,
+   "z": 55.8,
+   "rotation_y_deg": 58.391,
+   "scale": 1.028,
+   "id": "tree-24"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 32.503,
+   "z": 12.669,
+   "rotation_y_deg": 46.032,
+   "scale": 0.942,
+   "id": "tree-25"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 49.282,
+   "z": 6.478,
+   "rotation_y_deg": 357.408,
+   "scale": 1.078,
+   "id": "tree-26"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 16.078,
+   "z": 47.379,
+   "rotation_y_deg": 131.521,
+   "scale": 1.012,
+   "id": "tree-27"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 15.878,
+   "z": 12.361,
+   "rotation_y_deg": 107.743,
+   "scale": 1.123,
+   "id": "tree-28"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 78.298,
+   "z": 94.116,
+   "rotation_y_deg": 259.986,
+   "scale": 1.133,
+   "id": "tree-29"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 100.177,
+   "z": 98.9,
+   "rotation_y_deg": 156.45,
+   "scale": 1.062,
+   "id": "tree-30"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 55.936,
+   "z": 120.608,
+   "rotation_y_deg": 12.155,
+   "scale": 1.126,
+   "id": "tree-31"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 52.54,
+   "z": 100.859,
+   "rotation_y_deg": 7.622,
+   "scale": 0.901,
+   "id": "tree-32"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 93.038,
+   "z": 83.022,
+   "rotation_y_deg": 343.96,
+   "scale": 0.92,
+   "id": "tree-33"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -61.335,
+   "z": 3.136,
+   "rotation_y_deg": 324.892,
+   "scale": 0.982,
+   "id": "tree-34"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -23.715,
+   "z": 21.863,
+   "rotation_y_deg": 173.657,
+   "scale": 1.097,
+   "id": "tree-35"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -49.572,
+   "z": 38.206,
+   "rotation_y_deg": 126.152,
+   "scale": 0.916,
+   "id": "tree-36"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -37.445,
+   "z": -8.448,
+   "rotation_y_deg": 225.676,
+   "scale": 1.009,
+   "id": "tree-37"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -183.064,
+   "z": 30.307,
+   "rotation_y_deg": 273.014,
+   "scale": 1.017,
+   "id": "tree-38"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 3.109,
+   "z": -42.201,
+   "rotation_y_deg": 275.21,
+   "scale": 1.121,
+   "id": "tree-39"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 145.502,
+   "z": -113.018,
+   "rotation_y_deg": 180.214,
+   "scale": 1.044,
+   "id": "tree-40"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -80.109,
+   "z": -119.837,
+   "rotation_y_deg": 235.329,
+   "scale": 1.075,
+   "id": "tree-41"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -1.028,
+   "z": 112.332,
+   "rotation_y_deg": 292.864,
+   "scale": 1.094,
+   "id": "tree-42"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -181.696,
+   "z": -1.243,
+   "rotation_y_deg": 90.827,
+   "scale": 1.026,
+   "id": "tree-43"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -69.853,
+   "z": 96.798,
+   "rotation_y_deg": 22.133,
+   "scale": 1.108,
+   "id": "tree-44"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": 163.708,
+   "z": -130.451,
+   "rotation_y_deg": 55.31,
+   "scale": 0.943,
+   "id": "tree-45"
+  },
+  {
+   "name": "LF_Broadleaf",
+   "x": -111.402,
+   "z": 138.238,
+   "rotation_y_deg": 100.369,
+   "scale": 1.127,
+   "id": "tree-46"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -154.165,
+   "z": 23.248,
+   "rotation_y_deg": 213.69,
+   "scale": 0.902,
+   "id": "stump-01"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": 84.098,
+   "z": -41.364,
+   "rotation_y_deg": 137.49,
+   "scale": 1.0,
+   "id": "stump-02"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -43.103,
+   "z": -95.834,
+   "rotation_y_deg": 217.569,
+   "scale": 1.087,
+   "id": "stump-03"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -147.562,
+   "z": 14.474,
+   "rotation_y_deg": 213.69,
+   "scale": 1.09,
+   "id": "stump-04"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -118.474,
+   "z": -5.93,
+   "rotation_y_deg": 225.0,
+   "scale": 0.901,
+   "id": "stump-05"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -145.773,
+   "z": -0.035,
+   "rotation_y_deg": 225.0,
+   "scale": 1.143,
+   "id": "stump-06"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -28.059,
+   "z": -94.203,
+   "rotation_y_deg": 217.569,
+   "scale": 1.11,
+   "id": "stump-07"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": -140.161,
+   "z": 63.138,
+   "rotation_y_deg": 33.69,
+   "scale": 0.95,
+   "id": "stump-08"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": 49.448,
+   "z": 20.657,
+   "rotation_y_deg": 317.49,
+   "scale": 0.981,
+   "id": "stump-09"
+  },
+  {
+   "name": "LF_ResinStump",
+   "x": 78.309,
+   "z": 55.128,
+   "rotation_y_deg": 317.49,
+   "scale": 1.07,
+   "id": "stump-10"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 160.439,
+   "z": 75.906,
+   "rotation_y_deg": 72.054,
+   "scale": 0.834,
+   "id": "flower-01"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 160.114,
+   "z": 86.486,
+   "rotation_y_deg": 345.394,
+   "scale": 0.869,
+   "id": "flower-02"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 155.812,
+   "z": 77.672,
+   "rotation_y_deg": 160.133,
+   "scale": 0.866,
+   "id": "flower-03"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 162.148,
+   "z": 81.017,
+   "rotation_y_deg": 303.64,
+   "scale": 0.859,
+   "id": "flower-04"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 131.005,
+   "z": -27.528,
+   "rotation_y_deg": 228.254,
+   "scale": 0.955,
+   "id": "flower-05"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 139.974,
+   "z": -30.735,
+   "rotation_y_deg": 102.272,
+   "scale": 0.801,
+   "id": "flower-06"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 133.636,
+   "z": -32.264,
+   "rotation_y_deg": 98.46,
+   "scale": 0.806,
+   "id": "flower-07"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 141.469,
+   "z": -36.722,
+   "rotation_y_deg": 226.505,
+   "scale": 0.99,
+   "id": "flower-08"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 146.628,
+   "z": -29.632,
+   "rotation_y_deg": 350.081,
+   "scale": 1.016,
+   "id": "flower-09"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 133.797,
+   "z": -22.483,
+   "rotation_y_deg": 122.961,
+   "scale": 0.856,
+   "id": "flower-10"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 163.463,
+   "z": 160.617,
+   "rotation_y_deg": 268.328,
+   "scale": 1.191,
+   "id": "flower-11"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 158.498,
+   "z": 164.666,
+   "rotation_y_deg": 45.978,
+   "scale": 0.845,
+   "id": "flower-12"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 169.54,
+   "z": 163.459,
+   "rotation_y_deg": 7.494,
+   "scale": 0.823,
+   "id": "flower-13"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 160.03,
+   "z": 154.519,
+   "rotation_y_deg": 128.319,
+   "scale": 0.867,
+   "id": "flower-14"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 163.512,
+   "z": 168.004,
+   "rotation_y_deg": 179.632,
+   "scale": 0.914,
+   "id": "flower-15"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 168.853,
+   "z": 152.531,
+   "rotation_y_deg": 293.438,
+   "scale": 1.096,
+   "id": "flower-16"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 104.701,
+   "z": -38.734,
+   "rotation_y_deg": 10.315,
+   "scale": 1.069,
+   "id": "flower-17"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 103.785,
+   "z": -28.615,
+   "rotation_y_deg": 74.637,
+   "scale": 1.033,
+   "id": "flower-18"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 109.996,
+   "z": -41.774,
+   "rotation_y_deg": 61.586,
+   "scale": 0.858,
+   "id": "flower-19"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 109.547,
+   "z": -35.263,
+   "rotation_y_deg": 218.28,
+   "scale": 0.927,
+   "id": "flower-20"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 105.428,
+   "z": -47.201,
+   "rotation_y_deg": 51.964,
+   "scale": 1.111,
+   "id": "flower-21"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 98.809,
+   "z": -36.617,
+   "rotation_y_deg": 357.801,
+   "scale": 0.974,
+   "id": "flower-22"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 56.825,
+   "z": 9.116,
+   "rotation_y_deg": 58.088,
+   "scale": 0.967,
+   "id": "flower-23"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 61.16,
+   "z": 15.905,
+   "rotation_y_deg": 349.635,
+   "scale": 1.021,
+   "id": "flower-24"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 61.154,
+   "z": 0.192,
+   "rotation_y_deg": 91.79,
+   "scale": 0.902,
+   "id": "flower-25"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 66.577,
+   "z": 9.833,
+   "rotation_y_deg": 19.798,
+   "scale": 1.007,
+   "id": "flower-26"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -171.867,
+   "z": -54.502,
+   "rotation_y_deg": 85.19,
+   "scale": 0.854,
+   "id": "flower-27"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -174.141,
+   "z": -62.544,
+   "rotation_y_deg": 212.558,
+   "scale": 1.172,
+   "id": "flower-28"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -163.855,
+   "z": -48.166,
+   "rotation_y_deg": 48.78,
+   "scale": 0.936,
+   "id": "flower-29"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -164.424,
+   "z": -57.271,
+   "rotation_y_deg": 282.082,
+   "scale": 1.167,
+   "id": "flower-30"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -177.127,
+   "z": -55.621,
+   "rotation_y_deg": 345.801,
+   "scale": 0.894,
+   "id": "flower-31"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 59.016,
+   "z": -28.817,
+   "rotation_y_deg": 237.686,
+   "scale": 0.938,
+   "id": "flower-32"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 60.164,
+   "z": -36.28,
+   "rotation_y_deg": 121.298,
+   "scale": 0.961,
+   "id": "flower-33"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 65.892,
+   "z": -30.122,
+   "rotation_y_deg": 238.773,
+   "scale": 1.033,
+   "id": "flower-34"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 53.851,
+   "z": -33.59,
+   "rotation_y_deg": 155.905,
+   "scale": 0.838,
+   "id": "flower-35"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 36.9,
+   "z": 68.432,
+   "rotation_y_deg": 200.308,
+   "scale": 1.184,
+   "id": "flower-36"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 29.777,
+   "z": 64.744,
+   "rotation_y_deg": 240.048,
+   "scale": 0.924,
+   "id": "flower-37"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 23.169,
+   "z": 74.981,
+   "rotation_y_deg": 1.78,
+   "scale": 1.04,
+   "id": "flower-38"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 24.705,
+   "z": 66.127,
+   "rotation_y_deg": 292.002,
+   "scale": 0.88,
+   "id": "flower-39"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 34.005,
+   "z": 75.331,
+   "rotation_y_deg": 313.636,
+   "scale": 0.81,
+   "id": "flower-40"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 28.214,
+   "z": 71.294,
+   "rotation_y_deg": 247.248,
+   "scale": 1.095,
+   "id": "flower-41"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 105.207,
+   "z": 11.476,
+   "rotation_y_deg": 61.602,
+   "scale": 0.962,
+   "id": "flower-42"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 111.262,
+   "z": 1.751,
+   "rotation_y_deg": 341.439,
+   "scale": 1.028,
+   "id": "flower-43"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 113.018,
+   "z": 9.931,
+   "rotation_y_deg": 289.908,
+   "scale": 0.925,
+   "id": "flower-44"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 167.595,
+   "z": -55.676,
+   "rotation_y_deg": 166.759,
+   "scale": 0.878,
+   "id": "flower-45"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 162.131,
+   "z": -58.926,
+   "rotation_y_deg": 291.773,
+   "scale": 0.968,
+   "id": "flower-46"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 168.871,
+   "z": -65.426,
+   "rotation_y_deg": 41.216,
+   "scale": 0.973,
+   "id": "flower-47"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 156.605,
+   "z": -58.351,
+   "rotation_y_deg": 139.615,
+   "scale": 0.814,
+   "id": "flower-48"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 155.083,
+   "z": -67.06,
+   "rotation_y_deg": 329.718,
+   "scale": 0.825,
+   "id": "flower-49"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 160.91,
+   "z": -70.712,
+   "rotation_y_deg": 62.045,
+   "scale": 0.882,
+   "id": "flower-50"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 26.396,
+   "z": 60.226,
+   "rotation_y_deg": 153.961,
+   "scale": 0.949,
+   "id": "flower-51"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 35.684,
+   "z": 62.11,
+   "rotation_y_deg": 257.75,
+   "scale": 0.936,
+   "id": "flower-52"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -176.904,
+   "z": -47.588,
+   "rotation_y_deg": 35.134,
+   "scale": 1.017,
+   "id": "flower-53"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -100.535,
+   "z": -73.461,
+   "rotation_y_deg": 75.698,
+   "scale": 0.85,
+   "id": "flower-54"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -109.404,
+   "z": -77.796,
+   "rotation_y_deg": 66.049,
+   "scale": 1.173,
+   "id": "flower-55"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -108.009,
+   "z": -65.416,
+   "rotation_y_deg": 117.507,
+   "scale": 1.131,
+   "id": "flower-56"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -103.545,
+   "z": -81.696,
+   "rotation_y_deg": 43.049,
+   "scale": 0.903,
+   "id": "flower-57"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": -107.216,
+   "z": -71.849,
+   "rotation_y_deg": 72.347,
+   "scale": 0.907,
+   "id": "flower-58"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 7.782,
+   "z": -163.496,
+   "rotation_y_deg": 299.656,
+   "scale": 0.852,
+   "id": "flower-59"
+  },
+  {
+   "name": "LF_FlowerClump",
+   "x": 3.056,
+   "z": -166.417,
+   "rotation_y_deg": 138.633,
+   "scale": 1.01,
+   "id": "flower-60"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 44.498,
+   "z": -95.105,
+   "rotation_y_deg": 155.772,
+   "scale": 1.0,
+   "id": "stone-01"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 50.152,
+   "z": -92.56,
+   "rotation_y_deg": 155.772,
+   "scale": 1.0,
+   "id": "stone-02"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 55.806,
+   "z": -90.016,
+   "rotation_y_deg": 155.772,
+   "scale": 1.0,
+   "id": "stone-03"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -37.212,
+   "z": 45.101,
+   "rotation_y_deg": 85.764,
+   "scale": 1.0,
+   "id": "stone-04"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -37.67,
+   "z": 51.284,
+   "rotation_y_deg": 85.764,
+   "scale": 1.0,
+   "id": "stone-05"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -38.128,
+   "z": 57.467,
+   "rotation_y_deg": 85.764,
+   "scale": 1.0,
+   "id": "stone-06"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -115.466,
+   "z": -26.897,
+   "rotation_y_deg": 41.845,
+   "scale": 1.0,
+   "id": "stone-07"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -120.084,
+   "z": -22.761,
+   "rotation_y_deg": 41.845,
+   "scale": 1.0,
+   "id": "stone-08"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -124.703,
+   "z": -18.625,
+   "rotation_y_deg": 41.845,
+   "scale": 1.0,
+   "id": "stone-09"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": -1.106,
+   "z": -5.929,
+   "rotation_y_deg": 158.199,
+   "scale": 1.0,
+   "id": "stone-10"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 4.651,
+   "z": -3.626,
+   "rotation_y_deg": 158.199,
+   "scale": 1.0,
+   "id": "stone-11"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 10.407,
+   "z": -1.324,
+   "rotation_y_deg": 158.199,
+   "scale": 1.0,
+   "id": "stone-12"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 103.257,
+   "z": -18.813,
+   "rotation_y_deg": 149.036,
+   "scale": 1.0,
+   "id": "stone-13"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 108.574,
+   "z": -15.623,
+   "rotation_y_deg": 149.036,
+   "scale": 1.0,
+   "id": "stone-14"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 113.89,
+   "z": -12.433,
+   "rotation_y_deg": 149.036,
+   "scale": 1.0,
+   "id": "stone-15"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 62.582,
+   "z": 37.358,
+   "rotation_y_deg": 143.393,
+   "scale": 1.0,
+   "id": "stone-16"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 67.559,
+   "z": 41.056,
+   "rotation_y_deg": 143.393,
+   "scale": 1.0,
+   "id": "stone-17"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 72.536,
+   "z": 44.753,
+   "rotation_y_deg": 143.393,
+   "scale": 1.0,
+   "id": "stone-18"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 186.685,
+   "z": 36.254,
+   "rotation_y_deg": 321.843,
+   "scale": 1.0,
+   "id": "stone-19"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 181.81,
+   "z": 32.423,
+   "rotation_y_deg": 321.843,
+   "scale": 1.0,
+   "id": "stone-20"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 176.935,
+   "z": 28.593,
+   "rotation_y_deg": 321.843,
+   "scale": 1.0,
+   "id": "stone-21"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 114.195,
+   "z": 117.884,
+   "rotation_y_deg": 326.31,
+   "scale": 1.0,
+   "id": "stone-22"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 109.037,
+   "z": 114.445,
+   "rotation_y_deg": 326.31,
+   "scale": 1.0,
+   "id": "stone-23"
+  },
+  {
+   "name": "LF_StreamStone",
+   "x": 103.878,
+   "z": 111.006,
+   "rotation_y_deg": 326.31,
+   "scale": 1.0,
+   "id": "stone-24"
+  },
+  {
+   "name": "LF_HollowArch",
+   "x": -155.046,
+   "z": 50.031,
+   "rotation_y_deg": 123.69,
+   "scale": 1.0,
+   "id": "arch-01"
+  },
+  {
+   "name": "LF_HollowArch",
+   "x": 172.586,
+   "z": 137.689,
+   "rotation_y_deg": 24.444,
+   "scale": 1.0,
+   "id": "arch-02"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -164.753,
+   "z": 67.92,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-01"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -147.193,
+   "z": 33.378,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-02"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -108.785,
+   "z": 27.22,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-03"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -95.512,
+   "z": -12.923,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-04"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -61.678,
+   "z": -19.416,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-05"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -46.495,
+   "z": -55.067,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-06"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": -8.142,
+   "z": -60.597,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-07"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 18.005,
+   "z": -66.8,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-08"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 30.06,
+   "z": -29.974,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-09"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 67.794,
+   "z": -21.16,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-10"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 76.901,
+   "z": 12.963,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-11"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 117.583,
+   "z": 24.48,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-12"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 121.551,
+   "z": 64.383,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-13"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 155.218,
+   "z": 83.566,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-14"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 154.928,
+   "z": 121.8,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-15"
+  },
+  {
+   "name": "LF_TrailPost",
+   "x": 186.2,
+   "z": 144.682,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "post-16"
+  },
+  {
+   "name": "LF_LogBridge",
+   "x": -97.48,
+   "z": 2.48,
+   "rotation_y_deg": 135.0,
+   "scale": 1.0,
+   "id": "bridge-01"
+  },
+  {
+   "name": "LF_LogBridge",
+   "x": 26.718,
+   "z": -45.926,
+   "rotation_y_deg": 47.49,
+   "scale": 1.0,
+   "id": "bridge-02"
+  },
+  {
+   "name": "LF_LogBridge",
+   "x": 89.453,
+   "z": 11.582,
+   "rotation_y_deg": 47.49,
+   "scale": 1.0,
+   "id": "bridge-03"
+  },
+  {
+   "name": "LF_LogBridge",
+   "x": 140.5,
+   "z": 77.5,
+   "rotation_y_deg": 30.964,
+   "scale": 1.0,
+   "id": "bridge-04"
+  }
+ ]
+}
