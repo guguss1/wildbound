@@ -210,6 +210,22 @@ local function newPet(position)
 	model.PrimaryPart = body
 	return model
 end
+-- Delivery B (B2): every carried capsule bobs, and shakes when its creature is scared. The server builds the
+-- capsule and publishes its mood; this client only moves the creature's seat joint, which never replicates.
+local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
+local Carry = carryModule and require(carryModule)
+local function animateCapsules(now)
+	if not Carry then return end
+	for _, other in ipairs(Players:GetPlayers()) do
+		local capsule = other.Character and other.Character:FindFirstChild("WildboundCarryCapsule")
+		local creature = capsule and capsule:FindFirstChild("Creature")
+		local seat = creature and creature:FindFirstChild("Seat")
+		if seat and seat:IsA("Weld") then
+			local pose = Carry.pose(capsule:GetAttribute("Mood"), now)
+			seat.C0 = CFrame.new(pose.x, 0.1 + pose.y, 0) * CFrame.Angles(0, 0, pose.roll)
+		end
+	end
+end
 -- Smooth only what the player sees. The server moves Body in 0.2 s steps and stays authoritative;
 -- Body is never written here. The art and the ground cue slide between the last two server poses.
 -- Set the local attribute GuardianSmoothing to false to see the raw steps (used to measure them).
@@ -324,6 +340,7 @@ listen(RunService.Heartbeat, function(dt)
 	else
 		destroyPet()
 	end
+	animateCapsules(os.clock())
 	-- The chip is checked every frame and never hides with the inventory (M2.3); it is rebuilt only on change.
 	-- This client's own attack warning holds it on attack until the server says the strike resolved.
 	local guardianState = fresh and type(state.guardian) == "table" and state.guardian or NO_GUARDIAN

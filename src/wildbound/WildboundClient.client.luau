@@ -21,6 +21,11 @@ local Camp = campModule and require(campModule)
 local Economy = economyModule and require(economyModule)
 local Config = configModule and require(configModule)
 local campReady = Camp ~= nil and Economy ~= nil and Config ~= nil and Layout ~= nil
+-- Delivery B: the carried creature's HUD line (B2) and the Spanish words (H3).
+local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
+local textModule = ReplicatedStorage:WaitForChild("WildboundText", 10)
+local Carry = carryModule and require(carryModule)
+local Text = textModule and require(textModule)
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
@@ -150,11 +155,20 @@ local function showSticky(text)
 end
 -- The HUD line (M5.8): what a defeat right now would take, with a shape cue and words. When nothing is at
 -- risk the explorer compass, then the old objective, take its place.
+-- B2: while a wild creature is carried, its name and state take the line: it is the thing most at risk.
+local carryMood = "calm"
+local function ownCapsuleMood()
+	local character = Players.LocalPlayer.Character
+	local capsule = character and character:FindFirstChild("WildboundCarryCapsule")
+	local mood = capsule and capsule:GetAttribute("Mood")
+	return type(mood) == "string" and mood or "calm"
+end
 local function updateObjective()
 	local budget = Layout and Layout.charBudget(hudWidth - (compact and 16 or 20), compact and 13 or 15, 1) or 40
+	local carryLine = Carry and Text and lastSnapshot and Carry.hudLine(lastSnapshot.carrying, carryMood, Text, budget) or nil
 	local loss = campReady and lastSnapshot and Camp.lossLine(lastSnapshot, budget) or nil
-	local risky = loss ~= nil and loss.atRisk
-	local second = risky and loss.text or compassText
+	local risky = (loss ~= nil and loss.atRisk) or (carryLine ~= nil and carryLine.tone == "risk")
+	local second = carryLine and carryLine.text or risky and loss.text or compassText
 	if compact then
 		objective.Text = second and (View and View.fit(second, budget) or second) or "Collect. Return to camp."
 	else
@@ -296,6 +310,14 @@ local function bagRows(snapshot)
 		snapshot.sealArmed and " | Seal armed" or "") })
 	if campReady then
 		for _, spec in ipairs(Camp.quickRows(snapshot, { busy = busy })) do addRow(spec) end
+	end
+	-- B1: the carried creature has its own slot, apart from the bag, and its own ward button.
+	local carried = snapshot.carrying
+	if carried and Text then
+		local words = Text.CARRY
+		addRow({ text = ("%s: %s · %s. %s"):format(words.label, carried.species, carried.protected and words.warded
+			or words.unwarded, words.registerHint), label = not carried.protected and "Protect" or nil,
+			action = "Protect", argument = carried.uid })
 	end
 	addRow({ text = "Pending items are lost on defeat unless warded. A seal works anywhere." })
 	if #pending == 0 then addRow({ text = "No pending items." }) end
@@ -455,8 +477,9 @@ task.spawn(function()
 				line = Camp.compass(effects, gatherNodes(), root.Position.X, root.Position.Z, world and world:GetAttribute("Phase"))
 			end
 			local text = line and line.text or nil
-			if text ~= compassText then
-				compassText = text
+			local mood = ownCapsuleMood()
+			if text ~= compassText or mood ~= carryMood then
+				compassText, carryMood = text, mood
 				updateObjective()
 			end
 			if changed and panel.Visible and tab == "camp" then rebuild() end

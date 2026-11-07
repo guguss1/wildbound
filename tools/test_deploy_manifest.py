@@ -303,6 +303,9 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery A3: pure smoothing and mood cues for the client's local Lumipol copy
         "src/wildbound/WildboundLumipolLook.luau": "ReplicatedStorage.WildboundLumipolLook",
         "tests/WildboundLumipolLook_Test.luau": "ServerStorage.WildboundLumipolLook_Test",
+        # Delivery B2: pure carried-creature mood, movement, sound hook and HUD line rules, shared with the clients
+        "src/wildbound/WildboundCarry.luau": "ReplicatedStorage.WildboundCarry",
+        "tests/WildboundCarry_Test.luau": "ServerStorage.WildboundCarry_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

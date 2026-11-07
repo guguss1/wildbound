@@ -89,4 +89,12 @@ return freeze({
 		Hide = "Se escondió. Espera a que se asome.",
 		Peek = "Se asoma. Acércate despacio.",
 	},
+	-- Delivery B (B2): the HUD line for the carried creature (WildboundCarry.hudLine). Moods fit 14 bytes.
+	CARRY = {
+		label = "Llevas",
+		moods = { calm = "tranquilo", uneasy = "inquieto", afraid = "¡asustado!" },
+		warded = "protegido",
+		unwarded = "sin proteger",
+		registerHint = "Regístralo en el refugio del campamento.",
+	},
 })

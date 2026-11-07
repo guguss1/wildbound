@@ -11,6 +11,8 @@ local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"))
 -- H3: the capture path's player-facing words, in Spanish.
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
+-- Delivery B (B2): the carried creature's mood, glow and sound hook rules.
+local Carry = require(ReplicatedStorage:WaitForChild("WildboundCarry"))
 -- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
@@ -119,6 +121,93 @@ local notices = {
 local function captureNotice(reason)
 	return Text.CAPTURE_NOTICES[reason] or notices[reason] or Text.CAPTURE_NOTICES.InvalidPlayer
 end
+-- Delivery B (B2): the carried creature rides in a small capsule on the carrier's back. The server builds it inside
+-- the character, so every player sees it; its mood and sound hook are attributes the clients read, and each client
+-- only animates the creature's seat joint. It weighs nothing, never collides and never blocks a ray.
+local CAPSULE = "WildboundCarryCapsule"
+local function capsulePart(model, name, size, shape, color, material, transparency)
+	local part = Instance.new("Part")
+	part.Name, part.Size, part.Shape = name, size, shape
+	part.Color, part.Material, part.Transparency = color, material, transparency or 0
+	part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.Massless = false, false, false, false, true
+	part.CastShadow = false
+	part.Parent = model
+	return part
+end
+local function weld(name, part0, part1, offset)
+	local joint = Instance.new("Weld")
+	joint.Name, joint.Part0, joint.Part1, joint.C0 = name, part0, part1, offset
+	joint.Parent = part1
+	return joint
+end
+local function paintCapsule(model, mood)
+	local look = Carry.look(mood)
+	local color = Color3.fromRGB(look.glow.r, look.glow.g, look.glow.b)
+	local shell = model:FindFirstChild("Shell")
+	if shell then
+		shell.Color = color
+		local light = shell:FindFirstChildOfClass("PointLight")
+		if light then light.Color, light.Brightness = color, look.brightness end
+	end
+	model:SetAttribute("Mood", mood)
+end
+local function buildCapsule(character, carried)
+	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+	if not torso or not torso:IsA("BasePart") then return nil end
+	local model = Instance.new("Model")
+	model.Name = CAPSULE
+	model:SetAttribute("Uid", carried.uid)
+	model:SetAttribute("Species", carried.species)
+	local back = torso.Size.Z / 2
+	local strap = capsulePart(model, "Strap", Vector3.new(0.9, 1.6, 0.14), Enum.PartType.Block,
+		Color3.fromRGB(96, 70, 46), Enum.Material.Fabric)
+	weld("StrapJoint", torso, strap, CFrame.new(0, 0, back + 0.08))
+	local shell = capsulePart(model, "Shell", Vector3.new(1.8, 1.8, 1.8), Enum.PartType.Ball, Color3.new(1, 1, 1),
+		Enum.Material.Glass, 0.6)
+	weld("Mount", torso, shell, CFrame.new(0, 0.15, back + 0.95))
+	local light = Instance.new("PointLight")
+	light.Range, light.Shadows, light.Parent = 7, false, shell
+	-- A wooden base ring, its rim showing outside the glass, that the creature sits on.
+	local base = capsulePart(model, "Base", Vector3.new(0.25, 1.95, 1.95), Enum.PartType.Cylinder,
+		Color3.fromRGB(120, 86, 52), Enum.Material.Wood)
+	weld("BaseJoint", shell, base, CFrame.new(0, -0.45, 0) * CFrame.Angles(0, 0, math.rad(90)))
+	local creature = capsulePart(model, "Creature", Vector3.new(1.15, 0.85, 1), Enum.PartType.Ball,
+		Color3.fromRGB(121, 202, 160), Enum.Material.SmoothPlastic)
+	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
+	-- It faces away from the carrier's back, so whoever follows sees its face.
+	for _, x in ipairs({ -0.25, 0.25 }) do
+		local eye = capsulePart(model, "Eye", Vector3.new(0.14, 0.16, 0.1), Enum.PartType.Block,
+			Color3.fromRGB(25, 43, 48), Enum.Material.SmoothPlastic)
+		weld("EyeJoint", creature, eye, CFrame.new(x, 0.12, 0.47))
+		local ear = capsulePart(model, "Ear", Vector3.new(0.22, 0.5, 0.26), Enum.PartType.Block,
+			Color3.fromRGB(81, 151, 117), Enum.Material.SmoothPlastic)
+		weld("EarJoint", creature, ear, CFrame.new(x, 0.45, 0) * CFrame.Angles(0, 0, x * 1.2))
+	end
+	paintCapsule(model, "calm")
+	model.Parent = character
+	return model
+end
+-- One capsule per carried creature, on the current living character only. Rebuilt for a new character when a
+-- ward kept the creature through a defeat; removed when the creature is registered, lost or let go.
+local function syncCapsule(player)
+	local record, character = records[player], player.Character
+	local snapshot = state:snapshot(player.UserId)
+	local carried = snapshot and snapshot.carrying
+	local existing = character and character:FindFirstChild(CAPSULE)
+	if not carried or not record or record.character ~= character or record.defeated then
+		if existing then existing:Destroy() end
+		return
+	end
+	if existing and existing:GetAttribute("Uid") ~= carried.uid then
+		existing:Destroy()
+		existing = nil
+	end
+	if not existing then
+		existing = buildCapsule(character, carried)
+		record.sound = Carry.newSoundMemory()
+	end
+	if existing then existing:SetAttribute("Warded", carried.protected == true) end
+end
 -- Walk speed is the slower of the egg and carried-creature speed (M3.5, B1) and the pouch load step (M5.2).
 -- Set when a reply is sent and for each new character.
 local function applyCarry(player)
@@ -136,6 +225,7 @@ local function send(player, action, ok, notice, lossSummary)
 	local record = records[player]
 	if not record or player.Parent ~= Players then return end
 	applyCarry(player)
+	syncCapsule(player)
 	local snapshot = state:snapshot(player.UserId)
 	if snapshot and record.totem ~= snapshot.totemActive then
 		record.totem = snapshot.totemActive
@@ -701,6 +791,31 @@ local function stepWildlife(now)
 	end
 end
 
+-- B2: each capsule's mood from the existing threat reading (Silueta's state and distance, fog, safe zone). The mood
+-- and the sound hook change only on a change, so the replicated attributes stay quiet. Carrying adds nothing to
+-- what Silueta senses.
+local function updateCarryMoods(now)
+	for player, record in pairs(records) do
+		local character = player.Character
+		local capsule = character and character:FindFirstChild(CAPSULE)
+		local root = rootOf(player)
+		if capsule and root then
+			local position = root.Position
+			local mode, distance = guardianReading(position)
+			local inFog, safe = Rules.zone(position.X, position.Z)
+			local mood = Carry.mood({ mode = mode, distance = distance, inFog = inFog, safe = safe,
+				alive = context(player) == true })
+			if capsule:GetAttribute("Mood") ~= mood then paintCapsule(capsule, mood) end
+			record.sound = record.sound or Carry.newSoundMemory()
+			local cue = Carry.soundCue(record.sound, mood, now)
+			if cue then
+				capsule:SetAttribute("SoundCue", cue)
+				capsule:SetAttribute("SoundCueAt", now)
+			end
+		end
+	end
+end
+
 local accumulator = 0
 RunService.Heartbeat:Connect(function(dt)
 	if dt ~= dt or dt < 0 then return end
@@ -726,6 +841,7 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
+	updateCarryMoods(now)
 	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
 	local campX, campZ = campCenter.Position.X, campCenter.Position.Z
 	for player in pairs(records) do
