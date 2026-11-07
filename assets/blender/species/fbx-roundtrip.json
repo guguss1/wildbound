@@ -347,6 +347,135 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Zancanieve": {
+      "model": {
+        "triangles": 626,
+        "size": [
+          2.6,
+          3.8,
+          4.5
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "Neck",
+          "Head",
+          "ThighL",
+          "ShinL",
+          "ThighR",
+          "ShinR",
+          "TailA",
+          "TailB"
+        ],
+        "objects": [
+          "SP_Zancanieve",
+          "SP_Zancanieve_Body",
+          "SP_Zancanieve_Legs",
+          "SP_Zancanieve_Neon_Eye",
+          "SP_Zancanieve_Tail"
+        ],
+        "materials": [
+          "SP_Zancanieve_Body",
+          "SP_Zancanieve_Legs",
+          "SP_Zancanieve_Neon_Eye",
+          "SP_Zancanieve_Tail"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 626,
+          "size": [
+            2.6,
+            3.7735,
+            4.4592
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "Neck",
+            "Head",
+            "ThighL",
+            "ShinL",
+            "ThighR",
+            "ShinR",
+            "TailA",
+            "TailB"
+          ],
+          "objects": [
+            "SP_Zancanieve",
+            "SP_Zancanieve_Body",
+            "SP_Zancanieve_Legs",
+            "SP_Zancanieve_Neon_Eye",
+            "SP_Zancanieve_Tail"
+          ],
+          "materials": [
+            "SP_Zancanieve_Body",
+            "SP_Zancanieve_Legs",
+            "SP_Zancanieve_Neon_Eye",
+            "SP_Zancanieve_Tail"
+          ],
+          "actions": [
+            "SP_Zancanieve|WildboundSpecies"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 626,
+          "size": [
+            2.6,
+            3.8616,
+            4.4738
+          ],
+          "min_z": -0.0157,
+          "bones": [
+            "Root",
+            "Body",
+            "Neck",
+            "Head",
+            "ThighL",
+            "ShinL",
+            "ThighR",
+            "ShinR",
+            "TailA",
+            "TailB"
+          ],
+          "objects": [
+            "SP_Zancanieve",
+            "SP_Zancanieve_Body",
+            "SP_Zancanieve_Legs",
+            "SP_Zancanieve_Neon_Eye",
+            "SP_Zancanieve_Tail"
+          ],
+          "materials": [
+            "SP_Zancanieve_Body",
+            "SP_Zancanieve_Legs",
+            "SP_Zancanieve_Neon_Eye",
+            "SP_Zancanieve_Tail"
+          ],
+          "actions": [
+            "SP_Zancanieve|WildboundSpecies"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }

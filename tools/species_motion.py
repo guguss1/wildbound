@@ -28,6 +28,7 @@ BONES = {
     "SP_Soplillo": ("Root", "Body", "TailA", "TailB"),
     "SP_Cortezon": ("Root", "Body", "Head", "LegFL", "LegFR", "LegBL", "LegBR"),
     "SP_Cestillo": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
+    "SP_Zancanieve": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
 }
 
 
@@ -83,6 +84,27 @@ MOTION = {
             "Head": (term("rx", 0.10, 2, 0.45),),
             "LegL": (term("rx", 0.40, 1, 0.0),),
             "LegR": (term("rx", 0.40, 1, 0.5),),
+        },
+    },
+    # A stilt wader: slow high steps with the knee folding, neck pecking, ice fan fluttering.
+    "SP_Zancanieve": {
+        "Idle": {
+            "Body": (term("lz", 0.03, 1, 0, "rise"),),
+            "Neck": (term("rx", 0.06, 1, 0.0), term("rz", 0.05, 1, 0.25)),
+            "Head": (term("rx", 0.10, 1, 0.30), term("rz", 0.14, 1, 0.0)),
+            "TailA": (term("rx", 0.04, 1, 0.15),),
+            "TailB": (term("rx", 0.08, 1, 0.35), term("rz", 0.05, 1, 0.0)),
+        },
+        "Move": {
+            "Body": (term("lz", 0.05, 2, 0, "rise"), term("rx", 0.03, 2, 0.25), term("rz", 0.04, 1, 0.0)),
+            "Neck": (term("rx", 0.10, 2, 0.25),),
+            "Head": (term("rx", 0.08, 2, 0.45),),
+            "ThighL": (term("rx", 0.28, 1, 0.0),),
+            "ShinL": (term("rx", -0.40, 1, 0.0, "lift"),),
+            "ThighR": (term("rx", 0.28, 1, 0.5),),
+            "ShinR": (term("rx", -0.40, 1, 0.5, "lift"),),
+            "TailA": (term("rx", 0.06, 2, 0.20),),
+            "TailB": (term("rx", 0.12, 2, 0.40), term("rz", 0.06, 1, 0.0)),
         },
     },
 }

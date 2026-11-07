@@ -42,6 +42,12 @@ SPECS = {
                   "Legs": ("6B4A2F", 130), "Neon_Eye": ("F2F0C8", 30)},
         "bones": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
     },
+    "SP_Zancanieve": {
+        "size": (2.6, 3.8, 4.5), "tris": 700,
+        "parts": {"Body": ("C7D6DF", 250), "Legs": ("4A5560", 150), "Tail": ("9CCBE0", 240),
+                  "Neon_Eye": ("7FE0F0", 60)},
+        "bones": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
+    },
 }
 
 
@@ -162,8 +168,9 @@ class SpeciesRigs(unittest.TestCase):
                 samples = self.motion[name][clip]["mesh_samples"]
                 moved = 0.0
                 for object_name, first in samples["first"].items():
-                    middle = samples["middle"][object_name]
-                    moved = max([moved] + [abs(a - b) for u, v in zip(first, middle) for a, b in zip(u, v)])
+                    for key in ("quarter", "middle"):  # a symmetric pose can repeat the start at one of them
+                        other = samples[key][object_name]
+                        moved = max([moved] + [abs(a - b) for u, v in zip(first, other) for a, b in zip(u, v)])
                 self.assertGreater(moved, 0.02, f"{clip} barely moves the mesh")
 
     def test_clips_keep_the_creature_above_the_floor(self):

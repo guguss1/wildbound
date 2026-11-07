@@ -50,6 +50,8 @@ SPECS = {
     "SP_Cestillo": {"size": (2.6, 2.8, 4.0),
                     "colors": {"Basket": "B98E55", "Neck": "7E8C47", "Beak": "5E9A3C", "Legs": "6B4A2F",
                                "Neon_Eye": "F2F0C8"}},
+    "SP_Zancanieve": {"size": (2.6, 3.8, 4.5),
+                      "colors": {"Body": "C7D6DF", "Legs": "4A5560", "Tail": "9CCBE0", "Neon_Eye": "7FE0F0"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -215,7 +217,70 @@ def build_cestillo():
     return asset
 
 
-BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo}
+def build_zancanieve():
+    asset = Asset("SP_Zancanieve", seed=41)
+    body, legs, tail, eye = (asset.part(n) for n in ("Body", "Legs", "Tail", "Neon_Eye"))
+    on_body, on_head = rigid("Body"), rigid("Head")
+    front = kc.basis((0, -1, 0))
+
+    # Small oval body held high on stilts.
+    lathe(body, kc.arc_profile(0.62, 0.95, 6), 8, on_body, center=(0, 0, 2.9), frame=front, scale=(1.0, 0.85))
+    # Frost ridge along the back.
+    for i in range(5):
+        y = -0.5 + 0.28 * i
+        pyramid(body, (0, y, 3.3 - 0.03 * abs(i - 2)), (0, 0.15, 1), 0.14, 0.28, on_body)
+
+    # Long neck, soft hand-overs body to neck and neck to head, then a small head and beak.
+    neck_path = [(0, -0.7, 3.0), (0, -0.8, 3.35), (0, -0.9, 3.7), (0, -0.95, 4.0), (0, -1.05, 4.22),
+                 (0, -1.2, 4.3)]
+    lower = blend("Body", "Neck", (0, -0.7, 3.0), (0, -0.85, 3.5), 0.2, 1.0)
+    upper = blend("Neck", "Head", (0, -0.95, 3.85), (0, -1.1, 4.25), 0.0, 1.0)
+    tube(body, neck_path, [0.2, 0.17, 0.15, 0.14, 0.14, 0.15], 6,
+         lambda v: lower(v) if v[2] < 3.65 else upper(v), phase=0.2)
+    lathe(body, kc.arc_profile(0.24, 0.34, 4), 6, on_head, center=(0, -1.38, 4.3), frame=front, scale=(1.0, 0.9))
+    lathe(body, [(0.1, 0.0), (0.0, 0.62)], 4, on_head, center=(0, -1.6, 4.27), frame=front)
+
+    # Two stilts: hip, knee bending backward, ankle, with a flat foot.
+    for side, thigh, shin in ((1, "ThighL", "ShinL"), (-1, "ThighR", "ShinR")):
+        x = 0.7 * side
+        knee_up, knee_down = (x * 0.9, 0.35, 1.75), (x * 0.97, 0.4, 1.3)
+        weigh = lambda v, a=blend(thigh, shin, knee_up, knee_down, 0.0, 1.0): a(v)
+        tube(legs, [(x * 0.62, 0.0, 2.7), (x * 0.76, 0.22, 2.0), (x * 0.95, 0.45, 1.5), (x, 0.2, 0.85),
+                    (x, -0.05, 0.12)], [0.13, 0.11, 0.1, 0.085, 0.08], 6, weigh)
+        kc.box(legs, (x, -0.2, 0.05), (0.45, 0.8, 0.1), rigid(shin))
+
+    # Fan of five ice plates standing behind the body.
+    kite = [(0.0, 0.0), (0.28, 0.4), (0.34, 0.9), (0.2, 1.4), (0.0, 1.75), (-0.2, 1.4), (-0.34, 0.9), (-0.28, 0.4)]
+    base = (0.0, 1.0, 3.0)
+    for angle, scale in ((-58, 0.95), (-29, 0.93), (0, 0.86), (29, 0.93), (58, 0.95)):
+        a, tilt = math.radians(angle), 0.5
+        d = unit((math.sin(a) * math.cos(tilt), math.sin(tilt), math.cos(a) * math.cos(tilt)))
+        across = (math.cos(a), 0.0, -math.sin(a))
+        normal = unit(cross(across, d))
+        outline = [(w * scale, h * scale) for w, h in kite]
+        tip = madd(base, d, 1.75 * scale)
+        slab(tail, outline, base, across, d, normal, 0.13, blend("TailA", "TailB", base, tip, 0.25, 0.75),
+             bevel=0.3)
+
+    # Two glowing eyes on the sides of the head.
+    for side in (-1, 1):
+        lathe(eye, kc.arc_profile(0.1, 0.1, 4), 5, on_head, center=(side * 0.2, -1.4, 4.36))
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0, 2.9), (0, -0.8, 2.9))
+    asset.bone("Neck", "Body", neck_path[0], neck_path[3])
+    asset.bone("Head", "Neck", neck_path[3], (0, -1.6, 4.3))
+    asset.bone("ThighL", "Body", (0.43, 0.0, 2.7), (0.67, 0.45, 1.5))
+    asset.bone("ShinL", "ThighL", (0.67, 0.45, 1.5), (0.7, -0.05, 0.12))
+    asset.bone("ThighR", "Body", (-0.43, 0.0, 2.7), (-0.67, 0.45, 1.5))
+    asset.bone("ShinR", "ThighR", (-0.67, 0.45, 1.5), (-0.7, -0.05, 0.12))
+    asset.bone("TailA", "Body", (0, 1.0, 3.0), (0, 1.35, 3.5))
+    asset.bone("TailB", "TailA", (0, 1.35, 3.5), (0, 1.75, 4.1))
+    return asset
+
+
+BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
+            "SP_Zancanieve": build_zancanieve}
 ORDER = tuple(SPECS)
 
 

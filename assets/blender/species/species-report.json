@@ -357,6 +357,123 @@
           "lowest_z": -0.1015
         }
       }
+    },
+    "SP_Zancanieve": {
+      "status": "unvalidated",
+      "triangles": 626,
+      "size": [
+        2.6,
+        3.8,
+        4.5
+      ],
+      "bbox_min": [
+        -1.3,
+        -1.9109,
+        -0.0
+      ],
+      "bbox_max": [
+        1.3,
+        1.8891,
+        4.5
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0266,
+        0.946,
+        1.0029
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "Neck",
+        "Head",
+        "ThighL",
+        "ShinL",
+        "ThighR",
+        "ShinR",
+        "TailA",
+        "TailB"
+      ],
+      "parts": [
+        {
+          "object": "SP_Zancanieve_Body",
+          "material": "SP_Zancanieve_Body",
+          "material_count": 1,
+          "triangles": 210,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "C7D6DF",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Zancanieve_Legs",
+          "material": "SP_Zancanieve_Legs",
+          "material_count": 1,
+          "triangles": 136,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4A5560",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Zancanieve_Tail",
+          "material": "SP_Zancanieve_Tail",
+          "material_count": 1,
+          "triangles": 220,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9CCBE0",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Zancanieve_Neon_Eye",
+          "material": "SP_Zancanieve_Neon_Eye",
+          "material_count": 1,
+          "triangles": 60,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "7FE0F0",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Zancanieve.fbx",
+        "Idle": "assets/exports/species/SP_Zancanieve_Idle.fbx",
+        "Move": "assets/exports/species/SP_Zancanieve_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Zancanieve.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Zancanieve_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0
+        },
+        "Move": {
+          "action": "SP_Zancanieve_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0157
+        }
+      }
     }
   }
 }
