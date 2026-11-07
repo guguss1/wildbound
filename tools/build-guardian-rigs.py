@@ -28,7 +28,8 @@ if str(TOOLS) not in sys.path:
 
 import guardian_motion as motion  # noqa: E402
 import kit_common as kc  # noqa: E402
-from kit_common import add, blend, box, chain, cross, lathe, madd, mul, rigid, slab, sub, tube, unit  # noqa: E402
+from kit_common import (add, blend, box, chain, cross, lathe, madd, mul, rigid, slab, sub, torus,  # noqa: E402
+                        tube, unit)
 
 ROOT = TOOLS.parent
 OUT_DIR = ROOT / "assets/blender/guardians"
@@ -46,6 +47,9 @@ SPECS = {
     "GD_Yeti": {"size": (11.0, 9.0, 11.0),
                 "colors": {"Hide": "3D3A3E", "Ice": "9CCBE0", "Mask": "3F4247", "Hands": "2B2A2E",
                            "Neon_Eye": "7FB8C9"}},
+    "GD_ElVigia": {"size": (13.0, 13.0, 15.0), "fit": "uniform",
+                   "colors": {"Legs": "8F8A85", "Hub": "6E6A64", "Head": "77717F", "Shutter": "3B2F50",
+                              "Arms": "8B7A5E", "Neon_Slit": "C9A24A"}},
 }
 # (azimuth, elevation) in degrees. Azimuth 0 looks at the front of a -Y facing guardian.
 VIEWS = {"front": (0.0, 8.0), "side": (90.0, 8.0), "back": (180.0, 12.0), "top": (0.0, 78.0)}
@@ -263,13 +267,152 @@ def Asset_(name, seed):
     return kc.Asset(name, seed=seed)
 
 
-BUILDERS = {"GD_Yeti": build_yeti}
+# ---------------------------------------------------------------------------
+# GD_ElVigia: a stone surveying instrument on three stilt legs. A hub, a ring-shaped head with
+# one horizontal shutter slit, and two folding measuring rods laid flat along the hub.
+# No face, no limbs that read as a body, nothing rising beside the head.
+# ---------------------------------------------------------------------------
+
+VIGIA_LEG_AZIMUTH = {"A": 270.0, "B": 30.0, "C": 150.0}
+VIGIA_HUB_Z = 7.2
+VIGIA_RING_Z = 12.5
+VIGIA_RING_OUTER, VIGIA_RING_INNER = 2.5, 1.55
+VIGIA_FOOT_RADIUS, VIGIA_KNEE_RADIUS, VIGIA_HIP_RADIUS = 6.4, 4.5, 1.9
+VIGIA_PAD_RADIUS = 1.35
+VIGIA_FOLD = {"L": 1.0, "R": -1.0}
+VIGIA_ROD_LEVELS = (8.4, 8.8, 9.2)  # z of the folded stack, bottom to top
+VIGIA_ROD_X, VIGIA_ROD_HALF = 2.5, 1.3
+
+
+def vigia_leg_points(leg):
+    azimuth = math.radians(VIGIA_LEG_AZIMUTH[leg])
+    out = (math.cos(azimuth), math.sin(azimuth), 0.0)
+    return (out, madd((0, 0, VIGIA_HUB_Z + 0.5), out, VIGIA_HIP_RADIUS),
+            madd((0, 0, 4.4), out, VIGIA_KNEE_RADIUS), madd((0, 0, 0.5), out, VIGIA_FOOT_RADIUS))
+
+
+def vigia_rod_points(side):
+    """Head and tail of the three folded rod segments: forward, back, forward again."""
+    x = VIGIA_FOLD[side] * VIGIA_ROD_X
+    z1, z2, z3 = VIGIA_ROD_LEVELS
+    h = VIGIA_ROD_HALF
+    return ((( x, h, z1), (x, -h, z1)), ((x, -h, z2), (x, h, z2)), ((x, h, z3), (x, -h, z3)))
+
+
+def build_el_vigia():
+    asset = Asset_("GD_ElVigia", seed=151)
+    legs, hub, head, shutter, arms, neon = (asset.part(n) for n in
+                                            ("Legs", "Hub", "Head", "Shutter", "Arms", "Neon_Slit"))
+
+    # Legs: two stone segments, a knuckle at the knee and a wide footing pad.
+    for leg in "ABC":
+        out, hip, knee, foot = vigia_leg_points(leg)
+        side = (-out[1], out[0], 0.0)
+        upper, lower = rigid(f"Leg{leg}1"), rigid(f"Leg{leg}2")
+        tube(legs, [hip, madd(hip, sub(knee, hip), 1 / 3), madd(hip, sub(knee, hip), 2 / 3), knee],
+             [0.8, 0.95, 0.95, 0.78], 6, upper, phase=0.5)
+        lathe(legs, [(0.6, -0.7), (0.9, 0.0), (0.6, 0.7)], 6, lower, center=knee, frame=kc.basis(side))
+        tube(legs, [knee, madd(knee, sub(foot, knee), 0.5), madd(foot, (0, 0, 0.1), 1.0)], [0.7, 0.58, 0.5], 6,
+             lower, phase=0.5)
+        pad = [(math.cos(math.tau * k / 8) * VIGIA_PAD_RADIUS, math.sin(math.tau * k / 8) * VIGIA_PAD_RADIUS)
+               for k in range(8)]
+        slab(legs, pad, (foot[0], foot[1], 0.0), (1, 0, 0), (0, 1, 0), (0, 0, 1), 0.5, lower, bevel=0.25)
+
+    # Hub: a squat drum, three hip sockets, a flat dial around the neck and a short neck column.
+    on_hub, on_neck = rigid("Hub"), rigid("Neck")
+    lathe(hub, [(1.7, 0.0), (2.3, 0.35), (2.3, 1.25), (1.7, 1.6)], 8, on_hub, center=(0, 0, VIGIA_HUB_Z), phase=0.4)
+    for leg in "ABC":
+        out, hip, _, _ = vigia_leg_points(leg)
+        yaw = math.atan2(out[1], out[0]) - math.pi / 2
+        box(hub, (out[0] * 1.75, out[1] * 1.75, VIGIA_HUB_Z + 0.5), (1.5, 1.3, 1.5), on_hub, yaw=yaw)
+    torus(hub, (0, 0, 9.0), (1, 0, 0), (0, 1, 0), 1.55, 0.22, 8, 4, on_hub, phase=math.pi / 4)
+    lathe(hub, [(1.0, 0.0), (0.75, 0.5), (0.75, 1.2), (1.1, 1.75)], 6, on_neck, center=(0, 0, 8.75), phase=0.5)
+    lathe(hub, [(0.35, 0.0), (0.35, 0.25)], 6, on_hub, center=(0, 0, VIGIA_HUB_Z + 1.6))
+
+    # Head: a flat ring in the XZ plane facing -Y, with four compass blocks on the rim.
+    on_head, on_slit = rigid("Head"), rigid("Shutter")
+    major = (VIGIA_RING_OUTER + VIGIA_RING_INNER) / 2
+    radial = (VIGIA_RING_OUTER - VIGIA_RING_INNER) / 2
+    minor = radial / math.cos(math.pi / 8)
+    torus(head, (0, 0, VIGIA_RING_Z), (1, 0, 0), (0, 0, 1), major, minor, 12, 8, on_head, phase=math.pi / 8,
+          squash=1.45)
+    for dx, dz in ((1, 1), (-1, 1), (1, -1), (-1, -1)):
+        reach_ = (VIGIA_RING_OUTER - 0.15) * math.cos(math.pi / 4)
+        box(head, (dx * reach_, 0, VIGIA_RING_Z + dz * reach_), (0.7, 1.7, 0.7), on_head)
+    box(head, (0, 0, VIGIA_RING_Z + VIGIA_RING_OUTER + 0.05), (0.5, 1.2, 0.5), on_head)
+
+    # Shutter: two leaves close the bore and leave a slit 0.4 high. Only the upper leaf rides on
+    # the Shutter bone; the lower one stays with the head. A bar of light sits behind the slit.
+    reach, half_gap = VIGIA_RING_INNER + 0.1, 0.2
+    start = math.asin(half_gap / reach)
+    arc = [(math.cos(start + (math.pi - 2 * start) * k / 8) * reach, math.sin(start + (math.pi - 2 * start) * k / 8) * reach)
+           for k in range(9)]
+    upper_leaf = arc
+    lower_leaf = [(x, -z) for x, z in reversed(arc)]
+    slab(shutter, [(x, z) for x, z in upper_leaf], (0, -0.275, VIGIA_RING_Z), (1, 0, 0), (0, 0, 1), (0, 1, 0), 0.35,
+         on_slit)
+    slab(shutter, [(x, z) for x, z in lower_leaf], (0, -0.275, VIGIA_RING_Z), (1, 0, 0), (0, 0, 1), (0, 1, 0), 0.35,
+         on_head)
+    glow = [(-1.5, 0.0), (-1.1, 0.65), (1.1, 0.65), (1.5, 0.0), (1.1, -0.65), (-1.1, -0.65)]
+    slab(neon, glow, (0, 0.2, VIGIA_RING_Z), (1, 0, 0), (0, 0, 1), (0, 1, 0), 0.1, on_head)
+
+    # Measuring rods: three hex-section segments per side with a pin disc at each hinge, folded
+    # zigzag in a flat stack beside the hub.
+    for side in "LR":
+        for index, (a, b) in enumerate(vigia_rod_points(side), start=1):
+            weigh = rigid(f"Arm{side}{index}")
+            tube(arms, [a, b], [0.3, 0.3], 6, weigh, phase=0.5)
+            lathe(arms, [(0.42, -0.2), (0.42, 0.2)], 6, weigh, center=a)
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 1.0))
+    asset.bone("Hub", "Root", (0, 0, VIGIA_HUB_Z), (0, 0, VIGIA_HUB_Z + 1.6))
+    asset.bone("Neck", "Hub", (0, 0, 8.75), (0, 0, 10.4))
+    asset.bone("Head", "Neck", (0, 0, 10.4), (0, 0, VIGIA_RING_Z))
+    asset.bone("Shutter", "Head", (0, -0.1, VIGIA_RING_Z), (0, -0.1, VIGIA_RING_Z + 1.3))
+    for leg in "ABC":
+        _, hip, knee, foot = vigia_leg_points(leg)
+        asset.bone(f"Leg{leg}1", "Hub", hip, knee)
+        asset.bone(f"Leg{leg}2", f"Leg{leg}1", knee, foot)
+    for side in "LR":
+        parent = "Hub"
+        for index, (a, b) in enumerate(vigia_rod_points(side), start=1):
+            asset.bone(f"Arm{side}{index}", parent, a, b)
+            parent = f"Arm{side}{index}"
+    order = {name: i for i, name in enumerate(motion.BONES["GD_ElVigia"])}
+    asset.bones.sort(key=lambda b: order[b[0]])
+    return asset
+
+
+def fit_uniform(asset, size, band_fraction=0.1):
+    """Scale all axes by one factor so the height matches, drop the lowest point on Z 0 and centre
+    the base. A tripod must keep its 120 degree spacing, so there is no per-axis stretch."""
+    low, high = asset.bbox()
+    scale = size[2] / (high[2] - low[2])
+    for part in asset.parts.values():
+        part.vertices = [tuple((v[i] - low[i]) * scale for i in range(3)) for v in part.vertices]
+    points = [v for part in asset.parts.values() for v in part.vertices]
+    band = max(p[2] for p in points) * band_fraction
+    base = [p for p in points if p[2] <= band]
+    shift = tuple(-(min(p[i] for p in base) + max(p[i] for p in base)) / 2 for i in (0, 1))
+
+    def placed(v):
+        return ((v[0] - low[0]) * scale + shift[0], (v[1] - low[1]) * scale + shift[1], (v[2] - low[2]) * scale)
+
+    for part in asset.parts.values():
+        part.vertices = [(v[0] + shift[0], v[1] + shift[1], v[2]) for v in part.vertices]
+    asset.bones = [(n, p, placed(h), placed(t)) for n, p, h, t in asset.bones]
+    asset.fit = (scale, scale, scale)
+    return asset.fit
+
+
+BUILDERS = {"GD_Yeti": build_yeti, "GD_ElVigia": build_el_vigia}
 ORDER = tuple(SPECS)
 
 
 def author(name):
     asset = BUILDERS[name]()
-    kc.fit_asset(asset, SPECS[name]["size"])
+    fit = fit_uniform if SPECS[name].get("fit") == "uniform" else kc.fit_asset
+    fit(asset, SPECS[name]["size"])
     return asset
 
 
@@ -598,7 +741,7 @@ def dry_run():
         low, high = asset.bbox()
         raw = [round(b - a, 2) for a, b in zip(low, high)]
         counts = {label: part.triangles for label, part in asset.parts.items()}
-        kc.fit_asset(asset, SPECS[name]["size"])
+        (fit_uniform if SPECS[name].get("fit") == "uniform" else kc.fit_asset)(asset, SPECS[name]["size"])
         print(name, "tris", asset.triangles, counts, "raw", raw, "fit", [round(s, 3) for s in asset.fit])
 
 

@@ -378,6 +378,336 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "GD_ElVigia": {
+      "model": {
+        "triangles": 1256,
+        "size": [
+          13.5148,
+          12.0588,
+          15.0
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Hub",
+          "Neck",
+          "Head",
+          "Shutter",
+          "LegA1",
+          "LegA2",
+          "LegB1",
+          "LegB2",
+          "LegC1",
+          "LegC2",
+          "ArmL1",
+          "ArmL2",
+          "ArmL3",
+          "ArmR1",
+          "ArmR2",
+          "ArmR3"
+        ],
+        "objects": [
+          "GD_ElVigia",
+          "GD_ElVigia_Arms",
+          "GD_ElVigia_Head",
+          "GD_ElVigia_Hub",
+          "GD_ElVigia_Legs",
+          "GD_ElVigia_Neon_Slit",
+          "GD_ElVigia_Shutter"
+        ],
+        "materials": [
+          "GD_ElVigia_Arms",
+          "GD_ElVigia_Head",
+          "GD_ElVigia_Hub",
+          "GD_ElVigia_Legs",
+          "GD_ElVigia_Neon_Slit",
+          "GD_ElVigia_Shutter"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Hold": {
+          "triangles": 1256,
+          "size": [
+            13.5148,
+            12.0588,
+            15.0
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Hub",
+            "Neck",
+            "Head",
+            "Shutter",
+            "LegA1",
+            "LegA2",
+            "LegB1",
+            "LegB2",
+            "LegC1",
+            "LegC2",
+            "ArmL1",
+            "ArmL2",
+            "ArmL3",
+            "ArmR1",
+            "ArmR2",
+            "ArmR3"
+          ],
+          "objects": [
+            "GD_ElVigia",
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "materials": [
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "actions": [
+            "GD_ElVigia|WildboundGuardians"
+          ],
+          "animated_channels": 179,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Stride": {
+          "triangles": 1256,
+          "size": [
+            13.5148,
+            12.0588,
+            15.0184
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Hub",
+            "Neck",
+            "Head",
+            "Shutter",
+            "LegA1",
+            "LegA2",
+            "LegB1",
+            "LegB2",
+            "LegC1",
+            "LegC2",
+            "ArmL1",
+            "ArmL2",
+            "ArmL3",
+            "ArmR1",
+            "ArmR2",
+            "ArmR3"
+          ],
+          "objects": [
+            "GD_ElVigia",
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "materials": [
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "actions": [
+            "GD_ElVigia|WildboundGuardians"
+          ],
+          "animated_channels": 179,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        },
+        "Flinch": {
+          "triangles": 1256,
+          "size": [
+            13.5148,
+            12.0588,
+            15.0045
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Hub",
+            "Neck",
+            "Head",
+            "Shutter",
+            "LegA1",
+            "LegA2",
+            "LegB1",
+            "LegB2",
+            "LegC1",
+            "LegC2",
+            "ArmL1",
+            "ArmL2",
+            "ArmL3",
+            "ArmR1",
+            "ArmR2",
+            "ArmR3"
+          ],
+          "objects": [
+            "GD_ElVigia",
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "materials": [
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "actions": [
+            "GD_ElVigia|WildboundGuardians"
+          ],
+          "animated_channels": 179,
+          "keyed_frames": 31,
+          "frame_range": [
+            2.0,
+            32.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 1.0
+        },
+        "Telegraph": {
+          "triangles": 1256,
+          "size": [
+            13.5148,
+            12.0588,
+            15.0
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Hub",
+            "Neck",
+            "Head",
+            "Shutter",
+            "LegA1",
+            "LegA2",
+            "LegB1",
+            "LegB2",
+            "LegC1",
+            "LegC2",
+            "ArmL1",
+            "ArmL2",
+            "ArmL3",
+            "ArmR1",
+            "ArmR2",
+            "ArmR3"
+          ],
+          "objects": [
+            "GD_ElVigia",
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "materials": [
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "actions": [
+            "GD_ElVigia|WildboundGuardians"
+          ],
+          "animated_channels": 179,
+          "keyed_frames": 55,
+          "frame_range": [
+            2.0,
+            56.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 1.8
+        },
+        "Strike": {
+          "triangles": 1256,
+          "size": [
+            13.5148,
+            12.0588,
+            15.0045
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Hub",
+            "Neck",
+            "Head",
+            "Shutter",
+            "LegA1",
+            "LegA2",
+            "LegB1",
+            "LegB2",
+            "LegC1",
+            "LegC2",
+            "ArmL1",
+            "ArmL2",
+            "ArmL3",
+            "ArmR1",
+            "ArmR2",
+            "ArmR3"
+          ],
+          "objects": [
+            "GD_ElVigia",
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "materials": [
+            "GD_ElVigia_Arms",
+            "GD_ElVigia_Head",
+            "GD_ElVigia_Hub",
+            "GD_ElVigia_Legs",
+            "GD_ElVigia_Neon_Slit",
+            "GD_ElVigia_Shutter"
+          ],
+          "actions": [
+            "GD_ElVigia|WildboundGuardians"
+          ],
+          "animated_channels": 179,
+          "keyed_frames": 31,
+          "frame_range": [
+            2.0,
+            32.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 1.0
+        }
+      }
     }
   }
 }

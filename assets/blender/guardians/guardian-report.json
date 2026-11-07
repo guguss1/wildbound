@@ -205,6 +205,190 @@
           "lowest_z": -0.0
         }
       }
+    },
+    "GD_ElVigia": {
+      "status": "unvalidated",
+      "triangles": 1256,
+      "size": [
+        13.5148,
+        12.0588,
+        15.0
+      ],
+      "bbox_min": [
+        -6.7574,
+        -6.0294,
+        -0.0
+      ],
+      "bbox_max": [
+        6.7574,
+        6.0294,
+        15.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9804,
+        0.9804,
+        0.9804
+      ],
+      "bones": [
+        "Root",
+        "Hub",
+        "Neck",
+        "Head",
+        "Shutter",
+        "LegA1",
+        "LegA2",
+        "LegB1",
+        "LegB2",
+        "LegC1",
+        "LegC2",
+        "ArmL1",
+        "ArmL2",
+        "ArmL3",
+        "ArmR1",
+        "ArmR2",
+        "ArmR3"
+      ],
+      "parts": [
+        {
+          "object": "GD_ElVigia_Legs",
+          "material": "GD_ElVigia_Legs",
+          "material_count": 1,
+          "triangles": 456,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8F8A85",
+          "default_hidden": false
+        },
+        {
+          "object": "GD_ElVigia_Hub",
+          "material": "GD_ElVigia_Hub",
+          "material_count": 1,
+          "triangles": 224,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6E6A64",
+          "default_hidden": false
+        },
+        {
+          "object": "GD_ElVigia_Head",
+          "material": "GD_ElVigia_Head",
+          "material_count": 1,
+          "triangles": 252,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F",
+          "default_hidden": false
+        },
+        {
+          "object": "GD_ElVigia_Shutter",
+          "material": "GD_ElVigia_Shutter",
+          "material_count": 1,
+          "triangles": 64,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3B2F50",
+          "default_hidden": false
+        },
+        {
+          "object": "GD_ElVigia_Arms",
+          "material": "GD_ElVigia_Arms",
+          "material_count": 1,
+          "triangles": 240,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8B7A5E",
+          "default_hidden": false
+        },
+        {
+          "object": "GD_ElVigia_Neon_Slit",
+          "material": "GD_ElVigia_Neon_Slit",
+          "material_count": 1,
+          "triangles": 20,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C9A24A",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/guardians/GD_ElVigia.fbx",
+        "Hold": "assets/exports/guardians/GD_ElVigia_Hold.fbx",
+        "Stride": "assets/exports/guardians/GD_ElVigia_Stride.fbx",
+        "Flinch": "assets/exports/guardians/GD_ElVigia_Flinch.fbx",
+        "Telegraph": "assets/exports/guardians/GD_ElVigia_Telegraph.fbx",
+        "Strike": "assets/exports/guardians/GD_ElVigia_Strike.fbx"
+      },
+      "render": "assets/blender/guardians/GD_ElVigia.png",
+      "clips": {
+        "Hold": {
+          "action": "GD_ElVigia_Hold",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loops": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0
+        },
+        "Stride": {
+          "action": "GD_ElVigia_Stride",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loops": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0
+        },
+        "Flinch": {
+          "action": "GD_ElVigia_Flinch",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 31,
+          "duration_seconds": 1.0,
+          "finite": true,
+          "loops": false,
+          "loop_endpoint_error": 4.6331,
+          "lowest_z": -0.0
+        },
+        "Telegraph": {
+          "action": "GD_ElVigia_Telegraph",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 55,
+          "duration_seconds": 1.8,
+          "finite": true,
+          "loops": false,
+          "loop_endpoint_error": 4.6331,
+          "lowest_z": -0.0
+        },
+        "Strike": {
+          "action": "GD_ElVigia_Strike",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 31,
+          "duration_seconds": 1.0,
+          "finite": true,
+          "loops": false,
+          "loop_endpoint_error": 4.6331,
+          "lowest_z": -0.0
+        }
+      }
     }
   }
 }

@@ -21,10 +21,16 @@ from kit_spec_common import (ROOT, AssetSpecMixin, asset_triangles, bounds, load
 GUARDIAN_DIR = ROOT / "assets/blender/guardians"
 EXPORT_DIR = ROOT / "assets/exports/guardians"
 FPS = 30
+# Mesh samples in the dump are rounded to 5 decimals, so two evaluations of the same pose can differ
+# by one rounding step when float noise straddles a boundary. 1.5 steps still catches any real gap.
+DUMP_STEP_TOLERANCE = 1.5e-5
 
 YETI_BONES = ("Root", "Pelvis", "Spine", "Chest", "Neck", "Head",
               "UpperArm.L", "Forearm.L", "Hand.L", "UpperArm.R", "Forearm.R", "Hand.R",
               "Thigh.L", "Shin.L", "Foot.L", "Thigh.R", "Shin.R", "Foot.R")
+
+VIGIA_BONES = ("Root", "Hub", "Neck", "Head", "Shutter", "LegA1", "LegA2", "LegB1", "LegB2", "LegC1", "LegC2",
+               "ArmL1", "ArmL2", "ArmL3", "ArmR1", "ArmR2", "ArmR3")
 
 # size is (x, y, z) in studs; tris is the budget; parts map label to (hex, part budget).
 # clips map name to (seconds, frames at 30 fps from 1 to N, loops).
@@ -37,6 +43,15 @@ SPECS = {
         "clips": {"Idle": (3.0, 91, True), "Stalk": (2.0, 61, True), "Sniff": (3.0, 91, True),
                   "Telegraph": (1.8, 55, False), "Charge": (1.0, 31, True), "Recover": (2.0, 61, False)},
         "strike_clip": "Charge",
+    },
+    "GD_ElVigia": {
+        "size": (13.0, 13.0, 15.0), "tris": 1400,
+        "parts": {"Legs": ("8F8A85", 480), "Hub": ("6E6A64", 260), "Head": ("77717F", 260),
+                  "Shutter": ("3B2F50", 120), "Arms": ("8B7A5E", 240), "Neon_Slit": ("C9A24A", 40)},
+        "bones": VIGIA_BONES,
+        "clips": {"Hold": (3.0, 91, True), "Stride": (2.0, 61, True), "Flinch": (1.0, 31, False),
+                  "Telegraph": (1.8, 55, False), "Strike": (1.0, 31, False)},
+        "strike_clip": "Strike",
     },
 }
 
@@ -243,7 +258,7 @@ class GuardianRigs(unittest.TestCase):
             samples_b = self.motion[name][strike]["mesh_samples"]["first"]
             worst = max(abs(a - b) for key in samples_a
                         for u, v in zip(samples_a[key], samples_b[key]) for a, b in zip(u, v))
-            self.assertLessEqual(worst, 1e-5, "meshes must meet at the hand-over")
+            self.assertLessEqual(worst, DUMP_STEP_TOLERANCE, "meshes must meet at the hand-over")
 
 
 class YetiForm(unittest.TestCase):
@@ -321,6 +336,130 @@ class YetiForm(unittest.TestCase):
         xs = [v[0] for v in self.vertices("Neon_Eye")]
         self.assertLess(min(xs), -0.3)
         self.assertGreater(max(xs), 0.3)
+
+
+class ElVigiaForm(unittest.TestCase):
+    """What El Vigia must read as (three legs at 120 degrees, a flat ring head with a slit, arms
+    folded flat along the hub) and must not read as (person, statue, angel, antlers, siren)."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(GuardianAssets.GEOMETRY)["GD_ElVigia"]
+        cls.motion = load_json(GUARDIAN_DIR / "guardian-motion.json")["GD_ElVigia"]
+        cls.parts = {name.split("_", 2)[2]: part for name, part in cls.geometry["parts"].items()}
+        low, high = bounds(asset_triangles(cls.geometry))
+        cls.low, cls.high = low, high
+        cls.bones = cls.geometry["bones"]
+
+    def vertices(self, label, bone=None):
+        part = self.parts[label]
+        return [v for v, weights in zip(part["vertices"], part["weights"])
+                if bone is None or max(weights, key=lambda pair: pair[1])[0] == bone]
+
+    def rest(self, bone):
+        return self.geometry["rest_bones"][bone]
+
+    def test_three_legs_evenly_spaced_at_120_degrees_standing_on_the_ground(self):
+        feet = [self.rest(f"Leg{k}2")["tail"] for k in "ABC"]
+        centre = [sum(f[i] for f in feet) / 3 for i in (0, 1)]
+        radii = [math.dist(f[:2], centre) for f in feet]
+        self.assertLessEqual(max(radii) / min(radii), 1.03, "feet equally far from the centre")
+        angles = sorted(math.degrees(math.atan2(f[1] - centre[1], f[0] - centre[0])) % 360 for f in feet)
+        gaps = [(angles[(i + 1) % 3] - angles[i]) % 360 for i in range(3)]
+        for gap in gaps:
+            self.assertAlmostEqual(gap, 120.0, delta=2.0)
+        self.assertGreater(min(radii), 5.0, "a wide stance")
+        for foot in feet:
+            self.assertLessEqual(foot[2], 0.9)
+        self.assertLessEqual(abs(min(v[2] for v in self.vertices("Legs"))), 0.05)
+
+    def test_the_hub_sits_over_the_centre_of_the_three_feet(self):
+        feet = [self.rest(f"Leg{k}2")["tail"] for k in "ABC"]
+        centre = [sum(f[i] for f in feet) / 3 for i in (0, 1)]
+        hub = self.rest("Hub")["head"]
+        self.assertLessEqual(math.dist(hub[:2], centre), 0.2)
+        self.assertGreater(hub[2], 6.0, "long stilt legs")
+
+    def test_hold_is_frozen_so_no_foot_slides_or_lifts(self):
+        hold = self.motion["Hold"]["frames"]
+        names = self.bones
+        for bone in names:
+            if not bone.startswith(("Leg", "Hub", "Root")):
+                continue
+            index = names.index(bone)
+            first = hold[0][index]
+            for frame, rows in enumerate(hold):
+                for got, want in zip(rows[index], first):
+                    self.assertAlmostEqual(got, want, delta=1e-4, msg=f"{bone} moved in Hold frame {frame + 1}")
+        legs_low = [box[0][2] for box in self.motion["Hold"]["mesh_bbox"]["GD_ElVigia_Legs"]]
+        self.assertTrue(all(abs(z) <= 0.1 for z in legs_low), "feet stay at Z 0 within 0.1")
+
+    def test_head_is_a_flat_ring_and_the_tallest_thing(self):
+        head = self.vertices("Head")
+        xs, ys, zs = ([v[i] for v in head] for i in range(3))
+        width, depth = max(xs) - min(xs), max(ys) - min(ys)
+        self.assertGreaterEqual(width, 4.4, "a ring seen clearly at 70 studs")
+        self.assertLessEqual(depth, 0.5 * width, "flat, like a lens")
+        centre = ((max(xs) + min(xs)) / 2, (max(zs) + min(zs)) / 2)
+        self.assertGreater(min(math.dist((v[0], v[2]), centre) for v in head), 1.0, "open in the middle: a ring")
+        self.assertGreaterEqual(max(zs), self.high[2] - 0.05, "the head is the highest point")
+
+    def test_one_horizontal_slit_with_a_light_behind_it(self):
+        upper = self.vertices("Shutter", "Shutter")
+        lower = self.vertices("Shutter", "Head")
+        self.assertTrue(upper and lower, "two leaves, only the upper one moves with the Shutter bone")
+        gap_low, gap_high = max(v[2] for v in lower), min(v[2] for v in upper)
+        self.assertGreaterEqual(gap_high - gap_low, 0.2)
+        self.assertLessEqual(gap_high - gap_low, 0.8, "a slit, not an opening")
+        neon = self.vertices("Neon_Slit")
+        self.assertLessEqual(min(v[2] for v in neon), gap_low)
+        self.assertGreaterEqual(max(v[2] for v in neon), gap_high)
+        shutter = self.vertices("Shutter")
+        self.assertGreater(max(v[0] for v in shutter) - min(v[0] for v in shutter), 2.0, "the slit runs across the ring")
+
+    def test_measuring_rods_rest_folded_flat_along_the_hub(self):
+        arms = self.vertices("Arms")
+        hub = self.vertices("Hub")
+        self.assertLessEqual(max(abs(v[0]) for v in arms) - min(abs(v[0]) for v in arms), 1.2, "close to the hub")
+        self.assertLessEqual(max(v[2] for v in arms) - min(v[2] for v in arms), 2.4, "stacked flat")
+        self.assertLessEqual(max(v[1] for v in arms) - min(v[1] for v in arms), 4.0, "folded, not reaching")
+        head_bottom = min(v[2] for v in self.vertices("Head"))
+        self.assertLess(max(v[2] for v in arms), head_bottom, "never rising beside the head like antlers")
+        self.assertLessEqual(max(v[2] for v in arms), max(v[2] for v in hub) + 1.5)
+
+    def test_telegraph_unfolds_the_rods_and_opens_the_shutter(self):
+        names = self.bones
+        rest = self.motion["Hold"]["frames"][0]
+        full = self.motion["Telegraph"]["frames"][-1]
+        hub = rest[names.index("Hub")][:3]
+
+        def reach(rows, bone):
+            return math.dist(rows[names.index(bone)][3:], hub)
+
+        for bone in ("ArmL3", "ArmR3"):
+            self.assertLessEqual(reach(rest, bone), 4.0, f"{bone} folded at rest")
+            self.assertGreaterEqual(reach(full, bone), 7.0, f"{bone} unfolded in Telegraph")
+        lift = full[names.index("Shutter")][2] - rest[names.index("Shutter")][2]
+        self.assertGreaterEqual(lift, 0.8, "the upper leaf slides up out of the slit")
+
+    def test_the_other_clips_join_the_telegraph_and_the_rest_pose(self):
+        def mesh(clip, key):
+            return self.motion[clip]["mesh_samples"][key]
+
+        def worst(a, b):
+            return max(abs(x - y) for name in a for u, v in zip(a[name], b[name]) for x, y in zip(u, v))
+
+        self.assertLessEqual(worst(mesh("Flinch", "first"), mesh("Telegraph", "last")), DUMP_STEP_TOLERANCE)
+        self.assertLessEqual(worst(mesh("Flinch", "last"), mesh("Hold", "first")), DUMP_STEP_TOLERANCE)
+        self.assertLessEqual(worst(mesh("Strike", "last"), mesh("Hold", "first")), DUMP_STEP_TOLERANCE)
+
+    def test_every_leg_really_steps_in_stride(self):
+        names = self.bones
+        frames = self.motion["Stride"]["frames"]
+        for leg in "ABC":
+            index = names.index(f"Leg{leg}2")
+            heights = [rows[index][5] for rows in frames]
+            self.assertGreater(max(heights) - min(heights), 0.8, f"Leg{leg} never lifts")
 
 
 class MotionProfiles(unittest.TestCase):
@@ -404,6 +543,21 @@ class MotionProfiles(unittest.TestCase):
         for row_a, row_b in zip(built, rodrigues):
             for a, b in zip(row_a, row_b):
                 self.assertAlmostEqual(a, b, places=9)
+
+    @unittest.skipUnless("GD_ElVigia" in SPECS, "El Vigia not in this unit")
+    def test_el_vigia_hold_leaves_hub_and_legs_exactly_at_rest(self):
+        vigia = "GD_ElVigia"
+        for i in range(101):
+            sample = guardian_motion.pose(vigia, "Hold", i / 100)
+            for bone in ("Hub", "LegA1", "LegA2", "LegB1", "LegB2", "LegC1", "LegC2"):
+                self.assertEqual(sample[bone], (0.0,) * 6, bone)
+
+    @unittest.skipUnless("GD_ElVigia" in SPECS, "El Vigia not in this unit")
+    def test_el_vigia_clips_join_up(self):
+        vigia = "GD_ElVigia"
+        self.assertEqual(guardian_motion.pose(vigia, "Flinch", 0), guardian_motion.pose(vigia, "Telegraph", 1))
+        self.assertEqual(guardian_motion.pose(vigia, "Flinch", 1), guardian_motion.pose(vigia, "Hold", 0))
+        self.assertEqual(guardian_motion.pose(vigia, "Strike", 1), guardian_motion.pose(vigia, "Hold", 0))
 
     def test_invalid_inputs_fail_closed(self):
         for args in (("GD_Missing", "Idle", 0), ("GD_Yeti", "Missing", 0),
