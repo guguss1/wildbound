@@ -164,5 +164,79 @@ class Blocks(unittest.TestCase):
         self.assertAlmostEqual(max(radii(top)) / max(radii(bottom)), 0.7, places=6)
 
 
+def cylinder_rings(levels=4, sides=8, radius=2.0, height=3.0):
+    return [[(radius * math.cos(math.tau * k / sides), radius * math.sin(math.tau * k / sides),
+              height * i / (levels - 1)) for k in range(sides)] for i in range(levels)]
+
+
+class Slabs(unittest.TestCase):
+    def test_slab_between_is_closed_and_its_triangle_count_follows_the_grid(self):
+        rows, cols = 4, 3
+        top = [[(float(j), float(i), 1.0) for j in range(cols)] for i in range(rows)]
+        low = [[(x, y, 0.8) for x, y, _ in row] for row in top]
+        part = kc.Part("S")
+        os_.slab_between(part, top, low)
+        self.assertEqual(open_edges(part), 0)
+        quads = 2 * (rows - 1) * (cols - 1) + 2 * (rows - 1) + 2 * (cols - 1)
+        self.assertEqual(part.triangles, quads * 2)
+
+
+class Grids(unittest.TestCase):
+    def test_grid_normals_are_unit_and_point_away_from_the_axis(self):
+        rings = cylinder_rings()
+        normals = os_.grid_normals(rings, (0.0, 0.0))
+        for ring, row in zip(rings, normals):
+            for point, normal in zip(ring, row):
+                self.assertAlmostEqual(math.hypot(*normal), 1.0, places=9)
+                self.assertGreater(normal[0] * point[0] + normal[1] * point[1], 1.0)
+
+
+class Ribbons(unittest.TestCase):
+    def test_ribbon_along_lies_on_the_surface_between_two_vertex_columns(self):
+        rings = cylinder_rings(levels=5)
+        normals = os_.grid_normals(rings, (0.0, 0.0))
+        part = kc.Part("R")
+        os_.ribbon_along(part, random.Random(1), rings, normals, 1, 3, 2, 0.5, 0.2, lift=0.15, sink=0.2)
+        self.assertEqual(open_edges(part), 0)
+        rows, cols = 3, 2  # three stations, two edges of the ribbon
+        self.assertEqual(part.triangles, 2 * (2 * (rows - 1) * (cols - 1) + 2 * (rows - 1) + 2 * (cols - 1)))
+        for x, y, z in part.vertices:
+            # chord sag of an 8-sided ring (0.152) plus the 0.2 sink bounds how far from the true radius it can sit
+            self.assertLessEqual(abs(math.hypot(x, y) - 2.0), 0.152 + 0.2 + 1e-6)
+
+    def test_band_around_runs_along_the_ring_at_a_fraction_of_the_gap(self):
+        rings = cylinder_rings(levels=4)
+        normals = os_.grid_normals(rings, (0.0, 0.0))
+        part = kc.Part("B")
+        os_.band_around(part, random.Random(1), rings, normals, 1, 0, 3, 0.5, 0.15, lift=0.1, sink=0.2)
+        self.assertEqual(open_edges(part), 0)
+        for x, y, z in part.vertices:
+            self.assertGreaterEqual(z, 1.0)
+            self.assertLessEqual(z, 2.0)
+
+
+class Neon(unittest.TestCase):
+    def test_neon_materials_get_emission_and_others_stay_matte(self):
+        calls = []
+        original = kc.make_material
+        kc.make_material = lambda name, hex_color, emission=0.0: calls.append((name, emission)) or name
+        try:
+            os_.enable_neon_materials()
+            kc.make_material("RC_CaveMouth_Neon_Crystal", "3FBFA8")
+            kc.make_material("RC_CaveMouth_Rock", "3F3D3B")
+        finally:
+            kc.make_material = original
+        self.assertEqual(calls, [("RC_CaveMouth_Neon_Crystal", kc.NEON_EMISSION), ("RC_CaveMouth_Rock", 0.0)])
+
+
+class ShardStages(unittest.TestCase):
+    def test_two_stage_shard_is_one_swollen_band_and_a_tip(self):
+        part = kc.Part("S")
+        os_.shard(part, random.Random(7), (0.0, 0.0, 0.0), (0.0, 0.0, 1.0), 1.0, 5.0, sides=5, stages=2)
+        self.assertEqual(open_edges(part), 0)
+        self.assertEqual(part.triangles, 5 * 2 + 3 + 5)
+        self.assertEqual(max(v[2] for v in part.vertices), 5.0)
+
+
 if __name__ == "__main__":
     unittest.main()

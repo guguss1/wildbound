@@ -1,5 +1,27 @@
 {
   "props": {
+    "RC_CaveMouth": {
+      "model": {
+        "triangles": 526,
+        "size": [
+          36.064,
+          15.2599,
+          20.5838
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_CaveMouth",
+          "RC_CaveMouth_Clay",
+          "RC_CaveMouth_Neon_Crystal",
+          "RC_CaveMouth_Rock"
+        ],
+        "materials": [
+          "RC_CaveMouth_Clay",
+          "RC_CaveMouth_Neon_Crystal",
+          "RC_CaveMouth_Rock"
+        ]
+      }
+    },
     "RC_TunnelStraight": {
       "model": {
         "triangles": 406,
@@ -37,6 +59,84 @@
         "materials": [
           "RC_TunnelBend_Rock",
           "RC_TunnelBend_Stain"
+        ]
+      }
+    },
+    "RC_Stalagmite": {
+      "model": {
+        "triangles": 90,
+        "size": [
+          5.0,
+          5.0,
+          9.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_Stalagmite",
+          "RC_Stalagmite_Rock"
+        ],
+        "materials": [
+          "RC_Stalagmite_Rock"
+        ]
+      }
+    },
+    "RC_CrystalCluster": {
+      "model": {
+        "triangles": 134,
+        "size": [
+          6.0,
+          6.0,
+          5.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_CrystalCluster",
+          "RC_CrystalCluster_Base",
+          "RC_CrystalCluster_Neon_Crystal"
+        ],
+        "materials": [
+          "RC_CrystalCluster_Base",
+          "RC_CrystalCluster_Neon_Crystal"
+        ]
+      }
+    },
+    "RC_OreVein": {
+      "model": {
+        "triangles": 160,
+        "size": [
+          8.0,
+          5.0,
+          6.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_OreVein",
+          "RC_OreVein_Ore",
+          "RC_OreVein_Rock"
+        ],
+        "materials": [
+          "RC_OreVein_Ore",
+          "RC_OreVein_Rock"
+        ]
+      }
+    },
+    "RC_Burrow": {
+      "model": {
+        "triangles": 92,
+        "size": [
+          7.0,
+          7.0,
+          1.5
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_Burrow",
+          "RC_Burrow_Hole",
+          "RC_Burrow_Rim"
+        ],
+        "materials": [
+          "RC_Burrow_Hole",
+          "RC_Burrow_Rim"
         ]
       }
     }

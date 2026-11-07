@@ -104,15 +104,106 @@ def rough_tube(part, rng, points, radii, sides, rough=0.07, flutes=0.0, twist=0.
     loft(part, rings, W, start, end)
 
 
-def shard(part, rng, base, direction, radius, height, sides=5, bend=0.0, belly=1.0, rough=0.08):
-    """A crystal or thorn along a direction: swollen belly, a tapered upper third, a bent, off-axis tip."""
+def shard(part, rng, base, direction, radius, height, sides=5, bend=0.0, belly=1.0, rough=0.08, stages=3):
+    """A crystal or thorn along a direction: swollen belly, a tapered upper third, a bent, off-axis tip.
+
+    stages=2 drops the middle ring: one swollen band and a tip, for tight triangle budgets.
+    """
     u, v, w = kc.basis(direction)
     side = mul(u, bend * height * 0.5)
     lift = madd(base, w, height)
-    points = [base, madd(add(base, mul(side, 0.12)), w, height * 0.38),
-              madd(add(base, mul(side, 0.45)), w, height * 0.74), add(lift, side)]
-    rough_tube(part, rng, points, [radius, radius * belly, radius * 0.55 * belly, 0.0], sides, rough=rough,
-               phase=rng.uniform(0.0, 1.0))
+    if stages == 2:
+        points = [base, madd(add(base, mul(side, 0.25)), w, height * 0.45), add(lift, side)]
+        radii = [radius, radius * belly, 0.0]
+    else:
+        points = [base, madd(add(base, mul(side, 0.12)), w, height * 0.38),
+                  madd(add(base, mul(side, 0.45)), w, height * 0.74), add(lift, side)]
+        radii = [radius, radius * belly, radius * 0.55 * belly, 0.0]
+    rough_tube(part, rng, points, radii, sides, rough=rough, phase=rng.uniform(0.0, 1.0))
+
+
+def slab_between(part, top, low):
+    """Close two matching grids of points (rows x cols) into one thin slab: a top skin, a bottom skin, a rim."""
+    rows, cols = len(top), len(top[0])
+    vertices = [p for grid in (top, low) for row in grid for p in row]
+
+    def at(layer, i, j):
+        return layer * rows * cols + i * cols + j
+
+    faces = []
+    for i in range(rows - 1):
+        for j in range(cols - 1):
+            faces.append((at(0, i, j), at(0, i, j + 1), at(0, i + 1, j + 1), at(0, i + 1, j)))
+            faces.append((at(1, i + 1, j), at(1, i + 1, j + 1), at(1, i, j + 1), at(1, i, j)))
+    edges = [[(at(0, 0, j), at(0, 0, j + 1)) for j in range(cols - 1)],
+             [(at(0, i, cols - 1), at(0, i + 1, cols - 1)) for i in range(rows - 1)],
+             [(at(0, rows - 1, j + 1), at(0, rows - 1, j)) for j in range(cols - 2, -1, -1)],
+             [(at(0, i + 1, 0), at(0, i, 0)) for i in range(rows - 2, -1, -1)]]
+    for side in edges:
+        for p, q in side:
+            faces.append((p, q, q + rows * cols, p + rows * cols))
+    part.add(vertices, faces, W)
+
+
+def grid_normals(rings, centre_xy):
+    """Outward unit normals for a grid of rings (closed around, open between rings)."""
+    rows = []
+    for r, ring in enumerate(rings):
+        before, after = rings[max(r - 1, 0)], rings[min(r + 1, len(rings) - 1)]
+        row = []
+        for k, point in enumerate(ring):
+            along = kc.sub(ring[(k + 1) % len(ring)], ring[k - 1])
+            across = kc.sub(after[k], before[k])
+            normal = kc.cross(along, across)
+            if kc.length(normal) < 1e-12:
+                normal = (0.0, 0.0, 1.0)
+            normal = kc.unit(normal)
+            outward = (point[0] - centre_xy[0], point[1] - centre_xy[1], 0.0)
+            flat = kc.length(outward) > 1e-6
+            if (flat and kc.dot(normal, outward) < 0.0) or (not flat and normal[2] < 0.0):
+                normal = mul(normal, -1.0)
+            row.append(normal)
+        rows.append(row)
+    return rows
+
+
+def _ribbon(part, rng, edges, fraction, half, lift, sink):
+    """A ribbon across a run of surface edges (a, b, normal_a, normal_b): it swells and thins along its length."""
+    top, low = [], []
+    for a, b, na, nb in edges:
+        centre = fraction + rng.uniform(-0.17, 0.17)
+        width = half * rng.uniform(0.4, 1.45)
+        row_top, row_low = [], []
+        for f in (centre - width, centre + width):
+            point, normal = kc.lerp(a, b, f), kc.unit(kc.lerp(na, nb, f))
+            row_top.append(add(point, mul(normal, lift * rng.uniform(0.8, 1.3))))
+            row_low.append(add(point, mul(normal, -sink)))
+        top.append(row_top)
+        low.append(row_low)
+    slab_between(part, top, low)
+
+
+def ribbon_along(part, rng, rings, normals, first, last, k, fraction, half, lift=0.14, sink=0.2):
+    """A vein that runs across rings first..last, between vertex column k and column k + 1."""
+    edges = [(rings[s][k], rings[s][k + 1], normals[s][k], normals[s][k + 1]) for s in range(first, last + 1)]
+    _ribbon(part, rng, edges, fraction, half, lift, sink)
+
+
+def band_around(part, rng, rings, normals, r, first, last, fraction, half, lift=0.14, sink=0.2):
+    """A band that runs around the grid through vertices first..last, between ring r and ring r + 1."""
+    edges = [(rings[r][k], rings[r + 1][k], normals[r][k], normals[r + 1][k]) for k in range(first, last + 1)]
+    _ribbon(part, rng, edges, fraction, half, lift, sink)
+
+
+def enable_neon_materials():
+    """Give every material whose name holds _Neon_ the shared kit emission. The shared biome builder asks for
+    plain matte materials, so a kit with a glowing part calls this once before it builds."""
+    inner = kc.make_material
+
+    def make(name, hex_color, emission=0.0):
+        return inner(name, hex_color, kc.NEON_EMISSION if "_Neon_" in name else emission)
+
+    kc.make_material = make
 
 
 def jittered_block(part, rng, center, size, jitter=0.1, yaw=0.0, taper=1.0):

@@ -32,7 +32,14 @@ SNAP_TOLERANCE = 0.02
 ARC_CENTRE = (15.0, -15.0)
 
 # size is (x, y, z) in studs, tris the budget, parts map label to (hex, part budget).
+TUNNELS = ("RC_TunnelStraight", "RC_TunnelBend")
+
 SPECS = {
+    "RC_CaveMouth": {
+        "size": (36.0, 16.0, 20.0), "tris": 640,
+        "parts": {"Rock": ("3F3D3B", 480), "Clay": ("7D5A42", 110), "Neon_Crystal": ("3FBFA8", 50)},
+        "clear": (16.0, 11.0), "limit": (38.0, 18.0), "occluder": 11.0,
+    },
     "RC_TunnelStraight": {
         "size": (24.0, 24.0, 18.0), "tris": 420,
         "parts": {"Rock": ("3F3D3B", 360), "Stain": ("7D5A42", 60)},
@@ -42,6 +49,25 @@ SPECS = {
         "size": (30.0, 30.0, 18.0), "tris": 480,
         "parts": {"Rock": ("3F3D3B", 410), "Stain": ("7D5A42", 70)},
         "occluder": 12.0, "floor": True,
+    },
+    "RC_Stalagmite": {
+        "size": (5.0, 5.0, 9.0), "tris": 90,
+        "parts": {"Rock": ("8F8879", 90)},
+    },
+    "RC_CrystalCluster": {
+        "size": (6.0, 6.0, 5.0), "tris": 140,
+        "parts": {"Base": ("3F3D3B", 50), "Neon_Crystal": ("3FBFA8", 90)},
+        "gather": (0.0, -3.0, 1.5),
+    },
+    "RC_OreVein": {
+        "size": (8.0, 5.0, 6.0), "tris": 180,
+        "parts": {"Rock": ("3F3D3B", 130), "Ore": ("B0772E", 50)},
+        "gather": (0.0, -2.5, 2.5),
+    },
+    "RC_Burrow": {
+        "size": (7.0, 7.0, 1.5), "tris": 120,
+        "parts": {"Rim": ("7D5A42", 90), "Hole": ("121214", 30)},
+        "tiny": 1.7,
     },
 }
 
@@ -151,7 +177,7 @@ class TunnelSnap(unittest.TestCase):
         self.assertAlmostEqual((min(ring_b) + max(ring_b)) / 2, 3.0, delta=SNAP_TOLERANCE)
 
     def test_report_names_the_shared_profile(self):
-        for name in SPECS:
+        for name in TUNNELS:
             loop = self.report[name]["snap"]["profile_loop"]
             self.assertEqual([tuple(p) for p in loop], PROFILE_LOOP)
             self.assertEqual(self.report[name]["snap"]["tolerance"], SNAP_TOLERANCE)
@@ -179,7 +205,7 @@ class TunnelFloorAndSight(unittest.TestCase):
         cls.report = load_json(RockCavesKit.REPORT)["props"]
 
     def test_floor_boxes_sit_at_ground_inside_the_bbox_and_span_the_corridor(self):
-        for name in SPECS:
+        for name in TUNNELS:
             with self.subTest(asset=name):
                 low, high = bounds(asset_triangles(self.geometry[name]))
                 boxes = self.report[name]["collision_boxes"]
@@ -236,10 +262,10 @@ class TunnelFloorAndSight(unittest.TestCase):
 
     def test_rotated_boxes_stay_inside_the_bbox_within_half_a_stud(self):
         """The shared O1 test reads unrotated half extents; this checks the real turned corners."""
-        for name in SPECS:
+        for name in ("RC_CaveMouth", *TUNNELS):
             low, high = bounds(asset_triangles(self.geometry[name]))
             for key in ("collision_boxes", "occluders"):
-                for box in self.report[name][key]:
+                for box in self.report[name].get(key, []):
                     for x, y in box_corners_xy(box):
                         self.assertGreaterEqual(x, low[0] - 0.5, f"{name} {box['name']}")
                         self.assertLessEqual(x, high[0] + 0.5, f"{name} {box['name']}")
@@ -338,6 +364,139 @@ class TunnelReads(unittest.TestCase):
             for axis in range(3):
                 self.assertGreaterEqual(s_low[axis], r_low[axis] - 1e-6)
                 self.assertLessEqual(s_high[axis], r_high[axis] + 1e-6)
+
+
+class PropReads(unittest.TestCase):
+    """Visual reads for the five non-tunnel props. Thresholds sit between a first-draft primitive and the
+    Fog Forest standard; each one would fail on a bare cone, dome, slab or torus."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(RockCavesKit.GEOMETRY)
+        cls.report = load_json(RockCavesKit.REPORT)["props"]
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    # -- RC_CaveMouth ----------------------------------------------------
+    def test_mouth_roofline_is_ragged_not_a_dome(self):
+        points = self.part("RC_CaveMouth", "Rock")["vertices"]
+        tops = []
+        for x in range(-16, 17, 2):
+            near = [v[2] for v in points if abs(v[0] - x) <= 1.0]
+            tops.append(max(near))
+        second = [abs(tops[i + 1] - 2 * tops[i] + tops[i - 1]) for i in range(1, len(tops) - 1)]
+        self.assertGreaterEqual(sum(second) / len(second), 0.5, f"roofline heights {[round(t, 1) for t in tops]}")
+
+    def test_mouth_front_face_is_not_a_flat_wall(self):
+        front = [v[1] for v in self.part("RC_CaveMouth", "Rock")["vertices"] if v[1] < -4.0 and abs(v[0]) > 9.0]
+        self.assertGreaterEqual(max(front) - min(front), 1.2)
+
+    def test_mouth_has_boulders_and_clay_veins(self):
+        self.assertGreaterEqual(components(self.part("RC_CaveMouth", "Rock")), 4)
+        self.assertGreaterEqual(components(self.part("RC_CaveMouth", "Clay")), 2)
+
+    def test_mouth_crystals_stand_beside_the_opening_and_read_from_afar(self):
+        crystal = self.part("RC_CaveMouth", "Neon_Crystal")
+        self.assertGreaterEqual(components(crystal), 3)
+        self.assertGreaterEqual(min(abs(v[0]) for v in crystal["vertices"]), 8.5, "crystals must not stand in the path")
+        self.assertGreaterEqual(max(v[2] for v in crystal["vertices"]), 3.0)
+
+    def test_mouth_occluders_cover_both_flanks_and_leave_the_path_open(self):
+        boxes = self.report["RC_CaveMouth"]["occluders"]
+        for side in (-1, 1):
+            for y in (-5.0, 0.0, 5.0):
+                for z in (1.0, 5.0, 10.0):
+                    self.assertTrue(any(inside_rotated_box(b, side * 11.0, y, z) for b in boxes),
+                                    f"flank at x={side * 11.0}, y={y}, z={z}")
+        for x in (-7.5, -3.0, 0.0, 3.0, 7.5):
+            for y in (-6.0, 0.0, 6.0):
+                for z in (1.0, 5.0, 10.0):
+                    self.assertFalse(any(inside_rotated_box(b, x, y, z) for b in boxes), f"blocks ({x}, {y}, {z})")
+
+    # -- RC_Stalagmite ---------------------------------------------------
+    def test_stalagmite_has_stepped_ledges(self):
+        points = self.part("RC_Stalagmite", "Rock")["vertices"]
+        levels = {}
+        for v in points:
+            levels.setdefault(round(v[2], 2), []).append(v)
+        ledges = [z for z, found in levels.items() if 0.5 < z < 8.0 and len(found) >= 10]
+        self.assertGreaterEqual(len(ledges), 2, "a stepped cone shows at least two flat ledges")
+
+    def test_stalagmite_tip_is_off_centre_and_the_shape_narrows(self):
+        points = self.part("RC_Stalagmite", "Rock")["vertices"]
+        tip = max(points, key=lambda v: v[2])
+        self.assertGreaterEqual(abs(tip[0]) + abs(tip[1]), 0.5)
+        low = max(math.hypot(v[0], v[1]) for v in points if v[2] < 1.0)
+        high = max(math.hypot(v[0] - tip[0], v[1] - tip[1]) for v in points if 5.5 < v[2] < 8.0)
+        self.assertLessEqual(high / low, 0.5)
+
+    # -- RC_CrystalCluster -----------------------------------------------
+    def test_cluster_is_five_angled_shards_of_different_heights(self):
+        crystal = self.part("RC_CrystalCluster", "Neon_Crystal")
+        self.assertEqual(components(crystal), 5)
+        parent = list(range(len(crystal["vertices"])))
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+
+        for triple in crystal["triangles"]:
+            for other in triple[1:]:
+                parent[find(other)] = find(triple[0])
+        shards = {}
+        for i, v in enumerate(crystal["vertices"]):
+            shards.setdefault(find(i), []).append(v)
+        heights, leans = [], []
+        for found in shards.values():
+            tip = max(found, key=lambda v: v[2])
+            base = [v for v in found if v[2] < tip[2] - 0.5]
+            cx = sum(v[0] for v in base) / len(base)
+            cy = sum(v[1] for v in base) / len(base)
+            heights.append(tip[2])
+            leans.append(math.hypot(tip[0] - cx, tip[1] - cy))
+        self.assertGreaterEqual(max(heights) / min(heights), 1.25)
+        self.assertGreaterEqual(sum(1 for lean in leans if lean >= 0.4), 3)
+
+    # -- RC_OreVein ------------------------------------------------------
+    def test_ore_bands_ride_the_minus_y_face(self):
+        ore = self.part("RC_OreVein", "Ore")
+        self.assertGreaterEqual(components(ore), 2)
+        self.assertLessEqual(max(v[1] for v in ore["vertices"]), 0.0)
+        self.assertLessEqual(min(v[1] for v in ore["vertices"]), -1.8)
+
+    def test_ore_boulder_outline_is_not_a_clean_ellipse(self):
+        rock = self.part("RC_OreVein", "Rock")["vertices"]
+        base = [v for v in rock if v[2] < 0.6]
+        radii = [math.hypot(v[0] / 4.0, v[1] / 2.5) for v in base]
+        self.assertGreaterEqual(max(radii) / min(radii), 1.15)
+
+    # -- RC_Burrow -------------------------------------------------------
+    def test_burrow_rim_is_lumpy_and_the_hole_sits_inside_it(self):
+        rim, hole = self.part("RC_Burrow", "Rim")["vertices"], self.part("RC_Burrow", "Hole")["vertices"]
+        # The spoil heap pulls the bounding-box centre, so measure from the hole's own centre, not the pivot.
+        cx = sum(v[0] for v in hole) / len(hole)
+        cy = sum(v[1] for v in hole) / len(hole)
+
+        def radius(v):
+            return math.hypot(v[0] - cx, v[1] - cy)
+
+        crest = [radius(v) for v in rim if v[2] > 0.9]
+        self.assertGreaterEqual(max(crest) - min(crest), 0.35, "the crest ring must wander")
+        inner = min(radius(v) for v in rim if v[2] > 0.3)
+        self.assertLess(max(radius(v) for v in hole), inner + 0.05)
+        self.assertLessEqual(max(v[2] for v in hole), 0.4)
+        self.assertGreater(max(v[2] for v in rim), max(v[2] for v in hole) + 1.0)
+
+    def test_burrow_heights_vary_around_the_rim(self):
+        rim = self.part("RC_Burrow", "Rim")["vertices"]
+        tops = {}
+        for x, y, z in rim:
+            tops.setdefault(round(math.atan2(y, x) / (math.pi / 4)), []).append(z)
+        peaks = [max(v) for v in tops.values()]
+        self.assertGreaterEqual(max(peaks) - min(peaks), 0.25)
 
 
 if __name__ == "__main__":

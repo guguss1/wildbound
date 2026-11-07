@@ -20,6 +20,113 @@
   "lineup_file": "rock-caves-kit-scale.png",
   "blend": "assets/blender/rock-caves-kit/rock-caves-kit-v1.blend",
   "props": {
+    "RC_CaveMouth": {
+      "status": "unvalidated",
+      "triangles": 526,
+      "size": [
+        36.064,
+        15.2599,
+        20.5838
+      ],
+      "bbox_min": [
+        -18.032,
+        -7.4867,
+        0.0
+      ],
+      "bbox_max": [
+        18.032,
+        7.7733,
+        20.5838
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "RC_CaveMouth_Rock",
+          "material": "RC_CaveMouth_Rock",
+          "material_count": 1,
+          "palette_name": "RC_Shale",
+          "triangles": 392,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3F3D3B"
+        },
+        {
+          "object": "RC_CaveMouth_Clay",
+          "material": "RC_CaveMouth_Clay",
+          "material_count": 1,
+          "palette_name": "RC_Clay",
+          "triangles": 92,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7D5A42"
+        },
+        {
+          "object": "RC_CaveMouth_Neon_Crystal",
+          "material": "RC_CaveMouth_Neon_Crystal",
+          "material_count": 1,
+          "palette_name": "RC_Neon_Crystal",
+          "triangles": 42,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "3FBFA8"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_CaveMouth.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_CaveMouth.png",
+      "occluders": [
+        {
+          "name": "flank_left",
+          "center": [
+            -11.7,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.6,
+            14.0,
+            11.0
+          ]
+        },
+        {
+          "name": "flank_right",
+          "center": [
+            11.7,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.6,
+            14.0,
+            11.0
+          ]
+        }
+      ],
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 16.2,
+        "gap_low_x": -8.1,
+        "gap_high_x": 8.1,
+        "height": 11.4362,
+        "width_probe_height": 11.0,
+        "height_probe_width": 16.0
+      }
+    },
     "RC_TunnelStraight": {
       "status": "unvalidated",
       "triangles": 406,
@@ -1050,6 +1157,242 @@
           "yaw_deg": 183.75
         }
       ]
+    },
+    "RC_Stalagmite": {
+      "status": "unvalidated",
+      "triangles": 90,
+      "size": [
+        5.0,
+        5.0,
+        9.0
+      ],
+      "bbox_min": [
+        -2.5,
+        -2.5,
+        0.0
+      ],
+      "bbox_max": [
+        2.5,
+        2.5,
+        9.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9277,
+        1.1044,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "RC_Stalagmite_Rock",
+          "material": "RC_Stalagmite_Rock",
+          "material_count": 1,
+          "palette_name": "RC_Limestone",
+          "triangles": 90,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8F8879"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_Stalagmite.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_Stalagmite.png"
+    },
+    "RC_CrystalCluster": {
+      "status": "unvalidated",
+      "triangles": 134,
+      "size": [
+        6.0,
+        6.0,
+        5.0
+      ],
+      "bbox_min": [
+        -2.599,
+        -3.1584,
+        0.0
+      ],
+      "bbox_max": [
+        3.401,
+        2.8416,
+        5.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9837,
+        1.0522,
+        0.9888
+      ],
+      "parts": [
+        {
+          "object": "RC_CrystalCluster_Base",
+          "material": "RC_CrystalCluster_Base",
+          "material_count": 1,
+          "palette_name": "RC_Shale",
+          "triangles": 44,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3F3D3B"
+        },
+        {
+          "object": "RC_CrystalCluster_Neon_Crystal",
+          "material": "RC_CrystalCluster_Neon_Crystal",
+          "material_count": 1,
+          "palette_name": "RC_Neon_Crystal",
+          "triangles": 90,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "3FBFA8"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_CrystalCluster.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_CrystalCluster.png",
+      "gather_point": [
+        0.0,
+        -3.0,
+        1.5
+      ]
+    },
+    "RC_OreVein": {
+      "status": "unvalidated",
+      "triangles": 160,
+      "size": [
+        8.0,
+        5.0,
+        6.0
+      ],
+      "bbox_min": [
+        -4.0,
+        -2.405,
+        0.0
+      ],
+      "bbox_max": [
+        4.0,
+        2.595,
+        6.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9854,
+        0.9676,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "RC_OreVein_Rock",
+          "material": "RC_OreVein_Rock",
+          "material_count": 1,
+          "palette_name": "RC_Shale",
+          "triangles": 114,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3F3D3B"
+        },
+        {
+          "object": "RC_OreVein_Ore",
+          "material": "RC_OreVein_Ore",
+          "material_count": 1,
+          "palette_name": "RC_Ore",
+          "triangles": 46,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "B0772E"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_OreVein.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_OreVein.png",
+      "gather_point": [
+        0.0,
+        -2.5,
+        2.5
+      ]
+    },
+    "RC_Burrow": {
+      "status": "unvalidated",
+      "triangles": 92,
+      "size": [
+        7.0,
+        7.0,
+        1.5
+      ],
+      "bbox_min": [
+        -3.5,
+        -3.5,
+        0.0
+      ],
+      "bbox_max": [
+        3.5,
+        3.5,
+        1.5
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0361,
+        1.0346,
+        0.9477
+      ],
+      "parts": [
+        {
+          "object": "RC_Burrow_Rim",
+          "material": "RC_Burrow_Rim",
+          "material_count": 1,
+          "palette_name": "RC_Clay",
+          "triangles": 64,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7D5A42"
+        },
+        {
+          "object": "RC_Burrow_Hole",
+          "material": "RC_Burrow_Hole",
+          "material_count": 1,
+          "palette_name": "RC_Void",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "121214"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_Burrow.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_Burrow.png",
+      "tiny": true
     }
   }
 }

@@ -53,48 +53,6 @@ def bend_normals(count):
     return rows
 
 
-def slab_between(part, top, low):
-    """Close two matching grids of points (rows x cols) into one thin slab."""
-    rows, cols = len(top), len(top[0])
-    vertices = [p for grid in (top, low) for row in grid for p in row]
-
-    def at(layer, i, j):
-        return layer * rows * cols + i * cols + j
-
-    faces = []
-    for i in range(rows - 1):
-        for j in range(cols - 1):
-            faces.append((at(0, i, j), at(0, i, j + 1), at(0, i + 1, j + 1), at(0, i + 1, j)))
-            faces.append((at(1, i + 1, j), at(1, i + 1, j + 1), at(1, i, j + 1), at(1, i, j)))
-    edges = [[(at(0, 0, j), at(0, 0, j + 1)) for j in range(cols - 1)],
-             [(at(0, i, cols - 1), at(0, i + 1, cols - 1)) for i in range(rows - 1)],
-             [(at(0, rows - 1, j + 1), at(0, rows - 1, j)) for j in range(cols - 2, -1, -1)],
-             [(at(0, i + 1, 0), at(0, i, 0)) for i in range(rows - 2, -1, -1)]]
-    for side in edges:
-        for p, q in side:
-            faces.append((p, q, q + rows * cols, p + rows * cols))
-    part.add(vertices, faces, W)
-
-
-def clay_vein(part, rng, rings, normals, vein, lift=0.14, sink=0.2):
-    """A ribbon of clay laid along one outer edge of the shell, swelling and thinning from station to station."""
-    s0, s1, k, fraction, half = vein
-    top, low = [], []
-    for s in range(s0, s1 + 1):
-        a, b = rings[s][k], rings[s][k + 1]
-        na, nb = normals[s][k], normals[s][k + 1]
-        centre = fraction + rng.uniform(-0.17, 0.17)
-        width = half * rng.uniform(0.4, 1.45)
-        row_top, row_low = [], []
-        for f in (centre - width, centre + width):
-            point, normal = kc.lerp(a, b, f), kc.lerp(na, nb, f)
-            row_top.append(add(point, mul(normal, lift * rng.uniform(0.8, 1.3))))
-            row_low.append(add(point, mul(normal, -sink)))
-        top.append(row_top)
-        low.append(row_low)
-    slab_between(part, top, low)
-
-
 def roof_knob(part, rng, x, y, base_z, rx, ry, rings, sides, lean):
     """A blunt boulder that stands up out of the shoulder: base sunk into the rock, flat top at Z 19.4."""
     org.rock_blob(part, rng, (x, y, base_z), rx, ry, 19.4 - base_z, rings=rings, sides=sides, wobble=0.25,
@@ -112,7 +70,7 @@ def build_tunnel_straight(a):
     rings = cp.straight_rings(PROFILE, rng, SEGMENTS_STRAIGHT, 24.0, RELIEF)
     loft(rock, rings, W)
     for vein in VEINS_STRAIGHT:
-        clay_vein(stain, rng, rings, straight_normals(len(rings)), vein)
+        org.ribbon_along(stain, rng, rings, straight_normals(len(rings)), *vein)
     for x, y, z, rx, ry, lean in ((-7.6, -5.2, 15.0, 3.0, 3.2, (-0.4, 0.3)), (7.9, 1.4, 14.8, 3.1, 2.8, (0.5, 0.2)),
                                   (-7.0, 7.6, 15.0, 2.8, 3.0, (-0.3, -0.4))):
         roof_knob(rock, rng, x, y, z, rx, ry, 2, 6, lean)
@@ -137,7 +95,7 @@ def build_tunnel_bend(a):
     rings = cp.bend_rings(PROFILE, rng, SEGMENTS_BEND, RELIEF)
     loft(rock, rings, W)
     for vein in VEINS_BEND:
-        clay_vein(stain, rng, rings, bend_normals(len(rings)), vein)
+        org.ribbon_along(stain, rng, rings, bend_normals(len(rings)), *vein)
     for degrees, radius, rx, ry, lean in ((152.0, 25.2, 2.3, 2.5, (0.6, 0.4)), (128.0, 11.0, 2.4, 2.2, (-0.5, 0.6)),
                                           (107.0, 25.6, 2.2, 2.4, (0.5, -0.4))):
         angle = math.radians(degrees)
@@ -178,6 +136,147 @@ def snap_record():
     return {"profile_loop": [list(p) for p in loop], "tolerance": 0.02, "built_inner_margin": cp.CLEAR_MARGIN}
 
 
+# Cave mouth opening: walls at 8.1 either side up to Z 11.05 (clear 16 x 11), then a chamfered lintel.
+MOUTH_INNER = ((-8.1, 0.0), (-8.1, 5.5), (-8.1, 11.05), (-6.0, 13.0), (0.0, 13.3), (6.0, 13.0), (8.1, 11.05),
+               (8.1, 5.5), (8.1, 0.0))
+MOUTH_STATIONS = 6
+
+
+def mouth_rings(rng):
+    """Six cross-sections of the cliff face from front (y -6.2) to back (y 6.2). The opening only ever grows
+    from its 16 x 11 minimum, flaring toward the front; the outer hill is a ragged arc that falls away behind."""
+    rings = []
+    zig = [rng.uniform(0.0, 1.0) for _ in range(9)]
+    for s in range(MOUTH_STATIONS):
+        t = s / (MOUTH_STATIONS - 1)
+        y = -6.2 + 2.48 * s
+        flare = (1.0 - t) ** 1.5 * 2.0
+        ring = []
+        for k, (x, z) in enumerate(MOUTH_INNER):
+            jitter = rng.uniform(-0.3, 0.3) if 0 < s < MOUTH_STATIONS - 1 else rng.uniform(-0.5, 0.5) * (s == 0) \
+                + rng.uniform(-0.15, 0.15) * (s != 0)
+            if z == 0.0:
+                ring.append((x, y + jitter, 0.0))
+            elif abs(x) == 8.1:
+                ring.append((x + math.copysign(flare * rng.uniform(0.2, 1.0) + rng.uniform(0.0, 0.7), x), y + jitter,
+                             z + rng.uniform(0.0, 0.5) + flare * 0.4))
+            else:
+                ring.append((x + rng.uniform(-0.3, 0.3), y + jitter, z + rng.uniform(0.0, 0.9) + flare * 0.9))
+        for j in range(9):  # outer chain: right foot, over the crest, left foot
+            theta = math.pi * j / 8
+            scale = 1.0 - 0.1 * t - 0.09 * ((j + s) % 2) - 0.1 * zig[j] * (0.4 + t)
+            if j in (0, 8):
+                scale = 0.98 - 0.05 * t
+            jitter = rng.uniform(-0.3, 0.3) if 0 < s < MOUTH_STATIONS - 1 else rng.uniform(-0.55, 0.55)
+            x, z = 18.4 * scale * math.cos(theta), 21.0 * scale * math.sin(theta)
+            ring.append((x, y + jitter, 0.0 if j in (0, 8) else z))
+        rings.append(ring)
+    return rings
+
+
+def build_cave_mouth(a):
+    """A ragged cliff face with a flared opening, boulders at its foot, clay seams and a pair of crystal sprigs."""
+    rng = a.rng
+    rock, clay, crystal = a.part("Rock"), a.part("Clay"), a.part("Neon_Crystal")
+    rings = mouth_rings(rng)
+    loft(rock, rings, W)
+    normals = [[(0.0, 0.0, 1.0)] * 18 for _ in rings]
+    for s, ring in enumerate(rings):  # flat outward normals for the seams on the outer chain
+        for k in range(9, 18):
+            nx, nz = ring[k][0], ring[k][2]
+            size = math.hypot(nx, nz) or 1.0
+            normals[s][k] = (nx / size, 0.0, nz / size)
+    for first, last, k, fraction, half in ((0, 3, 12, 0.5, 0.2), (1, 4, 14, 0.45, 0.17)):
+        org.ribbon_along(clay, rng, rings, normals, first, last, k, fraction, half)
+    for x, y, rx, ry, height, lean in ((-12.8, -7.0, 2.8, 1.6, 3.4, (0.3, 0.0)), (13.0, -6.9, 2.9, 1.6, 3.0, (-0.3, 0.2)),
+                                       (-14.6, -2.0, 2.3, 2.6, 5.0, (0.3, 0.2)), (14.8, 2.6, 2.4, 2.6, 4.4, (-0.3, 0.0))):
+        org.rock_blob(rock, rng, (x, y, 0.0), rx, ry, height, rings=3, sides=7, wobble=0.22, jitter=0.08, lean=lean)
+    org.rock_blob(rock, rng, (-1.0, -5.4, 13.0), 4.4, 1.5, 3.2, rings=2, sides=6, wobble=0.2, jitter=0.08,
+                  flat_top=True)
+    for x, y, rx, ry in ((-10.8, -7.2, 1.7, 0.8), (11.0, -7.1, 1.8, 0.8)):
+        org.rock_blob(clay, rng, (x, y, 0.0), rx, ry, 0.8, rings=2, sides=5, wobble=0.2, jitter=0.08)
+    for x, y, z, height, radius, tilt in ((-12.4, -6.8, 3.0, 4.4, 0.95, (-0.25, -0.1)),
+                                          (-13.6, -6.5, 2.6, 3.2, 0.8, (-0.4, 0.2)),
+                                          (13.0, -6.7, 2.8, 4.0, 0.9, (0.3, -0.15))):
+        org.shard(crystal, rng, (x, y, z), (tilt[0], tilt[1], 1.0), radius, height, sides=4, belly=1.2, stages=2)
+
+
+def tags_cave_mouth(a):
+    return {"occluders": [{"name": "flank_left", "center": [-11.7, 0.0, 5.5], "size": [6.6, 14.0, 11.0]},
+                          {"name": "flank_right", "center": [11.7, 0.0, 5.5], "size": [6.6, 14.0, 11.0]}]}
+
+
+def build_stalagmite(a):
+    """A stepped cone: three tiers with flat ledges, an off-centre tip and two small spikes at the foot."""
+    rng = a.rng
+    rock = a.part("Rock")
+    rings = []
+    for z, radius, scale in ((0.0, 2.5, None), (2.4, 2.05, None), (2.4, None, 0.79), (4.9, 1.3, None),
+                             (4.9, None, 0.78), (7.3, 0.66, None)):
+        centre = (0.11 * z, 0.05 * z, z)
+        if scale is None:
+            ring = org.irregular_ring(centre, U, V, radius, radius * 0.92, 6, rng, wobble=0.16, jitter=0.05,
+                                      phase=0.3 * len(rings))
+        else:
+            ring = [(centre[0] + (x - centre[0]) * scale + rng.uniform(-0.04, 0.04),
+                     centre[1] + (y - centre[1]) * scale + rng.uniform(-0.04, 0.04), z) for x, y, _ in rings[-1]]
+        rings.append(ring)
+    loft(rock, rings, W, end=(0.85, 0.35, 9.0))
+    for x, y, height in ((2.4, 1.3, 1.9), (-2.1, -1.6, 1.4)):
+        org.rock_blob(rock, rng, (x, y, 0.0), 0.55, 0.5, height, rings=2, sides=3, wobble=0.15, jitter=0.05)
+
+
+def build_crystal_cluster(a):
+    """Five angled shards of different heights growing from a lumpy rock base."""
+    rng = a.rng
+    base, crystal = a.part("Base"), a.part("Neon_Crystal")
+    org.rock_blob(base, rng, (0.0, 0.0, 0.0), 2.7, 2.5, 1.6, rings=3, sides=6, wobble=0.2, jitter=0.07, flat_top=True)
+    org.rock_blob(base, rng, (-2.0, 1.7, 0.0), 0.9, 0.8, 0.9, rings=2, sides=4, wobble=0.15, jitter=0.05,
+                  flat_top=True)
+    for azimuth, reach, height, tilt, radius in ((0.0, 0.0, 3.9, 0.15, 0.85), (15.0, 1.8, 3.1, 0.5, 0.7),
+                                                 (170.0, 1.9, 2.6, 0.5, 0.65), (275.0, 1.7, 3.4, 0.5, 0.75),
+                                                 (95.0, 1.5, 1.9, 0.55, 0.55)):
+        c, s = math.cos(math.radians(azimuth)), math.sin(math.radians(azimuth))
+        org.shard(crystal, rng, (c * reach, s * reach, 1.2), (c * tilt, s * tilt, 1.0), radius, height, sides=5,
+                  belly=1.2, stages=2)
+
+
+def build_ore_vein(a):
+    """A lumpy boulder with two raised copper bands and a nugget on its -Y face, and a small boulder beside it."""
+    rng = a.rng
+    rock, ore = a.part("Rock"), a.part("Ore")
+    levels = ((0.0, 3.9, 2.4), (1.8, 3.8, 2.3), (3.7, 3.0, 1.9), (5.3, 1.9, 1.3))
+    rings = [org.irregular_ring((0.25 * i, 0.0, z), U, V, rx, ry, 8, rng, wobble=0.15, jitter=0.05, phase=0.0)
+             for i, (z, rx, ry) in enumerate(levels)]
+    loft(rock, rings, W, end=(0.9, 0.1, 6.0))
+    normals = org.grid_normals(rings, (0.0, 0.0))
+    org.band_around(ore, rng, rings, normals, 1, 5, 7, 0.45, 0.14, lift=0.16)
+    org.band_around(ore, rng, rings, normals, 2, 5, 7, 0.4, 0.16, lift=0.16)
+    org.rock_blob(rock, rng, (2.9, 1.1, 0.0), 1.0, 0.9, 1.8, rings=3, sides=6, wobble=0.2, jitter=0.07)
+    org.rock_blob(rock, rng, (-3.1, 0.9, 0.0), 0.8, 0.7, 1.1, rings=2, sides=5, wobble=0.2, jitter=0.07)
+    kc.lathe(ore, [(0.42, 0.0), (0.0, 0.75)], 4, W, center=(-1.2, -2.05, 0.1), phase=0.4)
+
+
+def build_burrow(a):
+    """A lumpy ring of dug-out dirt: a tall spoil heap on one side thinning to a low lip on the other, around a
+    thin dark disc. Eight segments with a four-point cross-section, so no two of them match."""
+    rng = a.rng
+    rim, hole = a.part("Rim"), a.part("Hole")
+    heights = (1.5, 1.25, 0.85, 0.62, 0.55, 0.68, 0.95, 1.32)
+    widths = (0.95, 0.9, 0.72, 0.58, 0.52, 0.6, 0.76, 0.9)
+    rings = []
+    for i in range(8):
+        theta = math.tau * i / 8 + rng.uniform(-0.1, 0.1)
+        radial = 2.55 + 0.34 * math.cos(theta - 0.6) + rng.uniform(-0.1, 0.1)
+        h, w = heights[i] * rng.uniform(0.92, 1.08), widths[i] * rng.uniform(0.9, 1.1)
+        c, s = math.cos(theta), math.sin(theta)
+        ring = [(radial - w * 0.95, 0.0), (radial - w * 0.3, h), (radial + w * 0.4, h * 0.8), (radial + w * 1.2, 0.0)]
+        rings.append([(r * c, r * s, z) for r, z in ring])
+    kc.loft_closed(rim, rings, W)
+    outline = org.outline_points(rng, 8, 1.6, 1.55, wobble=0.1, jitter=0.04)
+    kc.loft(hole, [[(x, y, 0.04) for x, y in outline], [(x, y, 0.14) for x, y in outline]], W)
+
+
 def raw_size(build, seed):
     """Measured bounding box of a prop before fitting. The tunnel hulls may swell a little past the table's
     size (inside its 10% tolerance), and fitting to the table would then squeeze the end rings off the
@@ -211,11 +310,25 @@ PALETTE = {
 
 # Order is the bible's table order; the sheet is 4 columns by 2 rows in this order.
 KIT = {
+    "RC_CaveMouth": {"size": raw_size(build_cave_mouth, 1), "seed": 1, "build": build_cave_mouth,
+                     "colors": {"Rock": PALETTE["Shale"], "Clay": PALETTE["Clay"],
+                                "Neon_Crystal": PALETTE["Neon_Crystal"]},
+                     "clear": (16.0, 11.0), "tags": tags_cave_mouth},
     "RC_TunnelStraight": {"size": raw_size(build_tunnel_straight, 3), "seed": 3, "build": build_tunnel_straight,
                           "colors": {"Rock": PALETTE["Shale"], "Stain": PALETTE["Clay"]},
                           "clear": (14.0, 10.0), "tags": tags_tunnel_straight},
     "RC_TunnelBend": {"size": raw_size(build_tunnel_bend, 8), "seed": 8, "build": build_tunnel_bend,
                       "colors": {"Rock": PALETTE["Shale"], "Stain": PALETTE["Clay"]}, "tags": tags_tunnel_bend},
+    "RC_Stalagmite": {"size": (5.0, 5.0, 9.0), "seed": 13, "build": build_stalagmite,
+                      "colors": {"Rock": PALETTE["Limestone"]}},
+    "RC_CrystalCluster": {"size": (6.0, 6.0, 5.0), "seed": 17, "build": build_crystal_cluster,
+                          "colors": {"Base": PALETTE["Shale"], "Neon_Crystal": PALETTE["Neon_Crystal"]},
+                          "tags": lambda a: {"gather_point": [0.0, -3.0, 1.5]}},
+    "RC_OreVein": {"size": (8.0, 5.0, 6.0), "seed": 23, "build": build_ore_vein,
+                   "colors": {"Rock": PALETTE["Shale"], "Ore": PALETTE["Ore"]},
+                   "tags": lambda a: {"gather_point": [0.0, -2.5, 2.5]}},
+    "RC_Burrow": {"size": (7.0, 7.0, 1.5), "seed": 29, "build": build_burrow,
+                  "colors": {"Rim": PALETTE["Clay"], "Hole": PALETTE["Void"]}, "tags": lambda a: {"tiny": True}},
 }
 
 KIT_PATHS = bk.Kit("rock-caves", "RC", "tools/build-rock-caves-kit.py", KIT, "ROCK_CAVES_KIT_MODE")
@@ -224,4 +337,5 @@ SCALE_NOTE = ("Authored at 1 Blender unit = 1 stud with no rescale step. Rigged 
               "until a real import.")
 
 brighter_studio()
+org.enable_neon_materials()
 bk.main(KIT_PATHS, SCALE_NOTE)
