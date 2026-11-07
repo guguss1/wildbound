@@ -246,17 +246,24 @@ function View.lossSummary(summary, words)
 	return table.concat(lines, "\n")
 end
 
--- Delivery C: the red flash when a strike lands, and the name of the sound hook for later (no sound plays yet).
+-- Delivery C: the red flash when a marking strike lands, and the name of the sound hook the audio client plays.
 -- Reduced effects keep the cue but soften it. A miss, a cancel or a spared strike never flashes.
+-- Delivery D11: a defeat never flashes. It eases to a dark overlay (transparency 1 to `to`), slower and lighter with
+-- Reduced effects, and the defeat screen shows above it.
 local FLASHES = table.freeze({
 	Marked = table.freeze({ from = 0.45, seconds = 0.45, sound = "hit" }),
-	Defeated = table.freeze({ from = 0.2, seconds = 0.6, sound = "defeat" }),
 })
+local DEFEAT_FADE = table.freeze({ seconds = 0.5, to = 0.15, reducedSeconds = 0.8, reducedTo = 0.4 })
 function View.hitFlash(outcome, reduced)
+	if outcome == "Defeated" then
+		local soft = reduced == true
+		return { kind = "fade", from = 1, to = soft and DEFEAT_FADE.reducedTo or DEFEAT_FADE.to,
+			seconds = soft and DEFEAT_FADE.reducedSeconds or DEFEAT_FADE.seconds, sound = "defeat", r = 6, g = 6, b = 12 }
+	end
 	local flash = FLASHES[outcome]
 	if not flash then return nil end
-	return { from = reduced == true and math.min(0.8, flash.from + 0.3) or flash.from, seconds = flash.seconds,
-		sound = flash.sound, r = 200, g = 20, b = 20 }
+	return { kind = "flash", from = reduced == true and math.min(0.8, flash.from + 0.3) or flash.from, to = 1,
+		seconds = flash.seconds, sound = flash.sound, r = 200, g = 20, b = 20 }
 end
 
 -- The decorative companion fades as the camera nears it, so it can never fill the view.

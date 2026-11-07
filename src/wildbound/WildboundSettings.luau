@@ -5,10 +5,11 @@ local Settings = {}
 
 Settings.ORDER = table.freeze({ "reducedEffects", "hints" })
 Settings.DEFAULTS = table.freeze({ reducedEffects = false, hints = true })
-Settings.LABELS = table.freeze({ reducedEffects = "Reduced effects", hints = "Tutorial hints" })
+-- Delivery D12: Spanish, the same words as WildboundText.SETTINGS (this module stays pure, so a test keeps them equal).
+Settings.LABELS = table.freeze({ reducedEffects = "Efectos suaves", hints = "Consejos" })
 Settings.DESCRIPTIONS = table.freeze({
-	reducedEffects = "Softer fog and light, for comfort. Off keeps the full mood.",
-	hints = "Show short tips during your first minutes.",
+	reducedEffects = "Niebla, luz y sustos más suaves. Apagado: ambiente completo.",
+	hints = "Muestra consejos breves al empezar a jugar.",
 })
 
 function Settings.new()
@@ -39,7 +40,7 @@ function Settings.snapshot(settings)
 end
 
 function Settings.stateText(value)
-	return value and "On" or "Off"
+	return value and "Sí" or "No"
 end
 
 function Settings.buttonText(key, value)

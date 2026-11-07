@@ -186,4 +186,15 @@ return freeze({
 		short = "Escondido: no te muevas.",
 		kind = { bush = "Arbusto espeso", log = "Tronco hueco" },
 	},
+	-- Delivery D12: the comfort switch and the settings panel. WildboundSettings repeats these; a test keeps them equal.
+	SETTINGS = {
+		reducedEffects = "Efectos suaves",
+		reducedEffectsDescription = "Niebla, luz y sustos más suaves. Apagado: ambiente completo.",
+		hints = "Consejos",
+		hintsDescription = "Muestra consejos breves al empezar a jugar.",
+		on = "Sí",
+		off = "No",
+		shortOn = "Suave: Sí",
+		shortOff = "Suave: No",
+	},
 })

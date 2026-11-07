@@ -20,6 +20,17 @@ if not (layoutModule and viewModule) then
 	return
 end
 local Layout, View = require(layoutModule), require(viewModule)
+-- Delivery D12: the comfort switch's words, in Spanish from WildboundText (one switch: fog, audio and the defeat fade).
+local settingsWords = {}
+do
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	local ok, value = false, nil
+	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
+	if ok and type(value) == "table" and type(value.SETTINGS) == "table" then settingsWords = value.SETTINGS end
+end
+local function reducedText(on)
+	return on and (settingsWords.shortOn or "Suave: Sí") or (settingsWords.shortOff or "Suave: No")
+end
 
 local function make(className, properties, parent)
 	local item = Instance.new(className)
@@ -54,7 +65,7 @@ local function button(parent, text, position, size)
 	return item
 end
 -- Positions come from the layout module (applyLayout below); only the sizes start here.
-local effects = button(gui, "Reduced: Off", UDim2.new(), UDim2.fromOffset(126, 44))
+local effects = button(gui, reducedText(false), UDim2.new(), UDim2.fromOffset(126, 44))
 local flashlight = button(gui, "Flashlight (F)", UDim2.new(), UDim2.fromOffset(110, 44))
 local pulse = button(gui, "Pulse (Q)", UDim2.new(), UDim2.fromOffset(110, 44))
 effects.Name, flashlight.Name, pulse.Name = "ReducedButton", "FlashlightButton", "PulseButton"
@@ -211,14 +222,14 @@ end)
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)
-	effects.Text = reduced and "Reduced: On" or "Reduced: Off"
+	effects.Text = reducedText(reduced)
 end)
 -- The Settings screen sets the same attribute; follow it so the button always shows the real value.
 listen(gui:GetAttributeChangedSignal("Reduced"), function()
 	local value = gui:GetAttribute("Reduced")
 	if type(value) == "boolean" and value ~= reduced then
 		reduced = value
-		effects.Text = reduced and "Reduced: On" or "Reduced: Off"
+		effects.Text = reducedText(reduced)
 	end
 end)
 listen(UserInputService.InputBegan, function(input, processed)
@@ -543,7 +554,8 @@ task.spawn(function()
 			if type(payload) ~= "table" then return end
 			if pendingAttack and payload.attackId == pendingAttack.attackId then pendingAttack = nil end
 			gui:SetAttribute("LastResolvedOutcome", type(payload.outcome) == "string" and payload.outcome or "?")
-			-- Delivery C: a landed strike flashes the screen red. The sound is a named hook only, for delivery D.
+			-- Delivery C: a marking strike flashes the screen red; D11: a defeat eases to dark instead and stays until
+			-- respawn. The audio client plays the named sound hook.
 			local flash = View.hitFlash(payload.outcome, reduced)
 			if flash then
 				hitFlash.BackgroundColor3 = Color3.fromRGB(flash.r, flash.g, flash.b)
@@ -551,8 +563,8 @@ task.spawn(function()
 				hitFlash.Visible = true
 				gui:SetAttribute("LastHitSound", flash.sound)
 				gui:SetAttribute("LastHitAt", workspace:GetServerTimeNow())
-				local tween = TweenService:Create(hitFlash, TweenInfo.new(flash.seconds), { BackgroundTransparency = 1 })
-				tween.Completed:Once(function() hitFlash.Visible = false end)
+				local tween = TweenService:Create(hitFlash, TweenInfo.new(flash.seconds), { BackgroundTransparency = flash.to })
+				if flash.kind ~= "fade" then tween.Completed:Once(function() hitFlash.Visible = false end) end
 				tween:Play()
 			end
 			if type(payload.notice) == "string" and payload.notice ~= "" then
@@ -561,6 +573,14 @@ task.spawn(function()
 		end)
 	end
 	listen(player.CharacterAdded, function() task.spawn(reportReady) end)
+	-- Delivery D11: the defeat overlay lifts slowly once the player is back at camp.
+	listen(player.CharacterAdded, function()
+		if hitFlash.Visible then
+			local lift = TweenService:Create(hitFlash, TweenInfo.new(2), { BackgroundTransparency = 1 })
+			lift.Completed:Once(function() hitFlash.Visible = false end)
+			lift:Play()
+		end
+	end)
 	if player.Character then task.spawn(reportReady) end
 	listen(updates.OnClientEvent, function(payload)
 		if type(payload) ~= "table" then return end
