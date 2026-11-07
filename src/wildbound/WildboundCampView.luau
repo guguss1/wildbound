@@ -10,6 +10,13 @@ View.BUTTON_W = 98
 View.ROW_MIN = 56
 -- A phone held sideways has little height (W9): compact rows may be this tall, a 44 pixel button plus 2 each side.
 View.COMPACT_ROW_MIN = 48
+-- The gap between rows on a sideways phone, and whether the section titles stay. They do not: each row already
+-- names itself, and two titles took as much room as a row and a half.
+View.COMPACT_GAP = 4
+
+function View.showSectionHeaders(compact)
+	return compact ~= true
+end
 View.HEADER_H = 44
 
 local NAMES = table.freeze({ ember = "Ember", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
@@ -302,7 +309,7 @@ function View.listArea(panelRect, sideways)
 	local note = sideways ~= true
 	local noteH = note and 24 or 0
 	local top = headerBottom + 2 + noteH + (note and 2 or 0)
-	return { showNote = note, noteHeight = noteH, top = top, height = panelRect.h - top - 6 }
+	return { showNote = note, noteHeight = noteH, top = top, height = panelRect.h - top - (note and 6 or 4) }
 end
 
 -- True for a phone held sideways, the layout that gets compact rows.
@@ -327,11 +334,15 @@ end
 
 -- The header buttons inside the panel: Bag, Camp and Close, 44 high, with the Close button at the right.
 function View.header(panelWidth)
-	local gap, y, closeW, tabW = 6, 4, 78, 84
+	-- Four buttons in a row (W9 added Menu). They shrink to fit a narrow panel but never below 44 wide.
+	local gap, y = 6, 4
+	local tabW = math.clamp(math.floor((panelWidth - 16 - 3 * gap) / 4), 44, 84)
 	return {
 		bag = { x = 8, y = y, w = tabW, h = View.HEADER_H },
 		camp = { x = 8 + tabW + gap, y = y, w = tabW, h = View.HEADER_H },
-		close = { x = panelWidth - 8 - closeW, y = y, w = closeW, h = View.HEADER_H },
+		menu = { x = 8 + 2 * (tabW + gap), y = y, w = tabW, h = View.HEADER_H },
+		close = { x = panelWidth - 8 - tabW, y = y, w = tabW, h = View.HEADER_H },
+		tabWidth = tabW,
 		bottom = y + View.HEADER_H,
 	}
 end

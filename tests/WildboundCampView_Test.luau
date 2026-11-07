@@ -305,6 +305,39 @@ return function(View, Config, Economy, Layout, source)
 		end
 	end)
 
+	case("CV-C7: a sideways phone drops the section headers and keeps three rows in view", function()
+		equal(View.showSectionHeaders(true), false); equal(View.showSectionHeaders(false), true)
+		equal(View.COMPACT_GAP, 4)
+		for _, size in ipairs({ { 705, 280 }, { 750, 323 } }) do
+			local layout = Layout.compute(size[1], size[2], { touch = true })
+			local panel = View.panel(size[1], size[2], layout.rects.chip)
+			local area = View.listArea(panel, true)
+			local rows = compactRows({}, { atCamp = true })
+			local used = 2 * View.COMPACT_GAP
+			for index = 1, 3 do used += View.rowHeight(rows[index], panel.w - 24 - 6, 13, true) end
+			assert(used <= area.height, size[1] .. ": the first three rows need " .. used .. " of " .. area.height)
+		end
+	end)
+
+	case("CV-H1: the header has a Menu button next to Bag and Camp, 44 pixels or more, on nine viewports", function()
+		for _, size in ipairs(VIEWPORTS) do
+			local layout = Layout.compute(size[1], size[2], { touch = size[1] < 1000 })
+			local panel = View.panel(size[1], size[2], layout.rects.chip)
+			local header = View.header(panel.w)
+			local label = size[1] .. "x" .. size[2]
+			local names = { "bag", "camp", "menu", "close" }
+			for index, name in ipairs(names) do
+				local button = header[name]
+				assert(button, label .. " has no " .. name)
+				assert(button.w >= 44 and button.h >= 44, label .. " " .. name .. " is " .. button.w .. "x" .. button.h)
+				assert(button.x >= 0 and button.x + button.w <= panel.w, label .. " " .. name .. " is outside the panel")
+				for other = index + 1, #names do
+					equal(Layout.overlapArea(button, header[names[other]]), 0, label .. " " .. name .. " and " .. names[other])
+				end
+			end
+		end
+	end)
+
 	case("the module is pure: no services, clock, randomness or persistence", function()
 		for _, word in ipairs({ "game", "GetService", "os.", "tick", "Random", "math.random", "DataStore",
 			"task.", "workspace", "Instance", "MarketplaceService", "Robux", "TextService" }) do

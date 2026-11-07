@@ -91,6 +91,9 @@ local campTab = button(panel, "Camp")
 campTab.Name = "CampTab"
 local close = button(panel, "Close")
 close.Name = "CloseButton"
+-- W9: opens the Settings screen (WildboundStartUI) from the inventory header.
+local menuTab = button(panel, "Menu")
+menuTab.Name = "MenuTab"
 for _, tab in ipairs({ bagTab, campTab }) do
 	tab.TextSize = 16
 	make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
@@ -101,8 +104,9 @@ local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
 	BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y}, panel)
-make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
+local listLayout = make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
 campTab.Visible = campReady
+menuTab.Visible = campReady
 
 -- Status line: a server notice shows for a few seconds and then goes; a local error stays until replaced.
 local compact, statusBudget = false, 40
@@ -181,13 +185,16 @@ local function applyLayout()
 		panel.AnchorPoint = Vector2.new(0, 0)
 		place(panel, rect)
 		local header = Camp.header(rect.w)
-		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close)
+		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close); place(menuTab, header.menu)
+		-- A narrow panel shrinks the four header buttons, so their words shrink with them.
+		for _, item in ipairs({ bagTab, campTab, menuTab, close }) do item.TextSize = header.tabWidth < 80 and 13 or 16 end
 		sideways = Camp.sideways(size.X, size.Y)
 		local area = Camp.listArea(rect, sideways)
 		warning.Visible = area.showNote
 		warning.Position, warning.Size = UDim2.fromOffset(12, header.bottom + 2), UDim2.new(1, -24, 0, noteHeight)
 		local top = area.top
-		scroll.Position, scroll.Size = UDim2.fromOffset(12, top), UDim2.new(1, -24, 1, -(top + 6))
+		listLayout.Padding = UDim.new(0, sideways and Camp.COMPACT_GAP or 6)
+		scroll.Position, scroll.Size = UDim2.fromOffset(12, top), UDim2.new(1, -24, 1, -(top + (area.showNote and 6 or 4)))
 		rowWidth = rect.w - 24 - scroll.ScrollBarThickness
 	else
 		panel.Size = UDim2.fromScale(0.88, 0.75)
@@ -318,8 +325,8 @@ local function campRows(snapshot)
 	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways })) do
 		if spec.section ~= previous then
 			previous = spec.section
-			addRow({ header = true, text = spec.section == "Stock" and "Your stock" or spec.section == "Craft" and "Craft and carry"
-				or spec.section == "Upgrade" and "Upgrade" or spec.section == "Skills" and "Skills" or "Companion" })
+			if Camp.showSectionHeaders(sideways) then addRow({ header = true, text = spec.section == "Stock" and "Your stock" or spec.section == "Craft" and "Craft and carry"
+				or spec.section == "Upgrade" and "Upgrade" or spec.section == "Skills" and "Skills" or "Companion" }) end
 		end
 		addRow(spec)
 	end
@@ -336,7 +343,12 @@ local function paintTabs()
 		item.Text = selected and (name == "bag" and "[ Bag ]" or "[ Camp ]") or (name == "bag" and "Bag" or "Camp")
 	end
 end
+-- The tutorial reads which tab is open ("bag", "camp" or "closed").
+local function publishTab()
+	gui:SetAttribute("PanelTab", panel.Visible and tab or "closed")
+end
 rebuild = function()
+	publishTab()
 	paintTabs()
 	if campReady then warning.Text = Camp.note(tab, atCamp, compact) end
 	if not lastSnapshot then return end
@@ -390,6 +402,12 @@ listen(gui:GetAttributeChangedSignal("OpenTab"), function()
 end)
 listen(open.Activated, function() toggle(nil) end)
 listen(close.Activated, function() panel.Visible = false end)
+listen(panel:GetPropertyChangedSignal("Visible"), publishTab)
+listen(menuTab.Activated, function()
+	panel.Visible = false
+	local startGui = playerGui:FindFirstChild("WildboundStartUI")
+	if startGui then startGui:SetAttribute("Screen", "settings") end
+end)
 listen(bagTab.Activated, function() tab = "bag"; rebuild() end)
 listen(campTab.Activated, function() tab = "camp"; rebuild() end)
 listen(UserInputService.InputBegan, function(input, processed)
