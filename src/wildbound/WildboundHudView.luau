@@ -168,6 +168,43 @@ function View.fit(text, maxChars)
 	return kept:gsub("%s+$", "") .. "..."
 end
 
+local function itemName(item)
+	if type(item) ~= "table" then return nil end
+	local species = type(item.species) == "string" and item.species or "Lumipol"
+	return item.kind == "Egg" and species .. " egg" or species
+end
+
+local function plural(count, word, words)
+	return ("%d %s"):format(count, count == 1 and word or words)
+end
+
+-- M4.6: the full-screen defeat summary, from the server's loss summary. At most five names are listed.
+function View.lossSummary(summary)
+	summary = type(summary) == "table" and summary or {}
+	local lines = { "Defeated. You will return to camp." }
+	local names = {}
+	for _, item in ipairs(type(summary.lostItems) == "table" and summary.lostItems or {}) do
+		local name = itemName(item)
+		if name then table.insert(names, name) end
+	end
+	if #names == 0 then
+		table.insert(lines, "Nothing was lost.")
+	else
+		local shown = {}
+		for index = 1, math.min(5, #names) do shown[index] = names[index] end
+		local more = #names > 5 and (" and %d more"):format(#names - 5) or ""
+		table.insert(lines, ("Lost %s: %s%s."):format(plural(#names, "item", "items"), table.concat(shown, ", "), more))
+	end
+	local saved = itemName(summary.savedItem)
+	if saved then table.insert(lines, ("Saved by your seal: %s."):format(saved)) end
+	local kept = type(summary.kept) == "table" and summary.kept or {}
+	local registered = finite(kept.registered) and math.max(0, math.floor(kept.registered)) or 0
+	local eggs = finite(kept.bankedEggs) and math.max(0, math.floor(kept.bankedEggs)) or 0
+	table.insert(lines, ("Kept: %d registered, %s."):format(registered, plural(eggs, "banked egg", "banked eggs")))
+	table.insert(lines, "Tap to close.")
+	return table.concat(lines, "\n")
+end
+
 -- The decorative companion fades as the camera nears it, so it can never fill the view.
 function View.companionTransparency(distance)
 	local base, faded = CONSTANTS.COMPANION_BASE_TRANSPARENCY, CONSTANTS.COMPANION_FADED_TRANSPARENCY

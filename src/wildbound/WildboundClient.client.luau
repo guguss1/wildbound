@@ -203,6 +203,10 @@ local function render(snapshot)
 		row(("#%d "):format(index) .. item.species .. " " .. item.kind .. (item.protected and " · Protected" or " · Unprotected"),
 			not item.protected and "Protect" or nil, "Protect", item.uid)
 	end
+	-- A first strike drops one item near you for 30 s (M4.6). Only you can pick it up.
+	for _, item in ipairs(snapshot.dropped or {}) do
+		row("Dropped nearby: " .. item.species .. " " .. item.kind .. " · pick it up within 30 s")
+	end
 	row("Banked eggs · Hatch at camp")
 	if #eggs == 0 then row("No banked eggs.") end
 	for _, egg in ipairs(eggs) do row(egg.species .. " egg", "Hatch", "Hatch", egg.uid) end
@@ -231,6 +235,26 @@ listen(UserInputService.InputBegan, function(input, processed)
 	if not processed and input.KeyCode == Enum.KeyCode.I then toggle() end
 end)
 
+-- M4.6 defeat flow: a full-screen summary before respawn, large text, closed by a tap, with no timer.
+local summaryGui
+local function closeLossSummary()
+	if summaryGui then summaryGui:Destroy(); summaryGui = nil end
+end
+local function showLossSummary(summary, fallback)
+	closeLossSummary()
+	summaryGui = make("ScreenGui", {Name = "WildboundLossSummary", ResetOnSpawn = false, DisplayOrder = 50,
+		IgnoreGuiInset = true}, playerGui)
+	local sheet = make("TextButton", {Name = "Summary", Size = UDim2.fromScale(1, 1), BackgroundColor3 = dark,
+		BackgroundTransparency = 0.05, AutoButtonColor = false, Modal = true, TextColor3 = ink, Font = Enum.Font.GothamBold,
+		TextScaled = true, TextWrapped = true,
+		Text = View and View.lossSummary(summary) or (fallback .. "\nTap to close.")}, summaryGui)
+	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
+	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
+		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)
+	sheet.Activated:Connect(closeLossSummary)
+end
+listen(gui.Destroying, closeLossSummary)
+
 task.spawn(function()
 	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
 	local action = folder and folder:WaitForChild("Action", 10)
@@ -249,6 +273,9 @@ task.spawn(function()
 			render(payload.snapshot)
 		end
 		if type(payload.notice) == "string" and payload.notice ~= "" then showNotice(payload.notice) end
+		if payload.action == "Defeat" and type(payload.lossSummary) == "table" then
+			showLossSummary(payload.lossSummary, type(payload.notice) == "string" and payload.notice or "Defeated.")
+		end
 	end)
 	request("RequestSnapshot")
 	task.wait(3)

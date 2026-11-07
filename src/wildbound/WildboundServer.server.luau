@@ -89,11 +89,12 @@ local function applyCarry(player)
 	local speed = Wild.carrySpeed(Wild.eggsCarried(snapshot))
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
-local function send(player, action, ok, notice)
+local function send(player, action, ok, notice, lossSummary)
 	if not records[player] or player.Parent ~= Players then return end
 	applyCarry(player)
 	stateRemote:FireClient(player, {
 		snapshot = state:snapshot(player.UserId), action = action, ok = ok, notice = notice or "",
+		lossSummary = lossSummary,
 	})
 end
 local function allowed(player, action)
@@ -403,6 +404,78 @@ strikeEvent.Event:Connect(function(player)
 	end
 end)
 
+-- Dropped items (D6, M4.6). Each lies near its owner for 30 s; only the owner can pick it up.
+local DROP_SECONDS = 30
+local drops = {}
+local function removeDrop(uid)
+	local drop = drops[uid]
+	if not drop then return nil end
+	drops[uid] = nil
+	drop.prompt.Enabled = false
+	drop.connection:Disconnect()
+	drop.model:Destroy()
+	return drop
+end
+-- The owner was defeated, replaced or left: the world copies go. State already moved or lost the entries.
+local function removeDropsOf(player)
+	for uid, drop in pairs(drops) do
+		if drop.owner == player then removeDrop(uid) end
+	end
+end
+local function itemName(entry)
+	return entry.kind == "Egg" and "Lumipol egg" or "Lumipol"
+end
+local function spawnDrop(player, entry, towardX, towardZ)
+	local root = rootOf(player)
+	if not root then return end
+	local from = Vector3.new(root.Position.X, 0, root.Position.Z)
+	local toward = Vector3.new(towardX, 0, towardZ) - from
+	local offset = toward.Magnitude > 0.01 and toward.Unit * 4 or Vector3.new(0, 0, 4)
+	-- Clamped to the fog forest, where every strike happens.
+	local x = math.clamp(from.X + offset.X, -45, 165)
+	local z = math.clamp(from.Z + offset.Z, -165, 35)
+	local model, body = visual(entry.kind, Vector3.new(x, groundY, z))
+	model.Name = "DroppedItem"
+	model:SetAttribute("OwnerUserId", player.UserId)
+	local drop = { owner = player, uid = entry.uid, model = model }
+	drop.prompt = prompt(body, "Pick up", "Dropped " .. itemName(entry), 10, 0.25)
+	drop.connection = drop.prompt.Triggered:Connect(function(who)
+		if drops[entry.uid] ~= drop or not validPrompt(drop.prompt, body) then return end
+		if who ~= drop.owner then
+			if allowed(who, "DropRefused") then send(who, "Pickup", false, "This belongs to another player.") end
+			return
+		end
+		if not allowed(who, "Reclaim") then return end
+		local alive, distance = context(who, body)
+		local ok, reason = state:reclaimDropped(who.UserId, entry.uid, alive, distance)
+		if ok then removeDrop(entry.uid) end
+		reply(who, "Reclaim", ok, reason, "Picked up your dropped " .. itemName(entry) .. ".")
+	end)
+	drops[entry.uid] = drop
+	task.delay(DROP_SECONDS, function()
+		if drops[entry.uid] ~= drop then return end
+		removeDrop(entry.uid)
+		local ok = state:loseDropped(player.UserId, entry.uid)
+		if ok then send(player, "DropLost", false, "Your dropped " .. itemName(entry) .. " was lost.") end
+	end)
+end
+
+-- Server-to-server only (the Eligibility pattern): the world script calls this for a real first strike.
+-- It drops one bag item once per attack id and returns what dropped, or nil. The capture ends through
+-- CaptureStrike, which the world fires for the same strike.
+local strikeEffect = Instance.new("BindableFunction")
+strikeEffect.Name = "StrikeEffect"
+strikeEffect.OnInvoke = function(player, attackId, towardX, towardZ)
+	if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or type(attackId) ~= "string"
+		or not Rules.finite(towardX) or not Rules.finite(towardZ) then return nil end
+	local ok, entry = state:dropForStrike(player.UserId, attackId)
+	if not ok then return nil end
+	if entry then spawnDrop(player, entry, towardX, towardZ) end
+	send(player, "Strike", true, "")
+	return entry and { kind = entry.kind, species = entry.species } or nil
+end
+strikeEffect.Parent = network
+
 local function stepWildlife(now)
 	local watchers = {}
 	for player in pairs(records) do
@@ -491,6 +564,7 @@ local function bindCharacter(player, character)
 	-- Character replacement/reset is also a defeat boundary, even if Died was missed.
 	if record.character and not record.defeated then
 		state:defeat(player.UserId, "life:" .. record.generation)
+		removeDropsOf(player)
 	end
 	if record.deathConnection then record.deathConnection:Disconnect(); record.deathConnection = nil end
 	record.generation += 1
@@ -503,8 +577,11 @@ local function bindCharacter(player, character)
 		if records[player] ~= record or record.generation ~= generation or record.defeated
 			or record.character ~= character or player.Character ~= character then return end
 		record.defeated = true
-		state:defeat(player.UserId, "life:" .. generation)
-		send(player, "Defeat", true, "Defeated: unprotected temporary loot was lost. Banked eggs and registered pets remain.")
+		local _, _, lossSummary = state:defeat(player.UserId, "life:" .. generation)
+		removeDropsOf(player)
+		-- The client shows the summary full screen before respawn (M4.6).
+		send(player, "Defeat", true, "Defeated: unprotected temporary loot was lost. Banked eggs and registered pets remain.",
+			lossSummary)
 	end
 	record.deathConnection = humanoid.Died:Connect(defeated)
 	if humanoid.Health <= 0 then defeated(); return end
@@ -539,6 +616,8 @@ Players.PlayerRemoving:Connect(function(player)
 	-- Free any reservation first, with no grant and no penalty, before the profile goes (M3.3, CAP-32).
 	local out = capture:drop(player.UserId, workspace:GetServerTimeNow())
 	if out then handleEnding(out) end
+	-- D10 hold is not built: a disconnected owner's drops go with the profile.
+	removeDropsOf(player)
 	records[player] = nil
 	playersByUserId[player.UserId] = nil
 	state:removePlayer(player.UserId)

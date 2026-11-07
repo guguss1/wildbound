@@ -334,6 +334,34 @@ return function(View, source)
 		equal(View.companionTransparency(-5), View.companionTransparency(0))
 	end)
 
+	-- M4.6 defeat flow: a full-screen summary before respawn, in plain words.
+	case("the loss summary names what was lost, saved and kept", function()
+		local text = View.lossSummary({ operationId = "life:2",
+			lostItems = { { uid = "a", kind = "Egg", species = "Lumipol" }, { uid = "b", kind = "Creature", species = "Lumipol" } },
+			savedItem = { uid = "c", kind = "Creature", species = "Lumipol" }, materialsLost = {},
+			kept = { registered = 2, bankedEggs = 1, ember = 0, bankedMaterials = 0 } })
+		assert(text:find("Defeated", 1, true), "says defeated")
+		assert(text:find("Lost 2 items: Lumipol egg, Lumipol.", 1, true), "lists the losses: " .. text)
+		assert(text:find("Saved by your seal: Lumipol.", 1, true), "names the saved item")
+		assert(text:find("Kept: 2 registered, 1 banked egg.", 1, true), "names what is kept: " .. text)
+		assert(text:find("Tap to close", 1, true), "says how to close")
+	end)
+	case("an empty, bad or huge loss summary still reads clearly and stays short", function()
+		local text = View.lossSummary({ lostItems = {}, kept = { registered = 0, bankedEggs = 3 } })
+		assert(text:find("Nothing was lost.", 1, true), text)
+		assert(text:find("3 banked eggs", 1, true), text)
+		for _, bad in ipairs({ 5, "x", { lostItems = "x" }, { lostItems = { 5, { kind = 5 } } } }) do
+			local value = View.lossSummary(bad)
+			assert(type(value) == "string" and value:find("Defeated", 1, true), "bad input still reads")
+		end
+		equal(type(View.lossSummary(nil)), "string")
+		local many = {}
+		for index = 1, 50 do many[index] = { uid = tostring(index), kind = "Egg", species = "Lumipol" } end
+		local long = View.lossSummary({ lostItems = many, kept = {} })
+		assert(long:find("Lost 50 items", 1, true) and long:find("and 45 more", 1, true), long)
+		assert(#long < 300, "summary must stay short")
+	end)
+
 	case("the module source stays pure", function()
 		assert(type(source) == "string" and #source > 0, "module source is required")
 		for _, token in ipairs({ "game", "workspace", "script", "Instance", "require", "task", "tick",
