@@ -64,6 +64,11 @@ DEFAULT_MAPPINGS = [
     # M2.6, wave W3b: pure client smoothing, shared so the client script can require it
     ("src/wildbound/WildboundGuardianSmoothing.luau", "ReplicatedStorage.WildboundGuardianSmoothing"),
     ("tests/WildboundGuardianSmoothing_Test.luau", "ServerStorage.WildboundGuardianSmoothing_Test"),
+    # M2.3 and the compact phone HUD, wave W3b: pure layout and view rules the clients require
+    ("src/wildbound/WildboundHudLayout.luau", "ReplicatedStorage.WildboundHudLayout"),
+    ("tests/WildboundHudLayout_Test.luau", "ServerStorage.WildboundHudLayout_Test"),
+    ("src/wildbound/WildboundHudView.luau", "ReplicatedStorage.WildboundHudView"),
+    ("tests/WildboundHudView_Test.luau", "ServerStorage.WildboundHudView_Test"),
 ]
 
 

@@ -8,6 +8,12 @@ local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
 local old = playerGui:FindFirstChild("WildboundUI")
 if old then old:Destroy() end
 
+-- Pure layout and view rules are shared with the world controller. Without them the fixed layout stays.
+local layoutModule = ReplicatedStorage:WaitForChild("WildboundHudLayout", 10)
+local viewModule = ReplicatedStorage:WaitForChild("WildboundHudView", 10)
+local Layout = layoutModule and require(layoutModule)
+local View = viewModule and require(viewModule)
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
 gui.ResetOnSpawn = false
@@ -69,25 +75,98 @@ make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
 local heading = label(panel, "Inventory", 20)
 heading.Font = Enum.Font.GothamBold
 heading.Position = UDim2.fromOffset(12, 6)
-heading.Size = UDim2.new(1, -90, 0, 32)
+heading.Size = UDim2.new(1, -100, 0, 32)
+-- 78 x 44: a touch target of at least 44 pixels (it was 70 x 36).
 local close = button(panel, "Close")
-close.Position = UDim2.new(1, -78, 0, 6)
-close.Size = UDim2.fromOffset(70, 36)
+close.Position = UDim2.new(1, -86, 0, 4)
+close.Size = UDim2.fromOffset(78, 44)
 local warning = label(panel, "Session only: progress is lost when you leave or the server stops.", 14)
-warning.Position = UDim2.fromOffset(12, 44)
+warning.Position = UDim2.fromOffset(12, 52)
 warning.Size = UDim2.new(1, -24, 0, 38)
-local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 84),
-	Size = UDim2.new(1, -24, 1, -96), BackgroundTransparency = 1,
+local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
+	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
 	BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y}, panel)
 make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
+
+-- Status line: a server notice shows for a few seconds and then goes; a local error stays until replaced.
+local compact, statusBudget = false, 40
+local stickyStatus = "Connecting to server..."
+local noticeState = View and View.newNotice()
+local function refreshStatus()
+	if not View then
+		status.Text = stickyStatus
+		return
+	end
+	local notice = View.currentNotice(noticeState, os.clock())
+	local text = notice or stickyStatus
+	if compact then
+		-- One slot on small screens: a message replaces the objective line, which returns afterwards.
+		local showing = text ~= ""
+		status.Visible, objective.Visible = showing, not showing
+	else
+		status.Visible, objective.Visible = true, true
+	end
+	status.Text = View.fit(text, statusBudget)
+end
+local function showNotice(text)
+	if not View then
+		status.Text = text
+		return
+	end
+	View.setNotice(noticeState, text, os.clock())
+	refreshStatus()
+	task.delay(View.CONSTANTS.NOTICE_SECONDS + 0.1, refreshStatus)
+end
+local function showSticky(text)
+	stickyStatus = text
+	refreshStatus()
+end
+-- Apply the pure layout: text in the top-left corner, the Inventory button with the other controls.
+local function applyLayout()
+	if not Layout then return end
+	local size = gui.AbsoluteSize
+	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
+	local layout = Layout.compute(size.X, size.Y, {touch = touch})
+	compact = layout.mode == "compact"
+	local rects = layout.rects
+	hud.Position, hud.Size = UDim2.fromOffset(rects.hud.x, rects.hud.y), UDim2.fromOffset(rects.hud.w, rects.hud.h)
+	open.AnchorPoint = Vector2.new(0, 0)
+	open.Position = UDim2.fromOffset(rects.inventory.x, rects.inventory.y)
+	open.Size = UDim2.fromOffset(rects.inventory.w, rects.inventory.h)
+	open.Text = UserInputService.KeyboardEnabled and "Inventory (I)" or "Inventory"
+	open.TextSize = compact and 14 or 16
+	if compact then
+		objective.Text, objective.TextSize = "Collect. Return to camp.", 13
+		objective.Position, objective.Size = UDim2.fromOffset(8, 3), UDim2.new(1, -16, 0, 18)
+		status.TextSize = 13
+		status.Position, status.Size = UDim2.fromOffset(8, 3), UDim2.new(1, -16, 0, 36)
+		statusBudget = Layout.charBudget(rects.hud.w - 16, 13, 2)
+		warning.Text, warning.TextSize = "Session only: lost when you leave.", 13
+		warning.Position, warning.Size = UDim2.fromOffset(12, 52), UDim2.new(1, -24, 0, 20)
+		scroll.Position, scroll.Size = UDim2.fromOffset(12, 78), UDim2.new(1, -24, 1, -90)
+	else
+		objective.Text, objective.TextSize = "Collect. Return to camp.\nSession only.", 15
+		objective.Position, objective.Size = UDim2.fromOffset(10, 5), UDim2.new(1, -20, 0, 42)
+		status.TextSize = 14
+		status.Position, status.Size = UDim2.fromOffset(10, 49), UDim2.new(1, -20, 0, 28)
+		statusBudget = Layout.charBudget(rects.hud.w - 20, 14, 1)
+		warning.Text, warning.TextSize = "Session only: progress is lost when you leave or the server stops.", 14
+		warning.Position, warning.Size = UDim2.fromOffset(12, 52), UDim2.new(1, -24, 0, 38)
+		scroll.Position, scroll.Size = UDim2.fromOffset(12, 96), UDim2.new(1, -24, 1, -108)
+	end
+	refreshStatus()
+end
+applyLayout()
+listen(gui:GetPropertyChangedSignal("AbsoluteSize"), applyLayout)
+listen(UserInputService:GetPropertyChangedSignal("KeyboardEnabled"), applyLayout)
 
 local actionRemote
 local receivedSnapshot = false
 local lastRequest = 0
 local function request(action, uid)
 	if not actionRemote then
-		status.Text = "Server unavailable. Please rejoin."
+		showSticky("Server unavailable. Please rejoin.")
 		return
 	end
 	local now = os.clock()
@@ -150,7 +229,7 @@ task.spawn(function()
 	local state = folder and folder:WaitForChild("State", 10)
 	if not gui.Parent then return end
 	if not (action and action:IsA("RemoteEvent") and state and state:IsA("RemoteEvent")) then
-		status.Text = "Server unavailable. Please rejoin."
+		showSticky("Server unavailable. Please rejoin.")
 		return
 	end
 	actionRemote = action
@@ -158,13 +237,14 @@ task.spawn(function()
 		if type(payload) ~= "table" then return end
 		if type(payload.snapshot) == "table" then
 			receivedSnapshot = true
+			if stickyStatus == "Connecting to server..." then showSticky("") end
 			render(payload.snapshot)
 		end
-		if type(payload.notice) == "string" and payload.notice ~= "" then status.Text = payload.notice end
+		if type(payload.notice) == "string" and payload.notice ~= "" then showNotice(payload.notice) end
 	end)
 	request("RequestSnapshot")
 	task.wait(3)
 	if gui.Parent and not receivedSnapshot then request("RequestSnapshot") end
 	task.wait(3)
-	if gui.Parent and not receivedSnapshot then status.Text = "No response. Open inventory to retry." end
+	if gui.Parent and not receivedSnapshot then showSticky("No response. Open inventory to retry.") end
 end)
