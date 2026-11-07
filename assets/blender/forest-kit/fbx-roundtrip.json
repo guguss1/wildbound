@@ -1,0 +1,124 @@
+{
+  "props": {
+    "FK_Evergreen": {
+      "triangles": 370,
+      "size": [
+        21.6675,
+        19.7638,
+        30.0
+      ],
+      "min_z": -0.0,
+      "objects": [
+        "FK_Evergreen",
+        "FK_Evergreen_Canopy",
+        "FK_Evergreen_Trunk"
+      ],
+      "materials": [
+        "FK_Bark",
+        "FK_Pine"
+      ]
+    },
+    "FK_DeadTree": {
+      "triangles": 338,
+      "size": [
+        16.2141,
+        12.5509,
+        22.0
+      ],
+      "min_z": -0.0,
+      "objects": [
+        "FK_DeadTree",
+        "FK_DeadTree_Splinter",
+        "FK_DeadTree_Wood"
+      ],
+      "materials": [
+        "FK_Bark",
+        "FK_PaleWood"
+      ]
+    },
+    "FK_FallenLog": {
+      "triangles": 346,
+      "size": [
+        16.3931,
+        5.6491,
+        7.6
+      ],
+      "min_z": 0.0,
+      "objects": [
+        "FK_FallenLog",
+        "FK_FallenLog_Bark",
+        "FK_FallenLog_Fungus",
+        "FK_FallenLog_Moss",
+        "FK_FallenLog_Splinter"
+      ],
+      "materials": [
+        "FK_Bark",
+        "FK_Fungus",
+        "FK_Moss",
+        "FK_PaleWood"
+      ]
+    },
+    "FK_RootArch": {
+      "triangles": 664,
+      "size": [
+        31.3448,
+        15.7832,
+        18.5028
+      ],
+      "min_z": -0.0,
+      "objects": [
+        "FK_RootArch",
+        "FK_RootArch_Moss",
+        "FK_RootArch_Wood"
+      ],
+      "materials": [
+        "FK_Bark",
+        "FK_Moss"
+      ]
+    },
+    "FK_RuinDoorway": {
+      "triangles": 586,
+      "size": [
+        35.9711,
+        7.3918,
+        18.7153
+      ],
+      "min_z": -0.0,
+      "objects": [
+        "FK_RuinDoorway",
+        "FK_RuinDoorway_Moss",
+        "FK_RuinDoorway_Stone"
+      ],
+      "materials": [
+        "FK_Charcoal",
+        "FK_Moss"
+      ]
+    },
+    "FK_LanternMarker": {
+      "triangles": 348,
+      "size": [
+        5.5159,
+        2.8583,
+        9.0
+      ],
+      "min_z": -0.0,
+      "objects": [
+        "FK_LanternMarker",
+        "FK_LanternMarker_Glass",
+        "FK_LanternMarker_Iron",
+        "FK_LanternMarker_Moss",
+        "FK_LanternMarker_Rope",
+        "FK_LanternMarker_Stones",
+        "FK_LanternMarker_Wood"
+      ],
+      "materials": [
+        "FK_Bark",
+        "FK_Charcoal",
+        "FK_Iron",
+        "FK_Moss",
+        "FK_Neon_LanternGlass",
+        "FK_Rope"
+      ]
+    }
+  }
+}

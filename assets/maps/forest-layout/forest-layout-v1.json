@@ -1,0 +1,730 @@
+{
+  "name": "forest-layout-v1",
+  "seed": 20261107,
+  "conventions": {
+    "units": "studs, origin at the map centre",
+    "axes": "x east (right on the plan), z south (down on the plan)",
+    "rotation_y_deg": "same as CFrame.Angles(0, math.rad(r), 0); local +X -> (cos r, -sin r), local +Z -> (sin r, cos r) in (x, z)",
+    "pivot": "kit origin placed at x, z on the ground; scale is uniform (1 for arch, doorway, lantern)",
+    "footprints": "trees: root flare circle r8 x scale (reach) and trunk core 2.5/3.4 x scale (solid); logs, arch and doorway: symmetric rectangle bound of the measured bbox; Blender Y sign is not assumed",
+    "authoring_axes": {
+      "FK_FallenLog": "long axis along local X",
+      "FK_RootArch": "span (inner clearance 16.3) along local X, route direction along local Z",
+      "FK_RuinDoorway": "span (inner clearance 18.6) along local X, route direction along local Z",
+      "FK_LanternMarker": "local +Z faces the route centreline"
+    }
+  },
+  "inputs": {
+    "map_size": [
+      400.0,
+      400.0
+    ],
+    "edge_margin": 5.0,
+    "route_width": 14.0,
+    "route_clear_radius": 10.0,
+    "route_nodes": {
+      "camp": [
+        -140.0,
+        140.0
+      ],
+      "clearing": [
+        -95.0,
+        75.0
+      ],
+      "ruin": [
+        0.0,
+        -85.0
+      ],
+      "nest": [
+        35.0,
+        -99.0
+      ],
+      "marsh": [
+        115.0,
+        15.0
+      ],
+      "shelter": [
+        105.0,
+        125.0
+      ]
+    },
+    "guardian": {
+      "home": [
+        0.0,
+        -85.0
+      ],
+      "leash": 80.0,
+      "fog_zone": {
+        "x": [
+          -45.0,
+          165.0
+        ],
+        "z": [
+          -165.0,
+          35.0
+        ]
+      },
+      "patrol_loop": {
+        "E": [
+          16.0,
+          -85.0
+        ],
+        "S": [
+          0.0,
+          -69.0
+        ],
+        "W": [
+          -16.0,
+          -85.0
+        ],
+        "N": [
+          0.0,
+          -101.0
+        ]
+      }
+    },
+    "safe_circles": {
+      "camp": {
+        "centre": [
+          -140.0,
+          140.0
+        ],
+        "r": 35.0
+      },
+      "shelter": {
+        "centre": [
+          105.0,
+          125.0
+        ],
+        "r": 22.0
+      }
+    },
+    "pillars": [
+      [
+        -10.0,
+        -92.0
+      ],
+      [
+        10.0,
+        -92.0
+      ],
+      [
+        10.0,
+        -77.0
+      ],
+      [
+        -10.0,
+        -77.0
+      ]
+    ],
+    "nest_stone_ring_radius": 9.0,
+    "old_nest": [
+      110.0,
+      -130.0
+    ],
+    "new_nest": [
+      35.0,
+      -99.0
+    ],
+    "marsh_pool": {
+      "centre": [
+        128.0,
+        15.0
+      ],
+      "size": [
+        32.0,
+        24.0
+      ]
+    },
+    "design_thresholds": {
+      "base_gap": 1.0,
+      "node_clear": 12.0,
+      "node_reach_clear": 6.0,
+      "patrol_clear": 4.0,
+      "pool_clear": 2.0,
+      "sight_lanes_reserved_for": [
+        "E",
+        "N"
+      ]
+    },
+    "props_measured_from": "assets/blender/forest-kit/forest-kit-report.json (+ forest-kit-geometry.json)",
+    "props": {
+      "FK_Evergreen": {
+        "tris": 370,
+        "height": 30.0,
+        "roots_r": 8.0,
+        "core_r": 2.5,
+        "canopy_r": 10.4
+      },
+      "FK_DeadTree": {
+        "tris": 338,
+        "height": 22.0,
+        "roots_r": 8.0,
+        "core_r": 3.4
+      },
+      "FK_FallenLog": {
+        "tris": 346,
+        "height": 7.6,
+        "half": [
+          8.544,
+          3.0111
+        ]
+      },
+      "FK_RootArch": {
+        "tris": 664,
+        "height": 18.5028,
+        "half": [
+          15.805,
+          8.0776
+        ],
+        "gap": [
+          -8.1239,
+          8.2108
+        ],
+        "clear_h": 11.2395
+      },
+      "FK_RuinDoorway": {
+        "tris": 586,
+        "height": 18.7153,
+        "half": [
+          18.0036,
+          4.9535
+        ],
+        "gap": [
+          -9.3104,
+          9.3213
+        ],
+        "clear_h": 11.6446
+      },
+      "FK_LanternMarker": {
+        "tris": 348,
+        "height": 9.0,
+        "base_r": 2.2
+      }
+    },
+    "scale_range": {
+      "FK_Evergreen": [
+        0.9,
+        1.15
+      ],
+      "FK_DeadTree": [
+        0.9,
+        1.15
+      ],
+      "FK_FallenLog": [
+        0.85,
+        1.15
+      ]
+    }
+  },
+  "instances": [
+    {"id": "FK_Evergreen_001", "name": "FK_Evergreen", "x": 18.977, "z": -111.923, "rotation_y_deg": 25.691, "scale": 0.954, "zone": "fog"},
+    {"id": "FK_Evergreen_002", "name": "FK_Evergreen", "x": 37.487, "z": -118.158, "rotation_y_deg": 208.955, "scale": 0.926, "zone": "fog"},
+    {"id": "FK_Evergreen_003", "name": "FK_Evergreen", "x": 139.144, "z": -122.17, "rotation_y_deg": 124.572, "scale": 0.98, "zone": "fog"},
+    {"id": "FK_Evergreen_004", "name": "FK_Evergreen", "x": 140.524, "z": -137.999, "rotation_y_deg": 348.607, "scale": 1.006, "zone": "fog"},
+    {"id": "FK_Evergreen_005", "name": "FK_Evergreen", "x": 154.689, "z": -94.682, "rotation_y_deg": 147.38, "scale": 0.935, "zone": "fog"},
+    {"id": "FK_Evergreen_006", "name": "FK_Evergreen", "x": 7.85, "z": -37.584, "rotation_y_deg": 247.746, "scale": 1.08, "zone": "fog"},
+    {"id": "FK_Evergreen_007", "name": "FK_Evergreen", "x": -30.878, "z": -115.416, "rotation_y_deg": 16.815, "scale": 0.906, "zone": "fog"},
+    {"id": "FK_Evergreen_008", "name": "FK_Evergreen", "x": 55.375, "z": -164.666, "rotation_y_deg": 250.747, "scale": 0.939, "zone": "fog"},
+    {"id": "FK_Evergreen_009", "name": "FK_Evergreen", "x": 95.563, "z": -148.313, "rotation_y_deg": 294.709, "scale": 0.919, "zone": "fog"},
+    {"id": "FK_Evergreen_010", "name": "FK_Evergreen", "x": 163.781, "z": -11.04, "rotation_y_deg": 47.565, "scale": 1.003, "zone": "fog"},
+    {"id": "FK_Evergreen_011", "name": "FK_Evergreen", "x": 43.338, "z": -47.329, "rotation_y_deg": 310.054, "scale": 1.077, "zone": "fog"},
+    {"id": "FK_Evergreen_012", "name": "FK_Evergreen", "x": 47.012, "z": 31.432, "rotation_y_deg": 322.783, "scale": 1.01, "zone": "fog"},
+    {"id": "FK_Evergreen_013", "name": "FK_Evergreen", "x": -25.774, "z": -89.964, "rotation_y_deg": 121.152, "scale": 1.04, "zone": "fog"},
+    {"id": "FK_Evergreen_014", "name": "FK_Evergreen", "x": 21.602, "z": 1.619, "rotation_y_deg": 96.073, "scale": 1.049, "zone": "fog"},
+    {"id": "FK_Evergreen_015", "name": "FK_Evergreen", "x": 107.163, "z": -134.219, "rotation_y_deg": 195.021, "scale": 1.002, "zone": "fog"},
+    {"id": "FK_Evergreen_016", "name": "FK_Evergreen", "x": 72.626, "z": -129.91, "rotation_y_deg": 290.963, "scale": 1.054, "zone": "fog"},
+    {"id": "FK_Evergreen_017", "name": "FK_Evergreen", "x": 98.558, "z": -162.187, "rotation_y_deg": 127.242, "scale": 1.117, "zone": "fog"},
+    {"id": "FK_Evergreen_018", "name": "FK_Evergreen", "x": 10.398, "z": -62.847, "rotation_y_deg": 316.28, "scale": 0.958, "zone": "fog"},
+    {"id": "FK_Evergreen_019", "name": "FK_Evergreen", "x": -2.549, "z": 14.887, "rotation_y_deg": 172.653, "scale": 1.018, "zone": "fog"},
+    {"id": "FK_Evergreen_020", "name": "FK_Evergreen", "x": -5.744, "z": -25.031, "rotation_y_deg": 109.747, "scale": 0.933, "zone": "fog"},
+    {"id": "FK_Evergreen_021", "name": "FK_Evergreen", "x": -44.307, "z": -162.349, "rotation_y_deg": 214.557, "scale": 0.951, "zone": "fog"},
+    {"id": "FK_Evergreen_022", "name": "FK_Evergreen", "x": 134.996, "z": -87.663, "rotation_y_deg": 122.378, "scale": 0.984, "zone": "fog"},
+    {"id": "FK_Evergreen_023", "name": "FK_Evergreen", "x": 123.881, "z": -60.45, "rotation_y_deg": 7.074, "scale": 1.017, "zone": "fog"},
+    {"id": "FK_Evergreen_024", "name": "FK_Evergreen", "x": 79.05, "z": -90.416, "rotation_y_deg": 188.123, "scale": 1.148, "zone": "fog"},
+    {"id": "FK_Evergreen_025", "name": "FK_Evergreen", "x": -24.984, "z": -132.606, "rotation_y_deg": 241.724, "scale": 0.928, "zone": "fog"},
+    {"id": "FK_Evergreen_026", "name": "FK_Evergreen", "x": 5.22, "z": -160.193, "rotation_y_deg": 275.759, "scale": 1.086, "zone": "fog"},
+    {"id": "FK_Evergreen_027", "name": "FK_Evergreen", "x": 6.723, "z": -134.828, "rotation_y_deg": 172.571, "scale": 0.942, "zone": "fog"},
+    {"id": "FK_Evergreen_028", "name": "FK_Evergreen", "x": 70.855, "z": -111.496, "rotation_y_deg": 194.176, "scale": 1.042, "zone": "fog"},
+    {"id": "FK_Evergreen_029", "name": "FK_Evergreen", "x": -28.462, "z": 34.129, "rotation_y_deg": 179.45, "scale": 1.058, "zone": "fog"},
+    {"id": "FK_Evergreen_030", "name": "FK_Evergreen", "x": 51.914, "z": -2.99, "rotation_y_deg": 113.872, "scale": 1.121, "zone": "fog"},
+    {"id": "FK_Evergreen_031", "name": "FK_Evergreen", "x": 129.439, "z": -74.254, "rotation_y_deg": 16.055, "scale": 1.006, "zone": "fog"},
+    {"id": "FK_Evergreen_032", "name": "FK_Evergreen", "x": 103.156, "z": -113.574, "rotation_y_deg": 158.079, "scale": 0.931, "zone": "fog"},
+    {"id": "FK_Evergreen_033", "name": "FK_Evergreen", "x": 147.766, "z": -149.557, "rotation_y_deg": 134.094, "scale": 1.066, "zone": "fog"},
+    {"id": "FK_Evergreen_034", "name": "FK_Evergreen", "x": 116.558, "z": -26.373, "rotation_y_deg": 278.516, "scale": 1.019, "zone": "fog"},
+    {"id": "FK_Evergreen_035", "name": "FK_Evergreen", "x": 143.792, "z": -26.201, "rotation_y_deg": 169.788, "scale": 0.954, "zone": "fog"},
+    {"id": "FK_Evergreen_036", "name": "FK_Evergreen", "x": 83.236, "z": 31.27, "rotation_y_deg": 180.627, "scale": 0.942, "zone": "fog"},
+    {"id": "FK_Evergreen_037", "name": "FK_Evergreen", "x": -24.673, "z": -158.361, "rotation_y_deg": 59.585, "scale": 1.023, "zone": "fog"},
+    {"id": "FK_Evergreen_038", "name": "FK_Evergreen", "x": -3.326, "z": 34.277, "rotation_y_deg": 139.172, "scale": 0.957, "zone": "fog"},
+    {"id": "FK_Evergreen_039", "name": "FK_Evergreen", "x": 147.682, "z": -9.033, "rotation_y_deg": 310.919, "scale": 1.121, "zone": "fog"},
+    {"id": "FK_Evergreen_040", "name": "FK_Evergreen", "x": 2.997, "z": -51.647, "rotation_y_deg": 262.158, "scale": 1.091, "zone": "fog"},
+    {"id": "FK_Evergreen_041", "name": "FK_Evergreen", "x": 163.985, "z": -156.068, "rotation_y_deg": 292.952, "scale": 1.119, "zone": "fog"},
+    {"id": "FK_Evergreen_042", "name": "FK_Evergreen", "x": 60.135, "z": -23.195, "rotation_y_deg": 174.864, "scale": 0.91, "zone": "fog"},
+    {"id": "FK_Evergreen_043", "name": "FK_Evergreen", "x": -41.104, "z": -104.922, "rotation_y_deg": 180.338, "scale": 1.133, "zone": "fog"},
+    {"id": "FK_Evergreen_044", "name": "FK_Evergreen", "x": 57.176, "z": 15.321, "rotation_y_deg": 207.954, "scale": 1.073, "zone": "fog"},
+    {"id": "FK_Evergreen_045", "name": "FK_Evergreen", "x": 36.785, "z": -4.888, "rotation_y_deg": 228.382, "scale": 0.938, "zone": "fog"},
+    {"id": "FK_Evergreen_046", "name": "FK_Evergreen", "x": 23.303, "z": 33.095, "rotation_y_deg": 241.841, "scale": 0.991, "zone": "fog"},
+    {"id": "FK_Evergreen_047", "name": "FK_Evergreen", "x": 116.457, "z": -164.74, "rotation_y_deg": 62.679, "scale": 1.095, "zone": "fog"},
+    {"id": "FK_Evergreen_048", "name": "FK_Evergreen", "x": -33.867, "z": -72.972, "rotation_y_deg": 22.432, "scale": 1.02, "zone": "fog"},
+    {"id": "FK_Evergreen_049", "name": "FK_Evergreen", "x": 108.376, "z": -68.78, "rotation_y_deg": 243.725, "scale": 0.91, "zone": "fog"},
+    {"id": "FK_Evergreen_050", "name": "FK_Evergreen", "x": 26.297, "z": -62.749, "rotation_y_deg": 272.453, "scale": 1.054, "zone": "fog"},
+    {"id": "FK_Evergreen_051", "name": "FK_Evergreen", "x": 26.676, "z": -13.714, "rotation_y_deg": 14.884, "scale": 0.984, "zone": "fog"},
+    {"id": "FK_Evergreen_052", "name": "FK_Evergreen", "x": 14.101, "z": 14.269, "rotation_y_deg": 122.821, "scale": 1.149, "zone": "fog"},
+    {"id": "FK_Evergreen_053", "name": "FK_Evergreen", "x": 39.281, "z": -164.592, "rotation_y_deg": 178.712, "scale": 0.952, "zone": "fog"},
+    {"id": "FK_Evergreen_054", "name": "FK_Evergreen", "x": 154.928, "z": -128.149, "rotation_y_deg": 50.647, "scale": 1.117, "zone": "fog"},
+    {"id": "FK_Evergreen_055", "name": "FK_Evergreen", "x": 12.659, "z": -147.239, "rotation_y_deg": 41.469, "scale": 0.959, "zone": "fog"},
+    {"id": "FK_Evergreen_056", "name": "FK_Evergreen", "x": 95.374, "z": 20.418, "rotation_y_deg": 19.956, "scale": 1.056, "zone": "fog"},
+    {"id": "FK_Evergreen_057", "name": "FK_Evergreen", "x": 77.184, "z": -143.782, "rotation_y_deg": 195.982, "scale": 1.083, "zone": "fog"},
+    {"id": "FK_Evergreen_058", "name": "FK_Evergreen", "x": 2.539, "z": -6.992, "rotation_y_deg": 15.002, "scale": 0.905, "zone": "fog"},
+    {"id": "FK_Evergreen_059", "name": "FK_Evergreen", "x": 1.351, "z": -107.256, "rotation_y_deg": 134.663, "scale": 0.945, "zone": "fog"},
+    {"id": "FK_Evergreen_060", "name": "FK_Evergreen", "x": 37.551, "z": -133.209, "rotation_y_deg": 105.818, "scale": 0.939, "zone": "fog"},
+    {"id": "FK_Evergreen_061", "name": "FK_Evergreen", "x": 120.083, "z": -94.074, "rotation_y_deg": 63.158, "scale": 1.033, "zone": "fog"},
+    {"id": "FK_Evergreen_062", "name": "FK_Evergreen", "x": 112.004, "z": -52.328, "rotation_y_deg": 246.065, "scale": 1.129, "zone": "fog"},
+    {"id": "FK_Evergreen_063", "name": "FK_Evergreen", "x": 42.66, "z": -33.561, "rotation_y_deg": 67.196, "scale": 0.9, "zone": "fog"},
+    {"id": "FK_Evergreen_064", "name": "FK_Evergreen", "x": -43.343, "z": -117.562, "rotation_y_deg": 228.339, "scale": 1.04, "zone": "fog"},
+    {"id": "FK_Evergreen_065", "name": "FK_Evergreen", "x": 6.014, "z": -122.274, "rotation_y_deg": 60.768, "scale": 1.01, "zone": "fog"},
+    {"id": "FK_Evergreen_066", "name": "FK_Evergreen", "x": 100.874, "z": -81.605, "rotation_y_deg": 68.174, "scale": 1.114, "zone": "fog"},
+    {"id": "FK_Evergreen_067", "name": "FK_Evergreen", "x": 146.88, "z": -80.75, "rotation_y_deg": 349.981, "scale": 1.018, "zone": "fog"},
+    {"id": "FK_Evergreen_068", "name": "FK_Evergreen", "x": 122.374, "z": -152.302, "rotation_y_deg": 30.359, "scale": 0.958, "zone": "fog"},
+    {"id": "FK_Evergreen_069", "name": "FK_Evergreen", "x": -179.054, "z": -119.836, "rotation_y_deg": 192.238, "scale": 0.992, "zone": "outside"},
+    {"id": "FK_Evergreen_070", "name": "FK_Evergreen", "x": 169.627, "z": 173.227, "rotation_y_deg": 335.392, "scale": 0.978, "zone": "outside"},
+    {"id": "FK_Evergreen_071", "name": "FK_Evergreen", "x": 21.781, "z": 178.251, "rotation_y_deg": 254.168, "scale": 1.004, "zone": "outside"},
+    {"id": "FK_Evergreen_072", "name": "FK_Evergreen", "x": -174.578, "z": 57.88, "rotation_y_deg": 276.61, "scale": 1.114, "zone": "outside"},
+    {"id": "FK_Evergreen_073", "name": "FK_Evergreen", "x": -169.889, "z": 179.331, "rotation_y_deg": 178.748, "scale": 1.077, "zone": "outside"},
+    {"id": "FK_Evergreen_074", "name": "FK_Evergreen", "x": -34.872, "z": 174.933, "rotation_y_deg": 98.415, "scale": 0.978, "zone": "outside"},
+    {"id": "FK_Evergreen_075", "name": "FK_Evergreen", "x": 169.128, "z": 100.045, "rotation_y_deg": 192.469, "scale": 1.071, "zone": "outside"},
+    {"id": "FK_Evergreen_076", "name": "FK_Evergreen", "x": 172.934, "z": 133.944, "rotation_y_deg": 150.003, "scale": 1.007, "zone": "outside"},
+    {"id": "FK_Evergreen_077", "name": "FK_Evergreen", "x": -174.742, "z": -39.735, "rotation_y_deg": 237.502, "scale": 0.942, "zone": "outside"},
+    {"id": "FK_Evergreen_078", "name": "FK_Evergreen", "x": -99.037, "z": 179.885, "rotation_y_deg": 270.146, "scale": 0.972, "zone": "outside"},
+    {"id": "FK_Evergreen_079", "name": "FK_Evergreen", "x": -142.753, "z": -172.98, "rotation_y_deg": 34.8, "scale": 0.973, "zone": "outside"},
+    {"id": "FK_Evergreen_080", "name": "FK_Evergreen", "x": 183.919, "z": -183.461, "rotation_y_deg": 104.098, "scale": 1.066, "zone": "outside"},
+    {"id": "FK_Evergreen_081", "name": "FK_Evergreen", "x": -182.265, "z": -79.783, "rotation_y_deg": 79.237, "scale": 0.921, "zone": "outside"},
+    {"id": "FK_Evergreen_082", "name": "FK_Evergreen", "x": 85.791, "z": 183.958, "rotation_y_deg": 80.816, "scale": 1.002, "zone": "outside"},
+    {"id": "FK_Evergreen_083", "name": "FK_Evergreen", "x": -109.477, "z": -180.336, "rotation_y_deg": 269.793, "scale": 1.103, "zone": "outside"},
+    {"id": "FK_Evergreen_084", "name": "FK_Evergreen", "x": -185.048, "z": -13.311, "rotation_y_deg": 107.723, "scale": 1.047, "zone": "outside"},
+    {"id": "FK_Evergreen_085", "name": "FK_Evergreen", "x": -184.095, "z": -152.331, "rotation_y_deg": 185.177, "scale": 1.052, "zone": "outside"},
+    {"id": "FK_Evergreen_086", "name": "FK_Evergreen", "x": 179.788, "z": 48.508, "rotation_y_deg": 131.984, "scale": 1.108, "zone": "outside"},
+    {"id": "FK_Evergreen_087", "name": "FK_Evergreen", "x": -57.816, "z": 174.518, "rotation_y_deg": 227.921, "scale": 1.001, "zone": "outside"},
+    {"id": "FK_Evergreen_088", "name": "FK_Evergreen", "x": 114.539, "z": 177.69, "rotation_y_deg": 107.758, "scale": 1.034, "zone": "outside"},
+    {"id": "FK_Evergreen_089", "name": "FK_Evergreen", "x": -182.524, "z": 82.764, "rotation_y_deg": 143.452, "scale": 0.926, "zone": "outside"},
+    {"id": "FK_Evergreen_090", "name": "FK_Evergreen", "x": 146.942, "z": 176.963, "rotation_y_deg": 85.14, "scale": 1.075, "zone": "outside"},
+    {"id": "FK_Evergreen_091", "name": "FK_Evergreen", "x": -178.25, "z": 29.663, "rotation_y_deg": 181.019, "scale": 1.003, "zone": "outside"},
+    {"id": "FK_Evergreen_092", "name": "FK_Evergreen", "x": -134.598, "z": 186.096, "rotation_y_deg": 155.229, "scale": 0.964, "zone": "outside"},
+    {"id": "FK_Evergreen_093", "name": "FK_Evergreen", "x": 182.499, "z": 23.558, "rotation_y_deg": 91.779, "scale": 1.058, "zone": "outside"},
+    {"id": "FK_Evergreen_094", "name": "FK_Evergreen", "x": -177.794, "z": -186.286, "rotation_y_deg": 222.16, "scale": 1.045, "zone": "outside"},
+    {"id": "FK_Evergreen_095", "name": "FK_Evergreen", "x": 185.618, "z": 74.122, "rotation_y_deg": 151.846, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_Evergreen_096", "name": "FK_Evergreen", "x": -89.29, "z": -169.297, "rotation_y_deg": 14.198, "scale": 1.101, "zone": "outside"},
+    {"id": "FK_Evergreen_097", "name": "FK_Evergreen", "x": -171.513, "z": 15.126, "rotation_y_deg": 250.024, "scale": 1.003, "zone": "outside"},
+    {"id": "FK_Evergreen_098", "name": "FK_Evergreen", "x": -170.156, "z": 107.856, "rotation_y_deg": 275.963, "scale": 0.927, "zone": "outside"},
+    {"id": "FK_Evergreen_099", "name": "FK_Evergreen", "x": -180.122, "z": 158.054, "rotation_y_deg": 340.154, "scale": 0.933, "zone": "outside"},
+    {"id": "FK_Evergreen_100", "name": "FK_Evergreen", "x": -14.211, "z": 179.905, "rotation_y_deg": 168.258, "scale": 1.06, "zone": "outside"},
+    {"id": "FK_Evergreen_101", "name": "FK_Evergreen", "x": 177.784, "z": -84.133, "rotation_y_deg": 87.356, "scale": 1.038, "zone": "outside"},
+    {"id": "FK_Evergreen_102", "name": "FK_Evergreen", "x": 66.171, "z": 181.158, "rotation_y_deg": 295.201, "scale": 0.973, "zone": "outside"},
+    {"id": "FK_Evergreen_103", "name": "FK_Evergreen", "x": 80.68, "z": 71.907, "rotation_y_deg": 57.598, "scale": 0.956, "zone": "outside"},
+    {"id": "FK_Evergreen_104", "name": "FK_Evergreen", "x": -54.396, "z": 106.964, "rotation_y_deg": 99.655, "scale": 1.105, "zone": "outside"},
+    {"id": "FK_Evergreen_105", "name": "FK_Evergreen", "x": -102.191, "z": -19.692, "rotation_y_deg": 51.931, "scale": 1.146, "zone": "outside"},
+    {"id": "FK_Evergreen_106", "name": "FK_Evergreen", "x": -133.395, "z": -130.543, "rotation_y_deg": 282.598, "scale": 1.009, "zone": "outside"},
+    {"id": "FK_Evergreen_107", "name": "FK_Evergreen", "x": 35.088, "z": 103.536, "rotation_y_deg": 215.188, "scale": 0.905, "zone": "outside"},
+    {"id": "FK_Evergreen_108", "name": "FK_Evergreen", "x": 140.998, "z": 123.686, "rotation_y_deg": 198.801, "scale": 1.008, "zone": "outside"},
+    {"id": "FK_Evergreen_109", "name": "FK_Evergreen", "x": -123.146, "z": 69.905, "rotation_y_deg": 26.997, "scale": 1.045, "zone": "outside"},
+    {"id": "FK_Evergreen_110", "name": "FK_Evergreen", "x": -96.731, "z": 24.543, "rotation_y_deg": 200.108, "scale": 0.973, "zone": "outside"},
+    {"id": "FK_Evergreen_111", "name": "FK_Evergreen", "x": 47.614, "z": 156.149, "rotation_y_deg": 181.975, "scale": 1.012, "zone": "outside"},
+    {"id": "FK_Evergreen_112", "name": "FK_Evergreen", "x": -2.686, "z": 151.325, "rotation_y_deg": 359.644, "scale": 0.983, "zone": "outside"},
+    {"id": "FK_Evergreen_113", "name": "FK_Evergreen", "x": -103.187, "z": -70.078, "rotation_y_deg": 61.457, "scale": 0.974, "zone": "outside"},
+    {"id": "FK_Evergreen_114", "name": "FK_Evergreen", "x": -127.357, "z": -96.452, "rotation_y_deg": 197.428, "scale": 1.09, "zone": "outside"},
+    {"id": "FK_Evergreen_115", "name": "FK_Evergreen", "x": -80.905, "z": -127.979, "rotation_y_deg": 115.224, "scale": 1.009, "zone": "outside"},
+    {"id": "FK_Evergreen_116", "name": "FK_Evergreen", "x": -1.587, "z": 63.194, "rotation_y_deg": 313.201, "scale": 0.906, "zone": "outside"},
+    {"id": "FK_Evergreen_117", "name": "FK_Evergreen", "x": -129.915, "z": -5.613, "rotation_y_deg": 336.102, "scale": 0.948, "zone": "outside"},
+    {"id": "FK_Evergreen_118", "name": "FK_Evergreen", "x": -47.933, "z": 52.348, "rotation_y_deg": 263.984, "scale": 0.968, "zone": "outside"},
+    {"id": "FK_Evergreen_119", "name": "FK_Evergreen", "x": 128.316, "z": 75.35, "rotation_y_deg": 1.274, "scale": 0.957, "zone": "outside"},
+    {"id": "FK_Evergreen_120", "name": "FK_Evergreen", "x": -124.793, "z": 39.412, "rotation_y_deg": 103.268, "scale": 0.945, "zone": "outside"},
+    {"id": "FK_Evergreen_121", "name": "FK_Evergreen", "x": -67.065, "z": -23.522, "rotation_y_deg": 206.664, "scale": 0.984, "zone": "outside"},
+    {"id": "FK_Evergreen_122", "name": "FK_Evergreen", "x": 84.508, "z": 153.195, "rotation_y_deg": 9.398, "scale": 0.921, "zone": "outside"},
+    {"id": "FK_Evergreen_123", "name": "FK_Evergreen", "x": -56.248, "z": -44.531, "rotation_y_deg": 3.925, "scale": 1.107, "zone": "outside"},
+    {"id": "FK_Evergreen_124", "name": "FK_Evergreen", "x": -100.277, "z": 45.943, "rotation_y_deg": 190.787, "scale": 0.976, "zone": "outside"},
+    {"id": "FK_Evergreen_125", "name": "FK_Evergreen", "x": -124.406, "z": -42.701, "rotation_y_deg": 192.221, "scale": 0.961, "zone": "outside"},
+    {"id": "FK_Evergreen_126", "name": "FK_Evergreen", "x": -153.056, "z": -69.901, "rotation_y_deg": 78.719, "scale": 0.984, "zone": "outside"},
+    {"id": "FK_Evergreen_127", "name": "FK_Evergreen", "x": -56.926, "z": 81.537, "rotation_y_deg": 105.867, "scale": 0.982, "zone": "outside"},
+    {"id": "FK_Evergreen_128", "name": "FK_Evergreen", "x": -144.288, "z": -116.696, "rotation_y_deg": 357.273, "scale": 0.909, "zone": "outside"},
+    {"id": "FK_Evergreen_129", "name": "FK_Evergreen", "x": -14.051, "z": 97.829, "rotation_y_deg": 278.221, "scale": 1.103, "zone": "outside"},
+    {"id": "FK_Evergreen_130", "name": "FK_Evergreen", "x": 9.212, "z": 87.652, "rotation_y_deg": 89.127, "scale": 1.142, "zone": "outside"},
+    {"id": "FK_DeadTree_001", "name": "FK_DeadTree", "x": 57.391, "z": -106.788, "rotation_y_deg": 52.619, "scale": 1.077, "zone": "fog"},
+    {"id": "FK_DeadTree_002", "name": "FK_DeadTree", "x": 50.399, "z": -118.071, "rotation_y_deg": 259.769, "scale": 1.015, "zone": "fog"},
+    {"id": "FK_DeadTree_003", "name": "FK_DeadTree", "x": 79.07, "z": 8.587, "rotation_y_deg": 174.907, "scale": 1.07, "zone": "fog"},
+    {"id": "FK_DeadTree_004", "name": "FK_DeadTree", "x": 161.572, "z": -28.92, "rotation_y_deg": 58.238, "scale": 1.066, "zone": "fog"},
+    {"id": "FK_DeadTree_005", "name": "FK_DeadTree", "x": -12.763, "z": -4.813, "rotation_y_deg": 308.884, "scale": 1.071, "zone": "fog"},
+    {"id": "FK_DeadTree_006", "name": "FK_DeadTree", "x": 157.063, "z": 27.146, "rotation_y_deg": 173.595, "scale": 0.974, "zone": "fog"},
+    {"id": "FK_DeadTree_007", "name": "FK_DeadTree", "x": 161.46, "z": -115.884, "rotation_y_deg": 66.137, "scale": 0.93, "zone": "fog"},
+    {"id": "FK_DeadTree_008", "name": "FK_DeadTree", "x": 91.696, "z": -54.779, "rotation_y_deg": 93.724, "scale": 0.909, "zone": "fog"},
+    {"id": "FK_DeadTree_009", "name": "FK_DeadTree", "x": 104.447, "z": -94.977, "rotation_y_deg": 282.95, "scale": 1.142, "zone": "fog"},
+    {"id": "FK_DeadTree_010", "name": "FK_DeadTree", "x": -37.597, "z": -133.343, "rotation_y_deg": 8.064, "scale": 0.972, "zone": "fog"},
+    {"id": "FK_DeadTree_011", "name": "FK_DeadTree", "x": -7.953, "z": -150.714, "rotation_y_deg": 353.934, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_DeadTree_012", "name": "FK_DeadTree", "x": 79.15, "z": -157.946, "rotation_y_deg": 216.296, "scale": 1.07, "zone": "fog"},
+    {"id": "FK_DeadTree_013", "name": "FK_DeadTree", "x": 25.949, "z": -155.29, "rotation_y_deg": 100.245, "scale": 1.019, "zone": "fog"},
+    {"id": "FK_DeadTree_014", "name": "FK_DeadTree", "x": 151.429, "z": -163.386, "rotation_y_deg": 151.866, "scale": 1.121, "zone": "fog"},
+    {"id": "FK_DeadTree_015", "name": "FK_DeadTree", "x": -16.325, "z": 28.384, "rotation_y_deg": 239.807, "scale": 0.962, "zone": "fog"},
+    {"id": "FK_DeadTree_016", "name": "FK_DeadTree", "x": -44.132, "z": -61.206, "rotation_y_deg": 125.904, "scale": 1.053, "zone": "fog"},
+    {"id": "FK_DeadTree_017", "name": "FK_DeadTree", "x": 161.356, "z": -74.698, "rotation_y_deg": 90.025, "scale": 0.942, "zone": "fog"},
+    {"id": "FK_DeadTree_018", "name": "FK_DeadTree", "x": 8.181, "z": 27.257, "rotation_y_deg": 16.03, "scale": 0.954, "zone": "fog"},
+    {"id": "FK_DeadTree_019", "name": "FK_DeadTree", "x": 21.296, "z": -49.101, "rotation_y_deg": 242.399, "scale": 0.927, "zone": "fog"},
+    {"id": "FK_DeadTree_020", "name": "FK_DeadTree", "x": 126.267, "z": -40.696, "rotation_y_deg": 100.773, "scale": 1.105, "zone": "fog"},
+    {"id": "FK_DeadTree_021", "name": "FK_DeadTree", "x": 40.972, "z": -19.761, "rotation_y_deg": 213.62, "scale": 1.007, "zone": "fog"},
+    {"id": "FK_DeadTree_022", "name": "FK_DeadTree", "x": 87.927, "z": -76.159, "rotation_y_deg": 115.601, "scale": 1.018, "zone": "fog"},
+    {"id": "FK_DeadTree_023", "name": "FK_DeadTree", "x": 129.888, "z": -11.54, "rotation_y_deg": 68.342, "scale": 1.046, "zone": "fog"},
+    {"id": "FK_DeadTree_024", "name": "FK_DeadTree", "x": -42.952, "z": -91.017, "rotation_y_deg": 275.535, "scale": 0.97, "zone": "fog"},
+    {"id": "FK_DeadTree_025", "name": "FK_DeadTree", "x": 39.493, "z": 10.481, "rotation_y_deg": 42.974, "scale": 0.901, "zone": "fog"},
+    {"id": "FK_DeadTree_026", "name": "FK_DeadTree", "x": 123.225, "z": -134.911, "rotation_y_deg": 290.674, "scale": 1.082, "zone": "fog"},
+    {"id": "FK_DeadTree_027", "name": "FK_DeadTree", "x": 59.842, "z": -142.226, "rotation_y_deg": 21.311, "scale": 1.084, "zone": "fog"},
+    {"id": "FK_DeadTree_028", "name": "FK_DeadTree", "x": 64.704, "z": 28.369, "rotation_y_deg": 38.308, "scale": 1.148, "zone": "fog"},
+    {"id": "FK_DeadTree_029", "name": "FK_DeadTree", "x": 139.988, "z": -64.135, "rotation_y_deg": 289.32, "scale": 0.958, "zone": "fog"},
+    {"id": "FK_DeadTree_030", "name": "FK_DeadTree", "x": -16.867, "z": -104.537, "rotation_y_deg": 54.54, "scale": 0.905, "zone": "fog"},
+    {"id": "FK_DeadTree_031", "name": "FK_DeadTree", "x": 88.801, "z": -126.518, "rotation_y_deg": 276.337, "scale": 1.05, "zone": "fog"},
+    {"id": "FK_DeadTree_032", "name": "FK_DeadTree", "x": 136.4, "z": -105.251, "rotation_y_deg": 41.299, "scale": 1.147, "zone": "fog"},
+    {"id": "FK_DeadTree_033", "name": "FK_DeadTree", "x": 130.651, "z": -161.384, "rotation_y_deg": 0.101, "scale": 1.015, "zone": "fog"},
+    {"id": "FK_DeadTree_034", "name": "FK_DeadTree", "x": 12.566, "z": -16.453, "rotation_y_deg": 144.434, "scale": 1.063, "zone": "fog"},
+    {"id": "FK_DeadTree_035", "name": "FK_DeadTree", "x": 85.024, "z": -104.325, "rotation_y_deg": 66.534, "scale": 0.958, "zone": "fog"},
+    {"id": "FK_DeadTree_036", "name": "FK_DeadTree", "x": -24.518, "z": 8.708, "rotation_y_deg": 136.625, "scale": 1.146, "zone": "fog"},
+    {"id": "FK_DeadTree_037", "name": "FK_DeadTree", "x": 153.383, "z": -47.064, "rotation_y_deg": 179.972, "scale": 1.133, "zone": "fog"},
+    {"id": "FK_DeadTree_038", "name": "FK_DeadTree", "x": 116.386, "z": -78.755, "rotation_y_deg": 6.43, "scale": 0.949, "zone": "fog"},
+    {"id": "FK_DeadTree_039", "name": "FK_DeadTree", "x": -78.496, "z": 99.386, "rotation_y_deg": 58.514, "scale": 1.079, "zone": "outside"},
+    {"id": "FK_DeadTree_040", "name": "FK_DeadTree", "x": 83.294, "z": 96.023, "rotation_y_deg": 38.861, "scale": 1.076, "zone": "outside"},
+    {"id": "FK_DeadTree_041", "name": "FK_DeadTree", "x": 41.3, "z": 61.924, "rotation_y_deg": 185.84, "scale": 1.041, "zone": "outside"},
+    {"id": "FK_DeadTree_042", "name": "FK_DeadTree", "x": 43.815, "z": 79.409, "rotation_y_deg": 280.625, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_FallenLog_001", "name": "FK_FallenLog", "x": 56.05, "z": -37.936, "rotation_y_deg": 344.359, "scale": 0.994, "zone": "fog"},
+    {"id": "FK_FallenLog_002", "name": "FK_FallenLog", "x": 110.706, "z": -150.304, "rotation_y_deg": 309.492, "scale": 1.002, "zone": "fog"},
+    {"id": "FK_FallenLog_003", "name": "FK_FallenLog", "x": 119.402, "z": -110.508, "rotation_y_deg": 89.001, "scale": 1.12, "zone": "fog"},
+    {"id": "FK_FallenLog_004", "name": "FK_FallenLog", "x": 69.321, "z": -9.94, "rotation_y_deg": 261.407, "scale": 1.148, "zone": "fog"},
+    {"id": "FK_FallenLog_005", "name": "FK_FallenLog", "x": 106.187, "z": -38.363, "rotation_y_deg": 201.296, "scale": 0.927, "zone": "fog"},
+    {"id": "FK_FallenLog_006", "name": "FK_FallenLog", "x": 26.881, "z": -32.085, "rotation_y_deg": 133.162, "scale": 1.107, "zone": "fog"},
+    {"id": "FK_FallenLog_007", "name": "FK_FallenLog", "x": 157.909, "z": 9.686, "rotation_y_deg": 352.264, "scale": 0.965, "zone": "fog"},
+    {"id": "FK_FallenLog_008", "name": "FK_FallenLog", "x": 163.923, "z": -141.906, "rotation_y_deg": 322.792, "scale": 1.033, "zone": "fog"},
+    {"id": "FK_FallenLog_009", "name": "FK_FallenLog", "x": -37.828, "z": -149.349, "rotation_y_deg": 291.512, "scale": 0.865, "zone": "fog"},
+    {"id": "FK_FallenLog_010", "name": "FK_FallenLog", "x": 25.922, "z": 20.791, "rotation_y_deg": 215.743, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_FallenLog_011", "name": "FK_FallenLog", "x": -43.753, "z": 24.663, "rotation_y_deg": 318.678, "scale": 0.911, "zone": "fog"},
+    {"id": "FK_FallenLog_012", "name": "FK_FallenLog", "x": -6.64, "z": -122.203, "rotation_y_deg": 73.227, "scale": 0.928, "zone": "fog"},
+    {"id": "FK_FallenLog_013", "name": "FK_FallenLog", "x": 41.585, "z": -145.359, "rotation_y_deg": 259.19, "scale": 0.985, "zone": "fog"},
+    {"id": "FK_FallenLog_014", "name": "FK_FallenLog", "x": 26.035, "z": -127.646, "rotation_y_deg": 69.307, "scale": 1.023, "zone": "fog"},
+    {"id": "FK_FallenLog_015", "name": "FK_FallenLog", "x": 140.406, "z": 152.489, "rotation_y_deg": 264.84, "scale": 0.881, "zone": "outside"},
+    {"id": "FK_FallenLog_016", "name": "FK_FallenLog", "x": -160.127, "z": -151.064, "rotation_y_deg": 327.212, "scale": 1.025, "zone": "outside"},
+    {"id": "FK_FallenLog_017", "name": "FK_FallenLog", "x": 147.705, "z": 54.489, "rotation_y_deg": 20.507, "scale": 1.085, "zone": "outside"},
+    {"id": "FK_RootArch_001", "name": "FK_RootArch", "x": -28.335, "z": -37.278, "rotation_y_deg": 149.3, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_RuinDoorway_001", "name": "FK_RuinDoorway", "x": 46.489, "z": -82.629, "rotation_y_deg": 35.059, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_001", "name": "FK_LanternMarker", "x": 31.675, "z": -85.459, "rotation_y_deg": 125.059, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_002", "name": "FK_LanternMarker", "x": 77.012, "z": -57.412, "rotation_y_deg": 305.059, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_003", "name": "FK_LanternMarker", "x": 87.97, "z": -5.239, "rotation_y_deg": 125.059, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_004", "name": "FK_LanternMarker", "x": 124.017, "z": 31.792, "rotation_y_deg": 264.806, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_005", "name": "FK_LanternMarker", "x": 99.119, "z": 73.711, "rotation_y_deg": 84.806, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_006", "name": "FK_LanternMarker", "x": 116.049, "z": 119.432, "rotation_y_deg": 264.806, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_007", "name": "FK_LanternMarker", "x": 64.977, "z": 116.931, "rotation_y_deg": 3.504, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_008", "name": "FK_LanternMarker", "x": 20.345, "z": 140.703, "rotation_y_deg": 183.504, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_009", "name": "FK_LanternMarker", "x": -26.853, "z": 122.553, "rotation_y_deg": 3.504, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_010", "name": "FK_LanternMarker", "x": -71.484, "z": 146.325, "rotation_y_deg": 183.504, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_011", "name": "FK_LanternMarker", "x": -118.682, "z": 128.175, "rotation_y_deg": 3.504, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_012", "name": "FK_LanternMarker", "x": -133.833, "z": 112.646, "rotation_y_deg": 55.305, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_013", "name": "FK_LanternMarker", "x": -89.814, "z": 85.956, "rotation_y_deg": 235.305, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_014", "name": "FK_LanternMarker", "x": -82.103, "z": 32.713, "rotation_y_deg": 59.3, "scale": 1.0, "zone": "outside"},
+    {"id": "FK_LanternMarker_015", "name": "FK_LanternMarker", "x": -39.54, "z": 2.16, "rotation_y_deg": 239.3, "scale": 1.0, "zone": "fog"},
+    {"id": "FK_LanternMarker_016", "name": "FK_LanternMarker", "x": -21.348, "z": -69.612, "rotation_y_deg": 59.3, "scale": 1.0, "zone": "fog"}
+  ],
+  "totals": {
+    "instances": 207,
+    "triangles": 74996,
+    "by_name": {
+      "FK_Evergreen": {
+        "count": 130,
+        "triangles": 48100
+      },
+      "FK_DeadTree": {
+        "count": 42,
+        "triangles": 14196
+      },
+      "FK_FallenLog": {
+        "count": 17,
+        "triangles": 5882
+      },
+      "FK_RootArch": {
+        "count": 1,
+        "triangles": 664
+      },
+      "FK_RuinDoorway": {
+        "count": 1,
+        "triangles": 586
+      },
+      "FK_LanternMarker": {
+        "count": 16,
+        "triangles": 5568
+      }
+    },
+    "budget": {
+      "max_instances": 220,
+      "max_triangles": 95000
+    }
+  },
+  "density": {
+    "area_sq_studs": {
+      "fog": 42000,
+      "outside": 118000
+    },
+    "counts": {
+      "fog": {
+        "forest_props": 120,
+        "trees": 106,
+        "all_instances": 128
+      },
+      "outside": {
+        "forest_props": 69,
+        "trees": 66,
+        "all_instances": 79
+      }
+    },
+    "per_1000_sq_studs": {
+      "fog": {
+        "forest_props": 2.857,
+        "trees": 2.524,
+        "all_instances": 3.048
+      },
+      "outside": {
+        "forest_props": 0.585,
+        "trees": 0.559,
+        "all_instances": 0.669
+      }
+    },
+    "fog_to_outside_ratio": {
+      "forest_props": 4.886,
+      "trees": 4.512
+    },
+    "canopy_cover_fraction": {
+      "fog": 0.4528,
+      "outside": 0.2004
+    },
+    "dead_trees_and_logs": {
+      "total": 59,
+      "in_fog": 52,
+      "share_in_fog": 0.881
+    },
+    "note": "density = instances per 1000 sq studs of gross zone area; forest_props = evergreen + dead tree + log; canopy cover = share of cells under an evergreen canopy (r10.4 x scale), the shade proxy"
+  },
+  "landmarks": {
+    "root_arch": {
+      "id": "FK_RootArch_001",
+      "leg": "clearing->ruin",
+      "studs_before_ruin": 55.5,
+      "anchor_in_fog_zone": true,
+      "footprint_overshoot_past_fog_edge": 1.049,
+      "distance_to_guardian_home": 55.5
+    },
+    "ruin_doorway": {
+      "id": "FK_RuinDoorway_001",
+      "leg": "nest->marsh",
+      "studs_after_nest": 20.0,
+      "in_territory": true,
+      "distance_to_guardian_home": 46.549,
+      "gap_to_nearest_pillar": 17.407
+    },
+    "corridor_margin_each_side_of_14_studs": {
+      "FK_RootArch_001": {
+        "left": 1.124,
+        "right": 1.211
+      },
+      "FK_RuinDoorway_001": {
+        "left": 2.31,
+        "right": 2.321
+      }
+    }
+  },
+  "lanterns": {
+    "count": 16,
+    "route_length": 798.013,
+    "offset": 10.5,
+    "spacing_outside_territory": [
+      40.0,
+      55.0
+    ],
+    "spacing_inside_territory": [
+      62.0,
+      78.0
+    ],
+    "sides_alternate": true,
+    "reading_of_rule": "lantern i+2 is always >= 80 studs of route away, so no lantern reveals more than the next",
+    "items": [
+      {
+        "arc": 312.005,
+        "side": 1,
+        "in_territory": true,
+        "gap_from_previous": 71.001
+      },
+      {
+        "arc": 361.006,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 49.001
+      },
+      {
+        "arc": 410.007,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 49.001
+      },
+      {
+        "arc": 458.007,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 48.001
+      },
+      {
+        "arc": 502.008,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 44.001
+      },
+      {
+        "arc": 546.009,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 44.001
+      },
+      {
+        "arc": 592.01,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 46.001
+      },
+      {
+        "arc": 638.01,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 46.001
+      },
+      {
+        "arc": 684.011,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 46.001
+      },
+      {
+        "arc": 730.012,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 46.001
+      },
+      {
+        "arc": 776.013,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 46.001
+      },
+      {
+        "arc": 26.0,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 48.001
+      },
+      {
+        "arc": 73.001,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 47.001
+      },
+      {
+        "arc": 122.002,
+        "side": -1,
+        "in_territory": false,
+        "gap_from_previous": 49.001
+      },
+      {
+        "arc": 170.003,
+        "side": 1,
+        "in_territory": false,
+        "gap_from_previous": 48.001
+      },
+      {
+        "arc": 241.004,
+        "side": -1,
+        "in_territory": true,
+        "gap_from_previous": 71.001
+      }
+    ]
+  },
+  "nest_cover": {
+    "nest": [
+      35.0,
+      -99.0
+    ],
+    "band": [
+      13.0,
+      26.0
+    ],
+    "eye_height": 3.7,
+    "cover_trunk_count": 4,
+    "cover_trunk_ids": [
+      "FK_Evergreen_001",
+      "FK_Evergreen_002",
+      "FK_DeadTree_001",
+      "FK_DeadTree_002"
+    ],
+    "cover_trunk_distances": {
+      "FK_Evergreen_001": 20.585,
+      "FK_Evergreen_002": 19.319,
+      "FK_DeadTree_001": 23.707,
+      "FK_DeadTree_002": 24.512
+    },
+    "doorway_distance": 20.0,
+    "sight": {
+      "E": {
+        "waypoint": [
+          16.0,
+          -85.0
+        ],
+        "distance": 23.601,
+        "blocked": false,
+        "blockers": [],
+        "within_detection_range_day": true,
+        "within_detection_range_night": true
+      },
+      "S": {
+        "waypoint": [
+          0.0,
+          -69.0
+        ],
+        "distance": 46.098,
+        "blocked": true,
+        "blockers": [
+          "pillar"
+        ],
+        "within_detection_range_day": false,
+        "within_detection_range_night": false
+      },
+      "W": {
+        "waypoint": [
+          -16.0,
+          -85.0
+        ],
+        "distance": 52.887,
+        "blocked": true,
+        "blockers": [
+          "pillar"
+        ],
+        "within_detection_range_day": false,
+        "within_detection_range_night": false
+      },
+      "N": {
+        "waypoint": [
+          0.0,
+          -101.0
+        ],
+        "distance": 35.057,
+        "blocked": false,
+        "blockers": [],
+        "within_detection_range_day": false,
+        "within_detection_range_night": true
+      }
+    },
+    "waypoints_seeing_nest": 2,
+    "patrol_loop_within_range": {
+      "perimeter": 90.51,
+      "day_28": 0.181,
+      "night_38": 0.4569
+    },
+    "note": "sight is tested against tree trunk cores (radius 2.5 evergreen, 3.4 dead, x scale) and pillars only; the plan also asserts the arch, doorway and logs do not cross these four rays"
+  }
+}

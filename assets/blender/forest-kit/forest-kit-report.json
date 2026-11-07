@@ -1,0 +1,352 @@
+{
+  "generator": "tools/build-forest-kit.py",
+  "blender_version": "5.1.2",
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL"
+  },
+  "scale_block_height": 5.0,
+  "props": {
+    "FK_Evergreen": {
+      "triangles": 370,
+      "size": [
+        21.6675,
+        19.7638,
+        30.0
+      ],
+      "bbox_min": [
+        -10.7239,
+        -11.4722,
+        0.0
+      ],
+      "bbox_max": [
+        10.9436,
+        8.2916,
+        30.0
+      ],
+      "base_center": [
+        -0.5784,
+        -0.8954
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_Evergreen_Canopy",
+          "material": "FK_Pine",
+          "triangles": 168,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_Evergreen_Trunk",
+          "material": "FK_Bark",
+          "triangles": 202,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_Evergreen.fbx",
+      "render": "assets/blender/forest-kit/FK_Evergreen.png"
+    },
+    "FK_DeadTree": {
+      "triangles": 338,
+      "size": [
+        16.2141,
+        12.5509,
+        22.0
+      ],
+      "bbox_min": [
+        -7.0141,
+        -6.7394,
+        0.0
+      ],
+      "bbox_max": [
+        9.2,
+        5.8114,
+        22.0
+      ],
+      "base_center": [
+        0.2371,
+        -0.464
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_DeadTree_Splinter",
+          "material": "FK_PaleWood",
+          "triangles": 16,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_DeadTree_Wood",
+          "material": "FK_Bark",
+          "triangles": 322,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_DeadTree.fbx",
+      "render": "assets/blender/forest-kit/FK_DeadTree.png"
+    },
+    "FK_FallenLog": {
+      "triangles": 346,
+      "size": [
+        16.3931,
+        5.6491,
+        7.6
+      ],
+      "bbox_min": [
+        -8.544,
+        -3.0111,
+        0.0
+      ],
+      "bbox_max": [
+        7.8491,
+        2.6379,
+        7.6
+      ],
+      "base_center": [
+        -0.6885,
+        -0.4696
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_FallenLog_Bark",
+          "material": "FK_Bark",
+          "triangles": 134,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_FallenLog_Fungus",
+          "material": "FK_Fungus",
+          "triangles": 84,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_FallenLog_Moss",
+          "material": "FK_Moss",
+          "triangles": 80,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_FallenLog_Splinter",
+          "material": "FK_PaleWood",
+          "triangles": 48,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_FallenLog.fbx",
+      "render": "assets/blender/forest-kit/FK_FallenLog.png"
+    },
+    "FK_RootArch": {
+      "triangles": 664,
+      "size": [
+        31.3448,
+        15.7832,
+        18.5028
+      ],
+      "bbox_min": [
+        -15.805,
+        -8.0776,
+        0.0
+      ],
+      "bbox_max": [
+        15.5398,
+        7.7056,
+        18.5028
+      ],
+      "base_center": [
+        -0.0911,
+        -0.186
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_RootArch_Moss",
+          "material": "FK_Moss",
+          "triangles": 156,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_RootArch_Wood",
+          "material": "FK_Bark",
+          "triangles": 508,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_RootArch.fbx",
+      "render": "assets/blender/forest-kit/FK_RootArch.png",
+      "clearance": {
+        "method": "evaluated mesh triangles projected along Y",
+        "width": 16.3347,
+        "gap_low_x": -8.1239,
+        "gap_high_x": 8.2108,
+        "height": 11.2395,
+        "width_probe_height": 11.0,
+        "height_probe_width": 16.0
+      }
+    },
+    "FK_RuinDoorway": {
+      "triangles": 586,
+      "size": [
+        35.9711,
+        7.3918,
+        18.7153
+      ],
+      "bbox_min": [
+        -18.0036,
+        -4.9535,
+        0.0
+      ],
+      "bbox_max": [
+        17.9674,
+        2.4383,
+        18.7153
+      ],
+      "base_center": [
+        -0.0181,
+        -1.4397
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_RuinDoorway_Moss",
+          "material": "FK_Moss",
+          "triangles": 188,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_RuinDoorway_Stone",
+          "material": "FK_Charcoal",
+          "triangles": 398,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_RuinDoorway.fbx",
+      "render": "assets/blender/forest-kit/FK_RuinDoorway.png",
+      "clearance": {
+        "method": "evaluated mesh triangles projected along Y",
+        "width": 18.6317,
+        "gap_low_x": -9.3104,
+        "gap_high_x": 9.3213,
+        "height": 11.6446,
+        "width_probe_height": 11.0,
+        "height_probe_width": 18.0
+      }
+    },
+    "FK_LanternMarker": {
+      "triangles": 348,
+      "size": [
+        5.5159,
+        2.8583,
+        9.0
+      ],
+      "bbox_min": [
+        -2.28,
+        -1.2659,
+        0.0
+      ],
+      "bbox_max": [
+        3.2359,
+        1.5924,
+        9.0
+      ],
+      "base_center": [
+        -0.1232,
+        0.1632
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "parts": [
+        {
+          "object": "FK_LanternMarker_Glass",
+          "material": "FK_Neon_LanternGlass",
+          "triangles": 12,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75
+        },
+        {
+          "object": "FK_LanternMarker_Iron",
+          "material": "FK_Iron",
+          "triangles": 166,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_LanternMarker_Moss",
+          "material": "FK_Moss",
+          "triangles": 32,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_LanternMarker_Rope",
+          "material": "FK_Rope",
+          "triangles": 36,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_LanternMarker_Stones",
+          "material": "FK_Charcoal",
+          "triangles": 44,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        },
+        {
+          "object": "FK_LanternMarker_Wood",
+          "material": "FK_Bark",
+          "triangles": 58,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0
+        }
+      ],
+      "fbx": "assets/exports/forest-kit/FK_LanternMarker.fbx",
+      "render": "assets/blender/forest-kit/FK_LanternMarker.png"
+    }
+  },
+  "blend": "assets/blender/forest-kit/forest-kit-v1.blend",
+  "sheet": "assets/blender/forest-kit/forest-kit-sheet.png",
+  "scale": "assets/blender/forest-kit/forest-kit-scale.png"
+}
