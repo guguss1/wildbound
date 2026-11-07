@@ -455,6 +455,8 @@ task.spawn(function()
 	listen(updates.OnClientEvent, function(payload)
 		if type(payload) ~= "table" then return end
 		state, lastUpdate = payload, os.clock()
+		-- The inventory controller reads this for the explorer compass (Night Nose works at Night only).
+		if type(payload.phase) == "string" then gui:SetAttribute("Phase", payload.phase) end
 		View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
 	end)
 	for _ = 1, 3 do

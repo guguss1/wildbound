@@ -171,6 +171,9 @@ end
 
 local function itemName(item)
 	if type(item) ~= "table" then return nil end
+	if item.kind == "Nightbloom" then
+		return finite(item.quantity) and ("Nightbloom bundle (%d)"):format(math.max(1, math.floor(item.quantity))) or "Nightbloom bundle"
+	end
 	local species = type(item.species) == "string" and item.species or "Lumipol"
 	return item.kind == "Egg" and species .. " egg" or species
 end
@@ -196,12 +199,36 @@ function View.lossSummary(summary)
 		local more = #names > 5 and (" and %d more"):format(#names - 5) or ""
 		table.insert(lines, ("Lost %s: %s%s."):format(plural(#names, "item", "items"), table.concat(shown, ", "), more))
 	end
-	local saved = itemName(summary.savedItem)
-	if saved then table.insert(lines, ("Saved by your seal: %s."):format(saved)) end
+	-- M5.8: lost materials, in a fixed order, and only the ones that really went.
+	local materials = {}
+	local lostMaterials = type(summary.materialsLost) == "table" and summary.materialsLost or {}
+	for _, key in ipairs({ "fogbark", "glowmoss", "nightbloom" }) do
+		local value = lostMaterials[key]
+		if finite(value) and value >= 1 then
+			table.insert(materials, ("%d %s"):format(math.floor(value), key:sub(1, 1):upper() .. key:sub(2)))
+		end
+	end
+	if #materials > 0 then table.insert(lines, ("Lost materials: %s."):format(table.concat(materials, ", "))) end
+	local savedNames = {}
+	for _, item in ipairs(type(summary.savedItems) == "table" and summary.savedItems or {}) do
+		local name = itemName(item)
+		if name then table.insert(savedNames, name) end
+	end
+	if #savedNames > 0 then
+		table.insert(lines, ("Saved by seal or totem: %s."):format(table.concat(savedNames, ", ")))
+	else
+		local saved = itemName(summary.savedItem)
+		if saved then table.insert(lines, ("Saved by your seal: %s."):format(saved)) end
+	end
 	local kept = type(summary.kept) == "table" and summary.kept or {}
 	local registered = finite(kept.registered) and math.max(0, math.floor(kept.registered)) or 0
 	local eggs = finite(kept.bankedEggs) and math.max(0, math.floor(kept.bankedEggs)) or 0
 	table.insert(lines, ("Kept: %d registered, %s."):format(registered, plural(eggs, "banked egg", "banked eggs")))
+	local ember = finite(kept.ember) and math.max(0, math.floor(kept.ember)) or 0
+	local banked = finite(kept.bankedMaterials) and math.max(0, math.floor(kept.bankedMaterials)) or 0
+	if ember > 0 or banked > 0 then
+		table.insert(lines, ("Safe: %d Ember, %s."):format(ember, plural(banked, "banked material", "banked materials")))
+	end
 	table.insert(lines, "Tap to close.")
 	return table.concat(lines, "\n")
 end

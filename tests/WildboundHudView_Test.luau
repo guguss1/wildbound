@@ -354,6 +354,22 @@ return function(View, source)
 		assert(text:find("Kept: 2 registered, 1 banked egg.", 1, true), "names what is kept: " .. text)
 		assert(text:find("Tap to close", 1, true), "says how to close")
 	end)
+	case("M5.8 the loss summary names lost materials, a Nightbloom bundle, every saved item and what is safe", function()
+		local text = View.lossSummary({ operationId = "life:3",
+			lostItems = { { uid = "n", kind = "Nightbloom", quantity = 2 }, { uid = "a", kind = "Egg", species = "Lumipol" } },
+			savedItems = { { uid = "c", kind = "Creature", species = "Lumipol" }, { uid = "d", kind = "Egg", species = "Lumipol" } },
+			materialsLost = { glowmoss = 3, fogbark = 13 },
+			kept = { registered = 1, bankedEggs = 0, ember = 20, bankedMaterials = 5 } })
+		assert(text:find("Lost 2 items: Nightbloom bundle (2), Lumipol egg.", 1, true), text)
+		assert(text:find("Lost materials: 13 Fogbark, 3 Glowmoss.", 1, true), text)
+		assert(text:find("Saved by seal or totem: Lumipol, Lumipol egg.", 1, true), text)
+		assert(text:find("Kept: 1 registered, 0 banked eggs.", 1, true), text)
+		assert(text:find("Safe: 20 Ember, 5 banked materials.", 1, true), text)
+		assert(#text < 420, "still short: " .. #text)
+		local plain = View.lossSummary({ lostItems = {}, materialsLost = {}, kept = { registered = 0, bankedEggs = 0, ember = 0, bankedMaterials = 0 } })
+		assert(not plain:find("Lost materials", 1, true) and not plain:find("Safe:", 1, true) and not plain:find("Saved", 1, true), plain)
+		assert(View.lossSummary({ materialsLost = { fogbark = 0, glowmoss = "x" }, lostItems = {} }):find("Lost materials", 1, true) == nil)
+	end)
 	case("an empty, bad or huge loss summary still reads clearly and stays short", function()
 		local text = View.lossSummary({ lostItems = {}, kept = { registered = 0, bankedEggs = 3 } })
 		assert(text:find("Nothing was lost.", 1, true), text)

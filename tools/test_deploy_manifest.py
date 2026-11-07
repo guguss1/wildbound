@@ -281,6 +281,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundGatherField.luau": "ServerScriptService.WildboundGatherField",
         "src/wildbound/WildboundGather.server.luau": "ServerScriptService.WildboundGather",
         "tests/WildboundGatherField_Test.luau": "ServerStorage.WildboundGatherField_Test",
+        # M5.8, wave W7 part 2: pure camp screen, loss line and compass rules the inventory client requires
+        "src/wildbound/WildboundCampView.luau": "ReplicatedStorage.WildboundCampView",
+        "tests/WildboundCampView_Test.luau": "ServerStorage.WildboundCampView_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
