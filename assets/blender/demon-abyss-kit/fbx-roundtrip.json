@@ -1,0 +1,122 @@
+{
+  "props": {
+    "DA_FissureLip": {
+      "model": {
+        "triangles": 210,
+        "size": [
+          19.8272,
+          10.1298,
+          6.1727
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "DA_FissureLip",
+          "DA_FissureLip_Neon_Rift",
+          "DA_FissureLip_Rock"
+        ],
+        "materials": [
+          "DA_FissureLip_Neon_Rift",
+          "DA_FissureLip_Rock"
+        ]
+      }
+    },
+    "DA_FloatRock": {
+      "model": {
+        "triangles": 124,
+        "size": [
+          12.0,
+          12.0,
+          6.0
+        ],
+        "min_z": 0.0,
+        "objects": [
+          "DA_FloatRock",
+          "DA_FloatRock_Crust",
+          "DA_FloatRock_Rock"
+        ],
+        "materials": [
+          "DA_FloatRock_Crust",
+          "DA_FloatRock_Rock"
+        ]
+      }
+    },
+    "DA_ThornSpire": {
+      "model": {
+        "triangles": 182,
+        "size": [
+          8.0,
+          8.0,
+          18.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "DA_ThornSpire",
+          "DA_ThornSpire_Spire"
+        ],
+        "materials": [
+          "DA_ThornSpire_Spire"
+        ]
+      }
+    },
+    "DA_RiftGate": {
+      "model": {
+        "triangles": 406,
+        "size": [
+          28.3832,
+          8.0063,
+          18.0682
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "DA_RiftGate",
+          "DA_RiftGate_Neon_Rift",
+          "DA_RiftGate_Stone"
+        ],
+        "materials": [
+          "DA_RiftGate_Neon_Rift",
+          "DA_RiftGate_Stone"
+        ]
+      }
+    },
+    "DA_RiftShard": {
+      "model": {
+        "triangles": 88,
+        "size": [
+          5.0,
+          5.0,
+          5.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "DA_RiftShard",
+          "DA_RiftShard_Base",
+          "DA_RiftShard_Neon_Rift"
+        ],
+        "materials": [
+          "DA_RiftShard_Base",
+          "DA_RiftShard_Neon_Rift"
+        ]
+      }
+    },
+    "DA_CalmStone": {
+      "model": {
+        "triangles": 108,
+        "size": [
+          6.0,
+          6.0,
+          6.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "DA_CalmStone",
+          "DA_CalmStone_Neon_Rune",
+          "DA_CalmStone_Stone"
+        ],
+        "materials": [
+          "DA_CalmStone_Neon_Rune",
+          "DA_CalmStone_Stone"
+        ]
+      }
+    }
+  }
+}
