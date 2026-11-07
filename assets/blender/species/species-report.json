@@ -119,6 +119,244 @@
           "lowest_z": -0.0412
         }
       }
+    },
+    "SP_Cortezon": {
+      "status": "unvalidated",
+      "triangles": 556,
+      "size": [
+        3.6,
+        4.0,
+        2.4
+      ],
+      "bbox_min": [
+        -1.7314,
+        -2.0568,
+        0.0
+      ],
+      "bbox_max": [
+        1.8686,
+        1.9432,
+        2.4
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.034,
+        1.007,
+        1.0345
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "Head",
+        "LegFL",
+        "LegFR",
+        "LegBL",
+        "LegBR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Cortezon_Shell",
+          "material": "SP_Cortezon_Shell",
+          "material_count": 1,
+          "triangles": 308,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "5B4630",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cortezon_Legs",
+          "material": "SP_Cortezon_Legs",
+          "material_count": 1,
+          "triangles": 128,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3A2E22",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cortezon_Moss",
+          "material": "SP_Cortezon_Moss",
+          "material_count": 1,
+          "triangles": 80,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7E9440",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cortezon_Neon_Eye",
+          "material": "SP_Cortezon_Neon_Eye",
+          "material_count": 1,
+          "triangles": 40,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "E8D25A",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Cortezon.fbx",
+        "Idle": "assets/exports/species/SP_Cortezon_Idle.fbx",
+        "Move": "assets/exports/species/SP_Cortezon_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Cortezon.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Cortezon_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0
+        },
+        "Move": {
+          "action": "SP_Cortezon_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0767
+        }
+      }
+    },
+    "SP_Cestillo": {
+      "status": "unvalidated",
+      "triangles": 554,
+      "size": [
+        2.6,
+        2.8,
+        4.0
+      ],
+      "bbox_min": [
+        -1.3,
+        -1.3911,
+        0.0
+      ],
+      "bbox_max": [
+        1.3,
+        1.4089,
+        4.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0253,
+        0.9936,
+        0.9877
+      ],
+      "bones": [
+        "Root",
+        "Basket",
+        "Neck",
+        "Head",
+        "LegL",
+        "LegR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Cestillo_Basket",
+          "material": "SP_Cestillo_Basket",
+          "material_count": 1,
+          "triangles": 264,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "B98E55",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cestillo_Neck",
+          "material": "SP_Cestillo_Neck",
+          "material_count": 1,
+          "triangles": 108,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7E8C47",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cestillo_Beak",
+          "material": "SP_Cestillo_Beak",
+          "material_count": 1,
+          "triangles": 62,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "5E9A3C",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cestillo_Legs",
+          "material": "SP_Cestillo_Legs",
+          "material_count": 1,
+          "triangles": 96,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4A2F",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Cestillo_Neon_Eye",
+          "material": "SP_Cestillo_Neon_Eye",
+          "material_count": 1,
+          "triangles": 24,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "F2F0C8",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Cestillo.fbx",
+        "Idle": "assets/exports/species/SP_Cestillo_Idle.fbx",
+        "Move": "assets/exports/species/SP_Cestillo_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Cestillo.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Cestillo_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0
+        },
+        "Move": {
+          "action": "SP_Cestillo_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.1015
+        }
+      }
     }
   }
 }

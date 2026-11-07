@@ -30,6 +30,18 @@ SPECS = {
         "parts": {"Body": ("E6EFF4", 300), "Tail": ("9CCBE0", 110), "Neon_Eye": ("4E7CC2", 40)},
         "bones": ("Root", "Body", "TailA", "TailB"),
     },
+    "SP_Cortezon": {
+        "size": (3.6, 4.0, 2.4), "tris": 600,
+        "parts": {"Shell": ("5B4630", 340), "Legs": ("3A2E22", 140), "Moss": ("7E9440", 80),
+                  "Neon_Eye": ("E8D25A", 40)},
+        "bones": ("Root", "Body", "Head", "LegFL", "LegFR", "LegBL", "LegBR"),
+    },
+    "SP_Cestillo": {
+        "size": (2.6, 2.8, 4.0), "tris": 650,
+        "parts": {"Basket": ("B98E55", 300), "Neck": ("7E8C47", 120), "Beak": ("5E9A3C", 70),
+                  "Legs": ("6B4A2F", 130), "Neon_Eye": ("F2F0C8", 30)},
+        "bones": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
+    },
 }
 
 

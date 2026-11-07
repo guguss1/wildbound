@@ -45,6 +45,11 @@ LINEUP = OUT_DIR / "species-lineup.png"
 SPECS = {
     "SP_Soplillo": {"size": (2.8, 3.4, 2.6),
                     "colors": {"Body": "E6EFF4", "Tail": "9CCBE0", "Neon_Eye": "4E7CC2"}},
+    "SP_Cortezon": {"size": (3.6, 4.0, 2.4),
+                    "colors": {"Shell": "5B4630", "Legs": "3A2E22", "Moss": "7E9440", "Neon_Eye": "E8D25A"}},
+    "SP_Cestillo": {"size": (2.6, 2.8, 4.0),
+                    "colors": {"Basket": "B98E55", "Neck": "7E8C47", "Beak": "5E9A3C", "Legs": "6B4A2F",
+                               "Neon_Eye": "F2F0C8"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -107,7 +112,110 @@ def build_soplillo():
     return asset
 
 
-BUILDERS = {"SP_Soplillo": build_soplillo}
+def ellipsoid_point(center, radii, theta, phi):
+    return (center[0] + radii[0] * math.sin(phi) * math.cos(theta),
+            center[1] + radii[1] * math.sin(phi) * math.sin(theta),
+            center[2] + radii[2] * math.cos(phi))
+
+
+def plate_on_dome(asset, part, center, radii, theta, phi, size, thickness, weigh, sink=0.12, sides=8):
+    """A bark plate lying on an ellipsoid, tilted to its surface, with a chamfered rim."""
+    p = ellipsoid_point(center, radii, theta, phi)
+    normal = unit(((p[0] - center[0]) / radii[0] ** 2, (p[1] - center[1]) / radii[1] ** 2,
+                   (p[2] - center[2]) / radii[2] ** 2))
+    u, v, n = kc.basis(normal)
+    outline = []
+    for k in range(sides):
+        angle = math.tau * k / sides + 0.2
+        reach = size * asset.rng.uniform(0.9, 1.08)
+        outline.append((math.cos(angle) * reach * 1.1, math.sin(angle) * reach))
+    slab(part, outline, madd(p, n, -sink), u, v, n, thickness, weigh, bevel=0.3)
+
+
+def build_cortezon():
+    asset = Asset("SP_Cortezon", seed=21)
+    shell, legs, moss, eye = (asset.part(n) for n in ("Shell", "Legs", "Moss", "Neon_Eye"))
+    on_body, on_head = rigid("Body"), rigid("Head")
+    center, radii = (0.0, 0.1, 0.55), (1.5, 1.75, 1.65)
+    stubs = (("LegFL", 0.9, -1.1), ("LegFR", -0.9, -1.1), ("LegBL", 0.9, 1.15), ("LegBR", -0.9, 1.15))
+
+    # Seven overlapping plates: one on top and six around it. The front one rides with the head.
+    plate_on_dome(asset, shell, center, radii, 0.0, 0.0, 1.05, 0.24, on_body)
+    for k in range(6):
+        theta = math.radians(-90 + 60 * k)
+        plate_on_dome(asset, shell, center, radii, theta, math.radians(70), 0.92, 0.22,
+                      on_head if k == 0 else on_body)
+
+    # Four stubby legs under the rim.
+    for name, x, y in stubs:
+        lathe(legs, [(0.42, 0.0), (0.36, 0.25), (0.3, 0.62)], 6, rigid(name), center=(x, y, 0.0), phase=0.3)
+
+    # Moss lumps on the crown.
+    for x, y, r in ((0.55, 0.35, 0.36), (-0.75, -0.2, 0.32), (0.35, -0.95, 0.3), (-0.4, 0.95, 0.33)):
+        z = center[2] + radii[2] * math.sqrt(max(0.0, 1.0 - (x / radii[0]) ** 2 - ((y - center[1]) / radii[1]) ** 2))
+        lathe(moss, kc.arc_profile(r, r * 0.55, 3), 5, on_body, center=(x, y, z), phase=0.5)
+
+    # Two glowing slits in a low slot at the front.
+    for side in (-1, 1):
+        prism(eye, (side * 0.45, -1.62, 0.95), (0, -1, 0), 0.2, 0.26, on_head, sides=6, scale=(1.5, 0.55))
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0.1, 1.2), (0, 1.0, 1.2))
+    asset.bone("Head", "Body", (0, -1.5, 1.0), (0, -2.1, 1.0))
+    for name, x, y in stubs:
+        asset.bone(name, "Body", (x, y, 0.65), (x, y, 0.05))
+    return asset
+
+
+def build_cestillo():
+    asset = Asset("SP_Cestillo", seed=31)
+    basket, neck, beak, legs, eye = (asset.part(n) for n in ("Basket", "Neck", "Beak", "Legs", "Neon_Eye"))
+    on_basket, on_head = rigid("Basket"), rigid("Head")
+    cy = 0.15
+
+    # Open-top woven basket: one closed shell, outer wall, rim and inner wall, with spiral bands.
+    profile = [(0.0, 1.2), (0.85, 1.25), (1.12, 1.5), (1.24, 1.85), (1.2, 2.2), (1.27, 2.5), (1.27, 2.64),
+               (1.1, 2.64), (1.04, 2.5), (0.98, 2.15), (0.88, 1.8), (0.7, 1.58), (0.0, 1.55)]
+    lathe(basket, profile, 12, on_basket, center=(0.0, cy, 0.0), twist=0.12, phase=0.1)
+
+    # Reed neck: leaves the basket, rises and bends forward, ends in the head.
+    def neck_point(t):
+        return (0.0, -0.3 - 0.5 * t * t, 2.3 + 1.55 * t)
+
+    path = [neck_point(i / 7) for i in range(8)]
+    tube(neck, path, [0.17, 0.15, 0.14, 0.14, 0.14, 0.15, 0.18, 0.2], 7,
+         blend("Neck", "Head", neck_point(0.55), neck_point(0.95), 0.0, 1.0), phase=0.2)
+
+    # Leaf beak: two flat leaf blades, the upper one chamfered.
+    leaf = [(-0.14, 0.0), (-0.2, 0.15), (-0.13, 0.36), (0.0, 0.52), (0.13, 0.36), (0.2, 0.15), (0.14, 0.0)]
+    head_tip = path[-1]
+    slab(beak, leaf, (head_tip[0], head_tip[1] - 0.08, head_tip[2]), (1, 0, 0), (0, -1, 0), (0, 0, 1),
+         0.07, on_head, bevel=0.3)
+    slab(beak, leaf, (head_tip[0], head_tip[1] - 0.08, head_tip[2] - 0.09), (1, 0, 0), (0, -1, 0), (0, 0, 1),
+         0.06, on_head)
+
+    # Two reed legs and flat feet.
+    for name, x in (("LegL", 0.55), ("LegR", -0.55)):
+        weigh = rigid(name)
+        tube(legs, [(x, cy, 1.35), (x * 1.08, cy - 0.1, 0.9), (x * 1.08, cy + 0.05, 0.45), (x * 1.08, cy, 0.12)],
+             [0.1, 0.085, 0.075, 0.075], 5, weigh)
+        kc.box(legs, (x * 1.08, cy - 0.15, 0.05), (0.5, 0.9, 0.1), weigh)
+
+    # Two pale studs for eyes, on the sides of the head.
+    for side in (-1, 1):
+        prism(eye, (side * 0.15, head_tip[1], head_tip[2] + 0.07), (side, 0, 0), 0.1, 0.1, on_head, sides=4,
+              scale=(1.0, 1.3))
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Basket", "Root", (0, cy, 2.0), (0, cy, 2.6))
+    asset.bone("Neck", "Basket", (0, -0.3, 2.3), path[5])
+    asset.bone("Head", "Neck", path[5], (0, -1.15, 3.85))
+    asset.bone("LegL", "Basket", (0.55, cy, 1.35), (0.55, cy, 0.1))
+    asset.bone("LegR", "Basket", (-0.55, cy, 1.35), (-0.55, cy, 0.1))
+    return asset
+
+
+BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo}
 ORDER = tuple(SPECS)
 
 

@@ -26,6 +26,8 @@ MODES = ("sin", "lift", "rise")
 
 BONES = {
     "SP_Soplillo": ("Root", "Body", "TailA", "TailB"),
+    "SP_Cortezon": ("Root", "Body", "Head", "LegFL", "LegFR", "LegBL", "LegBR"),
+    "SP_Cestillo": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
 }
 
 
@@ -51,6 +53,36 @@ MOTION = {
             "Body": (term("lz", 0.30, 2, 0, "rise"), term("rx", 0.08, 2, 0.25), term("rz", 0.06, 1, 0.0)),
             "TailA": (term("rx", 0.20, 2, 0.15), term("rz", 0.10, 1, 0.0)),
             "TailB": (term("rx", 0.35, 2, 0.30), term("rz", 0.25, 1, 0.25)),
+        },
+    },
+    # A bark dome that breathes and plods on four stubs in a diagonal gait.
+    "SP_Cortezon": {
+        "Idle": {
+            "Body": (term("lz", 0.04, 1, 0, "rise"), term("rz", 0.015, 1, 0.25)),
+            "Head": (term("rx", 0.07, 1, 0.25), term("rz", 0.05, 1, 0.0)),
+        },
+        "Move": {
+            "Body": (term("lz", 0.07, 2, 0, "rise"), term("rz", 0.05, 1, 0.0), term("ry", 0.025, 1, 0.25)),
+            "Head": (term("rx", 0.06, 2, 0.25),),
+            "LegFL": (term("rx", 0.42, 1, 0.0),),
+            "LegBR": (term("rx", 0.42, 1, 0.0),),
+            "LegFR": (term("rx", 0.42, 1, 0.5),),
+            "LegBL": (term("rx", 0.42, 1, 0.5),),
+        },
+    },
+    # A walking basket: nods in place, waddles on two reed legs.
+    "SP_Cestillo": {
+        "Idle": {
+            "Basket": (term("lz", 0.05, 1, 0, "rise"),),
+            "Neck": (term("rx", 0.05, 1, 0.10),),
+            "Head": (term("rx", 0.14, 1, 0.35), term("rz", 0.10, 1, 0.0)),
+        },
+        "Move": {
+            "Basket": (term("lz", 0.08, 2, 0, "rise"), term("rz", 0.07, 1, 0.0), term("ry", 0.04, 1, 0.25)),
+            "Neck": (term("rx", 0.08, 2, 0.20),),
+            "Head": (term("rx", 0.10, 2, 0.45),),
+            "LegL": (term("rx", 0.40, 1, 0.0),),
+            "LegR": (term("rx", 0.40, 1, 0.5),),
         },
     },
 }
