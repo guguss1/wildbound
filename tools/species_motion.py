@@ -1,0 +1,81 @@
+"""Pure, bounded, in-place pose profiles for the Wildbound species rigs.
+
+No Blender here, so the profiles are unit-testable. The builder converts these values
+into bone-local keys. Every clip loops: pose(progress=1) equals pose(progress=0) exactly.
+
+Rotations are radians about the armature's X, Y and Z axes, applied in the bone's rest
+frame. Offsets are studs along the same axes. Creatures face -Y with Z up, so a positive
+rx pitches the nose down and a positive rx on a leg that hangs below its hip swings the
+foot toward +Y (backward).
+
+A term is (channel, amplitude, cycles, phase, mode), with channel one of rx ry rz lx ly lz:
+  sin   amplitude * sin(tau * (cycles * p + phase))
+  lift  amplitude * max(0, sin(...))      only moves one way, so feet never sink
+  rise  amplitude * (1 - cos(...)) / 2    0 at the start, up to amplitude and back
+Nothing here is validated in play. Root is never animated: no root motion.
+"""
+
+import math
+
+FPS = 30
+DURATIONS = {"Idle": 3.0, "Move": 2.0}
+CHANNELS = ("rx", "ry", "rz", "lx", "ly", "lz")
+MAX_ANGLE = 1.0
+MAX_OFFSET = 0.6
+MODES = ("sin", "lift", "rise")
+
+BONES = {
+    "SP_Soplillo": ("Root", "Body", "TailA", "TailB"),
+}
+
+
+def frame_count(clip):
+    """Frames 1 to N inclusive, so a loop's last frame repeats the first pose."""
+    return round(DURATIONS[clip] * FPS) + 1
+
+
+def term(channel, amplitude, cycles=1, phase=0.0, mode="sin"):
+    assert channel in CHANNELS and mode in MODES and cycles == int(cycles)
+    return (channel, amplitude, int(cycles), phase, mode)
+
+
+MOTION = {
+    # A snow puff that breathes, then hops along with a whip tail trailing behind.
+    "SP_Soplillo": {
+        "Idle": {
+            "Body": (term("lz", 0.05, 1, 0, "rise"), term("rx", 0.03, 1, 0.0), term("rz", 0.02, 1, 0.25)),
+            "TailA": (term("rx", 0.14, 1, 0.10),),
+            "TailB": (term("rx", 0.22, 1, 0.25), term("rz", 0.12, 1, 0.0)),
+        },
+        "Move": {
+            "Body": (term("lz", 0.30, 2, 0, "rise"), term("rx", 0.08, 2, 0.25), term("rz", 0.06, 1, 0.0)),
+            "TailA": (term("rx", 0.20, 2, 0.15), term("rz", 0.10, 1, 0.0)),
+            "TailB": (term("rx", 0.35, 2, 0.30), term("rz", 0.25, 1, 0.25)),
+        },
+    },
+}
+
+
+def _value(kind, amplitude, cycles, phase, progress):
+    angle = math.tau * (cycles * progress + phase)
+    if kind == "sin":
+        return amplitude * math.sin(angle)
+    if kind == "lift":
+        return amplitude * max(0.0, math.sin(angle))
+    return amplitude * (1.0 - math.cos(angle)) / 2.0
+
+
+def pose(species, clip, progress):
+    """Return {bone: (rx, ry, rz, lx, ly, lz)} for every bone of the species."""
+    if species not in MOTION or clip not in DURATIONS:
+        raise ValueError("Unknown species or clip.")
+    if isinstance(progress, bool) or not isinstance(progress, (float, int)):
+        raise ValueError("Progress must be a number.")
+    if not math.isfinite(progress) or not 0 <= progress <= 1:
+        raise ValueError("Progress must be finite and between zero and one.")
+    progress = 0.0 if progress >= 1 else float(progress)
+    result = {bone: [0.0] * 6 for bone in BONES[species]}
+    for bone, terms in MOTION[species][clip].items():
+        for channel, amplitude, cycles, phase, kind in terms:
+            result[bone][CHANNELS.index(channel)] += _value(kind, amplitude, cycles, phase, progress)
+    return {bone: tuple(values) for bone, values in result.items()}

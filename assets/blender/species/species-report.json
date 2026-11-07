@@ -1,0 +1,124 @@
+{
+  "generator": "tools/build-species-rigs.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_UNITS",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Silueta's rig once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "species-sheet.png",
+  "lineup_file": "species-lineup.png",
+  "blend": "assets/blender/species/species-v1.blend",
+  "species": {
+    "SP_Soplillo": {
+      "status": "unvalidated",
+      "triangles": 344,
+      "size": [
+        2.8,
+        3.4,
+        2.6
+      ],
+      "bbox_min": [
+        -1.4,
+        -1.2325,
+        0.0
+      ],
+      "bbox_max": [
+        1.4,
+        2.1675,
+        2.6
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0406,
+        1.0102,
+        1.0156
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "TailA",
+        "TailB"
+      ],
+      "parts": [
+        {
+          "object": "SP_Soplillo_Body",
+          "material": "SP_Soplillo_Body",
+          "material_count": 1,
+          "triangles": 236,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "E6EFF4",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Soplillo_Tail",
+          "material": "SP_Soplillo_Tail",
+          "material_count": 1,
+          "triangles": 68,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9CCBE0",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Soplillo_Neon_Eye",
+          "material": "SP_Soplillo_Neon_Eye",
+          "material_count": 1,
+          "triangles": 40,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "4E7CC2",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Soplillo.fbx",
+        "Idle": "assets/exports/species/SP_Soplillo_Idle.fbx",
+        "Move": "assets/exports/species/SP_Soplillo_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Soplillo.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Soplillo_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0049
+        },
+        "Move": {
+          "action": "SP_Soplillo_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0412
+        }
+      }
+    }
+  }
+}

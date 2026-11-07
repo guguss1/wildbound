@@ -1,0 +1,109 @@
+{
+  "species": {
+    "SP_Soplillo": {
+      "model": {
+        "triangles": 344,
+        "size": [
+          2.8,
+          3.4,
+          2.6
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "TailA",
+          "TailB"
+        ],
+        "objects": [
+          "SP_Soplillo",
+          "SP_Soplillo_Body",
+          "SP_Soplillo_Neon_Eye",
+          "SP_Soplillo_Tail"
+        ],
+        "materials": [
+          "SP_Soplillo_Body",
+          "SP_Soplillo_Neon_Eye",
+          "SP_Soplillo_Tail"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 344,
+          "size": [
+            2.7994,
+            3.2479,
+            2.5137
+          ],
+          "min_z": 0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "TailA",
+            "TailB"
+          ],
+          "objects": [
+            "SP_Soplillo",
+            "SP_Soplillo_Body",
+            "SP_Soplillo_Neon_Eye",
+            "SP_Soplillo_Tail"
+          ],
+          "materials": [
+            "SP_Soplillo_Body",
+            "SP_Soplillo_Neon_Eye",
+            "SP_Soplillo_Tail"
+          ],
+          "actions": [
+            "SP_Soplillo|WildboundSpecies"
+          ],
+          "animated_channels": 49,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 344,
+          "size": [
+            2.8,
+            3.2161,
+            2.5109
+          ],
+          "min_z": -0.0412,
+          "bones": [
+            "Root",
+            "Body",
+            "TailA",
+            "TailB"
+          ],
+          "objects": [
+            "SP_Soplillo",
+            "SP_Soplillo_Body",
+            "SP_Soplillo_Neon_Eye",
+            "SP_Soplillo_Tail"
+          ],
+          "materials": [
+            "SP_Soplillo_Body",
+            "SP_Soplillo_Neon_Eye",
+            "SP_Soplillo_Tail"
+          ],
+          "actions": [
+            "SP_Soplillo|WildboundSpecies"
+          ],
+          "animated_channels": 49,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
+    }
+  }
+}
