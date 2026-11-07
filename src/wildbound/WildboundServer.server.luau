@@ -62,6 +62,22 @@ if not telemetry then
 	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
 end
 
+-- W16 (M9.5): analytics seam. WildboundFlags.analyticsMode "off" (the default, or any missing or odd value) builds a
+-- no-op object; "record" keeps events in memory for tests and Play checks. No remote reaches it and no service is called.
+local Analytics = require(script.Parent:WaitForChild("WildboundAnalytics"))
+local flagsModule = script.Parent:FindFirstChild("WildboundFlags")
+local flagsOk, flags = false, nil
+if flagsModule and flagsModule:IsA("ModuleScript") then flagsOk, flags = pcall(require, flagsModule) end
+local analytics, recorder = Analytics.fromMode(flagsOk and type(flags) == "table" and flags.analyticsMode or "off")
+if recorder then
+	-- Server-only: ServerStorage never replicates. Returns the recorded events and the counters, for tests.
+	local dump = Instance.new("BindableFunction")
+	dump.Name = "AnalyticsDump"
+	dump.OnInvoke = function() return table.clone(recorder.events), table.clone(analytics.counters) end
+	dump.Parent = telemetry
+end
+game:BindToClose(function() analytics:closeAll() end)
+
 -- Server-to-server proof of registered ownership; clients cannot invoke bindables.
 -- Never use a replicated Player attribute alone to authorize a companion ability.
 local eligibility = Instance.new("BindableFunction")
@@ -187,6 +203,7 @@ extractPrompt.Triggered:Connect(function(player)
 	if not validPrompt(extractPrompt, extraction) or not allowed(player, "Extract") then return end
 	local alive, distance = context(player, extraction)
 	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
+	if ok then analytics:extracted(player.UserId) end
 	reply(player, "Extract", ok, count, ok and extractNotice(count, receipt) or nil)
 end)
 local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12, nil, Keys.CAMP.hatch)
@@ -388,6 +405,7 @@ handleEnding = function(out)
 			seconds = math.floor((now - meta.startedAt) * 100 + 0.5) / 100, calm = math.floor(out.calm * 100 + 0.5) / 100,
 			inTerritory = meta.inTerritory, guardianMode = meta.guardianMode, guardianDistance = meta.guardianDistance })
 		while #captureLog > 40 do table.remove(captureLog, 1) end
+		analytics:capture(out.playerKey, out.reason, Analytics.ZONE_OF_TIER[meta.tier], now - meta.startedAt, granted)
 	end
 	if player and records[player] and player.Parent == Players then
 		local snapshot = Capture.toSnapshot(out)
@@ -422,6 +440,7 @@ spawnEncounter = function(slot)
 			local alive, distance = context(player, body)
 			local ok, reason = state:pickup(player.UserId, id, alive, distance)
 			if ok then
+				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
 				scheduleRespawn(slot)
 			end
@@ -437,6 +456,7 @@ end
 strikeEvent.Event:Connect(function(player)
 	if typeof(player) == "Instance" and player:IsA("Player") and records[player] then
 		capture:notifyStruck(player.UserId)
+		analytics:noteStrike(player.UserId)
 	end
 end)
 
@@ -577,6 +597,7 @@ gatherClaim.OnInvoke = function(player, nodeId, moved)
 	if ok then
 		gatherNodes[nodeId] = nil
 		state:retireEncounter(nodeId)
+		analytics:gain(player.UserId, "gather", node.slot.zone)
 	end
 	reply(player, "Gather", ok, result, ok and gatherNotice(result) or nil)
 	return ok, ok and table.clone(result) or result
@@ -654,6 +675,7 @@ RunService.Heartbeat:Connect(function(dt)
 			local _, safe = Rules.zone(x, z)
 			local inCamp = safe and fromCamp < Rules.distance(x, z, SHELTER_X, SHELTER_Z)
 			state:observeExpedition(player.UserId, fromCamp, not inCamp, now)
+			analytics:observeCamp(player.UserId, not inCamp)
 		end
 	end
 end)
@@ -670,6 +692,9 @@ local function economyAction(player, action, argument)
 		local ok, result
 		if action == "Craft" then ok, result = state:craft(key, argument, alive, distance)
 		else ok, result = state:upgrade(key, argument, alive, distance) end
+		if ok then
+			if action == "Craft" then analytics:crafted(key, argument) else analytics:spent(key, "upgrade") end
+		end
 		reply(player, action, ok, result, action == "Craft" and ("Crafted. You now hold %s."):format(tostring(result))
 			or "Upgrade bought. It lasts this session.")
 	elseif action == "ArmSeal" or action == "SealNewest" then
@@ -691,11 +716,13 @@ local function economyAction(player, action, argument)
 		if not EconomyConfig.skills[argument] then return end
 		local alive, distance = context(player, campCenter)
 		local ok, result = state:learn(key, argument, alive, distance)
+		if ok then analytics:spent(key, "skill") end
 		reply(player, action, ok, result, "Skill learned. It lasts this session.")
 	elseif action == "UseCapsule" then
 		local alive, root = context(player), rootOf(player)
 		local distance = root and Rules.distance(root.Position.X, root.Position.Z, SHELTER_X, SHELTER_Z) or math.huge
 		local ok, result = state:useCapsule(key, argument, alive, distance)
+		if ok then analytics:spent(key, "capsule") end
 		reply(player, action, ok, result, ok and ("Banked at the shelter. Earned %d Ember."):format(result.ember) or nil)
 	end
 end
@@ -737,6 +764,7 @@ local function bindCharacter(player, character)
 	if record.character and not record.defeated then
 		state:defeat(player.UserId, "life:" .. record.generation)
 		removeDropsOf(player)
+		analytics:death(player.UserId)
 	end
 	if record.deathConnection then record.deathConnection:Disconnect(); record.deathConnection = nil end
 	record.generation += 1
@@ -751,6 +779,7 @@ local function bindCharacter(player, character)
 		record.defeated = true
 		local _, _, lossSummary = state:defeat(player.UserId, "life:" .. generation)
 		removeDropsOf(player)
+		analytics:death(player.UserId)
 		-- The client shows the summary full screen before respawn (M4.6).
 		send(player, "Defeat", true, "Defeated: unwarded bag items and half of each carried material were lost. "
 			.. "Banked materials, Ember and companions remain.", lossSummary)
@@ -775,6 +804,7 @@ local function addPlayer(player)
 	local record = { rates = {}, lastAny = -math.huge, generation = 0, defeated = false }
 	records[player] = record
 	playersByUserId[player.UserId] = player
+	analytics:join(player.UserId)
 	record.characterConnection = player.CharacterAdded:Connect(function(character) bindCharacter(player, character) end)
 	if player.Character then task.spawn(bindCharacter, player, player.Character) end
 	ensureSlots()
@@ -790,6 +820,7 @@ Players.PlayerRemoving:Connect(function(player)
 	if out then handleEnding(out) end
 	-- D10 hold is not built: a disconnected owner's drops go with the profile.
 	removeDropsOf(player)
+	analytics:leave(player.UserId, "left")
 	records[player] = nil
 	playersByUserId[player.UserId] = nil
 	state:removePlayer(player.UserId)

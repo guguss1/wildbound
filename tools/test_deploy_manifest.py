@@ -296,6 +296,7 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundAnalytics_Test.luau": "ServerStorage.WildboundAnalytics_Test",
         "src/wildbound/WildboundFunnel.luau": "ServerScriptService.WildboundFunnel",
         "tests/WildboundFunnel_Test.luau": "ServerStorage.WildboundFunnel_Test",
+        "tests/WildboundAnalyticsWiring_Test.luau": "ServerStorage.WildboundAnalyticsWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

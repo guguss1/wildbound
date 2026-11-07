@@ -5,4 +5,7 @@
 return table.freeze({
 	damageMode = "off", -- "off" | "private"
 	privateTestPlaceIds = table.freeze({}),
+	-- W16 analytics seam: "off" builds a no-op. "record" keeps events in server memory for tests and Play checks.
+	-- There is no live sink; no mode calls any Roblox analytics service (docs/testing/wildbound-analytics.md).
+	analyticsMode = "off", -- "off" | "record"
 })

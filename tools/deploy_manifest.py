@@ -114,6 +114,7 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundAnalytics_Test.luau", "ServerStorage.WildboundAnalytics_Test"),
     ("src/wildbound/WildboundFunnel.luau", "ServerScriptService.WildboundFunnel"),
     ("tests/WildboundFunnel_Test.luau", "ServerStorage.WildboundFunnel_Test"),
+    ("tests/WildboundAnalyticsWiring_Test.luau", "ServerStorage.WildboundAnalyticsWiring_Test"),
 ]
 
 
