@@ -149,8 +149,14 @@ def build_float_rock(a):
     loft(rock, rings, W, start=(0.25, -0.15, 0.0), end=(0.0, 0.0, 5.9))
     for x, y, tilt in ((1.4, 0.8, (0.15, 0.1)), (-1.3, 1.1, (-0.2, 0.0)), (0.2, -1.6, (0.0, -0.15))):
         org.shard(rock, rng, (x, y, 3.5), (tilt[0], tilt[1], -1.0), 0.7, 1.8, sides=4, belly=1.15, stages=2)
-    outline = org.outline_points(rng, 8, 4.6, 4.2, wobble=0.12, jitter=0.05)
-    loft(crust, [[(x, y, 5.85) for x, y in outline], [(x * 0.97, y * 0.97, 6.04) for x, y in outline]], W)
+    # Crimson crust: a five-sided plate and a small slab with a crack of bare rock between them, each leaning its own
+    # way and standing at its own height (exactly 28 triangles, as the layout plan measured).
+    big = org.outline_points(rng, 5, 2.9, 2.6, wobble=0.14, jitter=0.06)
+    lifts = (5.95, 6.04, 6.0, 5.93, 6.03)
+    loft(crust, [[(x - 1.1, y + 0.7, 5.85) for x, y in big],
+                 [(x * 0.94 - 1.1, y * 0.94 + 0.7, lift) for (x, y), lift in zip(big, lifts)]], W)
+    kc.hexahedron(crust, [(1.6, -2.7, 5.85), (3.9, -2.2, 5.85), (3.6, -0.4, 5.85), (1.3, -0.7, 5.85),
+                          (1.7, -2.6, 5.94), (3.7, -2.15, 6.04), (3.45, -0.5, 5.99), (1.45, -0.8, 5.95)], W)
 
 
 def tags_float_rock(a):

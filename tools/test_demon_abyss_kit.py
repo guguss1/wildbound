@@ -153,6 +153,12 @@ class DemonAbyssReads(unittest.TestCase):
         crust = self.part("DA_FloatRock", "Crust")["vertices"]
         self.assertGreaterEqual(min(v[2] for v in crust), 5.8)
 
+    def test_float_rock_crust_is_cracked_plates_at_uneven_heights_not_one_flat_patch(self):
+        crust = self.part("DA_FloatRock", "Crust")
+        self.assertGreaterEqual(len(shells(crust)), 2, "two plates with rock showing in the crack between them")
+        top = [v[2] for v in crust["vertices"] if v[2] > 5.9]
+        self.assertGreaterEqual(max(top) - min(top), 0.08, "the plates tilt and stand at different heights")
+
     # -- DA_ThornSpire ---------------------------------------------------
     def test_spire_curves_narrows_and_carries_three_side_spikes(self):
         spire = self.part("DA_ThornSpire", "Spire")
