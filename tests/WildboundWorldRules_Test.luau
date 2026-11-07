@@ -201,5 +201,43 @@ return function(Rules)
 		equal(Rules.canStrike(15, 14, 0, 0 / 0, true, false, true), false)
 		equal(Rules.canStrike(math.huge, 14, 0, 4, true, false, true), false)
 	end)
+	-- M2.2: the proximity cue never reads a guardian that is withdrawing, and the disc has a non-hue cue.
+	case("threat is every engaged mode in fog but never Retreat", function()
+		for _, mode in ipairs({ "Patrol", "Alert", "Hunt", "Telegraph" }) do
+			equal(Rules.isThreat(mode, true, true, false, 30), true)
+		end
+		equal(Rules.isThreat("Retreat", true, true, false, 3), false)
+	end)
+	case("threat needs a live player in fog, outside shelter, within chase range", function()
+		equal(Rules.isThreat("Hunt", false, true, false, 30), false)
+		equal(Rules.isThreat("Hunt", true, false, false, 30), false)
+		equal(Rules.isThreat("Hunt", true, true, true, 30), false)
+		equal(Rules.isThreat("Hunt", true, true, false, Rules.CHASE_RANGE), true)
+		equal(Rules.isThreat("Hunt", true, true, false, Rules.CHASE_RANGE + 0.01), false)
+	end)
+	case("threat fails closed on bad input", function()
+		for _, distance in ipairs({ 0 / 0, math.huge, -1, "5" }) do
+			equal(Rules.isThreat("Hunt", true, true, false, distance), false)
+		end
+		for _, mode in ipairs({ 5, false }) do equal(Rules.isThreat(mode, true, true, false, 5), false) end
+		equal(Rules.isThreat(nil, true, true, false, 5), false)
+	end)
+	case("the disc turns amber while someone is seen, and also grows and fills in", function()
+		local idle, seen = Rules.groundCue(false), Rules.groundCue(true)
+		assert(seen.r > 200 and seen.r > seen.g and seen.g > seen.b + 40, "seen must be amber")
+		assert(idle.g > idle.r and idle.g > idle.b, "idle stays the calm sage")
+		assert(seen.diameter > idle.diameter, "seen must be larger, so colour is not the only cue")
+		assert(seen.transparency < idle.transparency, "seen must be more solid, so colour is not the only cue")
+		for _, value in ipairs({ "yes", 1, {} }) do
+			equal(Rules.groundCue(value).diameter, idle.diameter)
+		end
+		equal(Rules.groundCue(nil).diameter, idle.diameter)
+	end)
+	case("the disc table is fresh each call", function()
+		local first = Rules.groundCue(true)
+		first.r, first.diameter = 0, 0
+		equal(Rules.groundCue(true).diameter > 0, true)
+		equal(Rules.groundCue(true).r > 200, true)
+	end)
 	return result
 end

@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Hunt = require(script.Parent:WaitForChild("WildboundSiluetaHunt"))
+local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
@@ -87,6 +88,8 @@ local targetLife, huntState = nil, nil
 local alertEndsAt, telegraphEndsAt, recoveryEndsAt = 0, 0, originTime + 3
 local chaseStartedAt, lastAttackAt, revealedUntil = 0, -Rules.ATTACK_COOLDOWN, 0
 local patrolIndex = 1
+-- Per-player awareness (M2). Presentation only: nothing below ever reads it to gate a strike.
+local awareness, awarenessResults, anySeen = Awareness.new(), {}, false
 local patrol = {
 	home + Vector3.new(16, 0, 0), home + Vector3.new(0, 0, 16),
 	home + Vector3.new(-16, 0, 0), home + Vector3.new(0, 0, -16),
@@ -112,12 +115,19 @@ local function hasLumipol(player)
 	return ok and value == true
 end
 
-local function visible(character, from, destination)
+-- ignoreBodies: another player standing in the way does not hide the target from Silueta (M2.2).
+local function visible(character, from, destination, ignoreBodies)
 	local direction = destination - from
 	if direction.Magnitude < 0.01 then return true end
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { character, runtime }
+	local excluded = { character, runtime }
+	if ignoreBodies then
+		for _, other in ipairs(Players:GetPlayers()) do
+			if other.Character and other.Character ~= character then table.insert(excluded, other.Character) end
+		end
+	end
+	params.FilterDescendantsInstances = excluded
 	params.IgnoreWater = true
 	return workspace:Raycast(from, direction, params) == nil
 end
@@ -130,7 +140,7 @@ local function targetContext(player, range, allowHidden)
 	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range) then return nil end
 	-- Do not acquire through cover or on a different floor; recheck these at strike time.
 	if math.abs(position.Y - guardianPosition.Y) > 8 then return nil end
-	local inSight = visible(character, guardianPosition, position)
+	local inSight = visible(character, guardianPosition, position, true)
 	if not inSight and not allowHidden then return nil end
 	return { player = player, character = character, humanoid = humanoid, root = root,
 		distance = (position - guardianPosition).Magnitude, visible = inSight }
@@ -173,7 +183,7 @@ local function moveToward(destination, speed, dt, checkObstacle)
 	guardian:PivotTo(CFrame.lookAt(nextPosition, nextPosition + difference.Unit))
 end
 
-local function snapshot(player, action, ok, notice)
+local function snapshot(player, action, ok, notice, noticeShort)
 	if stopped or not records[player] or player.Parent ~= Players then return end
 	local now = workspace:GetServerTimeNow()
 	local cycle = Rules.cycle(now - originTime)
@@ -190,10 +200,12 @@ local function snapshot(player, action, ok, notice)
 		phaseRemaining = cycle.remaining, nextPhaseAt = now + cycle.remaining, clockTime = cycle.clockTime,
 		isFog = isFog, isSafe = isSafe, alive = root ~= nil, hasLumipol = hasLumipol(player),
 		flashlightReadyAt = record.cooldowns.Flashlight or 0, pulseReadyAt = record.cooldowns.LumipolPulse or 0,
-		guardian = { state = mode, distance = distance, threat = root ~= nil and isFog and not isSafe and distance <= Rules.CHASE_RANGE,
-			revealedUntil = revealedUntil, telegraphEndsAt = telegraphEndsAt },
+		-- The attack deadline travels only inside this player's awareness, never to everyone (M2.2).
+		guardian = { state = mode, distance = distance, threat = Rules.isThreat(mode, root ~= nil, isFog, isSafe, distance),
+			revealedUntil = revealedUntil, awareness = Awareness.toSnapshot(awarenessResults[player.UserId]) },
 		nightRewardsEnabled = false, damageEnabled = damageEnabled,
 		action = action or "WorldTick", ok = ok ~= false, notice = notice or "",
+		noticeShort = noticeShort or notice or "",
 	})
 end
 
@@ -280,9 +292,44 @@ local function step(now, dt)
 		body.Transparency, head.Transparency = revealed and 0.3 or 0.86, revealed and 0.25 or 0.82
 	end
 	outline.OutlineTransparency = revealed and 0.05 or 0.55
-	local warning = mode == "Alert" or mode == "Telegraph"
-	groundCue.Color = warning and Color3.fromRGB(240, 183, 92) or Color3.fromRGB(177, 201, 180)
-	groundCue.Transparency = warning and 0.05 or 0.35
+end
+
+-- Runs once per fixed step, right after the guardian step, with the same clock. Pushes a snapshot to
+-- every player whose awareness changed, so a warning never waits for the 1 Hz tick.
+local discSeen
+local function stepAwareness(now)
+	local context = target and targetContext(target, Rules.CHASE_RANGE, true)
+	local entries = {}
+	for player in pairs(records) do
+		local character, _, root = characterContext(player)
+		local safe, distance = false, nil
+		if root then
+			local _, isSafe = Rules.zone(root.Position.X, root.Position.Z)
+			safe, distance = isSafe, (root.Position - body.Position).Magnitude
+		end
+		table.insert(entries, { id = player.UserId, life = character, alive = root ~= nil,
+			distance = distance, safe = safe })
+	end
+	awarenessResults = Awareness.step(awareness, { now = now, mode = mode,
+		targetId = target and target.UserId, targetLife = targetLife,
+		targetVisible = context ~= nil and context.visible,
+		lastVisibleAt = huntState and huntState.lastVisibleAt,
+		telegraphEndsAt = telegraphEndsAt, players = entries })
+	anySeen = false
+	for player in pairs(records) do
+		local result = awarenessResults[player.UserId]
+		if result then
+			if result.state == "seen" then anySeen = true end
+			if result.changed then snapshot(player) end
+		end
+	end
+	if anySeen ~= discSeen then
+		discSeen = anySeen
+		local cue = Rules.groundCue(anySeen)
+		groundCue.Color = Color3.fromRGB(cue.r, cue.g, cue.b)
+		groundCue.Transparency = cue.transparency
+		groundCue.Size = Vector3.new(0.12, cue.diameter, cue.diameter)
+	end
 end
 
 local notices = {
@@ -290,6 +337,11 @@ local notices = {
 	NotEquipped = "Extract and equip a registered Lumipol first. The flashlight is always free.",
 	Cooldown = "Ability is cooling down.", Miss = "No Silueta revealed. Move within 55 studs; face it for flashlight.",
 	Revealed = "Silueta revealed for 4 seconds. Keep moving; it is not defeated.",
+}
+-- Short forms for small screens, so the line is collapsed instead of shrunk or clipped.
+local noticesShort = {
+	InvalidContext = "Not available right now.", NotEquipped = "Equip a Lumipol first.",
+	Cooldown = "Cooling down.", Miss = "Missed. Move closer, face it.", Revealed = "Revealed 4 s. Keep moving.",
 }
 table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, action, ...)
 	if stopped or select("#", ...) ~= 0 or type(action) ~= "string" then return end
@@ -301,7 +353,7 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 	if now - record.lastRequest < 0.3 or now - (record.rates[action] or -math.huge) < 1 then return end
 	record.lastRequest, record.rates[action] = now, now
 	if action == "RequestSnapshot" then
-		snapshot(player, action, true, "Shared server clock. Night rewards are not implemented in this P0.")
+		snapshot(player, action, true, "Connected to the shared world clock.")
 		return
 	end
 	local eligible = action == "LumipolPulse" and hasLumipol(player)
@@ -320,7 +372,7 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 		revealedUntil = math.max(revealedUntil, now + Rules.REVEAL_SECONDS)
 		guardian:SetAttribute("RevealedUntil", revealedUntil)
 	end
-	snapshot(player, action, ok, notices[reason] or "Ability not available.")
+	snapshot(player, action, ok, notices[reason] or "Ability not available.", noticesShort[reason] or "Not available.")
 end))
 
 local function addPlayer(player)
@@ -362,6 +414,7 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 			-- Measure horizontal displacement, not rotation or intent; retain until the next fixed step.
 			visual:setMoving(after.X ~= before.X or after.Z ~= before.Z)
 		end
+		stepAwareness(now)
 		accumulator = 0
 	end
 	-- Higher-frequency art scheduling does not change the existing 0.2-second gameplay step.

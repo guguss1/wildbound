@@ -185,7 +185,9 @@ listen(RunService.Heartbeat, function(dt)
 	local now = workspace:GetServerTimeNow()
 	phaseLabel.Text = tostring(state.phase or "Unknown") .. " · " .. math.max(0, math.ceil((state.nextPhaseAt or now) - now)) .. "s"
 	local guardian = type(state.guardian) == "table" and state.guardian or {}
-	if type(guardian.telegraphEndsAt) == "number" and guardian.telegraphEndsAt > now then
+	-- Only the targeted player receives an attack deadline, inside their own awareness (M2.2).
+	local aware = type(guardian.awareness) == "table" and guardian.awareness or {}
+	if type(aware.attackEndsAt) == "number" and aware.attackEndsAt > now then
 		warningLabel.Text = "Attack incoming: move away!"
 	elseif guardian.threat then
 		warningLabel.Text = "Threat nearby: move toward shelter."

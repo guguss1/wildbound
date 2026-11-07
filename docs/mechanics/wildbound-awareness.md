@@ -2,7 +2,7 @@
 
 Unit M2.1, wave W3a. Answers one question per player: is it after me, my friend, or nobody?
 
-**Status: the pure rule is built and its contracts pass in Studio. Nothing is wired.** The server, HUD and snapshots are unchanged, so players see no difference until W3b. No person has tried the cue, and every constant is a hypothesis.
+**Status (W3b): wired on the server and read by the HUD.** The rule and its 57 contracts passed in Studio in W3a. W3b adds `WildboundWorld.server.luau` wiring (below) and the HUD chip. Real two-client runs are recorded in the section "Wired in W3b". No person has tried the cue, and every constant is a hypothesis. The awareness result is presentation only and is never read by a strike check.
 
 | File | Explorer path |
 | --- | --- |
@@ -112,3 +112,15 @@ require(testClone)(require(awarenessClone), require(huntClone), require(rulesClo
 ```
 
 Observed results are recorded in the task document by the parent. Nothing here proves the cue is readable, muted or on a phone.
+
+## Wired in W3b (M2.2)
+
+| Item | Where |
+| --- | --- |
+| Create once, step once per fixed step right after the guardian step with the same clock | `stepAwareness(now)` in `WildboundWorld.server.luau` |
+| Input per player: `life` is the character, `distance` is to Silueta, `safe` from `Rules.zone`; target sight is `targetContext(target, CHASE_RANGE, true)` | same function |
+| Push a snapshot to each player whose result has `changed` | same function |
+| Payload: `guardian.awareness = Awareness.toSnapshot(result)`. The global `telegraphEndsAt` is no longer sent. `TelegraphEndsAt` stays a model attribute for the 3D pose | `snapshot()` |
+| `guardian.threat` is `Rules.isThreat(...)`, which excludes Retreat | `WildboundWorldRules.luau` |
+| Other bodies do not block sight: `visible(..., ignoreBodies)` excludes every player character for Silueta's sight. The flashlight and pulse ray still excludes only the caster | `visible()`, `targetContext()` |
+| Ground disc: `Rules.groundCue(anySeen)` is amber, larger and more solid while any player is `seen` | `stepAwareness()` |

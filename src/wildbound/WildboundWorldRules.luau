@@ -112,6 +112,25 @@ function Rules.canStrike(now, telegraphEndsAt, lastAttackAt, distance, alive, sa
 		and alive == true and safe == false and visible == true
 end
 
+-- M2.2: the proximity cue for one player. A guardian that is retreating is not a threat, so the
+-- cue never outlives the hunt. It is a presentation cue only and must never gate a strike.
+function Rules.isThreat(mode, alive, inFog, safe, distance)
+	return type(mode) == "string" and mode ~= "Retreat" and alive == true and inFog == true and safe ~= true
+		and Rules.finite(distance) and distance >= 0 and distance <= Rules.CHASE_RANGE
+end
+
+-- M2.3: the ground disc under Silueta. While any player is seen it turns amber and also grows and
+-- becomes more solid, so colour is not the only cue. Values are hypotheses.
+local DISC = table.freeze({
+	idle = table.freeze({ r = 177, g = 201, b = 180, transparency = 0.35, diameter = 5.5 }),
+	seen = table.freeze({ r = 240, g = 183, b = 92, transparency = 0.05, diameter = 7.5 }),
+})
+
+function Rules.groundCue(seen)
+	local source = seen == true and DISC.seen or DISC.idle
+	return { r = source.r, g = source.g, b = source.b, transparency = source.transparency, diameter = source.diameter }
+end
+
 -- One non-yielding decision consumes only an authorized action's cooldown.
 -- A valid use may miss; range/LOS/facing determine reveal, never client-supplied IDs.
 function Rules.tryAbility(cooldowns, action, now, context)
