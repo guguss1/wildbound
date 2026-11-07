@@ -219,6 +219,86 @@ listen(RunService.Heartbeat, function()
 		pushedSince = nil
 	end
 end)
+-- Dread pass (D4, decision D-D5): sprint. Keyboard LeftShift and gamepad L3 are held; touch uses the "Correr" toggle,
+-- because a held button would take the right thumb off the camera. A sinking high-priority action keeps Shift from
+-- toggling shift lock. The server owns stamina, stance and speed; this only asks, refreshed every 0.5 s while held.
+local ContextActionService = game:GetService("ContextActionService")
+local staminaWords = {}
+do
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	local ok, value = false, nil
+	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
+	if ok and type(value) == "table" and type(value.STAMINA) == "table" then staminaWords = value.STAMINA end
+end
+local stanceRemote
+task.spawn(function()
+	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
+	local remote = folder and folder:WaitForChild("Stance", 15)
+	if remote and remote:IsA("RemoteEvent") then stanceRemote = remote end
+end)
+local sprintHeld, sprintToggle, lastStanceSent = false, false, 0
+local function sendStance(force)
+	if not stanceRemote then return end
+	if sprintHeld or sprintToggle then
+		local now = os.clock()
+		if force or now - lastStanceSent >= 0.5 then
+			lastStanceSent = now
+			stanceRemote:FireServer("sprint")
+		end
+	elseif force then
+		stanceRemote:FireServer("walk")
+	end
+end
+ContextActionService:BindActionAtPriority("WildboundSprint", function(_, inputState)
+	if inputState == Enum.UserInputState.Begin then
+		sprintHeld = true
+		sendStance(true)
+	elseif inputState == Enum.UserInputState.End or inputState == Enum.UserInputState.Cancel then
+		sprintHeld = false
+		sendStance(true)
+	end
+	return Enum.ContextActionResult.Sink
+end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
+local sprintButton = button(gui, staminaWords.sprint or "Correr", UDim2.new(), UDim2.fromOffset(110, 44))
+sprintButton.Name = "SprintButton"
+local staminaBar = make("Frame", {Name = "StaminaBar", BackgroundColor3 = Color3.fromRGB(25, 34, 31),
+	BackgroundTransparency = 0.2, BorderSizePixel = 0, Visible = false}, gui)
+make("UICorner", {CornerRadius = UDim.new(0, 4)}, staminaBar)
+local staminaFill = make("Frame", {Name = "Fill", BackgroundColor3 = Color3.fromRGB(214, 226, 196),
+	BorderSizePixel = 0, Size = UDim2.fromScale(1, 1)}, staminaBar)
+make("UICorner", {CornerRadius = UDim.new(0, 4)}, staminaFill)
+local staminaLabel = make("TextLabel", {Name = "Words", BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, -18),
+	Size = UDim2.new(1, 0, 0, 16), Font = Enum.Font.GothamBold, TextSize = 13, Text = staminaWords.label or "Aliento",
+	TextColor3 = Color3.fromRGB(240, 244, 231), TextXAlignment = Enum.TextXAlignment.Left}, staminaBar)
+local function paintSprintButton()
+	sprintButton.BackgroundColor3 = sprintToggle and Color3.fromRGB(150, 96, 60) or Color3.fromRGB(77, 115, 88)
+end
+listen(sprintButton.Activated, function()
+	sprintToggle = not sprintToggle
+	paintSprintButton()
+	sendStance(true)
+end)
+local function applyStamina()
+	local value = player:GetAttribute("WildboundStamina")
+	local stance = player:GetAttribute("WildboundStance")
+	local amount = type(value) == "number" and math.clamp(value / 100, 0, 1) or 1
+	staminaFill.Size = UDim2.fromScale(amount, 1)
+	-- Exhausted shows words, not only colour (D4).
+	local tired = stance == "exhausted"
+	staminaLabel.Text = tired and (staminaWords.exhausted or "Sin aliento") or (staminaWords.label or "Aliento")
+	staminaFill.BackgroundColor3 = tired and Color3.fromRGB(196, 92, 72) or Color3.fromRGB(214, 226, 196)
+	staminaBar.Visible = amount < 0.999 or stance == "sprint"
+end
+listen(player:GetAttributeChangedSignal("WildboundStamina"), applyStamina)
+listen(player:GetAttributeChangedSignal("WildboundStance"), applyStamina)
+listen(RunService.Heartbeat, function()
+	sendStance(false)
+	-- Above the pulse slot; the button only on touch-first screens, where there is no Shift.
+	sprintButton.Position, sprintButton.Size = pulse.Position - UDim2.fromOffset(0, 52), pulse.Size
+	sprintButton.Visible = touchPrimary() and not isHidden()
+	staminaBar.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 66 or 14)
+	staminaBar.Size = UDim2.new(pulse.Size.X.Scale, pulse.Size.X.Offset, 0, 8)
+end)
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)
@@ -496,6 +576,7 @@ end)
 listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	pcall(function() RunService:UnbindFromRenderStep("WildboundGuardianSmoothing") end)
+	pcall(function() ContextActionService:UnbindAction("WildboundSprint") end)
 	for key, value in pairs(original) do Lighting[key] = value end
 	if ownsAtmosphere then
 		atmosphere:Destroy()

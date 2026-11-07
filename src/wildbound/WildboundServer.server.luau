@@ -20,6 +20,8 @@ local Refuge = require(ReplicatedStorage:WaitForChild("WildboundRefuge"))
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
 local Spawn = require(script.Parent:WaitForChild("WildboundSpawn"))
+-- Dread pass (D2, D3, D-D5): stamina, sprint and its two costs (noise, a frightened carried Lumipol).
+local Stamina = require(script.Parent:WaitForChild("WildboundStamina"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -69,6 +71,9 @@ pulseHit.Name, pulseHit.Parent = "PulseHit", network
 -- Delivery C1: capture noise for La Silueta (ring at the start, seal at the tap), with the slot tier. Server only.
 local noiseEvent = Instance.new("BindableEvent")
 noiseEvent.Name, noiseEvent.Parent = "GuardianNoise", network
+-- Dread pass (D3): the client's sprint intent, "sprint" or "walk". The server owns stamina, stance and WalkSpeed.
+local stanceRemote = Instance.new("RemoteEvent")
+stanceRemote.Name, stanceRemote.Parent = "Stance", network
 network.Parent = ReplicatedStorage
 
 -- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
@@ -238,16 +243,20 @@ local function syncCapsule(player)
 	if existing then existing:SetAttribute("Warded", carried.protected == true) end
 end
 -- Walk speed is the slower of the egg and carried-creature speed (M3.5, B1) and the pouch load step (M5.2).
--- Set when a reply is sent and for each new character.
+-- Set when a reply is sent, for each new character and when the stance changes. The dread pass (D3) keeps that as
+-- the base and puts the stance on top, so a sprint still pays every carry cost.
 local function applyCarry(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local snapshot = state:snapshot(player.UserId)
-	if not humanoid or not snapshot then return end
+	local record = records[player]
+	if not humanoid or not snapshot or not record then return end
 	local units = 0
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
 	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
+	record.baseSpeed = speed
+	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 -- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
@@ -1076,13 +1085,87 @@ local function updateCarryMoods(now)
 	end
 end
 
+-- Dread pass (D-D5): the creature that slipped free runs off into the forest and fades. Visual only; it is gone.
+local function runAway(character, root)
+	local capsule = character and character:FindFirstChild(CAPSULE)
+	local creature = capsule and capsule:FindFirstChild("Creature")
+	if not creature or not root then return end
+	local body = creature:Clone()
+	for _, child in ipairs(body:GetDescendants()) do
+		if child:IsA("JointInstance") then child:Destroy() end
+	end
+	body.Name, body.Anchored, body.Massless = "WildboundRunaway", true, false
+	local away = Vector3.new(-root.CFrame.LookVector.X, 0, -root.CFrame.LookVector.Z)
+	away = away.Magnitude > 0.01 and away.Unit or Vector3.new(1, 0, 0)
+	local from = root.Position - Vector3.new(0, 2.2, 0)
+	body.CFrame = CFrame.lookAt(from, from + away)
+	body.Parent = runtime
+	local goal = from + away * 30
+	TweenService:Create(body, TweenInfo.new(2.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+		{ CFrame = CFrame.lookAt(goal, goal + away), Transparency = 1 }):Play()
+	task.delay(2.6, function() body:Destroy() end)
+end
+
+-- Dread pass (D3, D-D5): stamina per step. The server reads the horizontal speed itself, so holding the key in
+-- place costs nothing; a capture or a hiding spot blocks the sprint. Noise and fear come from the pure rule.
+local STANCE_RATE = 8 -- intents per second per player; more are dropped
+local function updateStamina(now, dt)
+	local capturers = {}
+	for _, session in ipairs(capture:activeSessions()) do capturers[session.playerKey] = true end
+	for player, record in pairs(records) do
+		local root = rootOf(player)
+		if record.stamina and root and context(player) then
+			local velocity = root.AssemblyLinearVelocity
+			local x, z = root.Position.X, root.Position.Z
+			local _, safe = Rules.zone(x, z)
+			local snapshot = state:snapshot(player.UserId)
+			local capturing = capturers[player.UserId] == true
+			local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
+			local out = Stamina.step(record.stamina, dt, {
+				speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude,
+				blocked = capturing or hidden,
+				carrying = snapshot ~= nil and snapshot.carrying ~= nil, inCamp = safe,
+			}, now)
+			if out.changed then applyCarry(player) end
+			local rounded = math.floor(record.stamina.stamina + 0.5)
+			if player:GetAttribute("WildboundStamina") ~= rounded then player:SetAttribute("WildboundStamina", rounded) end
+			if player:GetAttribute("WildboundStance") ~= record.stamina.stance then
+				player:SetAttribute("WildboundStance", record.stamina.stance)
+			end
+			if out.noise then
+				local tier = Rules.inTerritory(x, z) and "Territory" or "Fog"
+				noiseEvent:Fire("sprint", tier, x, z)
+			end
+			local capsule = player.Character and player.Character:FindFirstChild(CAPSULE)
+			if out.warn then
+				if capsule then
+					paintCapsule(capsule, "afraid")
+					capsule:SetAttribute("SoundCue", "fear")
+					capsule:SetAttribute("SoundCueAt", now)
+				end
+				send(player, "SlipWarning", true, Text.STAMINA.slipWarning)
+			end
+			if out.slip then
+				local character = player.Character
+				local ok = state:releaseCarried(player.UserId)
+				if ok then
+					runAway(character, root)
+					send(player, "Slipped", true, Text.STAMINA.slipped)
+				end
+			end
+		end
+	end
+end
+
 local accumulator = 0
 RunService.Heartbeat:Connect(function(dt)
 	if dt ~= dt or dt < 0 then return end
 	accumulator += math.min(dt, 0.2)
 	if accumulator < Wild.CONSTANTS.STEP then return end
+	local stepSeconds = accumulator
 	accumulator = 0
 	local now = workspace:GetServerTimeNow()
+	updateStamina(now, stepSeconds)
 	for _, item in ipairs(capture:activeSessions()) do
 		local player = playersByUserId[item.playerKey]
 		if not player or not records[player] then
@@ -1204,6 +1287,19 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	end
 end)
 
+-- Dread pass (D3): one known word per call, at most STANCE_RATE a second; an intent not refreshed within 1.2 s
+-- lapses to walk inside the rule, so a lost release never leaves anyone sprinting.
+stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
+	if type(intent) ~= "string" or select("#", ...) > 0 then return end
+	local record = records[player]
+	if not record or not record.stamina then return end
+	local now = workspace:GetServerTimeNow()
+	if now - (record.stanceWindowAt or -math.huge) >= 1 then record.stanceWindowAt, record.stanceCalls = now, 0 end
+	record.stanceCalls = (record.stanceCalls or 0) + 1
+	if record.stanceCalls > STANCE_RATE then return end
+	Stamina.intent(record.stamina, intent, now)
+end)
+
 local function bindCharacter(player, character)
 	local record = records[player]
 	if not record or record.character == character then return end
@@ -1216,6 +1312,8 @@ local function bindCharacter(player, character)
 	if record.deathConnection then record.deathConnection:Disconnect(); record.deathConnection = nil end
 	record.generation += 1
 	record.character, record.defeated = character, false
+	-- Dread pass (D3): every life starts with a full pool and calm.
+	record.stamina = Stamina.new(workspace:GetServerTimeNow())
 	local generation = record.generation
 	local humanoid = character:WaitForChild("Humanoid", 10)
 	if not humanoid or not humanoid:IsA("Humanoid") or records[player] ~= record

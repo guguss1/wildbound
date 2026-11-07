@@ -1001,7 +1001,8 @@ end)
 -- guardian still recovering from an attack ignores it.
 if noiseEvent then
 	table.insert(connections, noiseEvent.Event:Connect(function(kind, tier, x, z)
-		if kind == "ring" or kind == "seal" then hearNoise(kind, tier, x, z) end
+		-- Dread pass (D-D5): a sprint from the inventory server's stamina rule is heard the same way.
+		if kind == "ring" or kind == "seal" or kind == "sprint" then hearNoise(kind, tier, x, z) end
 	end))
 end
 -- A replaced or removed guardian closes its attack; its old ids then classify as forged (FS-15).

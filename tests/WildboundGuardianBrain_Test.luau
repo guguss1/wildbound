@@ -246,10 +246,14 @@ return function(Brain, Rules, source)
 	end)
 
 	-- Delivery D5: sprinting and hiding make noise on the same hearing scale as a capture.
-	case("D5: sprint noise radius is 16 x tier x hearing", function()
-		equal(Brain.NOISE.sprint, 16)
-		near(Brain.noiseRadius("sprint", "Territory", "Night"), 16 * 1.4 * 1.3, 1e-6, "night in the territory")
-		near(Brain.noiseRadius("sprint", "Fog", "Day"), 16 * 1.0 * Brain.profile("Day").hearing, 1e-6, "day in the fog")
+	-- Deliberately changed in the dread pass (D-D5): 16 was quieter than the night sight radius, so sprinting cost
+	-- nothing. At 30 a night sprint in the fog is heard from beyond the 38-stud night detection.
+	case("D5: sprint noise radius is 30 x tier x hearing, and at night it carries past sight", function()
+		equal(Brain.NOISE.sprint, 30)
+		near(Brain.noiseRadius("sprint", "Territory", "Night"), 30 * 1.4 * 1.3, 1e-6, "night in the territory")
+		near(Brain.noiseRadius("sprint", "Fog", "Day"), 30 * 1.0 * Brain.profile("Day").hearing, 1e-6, "day in the fog")
+		assert(Brain.noiseRadius("sprint", "Fog", "Night") > Brain.profile("Night").detection, "heard before seen at night")
+		assert(Brain.noiseRadius("sprint", "Fog", "Night") < Brain.NOISE.seal * 1.3, "still quieter than a seal tap")
 	end)
 
 	case("D5: rustle radius", function()

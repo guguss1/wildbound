@@ -333,6 +333,10 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery D10: the horror audio controller and its source contracts
         "src/wildbound/WildboundAudio.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundAudioClient",
         "tests/WildboundAudioWiring_Test.luau": "ServerStorage.WildboundAudioWiring_Test",
+        # Dread pass, unit 1: pure stamina, sprint and its costs (server only), and its wiring contracts
+        "src/wildbound/WildboundStamina.luau": "ServerScriptService.WildboundStamina",
+        "tests/WildboundStamina_Test.luau": "ServerStorage.WildboundStamina_Test",
+        "tests/WildboundStaminaWiring_Test.luau": "ServerStorage.WildboundStaminaWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

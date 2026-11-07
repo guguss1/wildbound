@@ -39,8 +39,9 @@ Brain.PROFILES = freeze({
 })
 
 -- Capture noise (C1): base hearing radius in studs per capture step, scaled by the slot's tier and the phase.
--- Delivery D5 adds sprinting (16) and the rustle of entering a hiding spot (10).
-Brain.NOISE = freeze({ ring = 32, seal = 48, sprint = 16, rustle = 10 })
+-- Delivery D5 adds sprinting and the rustle of entering a hiding spot (10). The dread pass (D-D5) raised sprint from
+-- 16 to 30 so a night sprint in the fog is heard from beyond the night sight radius: speed has a price.
+Brain.NOISE = freeze({ ring = 32, seal = 48, sprint = 30, rustle = 10 })
 Brain.TIER_NOISE = freeze({ Safe = 0.5, Fog = 1.0, Territory = 1.4 })
 
 local SPEED_KEY = { Patrol = "patrol", Investigate = "investigate", Hunt = "hunt", Search = "search", Retreat = "retreat" }

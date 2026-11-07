@@ -419,6 +419,17 @@ function State:register(key, uid, alive, distance, now)
 	return true, uid, receipt
 end
 
+-- Dread pass (D-D5): a carried creature frightened by sprinting slips free and runs off. The carry slot empties; a
+-- ward does not hold it (wards answer defeat, not fear) and no seal is spent. Returns a detached description.
+function State:releaseCarried(key)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local carried = player.carrying
+	if not carried then return false, "NotCarried" end
+	player.carrying = nil
+	return true, { uid = carried.uid, species = carried.species, tier = carried.tier }
+end
+
 function State:hatch(key, uid, alive, distance)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end

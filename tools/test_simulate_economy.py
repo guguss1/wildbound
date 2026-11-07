@@ -748,6 +748,35 @@ class EconomyTargets(unittest.TestCase):
                 self.assertLessEqual(row["seconds_median"], 480, (label, name))
                 self.assertGreaterEqual(row["completion"]["median_minutes"], 60, (label, name))
 
+    def test_sprint_boost_is_the_stamina_bound(self):
+        # Dread pass, D-D5: holding sprint at most gains 10 / (25 + 10) of the time x 30 percent (delivery D section 2).
+        self.assertAlmostEqual(eco.SPRINT_BOOST, 1 + (10 / 35) * 0.3, places=3)
+        t = tuning()
+        state = eco.new_state(t)
+        walk = eco.carry_speed(t, state)
+        self.assertEqual(eco.leg_speed(t, state, {}), walk)
+        self.assertAlmostEqual(eco.leg_speed(t, state, {"sprint": True}), walk * eco.SPRINT_BOOST)
+        # Sprinting with a creature frightens it until it slips free, so a sprinter walks once one is carried.
+        state["bag"].append({"kind": "creature", "tier": "Fog"})
+        self.assertEqual(eco.leg_speed(t, state, {"sprint": True}), eco.carry_speed(t, state))
+
+    def test_sprint_with_its_costs_keeps_the_invariants(self):
+        # D-D5: the user chose to make sprint cost something instead of moving the 180 s target. The target stays the
+        # no-sprint baseline above; with sprint and its costs counted (noise that draws Silueta, walking while a
+        # creature is carried) the run stays inside the target. A free 1.086 sprint gave greedy 172.0 s (D-D5).
+        t, ctx = tuning(), context()
+        low, high = t["cycle"]["targetExpeditionSeconds"]
+        policies = {name: dict(copy.deepcopy(p), sprint=True) for name, p in t["simulatorInputs"]["archetypes"].items()}
+        summary = eco.analyse_policies(t, ctx, runs=30, trips=90, seed=2026, policies=policies)
+        plain = targets()
+        for name, row in summary.items():
+            self.assertGreaterEqual(row["seconds_median"], low, name)
+            self.assertLessEqual(row["seconds_median"], high, name)
+            self.assertGreaterEqual(row["completion"]["median_minutes"], 60, name)
+            self.assertGreaterEqual(row["time_share"]["evade"], plain[name]["time_share"]["evade"], name)
+        self.assertGreater(summary["greedy"]["time_share"]["evade"], plain["greedy"]["time_share"]["evade"],
+                           "a sprint near the territory is heard and costs an evade")
+
     def test_currency_banked_and_companions_are_never_lost(self):
         import random
         t, ctx = tuning(), context()

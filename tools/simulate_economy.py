@@ -64,6 +64,13 @@ CAPTURE_SECONDS = 5.5
 EGG_PICKUP_SECONDS = 0.25
 EGG_CARRY_SPEED = {0: 16.0, 1: 11.0, 2: 10.0}   # 3 or more eggs: 9
 EGG_CARRY_SPEED_MANY = 9.0
+# Dread pass, D-D5 (src/wildbound/WildboundStamina.luau): the longest chained sprint duty is 10 / (25 + 10) of the
+# time at x1.3, so holding sprint gains at most 8.6 percent. Sprinting is loud: an invented assumption says a sprinted
+# leg ending in the territory is exposed like standing at its end for the sprinted seconds times SPRINT_NOISE_REACH
+# (sprint radius 30 x territory 1.4 over the 26 to 38 stud detection, about 1.3); a warning there costs an evade.
+SPRINT_DUTY = 10.0 / 35.0
+SPRINT_BOOST = 1.0 + SPRINT_DUTY * 0.3
+SPRINT_NOISE_REACH = 1.3
 FENCE = re.compile(r"^```json economy-tuning[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S)
 ALL_ZONES = ("outside", "fog", "territory")
 EXPOSURE_PHASES = 60
@@ -337,6 +344,15 @@ def loss_basis_points(tuning, state):
     return min(values) if values else tuning["loss"]["rateBasisPoints"]
 
 
+def leg_speed(tuning, state, policy):
+    """Walk speed for one leg. A sprinting policy (dread pass, D-D5) gains the stamina bound, but never while a
+    creature is carried: sprinting frightens it until it slips free, so a sprinter walks it home."""
+    speed = carry_speed(tuning, state)
+    if policy.get("sprint") and not any(item["kind"] == "creature" for item in state["bag"]):
+        return speed * SPRINT_BOOST
+    return speed
+
+
 def carry_speed(tuning, state):
     """Slower of the pouch load step and the capture document's egg speed."""
     carry = tuning["carry"]
@@ -580,11 +596,20 @@ def run_expedition(tuning, ctx, state, policy, rng, players=1, start_clock=0.0):
 
     def walk(to, speed=None):
         nonlocal position, clock, max_distance
-        seconds = math.dist(position, to) / (carry_speed(tuning, state) if speed is None else speed)
+        leg = leg_speed(tuning, state, policy) if speed is None else speed
+        seconds = math.dist(position, to) / leg
         clock += seconds
         times["walk"] += seconds
         position = to
         max_distance = max(max_distance, math.dist(camp, to))
+        if speed is None and leg > carry_speed(tuning, state):
+            # The sprint was heard: a warning at the end of the leg costs an evade (never a strike: a sprinter outruns).
+            noise = round(seconds * SPRINT_DUTY * SPRINT_NOISE_REACH, 1)
+            warned = hold_exposure(tuning, ctx, {"x": to[0], "z": to[1], "zone": "territory"}, now_phase(), noise)[0] \
+                if noise > 0 else 0.0
+            if warned > 0 and rng.random() < warned:
+                clock += evade
+                times["evade"] += evade
 
     def hold_at(slot, seconds, phase, bucket):
         """Stand still. Returns 'done', 'fled' or 'struck', against the pressure geometry."""

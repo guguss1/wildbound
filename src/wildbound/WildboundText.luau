@@ -186,6 +186,15 @@ return freeze({
 		short = "Escondido: no te muevas.",
 		kind = { bush = "Arbusto espeso", log = "Tronco hueco" },
 	},
+	-- Dread pass (D-D5): stamina, sprint and the carried Lumipol that a sprint frightens. Notices at most 64 bytes.
+	STAMINA = {
+		label = "Aliento",
+		sprint = "Correr",
+		exhausted = "Sin aliento",
+		notice = "Te falta el aliento. Espera un momento.",
+		slipWarning = "¡Tu Lumipol se asusta! Deja de correr.",
+		slipped = "Tu Lumipol se soltó y huyó al bosque.",
+	},
 	-- Delivery D12: the comfort switch and the settings panel. WildboundSettings repeats these; a test keeps them equal.
 	SETTINGS = {
 		reducedEffects = "Efectos suaves",
