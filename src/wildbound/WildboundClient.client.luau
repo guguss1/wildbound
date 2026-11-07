@@ -1,0 +1,170 @@
+-- Client presentation only. The server owns all collection and interaction state.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local TweenService = game:GetService("TweenService")
+
+local playerGui = Players.LocalPlayer:WaitForChild("PlayerGui")
+local old = playerGui:FindFirstChild("WildboundUI")
+if old then old:Destroy() end
+
+local gui = Instance.new("ScreenGui")
+gui.Name = "WildboundUI"
+gui.ResetOnSpawn = false
+gui.Parent = playerGui
+local connections = {}
+local function listen(signal, callback)
+	local connection = signal:Connect(callback)
+	table.insert(connections, connection)
+	return connection
+end
+listen(gui.Destroying, function()
+	for _, connection in ipairs(connections) do connection:Disconnect() end
+end)
+
+local function make(className, properties, parent)
+	local instance = Instance.new(className)
+	for key, value in pairs(properties) do instance[key] = value end
+	instance.Parent = parent
+	return instance
+end
+local ink = Color3.fromRGB(240, 244, 231)
+local dark = Color3.fromRGB(25, 34, 31)
+local accent = Color3.fromRGB(77, 115, 88)
+local function label(parent, text, size)
+	return make("TextLabel", {BackgroundTransparency = 1, Text = text, TextColor3 = ink,
+		TextSize = size, Font = Enum.Font.Gotham, TextWrapped = true,
+		TextXAlignment = Enum.TextXAlignment.Left}, parent)
+end
+local function button(parent, text)
+	local b = make("TextButton", {Text = text, BackgroundColor3 = accent, TextColor3 = ink,
+		TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = true}, parent)
+	make("UICorner", {CornerRadius = UDim.new(0, 7)}, b)
+	local scale = make("UIScale", {Scale = 1}, b)
+	b.MouseEnter:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1.02}):Play() end)
+	b.MouseLeave:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1}):Play() end)
+	return b
+end
+
+local hud = make("Frame", {BackgroundColor3 = dark, BackgroundTransparency = 0.15,
+	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82)}, gui)
+make("UISizeConstraint", {MaxSize = Vector2.new(430, 82)}, hud)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, hud)
+local objective = label(hud, "Collect. Return to camp.\nSession only.", 15)
+objective.Position = UDim2.fromOffset(10, 5)
+objective.Size = UDim2.new(1, -20, 0, 42)
+local status = label(hud, "Connecting to server...", 14)
+status.Position = UDim2.fromOffset(10, 49)
+status.Size = UDim2.new(1, -20, 0, 28)
+local open = button(gui, "Inventory (I)")
+open.AnchorPoint = Vector2.new(1, 0)
+open.Position = UDim2.new(1, -12, 0, 12)
+open.Size = UDim2.fromOffset(132, 44)
+
+local panel = make("Frame", {Name = "InventoryPanel", Visible = false, BackgroundColor3 = dark,
+	AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.52),
+	Size = UDim2.fromScale(0.88, 0.75)}, gui)
+make("UISizeConstraint", {MaxSize = Vector2.new(500, 520)}, panel)
+make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
+local heading = label(panel, "Inventory", 20)
+heading.Font = Enum.Font.GothamBold
+heading.Position = UDim2.fromOffset(12, 6)
+heading.Size = UDim2.new(1, -90, 0, 32)
+local close = button(panel, "Close")
+close.Position = UDim2.new(1, -78, 0, 6)
+close.Size = UDim2.fromOffset(70, 36)
+local warning = label(panel, "Session only: progress is lost when you leave or the server stops.", 14)
+warning.Position = UDim2.fromOffset(12, 44)
+warning.Size = UDim2.new(1, -24, 0, 38)
+local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 84),
+	Size = UDim2.new(1, -24, 1, -96), BackgroundTransparency = 1,
+	BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(),
+	AutomaticCanvasSize = Enum.AutomaticSize.Y}, panel)
+make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
+
+local actionRemote
+local receivedSnapshot = false
+local lastRequest = 0
+local function request(action, uid)
+	if not actionRemote then
+		status.Text = "Server unavailable. Please rejoin."
+		return
+	end
+	local now = os.clock()
+	if now - lastRequest < 0.5 then return end
+	lastRequest = now
+	actionRemote:FireServer(action, uid)
+end
+local function row(text, actionText, action, uid)
+	local item = make("Frame", {BackgroundColor3 = Color3.fromRGB(42, 53, 47),
+		Size = UDim2.new(1, -8, 0, 56)}, scroll)
+	make("UICorner", {CornerRadius = UDim.new(0, 6)}, item)
+	local description = label(item, text, 15)
+	description.Position = UDim2.fromOffset(8, 2)
+	description.Size = UDim2.new(1, actionText and -112 or -16, 1, -4)
+	if actionText then
+		local b = button(item, actionText)
+		b.AnchorPoint = Vector2.new(1, 0.5)
+		b.Position = UDim2.new(1, -5, 0.5, 0)
+		b.Size = UDim2.fromOffset(98, 44)
+		b.Activated:Connect(function() request(action, uid) end)
+	end
+end
+local function render(snapshot)
+	for _, child in ipairs(scroll:GetChildren()) do
+		if child:IsA("Frame") then child:Destroy() end
+	end
+	local pending = snapshot.pending or {}
+	local eggs = snapshot.bankedEggs or {}
+	local registered = snapshot.registered or {}
+	row(("Pending bag: %d/%d | Seals: %d"):format(#pending, snapshot.capacity or 3, snapshot.sealCharges or 0))
+	row("Pending items are lost on defeat unless protected at camp.")
+	if #pending == 0 then row("No pending items.") end
+	for index, item in ipairs(pending) do
+		row(("#%d "):format(index) .. item.species .. " " .. item.kind .. (item.protected and " · Protected" or " · Unprotected"),
+			not item.protected and "Protect" or nil, "Protect", item.uid)
+	end
+	row("Banked eggs · Hatch at camp")
+	if #eggs == 0 then row("No banked eggs.") end
+	for _, egg in ipairs(eggs) do row(egg.species .. " egg", "Hatch", "Hatch", egg.uid) end
+	row("Registered creatures")
+	if #registered == 0 then row("No registered creatures.") end
+	for _, creature in ipairs(registered) do
+		local equipped = snapshot.equippedUid == creature.uid
+		row(creature.species .. (equipped and " · Equipped" or ""), not equipped and "Equip" or nil, "Equip", creature.uid)
+	end
+end
+local function toggle()
+	panel.Visible = not panel.Visible
+	if panel.Visible and not receivedSnapshot then request("RequestSnapshot") end
+end
+listen(open.Activated, toggle)
+listen(close.Activated, function() panel.Visible = false end)
+listen(UserInputService.InputBegan, function(input, processed)
+	if not processed and input.KeyCode == Enum.KeyCode.I then toggle() end
+end)
+
+task.spawn(function()
+	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
+	local action = folder and folder:WaitForChild("Action", 10)
+	local state = folder and folder:WaitForChild("State", 10)
+	if not gui.Parent then return end
+	if not (action and action:IsA("RemoteEvent") and state and state:IsA("RemoteEvent")) then
+		status.Text = "Server unavailable. Please rejoin."
+		return
+	end
+	actionRemote = action
+	listen(state.OnClientEvent, function(payload)
+		if type(payload) ~= "table" then return end
+		if type(payload.snapshot) == "table" then
+			receivedSnapshot = true
+			render(payload.snapshot)
+		end
+		if type(payload.notice) == "string" and payload.notice ~= "" then status.Text = payload.notice end
+	end)
+	request("RequestSnapshot")
+	task.wait(3)
+	if gui.Parent and not receivedSnapshot then request("RequestSnapshot") end
+	task.wait(3)
+	if gui.Parent and not receivedSnapshot then status.Text = "No response. Open inventory to retry." end
+end)
