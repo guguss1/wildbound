@@ -140,7 +140,7 @@ local function applyLayout()
 		objective.Text, objective.TextSize = "Collect. Return to camp.", 13
 		objective.Position, objective.Size = UDim2.fromOffset(8, 3), UDim2.new(1, -16, 0, 18)
 		status.TextSize = 13
-		status.Position, status.Size = UDim2.fromOffset(8, 3), UDim2.new(1, -16, 0, 36)
+		status.Position, status.Size = UDim2.fromOffset(8, 2), UDim2.new(1, -16, 0, 32)
 		statusBudget = Layout.charBudget(rects.hud.w - 16, 13, 2)
 		warning.Text, warning.TextSize = "Session only: lost when you leave.", 13
 		warning.Position, warning.Size = UDim2.fromOffset(12, 52), UDim2.new(1, -24, 0, 20)

@@ -14,17 +14,22 @@ return function(Layout, View, source)
 	end
 	local NAN, INF = 0 / 0, math.huge
 
-	-- Viewports as the baseline measured them (Device Simulator), plus desktop and tablet.
+	-- Viewports as the baseline measured them (Device Simulator), plus desktop and tablet. The first two
+	-- phone rows are the interface sizes a client really gets: the viewport minus the 58 pixel top inset.
 	local DEVICES = {
 		{ name = "iPhone 17 Pro landscape", w = 750, h = 381, touch = true, mode = "compact" },
 		{ name = "iPhone 17 Pro portrait", w = 401, h = 778, touch = true, mode = "compact" },
 		{ name = "Galaxy A06 landscape", w = 705, h = 338, touch = true, mode = "compact" },
 		{ name = "Galaxy A06 portrait", w = 359, h = 718, touch = true, mode = "compact" },
+		{ name = "iPhone 17 Pro landscape interface", w = 750, h = 323, touch = true, mode = "compact" },
+		{ name = "Galaxy A06 landscape interface", w = 705, h = 280, touch = true, mode = "compact" },
 		{ name = "Studio desktop", w = 1094, h = 558, touch = false, mode = "desktop" },
 		{ name = "desktop 1366", w = 1366, h = 768, touch = false, mode = "desktop" },
 		{ name = "desktop 1920", w = 1920, h = 1080, touch = false, mode = "desktop" },
 		{ name = "tablet landscape", w = 1024, h = 768, touch = true, mode = "compact" },
 		{ name = "small desktop window", w = 800, h = 600, touch = false, mode = "compact" },
+		{ name = "iPhone 17 Pro portrait interface", w = 401, h = 720, touch = true, mode = "compact" },
+		{ name = "Galaxy A06 portrait interface", w = 359, h = 660, touch = true, mode = "compact" },
 	}
 	local function layoutOf(device)
 		return Layout.compute(device.w, device.h, { touch = device.touch })
@@ -53,7 +58,7 @@ return function(Layout, View, source)
 	end)
 
 	case("on a phone the HUD panels stay under 36 percent of the width where they were 57", function()
-		for _, device in ipairs({ DEVICES[1], DEVICES[3] }) do
+		for _, device in ipairs({ DEVICES[1], DEVICES[3], DEVICES[5], DEVICES[6] }) do
 			local layout = layoutOf(device)
 			for _, name in ipairs({ "hud", "panel" }) do
 				local rect = layout.rects[name]
@@ -87,7 +92,7 @@ return function(Layout, View, source)
 	end)
 
 	case("on a phone nothing sits in the thumbstick zone or on the jump button, where the old controls did", function()
-		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[8] }) do
+		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[5], DEVICES[6], DEVICES[10] }) do
 			local layout = layoutOf(device)
 			for name, rect in pairs(layout.rects) do
 				equal(area(rect, layout.zones.thumbstick), 0)
@@ -153,8 +158,8 @@ return function(Layout, View, source)
 	end)
 
 	case("a sweep of phone landscape sizes keeps every rule", function()
-		for width = 568, 932, 26 do
-			for height = 320, 440, 20 do
+		for width = 640, 932, 26 do
+			for height = 280, 440, 20 do
 				local violations = Layout.check(Layout.compute(width, height, { touch = true }))
 				assert(#violations == 0, width .. "x" .. height .. ": " .. table.concat(violations, "; "))
 			end
@@ -170,11 +175,12 @@ return function(Layout, View, source)
 		end
 	end)
 
-	case("a very short landscape view moves buttons to a second column instead of the jump button", function()
-		local layout = Layout.compute(640, 307, { touch = true })
+	case("a very short landscape view moves the effects toggle to a second column, not onto the jump button", function()
+		local layout = Layout.compute(705, 280, { touch = true })
 		local violations = Layout.check(layout)
 		assert(#violations == 0, table.concat(violations, "; "))
-		assert(layout.rects.pulse.x < layout.rects.inventory.x, "the overflow must use a second column")
+		assert(layout.rects.effects.x < layout.rects.inventory.x, "the overflow must use a second column")
+		equal(layout.rects.flashlight.x, layout.rects.pulse.x)
 	end)
 
 	case("the check finds a panel on the avatar, a small target, an overlap and an off-screen rect", function()
@@ -218,7 +224,7 @@ return function(Layout, View, source)
 	case("every phone hint and chip text fits the room the layout gives it", function()
 		local hints = { "Attack incoming: move away!", "Threat nearby: move toward shelter.", "Silueta revealed. Keep moving.",
 			"Dusk: night is approaching.", "Fog forest: stay alert.", "Explore or return to camp." }
-		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4] }) do
+		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[5], DEVICES[6] }) do
 			local layout = layoutOf(device)
 			local twoLines = Layout.charBudget(layout.rects.panel.w - 16, 13, 2)
 			for _, text in ipairs(hints) do

@@ -86,12 +86,14 @@ end
 -- jump button, the chip between them. Everything keeps clear of the avatar and the thumbstick.
 local function compactLandscape(width, height, rects, zones)
 	local columnWidth = math.clamp(math.floor(0.34 * width), 150, 280)
-	place(rects, "hud", MARGIN, MARGIN, columnWidth, 42)
-	place(rects, "panel", MARGIN, MARGIN + 42 + 2, columnWidth, 50)
+	-- 36 + 2 + 46 keeps the text block above the thumbstick zone down to a 276 pixel tall interface.
+	place(rects, "hud", MARGIN, MARGIN, columnWidth, 36)
+	place(rects, "panel", MARGIN, MARGIN + 36 + 2, columnWidth, 46)
 	local limit = zones.jump.y - MARGIN
 	local x, y = width - MARGIN - COLUMN_W, MARGIN
 	local leftmost = x
-	for _, name in ipairs({ "inventory", "effects", "flashlight", "pulse" }) do
+	-- The reduced-effects toggle goes last, so a short screen moves it and keeps the abilities together.
+	for _, name in ipairs({ "inventory", "flashlight", "pulse", "effects" }) do
 		if y + BUTTON_H > limit and y > MARGIN then
 			x, y = x - COLUMN_W - GAP, MARGIN
 			leftmost = x
@@ -116,7 +118,7 @@ local function compactPortrait(width, height, rects)
 	place(rects, "panel", MARGIN, MARGIN + 40 + 4 + 42 + 2, full, 50)
 	local buttonWidth = math.floor((full - 3 * GAP) / 4)
 	local y = MARGIN + 40 + 4 + 42 + 2 + 50 + 4
-	for index, name in ipairs({ "inventory", "effects", "flashlight", "pulse" }) do
+	for index, name in ipairs({ "inventory", "flashlight", "pulse", "effects" }) do
 		place(rects, name, MARGIN + (index - 1) * (buttonWidth + GAP), y, buttonWidth, BUTTON_H)
 	end
 end

@@ -130,8 +130,8 @@ local function applyLayout()
 	for _, item in ipairs({phaseLabel, warningLabel, statusLabel, effects, flashlight, pulse}) do item.TextSize = textSize end
 	chipText.TextSize = compact and 14 or 15
 	if compact then
-		phaseLabel.Position, phaseLabel.Size = UDim2.fromOffset(8, 3), UDim2.new(1, -16, 0, 16)
-		warningLabel.Position, warningLabel.Size = UDim2.fromOffset(8, 19), UDim2.new(1, -16, 0, 30)
+		phaseLabel.Position, phaseLabel.Size = UDim2.fromOffset(8, 0), UDim2.new(1, -16, 0, 15)
+		warningLabel.Position, warningLabel.Size = UDim2.fromOffset(8, 15), UDim2.new(1, -16, 0, 31)
 		noticeBudget = Layout.charBudget(rects.panel.w - 16, textSize, 2)
 	else
 		phaseLabel.Position, phaseLabel.Size = UDim2.fromOffset(10, 4), UDim2.new(1, -140, 0, 24)
