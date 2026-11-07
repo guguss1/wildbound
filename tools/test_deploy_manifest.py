@@ -291,6 +291,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundPersistence_Test.luau": "ServerStorage.WildboundPersistence_Test",
         "tests/WildboundFakePlayerStore.luau": "ServerStorage.WildboundFakePlayerStore",
         "tests/WildboundFakePlayerStore_Test.luau": "ServerStorage.WildboundFakePlayerStore_Test",
+        # M9.5, wave W16: server-only analytics event seam
+        "src/wildbound/WildboundAnalytics.luau": "ServerScriptService.WildboundAnalytics",
+        "tests/WildboundAnalytics_Test.luau": "ServerStorage.WildboundAnalytics_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
