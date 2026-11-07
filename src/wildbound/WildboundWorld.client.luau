@@ -193,14 +193,19 @@ end)
 -- Cache and restore only the Lighting properties this controller owns locally.
 local original = {ClockTime = Lighting.ClockTime, Ambient = Lighting.Ambient,
 	OutdoorAmbient = Lighting.OutdoorAmbient, FogColor = Lighting.FogColor,
-	FogStart = Lighting.FogStart, FogEnd = Lighting.FogEnd}
+	FogStart = Lighting.FogStart, FogEnd = Lighting.FogEnd, Brightness = Lighting.Brightness,
+	ExposureCompensation = Lighting.ExposureCompensation}
 local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 local ownsAtmosphere = not atmosphere
 if not atmosphere then
 	atmosphere = make("Atmosphere", {Name = "WildboundLocalAtmosphere", Density = 0.2,
 		Color = original.FogColor, Haze = 0}, Lighting)
 end
-local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Color, Haze = atmosphere.Haze}
+local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Color, Haze = atmosphere.Haze,
+	Offset = atmosphere.Offset}
+-- Delivery D1: whole-map fog by zone and time of day comes from a pure module; this script only applies it.
+local atmosphereModule = ReplicatedStorage:WaitForChild("WildboundAtmosphere", 10)
+local Atmos = atmosphereModule and require(atmosphereModule)
 -- Delivery B (B2): every carried capsule bobs, and shakes when its creature is scared. The server builds the
 -- capsule and publishes its mood; this client only moves the creature's seat joint, which never replicates.
 local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
@@ -414,22 +419,26 @@ listen(RunService.Heartbeat, function(dt)
 	flashlight.Text = (keys and "Flashlight (F)\n" or "Flashlight\n") .. cooldown(state.flashlightReadyAt, now)
 	pulse.Text = (keys and "Pulse (Q)\n" or "Pulse\n")
 		.. (state.hasLumipol and cooldown(state.pulseReadyAt, now) or "Equip Lumipol")
-	local fog = state.isFog == true
-	local night = state.phase == "Night"
-	local strength = reduced and 0.45 or 1
-	local ambient = original.Ambient:Lerp(night and Color3.fromRGB(34, 46, 76) or Color3.fromRGB(102, 113, 100), strength)
-	local outdoor = original.OutdoorAmbient:Lerp(night and Color3.fromRGB(40, 54, 86) or Color3.fromRGB(126, 136, 118), strength)
 	local alpha = 1 - math.exp(-step * 0.5)
-	Lighting.Ambient = Lighting.Ambient:Lerp(ambient, alpha)
-	Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(outdoor, alpha)
-	Lighting.FogColor = Lighting.FogColor:Lerp(fog and (night and Color3.fromRGB(40, 54, 72) or Color3.fromRGB(96, 110, 105)) or original.FogColor, alpha)
-	Lighting.FogStart += ((fog and 45 or original.FogStart) - Lighting.FogStart) * alpha
-	Lighting.FogEnd += ((fog and (reduced and 180 or 130) or original.FogEnd) - Lighting.FogEnd) * alpha
-	if atmosphere.Parent == Lighting then
-		local density = fog and (night and (reduced and 0.35 or 0.4) or 0.3) or 0.2
-		atmosphere.Density += (density - atmosphere.Density) * alpha
-		atmosphere.Color = atmosphere.Color:Lerp(fog and (night and Color3.fromRGB(78, 94, 116) or Color3.fromRGB(140, 153, 145)) or originalAtmosphere.Color, alpha)
-		atmosphere.Haze += ((fog and (reduced and 0.5 or 1) or 0) - atmosphere.Haze) * alpha
+	if Atmos then
+		local zone = state.isSafe == true and "camp" or (state.isFog == true and "fog" or "open")
+		local target = Atmos.at(state.clockTime, zone, reduced)
+		local ambient = original.Ambient:Lerp(rgb(target.ambient), target.ambientWeight)
+		local outdoor = original.OutdoorAmbient:Lerp(rgb(target.outdoorAmbient), target.ambientWeight)
+		Lighting.Ambient = Lighting.Ambient:Lerp(ambient, alpha)
+		Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(outdoor, alpha)
+		Lighting.FogColor = Lighting.FogColor:Lerp(rgb(target.fogColor), alpha)
+		Lighting.FogStart += (target.fogStart - Lighting.FogStart) * alpha
+		Lighting.FogEnd += (target.fogEnd - Lighting.FogEnd) * alpha
+		Lighting.Brightness += (original.Brightness * target.brightness - Lighting.Brightness) * alpha
+		Lighting.ExposureCompensation += (original.ExposureCompensation + target.exposure
+			- Lighting.ExposureCompensation) * alpha
+		if atmosphere.Parent == Lighting then
+			atmosphere.Density += (target.density - atmosphere.Density) * alpha
+			atmosphere.Offset += (target.offset - atmosphere.Offset) * alpha
+			atmosphere.Color = atmosphere.Color:Lerp(rgb(target.atmosphereColor), alpha)
+			atmosphere.Haze += (target.haze - atmosphere.Haze) * alpha
+		end
 	end
 	if type(state.clockTime) == "number" then
 		local delta = (state.clockTime - Lighting.ClockTime + 12) % 24 - 12

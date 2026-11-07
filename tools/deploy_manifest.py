@@ -133,6 +133,9 @@ DEFAULT_MAPPINGS = [
     # Delivery C2: pure route following around the solid trunk cores, server only
     ("src/wildbound/WildboundGuardianPath.luau", "ServerScriptService.WildboundGuardianPath"),
     ("tests/WildboundGuardianPath_Test.luau", "ServerStorage.WildboundGuardianPath_Test"),
+    # Delivery D1: pure whole-map fog and light targets, shared because the world client applies them
+    ("src/wildbound/WildboundAtmosphere.luau", "ReplicatedStorage.WildboundAtmosphere"),
+    ("tests/WildboundAtmosphere_Test.luau", "ServerStorage.WildboundAtmosphere_Test"),
 ]
 
 
