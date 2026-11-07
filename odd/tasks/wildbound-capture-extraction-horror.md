@@ -64,7 +64,20 @@ User, 2026-11-07: walking and picking things up has no risk, collection has no c
   - [x] C3 Damage on through the private place flag, two hits kill, dodge cues, hit flash, Spanish defeat screen. RED FairStrike 38/4, AnalyticsWiring 10/1, HudView 35/2, Text 10/1; GREEN 42/0, 11/0, 37/0, 11/0 (one FS-N3 fix: the dodge cue now goes through `pickNotice`). Commit `59da02a`.
   - [x] C4 Death rules: carry slot, unwarded eggs, small material fraction, registered kept, respawn at camp, camp never entered. D-C2: Python 104/10 then 114/0; Economy 17/2 then 19/0; State 66/1, then 65/2 (two more cases pinned the old rate), then 67/0. Commit `85cbf68`. Play: see C5.
   - [x] C5 Play check: all ten checks PASS in Studio Play solo (table in the guardian doc). Captures are desktop views `c-*-desktop.jpg`; phone captures BLOCKED (the Device Simulator is switched only through the Studio interface).
-- [ ] D Horror audio, hiding and stamina.
+- [ ] D Horror audio, hiding and stamina. Design in `docs/mechanics/wildbound-delivery-d.md` (design only; no Studio work yet; sequenced after C1 and C3 are committed).
+  - [ ] D1 Whole-map fog and darker night: pure `WildboundAtmosphere`, readability floors, client wiring.
+  - [ ] D2 Stamina rules: pure `WildboundStamina` (sprint x1.3, sneak x0.45) and the economy simulator sensitivity run.
+  - [ ] D3 Stamina server: stance remote, `WalkSpeed` composition, sprint noise, replicated attributes.
+  - [ ] D4 Stamina client: input, action slot and bar in `WildboundHudLayout`, Spanish words. D4b sneak is cuttable.
+  - [ ] D5 Hide rules (`WildboundHide`) and the `sprint` and `rustle` guardian noise kinds.
+  - [ ] D6 Hide server: prompt, occupancy, `targetContext` plug, discovery, forced exits.
+  - [ ] D7 Hide spots: layout planner with Python test, `buildHideSpots`, live map patch.
+  - [ ] D8 Threat level: pure `WildboundThreatLevel` and per-player publish.
+  - [ ] D9 Audio mix: catalog (shortlist ids only), mix rules, jumpscare gate.
+  - [ ] D10 Audio controller: asset audition, layers, groups, muffle, creature cues.
+  - [ ] D11 Defeat treatment: slow fade instead of a flash, hit and defeat hooks.
+  - [ ] D12 Reduced horror: one switch for fog, audio and defeat, Spanish settings text.
+  - [ ] D13 Play check with `d-` phone captures and loudness readings.
 - [ ] E Special egg and incubator.
 - [ ] F Progression, Spanish UI, phone polish, two-player check.
 
