@@ -1,0 +1,1399 @@
+{
+  "forward": "-Y",
+  "units": "Blender units; Roblox conversion unverified",
+  "dimensions": [
+    3.8399996757507324,
+    3.0719335079193115,
+    3.5665273666381836
+  ],
+  "triangles_total": 106172,
+  "non_manifold_edges_total": 2208,
+  "objects": [
+    {
+      "name": "Torso",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        0.30000001192092896,
+        0.9200000166893005
+      ]
+    },
+    {
+      "name": "Chest",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -0.4399999976158142,
+        1.0499999523162842
+      ]
+    },
+    {
+      "name": "Neck",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -0.4000000059604645,
+        1.4800000190734863
+      ]
+    },
+    {
+      "name": "Leg bridge",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        -0.4300000071525574,
+        0.5600000023841858
+      ]
+    },
+    {
+      "name": "Paw",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        -0.4300000071525574,
+        0.27000001072883606
+      ]
+    },
+    {
+      "name": "Toe",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7599999904632568,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.001",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.002",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.4000000059604645,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Leg bridge.001",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        0.6200000047683716,
+        0.5600000023841858
+      ]
+    },
+    {
+      "name": "Paw.001",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        0.6200000047683716,
+        0.27000001072883606
+      ]
+    },
+    {
+      "name": "Toe.003",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7599999904632568,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.004",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5799999833106995,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.005",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.4000000059604645,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Leg bridge.002",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        -0.4300000071525574,
+        0.5600000023841858
+      ]
+    },
+    {
+      "name": "Paw.002",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        -0.4300000071525574,
+        0.27000001072883606
+      ]
+    },
+    {
+      "name": "Toe.006",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.4000000059604645,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.007",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.008",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7599999904632568,
+        -0.7200000286102295,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Leg bridge.003",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        0.6200000047683716,
+        0.5600000023841858
+      ]
+    },
+    {
+      "name": "Paw.003",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        0.6200000047683716,
+        0.27000001072883606
+      ]
+    },
+    {
+      "name": "Toe.009",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.4000000059604645,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.010",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5799999833106995,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Toe.011",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7599999904632568,
+        0.33000001311302185,
+        0.15000000596046448
+      ]
+    },
+    {
+      "name": "Head",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -0.30000001192092896,
+        2.0999999046325684
+      ]
+    },
+    {
+      "name": "Eye socket",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.47999998927116394,
+        -0.9100000262260437,
+        2.2200000286102295
+      ]
+    },
+    {
+      "name": "Eye iris",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.47999998927116394,
+        -0.9729999899864197,
+        2.2300000190734863
+      ]
+    },
+    {
+      "name": "Eye pupil",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.47999998927116394,
+        -1.0130000114440918,
+        2.2699999809265137
+      ]
+    },
+    {
+      "name": "Eye highlight",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.5450000166893005,
+        -1.0369999408721924,
+        2.4000000953674316
+      ]
+    },
+    {
+      "name": "Eye glimmer",
+      "type": "MESH",
+      "vertices": 222,
+      "triangles": 440,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.4050000011920929,
+        -1.034999966621399,
+        2.109999895095825
+      ]
+    },
+    {
+      "name": "Eye socket.001",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.47999998927116394,
+        -0.9100000262260437,
+        2.2200000286102295
+      ]
+    },
+    {
+      "name": "Eye iris.001",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.47999998927116394,
+        -0.9729999899864197,
+        2.2300000190734863
+      ]
+    },
+    {
+      "name": "Eye pupil.001",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.47999998927116394,
+        -1.0130000114440918,
+        2.2699999809265137
+      ]
+    },
+    {
+      "name": "Eye highlight.001",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.41499999165534973,
+        -1.0369999408721924,
+        2.4000000953674316
+      ]
+    },
+    {
+      "name": "Eye glimmer.001",
+      "type": "MESH",
+      "vertices": 222,
+      "triangles": 440,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.5550000071525574,
+        -1.034999966621399,
+        2.109999895095825
+      ]
+    },
+    {
+      "name": "Mouth",
+      "type": "MESH",
+      "vertices": 362,
+      "triangles": 720,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -1.065999984741211,
+        1.850000023841858
+      ]
+    },
+    {
+      "name": "Tongue",
+      "type": "MESH",
+      "vertices": 222,
+      "triangles": 440,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -1.0980000495910645,
+        1.8259999752044678
+      ]
+    },
+    {
+      "name": "Cheek fleck",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.6800000071525574,
+        -0.8999999761581421,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.001",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7350000143051147,
+        -0.8500000238418579,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.002",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7900000214576721,
+        -0.800000011920929,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.003",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.6800000071525574,
+        -0.8999999761581421,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.004",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7350000143051147,
+        -0.8500000238418579,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.005",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.7900000214576721,
+        -0.800000011920929,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.006",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.6800000071525574,
+        -0.8999999761581421,
+        2.069999933242798
+      ]
+    },
+    {
+      "name": "Cheek fleck.007",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.6800000071525574,
+        -0.8999999761581421,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.008",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7350000143051147,
+        -0.8500000238418579,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.009",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7900000214576721,
+        -0.800000011920929,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Cheek fleck.010",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.6800000071525574,
+        -0.8999999761581421,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.011",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7350000143051147,
+        -0.8500000238418579,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.012",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.7900000214576721,
+        -0.800000011920929,
+        2.005000114440918
+      ]
+    },
+    {
+      "name": "Cheek fleck.013",
+      "type": "MESH",
+      "vertices": 146,
+      "triangles": 288,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.6800000071525574,
+        -0.8999999761581421,
+        2.069999933242798
+      ]
+    },
+    {
+      "name": "Scalloped mantle",
+      "type": "MESH",
+      "vertices": 1730,
+      "triangles": 3456,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Mantle spot",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.3400000035762787,
+        -0.3700000047683716,
+        3.014350175857544
+      ]
+    },
+    {
+      "name": "Mantle spot.001",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.019999999552965164,
+        -0.4300000071525574,
+        3.0531086921691895
+      ]
+    },
+    {
+      "name": "Mantle spot.002",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.3700000047683716,
+        -0.30000001192092896,
+        3.010082960128784
+      ]
+    },
+    {
+      "name": "Mantle spot.003",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.18000000715255737,
+        0.019999999552965164,
+        2.9821267127990723
+      ]
+    },
+    {
+      "name": "Mantle spot.004",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.2199999988079071,
+        0.10000000149011612,
+        2.933302879333496
+      ]
+    },
+    {
+      "name": "Mantle spot.005",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        0.3199999928474426,
+        2.7885031700134277
+      ]
+    },
+    {
+      "name": "Mantle spot.006",
+      "type": "MESH",
+      "vertices": 314,
+      "triangles": 624,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.49000000953674316,
+        0.10000000149011612,
+        2.8523073196411133
+      ]
+    },
+    {
+      "name": "Petal -1 0",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.8100000023841858,
+        -0.11999999731779099,
+        2.3499999046325684
+      ]
+    },
+    {
+      "name": "Petal -1 0 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 0 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.8100000023841858,
+        -0.11999999731779099,
+        2.119999885559082
+      ]
+    },
+    {
+      "name": "Petal -1 1 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 1 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.8100000023841858,
+        -0.11999999731779099,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Petal -1 2 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal -1 2 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.8100000023841858,
+        -0.11999999731779099,
+        2.3499999046325684
+      ]
+    },
+    {
+      "name": "Petal 1 0 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 0 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.8100000023841858,
+        -0.11999999731779099,
+        2.119999885559082
+      ]
+    },
+    {
+      "name": "Petal 1 1 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 1 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2",
+      "type": "MESH",
+      "vertices": 336,
+      "triangles": 668,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.8100000023841858,
+        -0.11999999731779099,
+        1.940000057220459
+      ]
+    },
+    {
+      "name": "Petal 1 2 midrib",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch.001",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch.002",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch.003",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch.004",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Petal 1 2 branch.005",
+      "type": "CURVE",
+      "vertices": 324,
+      "triangles": 596,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Antenna stalk",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Antenna glowing tip",
+      "type": "MESH",
+      "vertices": 610,
+      "triangles": 1216,
+      "non_manifold_edges": 0,
+      "origin": [
+        -0.9300000071525574,
+        -0.20000000298023224,
+        3.2899999618530273
+      ]
+    },
+    {
+      "name": "Antenna stalk.001",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Antenna glowing tip.001",
+      "type": "MESH",
+      "vertices": 610,
+      "triangles": 1216,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.9300000071525574,
+        -0.20000000298023224,
+        3.2899999618530273
+      ]
+    },
+    {
+      "name": "Faceted chest gem",
+      "type": "MESH",
+      "vertices": 12,
+      "triangles": 20,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        -0.8349999785423279,
+        1.1299999952316284
+      ]
+    },
+    {
+      "name": "Tail stem",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        1.0399999618530273,
+        1.2000000476837158
+      ]
+    },
+    {
+      "name": "Tail leaf bud",
+      "type": "MESH",
+      "vertices": 922,
+      "triangles": 1840,
+      "non_manifold_edges": 0,
+      "origin": [
+        0.0,
+        1.4600000381469727,
+        1.4299999475479126
+      ]
+    },
+    {
+      "name": "Tail bud vein",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Tail bud vein.001",
+      "type": "CURVE",
+      "vertices": 900,
+      "triangles": 1748,
+      "non_manifold_edges": 48,
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "notes": "Static layered editable model; no rig, import, Studio test, or game effect. Overlapping parts are not unioned. Procedural materials may not transfer.",
+  "lumipol-forest-sprite-v2.blend_sha256": "1531d64447d24cdc8db0536ffd4ed0da15a5761c3983eb3c9bfa380f885cd80e",
+  "lumipol-forest-sprite-v2-preview.png_sha256": "fa872c4750e3e1389fc71da7d96d8b49c91559dc4bfbc7ef8bf25af1b1fbe635",
+  "lumipol-forest-sprite-v2-front.png_sha256": "f26c0140d1a5b8ba94403ee854cf3db522caadf005aeae47372b04abf436c2c7",
+  "lumipol-forest-sprite-v2-side.png_sha256": "7c13f55e27d2f7006f48a3493e731fb117e243effca86e255f4e5f7a736c286c",
+  "lumipol-forest-sprite-v2-back.png_sha256": "a6af3d32fba05e9483314dd9f1514466e1a0cfcbc402b47a51a9203aac90cae0"
+}
