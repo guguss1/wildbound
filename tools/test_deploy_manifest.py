@@ -294,6 +294,8 @@ class DefaultMappingTests(unittest.TestCase):
         # M9.5, wave W16: server-only analytics event seam
         "src/wildbound/WildboundAnalytics.luau": "ServerScriptService.WildboundAnalytics",
         "tests/WildboundAnalytics_Test.luau": "ServerStorage.WildboundAnalytics_Test",
+        "src/wildbound/WildboundFunnel.luau": "ServerScriptService.WildboundFunnel",
+        "tests/WildboundFunnel_Test.luau": "ServerStorage.WildboundFunnel_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

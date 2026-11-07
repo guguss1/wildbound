@@ -112,6 +112,8 @@ DEFAULT_MAPPINGS = [
     # M9.5, wave W16: server-only analytics event seam
     ("src/wildbound/WildboundAnalytics.luau", "ServerScriptService.WildboundAnalytics"),
     ("tests/WildboundAnalytics_Test.luau", "ServerStorage.WildboundAnalytics_Test"),
+    ("src/wildbound/WildboundFunnel.luau", "ServerScriptService.WildboundFunnel"),
+    ("tests/WildboundFunnel_Test.luau", "ServerStorage.WildboundFunnel_Test"),
 ]
 
 
