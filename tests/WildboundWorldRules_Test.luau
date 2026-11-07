@@ -18,19 +18,20 @@ return function(Rules)
 		return value
 	end
 
-	case("phase boundaries use the single 1200 second cycle", function()
-		for _, sample in ipairs({ { 0, "Day" }, { 599.99, "Day" }, { 600, "Dusk" }, { 719.99, "Dusk" },
-			{ 720, "Night" }, { 1079.99, "Night" }, { 1080, "Dawn" }, { 1199.99, "Dawn" }, { 1200, "Day" } }) do
+	case("phase boundaries use the single 720 second cycle (M5.7, D5)", function()
+		for _, sample in ipairs({ { 0, "Day" }, { 359.99, "Day" }, { 360, "Dusk" }, { 431.99, "Dusk" },
+			{ 432, "Night" }, { 647.99, "Night" }, { 648, "Dawn" }, { 719.99, "Dawn" }, { 720, "Day" } }) do
 			equal(Rules.cycle(sample[1]).phase, sample[2])
 		end
+		equal(Rules.CYCLE_SECONDS, 720)
 	end)
 	case("phase duration and progression remain exact", function()
-		equal(Rules.cycle(0).remaining, 600)
-		equal(Rules.cycle(600).remaining, 120)
-		equal(Rules.cycle(720).remaining, 360)
-		equal(Rules.cycle(1080).remaining, 120)
-		equal(Rules.cycle(900).progress, 0.5)
-		equal(Rules.cycle(1210).elapsed, 10)
+		equal(Rules.cycle(0).remaining, 360)
+		equal(Rules.cycle(360).remaining, 72)
+		equal(Rules.cycle(432).remaining, 216)
+		equal(Rules.cycle(648).remaining, 72)
+		equal(Rules.cycle(540).progress, 0.5)
+		equal(Rules.cycle(730).elapsed, 10)
 	end)
 	case("invalid elapsed time normalizes without NaN propagation", function()
 		for _, value in ipairs({ -1, math.huge, -math.huge, 0 / 0, "720" }) do
@@ -41,13 +42,47 @@ return function(Rules)
 	end)
 	case("clock starts and phase joins are continuous", function()
 		equal(Rules.cycle(0).clockTime, 6)
-		equal(Rules.cycle(600).clockTime, 18)
-		equal(Rules.cycle(720).clockTime, 20)
-		equal(Rules.cycle(1080).clockTime, 5)
-		for time = 0, 2400, 1 do
+		equal(Rules.cycle(360).clockTime, 18)
+		equal(Rules.cycle(432).clockTime, 20)
+		equal(Rules.cycle(648).clockTime, 5)
+		for time = 0, 1440, 1 do
 			local clock = Rules.cycle(time).clockTime
 			assert(clock >= 0 and clock < 24)
 		end
+	end)
+	case("the start offset is drawn over non-Night time only, so the first phase is never Night", function()
+		for index = 0, 9999 do
+			local offset = Rules.startOffset(index / 10000)
+			assert(offset >= 0 and offset < Rules.CYCLE_SECONDS, "offset in the cycle: " .. tostring(offset))
+			assert(Rules.cycle(offset).phase ~= "Night", "Night start at roll " .. index / 10000)
+		end
+		equal(Rules.startOffset(0), 0)
+		equal(Rules.cycle(Rules.startOffset(0.999999)).phase, "Dawn")
+		equal(Rules.startOffset(432 / 504), 648, "the join between Dusk and Dawn skips the whole Night")
+		equal(Rules.startOffset(0.5), 252)
+	end)
+	case("the start offset is uniform over non-Night time and rejects bad rolls", function()
+		local day, steps = 0, 5040
+		for index = 0, steps - 1 do
+			if Rules.cycle(Rules.startOffset(index / steps)).phase == "Day" then day += 1 end
+		end
+		equal(day, 3600, "Day is 360 of the 504 non-Night seconds")
+		for _, bad in ipairs({ -1, 0 / 0, math.huge, -math.huge, "0.5", 1, 2 }) do
+			local offset = Rules.startOffset(bad)
+			assert(offset >= 0 and offset < Rules.CYCLE_SECONDS and Rules.cycle(offset).phase ~= "Night", tostring(bad))
+		end
+		equal(Rules.startOffset(nil), 0)
+	end)
+	case("the wait to the first Night matches the economy document", function()
+		local waits = {}
+		for index = 0, 9999 do
+			local offset = Rules.startOffset(index / 10000)
+			table.insert(waits, (432 - offset) % Rules.CYCLE_SECONDS)
+		end
+		table.sort(waits)
+		assert(math.abs(waits[5000] - 253) <= 3, "median " .. waits[5000])
+		assert(math.abs(waits[9000] - 453) <= 3, "90th percentile " .. waits[9000])
+		assert(waits[10000] <= 504 and waits[10000] > 503, "maximum " .. waits[10000])
 	end)
 	case("camp and shelter safe regions do not overlap fog", function()
 		local fog, safe = Rules.zone(-140, 140)

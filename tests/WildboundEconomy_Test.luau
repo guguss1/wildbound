@@ -211,6 +211,25 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(worldSource:find(":GetAttribute(", 1, true), nil, "no attribute is read back")
 	end)
 
+	case("ECO-22 the world rules follow the tuned 12-minute cycle (M5.7, D5)", function()
+		equal(Rules.CYCLE_SECONDS, Config.cycle.seconds)
+		local at = 0
+		for _, phase in ipairs(Config.cycle.phaseOrder) do
+			equal(Rules.cycle(at).phase, phase, "phase starting at " .. at)
+			equal(Rules.cycle(at).remaining, Config.cycle.phases[phase], phase .. " length")
+			at += Config.cycle.phases[phase]
+		end
+		equal(at, Config.cycle.seconds)
+		equal(Rules.cycle(at).phase, Config.cycle.phaseOrder[1], "the cycle wraps")
+		equal(Config.cycle.startRule, "uniform_over_non_night")
+	end)
+
+	case("the world draws one non-Night start and counts its own timers from the real start", function()
+		assert(worldSource:find("Rules.startOffset(", 1, true), "a random non-Night start is drawn")
+		equal(worldSource:find("originTime + 3", 1, true), nil, "the first-grace timer counts from the real start")
+		equal(worldSource:find("originTime + Ambush", 1, true), nil, "the first ambush counts from the real start")
+	end)
+
 	case("the module is pure: no services, clock, randomness or persistence", function()
 		for _, word in ipairs({ "game", "GetService", "os.", "tick", "Random", "math.random", "DataStore",
 			"task.", "workspace", "MarketplaceService", "Robux" }) do

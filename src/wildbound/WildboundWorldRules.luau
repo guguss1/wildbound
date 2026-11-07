@@ -1,7 +1,15 @@
 -- Pure server rules: no services, client state, wall clock, persistence or RNG.
 local Rules = {}
 
-Rules.CYCLE_SECONDS = 1200
+-- M5.7, D5: a 12-minute cycle with the old proportions (Day 50%, Dusk 10%, Night 30%, Dawn 10%). The
+-- numbers match the "cycle" block of docs/mechanics/wildbound-economy-p0.md; a contract compares them.
+local PHASES = table.freeze({
+	table.freeze({ name = "Day", seconds = 360, clockStart = 6, clockEnd = 18 }),
+	table.freeze({ name = "Dusk", seconds = 72, clockStart = 18, clockEnd = 20 }),
+	table.freeze({ name = "Night", seconds = 216, clockStart = 20, clockEnd = 29 }),
+	table.freeze({ name = "Dawn", seconds = 72, clockStart = 5, clockEnd = 6 }),
+})
+Rules.CYCLE_SECONDS = 720
 Rules.REVEAL_SECONDS = 4
 Rules.REVEAL_RANGE = 55
 Rules.TELEGRAPH_SECONDS = 1.4
@@ -27,22 +35,43 @@ end
 function Rules.cycle(elapsed)
 	if not Rules.finite(elapsed) or elapsed < 0 then elapsed = 0 end
 	local time = elapsed % Rules.CYCLE_SECONDS
-	local phase, phaseStart, duration, clockStart, clockEnd
-	if time < 600 then
-		phase, phaseStart, duration, clockStart, clockEnd = "Day", 0, 600, 6, 18
-	elseif time < 720 then
-		phase, phaseStart, duration, clockStart, clockEnd = "Dusk", 600, 120, 18, 20
-	elseif time < 1080 then
-		phase, phaseStart, duration, clockStart, clockEnd = "Night", 720, 360, 20, 29
-	else
-		phase, phaseStart, duration, clockStart, clockEnd = "Dawn", 1080, 120, 5, 6
+	local found = PHASES[#PHASES]
+	local phaseStart = Rules.CYCLE_SECONDS - found.seconds
+	local startedAt = 0
+	for _, phase in ipairs(PHASES) do
+		if time < startedAt + phase.seconds then
+			found, phaseStart = phase, startedAt
+			break
+		end
+		startedAt += phase.seconds
 	end
+	local duration = found.seconds
 	local progress = (time - phaseStart) / duration
 	return {
-		elapsed = time, phase = phase, progress = progress,
+		elapsed = time, phase = found.name, progress = progress,
 		remaining = duration - (time - phaseStart),
-		clockTime = (clockStart + (clockEnd - clockStart) * progress) % 24,
+		clockTime = (found.clockStart + (found.clockEnd - found.clockStart) * progress) % 24,
 	}
+end
+
+-- M5.7, D5: where in the cycle a new server starts. One roll in [0, 1), drawn once by the server, is
+-- spread uniformly over the time that is not Night, so a session never opens in the dark. Anything that is
+-- not a finite roll below one reads as the start of the cycle.
+function Rules.startOffset(roll)
+	if not Rules.finite(roll) or roll < 0 or roll >= 1 then roll = 0 end
+	local open = 0
+	for _, phase in ipairs(PHASES) do
+		if phase.name ~= "Night" then open += phase.seconds end
+	end
+	local remaining, startedAt = roll * open, 0
+	for _, phase in ipairs(PHASES) do
+		if phase.name ~= "Night" then
+			if remaining < phase.seconds then return startedAt + remaining end
+			remaining -= phase.seconds
+		end
+		startedAt += phase.seconds
+	end
+	return 0
 end
 
 function Rules.zone(x, z)

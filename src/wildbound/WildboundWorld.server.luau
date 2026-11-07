@@ -67,7 +67,10 @@ local actionRemote, stateRemote = remote("WorldAction"), remote("WorldState")
 -- client's readiness report and its liveness pulse. docs/mechanics/wildbound-fair-strike.md.
 local attackWarning, attackResolved = remote("AttackWarning"), remote("AttackResolved")
 local attackAck, readyRemote, pulseRemote = remote("AttackAck"), remote("ClientReady"), remote("FieldPulse")
-local originTime = workspace:GetServerTimeNow()
+local startedAt = workspace:GetServerTimeNow()
+-- D5 (M5.7): the 12-minute cycle opens at one random point that is never Night, drawn once per server.
+-- Timers that mean "since the world started" count from startedAt, not from the shifted origin.
+local originTime = startedAt - Rules.startOffset(Random.new():NextNumber())
 -- Damage never follows streaming. A missing or unreadable flag module means off, which is shadow mode
 -- (M4.2). The attribute and payload only report the result; nothing reads them back to decide.
 local flagsModule = script.Parent:FindFirstChild("WildboundFlags")
@@ -154,7 +157,7 @@ local stopped = false
 -- A late-started world has an initial non-attacking grace before proximity acquisition.
 local mode, target = "Retreat", nil
 local targetLife, huntState = nil, nil
-local alertEndsAt, telegraphEndsAt, recoveryEndsAt = 0, 0, originTime + 3
+local alertEndsAt, telegraphEndsAt, recoveryEndsAt = 0, 0, startedAt + 3
 local chaseStartedAt, lastAttackAt, revealedUntil = 0, -Rules.ATTACK_COOLDOWN, 0
 local patrolIndex = 1
 -- Per-player awareness (M2). Presentation only: nothing below ever reads it to gate a strike.
@@ -171,7 +174,7 @@ local patrol = {
 local patrolOffsets = {}
 for index, point in ipairs(patrol) do patrolOffsets[index] = point - home end
 local lastHuntAt, acquireBlockedUntil = -math.huge, 0
-local ambushNextAt = originTime + Ambush.nextDelay(Rules.cycle(0).phase, rng:NextNumber())
+local ambushNextAt = startedAt + Ambush.nextDelay(Rules.cycle(startedAt - originTime).phase, rng:NextNumber())
 local function setCenter(x, z)
 	center = Vector3.new(x, home.Y, z)
 	patrol = {}
