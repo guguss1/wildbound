@@ -246,6 +246,9 @@ class DefaultMappingTests(unittest.TestCase):
         # docs/mechanics/wildbound-awareness.md and Studio observation (M2.1)
         "src/wildbound/WildboundSiluetaAwareness.luau": "ServerScriptService.WildboundSiluetaAwareness",
         "tests/WildboundSiluetaAwareness_Test.luau": "ServerStorage.WildboundSiluetaAwareness_Test",
+        # M2.6, wave W3b: client smoothing is pure and shared, so it lives in ReplicatedStorage
+        "src/wildbound/WildboundGuardianSmoothing.luau": "ReplicatedStorage.WildboundGuardianSmoothing",
+        "tests/WildboundGuardianSmoothing_Test.luau": "ServerStorage.WildboundGuardianSmoothing_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

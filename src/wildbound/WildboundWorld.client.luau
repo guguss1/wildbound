@@ -100,6 +100,52 @@ local function newPet(position)
 	model.PrimaryPart = body
 	return model
 end
+-- Smooth only what the player sees. The server moves Body in 0.2 s steps and stays authoritative;
+-- Body is never written here. The art and the ground cue slide between the last two server poses.
+-- Set the local attribute GuardianSmoothing to false to see the raw steps (used to measure them).
+local smoothingModule = ReplicatedStorage:WaitForChild("WildboundGuardianSmoothing", 10)
+local Smoothing = smoothingModule and require(smoothingModule)
+if not Smoothing then warn("Wildbound world: guardian smoothing unavailable; steps stay visible.") end
+local follow = { smoothing = Smoothing and Smoothing.new() }
+local function guardianParts()
+	local map = workspace:FindFirstChild("WildboundP0")
+	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
+	local model = runtime and runtime:FindFirstChild("Silueta")
+	local body = model and model:FindFirstChild("Body")
+	if not (model and body and body:IsA("BasePart")) then return nil end
+	return model, body, model:FindFirstChild("SiluetaVisual"), model:FindFirstChild("GroundCue")
+end
+local function followGuardian()
+	if not Smoothing then return end
+	local model, body, art, cue = guardianParts()
+	if model ~= follow.model then
+		follow.model, follow.art, follow.cue, follow.artRel, follow.cueRel, follow.lastPose = model, nil, nil, nil, nil, nil
+		Smoothing.reset(follow.smoothing)
+	end
+	if not model then return end
+	local now = os.clock()
+	local pose = body.CFrame
+	if pose ~= follow.lastPose then
+		follow.lastPose, follow.changedAt = pose, now
+		local look = pose.LookVector
+		Smoothing.observe(follow.smoothing, now, pose.X, pose.Y, pose.Z, math.atan2(-look.X, -look.Z))
+	end
+	if gui:GetAttribute("GuardianSmoothing") == false then return end
+	if art ~= follow.art then follow.art, follow.artRel = art, nil end
+	if cue ~= follow.cue then follow.cue, follow.cueRel = cue, nil end
+	-- The offsets are measured once, while the server pose has held still, so no part is mid-update.
+	if now - (follow.changedAt or now) > 0.3 then
+		if art and not follow.artRel and art:IsA("Model") then follow.artRel = pose:ToObjectSpace(art:GetPivot()) end
+		if cue and not follow.cueRel and cue:IsA("BasePart") then follow.cueRel = pose:ToObjectSpace(cue.CFrame) end
+	end
+	if not (follow.artRel or follow.cueRel) then return end
+	local x, y, z, yaw = Smoothing.sample(follow.smoothing, now)
+	if not x then return end
+	local shown = CFrame.new(x, y, z) * CFrame.Angles(0, yaw, 0)
+	if follow.artRel then art:PivotTo(shown * follow.artRel) end
+	if follow.cueRel then cue.CFrame = shown * follow.cueRel end
+end
+RunService:BindToRenderStep("WildboundGuardianSmoothing", Enum.RenderPriority.Last.Value, followGuardian)
 local function cooldown(readyAt, now)
 	if type(readyAt) ~= "number" then return "?" end
 	local remaining = math.max(0, math.ceil(readyAt - now))
@@ -178,6 +224,7 @@ listen(RunService.Heartbeat, function(dt)
 end)
 listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
+	pcall(function() RunService:UnbindFromRenderStep("WildboundGuardianSmoothing") end)
 	destroyPet()
 	for key, value in pairs(original) do Lighting[key] = value end
 	if ownsAtmosphere then

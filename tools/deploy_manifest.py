@@ -61,6 +61,9 @@ DEFAULT_MAPPINGS = [
     # docs/mechanics/wildbound-awareness.md and Studio observation (M2.1)
     ("src/wildbound/WildboundSiluetaAwareness.luau", "ServerScriptService.WildboundSiluetaAwareness"),
     ("tests/WildboundSiluetaAwareness_Test.luau", "ServerStorage.WildboundSiluetaAwareness_Test"),
+    # M2.6, wave W3b: pure client smoothing, shared so the client script can require it
+    ("src/wildbound/WildboundGuardianSmoothing.luau", "ReplicatedStorage.WildboundGuardianSmoothing"),
+    ("tests/WildboundGuardianSmoothing_Test.luau", "ServerStorage.WildboundGuardianSmoothing_Test"),
 ]
 
 

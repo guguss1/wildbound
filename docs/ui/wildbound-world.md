@@ -28,3 +28,13 @@ Placement: the LocalScript lives in StarterPlayerScripts alongside the inventory
 
 Solo Studio runtime checks ran on 11-05, including F and Q inputs with cooldowns and the accelerated phase boundaries and dusk warning (`odd/tasks/wildbound-first-playable.md:119`, `:132`). Pending: server/client and respawn lifecycle, reconnect/stale state, overlapping Lighting ownership, touch interactions, small screens and safe areas, Device Emulator, physical mobile devices, and performance measurements. Accessibility and device verification have not been performed.
 
+## Guardian smoothing (M2.6, wave W3b)
+
+The baseline measured Silueta moving in 0.6 stud (patrol) and 1.2 stud (hunt) jumps every 0.2 s with no interpolation (`docs/testing/wildbound-baseline-m1.md`, guardian smoothness). The client now slides the visible art and the ground cue between the last two server poses.
+
+- Pure rule: `src/wildbound/WildboundGuardianSmoothing.luau` (Explorer `ReplicatedStorage.WildboundGuardianSmoothing`), 23 contracts in `tests/WildboundGuardianSmoothing_Test.luau`. Numbers only, clock injected.
+- Applied in `WildboundWorld.client.luau`, bound last in the render step. It reads `Body.CFrame`, never writes it, and never touches the server: position, detection and strike checks use the real Body. The art model (`SiluetaVisual`) and `GroundCue` are moved locally, using their offsets from Body measured once while the pose has held still for 0.3 s.
+- The shown pose trails the server by one step (0.2 s, about 1.2 studs at day hunt speed 6 and 1.6 at night speed 8). That is the price of a slide with no overshoot. A jump above 6 studs snaps. A pause settles exactly on the last pose.
+- Without art (static fallback) the primitive Body and Head stay unsmoothed, because they are the authoritative parts.
+- Hypothesis: whether the slide reads as smooth on a real device is for people to judge. Measured numbers are in the 2026-11-07 section of `docs/testing/wildbound-baseline-m1.md` follow-ups below once recorded.
+- Measurement hook: `WildboundWorldUI:SetAttribute("GuardianSmoothing", false)` on a client shows the raw steps again.
