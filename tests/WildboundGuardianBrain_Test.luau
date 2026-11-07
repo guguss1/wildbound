@@ -49,6 +49,7 @@ return function(Brain, Rules, source)
 		for _, phase in ipairs(PHASES) do
 			local profile = Brain.profile(phase)
 			assert(profile.hunt < 14, phase .. " hunt " .. profile.hunt)
+			assert(profile.hunt < 11, phase .. " stays below the slowest loaded walk, 11: " .. profile.hunt)
 			assert(profile.hunt > profile.patrol and profile.investigate > profile.patrol, phase)
 			assert(profile.alertSeconds >= 0.6, phase .. " leaves time to react")
 			assert(profile.detection <= Rules.CHASE_RANGE, phase .. " detects inside the chase range")

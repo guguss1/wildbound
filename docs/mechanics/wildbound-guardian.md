@@ -21,11 +21,11 @@ It never enters camp: every goal, noise point and search point is clamped to the
 
 | Phase | Patrol | Investigate | Hunt | Search | Retreat | Detection | Alert | Chase limit | Search time | Hearing |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Day | 4 | 6 | 8 | 5 | 6 | 26 | 1.2 s | 10 s | 6 s | 0.8 |
-| Dusk, Dawn | 4.5 | 7 | 9.5 | 5.5 | 6.5 | 32 | 1.0 s | 12 s | 9 s | 1.0 |
-| Night | 5 | 8 | 11 | 6 | 7 | 38 | 0.9 s | 15 s | 12 s | 1.3 |
+| Day | 4 | 6 | 7 | 5 | 6 | 26 | 1.2 s | 10 s | 6 s | 0.8 |
+| Dusk, Dawn | 4.5 | 7 | 9 | 5.5 | 6.5 | 32 | 1.0 s | 12 s | 9 s | 1.0 |
+| Night | 5 | 8 | 10 | 6 | 7 | 38 | 0.9 s | 15 s | 12 s | 1.3 |
 
-Speeds are studs per second. Every hunt speed stays below a carrying player's 14, so running away always works. The totem's detection bonus still applies on top of the detection column; the chase range stays 65.
+Speeds are studs per second. Every hunt speed stays below a carrying player's 14 and below the slowest loaded-pouch walk of 11, so running away always works. The first wiring used hunts of 8, 9.5 and 11: the economy simulator then failed its invariant (a full pouch at 11 studs/s was not faster than Night) and greedy expeditions fell to a 178 s median, under the 180 s target. Day 7 and Night 10 pass both. The totem's detection bonus still applies on top of the detection column; the chase range stays 65.
 
 ## Capture noise (C1)
 

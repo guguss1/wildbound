@@ -38,7 +38,7 @@ HOME, LEASH = (0, -85), 80
 FOG = (-45, 165, -165, 35)
 SAFE = [((-140, 140), 35), ((105, 125), 22)]
 PATROL = [(16, -85), (0, -69), (-16, -85), (0, -101)]  # E, S, W, N
-DAY, NIGHT = (8, 26), (11, 38)                         # (hunt speed, detection) from the brain, delivery C
+DAY, NIGHT = (7, 26), (10, 38)                         # (hunt speed, detection) from the brain, delivery C
 
 # One simple model used by the hand cases: 0.2 s step, 1.2 s alert, 1.4 s
 # telegraph, attack range 7, chase limit 10 s, patrol speed 3.

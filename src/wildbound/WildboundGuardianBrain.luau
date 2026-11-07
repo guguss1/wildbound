@@ -25,15 +25,16 @@ Brain.CONSTANTS = freeze({
 local C = Brain.CONSTANTS
 
 -- Studs per second, seconds and studs. Day is the least aggressive phase, Night the most active. Every hunt speed
--- stays below a carrying player's 14 (WildboundLumipolWild.CONSTANTS.CREATURE_CARRY_SPEED), so running away always
--- works; detection is the sight radius for a new target and stays inside the chase range (65).
-local DAY = { patrol = 4, investigate = 6, hunt = 8, search = 5, retreat = 6, hearing = 0.8,
+-- stays below a carrying player's 14 (WildboundLumipolWild.CONSTANTS.CREATURE_CARRY_SPEED) and below the slowest
+-- loaded-pouch walk, 11 (the economy simulator checks it), so running away always works; detection is the sight
+-- radius for a new target and stays inside the chase range (65).
+local DAY = { patrol = 4, investigate = 6, hunt = 7, search = 5, retreat = 6, hearing = 0.8,
 	searchSeconds = 6, chaseSeconds = 10, alertSeconds = 1.2, detection = 26 }
-local TWILIGHT = { patrol = 4.5, investigate = 7, hunt = 9.5, search = 5.5, retreat = 6.5, hearing = 1.0,
+local TWILIGHT = { patrol = 4.5, investigate = 7, hunt = 9, search = 5.5, retreat = 6.5, hearing = 1.0,
 	searchSeconds = 9, chaseSeconds = 12, alertSeconds = 1.0, detection = 32 }
 Brain.PROFILES = freeze({
 	Day = DAY, Dusk = TWILIGHT, Dawn = table.clone(TWILIGHT),
-	Night = { patrol = 5, investigate = 8, hunt = 11, search = 6, retreat = 7, hearing = 1.3,
+	Night = { patrol = 5, investigate = 8, hunt = 10, search = 6, retreat = 7, hearing = 1.3,
 		searchSeconds = 12, chaseSeconds = 15, alertSeconds = 0.9, detection = 38 },
 })
 
