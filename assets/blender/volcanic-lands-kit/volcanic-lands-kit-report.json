@@ -1,0 +1,505 @@
+{
+  "generator": "tools/build-volcanic-lands-kit.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Rigged Silueta once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "volcanic-lands-kit-sheet.png",
+  "lineup_file": "volcanic-lands-kit-scale.png",
+  "blend": "assets/blender/volcanic-lands-kit/volcanic-lands-kit-v1.blend",
+  "props": {
+    "VL_BasaltColumn": {
+      "status": "unvalidated",
+      "triangles": 116,
+      "size": [
+        8.0,
+        8.0,
+        12.0
+      ],
+      "bbox_min": [
+        -4.0,
+        -4.0469,
+        0.0
+      ],
+      "bbox_max": [
+        4.0,
+        3.9531,
+        12.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.088,
+        0.9134,
+        0.9468
+      ],
+      "parts": [
+        {
+          "object": "VL_BasaltColumn_Rock",
+          "material": "VL_BasaltColumn_Rock",
+          "material_count": 1,
+          "palette_name": "VL_Basalt",
+          "triangles": 116,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2E2B2C"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_BasaltColumn.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_BasaltColumn.png",
+      "occluders": [
+        {
+          "name": "cluster",
+          "center": [
+            0.2,
+            -0.2,
+            5.0
+          ],
+          "size": [
+            6.6,
+            6.6,
+            10.0
+          ]
+        }
+      ]
+    },
+    "VL_Vent": {
+      "status": "unvalidated",
+      "triangles": 156,
+      "size": [
+        10.0,
+        10.0,
+        3.0
+      ],
+      "bbox_min": [
+        -5.0,
+        -5.0,
+        0.0
+      ],
+      "bbox_max": [
+        5.0,
+        5.0,
+        3.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9922,
+        1.0893,
+        0.9677
+      ],
+      "parts": [
+        {
+          "object": "VL_Vent_Cone",
+          "material": "VL_Vent_Cone",
+          "material_count": 1,
+          "palette_name": "VL_Ash",
+          "triangles": 110,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6F6863"
+        },
+        {
+          "object": "VL_Vent_Neon_Magma",
+          "material": "VL_Vent_Neon_Magma",
+          "material_count": 1,
+          "palette_name": "VL_Neon_Magma",
+          "triangles": 46,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C8481A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_Vent.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_Vent.png",
+      "tiny": true
+    },
+    "VL_CoolStone": {
+      "status": "unvalidated",
+      "triangles": 58,
+      "size": [
+        6.0,
+        5.0,
+        1.0
+      ],
+      "bbox_min": [
+        -2.9068,
+        -2.5212,
+        0.0
+      ],
+      "bbox_max": [
+        3.0932,
+        2.4788,
+        1.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0826,
+        0.9416,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "VL_CoolStone_Stone",
+          "material": "VL_CoolStone_Stone",
+          "material_count": 1,
+          "palette_name": "VL_CoolGrey",
+          "triangles": 58,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6C7A85"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_CoolStone.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_CoolStone.png",
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.0083,
+            -0.3124,
+            0.5
+          ],
+          "size": [
+            2.896,
+            2.896,
+            1.0
+          ],
+          "pitch_deg": 0.0
+        }
+      ]
+    },
+    "VL_CharredTree": {
+      "status": "unvalidated",
+      "triangles": 178,
+      "size": [
+        12.0,
+        12.0,
+        16.0
+      ],
+      "bbox_min": [
+        -6.1593,
+        -5.6448,
+        0.0
+      ],
+      "bbox_max": [
+        5.8407,
+        6.3552,
+        16.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0619,
+        1.1429,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "VL_CharredTree_Wood",
+          "material": "VL_CharredTree_Wood",
+          "material_count": 1,
+          "palette_name": "VL_Char",
+          "triangles": 154,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "241F1D"
+        },
+        {
+          "object": "VL_CharredTree_Neon_Magma",
+          "material": "VL_CharredTree_Neon_Magma",
+          "material_count": 1,
+          "palette_name": "VL_Neon_Magma",
+          "triangles": 24,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C8481A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_CharredTree.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_CharredTree.png"
+    },
+    "VL_AshShrine": {
+      "status": "unvalidated",
+      "triangles": 418,
+      "size": [
+        28.3382,
+        15.2643,
+        16.1252
+      ],
+      "bbox_min": [
+        -14.2806,
+        -7.6321,
+        0.0
+      ],
+      "bbox_max": [
+        14.0577,
+        7.6321,
+        16.1252
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "VL_AshShrine_Stone",
+          "material": "VL_AshShrine_Stone",
+          "material_count": 1,
+          "palette_name": "VL_Ash",
+          "triangles": 328,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6F6863"
+        },
+        {
+          "object": "VL_AshShrine_Trim",
+          "material": "VL_AshShrine_Trim",
+          "material_count": 1,
+          "palette_name": "VL_Ochre",
+          "triangles": 90,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "A8692C"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_AshShrine.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_AshShrine.png",
+      "occluders": [
+        {
+          "name": "pier_left",
+          "center": [
+            -10.8,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.2,
+            13.6,
+            11.0
+          ]
+        },
+        {
+          "name": "pier_right",
+          "center": [
+            10.8,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.2,
+            13.6,
+            11.0
+          ]
+        }
+      ],
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 14.8991,
+        "gap_low_x": -7.447,
+        "gap_high_x": 7.4521,
+        "height": 11.3009,
+        "width_probe_height": 11.0,
+        "height_probe_width": 14.0
+      }
+    },
+    "VL_CrustPlate": {
+      "status": "unvalidated",
+      "triangles": 98,
+      "size": [
+        21.1984,
+        18.7548,
+        0.54
+      ],
+      "bbox_min": [
+        -10.7016,
+        -9.4019,
+        0.0
+      ],
+      "bbox_max": [
+        10.4969,
+        9.3529,
+        0.54
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "VL_CrustPlate_Crust",
+          "material": "VL_CrustPlate_Crust",
+          "material_count": 1,
+          "palette_name": "VL_Basalt",
+          "triangles": 70,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2E2B2C"
+        },
+        {
+          "object": "VL_CrustPlate_Neon_Magma",
+          "material": "VL_CrustPlate_Neon_Magma",
+          "material_count": 1,
+          "palette_name": "VL_Neon_Magma",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C8481A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_CrustPlate.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_CrustPlate.png",
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.3176,
+            0.815,
+            0.25
+          ],
+          "size": [
+            12.548,
+            12.548,
+            0.5
+          ],
+          "pitch_deg": 0.0
+        }
+      ]
+    },
+    "VL_ObsidianShard": {
+      "status": "unvalidated",
+      "triangles": 82,
+      "size": [
+        5.0,
+        5.0,
+        4.0
+      ],
+      "bbox_min": [
+        -2.5,
+        -2.5,
+        0.0
+      ],
+      "bbox_max": [
+        2.5,
+        2.5,
+        4.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0847,
+        1.0925,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "VL_ObsidianShard_Shard",
+          "material": "VL_ObsidianShard_Shard",
+          "material_count": 1,
+          "palette_name": "VL_Obsidian",
+          "triangles": 66,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "1A1A24"
+        },
+        {
+          "object": "VL_ObsidianShard_Base",
+          "material": "VL_ObsidianShard_Base",
+          "material_count": 1,
+          "palette_name": "VL_Ash",
+          "triangles": 16,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6F6863"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/volcanic-lands-kit/VL_ObsidianShard.fbx"
+      },
+      "render": "assets/blender/volcanic-lands-kit/VL_ObsidianShard.png",
+      "gather_point": [
+        0.0,
+        -2.5,
+        1.5
+      ]
+    }
+  }
+}

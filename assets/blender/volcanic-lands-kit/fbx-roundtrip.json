@@ -1,0 +1,140 @@
+{
+  "props": {
+    "VL_BasaltColumn": {
+      "model": {
+        "triangles": 116,
+        "size": [
+          8.0,
+          8.0,
+          12.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_BasaltColumn",
+          "VL_BasaltColumn_Rock"
+        ],
+        "materials": [
+          "VL_BasaltColumn_Rock"
+        ]
+      }
+    },
+    "VL_Vent": {
+      "model": {
+        "triangles": 156,
+        "size": [
+          10.0,
+          10.0,
+          3.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_Vent",
+          "VL_Vent_Cone",
+          "VL_Vent_Neon_Magma"
+        ],
+        "materials": [
+          "VL_Vent_Cone",
+          "VL_Vent_Neon_Magma"
+        ]
+      }
+    },
+    "VL_CoolStone": {
+      "model": {
+        "triangles": 58,
+        "size": [
+          6.0,
+          5.0,
+          1.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_CoolStone",
+          "VL_CoolStone_Stone"
+        ],
+        "materials": [
+          "VL_CoolStone_Stone"
+        ]
+      }
+    },
+    "VL_CharredTree": {
+      "model": {
+        "triangles": 178,
+        "size": [
+          12.0,
+          12.0,
+          16.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_CharredTree",
+          "VL_CharredTree_Neon_Magma",
+          "VL_CharredTree_Wood"
+        ],
+        "materials": [
+          "VL_CharredTree_Neon_Magma",
+          "VL_CharredTree_Wood"
+        ]
+      }
+    },
+    "VL_AshShrine": {
+      "model": {
+        "triangles": 418,
+        "size": [
+          28.3382,
+          15.2643,
+          16.1252
+        ],
+        "min_z": 0.0,
+        "objects": [
+          "VL_AshShrine",
+          "VL_AshShrine_Stone",
+          "VL_AshShrine_Trim"
+        ],
+        "materials": [
+          "VL_AshShrine_Stone",
+          "VL_AshShrine_Trim"
+        ]
+      }
+    },
+    "VL_CrustPlate": {
+      "model": {
+        "triangles": 98,
+        "size": [
+          21.1984,
+          18.7548,
+          0.54
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_CrustPlate",
+          "VL_CrustPlate_Crust",
+          "VL_CrustPlate_Neon_Magma"
+        ],
+        "materials": [
+          "VL_CrustPlate_Crust",
+          "VL_CrustPlate_Neon_Magma"
+        ]
+      }
+    },
+    "VL_ObsidianShard": {
+      "model": {
+        "triangles": 82,
+        "size": [
+          5.0,
+          5.0,
+          4.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "VL_ObsidianShard",
+          "VL_ObsidianShard_Base",
+          "VL_ObsidianShard_Shard"
+        ],
+        "materials": [
+          "VL_ObsidianShard_Base",
+          "VL_ObsidianShard_Shard"
+        ]
+      }
+    }
+  }
+}
