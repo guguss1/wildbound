@@ -1,0 +1,142 @@
+{
+  "props": {
+    "CR_Colonnade": {
+      "model": {
+        "triangles": 384,
+        "size": [
+          24.9951,
+          5.0085,
+          14.0238
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_Colonnade",
+          "CR_Colonnade_Stone",
+          "CR_Colonnade_Trim"
+        ],
+        "materials": [
+          "CR_Colonnade_Stone",
+          "CR_Colonnade_Trim"
+        ]
+      }
+    },
+    "CR_BrokenWall": {
+      "model": {
+        "triangles": 228,
+        "size": [
+          14.1741,
+          3.2307,
+          9.8078
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_BrokenWall",
+          "CR_BrokenWall_Moss",
+          "CR_BrokenWall_Stone"
+        ],
+        "materials": [
+          "CR_BrokenWall_Moss",
+          "CR_BrokenWall_Stone"
+        ]
+      }
+    },
+    "CR_Plinth": {
+      "model": {
+        "triangles": 96,
+        "size": [
+          6.0,
+          6.0,
+          2.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_Plinth",
+          "CR_Plinth_Neon_Glyph",
+          "CR_Plinth_Stone"
+        ],
+        "materials": [
+          "CR_Plinth_Neon_Glyph",
+          "CR_Plinth_Stone"
+        ]
+      }
+    },
+    "CR_Archway": {
+      "model": {
+        "triangles": 396,
+        "size": [
+          28.3572,
+          8.2912,
+          18.1001
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_Archway",
+          "CR_Archway_Stone",
+          "CR_Archway_Trim"
+        ],
+        "materials": [
+          "CR_Archway_Stone",
+          "CR_Archway_Trim"
+        ]
+      }
+    },
+    "CR_Reliquary": {
+      "model": {
+        "triangles": 164,
+        "size": [
+          8.0,
+          4.0,
+          4.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_Reliquary",
+          "CR_Reliquary_Stone",
+          "CR_Reliquary_Trim"
+        ],
+        "materials": [
+          "CR_Reliquary_Stone",
+          "CR_Reliquary_Trim"
+        ]
+      }
+    },
+    "CR_GlyphStone": {
+      "model": {
+        "triangles": 96,
+        "size": [
+          4.0,
+          3.0,
+          5.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_GlyphStone",
+          "CR_GlyphStone_Neon_Glyph",
+          "CR_GlyphStone_Stone"
+        ],
+        "materials": [
+          "CR_GlyphStone_Neon_Glyph",
+          "CR_GlyphStone_Stone"
+        ]
+      }
+    },
+    "CR_StairRun": {
+      "model": {
+        "triangles": 108,
+        "size": [
+          16.0,
+          12.0,
+          6.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CR_StairRun",
+          "CR_StairRun_Stone"
+        ],
+        "materials": [
+          "CR_StairRun_Stone"
+        ]
+      }
+    }
+  }
+}

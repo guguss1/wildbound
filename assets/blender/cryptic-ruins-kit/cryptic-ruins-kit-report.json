@@ -1,0 +1,571 @@
+{
+  "generator": "tools/build-cryptic-ruins-kit.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Rigged Silueta once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "cryptic-ruins-kit-sheet.png",
+  "lineup_file": "cryptic-ruins-kit-scale.png",
+  "blend": "assets/blender/cryptic-ruins-kit/cryptic-ruins-kit-v1.blend",
+  "props": {
+    "CR_Colonnade": {
+      "status": "unvalidated",
+      "triangles": 384,
+      "size": [
+        24.9951,
+        5.0085,
+        14.0238
+      ],
+      "bbox_min": [
+        -12.6606,
+        -2.5089,
+        0.0
+      ],
+      "bbox_max": [
+        12.3344,
+        2.4996,
+        14.0238
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CR_Colonnade_Stone",
+          "material": "CR_Colonnade_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 324,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_Colonnade_Trim",
+          "material": "CR_Colonnade_Trim",
+          "material_count": 1,
+          "palette_name": "CR_DeepViolet",
+          "triangles": 60,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3B2F50"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_Colonnade.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_Colonnade.png",
+      "occluders": [
+        {
+          "name": "column_0",
+          "center": [
+            -10.3,
+            0.0,
+            5.5
+          ],
+          "size": [
+            3.9,
+            4.6,
+            11.0
+          ]
+        },
+        {
+          "name": "column_1",
+          "center": [
+            0.0,
+            0.0,
+            5.5
+          ],
+          "size": [
+            3.9,
+            4.6,
+            11.0
+          ]
+        },
+        {
+          "name": "column_2",
+          "center": [
+            10.3,
+            0.0,
+            5.5
+          ],
+          "size": [
+            3.9,
+            4.6,
+            11.0
+          ]
+        }
+      ]
+    },
+    "CR_BrokenWall": {
+      "status": "unvalidated",
+      "triangles": 228,
+      "size": [
+        14.1741,
+        3.2307,
+        9.8078
+      ],
+      "bbox_min": [
+        -7.0871,
+        -1.6142,
+        0.0
+      ],
+      "bbox_max": [
+        7.0871,
+        1.6165,
+        9.8078
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CR_BrokenWall_Stone",
+          "material": "CR_BrokenWall_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 192,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_BrokenWall_Moss",
+          "material": "CR_BrokenWall_Moss",
+          "material_count": 1,
+          "palette_name": "CR_DrySage",
+          "triangles": 36,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6C7452"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_BrokenWall.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_BrokenWall.png",
+      "occluders": [
+        {
+          "name": "wall",
+          "center": [
+            0.0,
+            0.0,
+            3.5
+          ],
+          "size": [
+            14.3,
+            3.0,
+            7.0
+          ]
+        }
+      ]
+    },
+    "CR_Plinth": {
+      "status": "unvalidated",
+      "triangles": 96,
+      "size": [
+        6.0,
+        6.0,
+        2.0
+      ],
+      "bbox_min": [
+        -3.0,
+        -3.0,
+        0.0
+      ],
+      "bbox_max": [
+        3.0,
+        3.0,
+        2.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.989,
+        0.9989,
+        0.9652
+      ],
+      "parts": [
+        {
+          "object": "CR_Plinth_Stone",
+          "material": "CR_Plinth_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 68,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_Plinth_Neon_Glyph",
+          "material": "CR_Plinth_Neon_Glyph",
+          "material_count": 1,
+          "palette_name": "CR_Neon_Glyph",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C9A24A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_Plinth.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_Plinth.png",
+      "tiny": true,
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.0,
+            0.0,
+            1.0
+          ],
+          "size": [
+            5.0,
+            5.0,
+            2.0
+          ],
+          "pitch_deg": 0.0
+        }
+      ]
+    },
+    "CR_Archway": {
+      "status": "unvalidated",
+      "triangles": 396,
+      "size": [
+        28.3572,
+        8.2912,
+        18.1001
+      ],
+      "bbox_min": [
+        -14.2038,
+        -4.1282,
+        0.0
+      ],
+      "bbox_max": [
+        14.1534,
+        4.163,
+        18.1001
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CR_Archway_Stone",
+          "material": "CR_Archway_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 300,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_Archway_Trim",
+          "material": "CR_Archway_Trim",
+          "material_count": 1,
+          "palette_name": "CR_DeepViolet",
+          "triangles": 96,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3B2F50"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_Archway.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_Archway.png",
+      "occluders": [
+        {
+          "name": "pier_left",
+          "center": [
+            -10.8,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.4,
+            6.8,
+            11.0
+          ]
+        },
+        {
+          "name": "pier_right",
+          "center": [
+            10.8,
+            0.0,
+            5.5
+          ],
+          "size": [
+            6.4,
+            6.8,
+            11.0
+          ]
+        }
+      ],
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 14.6483,
+        "gap_low_x": -7.4145,
+        "gap_high_x": 7.2338,
+        "height": 11.4018,
+        "width_probe_height": 11.0,
+        "height_probe_width": 14.0
+      }
+    },
+    "CR_Reliquary": {
+      "status": "unvalidated",
+      "triangles": 164,
+      "size": [
+        8.0,
+        4.0,
+        4.0
+      ],
+      "bbox_min": [
+        -4.0,
+        -2.0193,
+        0.0
+      ],
+      "bbox_max": [
+        4.0,
+        1.9807,
+        4.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9871,
+        0.9417,
+        0.9891
+      ],
+      "parts": [
+        {
+          "object": "CR_Reliquary_Stone",
+          "material": "CR_Reliquary_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 116,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_Reliquary_Trim",
+          "material": "CR_Reliquary_Trim",
+          "material_count": 1,
+          "palette_name": "CR_DeepViolet",
+          "triangles": 48,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3B2F50"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_Reliquary.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_Reliquary.png",
+      "gather_point": [
+        0.0,
+        0.0,
+        4.0
+      ]
+    },
+    "CR_GlyphStone": {
+      "status": "unvalidated",
+      "triangles": 96,
+      "size": [
+        4.0,
+        3.0,
+        5.0
+      ],
+      "bbox_min": [
+        -1.995,
+        -1.4417,
+        0.0
+      ],
+      "bbox_max": [
+        2.005,
+        1.5583,
+        5.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0413,
+        0.9871,
+        1.0573
+      ],
+      "parts": [
+        {
+          "object": "CR_GlyphStone_Stone",
+          "material": "CR_GlyphStone_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 68,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        },
+        {
+          "object": "CR_GlyphStone_Neon_Glyph",
+          "material": "CR_GlyphStone_Neon_Glyph",
+          "material_count": 1,
+          "palette_name": "CR_Neon_Glyph",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C9A24A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_GlyphStone.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_GlyphStone.png"
+    },
+    "CR_StairRun": {
+      "status": "unvalidated",
+      "triangles": 108,
+      "size": [
+        16.0,
+        12.0,
+        6.0
+      ],
+      "bbox_min": [
+        -8.0,
+        -5.9501,
+        0.0
+      ],
+      "bbox_max": [
+        8.0,
+        6.0499,
+        6.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9941,
+        0.9497,
+        0.9874
+      ],
+      "parts": [
+        {
+          "object": "CR_StairRun_Stone",
+          "material": "CR_StairRun_Stone",
+          "material_count": 1,
+          "palette_name": "CR_Slab",
+          "triangles": 108,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "77717F"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/cryptic-ruins-kit/CR_StairRun.fbx"
+      },
+      "render": "assets/blender/cryptic-ruins-kit/CR_StairRun.png",
+      "collision_boxes": [
+        {
+          "name": "walk_landing",
+          "center": [
+            0.0,
+            5.0,
+            5.5
+          ],
+          "size": [
+            14.3,
+            1.6,
+            1.0
+          ],
+          "pitch_deg": 0.0
+        },
+        {
+          "name": "ramp",
+          "center": [
+            0.0,
+            0.0,
+            3.0
+          ],
+          "size": [
+            13.0,
+            13.416,
+            0.4
+          ],
+          "pitch_deg": 26.565
+        }
+      ]
+    }
+  }
+}
