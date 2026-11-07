@@ -60,7 +60,7 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W4a | 4 | Capture and economy proposals, M3.1, M5.1 | Opus high | Done, `af0900c` |
 | W4b | 4 | Lumipol v2 and search pose clip, local only | Sonnet, Blender | Pending |
 | W5 | 5 | Skill capture code, M3.2 to M3.5, no uploads | Opus high, Sonnet | After W3 |
-| W6 | 6 | Fair damage code, M4.2 to M4.8, `damageMode` default off | Opus high, Sonnet | After W5 |
+| W6 | 6 | Fair damage code, M4.2 to M4.8, `damageMode` default off. First item, from the audit: `WildboundWorld.server.luau:33` sets damage on whenever streaming is off and `:282-284` calls `TakeDamage`; replace it with an explicit flag defaulting to off, test first. Also from the audit: attack chip ends up to about 0.22 s before the strike, and the HUD allocates every frame | Opus high, Sonnet | After W5 |
 | W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | After W6 |
 | W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Pending |
 | W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6 | Sonnet, Studio writer | After W7 preferred |
