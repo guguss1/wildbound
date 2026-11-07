@@ -797,7 +797,10 @@ local function releaseHide(player, reason, now)
 	if root and root.Parent then
 		root.Anchored = false
 		if reason ~= "dead" and reason ~= "left" then
-			local point = Hide.exitPoint(hide.x, hide.z, body.Position.X, body.Position.Z)
+			-- A player who leaves steps out away from the guardian; a found one is pulled out on its side, in sight.
+			local gx, gz = body.Position.X, body.Position.Z
+			if reason == "found" then gx, gz = 2 * hide.x - gx, 2 * hide.z - gz end
+			local point = Hide.exitPoint(hide.x, hide.z, gx, gz)
 			root.CFrame = CFrame.lookAt(Vector3.new(point.x, hide.y, point.z),
 				Vector3.new(point.x + point.faceX, hide.y, point.z + point.faceZ))
 		end
