@@ -1,0 +1,1862 @@
+{
+ "name": "volcanic-lands-layout-v1",
+ "status": "draft, unvalidated: never imported into Roblox, played or measured on a device",
+ "seed": 20261110,
+ "map_size": 400.0,
+ "caps": {
+  "instances": 210,
+  "triangles": 30000
+ },
+ "totals": {
+  "instances": 190,
+  "triangles_measured": 22144,
+  "triangles_budget": 25540,
+  "mesh_parts": 280,
+  "by_name": {
+   "VL_BasaltColumn": {
+    "count": 60,
+    "triangles": 6960
+   },
+   "VL_Vent": {
+    "count": 14,
+    "triangles": 2184
+   },
+   "VL_CoolStone": {
+    "count": 40,
+    "triangles": 2320
+   },
+   "VL_CharredTree": {
+    "count": 36,
+    "triangles": 6408
+   },
+   "VL_AshShrine": {
+    "count": 2,
+    "triangles": 836
+   },
+   "VL_CrustPlate": {
+    "count": 20,
+    "triangles": 1960
+   },
+   "VL_ObsidianShard": {
+    "count": 18,
+    "triangles": 1476
+   }
+  }
+ },
+ "route": {
+  "nodes": [
+   [
+    -190.0,
+    130.0
+   ],
+   [
+    -90.0,
+    130.0
+   ],
+   [
+    -10.0,
+    50.0
+   ],
+   [
+    100.0,
+    50.0
+   ],
+   [
+    150.0,
+    -60.0
+   ],
+   [
+    150.0,
+    -150.0
+   ],
+   [
+    190.0,
+    -190.0
+   ]
+  ],
+  "names": [
+   "gate_west",
+   "ash_flats",
+   "first_vents",
+   "basalt_gap",
+   "caldera_rise",
+   "caldera_rim",
+   "gate_east"
+  ],
+  "length": 590.536,
+  "walk_seconds": 36.909,
+  "corridor_width": 14.0
+ },
+ "hazards": {
+  "vent_cycle": {
+   "calm_s": 6.0,
+   "glow_s": 2.5,
+   "erupt_s": 3.0,
+   "cycle_s": 11.5,
+   "radius": 10.0,
+   "full_disc_crossing_s": 1.25
+  },
+  "vents": [
+   {
+    "id": "vent-01",
+    "role": "route",
+    "x": -115.0,
+    "z": 128.8,
+    "phase_s": 0.0,
+    "route_arc": 75.0,
+    "lateral": -1.2
+   },
+   {
+    "id": "vent-02",
+    "role": "route",
+    "x": -60.28,
+    "z": 103.151,
+    "phase_s": 5.75,
+    "route_arc": 140.0,
+    "lateral": 2.03
+   },
+   {
+    "id": "vent-03",
+    "role": "route",
+    "x": -33.884,
+    "z": 75.807,
+    "phase_s": 0.0,
+    "route_arc": 178.0,
+    "lateral": 1.36
+   },
+   {
+    "id": "vent-04",
+    "role": "route",
+    "x": 26.863,
+    "z": 48.08,
+    "phase_s": 5.75,
+    "route_arc": 250.0,
+    "lateral": -1.92
+   },
+   {
+    "id": "vent-05",
+    "role": "route",
+    "x": 68.863,
+    "z": 48.37,
+    "phase_s": 0.0,
+    "route_arc": 292.0,
+    "lateral": -1.63
+   },
+   {
+    "id": "vent-06",
+    "role": "route",
+    "x": 115.5,
+    "z": 16.553,
+    "phase_s": 5.75,
+    "route_arc": 360.0,
+    "lateral": 0.27
+   },
+   {
+    "id": "vent-07",
+    "role": "route",
+    "x": 136.315,
+    "z": -23.416,
+    "phase_s": 0.0,
+    "route_arc": 405.0,
+    "lateral": 2.68
+   },
+   {
+    "id": "vent-08",
+    "role": "route",
+    "x": 150.56,
+    "z": -101.032,
+    "phase_s": 5.75,
+    "route_arc": 485.0,
+    "lateral": 0.56
+   },
+   {
+    "id": "vent-09",
+    "role": "flank",
+    "x": 117.968,
+    "z": -95.858,
+    "phase_s": 6.25,
+    "route_arc": null,
+    "lateral": null
+   },
+   {
+    "id": "vent-10",
+    "role": "flank",
+    "x": -99.18,
+    "z": 96.509,
+    "phase_s": 0.75,
+    "route_arc": null,
+    "lateral": null
+   },
+   {
+    "id": "vent-11",
+    "role": "flank",
+    "x": -45.219,
+    "z": 161.612,
+    "phase_s": 10.25,
+    "route_arc": null,
+    "lateral": null
+   },
+   {
+    "id": "vent-12",
+    "role": "flank",
+    "x": -137.773,
+    "z": 173.965,
+    "phase_s": 1.5,
+    "route_arc": null,
+    "lateral": null
+   },
+   {
+    "id": "vent-13",
+    "role": "flank",
+    "x": 42.705,
+    "z": -8.954,
+    "phase_s": 10.0,
+    "route_arc": null,
+    "lateral": null
+   },
+   {
+    "id": "vent-14",
+    "role": "flank",
+    "x": 182.837,
+    "z": -84.026,
+    "phase_s": 3.25,
+    "route_arc": null,
+    "lateral": null
+   }
+  ],
+  "sight_lanes": [
+   {
+    "vent": "vent-01",
+    "from": [
+     -155.0,
+     130.0
+    ],
+    "to": [
+     -115.0,
+     128.8
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-02",
+    "from": [
+     -90.0,
+     130.0
+    ],
+    "to": [
+     -60.28,
+     103.151
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-03",
+    "from": [
+     -63.13,
+     103.13
+    ],
+    "to": [
+     -33.884,
+     75.807
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-04",
+    "from": [
+     -12.218,
+     52.218
+    ],
+    "to": [
+     26.863,
+     48.08
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-05",
+    "from": [
+     28.863,
+     50.0
+    ],
+    "to": [
+     68.863,
+     48.37
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-06",
+    "from": [
+     96.863,
+     50.0
+    ],
+    "to": [
+     115.5,
+     16.553
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-07",
+    "from": [
+     117.323,
+     11.889
+    ],
+    "to": [
+     136.315,
+     -23.416
+    ],
+    "clear": true
+   },
+   {
+    "vent": "vent-08",
+    "from": [
+     150.0,
+     -61.032
+    ],
+    "to": [
+     150.56,
+     -101.032
+    ],
+    "clear": true
+   }
+  ]
+ },
+ "density": {
+  "props_per_1000_sq_studs": 1.188,
+  "route_vents_in_clear_view": 8
+ },
+ "decisions": [
+  "Route vents stand on the trail as timing gates (tiny, non-colliding); flank vents are at least 18 studs from it so their discs never touch the corridor.",
+  "Neighbouring route vents run half a cycle apart (phase 0 or 5.75 s) so they never erupt together, and the 2.5 s glow is longer than the 1.25 s it takes to cross a whole disc at 16 studs/s.",
+  "Cool stones are read as refuge markers: four per route vent and per shrine, outside the corridor and every disc. The bible only calls them walkable slabs; this meaning is a draft choice.",
+  "Crust plates are dressing in four fields at least 30 studs from the trail; they carry no hazard meaning.",
+  "Obsidian shards: 12 along the trail, 6 beside flank vents with the gather point just outside the disc (reward beside danger, never inside it).",
+  "Columns and trees keep sight lanes clear: every route vent is visible from 40 studs upstream.",
+  "Shrines straddle the trail near both gates with the measured gap (about 0 off centre) centred on the trail; the pivot sits on the centreline.",
+  "Footprints are bounding circles of the measured geometry, including tree branches (8.7)."
+ ],
+ "instances": [
+  {
+   "name": "VL_BasaltColumn",
+   "x": -12.721,
+   "z": 175.394,
+   "rotation_y_deg": 238.902,
+   "scale": 0.865,
+   "id": "column-01"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -59.9,
+   "z": 171.266,
+   "rotation_y_deg": 32.666,
+   "scale": 0.886,
+   "id": "column-02"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -22.239,
+   "z": 143.492,
+   "rotation_y_deg": 314.911,
+   "scale": 0.974,
+   "id": "column-03"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -24.313,
+   "z": 159.558,
+   "rotation_y_deg": 3.984,
+   "scale": 0.862,
+   "id": "column-04"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -34.452,
+   "z": 138.88,
+   "rotation_y_deg": 107.524,
+   "scale": 0.864,
+   "id": "column-05"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -67.257,
+   "z": 160.253,
+   "rotation_y_deg": 288.072,
+   "scale": 1.003,
+   "id": "column-06"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -51.752,
+   "z": 145.822,
+   "rotation_y_deg": 286.504,
+   "scale": 1.15,
+   "id": "column-07"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -35.474,
+   "z": 179.101,
+   "rotation_y_deg": 266.31,
+   "scale": 0.988,
+   "id": "column-08"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -56.104,
+   "z": 186.55,
+   "rotation_y_deg": 265.77,
+   "scale": 1.145,
+   "id": "column-09"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -24.352,
+   "z": 186.138,
+   "rotation_y_deg": 187.217,
+   "scale": 1.051,
+   "id": "column-10"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 148.5,
+   "z": 143.64,
+   "rotation_y_deg": 340.13,
+   "scale": 0.898,
+   "id": "column-11"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 112.964,
+   "z": 123.855,
+   "rotation_y_deg": 259.967,
+   "scale": 1.074,
+   "id": "column-12"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 84.784,
+   "z": 148.019,
+   "rotation_y_deg": 195.599,
+   "scale": 1.017,
+   "id": "column-13"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 112.689,
+   "z": 157.883,
+   "rotation_y_deg": 47.949,
+   "scale": 1.016,
+   "id": "column-14"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 146.922,
+   "z": 125.184,
+   "rotation_y_deg": 278.784,
+   "scale": 0.866,
+   "id": "column-15"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 124.062,
+   "z": 133.675,
+   "rotation_y_deg": 46.084,
+   "scale": 1.15,
+   "id": "column-16"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 88.835,
+   "z": 161.768,
+   "rotation_y_deg": 167.592,
+   "scale": 0.983,
+   "id": "column-17"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 124.811,
+   "z": 119.383,
+   "rotation_y_deg": 215.095,
+   "scale": 1.068,
+   "id": "column-18"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 132.512,
+   "z": 148.659,
+   "rotation_y_deg": 320.852,
+   "scale": 1.107,
+   "id": "column-19"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 114.256,
+   "z": 173.585,
+   "rotation_y_deg": 204.958,
+   "scale": 0.888,
+   "id": "column-20"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -6.161,
+   "z": 9.019,
+   "rotation_y_deg": 207.812,
+   "scale": 1.11,
+   "id": "column-21"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -36.256,
+   "z": -11.007,
+   "rotation_y_deg": 183.712,
+   "scale": 0.997,
+   "id": "column-22"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -13.955,
+   "z": -23.545,
+   "rotation_y_deg": 118.355,
+   "scale": 1.145,
+   "id": "column-23"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -43.608,
+   "z": 23.124,
+   "rotation_y_deg": 167.11,
+   "scale": 0.924,
+   "id": "column-24"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -27.018,
+   "z": -20.398,
+   "rotation_y_deg": 357.742,
+   "scale": 1.123,
+   "id": "column-25"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -65.142,
+   "z": 12.522,
+   "rotation_y_deg": 158.523,
+   "scale": 1.07,
+   "id": "column-26"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 2.822,
+   "z": -3.716,
+   "rotation_y_deg": 194.871,
+   "scale": 0.967,
+   "id": "column-27"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -42.911,
+   "z": 11.057,
+   "rotation_y_deg": 76.22,
+   "scale": 0.86,
+   "id": "column-28"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -54.211,
+   "z": 14.728,
+   "rotation_y_deg": 177.586,
+   "scale": 0.855,
+   "id": "column-29"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -4.743,
+   "z": 24.412,
+   "rotation_y_deg": 27.04,
+   "scale": 1.026,
+   "id": "column-30"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 66.178,
+   "z": -111.751,
+   "rotation_y_deg": 62.007,
+   "scale": 0.867,
+   "id": "column-31"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 76.858,
+   "z": -117.903,
+   "rotation_y_deg": 343.848,
+   "scale": 1.103,
+   "id": "column-32"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 85.388,
+   "z": -100.503,
+   "rotation_y_deg": 53.299,
+   "scale": 1.045,
+   "id": "column-33"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 43.73,
+   "z": -107.697,
+   "rotation_y_deg": 256.991,
+   "scale": 0.857,
+   "id": "column-34"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 87.598,
+   "z": -73.404,
+   "rotation_y_deg": 168.54,
+   "scale": 0.993,
+   "id": "column-35"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 61.93,
+   "z": -73.375,
+   "rotation_y_deg": 24.481,
+   "scale": 1.14,
+   "id": "column-36"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 99.262,
+   "z": -96.017,
+   "rotation_y_deg": 163.377,
+   "scale": 1.065,
+   "id": "column-37"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 71.531,
+   "z": -134.484,
+   "rotation_y_deg": 73.486,
+   "scale": 0.861,
+   "id": "column-38"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 39.866,
+   "z": -97.018,
+   "rotation_y_deg": 196.446,
+   "scale": 1.058,
+   "id": "column-39"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 50.611,
+   "z": -82.701,
+   "rotation_y_deg": 57.565,
+   "scale": 0.946,
+   "id": "column-40"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -93.873,
+   "z": 49.002,
+   "rotation_y_deg": 338.923,
+   "scale": 1.032,
+   "id": "column-41"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -83.808,
+   "z": 75.294,
+   "rotation_y_deg": 164.526,
+   "scale": 0.861,
+   "id": "column-42"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -103.829,
+   "z": 57.24,
+   "rotation_y_deg": 261.55,
+   "scale": 0.899,
+   "id": "column-43"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -78.401,
+   "z": 60.739,
+   "rotation_y_deg": 194.55,
+   "scale": 0.886,
+   "id": "column-44"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -59.292,
+   "z": 50.768,
+   "rotation_y_deg": 59.182,
+   "scale": 0.915,
+   "id": "column-45"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -80.507,
+   "z": 41.876,
+   "rotation_y_deg": 11.334,
+   "scale": 1.134,
+   "id": "column-46"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -118.726,
+   "z": 49.988,
+   "rotation_y_deg": 69.412,
+   "scale": 0.873,
+   "id": "column-47"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -109.374,
+   "z": 41.684,
+   "rotation_y_deg": 40.988,
+   "scale": 0.996,
+   "id": "column-48"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -67.946,
+   "z": 38.965,
+   "rotation_y_deg": 358.633,
+   "scale": 0.92,
+   "id": "column-49"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -95.079,
+   "z": 34.923,
+   "rotation_y_deg": 190.95,
+   "scale": 0.979,
+   "id": "column-50"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 50.32,
+   "z": -66.957,
+   "rotation_y_deg": 33.034,
+   "scale": 1.084,
+   "id": "column-51"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -72.584,
+   "z": -178.359,
+   "rotation_y_deg": 40.437,
+   "scale": 1.024,
+   "id": "column-52"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -9.165,
+   "z": -52.465,
+   "rotation_y_deg": 154.406,
+   "scale": 0.992,
+   "id": "column-53"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 16.18,
+   "z": -109.93,
+   "rotation_y_deg": 156.539,
+   "scale": 0.96,
+   "id": "column-54"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 47.806,
+   "z": 180.259,
+   "rotation_y_deg": 25.223,
+   "scale": 1.086,
+   "id": "column-55"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": 62.774,
+   "z": 144.006,
+   "rotation_y_deg": 336.477,
+   "scale": 1.033,
+   "id": "column-56"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -60.299,
+   "z": -47.704,
+   "rotation_y_deg": 305.553,
+   "scale": 1.107,
+   "id": "column-57"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -127.795,
+   "z": -76.822,
+   "rotation_y_deg": 0.258,
+   "scale": 1.061,
+   "id": "column-58"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -82.27,
+   "z": -168.15,
+   "rotation_y_deg": 317.967,
+   "scale": 1.041,
+   "id": "column-59"
+  },
+  {
+   "name": "VL_BasaltColumn",
+   "x": -87.928,
+   "z": 175.303,
+   "rotation_y_deg": 142.425,
+   "scale": 1.103,
+   "id": "column-60"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -115.0,
+   "z": 128.8,
+   "rotation_y_deg": 62.676,
+   "scale": 1.0,
+   "id": "vent-01"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -60.28,
+   "z": 103.151,
+   "rotation_y_deg": 260.71,
+   "scale": 1.0,
+   "id": "vent-02"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -33.884,
+   "z": 75.807,
+   "rotation_y_deg": 134.329,
+   "scale": 1.0,
+   "id": "vent-03"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 26.863,
+   "z": 48.08,
+   "rotation_y_deg": 117.791,
+   "scale": 1.0,
+   "id": "vent-04"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 68.863,
+   "z": 48.37,
+   "rotation_y_deg": 118.04,
+   "scale": 1.0,
+   "id": "vent-05"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 115.5,
+   "z": 16.553,
+   "rotation_y_deg": 191.967,
+   "scale": 1.0,
+   "id": "vent-06"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 136.315,
+   "z": -23.416,
+   "rotation_y_deg": 126.693,
+   "scale": 1.0,
+   "id": "vent-07"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 150.56,
+   "z": -101.032,
+   "rotation_y_deg": 262.773,
+   "scale": 1.0,
+   "id": "vent-08"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 117.968,
+   "z": -95.858,
+   "rotation_y_deg": 246.448,
+   "scale": 1.0,
+   "id": "vent-09"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -99.18,
+   "z": 96.509,
+   "rotation_y_deg": 266.955,
+   "scale": 1.0,
+   "id": "vent-10"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -45.219,
+   "z": 161.612,
+   "rotation_y_deg": 171.522,
+   "scale": 1.0,
+   "id": "vent-11"
+  },
+  {
+   "name": "VL_Vent",
+   "x": -137.773,
+   "z": 173.965,
+   "rotation_y_deg": 222.349,
+   "scale": 1.0,
+   "id": "vent-12"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 42.705,
+   "z": -8.954,
+   "rotation_y_deg": 165.999,
+   "scale": 1.0,
+   "id": "vent-13"
+  },
+  {
+   "name": "VL_Vent",
+   "x": 182.837,
+   "z": -84.026,
+   "rotation_y_deg": 5.572,
+   "scale": 1.0,
+   "id": "vent-14"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -130.0,
+   "z": 118.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-01"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -130.0,
+   "z": 141.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-02"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -100.0,
+   "z": 118.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-03"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -100.0,
+   "z": 141.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-04"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -80.454,
+   "z": 104.191,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-05"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -64.191,
+   "z": 120.454,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-06"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -59.241,
+   "z": 82.977,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-07"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -42.977,
+   "z": 99.241,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-08"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -53.584,
+   "z": 77.321,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-09"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -37.321,
+   "z": 93.584,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-10"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -32.371,
+   "z": 56.107,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-11"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -16.107,
+   "z": 72.371,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-12"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 11.863,
+   "z": 38.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-13"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 11.863,
+   "z": 61.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-14"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 41.863,
+   "z": 38.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-15"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 41.863,
+   "z": 61.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-16"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 53.863,
+   "z": 38.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-17"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 53.863,
+   "z": 61.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-18"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 83.863,
+   "z": 38.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-19"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 83.863,
+   "z": 61.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-20"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 98.578,
+   "z": 25.338,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-21"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 119.516,
+   "z": 34.855,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-22"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 110.992,
+   "z": -1.973,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-23"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 131.93,
+   "z": 7.544,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-24"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 117.199,
+   "z": -15.628,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-25"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 138.137,
+   "z": -6.111,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-26"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 129.613,
+   "z": -42.939,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-27"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 150.551,
+   "z": -33.422,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-28"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 138.5,
+   "z": -86.032,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-29"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 161.5,
+   "z": -86.032,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-30"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 138.5,
+   "z": -116.032,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-31"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 161.5,
+   "z": -116.032,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-32"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -185.0,
+   "z": 118.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-33"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -185.0,
+   "z": 141.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-34"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -155.0,
+   "z": 118.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-35"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": -155.0,
+   "z": 141.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-36"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 151.084,
+   "z": -167.347,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-37"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 167.347,
+   "z": -151.084,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-38"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 172.297,
+   "z": -188.56,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-39"
+  },
+  {
+   "name": "VL_CoolStone",
+   "x": 188.56,
+   "z": -172.297,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "stone-40"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 88.44,
+   "z": -140.677,
+   "rotation_y_deg": 133.419,
+   "scale": 1.083,
+   "id": "tree-01"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 58.752,
+   "z": -94.566,
+   "rotation_y_deg": 39.284,
+   "scale": 0.932,
+   "id": "tree-02"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 102.671,
+   "z": -77.538,
+   "rotation_y_deg": 86.283,
+   "scale": 1.051,
+   "id": "tree-03"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 100.752,
+   "z": -113.956,
+   "rotation_y_deg": 323.345,
+   "scale": 1.087,
+   "id": "tree-04"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 52.067,
+   "z": -128.078,
+   "rotation_y_deg": 68.049,
+   "scale": 1.089,
+   "id": "tree-05"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 78.262,
+   "z": -85.103,
+   "rotation_y_deg": 177.424,
+   "scale": 0.902,
+   "id": "tree-06"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -124.965,
+   "z": 88.18,
+   "rotation_y_deg": 327.982,
+   "scale": 0.998,
+   "id": "tree-07"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -171.102,
+   "z": 53.759,
+   "rotation_y_deg": 288.242,
+   "scale": 1.135,
+   "id": "tree-08"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -151.69,
+   "z": 84.559,
+   "rotation_y_deg": 325.847,
+   "scale": 0.985,
+   "id": "tree-09"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -171.262,
+   "z": 87.837,
+   "rotation_y_deg": 329.36,
+   "scale": 1.022,
+   "id": "tree-10"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -134.968,
+   "z": 53.472,
+   "rotation_y_deg": 295.477,
+   "scale": 0.9,
+   "id": "tree-11"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -110.332,
+   "z": 70.4,
+   "rotation_y_deg": 287.304,
+   "scale": 1.023,
+   "id": "tree-12"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -37.153,
+   "z": 36.121,
+   "rotation_y_deg": 234.781,
+   "scale": 0.909,
+   "id": "tree-13"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -21.795,
+   "z": 22.668,
+   "rotation_y_deg": 115.699,
+   "scale": 1.009,
+   "id": "tree-14"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -16.886,
+   "z": -5.455,
+   "rotation_y_deg": 125.525,
+   "scale": 0.984,
+   "id": "tree-15"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -78.921,
+   "z": 4.885,
+   "rotation_y_deg": 52.44,
+   "scale": 1.042,
+   "id": "tree-16"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -40.848,
+   "z": -27.683,
+   "rotation_y_deg": 112.308,
+   "scale": 0.988,
+   "id": "tree-17"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -59.514,
+   "z": -7.061,
+   "rotation_y_deg": 327.874,
+   "scale": 1.034,
+   "id": "tree-18"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 126.796,
+   "z": 79.841,
+   "rotation_y_deg": 86.677,
+   "scale": 1.049,
+   "id": "tree-19"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 83.594,
+   "z": 105.996,
+   "rotation_y_deg": 301.676,
+   "scale": 0.938,
+   "id": "tree-20"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 78.13,
+   "z": 84.453,
+   "rotation_y_deg": 84.577,
+   "scale": 1.009,
+   "id": "tree-21"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 123.723,
+   "z": 100.798,
+   "rotation_y_deg": 21.377,
+   "scale": 1.094,
+   "id": "tree-22"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 95.096,
+   "z": 129.796,
+   "rotation_y_deg": 210.948,
+   "scale": 1.121,
+   "id": "tree-23"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 100.114,
+   "z": 77.789,
+   "rotation_y_deg": 105.762,
+   "scale": 0.955,
+   "id": "tree-24"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -172.541,
+   "z": 164.765,
+   "rotation_y_deg": 355.442,
+   "scale": 1.045,
+   "id": "tree-25"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 135.955,
+   "z": 169.613,
+   "rotation_y_deg": 36.456,
+   "scale": 0.971,
+   "id": "tree-26"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 65.079,
+   "z": -3.072,
+   "rotation_y_deg": 284.015,
+   "scale": 1.046,
+   "id": "tree-27"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -21.036,
+   "z": -95.85,
+   "rotation_y_deg": 146.165,
+   "scale": 1.063,
+   "id": "tree-28"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 34.993,
+   "z": -74.589,
+   "rotation_y_deg": 144.163,
+   "scale": 1.106,
+   "id": "tree-29"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 122.327,
+   "z": -115.263,
+   "rotation_y_deg": 275.492,
+   "scale": 0.94,
+   "id": "tree-30"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -140.65,
+   "z": -41.943,
+   "rotation_y_deg": 52.621,
+   "scale": 0.928,
+   "id": "tree-31"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -70.851,
+   "z": -135.475,
+   "rotation_y_deg": 259.675,
+   "scale": 0.944,
+   "id": "tree-32"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -79.934,
+   "z": -119.36,
+   "rotation_y_deg": 190.35,
+   "scale": 0.981,
+   "id": "tree-33"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -118.089,
+   "z": -104.237,
+   "rotation_y_deg": 265.876,
+   "scale": 1.106,
+   "id": "tree-34"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": -61.913,
+   "z": 66.086,
+   "rotation_y_deg": 41.475,
+   "scale": 1.113,
+   "id": "tree-35"
+  },
+  {
+   "name": "VL_CharredTree",
+   "x": 39.134,
+   "z": 88.31,
+   "rotation_y_deg": 96.83,
+   "scale": 0.95,
+   "id": "tree-36"
+  },
+  {
+   "name": "VL_AshShrine",
+   "x": -170.0,
+   "z": 130.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "shrine-01"
+  },
+  {
+   "name": "VL_AshShrine",
+   "x": 169.822,
+   "z": -169.822,
+   "rotation_y_deg": 135.0,
+   "scale": 1.0,
+   "id": "shrine-02"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -5.141,
+   "z": 125.063,
+   "rotation_y_deg": 7.568,
+   "scale": 1.0,
+   "id": "plate-01"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 4.392,
+   "z": 171.68,
+   "rotation_y_deg": 162.26,
+   "scale": 1.0,
+   "id": "plate-02"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 11.494,
+   "z": 147.454,
+   "rotation_y_deg": 236.643,
+   "scale": 1.0,
+   "id": "plate-03"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -28.732,
+   "z": 119.479,
+   "rotation_y_deg": 295.653,
+   "scale": 1.0,
+   "id": "plate-04"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 168.572,
+   "z": 52.238,
+   "rotation_y_deg": 354.819,
+   "scale": 1.0,
+   "id": "plate-05"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 173.528,
+   "z": 88.171,
+   "rotation_y_deg": 293.164,
+   "scale": 1.0,
+   "id": "plate-06"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 154.375,
+   "z": 106.662,
+   "rotation_y_deg": 25.908,
+   "scale": 1.0,
+   "id": "plate-07"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 145.484,
+   "z": 63.115,
+   "rotation_y_deg": 188.3,
+   "scale": 1.0,
+   "id": "plate-08"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 62.115,
+   "z": -28.354,
+   "rotation_y_deg": 211.205,
+   "scale": 1.0,
+   "id": "plate-09"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 87.807,
+   "z": -12.592,
+   "rotation_y_deg": 286.652,
+   "scale": 1.0,
+   "id": "plate-10"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 53.361,
+   "z": 18.061,
+   "rotation_y_deg": 91.424,
+   "scale": 1.0,
+   "id": "plate-11"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 76.344,
+   "z": 17.93,
+   "rotation_y_deg": 302.017,
+   "scale": 1.0,
+   "id": "plate-12"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -167.047,
+   "z": -120.332,
+   "rotation_y_deg": 81.4,
+   "scale": 1.0,
+   "id": "plate-13"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -38.299,
+   "z": -143.996,
+   "rotation_y_deg": 52.555,
+   "scale": 1.0,
+   "id": "plate-14"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 56.871,
+   "z": 110.335,
+   "rotation_y_deg": 51.692,
+   "scale": 1.0,
+   "id": "plate-15"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": 159.497,
+   "z": 180.237,
+   "rotation_y_deg": 227.108,
+   "scale": 1.0,
+   "id": "plate-16"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -110.65,
+   "z": -24.564,
+   "rotation_y_deg": 151.397,
+   "scale": 1.0,
+   "id": "plate-17"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -143.285,
+   "z": -175.794,
+   "rotation_y_deg": 62.441,
+   "scale": 1.0,
+   "id": "plate-18"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -52.686,
+   "z": -175.411,
+   "rotation_y_deg": 305.804,
+   "scale": 1.0,
+   "id": "plate-19"
+  },
+  {
+   "name": "VL_CrustPlate",
+   "x": -8.717,
+   "z": -123.05,
+   "rotation_y_deg": 114.632,
+   "scale": 1.0,
+   "id": "plate-20"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 118.045,
+   "z": -24.625,
+   "rotation_y_deg": 245.556,
+   "scale": 0.919,
+   "id": "shard-07"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 132.993,
+   "z": -101.946,
+   "rotation_y_deg": 270.0,
+   "scale": 1.19,
+   "id": "shard-08"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 131.049,
+   "z": 41.838,
+   "rotation_y_deg": 65.556,
+   "scale": 1.099,
+   "id": "shard-09"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 13.608,
+   "z": 29.424,
+   "rotation_y_deg": 180.0,
+   "scale": 0.91,
+   "id": "shard-10"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -130.582,
+   "z": 153.149,
+   "rotation_y_deg": 0.0,
+   "scale": 1.105,
+   "id": "shard-11"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 26.979,
+   "z": 23.218,
+   "rotation_y_deg": 180.0,
+   "scale": 1.135,
+   "id": "shard-12"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 156.639,
+   "z": -187.83,
+   "rotation_y_deg": 225.0,
+   "scale": 1.071,
+   "id": "shard-13"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -44.566,
+   "z": 123.082,
+   "rotation_y_deg": 45.0,
+   "scale": 0.918,
+   "id": "shard-14"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 1.304,
+   "z": 33.03,
+   "rotation_y_deg": 180.0,
+   "scale": 1.061,
+   "id": "shard-15"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -145.565,
+   "z": 151.252,
+   "rotation_y_deg": 0.0,
+   "scale": 1.145,
+   "id": "shard-16"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 27.144,
+   "z": 74.128,
+   "rotation_y_deg": 0.0,
+   "scale": 1.134,
+   "id": "shard-17"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -67.117,
+   "z": 83.136,
+   "rotation_y_deg": 225.0,
+   "scale": 1.144,
+   "id": "shard-18"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 117.968,
+   "z": -81.258,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-01"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -99.18,
+   "z": 111.109,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-02"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -45.219,
+   "z": 176.212,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-03"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": -137.773,
+   "z": 188.565,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-04"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 42.705,
+   "z": 5.646,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-05"
+  },
+  {
+   "name": "VL_ObsidianShard",
+   "x": 182.837,
+   "z": -69.426,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "shard-06"
+  }
+ ]
+}
