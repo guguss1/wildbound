@@ -52,12 +52,12 @@ User, 2026-11-07: walking and picking things up has no risk, collection has no c
 - [x] A2 Interactive capture: calm ring plus timed seal tap, flee on fail, per-player capture skills, Spanish strings for the capture path. Same writer. Commits `68b7bf3` (seal, wary refusal, Spanish text module), `8e86de9` (capturer skills live).
 - [x] A3 Client smoothing and readable reactions on the provisional model. Same writer. Commit `a846fc2`.
 - [x] A4 Play check: approach, scare, chase, capture, fail, two-player claim probe, phone captures. Studio Play solo; two real clients and real phones not run.
-- [ ] B Extraction and registration. Route: delegated, one Studio writer (Opus), instance `81631061-...`, place 122652861404212.
-  - [x] B1 Carry slot and rules, with state tests: one carried wild creature apart from the bag, refuge registration idempotent per token, loss on defeat unless warded, registered never lost, slight configurable carry speed. Route: inline in the Studio writer (State, Wild, Text, Record plus their tests). RED State 34/33 (new `register`, `carrying`; 27 older cases whose premise moved: creature no longer a bag item), GREEN 67/0; Record 17/1 (RT-2 needs `carrying`, `discovered`), then 18/0; LumipolWild 46/2, then 48/0; Text 9/1, then 10/0. Play evidence is in B5.
-  - [ ] B2 Visible carried capsule (server-built, replicated) and fear cues from the existing threat signal; HUD name and state; sound hook only.
-  - [ ] B3 Refuge station "Registrar criatura": deposit animation, presentation card, collection entry.
-  - [ ] B4 Display spot, storage chest, upgrade board and incubator placeholder in the camp; map builder and its tests.
-  - [ ] B5 Server-owned replicated companion that follows, pulses and survives death; Play check and phone captures.
+- [x] B Extraction and registration. Route: delegated, one Studio writer (Opus), instance `81631061-...`, place 122652861404212.
+  - [x] B1 Carry slot and rules, with state tests: one carried wild creature apart from the bag, refuge registration idempotent per token, loss on defeat unless warded, registered never lost, slight configurable carry speed. Route: inline in the Studio writer (State, Wild, Text, Record plus their tests). RED State 34/33 (new `register`, `carrying`; 27 older cases whose premise moved: creature no longer a bag item), GREEN 67/0; Record 17/1 (RT-2 needs `carrying`, `discovered`), then 18/0; LumipolWild 46/2, then 48/0; Text 9/1, then 10/0. Commit `0368779`. Play evidence is in B5.
+  - [x] B2 Visible carried capsule (server-built, replicated) and fear cues from the existing threat signal; HUD name and state; sound hook only. Route: inline, new pure `WildboundCarry`. Carry 0/9 against a stub, 8/1 until the server wiring, then 9/0; Text 10/0. Commit `d1323d3`. Play: capsule, calm, uneasy and afraid seen.
+  - [x] B3 Refuge station "Registrar criatura": deposit animation, presentation card, collection entry. Route: inline, new pure `WildboundRefuge`. Refuge 0/8 against a stub, 7/1 until the server wiring, then 8/0; Analytics 35/2 and Wiring 10/1 (`first_register`), then 37/0 and 11/0; PromptKeys 5/1, then 6/0; Economy 18/1 (the deposit loop used `task.wait`, banned by AFK-1; now a tweened clock), then 19/0. Commit `d41c602` (with the B4 wiring). Play: register, card, idempotent repeat.
+  - [x] B4 Display spot, storage chest, upgrade board and incubator placeholder in the camp; map builder and its tests. P0Map 6/6, then 12/0; ForestDress 25/0. Commits `31bdcbf` (builder, live map patched with `buildCamp`), `d41c602` (wiring). Play: chest, board, display.
+  - [x] B5 Server-owned replicated companion that follows, pulses and survives death; Play check and phone captures. Refuge 9/1 (wiring), then 10/0. Commit `26d3435`. Play check all PASS, see `docs/mechanics/wildbound-extraction.md`.
 - [ ] C Guardian navigation, damage and death.
 - [ ] D Horror audio, hiding and stamina.
 - [ ] E Special egg and incubator.
@@ -88,4 +88,26 @@ The brief's acceptance list, checked one delivery at a time. Nothing is marked d
 | A-8 | A Studio-only, server-only `ServerStorage.WildboundTelemetry.CaptureProbe` drives `probe:` keys for the claim check. It is never created outside Studio and no client can reach it. |
 | A-9 | The "!" is two neon parts because a `BillboardGui` never showed in MCP captures; the tutorial card now waits while a capture result shows (it covered the result line on phones). |
 
-Next: delivery B, extraction and registration. Not verified: real touch, real phones, two real clients, network latency against the seal allowance, portrait seal panel.
+- 2026-11-07, delivery B (one Studio writer, same instance and place, verified read-only before the first edit). Baseline 815 passed over 33 suites, matching delivery A. Final 851 passed, 0 failed over 35 suites (new Carry 9 and Refuge 10; State +6, LumipolWild +2, Text +1, Analytics +1, PromptKeys +1, P0Map +6). Python `unittest discover -s tools`: 876 run, the same 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged` (another session's `.blend`, not touched), 28 skipped. 78 of 78 deployed Wildbound sources match the repo by Adler-32 and length (the Rescue prototype is not in this place). `damageMode` off, `privateTestPlaceIds` empty, `analyticsMode` off, streaming on; Studio left in Edit, Device Simulator at default, temporary runner removed.
+- Play (Studio solo, damage off; iPhone 17 Pro then Galaxy A06 landscape): every step PASS, details and captures in `docs/mechanics/wildbound-extraction.md`. Camp layout: refuge (-152, 128), display pedestals X -160 at Z 136 to 148, chest (-147.5, 140) with its prompt on `ExtractionMarker` (-146, 140), board (-150, 154), incubator (-136, 158).
+
+## Decisions taken in delivery B, for user review
+
+| ID | Decision |
+| --- | --- |
+| B-1 | The carried creature has one slot apart from the bag. The capture rule's `bagRoom` now means "carry slot free", so its `BackpackFull` ending reads "Ya llevas una criatura..."; State refuses a second grant `AlreadyCarrying`. A full bag no longer blocks a capture. |
+| B-2 | A trip ends at the first camp station that takes something, chest or refuge: base Ember, companion bond and the first seal are paid there once; the other station pays no second base. |
+| B-3 | The old single "Extract" prompt became the storage chest ("Guardar en el cofre", same marker and key E). It stores the bag and pouch permanently and never takes a creature. |
+| B-4 | Registration token: the carried creature's uid, picked by the server (no client token). A repeat succeeds with `repeated = true` and pays nothing. |
+| B-5 | Carry cost `CREATURE_CARRY_SPEED` 14 studs/s (from 16), configurable in `WildboundLumipolWild.CONSTANTS`; Light Load applies; always above Silueta's 8. |
+| B-6 | Fear from the existing threat reading: afraid when Silueta hunts within 40 studs in the fog, uneasy within 80 (or anything within 40). Sound hook only on a rising mood, at most once per 8 s, no Sound instance; carrying adds nothing to Silueta's senses. |
+| B-7 | Seals and totems ward the carried creature like a bag item (SealNewest picks it first); a capsule at the shelter registers it; a strike drop (D6) still takes bag items only, left to delivery C. |
+| B-8 | Co-op display: one pedestal per player, first come first served (4), showing the equipped or first registered Lumipol with "de <name>"; everyone sees every spot and none has a prompt, so no one can take another's. |
+| B-9 | Companion: server-built, AlignPosition to an attachment in the owner's root with no reaction force, owner holds network ownership; the client-only companion is gone. A pulse sets `WildboundPulseAt` on the player (world server) for every client's flash. |
+| B-10 | Incubator is a placeholder with signs and no prompt; the old free hatch prompt stays until delivery E. |
+| B-11 | Camp keys: refuge V / R1, board B / L2 (F, Q, X, G, C, I and M are taken). Signs carry a `SignKey` and are filled from `WildboundText.CAMP` by the server. |
+| B-12 | Analytics: new `first_register`; the refuge ends an open trip as `extracted`. |
+| B-13 | Studio-only, server-only `CarryProbe` (writes `probe:` keys only) for the ownership check, like A-8. |
+| B-14 | The schema-1 saved record does not hold the carry slot (at risk, like the bag); `discovered` is rebuilt from registered species. |
+
+Next: delivery C, guardian navigation, damage and death. Not verified: real touch, real phones, two real clients (display and companion replication to a second client), companion on slopes and stairs, latency, portrait, whether the camp feels cozy to players. English left on the delivery B path: the tutorial card ("press Extract"), the loss summary and the Camp screen (delivery F).
