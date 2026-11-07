@@ -35,6 +35,33 @@ Delivery B of `odd/tasks/wildbound-capture-extraction-horror.md`: a captured cre
 - Incubator: a placeholder (slate base, glass dome, a canvas egg) with "Incubadora" and "Próximamente" signs and no prompt. Delivery E builds it. The old free hatch prompt at `HatchMarker` is unchanged.
 - Camp prompt keys are all distinct (`WildboundPromptKeys`): chest E, hatch R, protect T, refuge V, board B; F, Q, X, G, C, I and M are taken by other controls.
 
+## B5. The equipped companion
+
+- Equip (from the card's "Equipar" button or the Bag tab) is checked by the server as before; only a registered pet can be equipped.
+- The server builds `WildboundCompanion` in `WildboundRuntime.WildboundCompanions`: the primitive Lumipol at half size, every part unanchored, massless, non-colliding, untouchable and unqueryable, welded to its body. An `AlignPosition` and an `AlignOrientation` pull it to `WildboundCompanionAnchor`, an attachment the server puts in the owner's root 3 studs to the side, 1.6 up and 1.5 back (`Refuge.companionOffset`). There is no reaction force, so it never pushes, blocks or slows the owner. The server makes the owner its network owner, so it moves smoothly for the owner and replicates to everyone.
+- The owner's client moves that attachment for a small hover bob and a 1.2-stud hop for 0.6 s after a pulse; since the owner simulates the companion, every player sees the motion. Every client flashes a companion's light when its owner's `WildboundPulseAt` attribute is fresh; the world server sets it on an accepted Lumipol pulse (the existing ability, unchanged). The camera fade near the companion is kept.
+- It is rebuilt for every new character and removed while dead or gone, so a registered companion is never lost: it comes back after a defeat. The client-only companion (`WildboundLocalLumipol`) is removed.
+- A Studio-only, server-only `ServerStorage.WildboundTelemetry.CarryProbe` (like A-8's capture probe) writes only `probe:` keys and can read a real player's carry slot and collection, for the two-session ownership check.
+
+## Play check (2026-11-07, Studio Play solo, damage off)
+
+Studio instance `81631061-...`, place 122652861404212, iPhone 17 Pro (750 x 381) then Galaxy A06 (705 x 338) landscape in the Device Simulator. Workarounds as in delivery A: positions set by server `PivotTo`, the prompts by `ProximityPrompt:InputHoldBegin`, the ring followed with `Humanoid:MoveTo`, the seal and Equip by the same remote the buttons fire, the pulse by the world remote the Pulse button fires.
+
+| Step | Result | Evidence |
+| --- | --- | --- |
+| Capture, then the capsule is visible | PASS | S0a and L4 captures `Completed`; capsule on the back, walk speed 14, HUD "Llevas: Lumipol · tranquilo" |
+| Fear cue when Silueta is near | PASS | 14 to 20 studs from Silueta in Alert, Hunt and Telegraph: mood `afraid`, glass and light red, `SoundCue` "fear"; HUD "¡asustado!"; farther away `uneasy` and amber |
+| A second capture is refused while carrying | PASS | L4 prompt: "Ya llevas una criatura. Regístrala en el refugio." |
+| Return, register, card, display | PASS | "Lumipol registrado. Ahora es tuyo para siempre."; the deposit model was seen mid-arc; card with entry and "+6 Ember"; a second press: "Esa criatura ya está registrada.", no second card or Ember; a Lumipol with the owner's name on display spot 1 |
+| Chest deposit, then the upgrade board | PASS | Chest: "Guardado: 1 objeto(s) y 0 material(es). +14 Ember." and, with only a creature carried, the refuge notice; board: "Mejoras y habilidades del campamento." and the Camp screen opens |
+| Equip, follow, pulse | PASS | "Lumipol te acompaña."; companion 3.6 to 4.0 studs from the owner while walking 22.7 studs at 16; non-colliding, massless, unanchored; pulse accepted, hop 1.12 studs, light 3.0 |
+| Die while carrying (server sets Health 0) | PASS | Carried `wb:3` lost; registered 1 and equipped `wb:2` kept; no companion while dead, back 3.6 studs from the new character; loss summary "Lost 1 item: Lumipol. Kept: 1 registered" |
+| Two-session ownership probe | PASS | `probe:B` registering A's companion uid or a forged token: `NotCarried`; its own carried creature registers once, the repeat pays 0; A unchanged; writes to a real player's key: `ProbeKeysOnly` |
+
+Captures (`assets/exports/forest-kit/captures/`, each looked at): `b-carry-calm-iphone17pro-landscape.jpg`, `b-carry-uneasy-iphone17pro-landscape.jpg`, `b-carry-afraid-iphone17pro-landscape.jpg`, `b-card-iphone17pro-landscape.jpg`, `b-companion-camp-iphone17pro-landscape.jpg`, `b-carry-companion-galaxya06-landscape.jpg`, `b-defeat-carried-lost-galaxya06-landscape.jpg`, `b-camp-display-companion-galaxya06-landscape.jpg`, `b-board-camp-screen-galaxya06-landscape.jpg`, `b-camp-dusk-galaxya06-landscape.jpg`.
+
+Not verified: real touch and real phones, two real clients (the display and companion replication to a second client was not seen; only the server probe ran), latency on the companion follow, portrait, how the companion behaves on stairs or steep slopes, and whether the camp reads as cozy to players. The tutorial card still says "press Extract" and the loss summary and Camp screen are English (delivery F).
+
 ## Tests
 
-`tests/WildboundState_Test.luau` (B1 cases), `tests/WildboundLumipolWild_Test.luau` (carry speed and the first-capture rule), `tests/WildboundCarry_Test.luau` (mood, look, pose, sound hook, HUD line, wiring), `tests/WildboundText_Test.luau`.
+`tests/WildboundState_Test.luau` (B1 cases), `tests/WildboundLumipolWild_Test.luau` (carry speed and the first-capture rule), `tests/WildboundCarry_Test.luau` (mood, look, pose, sound hook, HUD line, wiring), `tests/WildboundRefuge_Test.luau` (deposit, card, display spots, idle, companion offset, camp words and wiring), `tests/WildboundP0Map_Test.luau` (camp stations), `tests/WildboundPromptKeys_Test.luau`, `tests/WildboundAnalytics_Test.luau` and `tests/WildboundAnalyticsWiring_Test.luau` (`first_register`), `tests/WildboundText_Test.luau`.

@@ -623,6 +623,8 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 		distance = distance, facing = facing,
 		visible = root ~= nil and distance <= Rules.REVEAL_RANGE and visible(character, root.Position, body.Position) }
 	local ok, reason, hit = Rules.tryAbility(record.cooldowns, action, now, context)
+	-- Delivery B5: an accepted pulse is marked on the player, so every client flashes that player's companion.
+	if ok and action == "LumipolPulse" then player:SetAttribute("WildboundPulseAt", now) end
 	if hit then
 		-- Concurrent reveals overlap; they never add seconds to an existing expiry.
 		revealedUntil = math.max(revealedUntil, now + Rules.REVEAL_SECONDS)

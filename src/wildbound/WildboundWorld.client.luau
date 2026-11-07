@@ -197,19 +197,6 @@ if not atmosphere then
 		Color = original.FogColor, Haze = 0}, Lighting)
 end
 local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Color, Haze = atmosphere.Haze}
-local pet
-local function destroyPet()
-	if pet then pet:Destroy(); pet = nil end
-end
-local function newPet(position)
-	local model = make("Model", {Name = "WildboundLocalLumipol"}, workspace)
-	-- Not Neon: it bloomed into a white disc that filled the view when the camera was close.
-	local body = make("Part", {Name = "Body", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4, 1.4, 1.4),
-		Color = Color3.fromRGB(181, 220, 140), Material = Enum.Material.SmoothPlastic, Anchored = true,
-		CanCollide = false, CanTouch = false, CanQuery = false, Position = position}, model)
-	model.PrimaryPart = body
-	return model
-end
 -- Delivery B (B2): every carried capsule bobs, and shakes when its creature is scared. The server builds the
 -- capsule and publishes its mood; this client only moves the creature's seat joint, which never replicates.
 local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
@@ -239,6 +226,35 @@ local function animateDisplay(now)
 		if typeof(base) == "CFrame" then
 			local pose = Refuge.idlePose(now, model:GetAttribute("Spot"))
 			model:PivotTo(base * CFrame.new(0, pose.y, 0) * CFrame.Angles(0, pose.yaw, 0))
+		end
+	end
+end
+-- B5: the companion is server-owned and follows an attachment in its owner's root. This client moves its own
+-- companion's attachment for the hover bob and the pulse hop (it simulates that companion, so every player sees the
+-- motion), fades it as the camera nears it so it never fills the view, and flashes any companion whose owner pulsed.
+local function animateCompanions(now, root)
+	local map = Refuge and workspace:FindFirstChild("WildboundP0")
+	local runtime = map and map:FindFirstChild("WildboundRuntime")
+	local folder = runtime and runtime:FindFirstChild("WildboundCompanions")
+	if not folder then return end
+	local camera = workspace.CurrentCamera
+	local serverNow = workspace:GetServerTimeNow()
+	for _, model in ipairs(folder:GetChildren()) do
+		local body = model:FindFirstChild("Body")
+		local owner = Players:GetPlayerByUserId(tonumber(model:GetAttribute("OwnerUserId")) or 0)
+		if body and owner then
+			local pulseAt = owner:GetAttribute("WildboundPulseAt")
+			local age = type(pulseAt) == "number" and serverNow - pulseAt or nil
+			local light = body:FindFirstChildOfClass("PointLight")
+			if light then light.Brightness = age and age >= 0 and age < Refuge.CONFIG.PULSE_SECONDS and 3 or 0.7 end
+			if owner == player then
+				local anchor = root and root:FindFirstChild("WildboundCompanionAnchor")
+				if anchor then
+					local offset = Refuge.companionOffset(now, age)
+					anchor.Position = Vector3.new(offset.x, offset.y, offset.z)
+				end
+				if camera then body.Transparency = View.companionTransparency((camera.CFrame.Position - body.Position).Magnitude) end
+			end
 		end
 	end
 end
@@ -341,21 +357,7 @@ listen(RunService.Heartbeat, function(dt)
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local fresh = state and os.clock() - lastUpdate < 5
-	local petAllowed = fresh and state.hasLumipol == true and state.alive == true
-		and root and root:IsA("BasePart") and humanoid and humanoid.Health > 0
-	if petAllowed then
-		local target = root.Position + root.CFrame.RightVector * 3 + Vector3.new(0, 2 + math.sin(os.clock() * 2) * 0.25, 0)
-		if not pet then pet = newPet(target) end
-		pet:PivotTo(pet:GetPivot():Lerp(CFrame.new(target), 1 - math.exp(-5 * dt)))
-		-- Fade the companion as the camera nears it, so it can never fill the view.
-		local camera = workspace.CurrentCamera
-		local petBody = pet:FindFirstChild("Body")
-		if petBody and camera then
-			petBody.Transparency = View.companionTransparency((camera.CFrame.Position - petBody.Position).Magnitude)
-		end
-	else
-		destroyPet()
-	end
+	animateCompanions(os.clock(), root)
 	animateCapsules(os.clock())
 	animateDisplay(os.clock())
 	-- The chip is checked every frame and never hides with the inventory (M2.3); it is rebuilt only on change.
@@ -433,7 +435,6 @@ end)
 listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	pcall(function() RunService:UnbindFromRenderStep("WildboundGuardianSmoothing") end)
-	destroyPet()
 	for key, value in pairs(original) do Lighting[key] = value end
 	if ownsAtmosphere then
 		atmosphere:Destroy()

@@ -1,5 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshRefugeClone), freshRefugeClone.Source, require(freshTextClone),
--- { server = WildboundServer.Source, world = WildboundWorldClient.Source, client = WildboundClient.Source }).
+-- { server = WildboundServer.Source, world = WildboundWorldClient.Source, client = WildboundClient.Source,
+-- worldServer = WildboundWorld.Source }).
 -- Delivery B (B3 to B5): the camp's pure rules. The refuge deposit animation and presentation card, the display
 -- spots and their idle motion, and the companion's follow offset. The server and the clients apply them.
 return function(Refuge, source, Text, sources)
@@ -136,6 +137,35 @@ return function(Refuge, source, Text, sources)
 		assert(client:find("payload.card", 1, true) and client:find("Refuge.card", 1, true), "the client shows the card")
 		assert(client:find("\"OpenBoard\"", 1, true), "the board opens the camp screen")
 		assert(world:find("Refuge.idlePose", 1, true), "every client animates the display")
+	end)
+
+	case("B5: the companion hovers beside and behind its owner, and hops on a pulse", function()
+		for step = 0, 300 do
+			local offset = Refuge.companionOffset(step / 30, nil)
+			equal(offset.x, K.HOVER_SIDE); equal(offset.z, K.HOVER_BACK)
+			assert(math.abs(offset.y - K.HOVER_HEIGHT) <= K.HOVER_BOB + 1e-9, "hover bob bounded")
+		end
+		assert(K.HOVER_SIDE >= 2.5, "far enough to the side never to block the owner")
+		local still = Refuge.companionOffset(1, nil).y
+		near(Refuge.companionOffset(1, K.PULSE_SECONDS / 2).y - still, K.PULSE_HOP, 1e-9, "the hop peaks mid-pulse")
+		equal(Refuge.companionOffset(1, K.PULSE_SECONDS).y, still, "the hop ends")
+		equal(Refuge.companionOffset(1, -1).y, still, "a pulse from the future is ignored")
+		local bad = Refuge.companionOffset(0 / 0, 0 / 0)
+		equal(bad.y, K.HOVER_HEIGHT)
+	end)
+
+	case("B5: the companion is server-owned, replicated, non-colliding, kept through death, and pulses", function()
+		local server, world, worldServer = sources.server, sources.world, sources.worldServer
+		assert(type(server) == "string" and type(world) == "string" and type(worldServer) == "string", "sources missing")
+		for _, needle in ipairs({ "\"WildboundCompanion\"", "AlignPosition", "SetNetworkOwner", "Massless", "CanCollide",
+			"WildboundCompanionAnchor", "Refuge.companionOffset", "Text.CAMP.equipped" }) do
+			assert(server:find(needle, 1, true), "server lacks " .. needle)
+		end
+		assert(not world:find("WildboundLocalLumipol", 1, true), "the client-only companion is gone")
+		assert(world:find("WildboundCompanionAnchor", 1, true) and world:find("Refuge.companionOffset", 1, true),
+			"the owner's client animates the follow point")
+		assert(world:find("WildboundPulseAt", 1, true), "every client flashes a pulsing companion")
+		assert(worldServer:find("SetAttribute(\"WildboundPulseAt\"", 1, true), "the world server marks an accepted pulse")
 	end)
 
 	case("the module source is pure", function()

@@ -230,8 +230,8 @@ local function applyCarry(player)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
--- B4: set below, once the display spots are known. Every reply refreshes the player's display spot.
-local refreshDisplay
+-- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
+local refreshDisplay, syncCompanion
 -- card: a registration receipt for the presentation card (B3); the client words it with WildboundRefuge.card.
 local function send(player, action, ok, notice, lossSummary, card)
 	local record = records[player]
@@ -239,6 +239,7 @@ local function send(player, action, ok, notice, lossSummary, card)
 	applyCarry(player)
 	syncCapsule(player)
 	if refreshDisplay then refreshDisplay(player) end
+	if syncCompanion then syncCompanion(player) end
 	local snapshot = state:snapshot(player.UserId)
 	if snapshot and record.totem ~= snapshot.totemActive then
 		record.totem = snapshot.totemActive
@@ -527,6 +528,68 @@ local function rootOf(player)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	return root and root:IsA("BasePart") and root or nil
+end
+
+-- B5: the equipped companion. Server-owned and replicated, so every player sees it. It follows its owner through an
+-- AlignPosition to an attachment in the owner's root, with no reaction force, so it never pushes or blocks the owner;
+-- every part is massless, non-colliding, untouchable and unqueryable. The owner's client simulates it (network owner)
+-- and adds the hover bob and the pulse hop to that attachment. A registered companion is never lost: it is rebuilt
+-- for each new character, so it comes back after a defeat.
+local COMPANION = "WildboundCompanion"
+local companionFolder = Instance.new("Folder")
+companionFolder.Name, companionFolder.Parent = "WildboundCompanions", runtime
+local companions = {}
+local function removeCompanion(player)
+	local entry = companions[player]
+	if not entry then return end
+	companions[player] = nil
+	entry.model:Destroy()
+	entry.anchor:Destroy()
+end
+syncCompanion = function(player)
+	local snapshot = state:snapshot(player.UserId)
+	local uid = snapshot and snapshot.equippedUid
+	local record, root = records[player], rootOf(player)
+	if not uid or not record or record.defeated or not root or context(player) ~= true then
+		removeCompanion(player)
+		return
+	end
+	local current = companions[player]
+	if current and current.uid == uid and current.root == root and current.model.Parent == companionFolder then return end
+	removeCompanion(player)
+	local offset = Refuge.companionOffset(0, nil)
+	local anchor = Instance.new("Attachment")
+	anchor.Name = "WildboundCompanionAnchor"
+	anchor.Position = Vector3.new(offset.x, offset.y, offset.z)
+	anchor.Parent = root
+	local model, body = visual("Creature", (root.CFrame * CFrame.new(offset.x, offset.y - 2, offset.z)).Position)
+	model.Name = COMPANION
+	model:ScaleTo(0.5)
+	for _, part in ipairs(model:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.Massless = false, false, false, false, true
+			part.CastShadow = false
+			if part ~= body then
+				local joint = Instance.new("WeldConstraint")
+				joint.Part0, joint.Part1, joint.Parent = body, part, part
+			end
+		end
+	end
+	local attachment = Instance.new("Attachment")
+	attachment.Parent = body
+	local align = Instance.new("AlignPosition")
+	align.Attachment0, align.Attachment1 = attachment, anchor
+	align.Responsiveness, align.MaxForce, align.MaxVelocity = 18, 1e5, 80
+	align.Parent = body
+	local turn = Instance.new("AlignOrientation")
+	turn.Attachment0, turn.Attachment1 = attachment, anchor
+	turn.Responsiveness, turn.MaxTorque = 12, 1e5
+	turn.Parent = body
+	model:SetAttribute("OwnerUserId", player.UserId)
+	model:SetAttribute("Uid", uid)
+	model.Parent = companionFolder
+	pcall(function() body:SetNetworkOwner(player) end)
+	companions[player] = { model = model, anchor = anchor, uid = uid, root = root }
 end
 
 -- Values the capture rule trusts: all read here, none from a client.
@@ -904,6 +967,32 @@ if RunService:IsStudio() then
 		return false, "UnknownOp"
 	end
 	probe.Parent = telemetry
+	-- Delivery B5: the two-session ownership probe. Same rules: Studio only, ServerStorage only, probe keys only for
+	-- anything that writes. "peek" reads a real player's carry slot and collection, so the probe can check that a
+	-- second session never sees, registers or takes the first one's creature.
+	local carryProbe = Instance.new("BindableFunction")
+	carryProbe.Name = "CarryProbe"
+	local probeEncounters = 0
+	carryProbe.OnInvoke = function(op, key, uid)
+		if op == "peek" then
+			local snapshot = state:snapshot(key)
+			if not snapshot then return nil end
+			return { carrying = snapshot.carrying and snapshot.carrying.uid, registered = #snapshot.registered,
+				equipped = snapshot.equippedUid }
+		end
+		if type(key) ~= "string" or key:sub(1, 6) ~= "probe:" then return false, "ProbeKeysOnly" end
+		if op == "join" then return state:addPlayer(key) end
+		if op == "leave" then return state:removePlayer(key) end
+		if op == "carry" then
+			probeEncounters += 1
+			local id = "probe:creature:" .. probeEncounters
+			state:registerEncounter(id, "Creature")
+			return state:completeCapture(key, id, true, "Fog")
+		end
+		if op == "register" then return state:register(key, uid, true, 0) end
+		return false, "UnknownOp"
+	end
+	carryProbe.Parent = telemetry
 end
 
 -- A1: the brain hears the nearest live player's position and horizontal speed, both read here.
@@ -1086,7 +1175,7 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 			player:SetAttribute("WildboundEquippedUid", uid)
 			player:SetAttribute("WildboundHasLumipol", true)
 		end
-		reply(player, action, ok, reason, "Lumipol equipped.")
+		reply(player, action, ok, reason, Text.CAMP.equipped:format(Text.CARD.species.Lumipol))
 	end
 end)
 
@@ -1153,8 +1242,9 @@ Players.PlayerRemoving:Connect(function(player)
 	if out then handleEnding(out) end
 	-- D10 hold is not built: a disconnected owner's drops go with the profile.
 	removeDropsOf(player)
-	-- B4: the display spot frees for the next player.
+	-- B4: the display spot frees for the next player; B5: the companion goes with its owner.
 	clearDisplay(player)
+	removeCompanion(player)
 	analytics:leave(player.UserId, "left")
 	records[player] = nil
 	playersByUserId[player.UserId] = nil
