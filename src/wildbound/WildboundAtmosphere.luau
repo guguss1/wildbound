@@ -3,24 +3,27 @@
 -- Numbers are hypotheses from docs/mechanics/wildbound-delivery-d.md section 1; the floors are contracts.
 local Atmosphere = {}
 
--- density, offset, haze, fogStart, fogEnd per zone and time of day.
+-- density, offset, haze, fogStart, fogEnd per zone and time of day. Dread pass (user request): much mistier by day,
+-- near-blind with more mist at night. Delivery D1 had open Day 0.30 / 450 and fog Night 0.62 / 100.
 local ROWS = table.freeze({
-	open = { Day = { 0.30, 0.15, 1.0, 70, 450 }, Dusk = { 0.40, 0.08, 1.8, 40, 260 }, Night = { 0.52, 0, 2.6, 25, 150 } },
-	fog = { Day = { 0.40, 0.10, 1.6, 40, 240 }, Dusk = { 0.52, 0.04, 2.4, 28, 160 }, Night = { 0.62, 0, 3.4, 16, 100 } },
-	camp = { Day = { 0.22, 0.15, 0.6, 90, 700 }, Dusk = { 0.30, 0.08, 1.0, 60, 380 }, Night = { 0.38, 0, 1.8, 40, 260 } },
+	open = { Day = { 0.68, 0.02, 3.0, 24, 140 }, Dusk = { 0.76, 0.01, 4.0, 18, 90 }, Night = { 0.82, 0, 5.0, 15, 60 } },
+	fog = { Day = { 0.74, 0.01, 3.6, 20, 110 }, Dusk = { 0.82, 0, 4.8, 16, 70 }, Night = { 0.88, 0, 6.0, 15, 48 } },
+	camp = { Day = { 0.55, 0.05, 2.2, 40, 260 }, Dusk = { 0.64, 0.03, 3.0, 26, 160 }, Night = { 0.72, 0, 3.8, 18, 100 } },
 })
--- Colours and light per time of day. ambientWeight 0 keeps the place's own Ambient and OutdoorAmbient.
+-- Colours and light per time of day. ambientWeight 0 keeps the place's own Ambient and OutdoorAmbient. The flashlight
+-- is a SpotLight on the player's own head (brightness, range, angle): off by day, the main light at night.
 local LIGHT = table.freeze({
-	Day = { atmosphere = { 150, 160, 152 }, fog = { 104, 116, 110 }, ambient = { 62, 70, 84 }, outdoor = { 74, 82, 96 },
-		ambientWeight = 0, brightness = 1, exposure = 0 },
-	Dusk = { atmosphere = { 112, 104, 114 }, fog = { 66, 66, 84 }, ambient = { 62, 70, 84 }, outdoor = { 74, 82, 96 },
-		ambientWeight = 1, brightness = 0.8, exposure = -0.15 },
-	Night = { atmosphere = { 64, 78, 100 }, fog = { 26, 36, 54 }, ambient = { 30, 40, 68 }, outdoor = { 36, 48, 76 },
-		ambientWeight = 1, brightness = 0.55, exposure = -0.30 },
+	Day = { atmosphere = { 170, 176, 170 }, fog = { 150, 158, 152 }, ambient = { 58, 64, 78 }, outdoor = { 66, 74, 88 },
+		ambientWeight = 0, brightness = 1, exposure = 0, flashlight = { 0, 55, 60 } },
+	Dusk = { atmosphere = { 100, 96, 108 }, fog = { 58, 58, 74 }, ambient = { 46, 52, 66 }, outdoor = { 54, 60, 76 },
+		ambientWeight = 1, brightness = 0.7, exposure = -0.25, flashlight = { 2.5, 55, 60 } },
+	Night = { atmosphere = { 40, 48, 64 }, fog = { 14, 18, 28 }, ambient = { 22, 28, 46 }, outdoor = { 26, 32, 52 },
+		ambientWeight = 1, brightness = 0.4, exposure = -0.5, flashlight = { 5, 55, 60 } },
 })
 Atmosphere.FOG_ZONE_DARKEN = 0.92
 Atmosphere.REDUCED_BLEND = 0.5
-Atmosphere.FLOORS = table.freeze({ fogStart = 15, fogEnd = 90, ramp = 4, density = 0.65, haze = 4 })
+-- Dread pass: only the playable floors are kept (avatar never fogged, a ramp); the rest relaxed for near-blind nights.
+Atmosphere.FLOORS = table.freeze({ fogStart = 15, fogEnd = 45, ramp = 3, density = 0.9, haze = 6.5 })
 -- Keyframes on a clock unrolled to 6..30 (05:00 is 29): Day, Dusk, Night, Night, Dusk, Day.
 local KEYS = table.freeze({ { 6, "Day" }, { 18, "Day" }, { 19, "Dusk" }, { 20, "Night" }, { 29, "Night" },
 	{ 29.5, "Dusk" }, { 30, "Day" } })
@@ -40,12 +43,18 @@ local function pure(zone, time)
 	return { density = row[1], offset = row[2], haze = row[3], fogStart = row[4], fogEnd = row[5],
 		atmosphereColor = colour(light.atmosphere, darken), fogColor = colour(light.fog, darken),
 		ambient = colour(light.ambient, 1), outdoorAmbient = colour(light.outdoor, 1),
-		ambientWeight = light.ambientWeight, brightness = light.brightness, exposure = light.exposure }
+		ambientWeight = light.ambientWeight, brightness = light.brightness, exposure = light.exposure,
+		flashlight = { brightness = light.flashlight[1], range = light.flashlight[2], angle = light.flashlight[3] } }
 end
 local function blend(a, b, t)
 	local out = {}
 	for key, value in pairs(a) do
-		out[key] = type(value) == "table" and mix(value, b[key], t) or lerp(value, b[key], t)
+		if key == "flashlight" then
+			out[key] = { brightness = lerp(value.brightness, b[key].brightness, t), range = lerp(value.range, b[key].range, t),
+				angle = lerp(value.angle, b[key].angle, t) }
+		else
+			out[key] = type(value) == "table" and mix(value, b[key], t) or lerp(value, b[key], t)
+		end
 	end
 	return out
 end
@@ -67,10 +76,11 @@ function Atmosphere.at(clockTime, zone, reduced)
 		end
 	end
 	if reduced == true then
-		local ambient, outdoor = target.ambient, target.outdoorAmbient
+		local ambient, outdoor, flashlight = target.ambient, target.outdoorAmbient, target.flashlight
 		target = blend(target, pure(zone, "Day"), Atmosphere.REDUCED_BLEND)
-		-- Day keeps the place's own ambient, so halfway toward Day halves the weight and keeps the colour.
-		target.ambient, target.outdoorAmbient = ambient, outdoor
+		-- Day keeps the place's own ambient, so halfway toward Day halves the weight and keeps the colour. Reduced
+		-- lowers dread, not the player's own light: the flashlight is untouched.
+		target.ambient, target.outdoorAmbient, target.flashlight = ambient, outdoor, flashlight
 	end
 	return target
 end

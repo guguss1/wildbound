@@ -334,6 +334,17 @@ local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Col
 -- Delivery D1: whole-map fog by zone and time of day comes from a pure module; this script only applies it.
 local atmosphereModule = ReplicatedStorage:WaitForChild("WildboundAtmosphere", 10)
 local Atmos = atmosphereModule and require(atmosphereModule)
+-- Dread pass: the player's own flashlight, rebuilt on each new character's head.
+local function ownFlashlight()
+	local head = player.Character and player.Character:FindFirstChild("Head")
+	if not head or not head:IsA("BasePart") then return nil end
+	local light = head:FindFirstChild("WildboundFlashlight")
+	if not light then
+		light = make("SpotLight", {Name = "WildboundFlashlight", Face = Enum.NormalId.Front, Brightness = 0, Range = 55,
+			Angle = 60, Shadows = true, Color = Color3.fromRGB(255, 238, 210), Enabled = false}, head)
+	end
+	return light
+end
 -- Delivery B (B2): every carried capsule bobs, and shakes when its creature is scared. The server builds the
 -- capsule and publishes its mood; this client only moves the creature's seat joint, which never replicates.
 local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
@@ -567,6 +578,14 @@ listen(RunService.Heartbeat, function(dt)
 			atmosphere.Color = atmosphere.Color:Lerp(rgb(target.atmosphereColor), alpha)
 			atmosphere.Haze += (target.haze - atmosphere.Haze) * alpha
 		end
+		-- Dread pass: the flashlight is the main light at night. A local SpotLight on this player's own head, off
+		-- by day; it never replicates and Reduced effects never dims it.
+		local beam = ownFlashlight()
+		if beam then
+			beam.Brightness += (target.flashlight.brightness - beam.Brightness) * alpha
+			beam.Range, beam.Angle = target.flashlight.range, target.flashlight.angle
+			beam.Enabled = beam.Brightness > 0.05
+		end
 	end
 	if type(state.clockTime) == "number" then
 		local delta = (state.clockTime - Lighting.ClockTime + 12) % 24 - 12
@@ -577,6 +596,8 @@ listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	pcall(function() RunService:UnbindFromRenderStep("WildboundGuardianSmoothing") end)
 	pcall(function() ContextActionService:UnbindAction("WildboundSprint") end)
+	local beam = player.Character and player.Character:FindFirstChild("WildboundFlashlight", true)
+	if beam then beam:Destroy() end
 	for key, value in pairs(original) do Lighting[key] = value end
 	if ownsAtmosphere then
 		atmosphere:Destroy()

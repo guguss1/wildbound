@@ -1,6 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshAtmosphereClone), WildboundWorldClient.Source).
 -- Delivery D1: whole-map fog by zone (camp, open, fog) and time of day (Day, Dusk, Night), blended by the
--- replicated clockTime, with readability floors so a tuning change can never fog the avatar or the path on phones.
+-- replicated clockTime. Retuned in the dread pass (user request): much mistier by day, near-blind with more mist at
+-- night, the flashlight the main light. The only hard floors left keep the game playable: the player's own avatar
+-- near the camera stays clear, and the flashlight reaches through the whole visible night depth.
 return function(Atmosphere, clientSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -18,21 +20,25 @@ return function(Atmosphere, clientSource)
 	local ZONES = { "camp", "open", "fog" }
 	local TIMES = { Day = 12, Dusk = 19, Night = 23 }
 	local FIELDS = { "density", "offset", "haze", "fogStart", "fogEnd" }
-	-- Section 1 of docs/mechanics/wildbound-delivery-d.md, copied here so a module edit cannot move both.
+	-- docs/ui/wildbound-world.md (dread pass table), copied here so a module edit cannot move both. Deliberately
+	-- changed from delivery D1 (open Day was 0.30 / 450, fog Night 0.62 / 100).
 	local TABLE = {
-		open = { Day = { 0.30, 0.15, 1.0, 70, 450 }, Dusk = { 0.40, 0.08, 1.8, 40, 260 }, Night = { 0.52, 0, 2.6, 25, 150 } },
-		fog = { Day = { 0.40, 0.10, 1.6, 40, 240 }, Dusk = { 0.52, 0.04, 2.4, 28, 160 }, Night = { 0.62, 0, 3.4, 16, 100 } },
-		camp = { Day = { 0.22, 0.15, 0.6, 90, 700 }, Dusk = { 0.30, 0.08, 1.0, 60, 380 }, Night = { 0.38, 0, 1.8, 40, 260 } },
+		open = { Day = { 0.68, 0.02, 3.0, 24, 140 }, Dusk = { 0.76, 0.01, 4.0, 18, 90 }, Night = { 0.82, 0, 5.0, 15, 60 } },
+		fog = { Day = { 0.74, 0.01, 3.6, 20, 110 }, Dusk = { 0.82, 0, 4.8, 16, 70 }, Night = { 0.88, 0, 6.0, 15, 48 } },
+		camp = { Day = { 0.55, 0.05, 2.2, 40, 260 }, Dusk = { 0.64, 0.03, 3.0, 26, 160 }, Night = { 0.72, 0, 3.8, 18, 100 } },
 	}
 	local function row(target, expected, label)
 		for index, field in ipairs(FIELDS) do near(target[field], expected[index], label .. " " .. field) end
 	end
+	-- Dread pass floors. Kept: FogStart 15 (the camera sits 12.5 studs behind the avatar, so the avatar is never
+	-- fogged) and a ramp, not a wall. Relaxed on purpose (the user asked for near-blind nights): FogEnd 90 to 45,
+	-- density 0.65 to 0.9, haze 4 to 6.5; the lantern and path gates are gone, the flashlight carries the night.
 	local function checkFloors(target, label)
 		assert(target.fogStart >= 15, label .. ": FogStart below 15")
-		assert(target.fogEnd >= 90, label .. ": FogEnd below 90")
-		assert(target.fogEnd >= 4 * target.fogStart, label .. ": fog is a wall, not a ramp")
-		assert(target.density <= 0.65, label .. ": density above 0.65")
-		assert(target.haze <= 4, label .. ": haze above 4")
+		assert(target.fogEnd >= 45, label .. ": FogEnd below 45")
+		assert(target.fogEnd >= 3 * target.fogStart, label .. ": fog is a wall, not a ramp")
+		assert(target.density <= 0.9, label .. ": density above 0.9")
+		assert(target.haze <= 6.5, label .. ": haze above 6.5")
 	end
 
 	case("D1: keyframes at 18, 19, 20, 29, 29.5, 30 equal the tables", function()
@@ -45,7 +51,7 @@ return function(Atmosphere, clientSource)
 			row(Atmosphere.at(6, zone, false), TABLE[zone].Day, zone .. " 30")
 		end
 		-- Halfway into dusk is halfway between the rows.
-		near(Atmosphere.at(18.5, "fog", false).fogEnd, 200, "fog 18.5")
+		near(Atmosphere.at(18.5, "fog", false).fogEnd, 90, "fog 18.5")
 	end)
 
 	case("D1: dawn mirrors dusk", function()
@@ -101,7 +107,7 @@ return function(Atmosphere, clientSource)
 					checkFloors(target, zone .. " " .. name .. " " .. tostring(reduced))
 					if name == "Night" then
 						for _, channel in ipairs({ "r", "g", "b" }) do
-							assert(target.ambient[channel] >= 26, zone .. " night ambient " .. channel)
+							assert(target.ambient[channel] >= 20, zone .. " night ambient " .. channel)
 						end
 					end
 					count += 1
@@ -115,9 +121,9 @@ return function(Atmosphere, clientSource)
 
 	case("D1: reduced blends 50 percent toward Day and keeps the floors", function()
 		local night = Atmosphere.at(23, "fog", true)
-		near(night.density, 0.51, "density")
-		near(night.fogStart, 28, "fogStart")
-		near(night.fogEnd, 170, "fogEnd")
+		near(night.density, 0.81, "density")
+		near(night.fogStart, 17.5, "fogStart")
+		near(night.fogEnd, 79, "fogEnd")
 		near(night.ambientWeight, 0.5, "ambient weight")
 		for _, zone in ipairs(ZONES) do
 			local full, soft, day = Atmosphere.at(23, zone, false), Atmosphere.at(23, zone, true), Atmosphere.at(12, zone, false)
@@ -127,14 +133,15 @@ return function(Atmosphere, clientSource)
 		end
 	end)
 
-	case("D1: night fog zone is at least 1.5x as dense and at most half as far as day open", function()
+	-- Deliberately changed in the dread pass: days are misty now, so night is 1.25x (was 1.5x) as dense as day open.
+	case("D1: night fog zone is at least 1.25x as dense and at most half as far as day open", function()
 		local night, day = Atmosphere.at(23, "fog", false), Atmosphere.at(12, "open", false)
-		assert(night.density >= 1.5 * day.density, "density")
+		assert(night.density >= 1.25 * day.density, "density")
 		assert(night.fogEnd <= day.fogEnd / 2, "fogEnd")
 		assert(night.fogColor.r < Atmosphere.at(23, "open", false).fogColor.r, "the fog territory is the darkest")
-		near(night.fogColor.r, 26 * 0.92, "fog colour x 0.92")
-		near(night.brightness, 0.55, "night brightness")
-		near(night.exposure, -0.30, "night exposure")
+		near(night.fogColor.r, 14 * 0.92, "fog colour x 0.92")
+		near(night.brightness, 0.4, "night brightness")
+		near(night.exposure, -0.5, "night exposure")
 		near(Atmosphere.at(12, "open", false).ambientWeight, 0, "day keeps the place's own ambient")
 	end)
 
@@ -147,6 +154,32 @@ return function(Atmosphere, clientSource)
 		row(Atmosphere.at(12, "open", "yes"), TABLE.open.Day, "non-boolean reduced is off")
 	end)
 
+	case("Dread pass: day is much mistier and night has more mist than delivery D1", function()
+		for _, zone in ipairs(ZONES) do
+			local day, night = Atmosphere.at(12, zone, false), Atmosphere.at(23, zone, false)
+			assert(day.fogEnd <= 260 and day.density >= 0.55, zone .. " day mist")
+		end
+		local openDay, fogNight = Atmosphere.at(12, "open", false), Atmosphere.at(23, "fog", false)
+		assert(openDay.density >= 0.30 * 1.5 and openDay.fogEnd <= 450 / 2, "open day was 0.30 and 450")
+		assert(fogNight.density >= 0.62 + 0.2 and fogNight.fogEnd <= 100 / 2, "fog night was 0.62 and 100")
+		assert(fogNight.haze > 3.4 and fogNight.brightness < 0.55, "darker and hazier than before")
+	end)
+
+	case("Dread pass: the flashlight is the main light at night and reaches the whole visible depth", function()
+		for _, zone in ipairs(ZONES) do
+			local day, dusk, night = Atmosphere.at(12, zone, false), Atmosphere.at(19, zone, false), Atmosphere.at(23, zone, false)
+			near(day.flashlight.brightness, 0, zone .. " off by day")
+			assert(dusk.flashlight.brightness > 0 and night.flashlight.brightness > dusk.flashlight.brightness, zone .. " on at dusk, full at night")
+			assert(night.flashlight.range <= 60, zone .. " SpotLight range is at most 60")
+			assert(night.flashlight.angle >= 40 and night.flashlight.angle <= 90, zone .. " a cone, not a floodlight")
+			-- Hard floor: in the thickest fog the beam reaches as far as anything can be seen.
+			assert(night.flashlight.range >= Atmosphere.at(23, "fog", false).fogEnd, zone .. " beam shorter than the fog")
+			local soft = Atmosphere.at(23, zone, true)
+			near(soft.flashlight.brightness, night.flashlight.brightness, zone .. " Reduced never dims the flashlight")
+			near(soft.flashlight.range, night.flashlight.range, zone .. " Reduced keeps the range")
+		end
+	end)
+
 	case("D1: the world client applies the module, owns Offset, and has no inline fog numbers", function()
 		assert(clientSource:find("WildboundAtmosphere", 1, true), "client does not require WildboundAtmosphere")
 		assert(clientSource:find("Atmosphere.at(", 1, true) or clientSource:find("Atmos.at(", 1, true),
@@ -156,6 +189,10 @@ return function(Atmosphere, clientSource)
 		for _, literal in ipairs({ "fromRGB(40, 54, 72)", "fromRGB(78, 94, 116)", "reduced and 180 or 130", "fog and 45" }) do
 			assert(not clientSource:find(literal, 1, true), "inline fog value left: " .. literal)
 		end
+		-- Dread pass: a local SpotLight on the player's own head follows the module's flashlight targets.
+		assert(clientSource:find('Name = "WildboundFlashlight"', 1, true), "no flashlight SpotLight")
+		assert(clientSource:find("target.flashlight.brightness", 1, true), "flashlight brightness not applied")
+		assert(clientSource:find("target.flashlight.range", 1, true), "flashlight range not applied")
 	end)
 
 	return result

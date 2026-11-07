@@ -4,7 +4,23 @@ The local controller uses `WildboundNetwork.WorldAction` and `WorldState`. It se
 
 The phase and warning panel sits below the inventory HUD; the panel and the action buttons hide while `WildboundUI.InventoryPanel` is open, but the awareness chip (below) does not, and F and Q keep working with the inventory open. F and Q respect processed input and focused text boxes. Reduced effects default off since W9 (D11; see `wildbound-start-and-settings.md`); neither setting uses screen flashes or camera shake. Fog and lighting transitions are local and smoothed; an existing Atmosphere is restored on cleanup, or a controller-owned Atmosphere is removed. This assumes one world controller owns these local Lighting properties: simultaneous unrelated Lighting controllers require integration testing. Visual intensity has not been measured. Guardian visuals are server-owned, with an explicit attack warning and text cues independent of audio. Stale world state disables actions and displays an unavailable status.
 
-## Whole-map fog (2026-11-07, delivery D1)
+## Dread pass fog and flashlight (2026-11-07, supersedes the D1 numbers)
+
+User request: a lot of mist by day; at night you basically cannot see, with even more mist; fewer lights, the flashlight is what helps. `WildboundAtmosphere` rows (Density, Offset, Haze, FogStart, FogEnd):
+
+| Zone | Day | Dusk | Night |
+| --- | --- | --- | --- |
+| open | 0.68, 0.02, 3.0, 24, 140 | 0.76, 0.01, 4.0, 18, 90 | 0.82, 0, 5.0, 15, 60 |
+| fog | 0.74, 0.01, 3.6, 20, 110 | 0.82, 0, 4.8, 16, 70 | 0.88, 0, 6.0, 15, 48 |
+| camp | 0.55, 0.05, 2.2, 40, 260 | 0.64, 0.03, 3.0, 26, 160 | 0.72, 0, 3.8, 18, 100 |
+
+Light: Day mist colours Atmosphere 170, 176, 170 and fog 150, 158, 152 (place's own ambient); Dusk Brightness x0.7, exposure -0.25; Night Brightness x0.4, exposure -0.5, ambient 22, 28, 46, fog colour 14, 18, 28 (x0.92 in the territory). Reduced effects still blends 50 percent toward Day (night fog: 0.81, 17.5, 79) and never touches the flashlight.
+
+Flashlight: a local `SpotLight` named `WildboundFlashlight` on the player's own head (Face Front, Range 55, Angle 60, shadows on, warm white), Brightness 0 by day, 2.5 at dusk, 5 at night, smoothed with the fog. It is local (other players do not see it). The F "Flashlight" reveal ability is unchanged and separate.
+
+Floors, and why they changed: the user's request supersedes the D1 readability gates. Kept, because they make the game playable: FogStart at least 15 (the camera sits 12.5 studs behind the avatar, so the player's own avatar is never fogged), a ramp not a wall (FogEnd at least 3 times FogStart, was 4), and the beam: at night the flashlight range is at least the thickest night FogEnd (55 against 48), so the cone always reaches as far as anything can be seen. Relaxed: FogEnd 90 to 45, Density 0.65 to 0.9, Haze 4 to 6.5, night ambient 26 to 20, night versus day density 1.5x to 1.25x. Dropped: the D13 lantern-glass and path-brightness gates (lanterns are now rare landmarks, see the dread pass lantern note). With an `Atmosphere` present, Roblox draws fog from Density and Haze; FogStart and FogEnd are kept as the fallback and as tested distances.
+
+## Whole-map fog (2026-11-07, delivery D1, superseded by the dread pass)
 
 The T7 values below are superseded. Fog and light targets now come from the pure `ReplicatedStorage.WildboundAtmosphere` (`src/wildbound/WildboundAtmosphere.luau`): three zones (camp when safe, fog territory, open map) times Day, Dusk and Night, blended by the replicated `clockTime` (Day to 18:00, Dusk at 19:00, Night 20:00 to 05:00, Dusk at 05:30, Day at 06:00). The tables are in `docs/mechanics/wildbound-delivery-d.md` section 1; night in the fog territory is Density 0.62, Haze 3.4, FogStart 16, FogEnd 100, fog colour RGB 24, 33, 50. Reduced effects blends every target 50 percent toward the same zone's Day row (night fog: 0.51, 28, 170). The controller now also writes `Atmosphere.Offset`, `Lighting.Brightness` (times 1, 0.8, 0.55) and `ExposureCompensation` (0, -0.15, -0.30), caches them and restores them on cleanup. Floors tested in `tests/WildboundAtmosphere_Test.luau`: FogStart at least 15, FogEnd at least 90 and at least 4 times FogStart, Density at most 0.65, Haze at most 4, night ambient channels at least 26.
 
