@@ -8,6 +8,8 @@ local View = {}
 View.MIN_TARGET = 44
 View.BUTTON_W = 98
 View.ROW_MIN = 56
+-- A phone held sideways has little height (W9): compact rows may be this tall, a 44 pixel button plus 2 each side.
+View.COMPACT_ROW_MIN = 48
 View.HEADER_H = 44
 
 local NAMES = table.freeze({ ember = "Ember", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
@@ -83,6 +85,17 @@ local function line(title, effect, cost, why)
 	return why and why ~= "" and (text .. " " .. why .. ".") or text
 end
 
+-- The compact wording: the name and either what is missing or the price, never both.
+local function shortLine(title, cost, why)
+	if why and why ~= "" then
+		-- "Need 3 more Fogbark and 2 more Glowmoss" becomes "Short 3 Fogbark, 2 Glowmoss": shorter, same facts.
+		local missing = why:match("^Need (%d.*)$")
+		if missing then why = "Short " .. missing:gsub(" more ", " "):gsub(" and ", ", ") end
+		return ("%s: %s."):format(title, why)
+	end
+	return ("%s: %s."):format(title, View.costText(cost))
+end
+
 -- Everything the Camp tab lists, in order: banked stock, crafts, arming, the upgrade, the skills and bond.
 -- ctx = { atCamp = bool|nil, busy = bool|nil }; a nil atCamp is treated as at camp (the server checks anyway).
 function View.campRows(config, economy, snapshot, ctx)
@@ -99,8 +112,10 @@ function View.campRows(config, economy, snapshot, ctx)
 			local held, cap = amount(consumables[recipe.id]), config.capacity.consumableCaps[recipe.id]
 			local extra = held >= cap and ("You hold the most (%d)"):format(cap) or nil
 			local why = reason(ctx, snapshot, spec.cost, extra)
-			table.insert(rows, row("craft:" .. recipe.id, "Craft", line(("%s (hold %d of %d)"):format(recipe.title, held, cap),
-				recipe.effect, spec.cost, why), "Craft", recipe.id, "Craft", why == nil, why))
+			local made = row("craft:" .. recipe.id, "Craft", line(("%s (hold %d of %d)"):format(recipe.title, held, cap),
+				recipe.effect, spec.cost, why), "Craft", recipe.id, "Craft", why == nil, why)
+			made.short = shortLine(("%s %d/%d"):format(recipe.title, held, cap), spec.cost, why)
+			table.insert(rows, made)
 		end
 	end
 	if amount(consumables.seal) > 0 or snapshot.sealArmed == true then
@@ -124,8 +139,10 @@ function View.campRows(config, economy, snapshot, ctx)
 			table.insert(rows, row("upgrade:" .. name, "Upgrade", "Reinforced Pack: owned. Bag 4, pouch 45, a defeat takes a quarter.", nil, nil, nil, false))
 		else
 			local why = reason(ctx, snapshot, spec.cost)
-			table.insert(rows, row("upgrade:" .. name, "Upgrade", line("Reinforced Pack", "bag 4, pouch 45, a defeat takes a quarter instead of half",
-				spec.cost, why), "Upgrade", name, "Buy", why == nil, why))
+			local made = row("upgrade:" .. name, "Upgrade", line("Reinforced Pack", "bag 4, pouch 45, a defeat takes a quarter instead of half",
+				spec.cost, why), "Upgrade", name, "Buy", why == nil, why)
+			made.short = shortLine("Reinforced Pack", spec.cost, why)
+			table.insert(rows, made)
 		end
 	end
 	local owned = type(snapshot.skills) == "table" and snapshot.skills or {}
@@ -143,7 +160,9 @@ function View.campRows(config, economy, snapshot, ctx)
 				end
 				if not extra and spec.effectLive ~= true then extra = "Effect not built yet" end
 				local why = reason(ctx, snapshot, spec.cost, extra)
-				table.insert(rows, row("skill:" .. skill.id, "Skills", line(title, effect, spec.cost, why), "Learn", skill.id, "Learn", why == nil, why))
+				local made = row("skill:" .. skill.id, "Skills", line(title, effect, spec.cost, why), "Learn", skill.id, "Learn", why == nil, why)
+				made.short = shortLine(title, spec.cost, why)
+				table.insert(rows, made)
 			end
 		end
 	end
@@ -154,6 +173,11 @@ function View.campRows(config, economy, snapshot, ctx)
 		local pending = amount(snapshot.pendingBondXp)
 		table.insert(rows, row("bond", "Bond", ("Companion bond: level %d, %d XP.%s Pulse hits in the fog earn XP; extracting banks it."):format(
 			level, xp, pending > 0 and (" +%d pending."):format(pending) or "")))
+	end
+	if ctx.compact == true then
+		for _, item in ipairs(rows) do
+			if item.short then item.text = item.short end
+		end
 	end
 	return rows
 end
@@ -265,10 +289,25 @@ function View.textLines(text, textWidth, size)
 	return math.max(1, math.ceil((#text + 2) / perLine))
 end
 
-function View.rowHeight(row_, width, size)
+function View.rowHeight(row_, width, size, compact)
 	local buttonRoom = row_.label and (View.BUTTON_W + 14) or 0
 	local lines = View.textLines(row_.text, width - 16 - buttonRoom, size)
-	return math.max(View.ROW_MIN, math.ceil(lines * (size + 3) + 12))
+	return math.max(compact and View.COMPACT_ROW_MIN or View.ROW_MIN, math.ceil(lines * (size + 3) + 12))
+end
+
+-- Where the list sits inside a panel from View.panel. A phone held sideways has no room for the tab note, so the
+-- list starts right under the header buttons; elsewhere the note keeps its line.
+function View.listArea(panelRect, sideways)
+	local headerBottom = 4 + View.HEADER_H
+	local note = sideways ~= true
+	local noteH = note and 24 or 0
+	local top = headerBottom + 2 + noteH + (note and 2 or 0)
+	return { showNote = note, noteHeight = noteH, top = top, height = panelRect.h - top - 6 }
+end
+
+-- True for a phone held sideways, the layout that gets compact rows.
+function View.sideways(width, height)
+	return finite(width) and finite(height) and width > height and math.min(width, height) <= 500
 end
 
 -- The panel for the Bag and Camp tabs: below the awareness chip so a warning is never covered, and inside the

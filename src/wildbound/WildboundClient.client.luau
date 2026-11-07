@@ -112,6 +112,8 @@ local hudWidth = 430
 local lastSnapshot, compassText = nil, nil
 local tab, busy, atCamp = "bag", false, nil
 local rowWidth, rowText = 330, 15
+-- A phone held sideways: compact camp rows and no tab note, so the list shows three rows or more (W9).
+local sideways = false
 local rebuild
 local function refreshStatus()
 	if not View then
@@ -180,8 +182,11 @@ local function applyLayout()
 		place(panel, rect)
 		local header = Camp.header(rect.w)
 		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close)
+		sideways = Camp.sideways(size.X, size.Y)
+		local area = Camp.listArea(rect, sideways)
+		warning.Visible = area.showNote
 		warning.Position, warning.Size = UDim2.fromOffset(12, header.bottom + 2), UDim2.new(1, -24, 0, noteHeight)
-		local top = header.bottom + 2 + noteHeight + 2
+		local top = area.top
 		scroll.Position, scroll.Size = UDim2.fromOffset(12, top), UDim2.new(1, -24, 1, -(top + 6))
 		rowWidth = rect.w - 24 - scroll.ScrollBarThickness
 	else
@@ -251,7 +256,7 @@ local function addRow(spec)
 		return
 	end
 	local hasButton = spec.label ~= nil
-	local height = campReady and Camp.rowHeight(spec, rowWidth, rowText) or 56
+	local height = campReady and Camp.rowHeight(spec, rowWidth, rowText, sideways) or 56
 	local item = make("Frame", {BackgroundColor3 = Color3.fromRGB(42, 53, 47), LayoutOrder = order,
 		Size = UDim2.new(1, -8, 0, height)}, scroll)
 	make("UICorner", {CornerRadius = UDim.new(0, 6)}, item)
@@ -310,7 +315,7 @@ end
 
 local function campRows(snapshot)
 	local previous
-	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy })) do
+	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways })) do
 		if spec.section ~= previous then
 			previous = spec.section
 			addRow({ header = true, text = spec.section == "Stock" and "Your stock" or spec.section == "Craft" and "Craft and carry"

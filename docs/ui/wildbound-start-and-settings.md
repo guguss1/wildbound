@@ -17,3 +17,14 @@ Measured, not assumed: a probe Script in Play connected to its own `Destroying`,
 Fix: `WildboundOwnership` (`claim` tags, `sweep` destroys by the tag `WildboundWorldOwned`) and `WildboundWorldGuard` (a separate Script that watches `WildboundWorld` and sweeps when it is destroyed or removed from the game). The world script tags only its own `WildboundWorldRuntime` folder (the guardian and its art live inside it) and the seven remotes it creates. Contracts `tests/WildboundOwnership_Test.luau`: RED 5 passed 2 failed, GREEN 7 passed 0 failed.
 
 Play check (server, damage off): before destroying `WildboundWorld`: runtime present, 7 remotes, 8 tagged objects, 18 children in `WildboundNetwork`, 7 in the map. One second after: runtime gone, 0 of the 7 remotes, 0 tagged, 11 children in the network (the inventory's `Action` and `State` untouched), 6 in the map. Only the script's own objects were removed. Costs one more Script in `ServerScriptService`; if both are deleted nothing is swept.
+
+### A5. Camp list on a sideways phone (found in W7)
+
+The list showed about 1.5 rows on a Galaxy A06 held sideways (interface 705 x 280): each row carried a long sentence beside a 98 pixel button and a tab note took another line. Decision: the compact layout applies only to a phone held sideways (`View.sideways`: wider than tall and short side 500 or less). Two columns were rejected: a row needs its text beside a 44 pixel button, and at 409 pixels of panel width a column is about 190, which leaves under 80 for words. What changed instead:
+
+- Rows use a short wording, `Title: price.` or `Title: reason.`, where a missing price reads "Short 8 Fogbark, 4 Glowmoss" instead of "Need 8 more Fogbark and 4 more Glowmoss". The effect sentence ("saves one bag item...") is not shown in this layout; portrait phones and desktop still show it. That is a real loss of information on sideways phones.
+- A compact row may be 48 high (a 44 button plus 2 each side) instead of 56.
+- The tab note is hidden on a sideways phone (`View.listArea`), so "Session only" is not repeated on the Bag tab there. The start screen, the how-to-play text and the Settings panel say it instead.
+- Result by calculation, panel height 218 on the A06 interface: list height 162 (was 140) and three rows of 48 with gaps (was 1.8 rows of 76). iPhone 17 Pro sideways (750 x 323): list height 205, 3.8 rows.
+
+Contracts `tests/WildboundCampView_Test.luau` (CV-C1 to CV-C6): RED 15 passed 4 failed, GREEN 19 passed 0 failed. Phone captures are listed in Part C once taken.

@@ -246,6 +246,65 @@ return function(View, Config, Economy, Layout, source)
 		assert(View.note("camp", false, true):find("camp", 1, true))
 	end)
 
+	-- Compact rows (W9). A phone held sideways showed about 1.5 camp rows (found in W7). Compact rows say
+	-- "Title: cost." or "Title: reason.", the sideways list drops the tab note, and rows may be 48 high.
+	local function compactRows(overrides, ctx)
+		ctx = ctx or {}
+		ctx.compact = true
+		return View.campRows(Config, Economy, snapshot(overrides), ctx)
+	end
+	case("CV-C1: compact rows take at most three lines beside the button on a sideways phone", function()
+		for _, wallet in ipairs({ rich, {} }) do
+			for _, atCamp in ipairs({ true, false }) do
+				for _, item in ipairs(compactRows(wallet, { atCamp = atCamp })) do
+					local height = View.rowHeight(item, 379, 13, true)
+					assert(height <= 64, item.id .. " is " .. height .. " high: " .. item.text)
+				end
+			end
+		end
+	end)
+	case("CV-C2: most compact rows with money fit two lines and the 48 pixel minimum", function()
+		local flat = 0
+		local rows = compactRows(rich, { atCamp = true })
+		for _, item in ipairs(rows) do
+			if View.rowHeight(item, 379, 13, true) == 48 then flat += 1 end
+		end
+		assert(flat * 2 >= #rows, flat .. " of " .. #rows .. " rows are 48 high")
+		equal(View.rowHeight({ text = "Hi", label = "Go" }, 379, 13, true), 48)
+		equal(View.rowHeight({ text = "Hi", label = "Go" }, 379, 13), View.ROW_MIN)
+	end)
+	case("CV-C3: compact rows keep the name, and the reason when a button is off", function()
+		local seal = byId(compactRows({}, { atCamp = true }), "craft:seal")
+		assert(seal.text:find("Ward Seal") and seal.text:find("Short") and seal.text:find("Fogbark"), seal.text)
+		local away = byId(compactRows(rich, { atCamp = false }), "craft:seal")
+		assert(away.text:find("Go to camp"), away.text)
+		local affordable = byId(compactRows(rich, { atCamp = true }), "craft:seal")
+		assert(affordable.text:find("8 Fogbark, 4 Glowmoss"), affordable.text)
+		equal(affordable.enabled, true)
+	end)
+	case("CV-C4: the full rows are unchanged when not compact", function()
+		local seal = byId(rowsOf(rich, { atCamp = true }), "craft:seal")
+		assert(seal.text:find("saves one bag item", 1, true), seal.text)
+	end)
+	case("CV-C5: the sideways phone list drops the note and shows three rows or more", function()
+		for _, size in ipairs({ { 705, 280 }, { 750, 323 } }) do
+			local layout = Layout.compute(size[1], size[2], { touch = true })
+			local panel = View.panel(size[1], size[2], layout.rects.chip)
+			local area = View.listArea(panel, true)
+			equal(area.showNote, false, size[1] .. " note")
+			assert(area.height >= 160, size[1] .. " list is only " .. area.height)
+			assert(math.floor((area.height + 6) / (48 + 6)) >= 3, size[1] .. " shows fewer than three rows")
+		end
+	end)
+	case("CV-C6: upright phones and desktop keep the note", function()
+		for _, size in ipairs({ { 401, 720, true }, { 1069, 501, false } }) do
+			local layout = Layout.compute(size[1], size[2], { touch = size[3] })
+			local panel = View.panel(size[1], size[2], layout.rects.chip)
+			local area = View.listArea(panel, false)
+			equal(area.showNote, true); assert(area.height >= 120)
+		end
+	end)
+
 	case("the module is pure: no services, clock, randomness or persistence", function()
 		for _, word in ipairs({ "game", "GetService", "os.", "tick", "Random", "math.random", "DataStore",
 			"task.", "workspace", "Instance", "MarketplaceService", "Robux", "TextService" }) do
