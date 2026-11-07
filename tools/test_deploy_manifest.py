@@ -267,6 +267,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundFlags.luau": "ServerScriptService.WildboundFlags",
         "src/wildbound/WildboundFairStrike.luau": "ServerScriptService.WildboundFairStrike",
         "tests/WildboundFairStrike_Test.luau": "ServerStorage.WildboundFairStrike_Test",
+        # M4.7, wave W6: pure ambush relocation with no camera or gaze input
+        "src/wildbound/WildboundAmbush.luau": "ServerScriptService.WildboundAmbush",
+        "tests/WildboundAmbush_Test.luau": "ServerStorage.WildboundAmbush_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
