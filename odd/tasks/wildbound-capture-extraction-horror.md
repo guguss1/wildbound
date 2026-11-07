@@ -48,10 +48,10 @@ User, 2026-11-07: walking and picking things up has no risk, collection has no c
 ## Tasks
 
 - [x] P0 Restore point and audit. Route: inline backup, delegated read-only audit (4+ files). Evidence: tag above; audit gap map in this session.
-- [ ] A1 Lumipol brain: Idle, Wander, Curious, Alert, Flee, Hide, Captured; reacts to approach speed; hides near cover. Route: delegated, one Studio writer, Opus high.
-- [ ] A2 Interactive capture: calm ring plus timed seal tap, flee on fail, per-player capture skills, Spanish strings for the capture path. Same writer.
-- [ ] A3 Client smoothing and readable reactions on the provisional model. Same writer.
-- [ ] A4 Play check: approach, scare, chase, capture, fail, two-player claim probe, phone captures.
+- [x] A1 Lumipol brain: Idle, Wander, Curious, Alert, Flee, Hide, Captured; reacts to approach speed; hides near cover. Route: delegated, one Studio writer, Opus high. Commit `946afea`.
+- [x] A2 Interactive capture: calm ring plus timed seal tap, flee on fail, per-player capture skills, Spanish strings for the capture path. Same writer. Commits `68b7bf3` (seal, wary refusal, Spanish text module), `8e86de9` (capturer skills live).
+- [x] A3 Client smoothing and readable reactions on the provisional model. Same writer. Commit `a846fc2`.
+- [x] A4 Play check: approach, scare, chase, capture, fail, two-player claim probe, phone captures. Studio Play solo; two real clients and real phones not run.
 - [ ] B Extraction and registration.
 - [ ] C Guardian navigation, damage and death.
 - [ ] D Horror audio, hiding and stamina.
@@ -65,3 +65,22 @@ The brief's acceptance list, checked one delivery at a time. Nothing is marked d
 ## Progress
 
 - 2026-11-07: restore point made. Audit: Lumipol brain has Wander, Curious, Reserved and Spooked only; capture ring, flee on fail and server claim exist; carried creatures are invisible; no audio anywhere; Silueta uses anchored steering, not pathfinding, and damage is gated off; UI strings are English and scattered.
+- 2026-11-07, delivery A (one Studio writer, instance `81631061-...`, place 122652861404212, verified read-only before the first edit). Fresh-clone Studio suites: baseline 760 passed (the brief said 757; the 760 includes SiluetaHunt 9 and SiluetaVisual 26), final 815 passed, 0 failed over 33 suites. Python `unittest discover -s tools`: 876 run, 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged` (another session's uncommitted `lumipol-roblox-blockout-v1.blend`, not touched), 28 skipped. All 72 deployed sources match the repo by Adler-32 and length. `damageMode` off, `privateTestPlaceIds` empty, `analyticsMode` off, streaming on; Studio left in Edit mode, Device Simulator at default, temporary runner modules removed.
+- RED then GREEN, per unit: brain 24 passed 22 failed, then 46 and 0. Text module 0/9 against an empty stub, 8/1 until the consumers moved, then 9/0. Capture rule 99/21, then 120/0 (seal, wary, words removed); then 120/4 for the skills, then 124/0. Capture view 29/18, then 47/0; 47/1, then 48/0. State 60/1, then 61/0; Economy 18/1, then 19/0; CampView 20/1 (pinned capturer_1 as pending), then 21/0. Analytics wiring 10/1 (`SealMissed` not in the vocabulary), then 11/0. Look module 0/10 against a stub, then 10/0. Deploy manifest test 23/1, then 24/0 (twice, one per new pair).
+- Play (Studio solo, damage off), details in `docs/mechanics/wildbound-capture.md` (A4): slow approach stays Curious PASS; running in gives Alert, Flee, Hide PASS on wild slots (the gentle `S0a` only reached Alert when sprinted into and then calmed); four calm-plus-seal captures PASS; seal miss with flee and the 6 s retry PASS; server two-session claim probe PASS (30 of 30 `Reserved`, 30 of 30 `InvalidToken` during a real capture). Phone captures `assets/exports/forest-kit/captures/a-*.jpg` (iPhone 17 Pro and Galaxy A06, landscape), each viewed; the seal and result frames were fed by a server display push because the live seal lasts about 2 s.
+
+## Decisions taken in delivery A, for user review
+
+| ID | Decision |
+| --- | --- |
+| A-1 | Brain thresholds (hypotheses): calm speed 8 studs/s, alert radius 14, close radius 7, alarm 0.2 s for Alert and 0.8 s for Flee; Safe slots 12, 10, 5, 0.4 and 1.2. Alert holds 1 s after the last fast move; Hide 4 s plus a 2 s peek. |
+| A-2 | Leash widened from 10 to 24 studs (configurable per brain) so the dressed map's props, 12 to 25 studs from the slots, count as cover. With no cover in reach the Lumipol backs away 8 to 12 studs and hides in the open. |
+| A-3 | A start is refused (`Wary`) while it is Alert, fleeing, or hiding before its peek, and the prompt hides then. A peeking Lumipol can be calmed. |
+| A-4 | Seal: 0.4 s wait, 1.6 s sweep, band 0.20 of the bar (0.36 on Safe slots) placed by a server roll in 0.30 to 0.95; a press counts up to 0.15 s after the marker leaves the band (latency allowance); a press before the marker moves is ignored; no press ends `SealMissed`, which flees, starts the retry wait and counts as a failure. |
+| A-5 | The capture rule keeps no words: its purity contract bans `require`, so `CaptureSession.NOTICES` was removed and the server fills `notice` from `ReplicatedStorage.WildboundText`. Other HUD strings stay English until delivery F. |
+| A-6 | Capture skills are clamped in the rule: meter target 4.0 to 4.5 s, retry wait 3 to 6 s. No seal-band skill was added. |
+| A-7 | No crouch was added: keyboard players walk 16 studs/s, so on a keyboard a slow approach means stopping short; a thumbstick can walk slower. Delivery D's stamina sprint may add a sneak. |
+| A-8 | A Studio-only, server-only `ServerStorage.WildboundTelemetry.CaptureProbe` drives `probe:` keys for the claim check. It is never created outside Studio and no client can reach it. |
+| A-9 | The "!" is two neon parts because a `BillboardGui` never showed in MCP captures; the tutorial card now waits while a capture result shows (it covered the result line on phones). |
+
+Next: delivery B, extraction and registration. Not verified: real touch, real phones, two real clients, network latency against the seal allowance, portrait seal panel.
