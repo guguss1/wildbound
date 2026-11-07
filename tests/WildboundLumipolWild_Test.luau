@@ -245,15 +245,57 @@ return function(Wild, Rules, source)
 		equal(Wild.eggsCarried({ pending = { { kind = "Creature" } }, bankedEggs = { { kind = "Egg" } } }), 0)
 	end)
 
-	-- Behavior ------------------------------------------------------------------------------------
+	-- Behavior (delivery A1) -------------------------------------------------------------------------
+	-- Modes: Idle, Wander, Curious, Alert, Flee, Hide, Reserved, Captured. A watcher is { x, z, speed }, where speed
+	-- is the player's horizontal speed in studs per second, read by the server.
 
-	case("a new brain wanders from its slot centre, facing a unit vector", function()
+	local PROFILES = Wild.PROFILES or {}
+	local WILD, GENTLE = PROFILES.Wild or {}, PROFILES.Gentle or {}
+	local function watcher(x, z, speed) return { x = x, z = z, speed = speed or 0 } end
+	-- Steps a brain with a watcher that walks straight at its start position at `speed`, from `from` studs away
+	-- along +X, until it is `to` studs away. Returns the list of modes seen, in order, without repeats.
+	local function approachRun(brain, speed, from, to, rand)
+		local ox, oz = brain.x, brain.z
+		local seen, at = {}, from
+		while at > to do
+			Wild.step(brain, DT, watcher(ox + at, oz, speed), rand)
+			if seen[#seen] ~= brain.mode then table.insert(seen, brain.mode) end
+			at -= speed * DT
+		end
+		return seen
+	end
+	local function has(list, value)
+		for _, item in ipairs(list) do if item == value then return true end end
+		return false
+	end
+	local function indexOf(list, value)
+		for index, item in ipairs(list) do if item == value then return index end end
+		return nil
+	end
+
+	case("a new brain idles at its slot centre, facing a unit vector, with no alarm", function()
 		local brain = brainAt("L1")
-		equal(brain.mode, "Wander")
+		equal(brain.mode, "Idle")
 		equal(brain.x, -10)
 		equal(brain.z, -60)
+		equal(brain.alarm, 0)
+		equal(brain.leash, C.LEASH)
 		near(dist(0, 0, brain.fx, brain.fz), 1, 1e-9)
 		equal(brain.moved, false)
+	end)
+
+	case("profiles: the tutorial Safe slots are gentle, every other tier uses the wild thresholds", function()
+		equal(Wild.profileFor("Safe"), GENTLE)
+		for _, tier in ipairs({ "Territory", "Fog", "Other" }) do equal(Wild.profileFor(tier), WILD, tier) end
+		equal(Wild.profileFor(nil), WILD)
+		assert(table.isfrozen(Wild.PROFILES) and table.isfrozen(GENTLE) and table.isfrozen(WILD), "profiles frozen")
+		equal(WILD.calmSpeed, 8)
+		assert(GENTLE.calmSpeed > WILD.calmSpeed, "gentle tolerates a faster walk")
+		assert(GENTLE.alertRadius < WILD.alertRadius, "gentle notices a runner later")
+		assert(GENTLE.alarmAlert > WILD.alarmAlert and GENTLE.alarmFlee > WILD.alarmFlee, "gentle needs a longer run")
+		equal(brainAt("S0a").profile, GENTLE)
+		equal(brainAt("S0b").profile, GENTLE)
+		equal(brainAt("L4").profile, WILD)
 	end)
 
 	case("wanderers stay within 6 studs of the slot and never exceed 2 studs per second", function()
@@ -267,12 +309,13 @@ return function(Wild, Rules, source)
 				local moved = dist(brain.x, brain.z, px, pz)
 				assert(moved <= C.WANDER_SPEED * DT + 1e-9, "stepped " .. moved)
 				equal(brain.moved, moved > 0, "moved flag")
+				equal(brain.mode == "Wander" or brain.mode == "Idle", true, "mode " .. brain.mode)
 				px, pz = brain.x, brain.z
 			end
 		end
 	end)
 
-	case("a wanderer pauses 2 to 5 seconds between walks", function()
+	case("a wanderer idles 2 to 5 seconds between walks and is Wander only while it walks", function()
 		local rand = seeded(11)
 		local brain = brainAt("L1", rand)
 		local still, pauses, walks = 0, {}, 0
@@ -280,6 +323,7 @@ return function(Wild, Rules, source)
 		for _ = 1, 5000 do
 			Wild.step(brain, DT, nil, rand)
 			if brain.moved then
+				equal(brain.mode, "Wander")
 				if not wasMoving and walks > 0 then table.insert(pauses, still) end
 				if not wasMoving then walks += 1 end
 				still = 0
@@ -307,29 +351,29 @@ return function(Wild, Rules, source)
 		assert(full > 20, "too few full-speed steps: " .. full)
 	end)
 
-	case("a player within 12 studs makes it stop and face them; leaving lets it wander again", function()
+	case("a still player within 12 studs makes it stop and face them; leaving lets it wander again", function()
 		local rand = seeded(3)
 		local brain = brainAt("L1", rand)
 		for _ = 1, 100 do Wild.step(brain, DT, nil, rand) end
 		local x, z = brain.x, brain.z
-		local watcher = { x = x + 8, z = z }
-		Wild.step(brain, DT, watcher, rand)
+		local w = watcher(x + 8, z)
+		Wild.step(brain, DT, w, rand)
 		equal(brain.mode, "Curious")
 		equal(brain.moved, false)
 		equal(brain.x, x)
 		equal(brain.z, z)
 		near(brain.fx, 1, 1e-9)
 		near(brain.fz, 0, 1e-9)
-		watcher.x, watcher.z = x, z + 8
-		Wild.step(brain, DT, watcher, rand)
+		w.x, w.z = x, z + 8
+		Wild.step(brain, DT, w, rand)
 		near(brain.fx, 0, 1e-9)
 		near(brain.fz, 1, 1e-9)
 		equal(brain.mode, "Curious")
-		Wild.step(brain, DT, { x = x + 40, z = z }, rand)
-		equal(brain.mode, "Wander")
+		Wild.step(brain, DT, watcher(x + 40, z), rand)
+		equal(brain.mode, "Idle")
 		local moved = false
 		for _ = 1, 100 do
-			Wild.step(brain, DT, { x = x + 40, z = z }, rand)
+			Wild.step(brain, DT, watcher(x + 40, z), rand)
 			moved = moved or brain.moved
 		end
 		assert(moved, "it never walked again")
@@ -338,11 +382,240 @@ return function(Wild, Rules, source)
 	case("curiosity starts at exactly 12 studs", function()
 		local rand = seeded(4)
 		local brain = brainAt("L3", rand)
-		Wild.step(brain, DT, { x = brain.x + 12, z = brain.z }, rand)
+		Wild.step(brain, DT, watcher(brain.x + 12, brain.z), rand)
 		equal(brain.mode, "Curious")
 		local other = brainAt("L3", seeded(4))
-		Wild.step(other, DT, { x = other.x + 12.01, z = other.z }, seeded(4))
-		equal(other.mode, "Wander")
+		Wild.step(other, DT, watcher(other.x + 12.01, other.z), seeded(4))
+		equal(other.mode, "Idle")
+	end)
+
+	case("A1: a slow approach (under 8 studs per second) keeps it Curious all the way in", function()
+		for _, speed in ipairs({ 2, 6, WILD.calmSpeed }) do
+			local rand = seeded(17)
+			local brain = brainAt("L1", rand)
+			local seen = approachRun(brain, speed, 20, 1.5, rand)
+			assert(not has(seen, "Alert") and not has(seen, "Flee"), speed .. " studs/s alarmed it: " .. table.concat(seen, ","))
+			equal(brain.mode, "Curious", "speed " .. speed)
+			equal(brain.alarm, 0, "speed " .. speed)
+		end
+	end)
+
+	case("A1: a fast approach raises Alert first, then Flee, and the Alert faces the runner", function()
+		local rand = seeded(19)
+		local brain = brainAt("L1", rand)
+		local ox, oz = brain.x, brain.z
+		local alertFacing
+		local seen, at = {}, 20
+		while at > 1 and brain.mode ~= "Flee" do
+			Wild.step(brain, DT, watcher(ox + at, oz, 16), rand)
+			if brain.mode == "Alert" and not alertFacing then alertFacing = { brain.fx, brain.fz, brain.moved } end
+			if seen[#seen] ~= brain.mode then table.insert(seen, brain.mode) end
+			at -= 16 * DT
+		end
+		local alert, flee = indexOf(seen, "Alert"), indexOf(seen, "Flee")
+		assert(alert and flee and alert < flee, "expected Alert before Flee: " .. table.concat(seen, ","))
+		near(alertFacing[1], 1, 1e-9)
+		near(alertFacing[2], 0, 1e-9)
+		equal(alertFacing[3], false, "an alert Lumipol freezes")
+		assert(at + 16 * DT > 1, "it only fled once the runner was on top of it")
+	end)
+
+	case("A1: a sprint inside the alert radius alarms it even without coming closer", function()
+		local rand = seeded(23)
+		local brain = brainAt("L3", rand)
+		local ox, oz = brain.x, brain.z
+		local angle, radius = 0, WILD.alertRadius - 1
+		local seen = {}
+		for _ = 1, 30 do
+			angle += 16 * DT / radius
+			Wild.step(brain, DT, watcher(ox + radius * math.cos(angle), oz + radius * math.sin(angle), 16), rand)
+			if seen[#seen] ~= brain.mode then table.insert(seen, brain.mode) end
+		end
+		assert(has(seen, "Alert") and has(seen, "Flee"), table.concat(seen, ","))
+	end)
+
+	case("A1: a runner outside the alert radius changes nothing", function()
+		local rand = seeded(29)
+		local brain = brainAt("L2", rand)
+		for _ = 1, 50 do
+			Wild.step(brain, DT, watcher(brain.cx + WILD.alertRadius + C.WANDER_RADIUS + 1, brain.cz, 16), rand)
+			equal(brain.alarm, 0)
+			assert(brain.mode == "Idle" or brain.mode == "Wander", brain.mode)
+		end
+	end)
+
+	case("A1: an alerted Lumipol calms again once the runner stops, without fleeing", function()
+		local rand = seeded(31)
+		local brain = brainAt("L1", rand)
+		local ox, oz = brain.x, brain.z
+		Wild.step(brain, DT, watcher(ox + 13, oz, 16), rand)
+		Wild.step(brain, DT, watcher(ox + 11, oz, 16), rand)
+		equal(brain.mode, "Alert")
+		local calmAt
+		for index = 1, 40 do
+			Wild.step(brain, DT, watcher(ox + 10, oz, 0), rand)
+			assert(brain.mode ~= "Flee", "fled after the runner stopped")
+			if brain.mode == "Curious" then calmAt = index * DT; break end
+		end
+		assert(calmAt, "never calmed")
+		assert(calmAt >= C.ALERT_HOLD - 1e-9, "calmed before the alert hold: " .. calmAt)
+	end)
+
+	case("A1: Safe slots use gentle thresholds: a brisk 10 studs/s walk at 9 studs does not alarm S0a", function()
+		local gentle = brainAt("S0a", seeded(2))
+		local wild = brainAt("L4", seeded(2))
+		local wildSeen = {}
+		for _ = 1, 20 do
+			Wild.step(gentle, DT, watcher(gentle.cx + 9, gentle.cz, 10), seeded(2))
+			Wild.step(wild, DT, watcher(wild.cx + 9, wild.cz, 10), seeded(2))
+			wildSeen[wild.mode] = true
+		end
+		equal(gentle.mode, "Curious")
+		equal(gentle.alarm, 0)
+		assert(wildSeen.Alert and wildSeen.Flee, "the wild slot did not alert and flee")
+		local seen = approachRun(brainAt("S0b", seeded(3)), 16, 20, -6, seeded(3))
+		assert(has(seen, "Flee"), "even a gentle Lumipol flees a sprint into it: " .. table.concat(seen, ","))
+	end)
+
+	-- Cover -----------------------------------------------------------------------------------------
+
+	case("A1: coverPoints keeps finite props within the leash, nearest first, spaced and capped", function()
+		local slot = Wild.slot("L2")
+		local list = Wild.coverPoints(slot, {
+			{ x = 30 + 10, z = -105, r = 2 }, { x = 30 + 10.5, z = -105, r = 2 }, -- too close to the first
+			{ x = 30, z = -105 + 5, r = 6 }, { x = 30 + C.LEASH + 1, z = -105, r = 1 }, -- outside the leash
+			{ x = NAN, z = 0 }, { x = 1 }, "trunk", { x = 30 - 20, z = -105, r = -1 },
+		})
+		equal(#list, 3)
+		equal(list[1].z, -100)
+		equal(list[2].x, 40)
+		equal(list[3].x, 10)
+		equal(list[1].r, C.COVER_RADIUS_MAX, "a wide prop counts at most COVER_RADIUS_MAX")
+		equal(list[3].r, 0, "a negative radius counts as 0")
+		local many = {}
+		for index = 1, 40 do many[index] = { x = 30 + math.cos(index) * 15, z = -105 + math.sin(index) * 15, r = 1 } end
+		assert(#Wild.coverPoints(slot, many) <= C.MAX_COVER, "capped")
+		equal(#Wild.coverPoints(slot, nil), 0)
+		equal(#Wild.coverPoints(nil, many), 0)
+		equal(#Wild.coverPoints(slot, many, 3), 0, "a custom leash filters too")
+	end)
+
+	case("A1: a flee runs to the nearest cover away from the threat and hides behind it", function()
+		local slot = Wild.slot("L1")
+		local cover = { { x = -10 + 12, z = -60, r = 2 }, { x = -10 - 14, z = -60, r = 2 }, { x = -10, z = -60 + 20, r = 2 } }
+		local brain = Wild.newBrain(slot, seeded(5), { cover = cover })
+		Wild.spook(brain, -10 + 5, -60, seeded(5)) -- the threat is east; the east trunk is toward it
+		equal(brain.mode, "Flee")
+		-- Behind the west trunk, as seen from the threat: further west than the trunk itself.
+		near(brain.hideX, -10 - 14 - (2 + C.COVER_OFFSET), 1e-9)
+		near(brain.hideZ, -60, 1e-9)
+		local steps, longest = 0, 0
+		while brain.mode == "Flee" and steps < 100 do
+			local px, pz = brain.x, brain.z
+			Wild.step(brain, DT, nil, seeded(5))
+			longest = math.max(longest, dist(brain.x, brain.z, px, pz))
+			steps += 1
+		end
+		equal(brain.mode, "Hide")
+		assert(longest <= C.FLEE_SPEED * DT + 1e-9, "fled faster than the flee speed")
+		near(brain.x, brain.hideX, 1e-6)
+		near(brain.z, brain.hideZ, 1e-6)
+	end)
+
+	case("A1: hiding lasts, then it peeks at the threat, then calms back to Idle", function()
+		local brain = Wild.newBrain(Wild.slot("L1"), seeded(6), { cover = { { x = -10 - 8, z = -60, r = 1 } } })
+		Wild.spook(brain, -10 + 4, -60, seeded(6))
+		while brain.mode == "Flee" do Wild.step(brain, DT, nil, seeded(6)) end
+		equal(brain.mode, "Hide")
+		equal(brain.peek, false)
+		local hidden, peeked = 0, 0
+		local w = watcher(-10 + 15, -60, 0)
+		while brain.mode == "Hide" and hidden + peeked < 30 do
+			Wild.step(brain, DT, w, seeded(6))
+			equal(brain.moved, false, "a hidden Lumipol does not move")
+			if brain.mode == "Hide" then
+				if brain.peek then
+					peeked += DT
+					near(brain.fx, 1, 1e-6, "peeks toward the watcher")
+				else
+					assert(peeked == 0, "hid again after peeking without a new scare")
+					hidden += DT
+				end
+			end
+		end
+		equal(brain.mode, "Idle")
+		near(hidden, C.HIDE_SECONDS, DT + 1e-6)
+		near(peeked, C.PEEK_SECONDS, DT + 1e-6)
+		equal(brain.alarm, 0)
+	end)
+
+	case("A1: a runner near a hidden Lumipol keeps it hidden and stops the peek", function()
+		local brain = Wild.newBrain(Wild.slot("L1"), seeded(7), { cover = { { x = -10 - 8, z = -60, r = 1 } } })
+		Wild.spook(brain, -10 + 4, -60, seeded(7))
+		while brain.mode == "Flee" do Wild.step(brain, DT, nil, seeded(7)) end
+		for _ = 1, math.ceil(C.HIDE_SECONDS / DT) + 2 do Wild.step(brain, DT, nil, seeded(7)) end
+		equal(brain.peek, true)
+		Wild.step(brain, DT, watcher(brain.x + 6, brain.z, 16), seeded(7))
+		equal(brain.mode, "Hide")
+		equal(brain.peek, false)
+		near(brain.hideFor, 0, 1e-9)
+	end)
+
+	case("A1: with no cover a flee backs away 8 to 12 studs within the leash, then hides in place", function()
+		for _, roll in ipairs({ 0, 0.5, 0.999999 }) do
+			local brain = brainAt("L1", always(roll))
+			Wild.spook(brain, brain.x - 6, brain.z, always(roll))
+			equal(brain.mode, "Flee")
+			local sx = brain.x
+			local travelled = 0
+			for _ = 1, 40 do
+				local px, pz = brain.x, brain.z
+				Wild.step(brain, DT, nil, always(roll))
+				travelled += dist(brain.x, brain.z, px, pz)
+				assert(dist(brain.x, brain.z, -10, -60) <= C.LEASH + 1e-6, "fled past the leash")
+				if brain.mode ~= "Flee" then break end
+			end
+			equal(brain.mode, "Hide")
+			assert(brain.x > sx - 1e-9, "it ran toward the threat")
+			assert(travelled >= C.FLEE_MIN - 1e-6 and travelled <= C.FLEE_MAX + 1e-6, "travelled " .. travelled)
+		end
+	end)
+
+	case("A1: cover outside the leash or toward the threat is never chosen", function()
+		local slot = Wild.slot("L3")
+		local brain = Wild.newBrain(slot, seeded(8), { leash = 10,
+			cover = { { x = 65 - 9, z = -60, r = 3 }, { x = 65 + 3, z = -60 + 1, r = 1 } } })
+		equal(brain.leash, 10)
+		-- Behind the west prop is 13.5 studs out, past the 10 stud leash; the east prop lies toward the threat.
+		Wild.spook(brain, 65 + 12, -60, seeded(8))
+		equal(brain.coverIndex, nil)
+		assert(brain.hideX < 65, "fell back to backing away west")
+		assert(dist(brain.hideX, brain.hideZ, 65, -60) <= 10 + 1e-6, "inside the custom leash")
+	end)
+
+	case("A1: a spook from the same spot still picks a direction", function()
+		local brain = brainAt("L2", always(0.25))
+		Wild.spook(brain, brain.x, brain.z, always(0.25))
+		equal(brain.mode, "Flee")
+		for _ = 1, 20 do Wild.step(brain, DT, nil, always(0.25)) end
+		assert(dist(brain.x, brain.z, 30, -105) > 1, "it did not move")
+		assert(dist(brain.x, brain.z, 30, -105) <= C.LEASH + 1e-6)
+	end)
+
+	-- Capture hooks ---------------------------------------------------------------------------------
+
+	case("wary: Alert, Flee and an unpeeking Hide refuse a capture; Idle, Wander, Curious and a peek allow it", function()
+		local brain = brainAt("L1")
+		for mode, expected in pairs({ Idle = false, Wander = false, Curious = false, Alert = true, Flee = true,
+			Reserved = false, Captured = false }) do
+			brain.mode, brain.peek = mode, false
+			equal(Wild.wary(brain), expected, mode)
+		end
+		brain.mode, brain.peek = "Hide", false
+		equal(Wild.wary(brain), true, "hiding")
+		brain.peek = true
+		equal(Wild.wary(brain), false, "peeking")
+		equal(Wild.wary(nil), true, "no brain fails closed")
 	end)
 
 	case("a reserved Lumipol is frozen, ignores everyone and faces its owner", function()
@@ -354,7 +627,7 @@ return function(Wild, Rules, source)
 		equal(brain.mode, "Reserved")
 		near(brain.fz, 1, 1e-9)
 		for _ = 1, 500 do
-			Wild.step(brain, DT, { x = x + 30, z = z - 2 }, rand)
+			Wild.step(brain, DT, watcher(x + 30, z - 2, 16), rand)
 			equal(brain.x, x)
 			equal(brain.z, z)
 			equal(brain.moved, false)
@@ -365,70 +638,29 @@ return function(Wild, Rules, source)
 		equal(brain.mode, "Reserved")
 	end)
 
-	case("a spooked Lumipol backs away 8 to 12 studs at 10 studs per second, within 10 of its slot", function()
-		for _, roll in ipairs({ 0, 0.5, 0.999999 }) do
-			local brain = brainAt("L1", always(roll))
-			Wild.spook(brain, brain.x - 6, brain.z, always(roll))
-			equal(brain.mode, "Spooked")
-			local sx, sz = brain.x, brain.z
-			local steps, longest = 0, 0
-			for _ = 1, 60 do
-				local px, pz = brain.x, brain.z
-				Wild.step(brain, DT, nil, always(roll))
-				longest = math.max(longest, dist(brain.x, brain.z, px, pz))
-				assert(dist(brain.x, brain.z, -10, -60) <= C.FLEE_LIMIT + 1e-6, "fled past the limit")
-				steps += 1
-				if brain.mode == "Wander" then break end
-			end
-			assert(longest <= C.FLEE_SPEED * DT + 1e-9, "fled faster than 10 studs per second")
-			assert(brain.x > sx - 1e-9, "it ran toward the threat")
-			assert(steps * DT >= C.SPOOK_SECONDS - 1e-9, "wandered before the spook ended")
-			equal(brain.mode, "Wander")
-		end
+	case("a captured Lumipol never moves or changes mode again", function()
+		local rand = seeded(10)
+		local brain = brainAt("L2", rand)
+		Wild.reserve(brain, brain.x + 3, brain.z)
+		Wild.capture(brain)
+		equal(brain.mode, "Captured")
+		local x, z = brain.x, brain.z
+		for _ = 1, 50 do Wild.step(brain, DT, watcher(x + 2, z, 16), rand) end
+		equal(brain.mode, "Captured")
+		equal(brain.x, x)
+		equal(brain.z, z)
+		Wild.spook(brain, x + 1, z, rand)
+		Wild.release(brain)
+		equal(brain.mode, "Captured", "spook and release cannot bring it back")
 	end)
 
-	case("a flee covers the whole 8 to 12 studs when the slot has room", function()
-		local brain = brainAt("S0a", always(0))
-		brain.x, brain.z = -95 - 2, 75
-		Wild.spook(brain, brain.x + 5, brain.z, always(0))
-		local travelled = 0
-		for _ = 1, 20 do
-			local px, pz = brain.x, brain.z
-			Wild.step(brain, DT, nil, always(0))
-			travelled += dist(brain.x, brain.z, px, pz)
-		end
-		assert(travelled >= 3, "it barely moved: " .. travelled)
-		assert(travelled <= C.FLEE_MAX + 1e-6, "it fled too far: " .. travelled)
-		assert(dist(brain.x, brain.z, -95, 75) <= C.FLEE_LIMIT + 1e-6)
-	end)
-
-	case("a flee from the slot edge is clamped inside the limit", function()
-		local rand = seeded(21)
-		local brain = brainAt("L1", rand)
-		brain.x, brain.z = -10 + 6, -60
-		Wild.spook(brain, brain.x - 3, brain.z, rand)
-		for _ = 1, 40 do
-			Wild.step(brain, DT, nil, rand)
-			assert(dist(brain.x, brain.z, -10, -60) <= C.FLEE_LIMIT + 1e-6, "outside the limit")
-		end
-	end)
-
-	case("a spook from the same spot still picks a direction", function()
-		local brain = brainAt("L2", always(0.25))
-		Wild.spook(brain, brain.x, brain.z, always(0.25))
-		equal(brain.mode, "Spooked")
-		for _ = 1, 20 do Wild.step(brain, DT, nil, always(0.25)) end
-		assert(dist(brain.x, brain.z, 30, -105) > 1, "it did not move")
-		assert(dist(brain.x, brain.z, 30, -105) <= C.FLEE_LIMIT + 1e-6)
-	end)
-
-	case("release returns to wandering with no flee and no jump", function()
+	case("release returns to idling with no flee and no jump", function()
 		local rand = seeded(8)
 		local brain = brainAt("L3", rand)
 		Wild.reserve(brain, 0, 0)
 		local x, z = brain.x, brain.z
 		Wild.release(brain)
-		equal(brain.mode, "Wander")
+		equal(brain.mode, "Idle")
 		equal(brain.x, x)
 		equal(brain.z, z)
 		for _ = 1, 10 do
@@ -450,7 +682,7 @@ return function(Wild, Rules, source)
 		equal(brain.mode, "Reserved")
 	end)
 
-	case("unusable step sizes and player positions change nothing", function()
+	case("unusable step sizes, positions and speeds change nothing", function()
 		local rand = seeded(2)
 		local brain = brainAt("L1", rand)
 		for _ = 1, 100 do Wild.step(brain, DT, nil, rand) end
@@ -465,36 +697,50 @@ return function(Wild, Rules, source)
 			Wild.step(brain, DT, bad, rand)
 			equal(brain.mode == "Curious", false, "bad position made it curious")
 		end
-		equal(brain.mode, mode)
+		for _, speed in ipairs({ NAN, INF, -5, "fast" }) do
+			local calm = brainAt("L2", seeded(4))
+			Wild.step(calm, DT, { x = calm.x + 5, z = calm.z, speed = speed }, seeded(4))
+			equal(calm.mode, "Curious", "a bad speed reads as still: " .. tostring(speed))
+			equal(calm.alarm, 0)
+		end
+		equal(brain.mode == "Idle" or brain.mode == "Wander", mode == "Idle" or mode == "Wander")
 		local before = brain.x
 		Wild.step(brain, 1e9, nil, rand)
 		assert(math.abs(brain.x - before) <= C.WANDER_SPEED * 0.5 + 1e-9, "a huge step moved too far")
 	end)
 
-	case("random operations never leave the slot's 10 studs or produce a bad number", function()
+	case("random operations never leave the leash or produce a bad number", function()
 		local rand = seeded(77)
-		local brain = brainAt("L1", rand)
+		local cover = { { x = -10 + 15, z = -60 + 5, r = 2 }, { x = -10 - 12, z = -60 - 9, r = 3 }, { x = -10, z = -60 + 20, r = 1 } }
+		local brain = Wild.newBrain(Wild.slot("L1"), rand, { cover = cover })
+		local modes = {}
 		for index = 1, 8000 do
 			local roll = rand()
 			if roll < 0.01 then Wild.spook(brain, -10 + (rand() - 0.5) * 30, -60 + (rand() - 0.5) * 30, rand)
 			elseif roll < 0.02 then Wild.reserve(brain, -10 + (rand() - 0.5) * 20, -60 + (rand() - 0.5) * 20)
 			elseif roll < 0.03 then Wild.release(brain) end
-			local watcher = rand() < 0.2 and { x = -10 + (rand() - 0.5) * 40, z = -60 + (rand() - 0.5) * 40 } or nil
-			Wild.step(brain, DT, watcher, rand)
+			local w = rand() < 0.4 and watcher(-10 + (rand() - 0.5) * 40, -60 + (rand() - 0.5) * 40, rand() * 20) or nil
+			Wild.step(brain, DT, w, rand)
+			modes[brain.mode] = true
 			assert(brain.x == brain.x and brain.z == brain.z and brain.fx == brain.fx and brain.fz == brain.fz,
 				"NaN at step " .. index)
-			assert(dist(brain.x, brain.z, -10, -60) <= C.FLEE_LIMIT + 1e-6, "outside 10 studs at step " .. index)
+			assert(dist(brain.x, brain.z, -10, -60) <= C.LEASH + 1e-6, "outside the leash at step " .. index)
 			near(dist(0, 0, brain.fx, brain.fz), 1, 1e-6, "facing at step " .. index)
+			assert(brain.alarm >= 0 and brain.alarm == brain.alarm, "alarm at step " .. index)
+		end
+		for _, mode in ipairs({ "Idle", "Wander", "Curious", "Alert", "Flee", "Hide", "Reserved" }) do
+			assert(modes[mode], "never reached " .. mode)
 		end
 	end)
 
-	case("the same seed gives the same walk", function()
+	case("the same seed gives the same walk, threats included", function()
 		local function walk()
 			local rand = seeded(31)
-			local brain = brainAt("L1", rand)
+			local brain = Wild.newBrain(Wild.slot("L1"), rand, { cover = { { x = -20, z = -50, r = 2 } } })
 			local x, z = 0, 0
-			for _ = 1, 500 do
-				Wild.step(brain, DT, nil, rand)
+			for index = 1, 500 do
+				local w = index % 50 < 10 and watcher(brain.cx + 8, brain.cz, index % 100 < 50 and 16 or 3) or nil
+				Wild.step(brain, DT, w, rand)
 				x, z = x + brain.x, z + brain.z
 			end
 			return x, z

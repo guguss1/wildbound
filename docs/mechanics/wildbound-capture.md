@@ -520,3 +520,28 @@ Mean 4.81 s in territory, so about 5 s plus the walk in and out. 4 of 5 complete
 ### Still unverified
 
 All numbers. The 0.5 stud margin against real latency (CAP-33). Touch prompts, the Stop button and the movement stick on a real phone (CAP-34, CAP-36). Whether the ring reads as a skill or as waiting (CAP-36). Trunk collision against the slots. Wander smoothness. Behavior with more than two clients.
+
+## Delivery A build notes (capture redesign, 2026-11-07)
+
+Decisions H1 to H4 in `odd/tasks/wildbound-capture-extraction-horror.md`. All numbers are hypotheses.
+
+### A1. Lumipol brain
+
+`WildboundLumipolWild.luau` stays pure: the server passes positions, the nearest player's horizontal speed, cover points and an injected random source. Modes are `Idle` (pausing), `Wander` (walking), `Curious` (a calm player within 12 studs; it stops and watches), `Alert` (frozen, facing the runner), `Flee`, `Hide`, `Reserved` (a capture runs) and `Captured` (sealed; never moves again). The old `Spooked` mode is gone: a failed capture now flees and hides like any scare.
+
+| Number | Wild slots | Safe slots `S0a`, `S0b` (gentle) |
+| --- | --- | --- |
+| Calm speed: at or under it, an approach never alarms | 8 studs/s | 12 studs/s |
+| Alert radius: a faster player inside it builds alarm | 14 studs | 10 studs |
+| Close radius: alarm builds twice as fast | 7 studs | 5 studs |
+| Alarm for `Alert` / for `Flee` (seconds of running seen) | 0.2 / 0.8 | 0.4 / 1.2 |
+
+Shared: alarm drains 0.5 per second when nobody runs near; an `Alert` lasts at least 1 s after the last fast move; flee speed 10 studs/s; `Hide` lasts 4 s, then it peeks at the threat for 2 s, then it is `Idle` again. A runner near a hidden Lumipol restarts its hiding. Wandering stays within 6 studs of the slot; every position stays within the leash, 24 studs by default (was 10; widened so the dressed map's props are in reach) and configurable per brain.
+
+Cover: the server reads props named `FK_Evergreen_Trunk`, `FK_DeadTree_Wood`, `FK_DeadTree_Splinter`, `FK_FallenLog_Bark`, `FK_LanternMarker_Stones` and `RuinPillar` once at startup. `Wild.coverPoints` keeps those whose centre is within the leash, nearest first, 4 studs apart, 8 at most, each counted at most 3 studs wide. A flee picks the nearest hide spot 1.5 studs behind a prop as seen from the threat, skipping props in the threat's direction (within about 60 degrees) and spots outside the leash. With none, it backs away 8 to 12 studs and hides in place. Measured on the dressed map: `L2` has two trunks at 13 to 14 studs, `L1` a trunk and a pillar at 17, `L3` and `L4` props at 19 to 25; `S0a` and `S0b` have only lantern stakes and a trunk at 26, so the tutorial Lumipol mostly hides in the open.
+
+`Wild.wary(brain)` is true in `Alert`, `Flee`, and `Hide` before the peek. The server hides the capture prompt while it is true, so a player who ran in may lose the chance before calm can begin.
+
+Server wiring (`WildboundServer.server.luau`): the nearest live player's speed is `HumanoidRootPart.AssemblyLinearVelocity` without its vertical part. Each Lumipol model carries `Mode` and `Peek` attributes for the client. A sealed capture calls `Wild.capture` before the model is removed.
+
+Keyboard players walk at 16 studs/s, so on a keyboard only stopping short or the gentle slots avoid alarm; a partly tilted thumbstick walks slower. No crouch exists yet; delivery D adds stamina sprint and may add a sneak.

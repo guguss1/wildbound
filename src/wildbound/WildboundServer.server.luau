@@ -263,6 +263,17 @@ local counters = { started = 0, completed = 0, failed = 0, cancelled = 0, grantR
 local groundY = creatureMarker.Position.Y
 local handleEnding
 
+-- A1: cover for hiding Lumipol, read once from the dressed map's props and passed to the pure brain as data.
+local COVER_NAMES = { FK_Evergreen_Trunk = true, FK_DeadTree_Wood = true, FK_DeadTree_Splinter = true,
+	FK_FallenLog_Bark = true, FK_LanternMarker_Stones = true, RuinPillar = true }
+local coverCandidates = {}
+for _, part in ipairs(map:GetDescendants()) do
+	if part:IsA("BasePart") and COVER_NAMES[part.Name] then
+		table.insert(coverCandidates, { x = part.Position.X, z = part.Position.Z,
+			r = math.min(part.Size.X, part.Size.Z) / 2 })
+	end
+end
+
 local function publishTelemetry()
 	telemetry:SetAttribute("CaptureAnomaly", capture.counters.anomaly)
 	telemetry:SetAttribute("CaptureWatchdog", capture.counters.watchdog)
@@ -380,6 +391,7 @@ handleEnding = function(out)
 		granted = ok
 		if ok then
 			counters.completed += 1
+			if entry and entry.brain then Wild.capture(entry.brain) end
 		else
 			-- The rule said finished but the bag disagreed. Nothing is granted and the Lumipol still goes.
 			counters.grantRefused += 1
@@ -430,7 +442,10 @@ spawnEncounter = function(slot)
 	local entry = { id = id, slot = slot, model = model, body = body, bodyY = body.Position.Y }
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
 	entry.prompt = prompt(body, isEgg and "Collect" or "Calm", isEgg and "Lumipol egg" or "Lumipol", 10, isEgg and 0.25 or 0)
-	if not isEgg then entry.brain = Wild.newBrain(slot, rand) end
+	if not isEgg then
+		entry.brain = Wild.newBrain(slot, rand, { cover = coverCandidates })
+		model:SetAttribute("Mode", entry.brain.mode)
+	end
 	entries[id] = entry
 	slotState[slot.id] = id
 	entry.connection = entry.prompt.Triggered:Connect(function(player)
@@ -614,24 +629,32 @@ gatherRetire.OnInvoke = function(nodeId)
 end
 gatherRetire.Parent = network
 
+-- A1: the brain hears the nearest live player's position and horizontal speed, both read here.
 local function stepWildlife(now)
 	local watchers = {}
 	for player in pairs(records) do
 		local root = rootOf(player)
-		if root and context(player) then table.insert(watchers, root.Position) end
+		if root and context(player) then
+			local velocity = root.AssemblyLinearVelocity
+			table.insert(watchers, { x = root.Position.X, z = root.Position.Z,
+				speed = math.sqrt(velocity.X * velocity.X + velocity.Z * velocity.Z) })
+		end
 	end
 	for _, entry in pairs(entries) do
 		local brain = entry.brain
 		if brain then
-			local prompting = capture:encounterState(entry.id, now) == "Free"
-			if entry.prompt.Enabled ~= prompting then entry.prompt.Enabled = prompting end
 			local near, best = nil, math.huge
-			for _, position in ipairs(watchers) do
-				local distance = math.sqrt((position.X - brain.x) ^ 2 + (position.Z - brain.z) ^ 2)
-				if distance < best then best, near = distance, { x = position.X, z = position.Z } end
+			for _, watcher in ipairs(watchers) do
+				local distance = math.sqrt((watcher.x - brain.x) ^ 2 + (watcher.z - brain.z) ^ 2)
+				if distance < best then best, near = distance, watcher end
 			end
 			local fx, fz = brain.fx, brain.fz
 			Wild.step(brain, Wild.CONSTANTS.STEP, near, rand)
+			-- A scared Lumipol cannot be calmed, so its prompt hides until it peeks or settles.
+			local prompting = capture:encounterState(entry.id, now) == "Free" and not Wild.wary(brain)
+			if entry.prompt.Enabled ~= prompting then entry.prompt.Enabled = prompting end
+			if entry.model:GetAttribute("Mode") ~= brain.mode then entry.model:SetAttribute("Mode", brain.mode) end
+			if entry.model:GetAttribute("Peek") ~= brain.peek then entry.model:SetAttribute("Peek", brain.peek) end
 			if brain.moved or math.abs(brain.fx - fx) > 1e-3 or math.abs(brain.fz - fz) > 1e-3 then
 				local at = Vector3.new(brain.x, entry.bodyY, brain.z)
 				entry.model:PivotTo(CFrame.lookAt(at, at + Vector3.new(brain.fx, 0, brain.fz)))
