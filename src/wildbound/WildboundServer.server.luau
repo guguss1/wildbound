@@ -637,6 +637,35 @@ gatherRetire.OnInvoke = function(nodeId)
 end
 gatherRetire.Parent = network
 
+-- Delivery A4: a Studio-only, server-only probe for the two-session claim check. It is never created outside Studio,
+-- lives in ServerStorage (clients cannot reach it), and only drives keys that start with "probe:", which belong to no
+-- player: the next sampling pass ends any such session as Disconnected, with no grant and no penalty.
+if RunService:IsStudio() then
+	local probe = Instance.new("BindableFunction")
+	probe.Name = "CaptureProbe"
+	probe.OnInvoke = function(op, key, id)
+		if op == "sessions" then return capture:activeSessions() end
+		if type(key) ~= "string" or key:sub(1, 6) ~= "probe:" then return false, "ProbeKeysOnly" end
+		local now = workspace:GetServerTimeNow()
+		if op == "begin" then
+			local entry = type(id) == "string" and entries[id] or nil
+			if not entry or not entry.brain then return false, "InvalidEncounter" end
+			local at = entry.body.Position
+			local ok, result = capture:begin({ playerKey = key, encounterId = id, dir = 1, lumipolX = at.X, lumipolZ = at.Z,
+				now = now, alive = true, life = key, distance = 3, x = at.X + 3, y = at.Y, z = at.Z,
+				encounterStatus = state:encounterStatus(id) or "Gone", wary = Wild.wary(entry.brain), tier = entry.slot.tier,
+				bagRoom = true, collectionRoom = true })
+			return ok, ok and result.token or result
+		elseif op == "seal" then
+			local ok, out = capture:seal(id, key, { now = now, alive = true, life = key, bagRoom = true, collectionRoom = true })
+			if ok and out then handleEnding(out) end
+			return ok, ok and out and out.reason or out
+		end
+		return false, "UnknownOp"
+	end
+	probe.Parent = telemetry
+end
+
 -- A1: the brain hears the nearest live player's position and horizontal speed, both read here.
 local function stepWildlife(now)
 	local watchers = {}

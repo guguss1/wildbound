@@ -300,6 +300,9 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery A, capture redesign: the shared Spanish text module (H3)
         "src/wildbound/WildboundText.luau": "ReplicatedStorage.WildboundText",
         "tests/WildboundText_Test.luau": "ServerStorage.WildboundText_Test",
+        # Delivery A3: pure smoothing and mood cues for the client's local Lumipol copy
+        "src/wildbound/WildboundLumipolLook.luau": "ReplicatedStorage.WildboundLumipolLook",
+        "tests/WildboundLumipolLook_Test.luau": "ServerStorage.WildboundLumipolLook_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

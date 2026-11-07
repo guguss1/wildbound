@@ -22,6 +22,9 @@ if not (sessionModule and viewModule and layoutModule and textModule) then
 end
 local Session, View, Layout = require(sessionModule), require(viewModule), require(layoutModule)
 local Text = require(textModule)
+-- A3: smoothing and mood cues for wild Lumipol are optional; the capture screen works without them.
+local lookModule = ReplicatedStorage:WaitForChild("WildboundLumipolLook", 10)
+local Look = lookModule and require(lookModule)
 
 local function make(className, properties, parent)
 	local item = Instance.new(className)
@@ -97,8 +100,8 @@ local function applyLayout()
 	panel.Position, panel.Size = UDim2.fromOffset(spot.panel.x, spot.panel.y), UDim2.fromOffset(spot.panel.w, spot.panel.h)
 	stop.Position, stop.Size = UDim2.fromOffset(spot.stop.x, spot.stop.y), UDim2.fromOffset(spot.stop.w, spot.stop.h)
 	sealButton.Position, sealButton.Size = stop.Position, stop.Size
-	hint.Position, hint.Size = UDim2.fromOffset(spot.panel.x, spot.panel.y + spot.panel.h - 30),
-		UDim2.fromOffset(spot.panel.w, 30)
+	-- Just above the panel's spot: on phones the tutorial card sits where the panel goes when no capture runs.
+	hint.Position, hint.Size = UDim2.fromOffset(spot.panel.x, math.max(0, spot.panel.y - 34)), UDim2.fromOffset(spot.panel.w, 30)
 	local roomy = spot.panel.h >= 70
 	headline.TextSize = spot.textSize + 1
 	headline.Position, headline.Size = UDim2.fromOffset(52, 5), UDim2.fromOffset(spot.panel.w - 60, 22)
@@ -279,6 +282,98 @@ listen(RunService.RenderStepped, function(dt)
 	end
 end)
 
+-- A3: a local copy of each wild Lumipol, drawn smoothly between the server's 0.2 s steps with its mood on the
+-- provisional primitive model (H4). The server model stays the truth and keeps its prompt; it is only hidden here.
+local copyFolder = make("Folder", { Name = "WildboundLumipolLocal" }, workspace)
+local copies = {}
+local function setServerVisible(model, visible)
+	for _, item in ipairs(model:GetDescendants()) do
+		if item:IsA("BasePart") then
+			item.LocalTransparencyModifier = visible and 0 or 1
+		elseif item:IsA("PointLight") then
+			item.Enabled = visible
+		end
+	end
+end
+local function makeCopy(model)
+	local body = model:FindFirstChild("Body")
+	if not (body and body:IsA("BasePart")) then return nil end
+	local copy = Instance.new("Model")
+	copy.Name = "LumipolLook"
+	local item = { parts = {}, t0 = os.clock() }
+	for _, part in ipairs(model:GetChildren()) do
+		if part:IsA("BasePart") then
+			local clone = part:Clone()
+			for _, child in ipairs(clone:GetChildren()) do
+				if not child:IsA("PointLight") then child:Destroy() end
+			end
+			clone.Anchored, clone.CanCollide, clone.CanQuery, clone.CanTouch = true, false, false, false
+			clone.LocalTransparencyModifier = 0
+			clone.Parent = copy
+			if part == body then
+				item.body = clone
+			else
+				local offset = body.CFrame:ToObjectSpace(part.CFrame)
+				table.insert(item.parts, { part = clone, offset = offset, ear = part.Name == "Ear",
+					sign = offset.Position.X < 0 and -1 or 1 })
+			end
+		end
+	end
+	item.light = item.body:FindFirstChildOfClass("PointLight")
+	-- The "!" is built from two neon parts, so it reads in fog and in any capture without a text label.
+	item.mark = {}
+	for _, piece in ipairs({ { size = Vector3.new(0.35, 1, 0.35), y = 2.9 }, { size = Vector3.new(0.35, 0.35, 0.35), y = 2.1 } }) do
+		local part = make("Part", { Name = "AlertMark", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false,
+			CastShadow = false, Material = Enum.Material.Neon, Color = Color3.fromRGB(255, 220, 90), Transparency = 1,
+			Size = piece.size }, copy)
+		table.insert(item.mark, { part = part, y = piece.y })
+	end
+	copy.Parent = copyFolder
+	item.model = copy
+	setServerVisible(model, false)
+	return item
+end
+local function dropCopy(model)
+	local item = copies[model]
+	copies[model] = nil
+	if item then item.model:Destroy() end
+	if model.Parent then setServerVisible(model, true) end
+end
+listen(RunService.RenderStepped, function(dt)
+	if not Look then return end
+	local map = workspace:FindFirstChild("WildboundP0")
+	local runtime = map and map:FindFirstChild("WildboundRuntime")
+	if runtime then
+		for _, model in ipairs(runtime:GetChildren()) do
+			if model.Name == "Lumipol" and model:IsA("Model") and not copies[model] then copies[model] = makeCopy(model) end
+		end
+	end
+	local now, reduced = os.clock(), reducedEffects()
+	for model, item in pairs(copies) do
+		if model.Parent ~= runtime or not model:FindFirstChild("Body") then
+			dropCopy(model)
+		else
+			local pivot = model:GetPivot()
+			local facing = pivot.LookVector
+			local target = { x = pivot.X, z = pivot.Z, fx = facing.X, fz = facing.Z }
+			item.pose = Look.follow(item.pose, target, dt) or target
+			local mood = Look.pose(model:GetAttribute("Mode"), model:GetAttribute("Peek"), now - item.t0, reduced)
+			local at = Vector3.new(item.pose.x, pivot.Y + mood.hop, item.pose.z)
+			local frame = CFrame.lookAt(at, at + Vector3.new(item.pose.fx, 0, item.pose.fz))
+			item.body.CFrame = frame
+			for _, piece in ipairs(item.parts) do
+				local twist = piece.ear and CFrame.Angles(0, 0, mood.ear * piece.sign) or CFrame.identity
+				piece.part.CFrame = frame * piece.offset * twist
+			end
+			if item.light then item.light.Brightness = mood.glow end
+			for _, piece in ipairs(item.mark) do
+				piece.part.Transparency = mood.mark and 0 or 1
+				if mood.mark then piece.part.CFrame = frame + Vector3.new(0, piece.y, 0) end
+			end
+		end
+	end
+end)
+
 task.spawn(function()
 	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
 	local action = folder and folder:WaitForChild("Action", 10)
@@ -294,12 +389,16 @@ task.spawn(function()
 		if merged == held then return end
 		held, receivedAt = merged, os.clock()
 		if merged.phase == "Active" then endedAt = nil else endedAt = os.clock() end
-		setCapturing(merged.phase == "Active")
+		-- Held while the result shows too (found in delivery A4): the tutorial card gives way to this flag, and it hid
+		-- the result line on phones. The frame loop clears it once the panel hides.
+		setCapturing(true)
 	end)
 end)
 
 listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
+	for model in pairs(copies) do dropCopy(model) end
+	copyFolder:Destroy()
 	ringFolder:Destroy()
 	setCapturing(false)
 end)

@@ -561,3 +561,30 @@ A start on a wary Lumipol (`Alert`, `Flee`, or hiding before the peek) is refuse
 ### A2 (H2). Capture skills are live per player
 
 `capturer_1` (Steady Hands, `calmRequired` 4.0 s) and `capturer_2` (Soft Approach, `retryCooldown` 3 s) are now `effectLive = true` in the economy tuning block, so `State:learn` no longer refuses them as `EffectPending`; `Economy.LIVE_EFFECTS` lists both keys. At each capture start the server reads `Economy.skillEffects` for that player's own skills and passes `calmRequired` and `retryCooldown` into the session. The rule clamps them: the meter target to 4.0 to 4.5 s (4.0 stays above the 3.6 s a still player can fill by chance) and the retry wait to 3 to 6 s; junk reads as the default. They act on that player's session only: another player on the same Lumipol keeps the defaults, and the third failure still costs the 45 s hold-off. The snapshot carries `required`, so the meter fills against the player's own target. No seal-band skill was added.
+
+### A3 (feel). Client smoothing and readable reactions (H4: no uploads)
+
+`ReplicatedStorage.WildboundLumipolLook` is pure: `Look.follow(current, target, dt)` closes the gap exponentially (rate 12 per second, so 99% in 0.4 s) and turns the facing smoothly; a jump over 16 studs (respawn, streaming back in) snaps. `Look.pose(mode, peek, t, reduced)` gives the mood: `Curious` hops 0.35 studs every 1.2 s and twitches its ears every 1.7 s; `Alert` shows a yellow "!" and pulses the light around 1.8; `Hide` dims the light to 0.15 (0.3 while peeking). Reduced effects keep every cue but stop the hop, the twitch and the pulse.
+
+`WildboundCapture.client.luau` hides each server Lumipol locally (`LocalTransparencyModifier`, light off) and draws a local copy that follows the server pivot every frame; the server model keeps the prompt and stays the truth. Measured in Play: the copy moved on 113 frames in 4 s against 9 server updates, at most 0.086 studs per frame, 0.11 studs behind the server. The "!" is two neon parts, not a `BillboardGui`: a billboard was enabled and sized (86 px) but never appeared in MCP `screen_capture`, so it could not be verified. One reaction hint line (`Text.HINTS`) sits just above the capture panel's spot when no capture runs, for the nearest Lumipol within 30 studs in `Alert`, `Flee`, `Hide` or peeking.
+
+Fix found by the phone captures: the tutorial card came back the moment a capture ended and covered the result line on phones. `WildboundCapturing` now stays set until the result panel hides (3 s), so the card waits.
+
+### A4. Play check (2026-11-07, Studio Play solo, damage off)
+
+| Case | Result | Evidence |
+| --- | --- | --- |
+| Slow approach keeps it Curious | PASS | Walked at 6 studs/s from 22 to 5.5 studs of `L4` and from 16 to 6.5 of `S0a`: `Idle`, `Wander`, `Curious`; prompt `Calmar` / `Lumipol` enabled |
+| Running at it: Alert, Flee, Hide | PASS | `L4` at 16 studs/s, three runs: Alert at 12.1, 7.5 and 6.4 studs, Flee at 5.9, 1.3 and 0.3, Hide 1.1 to 1.3 s later about 11 studs away (no prop within its leash there). `S0a` (gentle) at 16 studs/s straight in only reached `Alert`, then calmed once the runner stood still on it |
+| Calm ring then a seal hit captures | PASS | `L4` (band 0.546 to 0.746, pressed at 0.655), `L4` again (0.745 to 0.945, at 0.854), `L1` (Silueta in Alert at 14.3 studs) and `S0a` (Safe band 0.430 to 0.790, at 0.613): each `Completed`, granted, with the Spanish notice |
+| Seal miss: flee and retry rules | PASS | `L1`, pressed at 0.218 before the band 0.364 to 0.564: `SealMissed`, notice "Fallaste el sello. El Lumipol huyó asustado.", `retryAt` 6.0 s ahead, then `Flee` and `Hide`; prompt back once it peeked. `S0a` with no press ended `SealMissed` when the sweep closed |
+| Two-session claim probe on the server | PASS | `ServerStorage.WildboundTelemetry.CaptureProbe` (Studio only): A began on `S0a`, B got `Reserved`, B sealing A's token got `InvalidToken`, a non-probe key was refused; A was dropped as `Disconnected` on the next pass and B could begin. During a real capture of `L1`: 30 probe starts all `Reserved`, 30 probe seals of the real token all `InvalidToken`; after the grant, `InvalidEncounter` |
+| Errors | PASS | No warning or error lines on server or client; `CaptureAnomaly` 0, `CaptureWatchdog` 0 |
+
+Workarounds, as in earlier waves: positions and walking were driven by `Humanoid:MoveTo` from scripts at set walk speeds, the prompt by `ProximityPrompt:InputHoldBegin`, the seal press by firing the same `Action("CaptureSeal", token)` the button sends, and the start screen was closed through its `Screen` seam. The seal opens for about 2 s, shorter than the gap between two MCP calls, so the seal and result captures show the real capture screen fed by a server display push (`CaptureState:FireClient` with a seal-stage snapshot under a `probe:` token), not a live session. The real seal was exercised by the timed runs above.
+
+Captures (`assets/exports/forest-kit/captures/`, Device Simulator, landscape, each looked at): `a-ring-iphone17pro-landscape.jpg`, `a-seal-iphone17pro-landscape.jpg`, `a-sealmissed-iphone17pro-landscape.jpg`, `a-alert-hint-iphone17pro-landscape.jpg`, `a-ring-galaxya06-landscape.jpg`, `a-seal-galaxya06-landscape.jpg`, `a-sealmissed-galaxya06-landscape.jpg`, `a-hint-hide-galaxya06-landscape.jpg`. The Spanish lines fit: on the Galaxy A06 the compact panel shows only the headline ("Quieto...", "¡Sella ya!", "Sello fallido"); the iPhone also shows the detail line. The `SELLAR` button takes the `Parar` spot during the seal, clear of the thumbstick and jump button.
+
+### Still unverified
+
+Real touch on a phone (taps did not reach the Play window; the Seal and Stop buttons were exercised by their remote calls), real phones, two real clients (only the server probe), latency against the 0.15 s seal allowance, portrait orientation for the new seal panel, whether the seal feels like skill, the gentle tutorial thresholds with real players, and keyboard players' ability to approach "slowly" (there is no crouch; walking is 16 studs/s).
