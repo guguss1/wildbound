@@ -1,7 +1,7 @@
 -- Pure, synchronous session state. Only the server supplies context and IDs.
 local State = {}
 State.__index = State
-local CAPACITY, COLLECTION_LIMIT, DEFEAT_HISTORY = 3, 100, 256
+local CAPACITY, COLLECTION_LIMIT, DEFEAT_HISTORY, STRIKE_HISTORY = 3, 100, 256, 64
 
 local function validId(value)
 	return type(value) == "string" and #value > 0 and #value <= 128
@@ -54,6 +54,7 @@ function State:addPlayer(key)
 		self.players[normalized] = {
 			pending = {}, bankedEggs = {}, registered = {}, sealCharges = 0,
 			earnedSeal = false, defeats = {}, defeatOrder = {},
+			dropped = {}, strikeDrops = {}, strikeOrder = {},
 		}
 	end
 	return true
@@ -205,6 +206,59 @@ function State:protect(key, uid, alive)
 	return true, uid
 end
 
+local function described(entry)
+	return { uid = entry.uid, kind = entry.kind, species = entry.species }
+end
+
+-- The first real strike (D6): the newest unprotected pending item leaves the bag and lies on the ground.
+-- Idempotent per attack id. Returns true and a copy of the dropped entry, or true and nil for mark only.
+function State:dropForStrike(key, attackId)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not validId(attackId) then return false, "InvalidOperation" end
+	if player.strikeDrops[attackId] ~= nil then return true, nil end
+	player.strikeDrops[attackId] = true
+	table.insert(player.strikeOrder, attackId)
+	if #player.strikeOrder > STRIKE_HISTORY then
+		player.strikeDrops[table.remove(player.strikeOrder, 1)] = nil
+	end
+	for index = #player.pending, 1, -1 do
+		local entry = player.pending[index]
+		if not entry.protected then
+			table.remove(player.pending, index)
+			table.insert(player.dropped, entry)
+			return true, table.clone(entry)
+		end
+	end
+	return true, nil
+end
+
+-- Only the owner, alive, within 10 studs and with bag room puts a dropped item back in the bag.
+function State:reclaimDropped(key, uid, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local index, entry = find(player.dropped, uid)
+	if not index then return false, "NotOwnedDropped" end
+	if not context(alive, distance, 10) then return false, "InvalidContext" end
+	if #player.pending >= CAPACITY then return false, "BackpackFull" end
+	table.remove(player.dropped, index)
+	table.insert(player.pending, entry)
+	return true, entry.uid
+end
+
+-- A drop that expired on the ground is gone for good.
+function State:loseDropped(key, uid)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local index, entry = find(player.dropped, uid)
+	if not index then return false, "NotOwnedDropped" end
+	table.remove(player.dropped, index)
+	return true, described(entry)
+end
+
+-- Returns true, the number of items lost and a detached loss summary. A repeated operation id loses
+-- nothing and returns no summary. Banked eggs and registered pets are never touched. There are no
+-- materials or currency in this build, so those fields report zero.
 function State:defeat(key, operationId)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -215,17 +269,26 @@ function State:defeat(key, operationId)
 	if #player.defeatOrder > DEFEAT_HISTORY then
 		player.defeats[table.remove(player.defeatOrder, 1)] = nil
 	end
-	local survivor, before = nil, #player.pending
+	local survivor = nil
 	for _, entry in ipairs(player.pending) do
 		if entry.protected and player.sealCharges > 0 then survivor = entry; break end
 	end
-	player.pending = {}
+	local lostItems = {}
+	for _, entry in ipairs(player.pending) do
+		if entry ~= survivor then table.insert(lostItems, described(entry)) end
+	end
+	for _, entry in ipairs(player.dropped) do table.insert(lostItems, described(entry)) end
+	player.pending, player.dropped = {}, {}
 	if survivor then
 		survivor.protected = false
 		player.sealCharges -= 1
 		table.insert(player.pending, survivor)
 	end
-	return true, before - #player.pending
+	return true, #lostItems, {
+		operationId = operationId, lostItems = lostItems, savedItem = survivor and described(survivor) or nil,
+		materialsLost = {},
+		kept = { registered = #player.registered, bankedEggs = #player.bankedEggs, ember = 0, bankedMaterials = 0 },
+	}
 end
 
 function State:isClaimed(id)
@@ -240,7 +303,7 @@ function State:snapshot(key)
 	return {
 		sessionOnly = true, capacity = CAPACITY, collectionLimit = COLLECTION_LIMIT,
 		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs),
-		registered = copy(player.registered), equippedUid = player.equippedUid,
+		registered = copy(player.registered), dropped = copy(player.dropped), equippedUid = player.equippedUid,
 		sealCharges = player.sealCharges,
 	}
 end
