@@ -58,6 +58,8 @@ SPECS = {
                      "colors": {"Slab": "C9CFD6", "Frame": "3B3440", "Legs": "2A2630"}},
     "SP_Aldabon": {"size": (3.4, 3.0, 3.8),
                    "colors": {"Block": "6E6A64", "Ring": "2C2D30", "Legs": "4D4A46", "Neon_Eye": "E2A23B"}},
+    "SP_Tinajuelo": {"size": (2.6, 2.6, 3.4),
+                     "colors": {"Jar": "A0694A", "Lid": "7C5038", "Arms": "6B4632", "Neon_NightEye": "8E5BD6"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -431,9 +433,45 @@ def build_aldabon():
     return asset
 
 
+def build_tinajuelo():
+    asset = Asset("SP_Tinajuelo", seed=81)
+    jar, lid, arms, night = (asset.part(n) for n in ("Jar", "Lid", "Arms", "Neon_NightEye"))
+    on_jar = rigid("Jar")
+
+    # Round-shouldered clay jar with no face, and a domed lid with a knob.
+    profile = [(0.6, 0.0), (0.8, 0.12), (0.96, 0.45), (1.04, 0.9), (1.04, 1.35), (0.96, 1.75), (0.8, 2.1),
+               (0.62, 2.35), (0.5, 2.5), (0.48, 2.6), (0.56, 2.66), (0.56, 2.72)]
+    wide = 1.0
+    lathe(jar, [(r * wide, h) for r, h in profile], 12, on_jar, jitter=0.02, rng=asset.rng, twist=0.05)
+    lathe(lid, [(r * wide, h) for r, h in ((0.6, 0.0), (0.64, 0.1), (0.5, 0.26), (0.3, 0.38), (0.15, 0.43), (0.14, 0.58), (0.0, 0.66))], 8,
+          rigid("Lid"), center=(0, 0, 2.68), phase=0.2)
+
+    # Two tiny arms with mitten hands.
+    for name, side in (("ArmL", 1), ("ArmR", -1)):
+        weigh = rigid(name)
+        tube(arms, [(side * 0.95, -0.45, 1.75), (side * 1.2, -0.8, 1.7), (side * 1.25, -1.15, 1.6),
+                    (side * 1.15, -1.45, 1.5)], [0.12, 0.11, 0.1, 0.09], 4, weigh)
+        pyramid(arms, (side * 1.15, -1.45, 1.5), (0, -1, -0.2), 0.11, 0.22, weigh, sides=4)
+
+    # Violet night eyes: shipped, hidden by default, shown for the night variant.
+    for side in (-1, 1):
+        slant = side * 0.4
+        diamond = [(math.cos(slant) * a - math.sin(slant) * b, math.sin(slant) * a + math.cos(slant) * b)
+                   for a, b in ((-0.2, 0.0), (0.0, 0.12), (0.2, 0.0), (0.0, -0.12))]
+        slab(night, diamond, (side * 0.4, -0.92, 1.6), (1, 0, 0), (0, 0, 1), (0, -1, 0), 0.1, on_jar)
+    asset.hidden_by_default.add("Neon_NightEye")
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.3))
+    asset.bone("Jar", "Root", (0, 0, 0.3), (0, 0, 2.0))
+    asset.bone("Lid", "Jar", (0, 0, 2.68), (0, 0, 3.34))
+    asset.bone("ArmL", "Jar", (0.95, -0.45, 1.75), (1.15, -1.45, 1.5))
+    asset.bone("ArmR", "Jar", (-0.95, -0.45, 1.75), (-1.15, -1.45, 1.5))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
             "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo,
-            "SP_Aldabon": build_aldabon}
+            "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo}
 ORDER = tuple(SPECS)
 
 

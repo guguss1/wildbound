@@ -786,6 +786,118 @@
           "lowest_z": -0.1007
         }
       }
+    },
+    "SP_Tinajuelo": {
+      "status": "unvalidated",
+      "triangles": 470,
+      "size": [
+        2.6,
+        2.6,
+        3.4
+      ],
+      "bbox_min": [
+        -1.2899,
+        -1.6122,
+        0.0
+      ],
+      "bbox_max": [
+        1.3101,
+        0.9878,
+        3.4
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9643,
+        0.9662,
+        1.018
+      ],
+      "bones": [
+        "Root",
+        "Jar",
+        "Lid",
+        "ArmL",
+        "ArmR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Tinajuelo_Jar",
+          "material": "SP_Tinajuelo_Jar",
+          "material_count": 1,
+          "triangles": 284,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "A0694A",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Tinajuelo_Lid",
+          "material": "SP_Tinajuelo_Lid",
+          "material_count": 1,
+          "triangles": 94,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7C5038",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Tinajuelo_Arms",
+          "material": "SP_Tinajuelo_Arms",
+          "material_count": 1,
+          "triangles": 68,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4632",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Tinajuelo_Neon_NightEye",
+          "material": "SP_Tinajuelo_Neon_NightEye",
+          "material_count": 1,
+          "triangles": 24,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "8E5BD6",
+          "default_hidden": true
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Tinajuelo.fbx",
+        "Idle": "assets/exports/species/SP_Tinajuelo_Idle.fbx",
+        "Move": "assets/exports/species/SP_Tinajuelo_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Tinajuelo.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Tinajuelo_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0
+        },
+        "Move": {
+          "action": "SP_Tinajuelo_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0285
+        }
+      }
     }
   }
 }

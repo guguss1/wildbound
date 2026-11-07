@@ -32,6 +32,7 @@ BONES = {
     "SP_Polvilla": ("Root", "Body", "WingL", "WingR"),
     "SP_Espejuelo": ("Root", "Slab", "LegL", "LegR"),
     "SP_Aldabon": ("Root", "Body", "Ring", "LegL", "LegR"),
+    "SP_Tinajuelo": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
 }
 
 
@@ -145,6 +146,21 @@ MOTION = {
             "Ring": (term("rx", 0.25, 2, 0.20),),
             "LegL": (term("rx", 0.30, 1, 0.0),),
             "LegR": (term("rx", 0.30, 1, 0.5),),
+        },
+    },
+    # A faceless jar: waits with a rattling lid, then shuffles forward in quick small hops.
+    "SP_Tinajuelo": {
+        "Idle": {
+            "Jar": (term("lz", 0.03, 1, 0, "rise"), term("rz", 0.02, 1, 0.25)),
+            "Lid": (term("rx", 0.05, 1, 0.30),),
+            "ArmL": (term("ry", 0.12, 1, 0.0),),
+            "ArmR": (term("ry", -0.12, 1, 0.0),),
+        },
+        "Move": {
+            "Jar": (term("lz", 0.10, 4, 0, "rise"), term("rz", 0.07, 2, 0.0), term("ry", 0.05, 4, 0.25)),
+            "Lid": (term("rx", 0.10, 4, 0.30),),
+            "ArmL": (term("ry", 0.30, 2, 0.0),),
+            "ArmR": (term("ry", -0.30, 2, 0.0),),
         },
     },
 }

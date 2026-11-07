@@ -64,6 +64,12 @@ SPECS = {
                   "Neon_Eye": ("E2A23B", 40)},
         "bones": ("Root", "Body", "Ring", "LegL", "LegR"),
     },
+    "SP_Tinajuelo": {
+        "size": (2.6, 2.6, 3.4), "tris": 500,
+        "parts": {"Jar": ("A0694A", 300), "Lid": ("7C5038", 100), "Arms": ("6B4632", 70),
+                  "Neon_NightEye": ("8E5BD6", 30)},
+        "bones": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
+    },
 }
 
 
@@ -184,7 +190,7 @@ class SpeciesRigs(unittest.TestCase):
                 samples = self.motion[name][clip]["mesh_samples"]
                 moved = 0.0
                 for object_name, first in samples["first"].items():
-                    for key in ("quarter", "middle"):  # a symmetric pose can repeat the start at one of them
+                    for key in ("offbeat", "quarter", "middle"):  # a fast loop can repeat the start at some of them
                         other = samples[key][object_name]
                         moved = max([moved] + [abs(a - b) for u, v in zip(first, other) for a, b in zip(u, v)])
                 self.assertGreater(moved, 0.02, f"{clip} barely moves the mesh")
@@ -256,6 +262,17 @@ class SpeciesDetails(unittest.TestCase):
         self.assertAlmostEqual(height, 0.0, delta=0.05)
         wings = self.geometry["SP_Polvilla"]["parts"]["SP_Polvilla_Wings"]["vertices"]
         self.assertGreater(min(v[2] for v in wings), 0.8, "hover height is built in")
+
+
+class NightVariant(unittest.TestCase):
+    @unittest.skipUnless("SP_Tinajuelo" in SPECS, "Tinajuelo not in this unit")
+    def test_tinajuelo_night_eye_is_shipped_but_hidden_by_default(self):
+        report = load_json(SpeciesAssets.REPORT)["species"]["SP_Tinajuelo"]
+        parts = {p["object"]: p for p in report["parts"]}
+        self.assertTrue(parts["SP_Tinajuelo_Neon_NightEye"]["default_hidden"])
+        self.assertEqual([n for n, p in parts.items() if p["default_hidden"]], ["SP_Tinajuelo_Neon_NightEye"])
+        geometry = load_json(SpeciesAssets.GEOMETRY)["SP_Tinajuelo"]["parts"]
+        self.assertGreater(len(geometry["SP_Tinajuelo_Neon_NightEye"]["triangles"]), 0)
 
 
 class MotionProfiles(unittest.TestCase):

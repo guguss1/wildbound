@@ -572,8 +572,9 @@ def sample_clip(scene, rig, meshes, action, frames):
     rig.animation_data.action = action
     names = [pb.name for pb in rig.pose.bones]
     middle, quarter = frames // 2 + 1, frames // 4 + 1
+    offbeat = round(0.137 * (frames - 1)) + 1  # off the usual cycle fractions, so fast loops still differ
     out = {"bones": names, "frames": [], "mesh_bbox": {m.name: [] for m in meshes},
-           "mesh_samples": {"first": {}, "quarter": {}, "middle": {}, "last": {}}}
+           "mesh_samples": {"first": {}, "offbeat": {}, "quarter": {}, "middle": {}, "last": {}}}
     finite = True
     for frame in range(1, frames + 1):
         scene.frame_set(frame)
@@ -589,7 +590,8 @@ def sample_clip(scene, rig, meshes, action, frames):
             finite = finite and bool(np.isfinite(coords).all())
             out["mesh_bbox"][obj.name].append([[round(float(c), 5) for c in coords.min(axis=0)],
                                                [round(float(c), 5) for c in coords.max(axis=0)]])
-            for key, wanted in (("first", 1), ("quarter", quarter), ("middle", middle), ("last", frames)):
+            for key, wanted in (("first", 1), ("offbeat", offbeat), ("quarter", quarter), ("middle", middle),
+                               ("last", frames)):
                 if frame == wanted:
                     out["mesh_samples"][key][obj.name] = np.round(coords, 5).tolist()
     out["finite"] = finite
