@@ -2,18 +2,78 @@
 
 Unit M5.1, wave W4a. Implements D5 and D10, and D4 and D14 where they touch rewards.
 
-**Status: proposal. All numbers are hypotheses. Nothing here is built, balanced or tested with people.** Written 2026-11-07 without Studio. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
+**Status: proposal. All numbers are hypotheses. Nothing here is built, balanced or tested with people.** Written 2026-11-07 without Studio, then revised the same day because `tools/simulate_economy.py` showed the first version did not work. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
 
 ## Choices worth your review
 
 | # | Choice taken | Tradeoff |
 | --- | --- | --- |
-| 1 | **Calculated: D5's 3 to 8 minute expedition may not fit this map.** Walking all 14 gather nodes takes about 76 s plus 14 s of holds | Expect 2 to 4 minutes. I did not slow players or add filler to force it. F1 measures it; levers are listed below |
-| 2 | Loss rounds to the **nearest** unit per stack, not down as the pack suggests | Floor would make any stack under 9 lose nothing, hiding the rule. Nearest makes stacks under 5 safe |
-| 3 | Risk pays through Ember: a Lumipol from territory earns more than one from outside the leash | Without it the safe route wins, since all Lumipols are identical. Rewards bravery but widens progress gaps |
-| 4 | After the D10 hold expires, the result equals a defeat. On return in time, you resume **where you left**, not at camp | Otherwise logging out teleports loot to the extraction point. Requires changing the respawn pivot |
-| 5 | No release or sell for duplicates. Duplicates earn Ember once, at extraction | No way to delete a companion by mistake. Collection limit 100 stays unsolved until M6 |
-| 6 | Tier 2 skills and advanced items need Nightbloom | A reason to go out at night. A day-only player cannot finish the tree |
+| 1 | **Defeat takes half of each carried stack, a quarter with the Reinforced Pack.** Replaces the pack's 12% and 8% | One sentence to explain, and materials finally matter. At 12% a node paid more than a defeat could take. Harsh. The run barely moves at 25%, so the math requires less than this (see Revision) |
+| 2 | **Nightbloom is a bag item, one slot per bundle,** lost entirely on defeat unless warded | Bag pressure at Night and a real use for seals and capsules. Adds a third kind to `pending` |
+| 3 | **Holds grow with exposure:** 3 s outside, 4 s fog, 6 s territory, 9 s at heart slots | About 30 s of the expedition. Outside and fog holds are plain pacing, not danger, and may feel like waiting. Touch is unverified |
+| 4 | **Heart slots** T1, T2, T6: 9 s hold, one extra unit, chosen because the pressure geometry strikes there most | Value sits where standing still is dangerous. A slot's danger depends on proposed ambush anchors |
+| 5 | **A loaded pouch slows you:** 13 studs/s from 40% full, 11 from 80%, never below `carrySpeed > 8` | A second cost on the way home. Slower feels bad, and a phone stick may hide why |
+| 6 | Solo slots rise to 24 in all, 18 active. Ten new coordinates, checked by script only | Supply stops ending trips. More world dressing in M5.3 |
+| 7 | **D5 stands, at its low end.** Medians land at 190 to 208 s, not mid-range. Nothing replaced | A cautious route needs all 16 safe nodes to reach 3 minutes. See Revision |
+| 8 | Tier 2 skills and advanced items still need Nightbloom. **The safe path is fog beyond the leash at Night,** where Silueta cannot target by rule | A player who goes home every Night still cannot finish the tree. Simulated: never earns any. I kept this as the reason to go out at Night |
+| 9 | Loss rounds to the **nearest** unit per stack, not down as the pack suggests | At 50% a stack of 1 is lost. Readable: nothing is ever secretly safe |
+| 10 | Risk pays through Ember: a Lumipol from territory earns more than one from outside the leash | Without it the safe route wins. Rewards bravery but widens progress gaps |
+| 11 | After the D10 hold expires, the result equals a defeat. On return in time, you resume **where you left**, not at camp | Otherwise logging out teleports loot to the extraction point. Requires changing the respawn pivot |
+| 12 | No release or sell for duplicates. Duplicates earn Ember once, at extraction | No way to delete a companion by mistake. Collection limit 100 stays unsolved until M6 |
+
+## Revision after the simulator
+
+The first version failed on the simulator's archetypes. **The archetypes, their nerve and their risk rule are invented, so these numbers show structure, not players.** 200 seeded runs of 90 expeditions, `python -I -B tools/simulate_economy.py`.
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Median expedition, cautious, balanced, greedy | 52, 73, 77 s | 208, 203, 190 s |
+| Nodes per expedition against plan | 4.0 of 7, 6.0 of 7, 4.9 of 8 | 15.9 of 16, 13.7 of 16, 11.5 of 16 |
+| Trips ended by the player judging the risk | Not possible | 0, 35, 12% |
+| Materials alone: break-even hazard in territory | 0.82, against an invented 0.30 | 0.14, against 0.41 from geometry |
+| One heart node at Night while marked: break-even, light against loaded | Not measured | 0.52 against 0.06. Real strike share is 0.30 to 0.41, so the answer flips with the load |
+| Greedy that stays when loaded or marked, against one that leaves | Not measured | Value per minute 22.1 against 25.1, defeats 32% against 17% |
+| Value per minute, cautious against balanced | Not measured | 17.5 against 24.4 |
+| Bag full, share of trips | 0, 0, 0%, at most 2 of 3 | 18, 32, 42% |
+| Pouch full, whole run | 0, 3, 5% | 13, 22, 31%. On the base pouch: 41, 56, 62% |
+| Everything owned | Never, 21, 18 min | 132, 97, 87 min, which is 4 to 7 sessions of F1's 20 minutes |
+| Purchases in the first 20 minutes, of 9 | Not measured, nearly all for balanced | 2, 3, 3 |
+| `capturer_1` | Trip 1 for balanced | Trip 2 for all |
+| Cautious reaches tier 2, capsule, totem | Never | Yes, with 30 Nightbloom over 90 trips and no strike |
+| Full pouch, expected units lost, base against Reinforced | 3.60 against 3.60 | 15 against 11.25 |
+
+**Why these changes.** The route is 798 studs, about 50 s, and the map cannot give 3 minutes of walking. Time comes from more objectives per trip, holds, captures, evasion and slower walking when loaded. The pressure simulator showed that a still player at 4.5 s is mostly warned, and at 6 s is struck, near the patrol. Moving players are almost never hit. So standing still is the risk. Holds became the exposure, value moved to where they are dangerous, and the defeat chance stopped being an input: it now comes from geometry, plus nerve at a warning. D6's two strikes then create the decision. Unmarked, the next strike costs one item. Marked, it costs the trip.
+
+**Decisions.** D5, D4, D6, D10 and D14 stand. No replacement was needed. The first version's own claim that a day-only player cannot finish stays true.
+
+**Sensitivity** (25 runs of 70 trips each). Nerve halved or raised by half, risk aversion halved or doubled, evade time 4 or 14 s, Nightbloom's comparison value 5 or 40, capture rates 0.5 or 0.95: medians stay 164 to 215 s, cautious finishes in at least 96% of runs, and balanced stays at least 1.27 times cautious in value per minute. Greedy with nerve 1.0 drops to 164 s, below target, because 40% of its trips end early in defeat. Holds of 1, 2, 3 and 5 s give 163 to 178 s. Halving the loss rates moves value per minute by under 3%, so the run itself does not justify 50%; only the break-even math and a simple sentence do.
+
+### Still only math
+
+| Item | Status |
+| --- | --- |
+| Archetypes, `holdThroughWarning`, `riskAversion`, `dropRecovery`, `defeatChance`, `valueWeights`, `evadeSeconds`, `campSeconds` | Invented |
+| Strike shares | Geometry from `simulate_silueta_pressure.py`, averaged over proposed ambush anchors. No line of sight, so a worst case. Each hold is treated as independent |
+| Walking | Straight lines, so a lower bound. Never struck, and walking warnings cost no time, so another lower bound |
+| Skills, seals, totems, capsules | Prices are simulated; their effects are not. Consumables are never bought in a run |
+| Purchase order | Cheapest first, invented. The pack lands late for that reason; its cost alone is covered by trips 6 to 7 |
+| Sessions | 20 minutes of expedition time. Camp time excluded, so real progress is slower |
+| Multiple players | Not simulated. Solo rows only |
+| Fun, fear, fairness, whether anyone weighs anything | Not modelled at all |
+
+### What would falsify this in play
+
+| Claim | Falsified by |
+| --- | --- |
+| 3 to 8 minute expeditions | F1 median outside that range, or a large gap between defeated and extracted trips |
+| Holds read as tension | Testers say "I just stood there", or outside and fog holds get complaints while heart holds do not |
+| Players weigh stay against leave | Marked players leave at the same rate whatever they carry, or stay at the same rate as unmarked ones |
+| Half of carried materials is a fair stake | Testers stop going out after one defeat, or cannot state the rule (ECO-33) |
+| Bag pressure is a decision | Bag fills without comment, or players drop nothing and never leave a bundle behind |
+| Slower when loaded adds tension | Testers blame lag or controls for it |
+| Fog at Night is a safe path that still feels frightening | Cautious testers never go out at Night, or it feels like free loot |
+| Heart slots are worth it | Under 10% of nodes taken are heart slots after informing players, or over 60% |
+| Several sessions of progress | A tester cannot name a next goal, or reaches a plateau in a session |
 
 ## Verified facts
 
@@ -32,18 +92,18 @@ Unit M5.1, wave W4a. Implements D5 and D10, and D4 and D14 where they touch rewa
 | Shelter does not bank loot | `docs/mechanics/wildbound-world.md:17` |
 | Pulse hit is decided by the server, cooldown 30 s | `WildboundWorldRules.luau:117-131` |
 
-Pack values used as hypotheses: 12%, totem hostile cost, reinforced pack 12 to 8%, capsule at shelter, four skill paths, bond 1 to 5 from active use (`resources/skill-packs/wildbound-codex-complete-v0.4.2/knowledge/wildbound/RISK_AND_PROTECTION.md:13-24`, `PROGRESSION.md:3-5`, `CREATURE_PROGRESSION.md:3-5`). Roblox random-item rule as read on 11-07: rewards earned only through play need no odds disclosure (`docs/wildbound-roadmap.md:415`). Recheck if that ever changes.
+Pack values used as hypotheses: totem hostile cost, capsule at shelter, four skill paths, bond 1 to 5 from active use. The pack's 12% and 8% loss were tried and replaced, per choice 1 (`resources/skill-packs/wildbound-codex-complete-v0.4.2/knowledge/wildbound/RISK_AND_PROTECTION.md:13-24`, `PROGRESSION.md:3-5`, `CREATURE_PROGRESSION.md:3-5`). Roblox random-item rule as read on 11-07: rewards earned only through play need no odds disclosure (`docs/wildbound-roadmap.md:415`). Recheck if that ever changes.
 
 ## The loop this creates
 
-Leave camp. Gather and catch until the bag or pouch is full, or Silueta marks you, or Night tempts you to stay. Walk home slower if you carry eggs. Extract. Spend at camp. Go back better prepared, for something you could not reach before.
+Leave camp. Gather and catch until the bag or pouch is full, or Silueta marks you, or Night tempts you to stay. Walk home slower if you carry eggs or a heavy pouch. Extract. Spend at camp. Go back better prepared, for something you could not reach before.
 
 ## Model
 
 | Thing | Where it lives | At risk? |
 | --- | --- | --- |
-| **Bag items:** eggs, captured Lumipols | `pending`, 3 slots | Yes. Lost on defeat unless warded |
-| **Carried materials:** Fogbark, Glowmoss, Nightbloom | `carried`, 30 units total | 12% per stack on defeat |
+| **Bag items:** eggs, captured Lumipols, Nightbloom bundles | `pending`, 3 slots | Yes. Lost on defeat unless warded |
+| **Carried materials:** Fogbark, Glowmoss | `carried`, 30 units total | Half of each stack on defeat |
 | **Banked materials** | `banked` | **Never** |
 | **Ember**, the camp currency | `ember`, earned only at extraction | **Never** |
 | **Registered companions**, banked eggs | Existing lists | **Never** |
@@ -54,7 +114,7 @@ Hatching stays free (`WildboundServer.server.luau:102`). Flashlight stays free.
 
 ```luau
 -- Profile additions in WildboundState. All integers, all nonnegative.
-carried = { fogbark = 0, glowmoss = 0, nightbloom = 0 }
+carried = { fogbark = 0, glowmoss = 0 }   -- Nightbloom travels in the bag
 banked = { fogbark = 0, glowmoss = 0, nightbloom = 0 }
 ember = 0
 consumables = { seal = 0, capsule = 0, totem = 0 }   -- seal replaces sealCharges
@@ -66,6 +126,7 @@ bond = {}                    -- [petUid] = { xp = 0, level = 1 }
 dropped = {}                 -- [uid] = { entry, expiresAt }
 expedition = nil             -- below
 -- pending entry gains: riskTier, wardSource = "Seal" | "Totem" | nil (replaces protected in M5.5)
+-- and a third kind: { kind = "Nightbloom", quantity = number }. It banks as a material and pays no Ember
 
 expedition = { id = string, startedAt = number, leftCamp = boolean, maxDistanceFromCamp = number,
     territorySeconds = number, paidSlots = {}, pendingBondXp = 0, bondEvents = {}, newUnits = 0, newItems = 0 }
@@ -79,23 +140,23 @@ Applied once per defeat operation, inside `State:defeat`, with no yield. Integer
 
 ```text
 lost(stack) = (quantity * rateBasisPoints + 5000) // 10000
-rate = 1200, or 800 with the Reinforced Pack
+rate = 5000, or 2500 with the Reinforced Pack
 ```
 
-| Stack | Lost at 12% | Lost at 8% |
+| Stack | Lost at 50% | Lost at 25% |
 | --- | --- | --- |
-| 100 | 12 | 8 |
-| 25 | 3 | 2 |
-| 12 | 1 | 1 |
-| 5 | 1 | 0 |
-| 4 | 0 | 0 |
-| 1 | 0 | 0 |
+| 100 | 50 | 25 |
+| 25 | 13 | 6 |
+| 12 | 6 | 3 |
+| 5 | 3 | 1 |
+| 4 | 2 | 1 |
+| 1 | 1 | 0 |
 
 **Order, once per `operationId`:** 1. Warded items survive, spending one seal if seal-warded. 2. Other pending items go. 3. Dropped items go. 4. Each carried stack loses `lost(stack)`. 5. Totem spent if it left camp. 6. Pending bond XP goes. 7. Expedition closes. 8. Return loss summary (`wildbound-fair-strike.md`).
 
 **Never lost, with a contract each:** Ember, banked materials, registered companions, banked eggs, upgrades, skills, bond. Night does not change the rate. Remaining carried materials stay carried and bank at the next extraction.
 
-**Strike drop (D6):** first strike drops one bag item, never materials. See `wildbound-fair-strike.md`.
+**Strike drop (D6):** first strike drops one bag item, which may be a Nightbloom bundle, never pouch materials. See `wildbound-fair-strike.md`.
 
 ### Disconnect (D10)
 
@@ -112,21 +173,43 @@ Before M6, returning to a **different** server starts fresh, because nothing is 
 
 | Rule | Value |
 | --- | --- |
-| Input | Prompt, 1.0 s hold, 8 studs. Server rechecks alive and distance, as `context()` does |
+| Input | Prompt, hold by band below, 8 studs. Server rechecks alive and distance, as `context()` does |
 | Claim | One owner (D4). First valid trigger takes it, node disappears for all |
 | Respawn | 75 s, at any inactive slot of the same zone |
 | Per player | A slot pays one player once per expedition. Repeat: `AlreadyGathered`, node stays for others |
 | Pouch | Takes what fits, wastes the rest, says so. No space at all: `PouchFull`, node not claimed |
-| Night rule | Material is chosen when the node spawns, by the current phase table. Unclaimed Nightbloom wilts when Dawn starts. Carried Nightbloom keeps |
+| Bag | A Nightbloom node takes one bag slot for its whole bundle. No slot: `BackpackFull`, node not claimed |
+| Night rule | Material is chosen when the node spawns, by the current phase table. Unclaimed Nightbloom wilts when Dawn starts. A bundle in the bag keeps |
 | IDs | Same as encounters: never reused, retired after use (`WildboundState.luau:78-84`) |
 
-Slot coordinates are in the JSON below, checked against zones by script and against `forest-layout-v1.json`. Nodes are non-colliding, so tight spots are acceptable. Not verified in play.
+| Band | Hold | Slots | Strike share if you never flinch, Day / Night |
+| --- | --- | --- | --- |
+| Outside | 3 s | O1 to O8 | 0, by rule |
+| Fog | 4 s | M1 to M8 | 0, by rule |
+| Territory | 6 s | T3, T4, T5, T7, T8 | 0.00 to 0.17 / 0.03 to 0.24 |
+| Heart | 9 s | T1, T2, T6 | 0.25 to 0.27 / 0.30 to 0.41 |
+
+Strike share comes from `simulate_silueta_pressure.py`, run once for each patrol anchor in `wildbound-fair-strike.md` and averaged by weight, with no line of sight. For comparison, a 5.5 s capture is 0.15 / 0.21 at `L1`, 0.09 / 0.21 at `L2`, 0.05 / 0.08 at `L3`, 0 at `L4`. Warned means Alert begins; moving then escapes, at the cost of the hold.
+
+**Carrying.** Walk speed is the slower of the pouch step and the egg speed in `wildbound-capture.md`. It is set on the server when the pouch or bag changes, along with M3.5's egg speed.
+
+| Pouch filled | Walk speed |
+| --- | --- |
+| Under 40% | 16 |
+| 40% or more | 13 |
+| 80% or more | 11 |
+
+Silueta's fastest speed is 8, so the contract `carrySpeed > 8` holds for every combination, and a loaded player still outruns it.
+
+Slot coordinates are in the JSON below, checked against zones by script and, on 11-07, for at least 5 studs from any instance in `forest-layout-v1.json`. O5 to O8, M5 to M8, T7 and T8 are new. Nodes are non-colliding, so tight spots are acceptable. Not verified in play.
 
 **Zones** (by `WildboundWorldRules.zone` and `inTerritory`): `outside` is out of the fog rectangle, `fog` is in the rectangle but beyond Silueta's leash, `territory` is where it can target you.
 
 ## Night-only resource (D5)
 
-**Nightbloom.** Spawns only at Night, only in `fog` and `territory`. It feeds totems, capsules and tier 2 skills. No new species or variant, because D5 chose one resource and the pack warns about false rarity. Turning this on means `nightRewardsEnabled = true` and rewording `WildboundWorld.server.luau:304`.
+**Nightbloom.** Spawns only at Night, only in `fog` and `territory`. A node yields one bundle that takes a bag slot. It feeds totems, capsules and tier 2 skills. No new species or variant, because D5 chose one resource and the pack warns about false rarity. Turning this on means `nightRewardsEnabled = true` and rewording `WildboundWorld.server.luau:304`.
+
+**Safe path.** Fog beyond the leash is outside Silueta's reach by rule (`WildboundWorldRules.luau:55-58`), and it has eight slots, at 15% Nightbloom, one per bundle. So a cautious player can earn every Nightbloom without entering territory, slowly: about 0.10 per minute against 0.34 for balanced (simulated). Territory pays more per node, and heart slots most: 2 to 3 per bundle. M5 sits at the old nest, far from camp, so the safe path is long rather than dangerous.
 
 **Cycle, per D5.** 12 minutes, keeping the current proportions: Day 360, Dusk 72, Night 216, Dawn 72. The server draws one start offset, uniform over non-Night time, once at start. **Changes existing behavior:** `Rules.CYCLE_SECONDS`, the phase table, the origin at `WildboundWorld.server.luau:30`, and the contract at `tests/WildboundWorldRules_Test.luau:21-23` (update first, observe RED).
 
@@ -148,9 +231,12 @@ Yields, per node, inclusive:
 
 | Zone | Fogbark | Glowmoss | Nightbloom |
 | --- | --- | --- | --- |
-| Outside | 2 to 3 | 1 to 2 | |
-| Fog | 3 to 4 | 2 | 1 |
-| Territory | 4 to 5 | 2 to 3 | 1 to 2 |
+| Outside | 1 to 2 | 1 | |
+| Fog | 2 to 3 | 2 | 1 |
+| Territory | 2 to 3 | 2 | 1 to 2 |
+| Heart slot | 3 to 4 | 3 | 2 to 3 |
+
+Low yields are deliberate: one pouch is about 13 nodes, so filling it takes most of a trip.
 
 Creature and egg slots are in `wildbound-capture.md`. All are Lumipol in P0, one outcome, weight 100.
 
@@ -165,6 +251,7 @@ Paid once at extraction. Only at extraction, so it can be lost by not returning,
 | Lumipol, tier Fog | 8 | `L4` |
 | Lumipol, tier Territory | 14 | `L1` to `L3` |
 | Egg, tier Territory | 10 | Any nest |
+| Nightbloom bundle | 0 | Banks as a material |
 
 Duplicates pay the same. This fixes B1, "duplicates are useless". Tier is stored on the item at capture and read at extraction, so nobody can upgrade it on the way home. **Changes existing behavior:** `extract` accepts materials-only trips; `Empty` now means no bag items and no carried units. Its first-extraction seal stays, but must add 1, not assign, so a crafted seal is not overwritten (`WildboundState.luau:123`).
 
@@ -177,7 +264,7 @@ All at camp, within 20 studs of `CampCenter`, alive, non-yielding: check, pay, g
 | **Ward Seal** | 8 Fogbark, 4 Glowmoss | Saves one chosen bag item on defeat. Spent only if it saves | Hold 3 |
 | **Last Breath Totem** | 12 Glowmoss, 2 Nightbloom, 20 Ember | Wards one extra item with no seal. **Downside below** | Hold 1, one active |
 | **Extraction Capsule** | 8 Fogbark, 5 Glowmoss, 1 Nightbloom, 12 Ember | Banks one bag item at the shelter, on the spot | Hold 1 |
-| **Reinforced Pack** | 30 Fogbark, 15 Glowmoss, 40 Ember | Permanent. Bag 4, pouch 45, loss 8% | Once |
+| **Reinforced Pack** | 60 Fogbark, 30 Glowmoss, 120 Ember | Permanent. Bag 4, pouch 45, loss 25% | Once |
 | **Skills** | Below | Permanent | Once each |
 
 ### Seal fix for B8
@@ -207,11 +294,11 @@ Spend-only-if-it-saves stays, per the existing contract. A warded item cannot dr
 
 ### Capsule
 
-Used within 12 studs of a new `ShelterMarker` at (105, 125). Choose one bag item; it moves to banked eggs or registered, and pays its Ember now. No hatching. **Changes existing behavior:** the shelter gains one banking use (`docs/mechanics/wildbound-world.md:17`). Calculated distance: nest to shelter 235 studs, nest to camp 296.
+Used within 12 studs of a new `ShelterMarker` at (105, 125). Choose one bag item; it moves to banked eggs, registered or banked Nightbloom, and pays its Ember now. No hatching. **Changes existing behavior:** the shelter gains one banking use (`docs/mechanics/wildbound-world.md:17`). Calculated distance: nest to shelter 235 studs, nest to camp 296.
 
 ## Skill tree
 
-Four branches, two nodes each. Cost: tier 1 is 15 Ember and 4 Glowmoss. Tier 2 is 40 Ember, 6 Glowmoss and 2 Nightbloom, and needs tier 1. No respec in P0.
+Four branches, two nodes each. Cost: tier 1 is 40 Ember, 20 Fogbark and 10 Glowmoss. Tier 2 is 100 Ember, 30 Fogbark, 20 Glowmoss and 3 Nightbloom, and needs tier 1. No respec in P0.
 
 | Branch | Node | Effect | Rule it must keep |
 | --- | --- | --- | --- |
@@ -283,29 +370,38 @@ Gather uses prompts, like pickup. Replies go through `reply()` and `State`.
 
 ## Pacing estimate
 
-**Not measured, and says nothing about fun.** From a throwaway Monte Carlo run on the JSON below (400 runs of 60 trips, fixed seed), with invented archetype behavior, including defeat chances. The real simulator is `tools/simulate_economy.py`, not built here.
+**Not measured, and says nothing about fun.** From `tools/simulate_economy.py` on the JSON below: 200 seeded runs of 90 expeditions, solo, invented archetypes. Defeat chance here is an output, except a 1 to 2% invented misplay per trip.
 
-| Archetype | Nodes per trip, by zone | First skill | Reinforced Pack | All 8 skills | Ember per trip | Units per trip |
-| --- | --- | --- | --- | --- | --- | --- |
-| Cautious, Day only | 3 outside, 4 fog | Trip 2 | Trip 11 | Never, needs Nightbloom | 9.5 | 18.4 |
-| Balanced | 1, 3, 3 | Trip 1 | Trip 6 | Trip 17 | 17.9 | 19.9 |
-| Greedy | 0, 2, 6, mostly Night | Trip 2 | Trip 6 | Trip 13 | 21.4 | 21.8 |
+| Archetype | Median expedition | Walk, holds, captures, evading | Nodes | Ember per trip | Units per trip | Defeats | First skill | Everything owned |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Cautious | 208 s | 66, 27, 7, 0% | 15.9 | 19.5 | 28.5 | 1% | Trip 2 | 132 min |
+| Balanced | 203 s | 48, 38, 5, 8% | 13.7 | 23.7 | 27.7 | 7% | Trip 2 | 97 min |
+| Greedy | 190 s | 50, 38, 5, 7% | 11.5 | 22.9 | 23.9 | 30% | Trip 2 | 87 min |
 
-**Time (calculated):** nearest-neighbor walks from camp, 16 studs/s, no danger or detours.
+| Why a trip ended | Cautious | Balanced | Greedy |
+| --- | --- | --- | --- |
+| Finished its plan | 84% | 21% | 19% |
+| Pouch full | 13% | 21% | 30% |
+| Judged the next node not worth the risk | 0 | 35% | 12% |
+| No node left for one player | 2% | 16% | 9% |
+| Defeated | 1% | 7% | 30% |
 
-| Tour | Walk | Plus holds |
-| --- | --- | --- |
-| All 14 nodes | 1221 studs, 76 s | 90 s |
-| Outside and fog, 8 nodes | 719 studs, 45 s | 53 s |
-| Fog and territory, 10 nodes | 1119 studs, 70 s | 80 s |
+**Stay or leave, one heart node at Night (value units invented: Fogbark 1, Glowmoss 2, Nightbloom 15, Ember 1).** Break-even is gain over gain plus what the next strike costs.
 
-Add 6 to 12 s per capture, slower walking with eggs, and evasion. A solo server has only 7 nodes active at a time. That points to about 2 to 4 minutes, **under D5's 3 to 8 at the low end**, and well under the pack's 5 to 10.
+| Situation | Gain | Next strike costs | Break-even | Against 0.30 to 0.41 |
+| --- | --- | --- | --- | --- |
+| Light, not marked | 16.4 | 3.2 | 0.84 | Stay |
+| Light, marked | 16.4 | 15.0 | 0.52 | Stay, if you accept it |
+| Loaded, not marked | 3.3 | 4.0 | 0.45 | Stay, little to gain |
+| Loaded, marked | 3.3 | 54.0 | 0.06 | Leave |
 
-**If F1 logs show medians under 3 minutes**, in the order I would try: raise pouch and active node counts, add a second objective type per trip, widen the walkable distance with routes that leave the straight line, then extend the map. **Never** lower walk speed below `carrySpeed > 8` or add waits.
+Purchases per 20-minute session, median: cautious 2, 2, 1, 1, 1, 1, 1. Balanced 3, 2, 1, 1, 1. Greedy 3, 2, 2, 1, 1. After that, income has no sink except consumables, which is M5's limit until new content.
+
+**If F1 logs show medians under 3 minutes**, in the order I would try: add a second objective type per trip, widen the walkable distance with routes that leave the straight line, raise active nodes for one player, then extend the map. **Never** lower walk speed below `carrySpeed > 8` or add waits with no exposure.
 
 ## Tuning tables
 
-Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig.luau`. Parse the block fenced as `json economy-tuning`. Bump `schemaVersion` on any breaking change. Costs are integers. `[a, b]` is an inclusive integer range. This block was parsed and run through the structural checks below on 11-07. `simulatorInputs` are assumptions, not game data.
+Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig.luau`. Parse the block fenced as `json economy-tuning`. Bump `schemaVersion` on any breaking change. Costs are integers. `[a, b]` is an inclusive integer range. The simulator reads this block at run time and checks it on every run. `simulatorInputs` are invented assumptions, not game data.
 
 ```json economy-tuning
 {
@@ -321,9 +417,9 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "targetExpeditionSeconds": [180, 480]
   },
   "materials": {
-    "fogbark": { "tier": "common", "nightOnly": false },
-    "glowmoss": { "tier": "uncommon", "nightOnly": false },
-    "nightbloom": { "tier": "rare", "nightOnly": true }
+    "fogbark": { "tier": "common", "nightOnly": false, "carriedAs": "pouch" },
+    "glowmoss": { "tier": "uncommon", "nightOnly": false, "carriedAs": "pouch" },
+    "nightbloom": { "tier": "rare", "nightOnly": true, "carriedAs": "bagItem" }
   },
   "currency": { "id": "ember", "lostOnDefeat": false, "purchasable": false },
   "capacity": {
@@ -332,9 +428,14 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "collectionLimit": 100,
     "consumableCaps": { "seal": 3, "capsule": 1, "totem": 1 }
   },
+  "carry": {
+    "baseSpeed": 16,
+    "pouchLoadSteps": [ { "atShare": 0.4, "speed": 13 }, { "atShare": 0.8, "speed": 11 } ],
+    "eggSpeeds": "wildbound-capture.md, slower of the two applies"
+  },
   "loss": {
-    "rateBasisPoints": 1200,
-    "rateBasisPointsReinforced": 800,
+    "rateBasisPoints": 5000,
+    "rateBasisPointsReinforced": 2500,
     "rounding": "nearest_half_up_per_stack",
     "appliesTo": ["carried"],
     "neverLost": ["ember", "banked", "registered", "bankedEggs", "consumables", "upgrades", "skills", "bond"],
@@ -343,31 +444,41 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   },
   "disconnect": { "holdSeconds": 180, "expiryResolvesAs": "defeat_without_mark" },
   "gather": {
-    "holdSeconds": 1.0,
+    "holdSeconds": { "outside": 3, "fog": 4, "territory": 6, "heart": 9 },
+    "heartYieldBonus": 1,
     "promptRange": 8,
     "respawnSeconds": 75,
     "payoutPerSlotPerExpedition": 1,
     "activeByPlayers": [
-      { "minPlayers": 1, "outside": 2, "fog": 2, "territory": 3 },
-      { "minPlayers": 2, "outside": 3, "fog": 3, "territory": 4 },
-      { "minPlayers": 3, "outside": 4, "fog": 4, "territory": 5 },
-      { "minPlayers": 5, "outside": 4, "fog": 4, "territory": 6 }
+      { "minPlayers": 1, "outside": 6, "fog": 6, "territory": 6 },
+      { "minPlayers": 2, "outside": 7, "fog": 7, "territory": 7 },
+      { "minPlayers": 3, "outside": 8, "fog": 8, "territory": 8 }
     ],
     "slots": [
       { "id": "O1", "zone": "outside", "x": -120, "z": 110 },
       { "id": "O2", "zone": "outside", "x": -70, "z": 40 },
       { "id": "O3", "zone": "outside", "x": -60, "z": 100 },
       { "id": "O4", "zone": "outside", "x": 110, "z": 70 },
+      { "id": "O5", "zone": "outside", "x": -150, "z": 20 },
+      { "id": "O6", "zone": "outside", "x": -110, "z": -70 },
+      { "id": "O7", "zone": "outside", "x": 40, "z": 110 },
+      { "id": "O8", "zone": "outside", "x": -90, "z": -150 },
       { "id": "M1", "zone": "fog", "x": -30, "z": 10 },
       { "id": "M2", "zone": "fog", "x": 80, "z": -35 },
       { "id": "M3", "zone": "fog", "x": 115, "z": 10 },
       { "id": "M4", "zone": "fog", "x": 135, "z": 30 },
-      { "id": "T1", "zone": "territory", "x": -15, "z": -60 },
-      { "id": "T2", "zone": "territory", "x": 25, "z": -100 },
+      { "id": "M5", "zone": "fog", "x": 110, "z": -130 },
+      { "id": "M6", "zone": "fog", "x": 150, "z": -60 },
+      { "id": "M7", "zone": "fog", "x": 20, "z": 15 },
+      { "id": "M8", "zone": "fog", "x": 130, "z": -30 },
+      { "id": "T1", "zone": "territory", "x": -15, "z": -60, "heart": true },
+      { "id": "T2", "zone": "territory", "x": 25, "z": -100, "heart": true },
       { "id": "T3", "zone": "territory", "x": -45, "z": -75 },
       { "id": "T4", "zone": "territory", "x": 70, "z": -70 },
       { "id": "T5", "zone": "territory", "x": -20, "z": -145 },
-      { "id": "T6", "zone": "territory", "x": 55, "z": -130 }
+      { "id": "T6", "zone": "territory", "x": 55, "z": -130, "heart": true },
+      { "id": "T7", "zone": "territory", "x": -25, "z": -105 },
+      { "id": "T8", "zone": "territory", "x": -40, "z": -125 }
     ]
   },
   "spawnWeights": {
@@ -391,9 +502,9 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     }
   },
   "yields": {
-    "outside": { "fogbark": [2, 3], "glowmoss": [1, 2] },
-    "fog": { "fogbark": [3, 4], "glowmoss": [2, 2], "nightbloom": [1, 1] },
-    "territory": { "fogbark": [4, 5], "glowmoss": [2, 3], "nightbloom": [1, 2] }
+    "outside": { "fogbark": [1, 2], "glowmoss": [1, 1] },
+    "fog": { "fogbark": [2, 3], "glowmoss": [2, 2], "nightbloom": [1, 1] },
+    "territory": { "fogbark": [2, 3], "glowmoss": [2, 2], "nightbloom": [1, 2] }
   },
   "earn": {
     "extractBaseEmber": 4,
@@ -409,8 +520,8 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   },
   "upgrades": {
     "reinforcedPack": {
-      "cost": { "fogbark": 30, "glowmoss": 15, "ember": 40 },
-      "effects": { "bagItems": 4, "pouchUnits": 45, "lossBasisPoints": 800 }
+      "cost": { "fogbark": 60, "glowmoss": 30, "ember": 120 },
+      "effects": { "bagItems": 4, "pouchUnits": 45, "lossBasisPoints": 2500 }
     }
   },
   "totem": {
@@ -423,14 +534,14 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   },
   "capsule": { "site": "shelter", "range": 12, "itemsSecured": 1 },
   "skills": {
-    "explorer_1": { "branch": "explorer", "tier": 1, "requires": [], "cost": { "ember": 15, "glowmoss": 4 }, "effects": { "nodeHintRange": 60 } },
-    "explorer_2": { "branch": "explorer", "tier": 2, "requires": ["explorer_1"], "cost": { "ember": 40, "glowmoss": 6, "nightbloom": 2 }, "effects": { "nightbloomHintRange": 100 } },
-    "capturer_1": { "branch": "capturer", "tier": 1, "requires": [], "cost": { "ember": 15, "glowmoss": 4 }, "effects": { "calmRequired": 4.0 } },
-    "capturer_2": { "branch": "capturer", "tier": 2, "requires": ["capturer_1"], "cost": { "ember": 40, "glowmoss": 6, "nightbloom": 2 }, "effects": { "retryCooldown": 3 } },
-    "survivor_1": { "branch": "survivor", "tier": 1, "requires": [], "cost": { "ember": 15, "glowmoss": 4 }, "effects": { "carrySpeedBonus": 1 } },
-    "survivor_2": { "branch": "survivor", "tier": 2, "requires": ["survivor_1"], "cost": { "ember": 40, "glowmoss": 6, "nightbloom": 2 }, "effects": { "restSeconds": 2 } },
-    "occultist_1": { "branch": "occultist", "tier": 1, "requires": [], "cost": { "ember": 15, "glowmoss": 4 }, "effects": { "relocationNotice": true } },
-    "occultist_2": { "branch": "occultist", "tier": 2, "requires": ["occultist_1"], "cost": { "ember": 40, "glowmoss": 6, "nightbloom": 2 }, "effects": { "flashlightRevealSeconds": 5 } }
+    "explorer_1": { "branch": "explorer", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "nodeHintRange": 60 } },
+    "explorer_2": { "branch": "explorer", "tier": 2, "requires": ["explorer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "nightbloomHintRange": 100 } },
+    "capturer_1": { "branch": "capturer", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "calmRequired": 4.0 } },
+    "capturer_2": { "branch": "capturer", "tier": 2, "requires": ["capturer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "retryCooldown": 3 } },
+    "survivor_1": { "branch": "survivor", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "carrySpeedBonus": 1 } },
+    "survivor_2": { "branch": "survivor", "tier": 2, "requires": ["survivor_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "restSeconds": 2 } },
+    "occultist_1": { "branch": "occultist", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "relocationNotice": true } },
+    "occultist_2": { "branch": "occultist", "tier": 2, "requires": ["occultist_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "flashlightRevealSeconds": 5 } }
   },
   "bond": {
     "levelThresholdsXp": [0, 40, 100, 180, 280],
@@ -450,16 +561,19 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "bondBanksOnlyOnExtraction": true
   },
   "simulatorInputs": {
+    "campSeconds": 30,
+    "evadeSeconds": 8,
+    "valueWeights": { "fogbark": 1, "glowmoss": 2, "nightbloom": 15 },
     "archetypes": {
-      "cautious": { "zones": { "outside": 3, "fog": 4, "territory": 0 }, "captureTier": "Fog", "captureRate": 0.7, "eggRate": 0, "defeatChance": 0.02, "nightShare": 0 },
-      "balanced": { "zones": { "outside": 1, "fog": 3, "territory": 3 }, "captureTier": "Territory", "captureRate": 0.7, "eggRate": 0.5, "defeatChance": 0.12, "nightShare": 0.3 },
-      "greedy": { "zones": { "outside": 0, "fog": 2, "territory": 6 }, "captureTier": "Territory", "captureRate": 0.8, "eggRate": 1.0, "defeatChance": 0.3, "nightShare": 0.8 }
+      "cautious": { "zones": { "outside": 8, "fog": 8, "territory": 0 }, "captureTier": "Fog", "capturesMax": 4, "captureRate": 0.7, "eggRate": 0, "defeatChance": 0.01, "holdThroughWarning": 0, "riskAversion": 3, "dropRecovery": 0.8 },
+      "balanced": { "zones": { "outside": 3, "fog": 5, "territory": 8 }, "captureTier": "Territory", "capturesMax": 3, "captureRate": 0.7, "eggRate": 0.6, "defeatChance": 0.02, "holdThroughWarning": 0.3, "riskAversion": 1, "dropRecovery": 0.6 },
+      "greedy": { "zones": { "outside": 0, "fog": 8, "territory": 8 }, "captureTier": "Territory", "capturesMax": 4, "captureRate": 0.8, "eggRate": 1.0, "defeatChance": 0.02, "holdThroughWarning": 0.7, "riskAversion": 0.25, "dropRecovery": 0.5 }
     }
   }
 }
 ```
 
-**Invariants the simulator must assert:** every weight table sums above 0 and normalizes to 1. Night-only materials appear only in `Night` tables. Phases sum to `cycle.seconds`. Rounding examples above hold. Every slot's `zone` matches the rule, and none sits in a safe circle or outside the 400 x 400 map. Tier 2 skills list a tier 1 prerequisite. A Ward Seal is affordable from `outside` and `fog` materials. Standing-still calm stays below every `calmRequired`.
+**Invariants the simulator must assert:** every weight table sums above 0 and normalizes to 1. Night-only materials appear only in `Night` tables. Phases sum to `cycle.seconds`. Rounding examples above hold. Every slot's `zone` matches the rule, and none sits in a safe circle or outside the 400 x 400 map. Tier 2 skills list a tier 1 prerequisite. A Ward Seal is affordable from `outside` and `fog` materials. Standing-still calm stays below every `calmRequired`. Every load step stays above Silueta's fastest speed. Holds grow outside, fog, territory, heart. Active counts never exceed a zone's slots. Heart slots sit in territory.
 
 ## Changes to existing behavior
 
@@ -469,7 +583,9 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
 | Night rewards | False | True, Nightbloom only |
 | Extraction | Rejects with no bag items | Also takes materials, pays Ember |
 | Seal | `sealCharges`, once, near camp | `consumables.seal`, crafted, anywhere, armable. First-extraction grant adds |
-| Defeat | Pending only | Plus dropped, materials, totem, pending XP, summary |
+| Defeat | Pending only | Plus dropped, half of carried materials, totem, pending XP, summary |
+| Pending items | Eggs and creatures | Also Nightbloom bundles |
+| Walk speed | Eggs only, once M3.5 lands | Slower of eggs and pouch load |
 | Capacity | Constant 3 | Per player |
 | Shelter | Never banks | One item, with a capsule |
 | Detection | Same for all | +6 with totem |
@@ -482,7 +598,7 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
 | ID | Case | Expected |
 | --- | --- | --- |
 | ECO-01 | `lost` table above, both rates | Exact, integers |
-| ECO-02 | Defeat with 100 Fogbark, 3 items, no ward | 88 kept, items gone, Ember same |
+| ECO-02 | Defeat with 100 Fogbark, 3 items, no ward | 50 kept, items gone, Ember same |
 | ECO-03 | Same operation ID twice | One loss |
 | ECO-04 | Defeat keeps banked, Ember, registered, banked eggs, skills, upgrades, bond | Unchanged |
 | ECO-05 | Seal: spent only when it saves; extraction clears free | Existing contract still passes |
@@ -503,6 +619,9 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
 | ECO-20 | AFK-1 to AFK-6 | As stated |
 | ECO-21 | Hold: return at 179 s, expire at 181 s, expiry equals defeat result | |
 | ECO-22 | Cycle: boundaries at 720 s scale; offset never starts in Night, over many draws | |
+| ECO-23 | Nightbloom bundle: takes a slot, `BackpackFull` when none, banks as material, pays no Ember, lost on defeat, saved by a seal, drops to a strike | |
+| ECO-24 | `carrySpeed` for every pouch step, egg count and skill | Slower of the two, always above 8 |
+| ECO-25 | Hold per band; heart yield bonus; moving during a hold | Exact hold; bonus once; hold cancelled, node not claimed |
 
 **Studio and people.**
 
@@ -518,22 +637,25 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
 
 | Hypothesis | Falsified by |
 | --- | --- |
-| 12% carried loss plus lost bag items is enough stake | Testers shrug at defeat. Or they stop going out |
+| Half of carried materials plus lost bag items is enough stake | Testers shrug at defeat. Or they stop going out |
 | Bag and pouch limits force stay-or-return | Testers rarely reach either; or always leave at once with one item |
 | Territory pay beats the safe route | Over 80% of captures at `L4` after the first. Or nobody survives territory |
 | 12 minutes shows Night in a short session | Testers in a 20-minute session do not see a Night, or Night feels too short to use |
 | Nightbloom makes Night worth the danger | Under a quarter of players enter fog at Night once informed. Or Night trips pay so well that Day is ignored |
 | A totem's cost is a real decision | Always bought, or never. Holder hunted-time equals non-holder's |
 | A field seal matters | Sealed items rarely saved, or no one uses it with the bag at risk |
-| Pack at about trip 6 feels reachable | Testers cannot name a next goal, or reach everything in one session |
+| Progress lasts several sessions with a goal in each | Testers cannot name a next goal, or reach everything in a few sessions |
 | Bond is felt | Testers do not notice cooldown changes, or cooldown 25 s trivializes Silueta at 2 and 4 players (M7.4) |
-| Expeditions land in 3 to 8 minutes | F1 median outside that range. Calculation above predicts risk at the low end |
+| Expeditions land in 3 to 8 minutes | F1 median outside that range. The simulator lands at its low end, on straight lines with no detours |
+| Long holds read as tension, not waiting | "I just stood there" at heart slots, or complaints about 3 s holds outside |
 
 ## Unverified
 
 | Item | Settle in |
 | --- | --- |
 | Whether a mid-trip Nightbloom wilt reads as fair | F1 |
-| Whether `ProximityPrompt` 1.0 s hold on touch feels acceptable | M5.8 |
+| Whether `ProximityPrompt` holds of 3 to 9 s feel acceptable on touch | M5.8 |
+| Whether ten new slot coordinates are reachable and read well | M5.3 |
+| Proposed ambush anchors behave as averaged here | M4.7 |
 | Replication cost of a larger snapshot on each reply, at phone level | M9.1 |
 | Place max players, which bounds the active-slot table | M7.1 |
