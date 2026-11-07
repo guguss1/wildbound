@@ -63,7 +63,7 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W6 | 6 | Done, partial: `a40c634` to `3914a5c`, 487 Studio contracts. Parent verified `ServerScriptService.WildboundFlags` reads `damageMode="off"` with no private place ids, and `TakeDamage` is reachable only in `"private"`. Not run: Network Simulator, 30-minute ambush, phones, muted client. Found: dwell gate cannot read `StreamingMinRadius`, falls back to 64; world script cleanup never runs on destroy; dropped-item notice text is cut. Original scope: fair damage code, M4.2 to M4.8, `damageMode` default off. First item, from the audit: `WildboundWorld.server.luau:33` sets damage on whenever streaming is off and `:282-284` calls `TakeDamage`; replace it with an explicit flag defaulting to off, test first. Also from the audit: attack chip ends up to about 0.22 s before the strike, and the HUD allocates every frame | Opus high, Sonnet | After W5 |
 | W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | Done, partial. Part 1 `dd5228b` to `843248c`; part 2 `ea1836e` to `25aeb05`. Cycle now 720 s. Parent reran on fresh clones: state 61, rules 31, economy 19, camp view 13, gather field 11; Python 876 OK; `damageMode` off, streaming on. Writer reports 575 Studio contracts. Open: five skill effects are `EffectPending` and refused before payment; bond level effects unwired; dodge event never fired; camp list shows about 1.5 rows on a sideways Galaxy A06. Not run: two clients, phone taps, totem, capsule, Reinforced Pack |
 | W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Done, `d15f2a6` |
-| W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6 | Sonnet, Studio writer | After W7 preferred |
+| W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6, plus five fixes from W5 to W7 | Sonnet, Studio writer | Done, partial. Fixes `10c9ec0`, `c03cea6`, `518d1a5`, `88352d1`, `c5a53b9`; W9 proper `34fd4de`, `e1742a7` and the commit after them. Docs `docs/ui/wildbound-start-and-settings.md`. Not run: any tap, real phone, muted client, two clients, live capture shuffle |
 | W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Pending |
 | F1 | Gate | Ten testers. Agents prepare the kit and analyze results | Humans | Needs people |
 | W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Done, read by parent |
@@ -90,6 +90,8 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 - Studio backups: `assets/exports/wildbound-dressed-forest-20261107.rbxl`, `wildbound-forest-lit-20261107.rbxl`, `wildbound-awareness-hud-20261107.rbxl`, `wildbound-skill-capture-20261107.rbxl`, `wildbound-fair-strike-20261107.rbxl`, `wildbound-economy-20261107.rbxl` (412,414 bytes, after W7).
 - W5, W6 and W7 done. Everything F1 needs from agents is built; F1 itself still needs testers and a publish approval.
 
+- W9 (2026-11-07, overnight): wrong camp prompt, stillness window, world cleanup guard, dropped-item notice and sideways camp list fixed test first; start screen, three-step tutorial and Settings built as pure modules plus one controller. Studio suites rerun on fresh clones: 637 passed, 0 failed; Python 876 OK, 28 skipped. `damageMode` off, streaming on, Studio in Edit mode. Decisions W9-1 to W9-9 are in the W9 doc for review.
+
 ## Next step
 
-W9 start screen, tutorial and settings, plus the open fixes found in W5 to W7, one Studio writer. W10 fake-store contracts and W16 analytics after it.
+W10 fake-store contracts and W16 analytics. W9 follow-ups: a click test on a real phone, a tutorial baseline for Replay, audio and graphics settings once something uses them.
