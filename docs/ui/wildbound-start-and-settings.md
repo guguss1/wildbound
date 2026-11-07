@@ -34,3 +34,31 @@ Contracts `tests/WildboundCampView_Test.luau` (CV-C1 to CV-C6): RED 15 passed 4 
 Cause: on a first strike the world script sent one long sentence, "Silueta marked you! Next hit defeats you. Dropped: Lumipol egg. Grab it within 30 s. Rest at camp or shelter to clear the mark." (about 130 characters), and the world client showed `payload.notice` directly. On a phone the HUD cuts text at the last whole sentence that fits, which left only "Silueta marked you!": the drop and its 30 s were lost.
 
 Fix: `FairStrike.strikeNotice(effect, dropped)` returns the unchanged full sentence plus a short form, "Marked! Grab your dropped Lumipol egg within 30 s." (49 characters, "Marked! Next hit defeats you. Rest at camp." when nothing dropped). The resolved payload carries `noticeShort` and the client uses `View.pickNotice(payload, compact)`, as the snapshot notices already did. Contracts FS-N1 to FS-N3 in `tests/WildboundFairStrike_Test.luau`: RED 36 passed 3 failed, GREEN 39 passed 0 failed. The phone capture is listed in Part C.
+
+## Part B. Start screen, tutorial and settings (M8.5, M8.6)
+
+### B1. Decisions taken (all for the user to review)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| W9-1 | The start screen appears at every join (the session is the first run: nothing is saved). Play closes it. The game keeps running behind it; the camp is a safe area, so nothing was frozen. | No persistence is allowed, so "first start" can only mean "this session". |
+| W9-2 | D11 is applied: Reduced effects starts Off (the world client default changed from On to Off) and has its own toggle button on the start screen. | Roadmap D11. |
+| W9-3 | Settings are two toggles: Reduced effects and Tutorial hints. Graphics quality and audio sliders were not built: the game has no sounds and no quality knobs to control, and a slider that changes nothing would be dishonest. Text size was not built either, because scaling text breaks the pixel budgets the layouts are checked against. These stay open for M8.6. | Only controls that do something. |
+| W9-4 | The quick bar already exists: the HUD button column (Inventory, Flashlight, Pulse, Reduced) plus the Bag tab quick rows (Seal newest, Arm). No new bar was added; X10 (contextual phone buttons) stands. | A fifth button does not fit the 280 pixel tall sideways layout. |
+| W9-5 | Reaching Settings again: a Menu button in the inventory panel header (and the M key). | The HUD column has no room for a fifth button on a sideways phone. |
+| W9-6 | The tutorial has three steps: gather, extract, then open the Camp tab. Crafting is not required because the first recipe costs more (8 Fogbark, 4 Glowmoss) than one trip pays. | The roadmap's "gather, extract, craft" cannot be completed on the first trip. |
+| W9-7 | The tutorial reads only the player's own state snapshot. It never changes game state, never calls the server and never blocks play. Skip ends it for the session; Replay tutorial in Settings restarts it. Tutorial hints Off hides the card. | Tutorials must not be a gate. |
+| W9-8 | The tutorial card hides while the inventory panel is open and during a capture, because both occupy the same space. | Collisions found by the layout contracts. |
+| W9-9 | Strings are plain English, and "Progress is not saved." is said on the start screen. | Session only. |
+
+### B2. Pure modules and contracts
+
+| Module (Explorer path) | Role | Contracts | RED | GREEN |
+| --- | --- | --- | --- | --- |
+| `WildboundSettings` (`ReplicatedStorage`) | Defaults, validated set and toggle, labels | `tests/WildboundSettings_Test.luau`, 8 | 1 passed, 7 failed (against a stub) | 8 passed, 0 failed |
+| `WildboundTutorial` (`ReplicatedStorage`) | Ordered steps, facts from a snapshot, skip and restart | `tests/WildboundTutorial_Test.luau`, 12 | 1 passed, 11 failed (stub) | 12 passed, 0 failed |
+| `WildboundStartView` (`ReplicatedStorage`) | Rectangles and words for the start screen, Settings, How to play and the card, on nine viewports | `tests/WildboundStartView_Test.luau`, 8 | 1 passed, 7 failed (stub) | 8 passed, 0 failed |
+
+The first RED of each pure unit is against an empty module, so the one passing case is the purity check on the stub's source. One test defect was found by the run: the purity check searched for the word `tick` and matched `thumbstick`; it now searches `tick(`.
+
+The start-view contracts check, on 750x323, 705x280, 401x720, 359x660, 1069x501, 1280x720, 640x360, 320x568 and 1920x1080: every panel inside the region; on phones no overlap with the thumbstick or jump zones; every button and toggle 44 pixels or more in both directions; no two elements overlap; every text fits its rectangle by the same 0.6 character-width estimate the HUD tests use. The tutorial card has three places: beside the Inventory button on desktop (`side`), in the band under the avatar keep-out on a phone held sideways (`bottom`), and over the HUD objective line on a phone held upright (`hud`), because the keep-out leaves under 50 pixels there (26 on the Galaxy A06). In `hud` mode the objective line is covered on purpose while the tutorial runs.
