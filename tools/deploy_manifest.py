@@ -158,6 +158,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundStamina.luau", "ServerScriptService.WildboundStamina"),
     ("tests/WildboundStamina_Test.luau", "ServerStorage.WildboundStamina_Test"),
     ("tests/WildboundStaminaWiring_Test.luau", "ServerStorage.WildboundStaminaWiring_Test"),
+    # Expedition relief, R2: the pure height rule (server only)
+    ("src/wildbound/WildboundRelief.luau", "ServerScriptService.WildboundRelief"),
+    ("tests/WildboundRelief_Test.luau", "ServerStorage.WildboundRelief_Test"),
 ]
 
 
