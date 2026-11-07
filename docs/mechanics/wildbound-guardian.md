@@ -53,3 +53,36 @@ Measured on the real map, Studio Play, 2026-11-07, 14 investigate legs of 25 to 
 Two defects were found and fixed by this measurement: the first run froze for 15 s because the visible, non-colliding trunk meshes flare wider than the cores and blocked the step cast (now `RespectCanCollide`), and the coarse navmesh routes a little closer to a core than the body allows (now the slide).
 
 `tools/simulate_silueta_pressure.py` reads the Day and Night profiles from the brain. It still walks a straight line, which is the worst case for the player now that routes bend around trees.
+
+## Damage, death and Spanish words (C3, C4)
+
+| Rule | Where |
+| --- | --- |
+| D-C4: `damageMode = "private"` for PlaceId 122652861404212 only; every other place is shadow. All fair-strike gates stay (dwell, warning lead, readiness, acknowledgement, stall). Publishing with this flag needs separate approval | `WildboundFlags`, `docs/mechanics/wildbound-fair-strike.md` |
+| D-C4: the dwell radius is `WildboundFlags.streamingMinRadius = 64`, compared in Studio with `Workspace.StreamingMinRadius` (64). Streaming stays on | `WildboundFairStrike_Test` |
+| D-C3: before the first paid trip home (one registered creature, any banked material or any Ember) a strike resolves as shadow: no mark, no damage, a Spanish "it cannot hurt you yet" notice | `FairStrike.lethal`, `FairStrike.strikeMode`, `Eligibility("Progress")` |
+| Two hits kill: the first marks (health pinned at 35, rest 5 s in a safe zone to clear), the second defeats through `Humanoid:TakeDamage` | Unchanged fair-strike path (D6) |
+| Telegraph 1.4 s standing still, with the chip countdown, the wind-up pose and a Spanish dodge notice; moving more than 7 studs away makes the strike miss | World script, `WildboundWorld.client` |
+| A landed strike flashes the screen red (softer with Reduced effects) and names a sound hook (`hit`, `defeat`) for delivery D; no sound plays | `WildboundHudView.hitFlash` |
+| A server stall of more than 0.5 s during Alert, Hunt or Telegraph cancels the attack: no catch-up hit | World script, `FairStrike.noteStep` |
+| D-C2: a defeat takes a fifth of each carried stack (a tenth with the Reinforced Pack), the carry slot and unwarded bag items (eggs too); registered creatures, banked materials and Ember stay; respawn at camp | `WildboundState:defeat`, economy document |
+| D-C5: strike notices, the defeat screen and the defeat notice read in Spanish through optional words tables (`WildboundText.STRIKE`, `WildboundText.DEFEAT`); the English defaults remain for the older contracts | `FairStrike.strikeNotice`, `WildboundHudView.lossSummary` |
+
+## Play check (C5), Studio Play solo, 2026-11-07
+
+Damage on (private place). Workarounds as in deliveries A and B: positions set by `PivotTo`, walking by `Humanoid:MoveTo`, prompts by `ProximityPrompt:InputHoldBegin`, the seal by the same `Action("CaptureSeal")` remote the button fires, the start screen closed through its `Screen` seam, and noise legs for the navigation measurement fired on the server-only `GuardianNoise` event. Timings are from a server-side monitor at 0.1 s.
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Patrol | PASS | Walks the diamond and ambush anchors at the profile speed; relocated Home to NestSide and back |
+| Investigates a capture | PASS | A real capture start at L1 fired `ring` (Territory); heard at strength 0.5 or more, so straight to Investigate; it then saw the player: Alert 1.2 s, Hunt, Telegraph |
+| Chases around solid trees | PASS | 12.9 s of Hunt through the forest: closest approach to a core edge 1.35 studs, 26 plans, 0 stalls, 0 failures, 0 blocked steps, at most 1.8 studs per 0.2 s step |
+| Loses the player and searches | PASS | Player ran out of the fog during a Hunt: Search near the last known spot, clamped at the fog edge (-43, -70), then Retreat |
+| Telegraph lets the player dodge | PASS | Telegraph at 5.4 studs; the player moved 20 studs away during the 1.4 s; outcome Missed, health 100 |
+| First hit marks, second kills, real Humanoid damage | PASS | Health 100 to 35 on the first strike, 0 on the second; `FS_strike_executed` 2 per life, identity holds |
+| Respawn losses | PASS | Carried Lumipol lost ("Perdiste 1 objeto: Lumipol"), 1 registered kept, 10 Ember kept, respawn at camp (-140, 150) |
+| Never enters camp | PASS | Over the whole session the guardian stayed at least 195 studs from either safe circle's edge and at most 68.6 studs from home (leash 80) |
+| A gated new player cannot die | PASS | Before any registration: a strike passed every gate and resolved as shadow (`FSx_spared` 1), health 100 |
+| A stall gives no catch-up hit | PASS | The server was frozen for 0.8 s in the middle of a telegraph: the attack was cancelled early, no strike, health 100 |
+
+Captures (desktop Play view, 1336 x 699; phone captures were BLOCKED: the Device Simulator can only be switched through the Studio interface): `assets/exports/forest-kit/captures/c-dodge-cue-carrying-desktop.jpg` (dodge notice while carrying), `c-marked-notice-desktop.jpg` (Spanish mark notice and MARKED tag), `c-defeat-summary-spanish-desktop.jpg` and `c-defeat-carried-lumipol-lost-desktop.jpg` (Spanish defeat screen). Each was viewed. Found: on a wide screen the long mark notice is fitted to its first sentence ("¡La Silueta te marcó!"); the rest shows only on a phone through the short form. The red flash lasts 0.45 s and was not caught by a capture; its trigger was observed (`LastHitSound` set to `hit`, then `defeat`).
