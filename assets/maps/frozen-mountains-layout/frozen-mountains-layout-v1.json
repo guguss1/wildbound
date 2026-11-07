@@ -1,0 +1,2303 @@
+{
+ "name": "frozen-mountains-layout-v1",
+ "status": "draft, unvalidated: never imported into Roblox, played or measured on a device",
+ "seed": 20261109,
+ "map_size": 500.0,
+ "caps": {
+  "instances": 170,
+  "triangles": 40000
+ },
+ "totals": {
+  "instances": 148,
+  "triangles_measured": 29968,
+  "triangles_budget": 34600,
+  "mesh_parts": 312,
+  "by_name": {
+   "FM_SnowPine": {
+    "count": 60,
+    "triangles": 17880
+   },
+   "FM_IceSpire": {
+    "count": 18,
+    "triangles": 2916
+   },
+   "FM_RockOverhang": {
+    "count": 8,
+    "triangles": 2528
+   },
+   "FM_ScourShelf": {
+    "count": 24,
+    "triangles": 2880
+   },
+   "FM_Cairn": {
+    "count": 16,
+    "triangles": 1600
+   },
+   "FM_SnowMound": {
+    "count": 20,
+    "triangles": 1160
+   },
+   "FM_IcePass": {
+    "count": 2,
+    "triangles": 1004
+   }
+  }
+ },
+ "route": {
+  "nodes": [
+   [
+    -225.0,
+    190.0
+   ],
+   [
+    -140.0,
+    130.0
+   ],
+   [
+    -60.0,
+    140.0
+   ],
+   [
+    20.0,
+    70.0
+   ],
+   [
+    90.0,
+    10.0
+   ],
+   [
+    160.0,
+    -60.0
+   ],
+   [
+    200.0,
+    -130.0
+   ],
+   [
+    225.0,
+    -195.0
+   ]
+  ],
+  "names": [
+   "gate_south",
+   "foothill",
+   "saddle",
+   "snowfield",
+   "cornice",
+   "high_slope",
+   "ridge",
+   "gate_north"
+  ],
+  "length": 632.422,
+  "walk_seconds": 39.526,
+  "corridor_width": 14.0
+ },
+ "yeti_home": [
+  110.0,
+  -150.0
+ ],
+ "no_track_rects": [
+  {
+   "source": "overhang-01",
+   "name": "FM_RockOverhang",
+   "center": [
+    113.873,
+    -50.825
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 225.0,
+   "polygon": [
+    [
+     120.944,
+     -52.239
+    ],
+    [
+     112.459,
+     -43.754
+    ],
+    [
+     106.802,
+     -49.411
+    ],
+    [
+     115.287,
+     -57.896
+    ]
+   ]
+  },
+  {
+   "source": "overhang-02",
+   "name": "FM_RockOverhang",
+   "center": [
+    36.247,
+    94.268
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 41.186,
+   "polygon": [
+    [
+     29.098,
+     95.209
+    ],
+    [
+     38.128,
+     87.307
+    ],
+    [
+     43.396,
+     93.327
+    ],
+    [
+     34.366,
+     101.229
+    ]
+   ]
+  },
+  {
+   "source": "overhang-03",
+   "name": "FM_RockOverhang",
+   "center": [
+    79.537,
+    -24.995
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 225.0,
+   "polygon": [
+    [
+     86.608,
+     -26.409
+    ],
+    [
+     78.123,
+     -17.924
+    ],
+    [
+     72.466,
+     -23.581
+    ],
+    [
+     80.951,
+     -32.066
+    ]
+   ]
+  },
+  {
+   "source": "overhang-04",
+   "name": "FM_RockOverhang",
+   "center": [
+    45.201,
+    9.792
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 220.601,
+   "polygon": [
+    [
+     52.359,
+     8.924
+    ],
+    [
+     43.248,
+     16.733
+    ],
+    [
+     38.042,
+     10.659
+    ],
+    [
+     47.153,
+     2.85
+    ]
+   ]
+  },
+  {
+   "source": "overhang-05",
+   "name": "FM_RockOverhang",
+   "center": [
+    -86.709,
+    178.179
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 352.875,
+   "polygon": [
+    [
+     -92.166,
+     173.466
+    ],
+    [
+     -80.259,
+     174.955
+    ],
+    [
+     -81.251,
+     182.893
+    ],
+    [
+     -93.159,
+     181.404
+    ]
+   ]
+  },
+  {
+   "source": "overhang-06",
+   "name": "FM_RockOverhang",
+   "center": [
+    180.597,
+    -181.025
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 248.962,
+   "polygon": [
+    [
+     186.484,
+     -185.189
+    ],
+    [
+     182.176,
+     -173.989
+    ],
+    [
+     174.709,
+     -176.861
+    ],
+    [
+     179.017,
+     -188.061
+    ]
+   ]
+  },
+  {
+   "source": "overhang-07",
+   "name": "FM_RockOverhang",
+   "center": [
+    151.77,
+    2.135
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 45.0,
+   "polygon": [
+    [
+     144.699,
+     3.549
+    ],
+    [
+     153.184,
+     -4.936
+    ],
+    [
+     158.841,
+     0.721
+    ],
+    [
+     150.356,
+     9.206
+    ]
+   ]
+  },
+  {
+   "source": "overhang-08",
+   "name": "FM_RockOverhang",
+   "center": [
+    185.828,
+    -30.085
+   ],
+   "size": [
+    12.0,
+    8.0
+   ],
+   "yaw": 45.0,
+   "polygon": [
+    [
+     178.757,
+     -28.671
+    ],
+    [
+     187.242,
+     -37.156
+    ],
+    [
+     192.899,
+     -31.499
+    ],
+    [
+     184.414,
+     -23.014
+    ]
+   ]
+  },
+  {
+   "source": "shelf-01",
+   "name": "FM_ScourShelf",
+   "center": [
+    -196.953,
+    169.041
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 176.332,
+   "polygon": [
+    [
+     -192.646,
+     173.939
+    ],
+    [
+     -201.851,
+     173.348
+    ],
+    [
+     -201.26,
+     164.143
+    ],
+    [
+     -192.055,
+     164.734
+    ]
+   ]
+  },
+  {
+   "source": "shelf-02",
+   "name": "FM_ScourShelf",
+   "center": [
+    -150.048,
+    137.53
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 152.696,
+   "polygon": [
+    [
+     -148.065,
+     143.744
+    ],
+    [
+     -156.262,
+     139.513
+    ],
+    [
+     -152.031,
+     131.316
+    ],
+    [
+     -143.834,
+     135.547
+    ]
+   ]
+  },
+  {
+   "source": "shelf-03",
+   "name": "FM_ScourShelf",
+   "center": [
+    -84.374,
+    135.993
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 313.327,
+   "polygon": [
+    [
+     -84.184,
+     129.473
+    ],
+    [
+     -77.854,
+     136.183
+    ],
+    [
+     -84.564,
+     142.513
+    ],
+    [
+     -90.894,
+     135.803
+    ]
+   ]
+  },
+  {
+   "source": "shelf-04",
+   "name": "FM_ScourShelf",
+   "center": [
+    -30.802,
+    115.954
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 357.753,
+   "polygon": [
+    [
+     -35.23,
+     111.165
+    ],
+    [
+     -26.013,
+     111.526
+    ],
+    [
+     -26.374,
+     120.743
+    ],
+    [
+     -35.591,
+     120.382
+    ]
+   ]
+  },
+  {
+   "source": "shelf-05",
+   "name": "FM_ScourShelf",
+   "center": [
+    10.385,
+    77.237
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 76.971,
+   "polygon": [
+    [
+     4.852,
+     80.691
+    ],
+    [
+     6.931,
+     71.704
+    ],
+    [
+     15.918,
+     73.783
+    ],
+    [
+     13.839,
+     82.77
+    ]
+   ]
+  },
+  {
+   "source": "shelf-06",
+   "name": "FM_ScourShelf",
+   "center": [
+    63.818,
+    34.32
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 58.08,
+   "polygon": [
+    [
+     57.465,
+     35.796
+    ],
+    [
+     62.342,
+     27.967
+    ],
+    [
+     70.171,
+     32.844
+    ],
+    [
+     65.294,
+     40.673
+    ]
+   ]
+  },
+  {
+   "source": "shelf-07",
+   "name": "FM_ScourShelf",
+   "center": [
+    109.262,
+    -8.619
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 303.105,
+   "polygon": [
+    [
+     110.606,
+     -15.001
+    ],
+    [
+     115.644,
+     -7.275
+    ],
+    [
+     107.918,
+     -2.237
+    ],
+    [
+     102.88,
+     -9.963
+    ]
+   ]
+  },
+  {
+   "source": "shelf-08",
+   "name": "FM_ScourShelf",
+   "center": [
+    152.709,
+    -53.547
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 330.999,
+   "polygon": [
+    [
+     150.911,
+     -59.817
+    ],
+    [
+     158.979,
+     -55.345
+    ],
+    [
+     154.507,
+     -47.277
+    ],
+    [
+     146.439,
+     -51.749
+    ]
+   ]
+  },
+  {
+   "source": "shelf-09",
+   "name": "FM_ScourShelf",
+   "center": [
+    185.846,
+    -106.013
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 143.996,
+   "polygon": [
+    [
+     186.866,
+     -99.571
+    ],
+    [
+     179.404,
+     -104.993
+    ],
+    [
+     184.826,
+     -112.455
+    ],
+    [
+     192.288,
+     -107.033
+    ]
+   ]
+  },
+  {
+   "source": "shelf-10",
+   "name": "FM_ScourShelf",
+   "center": [
+    212.657,
+    -162.248
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 150.911,
+   "polygon": [
+    [
+     214.445,
+     -155.976
+    ],
+    [
+     206.385,
+     -160.46
+    ],
+    [
+     210.869,
+     -168.52
+    ],
+    [
+     218.929,
+     -164.036
+    ]
+   ]
+  },
+  {
+   "source": "shelf-11",
+   "name": "FM_ScourShelf",
+   "center": [
+    235.475,
+    -65.667
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 281.565,
+   "polygon": [
+    [
+     239.069,
+     -71.11
+    ],
+    [
+     240.918,
+     -62.073
+    ],
+    [
+     231.881,
+     -60.224
+    ],
+    [
+     230.032,
+     -69.261
+    ]
+   ]
+  },
+  {
+   "source": "shelf-12",
+   "name": "FM_ScourShelf",
+   "center": [
+    32.918,
+    -96.44
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 235.056,
+   "polygon": [
+    [
+     39.34,
+     -97.579
+    ],
+    [
+     34.057,
+     -90.018
+    ],
+    [
+     26.496,
+     -95.301
+    ],
+    [
+     31.779,
+     -102.862
+    ]
+   ]
+  },
+  {
+   "source": "shelf-13",
+   "name": "FM_ScourShelf",
+   "center": [
+    155.24,
+    158.669
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 88.194,
+   "polygon": [
+    [
+     150.485,
+     163.133
+    ],
+    [
+     150.776,
+     153.914
+    ],
+    [
+     159.995,
+     154.205
+    ],
+    [
+     159.704,
+     163.424
+    ]
+   ]
+  },
+  {
+   "source": "shelf-14",
+   "name": "FM_ScourShelf",
+   "center": [
+    133.762,
+    235.138
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 111.055,
+   "polygon": [
+    [
+     131.115,
+     241.099
+    ],
+    [
+     127.801,
+     232.491
+    ],
+    [
+     136.409,
+     229.177
+    ],
+    [
+     139.723,
+     237.785
+    ]
+   ]
+  },
+  {
+   "source": "shelf-15",
+   "name": "FM_ScourShelf",
+   "center": [
+    98.17,
+    130.335
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 232.857,
+   "polygon": [
+    [
+     104.631,
+     129.443
+    ],
+    [
+     99.062,
+     136.796
+    ],
+    [
+     91.709,
+     131.227
+    ],
+    [
+     97.278,
+     123.874
+    ]
+   ]
+  },
+  {
+   "source": "shelf-16",
+   "name": "FM_ScourShelf",
+   "center": [
+    -217.786,
+    100.902
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 74.841,
+   "polygon": [
+    [
+     -223.444,
+     104.147
+    ],
+    [
+     -221.031,
+     95.244
+    ],
+    [
+     -212.128,
+     97.657
+    ],
+    [
+     -214.541,
+     106.56
+    ]
+   ]
+  },
+  {
+   "source": "shelf-17",
+   "name": "FM_ScourShelf",
+   "center": [
+    -42.983,
+    55.239
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 43.308,
+   "polygon": [
+    [
+     -49.503,
+     55.046
+    ],
+    [
+     -42.79,
+     48.719
+    ],
+    [
+     -36.463,
+     55.432
+    ],
+    [
+     -43.176,
+     61.759
+    ]
+   ]
+  },
+  {
+   "source": "shelf-18",
+   "name": "FM_ScourShelf",
+   "center": [
+    -193.053,
+    -125.451
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 49.862,
+   "polygon": [
+    [
+     -199.552,
+     -124.898
+    ],
+    [
+     -193.606,
+     -131.95
+    ],
+    [
+     -186.554,
+     -126.004
+    ],
+    [
+     -192.5,
+     -118.952
+    ]
+   ]
+  },
+  {
+   "source": "shelf-19",
+   "name": "FM_ScourShelf",
+   "center": [
+    55.72,
+    209.807
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 45.124,
+   "polygon": [
+    [
+     49.198,
+     209.821
+    ],
+    [
+     55.706,
+     203.285
+    ],
+    [
+     62.242,
+     209.793
+    ],
+    [
+     55.734,
+     216.329
+    ]
+   ]
+  },
+  {
+   "source": "shelf-20",
+   "name": "FM_ScourShelf",
+   "center": [
+    227.688,
+    188.574
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 160.923,
+   "polygon": [
+    [
+     230.539,
+     194.44
+    ],
+    [
+     221.822,
+     191.425
+    ],
+    [
+     224.837,
+     182.708
+    ],
+    [
+     233.554,
+     185.723
+    ]
+   ]
+  },
+  {
+   "source": "shelf-21",
+   "name": "FM_ScourShelf",
+   "center": [
+    -18.323,
+    -101.635
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 291.024,
+   "polygon": [
+    [
+     -15.673,
+     -107.595
+    ],
+    [
+     -12.363,
+     -98.985
+    ],
+    [
+     -20.973,
+     -95.675
+    ],
+    [
+     -24.283,
+     -104.285
+    ]
+   ]
+  },
+  {
+   "source": "shelf-22",
+   "name": "FM_ScourShelf",
+   "center": [
+    180.083,
+    185.102
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 307.62,
+   "polygon": [
+    [
+     180.921,
+     178.634
+    ],
+    [
+     186.551,
+     185.94
+    ],
+    [
+     179.245,
+     191.57
+    ],
+    [
+     173.615,
+     184.264
+    ]
+   ]
+  },
+  {
+   "source": "shelf-23",
+   "name": "FM_ScourShelf",
+   "center": [
+    -190.091,
+    7.498
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 36.593,
+   "polygon": [
+    [
+     -196.543,
+     6.544
+    ],
+    [
+     -189.137,
+     1.046
+    ],
+    [
+     -183.639,
+     8.452
+    ],
+    [
+     -191.045,
+     13.95
+    ]
+   ]
+  },
+  {
+   "source": "shelf-24",
+   "name": "FM_ScourShelf",
+   "center": [
+    -179.054,
+    -69.014
+   ],
+   "size": [
+    9.224,
+    9.224
+   ],
+   "yaw": 192.25,
+   "polygon": [
+    [
+     -173.568,
+     -65.486
+    ],
+    [
+     -182.582,
+     -63.528
+    ],
+    [
+     -184.54,
+     -72.542
+    ],
+    [
+     -175.526,
+     -74.5
+    ]
+   ]
+  }
+ ],
+ "tracks": {
+  "spacing": 6.0,
+  "max_points_per_player": 24,
+  "points": 106,
+  "skipped": 17,
+  "chains": [
+   30.0,
+   48.0,
+   54.0,
+   54.0,
+   48.0,
+   60.0,
+   54.0,
+   48.0,
+   54.0,
+   54.0,
+   30.0
+  ],
+  "longest_chain_studs": 60.0
+ },
+ "density": {
+  "near_sight_blocker_fraction": 0.1648,
+  "props_per_1000_sq_studs": 0.592
+ },
+ "instances": [
+  {
+   "name": "FM_SnowPine",
+   "x": 160.515,
+   "z": 68.672,
+   "rotation_y_deg": 357.52,
+   "scale": 0.906,
+   "id": "pine-01"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 157.088,
+   "z": 51.35,
+   "rotation_y_deg": 167.552,
+   "scale": 1.074,
+   "id": "pine-02"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 138.73,
+   "z": 119.775,
+   "rotation_y_deg": 173.388,
+   "scale": 1.108,
+   "id": "pine-03"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 160.129,
+   "z": 82.986,
+   "rotation_y_deg": 325.078,
+   "scale": 0.962,
+   "id": "pine-04"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 121.702,
+   "z": 86.248,
+   "rotation_y_deg": 13.29,
+   "scale": 0.999,
+   "id": "pine-05"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 147.845,
+   "z": 101.723,
+   "rotation_y_deg": 0.542,
+   "scale": 1.091,
+   "id": "pine-06"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 140.947,
+   "z": 67.737,
+   "rotation_y_deg": 4.131,
+   "scale": 0.978,
+   "id": "pine-07"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 162.253,
+   "z": 121.511,
+   "rotation_y_deg": 52.903,
+   "scale": 1.06,
+   "id": "pine-08"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 158.357,
+   "z": -201.342,
+   "rotation_y_deg": 29.636,
+   "scale": 0.906,
+   "id": "pine-09"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 173.431,
+   "z": -194.398,
+   "rotation_y_deg": 215.659,
+   "scale": 0.908,
+   "id": "pine-10"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 169.164,
+   "z": -238.064,
+   "rotation_y_deg": 52.23,
+   "scale": 1.124,
+   "id": "pine-11"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 169.199,
+   "z": -219.545,
+   "rotation_y_deg": 174.276,
+   "scale": 0.948,
+   "id": "pine-12"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 195.135,
+   "z": -200.265,
+   "rotation_y_deg": 1.958,
+   "scale": 1.028,
+   "id": "pine-13"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 154.939,
+   "z": -217.988,
+   "rotation_y_deg": 93.989,
+   "scale": 1.125,
+   "id": "pine-14"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 211.325,
+   "z": -227.488,
+   "rotation_y_deg": 10.283,
+   "scale": 0.962,
+   "id": "pine-15"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 183.33,
+   "z": -206.359,
+   "rotation_y_deg": 54.808,
+   "scale": 0.931,
+   "id": "pine-16"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 198.988,
+   "z": -74.208,
+   "rotation_y_deg": 111.75,
+   "scale": 1.064,
+   "id": "pine-17"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 209.599,
+   "z": -52.14,
+   "rotation_y_deg": 324.766,
+   "scale": 1.13,
+   "id": "pine-18"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 236.212,
+   "z": -50.198,
+   "rotation_y_deg": 34.139,
+   "scale": 0.962,
+   "id": "pine-19"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 217.844,
+   "z": -94.548,
+   "rotation_y_deg": 134.9,
+   "scale": 0.91,
+   "id": "pine-20"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 220.079,
+   "z": -44.73,
+   "rotation_y_deg": 17.192,
+   "scale": 0.919,
+   "id": "pine-21"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 231.029,
+   "z": -36.69,
+   "rotation_y_deg": 325.377,
+   "scale": 0.971,
+   "id": "pine-22"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 206.382,
+   "z": -103.461,
+   "rotation_y_deg": 0.244,
+   "scale": 1.039,
+   "id": "pine-23"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 202.499,
+   "z": -86.937,
+   "rotation_y_deg": 136.429,
+   "scale": 0.945,
+   "id": "pine-24"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -19.888,
+   "z": 7.144,
+   "rotation_y_deg": 206.636,
+   "scale": 1.019,
+   "id": "pine-25"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -48.291,
+   "z": -20.148,
+   "rotation_y_deg": 254.085,
+   "scale": 1.045,
+   "id": "pine-26"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -89.842,
+   "z": 15.995,
+   "rotation_y_deg": 298.922,
+   "scale": 1.059,
+   "id": "pine-27"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -73.356,
+   "z": 33.397,
+   "rotation_y_deg": 275.01,
+   "scale": 0.902,
+   "id": "pine-28"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -66.953,
+   "z": -2.34,
+   "rotation_y_deg": 152.12,
+   "scale": 0.952,
+   "id": "pine-29"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -37.382,
+   "z": 36.071,
+   "rotation_y_deg": 130.613,
+   "scale": 0.979,
+   "id": "pine-30"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -18.732,
+   "z": 26.58,
+   "rotation_y_deg": 142.323,
+   "scale": 1.027,
+   "id": "pine-31"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -55.399,
+   "z": -8.935,
+   "rotation_y_deg": 66.286,
+   "scale": 0.965,
+   "id": "pine-32"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 154.226,
+   "z": -111.778,
+   "rotation_y_deg": 178.681,
+   "scale": 0.97,
+   "id": "pine-33"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 134.263,
+   "z": -109.725,
+   "rotation_y_deg": 49.463,
+   "scale": 1.02,
+   "id": "pine-34"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 118.184,
+   "z": -158.699,
+   "rotation_y_deg": 37.135,
+   "scale": 1.145,
+   "id": "pine-35"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 114.248,
+   "z": -121.871,
+   "rotation_y_deg": 325.834,
+   "scale": 1.094,
+   "id": "pine-36"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 98.882,
+   "z": -138.548,
+   "rotation_y_deg": 46.752,
+   "scale": 0.942,
+   "id": "pine-37"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 129.877,
+   "z": -163.684,
+   "rotation_y_deg": 222.704,
+   "scale": 0.961,
+   "id": "pine-38"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 111.918,
+   "z": -97.484,
+   "rotation_y_deg": 2.449,
+   "scale": 1.125,
+   "id": "pine-39"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 96.985,
+   "z": -113.605,
+   "rotation_y_deg": 61.162,
+   "scale": 1.012,
+   "id": "pine-40"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 65.243,
+   "z": 201.281,
+   "rotation_y_deg": 34.662,
+   "scale": 1.012,
+   "id": "pine-41"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 43.397,
+   "z": 197.813,
+   "rotation_y_deg": 145.228,
+   "scale": 1.103,
+   "id": "pine-42"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 23.957,
+   "z": 179.633,
+   "rotation_y_deg": 246.702,
+   "scale": 1.078,
+   "id": "pine-43"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 38.139,
+   "z": 211.089,
+   "rotation_y_deg": 331.942,
+   "scale": 0.975,
+   "id": "pine-44"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 66.876,
+   "z": 170.18,
+   "rotation_y_deg": 238.71,
+   "scale": 1.034,
+   "id": "pine-45"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 59.406,
+   "z": 148.194,
+   "rotation_y_deg": 22.44,
+   "scale": 0.975,
+   "id": "pine-46"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 33.136,
+   "z": 190.95,
+   "rotation_y_deg": 245.34,
+   "scale": 1.101,
+   "id": "pine-47"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 40.744,
+   "z": 151.76,
+   "rotation_y_deg": 354.138,
+   "scale": 1.031,
+   "id": "pine-48"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 233.185,
+   "z": 199.823,
+   "rotation_y_deg": 189.739,
+   "scale": 0.984,
+   "id": "pine-49"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 16.568,
+   "z": -33.427,
+   "rotation_y_deg": 194.788,
+   "scale": 1.062,
+   "id": "pine-50"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -145.59,
+   "z": -100.68,
+   "rotation_y_deg": 0.039,
+   "scale": 1.146,
+   "id": "pine-51"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 4.348,
+   "z": 51.6,
+   "rotation_y_deg": 134.68,
+   "scale": 1.018,
+   "id": "pine-52"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -189.703,
+   "z": 183.772,
+   "rotation_y_deg": 31.581,
+   "scale": 1.076,
+   "id": "pine-53"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -84.417,
+   "z": -66.419,
+   "rotation_y_deg": 355.823,
+   "scale": 0.963,
+   "id": "pine-54"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -230.134,
+   "z": -195.014,
+   "rotation_y_deg": 180.918,
+   "scale": 1.131,
+   "id": "pine-55"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -104.272,
+   "z": -202.306,
+   "rotation_y_deg": 7.282,
+   "scale": 1.009,
+   "id": "pine-56"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 139.591,
+   "z": 92.684,
+   "rotation_y_deg": 205.593,
+   "scale": 0.987,
+   "id": "pine-57"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -36.152,
+   "z": -99.954,
+   "rotation_y_deg": 157.039,
+   "scale": 1.127,
+   "id": "pine-58"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": 169.238,
+   "z": 176.545,
+   "rotation_y_deg": 213.937,
+   "scale": 1.074,
+   "id": "pine-59"
+  },
+  {
+   "name": "FM_SnowPine",
+   "x": -79.211,
+   "z": -136.699,
+   "rotation_y_deg": 60.912,
+   "scale": 1.023,
+   "id": "pine-60"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -84.654,
+   "z": 169.262,
+   "rotation_y_deg": 352.875,
+   "scale": 0.943,
+   "id": "spire-01"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 198.126,
+   "z": -176.013,
+   "rotation_y_deg": 248.962,
+   "scale": 1.117,
+   "id": "spire-02"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 58.682,
+   "z": -14.007,
+   "rotation_y_deg": 220.601,
+   "scale": 1.146,
+   "id": "spire-03"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 157.621,
+   "z": -135.147,
+   "rotation_y_deg": 240.255,
+   "scale": 0.965,
+   "id": "spire-04"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -210.998,
+   "z": 140.927,
+   "rotation_y_deg": 215.218,
+   "scale": 1.163,
+   "id": "spire-05"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 143.159,
+   "z": -71.58,
+   "rotation_y_deg": 225.0,
+   "scale": 0.905,
+   "id": "spire-06"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -19.498,
+   "z": 64.274,
+   "rotation_y_deg": 221.186,
+   "scale": 0.947,
+   "id": "spire-07"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 178.108,
+   "z": -159.831,
+   "rotation_y_deg": 248.962,
+   "scale": 1.041,
+   "id": "spire-08"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 122.367,
+   "z": -82.878,
+   "rotation_y_deg": 225.0,
+   "scale": 1.049,
+   "id": "spire-09"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -222.352,
+   "z": 168.345,
+   "rotation_y_deg": 215.218,
+   "scale": 1.005,
+   "id": "spire-10"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -163.629,
+   "z": 188.38,
+   "rotation_y_deg": 35.218,
+   "scale": 1.128,
+   "id": "spire-11"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 184.458,
+   "z": -58.562,
+   "rotation_y_deg": 60.255,
+   "scale": 1.18,
+   "id": "spire-12"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 5.518,
+   "z": 110.075,
+   "rotation_y_deg": 41.186,
+   "scale": 1.011,
+   "id": "spire-13"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 1.392,
+   "z": 140.709,
+   "rotation_y_deg": 41.186,
+   "scale": 0.957,
+   "id": "spire-14"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -198.735,
+   "z": 221.611,
+   "rotation_y_deg": 35.218,
+   "scale": 1.167,
+   "id": "spire-15"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": 16.074,
+   "z": 96.932,
+   "rotation_y_deg": 41.186,
+   "scale": 1.188,
+   "id": "spire-16"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -8.172,
+   "z": 140.769,
+   "rotation_y_deg": 41.186,
+   "scale": 1.012,
+   "id": "spire-17"
+  },
+  {
+   "name": "FM_IceSpire",
+   "x": -64.984,
+   "z": 96.006,
+   "rotation_y_deg": 221.186,
+   "scale": 0.94,
+   "id": "spire-18"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 112.459,
+   "z": -52.239,
+   "rotation_y_deg": 225.0,
+   "scale": 1.0,
+   "id": "overhang-01"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 37.564,
+   "z": 95.773,
+   "rotation_y_deg": 41.186,
+   "scale": 1.0,
+   "id": "overhang-02"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 78.123,
+   "z": -26.409,
+   "rotation_y_deg": 225.0,
+   "scale": 1.0,
+   "id": "overhang-03"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 43.899,
+   "z": 8.273,
+   "rotation_y_deg": 220.601,
+   "scale": 1.0,
+   "id": "overhang-04"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": -86.957,
+   "z": 180.164,
+   "rotation_y_deg": 352.875,
+   "scale": 1.0,
+   "id": "overhang-05"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 178.73,
+   "z": -181.743,
+   "rotation_y_deg": 248.962,
+   "scale": 1.0,
+   "id": "overhang-06"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 153.184,
+   "z": 3.549,
+   "rotation_y_deg": 45.0,
+   "scale": 1.0,
+   "id": "overhang-07"
+  },
+  {
+   "name": "FM_RockOverhang",
+   "x": 187.242,
+   "z": -28.671,
+   "rotation_y_deg": 45.0,
+   "scale": 1.0,
+   "id": "overhang-08"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -196.953,
+   "z": 169.041,
+   "rotation_y_deg": 176.332,
+   "scale": 1.0,
+   "id": "shelf-01"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -150.048,
+   "z": 137.53,
+   "rotation_y_deg": 152.696,
+   "scale": 1.0,
+   "id": "shelf-02"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -84.374,
+   "z": 135.993,
+   "rotation_y_deg": 313.327,
+   "scale": 1.0,
+   "id": "shelf-03"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -30.802,
+   "z": 115.954,
+   "rotation_y_deg": 357.753,
+   "scale": 1.0,
+   "id": "shelf-04"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 10.385,
+   "z": 77.237,
+   "rotation_y_deg": 76.971,
+   "scale": 1.0,
+   "id": "shelf-05"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 63.818,
+   "z": 34.32,
+   "rotation_y_deg": 58.08,
+   "scale": 1.0,
+   "id": "shelf-06"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 109.262,
+   "z": -8.619,
+   "rotation_y_deg": 303.105,
+   "scale": 1.0,
+   "id": "shelf-07"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 152.709,
+   "z": -53.547,
+   "rotation_y_deg": 330.999,
+   "scale": 1.0,
+   "id": "shelf-08"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 185.846,
+   "z": -106.013,
+   "rotation_y_deg": 143.996,
+   "scale": 1.0,
+   "id": "shelf-09"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 212.657,
+   "z": -162.248,
+   "rotation_y_deg": 150.911,
+   "scale": 1.0,
+   "id": "shelf-10"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 235.475,
+   "z": -65.667,
+   "rotation_y_deg": 281.565,
+   "scale": 1.0,
+   "id": "shelf-11"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 32.918,
+   "z": -96.44,
+   "rotation_y_deg": 235.056,
+   "scale": 1.0,
+   "id": "shelf-12"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 155.24,
+   "z": 158.669,
+   "rotation_y_deg": 88.194,
+   "scale": 1.0,
+   "id": "shelf-13"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 133.762,
+   "z": 235.138,
+   "rotation_y_deg": 111.055,
+   "scale": 1.0,
+   "id": "shelf-14"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 98.17,
+   "z": 130.335,
+   "rotation_y_deg": 232.857,
+   "scale": 1.0,
+   "id": "shelf-15"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -217.786,
+   "z": 100.902,
+   "rotation_y_deg": 74.841,
+   "scale": 1.0,
+   "id": "shelf-16"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -42.983,
+   "z": 55.239,
+   "rotation_y_deg": 43.308,
+   "scale": 1.0,
+   "id": "shelf-17"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -193.053,
+   "z": -125.451,
+   "rotation_y_deg": 49.862,
+   "scale": 1.0,
+   "id": "shelf-18"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 55.72,
+   "z": 209.807,
+   "rotation_y_deg": 45.124,
+   "scale": 1.0,
+   "id": "shelf-19"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 227.688,
+   "z": 188.574,
+   "rotation_y_deg": 160.923,
+   "scale": 1.0,
+   "id": "shelf-20"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -18.323,
+   "z": -101.635,
+   "rotation_y_deg": 291.024,
+   "scale": 1.0,
+   "id": "shelf-21"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": 180.083,
+   "z": 185.102,
+   "rotation_y_deg": 307.62,
+   "scale": 1.0,
+   "id": "shelf-22"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -190.091,
+   "z": 7.498,
+   "rotation_y_deg": 36.593,
+   "scale": 1.0,
+   "id": "shelf-23"
+  },
+  {
+   "name": "FM_ScourShelf",
+   "x": -179.054,
+   "z": -69.014,
+   "rotation_y_deg": 192.25,
+   "scale": 1.0,
+   "id": "shelf-24"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -195.012,
+   "z": 180.461,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-01"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -174.793,
+   "z": 142.931,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-02"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -136.56,
+   "z": 120.856,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-03"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -98.693,
+   "z": 125.589,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-04"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -63.183,
+   "z": 149.176,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-05"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": -42.067,
+   "z": 111.685,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-06"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 2.175,
+   "z": 98.221,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-07"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 18.497,
+   "z": 58.776,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-08"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 59.836,
+   "z": 48.367,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-09"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 76.446,
+   "z": 9.106,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-10"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 106.23,
+   "z": -19.665,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-11"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 130.385,
+   "z": -43.82,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-12"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 171.116,
+   "z": -60.305,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-13"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 173.553,
+   "z": -102.865,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-14"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 209.398,
+   "z": -127.971,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-15"
+  },
+  {
+   "name": "FM_Cairn",
+   "x": 206.8,
+   "z": -174.143,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "cairn-16"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -140.79,
+   "z": 220.951,
+   "rotation_y_deg": 247.343,
+   "scale": 1.087,
+   "id": "mound-01"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -44.762,
+   "z": 222.567,
+   "rotation_y_deg": 81.003,
+   "scale": 0.95,
+   "id": "mound-02"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 196.577,
+   "z": 222.503,
+   "rotation_y_deg": 319.369,
+   "scale": 0.927,
+   "id": "mound-03"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 195.113,
+   "z": -154.464,
+   "rotation_y_deg": 18.05,
+   "scale": 0.972,
+   "id": "mound-04"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -187.816,
+   "z": -179.69,
+   "rotation_y_deg": 137.27,
+   "scale": 1.099,
+   "id": "mound-05"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 196.068,
+   "z": 10.958,
+   "rotation_y_deg": 145.218,
+   "scale": 0.94,
+   "id": "mound-06"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 139.621,
+   "z": -194.089,
+   "rotation_y_deg": 81.347,
+   "scale": 0.863,
+   "id": "mound-07"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 234.449,
+   "z": 93.935,
+   "rotation_y_deg": 286.41,
+   "scale": 0.887,
+   "id": "mound-08"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 239.254,
+   "z": -2.02,
+   "rotation_y_deg": 67.79,
+   "scale": 0.944,
+   "id": "mound-09"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 87.396,
+   "z": 27.623,
+   "rotation_y_deg": 192.153,
+   "scale": 0.909,
+   "id": "mound-10"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 219.81,
+   "z": 7.245,
+   "rotation_y_deg": 26.054,
+   "scale": 0.99,
+   "id": "mound-11"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 166.113,
+   "z": -154.162,
+   "rotation_y_deg": 102.97,
+   "scale": 0.887,
+   "id": "mound-12"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -169.625,
+   "z": -112.996,
+   "rotation_y_deg": 80.509,
+   "scale": 1.077,
+   "id": "mound-13"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -229.847,
+   "z": -220.196,
+   "rotation_y_deg": 105.184,
+   "scale": 0.991,
+   "id": "mound-14"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -8.232,
+   "z": -169.575,
+   "rotation_y_deg": 62.92,
+   "scale": 1.042,
+   "id": "mound-15"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 14.372,
+   "z": 147.104,
+   "rotation_y_deg": 9.437,
+   "scale": 0.985,
+   "id": "mound-16"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 188.455,
+   "z": -233.387,
+   "rotation_y_deg": 224.523,
+   "scale": 0.96,
+   "id": "mound-17"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 150.011,
+   "z": 222.06,
+   "rotation_y_deg": 283.722,
+   "scale": 1.071,
+   "id": "mound-18"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": -211.974,
+   "z": -195.673,
+   "rotation_y_deg": 128.431,
+   "scale": 0.865,
+   "id": "mound-19"
+  },
+  {
+   "name": "FM_SnowMound",
+   "x": 55.678,
+   "z": 154.955,
+   "rotation_y_deg": 317.555,
+   "scale": 0.884,
+   "id": "mound-20"
+  },
+  {
+   "name": "FM_IcePass",
+   "x": -180.067,
+   "z": 158.282,
+   "rotation_y_deg": 125.218,
+   "scale": 1.0,
+   "id": "pass-01"
+  },
+  {
+   "name": "FM_IcePass",
+   "x": 126.654,
+   "z": -26.654,
+   "rotation_y_deg": 135.0,
+   "scale": 1.0,
+   "id": "pass-02"
+  }
+ ]
+}
