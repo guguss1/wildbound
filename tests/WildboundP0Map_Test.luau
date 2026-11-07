@@ -96,6 +96,108 @@ return function(builder)
             end
         end
     end)
+    -- Delivery B (B4): the camp stations. Refuge, chest, board, incubator and display sit in camp, apart from each
+    -- other and from the route, never block Silueta's sight or the spawn, and glow warm unlike the forest.
+    local function camp()
+        local folder = root and root:FindFirstChild('Camp')
+        expect(folder and folder:IsA('Folder'), 'Camp folder missing')
+        return folder
+    end
+    local function flat(part)
+        return Vector2.new(part.Position.X, part.Position.Z)
+    end
+    local CAMP_CENTER = Vector2.new(-140, 140)
+    local STATIONS = { 'RefugeMarker', 'BoardMarker', 'IncubatorMarker', 'ExtractionMarker', 'HatchMarker', 'ProtectionMarker' }
+    check('B4 camp stations sit in camp, at least 8 studs apart', function()
+        camp()
+        local found = {}
+        for _, name in ipairs(STATIONS) do
+            local marker = root:FindFirstChild(name, true)
+            expect(marker and marker:IsA('BasePart'), name .. ' missing')
+            expect(not marker.CanCollide and marker.Transparency == 1, name .. ' must be an invisible marker')
+            expect((flat(marker) - CAMP_CENTER).Magnitude <= 20, name .. ' must be within the 20 stud camp range')
+            found[name] = marker
+        end
+        for first = 1, #STATIONS do
+            for second = first + 1, #STATIONS do
+                local a, b = found[STATIONS[first]], found[STATIONS[second]]
+                expect((flat(a) - flat(b)).Magnitude >= 8, STATIONS[first] .. ' and ' .. STATIONS[second] .. ' are too close')
+            end
+        end
+        for index = 1, 4 do
+            local spot = root:FindFirstChild('DisplaySpot' .. index, true)
+            expect(spot and spot:IsA('BasePart') and spot.Transparency == 1, 'DisplaySpot' .. index .. ' missing')
+            expect((flat(spot) - CAMP_CENTER).Magnitude <= 25, 'display spot outside camp')
+        end
+    end)
+    check('B4 new stations stay off the route', function()
+        local legs = {}
+        for _, path in root.Paths:GetChildren() do
+            local half = (path.Size.Z - path.Size.X) / 2
+            local a, b = path.Position - path.CFrame.LookVector * half, path.Position + path.CFrame.LookVector * half
+            table.insert(legs, { a = Vector2.new(a.X, a.Z), b = Vector2.new(b.X, b.Z) })
+        end
+        local names = { 'RefugeMarker', 'BoardMarker', 'IncubatorMarker', 'DisplaySpot1', 'DisplaySpot2', 'DisplaySpot3', 'DisplaySpot4' }
+        for _, name in ipairs(names) do
+            local point = flat(root:FindFirstChild(name, true))
+            for _, leg in ipairs(legs) do
+                local segment = leg.b - leg.a
+                local t = math.clamp((point - leg.a):Dot(segment) / segment:Dot(segment), 0, 1)
+                expect((point - (leg.a + segment * t)).Magnitude >= 9, name .. ' sits on the route')
+            end
+        end
+    end)
+    check('B4 camp parts never block sight, the spawn or the forest reads', function()
+        local spawn = CAMP_CENTER + Vector2.new(0, 10)
+        local parts = 0
+        for _, part in camp():GetDescendants() do
+            if part:IsA('BasePart') then
+                parts += 1
+                expect(part.Anchored and not part.CanQuery and not part.CanTouch, part.Name .. ' must be anchored, unqueryable, untouchable')
+                if part.CanCollide then
+                    expect((flat(part) - spawn).Magnitude >= 5, part.Name .. ' blocks the spawn point')
+                end
+            end
+        end
+        expect(parts >= 20, 'the camp needs real stations, found ' .. parts .. ' parts')
+    end)
+    check('B4 the camp glows warm, with a few shadowless lights', function()
+        local warm = 0
+        for _, light in camp():GetDescendants() do
+            if light:IsA('PointLight') then
+                expect(not light.Shadows, 'camp lights are shadowless')
+                if light.Color.R > light.Color.G and light.Color.G > light.Color.B then warm += 1 end
+            end
+        end
+        expect(warm >= 4 and warm <= 8, 'expected 4 to 8 warm lights, found ' .. warm)
+    end)
+    check('B4 station signs carry a text key and no baked words', function()
+        local keys = {}
+        for _, sign in camp():GetDescendants() do
+            local key = sign:GetAttribute('SignKey')
+            if key then
+                keys[key] = true
+                local label = sign:FindFirstChild('Label', true)
+                expect(label and label:IsA('TextLabel') and label.Text == '', key .. ' sign must start empty; the server fills it')
+            end
+        end
+        for _, key in ipairs({ 'refuge', 'chestObject', 'boardObject', 'incubatorObject', 'incubator', 'display' }) do
+            expect(keys[key], 'no sign for ' .. key)
+        end
+    end)
+    check('B4 the camp can be added to an existing map once', function()
+        local holder = Instance.new('Folder')
+        local bare = Instance.new('Model')
+        bare.Name = 'WildboundP0'
+        bare.Parent = holder
+        local markers = Instance.new('Folder')
+        markers.Name = 'Markers'
+        markers.Parent = bare
+        local made = builder.buildCamp(bare)
+        expect(made and made.Parent == bare and made.Name == 'Camp', 'buildCamp returns the Camp folder')
+        expect(not pcall(function() builder.buildCamp(bare) end), 'a second camp is refused')
+        holder:Destroy()
+    end)
     container:Destroy()
     return { passed = passed, failed = #failures, failures = failures }
 end

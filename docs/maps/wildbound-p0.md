@@ -15,10 +15,32 @@ An editable 400 × 400 stud square, centered at the origin, with ground top at Y
 | LumipolMarker | -95 | 1.5 | 75 |
 | GuardianMarker | 0 | 1.5 | -85 |
 | EggMarker | 35 | 1.5 | -99 |
+| RefugeMarker | -152 | 1.5 | 128 |
+| BoardMarker | -150 | 1.5 | 154 |
+| IncubatorMarker | -136 | 1.5 | 158 |
+| DisplaySpot1 to 4 | -160 | 2.0 | 136, 140, 144, 148 |
 
 The nest sits 37.7 studs from the guardian home, inside the 80-stud leash, so the main objective carries encounter risk.
 
 Markers are invisible, anchored, non-colliding placeholders; they are not spawn points or gameplay implementations. The amber camp, cyan clearing beacon, stone ruin/nest, teal pool, and shelter are primitive stand-ins. The builder still places fixed-seed greybox trees (`TreeTrunk`, `TreeCrown`); the forest dressing below replaces them. Decorations do not collide. Route sightlines and landmark readability require playtesting, not inference from this design.
+
+## Camp stations (delivery B4)
+
+`Builder.buildCamp(root)` adds a `Camp` folder to a `WildboundP0` root; `build` calls it, and it can patch an already dressed map once (it refuses a second camp). The stations sit on the west half of the camp circle, away from the two routes that leave east and south-east:
+
+| Station | Centre (X, Z) | From the fire | What it is |
+| --- | --- | ---: | --- |
+| Refuge | (-152, 128) | 17.0 | Open wooden hut with a canvas roof, a rug, a fabric nest and a warm glow; prompt "Registrar criatura" on `RefugeMarker` |
+| Display | pedestals at X -160, Z 136 to 148 | 20 to 22 | Four brick pedestals with brass plaques under a beam and sign; `DisplaySpot1..4` mark the tops |
+| Storage chest | (-147.5, 140), prompt on `ExtractionMarker` (-146, 140) | 6 to 7.5 | Wooden chest with brass bands; prompt "Guardar en el cofre" |
+| Upgrade board | (-150, 154) | 17.2 | Two posts, a plank board with notes and a lantern; prompt "Ver mejoras" on `BoardMarker` |
+| Incubator | (-136, 158) | 18.4 | Slate base, glass dome and a placeholder egg, with "Incubadora" and "Próximamente" signs; no prompt (delivery E) |
+| Lantern posts | (-147, 131), (-131, 152) | | Warm lights |
+
+- Feel: a 40-stud sand disc under the camp (below the path tops), wood, canvas, brick and brass, and six shadowless warm lights (RGB 255, 176, 96), unlike the grey-green forest and its cold lanterns. Primitive parts only; there is no camp art in Studio and no upload was made (H4).
+- Every camp part is anchored with `CanQuery` and `CanTouch` off, so it never blocks Silueta's sight or counts as Lumipol cover. Only the solid bases collide (refuge posts, pedestals, chest body, board posts, incubator base), all at least 5 studs from the spawn point (CampCenter + 10 Z).
+- Signs carry a `SignKey` attribute and an empty label; the server fills them from `ReplicatedStorage.WildboundText.CAMP`, so no player-facing word lives in the builder.
+- `tests/WildboundP0Map_Test.luau` checks the stations are within the 20-stud camp range, at least 8 studs apart, at least 9 studs from every route centerline, unqueryable, clear of the spawn, lit by 4 to 8 warm shadowless lights, and that `buildCamp` refuses a second camp.
 
 ## Forest dressing
 
@@ -39,7 +61,7 @@ Markers are invisible, anchored, non-colliding placeholders; they are not spawn 
 
 ## Pending verification and assets
 
-- The standalone `tests/WildboundP0Map_Test.luau` contract passes 6/6 in Studio on fresh clones after the nest move; RED was observed first, on 2026-11-07. Runtime checks remain pending.
+- The standalone `tests/WildboundP0Map_Test.luau` contract passes 6/6 in Studio on fresh clones after the nest move; RED was observed first, on 2026-11-07. Delivery B4 added six camp cases: RED 6 passed, 6 failed, then GREEN 12/0; the live map was patched with `buildCamp` (55 camp parts). Runtime checks remain pending.
 - `tests/WildboundForestDress_Test.luau` passes 24/24 in Studio on fresh clones, including real raycasts; RED was observed first, on 2026-11-07. The nest sight lines match the plan: clear from patrol E and N, blocked by a `RuinPillar` from S and W.
 - Guardian steering measured in Play on 2026-11-07 (desktop Studio, server-teleported targets, one avatar): the territory holds 37 query trunks by pivot. In 26 chase episodes at day and night (14 in sight, 12 scripted to lose sight behind a trunk) plus 57 s of a moving target, no stall longer than 0.6 s occurred and every retreat returned home in about 3.3 s. This matches the code: `Hunt.step` marks `canAttack` whenever the target is visible, and `moveToward` checks obstacles only when `canAttack` is false, so trunks can only affect the up to 1.5 s spent walking to a last seen position. In all 6 nest trials the guardian reached the nest and began its attack telegraph, within 18.5 s by day and 5.6 s by night.
 - Walk the loop; assess path joins, camp clearance, collision, sightlines, NPC navigation, touch readability and frame rate on PC/mobile. No measured travel time or device results yet.

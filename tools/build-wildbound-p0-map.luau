@@ -72,6 +72,195 @@ local function addMarker(parent, name, x, z)
     marker.CanQuery = false
 end
 
+-- Delivery B (B4): the camp stations. Warm wood, canvas and brick under a few shadowless lights, so the camp reads
+-- safe and unlike the grey-green forest. Every part is anchored and never queried or touched, so nothing here can
+-- block Silueta's sight or count as Lumipol cover; only the solid bases collide, all away from the spawn point.
+-- Signs carry a SignKey attribute and an empty label: the server fills them from ReplicatedStorage.WildboundText.
+local CAMP = Vector3.new(-140, 0.5, 140)
+local campColors = {
+    wood = Color3.fromRGB(132, 92, 58),
+    darkWood = Color3.fromRGB(92, 64, 42),
+    canvas = Color3.fromRGB(214, 190, 150),
+    warm = Color3.fromRGB(255, 176, 96),
+    brick = Color3.fromRGB(150, 104, 80),
+    slate = Color3.fromRGB(120, 112, 104),
+    brass = Color3.fromRGB(206, 160, 82),
+    rug = Color3.fromRGB(150, 70, 52),
+    sand = Color3.fromRGB(181, 150, 108),
+    glass = Color3.fromRGB(200, 230, 255),
+    ink = Color3.fromRGB(255, 228, 180),
+}
+
+local function campPart(parent, name, size, frame, color, material, collide, shape)
+    local item = part(parent, name, size, frame, color, material, collide)
+    item.CanQuery = false
+    item.CanTouch = false
+    if shape then item.Shape = shape end
+    return item
+end
+
+local function campMarker(markers, name, x, z)
+    local marker = part(markers, name, Vector3.new(2, 1, 2), CFrame.new(x, 1.5, z), palette.cyan, nil, false)
+    marker.Transparency = 1
+    marker.CanTouch = false
+    marker.CanQuery = false
+end
+
+local function lamp(parent, name, frame, range, brightness)
+    local glow = campPart(parent, name, Vector3.new(0.8, 0.9, 0.8), frame, campColors.warm, Enum.Material.Neon, false)
+    local light = Instance.new('PointLight')
+    light.Color = campColors.warm
+    light.Brightness = brightness or 1
+    light.Range = range or 14
+    light.Shadows = false
+    light.Parent = glow
+    return glow
+end
+
+local function sign(parent, key, size, frame)
+    local board = campPart(parent, 'Sign_' .. key, size, frame, campColors.darkWood, Enum.Material.WoodPlanks, false)
+    board:SetAttribute('SignKey', key)
+    local gui = Instance.new('SurfaceGui')
+    gui.Face = Enum.NormalId.Front
+    gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+    gui.PixelsPerStud = 50
+    gui.LightInfluence = 0
+    gui.Parent = board
+    local label = Instance.new('TextLabel')
+    label.Name = 'Label'
+    label.Size = UDim2.fromScale(1, 1)
+    label.BackgroundTransparency = 1
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.TextColor3 = campColors.ink
+    label.Text = ''
+    label.Parent = gui
+    return board
+end
+
+-- A frame at (x, z) on the ground whose front (-Z) faces the camp fire.
+local function facingCamp(x, z)
+    return CFrame.lookAt(Vector3.new(x, 0.5, z), Vector3.new(CAMP.X, 0.5, CAMP.Z))
+end
+
+local function lanternPost(parent, x, z)
+    local base = facingCamp(x, z)
+    campPart(parent, 'LanternPost', Vector3.new(0.4, 4.2, 0.4), base * CFrame.new(0, 2.1, 0), campColors.darkWood, Enum.Material.Wood, false)
+    lamp(parent, 'CampLantern', base * CFrame.new(0, 4.5, 0), 14, 0.9)
+end
+
+local function buildRefuge(parent)
+    local refuge = folder(parent, 'Refuge')
+    local base = facingCamp(-152, 128)
+    campPart(refuge, 'RefugeFloor', Vector3.new(7, 0.4, 7), base * CFrame.new(0, 0.2, 0), campColors.wood, Enum.Material.WoodPlanks, false)
+    campPart(refuge, 'RefugeRug', Vector3.new(5, 0.08, 4), base * CFrame.new(0, 0.44, 0), campColors.rug, Enum.Material.Fabric, false)
+    for _, corner in ipairs({ { -3, -3 }, { 3, -3 }, { -3, 3 }, { 3, 3 } }) do
+        campPart(refuge, 'RefugePost', Vector3.new(0.8, 6, 0.8), base * CFrame.new(corner[1], 3, corner[2]), campColors.darkWood, Enum.Material.Wood, true)
+    end
+    campPart(refuge, 'RefugeRoof', Vector3.new(8, 0.4, 4.6), base * CFrame.new(0, 6.6, -1.9) * CFrame.Angles(-0.44, 0, 0), campColors.canvas, Enum.Material.Fabric, false)
+    campPart(refuge, 'RefugeRoof', Vector3.new(8, 0.4, 4.6), base * CFrame.new(0, 6.6, 1.9) * CFrame.Angles(0.44, 0, 0), campColors.canvas, Enum.Material.Fabric, false)
+    campPart(refuge, 'RefugeNest', Vector3.new(0.6, 3.2, 3.2), base * CFrame.new(0, 0.7, 0.6) * CFrame.Angles(0, 0, math.rad(90)), Color3.fromRGB(150, 98, 62), Enum.Material.Fabric, false, Enum.PartType.Cylinder)
+    lamp(refuge, 'RefugeGlow', base * CFrame.new(0, 1.6, 0.6), 16, 1.2).Shape = Enum.PartType.Ball
+    sign(refuge, 'refuge', Vector3.new(4, 1.1, 0.25), base * CFrame.new(0, 5.4, -3.5))
+end
+
+local function buildDisplay(parent)
+    local display = folder(parent, 'Display')
+    for index, z in ipairs({ 136, 140, 144, 148 }) do
+        local base = CFrame.lookAt(Vector3.new(-160, 0.5, z), Vector3.new(CAMP.X, 0.5, z))
+        campPart(display, 'Pedestal', Vector3.new(1.4, 2.4, 2.4), base * CFrame.new(0, 0.7, 0) * CFrame.Angles(0, 0, math.rad(90)), campColors.brick, Enum.Material.Brick, true, Enum.PartType.Cylinder)
+        local spot = campPart(display, 'DisplaySpot' .. index, Vector3.new(1, 0.2, 1), base * CFrame.new(0, 1.5, 0), palette.cyan, nil, false)
+        spot.Transparency = 1
+        local plaque = campPart(display, 'Plaque' .. index, Vector3.new(1.8, 0.5, 0.1), base * CFrame.new(0, 0.7, -1.25), campColors.brass, Enum.Material.Metal, false)
+        local gui = Instance.new('SurfaceGui')
+        gui.Face = Enum.NormalId.Front
+        gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+        gui.PixelsPerStud = 50
+        gui.LightInfluence = 0
+        gui.Parent = plaque
+        local label = Instance.new('TextLabel')
+        label.Name = 'Label'
+        label.Size = UDim2.fromScale(1, 1)
+        label.BackgroundTransparency = 1
+        label.TextScaled = true
+        label.Font = Enum.Font.GothamBold
+        label.TextColor3 = Color3.fromRGB(60, 40, 24)
+        label.Text = ''
+        label.Parent = gui
+    end
+    local back = CFrame.lookAt(Vector3.new(-162.5, 0.5, 142), Vector3.new(CAMP.X, 0.5, 142))
+    for _, side in ipairs({ -8.5, 8.5 }) do
+        campPart(display, 'DisplayPost', Vector3.new(0.5, 5.6, 0.5), back * CFrame.new(side, 2.8, 0), campColors.darkWood, Enum.Material.Wood, false)
+    end
+    campPart(display, 'DisplayBeam', Vector3.new(17.5, 0.5, 0.5), back * CFrame.new(0, 5.4, 0), campColors.darkWood, Enum.Material.Wood, false)
+    sign(display, 'display', Vector3.new(6, 1.1, 0.25), back * CFrame.new(0, 4.5, -0.3))
+    lamp(display, 'DisplayLantern', back * CFrame.new(0, 6.1, 0), 16, 1)
+end
+
+local function buildChest(parent)
+    local chest = folder(parent, 'Chest')
+    local base = facingCamp(-147.5, 140)
+    campPart(chest, 'ChestBody', Vector3.new(2.8, 1.4, 1.8), base * CFrame.new(0, 0.7, 0), campColors.wood, Enum.Material.WoodPlanks, true)
+    campPart(chest, 'ChestLid', Vector3.new(2.9, 0.5, 1.9), base * CFrame.new(0, 1.65, 0), campColors.darkWood, Enum.Material.WoodPlanks, false)
+    for _, x in ipairs({ -0.9, 0.9 }) do
+        campPart(chest, 'ChestBand', Vector3.new(0.2, 1.95, 1.95), base * CFrame.new(x, 0.95, 0), campColors.brass, Enum.Material.Metal, false)
+    end
+    sign(chest, 'chestObject', Vector3.new(3, 0.7, 0.2), base * CFrame.new(0, 2.6, 0.6))
+end
+
+local function buildBoard(parent)
+    local board = folder(parent, 'Board')
+    local base = facingCamp(-150, 154)
+    for _, x in ipairs({ -1.9, 1.9 }) do
+        campPart(board, 'BoardPost', Vector3.new(0.5, 4.6, 0.5), base * CFrame.new(x, 2.3, 0), campColors.darkWood, Enum.Material.Wood, true)
+    end
+    campPart(board, 'BoardPanel', Vector3.new(4.2, 2.6, 0.3), base * CFrame.new(0, 3, -0.2), campColors.wood, Enum.Material.WoodPlanks, false)
+    for index, offset in ipairs({ { -1.2, 3.3 }, { 0.1, 2.7 }, { 1.2, 3.2 } }) do
+        campPart(board, 'BoardNote' .. index, Vector3.new(0.9, 1.1, 0.05), base * CFrame.new(offset[1], offset[2], -0.4) * CFrame.Angles(0, 0, (index - 2) * 0.08), campColors.canvas, Enum.Material.Fabric, false)
+    end
+    sign(board, 'boardObject', Vector3.new(4.4, 0.8, 0.25), base * CFrame.new(0, 4.75, -0.2))
+    lamp(board, 'BoardLantern', base * CFrame.new(2.4, 4.4, -0.3), 12, 0.9)
+end
+
+local function buildIncubator(parent)
+    local incubator = folder(parent, 'Incubator')
+    local base = facingCamp(-136, 158)
+    campPart(incubator, 'IncubatorBase', Vector3.new(1.2, 3.4, 3.4), base * CFrame.new(0, 0.6, 0) * CFrame.Angles(0, 0, math.rad(90)), campColors.slate, Enum.Material.Slate, true, Enum.PartType.Cylinder)
+    local dome = campPart(incubator, 'IncubatorDome', Vector3.new(3, 3, 3), base * CFrame.new(0, 2.2, 0), campColors.glass, Enum.Material.Glass, false, Enum.PartType.Ball)
+    dome.Transparency = 0.55
+    campPart(incubator, 'IncubatorPlaceholderEgg', Vector3.new(1.1, 1.5, 1.1), base * CFrame.new(0, 1.95, 0), campColors.canvas, Enum.Material.SmoothPlastic, false, Enum.PartType.Ball)
+    campPart(incubator, 'IncubatorSignPost', Vector3.new(0.4, 4.6, 0.4), base * CFrame.new(2.5, 2.3, 0), campColors.darkWood, Enum.Material.Wood, false)
+    sign(incubator, 'incubatorObject', Vector3.new(3, 0.7, 0.2), base * CFrame.new(2.5, 4.4, -0.3))
+    sign(incubator, 'incubator', Vector3.new(3, 0.6, 0.2), base * CFrame.new(2.5, 3.6, -0.3))
+    lamp(incubator, 'IncubatorLamp', base * CFrame.new(0, 4, 0), 10, 0.7)
+end
+
+-- Adds the camp to an existing WildboundP0 root (also used to patch a dressed map without a rebuild). It refuses a
+-- second camp and builds detached, attaching the folder only once it is complete.
+function Builder.buildCamp(root)
+    assert(typeof(root) == 'Instance', 'root must be an Instance')
+    assert(not root:FindFirstChild('Camp'), 'Camp already exists')
+    local camp = Instance.new('Folder')
+    camp.Name = 'Camp'
+    local disc = campPart(camp, 'CampGround', Vector3.new(0.06, 40, 40), CFrame.new(-146, 0.53, 143) * CFrame.Angles(0, 0, math.rad(90)), campColors.sand, Enum.Material.Sand, false, Enum.PartType.Cylinder)
+    disc.CastShadow = false
+    buildRefuge(camp)
+    buildDisplay(camp)
+    buildChest(camp)
+    buildBoard(camp)
+    buildIncubator(camp)
+    lanternPost(camp, -147, 131)
+    lanternPost(camp, -131, 152)
+    campPart(camp, 'BenchLog', Vector3.new(4.5, 0.9, 0.9), CFrame.new(-140, 0.95, 133.5), campColors.darkWood, Enum.Material.Wood, false, Enum.PartType.Cylinder)
+    campPart(camp, 'BenchLog', Vector3.new(4.5, 0.9, 0.9), CFrame.new(-146.5, 0.95, 147) * CFrame.Angles(0, math.rad(60), 0), campColors.darkWood, Enum.Material.Wood, false, Enum.PartType.Cylinder)
+    local markers = root:FindFirstChild('Markers') or camp
+    campMarker(markers, 'RefugeMarker', -152, 128)
+    campMarker(markers, 'BoardMarker', -150, 154)
+    campMarker(markers, 'IncubatorMarker', -136, 158)
+    camp.Parent = root
+    return camp
+end
+
 function Builder.build(parent)
     assert(typeof(parent) == 'Instance', 'parent must be an Instance')
     assert(not parent:FindFirstChild('WildboundP0'), 'WildboundP0 already exists')
@@ -143,6 +332,7 @@ function Builder.build(parent)
             end
         end
     end
+    Builder.buildCamp(root)
     if parent:FindFirstChild('WildboundP0') then
         root:Destroy()
         error('WildboundP0 appeared during construction')
