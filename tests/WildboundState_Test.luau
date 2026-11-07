@@ -1,5 +1,6 @@
--- Run with a freshly cloned State module to avoid Roblox require-cache reuse.
-return function(State)
+-- Run with a freshly cloned State module to avoid Roblox require-cache reuse:
+-- require(freshTestClone)(require(freshStateClone), require(freshEconomyClone), require(freshConfigClone)).
+return function(State, Economy, Config)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -22,7 +23,7 @@ return function(State)
 		equal(ok, false, "Request must be rejected")
 	end
 	local function setup()
-		local state = State.new()
+		local state = State.new(Economy, Config)
 		accepted(state:addPlayer("Alice"))
 		accepted(state:addPlayer("Bob"))
 		return state
@@ -386,7 +387,7 @@ return function(State)
 		equal(reason, "BackpackFull")
 		equal(state:isClaimed("wild"), false)
 		accepted(state:completeCapture("Bob", "wild", true, "Fog"))
-		local crowded = State.new()
+		local crowded = State.new(Economy, Config)
 		accepted(crowded:addPlayer("Carol"))
 		for index = 1, 100 do
 			local id = "bank" .. index
@@ -545,7 +546,8 @@ return function(State)
 		equal(lost[loose].kind, "Egg"); equal(lost[loose].species, "Lumipol")
 		equal(summary.savedItem.uid, saved)
 		equal(summary.kept.registered, 1); equal(summary.kept.bankedEggs, 1)
-		equal(summary.kept.ember, 0); equal(summary.kept.bankedMaterials, 0)
+		-- M5.2: the two extractions paid Ember, a Fog creature (8) and a nest egg (10). Ember is never lost.
+		equal(summary.kept.ember, 18); equal(summary.kept.bankedMaterials, 0)
 		equal(next(summary.materialsLost), nil)
 		local snapshot = state:snapshot("Alice")
 		equal(#snapshot.dropped, 0); equal(#snapshot.registered, 1); equal(snapshot.bankedEggs[1].uid, banked)
@@ -560,6 +562,228 @@ return function(State)
 		summary.kept.registered = 99
 		local _, _, second = state:defeat("Alice", "life:2")
 		equal(#second.lostItems, 0); equal(second.kept.registered, 0)
+	end)
+
+	-- M5.2 materials, Ember and the loss rule. ECO numbers refer to docs/mechanics/wildbound-economy-p0.md.
+	local nodes = 0
+	local function gatherAt(state, key, slot, material, quantity, now)
+		nodes += 1
+		local id = "node" .. nodes
+		accepted(state:registerEncounter(id, "Gather"))
+		local ok, receipt = state:gather(key, id, slot or ("slot" .. nodes), material, quantity, true, 4, now or 0)
+		return ok, receipt, id
+	end
+	local function gathered(state, key, material, quantity, now)
+		local ok, receipt = gatherAt(state, key, nil, material, quantity, now)
+		equal(ok, true, tostring(receipt))
+		return receipt
+	end
+	local function snap(state) return state:snapshot("Alice") end
+
+	case("M5.2 a new profile holds no materials or Ember, and its economy snapshot is detached", function()
+		local state = setup()
+		local snapshot = snap(state)
+		equal(snapshot.carried.fogbark, 0); equal(snapshot.carried.glowmoss, 0); equal(snapshot.carried.nightbloom, nil)
+		equal(snapshot.banked.fogbark, 0); equal(snapshot.banked.glowmoss, 0); equal(snapshot.banked.nightbloom, 0)
+		equal(snapshot.ember, 0); equal(snapshot.consumables.seal, 0); equal(snapshot.consumables.totem, 0)
+		equal(snapshot.consumables.capsule, 0); equal(snapshot.sealArmed, false); equal(snapshot.totemActive, false)
+		equal(snapshot.upgrades.reinforcedPack, false); equal(snapshot.capacity, 3); equal(snapshot.pouchCapacity, 30)
+		equal(snapshot.riskPreview.loseItems, 0); equal(snapshot.riskPreview.keep, 0)
+		snapshot.carried.fogbark, snapshot.banked.fogbark, snapshot.ember = 99, 99, 99
+		snapshot.consumables.seal, snapshot.upgrades.reinforcedPack = 3, true
+		local fresh = snap(state)
+		equal(fresh.carried.fogbark, 0); equal(fresh.banked.fogbark, 0); equal(fresh.ember, 0)
+		equal(fresh.consumables.seal, 0); equal(fresh.upgrades.reinforcedPack, false)
+	end)
+
+	case("ECO-14 gathering fills the pouch, wastes the overflow, and pays a slot once per expedition", function()
+		local state = setup()
+		local ok, receipt = gatherAt(state, "Alice", "O1", "fogbark", 3)
+		equal(ok, true); equal(receipt.material, "fogbark"); equal(receipt.taken, 3); equal(receipt.wasted, 0)
+		equal(snap(state).carried.fogbark, 3)
+		local again, why, repeatId = gatherAt(state, "Alice", "O1", "fogbark", 2)
+		equal(again, false); equal(why, "AlreadyGathered")
+		equal(state:encounterStatus(repeatId), "Open", "a repeat slot leaves the node for others")
+		accepted(state:gather("Bob", repeatId, "O1", "fogbark", 2, true, 4, 0))
+		for _ = 1, 13 do gathered(state, "Alice", "fogbark", 2) end
+		equal(snap(state).carried.fogbark, 29)
+		receipt = gathered(state, "Alice", "glowmoss", 3)
+		equal(receipt.taken, 1); equal(receipt.wasted, 2)
+		equal(snap(state).carried.glowmoss, 1)
+		local full, reason, fullId = gatherAt(state, "Alice", nil, "glowmoss", 2)
+		equal(full, false); equal(reason, "PouchFull")
+		equal(state:encounterStatus(fullId), "Open", "a full pouch claims nothing")
+	end)
+
+	case("ECO-14 a node has exactly one owner and every refusal claims nothing", function()
+		local state = setup()
+		accepted(state:registerEncounter("shared", "Gather"))
+		accepted(state:gather("Alice", "shared", "M1", "glowmoss", 2, true, 8, 0))
+		local ok, reason = state:gather("Bob", "shared", "M1", "glowmoss", 2, true, 1, 0)
+		equal(ok, false); equal(reason, "AlreadyClaimed")
+		accepted(state:registerEncounter("node", "Gather"))
+		local function refused(expected, ...)
+			local refusedOk, got = state:gather(...)
+			equal(refusedOk, false, "gather must be refused"); equal(got, expected)
+		end
+		refused("InvalidContext", "Alice", "node", "M2", "fogbark", 2, true, 8.01, 0)
+		refused("InvalidContext", "Alice", "node", "M2", "fogbark", 2, false, 1, 0)
+		refused("InvalidContext", "Alice", "node", "M2", "fogbark", 2, true, 0 / 0, 0)
+		refused("InvalidContext", "Alice", "node", "M2", "fogbark", 2, true, 1, 0 / 0)
+		refused("InvalidYield", "Alice", "node", "M2", "moonstone", 2, true, 1, 0)
+		refused("InvalidYield", "Alice", "node", "M2", "ember", 2, true, 1, 0)
+		for _, quantity in ipairs({ 0, -1, 1.5, 0 / 0, "2" }) do
+			refused("InvalidYield", "Alice", "node", "M2", "fogbark", quantity, true, 1, 0)
+		end
+		refused("InvalidEncounter", "Alice", "node", nil, "fogbark", 2, true, 1, 0)
+		refused("InvalidEncounter", "Alice", "missing", "M2", "fogbark", 2, true, 1, 0)
+		refused("InvalidPlayer", "Nobody", "node", "M2", "fogbark", 2, true, 1, 0)
+		accepted(state:registerEncounter("eggNode", "Egg"))
+		refused("InvalidEncounter", "Alice", "eggNode", "M2", "fogbark", 2, true, 1, 0)
+		equal(state:encounterStatus("node"), "Open")
+		equal(snap(state).carried.fogbark, 0)
+		local pick, why = state:pickup("Alice", "node", true, 1)
+		equal(pick, false); equal(why, "InvalidEncounter", "a gather node is never picked up")
+		rejected(state:completeCapture("Alice", "node", true, "Fog"))
+	end)
+
+	case("ECO-23 a Nightbloom bundle takes one bag slot, banks as material and pays no Ember", function()
+		local state = setup()
+		local receipt = gathered(state, "Alice", "nightbloom", 2)
+		equal(receipt.taken, 2); equal(type(receipt.uid), "string")
+		local pending = snap(state).pending
+		equal(#pending, 1); equal(pending[1].kind, "Nightbloom"); equal(pending[1].quantity, 2)
+		equal(snap(state).carried.fogbark, 0)
+		collect(state, "egg1", "Egg"); collect(state, "egg2", "Egg")
+		local full, reason, id = gatherAt(state, "Alice", nil, "nightbloom", 1)
+		equal(full, false); equal(reason, "BackpackFull"); equal(state:encounterStatus(id), "Open")
+		local _, count = state:extract("Alice", true, 0)
+		equal(count, 3)
+		local snapshot = snap(state)
+		equal(snapshot.banked.nightbloom, 2); equal(#snapshot.bankedEggs, 2); equal(#snapshot.registered, 0)
+		equal(snapshot.ember, 20, "two nest eggs at 10 each; the bundle pays nothing")
+	end)
+
+	case("ECO-23 a bundle is lost on defeat and is the newest item a strike drops", function()
+		local state = setup()
+		collect(state, "c1")
+		local bundle = gathered(state, "Alice", "nightbloom", 1).uid
+		local _, dropped = state:dropForStrike("Alice", "atk:1")
+		equal(dropped.uid, bundle); equal(dropped.kind, "Nightbloom")
+		gathered(state, "Alice", "nightbloom", 1)
+		local _, lost, summary = state:defeat("Alice", "life:1")
+		equal(lost, 3)
+		local kinds = {}
+		for _, item in ipairs(summary.lostItems) do kinds[item.kind] = (kinds[item.kind] or 0) + 1 end
+		equal(kinds.Nightbloom, 2); equal(kinds.Creature, 1)
+		equal(snap(state).banked.nightbloom, 0)
+	end)
+
+	case("ECO-02 and ECO-04 defeat takes half of each carried stack and never banked materials or Ember", function()
+		local state = setup()
+		collect(state, "pet")
+		gathered(state, "Alice", "fogbark", 2)
+		accepted(state:extract("Alice", true, 0))
+		equal(snap(state).ember, 8); equal(snap(state).banked.fogbark, 2)
+		for _ = 1, 8 do gathered(state, "Alice", "fogbark", 3) end
+		gathered(state, "Alice", "fogbark", 1)
+		gathered(state, "Alice", "glowmoss", 3); gathered(state, "Alice", "glowmoss", 2)
+		equal(snap(state).carried.fogbark, 25); equal(snap(state).carried.glowmoss, 5)
+		local preview = snap(state).riskPreview
+		equal(preview.loseMaterials.fogbark, 13); equal(preview.loseMaterials.glowmoss, 3)
+		collect(state, "c2")
+		local ok, lostItems, summary = state:defeat("Alice", "life:1")
+		equal(ok, true); equal(lostItems, 1)
+		equal(summary.materialsLost.fogbark, 13); equal(summary.materialsLost.glowmoss, 3)
+		local snapshot = snap(state)
+		equal(snapshot.carried.fogbark, 12); equal(snapshot.carried.glowmoss, 2)
+		equal(snapshot.banked.fogbark, 2); equal(snapshot.ember, 8); equal(#snapshot.registered, 1)
+		equal(summary.kept.ember, 8); equal(summary.kept.bankedMaterials, 2)
+		local again = select(3, state:defeat("Alice", "life:1"))
+		equal(again, nil, "ECO-03 the same operation loses once")
+		equal(snap(state).carried.fogbark, 12)
+		local _, _, second = state:defeat("Alice", "life:2")
+		equal(second.materialsLost.fogbark, 6); equal(second.materialsLost.glowmoss, 1)
+		local _, _, third = state:defeat("Alice", "life:3")
+		equal(third.materialsLost.fogbark, 3); equal(third.materialsLost.glowmoss, 1, "a stack of 1 is lost at 50%")
+		equal(snap(state).carried.glowmoss, 0)
+		accepted(state:extract("Alice", true, 0))
+		equal(snap(state).banked.fogbark, 5, "what a defeat leaves banks at the next extraction")
+	end)
+
+	case("ECO-17 extraction pays item Ember plus the base for a completed trip, and takes materials-only trips", function()
+		local state = setup()
+		accepted(state:observeExpedition("Alice", 70, true, 100))
+		gathered(state, "Alice", "fogbark", 2, 110)
+		accepted(state:registerEncounter("wild", "Creature"))
+		accepted(state:completeCapture("Alice", "wild", true, "Territory"))
+		local ok, count, receipt = state:extract("Alice", true, 0, 150)
+		equal(ok, true); equal(count, 1)
+		equal(receipt.ember, 18); equal(receipt.baseEmber, 4); equal(receipt.units.fogbark, 2)
+		equal(snap(state).ember, 18); equal(snap(state).banked.fogbark, 2)
+		accepted(state:observeExpedition("Alice", 70, true, 200))
+		gathered(state, "Alice", "glowmoss", 2, 201)
+		local short, items, shortReceipt = state:extract("Alice", true, 0, 220)
+		equal(short, true, "a materials-only trip extracts"); equal(items, 0)
+		equal(shortReceipt.ember, 0, "a 20 s trip earns no base"); equal(snap(state).banked.glowmoss, 2)
+		accepted(state:observeExpedition("Alice", 59, true, 300))
+		gathered(state, "Alice", "glowmoss", 1, 301)
+		equal(select(3, state:extract("Alice", true, 0, 400)).baseEmber, 0, "59 studs is too close")
+		local empty, why = state:extract("Alice", true, 0, 500)
+		equal(empty, false); equal(why, "Empty")
+		equal(snap(state).ember, 18)
+	end)
+
+	case("ECO-17 one new item completes a trip, while leftovers from a defeat never do", function()
+		local state = setup()
+		accepted(state:observeExpedition("Alice", 90, true, 0))
+		accepted(state:registerEncounter("wild", "Creature"))
+		accepted(state:completeCapture("Alice", "wild", true, "Safe"))
+		equal(select(3, state:extract("Alice", true, 0, 60)).ember, 10, "Safe creature 6 plus the base 4")
+		for _ = 1, 3 do gathered(state, "Alice", "fogbark", 3, 100) end
+		accepted(state:defeat("Alice", "life:1"))
+		equal(snap(state).carried.fogbark, 4)
+		accepted(state:observeExpedition("Alice", 120, true, 200))
+		local ok, _, receipt = state:extract("Alice", true, 0, 400)
+		equal(ok, true); equal(receipt.baseEmber, 0, "AFK-5 carrying old leftovers on a long walk pays nothing")
+		equal(snap(state).ember, 10)
+	end)
+
+	case("ECO-20 no AFK path: an idle hour at camp, at a node or in territory grants nothing", function()
+		local function grants(snapshot)
+			return table.concat({ snapshot.carried.fogbark, snapshot.carried.glowmoss, snapshot.banked.fogbark,
+				snapshot.banked.glowmoss, snapshot.banked.nightbloom, snapshot.ember, snapshot.consumables.seal,
+				snapshot.consumables.capsule, snapshot.consumables.totem, #snapshot.pending, #snapshot.registered,
+				#snapshot.bankedEggs }, ",")
+		end
+		for _, spot in ipairs({ { 0, false }, { 70, true }, { 240, true } }) do
+			local state = setup()
+			accepted(state:registerEncounter("idleNode", "Gather"))
+			local before = grants(snap(state))
+			for second = 1, 3600 do accepted(state:observeExpedition("Alice", spot[1], spot[2], second)) end
+			equal(grants(snap(state)), before, "AFK-2 idle at " .. spot[1])
+			local ok, reason = state:extract("Alice", true, 0, 3601)
+			equal(ok, false); equal(reason, "Empty", "AFK-5 and AFK-6 nothing to extract")
+			equal(snap(state).ember, 0)
+			equal(state:encounterStatus("idleNode"), "Open", "standing near a node never gathers it")
+		end
+		rejected(setup():observeExpedition("Nobody", 1, true, 1))
+	end)
+
+	case("observeExpedition validates its input and only widens the trip", function()
+		local state = setup()
+		for _, args in ipairs({ { -1, true, 1 }, { 0 / 0, true, 1 }, { 5, "yes", 1 }, { 5, true, 0 / 0 }, { "5", true, 1 } }) do
+			rejected(state:observeExpedition("Alice", args[1], args[2], args[3]))
+		end
+		accepted(state:observeExpedition("Alice", 5, false, 10))
+		equal(snap(state).expedition, nil, "standing in camp opens nothing")
+		accepted(state:observeExpedition("Alice", 80, true, 20))
+		accepted(state:observeExpedition("Alice", 40, true, 30))
+		local expedition = snap(state).expedition
+		equal(expedition.startedAt, 20); equal(expedition.maxDistanceFromCamp, 80)
+		gathered(state, "Alice", "fogbark", 1, 40)
+		accepted(state:extract("Alice", true, 0, 90))
+		equal(snap(state).expedition, nil, "extraction closes the trip")
 	end)
 
 	return result

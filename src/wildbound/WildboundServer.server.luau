@@ -8,7 +8,10 @@ local State = require(script.Parent:WaitForChild("WildboundState"))
 local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"))
-local state = State.new()
+-- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
+local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
+local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
+local state = State.new(Economy, EconomyConfig)
 local capture = Capture.new()
 local map = workspace:WaitForChild("WildboundP0", 15)
 if not map then warn("Wildbound: build the P0 map before starting gameplay."); return end
