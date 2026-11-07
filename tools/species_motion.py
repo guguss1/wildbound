@@ -33,6 +33,7 @@ BONES = {
     "SP_Espejuelo": ("Root", "Slab", "LegL", "LegR"),
     "SP_Aldabon": ("Root", "Body", "Ring", "LegL", "LegR"),
     "SP_Tinajuelo": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
+    "SP_Tizoncillo": ("Root", "Body", "LegFL", "LegFR", "LegBL", "LegBR"),
 }
 
 
@@ -161,6 +162,19 @@ MOTION = {
             "Lid": (term("rx", 0.10, 4, 0.30),),
             "ArmL": (term("ry", 0.30, 2, 0.0),),
             "ArmR": (term("ry", -0.30, 2, 0.0),),
+        },
+    },
+    # A charred log on four stumps: slow, heavy, diagonal crawl.
+    "SP_Tizoncillo": {
+        "Idle": {
+            "Body": (term("lz", 0.05, 1, 0, "rise"), term("rz", 0.04, 1, 0.25), term("rx", 0.02, 1, 0.0)),
+        },
+        "Move": {
+            "Body": (term("lz", 0.05, 2, 0, "rise"), term("rz", 0.03, 1, 0.0), term("ry", 0.02, 1, 0.25)),
+            "LegFL": (term("rx", 0.35, 1, 0.0),),
+            "LegBR": (term("rx", 0.35, 1, 0.0),),
+            "LegFR": (term("rx", 0.35, 1, 0.5),),
+            "LegBL": (term("rx", 0.35, 1, 0.5),),
         },
     },
 }

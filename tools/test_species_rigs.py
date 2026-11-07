@@ -70,6 +70,11 @@ SPECS = {
                   "Neon_NightEye": ("8E5BD6", 30)},
         "bones": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
     },
+    "SP_Tizoncillo": {
+        "size": (3.0, 5.0, 2.6), "tris": 550,
+        "parts": {"Log": ("241F1D", 340), "Legs": ("3A3330", 130), "Neon_Ember": ("C8481A", 80)},
+        "bones": ("Root", "Body", "LegFL", "LegFR", "LegBL", "LegBR"),
+    },
 }
 
 

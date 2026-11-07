@@ -914,6 +914,117 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Tizoncillo": {
+      "model": {
+        "triangles": 508,
+        "size": [
+          3.0,
+          5.0,
+          2.6
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "LegFL",
+          "LegFR",
+          "LegBL",
+          "LegBR"
+        ],
+        "objects": [
+          "SP_Tizoncillo",
+          "SP_Tizoncillo_Legs",
+          "SP_Tizoncillo_Log",
+          "SP_Tizoncillo_Neon_Ember"
+        ],
+        "materials": [
+          "SP_Tizoncillo_Legs",
+          "SP_Tizoncillo_Log",
+          "SP_Tizoncillo_Neon_Ember"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 508,
+          "size": [
+            3.0589,
+            5.0574,
+            2.6
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "LegFL",
+            "LegFR",
+            "LegBL",
+            "LegBR"
+          ],
+          "objects": [
+            "SP_Tizoncillo",
+            "SP_Tizoncillo_Legs",
+            "SP_Tizoncillo_Log",
+            "SP_Tizoncillo_Neon_Ember"
+          ],
+          "materials": [
+            "SP_Tizoncillo_Legs",
+            "SP_Tizoncillo_Log",
+            "SP_Tizoncillo_Neon_Ember"
+          ],
+          "actions": [
+            "SP_Tizoncillo|WildboundSpecies"
+          ],
+          "animated_channels": 69,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 508,
+          "size": [
+            3.0158,
+            5.0,
+            2.6321
+          ],
+          "min_z": -0.0248,
+          "bones": [
+            "Root",
+            "Body",
+            "LegFL",
+            "LegFR",
+            "LegBL",
+            "LegBR"
+          ],
+          "objects": [
+            "SP_Tizoncillo",
+            "SP_Tizoncillo_Legs",
+            "SP_Tizoncillo_Log",
+            "SP_Tizoncillo_Neon_Ember"
+          ],
+          "materials": [
+            "SP_Tizoncillo_Legs",
+            "SP_Tizoncillo_Log",
+            "SP_Tizoncillo_Neon_Ember"
+          ],
+          "actions": [
+            "SP_Tizoncillo|WildboundSpecies"
+          ],
+          "animated_channels": 69,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }

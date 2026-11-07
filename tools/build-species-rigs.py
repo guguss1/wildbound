@@ -60,6 +60,8 @@ SPECS = {
                    "colors": {"Block": "6E6A64", "Ring": "2C2D30", "Legs": "4D4A46", "Neon_Eye": "E2A23B"}},
     "SP_Tinajuelo": {"size": (2.6, 2.6, 3.4),
                      "colors": {"Jar": "A0694A", "Lid": "7C5038", "Arms": "6B4632", "Neon_NightEye": "8E5BD6"}},
+    "SP_Tizoncillo": {"size": (3.0, 5.0, 2.6),
+                      "colors": {"Log": "241F1D", "Legs": "3A3330", "Neon_Ember": "C8481A"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -469,9 +471,41 @@ def build_tinajuelo():
     return asset
 
 
+def build_tizoncillo():
+    asset = Asset("SP_Tizoncillo", seed=91)
+    log, legs, ember = (asset.part(n) for n in ("Log", "Legs", "Neon_Ember"))
+    on_body = rigid("Body")
+    stumps = (("LegFL", 0.85, -1.5), ("LegFR", -0.85, -1.5), ("LegBL", 0.85, 1.5), ("LegBR", -0.85, 1.5))
+
+    # Blunt charred log lying along Y, with uneven bark bands and a few broken branch stubs.
+    profile = [(1.0, -2.45), (1.25, -2.35), (1.38, -2.0), (1.42, -1.5), (1.38, -0.9), (1.42, -0.3), (1.4, 0.3),
+               (1.36, 0.9), (1.4, 1.4), (1.38, 1.9), (1.28, 2.3), (1.1, 2.42), (1.0, 2.45)]
+    lathe(log, profile, 10, on_body, center=(0, 0, 1.3), frame=kc.basis((0, -1, 0)), scale=(0.92, 0.78),
+          jitter=0.06, rng=asset.rng, twist=0.06)
+    for base, direction in (((-1.2, 0.8, 1.5), (-1, 0, 0.3)), ((1.1, -0.9, 2.0), (0.6, 0, 1)),
+                            ((-0.4, 1.5, 2.2), (0, 0.3, 1))):
+        prism(log, base, direction, 0.22, 0.45, on_body, sides=5)
+
+    for name, x, y in stumps:
+        lathe(legs, [(0.5, 0.0), (0.44, 0.4), (0.38, 0.85)], 6, rigid(name), center=(x, y, 0.0), phase=0.2)
+
+    # Ember: two slit eyes on the front end, and three cracks glowing along the sides and top.
+    for side in (-1, 1):
+        prism(ember, (side * 0.5, -2.4, 1.45), (0, -1, 0), 0.22, 0.25, on_body, sides=6, scale=(1.2, 0.7))
+    for centre, size in (((1.3, -0.3, 1.4), (0.08, 1.8, 0.16)), ((-1.3, 0.5, 1.25), (0.08, 1.5, 0.16)),
+                         ((0.0, 0.2, 2.36), (0.16, 1.7, 0.08))):
+        kc.box(ember, centre, size, on_body)
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0, 1.4), (0, -1.5, 1.4))
+    for name, x, y in stumps:
+        asset.bone(name, "Body", (x, y, 0.85), (x, y, 0.05))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
             "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo,
-            "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo}
+            "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo, "SP_Tizoncillo": build_tizoncillo}
 ORDER = tuple(SPECS)
 
 
