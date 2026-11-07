@@ -198,6 +198,16 @@ return function(View, Config, Economy, Layout, source)
 			local label = width .. "x" .. height
 			assert(panel.x >= 4 and panel.y >= 4 and panel.x + panel.w <= width - 4 and panel.y + panel.h <= height - 4, label .. " on screen")
 			equal(Layout.overlapArea(panel, chip), 0, label .. " panel overlaps the chip")
+			if width > height and math.min(width, height) <= 500 then
+				-- A phone held sideways: the visible stick sits at the left and the jump button at the right.
+				equal(Layout.overlapArea(panel, layout.zones.jump), 0, label .. " panel covers the jump button")
+				assert(panel.x >= 0.2 * width, label .. " panel reaches over the thumbstick: x " .. panel.x)
+			end
+			if height > width then
+				-- Held upright: Roblox draws its stick and jump button over the lower 40 percent, above this panel.
+				equal(Layout.overlapArea(panel, layout.zones.thumbstick), 0, label .. " panel runs under the touch controls")
+				equal(Layout.overlapArea(panel, layout.zones.jump), 0, label .. " panel runs under the jump button")
+			end
 			local header = View.header(panel.w)
 			for _, name in ipairs({ "bag", "camp", "close" }) do
 				local button = header[name]

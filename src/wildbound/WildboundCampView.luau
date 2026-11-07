@@ -277,8 +277,12 @@ function View.panel(width, height, chip)
 	local w = finite(width) and width > 0 and width or 1280
 	local h = finite(height) and height > 0 and height or 720
 	local top = (type(chip) == "table" and finite(chip.y) and finite(chip.h)) and chip.y + chip.h + 6 or 60
-	local panelW = math.min(560, w - 16)
-	local panelH = math.max(120, h - top - 8)
+	-- A phone held sideways keeps the sides free for the move control and the jump button.
+	local sideways = w > h and math.min(w, h) <= 500
+	local panelW = sideways and math.min(560, math.floor(w * 0.58)) or math.min(560, w - 16)
+	-- Held upright, Roblox puts the move control and the jump button over the lower 40 percent of the screen and
+	-- draws them above this panel, so the panel stops where they begin (the same split the HUD layout uses).
+	local panelH = math.max(120, (h > w and math.floor(0.6 * h) - 4 or h - 8) - top)
 	return { x = math.floor((w - panelW) / 2), y = top, w = panelW, h = panelH }
 end
 
