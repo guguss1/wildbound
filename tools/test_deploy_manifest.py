@@ -270,6 +270,13 @@ class DefaultMappingTests(unittest.TestCase):
         # M4.7, wave W6: pure ambush relocation with no camera or gaze input
         "src/wildbound/WildboundAmbush.luau": "ServerScriptService.WildboundAmbush",
         "tests/WildboundAmbush_Test.luau": "ServerStorage.WildboundAmbush_Test",
+        # M5.2, M5.4, M5.5, wave W7: generated tuning copy and pure economy rules are shared, so the
+        # camp screen can show costs; the seeded spawn pipeline stays on the server
+        "src/wildbound/WildboundEconomyConfig.luau": "ReplicatedStorage.WildboundEconomyConfig",
+        "src/wildbound/WildboundEconomy.luau": "ReplicatedStorage.WildboundEconomy",
+        "tests/WildboundEconomy_Test.luau": "ServerStorage.WildboundEconomy_Test",
+        "src/wildbound/WildboundSpawn.luau": "ServerScriptService.WildboundSpawn",
+        "tests/WildboundSpawn_Test.luau": "ServerStorage.WildboundSpawn_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
