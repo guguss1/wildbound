@@ -30,8 +30,8 @@ MIX = {"FM_SnowPine": 60, "FM_IceSpire": 18, "FM_RockOverhang": 8, "FM_ScourShel
        "FM_SnowMound": 20, "FM_IcePass": 2}
 BUDGET_TRIS = {"FM_SnowPine": 360, "FM_IceSpire": 180, "FM_RockOverhang": 340, "FM_ScourShelf": 120,
                "FM_Cairn": 120, "FM_SnowMound": 60, "FM_IcePass": 520}
-MEASURED_TRIS = {"FM_SnowPine": 298, "FM_IceSpire": 162, "FM_RockOverhang": 316, "FM_ScourShelf": 120,
-                 "FM_Cairn": 100, "FM_SnowMound": 58, "FM_IcePass": 502}
+MEASURED_TRIS = {"FM_SnowPine": 298, "FM_IceSpire": 162, "FM_RockOverhang": 328, "FM_ScourShelf": 120,
+                 "FM_Cairn": 100, "FM_SnowMound": 58, "FM_IcePass": 478}
 PARTS = {"FM_SnowPine": 3, "FM_IceSpire": 2, "FM_RockOverhang": 2, "FM_ScourShelf": 1, "FM_Cairn": 2,
          "FM_SnowMound": 1, "FM_IcePass": 2}
 ROUTE = [(-225, 190), (-140, 130), (-60, 140), (20, 70), (90, 10), (160, -60), (200, -130), (225, -195)]
@@ -44,8 +44,8 @@ MAX_TRACKS = 24           # at most 24 points per player, so a chain is at most 
 # Measured kit footprints (scale 1).
 PINE_R, PINE_CORE, PINE_CANOPY = 1.6, 1.0, 9.1
 SPIRE_R, CAIRN_R, MOUND_R, SHELF_R = 3.6, 2.05, 3.2, 8.05
-OVERHANG_HALF, PASS_HALF = (10.0, 6.05), (15.1, 7.15)
-PASS_PASSAGE = (-8.5957, 8.429)
+OVERHANG_HALF, PASS_HALF = (10.0, 6.1), (15.1, 7.15)
+PASS_PASSAGE = (-8.7688, 8.6995)
 GATHER_LOCAL = -3.0
 NO_TRACK = {"FM_ScourShelf": ((0.0, 0.0), (9.224, 9.224)), "FM_RockOverhang": ((0.0, -2.0), (12.0, 8.0))}
 ALT_SEEDS = (11, 4242)

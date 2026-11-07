@@ -9,7 +9,7 @@
  },
  "totals": {
   "instances": 148,
-  "triangles_measured": 29968,
+  "triangles_measured": 30016,
   "triangles_budget": 34600,
   "mesh_parts": 312,
   "by_name": {
@@ -23,7 +23,7 @@
    },
    "FM_RockOverhang": {
     "count": 8,
-    "triangles": 2528
+    "triangles": 2624
    },
    "FM_ScourShelf": {
     "count": 24,
@@ -39,7 +39,7 @@
    },
    "FM_IcePass": {
     "count": 2,
-    "triangles": 1004
+    "triangles": 956
    }
   }
  },

@@ -58,14 +58,14 @@ PROPS = {
                     "scale": (0.9, 1.15)},
     "FM_IceSpire": {"kind": "spire", "tris": 162, "budget": 180, "parts": 2, "r": 3.6, "scale": (0.9, 1.2),
                     "gather_local_z": -3.0},
-    "FM_RockOverhang": {"kind": "overhang", "tris": 316, "budget": 340, "parts": 2, "half": (10.0, 6.05),
+    "FM_RockOverhang": {"kind": "overhang", "tris": 328, "budget": 340, "parts": 2, "half": (10.0, 6.1),
                         "no_track": ((0.0, -2.0), (12.0, 8.0))},
     "FM_ScourShelf": {"kind": "shelf", "tris": 120, "budget": 120, "parts": 1, "r": 8.05,
                       "no_track": ((0.0, 0.0), (9.224, 9.224))},
     "FM_Cairn": {"kind": "cairn", "tris": 100, "budget": 120, "parts": 2, "r": 2.05},
     "FM_SnowMound": {"kind": "mound", "tris": 58, "budget": 60, "parts": 1, "r": 3.2, "scale": (0.85, 1.1)},
-    "FM_IcePass": {"kind": "pass", "tris": 502, "budget": 520, "parts": 2, "half": (15.1, 7.15),
-                   "passage": (-8.5957, 8.429), "clear_h": 11.4},
+    "FM_IcePass": {"kind": "pass", "tris": 478, "budget": 520, "parts": 2, "half": (15.1, 7.15),
+                   "passage": (-8.7688, 8.6995), "clear_h": 11.3},
 }
 SHORT = {"FM_SnowPine": "pine", "FM_IceSpire": "spire", "FM_RockOverhang": "overhang", "FM_ScourShelf": "shelf",
          "FM_Cairn": "cairn", "FM_SnowMound": "mound", "FM_IcePass": "pass"}

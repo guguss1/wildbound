@@ -23,7 +23,7 @@ if str(TOOLS) not in sys.path:
 import biome_kit_common as bk  # noqa: E402
 import kit_common as kc  # noqa: E402
 from biome_kit_common import no_weight as W  # noqa: E402
-from kit_common import add, crystal, lathe, loft, madd, mul, ring_points, slab, tube  # noqa: E402
+from kit_common import add, crystal, lathe, lerp, loft, madd, mul, ring_points, slab, tube  # noqa: E402
 from layout_geometry import inscribed_square_half  # noqa: E402
 
 U, V = (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)
@@ -96,38 +96,87 @@ def build_ice_spire(a):
                 ring_points((0.0, 0.0, 1.7), U, V, 2.3, 2.3, 8, 0.2)], W)
 
 
+# One cross-section of the rock hood per station along X. Columns: x, back Y, back top, mid top, front top,
+# lip bottom, underside near the front, underside near the back, front edge Y. The ceiling stays at Z 6.05 or
+# higher between X -6.4 and 6.4 (the shelter box is 6 high) and drops to the walls beyond, where the hood also
+# draws in so the ends read as rounded outcrops. The roof falls toward the open front, is higher on the left than
+# on the right, and the ceiling is hollowed unevenly.
+HOOD = (
+    (-10.0, 5.0, 6.6, 5.7, 4.8, 3.2, 3.0, 3.5, -4.0),
+    (-8.2, 5.4, 8.0, 7.2, 6.1, 4.8, 4.4, 4.7, -5.2),
+    (-6.4, 5.7, 8.7, 7.7, 6.6, 6.1, 6.2, 6.1, -5.95),
+    (-3.0, 5.8, 8.7, 7.7, 6.45, 6.05, 6.9, 6.1, -5.75),
+    (0.5, 5.9, 8.6, 7.1, 6.4, 6.05, 6.05, 6.1, -6.0),
+    (3.6, 5.8, 8.3, 6.9, 6.35, 6.05, 6.75, 6.1, -5.8),
+    (6.4, 5.6, 7.7, 6.4, 6.5, 6.1, 6.15, 6.1, -5.9),
+    (8.2, 5.3, 6.6, 5.6, 5.0, 4.6, 4.3, 4.5, -5.0),
+    (10.0, 4.7, 5.6, 4.9, 4.3, 3.0, 2.8, 3.1, -3.9),
+)
+
+
+def hood_rings(rng):
+    """Ten-point cross-sections (y, z) swept along X: back wall, a roof with two ridges, front lip, ceiling,
+    inner wall. Indices 6 to 8 are the ceiling; 1 to 5 are the roof, back to front."""
+    stations = []
+    for x, back_y, back, mid, front, lip, under_front, under_back, front_y in HOOD:
+        xs = x + (0.0 if abs(x) in (10.0, 8.2, 6.4) else rng.uniform(-0.25, 0.25))
+        ceiling = abs(x) < 7.0  # ceiling vertices over the shelter may rise but never sink
+        ridge_back = back + (mid - back) * 0.45 + rng.uniform(-0.3, 0.3)
+        ridge_front = mid + (front - mid) * 0.4 + rng.uniform(-0.3, 0.3)
+        outline = ((back_y + 0.3, 0.0), (back_y, back), (3.2, ridge_back), (-0.5, mid), (-3.3, ridge_front),
+                   (front_y + 0.12, front), (front_y, lip), (-2.6, under_front), (2.3, under_back), (3.1, 0.0))
+        ring = []
+        for k, (y, z) in enumerate(outline):
+            if z == 0.0:
+                ring.append((xs, y, 0.0))
+            elif ceiling and k in (6, 7, 8):
+                ring.append((xs, y + rng.uniform(-0.1, 0.1), z + rng.uniform(0.0, 0.15)))
+            else:
+                ring.append((xs, y + rng.uniform(-0.12, 0.12), z + rng.uniform(-0.1, 0.1)))
+        stations.append(ring)
+    return stations
+
+
+def roof_height(stations, x, y):
+    """Height of the hood's roof surface at (x, y), by interpolating between neighbouring stations."""
+    index = max(i for i in range(len(stations) - 1) if stations[i][0][0] <= x or i == 0)
+    left, right = stations[index], stations[index + 1]
+    t = min(1.0, max(0.0, (x - left[0][0]) / (right[0][0] - left[0][0])))
+    line = [lerp(left[k], right[k], t) for k in (5, 4, 3, 2, 1)]  # front to back, so Y increases
+    for near, far in zip(line, line[1:]):
+        if y <= far[1]:
+            return near[2] + (far[2] - near[2]) * min(1.0, max(0.0, (y - near[1]) / (far[1] - near[1])))
+    return line[-1][2]
+
+
 def build_rock_overhang(a):
-    """Slanted roof on a back wall and two side walls, open to -Y. The shelter keeps a clear 12 x 8 x 6 box."""
+    """A natural rock hood: a tilted roof that thins toward the open front, a ceiling hollowed unevenly, a slanted
+    back wall, rock walls that rise under the lowered sides and drifts of snow lying along the roof.
+
+    The shelter keeps a clear 12 x 8 x 6 box and the roof still covers its whole floor rectangle.
+    """
     rng = a.rng
     rock, snow = a.part("Rock"), a.part("Snow")
-    rock_mass(rock, rng, [(-10.0, 2.7), (0.0, 2.55), (10.0, 2.7), (10.0, 6.0), (0.0, 6.0), (-10.0, 6.0)],
-              ((0.0, 1.0), (4.0, 0.98), (8.0, 0.95)), 0.1)
-    left = [(-10.0, -5.6), (-6.8, -5.9), (-6.6, 0.0), (-6.8, 3.2), (-10.0, 6.0), (-10.0, 0.5)]
+    stations = hood_rings(rng)
+    loft(rock, stations, W)
+    # Side walls sit back from the lip, so the roof overhangs them.
+    left = [(-10.0, -3.4), (-6.8, -4.8), (-6.6, 1.0), (-7.0, 3.6), (-10.0, 4.8)]
     for outline in (left, mirrored(left)):
-        rock_mass(rock, rng, outline, ((0.0, 1.0), (3.5, 0.97), (7.0, 0.9)), 0.1)
-    for x in (-3.5, 3.5):  # buttresses on the back wall, kept out of the shelter box
-        rock_mass(rock, rng, [(x - 2.0, 2.4), (x, 2.35), (x + 2.0, 2.45), (x + 2.0, 4.0), (x - 2.0, 4.0)],
-                  ((0.0, 1.0), (3.5, 0.9), (5.5, 0.7)), 0.08)
-    # Roof: two overlapping slabs with different tilts, high at the back, so it does not read as one table top.
-    # Each underside is at least Z 6.2 at the front edge, above the 6-high shelter box.
-    for x_low, x_high, slope, z0, thick, seed_shift in ((-10.0, 0.9, 0.06, 6.8, 1.2, 0.0), (-0.9, 10.0, 0.11, 6.9, 1.0, 0.3)):
-        phi = math.atan(slope)
-        v = (0.0, math.cos(phi), math.sin(phi))
-        n = (0.0, -math.sin(phi), math.cos(phi))
-        origin = (0.0, 0.0, z0)
-        mid = (x_low + x_high) / 2
-        half = (x_high - x_low) / 2
-        outline = [(mid - half, -5.8 + seed_shift), (mid - half * 0.2, -6.0), (mid + half * 0.5, -5.9),
-                   (mid + half, -5.5 - seed_shift), (mid + half, 0.4), (mid + half * 0.9, 5.8),
-                   (mid - half * 0.2, 6.0), (mid - half, 5.7)]
-        slab(rock, outline, origin, U, v, n, thick, W, bevel=0.05)
-        slab(snow, [(mid + (a_ - mid) * 0.95, b * 0.94) for a_, b in outline], madd(origin, n, thick - 0.05), U, v, n,
-             0.25, W)
-        if x_low < 0:
-            drift = add(add(madd(origin, v, -2.5), (-5.0, 0.0, 0.0)), mul(n, thick + 0.1))
-        else:
-            drift = add(add(madd(origin, v, -3.0), (5.5, 0.0, 0.0)), mul(n, thick + 0.1))
-        lathe(snow, [(1.8, 0.0), (0.0, 0.8)], 7, W, center=drift, frame=(U, v, n), phase=rng.uniform(0, 1))
+        rock_mass(rock, rng, outline, ((0.0, 1.0), (2.4, 0.9), (4.2, 0.7)), 0.1)
+    # A boulder at the foot of the left wall, in front of it. It also keeps the base footprint symmetric in Y.
+    for x, y, radius, height in ((-8.4, -4.8, 1.3, 1.9),):
+        loft(rock, [ring_points((x, y, 0.0), U, V, radius, radius * 0.9, 5, rng.uniform(0, 1)),
+                    ring_points((x + rng.uniform(-0.2, 0.2), y + 0.2, height), U, V, radius * 0.6, radius * 0.55, 5,
+                                rng.uniform(0, 1))], W)
+    # Snow lies on the roof as banks that follow its tilt: a lip at the edge, a crest inside.
+    for cx, cy, rx, ry, count in ((-5.5, 2.4, 3.8, 3.1, 7), (3.8, -1.0, 3.3, 3.7, 7), (-0.8, 4.6, 2.6, 1.3, 6),
+                                  (8.0, -2.5, 1.6, 1.4, 5)):
+        angles = [math.tau * k / count + rng.uniform(-0.15, 0.15) for k in range(count)]
+        reach = [rng.uniform(0.75, 1.15) for _ in range(count)]
+        edge = [(cx + rx * r * math.cos(t), cy + ry * r * math.sin(t)) for r, t in zip(reach, angles)]
+        crest = [(cx + (x - cx) * 0.6, cy + (y - cy) * 0.6) for x, y in edge]
+        loft(snow, [[(x, y, roof_height(stations, x, y) - 0.12) for x, y in edge],
+                    [(x, y, roof_height(stations, x, y) + 0.34) for x, y in crest]], W)
 
 
 def tags_rock_overhang(a):
@@ -149,7 +198,13 @@ def build_scour_shelf(a):
         reach = 8.0 if k % 5 == 0 else 7.5 + 0.3 * math.sin(3 * angle + 0.4) + 0.18 * math.sin(5 * angle + 1.1) \
             + rng.uniform(-0.08, 0.08)
         outline.append((reach * math.cos(angle), reach * math.sin(angle)))
-    rings = [[(x * s, y * s, z) for x, y in outline] for z, s in ((0.0, 1.0), (0.55, 1.0), (1.0, 0.94))]
+    # The four axis points stay exact, so the footprint and the walkable top are unchanged. The lower rings
+    # undercut unevenly like layered stone; the top ring is the walk surface and stays one flat outline.
+    rings = []
+    for z, s, undercut in ((0.0, 1.0, 0.07), (0.55, 1.0, 0.1), (1.0, 0.94, 0.0)):
+        rings.append([(x * s * (1.0 if k % 5 == 0 else 1.0 - rng.uniform(0.0, undercut)),
+                       y * s * (1.0 if k % 5 == 0 else 1.0 - rng.uniform(0.0, undercut)), z)
+                      for k, (x, y) in enumerate(outline)])
     loft(rock, rings, W, start=(0.0, 0.0, 0.0), end=(0.0, 0.0, 1.0))
 
 
@@ -180,43 +235,74 @@ def build_cairn(a):
 
 
 def build_snow_mound(a):
-    """Low round faceted hump, leaning off-centre so it reads as a drift and not as a dome."""
+    """A wind-shaped drift: blunt and steep on the windward (-X) side, a long gentle tail downwind, a scalloped
+    outline and a crest that sits off-centre. Not a dome."""
     rng = a.rng
-    rings = []
-    for z, radius, (ox, oy) in ((0.0, 3.0, (0.0, 0.0)), (1.1, 2.6, (0.3, -0.2)), (2.3, 1.5, (0.7, -0.5))):
-        rings.append([(ox + radius * math.cos(t) * (1 + rng.uniform(-0.08, 0.08)),
-                       oy + radius * math.sin(t) * (1 + rng.uniform(-0.08, 0.08)), z)
-                      for t in (math.pi / 2 + math.tau * k / 10 for k in range(10))])
-    loft(a.part("Mound"), rings, W, end=(1.0, -0.7, 3.0))
+    outline = ((3.0, 0.2), (1.7, 1.6), (0.1, 2.8), (-1.6, 2.3), (-2.55, 0.8), (-2.45, -0.9), (-1.4, -2.4),
+               (0.2, -2.85), (1.2, -1.4), (2.0, -0.5))
+    centre = (-0.3, 0.0)
+    rings = [[(x + rng.uniform(-0.06, 0.06), y + rng.uniform(-0.06, 0.06), 0.0) for x, y in outline]]
+    for z, windward, lee, pull in ((1.1, 0.9, 0.5, -0.6), (2.2, 0.62, 0.2, -1.0)):
+        ring = []
+        for x, y in outline:
+            turn = math.atan2(y - centre[1], x - centre[0])
+            shrink = (windward + lee) / 2 - (windward - lee) / 2 * math.cos(turn)  # lee side pulls in hardest
+            ring.append((centre[0] + pull + (x - centre[0]) * shrink + rng.uniform(-0.12, 0.12),
+                         centre[1] + (y - centre[1]) * shrink + rng.uniform(-0.12, 0.12), z))
+        rings.append(ring)
+    loft(a.part("Mound"), rings, W, end=(-1.35, 0.15, 3.0))
+
+
+def arch_shape(x):
+    """Ice arch along X: centre height, vertical half-thickness, half-width in Y and sideways meander."""
+    reach = abs(x)
+    return (14.6 - 3.0 * (reach / 14.0) ** 1.6, 1.7 - 0.5 * (reach / 15.0) ** 2, 3.2 - 1.2 * (reach / 15.0) ** 1.5,
+            0.7 * math.sin(0.3 * x))
 
 
 def build_ice_pass(a):
-    """Two rock legs outside the 16-wide passage with an ice lintel across them."""
+    """Two craggy rock piers that narrow toward the top, a curved ice arch that crests at the middle and
+    meets them at its ends, crystals on its back and icicles under it.
+
+    Rock stays outside the 16-wide passage below Z 11 and the arch underside stays above Z 11.
+    """
     rng = a.rng
     ice, rock = a.part("Ice"), a.part("Rock")
     for side in (-1, 1):
-        cx = side * 11.9
+        def ring(z, cx, rx, ry):
+            return [(side * cx + rx * math.cos(t) * (1 + rng.uniform(-0.06, 0.06)) + rng.uniform(-0.1, 0.1),
+                     ry * math.sin(t) * (1 + rng.uniform(-0.06, 0.06)) + rng.uniform(-0.2, 0.2), z)
+                    for t in (0.2 + math.tau * k / 7 for k in range(7))]
 
-        def ring(z, rx, ry):
-            return [(cx + rx * math.cos(t) + rng.uniform(-0.12, 0.12), ry * math.sin(t) + rng.uniform(-0.2, 0.2), z)
-                    for t in (math.tau * k / 6 for k in range(6))]
-
-        loft(rock, [ring(0.0, 3.2, 6.4), ring(5.5, 3.1, 6.0), ring(11.0, 2.9, 5.4)], W)
-        loft(rock, [ring(10.0, 3.2, 5.6), ring(13.4, 3.0, 5.2)], W)
-        for y in (-4.2, 4.0):  # foot boulders outside the passage
-            loft(rock, [ring_points((side * 13.4, y, 0.0), U, V, 1.9, 1.9, 6, rng.uniform(0, 1)),
-                        ring_points((side * 13.4, y, 2.4), U, V, 1.3, 1.3, 6, rng.uniform(0, 1))], W)
-
-    def lintel_ring(z, s):
-        return [(15.0 * s * math.cos(t) * (1 + rng.uniform(-0.02, 0.02)), 7.0 * s * math.sin(t), z)
-                for t in (math.tau * k / 20 for k in range(20))]
-
-    loft(ice, [lintel_ring(12.0, 0.86), lintel_ring(12.9, 1.0), lintel_ring(15.6, 0.98), lintel_ring(16.3, 0.86)], W,
-         start=(0.0, 0.0, 12.0), end=(0.0, 0.0, 16.3))
-    for x, y, height in ((-8.0, 1.0, 1.8), (0.0, -2.0, 1.9), (7.0, 2.0, 1.7), (-3.5, 3.5, 1.4), (4.0, -3.0, 1.5)):
-        crystal(ice, (x, y, 16.1), (rng.uniform(-0.15, 0.15), rng.uniform(-0.15, 0.15), 1.0), 0.9, height, W)
-    for x, y in ((-7.0, 0.5), (-4.0, -1.0), (-1.0, 1.5), (2.0, -0.5), (5.0, 1.0), (7.5, -1.5)):  # icicles
-        loft(ice, [ring_points((x, y, 12.2), U, V, 0.45, 0.45, 5, rng.uniform(0, 1))], W, end=(x, y, 11.4))
+        loft(rock, [ring(0.0, 11.65, 3.1, 6.1), ring(4.0, 11.55, 2.95, 4.9), ring(8.0, 11.5, 2.8, 3.8),
+                    ring(11.2, 11.4, 2.55, 3.0)], W)
+        for y, height in ((-4.5, 2.2), (4.7, 1.9)):  # foot boulders at the outer corners
+            loft(rock, [ring_points((side * 12.9, y, 0.0), U, V, 1.7, 1.6, 5, rng.uniform(0, 1)),
+                        ring_points((side * 12.9 + rng.uniform(-0.2, 0.2), y, height), U, V, 1.1, 1.0, 5,
+                                    rng.uniform(0, 1))], W)
+        # A shoulder of rock on the front of each pier, so the legs are not smooth towers.
+        loft(rock, [ring_points((side * 11.9, -2.2, 7.0), U, V, 1.9, 2.3, 5, rng.uniform(0, 1)),
+                    ring_points((side * 11.7, -2.0, 11.0), U, V, 1.2, 1.5, 5, rng.uniform(0, 1))], W)
+    rings = []
+    for x in (-14.8, -12.0, -9.0, -5.0, 0.0, 5.0, 9.0, 12.0, 14.8):
+        x += rng.uniform(-0.2, 0.2) if abs(x) < 14 else 0.0
+        zc, rv, ry, offset = arch_shape(x)
+        rings.append([(x + rng.uniform(-0.12, 0.12), offset + ry * math.cos(t) * (1 + rng.uniform(-0.12, 0.12)),
+                       zc + rv * math.sin(t) * (1 + rng.uniform(-0.12, 0.12)))
+                      for t in (0.5 + math.tau * k / 6 for k in range(6))])
+    loft(ice, rings, W)
+    # Crystals stand on the back of the arch; the tallest tops out at the prop height of 18.
+    for x, y, top in ((-6.5, 1.4, 17.4), (-2.2, -2.0, 18.0), (2.6, 2.0, 17.7), (6.2, -1.6, 16.7), (10.2, 0.8, 15.4)):
+        zc, rv, _, offset = arch_shape(x)
+        base = zc + rv * 0.8 - 0.1
+        crystal(ice, (x, y + offset, base), (rng.uniform(-0.2, 0.2), rng.uniform(-0.2, 0.2), 1.0), 0.75,
+                top - base, W)
+    for x in (-7.0, -5.0, -3.0, -1.0, 1.2, 3.2, 5.0, 6.8):  # icicles hang no lower than Z 11.25, above the clear height
+        zc, rv, _, offset = arch_shape(x)
+        under = zc - rv * 0.85
+        tip = max(11.3, under - rng.uniform(1.0, 1.7))
+        y = offset + rng.uniform(-1.2, 1.2)
+        loft(ice, [ring_points((x, y, under + 0.3), U, V, 0.5, 0.5, 5, rng.uniform(0, 1))], W, end=(x, y, tip))
 
 
 PALETTE = {

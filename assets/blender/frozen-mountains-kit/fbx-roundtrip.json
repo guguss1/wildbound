@@ -44,7 +44,7 @@
     },
     "FM_RockOverhang": {
       "model": {
-        "triangles": 316,
+        "triangles": 328,
         "size": [
           20.0,
           12.0,
@@ -120,7 +120,7 @@
     },
     "FM_IcePass": {
       "model": {
-        "triangles": 502,
+        "triangles": 478,
         "size": [
           30.0,
           14.0,

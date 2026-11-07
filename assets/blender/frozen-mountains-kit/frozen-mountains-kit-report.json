@@ -156,7 +156,7 @@
     },
     "FM_RockOverhang": {
       "status": "unvalidated",
-      "triangles": 316,
+      "triangles": 328,
       "size": [
         20.0,
         12.0,
@@ -164,12 +164,12 @@
       ],
       "bbox_min": [
         -10.0,
-        -6.0453,
+        -6.0733,
         0.0
       ],
       "bbox_max": [
         10.0,
-        5.9547,
+        5.9267,
         9.0
       ],
       "base_center": [
@@ -180,9 +180,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        0.9939,
-        0.9925,
-        1.029
+        0.9938,
+        0.9791,
+        1.0149
       ],
       "parts": [
         {
@@ -190,7 +190,7 @@
           "material": "FM_RockOverhang_Rock",
           "material_count": 1,
           "palette_name": "FM_Granite",
-          "triangles": 236,
+          "triangles": 244,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -201,7 +201,7 @@
           "material": "FM_RockOverhang_Snow",
           "material_count": 1,
           "palette_name": "FM_Snow",
-          "triangles": 80,
+          "triangles": 84,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -424,13 +424,13 @@
         3.0
       ],
       "bbox_min": [
-        -2.8837,
-        -3.0181,
+        -3.2235,
+        -3.0,
         0.0
       ],
       "bbox_max": [
-        3.1163,
-        2.9819,
+        2.7765,
+        3.0,
         3.0
       ],
       "base_center": [
@@ -441,8 +441,8 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0056,
-        0.9965,
+        1.0126,
+        1.0724,
         1.0
       ],
       "parts": [
@@ -466,20 +466,20 @@
     },
     "FM_IcePass": {
       "status": "unvalidated",
-      "triangles": 502,
+      "triangles": 478,
       "size": [
         30.0,
         14.0,
         18.0
       ],
       "bbox_min": [
-        -15.0,
-        -6.8575,
+        -15.0023,
+        -7.0,
         0.0
       ],
       "bbox_max": [
-        15.0,
-        7.1425,
+        14.9977,
+        7.0,
         18.0
       ],
       "base_center": [
@@ -490,9 +490,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        0.9809,
-        1.0,
-        1.0008
+        1.0069,
+        1.1183,
+        1.0015
       ],
       "parts": [
         {
@@ -500,7 +500,7 @@
           "material": "FM_IcePass_Ice",
           "material_count": 1,
           "palette_name": "FM_Ice",
-          "triangles": 318,
+          "triangles": 278,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -511,7 +511,7 @@
           "material": "FM_IcePass_Rock",
           "material_count": 1,
           "palette_name": "FM_Granite",
-          "triangles": 184,
+          "triangles": 200,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -524,10 +524,10 @@
       "render": "assets/blender/frozen-mountains-kit/FM_IcePass.png",
       "clearance": {
         "method": "triangles projected along Y",
-        "width": 17.0246,
-        "gap_low_x": -8.5957,
-        "gap_high_x": 8.429,
-        "height": 11.4094,
+        "width": 17.4683,
+        "gap_low_x": -8.7688,
+        "gap_high_x": 8.6995,
+        "height": 11.3168,
         "width_probe_height": 11.0,
         "height_probe_width": 16.0
       }

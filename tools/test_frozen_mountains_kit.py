@@ -14,8 +14,8 @@ unvalidated: nothing was imported into Roblox, so scale there and phone cost sta
 import math
 import unittest
 
-from biome_kit_spec import BiomeKitMixin
-from kit_spec_common import ROOT, load_json
+from biome_kit_spec import BiomeKitMixin, top_height
+from kit_spec_common import ROOT, load_json, part_triangles
 
 KIT_DIR = ROOT / "assets/blender/frozen-mountains-kit"
 EXPORT_DIR = ROOT / "assets/exports/frozen-mountains-kit"
@@ -149,6 +149,75 @@ class FrozenMountainsForm(unittest.TestCase):
         right = [v for v in rock if v[0] > 0]
         self.assertTrue(left and right, "rock on both sides of the path")
         self.assertGreaterEqual(min(abs(v[0]) for v in rock if v[2] < 11.0), 8.0, "legs stay outside the passage")
+
+
+def underside_height(triangles, x, y):
+    """Lowest downward-facing surface over (x, y): mirror in Z, flip winding, ask for the top."""
+    mirrored = [[(v[0], v[1], -v[2]) for v in reversed(t)] for t in triangles]
+    found = top_height(mirrored, x, y)
+    return None if found is None else -found
+
+
+class FrozenMountainsReads(unittest.TestCase):
+    """Visual reads from the W14d art pass: each one failed on the first-draft primitives.
+
+    Thresholds sit between the old primitive and the Fog Forest standard. They sit beside the
+    spec rules and weaken none of them.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(FrozenMountainsKit.GEOMETRY)
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    def test_overhang_roof_slants_toward_the_open_front_and_across(self):
+        rock = part_triangles(self.part("FM_RockOverhang", "Rock"))
+        back, front = top_height(rock, 0.0, 4.0), top_height(rock, 0.0, -5.2)
+        left, right = top_height(rock, -8.0, -2.0), top_height(rock, 8.0, -2.0)
+        for found in (back, front, left, right):
+            self.assertIsNotNone(found)
+        self.assertGreaterEqual(back - front, 1.6, "the roof must fall away toward the open side")
+        self.assertGreaterEqual(abs(left - right), 0.8, "the roof must also tilt across the span")
+
+    def test_overhang_ceiling_is_not_a_flat_slab_underside(self):
+        rock = part_triangles(self.part("FM_RockOverhang", "Rock"))
+        ceiling = [underside_height(rock, x, -3.0) for x in (-5.0, -2.5, 0.0, 2.5, 5.0)]
+        self.assertNotIn(None, ceiling)
+        self.assertGreaterEqual(max(ceiling) - min(ceiling), 0.4, "the ceiling needs ridges and hollows")
+
+    def test_ice_pass_span_is_an_arch_not_a_flat_lintel(self):
+        ice = part_triangles(self.part("FM_IcePass", "Ice"))
+
+        def lowest_top(x):
+            tops = [top_height(ice, x, y) for y in (-1.0, 0.0, 1.0)]
+            self.assertNotIn(None, tops, f"no ice over x={x}")
+            return min(tops)
+
+        crest = lowest_top(0.0)
+        shoulders = (lowest_top(-9.0) + lowest_top(9.0)) / 2
+        self.assertGreaterEqual(crest - shoulders, 1.2, "the span must rise to a crest and fall to its piers")
+
+    def test_ice_pass_rock_legs_taper_toward_the_top(self):
+        rock = [v for v in self.part("FM_IcePass", "Rock")["vertices"] if v[0] > 0]
+        base = [v[1] for v in rock if v[2] <= 1.0]
+        crown = [v[1] for v in rock if 7.5 <= v[2] <= 11.5]
+        self.assertTrue(base and crown)
+        self.assertLessEqual((max(crown) - min(crown)) / (max(base) - min(base)), 0.7)
+
+    def test_snow_mound_outline_is_irregular_not_a_regular_dome(self):
+        points = self.part("FM_SnowMound", "Mound")["vertices"]
+        ground = [v for v in points if v[2] <= 0.01]
+        cx, cy = sum(v[0] for v in ground) / len(ground), sum(v[1] for v in ground) / len(ground)
+        radii = [math.hypot(v[0] - cx, v[1] - cy) for v in ground]
+        self.assertGreaterEqual(max(radii) / min(radii), 1.4, "a drift is longer on one side than the other")
+
+    def test_snow_mound_is_steep_into_the_wind_and_long_downwind(self):
+        points = self.part("FM_SnowMound", "Mound")["vertices"]
+        peak = max(points, key=lambda v: v[2])
+        slopes = [peak[2] / math.hypot(v[0] - peak[0], v[1] - peak[1]) for v in points if v[2] <= 0.01]
+        self.assertGreaterEqual(max(slopes) / min(slopes), 3.0, "steep windward face, gentle lee")
 
 
 if __name__ == "__main__":
