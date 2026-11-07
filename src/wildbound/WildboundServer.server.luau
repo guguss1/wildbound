@@ -1,8 +1,15 @@
 -- Authoritative adapter. Deploy beside WildboundState in ServerScriptService.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local ServerStorage = game:GetService("ServerStorage")
 local State = require(script.Parent:WaitForChild("WildboundState"))
+local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
+local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
+local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"))
 local state = State.new()
+local capture = Capture.new()
 local map = workspace:WaitForChild("WildboundP0", 15)
 if not map then warn("Wildbound: build the P0 map before starting gameplay."); return end
 
@@ -28,7 +35,20 @@ network:SetAttribute("SessionOnly", true)
 local actionRemote, stateRemote = Instance.new("RemoteEvent"), Instance.new("RemoteEvent")
 actionRemote.Name, actionRemote.Parent = "Action", network
 stateRemote.Name, stateRemote.Parent = "State", network
+-- M3.3: the capture screen's feed. Only the session owner is ever sent a message on it.
+local captureRemote = Instance.new("RemoteEvent")
+captureRemote.Name, captureRemote.Parent = "CaptureState", network
+-- Server-to-server only: a client can fire its own copy of a BindableEvent, which reaches nothing here.
+local strikeEvent = Instance.new("BindableEvent")
+strikeEvent.Name, strikeEvent.Parent = "CaptureStrike", network
 network.Parent = ReplicatedStorage
+
+-- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
+local telemetry = ServerStorage:FindFirstChild("WildboundTelemetry")
+if not telemetry then
+	telemetry = Instance.new("Folder")
+	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
+end
 
 -- Server-to-server proof of registered ownership; clients cannot invoke bindables.
 -- Never use a replicated Player attribute alone to authorize a companion ability.
@@ -47,6 +67,7 @@ end
 eligibility.Parent = network
 
 local records, serial = {}, 0
+local playersByUserId = {}
 local notices = {
 	InvalidContext = "Move closer while alive and try again.", Empty = "Your bag is empty.",
 	BackpackFull = "Bag full. Return to camp to extract.", AlreadyClaimed = "Someone collected this encounter.",
@@ -55,8 +76,22 @@ local notices = {
 	NotOwnedPending = "Select an item in your temporary bag.", NoSeal = "Your first extraction earns one seal.",
 	AlreadyProtected = "One item is already protected.", InvalidEncounter = "This encounter is no longer available.",
 }
+-- The capture rule owns the words for its own refusals and endings.
+for reason, text in pairs(Capture.NOTICES) do
+	if notices[reason] == nil and text ~= "" then notices[reason] = text end
+end
+-- Walk speed follows the eggs in the bag (M3.5). Set when a reply is sent and for each new character.
+local function applyCarry(player)
+	local character = player.Character
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local snapshot = state:snapshot(player.UserId)
+	if not humanoid or not snapshot then return end
+	local speed = Wild.carrySpeed(Wild.eggsCarried(snapshot))
+	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
+end
 local function send(player, action, ok, notice)
 	if not records[player] or player.Parent ~= Players then return end
+	applyCarry(player)
 	stateRemote:FireClient(player, {
 		snapshot = state:snapshot(player.UserId), action = action, ok = ok, notice = notice or "",
 	})
@@ -85,10 +120,10 @@ end
 local function reply(player, action, ok, reason, success)
 	send(player, action, ok, ok and success or (notices[reason] or "That action is not available."))
 end
-local function prompt(target, action, object, range)
+local function prompt(target, action, object, range, hold)
 	local value = Instance.new("ProximityPrompt")
 	value.ActionText, value.ObjectText = action, object
-	value.MaxActivationDistance, value.HoldDuration = range, 0.25
+	value.MaxActivationDistance, value.HoldDuration = range, hold or 0.25
 	value.RequiresLineOfSight, value.KeyboardKeyCode = false, Enum.KeyCode.E
 	value.Parent = target
 	return value
@@ -162,42 +197,281 @@ local function visual(kind, position)
 	model.PrimaryPart, model.Parent = body, runtime
 	return model, body
 end
+
+-- Slots, sessions and wildlife -------------------------------------------------------------------
+-- Every wild encounter lives in `entries`, keyed by its never-reused id. Slot ids decide where and when.
+local rng = Random.new()
+local function rand() return rng:NextNumber() end
+local entries, slotState = {}, {}
+local sessionMeta = {}
+local captureLog = {}
+local counters = { started = 0, completed = 0, failed = 0, cancelled = 0, grantRefused = 0, rejected = 0 }
+local groundY = creatureMarker.Position.Y
+local handleEnding
+
+local function publishTelemetry()
+	telemetry:SetAttribute("CaptureAnomaly", capture.counters.anomaly)
+	telemetry:SetAttribute("CaptureWatchdog", capture.counters.watchdog)
+	for key, value in pairs(counters) do telemetry:SetAttribute("Capture_" .. key, value) end
+	telemetry:SetAttribute("CaptureLog", HttpService:JSONEncode(captureLog))
+end
+
+local function rootOf(player)
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	return root and root:IsA("BasePart") and root or nil
+end
+
+-- Values the capture rule trusts: all read here, none from a client.
+local function observe(player, now)
+	local record = records[player]
+	local alive = context(player)
+	local root = rootOf(player)
+	local bag, collection = state:captureRoom(player.UserId)
+	local position = root and root.Position
+	return { now = now, alive = alive == true and root ~= nil, life = record and record.generation,
+		x = position and position.X, y = position and position.Y, z = position and position.Z,
+		bagRoom = bag, collectionRoom = collection }
+end
+
+local function guardianReading(position)
+	local world = map:FindFirstChild("WildboundWorldRuntime")
+	local guardian = world and world:FindFirstChild("Silueta")
+	local body = guardian and guardian:FindFirstChild("Body")
+	if not body or not body:IsA("BasePart") then return nil, nil end
+	return guardian:GetAttribute("State"), (body.Position - position).Magnitude
+end
+
+local function slotOf(id)
+	local slot = Wild.slot(id)
+	if not slot then return nil end
+	-- The map's own markers stay the truth for the two slots that already had one.
+	local at = id == "S0a" and creatureMarker or id == "E1" and eggMarker or nil
+	if not at then return slot end
+	local moved = table.clone(slot)
+	moved.x, moved.z = at.Position.X, at.Position.Z
+	return moved
+end
+
+local function removeEntry(entry, now)
+	if entries[entry.id] ~= entry then return end
+	entries[entry.id] = nil
+	entry.prompt.Enabled = false
+	if entry.connection then entry.connection:Disconnect() end
+	entry.model:Destroy()
+	state:retireEncounter(entry.id)
+	local out = capture:retire(entry.id, now or workspace:GetServerTimeNow())
+	if out then handleEnding(out) end
+end
+
 local spawnEncounter
-spawnEncounter = function(target, kind)
-	if runtime.Parent ~= map or not target:IsDescendantOf(map) then return end
-	serial += 1
-	local id = kind .. ":" .. serial
-	if not state:registerEncounter(id, kind) then return end
-	local model, body = visual(kind, target.Position)
-	model:SetAttribute("EncounterId", id)
-	local pickupPrompt = prompt(body, "Collect", kind == "Egg" and "Lumipol egg" or "Lumipol", 10)
-	local connection
-	connection = pickupPrompt.Triggered:Connect(function(player)
-		if model.Parent ~= runtime or not validPrompt(pickupPrompt, body) or not allowed(player, "Pickup") then return end
-		local alive, distance = context(player, body)
-		local ok, reason = state:pickup(player.UserId, id, alive, distance)
-		if ok then
-			pickupPrompt.Enabled = false
-			connection:Disconnect()
-			model:Destroy()
-			state:retireEncounter(id)
-			task.delay(20, function() spawnEncounter(target, kind) end)
-		end
-		reply(player, "Pickup", ok, reason, "Collected temporary loot. Extract it at camp before defeat.")
+local function ensureSlots()
+	for _, id in ipairs(Wild.activeSlotIds(math.max(1, #Players:GetPlayers()))) do
+		if slotState[id] == nil then spawnEncounter(slotOf(id)) end
+	end
+end
+local function scheduleRespawn(slot)
+	slotState[slot.id] = "wait"
+	task.delay(Wild.respawnSeconds(slot, #Players:GetPlayers()), function()
+		slotState[slot.id] = nil
+		ensureSlots()
 	end)
 end
-spawnEncounter(creatureMarker, "Creature")
-spawnEncounter(eggMarker, "Egg")
+
+local function startCapture(player, entry)
+	local record = records[player]
+	if not record then return end
+	local now = workspace:GetServerTimeNow()
+	local alive, distance = context(player, entry.body)
+	local root = rootOf(player)
+	local snapshot = state:snapshot(player.UserId)
+	if not alive or not root or not snapshot then
+		reply(player, "Capture", false, "InvalidContext")
+		return
+	end
+	local bag, collection = state:captureRoom(player.UserId)
+	local position, lumipol = root.Position, entry.body.Position
+	local ok, result = capture:begin({
+		playerKey = player.UserId, encounterId = entry.id, dir = rng:NextInteger(0, 1) * 2 - 1,
+		lumipolX = lumipol.X, lumipolZ = lumipol.Z, now = now, alive = alive, life = record.generation,
+		distance = distance, x = position.X, y = position.Y, z = position.Z,
+		encounterStatus = state:encounterStatus(entry.id) or "Gone",
+		slotRefusal = Wild.slotRefusal(entry.slot.tier, snapshot), bagRoom = bag, collectionRoom = collection,
+	})
+	if not ok then
+		counters.rejected += 1
+		reply(player, "Capture", false, result)
+		return
+	end
+	counters.started += 1
+	entry.prompt.Enabled = false
+	Wild.reserve(entry.brain, position.X, position.Z)
+	local mode, guardianDistance = guardianReading(position)
+	sessionMeta[result.token] = { startedAt = now, slot = entry.slot.id, tier = entry.slot.tier,
+		inTerritory = Rules.inTerritory(position.X, position.Z), guardianMode = mode,
+		guardianDistance = guardianDistance and math.floor(guardianDistance * 10 + 0.5) / 10 or nil }
+	captureRemote:FireClient(player, Capture.toSnapshot(result))
+end
+
+-- Every ending passes through here: grant, spook or release, the final push, and the log.
+handleEnding = function(out)
+	local entry = entries[out.encounterId]
+	local player = playersByUserId[out.playerKey]
+	local now = workspace:GetServerTimeNow()
+	local notice, granted = out.notice, false
+	if out.grant then
+		local alive = player ~= nil and context(player) == true
+		local ok, reason = state:completeCapture(out.playerKey, out.encounterId, alive,
+			entry and entry.slot.tier or "Fog")
+		granted = ok
+		if ok then
+			counters.completed += 1
+		else
+			-- The rule said finished but the bag disagreed. Nothing is granted and the Lumipol still goes.
+			counters.grantRefused += 1
+			notice = notices[reason] or "That action is not available."
+		end
+		if entry then
+			removeEntry(entry, now)
+			scheduleRespawn(entry.slot)
+		end
+	elseif entry and entry.brain then
+		if out.spook then
+			local threat = player and rootOf(player)
+			Wild.spook(entry.brain, threat and threat.Position.X, threat and threat.Position.Z, rand)
+		else
+			Wild.release(entry.brain)
+		end
+	end
+	if out.phase == "Failed" then counters.failed += 1 elseif out.phase == "Cancelled" then counters.cancelled += 1 end
+	local meta = sessionMeta[out.token]
+	sessionMeta[out.token] = nil
+	if meta then
+		table.insert(captureLog, { slot = meta.slot, tier = meta.tier, reason = out.reason, granted = granted,
+			seconds = math.floor((now - meta.startedAt) * 100 + 0.5) / 100, calm = math.floor(out.calm * 100 + 0.5) / 100,
+			inTerritory = meta.inTerritory, guardianMode = meta.guardianMode, guardianDistance = meta.guardianDistance })
+		while #captureLog > 40 do table.remove(captureLog, 1) end
+	end
+	if player and records[player] and player.Parent == Players then
+		local snapshot = Capture.toSnapshot(out)
+		if snapshot then
+			snapshot.notice = notice
+			captureRemote:FireClient(player, snapshot)
+		end
+		if notice ~= "" then send(player, "Capture", granted, notice) end
+	end
+	publishTelemetry()
+end
+
+spawnEncounter = function(slot)
+	if not slot or runtime.Parent ~= map then return end
+	serial += 1
+	local id = slot.kind .. ":" .. serial
+	if not state:registerEncounter(id, slot.kind) then return end
+	local model, body = visual(slot.kind, Vector3.new(slot.x, groundY, slot.z))
+	model:SetAttribute("EncounterId", id)
+	model:SetAttribute("Slot", slot.id)
+	local isEgg = slot.kind == "Egg"
+	local entry = { id = id, slot = slot, model = model, body = body, bodyY = body.Position.Y }
+	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
+	entry.prompt = prompt(body, isEgg and "Collect" or "Calm", isEgg and "Lumipol egg" or "Lumipol", 10, isEgg and 0.25 or 0)
+	if not isEgg then entry.brain = Wild.newBrain(slot, rand) end
+	entries[id] = entry
+	slotState[slot.id] = id
+	entry.connection = entry.prompt.Triggered:Connect(function(player)
+		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
+		if isEgg then
+			if not allowed(player, "Pickup") then return end
+			local alive, distance = context(player, body)
+			local ok, reason = state:pickup(player.UserId, id, alive, distance)
+			if ok then
+				removeEntry(entry)
+				scheduleRespawn(slot)
+			end
+			reply(player, "Pickup", ok, reason, "Collected temporary loot. Extract it at camp before defeat.")
+		else
+			if not allowed(player, "CaptureStart") then return end
+			startCapture(player, entry)
+		end
+	end)
+end
+
+-- Silueta's resolved strike ends the target's capture, whether or not damage is on (the world script fires it).
+strikeEvent.Event:Connect(function(player)
+	if typeof(player) == "Instance" and player:IsA("Player") and records[player] then
+		capture:notifyStruck(player.UserId)
+	end
+end)
+
+local function stepWildlife(now)
+	local watchers = {}
+	for player in pairs(records) do
+		local root = rootOf(player)
+		if root and context(player) then table.insert(watchers, root.Position) end
+	end
+	for _, entry in pairs(entries) do
+		local brain = entry.brain
+		if brain then
+			local prompting = capture:encounterState(entry.id, now) == "Free"
+			if entry.prompt.Enabled ~= prompting then entry.prompt.Enabled = prompting end
+			local near, best = nil, math.huge
+			for _, position in ipairs(watchers) do
+				local distance = math.sqrt((position.X - brain.x) ^ 2 + (position.Z - brain.z) ^ 2)
+				if distance < best then best, near = distance, { x = position.X, z = position.Z } end
+			end
+			local fx, fz = brain.fx, brain.fz
+			Wild.step(brain, Wild.CONSTANTS.STEP, near, rand)
+			if brain.moved or math.abs(brain.fx - fx) > 1e-3 or math.abs(brain.fz - fz) > 1e-3 then
+				local at = Vector3.new(brain.x, entry.bodyY, brain.z)
+				entry.model:PivotTo(CFrame.lookAt(at, at + Vector3.new(brain.fx, 0, brain.fz)))
+			end
+		end
+	end
+end
+
+local accumulator = 0
+RunService.Heartbeat:Connect(function(dt)
+	if dt ~= dt or dt < 0 then return end
+	accumulator += math.min(dt, 0.2)
+	if accumulator < Wild.CONSTANTS.STEP then return end
+	accumulator = 0
+	local now = workspace:GetServerTimeNow()
+	for _, item in ipairs(capture:activeSessions()) do
+		local player = playersByUserId[item.playerKey]
+		if not player or not records[player] then
+			local out = capture:drop(item.playerKey, now)
+			if out then handleEnding(out) end
+		else
+			local out = capture:sample(item.token, observe(player, now))
+			if out then
+				if out.phase == "Active" then
+					captureRemote:FireClient(player, Capture.toSnapshot(out))
+				else
+					handleEnding(out)
+				end
+			end
+		end
+	end
+	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
+	stepWildlife(now)
+end)
 
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
-	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Protect" and action ~= "Hatch" then return end
+	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Protect" and action ~= "Hatch"
+		and action ~= "CaptureCancel" then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
 		send(player, action, true, "Session only: collection resets when you leave this server.")
 		return
 	end
 	if type(uid) ~= "string" or #uid == 0 or #uid > 128 or not allowed(player, action) then return end
+	if action == "CaptureCancel" then
+		-- The token is untrusted. A wrong owner, a stale or a made-up one is ignored without a reply.
+		local ok, out = capture:cancel(uid, player.UserId, workspace:GetServerTimeNow())
+		if ok then handleEnding(out) end
+		return
+	end
 	if action == "Hatch" then hatch(player, uid)
 	elseif action == "Protect" then protect(player, uid)
 	else
@@ -243,6 +517,7 @@ local function bindCharacter(player, character)
 		or not campCenter:IsDescendantOf(map) or not map:IsDescendantOf(workspace) then return end
 	-- Once per new character, not an ability teleport; preserve the existing SpawnLocation.
 	character:PivotTo(CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))
+	applyCarry(player)
 	send(player, "Respawn", true, "Return temporary loot to camp. Registered collection is session only.")
 end
 local function addPlayer(player)
@@ -250,8 +525,10 @@ local function addPlayer(player)
 	state:addPlayer(player.UserId)
 	local record = { rates = {}, lastAny = -math.huge, generation = 0, defeated = false }
 	records[player] = record
+	playersByUserId[player.UserId] = player
 	record.characterConnection = player.CharacterAdded:Connect(function(character) bindCharacter(player, character) end)
 	if player.Character then task.spawn(bindCharacter, player, player.Character) end
+	ensureSlots()
 end
 Players.PlayerAdded:Connect(addPlayer)
 Players.PlayerRemoving:Connect(function(player)
@@ -259,7 +536,13 @@ Players.PlayerRemoving:Connect(function(player)
 	if not record then return end
 	if record.deathConnection then record.deathConnection:Disconnect() end
 	if record.characterConnection then record.characterConnection:Disconnect() end
+	-- Free any reservation first, with no grant and no penalty, before the profile goes (M3.3, CAP-32).
+	local out = capture:drop(player.UserId, workspace:GetServerTimeNow())
+	if out then handleEnding(out) end
 	records[player] = nil
+	playersByUserId[player.UserId] = nil
 	state:removePlayer(player.UserId)
 end)
 for _, player in ipairs(Players:GetPlayers()) do addPlayer(player) end
+ensureSlots()
+publishTelemetry()

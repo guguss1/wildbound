@@ -91,6 +91,8 @@ function State:pickup(key, id, alive, distance)
 	local encounter = self.encounters[id]
 	if not encounter then return false, "InvalidEncounter" end
 	if encounter.claimed then return false, "AlreadyClaimed" end
+	-- A creature is granted only by a finished capture session (completeCapture), never by a prompt.
+	if encounter.kind == "Creature" then return false, "CaptureRequired" end
 	if #player.pending >= CAPACITY then return false, "BackpackFull" end
 	if #player.pending + #player.bankedEggs + #player.registered >= COLLECTION_LIMIT then
 		return false, "CollectionFull"
@@ -100,6 +102,48 @@ function State:pickup(key, id, alive, distance)
 	encounter.claimed = true
 	table.insert(player.pending, {
 		uid = uid, kind = encounter.kind, species = "Lumipol", protected = false,
+	})
+	return true, uid
+end
+
+local TIERS = table.freeze({ Safe = true, Fog = true, Territory = true })
+
+-- Whether a capture could be granted now: bag room, then collection room. Missing players have neither.
+function State:captureRoom(key)
+	local player = profile(self, key)
+	if not player then return false, false end
+	local total = #player.pending + #player.bankedEggs + #player.registered
+	return #player.pending < CAPACITY, total < COLLECTION_LIMIT
+end
+
+-- "Open", "Claimed" or nil for an unknown or retired id. Lets the adapter name the encounter state.
+function State:encounterStatus(id)
+	if not validId(id) then return nil end
+	local encounter = self.encounters[id]
+	if not encounter then return nil end
+	return encounter.claimed and "Claimed" or "Open"
+end
+
+-- The grant for a finished capture. The ring session already proved skill, owner and reservation, and a
+-- correct finish can be farther than the 10 stud pickup range, so there is no distance here. It claims
+-- and grants in one step with no yield, so the creature has exactly one owner.
+function State:completeCapture(key, id, alive, tier)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not validId(id) then return false, "InvalidEncounter" end
+	local encounter = self.encounters[id]
+	if not encounter or encounter.kind ~= "Creature" then return false, "InvalidEncounter" end
+	if alive ~= true then return false, "InvalidContext" end
+	if encounter.claimed then return false, "AlreadyClaimed" end
+	if type(tier) ~= "string" or not TIERS[tier] then return false, "InvalidTier" end
+	if #player.pending >= CAPACITY then return false, "BackpackFull" end
+	if #player.pending + #player.bankedEggs + #player.registered >= COLLECTION_LIMIT then
+		return false, "CollectionFull"
+	end
+	local uid = newUid(self)
+	encounter.claimed = true
+	table.insert(player.pending, {
+		uid = uid, kind = "Creature", species = "Lumipol", protected = false, riskTier = tier,
 	})
 	return true, uid
 end

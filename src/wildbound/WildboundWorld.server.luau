@@ -17,6 +17,9 @@ if not eligibility or not eligibility:IsA("BindableFunction") then
 	warn("Wildbound world: authoritative inventory Eligibility is required.")
 	return
 end
+-- Server-to-server signal for the capture adapter (M3.3). Missing is fine: the world runs without it.
+local strikeEvent = network:FindFirstChild("CaptureStrike")
+if strikeEvent and not strikeEvent:IsA("BindableEvent") then strikeEvent = nil end
 -- A second copy must never overwrite an existing world, remote or another script's objects.
 if map:FindFirstChild("WildboundWorldRuntime") or network:FindFirstChild("WorldAction")
 	or network:FindFirstChild("WorldState") then
@@ -283,6 +286,8 @@ local function step(now, dt)
 				latest.distance, true, false, true) then
 				latest.humanoid:TakeDamage(Rules.DAMAGE)
 			end
+			-- A resolved strike ends that player's capture whether or not damage is on (M3.3).
+			if completedPresentation and strikeEvent then strikeEvent:Fire(latest.player) end
 			lastAttackAt = now
 			clearTarget(now, completedPresentation)
 		end
