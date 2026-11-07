@@ -12,7 +12,7 @@ Status: authored source and contract tests; **deployed and run in Studio on 11-0
 
 ## Shared time and regions
 
-One `GetServerTimeNow()` origin controls a repeating 1,200-second cycle: Day 600, Dusk 120, Night 360, Dawn 120 seconds. Device wall clocks and client messages cannot advance it. The sky-clock interpolation remains continuous through midnight. Negative/non-finite elapsed values normalize to the start of Day.
+One `GetServerTimeNow()` origin controls a repeating 720-second cycle (M5.7): Day 360, Dusk 72, Night 216, Dawn 72 seconds, entered at a random non-Night point. Device wall clocks and client messages cannot advance it. The sky-clock interpolation remains continuous through midnight. Negative/non-finite elapsed values normalize to the start of Day.
 
 Fog rectangle: x [-45, 165], z [-165, 35], inclusive. Camp is a 35-stud radius around (-140, 140); shelter is a 22-stud radius around (105, 125). These are horizontal gameplay regions, not a claim about visual geometry. Camp/shelter remain safe in every phase. Shelter does not extract or bank loot.
 

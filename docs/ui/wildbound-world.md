@@ -109,3 +109,24 @@ Pure rules: `src/wildbound/WildboundCaptureView.luau` (`ReplicatedStorage.Wildbo
 - **Inventory.** Opening it is refused with "Finish calming the Lumipol first." while a session runs, and an open one closes. Keyboard players can press X to stop.
 - **Captures** (`assets/exports/forest-kit/captures/capture-*.jpg`, Device Simulator, Play): the calm, outside, failed and caught states on iPhone 17 Pro landscape and portrait, the Galaxy A06 in both orientations, a night fog frame with Reduced on, and the desktop window with the attack chip showing. Looked at: the ring reads at night in fog, the panel and Stop do not touch the stick, the jump button or the avatar, and the text fits. One defect found and fixed from them: the first caught line was cut off at the panel edge (now two lines, and the leading "Caught!" is not repeated). The portrait Stop button can sit over the Lumipol itself.
 - **Not verified:** a tap on any button under a phone profile (BLOCKED, same cause as above), a real phone, a muted client, Reduced off, whether people understand the ring without coaching (CAP-36), and the ring over other terrain than the one captured.
+
+## Camp screen and loss line (M5.8, wave W7 part 2)
+
+Pure rules: `src/wildbound/WildboundCampView.luau` (`ReplicatedStorage.WildboundCampView`, 13 contracts) and `View.lossSummary` in `WildboundHudView` (35 contracts). `WildboundClient.client.luau` applies them; the HUD layout module is unchanged.
+
+- **Where.** The inventory panel gained two tabs, Bag and Camp, and Close, all 84 x 44 or 78 x 44, in one header row (the old title is gone, the chosen tab is marked `[ Camp ]` with an amber outline, so it is not told apart by colour alone). `C` opens the Camp tab, `I` the last tab. The panel sits below the awareness chip, so a warning is never covered. Held sideways it is 58% of the width, which leaves the visible thumbstick and jump button free; held upright it stops at 60% of the height, where Roblox's controls begin. A first version ran to the bottom and the jump button sat over the Arm button (`economy-camp-iphone17pro-portrait-before-fix-jump-covers-arm.jpg`).
+- **Camp tab.** Your stock, then Craft and carry (Ward Seal, Last Breath Totem, Extraction Capsule, Arm a seal, Set or Put away the totem), Upgrade (Reinforced Pack), Skills (eight rows, four branches) and the companion's bond. Every row is words first: name, effect, cost, and when a button is off, the reason in the same text ("Need 3 more Fogbark", "Go to camp", "Needs Explorer 1", "Effect not built yet", "Wait a moment"). An off button is also dimmed, never only dimmed. A button waits for the server's reply before it can be pressed again. Rows grow to fit their wrapped text; the live check found no clipped row.
+- **Bag tab.** Gained "Seal newest" and "Arm" at the top, with the same reasons.
+- **HUD loss line.** It takes the objective slot while anything is at risk: "! If defeated you lose: 2 items, 7 Fogbark, 3 Glowmoss. 1 kept." when it fits, shorter wordings down to "! Lose: 1 item, 5 mats" when it does not, amber, always starting with "!". Nothing at risk shows the old line. A server notice still replaces it for 6 s on a phone. With Trail Sense the compass line takes the slot when nothing is at risk.
+- **Night hint.** "Night: Nightbloom blooms in the fog." replaces the calm line at Night outside the fog.
+
+Live check, Device Simulator, Play, interface sizes in pixels. HUD line: fits its label on all four views, 0 overlap with the avatar keep-out, thumbstick and jump zones. Camp screen: 0 overlap with the chip, the thumbstick zone (upright) or the jump button (sideways), 14 rows, none clipped, every row button and header button at least 44 x 44.
+
+| View | HUD box | Camp panel | Rows visible at once, roughly |
+| --- | --- | --- | --- |
+| iPhone 17 Pro landscape 750 x 323 | 8, 8, 255 x 36 | 158, 54, 434 x 261, scroll 183 | about 2 |
+| iPhone 17 Pro portrait 401 x 720 | 8, 52, 385 x 42 | 8, 54, 385 x 374, scroll 296 | about 3 |
+| Galaxy A06 landscape 705 x 280 | 8, 8, 239 x 36 | 148, 54, 408 x 218, scroll 140 | about 1.5 |
+| Galaxy A06 portrait 359 x 660 | 8, 52, 343 x 42 | 8, 54, 343 x 338, scroll 260 | about 2.5 |
+
+Captures, in `assets/exports/forest-kit/captures/`: `economy-hud-loss-*` and `economy-camp-*` for `iphone17pro` and `galaxya06`, `landscape` and `portrait`, plus the before-fix capture above. Looked at: the loss line reads at a glance and the glyph and words carry it without the amber; the camp header and first rows are clear of the controls. **The camp screen is cramped on a sideways phone**: the Galaxy A06 shows one and a half rows, so a player scrolls a lot. That is a limit of 280 pixels, not a bug, and it argues for fewer, shorter rows or a two-column list. Not verified: any tap on a phone (BLOCKED, same cause as above), a real phone, a muted client, and whether people find the Camp tab from the Inventory button.

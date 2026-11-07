@@ -2,7 +2,7 @@
 
 Unit M5.1, wave W4a. Implements D5 and D10, and D4 and D14 where they touch rewards.
 
-**Status: partly built (W7 part 1, M5.2, M5.4, M5.5). All numbers are hypotheses, not balanced or tested with people.** Written 2026-11-07 without Studio, then revised the same day because `tools/simulate_economy.py` showed the first version did not work. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
+**Status: built in Studio (W7 parts 1 and 2, M5.2 to M5.8). All numbers are hypotheses, not balanced or tested with people.** Written 2026-11-07 without Studio, then revised the same day because `tools/simulate_economy.py` showed the first version did not work. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
 
 ## Build status, W7 part 1 (2026-11-07)
 
@@ -14,7 +14,36 @@ Unit M5.1, wave W4a. Implements D5 and D10, and D4 and D14 where they touch rewa
 | Spawn pipeline: biome, zone, phase, weather, event; seeded | `src/wildbound/WildboundSpawn.luau` | 11 Studio contracts, 100,000 draws |
 | Server wiring: expedition tracking, actions, gather seam, carry speed, totem downside | `WildboundServer.server.luau`, `WildboundWorld.server.luau` | One solo Play, below |
 
-Not built: world nodes, Night resource on, skills, bond, camp screen, HUD loss display (part 2); 12-minute cycle (M5.7); D10 hold (M6.5). `nightRewardsEnabled` stays false.
+Not built: D10 hold (M6.5), the effects of five skills and of bond levels (below).
+
+## Build status, W7 part 2 (2026-11-07)
+
+| Built | Where | Proof |
+| --- | --- | --- |
+| 12-minute cycle, random non-Night start (M5.7) | `WildboundWorldRules.luau` (`PHASES`, `startOffset`); `WildboundWorld.server.luau` | 3 new and 3 rewritten contracts, 2 more in the Economy suite |
+| World gather nodes (M5.3) | `WildboundGatherField.luau` (pure, server) and `WildboundGather.server.luau` (draws, claims, wilts) | 11 contracts |
+| Night resource on | `NightRewardsEnabled` and `nightRewardsEnabled` are now true; Night hint line in `WildboundHudView` | 1 contract each |
+| Skills and bond (M5.6) | `State:learn`, `State:bondEvent`, `Economy.skillEffects`, `Economy.bondLevel`; `Learn` action; `PulseHit` event from the world script | 9 State and 2 Economy contracts, incl. AFK-4 |
+| Camp screen, loss line, compass (M5.8) | `WildboundCampView.luau` (pure) applied by `WildboundClient.client.luau` | 13 contracts, 1 HudView contract |
+
+**Play, desktop Studio, damage off throughout.** Eighteen nodes appeared (6 per zone). Through real prompt holds (`InputHoldBegin`, so the server's hold, range and move checks ran) solo expeditions from camp gathered materials in several trips, captured three Lumipols (a script followed the ring), took the egg, sealed the newest item (HUD: "! If defeated you lose: 2 items. 1 kept."), extracted for 32 Ember, crafted a seal, learned Trail Sense, and read "Nearest node: Glowmoss, 53 studs SW" on the HUD. A hold broken by moving answered "You moved. Hold still while you gather." and kept the node. At Night, three Nightbloom nodes stood in territory; one gathered as a bag item ("Nightbloom x2 . wilts at Dawn", 6 s hold); with the cycle read moved to Dawn, both remaining Nightbloom nodes went within 3 s. A real pulse in the fog with a Lumipol equipped gave "Bond +5 pending", a second pulse was refused by the 30 s cooldown, and extraction banked 5 XP. A second claim on the same node through the seam returned `InvalidEncounter`. Heart node T6 (9 s hold) paid 3 Glowmoss.
+
+Not run in Play: two clients (BLOCKED: one operator and no way to start a second client, so the double claim is covered by the State race contract and the repeated-claim probe above), the totem, the capsule, the Reinforced Pack, a defeat with Nightbloom, Dawn by waiting, and any tap on a phone (BLOCKED: MCP mouse and key input did not reach the Play window, and phone taps never have). The camp screen was opened through a local attribute, `WildboundUI:SetAttribute("OpenTab", ...)`, a test seam that changes nothing on the server.
+
+**Cycle numbers changed (M5.7).** `CYCLE_SECONDS` 1200 to 720. Day 600 to 360, Dusk 120 to 72, Night 360 to 216, Dawn 120 to 72 (same 50, 10, 30, 10 percent). Boundaries 600, 720, 1080 become 360, 432, 648. The contract at `WildboundWorldRules_Test` now pins 720 and the boundaries 360, 432, 648, and `ECO-22` ties the module to `cycle` in this JSON. Clock times are unchanged (Day 6 to 18, Dusk 18 to 20, Night 20 to 5, Dawn 5 to 6), so the sky runs 1.67 times faster. New: `Rules.startOffset(roll)`, uniform over the 504 non-Night seconds; its median wait to the first Night is 253 s, p90 453 s, maximum 504 s, as calculated above. The world's grace and ambush timers count from the real start, not from the shifted origin.
+
+**Where this document proved wrong or silent in part 2, and what was decided:**
+
+| Point | Decision |
+| --- | --- |
+| Eight skills, each with an effect | Five effects would change capture, Silueta or the fair strike (Steady Hands, Soft Approach, Quick Rest, Read the Signs, Long Reveal), which this wave must not touch. They are tuned (`effectLive = false`), shown as "Effect not built yet" and refused by `State:learn` as `EffectPending` before any payment. Live: Trail Sense, Night Nose, Light Load. `Economy.validate` rejects a live skill whose effect key is not applied |
+| Bond level effects (pulse cooldown 27 and 25 s, cue, glow) | Level is banked and shown; no level changes a cooldown yet, for the same reason |
+| Bond event "telegraph misses you" | `State:bondEvent` accepts `pulseThenDodge`, but nothing fires it: it needs a hook in the fair-strike resolution |
+| "Compass shows active gather nodes" | Display only. Nodes replicate to every client anyway, so the compass is a convenience, not hidden information. Night Nose shows Nightbloom up to 100 studs at Night only |
+| Totem and capsule buttons | Added to the camp screen as Craft, Set and Put away; their Play check is open |
+| Gather prompt keys | Gather uses G and ButtonY. On E a wild Lumipol standing on node T1 (it roams there) took the prompt; prompts on one key show only the nearest |
+| Node height | A flat marker height left nodes a stud above the floor; a short ray under each node finds the real surface (floor 0.5, paths 0.6) |
+| Defeat summary | Now names lost materials, a Nightbloom bundle (quantity), every saved item and what stays safe |
 
 **Play, desktop Studio, damage off throughout.** Eight fog nodes through the seam paid 19 units and set walk speed 13; a repeat slot gave `AlreadyGathered`, a far claim `InvalidContext`. A 47 s, 369-stud materials-only trip extracted for 4 Ember and the first seal. Crafted a seal at camp, armed it, and the next egg was warded. Defeat through `Health = 0` lost 2 of 4 Glowmoss and 2 of 3 Fogbark, kept the egg, spent one seal, kept Ember and banked materials. No errors or warnings. Not run in Play: totem, capsule, pack, two players, phones.
 
@@ -126,7 +155,7 @@ The first version failed on the simulator's archetypes. **The archetypes, their 
 | A seal is spent only if it saves the item; extraction clears protection free | `WildboundState.luau:176-182`; `docs/mechanics/wildbound-state.md:22` |
 | Registered pets and banked eggs survive defeat | `WildboundState.luau:174-184`; `tests/WildboundState_Test.luau:201` |
 | Night rewards flag is hardcoded false | `src/wildbound/WildboundWorld.server.luau:34`, `:195`, `:304` |
-| Cycle is 1200 s with Day 600, Dusk 120, Night 360, Dawn 120, and a contract pins it | `src/wildbound/WildboundWorldRules.luau:4`, `:31-38`; `tests/WildboundWorldRules_Test.luau:21-23` |
+| Cycle was 1200 s with Day 600, Dusk 120, Night 360, Dawn 120 and a contract pinned it; M5.7 made it 720 s (see the build status above) | `src/wildbound/WildboundWorldRules.luau`; `tests/WildboundWorldRules_Test.luau` |
 | Leaving discards the profile | `WildboundServer.server.luau:263`; `WildboundState.luau:62-67` |
 | Every new character is moved to camp | `WildboundServer.server.luau:245` |
 | Shelter does not bank loot | `docs/mechanics/wildbound-world.md:17` |
