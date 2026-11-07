@@ -1,0 +1,1097 @@
+{
+ "name": "demon-abyss-layout-v1",
+ "status": "draft, unvalidated: never imported into Roblox, played or measured on a device",
+ "seed": 20261111,
+ "map_size": 300.0,
+ "caps": {
+  "instances": 120,
+  "triangles": 25000
+ },
+ "totals": {
+  "instances": 106,
+  "triangles_measured": 16912,
+  "triangles_budget": 20520,
+  "mesh_parts": 182,
+  "by_name": {
+   "DA_FissureLip": {
+    "count": 24,
+    "triangles": 5040
+   },
+   "DA_FloatRock": {
+    "count": 30,
+    "triangles": 3720
+   },
+   "DA_ThornSpire": {
+    "count": 30,
+    "triangles": 5460
+   },
+   "DA_RiftGate": {
+    "count": 2,
+    "triangles": 812
+   },
+   "DA_RiftShard": {
+    "count": 14,
+    "triangles": 1232
+   },
+   "DA_CalmStone": {
+    "count": 6,
+    "triangles": 648
+   }
+  }
+ },
+ "route": {
+  "nodes": [
+   [
+    -140.0,
+    125.0
+   ],
+   [
+    10.0,
+    125.0
+   ],
+   [
+    130.0,
+    10.0
+   ],
+   [
+    -10.0,
+    -60.0
+   ],
+   [
+    -50.0,
+    -142.0
+   ]
+  ],
+  "names": [
+   "gate_south",
+   "first_bank",
+   "mid_ridge",
+   "far_bank",
+   "gate_north"
+  ],
+  "length": 563.968,
+  "walk_seconds": 35.248,
+  "corridor_width": 14.0
+ },
+ "hazards": {
+  "chasms": [
+   {
+    "id": "chasm-1",
+    "route_arc": 84.0,
+    "along_length": 84.0,
+    "lateral_min": -85.0,
+    "lateral_max": 20.0,
+    "polygon": [
+     [
+      -98.0,
+      40.0
+     ],
+     [
+      -14.0,
+      40.0
+     ],
+     [
+      -14.0,
+      145.0
+     ],
+     [
+      -98.0,
+      145.0
+     ]
+    ],
+    "route_rock_ids": [
+     "rock-01",
+     "rock-02",
+     "rock-03",
+     "rock-04",
+     "rock-05",
+     "rock-06"
+    ],
+    "lip_ids": [
+     "lip-01",
+     "lip-02",
+     "lip-03",
+     "lip-04",
+     "lip-05",
+     "lip-06",
+     "lip-07"
+    ],
+    "hop_gap": 6.04
+   },
+   {
+    "id": "chasm-2",
+    "route_arc": 215.0,
+    "along_length": 84.0,
+    "lateral_min": -44.0,
+    "lateral_max": 49.5,
+    "polygon": [
+     [
+      -3.838,
+      77.319
+     ],
+     [
+      56.809,
+      19.199
+     ],
+     [
+      121.502,
+      86.705
+     ],
+     [
+      60.855,
+      144.825
+     ]
+    ],
+    "route_rock_ids": [
+     "rock-07",
+     "rock-08",
+     "rock-09",
+     "rock-10",
+     "rock-11",
+     "rock-12"
+    ],
+    "lip_ids": [
+     "lip-08",
+     "lip-09",
+     "lip-10",
+     "lip-11",
+     "lip-12",
+     "lip-13",
+     "lip-22"
+    ],
+    "hop_gap": 6.04
+   },
+   {
+    "id": "chasm-3",
+    "route_arc": 405.0,
+    "along_length": 84.0,
+    "lateral_min": -22.0,
+    "lateral_max": 85.0,
+    "polygon": [
+     [
+      78.309,
+      8.751
+     ],
+     [
+      3.177,
+      -28.815
+     ],
+     [
+      51.029,
+      -124.518
+     ],
+     [
+      126.161,
+      -86.952
+     ]
+    ],
+    "route_rock_ids": [
+     "rock-13",
+     "rock-14",
+     "rock-15",
+     "rock-16",
+     "rock-17",
+     "rock-18"
+    ],
+    "lip_ids": [
+     "lip-14",
+     "lip-15",
+     "lip-16",
+     "lip-17",
+     "lip-18",
+     "lip-19",
+     "lip-20",
+     "lip-21",
+     "lip-23",
+     "lip-24"
+    ],
+    "hop_gap": 6.04
+   }
+  ],
+  "rock_sink": {
+   "rate_day": 1.0,
+   "rate_night": 1.5,
+   "max_occupied_s": 6.0,
+   "dwell_s_walking": 0.812,
+   "night_depth_per_rock": 1.219
+  }
+ },
+ "density": {
+  "props_per_1000_sq_studs": 1.178,
+  "chasm_area_fraction": 0.2851
+ },
+ "decisions": [
+  "The trail crosses three chasms on chains of six floating rocks, 13 studs apart; each rock hull is 12 long so the gap between rocks is 1 stud and the hop between walk boxes is 6.04 studs (unverified: no jump test).",
+  "A 6 s occupancy limit is far above a walking dwell of 0.81 s per rock; at night a walker sinks 1.2 studs per rock, so the sinking only punishes players who stop.",
+  "Chasms are 84 studs along the trail and as wide across as the sector allows (clipped to the boundary); the bible gives no chasm size.",
+  "Fissure lips: 24 packed outward from the corridor along both rims, four per rim first and spares to any rim with room (8, 7 and 9 per chasm in the default seed); the bank edge may run 25 studs past a chasm end where the other leg of the trail or the sector boundary leaves room.",
+  "Calm stones: one on each bank of each chasm (six), the only rest; the bible gives them no zone radius.",
+  "Twelve of the 30 rocks are decoys inside the chasms, off the trail. Thorn spires: 10 rise out of the drop, 20 stand on the banks.",
+  "Six of 14 rift shards are flagged night_only (the bible says night-only Rift Shards appear, no count).",
+  "Rift gates straddle the trail at both gates with the measured gap (-8.41 to 7.36) containing the corridor with the pivot on the centreline; the gap is 0.52 off centre."
+ ],
+ "instances": [
+  {
+   "name": "DA_FissureLip",
+   "x": -103.05,
+   "z": 106.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "lip-01"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -103.05,
+   "z": 85.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "lip-02"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -103.05,
+   "z": 64.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "lip-03"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -103.05,
+   "z": 43.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "lip-04"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -8.95,
+   "z": 106.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "lip-05"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -8.95,
+   "z": 66.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "lip-06"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -8.95,
+   "z": 45.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "lip-07"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 36.106,
+   "z": 126.298,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "lip-08"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 9.813,
+   "z": 98.863,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "lip-09"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 104.045,
+   "z": 61.19,
+   "rotation_y_deg": 313.781,
+   "scale": 1.0,
+   "id": "lip-10"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 77.753,
+   "z": 33.754,
+   "rotation_y_deg": 313.781,
+   "scale": 1.0,
+   "id": "lip-11"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 118.575,
+   "z": 76.352,
+   "rotation_y_deg": 313.781,
+   "scale": 1.0,
+   "id": "lip-12"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 63.223,
+   "z": 18.592,
+   "rotation_y_deg": 313.781,
+   "scale": 1.0,
+   "id": "lip-13"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 101.162,
+   "z": -25.662,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "lip-14"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 84.167,
+   "z": 8.326,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "lip-15"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 110.553,
+   "z": -44.445,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "lip-16"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 119.945,
+   "z": -63.228,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "lip-17"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 16.996,
+   "z": -67.745,
+   "rotation_y_deg": 63.435,
+   "scale": 1.0,
+   "id": "lip-18"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 0.002,
+   "z": -33.756,
+   "rotation_y_deg": 63.435,
+   "scale": 1.0,
+   "id": "lip-19"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 26.387,
+   "z": -86.528,
+   "rotation_y_deg": 63.435,
+   "scale": 1.0,
+   "id": "lip-20"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": -9.39,
+   "z": -14.973,
+   "rotation_y_deg": 63.435,
+   "scale": 1.0,
+   "id": "lip-21"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 133.105,
+   "z": 91.513,
+   "rotation_y_deg": 313.781,
+   "scale": 1.0,
+   "id": "lip-22"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 129.336,
+   "z": -82.011,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "lip-23"
+  },
+  {
+   "name": "DA_FissureLip",
+   "x": 35.779,
+   "z": -105.311,
+   "rotation_y_deg": 63.435,
+   "scale": 1.0,
+   "id": "lip-24"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -88.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-01"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -75.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-02"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -62.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-03"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -49.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-04"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -36.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-05"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -23.5,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "rock-06"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 33.465,
+   "z": 102.513,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-07"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 42.85,
+   "z": 93.518,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-08"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 52.236,
+   "z": 84.524,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-09"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 61.622,
+   "z": 75.529,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-10"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 71.008,
+   "z": 66.534,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-11"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 80.394,
+   "z": 57.539,
+   "rotation_y_deg": 133.781,
+   "scale": 1.0,
+   "id": "rock-12"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 79.651,
+   "z": -15.175,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-13"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 68.023,
+   "z": -20.988,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-14"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 56.396,
+   "z": -26.802,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-15"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 44.768,
+   "z": -32.616,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-16"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 33.14,
+   "z": -38.43,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-17"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 21.513,
+   "z": -44.244,
+   "rotation_y_deg": 243.435,
+   "scale": 1.0,
+   "id": "rock-18"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -30.7,
+   "z": 88.119,
+   "rotation_y_deg": 317.285,
+   "scale": 1.0,
+   "id": "rock-19"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -34.722,
+   "z": 51.606,
+   "rotation_y_deg": 15.429,
+   "scale": 1.0,
+   "id": "rock-20"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -86.114,
+   "z": 90.153,
+   "rotation_y_deg": 103.517,
+   "scale": 1.0,
+   "id": "rock-21"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": -46.545,
+   "z": 52.286,
+   "rotation_y_deg": 199.912,
+   "scale": 1.0,
+   "id": "rock-22"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 13.133,
+   "z": 70.846,
+   "rotation_y_deg": 29.132,
+   "scale": 1.0,
+   "id": "rock-23"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 64.71,
+   "z": 44.092,
+   "rotation_y_deg": 174.633,
+   "scale": 1.0,
+   "id": "rock-24"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 70.776,
+   "z": 98.637,
+   "rotation_y_deg": 47.791,
+   "scale": 1.0,
+   "id": "rock-25"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 54.745,
+   "z": 113.859,
+   "rotation_y_deg": 59.914,
+   "scale": 1.0,
+   "id": "rock-26"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 41.403,
+   "z": -66.181,
+   "rotation_y_deg": 281.593,
+   "scale": 1.0,
+   "id": "rock-27"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 61.325,
+   "z": -83.074,
+   "rotation_y_deg": 298.172,
+   "scale": 1.0,
+   "id": "rock-28"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 79.706,
+   "z": -96.21,
+   "rotation_y_deg": 233.737,
+   "scale": 1.0,
+   "id": "rock-29"
+  },
+  {
+   "name": "DA_FloatRock",
+   "x": 68.475,
+   "z": -55.227,
+   "rotation_y_deg": 179.913,
+   "scale": 1.0,
+   "id": "rock-30"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 61.271,
+   "z": -111.145,
+   "rotation_y_deg": 197.067,
+   "scale": 0.971,
+   "id": "spire-01"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 40.239,
+   "z": 48.291,
+   "rotation_y_deg": 65.404,
+   "scale": 0.996,
+   "id": "spire-02"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 104.044,
+   "z": 95.622,
+   "rotation_y_deg": 206.916,
+   "scale": 1.14,
+   "id": "spire-03"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 87.035,
+   "z": -66.077,
+   "rotation_y_deg": 96.687,
+   "scale": 1.108,
+   "id": "spire-04"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 113.35,
+   "z": -78.861,
+   "rotation_y_deg": 269.849,
+   "scale": 1.011,
+   "id": "spire-05"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 60.762,
+   "z": 135.264,
+   "rotation_y_deg": 161.576,
+   "scale": 0.932,
+   "id": "spire-06"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 28.21,
+   "z": -16.731,
+   "rotation_y_deg": 272.95,
+   "scale": 1.07,
+   "id": "spire-07"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 96.472,
+   "z": 85.375,
+   "rotation_y_deg": 14.115,
+   "scale": 0.983,
+   "id": "spire-08"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 109.937,
+   "z": -90.947,
+   "rotation_y_deg": 343.55,
+   "scale": 0.984,
+   "id": "spire-09"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 32.906,
+   "z": 64.722,
+   "rotation_y_deg": 194.513,
+   "scale": 1.123,
+   "id": "spire-10"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -84.817,
+   "z": 28.3,
+   "rotation_y_deg": 333.877,
+   "scale": 0.972,
+   "id": "spire-11"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 92.381,
+   "z": 133.75,
+   "rotation_y_deg": 139.201,
+   "scale": 0.972,
+   "id": "spire-12"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 108.513,
+   "z": -114.777,
+   "rotation_y_deg": 31.176,
+   "scale": 0.9,
+   "id": "spire-13"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -51.041,
+   "z": -41.975,
+   "rotation_y_deg": 179.965,
+   "scale": 0.999,
+   "id": "spire-14"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -62.427,
+   "z": 11.223,
+   "rotation_y_deg": 294.523,
+   "scale": 1.125,
+   "id": "spire-15"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -63.338,
+   "z": 35.423,
+   "rotation_y_deg": 295.633,
+   "scale": 0.9,
+   "id": "spire-16"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -88.58,
+   "z": -35.744,
+   "rotation_y_deg": 7.337,
+   "scale": 0.978,
+   "id": "spire-17"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -125.946,
+   "z": -38.204,
+   "rotation_y_deg": 282.809,
+   "scale": 0.94,
+   "id": "spire-18"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -137.335,
+   "z": -42.915,
+   "rotation_y_deg": 277.18,
+   "scale": 1.068,
+   "id": "spire-19"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -71.238,
+   "z": -30.355,
+   "rotation_y_deg": 289.044,
+   "scale": 0.998,
+   "id": "spire-20"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -104.89,
+   "z": -96.058,
+   "rotation_y_deg": 304.874,
+   "scale": 0.934,
+   "id": "spire-21"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -113.008,
+   "z": -36.903,
+   "rotation_y_deg": 264.59,
+   "scale": 0.96,
+   "id": "spire-22"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -86.633,
+   "z": 0.586,
+   "rotation_y_deg": 90.408,
+   "scale": 1.075,
+   "id": "spire-23"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -31.856,
+   "z": -36.946,
+   "rotation_y_deg": 203.473,
+   "scale": 0.982,
+   "id": "spire-24"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -121.734,
+   "z": -132.544,
+   "rotation_y_deg": 249.652,
+   "scale": 1.147,
+   "id": "spire-25"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -48.062,
+   "z": -2.362,
+   "rotation_y_deg": 274.976,
+   "scale": 0.984,
+   "id": "spire-26"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -94.606,
+   "z": -137.049,
+   "rotation_y_deg": 320.518,
+   "scale": 1.007,
+   "id": "spire-27"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -135.955,
+   "z": -120.34,
+   "rotation_y_deg": 22.692,
+   "scale": 0.977,
+   "id": "spire-28"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": 117.709,
+   "z": -22.24,
+   "rotation_y_deg": 83.919,
+   "scale": 1.079,
+   "id": "spire-29"
+  },
+  {
+   "name": "DA_ThornSpire",
+   "x": -137.908,
+   "z": -85.233,
+   "rotation_y_deg": 24.423,
+   "scale": 1.04,
+   "id": "spire-30"
+  },
+  {
+   "name": "DA_RiftGate",
+   "x": -128.0,
+   "z": 125.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "gate-01"
+  },
+  {
+   "name": "DA_RiftGate",
+   "x": -45.177,
+   "z": -132.114,
+   "rotation_y_deg": 206.003,
+   "scale": 1.0,
+   "id": "gate-02"
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": 9.236,
+   "z": -81.586,
+   "rotation_y_deg": 116.003,
+   "scale": 0.969,
+   "id": "shard-01",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -31.853,
+   "z": -70.388,
+   "rotation_y_deg": 296.003,
+   "scale": 1.186,
+   "id": "shard-02",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -0.689,
+   "z": -102.837,
+   "rotation_y_deg": 116.003,
+   "scale": 1.085,
+   "id": "shard-03",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": 121.397,
+   "z": 49.331,
+   "rotation_y_deg": 43.781,
+   "scale": 0.952,
+   "id": "shard-04",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": 26.447,
+   "z": 139.566,
+   "rotation_y_deg": 43.781,
+   "scale": 1.184,
+   "id": "shard-05",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -46.478,
+   "z": -93.603,
+   "rotation_y_deg": 296.003,
+   "scale": 1.063,
+   "id": "shard-06",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -6.501,
+   "z": 138.777,
+   "rotation_y_deg": 0.0,
+   "scale": 1.098,
+   "id": "shard-07",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -54.265,
+   "z": -114.125,
+   "rotation_y_deg": 296.003,
+   "scale": 1.167,
+   "id": "shard-08",
+   "night_only": false
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -124.651,
+   "z": 105.578,
+   "rotation_y_deg": 180.0,
+   "scale": 1.012,
+   "id": "shard-09",
+   "night_only": true
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -58.124,
+   "z": -96.013,
+   "rotation_y_deg": 296.003,
+   "scale": 1.081,
+   "id": "shard-10",
+   "night_only": true
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -52.519,
+   "z": -85.734,
+   "rotation_y_deg": 296.003,
+   "scale": 0.946,
+   "id": "shard-11",
+   "night_only": true
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -113.961,
+   "z": 100.746,
+   "rotation_y_deg": 180.0,
+   "scale": 1.113,
+   "id": "shard-12",
+   "night_only": true
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -43.603,
+   "z": -61.504,
+   "rotation_y_deg": 296.003,
+   "scale": 1.2,
+   "id": "shard-13",
+   "night_only": true
+  },
+  {
+   "name": "DA_RiftShard",
+   "x": -131.35,
+   "z": 99.523,
+   "rotation_y_deg": 180.0,
+   "scale": 1.136,
+   "id": "shard-14",
+   "night_only": true
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": -114.0,
+   "z": 136.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-01"
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": 2.0,
+   "z": 113.5,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-02"
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": 23.011,
+   "z": 128.46,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-03"
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": 106.761,
+   "z": 48.199,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-04"
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": 107.601,
+   "z": -14.057,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-05"
+  },
+  {
+   "name": "DA_CalmStone",
+   "x": -6.438,
+   "z": -45.362,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "calm-06"
+  }
+ ]
+}
