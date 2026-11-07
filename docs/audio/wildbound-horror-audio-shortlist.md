@@ -302,7 +302,11 @@ not a requirement.
 - Safe layer unchanged, plus a 2 s fade-in on every layer.
 - Footsteps and guardian cues stay audible: reduced horror lowers dread, not information.
 
-## Next steps (nothing done yet)
+## Audition (delivery D, 2026-11-07)
+
+Studio instance `7a269979-...`, place 122652861404212. Every id used by `src/wildbound/WildboundAudioCatalog.luau` was loaded with `ContentProvider:PreloadAsync` in Edit and again in the Play client: all 23 report `IsLoaded` true and a positive `TimeLength` (wind 36.0 s, birds 46.0, insects 56.0 and 36.0, safe music 131.2, night bed 48.6, unsettling 69.1 and 18.6, snaps 1.4 and 1.3, dirt 2.1, whispers 18.0, breathing 36.0, steps 2.0 and 2.0, chase music 97.0, pulse 35.3, hit 1.6, stinger 3.1 and 3.0, soft stinger 7.2, chirp 1.5, whimper 0.9). None is rejected. Peak `PlaybackLoudness` over the first 1.6 s at Volume 0.5 is recorded in `odd/tasks/wildbound-capture-extraction-horror.md`; it is not a full-length reading and nobody has listened. Loops and seams were not checked by ear.
+
+## Next steps (written before the audition)
 
 1. The Studio writer auditions the shortlist in a throwaway place or panel and records for each id: plays or
    fails, loop seam, peak loudness. Mark failed ids as rejected here.
