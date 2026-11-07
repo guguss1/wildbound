@@ -1,0 +1,340 @@
+{
+  "units_assumption": "1 Blender unit = 1 Roblox stud; not validated by Studio import",
+  "forward": "-Y (Blender); Roblox axis conversion unverified",
+  "bounds_min": [
+    -1.5299999713897705,
+    -0.9500000476837158,
+    0.0
+  ],
+  "bounds_max": [
+    1.128296136856079,
+    1.2799999713897705,
+    2.509999990463257
+  ],
+  "dimensions": [
+    2.6582961082458496,
+    2.2300000190734863,
+    2.509999990463257
+  ],
+  "objects": [
+    {
+      "name": "Body",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        0.0,
+        1.0499999523162842
+      ]
+    },
+    {
+      "name": "Foot",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.5199999809265137,
+        -0.4300000071525574,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "Foot.001",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.5199999809265137,
+        0.4300000071525574,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "Foot.002",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.5199999809265137,
+        -0.4300000071525574,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "Foot.003",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.5199999809265137,
+        0.4300000071525574,
+        0.1899999976158142
+      ]
+    },
+    {
+      "name": "Face mask",
+      "vertices": 56,
+      "faces": 54,
+      "triangles": 108,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        -0.7039999961853027,
+        1.1799999475479126
+      ]
+    },
+    {
+      "name": "Eye",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.2800000011920929,
+        -0.8130000233650208,
+        1.2100000381469727
+      ]
+    },
+    {
+      "name": "Eye.001",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.2800000011920929,
+        -0.8130000233650208,
+        1.2100000381469727
+      ]
+    },
+    {
+      "name": "Side petal",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.6899999976158142,
+        -0.47999998927116394,
+        0.8399999737739563
+      ]
+    },
+    {
+      "name": "Side petal.001",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.6899999976158142,
+        -0.47999998927116394,
+        0.8399999737739563
+      ]
+    },
+    {
+      "name": "Front petal",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.36000001430511475,
+        -0.7200000286102295,
+        0.7200000286102295
+      ]
+    },
+    {
+      "name": "Front petal.001",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.36000001430511475,
+        -0.7200000286102295,
+        0.7200000286102295
+      ]
+    },
+    {
+      "name": "Forelock",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        -0.4300000071525574,
+        -0.6899999976158142,
+        1.649999976158142
+      ]
+    },
+    {
+      "name": "Forelock.001",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        -0.6899999976158142,
+        1.649999976158142
+      ]
+    },
+    {
+      "name": "Forelock.002",
+      "vertices": 42,
+      "faces": 80,
+      "triangles": 80,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.4300000071525574,
+        -0.6899999976158142,
+        1.649999976158142
+      ]
+    },
+    {
+      "name": "Wide leaf",
+      "vertices": 6,
+      "faces": 8,
+      "triangles": 8,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Upright leaf",
+      "vertices": 6,
+      "faces": 8,
+      "triangles": 8,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    {
+      "name": "Tail",
+      "vertices": 6,
+      "faces": 8,
+      "triangles": 8,
+      "non_manifold_edges": 0,
+      "scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "origin": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  ],
+  "triangles_total": 1392,
+  "non_manifold_edges_total": 0,
+  "studio_import": "not performed",
+  "rig": "none; static editable blockout",
+  "preview_only_objects": [
+    "Preview floor",
+    "Key",
+    "Fill",
+    "Rim",
+    "Camera"
+  ],
+  "lumipol-roblox-blockout-v1.blend_sha256": "1e8016e244a13e44ed42372fdfddb8e187288fefe0da5b962a11246d80ea3ac6",
+  "lumipol-roblox-blockout-v1-preview.png_sha256": "a96b80d0cebe1fdafa548b0dbb18043de8a8609664c51338067c9910572d39dc"
+}
