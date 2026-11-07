@@ -69,6 +69,9 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundHudLayout_Test.luau", "ServerStorage.WildboundHudLayout_Test"),
     ("src/wildbound/WildboundHudView.luau", "ReplicatedStorage.WildboundHudView"),
     ("tests/WildboundHudView_Test.luau", "ServerStorage.WildboundHudView_Test"),
+    # M3.2, wave W5: pure capture rule, shared because the client draws the ring from it
+    ("src/wildbound/WildboundCaptureSession.luau", "ReplicatedStorage.WildboundCaptureSession"),
+    ("tests/WildboundCaptureSession_Test.luau", "ServerStorage.WildboundCaptureSession_Test"),
 ]
 
 

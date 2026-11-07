@@ -2,7 +2,7 @@
 
 Unit M3.1, wave W4a. Implements decision D3, and D4 and D14 where they touch capture.
 
-**Status: proposal. Nothing here is built or playtested.** Every number is a hypothesis to test. Written 2026-11-07 from source and the layout plan, with no Studio or Play session. Calculated values say so.
+**Status: proposal. Only the pure rule (M3.2) is built, with contracts; nothing is wired or playtested.** Every number is a hypothesis to test. Written 2026-11-07 from source and the layout plan, with no Studio or Play session. Calculated values say so. Where M3.2 departs from this document, the section [M3.2 build notes](#m32-build-notes) wins.
 
 ## Choices worth your review
 
@@ -405,3 +405,41 @@ Server logs per expedition, for measurement: `territorySeconds`, `captureSession
 | Setting `Humanoid.WalkSpeed` from the server replicates promptly | M3.5 |
 | Event handlers do not interleave without yields, in this place's signal mode | CAP-30 |
 | Token source: `HttpService:GenerateGUID` works without HTTP enabled | M3.3; a server counter plus `Random` is an acceptable fallback, since the token grants nothing beyond cancel |
+
+## M3.2 build notes
+
+Wave W5, 2026-11-07. `src/wildbound/WildboundCaptureSession.luau`, deployed as `ReplicatedStorage.WildboundCaptureSession` because the client draws the ring from it. Contracts: `tests/WildboundCaptureSession_Test.luau` (`ServerStorage.WildboundCaptureSession_Test`), invoked as `require(testClone)(require(moduleClone), moduleClone.Source)`. Observed in Studio on fresh clones: RED 4 passed / 88 failed against a stub, then GREEN 92 / 92. Each of 42 single-line mutants, applied to a clone only, failed at least one contract. Nothing is wired: the server, `WildboundState` and the clients are unchanged, so the 0.25 s prompt still captures.
+
+### Where this document was wrong
+
+| Section | Problem found | Built instead |
+| --- | --- | --- |
+| Ring position | With the Lumipol as orbit center and `ORBIT_MIN` 4, a player who starts within about 2.57 studs of the Lumipol stays inside for 4.5 s and **completes by standing still** (calculated, r=4, distance squared + 16 - 8 d cos(w t) at most 25 until t = 4.5). The Lumipol is non-colliding, so standing on it is possible. The orbit center itself is always 4 studs from the ring center, so one step onto the Lumipol stays inside forever | The ring always starts centered on the player. The orbit center is the Lumipol for start distances 5.5 to 9 and shifts along the player-Lumipol line otherwise. `ORBIT_MIN` is 5.5, above the 5.0 tested radius, so no fixed spot stays inside for the whole orbit |
+| Sample step 7 | Capping elapsed at exactly 0.2 loses up to 8% of every sample, because the fixed step really runs 0.2 to about 0.217 s (`WildboundWorld.server.luau:404-406`). 4.5 s of calm would take about 4.9 s | `MAX_ELAPSED` 0.25. Still and jump limits are speeds (5 and 40 studs/s) over `max(dt, 0.2)`, so a stall does not turn a walk into a jump |
+| Stall rule and watchdog | Pushing the deadline on every stall lets a chugging server hold a reservation forever. A watchdog at `TIME_LIMIT + 1` after start would also kill a session the stall rule had just extended | Extensions are capped at 4 s in total (hard limit 16 s). The watchdog fires at the current deadline plus 1 s |
+| Token | `HttpService:GenerateGUID` was unverified without HTTP | The module issues `cap:N` from a per-server counter, never reused. Cancel checks the owner, so a guessed token does nothing |
+| `State` additions | `State:pickup` checks 10 studs, but a correct completion can be 14 studs away (orbit 9 plus radius 5) | The reservation lives in the session module. M3.3 still needs a `State` grant without the 10-stud check (see wiring below) |
+| Session end table | No outcome for a clock that runs backward, unreadable positions, or an adapter that stops sampling | Three more reasons, all free of spook, retry and fail count: `LostTrack` (five unusable samples in a row), `Watchdog`, `Lost` (encounter retired) |
+| `MAX_FAILS` | "Three failures" did not say whether Stop counts | Only `Failed` phases with player cause count. `Cancelled` and `Disconnected` do not |
+
+### Contract surface
+
+`CaptureSession.new()`, then `begin(input)`, `sample(token, obs)`, `notifyStruck(playerKey)`, `cancel(token, playerKey, now)`, `drop(playerKey, now)`, `retire(encounterId, now)`, `sweep(now)`, `view(token)`, `activeSessions()`, `encounterState(id, now)`; pure `CaptureSession.ringCenter(ring, t)` and `CaptureSession.toSnapshot(view)`. `CONSTANTS` and `NOTICES` are frozen. Every ending returns `{ phase, reason, notice, grant, spook, spookUntil?, retryAt?, leaves, encounterId, playerKey, calm, ... }`; `grant = true` appears once per encounter, only on `Completed`.
+
+`begin` takes server-read values only: `alive`, `life`, `distance`, the root position and the Lumipol position, plus `encounterStatus` (`"Open"` or `"Claimed"`), an optional `slotRefusal` (`FirstCaptureOnly` or `FirstCapturePending`), and `bagRoom` and `collectionRoom`, each of which must be exactly `true`. `dir` (+1 or -1) and `now` are injected.
+
+Snapshot for the owner only, never naming the player or the encounter. Active: `token, phase, calm, inside, moving, outsideFor, deadline`; the first push and a resync from `view()` add `ring = { pivotX, pivotZ, y, orbit, a0, w, startedAt, radius }`, which never changes during a session. Ended: adds `reason, notice, retryAt`.
+
+### Wiring for M3.3 and M3.4
+
+- **Server.** In `WildboundServer.server.luau`, require the module from `ReplicatedStorage`. Change only the `Creature` branch of `spawnEncounter` (`:173-187`); eggs keep `state:pickup`. Set the creature prompt's `HoldDuration` to 0 after `prompt()` (`:91` hardcodes 0.25). In `Triggered`, after `validPrompt` and `allowed(player, "CaptureStart")`, read the root position (`context()` returns only alive and distance, so add a helper) and call `begin` with `playerKey = player.UserId`, `life = record.generation`, `now = workspace:GetServerTimeNow()` (the client ring uses the same clock), `dir` from a server `Random`, and bag and collection room from `state:snapshot`. While a session holds an encounter, disable its prompt (`encounterState`).
+- **Loop.** On the same 0.2 s accumulator pattern as `WildboundWorld.server.luau:402-411`: for each `activeSessions()` entry, `sample`, then `sweep(now)` once. On `grant`, call a new `State:completeCapture` that claims and grants without the 10-stud check and without yielding, then retire the encounter in both `State` and the session module. On `leaves`, remove the model and respawn the slot. Keep `captureAnomaly` and `captureWatchdog` from `counters`; the exit test expects 0.
+- **Strike.** Silueta resolves a strike in `WildboundWorld.server.luau:280-287`, a different script. Fire a server-only `BindableEvent` there whether or not damage is on (`completedPresentation`), and call `notifyStruck(player.UserId)`.
+- **Remotes.** Add `CaptureCancel` to the `Action` whitelist (`WildboundServer.server.luau:194`); the token arrives as `uid` and is already length-checked at `:200`. Call `cancel(token, player.UserId, now)` and ignore `false` silently. Add a `CaptureState` RemoteEvent under `WildboundNetwork` and `FireClient` only to the owner with `toSnapshot(view)` on start, each sample and the ending.
+- **Leaving and resets.** In `PlayerRemoving`, call `drop(player.UserId, now)` before `state:removePlayer` (`:263`). A new character changes `record.generation`, so the next sample ends `Defeated`.
+- **State.** Make `State:pickup` refuse `Creature` with `CaptureRequired` (CAP-18), updating the seven `Creature` cases in `tests/WildboundState_Test.luau` first.
+- **Client.** Draw the ring at `ringCenter(snapshot.ring, workspace:GetServerTimeNow() - ring.startedAt)` with `ring.radius`, and show `notice` on endings. The client never reports anything about a session.
+
+### Still unverified
+
+All numbers remain hypotheses. Nothing has run in Play: replication lag against the 0.5 stud margin, whether `GetServerTimeNow` on the server can step backward (handled by `LostTrack`, not observed), touch prompts, and the two-client race (CAP-30 is covered only as a pure contract plus a 6000-step seeded fuzz). Exposure inside territory comes from `tools/simulate_silueta_pressure.py` for a still player: at a 4.5 s hold, `L1` is warned in 60% of patrol phases and struck in 15% by day (98% and 24% by night); `L2` is warned in 39% and never struck by day. This document's calculated capture length is 4.7 to 5.5 s, between the simulator's 4.5 s and 6 s columns.
