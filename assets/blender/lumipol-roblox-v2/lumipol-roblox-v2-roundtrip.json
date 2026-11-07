@@ -1,0 +1,139 @@
+{
+  "species": {
+    "SP_Lumipol": {
+      "model": {
+        "triangles": 706,
+        "size": [
+          2.6,
+          2.4,
+          2.7
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "Tuft",
+          "LeafL",
+          "LeafR",
+          "Tail",
+          "FootFL",
+          "FootFR",
+          "FootBL",
+          "FootBR"
+        ],
+        "objects": [
+          "SP_Lumipol",
+          "SP_Lumipol_Body",
+          "SP_Lumipol_Dark",
+          "SP_Lumipol_Leaves",
+          "SP_Lumipol_Neon_Eye",
+          "SP_Lumipol_Petals"
+        ],
+        "materials": [
+          "SP_Lumipol_Body",
+          "SP_Lumipol_Dark",
+          "SP_Lumipol_Leaves",
+          "SP_Lumipol_Neon_Eye",
+          "SP_Lumipol_Petals"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 706,
+          "size": [
+            2.5924,
+            2.3961,
+            2.7158
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "Tuft",
+            "LeafL",
+            "LeafR",
+            "Tail",
+            "FootFL",
+            "FootFR",
+            "FootBL",
+            "FootBR"
+          ],
+          "objects": [
+            "SP_Lumipol",
+            "SP_Lumipol_Body",
+            "SP_Lumipol_Dark",
+            "SP_Lumipol_Leaves",
+            "SP_Lumipol_Neon_Eye",
+            "SP_Lumipol_Petals"
+          ],
+          "materials": [
+            "SP_Lumipol_Body",
+            "SP_Lumipol_Dark",
+            "SP_Lumipol_Leaves",
+            "SP_Lumipol_Neon_Eye",
+            "SP_Lumipol_Petals"
+          ],
+          "actions": [
+            "SP_Lumipol|LumipolV2"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 706,
+          "size": [
+            2.6,
+            2.329,
+            2.7251
+          ],
+          "min_z": -0.0352,
+          "bones": [
+            "Root",
+            "Body",
+            "Tuft",
+            "LeafL",
+            "LeafR",
+            "Tail",
+            "FootFL",
+            "FootFR",
+            "FootBL",
+            "FootBR"
+          ],
+          "objects": [
+            "SP_Lumipol",
+            "SP_Lumipol_Body",
+            "SP_Lumipol_Dark",
+            "SP_Lumipol_Leaves",
+            "SP_Lumipol_Neon_Eye",
+            "SP_Lumipol_Petals"
+          ],
+          "materials": [
+            "SP_Lumipol_Body",
+            "SP_Lumipol_Dark",
+            "SP_Lumipol_Leaves",
+            "SP_Lumipol_Neon_Eye",
+            "SP_Lumipol_Petals"
+          ],
+          "actions": [
+            "SP_Lumipol|LumipolV2"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
+    }
+  }
+}

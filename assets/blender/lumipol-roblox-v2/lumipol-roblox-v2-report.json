@@ -1,0 +1,157 @@
+{
+  "generator": "tools/build-lumipol-v2.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_UNITS",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Silueta's rig once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "lumipol-roblox-v2-sheet.png",
+  "lineup_file": "lumipol-roblox-v2-scale.png",
+  "compare_file": "lumipol-roblox-v1-v2-compare.png",
+  "blend": "assets/blender/lumipol-roblox-v2/lumipol-roblox-v2.blend",
+  "v1_kept": {
+    "blend": "assets/blender/lumipol-roblox-blockout-v1.blend",
+    "edited": false
+  },
+  "species": {
+    "SP_Lumipol": {
+      "status": "unvalidated",
+      "triangles": 706,
+      "size": [
+        2.6,
+        2.4,
+        2.7
+      ],
+      "bbox_min": [
+        -1.4323,
+        -0.9757,
+        -0.0
+      ],
+      "bbox_max": [
+        1.1677,
+        1.4243,
+        2.7
+      ],
+      "base_center": [
+        -0.002,
+        0.0037
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0087,
+        1.003,
+        0.9926
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "Tuft",
+        "LeafL",
+        "LeafR",
+        "Tail",
+        "FootFL",
+        "FootFR",
+        "FootBL",
+        "FootBR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Lumipol_Body",
+          "material": "SP_Lumipol_Body",
+          "material_count": 1,
+          "triangles": 60,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "EBDDB8",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Lumipol_Petals",
+          "material": "SP_Lumipol_Petals",
+          "material_count": 1,
+          "triangles": 280,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "FAF1D8",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Lumipol_Dark",
+          "material": "SP_Lumipol_Dark",
+          "material_count": 1,
+          "triangles": 220,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "34363E",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Lumipol_Leaves",
+          "material": "SP_Lumipol_Leaves",
+          "material_count": 1,
+          "triangles": 106,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "62B67F",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Lumipol_Neon_Eye",
+          "material": "SP_Lumipol_Neon_Eye",
+          "material_count": 1,
+          "triangles": 40,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "4FE3EE",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Lumipol_v2.fbx",
+        "Idle": "assets/exports/species/SP_Lumipol_v2_Idle.fbx",
+        "Move": "assets/exports/species/SP_Lumipol_v2_Move.fbx"
+      },
+      "render": "assets/blender/lumipol-roblox-v2/SP_Lumipol.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Lumipol_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.002
+        },
+        "Move": {
+          "action": "SP_Lumipol_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0406
+        }
+      }
+    }
+  }
+}
