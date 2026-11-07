@@ -58,6 +58,12 @@ SPECS = {
         "parts": {"Slab": ("C9CFD6", 180), "Frame": ("3B3440", 130), "Legs": ("2A2630", 90)},
         "bones": ("Root", "Slab", "LegL", "LegR"),
     },
+    "SP_Aldabon": {
+        "size": (3.4, 3.0, 3.8), "tris": 550,
+        "parts": {"Block": ("6E6A64", 270), "Ring": ("2C2D30", 150), "Legs": ("4D4A46", 90),
+                  "Neon_Eye": ("E2A23B", 40)},
+        "bones": ("Root", "Body", "Ring", "LegL", "LegR"),
+    },
 }
 
 

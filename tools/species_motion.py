@@ -31,6 +31,7 @@ BONES = {
     "SP_Zancanieve": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
     "SP_Polvilla": ("Root", "Body", "WingL", "WingR"),
     "SP_Espejuelo": ("Root", "Slab", "LegL", "LegR"),
+    "SP_Aldabon": ("Root", "Body", "Ring", "LegL", "LegR"),
 }
 
 
@@ -131,6 +132,19 @@ MOTION = {
             "Slab": (term("lz", 0.06, 2, 0, "rise"), term("ry", 0.07, 1, 0.0), term("rz", 0.04, 2, 0.25)),
             "LegL": (term("rx", 0.32, 1, 0.0),),
             "LegR": (term("rx", 0.32, 1, 0.5),),
+        },
+    },
+    # A heavy standing stone: slow, with the iron ring swinging from its bracket.
+    "SP_Aldabon": {
+        "Idle": {
+            "Body": (term("lz", 0.03, 1, 0, "rise"), term("rz", 0.01, 1, 0.25)),
+            "Ring": (term("rx", 0.12, 1, 0.10),),
+        },
+        "Move": {
+            "Body": (term("lz", 0.05, 2, 0, "rise"), term("rz", 0.04, 1, 0.0), term("ry", 0.02, 1, 0.25)),
+            "Ring": (term("rx", 0.25, 2, 0.20),),
+            "LegL": (term("rx", 0.30, 1, 0.0),),
+            "LegR": (term("rx", 0.30, 1, 0.5),),
         },
     },
 }

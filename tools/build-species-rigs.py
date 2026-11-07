@@ -56,6 +56,8 @@ SPECS = {
                     "colors": {"Wings": "B9AE98", "Body": "5A5560", "Neon_Spots": "C9A24A"}},
     "SP_Espejuelo": {"size": (2.8, 1.0, 4.2),
                      "colors": {"Slab": "C9CFD6", "Frame": "3B3440", "Legs": "2A2630"}},
+    "SP_Aldabon": {"size": (3.4, 3.0, 3.8),
+                   "colors": {"Block": "6E6A64", "Ring": "2C2D30", "Legs": "4D4A46", "Neon_Eye": "E2A23B"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -384,8 +386,54 @@ def build_espejuelo():
     return asset
 
 
+def stone_layer(asset, part, center, size, height, weigh, sides=7):
+    """One hand-cut stratum: an irregular outline, chamfered at the top."""
+    outline = []
+    for k in range(sides):
+        angle = math.tau * k / sides + 0.35
+        reach = asset.rng.uniform(0.88, 1.06)
+        outline.append((math.cos(angle) * size[0] / 2 * reach * 1.12, math.sin(angle) * size[1] / 2 * reach * 1.12))
+    slab(part, outline, center, (1, 0, 0), (0, 1, 0), (0, 0, 1), height, weigh, bevel=0.14)
+
+
+def build_aldabon():
+    asset = Asset("SP_Aldabon", seed=71)
+    block, ring, legs, eye = (asset.part(n) for n in ("Block", "Ring", "Legs", "Neon_Eye"))
+    on_body = rigid("Body")
+
+    # Standing stone: six uneven layers, with a few loose chips on the sides.
+    z = 0.8
+    for width, depth, dx, dy in ((2.75, 2.4, 0.0, 0.0), (2.95, 2.5, 0.05, 0.04), (2.85, 2.4, -0.06, 0.0),
+                                 (3.05, 2.5, 0.04, -0.03), (2.75, 2.3, -0.04, 0.05), (2.4, 2.1, 0.0, 0.0)):
+        stone_layer(asset, block, (dx, dy, z), (width, depth), 0.55, on_body)
+        z += 0.5
+    for x, y, zz, yaw in ((1.45, -0.6, 1.5, 0.3), (-1.4, 0.3, 2.4, -0.4), (1.35, 0.7, 3.0, 0.5)):
+        kc.box(block, (x, y, zz), (0.5, 0.5, 0.45), on_body, yaw=yaw)
+
+    # Two stumps for legs.
+    for name, x in (("LegL", 0.85), ("LegR", -0.85)):
+        lathe(legs, [(0.65, 0.0), (0.58, 0.4), (0.5, 0.85)], 6, rigid(name), center=(x, 0.0, 0.0), phase=0.2)
+
+    # Heavy iron ring in front, hung from a bracket on the face.
+    torus(ring, (0.0, -1.5, 2.2), (1, 0, 0), (0, 0, 1), 1.0, 0.2, 12, 5, rigid("Ring"))
+    kc.box(ring, (0.0, -1.35, 3.35), (0.4, 0.6, 0.3), on_body)
+    kc.box(ring, (0.0, -1.25, 3.1), (0.9, 0.12, 0.9), on_body)
+
+    # Two amber eyes above the bracket.
+    for side in (-1, 1):
+        prism(eye, (side * 0.75, -1.15, 3.3), (0, -1, 0), 0.17, 0.2, on_body, sides=6)
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0, 2.2), (0, -0.8, 2.2))
+    asset.bone("Ring", "Body", (0, -1.4, 3.3), (0, -1.4, 1.2))
+    asset.bone("LegL", "Body", (0.85, 0, 0.85), (0.85, 0, 0.05))
+    asset.bone("LegR", "Body", (-0.85, 0, 0.85), (-0.85, 0, 0.05))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
-            "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo}
+            "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo,
+            "SP_Aldabon": build_aldabon}
 ORDER = tuple(SPECS)
 
 

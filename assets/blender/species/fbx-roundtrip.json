@@ -686,6 +686,120 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Aldabon": {
+      "model": {
+        "triangles": 512,
+        "size": [
+          3.4,
+          3.0,
+          3.8
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "Ring",
+          "LegL",
+          "LegR"
+        ],
+        "objects": [
+          "SP_Aldabon",
+          "SP_Aldabon_Block",
+          "SP_Aldabon_Legs",
+          "SP_Aldabon_Neon_Eye",
+          "SP_Aldabon_Ring"
+        ],
+        "materials": [
+          "SP_Aldabon_Block",
+          "SP_Aldabon_Legs",
+          "SP_Aldabon_Neon_Eye",
+          "SP_Aldabon_Ring"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 512,
+          "size": [
+            3.4085,
+            3.0023,
+            3.8
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "Ring",
+            "LegL",
+            "LegR"
+          ],
+          "objects": [
+            "SP_Aldabon",
+            "SP_Aldabon_Block",
+            "SP_Aldabon_Legs",
+            "SP_Aldabon_Neon_Eye",
+            "SP_Aldabon_Ring"
+          ],
+          "materials": [
+            "SP_Aldabon_Block",
+            "SP_Aldabon_Legs",
+            "SP_Aldabon_Neon_Eye",
+            "SP_Aldabon_Ring"
+          ],
+          "actions": [
+            "SP_Aldabon|WildboundSpecies"
+          ],
+          "animated_channels": 59,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 512,
+          "size": [
+            3.388,
+            2.9831,
+            3.8489
+          ],
+          "min_z": -0.0284,
+          "bones": [
+            "Root",
+            "Body",
+            "Ring",
+            "LegL",
+            "LegR"
+          ],
+          "objects": [
+            "SP_Aldabon",
+            "SP_Aldabon_Block",
+            "SP_Aldabon_Legs",
+            "SP_Aldabon_Neon_Eye",
+            "SP_Aldabon_Ring"
+          ],
+          "materials": [
+            "SP_Aldabon_Block",
+            "SP_Aldabon_Legs",
+            "SP_Aldabon_Neon_Eye",
+            "SP_Aldabon_Ring"
+          ],
+          "actions": [
+            "SP_Aldabon|WildboundSpecies"
+          ],
+          "animated_channels": 59,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }
