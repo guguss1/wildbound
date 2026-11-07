@@ -1,6 +1,6 @@
-# Sol Very High agent routing
+# Economical agent routing
 
-Use GPT-6.1 Sol with Very High reasoning (`xhigh`) for the parent and all three specialized roles. This is the user's current preference, not the earlier economical model mix.
+Use GPT-6.1 Sol with Medium reasoning for the parent and role-specific model/effort settings below. This is the user's current account preference; it supersedes the prior Sol/xhigh preference.
 
 ## Quick path
 
@@ -10,19 +10,19 @@ Use GPT-6.1 Sol with Very High reasoning (`xhigh`) for the parent and all three 
 
 | Role | Scope | Model / effort |
 | --- | --- | --- |
-| `wildbound-research` | Read-only mapping, evidence, and documentation research | `gpt-6.1-sol` / `xhigh` |
-| `wildbound-builder` | Explicitly authorized bounded implementation and checks | `gpt-6.1-sol` / `xhigh` |
-| `wildbound-critical` | Correctness, security, persistence, and sensitive-change analysis | `gpt-6.1-sol` / `xhigh` |
+| `wildbound-research` | Read-only mapping, evidence, and documentation research | `gpt-6-luna` / `high` |
+| `wildbound-builder` | Explicitly authorized bounded implementation and checks | `gpt-6.1-terra` / `medium` |
+| `wildbound-critical` | Correctness, security, persistence, and sensitive-change analysis | `gpt-6.1-sol` / `high` |
 
-Definitions live in `.codex/agents/`. Global defaults also select Sol/xhigh for otherwise unspecified subagents. The native concurrency setting is `agents.max_concurrent_threads_per_session=3`; preserve the existing depth setting. Workers do not delegate again unless the parent approves.
+Definitions live in `.codex/agents/`. Global defaults also select Luna/high for otherwise unspecified subagents. The native concurrency setting remains `agents.max_concurrent_threads_per_session=3`, and the existing depth and security settings are preserved. Workers do not delegate again unless the parent approves.
 
 ## Runtime boundary
 
-Changing configuration records startup preferences; it does not prove the current parent changed model or reasoning effort. A skill is instructions, not a hot-switch API. When the runtime has no verified live selector, use explicit `model="gpt-6.1-sol"`, `reasoning_effort="xhigh"`, and `fork_turns="none"` for a narrow non-trivial worker. Pass the task, authorization, relevant skill paths, effective TDD mode/runner, and checks explicitly. Do not spawn unnecessarily for trivial direct tasks; disclose an unmet runtime-selection limitation once.
+Changing configuration records startup preferences; it does not prove the current parent changed model or reasoning effort. A skill is instructions, not a hot-switch API. When the runtime has no verified live selector, follow the table above and use `fork_turns="none"` for a narrow non-trivial worker. Pass the task, authorization, relevant skill paths, effective TDD mode/runner, and checks explicitly. Do not spawn unnecessarily for trivial direct tasks; disclose an unmet runtime-selection limitation once.
 
 New skill and role files still require runtime discovery. Check the next turn/session; restart Codex only if discovery does not refresh. File validation alone is not a dispatch test. No paid model calls are required for configuration validation.
 
-`rápido` is a routing keyword, NOT a speed or cost guarantee. Higher reasoning can take longer and consume more tokens. Do not enable a priority/speed tier, change account, or alter approvals, security, MCP, or credentials implicitly.
+`rápido` is a routing keyword, NOT a speed or cost guarantee. Higher reasoning can take longer and consume more tokens. The explicit `rápido`, `rapido`, or fast-mode route remains the exception: its skill deliberately selects Sol/xhigh, independent of the economical defaults. Do not enable a priority/speed tier, change account, or alter approvals, security, MCP, credentials, or native review mode implicitly. This configuration does not authorize Studio edits, publication, or monetization changes.
 
 ## Ownership and safety
 
@@ -32,10 +32,6 @@ New skill and role files still require runtime discovery. Check the next turn/se
 - Preserve unrelated dirty files. Report failed, unavailable, or pending checks honestly; never bypass TDD, functional checks, or native review consent.
 
 For guarded selective loading of the master pack, use [Wildbound readiness](wildbound-readiness.md); do not duplicate its inventory or treat installation as gameplay authorization.
-
-## Deferred economical architecture
-
-The earlier Sol Medium parent, Luna High research, Terra Medium bounded implementation, and Sol High critical-work mix is deferred. Do not activate that model mix or assume new account access until a fresh user request. This configuration unit does not extract/install packs; a separately authorized master-prompt installation/audit keeps its own scope.
 
 ## Verification and rollback
 

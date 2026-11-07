@@ -1,3 +1,4 @@
 .codegraph/
+*.rbxl.lock
 /resources/skill-packs/
 /.atl/

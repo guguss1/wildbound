@@ -30,6 +30,6 @@ Read `docs/skill-packs.md` for the four guarded project skills: `game-roblox-mec
 
 ## Agent routing
 
-Read `docs/agent-routing.md` before delegating. Current preference: GPT-6.1 Sol / `xhigh` for the parent and all specialized roles; at most three concurrent subagents, parent integration, and one writer per overlapping script set or live scene. No nested delegation without parent approval.
+Read `docs/agent-routing.md` before delegating. Current preference: GPT-6.1 Sol / `medium` for the parent; Luna / `high` for research, Terra / `medium` for bounded implementation, and Sol / `high` for critical analysis. Keep at most three concurrent subagents, parent integration, and one writer per overlapping script set or live scene. No nested delegation without parent approval.
 
-Load `.agents/skills/wildbound-fast-mode/SKILL.md` for explicit `rápido` / `rapido` or fast-mode requests, not incidental gameplay-performance wording. Configuration and skills do not hot-switch the running parent; preserve every safety, TDD, functional-check, and native review requirement. The economical Luna/Terra architecture remains deferred.
+Load `.agents/skills/wildbound-fast-mode/SKILL.md` for explicit `rápido` / `rapido` or fast-mode requests, not incidental gameplay-performance wording. That explicit route intentionally overrides the economical defaults with Sol / `xhigh`. Configuration and skills do not hot-switch the running parent; preserve every safety, TDD, functional-check, and native review requirement. This configuration does not authorize Studio edits, publishing, monetization changes, or changes to approvals, security, MCP, or native review mode.

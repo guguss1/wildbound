@@ -33,3 +33,18 @@ lighting.Brightness, lighting.ClockTime = b.Brightness, b.ClockTime
 lighting.ExposureCompensation = b.ExposureCompensation
 root:Destroy()
 ```
+
+## Session rescue prototype
+
+The server owns eight creature prompts, each player's bag (capacity three), and refuge rewards. The UI is read-only. Progress lasts only for the current server session, survives character respawn, and resets when the player leaves. No purchases or persistence are included.
+
+### Install and verify
+
+1. Confirm the Studio instance and place with the user before edits. Back up the place locally.
+2. Copy `src/server/RescueState.luau` to `ServerScriptService.RescueState` as a ModuleScript, `src/server/RescueServer.server.luau` to `ServerScriptService.RescueServer` as a Script, and `src/client/RescueClient.client.luau` to `StarterPlayer.StarterPlayerScripts.RescueClient` as a LocalScript. Do not create duplicates.
+3. Optional visual: the template is Roblox's free Frog asset 106808835. Import it into an isolated ServerStorage quarantine; inspect every descendant without running any imported script. Create a new `ServerStorage.RescueAssets.Frog` Model by copying only the needed anchored BaseParts and their visual SpecialMesh descendants. Remove all scripts, Humanoids, joints, Sounds, and other non-whitelisted descendants; delete the quarantine. Never clone imported executable descendants. If the sanitized template is absent the server uses a glowing primitive instead.
+4. In Play, run `tests/GameplayIntegration.luau` in the server and `tests/ClientIntegration.luau` in the client. Run `require(game.ServerStorage.UnitTest.RunUnitTest)(nil, 5)` in the server for the pure state suite. These structural tests do not replace actual keyboard/touch, multiplayer, respawn, and device playtesting.
+
+The server creates `Workspace.RescueGameplay` only while Play is running; it does not alter `Workspace.HorrorMapBlockout`. Stop Play to remove the runtime folder. To remove the prototype from the saved place, delete the three named rescue scripts and optionally `ServerStorage.RescueAssets` and the separate unit-test harness. Do not delete the map folder. Restore a backup if an unrelated modification needs reversal.
+
+Creature locations are clustered in the first test area between spawn and refuge, not distributed across every biome. Their accessibility and pacing need playtesting.
