@@ -584,13 +584,27 @@ return function(CaptureSession, source)
 		equal(capture:drop(1, 0), nil)
 	end)
 
-	case("leaving clears the player's retry memory", function()
+	case("leaving and rejoining keeps the player's retry wait", function()
 		local capture = fresh()
 		local view = start(capture)
 		capture:cancel(view.token, 1, 0)
 		assert(capture.retries["n:1"] ~= nil, "retry should exist")
-		capture:drop(1, 0)
-		equal(capture.retries["n:1"], nil)
+		equal(capture:drop(1, 1), nil)
+		assert(capture.retries["n:1"] ~= nil, "leaving must not wipe the wait")
+		refused(capture, { now = 3 }, "RetryWait")
+		refused(capture, { now = C.RETRY_COOLDOWN - 0.01 }, "RetryWait")
+		start(capture, { now = C.RETRY_COOLDOWN })
+	end)
+
+	case("leaving mid-session keeps an earlier wait on another encounter, and adds none of its own", function()
+		local capture = fresh()
+		local first = start(capture, { encounterId = OTHER })
+		capture:cancel(first.token, 1, 0)
+		start(capture, { now = 1 })
+		local out = capture:drop(1, 2)
+		equal(out.reason, "Disconnected"); equal(out.retryAt, nil)
+		refused(capture, { encounterId = OTHER, now = 2 }, "RetryWait")
+		start(capture, { now = 2 })
 	end)
 
 	case("CAP-16: a full bag or collection at completion refuses with its reason and no grant", function()
@@ -705,28 +719,153 @@ return function(CaptureSession, source)
 		start(capture, { now = 50 })
 	end)
 
-	case("the third failure removes the Lumipol; cancels and leaving do not count", function()
+	-- Failures count per player per encounter (audit, wave W5): one player cannot remove a Lumipol for others.
+	local function failTooFar(capture, player, life, now)
+		local ok, view = capture:begin(input({ playerKey = player, life = life, now = now }))
+		assert(ok == true, "start refused: " .. tostring(view))
+		local out = capture:sample(view.token, at(now + 0.2, 7, 99, { life = life }))
+		equal(out.reason, "TooFar")
+		return out
+	end
+
+	case("a player's third failure earns that player a long wait, and the Lumipol stays", function()
 		local capture = fresh()
 		local now = 0
-		local function failOnce()
-			local view = start(capture, { now = now })
-			local out = capture:sample(view.token, at(now + 0.2, 7, 99))
-			equal(out.reason, "TooFar")
-			now += C.RETRY_COOLDOWN + 1
-			return out
+		local first = failTooFar(capture, 1, lifeA, now)
+		equal(first.leaves, false); equal(first.retryAt, now + 0.2 + C.RETRY_COOLDOWN)
+		now += C.RETRY_COOLDOWN + 1
+		local second = failTooFar(capture, 1, lifeA, now)
+		equal(second.leaves, false); equal(second.retryAt, now + 0.2 + C.RETRY_COOLDOWN)
+		now += C.RETRY_COOLDOWN + 1
+		local third = failTooFar(capture, 1, lifeA, now)
+		equal(third.leaves, false, "the Lumipol does not leave")
+		equal(third.retryAt, now + 0.2 + C.LONG_COOLDOWN)
+		refused(capture, { now = now + 0.2 + C.RETRY_COOLDOWN + 0.5 }, "RetryWait")
+		refused(capture, { now = third.retryAt - 0.01 }, "RetryWait")
+		start(capture, { now = third.retryAt })
+	end)
+
+	case("one player's failures never remove the Lumipol for anyone else", function()
+		local capture = fresh()
+		local now = 0
+		for _ = 1, 3 do
+			local out = failTooFar(capture, 1, lifeA, now)
+			equal(out.leaves, false)
+			now += C.LONG_COOLDOWN + 1
 		end
-		for _ = 1, 5 do
+		equal(capture:encounterState(ID, now), "Free")
+		local ok, view = capture:begin(input({ playerKey = 2, life = lifeB, now = now }))
+		equal(ok, true, "another player must still be able to start")
+		local out = capture:sample(view.token, at(now + 0.2, 7, 99, { life = lifeB }))
+		equal(out.leaves, false)
+		equal(capture:encounterState(ID, now + 10), "Free")
+	end)
+
+	case("failures are counted per player on one encounter", function()
+		local capture = fresh()
+		local now = 0
+		-- Two players alternate: each fails twice, nobody reaches three.
+		for round = 1, 2 do
+			for player = 1, 2 do
+				local life = player == 1 and lifeA or lifeB
+				local out = failTooFar(capture, player, life, now)
+				equal(out.retryAt, now + 0.2 + C.RETRY_COOLDOWN, "player " .. player .. " round " .. round)
+				now += C.RETRY_COOLDOWN + 1
+			end
+		end
+		-- Player 1's third failure is the long one; player 2's count is untouched at two.
+		local third = failTooFar(capture, 1, lifeA, now)
+		equal(third.retryAt, now + 0.2 + C.LONG_COOLDOWN)
+		now += C.RETRY_COOLDOWN + 1
+		local other = failTooFar(capture, 2, lifeB, now)
+		equal(other.retryAt, now + 0.2 + C.LONG_COOLDOWN, "player 2 reaches three on their own")
+	end)
+
+	case("the count starts over after the long wait", function()
+		local capture = fresh()
+		local now = 0
+		for _ = 1, 3 do
+			failTooFar(capture, 1, lifeA, now)
+			now += C.LONG_COOLDOWN + 1
+		end
+		local again = failTooFar(capture, 1, lifeA, now)
+		equal(again.retryAt, now + 0.2 + C.RETRY_COOLDOWN)
+	end)
+
+	case("cancels and leaving do not count toward the long wait", function()
+		local capture = fresh()
+		local now = 0
+		for _ = 1, 6 do
 			local view = start(capture, { now = now })
 			capture:cancel(view.token, 1, now)
 			now += C.RETRY_COOLDOWN + 1
 			view = start(capture, { now = now })
 			capture:drop(1, now)
 		end
-		equal(failOnce().leaves, false)
-		equal(failOnce().leaves, false)
-		equal(failOnce().leaves, true)
-		equal(capture:encounterState(ID, now), "Left")
-		refused(capture, { playerKey = 2, life = lifeB, now = now }, "InvalidEncounter")
+		local out = failTooFar(capture, 1, lifeA, now)
+		equal(out.retryAt, now + 0.2 + C.RETRY_COOLDOWN)
+	end)
+
+	case("leaving and rejoining keeps the failure count and the long wait", function()
+		local capture = fresh()
+		local now = 0
+		failTooFar(capture, 1, lifeA, now)
+		capture:drop(1, now + 1)
+		now += C.RETRY_COOLDOWN + 1
+		failTooFar(capture, 1, lifeA, now)
+		capture:drop(1, now + 1)
+		now += C.RETRY_COOLDOWN + 1
+		local third = failTooFar(capture, 1, lifeA, now)
+		equal(third.retryAt, now + 0.2 + C.LONG_COOLDOWN, "the count survived two rejoins")
+		capture:drop(1, now + 1)
+		refused(capture, { now = now + 5 }, "RetryWait")
+		refused(capture, { now = third.retryAt - 0.01 }, "RetryWait")
+		start(capture, { now = third.retryAt })
+	end)
+
+	case("a backward clock cannot stretch a short wait toward the long one", function()
+		local capture = fresh()
+		local view = start(capture, { now = 100 })
+		capture:cancel(view.token, 1, 100)
+		start(capture, { now = 80 })
+	end)
+
+	case("a backward clock cannot lengthen the long wait either", function()
+		local capture = fresh()
+		local now = 100
+		local third
+		for _ = 1, 3 do
+			third = failTooFar(capture, 1, lifeA, now)
+			now += C.LONG_COOLDOWN + 1
+		end
+		start(capture, { now = third.retryAt - C.LONG_COOLDOWN - 15 })
+	end)
+
+	case("retiring an encounter forgets every player's failures and waits on it", function()
+		local capture = fresh()
+		failTooFar(capture, 1, lifeA, 0)
+		failTooFar(capture, 2, lifeB, 10)
+		assert(count(capture.failures) > 0, "failures expected")
+		capture:retire(ID, 11)
+		equal(count(capture.failures), 0)
+		equal(count(capture.retries), 0)
+	end)
+
+	case("sweep forgets spent waits but not live failure counts, and retire clears those", function()
+		local capture = fresh()
+		failTooFar(capture, 1, lifeA, 0)
+		capture:sweep(C.LONG_COOLDOWN + 5)
+		equal(count(capture.retries), 0)
+		assert(count(capture.failures) > 0, "the failure count must outlive the wait")
+		capture:retire(ID, C.LONG_COOLDOWN + 6)
+		equal(count(capture.failures), 0)
+	end)
+
+	case("the long wait is a frozen constant longer than the short one", function()
+		assert(table.isfrozen(C), "constants")
+		assert(C.LONG_COOLDOWN > C.RETRY_COOLDOWN, "long must be longer")
+		equal(C.MAX_FAILS, 3)
+		equal(C.LONG_COOLDOWN, 45)
 	end)
 
 	case("retire ends a holder as Lost and forgets the encounter", function()

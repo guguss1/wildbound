@@ -64,7 +64,8 @@ All hypotheses. Pure constants in `WildboundCapture.luau`.
 | `SAMPLE` | 0.2 s | Matches the guardian step. Elapsed per sample is capped at 0.2 |
 | `RETRY_COOLDOWN` | 6 s | Same player, same encounter, after any session end |
 | `SPOOK_SECONDS` | 2 s | Nobody can start while it flees |
-| `MAX_FAILS` | 3 | After this the Lumipol leaves and the slot respawns |
+| `MAX_FAILS` | 3 | One player's failures on one encounter before that player gets `LONG_COOLDOWN`. The Lumipol does not leave (see the W5 audit row below) |
+| `LONG_COOLDOWN` | 45 s | Wait after a player's third failure on one encounter. Same player, same encounter, no one else |
 
 **Calculated check of D3's 4 to 6 s.** With orbit radius `r`, angular speed `w = 1.5 / r`, the ring center is `2 r sin(w t / 2)` from a player who never moves. It reaches the visible radius at about 3.0 s (r=9) to 3.2 s (r=4), and the server radius at about 3.4 s to 3.6 s. So standing still fills at most about 3.6 of 4.5 and then fails with `LeftRing` near 6 s. One 3-stud step at 16 studs/s costs one paused sample. Best case is about 4.7 s, and a late step about 5.5 s.
 
@@ -212,7 +213,7 @@ Pushed at session start, at every sample while active (5 Hz, one player, at most
 | --- | --- |
 | Two players tap the same Lumipol | Handlers run one at a time. The first reserves, the second gets `Reserved`. Only tested by C1-style real two-client run |
 | Winner fails | Lumipol spooks 2 s, then anyone may start. Winner waits 6 s |
-| One player keeps restarting to hold it | At most 12 s reserved in every 18 s, and three failures remove it. Other slots scale by player count |
+| One player keeps restarting to hold it | At most 12 s reserved in every 18 s, and that player's third failure on it earns that player a 45 s wait. The Lumipol stays for everyone else. Other slots scale by player count |
 | Winner completes as loser's tap arrives | Loser gets `AlreadyClaimed` or `InvalidEncounter` |
 | Strike and completion in the same frame | Whichever runs first wins. If completion ran first, the new item is in the bag and the strike rule applies normally |
 | Stuck reservation | Watchdog: any reservation older than `TIME_LIMIT + 1` is force-released and increments `captureWatchdog`. Exit test expects 0 |
@@ -421,6 +422,7 @@ Wave W5, 2026-11-07. `src/wildbound/WildboundCaptureSession.luau`, deployed as `
 | `State` additions | `State:pickup` checks 10 studs, but a correct completion can be 14 studs away (orbit 9 plus radius 5) | The reservation lives in the session module. M3.3 still needs a `State` grant without the 10-stud check (see wiring below) |
 | Session end table | No outcome for a clock that runs backward, unreadable positions, or an adapter that stops sampling | Three more reasons, all free of spook, retry and fail count: `LostTrack` (five unusable samples in a row), `Watchdog`, `Lost` (encounter retired) |
 | `MAX_FAILS` | "Three failures" did not say whether Stop counts | Only `Failed` phases with player cause count. `Cancelled` and `Disconnected` do not |
+| Failure count and leave-and-rejoin (independent audit, wave W5) | Failures were counted per encounter across all players, so one player who walked out of range three times (about 13 s) made the Lumipol leave for everyone. `drop` also erased the leaver's retry waits, so leaving and rejoining skipped the 6 s wait | Failures are counted **per player per encounter** (`failures[playerKey][encounterId]`). A player's third failure there costs that player `LONG_COOLDOWN` (45 s) on that encounter and the count starts over. The Lumipol no longer leaves because of failures: `leaves` stays in the ending but is always `false`, and only `retire` removes a Lumipol. `drop` keeps waits and counts, and each wait records its own length so a backward clock cannot stretch a short wait toward the long one. `sweep` forgets spent waits; `retire` forgets every player's waits and counts for that encounter. 103 contracts (11 new or rewritten: RED 92 passed and 11 failed, then GREEN 103 of 103) |
 
 ### Contract surface
 

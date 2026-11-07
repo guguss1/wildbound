@@ -29,6 +29,8 @@ CaptureSession.CONSTANTS = table.freeze({
 	BAD_SAMPLE_LIMIT = 5,
 	WATCHDOG_GRACE = 1,
 	RETRY_COOLDOWN = 6,
+	-- A player's MAX_FAILS-th failure on one encounter costs that player this hold-off. Nobody else is affected.
+	LONG_COOLDOWN = 45,
 	SPOOK_SECONDS = 2,
 	MAX_FAILS = 3,
 })
@@ -110,8 +112,9 @@ function CaptureSession.new()
 		sessions = {}, -- token -> session
 		byPlayer = {}, -- normalized key -> token
 		reservations = {}, -- encounter id -> token
-		encounters = {}, -- encounter id -> { spookedUntil, fails, gone }
-		retries = {}, -- normalized key -> { [encounter id] = retry moment }
+		encounters = {}, -- encounter id -> { spookedUntil, gone }
+		retries = {}, -- normalized key -> { [encounter id] = { untilAt, span } }; survives leaving and rejoining
+		failures = {}, -- normalized key -> { [encounter id] = count of that player's failures }
 		serial = 0,
 		counters = { anomaly = 0, watchdog = 0 },
 	}, CaptureSession)
@@ -171,14 +174,12 @@ function CaptureSession:begin(input)
 	local now = input.now
 	local record = self.encounters[encounterId]
 	if record and record.gone == "Captured" then return false, "AlreadyClaimed" end
-	if record and record.gone == "Left" then return false, "InvalidEncounter" end
 	if self.reservations[encounterId] or (record and waiting(record.spookedUntil, now, C.SPOOK_SECONDS)) then
 		return false, "Reserved"
 	end
 	local playerRetries = self.retries[key]
-	if playerRetries and waiting(playerRetries[encounterId], now, C.RETRY_COOLDOWN) then
-		return false, "RetryWait"
-	end
+	local hold = playerRetries and playerRetries[encounterId]
+	if hold and waiting(hold.untilAt, now, hold.span) then return false, "RetryWait" end
 	if input.slotRefusal ~= nil then
 		return false, SLOT_REFUSALS[input.slotRefusal] and input.slotRefusal or "InvalidContext"
 	end
@@ -226,26 +227,33 @@ local function finish(self, session, reason, now)
 	end
 	local record = self.encounters[session.encounterId]
 	if reason == "Completed" or rule.spook then
-		record = record or { fails = 0 }
+		record = record or {}
 		self.encounters[session.encounterId] = record
 	end
-	local leaves = false
 	if reason == "Completed" then record.gone = "Captured" end
 	if rule.spook then record.spookedUntil = at + C.SPOOK_SECONDS end
+	-- Failures belong to the player who failed, so one player cannot make a Lumipol leave for everyone.
+	-- The MAX_FAILS-th failure costs that player the long hold-off, and then the count starts over.
+	local span = C.RETRY_COOLDOWN
 	if rule.fail then
-		record.fails += 1
-		if record.fails >= C.MAX_FAILS then
-			record.gone, leaves = "Left", true
+		local counts = self.failures[session.key] or {}
+		self.failures[session.key] = counts
+		local total = (counts[session.encounterId] or 0) + 1
+		if total >= C.MAX_FAILS then
+			total, span = 0, C.LONG_COOLDOWN
 		end
+		counts[session.encounterId] = total > 0 and total or nil
+		if next(counts) == nil then self.failures[session.key] = nil end
 	end
-	local retryAt = rule.retry and at + C.RETRY_COOLDOWN or nil
+	local retryAt = rule.retry and at + span or nil
 	if retryAt then
 		self.retries[session.key] = self.retries[session.key] or {}
-		self.retries[session.key][session.encounterId] = retryAt
+		self.retries[session.key][session.encounterId] = { untilAt = retryAt, span = span }
 	end
 	local out = activeView(session)
 	out.phase, out.reason, out.notice = rule.phase, reason, CaptureSession.NOTICES[reason]
-	out.grant, out.leaves, out.spook = reason == "Completed", leaves, rule.spook == true
+	-- Kept for the adapter's sake: a failure never removes a Lumipol any more. Only retire() does.
+	out.grant, out.leaves, out.spook = reason == "Completed", false, rule.spook == true
 	out.spookUntil, out.retryAt = rule.spook and at + C.SPOOK_SECONDS or nil, retryAt
 	out.encounterId, out.playerKey = session.encounterId, session.playerKey
 	return out
@@ -335,11 +343,11 @@ function CaptureSession:cancel(token, key, now)
 	return true, finish(self, session, "Cancelled", now)
 end
 
--- PlayerRemoving: no grant, no spook, no penalty, and the player's retry memory goes with them.
+-- PlayerRemoving: no grant, no spook, no penalty. Hold-offs and failure counts stay, so leaving and
+-- rejoining resets nothing; sweep forgets spent hold-offs and retire forgets a gone encounter's counts.
 function CaptureSession:drop(key, now)
 	local normalized = playerKey(key)
 	if not normalized then return nil end
-	self.retries[normalized] = nil
 	local session = self.sessions[self.byPlayer[normalized] or ""]
 	return session and finish(self, session, "Disconnected", now) or nil
 end
@@ -350,9 +358,11 @@ function CaptureSession:retire(encounterId, now)
 	local session = self.sessions[self.reservations[encounterId] or ""]
 	local out = session and finish(self, session, "Lost", now) or nil
 	self.encounters[encounterId] = nil
-	for key, playerRetries in pairs(self.retries) do
-		playerRetries[encounterId] = nil
-		if next(playerRetries) == nil then self.retries[key] = nil end
+	for _, book in ipairs({ self.retries, self.failures }) do
+		for key, perEncounter in pairs(book) do
+			perEncounter[encounterId] = nil
+			if next(perEncounter) == nil then book[key] = nil end
+		end
 	end
 	return out
 end
@@ -372,11 +382,11 @@ function CaptureSession:sweep(now)
 	end
 	for id, record in pairs(self.encounters) do
 		if not waiting(record.spookedUntil, now, C.SPOOK_SECONDS) then record.spookedUntil = nil end
-		if not record.gone and record.fails == 0 and not record.spookedUntil then self.encounters[id] = nil end
+		if not record.gone and not record.spookedUntil then self.encounters[id] = nil end
 	end
 	for key, playerRetries in pairs(self.retries) do
-		for id, retryAt in pairs(playerRetries) do
-			if not waiting(retryAt, now, C.RETRY_COOLDOWN) then playerRetries[id] = nil end
+		for id, hold in pairs(playerRetries) do
+			if not waiting(hold.untilAt, now, hold.span) then playerRetries[id] = nil end
 		end
 		if next(playerRetries) == nil then self.retries[key] = nil end
 	end
@@ -394,7 +404,7 @@ function CaptureSession:activeSessions()
 	return list
 end
 
--- "Free" | "Reserved" | "Spooked" | "Captured" | "Left", for the prompt and the Lumipol's behavior.
+-- "Free" | "Reserved" | "Spooked" | "Captured", for the prompt and the Lumipol's behavior.
 function CaptureSession:encounterState(encounterId, now)
 	if not validId(encounterId) then return nil end
 	local record = self.encounters[encounterId]
