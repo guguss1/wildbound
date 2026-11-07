@@ -1,0 +1,44 @@
+{
+  "props": {
+    "RC_TunnelStraight": {
+      "model": {
+        "triangles": 406,
+        "size": [
+          24.8292,
+          24.0,
+          19.4
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_TunnelStraight",
+          "RC_TunnelStraight_Rock",
+          "RC_TunnelStraight_Stain"
+        ],
+        "materials": [
+          "RC_TunnelStraight_Rock",
+          "RC_TunnelStraight_Stain"
+        ]
+      }
+    },
+    "RC_TunnelBend": {
+      "model": {
+        "triangles": 406,
+        "size": [
+          30.0,
+          30.0,
+          19.4
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "RC_TunnelBend",
+          "RC_TunnelBend_Rock",
+          "RC_TunnelBend_Stain"
+        ],
+        "materials": [
+          "RC_TunnelBend_Rock",
+          "RC_TunnelBend_Stain"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,1055 @@
+{
+  "generator": "tools/build-rock-caves-kit.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Rigged Silueta once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "rock-caves-kit-sheet.png",
+  "lineup_file": "rock-caves-kit-scale.png",
+  "blend": "assets/blender/rock-caves-kit/rock-caves-kit-v1.blend",
+  "props": {
+    "RC_TunnelStraight": {
+      "status": "unvalidated",
+      "triangles": 406,
+      "size": [
+        24.8292,
+        24.0,
+        19.4
+      ],
+      "bbox_min": [
+        -12.0,
+        -12.0,
+        0.0
+      ],
+      "bbox_max": [
+        12.8292,
+        12.0,
+        19.4
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "RC_TunnelStraight_Rock",
+          "material": "RC_TunnelStraight_Rock",
+          "material_count": 1,
+          "palette_name": "RC_Shale",
+          "triangles": 350,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3F3D3B"
+        },
+        {
+          "object": "RC_TunnelStraight_Stain",
+          "material": "RC_TunnelStraight_Stain",
+          "material_count": 1,
+          "palette_name": "RC_Clay",
+          "triangles": 56,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7D5A42"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_TunnelStraight.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_TunnelStraight.png",
+      "ends": {
+        "A": {
+          "center": [
+            0.0,
+            -12.0
+          ],
+          "facing": [
+            0.0,
+            -1.0
+          ]
+        },
+        "B": {
+          "center": [
+            0.0,
+            12.0
+          ],
+          "facing": [
+            0.0,
+            1.0
+          ]
+        }
+      },
+      "snap": {
+        "profile_loop": [
+          [
+            -7.0,
+            0.0
+          ],
+          [
+            -7.0,
+            10.0
+          ],
+          [
+            -5.0,
+            12.0
+          ],
+          [
+            5.0,
+            12.0
+          ],
+          [
+            7.0,
+            10.0
+          ],
+          [
+            7.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            12.0
+          ],
+          [
+            7.0,
+            18.0
+          ],
+          [
+            -7.0,
+            18.0
+          ],
+          [
+            -12.0,
+            12.0
+          ],
+          [
+            -12.0,
+            0.0
+          ]
+        ],
+        "tolerance": 0.02,
+        "built_inner_margin": 0.01
+      },
+      "collision_boxes": [
+        {
+          "name": "walk_floor",
+          "center": [
+            0.0,
+            0.0,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            24.0,
+            0.4
+          ],
+          "pitch_deg": 0.0
+        }
+      ],
+      "occluders": [
+        {
+          "name": "wall_left",
+          "center": [
+            -9.55,
+            0.0,
+            6.0
+          ],
+          "size": [
+            4.7,
+            24.0,
+            12.0
+          ]
+        },
+        {
+          "name": "wall_right",
+          "center": [
+            9.55,
+            0.0,
+            6.0
+          ],
+          "size": [
+            4.7,
+            24.0,
+            12.0
+          ]
+        }
+      ],
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 14.02,
+        "gap_low_x": -7.01,
+        "gap_high_x": 7.01,
+        "height": 10.0056,
+        "width_probe_height": 10.0,
+        "height_probe_width": 14.0
+      }
+    },
+    "RC_TunnelBend": {
+      "status": "unvalidated",
+      "triangles": 406,
+      "size": [
+        30.0,
+        30.0,
+        19.4
+      ],
+      "bbox_min": [
+        -15.0,
+        -15.0,
+        0.0
+      ],
+      "bbox_max": [
+        15.0,
+        15.0,
+        19.4
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "RC_TunnelBend_Rock",
+          "material": "RC_TunnelBend_Rock",
+          "material_count": 1,
+          "palette_name": "RC_Shale",
+          "triangles": 350,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "3F3D3B"
+        },
+        {
+          "object": "RC_TunnelBend_Stain",
+          "material": "RC_TunnelBend_Stain",
+          "material_count": 1,
+          "palette_name": "RC_Clay",
+          "triangles": 56,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "7D5A42"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/rock-caves-kit/RC_TunnelBend.fbx"
+      },
+      "render": "assets/blender/rock-caves-kit/RC_TunnelBend.png",
+      "ends": {
+        "A": {
+          "center": [
+            -3.0,
+            -15.0
+          ],
+          "facing": [
+            0.0,
+            -1.0
+          ]
+        },
+        "B": {
+          "center": [
+            15.0,
+            3.0
+          ],
+          "facing": [
+            1.0,
+            0.0
+          ]
+        }
+      },
+      "arc": {
+        "center": [
+          15.0,
+          -15.0
+        ],
+        "radius": 18.0,
+        "segments": 6
+      },
+      "snap": {
+        "profile_loop": [
+          [
+            -7.0,
+            0.0
+          ],
+          [
+            -7.0,
+            10.0
+          ],
+          [
+            -5.0,
+            12.0
+          ],
+          [
+            5.0,
+            12.0
+          ],
+          [
+            7.0,
+            10.0
+          ],
+          [
+            7.0,
+            0.0
+          ],
+          [
+            12.0,
+            0.0
+          ],
+          [
+            12.0,
+            12.0
+          ],
+          [
+            7.0,
+            18.0
+          ],
+          [
+            -7.0,
+            18.0
+          ],
+          [
+            -12.0,
+            12.0
+          ],
+          [
+            -12.0,
+            0.0
+          ]
+        ],
+        "tolerance": 0.02,
+        "built_inner_margin": 0.01
+      },
+      "collision_boxes": [
+        {
+          "name": "walk_floor_00",
+          "center": [
+            -2.9807,
+            -14.4114,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 178.125
+        },
+        {
+          "name": "walk_floor_01",
+          "center": [
+            -2.9037,
+            -13.2366,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 174.375
+        },
+        {
+          "name": "walk_floor_02",
+          "center": [
+            -2.7501,
+            -12.0695,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 170.625
+        },
+        {
+          "name": "walk_floor_03",
+          "center": [
+            -2.5204,
+            -10.9148,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 166.875
+        },
+        {
+          "name": "walk_floor_04",
+          "center": [
+            -2.2157,
+            -9.7777,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 163.125
+        },
+        {
+          "name": "walk_floor_05",
+          "center": [
+            -1.8373,
+            -8.6629,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 159.375
+        },
+        {
+          "name": "walk_floor_06",
+          "center": [
+            -1.3868,
+            -7.5753,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 155.625
+        },
+        {
+          "name": "walk_floor_07",
+          "center": [
+            -0.8661,
+            -6.5194,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 151.875
+        },
+        {
+          "name": "walk_floor_08",
+          "center": [
+            -0.2775,
+            -5.4999,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 148.125
+        },
+        {
+          "name": "walk_floor_09",
+          "center": [
+            0.3766,
+            -4.521,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 144.375
+        },
+        {
+          "name": "walk_floor_10",
+          "center": [
+            1.0933,
+            -3.587,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 140.625
+        },
+        {
+          "name": "walk_floor_11",
+          "center": [
+            1.8695,
+            -2.7019,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 136.875
+        },
+        {
+          "name": "walk_floor_12",
+          "center": [
+            2.7019,
+            -1.8695,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 133.125
+        },
+        {
+          "name": "walk_floor_13",
+          "center": [
+            3.587,
+            -1.0933,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 129.375
+        },
+        {
+          "name": "walk_floor_14",
+          "center": [
+            4.521,
+            -0.3766,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 125.625
+        },
+        {
+          "name": "walk_floor_15",
+          "center": [
+            5.4999,
+            0.2775,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 121.875
+        },
+        {
+          "name": "walk_floor_16",
+          "center": [
+            6.5194,
+            0.8661,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 118.125
+        },
+        {
+          "name": "walk_floor_17",
+          "center": [
+            7.5753,
+            1.3868,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 114.375
+        },
+        {
+          "name": "walk_floor_18",
+          "center": [
+            8.6629,
+            1.8373,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 110.625
+        },
+        {
+          "name": "walk_floor_19",
+          "center": [
+            9.7777,
+            2.2157,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 106.875
+        },
+        {
+          "name": "walk_floor_20",
+          "center": [
+            10.9148,
+            2.5204,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 103.125
+        },
+        {
+          "name": "walk_floor_21",
+          "center": [
+            12.0695,
+            2.7501,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 99.375
+        },
+        {
+          "name": "walk_floor_22",
+          "center": [
+            13.2366,
+            2.9037,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 95.625
+        },
+        {
+          "name": "walk_floor_23",
+          "center": [
+            14.4114,
+            2.9807,
+            -0.2
+          ],
+          "size": [
+            14.0,
+            1.62,
+            0.4
+          ],
+          "pitch_deg": 0.0,
+          "yaw_deg": 91.875
+        }
+      ],
+      "occluders": [
+        {
+          "name": "wall_inner_00",
+          "center": [
+            5.3208,
+            -14.3656,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 266.25
+        },
+        {
+          "name": "wall_outer_00",
+          "center": [
+            -11.2437,
+            -13.2799,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 266.25
+        },
+        {
+          "name": "wall_inner_01",
+          "center": [
+            5.4864,
+            -13.1076,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 258.75
+        },
+        {
+          "name": "wall_outer_01",
+          "center": [
+            -10.7947,
+            -9.8691,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 258.75
+        },
+        {
+          "name": "wall_inner_02",
+          "center": [
+            5.8148,
+            -11.882,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 251.25
+        },
+        {
+          "name": "wall_outer_02",
+          "center": [
+            -9.9043,
+            -6.5461,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 251.25
+        },
+        {
+          "name": "wall_inner_03",
+          "center": [
+            6.3003,
+            -10.7098,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 243.75
+        },
+        {
+          "name": "wall_outer_03",
+          "center": [
+            -8.5878,
+            -3.3678,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 243.75
+        },
+        {
+          "name": "wall_inner_04",
+          "center": [
+            6.9347,
+            -9.611,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 236.25
+        },
+        {
+          "name": "wall_outer_04",
+          "center": [
+            -6.8677,
+            -0.3885,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 236.25
+        },
+        {
+          "name": "wall_inner_05",
+          "center": [
+            7.7072,
+            -8.6043,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 228.75
+        },
+        {
+          "name": "wall_outer_05",
+          "center": [
+            -4.7734,
+            2.3408,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 228.75
+        },
+        {
+          "name": "wall_inner_06",
+          "center": [
+            8.6043,
+            -7.7072,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 221.25
+        },
+        {
+          "name": "wall_outer_06",
+          "center": [
+            -2.3408,
+            4.7734,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 221.25
+        },
+        {
+          "name": "wall_inner_07",
+          "center": [
+            9.611,
+            -6.9347,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 213.75
+        },
+        {
+          "name": "wall_outer_07",
+          "center": [
+            0.3885,
+            6.8677,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 213.75
+        },
+        {
+          "name": "wall_inner_08",
+          "center": [
+            10.7098,
+            -6.3003,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 206.25
+        },
+        {
+          "name": "wall_outer_08",
+          "center": [
+            3.3678,
+            8.5878,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 206.25
+        },
+        {
+          "name": "wall_inner_09",
+          "center": [
+            11.882,
+            -5.8148,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 198.75
+        },
+        {
+          "name": "wall_outer_09",
+          "center": [
+            6.5461,
+            9.9043,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 198.75
+        },
+        {
+          "name": "wall_inner_10",
+          "center": [
+            13.1076,
+            -5.4864,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 191.25
+        },
+        {
+          "name": "wall_outer_10",
+          "center": [
+            9.8691,
+            10.7947,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 191.25
+        },
+        {
+          "name": "wall_inner_11",
+          "center": [
+            14.3656,
+            -5.3208,
+            6.0
+          ],
+          "size": [
+            1.5,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 183.75
+        },
+        {
+          "name": "wall_outer_11",
+          "center": [
+            13.2799,
+            11.2437,
+            6.0
+          ],
+          "size": [
+            3.7,
+            1.6,
+            12.0
+          ],
+          "yaw_deg": 183.75
+        }
+      ]
+    }
+  }
+}
