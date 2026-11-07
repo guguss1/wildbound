@@ -476,6 +476,9 @@ Built as pure modules with contracts run in Studio Edit on fresh clones. **No da
 | Module | Studio path | Contracts | RED | GREEN |
 | --- | --- | --- | --- | --- |
 | `src/wildbound/WildboundRecord.luau` | `ServerScriptService.WildboundRecord` | `tests/WildboundRecord_Test.luau`, RT-1 to RT-18 | 1 passed, 17 failed (empty stub; RT-18 source check passes on a stub) | 17 passed, 1 failed (test defect, below), then 18 passed, 0 failed |
+| `tests/WildboundFakePlayerStore.luau` (test double) | `ServerStorage.WildboundFakePlayerStore` | `tests/WildboundFakePlayerStore_Test.luau`, FK-1 to FK-13 | 1 passed, 12 failed (empty stub; FK-13 source check) | 13 passed, 0 failed |
+
+The fake implements section 8's controls: scripted `throwBefore`, `commitThenThrow`, `timeout`, `throttle` per update call, a separate read queue (`scriptReads`) so a read never consumes an update's fault, `failAll`, scripted latency on the shared injected clock, a `before` hook that lets a second server land first, the transform run twice on detached JSON copies, a per-minute write budget, a 4,194,304-character limit, a full `writes` log and byte-exact `raw`. It lives under `tests/` and `ServerStorage`, never in the running game.
 
 Test defect fixed: RT-4 banned the text "defeats", which `stats.defeats` (a designed counter) contains. It now checks the session tables by key.
 
