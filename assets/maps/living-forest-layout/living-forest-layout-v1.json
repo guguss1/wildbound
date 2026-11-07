@@ -9,7 +9,7 @@
  },
  "totals": {
   "instances": 162,
-  "triangles_measured": 32236,
+  "triangles_measured": 32696,
   "triangles_budget": 36000,
   "mesh_parts": 340,
   "by_name": {
@@ -19,11 +19,11 @@
    },
    "LF_ResinStump": {
     "count": 10,
-    "triangles": 1640
+    "triangles": 1720
    },
    "LF_FlowerClump": {
     "count": 60,
-    "triangles": 4800
+    "triangles": 5040
    },
    "LF_StreamStone": {
     "count": 24,
@@ -31,7 +31,7 @@
    },
    "LF_HollowArch": {
     "count": 2,
-    "triangles": 988
+    "triangles": 920
    },
    "LF_TrailPost": {
     "count": 16,
@@ -39,7 +39,7 @@
    },
    "LF_LogBridge": {
     "count": 4,
-    "triangles": 960
+    "triangles": 1168
    }
   }
  },

@@ -43,9 +43,44 @@ def stone_block(part, x, y, radius, height, sides, rng, top=0.62, yaw=0.0):
     loft(part, [lower, upper], W)
 
 
-def diamond_flower(part, center, radius, thickness, phase):
-    """Four-point flat flower: a squashed double pyramid."""
-    lathe(part, [(0.0, -thickness), (radius, 0.0), (0.0, thickness)], 4, W, center=center, phase=phase)
+def bark_tube(part, rng, points, radii, sides, rough=0.07, flutes=0.0, twist=0.0, phase=None, reference=None,
+              floor=None):
+    """Faceted trunk or limb: per-vertex jitter, grooves that persist along the length, a slow spiral.
+
+    A radius of 0 at either end makes a sharp tip. A floor sinks any vertex below it onto it, which is how a
+    leaning foot rests flat on the ground. Same idea as the Fog Forest tube.
+    """
+    frames = kc.path_frames(points, reference)
+    phase = rng.uniform(0.0, math.tau) if phase is None else phase
+    groove = [1.0 + flutes * (rng.uniform(0.3, 1.0) if k % 2 else -rng.uniform(0.3, 1.0)) for k in range(sides)]
+    rings, start, end = [], "cap", "cap"
+    for index, (point, radius) in enumerate(zip(points, radii)):
+        if radius <= 0.0:
+            if index == 0:
+                start = point
+            else:
+                end = point
+            continue
+        side, normal, _ = frames[index]
+        ring = []
+        for k in range(sides):
+            angle = phase + twist * index + math.tau * k / sides
+            amount = radius * groove[k] * (1.0 + rng.uniform(-rough, rough))
+            vertex = add(point, add(mul(side, math.cos(angle) * amount), mul(normal, math.sin(angle) * amount)))
+            ring.append(vertex if floor is None else (vertex[0], vertex[1], max(vertex[2], floor)))
+        rings.append(ring)
+    loft(part, rings, W, start, end)
+
+
+def bloom_disc(part, center, axis, radius, thickness, phase):
+    """Five-point flat flower: a squashed double pyramid, tilted so it faces along the axis."""
+    lathe(part, [(0.0, -thickness), (radius, 0.0), (0.0, thickness)], 5, W, center=center,
+          frame=kc.basis(axis), phase=phase)
+
+
+def bloom_cup(part, center, axis, radius, depth, phase):
+    """Cup-shaped flower: a five-sided cone that opens along the axis, closed by a flat top."""
+    lathe(part, [(0.0, 0.0), (radius, depth)], 5, W, center=center, frame=kc.basis(axis), phase=phase)
 
 
 def profile_radius(profile, z):
@@ -56,6 +91,35 @@ def profile_radius(profile, z):
     return profile[-1][0]
 
 
+def ear_clip(points):
+    """Triangulate a simple 2D polygon (any winding) into index triples; concave tongues stay concave."""
+    area = sum(points[k][0] * points[(k + 1) % len(points)][1] - points[(k + 1) % len(points)][0] * points[k][1]
+               for k in range(len(points)))
+    order = list(range(len(points))) if area > 0 else list(range(len(points) - 1, -1, -1))
+
+    def cross(a, b, c):
+        return (points[b][0] - points[a][0]) * (points[c][1] - points[a][1])             - (points[b][1] - points[a][1]) * (points[c][0] - points[a][0])
+
+    def inside(p, a, b, c):
+        return cross(a, b, p) >= 0 and cross(b, c, p) >= 0 and cross(c, a, p) >= 0
+
+    triangles = []
+    while len(order) > 3:
+        for k in range(len(order)):
+            a, b, c = order[k - 1], order[k], order[(k + 1) % len(order)]
+            if cross(a, b, c) <= 1e-9:
+                continue
+            if any(inside(other, a, b, c) for other in order if other not in (a, b, c)):
+                continue
+            triangles.append((a, b, c))
+            del order[k]
+            break
+        else:
+            raise ValueError("polygon cannot be triangulated")
+    triangles.append(tuple(order))
+    return triangles
+
+
 # ---------------------------------------------------------------------------
 # Props
 # ---------------------------------------------------------------------------
@@ -64,7 +128,8 @@ def build_broadleaf(a):
     """Upright thick trunk, three limbs, a crown of four faceted lobes that starts above Z 12."""
     rng = a.rng
     trunk, crown = a.part("Trunk"), a.part("Crown")
-    lathe(trunk, [(2.1, 0.0), (1.8, 1.3), (1.5, 6.0), (1.4, 13.0), (1.15, 22.0)], 6, W, jitter=0.04, rng=rng)
+    lathe(trunk, [(2.1, 0.0), (1.8, 1.3), (1.5, 6.0), (1.4, 13.0), (1.15, 22.0)], 6, W, jitter=0.09, rng=rng,
+          twist=0.12)
     for azimuth, reach, rise in ((0.4, 8.0, 6.5), (2.5, 7.5, 6.0), (4.5, 8.2, 5.5)):
         c, s = math.cos(azimuth), math.sin(azimuth)
         tube(trunk, [(c * 1.0, s * 1.0, 11.5), (c * reach * 0.5, s * reach * 0.5, 11.5 + rise * 0.5),
@@ -77,22 +142,92 @@ def build_broadleaf(a):
     for cx, cy, cz, rx, rz in ((-4.2, -3.8, 20.6, 8.0, 8.3), (4.4, -3.4, 21.6, 7.8, 8.0),
                                (-2.6, 4.4, 22.6, 7.8, 8.0), (3.6, 3.6, 24.0, 8.0, 8.0)):
         lathe(crown, arc_profile(rx, rz, 5), 9, W, center=(cx, cy, cz), scale=(1.0, 1.0),
-              jitter=0.05, rng=rng, phase=rng.uniform(0.0, 1.0))
+              jitter=0.09, rng=rng, phase=rng.uniform(0.0, 1.0))
 
 
-STUMP_PROFILE = [(3.0, 0.0), (2.6, 0.9), (2.35, 2.2), (2.25, 3.6), (2.1, 4.9), (1.95, 6.0)]
+STUMP_PROFILE = [(3.0, 0.0), (2.5, 1.1), (2.3, 3.0), (2.12, 5.0), (1.98, 6.0)]
+STUMP_SIDES = 9
 
 
 def build_resin_stump(a):
-    """Cut stump with amber beads running down the -Y side."""
+    """Cut stump with buttress swells, a stepped growth-ring top, and amber drips down the -Y side."""
     rng = a.rng
     stump, resin = a.part("Stump"), a.part("Resin")
-    lathe(stump, STUMP_PROFILE, 10, W, jitter=0.04, rng=rng)
-    for x, z, size in ((-1.0, 4.4, 0.42), (0.0, 3.5, 0.55), (0.9, 4.7, 0.38), (-0.45, 2.3, 0.5),
-                       (0.5, 1.5, 0.45), (1.25, 2.9, 0.36)):
-        surface = profile_radius(STUMP_PROFILE, z)
-        y = -math.sqrt(max(surface ** 2 - x * x, 0.1)) - 0.04
-        lathe(resin, arc_profile(size, size * 1.6, 2), 4, W, center=(x, y, z), scale=(1.0, 0.5), phase=0.0)
+    rings = []
+    for index, (radius, z) in enumerate(STUMP_PROFILE):
+        fade = max(0.0, 1.0 - z / 3.2)  # buttress swells and furrows die out up the trunk
+        ring = []
+        for k in range(STUMP_SIDES):
+            angle = 0.3 + 0.12 * index + math.tau * k / STUMP_SIDES
+            # Notches between buttresses cut inward only, and the four vertices nearest the axes keep full
+            # radius: the base stays inside the 3.2-stud footprint the layout planner assumes.
+            notch = 0.0 if k % 2 == 0 and k < 8 else fade * rng.uniform(0.08, 0.2)
+            amount = radius * (1.0 - notch + rng.uniform(-0.05, 0.05) * (1.0 - 0.6 * fade))
+            ring.append((amount * math.cos(angle), amount * math.sin(angle),
+                         z if index in (0, len(STUMP_PROFILE) - 1) else z + rng.uniform(-0.08, 0.08)))
+        rings.append(ring)
+    # The cut: a raised bark rim, a recessed ring of sapwood, a heartwood hump. Exact heights, no noise.
+    for radius, z in ((1.62, 5.8), (1.15, 5.92)):
+        rings.append([(radius * (1.0 + rng.uniform(-0.04, 0.04)) * math.cos(0.3 + math.tau * k / STUMP_SIDES),
+                       radius * (1.0 + rng.uniform(-0.04, 0.04)) * math.sin(0.3 + math.tau * k / STUMP_SIDES), z)
+                      for k in range(STUMP_SIDES)])
+    loft(stump, rings, W)
+
+    def bark_radius(angle, z):
+        """Distance from the axis to the actual faceted bark at this angle and height."""
+        found = []
+        for lower, upper in zip(rings, rings[1:]):
+            if upper[0][2] - 0.2 <= z <= upper[0][2] + 0.2 or lower[0][2] <= z <= upper[0][2]:
+                found = (lower, upper)
+                break
+        if not found:
+            found = (rings[-2], rings[-1])
+
+        def hit(ring):
+            best = 0.0
+            for k in range(len(ring)):
+                (ax, ay, _), (bx, by, _) = ring[k], ring[(k + 1) % len(ring)]
+                dx, dy = bx - ax, by - ay
+                det = math.cos(angle) * (-dy) - math.sin(angle) * (-dx)
+                if abs(det) < 1e-9:
+                    continue
+                t = (math.cos(angle) * ay - math.sin(angle) * ax) / det
+                r = (ax + dx * t) * math.cos(angle) + (ay + dy * t) * math.sin(angle)
+                if 0.0 <= t <= 1.0 and r > 0.0:
+                    best = max(best, r)
+            return best
+
+        low, high = hit(found[0]), hit(found[1])
+        span = max(found[1][0][2] - found[0][0][2], 1e-6)
+        return low + (high - low) * min(1.0, max(0.0, (z - found[0][0][2]) / span))
+
+    def face_y(x, z):  # the stump surface along -Y at this height, so drips lie on the bark
+        angle = -math.pi / 2 + math.asin(max(-0.95, min(0.95, x / profile_radius(STUMP_PROFILE, z))))
+        return bark_radius(angle, z) * math.sin(angle) - 0.03
+
+    # One melted flow over the lip of the cut: three tongues of different length, blunt rounded ends,
+    # puffed up from the bark. It lies on the surface, so it reads as running resin and not as gems.
+    outline = ((-1.3, 5.7), (1.3, 5.7), (1.15, 4.7), (1.0, 3.85), (0.55, 3.8), (0.45, 4.6), (0.4, 2.45),
+               (-0.08, 2.3), (-0.2, 4.5), (-0.45, 3.5), (-0.95, 3.4), (-1.2, 4.7))
+    cx = sum(x for x, _ in outline) / len(outline)
+    cz = sum(z for _, z in outline) / len(outline)
+
+    def on_bark(x, z, lift, shrink=1.0):
+        x, z = cx + (x - cx) * shrink, cz + (z - cz) * shrink
+        angle = -math.pi / 2 + math.asin(max(-0.95, min(0.95, x / profile_radius(STUMP_PROFILE, z))))
+        radius = bark_radius(angle, z) + lift
+        return (radius * math.cos(angle), radius * math.sin(angle), z)
+
+    count = len(outline)
+    base = [on_bark(x, z, -0.12) for x, z in outline]
+    puffed = [on_bark(x, z, 0.34, 0.9) for x, z in outline]
+    caps = ear_clip(outline)  # a plain n-gon cap would fill the notches between the tongues
+    faces = [(k, (k + 1) % count, count + (k + 1) % count, count + k) for k in range(count)]
+    faces += [(count + a, count + b, count + c) for a, b, c in caps] + [(c, b, a) for a, b, c in caps]
+    resin.add(base + puffed, faces, W)
+    # And one drop that has already fallen free below the longest tongue.
+    lathe(resin, arc_profile(0.3, 0.5, 2), 3, W, center=(0.12, face_y(0.12, 1.5) - 0.1, 1.5), scale=(1.0, 0.6),
+          phase=0.2)
 
 
 def build_stream_stone(a):
@@ -100,58 +235,102 @@ def build_stream_stone(a):
     rng = a.rng
     stone, moss = a.part("Stone"), a.part("Moss")
     rings = []
-    for z, scale in ((0.0, 0.86), (0.62, 1.0), (0.92, 0.9)):
-        rings.append([(x * scale * (1 + rng.uniform(-0.04, 0.04)), y * scale * (1 + rng.uniform(-0.04, 0.04)), z)
+    for z, scale, noise in ((0.0, 0.86, 0.1), (0.62, 1.0, 0.12), (0.92, 0.9, 0.07)):  # lumpy, flat on top
+        rings.append([(x * scale * (1 + rng.uniform(-noise, noise)), y * scale * (1 + rng.uniform(-noise, noise)), z)
                       for x, y, _ in ring_points((0, 0, 0), U, V, 2.1, 1.9, 10, 0.2)])
     loft(stone, rings, W)
     for x, y in ((1.75, 0.3), (1.5, -1.0)):  # two lumps hugging the +X edge, tips at Z 1
         lathe(moss, arc_profile(0.85, 0.5, 2, base_z=0.5), 5, W, center=(x, y, 0.0), phase=rng.uniform(0, 1))
 
 
+def arch_trunk(side):
+    """Centre line and radii of one trunk: close to straight up to Z 11 with a lazy bend in Y, then arching
+    over the path and past the middle so the two trunks lie side by side at the crown."""
+    lean = -side  # the left trunk ends in front of the right one
+    points, radii = [], []
+    for z, wobble, drift, radius in ((0.0, 0.2, 0.0, 3.45), (3.6, 1.6, 0.2, 3.3), (7.2, -0.9, -0.25, 3.15),
+                                     (11.0, -1.3, -0.1, 3.0)):
+        points.append((side * (11.55 + drift), lean * wobble, z))
+        radii.append(radius)
+    for degrees, y, radius in ((22.0, -0.7, 2.95), (44.0, -0.1, 2.85), (62.0, 0.7, 2.72), (80.0, 1.3, 2.58),
+                               (96.0, 1.4, 2.46), (106.0, 1.4, 2.36)):
+        angle = math.radians(degrees)
+        points.append((side * 11.5 * math.cos(angle), lean * y, 13.0 + 1.6 * math.sin(angle)))
+        radii.append(radius)
+    return points, radii
+
+
 def build_hollow_arch(a):
-    """Two living trunks grown together over the path, with a leafy top. No exposed roots."""
+    """Two living trunks that bend, twist and grow together over the path: grooved bark, limbs, a leafy top.
+
+    The feet stay outside the 16-wide passage and there are no exposed roots.
+    """
     rng = a.rng
     wood, leaf = a.part("Wood"), a.part("Leaf")
-    spring, half, rise = 12.0, 12.0, 3.1
     for side in (-1, 1):
-        points = [(side * half, 0.0, 0.0), (side * half, 0.0, 4.0), (side * half, 0.0, 8.0)]
-        radii = [3.5, 3.4, 3.4]
-        for k in range(1, 9):
-            angle = math.radians(180.0 - 88.0 * k / 8) if side < 0 else math.radians(88.0 * k / 8)
-            points.append((half * math.cos(angle), 0.0, spring + rise * math.sin(angle)))
-            radii.append(3.2 - 1.0 * k / 8)
-        tube(wood, points, radii, 8, W, squash=1.4, phase=0.4)
-    # A knot where the two trunks meet at the crown.
-    lathe(wood, arc_profile(2.7, 2.1, 4, base_z=15.1), 7, W, scale=(1.0, 1.3), phase=0.3)
-    for x, y, z, rx, ry in ((0.0, -4.2, 15.3, 5.6, 3.4), (0.4, 0.2, 15.4, 6.0, 3.5), (-0.3, 4.2, 15.3, 5.6, 3.4)):
-        lathe(leaf, arc_profile(rx, 2.7, 3), 9, W, center=(x, y, z), scale=(1.0, ry / rx),
-              jitter=0.05, rng=rng, phase=rng.uniform(0, 1))
+        points, radii = arch_trunk(side)
+        bark_tube(wood, rng, points, radii, 7, rough=0.07, flutes=0.1, twist=0.38 * side, floor=0.0)
+    # A burl where the trunks fuse at the crown.
+    lathe(wood, arc_profile(2.3, 1.5, 3), 6, W, center=(0.1, -0.3, 14.3), scale=(1.15, 1.0), jitter=0.06, rng=rng,
+          phase=0.3)
+    # Four limbs, two on each trunk, one front and one back; the highest ones carry a leaf clump.
+    for path, radii in (([(-11.6, -1.8, 7.5), (-12.0, -4.0, 9.4), (-11.8, -5.6, 12.0)], [1.0, 0.72, 0.0]),
+                        ([(-11.4, 1.8, 5.0), (-12.1, 3.6, 6.4), (-12.4, 4.8, 8.2)], [0.9, 0.62, 0.0]),
+                        ([(11.7, -2.0, 5.2), (12.1, -3.9, 6.8), (12.2, -5.0, 8.7)], [0.9, 0.62, 0.0]),
+                        ([(11.5, 1.9, 7.9), (11.9, 3.9, 9.7), (11.7, 5.6, 12.1)], [1.0, 0.72, 0.0])):
+        bark_tube(wood, rng, path, radii, 4, rough=0.08, phase=rng.uniform(0.0, 1.0))
+    # Crown: two broad lobes over the crest, one clump beside it where the wood does not hide it, and a
+    # clump threaded onto each of the two tall limbs.
+    for x, y, z, rx, ry, rz, sides in ((-1.8, -0.4, 16.2, 5.4, 3.9, 1.8, 6), (3.4, 0.6, 16.2, 4.6, 3.7, 1.8, 6),
+                                       (-4.6, -3.3, 15.0, 3.2, 2.4, 1.8, 5)):
+        lathe(leaf, arc_profile(rx, rz, 3), sides, W, center=(x, y, z), scale=(1.0, ry / rx), jitter=0.14, rng=rng,
+              phase=rng.uniform(0, 1))
+    for x, y, z in ((-11.9, -4.7, 11.6), (11.7, 4.6, 11.7)):
+        lathe(leaf, arc_profile(1.7, 1.4, 3), 5, W, center=(x, y, z), jitter=0.12, rng=rng, phase=rng.uniform(0, 1))
 
 
 def build_log_bridge(a):
-    """Fallen log along Y: flat walkable top, ends that slope to the ground, moss at both ends."""
+    """Fallen log along Y: bark ridges, side stubs, a flat adzed walking strip, ends that sink into the ground.
+
+    The strip stays exactly at Z 2.2 and the ground contact exactly at Z 0, so the walk boxes still fit.
+    """
     rng = a.rng
     bark, moss = a.part("Bark"), a.part("Moss")
-    section = ((-2.0, 2.2), (2.0, 2.2), (2.5, 1.4), (2.2, 0.5), (1.3, 0.0), (-1.3, 0.0), (-2.2, 0.5), (-2.5, 1.4))
+    section = ((-1.4, 2.2), (1.4, 2.2), (1.85, 1.8), (2.02, 1.05), (1.9, 0.35), (1.25, 0.0),
+               (-1.25, 0.0), (-1.9, 0.35), (-2.02, 1.05), (-1.85, 1.8))
     rings = []
-    for y in (-9.0, -7.2, -5.4, -3.6, -1.8, 0.0, 1.8, 3.6, 5.4, 7.2, 9.0):
-        top = 2.2 if abs(y) <= 5.4 else 2.2 - (abs(y) - 5.4) * (1.9 / 3.6)
+    for index, base_y in enumerate((-9.0, -7.0, -5.0, -2.6, 0.0, 2.8, 5.0, 7.0, 9.0)):
+        end = abs(base_y) > 8.5
+        y = base_y + (0.0 if end else rng.uniform(-0.25, 0.25))
+        top = 2.2 if abs(base_y) <= 5.4 else 2.2 - 1.9 * ((abs(base_y) - 5.4) / 3.6) ** 1.7  # a rounded, sinking end
+        swell = (1.0 + 0.09 * math.sin(0.55 * y + 0.6) + 0.04 * math.sin(1.7 * y)) * (1.0 - 0.022 * y)  # butt to crown
+        sweep = 0.22 * math.sin(0.38 * y + 1.0)  # and never perfectly straight
+        narrow, low = 0.55 + 0.45 * top / 2.2, top / 2.2
         ring = []
-        for x, z in section:
-            keep = z in (0.0, 2.2)  # the walking surface and the ground contact stay exact
-            ring.append((x * (0.55 + 0.45 * top / 2.2) + (0.0 if z == 2.2 else rng.uniform(-0.07, 0.07)), y,
-                         z * top / 2.2 + (0.0 if keep else rng.uniform(-0.05, 0.05))))
+        for k, (px, pz) in enumerate(section):
+            if pz == 2.2:  # walking strip: exact height, a little width noise
+                ring.append((sweep + px * swell * narrow + rng.uniform(-0.06, 0.06), y, top))
+                continue
+            ridge = (0.17 if (k + index) % 2 else -0.12) if 2 <= k <= 4 or 7 <= k <= 9 else 0.0
+            bark_z = pz * low + (0.0 if pz == 0.0 else rng.uniform(-0.07, 0.07))
+            ring.append((sweep + px * swell * narrow * (1.0 + ridge) + rng.uniform(-0.06, 0.06),
+                         y + (0.0 if end else rng.uniform(-0.14, 0.14)), bark_z))
         rings.append(ring)
     loft(bark, rings, W)
+    # Snapped branch stubs, alternating sides, pointing out and up; fatter near the butt.
+    for side, y, z, radius in ((1, -4.2, 1.2, 0.62), (-1, -0.9, 1.35, 0.52), (1, 2.2, 1.15, 0.5), (-1, 4.6, 1.2, 0.46)):
+        bark_tube(bark, rng, [(side * 1.3, y, z), (side * 2.2, y + 0.3 * side, z + 0.42)],
+                  [radius, radius * 0.7], 4, rough=0.08, phase=rng.uniform(0.0, 1.0))
     run, drop = 3.6, 1.9
     length = math.hypot(run, drop)
     for side in (-1, 1):  # a moss mat lying on each sloped end, and a lump on the shoulder
-        origin = (0.0, side * 7.2, 1.25)
+        origin = (0.0, side * 7.2, 1.4)
         v = (0.0, side * run / length, -drop / length)
         normal = (0.0, side * drop / length, run / length)
-        patch = [(1.5 * math.cos(t), 1.3 * math.sin(t)) for t in (math.tau * k / 7 for k in range(7))]
+        patch = [(1.5 * rng.uniform(0.8, 1.15) * math.cos(t), 1.3 * rng.uniform(0.75, 1.2) * math.sin(t))
+                 for t in (math.tau * k / 7 + rng.uniform(-0.15, 0.15) for k in range(7))]
         slab(moss, patch, add(origin, mul(normal, -0.06)), U, v, normal, 0.2, W)
-        lathe(moss, arc_profile(0.75, 0.35, 2, base_z=1.85), 5, W, center=(1.2, side * 5.2, 0.0),
+        lathe(moss, arc_profile(0.75, 0.35, 2, base_z=1.85), 5, W, center=(1.2 * side, side * 5.2, 0.0),
               phase=rng.uniform(0, 1))
 
 
@@ -183,7 +362,9 @@ def build_trail_post(a):
     """Straight pale post, red ribbon tied near the top, three stones at the foot."""
     rng = a.rng
     post, ribbon, stones = a.part("Post"), a.part("Ribbon"), a.part("Stones")
-    lathe(post, [(0.5, 0.0), (0.47, 2.0), (0.44, 4.5), (0.42, 6.6), (0.3, 7.0)], 8, W, jitter=0.04, rng=rng)
+    lathe(post, [(0.5, 0.0), (0.47, 2.0), (0.44, 4.5), (0.42, 6.6), (0.3, 7.0)], 8, W, jitter=0.08, rng=rng)
+    # An axe-cut top: tilt the top ring into one slanted plane.
+    post.vertices = [(x, y, min(7.0, 7.0 - 0.5 * (x + 0.3)) if z > 6.9 else z) for x, y, z in post.vertices]
     # The band is a short solid ring around the post; the tail hangs from it on the +X side.
     tube(ribbon, [(0.0, 0.0, 5.65), (0.0, 0.0, 6.1)], [0.55, 0.55], 8, W)
     kc.box(ribbon, (0.6, 0.0, 4.85), (0.1, 0.42, 1.7), W, taper=0.8)
@@ -193,18 +374,34 @@ def build_trail_post(a):
 
 
 def build_flower_clump(a):
-    """Five low stalks, each carrying one four-point flat flower."""
+    """Five low stalks with thin, bent stems: three bend once, two are short and straight. Five blooms.
+
+    Every stem starts from a point on the ground, so the clump reads as growing out of the grass.
+    """
     rng = a.rng
     stems, petals = a.part("Stems"), a.part("Petals")
-    heights = (1.9, 2.38, 1.5, 2.0, 1.3)
-    for k, height in enumerate(heights):
+    # height, bend (sideways swing of the knee), bloom kind
+    for k, (height, bend, kind) in enumerate(((1.9, 0.42, "cup"), (2.38, -0.36, "disc"), (1.5, 0.0, "disc"),
+                                              (2.0, 0.4, "cup"), (1.3, 0.0, "disc"))):
         angle = math.tau * k / 5 + 0.3
-        base = (math.cos(angle) * 0.45, math.sin(angle) * 0.45, 0.1)  # tilted rings must not dip below 0
+        c, s = math.cos(angle), math.sin(angle)
         reach = 2.05 + rng.uniform(-0.12, 0.12)
-        top = (math.cos(angle) * reach, math.sin(angle) * reach, height - 0.1)
-        tube(stems, [base, top], [0.2, 0.12], 3, W)
-        diamond_flower(petals, add(top, (0.0, 0.0, 0.1)), 0.7 + rng.uniform(-0.05, 0.05), 0.12,
-                       rng.uniform(0.0, 1.5))
+        base = (c * 0.35, s * 0.35, 0.0)
+        top = (c * reach, s * reach, height - 0.1)
+        if bend:
+            knee = (c * (0.35 + (reach - 0.35) * 0.62) - s * bend, s * (0.35 + (reach - 0.35) * 0.62) + c * bend,
+                    height * 0.5)
+            bark_tube(stems, rng, [base, knee, top], [0.0, 0.14, 0.1], 3, rough=0.0, phase=0.0, reference=V)
+        else:
+            bark_tube(stems, rng, [base, top], [0.0, 0.13], 3, rough=0.0, phase=0.0, reference=V)
+        # Blooms face outward and up, tilted differently so the clump is not a row of identical saucers.
+        tilt = (c * 0.55, s * 0.55, 1.0)
+        centre = add(top, (0.0, 0.0, 0.12))
+        if kind == "cup":
+            bloom_cup(petals, add(centre, (-c * 0.1, -s * 0.1, -0.1)), tilt, 0.46 + rng.uniform(-0.04, 0.04), 0.6,
+                      rng.uniform(0.0, 1.5))
+        else:
+            bloom_disc(petals, centre, tilt, 0.72 + rng.uniform(-0.05, 0.05), 0.13, rng.uniform(0.0, 1.5))
 
 
 PALETTE = {

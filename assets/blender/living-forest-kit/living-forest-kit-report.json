@@ -29,13 +29,13 @@
         32.0
       ],
       "bbox_min": [
-        -11.2931,
-        -11.2739,
+        -11.3182,
+        -11.075,
         0.0
       ],
       "bbox_max": [
-        12.7069,
-        12.7261,
+        12.6818,
+        12.925,
         32.0
       ],
       "base_center": [
@@ -46,8 +46,8 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        0.998,
-        1.046,
+        0.9834,
+        1.0381,
         1.0
       ],
       "parts": [
@@ -81,7 +81,7 @@
     },
     "LF_ResinStump": {
       "status": "unvalidated",
-      "triangles": 164,
+      "triangles": 172,
       "size": [
         6.0,
         6.0,
@@ -105,8 +105,8 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0014,
-        1.0341,
+        1.0159,
+        1.0069,
         1.0
       ],
       "parts": [
@@ -115,7 +115,7 @@
           "material": "LF_ResinStump_Stump",
           "material_count": 1,
           "palette_name": "LF_Bark",
-          "triangles": 116,
+          "triangles": 122,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -126,7 +126,7 @@
           "material": "LF_ResinStump_Resin",
           "material_count": 1,
           "palette_name": "LF_Resin",
-          "triangles": 48,
+          "triangles": 50,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -145,20 +145,20 @@
     },
     "LF_FlowerClump": {
       "status": "unvalidated",
-      "triangles": 80,
+      "triangles": 84,
       "size": [
         5.0,
         5.0,
         2.5
       ],
       "bbox_min": [
-        -2.5706,
-        -2.3579,
+        -2.5301,
+        -2.4408,
         0.0
       ],
       "bbox_max": [
-        2.4294,
-        2.6421,
+        2.4699,
+        2.5592,
         2.5
       ],
       "base_center": [
@@ -169,9 +169,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0025,
-        1.006,
-        0.983
+        1.015,
+        0.9975,
+        0.9193
       ],
       "parts": [
         {
@@ -179,7 +179,7 @@
           "material": "LF_FlowerClump_Stems",
           "material_count": 1,
           "palette_name": "LF_Leaf",
-          "triangles": 40,
+          "triangles": 38,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -190,7 +190,7 @@
           "material": "LF_FlowerClump_Petals",
           "material_count": 1,
           "palette_name": "LF_Petal",
-          "triangles": 40,
+          "triangles": 46,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -212,13 +212,13 @@
         1.0
       ],
       "bbox_min": [
-        -2.1791,
-        -1.9806,
+        -2.231,
+        -1.9722,
         0.0
       ],
       "bbox_max": [
-        2.8209,
-        2.0194,
+        2.769,
+        2.0278,
         1.0
       ],
       "base_center": [
@@ -229,8 +229,8 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        1.0826,
-        1.0616,
+        1.0632,
+        1.0657,
         1.0
       ],
       "parts": [
@@ -280,20 +280,20 @@
     },
     "LF_HollowArch": {
       "status": "unvalidated",
-      "triangles": 494,
+      "triangles": 460,
       "size": [
         30.0,
         14.0,
         18.0
       ],
       "bbox_min": [
-        -15.0,
-        -7.0232,
+        -14.9997,
+        -7.2546,
         0.0
       ],
       "bbox_max": [
-        15.0,
-        6.9768,
+        15.0003,
+        6.7454,
         18.0
       ],
       "base_center": [
@@ -304,9 +304,9 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        0.984,
-        0.9782,
-        0.9945
+        0.9939,
+        1.1687,
+        1.0
       ],
       "parts": [
         {
@@ -314,7 +314,7 @@
           "material": "LF_HollowArch_Wood",
           "material_count": 1,
           "palette_name": "LF_Bark",
-          "triangles": 386,
+          "triangles": 352,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,
@@ -338,10 +338,10 @@
       "render": "assets/blender/living-forest-kit/LF_HollowArch.png",
       "clearance": {
         "method": "triangles projected along Y",
-        "width": 17.234,
-        "gap_low_x": -8.617,
-        "gap_high_x": 8.617,
-        "height": 11.6096,
+        "width": 16.5252,
+        "gap_low_x": -8.1519,
+        "gap_high_x": 8.3733,
+        "height": 11.3402,
         "width_probe_height": 11.0,
         "height_probe_width": 16.0
       }
@@ -418,19 +418,19 @@
     },
     "LF_LogBridge": {
       "status": "unvalidated",
-      "triangles": 240,
+      "triangles": 292,
       "size": [
         5.0,
         18.0,
         2.2
       ],
       "bbox_min": [
-        -2.4337,
+        -2.7175,
         -9.0,
         0.0
       ],
       "bbox_max": [
-        2.5663,
+        2.2825,
         9.0,
         2.2
       ],
@@ -442,7 +442,7 @@
       "flat_shaded": true,
       "transforms_applied": true,
       "fit_scale": [
-        0.9923,
+        0.9177,
         1.0,
         1.0
       ],
@@ -452,7 +452,7 @@
           "material": "LF_LogBridge_Bark",
           "material_count": 1,
           "palette_name": "LF_Bark",
-          "triangles": 172,
+          "triangles": 224,
           "non_manifold_edges": 0,
           "roughness": 0.92,
           "emission_strength": 0.0,

@@ -60,14 +60,14 @@ STREAMS = {
 PROPS = {
     "LF_Broadleaf": {"kind": "tree", "tris": 428, "budget": 480, "parts": 2, "roots_r": 4.7, "core_r": 2.5,
                      "canopy_r": 13.8, "scale": (0.9, 1.15)},
-    "LF_ResinStump": {"kind": "stump", "tris": 164, "budget": 180, "parts": 2, "r": 3.2, "scale": (0.9, 1.2),
+    "LF_ResinStump": {"kind": "stump", "tris": 172, "budget": 180, "parts": 2, "r": 3.2, "scale": (0.9, 1.2),
                       "gather_local_z": -3.0},
-    "LF_FlowerClump": {"kind": "flower", "tris": 80, "budget": 90, "parts": 2, "r": 2.7, "scale": (0.8, 1.2)},
+    "LF_FlowerClump": {"kind": "flower", "tris": 84, "budget": 90, "parts": 2, "r": 2.7, "scale": (0.8, 1.2)},
     "LF_StreamStone": {"kind": "stone", "tris": 76, "budget": 80, "parts": 2, "half": (2.85, 2.05)},
-    "LF_HollowArch": {"kind": "arch", "tris": 494, "budget": 520, "parts": 2, "half": (15.1, 7.05),
-                      "passage": (-8.617, 8.617), "clear_h": 11.6},
+    "LF_HollowArch": {"kind": "arch", "tris": 460, "budget": 520, "parts": 2, "half": (15.1, 7.3),
+                      "passage": (-8.152, 8.373), "clear_h": 11.3},
     "LF_TrailPost": {"kind": "post", "tris": 146, "budget": 160, "parts": 3, "r": 1.85},
-    "LF_LogBridge": {"kind": "bridge", "tris": 240, "budget": 300, "parts": 2, "half": (2.6, 9.15)},
+    "LF_LogBridge": {"kind": "bridge", "tris": 292, "budget": 300, "parts": 2, "half": (2.75, 9.15)},
 }
 SHORT = {"LF_Broadleaf": "tree", "LF_ResinStump": "stump", "LF_FlowerClump": "flower", "LF_StreamStone": "stone",
          "LF_HollowArch": "arch", "LF_TrailPost": "post", "LF_LogBridge": "bridge"}

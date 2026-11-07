@@ -22,7 +22,7 @@
     },
     "LF_ResinStump": {
       "model": {
-        "triangles": 164,
+        "triangles": 172,
         "size": [
           6.0,
           6.0,
@@ -42,13 +42,13 @@
     },
     "LF_FlowerClump": {
       "model": {
-        "triangles": 80,
+        "triangles": 84,
         "size": [
           5.0,
           5.0,
           2.5
         ],
-        "min_z": 0.0,
+        "min_z": -0.0,
         "objects": [
           "LF_FlowerClump",
           "LF_FlowerClump_Petals",
@@ -82,7 +82,7 @@
     },
     "LF_HollowArch": {
       "model": {
-        "triangles": 494,
+        "triangles": 460,
         "size": [
           30.0,
           14.0,
@@ -124,7 +124,7 @@
     },
     "LF_LogBridge": {
       "model": {
-        "triangles": 240,
+        "triangles": 292,
         "size": [
           5.0,
           18.0,

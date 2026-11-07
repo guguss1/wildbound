@@ -15,7 +15,7 @@ import math
 import unittest
 
 from biome_kit_spec import BiomeKitMixin
-from kit_spec_common import ROOT, load_json
+from kit_spec_common import ROOT, load_json, signed_volume
 
 KIT_DIR = ROOT / "assets/blender/living-forest-kit"
 EXPORT_DIR = ROOT / "assets/exports/living-forest-kit"
@@ -58,6 +58,29 @@ SPECS = {
         "walk": 2.2, "ramps": 2,
     },
 }
+
+
+def shells(part):
+    """Vertex-connected shells of one dumped part, each as a list of coordinate triangles."""
+    parent = list(range(len(part["vertices"])))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    for triple in part["triangles"]:
+        for other in triple[1:]:
+            parent[find(other)] = find(triple[0])
+    grouped = {}
+    for triple in part["triangles"]:
+        grouped.setdefault(find(triple[0]), []).append([part["vertices"][i] for i in triple])
+    return list(grouped.values())
+
+
+def shell_points(shell):
+    return {tuple(v) for triangle in shell for v in triangle}
 
 
 class LivingForestKit(BiomeKitMixin, unittest.TestCase):
@@ -103,6 +126,78 @@ class LivingForestForm(unittest.TestCase):
         feet = [v for v in wood if v[2] < 1.0]
         self.assertTrue(feet)
         self.assertGreaterEqual(min(abs(v[0]) for v in feet), 8.0, "no root may cross the 16-wide passage")
+
+
+class LivingForestReads(unittest.TestCase):
+    """Visual reads from the W14d art pass: each one failed on the first-draft primitives.
+
+    These measure what the eye reads (bent trunks, bark relief, thin stalks, running resin) with
+    thresholds picked between the old primitive and the Fog Forest standard. They sit beside the
+    spec rules and weaken none of them.
+    """
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(LivingForestKit.GEOMETRY)
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    def test_log_bridge_silhouette_is_not_a_straight_extrusion(self):
+        bark = self.part("LF_LogBridge", "Bark")["vertices"]
+        envelope = []
+        for k in range(13):
+            y = -5.4 + 10.8 * k / 12
+            window = [abs(v[0]) for v in bark if abs(v[1] - y) <= 1.0]
+            self.assertTrue(window, f"no bark near y={y:.2f}")
+            envelope.append(max(window))
+        self.assertGreaterEqual(max(envelope) - min(envelope), 0.3, "the log must swell and shrink along its length")
+
+    def test_log_bridge_has_branch_stubs_beside_the_trunk(self):
+        self.assertGreaterEqual(len(shells(self.part("LF_LogBridge", "Bark"))), 4, "trunk plus three stubs")
+
+    def test_hollow_arch_trunks_bend_on_the_way_up(self):
+        wood = self.part("LF_HollowArch", "Wood")["vertices"]
+        centres = []
+        for low in (0.0, 3.0, 6.0):  # below the arch, where the old trunk was a straight post
+            points = [v for v in wood if v[0] < -6.0 and low <= v[2] < low + 3.0]
+            self.assertTrue(points, f"no left-trunk wood between z={low} and z={low + 3.0}")
+            centres.append((sum(v[0] for v in points) / len(points), sum(v[1] for v in points) / len(points)))
+        drift = max(math.dist(a, b) for i, a in enumerate(centres) for b in centres[i + 1:])
+        self.assertGreaterEqual(drift, 1.0, "a living trunk is never a straight post")
+
+    def test_hollow_arch_has_limbs_and_separate_leaf_clumps(self):
+        self.assertGreaterEqual(len(shells(self.part("LF_HollowArch", "Wood"))), 6, "two trunks, a knot and limbs")
+        leaf = self.part("LF_HollowArch", "Leaf")
+        self.assertGreaterEqual(len(shells(leaf)), 5, "a crown of clumps, not three pads")
+        self.assertLessEqual(min(v[2] for v in leaf["vertices"]), 12.8, "some foliage must hang from the limbs")
+
+    def test_flower_stems_are_thin_and_bend(self):
+        stems = shells(self.part("LF_FlowerClump", "Stems"))
+        self.assertEqual(len(stems), 5)
+        for shell in stems:
+            self.assertLessEqual(signed_volume(shell), 0.05, "stalk too fat")
+        self.assertGreaterEqual(sum(len(shell_points(s)) >= 7 for s in stems), 3, "three stalks need a bend segment")
+
+    def test_flowers_are_not_flat_four_point_diamonds(self):
+        petals = shells(self.part("LF_FlowerClump", "Petals"))
+        self.assertEqual(len(petals), 5)
+        deep = [s for s in petals if max(v[2] for t in s for v in t) - min(v[2] for t in s for v in t) >= 0.35]
+        self.assertGreaterEqual(len(deep), 2, "two blooms must cup or tilt instead of lying flat")
+        self.assertGreaterEqual(sum(len(shell_points(s)) >= 7 for s in petals), 2, "five-point blooms")
+
+    def test_resin_is_a_running_flow_with_tongues_not_loose_beads(self):
+        resin = self.part("LF_ResinStump", "Resin")
+        tallest = max(max(p[2] for p in shell_points(sh)) - min(p[2] for p in shell_points(sh))
+                      for sh in shells(resin))
+        self.assertGreaterEqual(tallest, 3.0, "one connected flow must run a long way down the bark")
+        low = sorted(v[0] for v in resin["vertices"] if v[2] <= 4.0)
+        gaps = sum(1 for a, b in zip(low, low[1:]) if b - a >= 0.25)
+        self.assertGreaterEqual(gaps + 1, 3, "three tongues reach the lower bark")
+
+    def test_stump_top_carries_growth_ring_steps(self):
+        top = {round(v[2], 2) for v in self.part("LF_ResinStump", "Stump")["vertices"] if v[2] >= 5.6}
+        self.assertGreaterEqual(len(top), 3, "rim, recessed ring and heartwood need separate heights")
 
 
 if __name__ == "__main__":

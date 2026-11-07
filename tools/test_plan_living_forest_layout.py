@@ -32,8 +32,8 @@ BUDGET_TRIS = {"LF_Broadleaf": 480, "LF_ResinStump": 180, "LF_FlowerClump": 90, 
                "LF_HollowArch": 520, "LF_TrailPost": 160, "LF_LogBridge": 300}
 PARTS = {"LF_Broadleaf": 2, "LF_ResinStump": 2, "LF_FlowerClump": 2, "LF_StreamStone": 2,
          "LF_HollowArch": 2, "LF_TrailPost": 3, "LF_LogBridge": 2}
-MEASURED_TRIS = {"LF_Broadleaf": 428, "LF_ResinStump": 164, "LF_FlowerClump": 80, "LF_StreamStone": 76,
-                 "LF_HollowArch": 494, "LF_TrailPost": 146, "LF_LogBridge": 240}
+MEASURED_TRIS = {"LF_Broadleaf": 428, "LF_ResinStump": 172, "LF_FlowerClump": 84, "LF_StreamStone": 76,
+                 "LF_HollowArch": 460, "LF_TrailPost": 146, "LF_LogBridge": 292}
 ROUTE = [(-185, 70), (-125, 30), (-70, -25), (-5, -75), (55, -20), (115, 35), (160, 110), (185, 165)]
 STREAMS = {
     "S1": [(-195, -110), (-140, -45), (-80, 22), (-55, 50), (-28, 52), (-8, 28), (8, -12), (40, -70),
@@ -48,8 +48,8 @@ BASE_GAP = 1.0
 # Footprints from the measured kit (ground reach, trunk core, canopy), scale 1.
 ROOTS_R, CORE_R, CANOPY_R = 4.7, 2.5, 13.8
 STUMP_R, FLOWER_R, POST_R = 3.2, 2.7, 1.85
-STONE_HALF, ARCH_HALF, BRIDGE_HALF = (2.85, 2.05), (15.1, 7.05), (2.6, 9.15)
-ARCH_PASSAGE = (-8.617, 8.617)
+STONE_HALF, ARCH_HALF, BRIDGE_HALF = (2.85, 2.05), (15.1, 7.3), (2.75, 9.15)
+ARCH_PASSAGE = (-8.152, 8.373)
 GATHER_LOCAL = -3.0       # Blender (0, -3, 2.5): 3 studs along local -Z
 ALT_SEEDS = (11, 4242)
 

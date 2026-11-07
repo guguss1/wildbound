@@ -239,12 +239,12 @@
 <polygon points="655.9,699.2 665.4,705.5 660.9,712.3 651.4,706.0" fill="#8c8a7e" fill-opacity="1.0" stroke="#333333" stroke-width="1" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
 <polygon points="645.6,692.3 655.1,698.6 650.5,705.5 641.1,699.1" fill="#8c8a7e" fill-opacity="1.0" stroke="#333333" stroke-width="1" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
 <polygon points="635.3,685.4 644.8,691.8 640.2,698.6 630.7,692.3" fill="#8c8a7e" fill-opacity="1.0" stroke="#333333" stroke-width="1" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="225.8,491.6 218.4,484.2 244.3,458.3 251.7,465.7" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="466.4,369.6 473.5,361.9 500.4,386.7 493.4,394.3" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="591.9,484.6 598.9,477.0 625.9,501.7 618.9,509.4" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="697.1,612.0 706.0,606.6 724.9,638.0 716.0,643.4" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="124.9,603.0 91.4,552.8 114.9,537.1 148.4,587.4" fill="#2f6b2a" fill-opacity="0.25" stroke="#111111" stroke-width="1.6" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
-<polygon points="741.8,745.0 796.8,720.0 808.5,745.7 753.5,770.7" fill="#2f6b2a" fill-opacity="0.25" stroke="#111111" stroke-width="1.6" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="226.0,491.8 218.2,484.0 244.1,458.1 251.9,465.9" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="466.2,369.8 473.7,361.7 500.6,386.5 493.2,394.6" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="591.7,484.9 599.1,476.7 626.1,501.5 618.7,509.6" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="696.9,612.1 706.3,606.5 725.1,637.9 715.7,643.5" fill="#6b4a2f" fill-opacity="0.85" stroke="#111111" stroke-width="1.2" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="124.5,603.3 91.0,553.0 115.3,536.8 148.8,587.1" fill="#2f6b2a" fill-opacity="0.25" stroke="#111111" stroke-width="1.6" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
+<polygon points="741.6,744.6 796.6,719.6 808.7,746.2 753.7,771.2" fill="#2f6b2a" fill-opacity="0.25" stroke="#111111" stroke-width="1.6" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
 <polygon points="97.0,602.3 104.0,602.3 104.0,609.3 97.0,609.3" fill="#d9482b" fill-opacity="1.0" stroke="#111111" stroke-width="0.8" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
 <polygon points="132.1,533.3 139.1,533.3 139.1,540.3 132.1,540.3" fill="#d9482b" fill-opacity="1.0" stroke="#111111" stroke-width="0.8" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
 <polygon points="208.9,520.9 215.9,520.9 215.9,527.9 208.9,527.9" fill="#d9482b" fill-opacity="1.0" stroke="#111111" stroke-width="0.8" stroke-opacity="1.0" stroke-linejoin="round" stroke-linecap="round"/>
@@ -298,19 +298,19 @@
 <text x="912.0" y="316.0" font-size="13" fill="#1d2530" text-anchor="start">Trail post</text>
 <text x="880.0" y="356.0" font-size="17" fill="#1d2530" text-anchor="start" font-weight="bold">Budget (draft)</text>
 <text x="880.0" y="378.0" font-size="13" fill="#1d2530" text-anchor="start">Instances 162 / 180 cap</text>
-<text x="880.0" y="400.0" font-size="13" fill="#1d2530" text-anchor="start">Triangles measured 32,236 / 40,000 cap</text>
+<text x="880.0" y="400.0" font-size="13" fill="#1d2530" text-anchor="start">Triangles measured 32,696 / 40,000 cap</text>
 <text x="880.0" y="422.0" font-size="13" fill="#1d2530" text-anchor="start">Triangles at bible budgets 36,000</text>
 <text x="880.0" y="444.0" font-size="13" fill="#1d2530" text-anchor="start">MeshParts 340</text>
 <text x="880.0" y="466.0" font-size="13" fill="#1d2530" text-anchor="start">Route 543 studs, 34 s at 16 studs/s</text>
 <text x="880.0" y="488.0" font-size="13" fill="#1d2530" text-anchor="start">Canopy shade 17% of the sector</text>
 <text x="880.0" y="528.0" font-size="17" fill="#1d2530" text-anchor="start" font-weight="bold">Counts</text>
 <text x="880.0" y="550.0" font-size="13" fill="#1d2530" text-anchor="start">LF_Broadleaf  46 x 428</text>
-<text x="880.0" y="572.0" font-size="13" fill="#1d2530" text-anchor="start">LF_ResinStump  10 x 164</text>
-<text x="880.0" y="594.0" font-size="13" fill="#1d2530" text-anchor="start">LF_FlowerClump  60 x 80</text>
+<text x="880.0" y="572.0" font-size="13" fill="#1d2530" text-anchor="start">LF_ResinStump  10 x 172</text>
+<text x="880.0" y="594.0" font-size="13" fill="#1d2530" text-anchor="start">LF_FlowerClump  60 x 84</text>
 <text x="880.0" y="616.0" font-size="13" fill="#1d2530" text-anchor="start">LF_StreamStone  24 x 76</text>
-<text x="880.0" y="638.0" font-size="13" fill="#1d2530" text-anchor="start">LF_HollowArch  2 x 494</text>
+<text x="880.0" y="638.0" font-size="13" fill="#1d2530" text-anchor="start">LF_HollowArch  2 x 460</text>
 <text x="880.0" y="660.0" font-size="13" fill="#1d2530" text-anchor="start">LF_TrailPost  16 x 146</text>
-<text x="880.0" y="682.0" font-size="13" fill="#1d2530" text-anchor="start">LF_LogBridge  4 x 240</text>
+<text x="880.0" y="682.0" font-size="13" fill="#1d2530" text-anchor="start">LF_LogBridge  4 x 292</text>
 <text x="880.0" y="722.0" font-size="12" fill="#8e2a1f" text-anchor="start">Draft for a later sector design. Never imported into</text>
 <text x="880.0" y="740.0" font-size="12" fill="#8e2a1f" text-anchor="start">Roblox, played or measured on a phone.</text>
 </svg>
