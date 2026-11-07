@@ -5,6 +5,7 @@ local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
 local ContentProvider = game:GetService("ContentProvider")
+local TweenService = game:GetService("TweenService")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("WildboundWorldUI") then
@@ -31,6 +32,9 @@ local function rgb(value)
 end
 -- Above the inventory interface, so the awareness chip stays readable when the inventory is open.
 local gui = make("ScreenGui", {Name = "WildboundWorldUI", ResetOnSpawn = false, DisplayOrder = 10}, playerGui)
+-- Delivery C: a full-screen red flash when a strike lands (WildboundHudView.hitFlash). It never takes input.
+local hitFlash = make("Frame", {Name = "HitFlash", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+	BorderSizePixel = 0, Visible = false, Active = false, ZIndex = 50}, gui)
 local panel = make("Frame", {Name = "WorldPanel", BackgroundColor3 = Color3.fromRGB(25, 34, 31),
 	BackgroundTransparency = 0.15}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, panel)
@@ -469,6 +473,10 @@ task.spawn(function()
 			pendingAttack = { attackId = payload.attackId, endsAt = payload.endsAt,
 				awareness = { state = "seen", attackEndsAt = payload.endsAt } }
 			applyChip(View.chipCached(chipCache, pendingAttack.awareness, true, receivedAt, compact))
+			-- Delivery C: the dodge cue, in the server's words, beside the chip countdown and the wind-up pose.
+			if type(payload.notice) == "string" and payload.notice ~= "" and #payload.notice <= 80 then
+				View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
+			end
 			-- MT-11: how much warning was left when it arrived here.
 			gui:SetAttribute("LastWarningId", payload.attackId)
 			gui:SetAttribute("LastWarningLead", payload.endsAt - receivedAt)
@@ -489,6 +497,18 @@ task.spawn(function()
 			if type(payload) ~= "table" then return end
 			if pendingAttack and payload.attackId == pendingAttack.attackId then pendingAttack = nil end
 			gui:SetAttribute("LastResolvedOutcome", type(payload.outcome) == "string" and payload.outcome or "?")
+			-- Delivery C: a landed strike flashes the screen red. The sound is a named hook only, for delivery D.
+			local flash = View.hitFlash(payload.outcome, reduced)
+			if flash then
+				hitFlash.BackgroundColor3 = Color3.fromRGB(flash.r, flash.g, flash.b)
+				hitFlash.BackgroundTransparency = flash.from
+				hitFlash.Visible = true
+				gui:SetAttribute("LastHitSound", flash.sound)
+				gui:SetAttribute("LastHitAt", workspace:GetServerTimeNow())
+				local tween = TweenService:Create(hitFlash, TweenInfo.new(flash.seconds), { BackgroundTransparency = 1 })
+				tween.Completed:Once(function() hitFlash.Visible = false end)
+				tween:Play()
+			end
 			if type(payload.notice) == "string" and payload.notice ~= "" then
 				View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
 			end

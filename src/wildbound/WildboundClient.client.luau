@@ -503,7 +503,8 @@ local function showLossSummary(summary, fallback)
 	local sheet = make("TextButton", {Name = "Summary", Size = UDim2.fromScale(1, 1), BackgroundColor3 = dark,
 		BackgroundTransparency = 0.05, AutoButtonColor = false, Modal = true, TextColor3 = ink, Font = Enum.Font.GothamBold,
 		TextScaled = true, TextWrapped = true,
-		Text = View and View.lossSummary(summary) or (fallback .. "\nTap to close.")}, summaryGui)
+		Text = View and View.lossSummary(summary, Text and Text.DEFEAT) or (fallback .. "\n"
+			.. (Text and Text.DEFEAT.close or "Tap to close."))}, summaryGui)
 	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
 	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
 		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)

@@ -31,10 +31,11 @@ return function(Analytics, sources, Flags, Config, Wild)
 		return text:sub(a, b)
 	end
 
-	case("the flag defaults to off and the damage flags are untouched", function()
+	case("analytics defaults to off; damage is private to the test place only (D-C4)", function()
 		equal(Flags.analyticsMode, "off")
-		equal(Flags.damageMode, "off")
-		equal(next(Flags.privateTestPlaceIds), nil)
+		-- D-C4 (delivery C): damage is real only in this unpublished place; analytics stays off.
+		equal(Flags.damageMode, "private")
+		equal(#Flags.privateTestPlaceIds, 1); equal(Flags.privateTestPlaceIds[1], 122652861404212)
 		assert(table.isfrozen(Flags), "frozen")
 		assert(sources.flags:find('analyticsMode = "off"', 1, true), "flag source")
 	end)

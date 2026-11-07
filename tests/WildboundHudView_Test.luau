@@ -386,6 +386,38 @@ return function(View, source)
 		assert(#long < 300, "summary must stay short")
 	end)
 
+	case("D-C5: an optional words table writes the defeat screen in Spanish; English stays the default", function()
+		local words = { title = "Derrotado.", nothing = "Nada perdido.", lost = "Perdiste %s: %s%s.", more = " y %d más",
+			item = "objeto", items = "objetos", materials = "Materiales perdidos: %s.",
+			materialNames = { fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" },
+			savedMany = "Salvado: %s.", savedOne = "Salvado por tu sello: %s.", kept = "Conservas: %d registrados, %s.",
+			egg = "huevo guardado", eggs = "huevos guardados", safe = "A salvo: %d Ember, %s.", material = "material guardado",
+			materialsWord = "materiales guardados", close = "Toca para cerrar.", eggName = "huevo de %s",
+			bundle = "ramo de Nightbloom", bundleCount = "ramo de Nightbloom (%d)" }
+		local text = View.lossSummary({ lostItems = { { kind = "Egg", species = "Lumipol" }, { kind = "Nightbloom", quantity = 2 } },
+			materialsLost = { fogbark = 4 }, kept = { registered = 2, bankedEggs = 1, ember = 9, bankedMaterials = 3 } }, words)
+		assert(text:find("Derrotado.", 1, true), text)
+		assert(text:find("Perdiste 2 objetos: huevo de Lumipol, ramo de Nightbloom (2).", 1, true), text)
+		assert(text:find("Materiales perdidos: 4 Fogbark.", 1, true), text)
+		assert(text:find("Conservas: 2 registrados, 1 huevo guardado.", 1, true), text)
+		assert(text:find("A salvo: 9 Ember, 3 materiales guardados.", 1, true), text)
+		assert(text:find("Toca para cerrar.", 1, true), text)
+		assert(not text:find("Defeated", 1, true) and not text:find("Tap", 1, true), "no English left: " .. text)
+		local empty = View.lossSummary({ lostItems = {}, kept = {} }, words)
+		assert(empty:find("Nada perdido.", 1, true), empty)
+		assert(View.lossSummary({ lostItems = {} }, "bad"):find("Defeated", 1, true), "a bad table keeps English")
+	end)
+	case("delivery C: a landed strike flashes the screen, softer with reduced effects; a miss never flashes", function()
+		local marked = View.hitFlash("Marked", false)
+		local defeated = View.hitFlash("Defeated", false)
+		local reduced = View.hitFlash("Marked", true)
+		assert(marked and defeated and reduced, "landed strikes flash")
+		assert(marked.seconds > 0 and marked.seconds <= 0.6, "short")
+		assert(defeated.from < marked.from, "a defeat flashes stronger")
+		assert(reduced.from > marked.from, "reduced effects flash softer")
+		equal(marked.sound, "hit"); equal(defeated.sound, "defeat")
+		for _, outcome in ipairs({ "Missed", "Spared", nil, 5 }) do equal(View.hitFlash(outcome, false), nil) end
+	end)
 	case("the module source stays pure", function()
 		assert(type(source) == "string" and #source > 0, "module source is required")
 		for _, token in ipairs({ "game", "workspace", "script", "Instance", "require", "task", "tick",

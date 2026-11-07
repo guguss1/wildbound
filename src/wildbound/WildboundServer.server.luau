@@ -99,8 +99,18 @@ game:BindToClose(function() analytics:closeAll() end)
 local eligibility = Instance.new("BindableFunction")
 eligibility.Name = "Eligibility"
 eligibility.OnInvoke = function(player, ability)
-	if typeof(player) ~= "Instance" or not player:IsA("Player") or player.Parent ~= Players
-		or ability ~= "LumipolPulse" then return false end
+	if typeof(player) ~= "Instance" or not player:IsA("Player") or player.Parent ~= Players then return false end
+	-- Delivery C, D-C3: progress counts for the lethality gate (WildboundFairStrike.lethal decides). Counts only.
+	if ability == "Progress" then
+		local snapshot = state:snapshot(player.UserId)
+		if not snapshot then return nil end
+		local banked = 0
+		for _, value in pairs(snapshot.banked or {}) do
+			if type(value) == "number" and value > 0 then banked += value end
+		end
+		return { registered = #snapshot.registered, banked = banked, ember = snapshot.ember or 0 }
+	end
+	if ability ~= "LumipolPulse" then return false end
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot or not snapshot.equippedUid then return false end
 	for _, pet in ipairs(snapshot.registered) do
@@ -1211,8 +1221,8 @@ local function bindCharacter(player, character)
 		removeDropsOf(player)
 		analytics:death(player.UserId)
 		-- The client shows the summary full screen before respawn (M4.6).
-		send(player, "Defeat", true, "Defeated: unwarded bag items and half of each carried material were lost. "
-			.. "Banked materials, Ember and companions remain.", lossSummary)
+		-- D-C5: the defeat notice in Spanish; the loss is a fifth of carried materials since D-C2.
+		send(player, "Defeat", true, Text.DEFEAT.notice, lossSummary)
 	end
 	record.deathConnection = humanoid.Died:Connect(defeated)
 	if humanoid.Health <= 0 then defeated(); return end

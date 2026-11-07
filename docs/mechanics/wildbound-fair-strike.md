@@ -10,7 +10,7 @@ Code: `WildboundFlags`, `WildboundFairStrike`, `WildboundAmbush` (pure, with con
 
 | Where this document proved wrong or incomplete | What was built |
 | --- | --- |
-| `DWELL_RADIUS` from `workspace.StreamingMinRadius`: a game script cannot read it ("lacking capability PluginOrOpenCloud"). Fail-closed then cancelled every honest strike | Falls back to 64, the value Studio reads for this place (MT-5). Lowering the place radius needs the fallback lowered too |
+| `DWELL_RADIUS` from `workspace.StreamingMinRadius`: a game script cannot read it ("lacking capability PluginOrOpenCloud"). Fail-closed then cancelled every honest strike | Delivery C (D-C4): the radius is configured as `WildboundFlags.streamingMinRadius = 64`, and a Studio contract compares it with `Workspace.StreamingMinRadius`. The old 64 fallback is gone; a missing value fails the gate closed |
 | Counter identity listed every `cancel.*` | `cancel.duplicate` counts a second resolution of an already counted attack, so it is outside the identity |
 | Gate 2 (`cancel.stall`) | Unreachable in practice: the existing 0.5 s Heartbeat rule cancels first, as `attack.cancelledEarly`. Kept as defense in depth |
 | Gates 1, 4 and 7 | Contract-proven only. Normal flow resolves once, closes the attack on character change, and always warns at issue |
@@ -90,6 +90,8 @@ All behind `damageMode`, default `off`.
 | X, client reports hits | **Rejected** | Exploitable |
 
 ## `damageMode`
+
+**Delivery C, 2026-11-07 (decisions H5 and D-C4):** the user approved real damage for the unpublished test place `122652861404212` only. `WildboundFlags` now ships `damageMode = "private"` with that one place listed; every other place stays shadow. All fair-strike gates stay. Before the first paid trip home (one registered creature, any banked material or any Ember) a strike resolves as shadow for that player (D-C3, `FairStrike.lethal`). **Publishing with this flag on needs its own, separate approval.**
 
 New server-only module `WildboundFlags` in the server folder. Clients cannot read or write it. No attribute is ever read back for a decision.
 

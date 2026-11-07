@@ -169,13 +169,25 @@ function View.fit(text, maxChars)
 	return kept:gsub("%s+$", "") .. "..."
 end
 
-local function itemName(item)
+-- The English words of the defeat summary. D-C5: a words table of the same shape (WildboundText.DEFEAT) replaces
+-- them, so the screen reads in Spanish while the older English contracts still hold.
+local ENGLISH = table.freeze({
+	title = "Defeated. You will return to camp.", nothing = "Nothing was lost.", lost = "Lost %s: %s%s.",
+	more = " and %d more", item = "item", items = "items", materials = "Lost materials: %s.",
+	materialNames = table.freeze({ fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" }),
+	savedMany = "Saved by seal or totem: %s.", savedOne = "Saved by your seal: %s.", kept = "Kept: %d registered, %s.",
+	egg = "banked egg", eggs = "banked eggs", safe = "Safe: %d Ember, %s.", material = "banked material",
+	materialsWord = "banked materials", close = "Tap to close.", eggName = "%s egg", bundle = "Nightbloom bundle",
+	bundleCount = "Nightbloom bundle (%d)",
+})
+
+local function itemName(item, words)
 	if type(item) ~= "table" then return nil end
 	if item.kind == "Nightbloom" then
-		return finite(item.quantity) and ("Nightbloom bundle (%d)"):format(math.max(1, math.floor(item.quantity))) or "Nightbloom bundle"
+		return finite(item.quantity) and words.bundleCount:format(math.max(1, math.floor(item.quantity))) or words.bundle
 	end
 	local species = type(item.species) == "string" and item.species or "Lumipol"
-	return item.kind == "Egg" and species .. " egg" or species
+	return item.kind == "Egg" and words.eggName:format(species) or species
 end
 
 local function plural(count, word, words)
@@ -183,21 +195,22 @@ local function plural(count, word, words)
 end
 
 -- M4.6: the full-screen defeat summary, from the server's loss summary. At most five names are listed.
-function View.lossSummary(summary)
+function View.lossSummary(summary, words)
 	summary = type(summary) == "table" and summary or {}
-	local lines = { "Defeated. You will return to camp." }
+	words = type(words) == "table" and words or ENGLISH
+	local lines = { words.title }
 	local names = {}
 	for _, item in ipairs(type(summary.lostItems) == "table" and summary.lostItems or {}) do
-		local name = itemName(item)
+		local name = itemName(item, words)
 		if name then table.insert(names, name) end
 	end
 	if #names == 0 then
-		table.insert(lines, "Nothing was lost.")
+		table.insert(lines, words.nothing)
 	else
 		local shown = {}
 		for index = 1, math.min(5, #names) do shown[index] = names[index] end
-		local more = #names > 5 and (" and %d more"):format(#names - 5) or ""
-		table.insert(lines, ("Lost %s: %s%s."):format(plural(#names, "item", "items"), table.concat(shown, ", "), more))
+		local more = #names > 5 and words.more:format(#names - 5) or ""
+		table.insert(lines, words.lost:format(plural(#names, words.item, words.items), table.concat(shown, ", "), more))
 	end
 	-- M5.8: lost materials, in a fixed order, and only the ones that really went.
 	local materials = {}
@@ -205,32 +218,45 @@ function View.lossSummary(summary)
 	for _, key in ipairs({ "fogbark", "glowmoss", "nightbloom" }) do
 		local value = lostMaterials[key]
 		if finite(value) and value >= 1 then
-			table.insert(materials, ("%d %s"):format(math.floor(value), key:sub(1, 1):upper() .. key:sub(2)))
+			table.insert(materials, ("%d %s"):format(math.floor(value), words.materialNames[key] or key))
 		end
 	end
-	if #materials > 0 then table.insert(lines, ("Lost materials: %s."):format(table.concat(materials, ", "))) end
+	if #materials > 0 then table.insert(lines, words.materials:format(table.concat(materials, ", "))) end
 	local savedNames = {}
 	for _, item in ipairs(type(summary.savedItems) == "table" and summary.savedItems or {}) do
-		local name = itemName(item)
+		local name = itemName(item, words)
 		if name then table.insert(savedNames, name) end
 	end
 	if #savedNames > 0 then
-		table.insert(lines, ("Saved by seal or totem: %s."):format(table.concat(savedNames, ", ")))
+		table.insert(lines, words.savedMany:format(table.concat(savedNames, ", ")))
 	else
-		local saved = itemName(summary.savedItem)
-		if saved then table.insert(lines, ("Saved by your seal: %s."):format(saved)) end
+		local saved = itemName(summary.savedItem, words)
+		if saved then table.insert(lines, words.savedOne:format(saved)) end
 	end
 	local kept = type(summary.kept) == "table" and summary.kept or {}
 	local registered = finite(kept.registered) and math.max(0, math.floor(kept.registered)) or 0
 	local eggs = finite(kept.bankedEggs) and math.max(0, math.floor(kept.bankedEggs)) or 0
-	table.insert(lines, ("Kept: %d registered, %s."):format(registered, plural(eggs, "banked egg", "banked eggs")))
+	table.insert(lines, words.kept:format(registered, plural(eggs, words.egg, words.eggs)))
 	local ember = finite(kept.ember) and math.max(0, math.floor(kept.ember)) or 0
 	local banked = finite(kept.bankedMaterials) and math.max(0, math.floor(kept.bankedMaterials)) or 0
 	if ember > 0 or banked > 0 then
-		table.insert(lines, ("Safe: %d Ember, %s."):format(ember, plural(banked, "banked material", "banked materials")))
+		table.insert(lines, words.safe:format(ember, plural(banked, words.material, words.materialsWord)))
 	end
-	table.insert(lines, "Tap to close.")
+	table.insert(lines, words.close)
 	return table.concat(lines, "\n")
+end
+
+-- Delivery C: the red flash when a strike lands, and the name of the sound hook for later (no sound plays yet).
+-- Reduced effects keep the cue but soften it. A miss, a cancel or a spared strike never flashes.
+local FLASHES = table.freeze({
+	Marked = table.freeze({ from = 0.45, seconds = 0.45, sound = "hit" }),
+	Defeated = table.freeze({ from = 0.2, seconds = 0.6, sound = "defeat" }),
+})
+function View.hitFlash(outcome, reduced)
+	local flash = FLASHES[outcome]
+	if not flash then return nil end
+	return { from = reduced == true and math.min(0.8, flash.from + 0.3) or flash.from, seconds = flash.seconds,
+		sound = flash.sound, r = 200, g = 20, b = 20 }
 end
 
 -- The decorative companion fades as the camera nears it, so it can never fill the view.

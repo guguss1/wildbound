@@ -51,6 +51,23 @@ function FairStrike.effectiveMode(flags, placeId)
 	return "off", true
 end
 
+-- Delivery C, decision D-C3: nobody can be killed before their first paid trip home. progress = { registered,
+-- banked, ember } from the inventory script: one registered creature, any banked material or any Ember makes a
+-- player lethal. Anything unreadable reads as not yet lethal.
+function FairStrike.lethal(progress)
+	if type(progress) ~= "table" then return false end
+	for _, key in ipairs({ "registered", "banked", "ember" }) do
+		local value = progress[key]
+		if finite(value) and value > 0 then return true end
+	end
+	return false
+end
+
+-- The mode one strike resolves in: a spared player only ever gets shadow strikes, with no mark and no damage.
+function FairStrike.strikeMode(damageMode, lethal)
+	return damageMode == "private" and lethal == true and "private" or "off"
+end
+
 -- min(StreamingMinRadius, 64). An unreadable or impossible radius returns nil, and the adapter then
 -- treats every player as outside it, so the dwell gate fails closed.
 function FairStrike.dwellRadius(minRadius)
@@ -305,8 +322,15 @@ function FairStrike.allow(bucket, now, limit, window)
 end
 
 -- The words for a landed first strike, as the full sentence and a short form for a phone panel (found in W6:
--- the long one was cut after its first sentence, so the dropped item and its 30 s never showed).
-function FairStrike.strikeNotice(effect, dropped)
+-- the long one was cut after its first sentence, so the dropped item and its 30 s never showed). D-C5: words is an
+-- optional table (WildboundText.STRIKE) for Spanish; without it the English below stays, so older contracts hold.
+function FairStrike.strikeNotice(effect, dropped, words)
+	if type(words) == "table" then
+		if effect == "Defeated" then return words.defeated, words.defeated end
+		local name = type(dropped) == "table" and (dropped.kind == "Egg" and words.egg or words.creature) or nil
+		local full = words.marked .. (name and words.dropped:format(name) or "") .. words.rest
+		return full, name and words.shortDropped:format(name) or words.shortMarked
+	end
 	if effect == "Defeated" then return "Silueta defeated you.", "Silueta defeated you." end
 	local name = type(dropped) == "table" and (dropped.kind == "Egg" and "Lumipol egg" or "Lumipol") or nil
 	local full = "Silueta marked you! Next hit defeats you. "

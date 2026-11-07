@@ -45,6 +45,15 @@ do
 	end
 end
 local totemHolders = setmetatable({}, { __mode = "k" })
+-- D-C5: Spanish strike, dodge and rest words. Missing means the English fallbacks in FairStrike.
+local strikeWords
+do
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	if textModule and textModule:IsA("ModuleScript") then
+		local ok, value = pcall(require, textModule)
+		if ok and type(value) == "table" and type(value.STRIKE) == "table" then strikeWords = value.STRIKE end
+	end
+end
 -- M5.6 bond: a pulse that revealed Silueta to a player in the fog is reported on a server-only event.
 local pulseHit = network:FindFirstChild("PulseHit")
 if pulseHit and not pulseHit:IsA("BindableEvent") then pulseHit = nil end
@@ -106,7 +115,8 @@ if not telemetry then
 end
 local ledger = FairStrike.new()
 if flagMisconfigured then FairStrike.count(ledger, "flagMisconfigured") end
-local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0, noises = 0, noisesHeard = 0 }
+local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0, noises = 0, noisesHeard = 0,
+	spared = 0 }
 -- Delivery C2: route planning around the trunk cores, measured on the real map (docs/mechanics/wildbound-guardian.md).
 local nav = GuardianPath.new()
 local navStats = { lastPlanMs = 0, maxPlanMs = 0, directSteps = 0, blockedSteps = 0, slideSteps = 0 }
@@ -121,10 +131,9 @@ end
 local MARKED_HEALTH = FairStrike.CONSTANTS.MARKED_HEALTH
 local salt = HttpService:GenerateGUID(false):sub(1, 8)
 -- min(StreamingMinRadius, 64). MT-5, measured 2026-11-07: a game script cannot read StreamingMinRadius
--- ("lacking capability PluginOrOpenCloud"), so it falls back to 64, the value Studio reads for this place.
--- Lowering the place's radius therefore needs this fallback lowered too.
-local radiusOk, minRadius = pcall(function() return workspace.StreamingMinRadius end)
-local dwellRadius = FairStrike.dwellRadius(radiusOk and minRadius or FairStrike.CONSTANTS.DWELL_MAX_RADIUS)
+-- ("lacking capability PluginOrOpenCloud"). D-C4: the radius is configured in WildboundFlags and a Studio contract
+-- compares it with the place's value. A missing or impossible value fails the dwell gate closed.
+local dwellRadius = FairStrike.dwellRadius(flagsOk and type(flags) == "table" and flags.streamingMinRadius or nil)
 
 local guardian = Instance.new("Model")
 guardian.Name = "Silueta"
@@ -221,6 +230,14 @@ local function characterContext(player)
 	local position = root.Position
 	if not Rules.finite(position.X) or not Rules.finite(position.Y) or not Rules.finite(position.Z) then return nil, nil, nil end
 	return character, humanoid, root
+end
+
+-- D-C3: whether this player has made a paid trip home yet. The inventory script reports progress counts only;
+-- FairStrike.lethal decides. Any failure reads as not yet lethal, so the gate fails toward sparing.
+local function isLethal(player)
+	if not player or eligibility.Parent ~= network then return false end
+	local ok, progress = pcall(function() return eligibility:Invoke(player, "Progress") end)
+	return ok and FairStrike.lethal(progress)
 end
 
 local function hasLumipol(player)
@@ -462,7 +479,8 @@ local function issueAttack(now)
 	local attack = FairStrike.issue(ledger, { userId = target.UserId, life = targetLife,
 		guardianGeneration = guardianGeneration, now = now, endsAt = telegraphEndsAt, salt = salt,
 		dwellOk = FairStrike.dwellOk(ledger, target.UserId, targetLife, now) })
-	attackWarning:FireClient(target, { attackId = attack.attackId, issuedAt = now, endsAt = telegraphEndsAt })
+	attackWarning:FireClient(target, { attackId = attack.attackId, issuedAt = now, endsAt = telegraphEndsAt,
+		notice = strikeWords and strikeWords.dodge or "Dodge! Move away from Silueta." })
 	FairStrike.warned(ledger, attack.attackId, now)
 	-- Diagnostic for MT-6 and the dwell gate: seconds near at issue, or -1 for not near or another life.
 	local life = ledger.lives[target.UserId]
@@ -484,12 +502,21 @@ local function resolveImpact(now)
 	local latest = binding and targetContext(target, Rules.ATTACK_RANGE) or nil
 	local geometry = latest ~= nil and Rules.canStrike(now, telegraphEndsAt, lastAttackAt, latest.distance, true, false, true)
 	if attack then
+		-- D-C3: before the first paid trip home a strike resolves as shadow: no mark, no damage.
+		local strikeMode = FairStrike.strikeMode(damageMode, isLethal(target))
 		local out = FairStrike.resolve(ledger, attack,
-			{ guardian = guardianOk(attack), binding = binding, geometry = geometry }, now, damageMode)
+			{ guardian = guardianOk(attack), binding = binding, geometry = geometry }, now, strikeMode)
 		local outcome, notice, dropped, noticeShort = "Missed", "", nil, nil
 		if out.outcome == "strike" and latest then
 			local applied, item = applyRealStrike(latest, out.effect, attack)
-			if applied then outcome, dropped = out.effect, item; notice, noticeShort = FairStrike.strikeNotice(out.effect, item) end
+			if applied then
+				outcome, dropped = out.effect, item
+				notice, noticeShort = FairStrike.strikeNotice(out.effect, item, strikeWords)
+			end
+		elseif out.outcome == "shadow" and latest and damageMode == "private" and strikeMode == "off" then
+			extra.spared += 1
+			outcome = "Spared"
+			notice = strikeWords and strikeWords.spared or "Silueta reached you, but it cannot hurt you yet."
 		end
 		-- A strike that passed every gate ends that player's capture whether or not damage is on (M3.3).
 		if (out.outcome == "strike" or out.outcome == "shadow") and latest and strikeEvent then strikeEvent:Fire(latest.player) end
@@ -510,7 +537,8 @@ local function stepMarks(now)
 				humanoid.Health = MARKED_HEALTH
 			elseif rest == "cleared" then
 				humanoid.Health = humanoid.MaxHealth
-				snapshot(player, "Rest", true, "You rested. The mark is gone.", "Mark cleared.")
+				snapshot(player, "Rest", true, strikeWords and strikeWords.rested or "You rested. The mark is gone.",
+					strikeWords and strikeWords.restedShort or "Mark cleared.")
 			end
 		end
 	end

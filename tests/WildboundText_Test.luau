@@ -133,6 +133,24 @@ return function(Text, source, sources)
 		assert(N.AlreadyCarrying:find("criatura", 1, true), N.AlreadyCarrying)
 	end)
 
+	case("D-C5: strike notices and the defeat screen in Spanish, within their budgets", function()
+		local S, D = Text.STRIKE, Text.DEFEAT
+		assert(type(S) == "table" and type(D) == "table", "STRIKE and DEFEAT tables")
+		for _, key in ipairs({ "defeated", "marked", "dropped", "rest", "shortDropped", "shortMarked", "egg", "creature",
+			"spared", "dodge", "rested", "restedShort" }) do text(S[key], "STRIKE." .. key, 72) end
+		for _, name in ipairs({ S.egg, S.creature }) do
+			assert(#S.shortDropped:format(name) <= 50, "short drop for " .. name)
+			assert(S.shortDropped:format(name):find("30 s", 1, true), "names the 30 seconds")
+		end
+		text(S.shortMarked, "STRIKE.shortMarked", 50); text(S.spared, "STRIKE.spared", 64); text(S.dodge, "STRIKE.dodge", 40)
+		for _, key in ipairs({ "title", "nothing", "lost", "more", "item", "items", "materials", "savedMany", "savedOne", "kept",
+			"egg", "eggs", "safe", "material", "materialsWord", "close", "eggName", "bundle", "bundleCount", "notice" }) do
+			text(D[key], "DEFEAT." .. key, 120)
+		end
+		for _, key in ipairs({ "fogbark", "glowmoss", "nightbloom" }) do text(D.materialNames[key], "DEFEAT.materialNames." .. key, 24) end
+		assert(not D.title:find("Defeated", 1, true) and not D.close:find("Tap", 1, true), "Spanish, not English")
+		assert(D.notice:find("campamento", 1, true) == nil or #D.notice <= 120)
+	end)
 	case("the module source holds data only", function()
 		assert(type(source) == "string" and #source > 200, "source missing")
 		for _, banned in ipairs({ "GetService", "require", "workspace", "game%.", "Instance" }) do
