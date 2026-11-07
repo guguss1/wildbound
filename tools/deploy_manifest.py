@@ -136,6 +136,9 @@ DEFAULT_MAPPINGS = [
     # Delivery D1: pure whole-map fog and light targets, shared because the world client applies them
     ("src/wildbound/WildboundAtmosphere.luau", "ReplicatedStorage.WildboundAtmosphere"),
     ("tests/WildboundAtmosphere_Test.luau", "ServerStorage.WildboundAtmosphere_Test"),
+    # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
+    ("src/wildbound/WildboundHide.luau", "ServerScriptService.WildboundHide"),
+    ("tests/WildboundHide_Test.luau", "ServerStorage.WildboundHide_Test"),
 ]
 
 

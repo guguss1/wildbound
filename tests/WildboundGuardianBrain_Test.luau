@@ -245,5 +245,29 @@ return function(Brain, Rules, source)
 		end
 	end)
 
+	-- Delivery D5: sprinting and hiding make noise on the same hearing scale as a capture.
+	case("D5: sprint noise radius is 16 x tier x hearing", function()
+		equal(Brain.NOISE.sprint, 16)
+		near(Brain.noiseRadius("sprint", "Territory", "Night"), 16 * 1.4 * 1.3, 1e-6, "night in the territory")
+		near(Brain.noiseRadius("sprint", "Fog", "Day"), 16 * 1.0 * Brain.profile("Day").hearing, 1e-6, "day in the fog")
+	end)
+
+	case("D5: rustle radius", function()
+		equal(Brain.NOISE.rustle, 10)
+		near(Brain.noiseRadius("rustle", "Territory", "Night"), 10 * 1.4 * 1.3, 1e-6)
+		assert(Brain.noiseRadius("rustle", "Fog", "Day") < Brain.noiseRadius("sprint", "Fog", "Day"), "rustle is quieter")
+	end)
+
+	case("D5: sprint under strength 0.5 is Suspicious", function()
+		local radius = Brain.noiseRadius("sprint", "Fog", "Day")
+		local state = fresh(nil, 0)
+		local heard, strength = Brain.hear(state, { kind = "sprint", tier = "Fog", x = radius * 0.6, z = 0 }, 0, 0, 1, "Day", clamp)
+		assert(heard and strength < 0.5, "a faint sprint is heard")
+		equal(state.mode, "Suspicious")
+		local loud = fresh(nil, 0)
+		Brain.hear(loud, { kind = "sprint", tier = "Fog", x = radius * 0.2, z = 0 }, 0, 0, 1, "Day", clamp)
+		equal(loud.mode, "Investigate")
+	end)
+
 	return result
 end
