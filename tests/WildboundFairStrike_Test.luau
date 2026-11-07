@@ -425,5 +425,42 @@ return function(FairStrike, Flags, source, worldSource)
 		equal(state.counters["effect.failed"], 1); equal(state.counters["not.a.counter"], nil)
 	end)
 
+	-- World wiring, read from the world script's source ---------------------------------------------
+	case("wiring: the five fair-strike remotes exist and the duplicate guard covers them", function()
+		for _, name in ipairs({ "AttackWarning", "AttackResolved", "AttackAck", "ClientReady", "FieldPulse" }) do
+			assert(worldSource:find('"' .. name .. '"', 1, true), name .. " missing")
+		end
+		local guard = worldSource:match('if map:FindFirstChild%("WildboundWorldRuntime"%)(.-)then')
+		assert(guard and guard:find("AttackWarning", 1, true) and guard:find("FieldPulse", 1, true),
+			"the duplicate guard must cover the new remotes")
+	end)
+	case("wiring: the guardian is Persistent before it is parented", function()
+		local persistent = worldSource:find("guardian.ModelStreamingMode = Enum.ModelStreamingMode.Persistent", 1, true)
+		local parented = worldSource:find("guardian.PrimaryPart, guardian.Parent = body, runtime", 1, true)
+		assert(persistent and parented and persistent < parented, "Persistent must be set before parenting")
+	end)
+	case("wiring: the warning goes to the target only, no attribute decides, the ledger and ambush rule", function()
+		assert(not worldSource:find("FireAllClients", 1, true), "no broadcast")
+		assert(worldSource:find("attackWarning:FireClient(target,", 1, true), "warning goes to the target only")
+		assert(not worldSource:find(":GetAttribute(", 1, true), "no attribute is read back")
+		for _, call in ipairs({ "FairStrike.issue(", "FairStrike.resolve(", "FairStrike.acknowledge(", "FairStrike.ready(",
+			"FairStrike.pulse(", "FairStrike.dwellStep(", "FairStrike.noteStep(", "FairStrike.cancelEarly(", "Ambush.pick(" }) do
+			assert(worldSource:find(call, 1, true), call .. " not wired")
+		end
+	end)
+	case("wiring: health is written only by the real strike and the mark, both behind private mode", function()
+		local writes = 0
+		for _ in worldSource:gmatch("%.Health = ") do writes += 1 end
+		local strike = worldSource:match("local function applyRealStrike%(.-\nend\n") or ""
+		local marks = worldSource:match("local function stepMarks%(.-\nend\n") or ""
+		local inside = 0
+		for _ in (strike .. marks):gmatch("%.Health = ") do inside += 1 end
+		assert(inside > 0 and writes == inside, "every Health write must be in applyRealStrike or stepMarks")
+		assert(worldSource:find('if damageMode == "private" then stepMarks(now) end', 1, true), "the mark step needs the guard")
+		local calls = 0
+		for _ in worldSource:gmatch("stepMarks%(") do calls += 1 end
+		equal(calls, 2, "stepMarks is defined once and called once")
+	end)
+
 	return result
 end

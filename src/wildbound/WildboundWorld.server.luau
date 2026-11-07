@@ -1,4 +1,5 @@
 -- Local-source P0 world adapter. Deploy beside WildboundWorldRules after authorized testing resumes.
+local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -7,6 +8,7 @@ local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Hunt = require(script.Parent:WaitForChild("WildboundSiluetaHunt"))
 local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
+local Ambush = require(script.Parent:WaitForChild("WildboundAmbush"))
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
@@ -23,15 +25,24 @@ local strikeEvent = network:FindFirstChild("CaptureStrike")
 if strikeEvent and not strikeEvent:IsA("BindableEvent") then strikeEvent = nil end
 -- A second copy must never overwrite an existing world, remote or another script's objects.
 if map:FindFirstChild("WildboundWorldRuntime") or network:FindFirstChild("WorldAction")
-	or network:FindFirstChild("WorldState") then
+	or network:FindFirstChild("WorldState") or network:FindFirstChild("AttackWarning")
+	or network:FindFirstChild("AttackResolved") or network:FindFirstChild("AttackAck")
+	or network:FindFirstChild("ClientReady") or network:FindFirstChild("FieldPulse") then
 	warn("Wildbound world: duplicate startup refused.")
 	return
 end
 local runtime = Instance.new("Folder")
 runtime.Name = "WildboundWorldRuntime"
-local actionRemote, stateRemote = Instance.new("RemoteEvent"), Instance.new("RemoteEvent")
-actionRemote.Name, stateRemote.Name = "WorldAction", "WorldState"
-actionRemote.Parent, stateRemote.Parent = network, network
+local function remote(name)
+	local value = Instance.new("RemoteEvent")
+	value.Name, value.Parent = name, network
+	return value
+end
+local actionRemote, stateRemote = remote("WorldAction"), remote("WorldState")
+-- Fair strike (M4.2 to M4.7): a warning for the target only, its acknowledgement, the result, the
+-- client's readiness report and its liveness pulse. docs/mechanics/wildbound-fair-strike.md.
+local attackWarning, attackResolved = remote("AttackWarning"), remote("AttackResolved")
+local attackAck, readyRemote, pulseRemote = remote("AttackAck"), remote("ClientReady"), remote("FieldPulse")
 local originTime = workspace:GetServerTimeNow()
 -- Damage never follows streaming. A missing or unreadable flag module means off, which is shadow mode
 -- (M4.2). The attribute and payload only report the result; nothing reads them back to decide.
@@ -43,8 +54,32 @@ runtime:SetAttribute("DamageEnabled", damageMode == "private")
 runtime:SetAttribute("NightRewardsEnabled", false)
 runtime:SetAttribute("CycleStartedAt", originTime)
 
+-- Server-only counters. ServerStorage never replicates, so no client can read or change them.
+local telemetry = ServerStorage:FindFirstChild("WildboundTelemetry")
+if not telemetry then
+	telemetry = Instance.new("Folder")
+	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
+end
+local ledger = FairStrike.new()
+if flagMisconfigured then FairStrike.count(ledger, "flagMisconfigured") end
+local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0 }
+local function publish()
+	for key, value in pairs(ledger.counters) do telemetry:SetAttribute("FS_" .. key:gsub("%.", "_"), value) end
+	for key, value in pairs(extra) do telemetry:SetAttribute("FSx_" .. key, value) end
+	telemetry:SetAttribute("FS_identityHolds", FairStrike.identityHolds(ledger.counters))
+	telemetry:SetAttribute("FS_damageMode", damageMode)
+end
+local MARKED_HEALTH = FairStrike.CONSTANTS.MARKED_HEALTH
+local salt = HttpService:GenerateGUID(false):sub(1, 8)
+-- min(StreamingMinRadius, 64). MT-5, measured 2026-11-07: a game script cannot read StreamingMinRadius
+-- ("lacking capability PluginOrOpenCloud"), so it falls back to 64, the value Studio reads for this place.
+-- Lowering the place's radius therefore needs this fallback lowered too.
+local radiusOk, minRadius = pcall(function() return workspace.StreamingMinRadius end)
+local dwellRadius = FairStrike.dwellRadius(radiusOk and minRadius or FairStrike.CONSTANTS.DWELL_MAX_RADIUS)
+
 local guardian = Instance.new("Model")
 guardian.Name = "Silueta"
+local guardianGeneration = 1
 local function primitive(name, size, position, color, transparency)
 	local part = Instance.new("Part")
 	part.Name, part.Size, part.Position = name, size, position
@@ -67,6 +102,8 @@ outline.Name, outline.Adornee = "ReadableOutline", guardian
 outline.FillTransparency, outline.OutlineTransparency = 1, 0.55
 outline.OutlineColor, outline.DepthMode = Color3.fromRGB(178, 202, 190), Enum.HighlightDepthMode.Occluded
 outline.Parent = guardian
+-- Layer A (M4.2): the guardian should exist on every client and never stream out. Set before parenting.
+guardian.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
 guardian.PrimaryPart, guardian.Parent = body, runtime
 guardian:SetAttribute("RevealedUntil", 0)
 guardian:SetAttribute("TelegraphEndsAt", 0)
@@ -98,10 +135,23 @@ local chaseStartedAt, lastAttackAt, revealedUntil = 0, -Rules.ATTACK_COOLDOWN, 0
 local patrolIndex = 1
 -- Per-player awareness (M2). Presentation only: nothing below ever reads it to gate a strike.
 local awareness, awarenessResults, anySeen = Awareness.new(), {}, false
-local patrol = {
-	home + Vector3.new(16, 0, 0), home + Vector3.new(0, 0, 16),
-	home + Vector3.new(-16, 0, 0), home + Vector3.new(0, 0, -16),
-}
+-- Ambush relocation (M4.7). The patrol diamond and the retreat point follow the current anchor.
+local rng = Random.new()
+local anchors = Ambush.anchors()
+local center, patrol = home, nil
+local lastHuntAt, acquireBlockedUntil = -math.huge, 0
+local ambushNextAt = originTime + Ambush.nextDelay(Rules.cycle(0).phase, rng:NextNumber())
+local function setCenter(x, z)
+	center = Vector3.new(x, home.Y, z)
+	patrol = {}
+	for _, offset in ipairs({ Vector3.new(16, 0, 0), Vector3.new(0, 0, 16), Vector3.new(-16, 0, 0), Vector3.new(0, 0, -16) }) do
+		-- Clamped like every step, so a corner outside the leash can still be reached.
+		local px, pz = Rules.clampTerritory(center.X + offset.X, center.Z + offset.Z)
+		table.insert(patrol, Vector3.new(px, home.Y, pz))
+	end
+	patrolIndex = 1
+end
+setCenter(home.X, home.Z)
 
 local function characterContext(player)
 	local record, character = records[player], player.Character
@@ -161,12 +211,44 @@ local function setMode(nextMode)
 	if visual then visual:setState(mode, mode == "Telegraph" and telegraphEndsAt or nil, true) end
 end
 
-local function clearTarget(now, completedPresentation)
+local function playerByUserId(userId)
+	for player in pairs(records) do
+		if player.UserId == userId then return player end
+	end
+	return nil
+end
+
+-- Every attack ends with exactly one message to its target. "Missed" covers every cancel and never
+-- names the gate.
+local function tellResolved(attack, outcome, notice, dropped)
+	local player = playerByUserId(attack.userId)
+	if player and player.Parent == Players then
+		attackResolved:FireClient(player, { attackId = attack.attackId, outcome = outcome, notice = notice or "",
+			dropped = dropped })
+	end
+end
+
+-- Closes an open attack before its impact: chase limit, lost target, stall, character change or leaving.
+local function cancelOpenAttack(reason)
+	local closed = FairStrike.cancelEarly(ledger, reason)
+	if closed then
+		tellResolved(closed, "Missed", "")
+		publish()
+	end
+end
+
+local function clearTarget(now, completedPresentation, reason)
 	if visual then
 		visual:finishTelegraph(completedPresentation == true)
 		-- PlayerRemoving can clear the target between fixed gameplay steps.
 		visual:setMoving(false)
 	end
+	-- A target that died or was replaced ends that life, so a late id from it reads as a prior life.
+	if not reason then
+		local lifeEnded = target ~= nil and (target.Character ~= targetLife or characterContext(target) == nil)
+		reason = lifeEnded and "lifeChanged" or "chase"
+	end
+	cancelOpenAttack(reason)
 	target, targetLife, huntState, telegraphEndsAt = nil, nil, nil, 0
 	guardian:SetAttribute("TelegraphEndsAt", 0)
 	recoveryEndsAt = now + 3
@@ -191,6 +273,12 @@ local function moveToward(destination, speed, dt, checkObstacle)
 	guardian:PivotTo(CFrame.lookAt(nextPosition, nextPosition + difference.Unit))
 end
 
+local function isMarked(player)
+	local life = ledger.lives[player.UserId]
+	local record = records[player]
+	return life ~= nil and record ~= nil and life.life == record.character and life.marks > 0
+end
+
 local function snapshot(player, action, ok, notice, noticeShort)
 	if stopped or not records[player] or player.Parent ~= Players then return end
 	local now = workspace:GetServerTimeNow()
@@ -211,17 +299,141 @@ local function snapshot(player, action, ok, notice, noticeShort)
 		-- The attack deadline travels only inside this player's awareness, never to everyone (M2.2).
 		guardian = { state = mode, distance = distance, threat = Rules.isThreat(mode, root ~= nil, isFog, isSafe, distance),
 			revealedUntil = revealedUntil, awareness = Awareness.toSnapshot(awarenessResults[player.UserId]) },
-		nightRewardsEnabled = false, damageEnabled = damageMode == "private",
+		nightRewardsEnabled = false, damageEnabled = damageMode == "private", marked = isMarked(player),
 		action = action or "WorldTick", ok = ok ~= false, notice = notice or "",
 		noticeShort = noticeShort or notice or "",
 	})
 end
 
--- The only path to harm. Shadow mode returns before touching any Humanoid (M4.2, FS-03).
-local function applyRealStrike(context)
+-- The only path to harm. Shadow mode returns before touching any Humanoid (M4.2, FS-03). D6: the first
+-- strike marks and drops one bag item through the inventory script; the second defeats.
+local function applyRealStrike(context, effect, attack)
 	if damageMode ~= "private" then return false end
-	context.humanoid:TakeDamage(Rules.DAMAGE)
-	return true
+	local humanoid = context.humanoid
+	if effect == "Defeated" then
+		humanoid:TakeDamage(humanoid.Health)
+		-- A ForceField or another script can keep the player alive; that is counted, never retried.
+		if humanoid.Health > 0 then FairStrike.count(ledger, "effect.failed") end
+		return true, nil
+	end
+	humanoid.Health = math.min(humanoid.Health, MARKED_HEALTH)
+	local effectFunction = network:FindFirstChild("StrikeEffect")
+	local ok, dropped = false, nil
+	if effectFunction and effectFunction:IsA("BindableFunction") then
+		local toward = body.Position
+		ok, dropped = pcall(function() return effectFunction:Invoke(context.player, attack.attackId, toward.X, toward.Z) end)
+	end
+	-- Failure keeps the mark and skips the drop.
+	if not ok then FairStrike.count(ledger, "effect.failed") end
+	return true, ok and type(dropped) == "table" and dropped or nil
+end
+
+local function strikeNotice(effect, dropped)
+	if effect == "Defeated" then return "Silueta defeated you." end
+	local lead = "Silueta marked you! Next hit defeats you. "
+	if dropped then
+		local name = dropped.kind == "Egg" and "Lumipol egg" or "Lumipol"
+		lead ..= ("Dropped: %s. Grab it within 30 s. "):format(name)
+	end
+	return lead .. "Rest at camp or shelter to clear the mark."
+end
+
+-- Telegraph entry: one attack for the current target and life, warned in the same step.
+local function issueAttack(now)
+	local attack = FairStrike.issue(ledger, { userId = target.UserId, life = targetLife,
+		guardianGeneration = guardianGeneration, now = now, endsAt = telegraphEndsAt, salt = salt,
+		dwellOk = FairStrike.dwellOk(ledger, target.UserId, targetLife, now) })
+	attackWarning:FireClient(target, { attackId = attack.attackId, issuedAt = now, endsAt = telegraphEndsAt })
+	FairStrike.warned(ledger, attack.attackId, now)
+	-- Diagnostic for MT-6 and the dwell gate: seconds near at issue, or -1 for not near or another life.
+	local life = ledger.lives[target.UserId]
+	telemetry:SetAttribute("FSx_lastDwellSeconds", life and life.life == targetLife and life.nearSince
+		and now - life.nearSince or -1)
+	publish()
+end
+
+local function guardianOk(attack)
+	return attack.guardianGeneration == guardianGeneration and guardian.Parent == runtime and runtime.Parent == map
+		and guardian.ModelStreamingMode == Enum.ModelStreamingMode.Persistent
+end
+
+-- Impact: the gates decide in the document's order, then the staged effect applies in private mode only.
+local function resolveImpact(now)
+	local attack = ledger.attack
+	local character = characterContext(target)
+	local binding = attack ~= nil and character ~= nil and character == attack.life and character == targetLife
+	local latest = binding and targetContext(target, Rules.ATTACK_RANGE) or nil
+	local geometry = latest ~= nil and Rules.canStrike(now, telegraphEndsAt, lastAttackAt, latest.distance, true, false, true)
+	if attack then
+		local out = FairStrike.resolve(ledger, attack,
+			{ guardian = guardianOk(attack), binding = binding, geometry = geometry }, now, damageMode)
+		local outcome, notice, dropped = "Missed", "", nil
+		if out.outcome == "strike" and latest then
+			local applied, item = applyRealStrike(latest, out.effect, attack)
+			if applied then outcome, dropped = out.effect, item; notice = strikeNotice(out.effect, item) end
+		end
+		-- A strike that passed every gate ends that player's capture whether or not damage is on (M3.3).
+		if (out.outcome == "strike" or out.outcome == "shadow") and latest and strikeEvent then strikeEvent:Fire(latest.player) end
+		tellResolved(attack, outcome, notice, dropped)
+		publish()
+	end
+	return geometry
+end
+
+-- M4.6 regeneration rule: a marked player is pinned at MARKED_HEALTH until five seconds of rest.
+local function stepMarks(now)
+	for player in pairs(records) do
+		local character, humanoid, root = characterContext(player)
+		if root then
+			local _, safe = Rules.zone(root.Position.X, root.Position.Z)
+			local rest = FairStrike.restStep(ledger, player.UserId, character, safe, now)
+			if rest == "pin" and humanoid.Health > MARKED_HEALTH then
+				humanoid.Health = MARKED_HEALTH
+			elseif rest == "cleared" then
+				humanoid.Health = humanoid.MaxHealth
+				snapshot(player, "Rest", true, "You rested. The mark is gone.", "Mark cleared.")
+			end
+		end
+	end
+end
+
+-- Dwell (layer B): server-measured time inside min(StreamingMinRadius, 64) of the guardian, per life.
+local function stepDwell(now)
+	for player in pairs(records) do
+		local character, _, root = characterContext(player)
+		local inside = root ~= nil and dwellRadius ~= nil and (root.Position - body.Position).Magnitude <= dwellRadius
+		FairStrike.dwellStep(ledger, player.UserId, character, inside, now)
+	end
+end
+
+-- Ambush (M4.7): positions and timers only. Nothing here reads a camera, a look direction or sight.
+local function tryAmbush(now, phase)
+	if now < ambushNextAt then return end
+	local positions, anyFog = {}, false
+	for player in pairs(records) do
+		local _, _, root = characterContext(player)
+		if root then
+			table.insert(positions, { x = root.Position.X, z = root.Position.Z })
+			if Rules.zone(root.Position.X, root.Position.Z) then anyFog = true end
+		end
+	end
+	local out = Ambush.pick({ now = now, nextAt = ambushNextAt, mode = mode, roll = rng:NextNumber(),
+		players = positions, anchors = anchors, guardianX = body.Position.X, guardianZ = body.Position.Z,
+		lastHuntAt = lastHuntAt, anyPlayerInFog = anyFog })
+	if out.move then
+		guardian:PivotTo(CFrame.new(out.x, home.Y, out.z))
+		setCenter(out.x, out.z)
+		acquireBlockedUntil = now + 3
+		FairStrike.clearDwell(ledger)
+		FairStrike.count(ledger, "ambush.moved")
+		guardian:SetAttribute("Anchor", out.anchorId)
+		ambushNextAt = now + Ambush.nextDelay(phase, rng:NextNumber())
+	else
+		FairStrike.count(ledger, "ambush.skipped")
+		telemetry:SetAttribute("FSx_lastAmbushSkip", out.reason)
+		ambushNextAt = now + Ambush.CONSTANTS.RETRY_SECONDS
+	end
+	publish()
 end
 
 local function step(now, dt)
@@ -229,10 +441,12 @@ local function step(now, dt)
 	local parameters = Rules.guardianParameters(cycle.phase, true)
 	if mode == "Patrol" then
 		local nearest, nearestDistance, nearestLife
-		for player in pairs(records) do
-			local candidate = targetContext(player, parameters.detectionRange)
-			if candidate and (not nearestDistance or candidate.distance < nearestDistance) then
-				nearest, nearestDistance, nearestLife = player, candidate.distance, candidate.character
+		if now >= acquireBlockedUntil then
+			for player in pairs(records) do
+				local candidate = targetContext(player, parameters.detectionRange)
+				if candidate and (not nearestDistance or candidate.distance < nearestDistance) then
+					nearest, nearestDistance, nearestLife = player, candidate.distance, candidate.character
+				end
 			end
 		end
 		if nearest then
@@ -241,10 +455,11 @@ local function step(now, dt)
 		else
 			if (body.Position - patrol[patrolIndex]).Magnitude < 1 then patrolIndex = patrolIndex % #patrol + 1 end
 			moveToward(patrol[patrolIndex], 3, dt)
+			tryAmbush(now, cycle.phase)
 		end
 	elseif mode == "Retreat" then
-		moveToward(home, 6, dt)
-		if now >= recoveryEndsAt and (body.Position - home).Magnitude < 1 then setMode("Patrol") end
+		moveToward(center, 6, dt)
+		if now >= recoveryEndsAt and (body.Position - center).Magnitude < 1 then setMode("Patrol") end
 	else
 		local candidate = targetContext(target, Rules.CHASE_RANGE, mode == "Hunt")
 		if not candidate or candidate.character ~= targetLife or now - chaseStartedAt >= Rules.MAX_CHASE_SECONDS then
@@ -283,24 +498,19 @@ local function step(now, dt)
 					telegraphEndsAt = now + Rules.TELEGRAPH_SECONDS
 					guardian:SetAttribute("TelegraphEndsAt", telegraphEndsAt)
 					setMode("Telegraph")
+					issueAttack(now)
 				elseif decision.destination then
 					moveToward(decision.destination, parameters.speed, dt, not decision.canAttack)
 				end
 			end
 		elseif mode == "Telegraph" and now >= telegraphEndsAt then
-			-- Never lunge/teleport into a hit. Stationary wind-up; validate the current character again.
-			local latest = targetContext(target, Rules.ATTACK_RANGE)
-			if latest and latest.character ~= targetLife then latest = nil end
-			-- Presentation may finish a validated warning even while streaming safety blocks damage.
-			local completedPresentation = latest and Rules.canStrike(now, telegraphEndsAt, lastAttackAt,
-				latest.distance, true, false, true)
-			if latest and completedPresentation then applyRealStrike(latest) end
-			-- A resolved strike ends that player's capture whether or not damage is on (M3.3).
-			if completedPresentation and strikeEvent then strikeEvent:Fire(latest.player) end
+			-- Never lunge/teleport into a hit. Stationary wind-up; the gates validate the current character again.
+			local completedPresentation = resolveImpact(now)
 			lastAttackAt = now
 			clearTarget(now, completedPresentation)
 		end
 	end
+	if mode == "Alert" or mode == "Hunt" or mode == "Telegraph" then lastHuntAt = now end
 	local revealed = now < revealedUntil
 	if visual then visual:setRevealed(revealed) else
 		body.Transparency, head.Transparency = revealed and 0.3 or 0.86, revealed and 0.25 or 0.82
@@ -389,12 +599,67 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 	snapshot(player, action, ok, notices[reason] or "Ability not available.", noticesShort[reason] or "Not available.")
 end))
 
+-- AttackAck(attackId): at most 4 per second per player; excess is dropped silently, with no reply.
+table.insert(connections, attackAck.OnServerEvent:Connect(function(player, attackId, ...)
+	local record = records[player]
+	if stopped or not record then return end
+	local now = workspace:GetServerTimeNow()
+	if not FairStrike.allow(record.ackBucket, now, 4, 1) then return end
+	local outcome = FairStrike.acknowledge(ledger, player.UserId, record.character, attackId, select("#", ...), now)
+	if outcome == "accepted" then extra.acksAccepted += 1 end
+	publish()
+end))
+-- ClientReady(persistentLoaded, assetsLoaded): typed, once per 2 s, only false to true within a life.
+table.insert(connections, readyRemote.OnServerEvent:Connect(function(player, persistentLoaded, assetsLoaded, ...)
+	local record = records[player]
+	if stopped or not record or select("#", ...) ~= 0 then return end
+	if type(persistentLoaded) ~= "boolean" or type(assetsLoaded) ~= "boolean" then return end
+	if not FairStrike.allow(record.readyBucket, workspace:GetServerTimeNow(), 1, 2) then return end
+	local character = characterContext(player)
+	if not character then return end
+	if FairStrike.ready(ledger, player.UserId, character, persistentLoaded, assetsLoaded) then
+		extra.readyAccepted += 1
+	end
+	telemetry:SetAttribute("FSx_lastReadyReport", ("%s,%s"):format(tostring(persistentLoaded), tostring(assetsLoaded)))
+	publish()
+end))
+-- FieldPulse(): liveness only, at most 2 per second. It proves nothing else.
+table.insert(connections, pulseRemote.OnServerEvent:Connect(function(player, ...)
+	local record = records[player]
+	if stopped or not record or select("#", ...) ~= 0 then return end
+	local now = workspace:GetServerTimeNow()
+	if not FairStrike.allow(record.pulseBucket, now, 2, 1) then return end
+	local character = characterContext(player)
+	if character then
+		FairStrike.pulse(ledger, player.UserId, character, now)
+		extra.pulses += 1
+	end
+end))
+-- MT-2: does Workspace.PersistentLoaded fire on the server? Counted only, never used to decide.
+pcall(function()
+	table.insert(connections, workspace.PersistentLoaded:Connect(function()
+		extra.serverPersistentLoaded += 1
+	end))
+end)
+-- A replaced or removed guardian closes its attack; its old ids then classify as forged (FS-15).
+table.insert(connections, guardian.AncestryChanged:Connect(function()
+	if guardian.Parent ~= runtime then
+		guardianGeneration += 1
+		cancelOpenAttack("guardian")
+	end
+end))
+
 local function addPlayer(player)
 	if stopped or records[player] then return end
-	local record = { cooldowns = {}, rates = {}, lastRequest = -math.huge, character = player.Character }
+	local record = { cooldowns = {}, rates = {}, lastRequest = -math.huge, character = player.Character,
+		ackBucket = {}, readyBucket = {}, pulseBucket = {} }
 	records[player] = record
 	record.characterConnection = player.CharacterAdded:Connect(function(character)
-		if records[player] == record then record.character = character end
+		if records[player] == record then
+			record.character = character
+			-- An attack on the previous character closes now; its id then reads as a prior life.
+			if ledger.attack and ledger.attack.userId == player.UserId then cancelOpenAttack("lifeChanged") end
+		end
 	end)
 	-- Cooldowns survive respawn in this server; there is no death/reset cooldown bypass.
 	record.removingConnection = player.CharacterRemoving:Connect(function(character)
@@ -408,9 +673,13 @@ table.insert(connections, Players.PlayerRemoving:Connect(function(player)
 	record.characterConnection:Disconnect()
 	record.removingConnection:Disconnect()
 	records[player] = nil
-	if target == player then clearTarget(workspace:GetServerTimeNow()) end
+	-- Disconnect is not a defeat (D10). No hold record exists yet, so the mark and K go with the player.
+	if ledger.attack and ledger.attack.userId == player.UserId then cancelOpenAttack("disconnect") end
+	FairStrike.forgetPlayer(ledger, player.UserId)
+	if target == player then clearTarget(workspace:GetServerTimeNow(), nil, "disconnect") end
 end))
 for _, player in ipairs(Players:GetPlayers()) do addPlayer(player) end
+publish()
 
 local accumulator, snapshotAccumulator = 0, 0
 table.insert(connections, RunService.Heartbeat:Connect(function(dt)
@@ -420,7 +689,9 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 	if accumulator >= 0.2 then
 		local now = workspace:GetServerTimeNow()
 		-- A long stall cancels wind-ups instead of inflicting catch-up damage without readable cues.
-		if dt > 0.5 and (mode == "Telegraph" or mode == "Hunt" or mode == "Alert") then clearTarget(now) end
+		if dt > 0.5 and (mode == "Telegraph" or mode == "Hunt" or mode == "Alert") then clearTarget(now, nil, "stall") end
+		FairStrike.noteStep(ledger, now)
+		stepDwell(now)
 		local before = visual and body.Position
 		step(now, 0.2)
 		if visual then
@@ -429,6 +700,7 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 			visual:setMoving(after.X ~= before.X or after.Z ~= before.Z)
 		end
 		stepAwareness(now)
+		if damageMode == "private" then stepMarks(now) end
 		accumulator = 0
 	end
 	-- Higher-frequency art scheduling does not change the existing 0.2-second gameplay step.
@@ -436,6 +708,7 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 	if snapshotAccumulator >= 1 then
 		snapshotAccumulator = 0
 		for player in pairs(records) do snapshot(player) end
+		publish()
 	end
 end))
 
@@ -450,8 +723,9 @@ local function cleanup()
 	end
 	-- Destroy only the objects owned by this script, never the map/inventory root.
 	if visual then visual:destroy() end
-	if actionRemote.Parent == network then actionRemote:Destroy() end
-	if stateRemote.Parent == network then stateRemote:Destroy() end
+	for _, owned in ipairs({ actionRemote, stateRemote, attackWarning, attackResolved, attackAck, readyRemote, pulseRemote }) do
+		if owned.Parent == network then owned:Destroy() end
+	end
 	if runtime.Parent == map then runtime:Destroy() end
 end
 table.insert(connections, script.Destroying:Connect(cleanup))

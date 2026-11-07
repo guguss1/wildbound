@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
+local ContentProvider = game:GetService("ContentProvider")
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
 if playerGui:FindFirstChild("WildboundWorldUI") then
@@ -100,6 +101,10 @@ local reduced = true
 -- The capture screen reads this to stop its ring pulsing (M3.4).
 gui:SetAttribute("Reduced", reduced)
 local state, actionRemote, lastUpdate = nil, nil, 0
+-- Fair strike (M4.2 to M4.7): this client's own warning, its acknowledgement, readiness and liveness.
+-- The local attributes WithholdAck and WithholdReady exist only to test the server's K rule; they can
+-- only make this client's own strikes less likely to land.
+local pendingAttack, ackRemote, readyRemote, pulseRemote = nil, nil, nil, nil
 local connections = {}
 local function listen(signal, callback)
 	local connection = signal:Connect(callback)
@@ -242,12 +247,53 @@ local function followGuardian()
 	if follow.cueRel then cue.CFrame = shown * follow.cueRel end
 end
 RunService:BindToRenderStep("WildboundGuardianSmoothing", Enum.RenderPriority.Last.Value, followGuardian)
+
+-- Camp preload (M4.5): wait for the replicated guardian, preload it and the four Silueta clips, then
+-- report. The template lives in ServerStorage, so clips are preloaded from Animation instances. 20 s cap.
+local CLIP_IDS = { "rbxassetid://90427760879990", "rbxassetid://109004575414309",
+	"rbxassetid://106571946482274", "rbxassetid://139759980248576" }
+local function reportReady()
+	if gui:GetAttribute("WithholdReady") == true then return end
+	local started = os.clock()
+	local model = guardianParts()
+	while not model and gui.Parent and os.clock() - started < 20 do
+		task.wait(0.25)
+		model = guardianParts()
+	end
+	gui:SetAttribute("GuardianSeenAfter", model and os.clock() - started or -1)
+	local list = {}
+	for _, id in ipairs(CLIP_IDS) do
+		local animation = Instance.new("Animation")
+		animation.AnimationId = id
+		table.insert(list, animation)
+	end
+	if model then table.insert(list, model) end
+	local failures, done = 0, false
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync(list, function(_, status)
+				if status ~= Enum.AssetFetchStatus.Success then failures += 1 end
+			end)
+		end)
+		done = true
+	end)
+	while not done and gui.Parent and os.clock() - started < 20 do task.wait(0.1) end
+	local persistentLoaded, assetsLoaded = model ~= nil, done and failures == 0
+	gui:SetAttribute("PreloadSeconds", os.clock() - started)
+	gui:SetAttribute("PreloadFailures", failures)
+	gui:SetAttribute("ReadyReport", ("%s,%s"):format(tostring(persistentLoaded), tostring(assetsLoaded)))
+	if readyRemote and gui.Parent then readyRemote:FireServer(persistentLoaded, assetsLoaded) end
+end
+-- MT-2: does Workspace.PersistentLoaded fire on this client? Recorded only.
+pcall(function()
+	listen(workspace.PersistentLoaded, function() gui:SetAttribute("PersistentLoadedAt", os.clock()) end)
+end)
 local function cooldown(readyAt, now)
 	if type(readyAt) ~= "number" then return "?" end
 	local remaining = math.max(0, math.ceil(readyAt - now))
 	return remaining > 0 and (remaining .. "s") or "Ready"
 end
-local elapsed = 0
+local elapsed, pulseElapsed = 0, 0
 listen(RunService.Heartbeat, function(dt)
 	if not gui.Parent then return end
 	local character = player.Character
@@ -270,8 +316,18 @@ listen(RunService.Heartbeat, function(dt)
 		destroyPet()
 	end
 	-- The chip is checked every frame and never hides with the inventory (M2.3); it is rebuilt only on change.
+	-- This client's own attack warning holds it on attack until the server says the strike resolved.
 	local guardianState = fresh and type(state.guardian) == "table" and state.guardian or NO_GUARDIAN
-	applyChip(View.chipCached(chipCache, guardianState.awareness, fresh == true, workspace:GetServerTimeNow(), compact))
+	local serverNow = workspace:GetServerTimeNow()
+	if pendingAttack and serverNow > pendingAttack.endsAt + 3 then pendingAttack = nil end
+	applyChip(View.chipCached(chipCache, pendingAttack and pendingAttack.awareness or guardianState.awareness,
+		fresh == true or pendingAttack ~= nil, serverNow, compact))
+	-- Liveness (FieldPulse): once per second while alive in fog. It proves only that this client is online.
+	pulseElapsed += dt
+	if pulseElapsed >= 1 then
+		pulseElapsed = 0
+		if pulseRemote and fresh and state.isFog == true and humanoid and humanoid.Health > 0 then pulseRemote:FireServer() end
+	end
 	elapsed += dt
 	if elapsed < 0.1 then return end
 	local step = elapsed
@@ -288,11 +344,12 @@ listen(RunService.Heartbeat, function(dt)
 	end
 	local now = workspace:GetServerTimeNow()
 	phaseLabel.Text = tostring(state.phase or "Unknown") .. " · " .. math.max(0, math.ceil((state.nextPhaseAt or now) - now)) .. "s"
+		.. (state.marked == true and " · MARKED" or "")
 	local guardian = guardianState
 	-- Only the targeted player receives an attack deadline, inside their own awareness (M2.2).
 	local aware = type(guardian.awareness) == "table" and guardian.awareness or {}
 	-- Held until the server resolves or cancels the strike, not only until the deadline (W6 audit).
-	local attack = View.attackPending(aware)
+	local attack = View.attackPending(aware) or pendingAttack ~= nil
 	local hint = View.hint({attack = attack, threat = guardian.threat == true,
 		revealed = type(guardian.revealedUntil) == "number" and guardian.revealedUntil > now,
 		phase = state.phase, isFog = state.isFog == true})
@@ -351,6 +408,50 @@ task.spawn(function()
 		return
 	end
 	actionRemote = action
+	-- Subscribe to this client's warning before any snapshot request. The text needs no instance: a
+	-- remote can arrive before the guardian model does.
+	local warning = folder:WaitForChild("AttackWarning", 10)
+	local resolved = folder:WaitForChild("AttackResolved", 10)
+	local ack, ready, pulse = folder:WaitForChild("AttackAck", 10), folder:WaitForChild("ClientReady", 10),
+		folder:WaitForChild("FieldPulse", 10)
+	if not gui.Parent then return end
+	if ack and ack:IsA("RemoteEvent") then ackRemote = ack end
+	if ready and ready:IsA("RemoteEvent") then readyRemote = ready end
+	if pulse and pulse:IsA("RemoteEvent") then pulseRemote = pulse end
+	if warning and warning:IsA("RemoteEvent") then
+		listen(warning.OnClientEvent, function(payload)
+			if type(payload) ~= "table" or type(payload.attackId) ~= "string" or type(payload.endsAt) ~= "number" then return end
+			local receivedAt = workspace:GetServerTimeNow()
+			pendingAttack = { attackId = payload.attackId, endsAt = payload.endsAt,
+				awareness = { state = "seen", attackEndsAt = payload.endsAt } }
+			applyChip(View.chipCached(chipCache, pendingAttack.awareness, true, receivedAt, compact))
+			-- MT-11: how much warning was left when it arrived here.
+			gui:SetAttribute("LastWarningId", payload.attackId)
+			gui:SetAttribute("LastWarningLead", payload.endsAt - receivedAt)
+			if gui:GetAttribute("WithholdAck") == true then return end
+			-- Acknowledge after a frame has rendered with the warning on screen. This proves only that this
+			-- script ran with the id, never that the player saw it.
+			local id = payload.attackId
+			RunService.RenderStepped:Once(function()
+				RunService.RenderStepped:Once(function()
+					if ackRemote and gui.Parent then ackRemote:FireServer(id) end
+					gui:SetAttribute("LastAckAfter", workspace:GetServerTimeNow() - receivedAt)
+				end)
+			end)
+		end)
+	end
+	if resolved and resolved:IsA("RemoteEvent") then
+		listen(resolved.OnClientEvent, function(payload)
+			if type(payload) ~= "table" then return end
+			if pendingAttack and payload.attackId == pendingAttack.attackId then pendingAttack = nil end
+			gui:SetAttribute("LastResolvedOutcome", type(payload.outcome) == "string" and payload.outcome or "?")
+			if type(payload.notice) == "string" and payload.notice ~= "" then
+				View.setNotice(noticeState, payload.notice, os.clock())
+			end
+		end)
+	end
+	listen(player.CharacterAdded, function() task.spawn(reportReady) end)
+	if player.Character then task.spawn(reportReady) end
 	listen(updates.OnClientEvent, function(payload)
 		if type(payload) ~= "table" then return end
 		state, lastUpdate = payload, os.clock()
