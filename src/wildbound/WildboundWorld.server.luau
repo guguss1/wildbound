@@ -23,6 +23,30 @@ end
 -- Server-to-server signal for the capture adapter (M3.3). Missing is fine: the world runs without it.
 local strikeEvent = network:FindFirstChild("CaptureStrike")
 if strikeEvent and not strikeEvent:IsA("BindableEvent") then strikeEvent = nil end
+-- M5.5 totem downside (docs/mechanics/wildbound-economy-p0.md): a holder is sensed from farther and draws
+-- ambush anchors. The inventory script reports holders on a server-only event; missing means no holders.
+local Economy, EconomyConfig = nil, nil
+do
+	local economyModule = ReplicatedStorage:FindFirstChild("WildboundEconomy")
+	local configModule = ReplicatedStorage:FindFirstChild("WildboundEconomyConfig")
+	if economyModule and configModule and economyModule:IsA("ModuleScript") and configModule:IsA("ModuleScript") then
+		local economyOk, economyValue = pcall(require, economyModule)
+		local configOk, configValue = pcall(require, configModule)
+		if economyOk and configOk then Economy, EconomyConfig = economyValue, configValue end
+	end
+end
+local totemHolders = setmetatable({}, { __mode = "k" })
+local totemEvent = network:FindFirstChild("TotemChanged")
+if totemEvent and totemEvent:IsA("BindableEvent") then
+	totemEvent.Event:Connect(function(player, active)
+		if typeof(player) == "Instance" and player:IsA("Player") then totemHolders[player] = active == true or nil end
+	end)
+end
+-- Detection only. Chase range is never widened.
+local function detectionFor(player, base)
+	if Economy and totemHolders[player] then return Economy.detectionRange(EconomyConfig, base, true) end
+	return base
+end
 -- A second copy must never overwrite an existing world, remote or another script's objects.
 if map:FindFirstChild("WildboundWorldRuntime") or network:FindFirstChild("WorldAction")
 	or network:FindFirstChild("WorldState") or network:FindFirstChild("AttackWarning")
@@ -419,7 +443,7 @@ local function tryAmbush(now, phase)
 	for player in pairs(records) do
 		local _, _, root = characterContext(player)
 		if root then
-			table.insert(positions, { x = root.Position.X, z = root.Position.Z })
+			table.insert(positions, { x = root.Position.X, z = root.Position.Z, totem = totemHolders[player] == true })
 			if Rules.zone(root.Position.X, root.Position.Z) then anyFog = true end
 		end
 	end
@@ -449,7 +473,7 @@ local function step(now, dt)
 		local nearest, nearestDistance, nearestLife
 		if now >= acquireBlockedUntil then
 			for player in pairs(records) do
-				local candidate = targetContext(player, parameters.detectionRange)
+				local candidate = targetContext(player, detectionFor(player, parameters.detectionRange))
 				if candidate and (not nearestDistance or candidate.distance < nearestDistance) then
 					nearest, nearestDistance, nearestLife = player, candidate.distance, candidate.character
 				end
@@ -482,7 +506,7 @@ local function step(now, dt)
 			if candidate.visible and Hunt.shouldScan(huntState, now) then
 				for player in pairs(records) do
 					if player ~= target then
-						local other = targetContext(player, parameters.detectionRange)
+						local other = targetContext(player, detectionFor(player, parameters.detectionRange))
 						if other then
 							table.insert(candidates, { id = player.UserId, life = other.character, valid = true,
 								visible = true, distance = other.distance, position = other.root.Position })

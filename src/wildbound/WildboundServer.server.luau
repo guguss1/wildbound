@@ -11,7 +11,9 @@ local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"
 -- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
+local Spawn = require(script.Parent:WaitForChild("WildboundSpawn"))
 local state = State.new(Economy, EconomyConfig)
+local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
 local map = workspace:WaitForChild("WildboundP0", 15)
 if not map then warn("Wildbound: build the P0 map before starting gameplay."); return end
@@ -44,6 +46,9 @@ captureRemote.Name, captureRemote.Parent = "CaptureState", network
 -- Server-to-server only: a client can fire its own copy of a BindableEvent, which reaches nothing here.
 local strikeEvent = Instance.new("BindableEvent")
 strikeEvent.Name, strikeEvent.Parent = "CaptureStrike", network
+-- M5.5: server-only totem holders for the world script, which applies the totem's downside.
+local totemEvent = Instance.new("BindableEvent")
+totemEvent.Name, totemEvent.Parent = "TotemChanged", network
 network.Parent = ReplicatedStorage
 
 -- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
@@ -76,28 +81,43 @@ local notices = {
 	BackpackFull = "Bag full. Return to camp to extract.", AlreadyClaimed = "Someone collected this encounter.",
 	CollectionFull = "Session collection limit reached (100 items).",
 	NotOwnedEgg = "Select one of your banked eggs.", NotOwnedPet = "Only your registered pets can be equipped.",
-	NotOwnedPending = "Select an item in your temporary bag.", NoSeal = "Your first extraction earns one seal.",
+	NotOwnedPending = "Select an item in your temporary bag.",
+	NoSeal = "No seal. Craft one at camp; your first extraction also earns one.",
 	AlreadyProtected = "One item is already protected.", InvalidEncounter = "This encounter is no longer available.",
+	PouchFull = "Pouch full. Extract at camp to bank materials.", AlreadyGathered = "You already gathered here this trip.",
+	InvalidYield = "This node is no longer available.", NotAtCamp = "Do this at camp.",
+	CannotAfford = "Not enough banked materials or Ember.", AtLimit = "You cannot hold more of that.",
+	AlreadyOwned = "Already owned.", NoTotem = "You have no totem.",
+	AlreadyLeft = "The totem stays set once you leave camp.", NotAtShelter = "Use a capsule at the shelter.",
+	NoCapsule = "You have no capsule.",
 }
 -- The capture rule owns the words for its own refusals and endings.
 for reason, text in pairs(Capture.NOTICES) do
 	if notices[reason] == nil and text ~= "" then notices[reason] = text end
 end
--- Walk speed follows the eggs in the bag (M3.5). Set when a reply is sent and for each new character.
+-- Walk speed is the slower of the egg speed (M3.5) and the pouch load step (M5.2). Set when a reply is
+-- sent and for each new character.
 local function applyCarry(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	local snapshot = state:snapshot(player.UserId)
 	if not humanoid or not snapshot then return end
-	local speed = Wild.carrySpeed(Wild.eggsCarried(snapshot))
+	local units = 0
+	for _, quantity in pairs(snapshot.carried) do units += quantity end
+	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, Wild.carrySpeed(Wild.eggsCarried(snapshot)))
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 local function send(player, action, ok, notice, lossSummary)
-	if not records[player] or player.Parent ~= Players then return end
+	local record = records[player]
+	if not record or player.Parent ~= Players then return end
 	applyCarry(player)
+	local snapshot = state:snapshot(player.UserId)
+	if snapshot and record.totem ~= snapshot.totemActive then
+		record.totem = snapshot.totemActive
+		totemEvent:Fire(player, snapshot.totemActive)
+	end
 	stateRemote:FireClient(player, {
-		snapshot = state:snapshot(player.UserId), action = action, ok = ok, notice = notice or "",
-		lossSummary = lossSummary,
+		snapshot = snapshot, action = action, ok = ok, notice = notice or "", lossSummary = lossSummary,
 	})
 end
 local function allowed(player, action)
@@ -140,23 +160,23 @@ local function hatch(player, uid)
 	local ok, reason = state:hatch(player.UserId, uid, alive, distance)
 	reply(player, "Hatch", ok, reason, "Lumipol hatched and registered. Hatching is free.")
 end
+-- B8: a seal wards a bag item anywhere while alive (M5.5). It is spent only if it saves the item.
 local function protect(player, uid)
-	local alive, distance = context(player, protectionMarker)
-	local ok, reason
-	if not alive or distance ~= distance or distance < 0 or distance > 12 then
-		ok, reason = false, "InvalidContext"
-	else
-		ok, reason = state:protect(player.UserId, uid, alive)
-	end
-	reply(player, "Protect", ok, reason, "Selected item protected for one defeat. Seal is spent only if it saves the item.")
+	local ok, reason = state:protect(player.UserId, uid, context(player))
+	reply(player, "Protect", ok, reason, "Item warded for one defeat. A seal is spent only if it saves the item.")
+end
+local function extractNotice(count, receipt)
+	local units = 0
+	for _, quantity in pairs(receipt.units) do units += quantity end
+	return ("Extracted %d item(s) and %d material(s). Earned %d Ember."):format(count, units, receipt.ember)
 end
 
 local extractPrompt = prompt(extraction, "Extract bag", "Camp · session only", 12)
 extractPrompt.Triggered:Connect(function(player)
 	if not validPrompt(extractPrompt, extraction) or not allowed(player, "Extract") then return end
 	local alive, distance = context(player, extraction)
-	local ok, count = state:extract(player.UserId, alive, distance)
-	reply(player, "Extract", ok, count, "Extracted " .. tostring(count) .. " item(s). First extraction earns one seal.")
+	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
+	reply(player, "Extract", ok, count, ok and extractNotice(count, receipt) or nil)
 end)
 local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12)
 hatchPrompt.Triggered:Connect(function(player)
@@ -170,7 +190,7 @@ protectionPrompt.Triggered:Connect(function(player)
 	if not validPrompt(protectionPrompt, protectionMarker) or not allowed(player, "ProtectHint") then return end
 	local alive, distance = context(player, protectionMarker)
 	if alive and distance == distance and distance <= 12 then
-		send(player, "ProtectHint", true, "In your inventory, choose a temporary item and press Protect. One item maximum.")
+		send(player, "ProtectHint", true, "Choose a bag item and press Protect, anywhere. Or arm a seal before you leave.")
 	end
 end)
 
@@ -185,9 +205,11 @@ local function block(model, name, size, offset, color, shape)
 end
 local function visual(kind, position)
 	local model = Instance.new("Model")
-	model.Name = kind == "Egg" and "LumipolEgg" or "Lumipol"
-	local body = block(model, "Body", kind == "Egg" and Vector3.new(2, 2.8, 2) or Vector3.new(3, 2, 2.4),
-		CFrame.new(position + Vector3.new(0, 2, 0)), Color3.fromRGB(121, 202, 160), Enum.PartType.Ball)
+	local bloom = kind == "Nightbloom"
+	model.Name = kind == "Egg" and "LumipolEgg" or bloom and "NightbloomBundle" or "Lumipol"
+	local size = kind == "Egg" and Vector3.new(2, 2.8, 2) or bloom and Vector3.new(1.6, 1.6, 1.6) or Vector3.new(3, 2, 2.4)
+	local body = block(model, "Body", size, CFrame.new(position + Vector3.new(0, 2, 0)),
+		bloom and Color3.fromRGB(150, 110, 230) or Color3.fromRGB(121, 202, 160), Enum.PartType.Ball)
 	if kind == "Creature" then
 		for _, x in ipairs({ -0.65, 0.65 }) do
 			block(model, "Eye", Vector3.new(0.35, 0.4, 0.25),
@@ -426,7 +448,7 @@ local function removeDropsOf(player)
 	end
 end
 local function itemName(entry)
-	return entry.kind == "Egg" and "Lumipol egg" or "Lumipol"
+	return entry.kind == "Egg" and "Lumipol egg" or entry.kind == "Nightbloom" and "Nightbloom bundle" or "Lumipol"
 end
 local function spawnDrop(player, entry, towardX, towardZ)
 	local root = rootOf(player)
@@ -479,6 +501,74 @@ strikeEffect.OnInvoke = function(player, attackId, towardX, towardZ)
 end
 strikeEffect.Parent = network
 
+-- Gather seam (M5.3 builds the world nodes in part 2). The node script spawns, claims and retires nodes
+-- through these server-only bindables; this script owns state, the seeded spawn generator and replies.
+-- The seed is logged only to ServerStorage, so no client can predict a node.
+local spawnSeed = Random.new():NextInteger(1, 2147483646)
+telemetry:SetAttribute("SpawnSeed", spawnSeed)
+local spawnRng = Random.new(spawnSeed)
+local gatherNodes, gatherSerial = {}, 0
+local MATERIAL_NAMES = { fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" }
+local function worldClock()
+	local world = map:FindFirstChild("WildboundWorldRuntime")
+	local origin = world and world:GetAttribute("CycleStartedAt")
+	local phase = Rules.cycle(Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0).phase
+	return phase, world ~= nil and world:GetAttribute("NightRewardsEnabled") == true
+end
+local function gatherNotice(receipt)
+	local name = MATERIAL_NAMES[receipt.material] or receipt.material
+	if receipt.wasted > 0 then
+		return ("Gathered %d %s. Pouch full: %d left behind."):format(receipt.taken, name, receipt.wasted)
+	end
+	return ("Gathered %d %s."):format(receipt.taken, name)
+end
+local gatherSpawn = Instance.new("BindableFunction")
+gatherSpawn.Name = "GatherSpawn"
+gatherSpawn.OnInvoke = function(slotId)
+	local slot = type(slotId) == "string" and Spawn.slot(EconomyConfig, slotId) or nil
+	if not slot then return nil end
+	local phase, nightRewards = worldClock()
+	local node = Spawn.rollNode(EconomyConfig, slot, phase, spawnRng, { nightRewards = nightRewards })
+	if not node then return nil end
+	gatherSerial += 1
+	local id = "Gather:" .. gatherSerial
+	if not state:registerEncounter(id, "Gather") then return nil end
+	gatherNodes[id] = { slot = slot, material = node.material, quantity = node.quantity }
+	return { id = id, slotId = slot.id, zone = slot.zone, heart = slot.heart == true, x = slot.x, z = slot.z,
+		material = node.material, quantity = node.quantity, phase = phase,
+		hold = EconomyConfig.gather.holdSeconds[slot.heart and "heart" or slot.zone] }
+end
+gatherSpawn.Parent = network
+local gatherClaim = Instance.new("BindableFunction")
+gatherClaim.Name = "GatherClaim"
+gatherClaim.OnInvoke = function(player, nodeId)
+	if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] then return false, "InvalidPlayer" end
+	local node = type(nodeId) == "string" and gatherNodes[nodeId] or nil
+	if not node then return false, "InvalidEncounter" end
+	if not allowed(player, "Gather") then return false, "RateLimited" end
+	local alive, root = context(player), rootOf(player)
+	local distance = root and Rules.distance(root.Position.X, root.Position.Z, node.slot.x, node.slot.z) or math.huge
+	local ok, result = state:gather(player.UserId, nodeId, node.slot.id, node.material, node.quantity, alive, distance,
+		workspace:GetServerTimeNow())
+	if ok then
+		gatherNodes[nodeId] = nil
+		state:retireEncounter(nodeId)
+	end
+	reply(player, "Gather", ok, result, ok and gatherNotice(result) or nil)
+	return ok, ok and table.clone(result) or result
+end
+gatherClaim.Parent = network
+-- Wilt at Dawn or expiry: only removes a node, never grants.
+local gatherRetire = Instance.new("BindableFunction")
+gatherRetire.Name = "GatherRetire"
+gatherRetire.OnInvoke = function(nodeId)
+	if type(nodeId) ~= "string" or not gatherNodes[nodeId] then return false end
+	gatherNodes[nodeId] = nil
+	state:retireEncounter(nodeId)
+	return true
+end
+gatherRetire.Parent = network
+
 local function stepWildlife(now)
 	local watchers = {}
 	for player in pairs(records) do
@@ -530,12 +620,61 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
+	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
+	local campX, campZ = campCenter.Position.X, campCenter.Position.Z
+	for player in pairs(records) do
+		local root = rootOf(player)
+		if root and context(player) then
+			local x, z = root.Position.X, root.Position.Z
+			local fromCamp = Rules.distance(x, z, campX, campZ)
+			local _, safe = Rules.zone(x, z)
+			local inCamp = safe and fromCamp < Rules.distance(x, z, SHELTER_X, SHELTER_Z)
+			state:observeExpedition(player.UserId, fromCamp, not inCamp, now)
+		end
+	end
 end)
+
+-- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
+local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
+	DisarmTotem = true, UseCapsule = true }
+local function economyAction(player, action, argument)
+	local key = player.UserId
+	if action == "Craft" or action == "Upgrade" then
+		local known = action == "Craft" and EconomyConfig.recipes or EconomyConfig.upgrades
+		if not known[argument] then return end
+		local alive, distance = context(player, campCenter)
+		local ok, result
+		if action == "Craft" then ok, result = state:craft(key, argument, alive, distance)
+		else ok, result = state:upgrade(key, argument, alive, distance) end
+		reply(player, action, ok, result, action == "Craft" and ("Crafted. You now hold %s."):format(tostring(result))
+			or "Upgrade bought. It lasts this session.")
+	elseif action == "ArmSeal" or action == "SealNewest" then
+		if argument ~= "seal" then return end
+		local alive = context(player)
+		local ok, result
+		if action == "ArmSeal" then ok, result = state:armSeal(key, alive) else ok, result = state:sealNewest(key, alive) end
+		reply(player, action, ok, result, action == "ArmSeal" and "Seal armed: your next new bag item is warded."
+			or "Newest item warded. A seal is spent only if it saves the item.")
+	elseif action == "ArmTotem" or action == "DisarmTotem" then
+		if argument ~= "totem" then return end
+		local alive, distance = context(player, campCenter)
+		local ok, result
+		if action == "ArmTotem" then ok, result = state:armTotem(key, alive, distance)
+		else ok, result = state:disarmTotem(key, alive, distance) end
+		reply(player, action, ok, result, action == "ArmTotem" and "Totem: Silueta senses you from farther."
+			or "Totem put away and refunded.")
+	elseif action == "UseCapsule" then
+		local alive, root = context(player), rootOf(player)
+		local distance = root and Rules.distance(root.Position.X, root.Position.Z, SHELTER_X, SHELTER_Z) or math.huge
+		local ok, result = state:useCapsule(key, argument, alive, distance)
+		reply(player, action, ok, result, ok and ("Banked at the shelter. Earned %d Ember."):format(result.ember) or nil)
+	end
+end
 
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
 	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Protect" and action ~= "Hatch"
-		and action ~= "CaptureCancel" then return end
+		and action ~= "CaptureCancel" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
 		send(player, action, true, "Session only: collection resets when you leave this server.")
@@ -548,7 +687,8 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 		if ok then handleEnding(out) end
 		return
 	end
-	if action == "Hatch" then hatch(player, uid)
+	if ECONOMY_ACTIONS[action] then economyAction(player, action, uid)
+	elseif action == "Hatch" then hatch(player, uid)
 	elseif action == "Protect" then protect(player, uid)
 	else
 		local alive = context(player)
@@ -583,8 +723,8 @@ local function bindCharacter(player, character)
 		local _, _, lossSummary = state:defeat(player.UserId, "life:" .. generation)
 		removeDropsOf(player)
 		-- The client shows the summary full screen before respawn (M4.6).
-		send(player, "Defeat", true, "Defeated: unprotected temporary loot was lost. Banked eggs and registered pets remain.",
-			lossSummary)
+		send(player, "Defeat", true, "Defeated: unwarded bag items and half of each carried material were lost. "
+			.. "Banked materials, Ember and companions remain.", lossSummary)
 	end
 	record.deathConnection = humanoid.Died:Connect(defeated)
 	if humanoid.Health <= 0 then defeated(); return end

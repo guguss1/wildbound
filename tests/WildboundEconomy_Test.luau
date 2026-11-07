@@ -1,7 +1,7 @@
 -- Invoke with require(freshTestClone)(require(freshEconomyClone), require(freshConfigClone), freshEconomyClone.Source,
--- require(freshRulesClone), require(freshWildClone), require(freshAmbushClone)).
--- M5.2 and M5.5 pure rules. ECO numbers refer to docs/mechanics/wildbound-economy-p0.md.
-return function(Economy, Config, source, Rules, Wild, Ambush)
+-- require(freshRulesClone), require(freshWildClone), require(freshAmbushClone), WildboundServer.Source,
+-- WildboundWorld.Source). M5.2 and M5.5 rules. ECO numbers refer to docs/mechanics/wildbound-economy-p0.md.
+return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worldSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -160,6 +160,55 @@ return function(Economy, Config, source, Rules, Wild, Ambush)
 		broken(function(c) c.gather.holdSeconds.heart = 2 end)
 		broken(function(c) c.recipes.seal.cost.moonstone = 1 end)
 		equal(#Economy.validate(nil), 1)
+	end)
+
+	-- Wiring contracts read the deployed adapters' source. They prove where grants can run, not behaviour.
+	local GRANTS = { "state:gather(", "state:extract(", "state:craft(", "state:upgrade(", "state:useCapsule(",
+		"state:pickup(", "state:completeCapture(", "state:hatch(" }
+	case("ECO-20 AFK-1 no grant runs on a timer: the heartbeat and every delay only track or remove", function()
+		assert(type(serverSource) == "string" and #serverSource > 1000, "server source missing")
+		local heartbeat = serverSource:match("RunService%.Heartbeat:Connect%(function%(dt%)(.-)\nend%)")
+		assert(heartbeat, "heartbeat handler not found")
+		assert(heartbeat:find("state:observeExpedition(", 1, true), "the heartbeat tracks expeditions")
+		for _, grant in ipairs(GRANTS) do
+			equal(heartbeat:find(grant, 1, true), nil, "heartbeat calls " .. grant)
+		end
+		local delays = 0
+		for at in serverSource:gmatch("()task%.delay%(") do
+			delays += 1
+			local body = serverSource:sub(at, at + 420)
+			for _, grant in ipairs(GRANTS) do equal(body:find(grant, 1, true), nil, "a delay calls " .. grant) end
+		end
+		assert(delays >= 2, "respawn and drop expiry delays are checked")
+		equal(serverSource:find("task.wait(", 1, true), nil, "no waiting loop in the adapter")
+		for _, banned in ipairs({ "MarketplaceService", "DataStoreService", "ProcessReceipt" }) do
+			equal(serverSource:find(banned, 1, true), nil, "no monetization or persistence: " .. banned)
+		end
+	end)
+
+	case("the server wires the economy: field seal, sinks, gather seam, seeded spawns and carry speed", function()
+		equal(serverSource:find("distance > 12 then", 1, true), nil, "B8 the seal no longer needs camp")
+		for _, action in ipairs({ "Craft", "Upgrade", "ArmSeal", "SealNewest", "ArmTotem", "DisarmTotem", "UseCapsule" }) do
+			assert(serverSource:find('"' .. action .. '"', 1, true), action .. " is not an action")
+		end
+		for _, needle in ipairs({ "Economy.carrySpeed(", '"GatherSpawn"', '"GatherClaim"', "Spawn.rollNode(",
+			'SetAttribute("SpawnSeed"', '"TotemChanged"', "state:extract(player.UserId, alive, distance, " }) do
+			assert(serverSource:find(needle, 1, true), needle .. " not wired")
+		end
+		equal(serverSource:find('stateRemote:FireClient(player, { seed', 1, true), nil)
+		local seedLine = serverSource:match("[^\n]*SpawnSeed[^\n]*")
+		assert(seedLine and seedLine:find("telemetry", 1, true), "the seed is logged only to ServerStorage")
+	end)
+
+	case("the world applies the totem downside to detection and ambush weights, never to chase", function()
+		assert(type(worldSource) == "string" and #worldSource > 1000, "world source missing")
+		local count = 0
+		for _ in worldSource:gmatch("detectionFor%(player, parameters%.detectionRange%)") do count += 1 end
+		equal(count, 2, "both detection checks use the holder's range")
+		equal(worldSource:find("detectionFor(target, Rules.CHASE_RANGE", 1, true), nil, "chase range stays 65")
+		assert(worldSource:find("totem = totemHolders[player] == true", 1, true), "ambush sees holders")
+		assert(worldSource:find('network:FindFirstChild("TotemChanged")', 1, true), "holders come from the inventory script")
+		equal(worldSource:find(":GetAttribute(", 1, true), nil, "no attribute is read back")
 	end)
 
 	case("the module is pure: no services, clock, randomness or persistence", function()
