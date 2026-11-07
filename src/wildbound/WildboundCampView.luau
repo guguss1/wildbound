@@ -146,7 +146,7 @@ function View.campRows(config, economy, snapshot, ctx)
 			table.insert(rows, row("upgrade:" .. name, "Upgrade", "Reinforced Pack: owned. Bag 4, pouch 45, a defeat takes a quarter.", nil, nil, nil, false))
 		else
 			local why = reason(ctx, snapshot, spec.cost)
-			local made = row("upgrade:" .. name, "Upgrade", line("Reinforced Pack", "bag 4, pouch 45, a defeat takes a quarter instead of half",
+			local made = row("upgrade:" .. name, "Upgrade", line("Reinforced Pack", "bag 4, pouch 45, a defeat takes a tenth instead of a fifth",
 				spec.cost, why), "Upgrade", name, "Buy", why == nil, why)
 			made.short = shortLine("Reinforced Pack", spec.cost, why)
 			table.insert(rows, made)

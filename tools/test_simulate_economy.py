@@ -64,7 +64,7 @@ class TuningBlock(unittest.TestCase):
 
     def test_numbers_are_consumed_not_copied(self):
         # Change the rate inside the document text; the simulator must follow it.
-        text = DOC.read_text(encoding="utf-8").replace('"rateBasisPoints": 5000', '"rateBasisPoints": 1000')
+        text = DOC.read_text(encoding="utf-8").replace('"rateBasisPoints": 2000', '"rateBasisPoints": 1000')
         t = eco.extract_tuning(text)
         state = eco.new_state(t)
         state["carried"]["fogbark"] = 100
@@ -98,6 +98,10 @@ class LossRule(unittest.TestCase):
     #   100: 50, 25     25: 12.5 -> 13, 6.25 -> 6     12: 6, 3     5: 2.5 -> 3, 1.25 -> 1
     #   4: 2, 1         1: 0.5 -> 1, 0.25 -> 0
     NEW_TABLE = {100: (50, 25), 25: (13, 6), 12: (6, 3), 5: (3, 1), 4: (2, 1), 1: (1, 0), 0: (0, 0)}
+    # D-C2 (delivery C, 2026-11-07): 20% and 10%, hand computed the same way:
+    #   100: 20, 10     25: 5, 2.5 -> 3     12: 2.4 -> 2, 1.2 -> 1     5: 1, 0.5 -> 1     4: 0.8 -> 1, 0.4 -> 0
+    #   1: 0.2 -> 0, 0.1 -> 0
+    DC2_TABLE = {100: (20, 10), 25: (5, 3), 12: (2, 1), 5: (1, 1), 4: (1, 0), 1: (0, 0), 0: (0, 0)}
 
     def test_rounding_table_for_both_rates(self):
         for quantity, (at12, at8) in self.TABLE.items():
@@ -106,6 +110,9 @@ class LossRule(unittest.TestCase):
         for quantity, (at50, at25) in self.NEW_TABLE.items():
             self.assertEqual(eco.lost(quantity, 5000), at50, quantity)
             self.assertEqual(eco.lost(quantity, 2500), at25, quantity)
+        for quantity, (at20, at10) in self.DC2_TABLE.items():
+            self.assertEqual(eco.lost(quantity, 2000), at20, quantity)
+            self.assertEqual(eco.lost(quantity, 1000), at10, quantity)
 
     def test_half_rounds_up_exactly(self):
         # 50 * 1000 bp = exactly 5.0 -> 5; 25 * 200 bp = 0.5 exactly -> 1; 24 * 200 bp = 0.48 -> 0.
@@ -123,7 +130,7 @@ class LossRule(unittest.TestCase):
         rows = re.findall(r"^\| (\d+) \| (\d+) \| (\d+) \|$", text, re.M)
         self.assertGreaterEqual(len(rows), 6)
         for quantity, at_base, at_reinforced in rows:
-            self.assertEqual(self.NEW_TABLE[int(quantity)], (int(at_base), int(at_reinforced)), quantity)
+            self.assertEqual(self.DC2_TABLE[int(quantity)], (int(at_base), int(at_reinforced)), quantity)
 
     def test_defeat_with_100_fogbark_and_three_items(self):
         t = tuning()
@@ -133,17 +140,17 @@ class LossRule(unittest.TestCase):
         s["bag"] = [{"kind": "creature", "tier": "Territory"}, {"kind": "egg", "tier": "Territory"},
                     {"kind": "creature", "tier": "Fog"}]
         summary = eco.apply_defeat(t, s)
-        self.assertEqual(s["carried"]["fogbark"], 50)
+        self.assertEqual(s["carried"]["fogbark"], 80)
         self.assertEqual(s["bag"], [])
         self.assertEqual(s["ember"], 30)
         self.assertEqual(summary["lost_items"], 3)
-        self.assertEqual(summary["lost_units"]["fogbark"], 50)
+        self.assertEqual(summary["lost_units"]["fogbark"], 20)
 
     def test_loss_is_per_stack_not_on_the_total(self):
-        # Two stacks of 5 lose 3 each (2.5 rounds up), so 6. Rounding the 10-unit total at 50% would give 5.
+        # D-C2: two stacks of 3 lose 1 each (0.6 rounds up), so 2. Rounding the 6-unit total at 20% gives 1.
         t = tuning()
         s = eco.new_state(t)
-        s["carried"].update({"fogbark": 5, "glowmoss": 5})
+        s["carried"].update({"fogbark": 3, "glowmoss": 3})
         eco.apply_defeat(t, s)
         self.assertEqual(s["carried"], {"fogbark": 2, "glowmoss": 2})
 
@@ -153,7 +160,7 @@ class LossRule(unittest.TestCase):
         s["upgrades"]["reinforcedPack"] = True
         s["carried"]["fogbark"] = 100
         eco.apply_defeat(t, s)
-        self.assertEqual(s["carried"]["fogbark"], 75)
+        self.assertEqual(s["carried"]["fogbark"], 90)
 
     def test_everything_listed_as_never_lost_is_untouched(self):
         t = tuning()
@@ -180,9 +187,9 @@ class LossRule(unittest.TestCase):
         s = eco.new_state(t)
         s["carried"]["fogbark"] = 100
         eco.apply_defeat(t, s, operation_id="op-1")
-        self.assertEqual(s["carried"]["fogbark"], 50)
+        self.assertEqual(s["carried"]["fogbark"], 80)
         again = eco.apply_defeat(t, s, operation_id="op-1")
-        self.assertEqual(s["carried"]["fogbark"], 50)
+        self.assertEqual(s["carried"]["fogbark"], 80)
         self.assertTrue(again["duplicate"])
 
     def test_seal_spent_only_when_it_saves_an_item(self):
@@ -310,7 +317,7 @@ class Sinks(unittest.TestCase):
         self.assertEqual((eco.pouch_capacity(t, s), eco.bag_capacity(t, s)), (30, 3))
         self.assertEqual(eco.upgrade(t, s, "reinforcedPack"), (True, "ok"))
         self.assertEqual((eco.pouch_capacity(t, s), eco.bag_capacity(t, s)), (45, 4))
-        self.assertEqual(eco.loss_basis_points(t, s), 2500)
+        self.assertEqual(eco.loss_basis_points(t, s), 1000)
         self.assertEqual(eco.upgrade(t, s, "reinforcedPack"), (False, "AlreadyOwned"))
         self.assertEqual((s["banked"]["fogbark"], s["banked"]["glowmoss"], s["ember"]), (60, 30, 120))
 
@@ -454,9 +461,9 @@ class Expeditions(unittest.TestCase):
         t, ctx = self.mini(), context()
         policy = idle_policy(zones={"outside": 2, "fog": 0, "territory": 0}, defeatChance=1.0)
         run = eco.simulate_policy(t, ctx, "doomed", policy, seed=4, trips=1)
-        # 6 fogbark in one stack: lost(6) = (6*5000+5000)//10000 = 3, so 3 stay carried.
+        # 6 fogbark in one stack: lost(6) = (6*2000+5000)//10000 = 1, so 5 stay carried.
         self.assertEqual(run.trips[0]["outcome"], "defeated")
-        self.assertEqual(run.state["carried"]["fogbark"], 3)
+        self.assertEqual(run.state["carried"]["fogbark"], 5)
         self.assertEqual(run.state["banked"]["fogbark"], 0)
         self.assertEqual(run.state["ember"], 0)
 
@@ -571,14 +578,14 @@ class StayOrReturn(unittest.TestCase):
 class PackAndSinks(unittest.TestCase):
     def test_pack_loss_comparison_hand_values(self):
         # Target: the old 8% on 45 lost the same 3.60 as 12% on 30, so the rate did nothing when full.
-        # Base pouch 30 at 50%: 15 expected units lost when full. Reinforced 45 at 25%: 11.25, a real gain.
+        # D-C2: base pouch 30 at 20%: 6 expected units lost when full. Reinforced 45 at 10%: 4.5, still a gain.
         result = eco.pack_loss_comparison(tuning())
-        self.assertAlmostEqual(result["base_expected"], 15.0, places=9)
-        self.assertAlmostEqual(result["reinforced_expected"], 11.25, places=9)
+        self.assertAlmostEqual(result["base_expected"], 6.0, places=9)
+        self.assertAlmostEqual(result["reinforced_expected"], 4.5, places=9)
         self.assertFalse(result["rate_cancelled_by_capacity"])
         self.assertLess(result["reinforced_worst"], result["base_worst"])
-        self.assertEqual(result["base_worst"], eco.max_material_loss(tuning(), 30, 5000))
-        self.assertEqual(result["reinforced_worst"], eco.max_material_loss(tuning(), 45, 2500))
+        self.assertEqual(result["base_worst"], eco.max_material_loss(tuning(), 30, 2000))
+        self.assertEqual(result["reinforced_worst"], eco.max_material_loss(tuning(), 45, 1000))
 
     def test_pack_that_helps_nothing_is_flagged(self):
         t = tuning()
@@ -888,7 +895,7 @@ class StandingStillAgainstSilueta(unittest.TestCase):
         second = eco.apply_strike(t, s, 1, no_recovery, random.Random(1))
         self.assertTrue(second["defeated"])
         self.assertEqual(s["bag"], [])
-        self.assertEqual(s["carried"]["fogbark"], 10)
+        self.assertEqual(s["carried"]["fogbark"], 16)
 
     def test_dropped_item_can_be_recovered(self):
         import random

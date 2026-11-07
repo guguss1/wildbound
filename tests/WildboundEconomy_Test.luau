@@ -26,7 +26,7 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 	end)
 
 	case("the tuning copy carries the document's numbers for this part", function()
-		equal(Config.loss.rateBasisPoints, 5000); equal(Config.loss.rateBasisPointsReinforced, 2500)
+		equal(Config.loss.rateBasisPoints, 2000); equal(Config.loss.rateBasisPointsReinforced, 1000)
 		equal(Config.capacity.bagItems, 3); equal(Config.capacity.pouchUnits, 30)
 		equal(Config.capacity.consumableCaps.seal, 3); equal(Config.capacity.consumableCaps.totem, 1)
 		equal(Config.recipes.seal.cost.fogbark, 8); equal(Config.recipes.seal.cost.glowmoss, 4)
@@ -42,6 +42,12 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 			equal(Economy.lost(row[1], 2500), row[3], "25% of " .. row[1])
 		end
 		equal(Economy.lost(3, 5000), 2, "1.5 rounds up")
+		-- D-C2 (delivery C): the rates now in the document, 20% and 10%.
+		local current = { { 100, 20, 10 }, { 25, 5, 3 }, { 12, 2, 1 }, { 5, 1, 1 }, { 4, 1, 0 }, { 3, 1, 0 }, { 2, 0, 0 }, { 1, 0, 0 } }
+		for _, row in ipairs(current) do
+			equal(Economy.lost(row[1], 2000), row[2], "20% of " .. row[1])
+			equal(Economy.lost(row[1], 1000), row[3], "10% of " .. row[1])
+		end
 		equal(Economy.lost(30, 10000), 30); equal(Economy.lost(30, 0), 0)
 		for _, bad in ipairs({ -1, 1.5, 0 / 0, math.huge, "4" }) do equal(Economy.lost(bad, 5000), 0) end
 		equal(Economy.lost(4, 10001), 0, "a rate above 100% is refused")
@@ -50,10 +56,10 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 
 	case("capacity and loss follow owned upgrades only", function()
 		equal(Economy.bagCapacity(Config, {}), 3); equal(Economy.pouchCapacity(Config, {}), 30)
-		equal(Economy.lossBasisPoints(Config, {}), 5000)
+		equal(Economy.lossBasisPoints(Config, {}), 2000)
 		local pack = { reinforcedPack = true }
 		equal(Economy.bagCapacity(Config, pack), 4); equal(Economy.pouchCapacity(Config, pack), 45)
-		equal(Economy.lossBasisPoints(Config, pack), 2500)
+		equal(Economy.lossBasisPoints(Config, pack), 1000)
 		equal(Economy.bagCapacity(Config, { reinforcedPack = "yes" }), 3, "only true owns")
 		equal(Economy.bagCapacity(Config, nil), 3)
 		local names = Economy.pouchMaterials(Config)

@@ -44,8 +44,8 @@ return freeze({
 		eggSpeeds = "wildbound-capture.md, slower of the two applies",
 	},
 	loss = {
-		rateBasisPoints = 5000,
-		rateBasisPointsReinforced = 2500,
+		rateBasisPoints = 2000,
+		rateBasisPointsReinforced = 1000,
 		rounding = "nearest_half_up_per_stack",
 		appliesTo = { "carried" },
 		neverLost = { "ember", "banked", "registered", "bankedEggs", "consumables", "upgrades", "skills", "bond" },
@@ -148,7 +148,7 @@ return freeze({
 	upgrades = {
 		reinforcedPack = {
 			cost = { fogbark = 60, glowmoss = 30, ember = 120 },
-			effects = { bagItems = 4, pouchUnits = 45, lossBasisPoints = 2500 },
+			effects = { bagItems = 4, pouchUnits = 45, lossBasisPoints = 1000 },
 		},
 	},
 	totem = {

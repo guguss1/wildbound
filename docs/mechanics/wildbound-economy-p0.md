@@ -77,7 +77,7 @@ Not run in Play: two clients (BLOCKED: one operator and no way to start a second
 
 | # | Choice taken | Tradeoff |
 | --- | --- | --- |
-| 1 | **Defeat takes half of each carried stack, a quarter with the Reinforced Pack.** Replaces the pack's 12% and 8% | One sentence to explain, and materials finally matter. At 12% a node paid more than a defeat could take. Harsh. The run barely moves at 25%, so the math requires less than this (see Revision) |
+| 1 | **Defeat takes a fifth of each carried stack, a tenth with the Reinforced Pack** (D-C2, delivery C, 2026-11-07: the user lowered it from half and a quarter once La Silueta can kill). Replaces the pack's 12% and 8% | One sentence to explain, and materials finally matter. At 12% a node paid more than a defeat could take. Harsh. The run barely moves at 25%, so the math requires less than this (see Revision) |
 | 2 | **Nightbloom is a bag item, one slot per bundle,** lost entirely on defeat unless warded | Bag pressure at Night and a real use for seals and capsules. Adds a third kind to `pending` |
 | 3 | **Holds grow with exposure:** 3 s outside, 4 s fog, 6 s territory, 9 s at heart slots | About 30 s of the expedition. Outside and fog holds are plain pacing, not danger, and may feel like waiting. Touch is unverified |
 | 4 | **Heart slots** T1, T2, T6: 9 s hold, one extra unit, chosen because the pressure geometry strikes there most | Value sits where standing still is dangerous. A slot's danger depends on proposed ambush anchors |
@@ -85,7 +85,7 @@ Not run in Play: two clients (BLOCKED: one operator and no way to start a second
 | 6 | Solo slots rise to 24 in all, 18 active. Ten new coordinates, checked by script only | Supply stops ending trips. More world dressing in M5.3 |
 | 7 | **D5 stands, at its low end.** Medians land at 190 to 208 s, not mid-range. Nothing replaced | A cautious route needs all 16 safe nodes to reach 3 minutes. See Revision |
 | 8 | Tier 2 skills and advanced items still need Nightbloom. **The safe path is fog beyond the leash at Night,** where Silueta cannot target by rule | A player who goes home every Night still cannot finish the tree. Simulated: never earns any. I kept this as the reason to go out at Night |
-| 9 | Loss rounds to the **nearest** unit per stack, not down as the pack suggests | At 50% a stack of 1 is lost. Readable: nothing is ever secretly safe |
+| 9 | Loss rounds to the **nearest** unit per stack, not down as the pack suggests | At 20% a stack of 3 or more always loses at least one unit (2.5 or more rounds up). A stack of 1 or 2 is kept |
 | 10 | Risk pays through Ember: a Lumipol from territory earns more than one from outside the leash | Without it the safe route wins. Rewards bravery but widens progress gaps |
 | 11 | After the D10 hold expires, the result equals a defeat. On return in time, you resume **where you left**, not at camp | Otherwise logging out teleports loot to the extraction point. Requires changing the respawn pivot |
 | 12 | No release or sell for duplicates. Duplicates earn Ember once, at extraction | No way to delete a companion by mistake. Collection limit 100 stays unsolved until M6 |
@@ -209,17 +209,17 @@ Applied once per defeat operation, inside `State:defeat`, with no yield. Integer
 
 ```text
 lost(stack) = (quantity * rateBasisPoints + 5000) // 10000
-rate = 5000, or 2500 with the Reinforced Pack
+rate = 2000, or 1000 with the Reinforced Pack (decision D-C2, 2026-11-07; was 5000 and 2500)
 ```
 
-| Stack | Lost at 50% | Lost at 25% |
+| Stack | Lost at 20% | Lost at 10% |
 | --- | --- | --- |
-| 100 | 50 | 25 |
-| 25 | 13 | 6 |
-| 12 | 6 | 3 |
-| 5 | 3 | 1 |
-| 4 | 2 | 1 |
-| 1 | 1 | 0 |
+| 100 | 20 | 10 |
+| 25 | 5 | 3 |
+| 12 | 2 | 1 |
+| 5 | 1 | 1 |
+| 4 | 1 | 0 |
+| 1 | 0 | 0 |
 
 **Order, once per `operationId`:** 1. Warded items survive, spending one seal if seal-warded. 2. Other pending items go. 3. Dropped items go. 4. Each carried stack loses `lost(stack)`. 5. Totem spent if it left camp. 6. Pending bond XP goes. 7. Expedition closes. 8. Return loss summary (`wildbound-fair-strike.md`).
 
@@ -333,7 +333,7 @@ All at camp, within 20 studs of `CampCenter`, alive, non-yielding: check, pay, g
 | **Ward Seal** | 8 Fogbark, 4 Glowmoss | Saves one chosen bag item on defeat. Spent only if it saves | Hold 3 |
 | **Last Breath Totem** | 12 Glowmoss, 2 Nightbloom, 20 Ember | Wards one extra item with no seal. **Downside below** | Hold 1, one active |
 | **Extraction Capsule** | 8 Fogbark, 5 Glowmoss, 1 Nightbloom, 12 Ember | Banks one bag item at the shelter, on the spot | Hold 1 |
-| **Reinforced Pack** | 60 Fogbark, 30 Glowmoss, 120 Ember | Permanent. Bag 4, pouch 45, loss 25% | Once |
+| **Reinforced Pack** | 60 Fogbark, 30 Glowmoss, 120 Ember | Permanent. Bag 4, pouch 45, loss 10% | Once |
 | **Skills** | Below | Permanent | Once each |
 
 ### Seal fix for B8
@@ -503,8 +503,8 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "eggSpeeds": "wildbound-capture.md, slower of the two applies"
   },
   "loss": {
-    "rateBasisPoints": 5000,
-    "rateBasisPointsReinforced": 2500,
+    "rateBasisPoints": 2000,
+    "rateBasisPointsReinforced": 1000,
     "rounding": "nearest_half_up_per_stack",
     "appliesTo": ["carried"],
     "neverLost": ["ember", "banked", "registered", "bankedEggs", "consumables", "upgrades", "skills", "bond"],
@@ -590,7 +590,7 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   "upgrades": {
     "reinforcedPack": {
       "cost": { "fogbark": 60, "glowmoss": 30, "ember": 120 },
-      "effects": { "bagItems": 4, "pouchUnits": 45, "lossBasisPoints": 2500 }
+      "effects": { "bagItems": 4, "pouchUnits": 45, "lossBasisPoints": 1000 }
     }
   },
   "totem": {
@@ -653,7 +653,7 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
 | Night rewards | False | True, Nightbloom only |
 | Extraction | Rejects with no bag items | Also takes materials, pays Ember |
 | Seal | `sealCharges`, once, near camp | `consumables.seal`, crafted, anywhere, armable. First-extraction grant adds |
-| Defeat | Pending only | Plus dropped, half of carried materials, totem, pending XP, summary |
+| Defeat | Pending only | Plus dropped, a fifth of carried materials, totem, pending XP, summary |
 | Pending items | Eggs and creatures | Also Nightbloom bundles |
 | Walk speed | Eggs only, once M3.5 lands | Slower of eggs and pouch load |
 | Capacity | Constant 3 | Per player |
