@@ -67,10 +67,11 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Pending |
 | F1 | Gate | Ten testers. Agents prepare the kit and analyze results | Humans | Needs people |
 | W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Done, read by parent |
-| W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | Running |
-| W13 | 13 | El Vigia and Yeti models and rigs, local, E3, E5 | Sonnet, Blender | After W11 |
-| W14 | 14 | Living Forest and Frozen Mountains kits and layout plans, local, E4, E5 | Sonnet, Blender | After W11 |
-| W15 | 15 | Rock and Caves, Volcanic Lands, Cryptic Ruins, Demon Abyss kits, local, E6 | Sonnet, Blender | After W14 |
+| W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | Done, 11 species, `1327955` to `a7f9989`, 36 tests; parent reran |
+| W13 | 13 | El Vigia and Yeti models and rigs, local, E3, E5 | Sonnet, Blender | Running |
+| W14 | 14 | Living Forest and Frozen Mountains kits and layout plans, local, E4, E5 | Sonnet, Blender | Done, `6b3a9ad` to `636f7e9`; parent reran. Helper modules `biome_kit_spec` and `layout_geometry` were written before their tests, so they have no observed RED: a TDD gap |
+| W14d | 14 | Art pass on props that read wrong: FM_RockOverhang, FM_IcePass, FM_SnowMound, LF_LogBridge, LF_HollowArch, LF_FlowerClump, LF_ResinStump | Sonnet, Blender | After W13 |
+| W15 | 15 | Rock and Caves, Volcanic Lands, Cryptic Ruins, Demon Abyss kits, local, E6 | Sonnet, Blender | After W14d, so its lessons carry over |
 | W16 | 16 | F2 kit: analytics funnel, retention targets proposal, M9.5 | Opus high, Sonnet | Pending |
 | W17 | 17 | Import and integrate expansion in Studio | Sonnet, Studio writer | Needs upload consent and place decision |
 | F2 | Gate | Beta data from real players | Humans | Needs people and approved beta |
@@ -84,7 +85,10 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 ## Progress
 
 - 2026-11-07: plan created from the user's request. W1b committed.
+- Overnight status, parent-verified by rerun: W2a `c452771`. W3a `e2a8f02`. W3b `7e08250` to `1fe1e93`: nine scenes pass on desktop with two clients; bugs 1, 2 and 3 fixed; wrong prompt near camp not fixed; phone taps, muted client, real phones and real network stay blocked. Studio suites rerun by parent: state 17, rules 28, awareness 57, smoothing 23, view 29, layout 23, map 6, dress 25. Hunt 9 and visual 26 are as reported by the writer, not rerun by the parent. Python tools 650 OK with 11 skipped.
+- Economy retune `37b8ba1`: loss raised to 50% and 25%, for review. W4b and W8 `fb7f3f3`, `7c3493b`, `d15f2a6`. W10 and W16 plans `a70ccf1`; F1 is no-go until W5 to W7 and a publish approval. W13 `629d70b`, `3f7a9c3`. W14d `822fcd8`, `dd589e4`.
+- Studio backups: `assets/exports/wildbound-dressed-forest-20261107.rbxl`, `wildbound-forest-lit-20261107.rbxl`, `wildbound-awareness-hud-20261107.rbxl`.
 
 ## Next step
 
-W0 finishes, then W1c. W11 output feeds W12 to W15.
+W5 capture, then W6 fair damage, then W7 return loop, one Studio writer at a time. W15 biomes run beside them locally.
