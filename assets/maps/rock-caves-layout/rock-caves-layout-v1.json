@@ -1,0 +1,1493 @@
+{
+ "name": "rock-caves-layout-v1",
+ "status": "draft, unvalidated: never imported into Roblox, played or measured on a device",
+ "seed": 20261113,
+ "map_size": 300.0,
+ "caps": {
+  "instances": 130,
+  "triangles": 28000
+ },
+ "totals": {
+  "instances": 111,
+  "triangles_measured": 21222,
+  "triangles_budget": 23120,
+  "mesh_parts": 185,
+  "collision_boxes": 210,
+  "occluder_boxes": 234,
+  "by_name": {
+   "RC_CaveMouth": {
+    "count": 3,
+    "triangles": 1578
+   },
+   "RC_TunnelStraight": {
+    "count": 18,
+    "triangles": 7308
+   },
+   "RC_TunnelBend": {
+    "count": 8,
+    "triangles": 3248
+   },
+   "RC_Stalagmite": {
+    "count": 40,
+    "triangles": 3600
+   },
+   "RC_CrystalCluster": {
+    "count": 16,
+    "triangles": 2144
+   },
+   "RC_OreVein": {
+    "count": 14,
+    "triangles": 2240
+   },
+   "RC_Burrow": {
+    "count": 12,
+    "triangles": 1104
+   }
+  }
+ },
+ "route": {
+  "nodes": [
+   [
+    -140.0,
+    100.0
+   ],
+   [
+    -107.26,
+    100.0
+   ],
+   [
+    -92.0,
+    100.0
+   ],
+   [
+    -68.0,
+    100.0
+   ],
+   [
+    -44.0,
+    100.0
+   ],
+   [
+    -20.0,
+    100.0
+   ],
+   [
+    -15.341,
+    99.387
+   ],
+   [
+    -11.0,
+    97.588
+   ],
+   [
+    -7.272,
+    94.728
+   ],
+   [
+    -4.412,
+    91.0
+   ],
+   [
+    -2.613,
+    86.659
+   ],
+   [
+    -2.0,
+    82.0
+   ],
+   [
+    -2.0,
+    58.0
+   ],
+   [
+    -2.0,
+    34.0
+   ],
+   [
+    -2.0,
+    10.0
+   ],
+   [
+    -2.613,
+    5.341
+   ],
+   [
+    -4.412,
+    1.0
+   ],
+   [
+    -7.272,
+    -2.728
+   ],
+   [
+    -11.0,
+    -5.588
+   ],
+   [
+    -15.341,
+    -7.387
+   ],
+   [
+    -20.0,
+    -8.0
+   ],
+   [
+    -44.0,
+    -8.0
+   ],
+   [
+    -48.659,
+    -8.613
+   ],
+   [
+    -53.0,
+    -10.412
+   ],
+   [
+    -56.728,
+    -13.272
+   ],
+   [
+    -59.588,
+    -17.0
+   ],
+   [
+    -61.387,
+    -21.341
+   ],
+   [
+    -62.0,
+    -26.0
+   ],
+   [
+    -61.387,
+    -30.659
+   ],
+   [
+    -59.588,
+    -35.0
+   ],
+   [
+    -56.728,
+    -38.728
+   ],
+   [
+    -53.0,
+    -41.588
+   ],
+   [
+    -48.659,
+    -43.387
+   ],
+   [
+    -44.0,
+    -44.0
+   ],
+   [
+    -20.0,
+    -44.0
+   ],
+   [
+    4.0,
+    -44.0
+   ],
+   [
+    19.26,
+    -44.0
+   ],
+   [
+    80.74,
+    -44.0
+   ],
+   [
+    96.0,
+    -44.0
+   ],
+   [
+    100.659,
+    -43.387
+   ],
+   [
+    105.0,
+    -41.588
+   ],
+   [
+    108.728,
+    -38.728
+   ],
+   [
+    111.588,
+    -35.0
+   ],
+   [
+    113.387,
+    -30.659
+   ],
+   [
+    114.0,
+    -26.0
+   ],
+   [
+    114.0,
+    -2.0
+   ],
+   [
+    114.0,
+    22.0
+   ],
+   [
+    114.0,
+    46.0
+   ],
+   [
+    113.387,
+    50.659
+   ],
+   [
+    111.588,
+    55.0
+   ],
+   [
+    108.728,
+    58.728
+   ],
+   [
+    105.0,
+    61.588
+   ],
+   [
+    100.659,
+    63.387
+   ],
+   [
+    96.0,
+    64.0
+   ],
+   [
+    72.0,
+    64.0
+   ],
+   [
+    48.0,
+    64.0
+   ],
+   [
+    43.341,
+    64.613
+   ],
+   [
+    39.0,
+    66.412
+   ],
+   [
+    35.272,
+    69.272
+   ],
+   [
+    32.412,
+    73.0
+   ],
+   [
+    30.613,
+    77.341
+   ],
+   [
+    30.0,
+    82.0
+   ],
+   [
+    30.613,
+    86.659
+   ],
+   [
+    32.412,
+    91.0
+   ],
+   [
+    35.272,
+    94.728
+   ],
+   [
+    39.0,
+    97.588
+   ],
+   [
+    43.341,
+    99.387
+   ],
+   [
+    48.0,
+    100.0
+   ],
+   [
+    72.0,
+    100.0
+   ],
+   [
+    96.0,
+    100.0
+   ],
+   [
+    120.0,
+    100.0
+   ],
+   [
+    144.0,
+    100.0
+   ]
+  ],
+  "length": 797.549,
+  "walk_seconds": 49.847,
+  "corridor_width": 14.0
+ },
+ "surface_routes": [
+  {
+   "nodes": [
+    [
+     -140.0,
+     100.0
+    ],
+    [
+     -107.26,
+     100.0
+    ]
+   ],
+   "length": 32.74
+  },
+  {
+   "nodes": [
+    [
+     19.26,
+     -44.0
+    ],
+    [
+     80.74,
+     -44.0
+    ]
+   ],
+   "length": 61.48
+  }
+ ],
+ "points_of_interest": [
+  {
+   "name": "gate_west",
+   "point": [
+    -140.0,
+    100.0
+   ],
+   "route_arc": 0.0
+  },
+  {
+   "name": "mouth_west",
+   "point": [
+    -99.773,
+    100.0
+   ],
+   "route_arc": 40.227
+  },
+  {
+   "name": "mouth_exit",
+   "point": [
+    11.773,
+    -44.0
+   ],
+   "route_arc": 384.548
+  },
+  {
+   "name": "mouth_east",
+   "point": [
+    88.227,
+    -44.0
+   ],
+   "route_arc": 461.002
+  },
+  {
+   "name": "rockfall_1",
+   "point": [
+    -56.0,
+    100.0
+   ],
+   "route_arc": 84.0
+  },
+  {
+   "name": "rockfall_2",
+   "point": [
+    -2.0,
+    22.0
+   ],
+   "route_arc": 208.194
+  },
+  {
+   "name": "rockfall_3",
+   "point": [
+    114.0,
+    34.0
+   ],
+   "route_arc": 556.968
+  },
+  {
+   "name": "rockfall_4",
+   "point": [
+    84.0,
+    100.0
+   ],
+   "route_arc": 737.549
+  },
+  {
+   "name": "crystal_hollow",
+   "point": [
+    50.0,
+    -44.0
+   ],
+   "route_arc": 422.775
+  },
+  {
+   "name": "gate_east",
+   "point": [
+    144.0,
+    100.0
+   ],
+   "route_arc": 797.549
+  }
+ ],
+ "tunnels": [
+  {
+   "name": "A",
+   "string": "SSSLSSSLSRRSS",
+   "module_ids": [
+    "straight-01",
+    "straight-02",
+    "straight-03",
+    "bend-01",
+    "straight-04",
+    "straight-05",
+    "straight-06",
+    "bend-02",
+    "straight-07",
+    "bend-03",
+    "bend-04",
+    "straight-08",
+    "straight-09"
+   ],
+   "straights": 9,
+   "bends": 4,
+   "max_joint_error": 0.0
+  },
+  {
+   "name": "B",
+   "string": "RSSSRSSLLSSSS",
+   "module_ids": [
+    "bend-05",
+    "straight-10",
+    "straight-11",
+    "straight-12",
+    "bend-06",
+    "straight-13",
+    "straight-14",
+    "bend-07",
+    "bend-08",
+    "straight-15",
+    "straight-16",
+    "straight-17",
+    "straight-18"
+   ],
+   "straights": 9,
+   "bends": 4,
+   "max_joint_error": 0.0
+  }
+ ],
+ "mouths": [
+  {
+   "id": "mouth-01",
+   "role": "west",
+   "tunnel": "A",
+   "joint": "start"
+  },
+  {
+   "id": "mouth-02",
+   "role": "exit",
+   "tunnel": "A",
+   "joint": "end"
+  },
+  {
+   "id": "mouth-03",
+   "role": "east",
+   "tunnel": "B",
+   "joint": "start"
+  }
+ ],
+ "rockfall": {
+  "dust_s": 3.0,
+  "impact_s": 2.0,
+  "strip_width": 10.0,
+  "lanes": [
+   {
+    "id": "lane-1",
+    "module": "straight-02",
+    "center": [
+     -56.0,
+     100.0
+    ],
+    "rotation_y_deg": 90.0,
+    "size": [
+     14.0,
+     10.0
+    ],
+    "exit_from_center_s": 0.312,
+    "cycle_s": 5.0,
+    "route_arc": 84.0
+   },
+   {
+    "id": "lane-2",
+    "module": "straight-06",
+    "center": [
+     -2.0,
+     22.0
+    ],
+    "rotation_y_deg": 180.0,
+    "size": [
+     14.0,
+     10.0
+    ],
+    "exit_from_center_s": 0.312,
+    "cycle_s": 5.0,
+    "route_arc": 208.194
+   },
+   {
+    "id": "lane-3",
+    "module": "straight-12",
+    "center": [
+     114.0,
+     34.0
+    ],
+    "rotation_y_deg": 0.0,
+    "size": [
+     14.0,
+     10.0
+    ],
+    "exit_from_center_s": 0.312,
+    "cycle_s": 5.0,
+    "route_arc": 556.968
+   },
+   {
+    "id": "lane-4",
+    "module": "straight-16",
+    "center": [
+     84.0,
+     100.0
+    ],
+    "rotation_y_deg": 90.0,
+    "size": [
+     14.0,
+     10.0
+    ],
+    "exit_from_center_s": 0.312,
+    "cycle_s": 5.0,
+    "route_arc": 737.549
+   }
+  ]
+ },
+ "density": {
+  "props_per_1000_sq_studs": 1.233,
+  "tunnel_length": 657.549
+ },
+ "decisions": [
+  "The route is two snapped tunnels joined by a short daylight clearing: tunnel A (nine straights, four bends) from the west mouth to the exit mouth, a 60 stud clearing, then tunnel B from the east mouth to the east edge. The bible gives only the module mix (18 straights, 8 bends, 3 mouths); the chains were found by a bounded search and fixed as strings (S straight, R bend through end A, L bend through end B).",
+  "Joints are computed from the measured end rings (centre and outward facing of ends A and B) with the kit frame (local x = -Blender x); a right bend entered through end B is a left turn, so bends are never mirrored.",
+  "Rockfall lanes are 10 studs along the tunnel across the whole 14 stud floor (leaving from the centre takes 0.31 s at 16 studs/s), on the centre of four straight modules, two per tunnel, at least 50 studs apart. The bible does not say which axis the strip is wide on.",
+  "Each cave mouth sits on the route with its rear plane on the tunnel joint; the measured gap (+-8.1) contains the 14 stud corridor. The far mouth faces outward, so the exit mouth is turned around.",
+  "Nothing stands inside a tunnel: the 14 stud clear width equals the route corridor. Crystal clusters, ore veins, stalagmites and burrows stand on the surface around the approach and the clearing; gather points are measured to those two surface stretches only (8 to 40 studs, facing them).",
+  "The route is about 700 studs, far longer than the 19 s sector crossing in the bible, because 26 modules at 24 to 28 studs cannot fit a shorter path. Hostile night rules do not apply here (bible section 2).",
+  "Tunnel footprints are convex pieces from the measured geometry: a 25.7 x 24 box per straight and six wedges per bend (radii 5.7 to 31.3 about the arc centre); non-adjacent modules stay at least 2 studs apart."
+ ],
+ "instances": [
+  {
+   "name": "RC_CaveMouth",
+   "x": -99.773,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "mouth-01"
+  },
+  {
+   "name": "RC_CaveMouth",
+   "x": 11.773,
+   "z": -44.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "mouth-02"
+  },
+  {
+   "name": "RC_CaveMouth",
+   "x": 88.227,
+   "z": -44.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "mouth-03"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -80.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-01"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -56.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-02"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -32.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-03"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": -5.0,
+   "z": 97.0,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "bend-01"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -2.0,
+   "z": 70.0,
+   "rotation_y_deg": 180.0,
+   "scale": 1.0,
+   "id": "straight-04"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -2.0,
+   "z": 46.0,
+   "rotation_y_deg": 180.0,
+   "scale": 1.0,
+   "id": "straight-05"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -2.0,
+   "z": 22.0,
+   "rotation_y_deg": 180.0,
+   "scale": 1.0,
+   "id": "straight-06"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": -5.0,
+   "z": -5.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "bend-02"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -32.0,
+   "z": -8.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "straight-07"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": -59.0,
+   "z": -11.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "bend-03"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": -59.0,
+   "z": -41.0,
+   "rotation_y_deg": 180.0,
+   "scale": 1.0,
+   "id": "bend-04"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -32.0,
+   "z": -44.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-08"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": -8.0,
+   "z": -44.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-09"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": 111.0,
+   "z": -41.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "bend-05"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 114.0,
+   "z": -14.0,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "straight-10"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 114.0,
+   "z": 10.0,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "straight-11"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 114.0,
+   "z": 34.0,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "straight-12"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": 111.0,
+   "z": 61.0,
+   "rotation_y_deg": 0.0,
+   "scale": 1.0,
+   "id": "bend-06"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 84.0,
+   "z": 64.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "straight-13"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 60.0,
+   "z": 64.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "straight-14"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": 33.0,
+   "z": 67.0,
+   "rotation_y_deg": 180.0,
+   "scale": 1.0,
+   "id": "bend-07"
+  },
+  {
+   "name": "RC_TunnelBend",
+   "x": 33.0,
+   "z": 97.0,
+   "rotation_y_deg": 270.0,
+   "scale": 1.0,
+   "id": "bend-08"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 60.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-15"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 84.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-16"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 108.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-17"
+  },
+  {
+   "name": "RC_TunnelStraight",
+   "x": 132.0,
+   "z": 100.0,
+   "rotation_y_deg": 90.0,
+   "scale": 1.0,
+   "id": "straight-18"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 24.663,
+   "z": 53.95,
+   "rotation_y_deg": 356.687,
+   "scale": 0.994,
+   "id": "stalagmite-01"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 15.847,
+   "z": 64.689,
+   "rotation_y_deg": 249.86,
+   "scale": 1.043,
+   "id": "stalagmite-02"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 18.024,
+   "z": 46.554,
+   "rotation_y_deg": 16.942,
+   "scale": 1.143,
+   "id": "stalagmite-03"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 15.857,
+   "z": 56.365,
+   "rotation_y_deg": 48.071,
+   "scale": 1.009,
+   "id": "stalagmite-04"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -22.497,
+   "z": -26.582,
+   "rotation_y_deg": 330.811,
+   "scale": 0.91,
+   "id": "stalagmite-05"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -35.973,
+   "z": -26.263,
+   "rotation_y_deg": 357.847,
+   "scale": 1.149,
+   "id": "stalagmite-06"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -14.744,
+   "z": -26.411,
+   "rotation_y_deg": 96.263,
+   "scale": 1.085,
+   "id": "stalagmite-07"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 82.645,
+   "z": 17.147,
+   "rotation_y_deg": 342.856,
+   "scale": 1.113,
+   "id": "stalagmite-08"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 69.292,
+   "z": 30.252,
+   "rotation_y_deg": 129.984,
+   "scale": 0.999,
+   "id": "stalagmite-09"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 72.366,
+   "z": 4.172,
+   "rotation_y_deg": 96.044,
+   "scale": 1.107,
+   "id": "stalagmite-10"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 79.092,
+   "z": 40.638,
+   "rotation_y_deg": 284.18,
+   "scale": 1.053,
+   "id": "stalagmite-11"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 59.606,
+   "z": 9.002,
+   "rotation_y_deg": 110.879,
+   "scale": 1.148,
+   "id": "stalagmite-12"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 94.782,
+   "z": 15.4,
+   "rotation_y_deg": 312.45,
+   "scale": 0.999,
+   "id": "stalagmite-13"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 91.341,
+   "z": -89.926,
+   "rotation_y_deg": 117.574,
+   "scale": 1.142,
+   "id": "stalagmite-14"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 87.155,
+   "z": -69.466,
+   "rotation_y_deg": 28.827,
+   "scale": 1.075,
+   "id": "stalagmite-15"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 82.305,
+   "z": -88.553,
+   "rotation_y_deg": 121.997,
+   "scale": 0.965,
+   "id": "stalagmite-16"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 60.472,
+   "z": -90.743,
+   "rotation_y_deg": 306.654,
+   "scale": 0.939,
+   "id": "stalagmite-17"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 67.397,
+   "z": -95.02,
+   "rotation_y_deg": 69.183,
+   "scale": 1.045,
+   "id": "stalagmite-18"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 69.558,
+   "z": -103.717,
+   "rotation_y_deg": 343.457,
+   "scale": 1.094,
+   "id": "stalagmite-19"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -50.608,
+   "z": -111.497,
+   "rotation_y_deg": 89.069,
+   "scale": 1.09,
+   "id": "stalagmite-20"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -27.867,
+   "z": -118.012,
+   "rotation_y_deg": 46.791,
+   "scale": 1.01,
+   "id": "stalagmite-21"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -35.221,
+   "z": -111.49,
+   "rotation_y_deg": 90.608,
+   "scale": 1.101,
+   "id": "stalagmite-22"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -59.292,
+   "z": -139.114,
+   "rotation_y_deg": 283.322,
+   "scale": 1.099,
+   "id": "stalagmite-23"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -65.94,
+   "z": -131.706,
+   "rotation_y_deg": 75.498,
+   "scale": 1.118,
+   "id": "stalagmite-24"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -72.515,
+   "z": -121.683,
+   "rotation_y_deg": 114.617,
+   "scale": 0.998,
+   "id": "stalagmite-25"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 4.503,
+   "z": 119.347,
+   "rotation_y_deg": 167.161,
+   "scale": 1.136,
+   "id": "stalagmite-26"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -112.869,
+   "z": -24.334,
+   "rotation_y_deg": 260.831,
+   "scale": 1.077,
+   "id": "stalagmite-27"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 88.438,
+   "z": 1.571,
+   "rotation_y_deg": 190.021,
+   "scale": 1.126,
+   "id": "stalagmite-28"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 70.755,
+   "z": 135.048,
+   "rotation_y_deg": 315.146,
+   "scale": 0.908,
+   "id": "stalagmite-29"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 47.406,
+   "z": 125.777,
+   "rotation_y_deg": 241.847,
+   "scale": 0.956,
+   "id": "stalagmite-30"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 122.87,
+   "z": -52.837,
+   "rotation_y_deg": 7.502,
+   "scale": 1.016,
+   "id": "stalagmite-31"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -105.627,
+   "z": -126.346,
+   "rotation_y_deg": 263.789,
+   "scale": 0.949,
+   "id": "stalagmite-32"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -87.183,
+   "z": 21.981,
+   "rotation_y_deg": 319.872,
+   "scale": 0.948,
+   "id": "stalagmite-33"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -106.422,
+   "z": 17.94,
+   "rotation_y_deg": 345.928,
+   "scale": 0.918,
+   "id": "stalagmite-34"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -132.888,
+   "z": -110.397,
+   "rotation_y_deg": 36.519,
+   "scale": 0.957,
+   "id": "stalagmite-35"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 127.513,
+   "z": 122.797,
+   "rotation_y_deg": 31.272,
+   "scale": 0.903,
+   "id": "stalagmite-36"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -66.315,
+   "z": 3.025,
+   "rotation_y_deg": 319.08,
+   "scale": 1.116,
+   "id": "stalagmite-37"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -128.735,
+   "z": -31.386,
+   "rotation_y_deg": 324.482,
+   "scale": 1.018,
+   "id": "stalagmite-38"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": 102.106,
+   "z": -96.189,
+   "rotation_y_deg": 261.297,
+   "scale": 1.044,
+   "id": "stalagmite-39"
+  },
+  {
+   "name": "RC_Stalagmite",
+   "x": -34.62,
+   "z": 132.366,
+   "rotation_y_deg": 191.587,
+   "scale": 0.927,
+   "id": "stalagmite-40"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 30.243,
+   "z": -65.466,
+   "rotation_y_deg": 180.0,
+   "scale": 1.091,
+   "id": "crystal-01"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 19.852,
+   "z": -69.399,
+   "rotation_y_deg": 180.0,
+   "scale": 0.929,
+   "id": "crystal-02"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 43.328,
+   "z": -71.605,
+   "rotation_y_deg": 180.0,
+   "scale": 0.909,
+   "id": "crystal-03"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 73.735,
+   "z": -72.97,
+   "rotation_y_deg": 180.0,
+   "scale": 1.123,
+   "id": "crystal-04"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 61.472,
+   "z": -6.704,
+   "rotation_y_deg": 0.0,
+   "scale": 1.14,
+   "id": "crystal-05"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 49.25,
+   "z": -23.356,
+   "rotation_y_deg": 0.0,
+   "scale": 1.118,
+   "id": "crystal-06"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 27.512,
+   "z": -79.381,
+   "rotation_y_deg": 180.0,
+   "scale": 1.163,
+   "id": "crystal-07"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 51.532,
+   "z": -14.795,
+   "rotation_y_deg": 0.0,
+   "scale": 1.025,
+   "id": "crystal-08"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 52.639,
+   "z": -63.442,
+   "rotation_y_deg": 180.0,
+   "scale": 0.983,
+   "id": "crystal-09"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 31.988,
+   "z": -29.564,
+   "rotation_y_deg": 0.0,
+   "scale": 1.074,
+   "id": "crystal-10"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": 78.33,
+   "z": -80.473,
+   "rotation_y_deg": 180.0,
+   "scale": 0.947,
+   "id": "crystal-11"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": -120.153,
+   "z": 133.205,
+   "rotation_y_deg": 0.0,
+   "scale": 1.114,
+   "id": "crystal-12"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": -115.935,
+   "z": 65.934,
+   "rotation_y_deg": 180.0,
+   "scale": 1.138,
+   "id": "crystal-13"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": -134.334,
+   "z": 134.106,
+   "rotation_y_deg": 0.0,
+   "scale": 1.192,
+   "id": "crystal-14"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": -135.571,
+   "z": 62.695,
+   "rotation_y_deg": 180.0,
+   "scale": 0.993,
+   "id": "crystal-15"
+  },
+  {
+   "name": "RC_CrystalCluster",
+   "x": -115.552,
+   "z": 121.305,
+   "rotation_y_deg": 0.0,
+   "scale": 1.051,
+   "id": "crystal-16"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 66.492,
+   "z": -80.357,
+   "rotation_y_deg": 180.0,
+   "scale": 0.982,
+   "id": "vein-01"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 58.903,
+   "z": -30.021,
+   "rotation_y_deg": 0.0,
+   "scale": 0.998,
+   "id": "vein-02"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 33.961,
+   "z": -9.439,
+   "rotation_y_deg": 0.0,
+   "scale": 1.041,
+   "id": "vein-03"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 77.28,
+   "z": -15.185,
+   "rotation_y_deg": 0.0,
+   "scale": 1.088,
+   "id": "vein-04"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 23.127,
+   "z": -20.853,
+   "rotation_y_deg": 0.0,
+   "scale": 0.928,
+   "id": "vein-05"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 55.905,
+   "z": -75.474,
+   "rotation_y_deg": 180.0,
+   "scale": 0.933,
+   "id": "vein-06"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 74.342,
+   "z": -30.259,
+   "rotation_y_deg": 0.0,
+   "scale": 1.05,
+   "id": "vein-07"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": 66.631,
+   "z": -63.034,
+   "rotation_y_deg": 180.0,
+   "scale": 1.085,
+   "id": "vein-08"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -118.305,
+   "z": 84.533,
+   "rotation_y_deg": 180.0,
+   "scale": 1.001,
+   "id": "vein-09"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -126.518,
+   "z": 65.061,
+   "rotation_y_deg": 180.0,
+   "scale": 1.056,
+   "id": "vein-10"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -128.088,
+   "z": 118.077,
+   "rotation_y_deg": 0.0,
+   "scale": 1.124,
+   "id": "vein-11"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -128.156,
+   "z": 75.134,
+   "rotation_y_deg": 180.0,
+   "scale": 1.13,
+   "id": "vein-12"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -108.5,
+   "z": 131.566,
+   "rotation_y_deg": 0.0,
+   "scale": 1.051,
+   "id": "vein-13"
+  },
+  {
+   "name": "RC_OreVein",
+   "x": -138.393,
+   "z": 122.887,
+   "rotation_y_deg": 0.0,
+   "scale": 1.063,
+   "id": "vein-14"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": 8.468,
+   "z": -90.27,
+   "rotation_y_deg": 49.848,
+   "scale": 0.964,
+   "id": "burrow-01"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -90.75,
+   "z": -96.508,
+   "rotation_y_deg": 87.016,
+   "scale": 0.915,
+   "id": "burrow-02"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": 114.919,
+   "z": -77.115,
+   "rotation_y_deg": 257.761,
+   "scale": 0.922,
+   "id": "burrow-03"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -83.764,
+   "z": -41.495,
+   "rotation_y_deg": 238.279,
+   "scale": 1.063,
+   "id": "burrow-04"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -46.952,
+   "z": 72.426,
+   "rotation_y_deg": 302.764,
+   "scale": 1.095,
+   "id": "burrow-05"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": 104.611,
+   "z": 136.496,
+   "rotation_y_deg": 118.465,
+   "scale": 0.96,
+   "id": "burrow-06"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -98.389,
+   "z": 39.58,
+   "rotation_y_deg": 345.943,
+   "scale": 0.979,
+   "id": "burrow-07"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": 41.61,
+   "z": 12.052,
+   "rotation_y_deg": 196.446,
+   "scale": 0.916,
+   "id": "burrow-08"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -136.446,
+   "z": 41.851,
+   "rotation_y_deg": 238.47,
+   "scale": 1.062,
+   "id": "burrow-09"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": 80.14,
+   "z": 138.163,
+   "rotation_y_deg": 112.731,
+   "scale": 1.096,
+   "id": "burrow-10"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -88.087,
+   "z": -27.889,
+   "rotation_y_deg": 219.87,
+   "scale": 1.072,
+   "id": "burrow-11"
+  },
+  {
+   "name": "RC_Burrow",
+   "x": -83.157,
+   "z": -90.632,
+   "rotation_y_deg": 34.778,
+   "scale": 0.977,
+   "id": "burrow-12"
+  }
+ ]
+}
