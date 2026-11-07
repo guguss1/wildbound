@@ -326,6 +326,10 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundThreatLevel_Test.luau": "ServerStorage.WildboundThreatLevel_Test",
         # Delivery D6 and D8: source contracts for the hiding, threat and clock wiring
         "tests/WildboundHideWiring_Test.luau": "ServerStorage.WildboundHideWiring_Test",
+        # Delivery D9: the audio catalog (every id in one place) and the pure mix, shared with the audio client
+        "src/wildbound/WildboundAudioCatalog.luau": "ReplicatedStorage.WildboundAudioCatalog",
+        "src/wildbound/WildboundAudioMix.luau": "ReplicatedStorage.WildboundAudioMix",
+        "tests/WildboundAudioMix_Test.luau": "ServerStorage.WildboundAudioMix_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
