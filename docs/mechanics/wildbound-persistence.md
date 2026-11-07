@@ -469,6 +469,28 @@ Read 2026-11-07 through a fetch tool that returns a summary of each page, not ra
 | `manage-data-stores` | 404 |
 | `DataStoreSetOptions`, ProfileStore | Not read |
 
+## Implementation status (W10, 2026-11-07)
+
+Built as pure modules with contracts run in Studio Edit on fresh clones. **No data store was called**, no service was enabled, nothing is wired into the running server. Green proves logic against a fake, never Roblox behavior.
+
+| Module | Studio path | Contracts | RED | GREEN |
+| --- | --- | --- | --- | --- |
+| `src/wildbound/WildboundRecord.luau` | `ServerScriptService.WildboundRecord` | `tests/WildboundRecord_Test.luau`, RT-1 to RT-18 | 1 passed, 17 failed (empty stub; RT-18 source check passes on a stub) | 17 passed, 1 failed (test defect, below), then 18 passed, 0 failed |
+
+Test defect fixed: RT-4 banned the text "defeats", which `stats.defeats` (a designed counter) contains. It now checks the session tables by key.
+
+### Decisions taken (for review)
+
+| # | Decision | Why |
+| --- | --- | --- |
+| W10-1 | `lastWriteId` added to schema 1 | A checkpoint whose reply is lost must recognise its own landed write on retry instead of reading it as `Diverged` |
+| W10-2 | The record stores State's real expedition fields (`newUnits`, `newItems`, `bondXp`, `bondEvents`, `pendingBond`, `paidSlots`, `maxDistanceFromCamp`) plus `elapsedSeconds`, not section 3's `leftCamp` and `territorySeconds` | Those two do not exist in `WildboundState`; the economy reads the others. `startedAt` is a server clock, so only elapsed time is saved and rebuilt on load |
+| W10-3 | Trip time is frozen at the checkpoint; time away never counts toward base Ember | No credit for being offline |
+| W10-4 | A dropped item with no known expiry is saved as expiring at the checkpoint | A missing timer can never extend a drop (A15) |
+| W10-5 | Version 0 is defined as the unversioned shape and `MIGRATIONS[0]` ships, instead of an empty ladder | Proves the ladder on a real step. No store ever held version 0, so it only fills missing fields and never invents items |
+| W10-6 | Skills are checked by shape only, not against tuning | Removing a skill from tuning must not quarantine every player who learned it |
+| W10-7 | The serializer refuses any `wb:N` ID (`SessionId`) | Today's State still makes session IDs (B17); they can never reach a save. Moving `newUid` to the record is M6.4 wiring |
+
 ## Next step
 
 Your review of the choices above, and D8 when you are ready. M6.2 code follows W7, because the reducers need the economy state.
