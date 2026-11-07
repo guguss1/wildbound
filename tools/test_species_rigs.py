@@ -48,6 +48,11 @@ SPECS = {
                   "Neon_Eye": ("7FE0F0", 60)},
         "bones": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
     },
+    "SP_Polvilla": {
+        "size": (4.4, 1.6, 4.0), "tris": 450,
+        "parts": {"Wings": ("B9AE98", 280), "Body": ("5A5560", 110), "Neon_Spots": ("C9A24A", 60)},
+        "bones": ("Root", "Body", "WingL", "WingR"),
+    },
 }
 
 
@@ -218,6 +223,28 @@ class SpeciesRigs(unittest.TestCase):
                          "scale in Roblox is unverified until a real import")
         for name, spec in self.each_species():
             self.assertEqual(self.report["species"][name]["status"], "unvalidated")
+
+
+class SpeciesDetails(unittest.TestCase):
+    """Rules that belong to one species only."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(SpeciesAssets.GEOMETRY)
+        cls.report = load_json(SpeciesAssets.REPORT)
+
+    def lowest_part(self, name):
+        found = [(v[2], object_name) for object_name, part in self.geometry[name]["parts"].items()
+                 for v in part["vertices"]]
+        return min(found)
+
+    @unittest.skipUnless("SP_Polvilla" in SPECS, "Polvilla not in this unit")
+    def test_polvilla_hovers_on_its_peg_with_the_wings_clear_of_the_ground(self):
+        height, owner = self.lowest_part("SP_Polvilla")
+        self.assertEqual(owner, "SP_Polvilla_Body", "the peg tip must be the point at Z 0")
+        self.assertAlmostEqual(height, 0.0, delta=0.05)
+        wings = self.geometry["SP_Polvilla"]["parts"]["SP_Polvilla_Wings"]["vertices"]
+        self.assertGreater(min(v[2] for v in wings), 0.8, "hover height is built in")
 
 
 class MotionProfiles(unittest.TestCase):

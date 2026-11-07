@@ -52,6 +52,8 @@ SPECS = {
                                "Neon_Eye": "F2F0C8"}},
     "SP_Zancanieve": {"size": (2.6, 3.8, 4.5),
                       "colors": {"Body": "C7D6DF", "Legs": "4A5560", "Tail": "9CCBE0", "Neon_Eye": "7FE0F0"}},
+    "SP_Polvilla": {"size": (4.4, 1.6, 4.0),
+                    "colors": {"Wings": "B9AE98", "Body": "5A5560", "Neon_Spots": "C9A24A"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -279,8 +281,55 @@ def build_zancanieve():
     return asset
 
 
+def build_polvilla():
+    asset = Asset("SP_Polvilla", seed=51)
+    wings, body, spots = asset.part("Wings"), asset.part("Body"), asset.part("Neon_Spots")
+    on_body = rigid("Body")
+
+    # Tiny peg body: its point is the lowest thing, so the hover height is built in.
+    lathe(body, [(0.0, 0.0), (0.12, 0.3), (0.2, 0.8), (0.28, 1.2), (0.22, 1.45), (0.0, 1.55)], 6, on_body,
+          phase=0.2)
+    lathe(body, kc.arc_profile(0.3, 0.3, 4), 6, on_body, center=(0, -0.08, 1.75), scale=(1.0, 0.9))
+
+    # Two big dry wings, each an inner leaf panel and a smaller outer panel folded back.
+    inner = [(0.05, 0.0), (0.8, 0.2), (1.3, 0.75), (1.5, 1.4), (1.35, 1.75), (1.55, 2.1), (1.2, 2.4),
+             (1.25, 2.75), (0.8, 2.8), (0.55, 3.0), (0.25, 2.7), (0.0, 2.0)]
+    outer = [(0.0, 0.0), (0.6, 0.1), (0.95, 0.55), (1.0, 1.1), (0.85, 1.4), (1.0, 1.75), (0.7, 2.0), (0.6, 2.35),
+             (0.35, 2.1), (0.2, 2.25), (0.0, 1.7), (0.0, 0.85)]
+    lean, fold, thick = math.radians(14), math.radians(60), 0.1
+    inner = [(a * 0.85, b) for a, b in inner]
+    outer = [(a * 0.9, b) for a, b in outer]
+    spot_marks = {}
+    for side, bone in ((1, "WingL"), (-1, "WingR")):
+        weigh = rigid(bone)
+        yaw = side * math.radians(20)
+        u1 = (side * math.cos(lean) * math.cos(yaw), side * math.cos(lean) * math.sin(yaw), -math.sin(lean))
+        v1 = (side * math.sin(lean) * math.cos(yaw), side * math.sin(lean) * math.sin(yaw), math.cos(lean))
+        n1 = unit(cross(u1, v1))
+        base = (side * 0.12, 0.0, 1.2)
+        slab(wings, inner, base, u1, v1, n1, thick, weigh, bevel=0.35)
+        # Outer panel hangs off the inner one, turned back about the vertical.
+        anchor = madd(madd(base, u1, 1.1), v1, 0.5)
+        u2 = unit(add(mul(u1, math.cos(fold)), (0.0, math.sin(fold), 0.0)))
+        n2 = unit(cross(u2, v1))
+        slab(wings, outer, anchor, u2, v1, n2, thick, weigh, bevel=0.35)
+        spot_marks[bone] = [(base, u1, v1, n1), (anchor, u2, v1, n2)]
+
+    # Three spots show the glyph order: two on the left wing, one on the right.
+    for bone, panel, a, b in (("WingL", 0, 0.75, 1.9), ("WingR", 0, 0.75, 1.2), ("WingL", 1, 0.5, 0.9)):
+        origin, u, v, n = spot_marks[bone][panel]
+        centre = madd(madd(madd(origin, u, a), v, b), n, thick - 0.03)
+        lathe(spots, [(0.2, 0.0), (0.2, 0.1)], 6, rigid(bone), center=centre, frame=kc.basis(n))
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0, 1.0), (0, -0.4, 1.6))
+    asset.bone("WingL", "Body", (0.12, 0, 1.3), (1.0, 0, 2.4))
+    asset.bone("WingR", "Body", (-0.12, 0, 1.3), (-1.0, 0, 2.4))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
-            "SP_Zancanieve": build_zancanieve}
+            "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla}
 ORDER = tuple(SPECS)
 
 

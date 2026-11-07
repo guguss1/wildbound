@@ -104,6 +104,31 @@ def blend(first, second, start, end, low=0.0, high=1.0):
     return weigh
 
 
+def chain(bones, stations, axis=1):
+    """Weights along a spine: bone i owns the vertices near stations[i] on the given axis.
+
+    Stations must increase. Between two neighbours the hand-over is smooth, and past either
+    end the outermost bone owns everything. At most two influences, always normalised.
+    """
+    def weigh(v):
+        c = v[axis]
+        if c <= stations[0]:
+            return {bones[0]: 1.0}
+        if c >= stations[-1]:
+            return {bones[-1]: 1.0}
+        for i in range(len(stations) - 1):
+            if stations[i] <= c <= stations[i + 1]:
+                t = (c - stations[i]) / (stations[i + 1] - stations[i])
+                s = t * t * (3.0 - 2.0 * t)
+                if s <= 1e-4:
+                    return {bones[i]: 1.0}
+                if s >= 1.0 - 1e-4:
+                    return {bones[i + 1]: 1.0}
+                return {bones[i]: 1.0 - s, bones[i + 1]: s}
+
+    return weigh
+
+
 # ---------------------------------------------------------------------------
 # Parts and assets
 # ---------------------------------------------------------------------------

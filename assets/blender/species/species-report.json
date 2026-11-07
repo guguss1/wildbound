@@ -474,6 +474,106 @@
           "lowest_z": -0.0157
         }
       }
+    },
+    "SP_Polvilla": {
+      "status": "unvalidated",
+      "triangles": 416,
+      "size": [
+        4.4,
+        1.6,
+        4.0
+      ],
+      "bbox_min": [
+        -2.1733,
+        -0.2943,
+        0.0
+      ],
+      "bbox_max": [
+        2.2267,
+        1.3057,
+        4.0
+      ],
+      "base_center": [
+        0.0,
+        -0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0888,
+        0.9376,
+        1.0006
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "WingL",
+        "WingR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Polvilla_Wings",
+          "material": "SP_Polvilla_Wings",
+          "material_count": 1,
+          "triangles": 272,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "B9AE98",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Polvilla_Body",
+          "material": "SP_Polvilla_Body",
+          "material_count": 1,
+          "triangles": 84,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "5A5560",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Polvilla_Neon_Spots",
+          "material": "SP_Polvilla_Neon_Spots",
+          "material_count": 1,
+          "triangles": 60,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "C9A24A",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Polvilla.fbx",
+        "Idle": "assets/exports/species/SP_Polvilla_Idle.fbx",
+        "Move": "assets/exports/species/SP_Polvilla_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Polvilla.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Polvilla_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0004
+        },
+        "Move": {
+          "action": "SP_Polvilla_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0008
+        }
+      }
     }
   }
 }

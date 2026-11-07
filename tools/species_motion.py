@@ -29,6 +29,7 @@ BONES = {
     "SP_Cortezon": ("Root", "Body", "Head", "LegFL", "LegFR", "LegBL", "LegBR"),
     "SP_Cestillo": ("Root", "Basket", "Neck", "Head", "LegL", "LegR"),
     "SP_Zancanieve": ("Root", "Body", "Neck", "Head", "ThighL", "ShinL", "ThighR", "ShinR", "TailA", "TailB"),
+    "SP_Polvilla": ("Root", "Body", "WingL", "WingR"),
 }
 
 
@@ -105,6 +106,19 @@ MOTION = {
             "ShinR": (term("rx", -0.40, 1, 0.5, "lift"),),
             "TailA": (term("rx", 0.06, 2, 0.20),),
             "TailB": (term("rx", 0.12, 2, 0.40), term("rz", 0.06, 1, 0.0)),
+        },
+    },
+    # A hovering moth-like creature: the body bobs, the folded wings breathe open and shut.
+    "SP_Polvilla": {
+        "Idle": {
+            "Body": (term("lz", 0.08, 1, 0, "rise"), term("rx", 0.03, 1, 0.25)),
+            "WingL": (term("ry", 0.12, 1, 0.10),),
+            "WingR": (term("ry", -0.12, 1, 0.10),),
+        },
+        "Move": {
+            "Body": (term("lz", 0.14, 2, 0, "rise"), term("rx", 0.08, 1, 0.0), term("ry", 0.04, 2, 0.25)),
+            "WingL": (term("ry", 0.26, 3, 0.10),),
+            "WingR": (term("ry", -0.26, 3, 0.10),),
         },
     },
 }
