@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "placeId": "122652861404212",
+  "gameId": "10774749224",
+  "creatorUserId": "11937129310",
+  "assetType": "Model",
+  "uploads": {
+    "FK_LanternMarker": {
+      "sha256": "5A4EEFB1F0325B5A10FEE8B87F11E8A9336C56852EFEA3603C8FB94829223466",
+      "operationId": "0f25855c-fad3-43b3-af6c-3eb16d40d215",
+      "assetId": "93222537035048",
+      "moderationState": "Approved"
+    },
+    "FK_Evergreen": {
+      "sha256": "4EF5DA111231787A086F0A52CB9DEDB974509FE92C6207CD2AE1037D3C6F39B8",
+      "operationId": "f1dbf09f-9e76-4a98-b6f5-2799132e9ef1",
+      "assetId": "118080034129133",
+      "moderationState": "Approved"
+    },
+    "FK_DeadTree": {
+      "sha256": "4B3F3D4E3CFD273901F47DEDDA6596DDB23BA4892FEB804069C7915DFF3F104C",
+      "operationId": "d9a5a41e-1141-43e7-9d97-f2ea267607be",
+      "assetId": "96486328614115",
+      "moderationState": "Approved"
+    },
+    "FK_FallenLog": {
+      "sha256": "71AC56B5CEC0E9C7B6CAD926506B12B544428316100F6FD2DA667743DA8460DF",
+      "operationId": "2448b292-dabf-4e98-a035-3fd12df9f172",
+      "assetId": "100069484135042",
+      "moderationState": "Approved"
+    },
+    "FK_RootArch": {
+      "sha256": "9B6C4AF28BBF1E34D3A8797B6123944C3F769B8D00FDC9AC8A626DAF10225DCD",
+      "operationId": "bc078e9a-b17d-4541-a565-3aec983b8ba7",
+      "assetId": "129853666011084",
+      "moderationState": "Approved"
+    },
+    "FK_RuinDoorway": {
+      "sha256": "A8436FF1BB9948A77E973C4263AC574F20E3534B4039A425A4DEDC893B6CC52E",
+      "operationId": "d912a526-8567-423c-8769-ea1049549d7d",
+      "assetId": "104681674993067",
+      "moderationState": "Approved"
+    }
+  }
+}
