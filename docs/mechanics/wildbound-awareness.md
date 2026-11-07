@@ -54,9 +54,9 @@ All in `Awareness.CONSTANTS`, frozen. Trunk width is from `docs/maps/wildbound-p
 | `safe == true` is never `ally`; being outside the fog can be | A friend beyond the fog line cannot be retargeted but can still watch | Could be noisy; check in the five-pair test |
 | Ally range is measured to Silueta, not to the target | Matches the existing snapshot `distance` and the retarget rule | A friend beside a far target may read `none` |
 
-## What W3b must wire
+## What W3b had to wire (done; see "Wired in W3b" below)
 
-Nothing below exists yet. Line numbers are for `WildboundWorld.server.luau` unless stated.
+The list below is the original plan, kept for the reasoning. Line numbers are for `WildboundWorld.server.luau` before W3b.
 
 1. **Create once.** `local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))`, then `local awareness, awarenessResults = Awareness.new(), {}`.
 2. **Step once per fixed step, after the FSM.** Call it directly after `step(now, 0.2)` at `:359`, with the same `now`, so it reads the mode and target that step just set. `workspace:GetServerTimeNow()` is the clock clients already compare against.
@@ -124,3 +124,23 @@ Observed results are recorded in the task document by the parent. Nothing here p
 | `guardian.threat` is `Rules.isThreat(...)`, which excludes Retreat | `WildboundWorldRules.luau` |
 | Other bodies do not block sight: `visible(..., ignoreBodies)` excludes every player character for Silueta's sight. The flashlight and pulse ray still excludes only the caster | `visible()`, `targetContext()` |
 | Ground disc: `Rules.groundCue(anySeen)` is amber, larger and more solid while any player is `seen` | `stepAwareness()` |
+
+## Two-client runs (W3b, 2026-11-07)
+
+Studio Server and Clients, two clients (Player1 -1, Player2 -2), desktop viewport, damage off. The scenes were driven by moving the characters from the server; the guardian, rule and HUD ran unmodified. Times are server clock from client logs. A scene passes only when the chip and the payload agree. The nine scenes ran with the first HUD build; the later compact-layout change touched no awareness code.
+
+| Scene | Result | Evidence |
+| --- | --- | --- |
+| 1 A seen, B far | PASS | A chip "seen" 0.13 s after A was placed; B stayed "none" 245 studs away |
+| 2 B nearby shows ally | PASS | B "ally" 0.17 s after B was placed 28 studs away |
+| 3 sight broken, searching with countdown | PASS | wall at t+0.00: "searching" at +0.62 s (hold 0.6 s), then 0.9, 0.8 ... 0.0 s in 0.1 s steps; `searchEndsAt` is absolute |
+| 4 search expires | PASS | A "none" and B "none" in the same step, 0.23 s after the countdown read 0.0 (fixed step) |
+| 5 attack warning only for the target | PASS | A chip "attack" 0.04 s after Telegraph began. B's payload had `awareness=ally`, no `attackEndsAt`, and no `telegraphEndsAt` at all. B never showed attack |
+| 6 inventory open while seen | PASS, desktop only | chip visible, panel hidden, chip "seen" and later "attack" over the open inventory (captures). F reached the server with the inventory open (flashlight reveal reply), Q too (Equip reply). Phone taps: BLOCKED |
+| 7 retarget A to B | PASS | A seen to ally at 475.548 and B ally to seen at 475.547, one snapshot, never two seen |
+| 8 B's body between Silueta and A | PASS | B's body kept on the line for 3 s of Hunt; A stayed "seen" throughout. In 48 of 48 samples the old ray (excluding only A) hit B's body |
+| 9 Retreat nearby shows no threat | PASS | A 15 studs away during Retreat: awareness "none" for both, `guardian.threat` false in every Retreat payload |
+
+Disc: server read back amber (240, 183, 92), diameter 7.5 and transparency 0.05 during Alert, Hunt and Telegraph, sage (177, 201, 180), 5.5 and 0.35 during Retreat and Patrol.
+
+Not covered: muted and phone-sized runs of the nine scenes (the chip on phones was captured separately, not run through every scene), a muted client, real latency, and the five-pair human test. Nothing here uses awareness as a strike gate; damage stayed off and streaming on (read back at the end of each session).
