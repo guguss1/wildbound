@@ -1,0 +1,46 @@
+{
+  "props": {
+    "LF_FlowerClump": {
+      "model": {
+        "triangles": 80,
+        "size": [
+          5.0,
+          5.0,
+          2.5
+        ],
+        "min_z": 0.0,
+        "objects": [
+          "LF_FlowerClump",
+          "LF_FlowerClump_Petals",
+          "LF_FlowerClump_Stems"
+        ],
+        "materials": [
+          "LF_FlowerClump_Petals",
+          "LF_FlowerClump_Stems"
+        ]
+      }
+    },
+    "LF_TrailPost": {
+      "model": {
+        "triangles": 146,
+        "size": [
+          3.0,
+          3.0,
+          7.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_TrailPost",
+          "LF_TrailPost_Post",
+          "LF_TrailPost_Ribbon",
+          "LF_TrailPost_Stones"
+        ],
+        "materials": [
+          "LF_TrailPost_Post",
+          "LF_TrailPost_Ribbon",
+          "LF_TrailPost_Stones"
+        ]
+      }
+    }
+  }
+}
