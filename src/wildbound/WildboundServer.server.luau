@@ -7,6 +7,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local State = require(script.Parent:WaitForChild("WildboundState"))
 local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
+local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"))
 -- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
@@ -149,11 +150,16 @@ end
 local function reply(player, action, ok, reason, success)
 	send(player, action, ok, ok and success or (notices[reason] or "That action is not available."))
 end
-local function prompt(target, action, object, range, hold)
+-- input = one entry of WildboundPromptKeys. Camp prompts each have their own, so the nearest marker cannot take
+-- the key of another (found in W3b); Lumipol and drop prompts keep E.
+local function prompt(target, action, object, range, hold, input)
 	local value = Instance.new("ProximityPrompt")
+	local choice = input or Keys.LUMIPOL
 	value.ActionText, value.ObjectText = action, object
 	value.MaxActivationDistance, value.HoldDuration = range, hold or 0.25
-	value.RequiresLineOfSight, value.KeyboardKeyCode = false, Enum.KeyCode.E
+	value.RequiresLineOfSight = false
+	value.KeyboardKeyCode, value.GamepadKeyCode = Enum.KeyCode[choice.key], Enum.KeyCode[choice.pad]
+	value.UIOffset = Vector2.new(choice.offset[1], choice.offset[2])
 	value.Parent = target
 	return value
 end
@@ -176,21 +182,21 @@ local function extractNotice(count, receipt)
 	return ("Extracted %d item(s) and %d material(s). Earned %d Ember."):format(count, units, receipt.ember)
 end
 
-local extractPrompt = prompt(extraction, "Extract bag", "Camp · session only", 12)
+local extractPrompt = prompt(extraction, "Extract bag", "Camp · session only", 12, nil, Keys.CAMP.extract)
 extractPrompt.Triggered:Connect(function(player)
 	if not validPrompt(extractPrompt, extraction) or not allowed(player, "Extract") then return end
 	local alive, distance = context(player, extraction)
 	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
 	reply(player, "Extract", ok, count, ok and extractNotice(count, receipt) or nil)
 end)
-local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12)
+local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12, nil, Keys.CAMP.hatch)
 hatchPrompt.Triggered:Connect(function(player)
 	if not validPrompt(hatchPrompt, hatchMarker) or not allowed(player, "Hatch") then return end
 	local snapshot = state:snapshot(player.UserId)
 	local egg = snapshot and snapshot.bankedEggs[1]
 	hatch(player, egg and egg.uid)
 end)
-local protectionPrompt = prompt(protectionMarker, "Choose protected item", "Earned protection", 12)
+local protectionPrompt = prompt(protectionMarker, "Choose protected item", "Earned protection", 12, nil, Keys.CAMP.protect)
 protectionPrompt.Triggered:Connect(function(player)
 	if not validPrompt(protectionPrompt, protectionMarker) or not allowed(player, "ProtectHint") then return end
 	local alive, distance = context(player, protectionMarker)
