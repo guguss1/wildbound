@@ -1,4 +1,5 @@
 -- Local-source P0 world adapter. Deploy beside WildboundWorldRules after authorized testing resumes.
+local CollectionService = game:GetService("CollectionService")
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -9,6 +10,9 @@ local Hunt = require(script.Parent:WaitForChild("WildboundSiluetaHunt"))
 local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local Ambush = require(script.Parent:WaitForChild("WildboundAmbush"))
+-- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
+-- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
+local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
@@ -60,9 +64,11 @@ if map:FindFirstChild("WildboundWorldRuntime") or network:FindFirstChild("WorldA
 end
 local runtime = Instance.new("Folder")
 runtime.Name = "WildboundWorldRuntime"
+Ownership.claim(CollectionService, runtime)
 local function remote(name)
 	local value = Instance.new("RemoteEvent")
 	value.Name, value.Parent = name, network
+	Ownership.claim(CollectionService, value)
 	return value
 end
 local actionRemote, stateRemote = remote("WorldAction"), remote("WorldState")
