@@ -139,6 +139,9 @@ DEFAULT_MAPPINGS = [
     # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
     ("src/wildbound/WildboundHide.luau", "ServerScriptService.WildboundHide"),
     ("tests/WildboundHide_Test.luau", "ServerStorage.WildboundHide_Test"),
+    # Delivery D8: pure per-player threat bucket with held falls, server only
+    ("src/wildbound/WildboundThreatLevel.luau", "ServerScriptService.WildboundThreatLevel"),
+    ("tests/WildboundThreatLevel_Test.luau", "ServerStorage.WildboundThreatLevel_Test"),
 ]
 
 
