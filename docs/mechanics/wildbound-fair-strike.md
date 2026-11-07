@@ -2,7 +2,38 @@
 
 Unit M4.1, wave W2b. Records decisions D2 and D6.
 
-**Status: proposed design, decided by the parent for later user review on 2026-11-07. Nothing here is built.** All numbers are hypotheses. **Damage stays off outside a private test.** Turning it on anywhere else needs separate explicit approval (`odd/tasks/wildbound-waves.md:20`). Streaming stays on; option F is not used.
+**Status: built in wave W6 (M4.2 to M4.7) on 2026-11-07, shipped with `damageMode = "off"` and an empty place list. Agent-tested in Studio only; no person or phone has played it.** All numbers are hypotheses. **Damage stays off outside a private test.** Turning it on anywhere else needs separate explicit approval (`odd/tasks/wildbound-waves.md:20`). Streaming stays on; option F is not used.
+
+### W6 build notes
+
+Code: `WildboundFlags`, `WildboundFairStrike`, `WildboundAmbush` (pure, with contracts), wired in `WildboundWorld.server.luau`, `WildboundServer.server.luau`, both clients and `WildboundState`. Counters are `FS_*` attributes on `ServerStorage.WildboundTelemetry`.
+
+| Where this document proved wrong or incomplete | What was built |
+| --- | --- |
+| `DWELL_RADIUS` from `workspace.StreamingMinRadius`: a game script cannot read it ("lacking capability PluginOrOpenCloud"). Fail-closed then cancelled every honest strike | Falls back to 64, the value Studio reads for this place (MT-5). Lowering the place radius needs the fallback lowered too |
+| Counter identity listed every `cancel.*` | `cancel.duplicate` counts a second resolution of an already counted attack, so it is outside the identity |
+| Gate 2 (`cancel.stall`) | Unreachable in practice: the existing 0.5 s Heartbeat rule cancels first, as `attack.cancelledEarly`. Kept as defense in depth |
+| Gates 1, 4 and 7 | Contract-proven only. Normal flow resolves once, closes the attack on character change, and always warns at issue |
+| A target who dies mid-telegraph | Closes as a prior life, so its late id counts `ack.priorLife` |
+| Disconnect keeps mark and K in the D10 hold | No hold exists yet; mark and K go with the player, and drops are removed |
+| Ambush never picks the current anchor | It can re-pick the anchor it already patrols around when standing at a patrol corner; harmless, counted as `ambush.moved` |
+
+Play results (desktop Studio, damage off unless noted; private mode was a Play-only override, verified gone by hash):
+
+| Check | Result |
+| --- | --- |
+| Shadow strike, all gates pass | PASS, `shadow.wouldStrike` |
+| Dwell, geometry, guardian (mode flipped by a Play probe), not ready, ack missing, ack late, no liveness | PASS, each its own counter |
+| K: two withheld acks cancel, third lands as unacked | PASS |
+| Forged, extra argument, duplicate, 4 per second limit, wrong owner (second client), prior life | PASS |
+| Warning reaches only the target | PASS, second client received nothing |
+| Attack chip held until resolution | PASS, 1.49 s for a 1.4 s telegraph |
+| Private mode: mark to 35 with drop, owner pickup, pin at 35 with regeneration on, rest clears at 5 s, drop lost at 30 s, second strike defeats, loss summary, tap to close | PASS |
+| Ambush relocation | PASS, 56.8 studs, players 174 studs away; 30-minute run (FS-67) not run |
+| MT-2 | `PersistentLoaded` fires on the server and was seen on one of two clients |
+| MT-3, MT-4 | Server can read `GameplayPaused` and `GetNetworkPing()` (0.7 ms locally) |
+| MT-10 | Preload of the guardian and four clips 0.3 to 0.9 s, no failures; whether clips are truly cached is unverified |
+| MT-1, MT-6, MT-7, MT-11 to MT-14, FS-62 to FS-69, Network Simulator | Not run: need far or late joins, phones, a muted client, latency or people. Warning lead on a local client was 1.37 s |
 
 ## Choices worth your review
 
