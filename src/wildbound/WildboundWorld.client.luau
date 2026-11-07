@@ -50,7 +50,7 @@ local function button(parent, text, position, size)
 	return item
 end
 -- Positions come from the layout module (applyLayout below); only the sizes start here.
-local effects = button(gui, "Reduced: On", UDim2.new(), UDim2.fromOffset(126, 44))
+local effects = button(gui, "Reduced: Off", UDim2.new(), UDim2.fromOffset(126, 44))
 local flashlight = button(gui, "Flashlight (F)", UDim2.new(), UDim2.fromOffset(110, 44))
 local pulse = button(gui, "Pulse (Q)", UDim2.new(), UDim2.fromOffset(110, 44))
 effects.Name, flashlight.Name, pulse.Name = "ReducedButton", "FlashlightButton", "PulseButton"
@@ -97,7 +97,8 @@ local function applyChip(view)
 	chipGlyph.TextColor3 = shape.filled and rgb(tone.bg) or rgb(tone.text)
 	chip:SetAttribute("Kind", view.kind)
 end
-local reduced = true
+-- D11: off by default (On mutes the horror). The start screen offers it and may set it through the attribute.
+local reduced = false
 -- The capture screen reads this to stop its ring pulsing (M3.4).
 gui:SetAttribute("Reduced", reduced)
 local state, actionRemote, lastUpdate = nil, nil, 0
@@ -170,6 +171,14 @@ listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)
 	effects.Text = reduced and "Reduced: On" or "Reduced: Off"
+end)
+-- The Settings screen sets the same attribute; follow it so the button always shows the real value.
+listen(gui:GetAttributeChangedSignal("Reduced"), function()
+	local value = gui:GetAttribute("Reduced")
+	if type(value) == "boolean" and value ~= reduced then
+		reduced = value
+		effects.Text = reduced and "Reduced: On" or "Reduced: Off"
+	end
 end)
 listen(UserInputService.InputBegan, function(input, processed)
 	if processed or UserInputService:GetFocusedTextBox() then return end
