@@ -171,6 +171,43 @@ local function request(action)
 end
 listen(flashlight.Activated, function() request("Flashlight") end)
 listen(pulse.Activated, function() request("LumipolPulse") end)
+-- Delivery D6: while hidden, "Salir" covers the pulse slot; H, or the stick pushed past half for 0.25 s, exits too.
+-- The server moves the character in and out; this script only asks.
+local hideWords = {}
+do
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	local ok, value = false, nil
+	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
+	if ok and type(value) == "table" and type(value.HIDE) == "table" then hideWords = value.HIDE end
+end
+local hideExit = button(gui, hideWords.exit or "Salir", UDim2.new(), UDim2.fromOffset(110, 44))
+hideExit.Name, hideExit.Visible, hideExit.ZIndex = "HideExitButton", false, 5
+local pushedSince
+local function isHidden()
+	return type(player:GetAttribute("WildboundHidden")) == "string"
+end
+listen(player:GetAttributeChangedSignal("WildboundHidden"), function()
+	hideExit.Visible, pushedSince = isHidden(), nil
+end)
+listen(hideExit.Activated, function() request("HideExit") end)
+listen(UserInputService.InputBegan, function(input, processed)
+	if processed or UserInputService:GetFocusedTextBox() then return end
+	if input.KeyCode == Enum.KeyCode.H and isHidden() then request("HideExit") end
+end)
+listen(RunService.Heartbeat, function()
+	if not isHidden() then pushedSince = nil return end
+	hideExit.Position, hideExit.Size = pulse.Position, pulse.Size
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid and humanoid.MoveDirection.Magnitude > 0.5 then
+		pushedSince = pushedSince or os.clock()
+		if os.clock() - pushedSince >= 0.25 then
+			pushedSince = math.huge
+			request("HideExit")
+		end
+	else
+		pushedSince = nil
+	end
+end)
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)

@@ -15,6 +15,10 @@ local Ambush = require(script.Parent:WaitForChild("WildboundAmbush"))
 -- around the solid trunk cores. docs/mechanics/wildbound-guardian.md.
 local Brain = require(script.Parent:WaitForChild("WildboundGuardianBrain"))
 local GuardianPath = require(script.Parent:WaitForChild("WildboundGuardianPath"))
+-- Delivery D6 and D8: hiding spots and the per-player threat level the client plays audio from.
+local Hide = require(script.Parent:WaitForChild("WildboundHide"))
+local Threat = require(script.Parent:WaitForChild("WildboundThreatLevel"))
+local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 -- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
 -- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
 local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
@@ -47,11 +51,13 @@ end
 local totemHolders = setmetatable({}, { __mode = "k" })
 -- D-C5: Spanish strike, dodge and rest words. Missing means the English fallbacks in FairStrike.
 local strikeWords
+local hideWords = {}
 do
 	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
 	if textModule and textModule:IsA("ModuleScript") then
 		local ok, value = pcall(require, textModule)
 		if ok and type(value) == "table" and type(value.STRIKE) == "table" then strikeWords = value.STRIKE end
+		if ok and type(value) == "table" and type(value.HIDE) == "table" then hideWords = value.HIDE end
 	end
 end
 -- M5.6 bond: a pulse that revealed Silueta to a player in the fog is reported on a server-only event.
@@ -112,6 +118,14 @@ local telemetry = ServerStorage:FindFirstChild("WildboundTelemetry")
 if not telemetry then
 	telemetry = Instance.new("Folder")
 	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
+end
+-- Delivery D13: a Studio-only, server-only clock shift for Play checks of dusk and night: a NumberValue a tester puts
+-- in ServerStorage.WildboundTelemetry (no client can reach it). Outside Studio it is 0.
+local function cycleAt(now)
+	local holder = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
+	local shift = holder and holder:IsA("NumberValue") and holder.Value or 0
+	if shift ~= shift or math.abs(shift) > 1e6 then shift = 0 end
+	return Rules.cycle(now - originTime + shift)
 end
 local ledger = FairStrike.new()
 if flagMisconfigured then FairStrike.count(ledger, "flagMisconfigured") end
@@ -272,7 +286,9 @@ local function targetContext(player, range, allowHidden)
 	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range) then return nil end
 	-- Do not acquire through cover or on a different floor; recheck these at strike time.
 	if math.abs(position.Y - guardianPosition.Y) > 8 then return nil end
-	local inSight = visible(character, guardianPosition, position, true)
+	-- Delivery D6: a hidden player is never in sight, so never acquired, and hunts and strikes read them as lost.
+	local hidden = records[player] ~= nil and records[player].hide ~= nil
+	local inSight = not hidden and visible(character, guardianPosition, position, true)
 	if not inSight and not allowHidden then return nil end
 	return { player = player, character = character, humanoid = humanoid, root = root,
 		distance = (position - guardianPosition).Magnitude, visible = inSight }
@@ -428,7 +444,7 @@ end
 local function snapshot(player, action, ok, notice, noticeShort)
 	if stopped or not records[player] or player.Parent ~= Players then return end
 	local now = workspace:GetServerTimeNow()
-	local cycle = Rules.cycle(now - originTime)
+	local cycle = cycleAt(now)
 	local _, _, root = characterContext(player)
 	local isFog, isSafe = false, false
 	local distance = -1
@@ -596,7 +612,7 @@ local function loseTarget(now, phase)
 end
 
 local function step(now, dt)
-	local cycle = Rules.cycle(now - originTime)
+	local cycle = cycleAt(now)
 	local phase = cycle.phase
 	-- Delivery C1: day and night profiles come from the brain. Day is the calmest phase, Night the most active.
 	local profile = Brain.profile(phase)
@@ -734,6 +750,159 @@ local function stepAwareness(now)
 	end
 end
 
+-- Delivery D6: any known noise (capture, sprint, rustle) reaches the brain through one function.
+local function hearNoise(kind, tier, x, z)
+	if stopped or not Brain.NOISE[kind] or type(tier) ~= "string" or not Rules.finite(x) or not Rules.finite(z) then return end
+	extra.noises += 1
+	local now = workspace:GetServerTimeNow()
+	if COMBAT[mode] or now < recoveryEndsAt then return publish() end
+	local phase = cycleAt(now).phase
+	local position = body.Position
+	if Brain.hear(brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, Rules.clampTerritory) then
+		extra.noisesHeard += 1
+		GuardianPath.clear(nav)
+		setMode(brain.mode)
+		telemetry:SetAttribute("FSx_lastNoise", ("%s,%s,%.0f,%.0f,%s"):format(kind, tier, x, z, brain.mode))
+	end
+	publish()
+end
+
+-- Delivery D6: hiding spots. The prompt is the only way in; HideExit, death, discovery and the time limit are the
+-- ways out. Positions come from the spot, never from a client. docs/mechanics/wildbound-delivery-d.md section 3.
+local hideOccupants = {} -- spot id -> player
+local HIDE_REFUSAL = { Seen = "seen", Occupied = "occupied", Capturing = "busy", Cooldown = "cooldown" }
+local function isCapturing(player)
+	local ok, value = pcall(function() return eligibility:Invoke(player, "Capturing") end)
+	return ok and value == true
+end
+local function noiseTier(x, z)
+	local _, safe = Rules.zone(x, z)
+	if safe then return nil end
+	return Rules.inTerritory(x, z) and "Territory" or "Fog"
+end
+local function hideNotice(player, ok, key)
+	local words = key and hideWords[key]
+	if type(words) == "string" then snapshot(player, "Hide", ok, words, key == "entered" and hideWords.short or words) end
+end
+
+local function releaseHide(player, reason, now)
+	local record = records[player]
+	local hide = record and record.hide
+	if not hide then return end
+	record.hide = nil
+	if hideOccupants[hide.id] == player then hideOccupants[hide.id] = nil end
+	if player.Parent == Players then player:SetAttribute("WildboundHidden", nil) end
+	if reason == "found" or reason == "tooLong" then record.hideCooldown[hide.id] = Hide.cooldownUntil(now) end
+	local root = hide.root
+	if root and root.Parent then
+		root.Anchored = false
+		if reason ~= "dead" and reason ~= "left" then
+			local point = Hide.exitPoint(hide.x, hide.z, body.Position.X, body.Position.Z)
+			root.CFrame = CFrame.lookAt(Vector3.new(point.x, hide.y, point.z),
+				Vector3.new(point.x + point.faceX, hide.y, point.z + point.faceZ))
+		end
+	end
+	if reason == "found" or reason == "tooLong" then hideNotice(player, false, reason) end
+end
+
+local function enterHide(player, spot)
+	local record = records[player]
+	if stopped or not record or record.hide then return end
+	local zone = spot:FindFirstChild("HideZone")
+	-- The spot id is in the model name (HideSpot_H01), so no attribute is read back here.
+	local id = spot.Name:match("^HideSpot_(H%d+)$")
+	if not (zone and zone:IsA("BasePart") and type(id) == "string") then return end
+	local now = workspace:GetServerTimeNow()
+	local _, _, root = characterContext(player)
+	local result = awarenessResults and awarenessResults[player.UserId]
+	local ok, reason = Hide.canEnter({ alive = root ~= nil, capturing = isCapturing(player),
+		occupied = hideOccupants[id] ~= nil and hideOccupants[id] ~= player,
+		seen = result ~= nil and result.state == "seen", cooldownUntil = record.hideCooldown[id], now = now })
+	if ok and (root.Position - zone.Position).Magnitude > Hide.CONFIG.PROMPT_DISTANCE + 4 then ok, reason = false, "Far" end
+	if not ok then return hideNotice(player, false, HIDE_REFUSAL[reason]) end
+	-- The Capturing question yields, so check the record, the character and the spot again before taking it.
+	local _, _, again = characterContext(player)
+	if stopped or records[player] ~= record or record.hide or hideOccupants[id] or again ~= root then return end
+	local inside = zone.Position
+	hideOccupants[id] = player
+	record.hide = { id = id, root = root, enteredAt = now, dwell = Hide.newDwell(), x = inside.X, y = root.Position.Y,
+		z = inside.Z }
+	root.Anchored = true
+	root.CFrame = CFrame.new(inside.X, inside.Y + 1.5, inside.Z) * root.CFrame.Rotation
+	player:SetAttribute("WildboundHidden", id)
+	local tier = noiseTier(inside.X, inside.Z)
+	if tier then hearNoise("rustle", tier, inside.X, inside.Z) end
+	hideNotice(player, true, "entered")
+end
+
+-- Each fixed step: a dead or replaced character leaves its spot, 45 s is the limit, and a guardian that stands
+-- near the spot long enough finds the player and engages with the short re-acquire wind-up.
+local function stepHiding(now)
+	local phase = cycleAt(now).phase
+	for player, record in pairs(records) do
+		local hide = record.hide
+		if hide then
+			local _, _, root = characterContext(player)
+			if not root or root ~= hide.root then
+				releaseHide(player, "dead", now)
+			elseif Hide.tooLong(hide.enteredAt, now) then
+				releaseHide(player, "tooLong", now)
+			else
+				local dx, dz = body.Position.X - hide.x, body.Position.Z - hide.z
+				if Hide.discover(hide.dwell, { dt = 0.2, mode = mode, phase = phase, targetIsMe = target == player,
+					distance = math.sqrt(dx * dx + dz * dz) }) then
+					releaseHide(player, "found", now)
+					if not COMBAT[mode] then
+						target, targetLife, chaseStartedAt = player, player.Character, now
+						alertEndsAt = now + Brain.engage(brain, now, phase)
+						GuardianPath.clear(nav)
+						setMode("Alert")
+					end
+				end
+			end
+		end
+	end
+end
+
+-- Delivery D8: the threat bucket per player, published as attributes. It reveals nothing a streamed client cannot
+-- already see about the guardian, and the client plays all horror audio from it.
+local function stepThreat(now)
+	for player, record in pairs(records) do
+		local _, _, root = characterContext(player)
+		local safe, distance = false, nil
+		if root then
+			local _, isSafe = Rules.zone(root.Position.X, root.Position.Z)
+			local dx, dz = root.Position.X - body.Position.X, root.Position.Z - body.Position.Z
+			safe, distance = isSafe, math.sqrt(dx * dx + dz * dz)
+		end
+		record.threat = record.threat or Threat.new()
+		local level = Threat.update(record.threat, { mode = mode, distance = distance, targetIsMe = target == player,
+			hidden = record.hide ~= nil, safe = safe, alive = root ~= nil }, now)
+		if record.publishedThreat ~= level then
+			record.publishedThreat = level
+			player:SetAttribute("WildboundThreatLevel", level)
+			player:SetAttribute("WildboundThreatAt", now)
+		end
+	end
+end
+
+local function bindHideSpot(spot)
+	if not spot:IsA("Model") then return end
+	local zone = spot:FindFirstChild("HideZone")
+	local prompt = zone and zone:FindFirstChildOfClass("ProximityPrompt")
+	if not prompt then return end
+	prompt.ActionText = hideWords.prompt or "Esconderse"
+	local kinds = hideWords.kind
+	prompt.ObjectText = type(kinds) == "table" and kinds[spot:FindFirstChild("Hollow") and "log" or "bush"] or ""
+	prompt.KeyboardKeyCode, prompt.GamepadKeyCode = Enum.KeyCode[Keys.HIDE.key], Enum.KeyCode[Keys.HIDE.pad]
+	prompt.HoldDuration, prompt.MaxActivationDistance = Hide.CONFIG.PROMPT_HOLD, Hide.CONFIG.PROMPT_DISTANCE
+	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OneGlobally
+	prompt.RequiresLineOfSight = false
+	table.insert(connections, prompt.Triggered:Connect(function(player) enterHide(player, spot) end))
+end
+for _, spot in ipairs(CollectionService:GetTagged("WildboundHideSpot")) do bindHideSpot(spot) end
+table.insert(connections, CollectionService:GetInstanceAddedSignal("WildboundHideSpot"):Connect(bindHideSpot))
+
 local notices = {
 	InvalidContext = "Use abilities while alive in your current character.",
 	NotEquipped = "Extract and equip a registered Lumipol first. The flashlight is always free.",
@@ -747,13 +916,14 @@ local noticesShort = {
 }
 table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, action, ...)
 	if stopped or select("#", ...) ~= 0 or type(action) ~= "string" then return end
-	if action ~= "RequestSnapshot" and action ~= "Flashlight" and action ~= "LumipolPulse" then return end
+	if action ~= "RequestSnapshot" and action ~= "Flashlight" and action ~= "LumipolPulse" and action ~= "HideExit" then return end
 	local record = records[player]
 	if not record then return end
 	local now = workspace:GetServerTimeNow()
 	-- Bounded known keys only. Spam is dropped, never reflected with an unbounded reply.
 	if now - record.lastRequest < 0.3 or now - (record.rates[action] or -math.huge) < 1 then return end
 	record.lastRequest, record.rates[action] = now, now
+	if action == "HideExit" then return releaseHide(player, "exit", now) end
 	if action == "RequestSnapshot" then
 		snapshot(player, action, true, "Connected to the shared world clock.")
 		return
@@ -828,21 +998,7 @@ end)
 -- guardian still recovering from an attack ignores it.
 if noiseEvent then
 	table.insert(connections, noiseEvent.Event:Connect(function(kind, tier, x, z)
-		if stopped or (kind ~= "ring" and kind ~= "seal") or type(tier) ~= "string" or not Rules.finite(x) or not Rules.finite(z) then
-			return
-		end
-		extra.noises += 1
-		local now = workspace:GetServerTimeNow()
-		if COMBAT[mode] or now < recoveryEndsAt then return publish() end
-		local phase = Rules.cycle(now - originTime).phase
-		local position = body.Position
-		if Brain.hear(brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, Rules.clampTerritory) then
-			extra.noisesHeard += 1
-			GuardianPath.clear(nav)
-			setMode(brain.mode)
-			telemetry:SetAttribute("FSx_lastNoise", ("%s,%s,%.0f,%.0f,%s"):format(kind, tier, x, z, brain.mode))
-		end
-		publish()
+		if kind == "ring" or kind == "seal" then hearNoise(kind, tier, x, z) end
 	end))
 end
 -- A replaced or removed guardian closes its attack; its old ids then classify as forged (FS-15).
@@ -856,7 +1012,8 @@ end))
 local function addPlayer(player)
 	if stopped or records[player] then return end
 	local record = { cooldowns = {}, rates = {}, lastRequest = -math.huge, character = player.Character,
-		ackBucket = {}, readyBucket = {}, pulseBucket = {} }
+		ackBucket = {}, readyBucket = {}, pulseBucket = {},
+		hideCooldown = {}, threat = Threat.new() }
 	records[player] = record
 	record.characterConnection = player.CharacterAdded:Connect(function(character)
 		if records[player] == record then
@@ -867,6 +1024,7 @@ local function addPlayer(player)
 	end)
 	-- Cooldowns survive respawn in this server; there is no death/reset cooldown bypass.
 	record.removingConnection = player.CharacterRemoving:Connect(function(character)
+		if records[player] == record and record.hide then releaseHide(player, "dead", workspace:GetServerTimeNow()) end
 		if records[player] == record and record.character == character then record.character = nil end
 	end)
 end
@@ -876,6 +1034,7 @@ table.insert(connections, Players.PlayerRemoving:Connect(function(player)
 	if not record then return end
 	record.characterConnection:Disconnect()
 	record.removingConnection:Disconnect()
+	releaseHide(player, "left", workspace:GetServerTimeNow())
 	records[player] = nil
 	-- Disconnect is not a defeat (D10). No hold record exists yet, so the mark and K go with the player.
 	if ledger.attack and ledger.attack.userId == player.UserId then cancelOpenAttack("disconnect") end
@@ -904,6 +1063,8 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 			visual:setMoving(after.X ~= before.X or after.Z ~= before.Z)
 		end
 		stepAwareness(now)
+		stepHiding(now)
+		stepThreat(now)
 		if damageMode == "private" then stepMarks(now) end
 		accumulator = 0
 	end
@@ -923,6 +1084,7 @@ local function cleanup()
 	for player, record in pairs(records) do
 		record.characterConnection:Disconnect()
 		record.removingConnection:Disconnect()
+		if record.hide and record.hide.root and record.hide.root.Parent then record.hide.root.Anchored = false end
 		records[player] = nil
 	end
 	-- Destroy only the objects owned by this script, never the map/inventory root.

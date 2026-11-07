@@ -172,4 +172,18 @@ return freeze({
 		bundleCount = "ramo de Nightbloom (%d)",
 		notice = "Derrotado: perdiste lo que no estaba protegido y una parte de tus materiales. Lo registrado se queda.",
 	},
+	-- Delivery D6: hiding spots. Notices at most 64 bytes; the short line at most 40.
+	HIDE = {
+		prompt = "Esconderse",
+		exit = "Salir",
+		entered = "Te escondes. No te muevas.",
+		seen = "Te están viendo. Rompe su línea de visión primero.",
+		occupied = "Este escondite está ocupado.",
+		busy = "Termina de calmar al Lumipol primero.",
+		tooLong = "Ya no aguantas más ahí dentro.",
+		found = "¡La Silueta te encontró!",
+		cooldown = "Espera un momento antes de volver aquí.",
+		short = "Escondido: no te muevas.",
+		kind = { bush = "Arbusto espeso", log = "Tronco hueco" },
+	},
 })

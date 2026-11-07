@@ -17,12 +17,15 @@ Keys.CAMP = table.freeze({
 -- checks the spawn slots against the camp markers elsewhere in the world rules).
 Keys.LUMIPOL = table.freeze({ key = "E", pad = "ButtonX", offset = table.freeze({ 0, 0 }) })
 Keys.GATHER = table.freeze({ key = "G", pad = "ButtonY", offset = table.freeze({ 0, 0 }) })
+-- Delivery D6: hiding spots sit off the routes, near gather nodes and Lumipols but never in camp.
+Keys.HIDE = table.freeze({ key = "H", pad = "DPadUp", offset = table.freeze({ 0, 0 }) })
 
 -- Every pair of prompts that can be in reach at once must differ on both inputs.
 function Keys.conflicts()
 	local groups = {
 		{ "extract", Keys.CAMP.extract }, { "hatch", Keys.CAMP.hatch }, { "protect", Keys.CAMP.protect },
 		{ "register", Keys.CAMP.register }, { "board", Keys.CAMP.board }, { "gather", Keys.GATHER },
+		{ "hide", Keys.HIDE },
 	}
 	local found = {}
 	for first = 1, #groups do
@@ -30,10 +33,15 @@ function Keys.conflicts()
 			local a, b = groups[first], groups[second]
 			if a[2].key == b[2].key or a[2].pad == b[2].pad then
 				table.insert(found, a[1] .. " and " .. b[1] .. " share an input")
-			elseif a[2].offset[1] == b[2].offset[1] and a[2].offset[2] == b[2].offset[2] and a[1] ~= "gather" and b[1] ~= "gather" then
+			elseif a[2].offset[1] == b[2].offset[1] and a[2].offset[2] == b[2].offset[2] and a[1] ~= "gather" and b[1] ~= "gather"
+				and a[1] ~= "hide" and b[1] ~= "hide" then
 				table.insert(found, a[1] .. " and " .. b[1] .. " share a screen offset")
 			end
 		end
+	end
+	-- A hiding spot can be in reach of a Lumipol, which keeps E (never at camp, so not in the groups above).
+	if Keys.HIDE.key == Keys.LUMIPOL.key or Keys.HIDE.pad == Keys.LUMIPOL.pad then
+		table.insert(found, "hide and lumipol share an input")
 	end
 	return found
 end

@@ -110,6 +110,13 @@ eligibility.OnInvoke = function(player, ability)
 		end
 		return { registered = #snapshot.registered, banked = banked, ember = snapshot.ember or 0 }
 	end
+	-- Delivery D6: whether this player has a capture open, so the world script refuses hiding. A yes or no only.
+	if ability == "Capturing" then
+		for _, session in ipairs(capture:activeSessions()) do
+			if session.playerKey == player.UserId then return true end
+		end
+		return false
+	end
 	if ability ~= "LumipolPulse" then return false end
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot or not snapshot.equippedUid then return false end

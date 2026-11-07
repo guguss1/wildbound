@@ -48,5 +48,14 @@ return function(Keys, serverSource, gatherSource)
 		local listed = table.concat(Keys.conflicts(), "; ")
 		equal(#Keys.conflicts(), 0, listed)
 	end)
+	case("D6: hiding uses H and its own pad button, and shares no input with gather or a Lumipol", function()
+		local entry = Keys.HIDE
+		assert(entry and Enum.KeyCode[entry.key] and Enum.KeyCode[entry.pad], "hide has a key and a pad button")
+		equal(entry.key, "H")
+		for _, other in ipairs({ Keys.GATHER, Keys.LUMIPOL }) do
+			assert(other.key ~= entry.key and other.pad ~= entry.pad, "hide shares an input")
+		end
+		equal(#Keys.conflicts(), 0, table.concat(Keys.conflicts(), "; "))
+	end)
 	return result
 end

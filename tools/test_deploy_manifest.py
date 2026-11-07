@@ -324,6 +324,8 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery D8: pure per-player threat bucket with held falls, server only
         "src/wildbound/WildboundThreatLevel.luau": "ServerScriptService.WildboundThreatLevel",
         "tests/WildboundThreatLevel_Test.luau": "ServerStorage.WildboundThreatLevel_Test",
+        # Delivery D6 and D8: source contracts for the hiding, threat and clock wiring
+        "tests/WildboundHideWiring_Test.luau": "ServerStorage.WildboundHideWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

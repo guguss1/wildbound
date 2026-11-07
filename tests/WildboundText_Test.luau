@@ -151,6 +151,19 @@ return function(Text, source, sources)
 		assert(not D.title:find("Defeated", 1, true) and not D.close:find("Tap", 1, true), "Spanish, not English")
 		assert(D.notice:find("campamento", 1, true) == nil or #D.notice <= 120)
 	end)
+	case("D6: hiding words in Spanish, within their budgets", function()
+		local H = Text.HIDE
+		assert(type(H) == "table", "HIDE table")
+		equal(H.prompt, "Esconderse")
+		equal(H.exit, "Salir")
+		for _, key in ipairs({ "entered", "seen", "occupied", "busy", "tooLong", "found", "cooldown" }) do
+			text(H[key], "HIDE." .. key, 64)
+		end
+		text(H.short, "HIDE.short", 40)
+		equal(H.kind.bush, "Arbusto espeso")
+		equal(H.kind.log, "Tronco hueco")
+		assert(not H.entered:find("hide", 1, true) and not H.found:find("found", 1, true), "Spanish, not English")
+	end)
 	case("the module source holds data only", function()
 		assert(type(source) == "string" and #source > 200, "source missing")
 		for _, banned in ipairs({ "GetService", "require", "workspace", "game%.", "Instance" }) do
