@@ -105,7 +105,10 @@ local function build(node)
 	prompt.ActionText = "Gather"
 	prompt.ObjectText = ("%s x%d%s"):format(look.name, node.quantity or 1, node.material == "nightbloom" and " · wilts at Dawn" or "")
 	prompt.MaxActivationDistance, prompt.HoldDuration = Config.gather.promptRange, node.hold
-	prompt.RequiresLineOfSight, prompt.KeyboardKeyCode = false, Enum.KeyCode.E
+	prompt.RequiresLineOfSight = false
+	-- Its own keys, so a wild Lumipol standing on a node (it roams near T1) cannot take the button: prompts on the
+	-- same keys show only the nearest one, and the Lumipol and the camp prompts keep E and ButtonX.
+	prompt.KeyboardKeyCode, prompt.GamepadKeyCode = Enum.KeyCode.G, Enum.KeyCode.ButtonY
 	prompt.Parent = body
 	prompt.PromptButtonHoldBegan:Connect(function(player)
 		local root = rootOf(player)

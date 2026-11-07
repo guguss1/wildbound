@@ -178,7 +178,8 @@ return function(Field, Config, Spawn, source, gatherSource, serverSource)
 	case("the gather script draws low non-colliding nodes and claims only from a prompt", function()
 		assert(type(gatherSource) == "string" and #gatherSource > 1000, "gather source missing")
 		for _, needle in ipairs({ "CanCollide = false", "CanQuery = false", "CanTouch = false", "ProximityPrompt",
-			"HoldDuration", '"GatherSpawn"', '"GatherClaim"', '"GatherRetire"', "Field.look(", "Field.holdBroken(" }) do
+			"HoldDuration", '"GatherSpawn"', '"GatherClaim"', '"GatherRetire"', "Field.look(", "Field.holdBroken(",
+			"Enum.KeyCode.G", "Enum.KeyCode.ButtonY" }) do
 			assert(gatherSource:find(needle, 1, true), "the gather script lacks " .. needle)
 		end
 		local claims = 0
