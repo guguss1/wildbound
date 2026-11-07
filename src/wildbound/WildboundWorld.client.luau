@@ -157,18 +157,18 @@ listen(RunService.Heartbeat, function(dt)
 	local fog = state.isFog == true
 	local night = state.phase == "Night"
 	local strength = reduced and 0.45 or 1
-	local ambient = original.Ambient:Lerp(night and Color3.fromRGB(44, 56, 58) or Color3.fromRGB(102, 113, 100), strength)
-	local outdoor = original.OutdoorAmbient:Lerp(night and Color3.fromRGB(49, 60, 65) or Color3.fromRGB(126, 136, 118), strength)
+	local ambient = original.Ambient:Lerp(night and Color3.fromRGB(34, 46, 76) or Color3.fromRGB(102, 113, 100), strength)
+	local outdoor = original.OutdoorAmbient:Lerp(night and Color3.fromRGB(40, 54, 86) or Color3.fromRGB(126, 136, 118), strength)
 	local alpha = 1 - math.exp(-step * 0.5)
 	Lighting.Ambient = Lighting.Ambient:Lerp(ambient, alpha)
 	Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(outdoor, alpha)
-	Lighting.FogColor = Lighting.FogColor:Lerp(fog and Color3.fromRGB(96, 110, 105) or original.FogColor, alpha)
+	Lighting.FogColor = Lighting.FogColor:Lerp(fog and (night and Color3.fromRGB(40, 54, 72) or Color3.fromRGB(96, 110, 105)) or original.FogColor, alpha)
 	Lighting.FogStart += ((fog and 45 or original.FogStart) - Lighting.FogStart) * alpha
 	Lighting.FogEnd += ((fog and (reduced and 180 or 130) or original.FogEnd) - Lighting.FogEnd) * alpha
 	if atmosphere.Parent == Lighting then
 		local density = fog and (night and (reduced and 0.35 or 0.4) or 0.3) or 0.2
 		atmosphere.Density += (density - atmosphere.Density) * alpha
-		atmosphere.Color = atmosphere.Color:Lerp(fog and Color3.fromRGB(140, 153, 145) or originalAtmosphere.Color, alpha)
+		atmosphere.Color = atmosphere.Color:Lerp(fog and (night and Color3.fromRGB(78, 94, 116) or Color3.fromRGB(140, 153, 145)) or originalAtmosphere.Color, alpha)
 		atmosphere.Haze += ((fog and (reduced and 0.5 or 1) or 0) - atmosphere.Haze) * alpha
 	end
 	if type(state.clockTime) == "number" then

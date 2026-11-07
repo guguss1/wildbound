@@ -48,16 +48,16 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 
 | ID | Wave | Work | Route | Status |
 | --- | --- | --- | --- | --- |
-| W0 | 0 | Dress the map, LOS rule | Sonnet, Studio writer | Running |
-| W1a | 1 | Stale banners, M0.2 | Haiku | Running |
+| W0 | 0 | Dress the map, LOS rule | Sonnet, Studio writer | Done, `13086db` |
+| W1a | 1 | Stale banners, M0.2 | Haiku | Done, `ca40685` |
 | W1b | 1 | Deployment manifest, M0.3 | Sonnet | Done, `823389f`, 24 tests |
-| W1c | 1 | Lighting, Play route, captures, T7 | Sonnet, Studio writer | After W0 |
-| W2a | 2 | Hash comparison, 80 contracts, natural cycle, C1 to C7, M1.1, M1.5, M1.6 | Sonnet, Studio writer | After W1c |
-| W2b | 2 | Fair-strike proposal, M4.1 | Opus high | Pending |
-| W2c | 2 | Silueta pressure simulator | Sonnet | Pending |
+| W1c | 1 | Lighting, Play route, captures, T7 | Sonnet, Studio writer | Done |
+| W2a | 2 | Hash comparison, full contracts, natural cycle, C1 to C7, M1.1, M1.5, M1.6 | Sonnet, Studio writer | Running |
+| W2b | 2 | Fair-strike proposal, M4.1 | Opus high | Done, `af0900c` |
+| W2c | 2 | Silueta pressure simulator | Sonnet | Running |
 | W3a | 3 | Awareness rule with contracts, M2.1 | Opus high | After W2a |
-| W3b | 3 | Server and HUD wiring, M2.2, M2.3, M2.6 | Sonnet, Studio writer | After W3a |
-| W4a | 4 | Capture and economy proposals, M3.1, M5.1 | Opus high | Pending |
+| W3b | 3 | Server and HUD wiring, M2.2, M2.3, M2.6, compact phone HUD | Sonnet, Studio writer | After W3a |
+| W4a | 4 | Capture and economy proposals, M3.1, M5.1 | Opus high | Done, `af0900c` |
 | W4b | 4 | Lumipol v2 and search pose clip, local only | Sonnet, Blender | Pending |
 | W5 | 5 | Skill capture code, M3.2 to M3.5, no uploads | Opus high, Sonnet | After W3 |
 | W6 | 6 | Fair damage code, M4.2 to M4.8, `damageMode` default off | Opus high, Sonnet | After W5 |

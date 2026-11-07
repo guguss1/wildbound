@@ -38,7 +38,7 @@ The greybox uses plain trunks and spheres, so it does not read as the intended f
 - [x] T4 Review renders with the user. Route: inline. Evidence: user approved placing the props on 2026-11-07.
 - [x] T5 Get upload consent, import the kit, and dress the map in Studio. Route: import inline, dressing delegated to one Sonnet Studio writer. Commit `13086db`.
 - [x] T6 Move the nest with a failing map test first in source and Studio builder. Route: inline, three mechanical edits. The live `Workspace.WildboundP0` is rebuilt with the T5 dressing step.
-- [ ] T7 Lighting pass and day and night captures, desktop and phone emulation. Route: delegated.
+- [x] T7 Lighting pass and day and night captures, desktop and phone emulation. Route: delegated to one Sonnet Studio writer.
 
 ## Acceptance
 
@@ -72,4 +72,8 @@ Started 2026-11-07.
   - Open: `moveToward` also raycasts, so trunks can stop the guardian. Territory has 38 query trunks against 18 before. Parent reading: during direct chase the sight ray and step share a line, so stalls should be rare, but this is unmeasured. Measure in T7 Play.
   - Known minor: arch root toes touch the path edge; two models' part boxes cross the map edge by 0.6 studs or less; `tools/export_forest_layout_luau.py` has no unit test, only a checksum check.
   - A computer-use screenshot of Studio can show a stale viewport. `screen_capture` and data-model readback are the evidence.
-- Next step: T7 lighting, Play walk and final captures.
+- T7: night targets changed, Day unchanged; values in `docs/ui/wildbound-world.md`. One short-range PointLight per lantern, 16 total, RED 24 passed 1 failed, GREEN dress 25 of 25 and map 6 of 6; parent reran both. Play walk: all six legs and the return arrived, no stuck point. Parent viewed day and night captures on desktop and phone emulation: avatar, path edge and nearest lantern read at night.
+  - Guardian steering measured: 26 chase episodes and a 57 s moving chase, 0 stalls over 0.6 s; retreats returned home in about 3.3 s. Reached the nest and telegraphed in 6 of 6 trials, within 18.5 s by day and 5.6 s by night. No code change needed.
+  - Finding, not fixed here: on a 750 x 381 phone view the HUD fills about half the screen, covers the avatar at default framing, and one line is cut off. Goes to wave W3b.
+  - Not verified: real devices and their frame rate, multiplayer, natural cycle, Reduced effects off. All captures use Reduced On. Desktop Studio only about 60 FPS.
+- Closed 2026-11-07. Remaining verification moves to wave W2a in `odd/tasks/wildbound-waves.md`.

@@ -219,6 +219,35 @@ return function(builder, forest, templates, layout)
         expect(queryParts == trees, string.format('expected %d query trunks, found %d', trees, queryParts))
     end)
 
+    check('each lantern glass carries one short-range PointLight without shadows, nothing else is lit', function()
+        expect(kit, 'ForestKit missing')
+        local lit = 0
+        for _, descendant in kit:GetDescendants() do
+            if descendant:IsA('Light') then
+                lit += 1
+                expect(descendant:IsA('PointLight'), descendant:GetFullName() .. ' must be a PointLight')
+                expect(descendant.Parent.Name == 'FK_LanternMarker_Glass', 'light on ' .. descendant.Parent.Name .. ' instead of a lantern glass')
+                expect(descendant.Shadows == false, descendant:GetFullName() .. ' must not cast shadows')
+                expect(descendant.Enabled, descendant:GetFullName() .. ' must be enabled')
+                expect(descendant.Range >= 12 and descendant.Range <= 24, string.format('light range %.1f must stay between 12 and 24', descendant.Range))
+                expect(descendant.Brightness > 0 and descendant.Brightness <= 3, string.format('light brightness %.2f out of range', descendant.Brightness))
+            end
+        end
+        local lanterns = layout.totals.by_name.FK_LanternMarker.count
+        expect(lit == lanterns, string.format('expected %d lantern lights, found %d', lanterns, lit))
+        for _, child in kit:GetChildren() do
+            if propOf(child.Name) == 'FK_LanternMarker' then
+                local own = 0
+                for _, descendant in child:GetDescendants() do
+                    if descendant:IsA('Light') then
+                        own += 1
+                    end
+                end
+                expect(own == 1, child.Name .. ' must hold exactly one light, found ' .. own)
+            end
+        end
+    end)
+
     check('query trunks follow the real shape, not their bounding box', function()
         expect(kit, 'ForestKit missing')
         for _, part in kit:GetDescendants() do

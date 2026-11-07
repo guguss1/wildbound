@@ -14,6 +14,10 @@ local PROPS = {
 -- root flare); a detached clone cannot take a new fidelity, so it is set on the templates.
 local QUERY_PARTS = { FK_Evergreen_Trunk = true, FK_DeadTree_Wood = true }
 local YIELD_EVERY = 12 -- props per frame, so Studio stays responsive
+-- Each lantern glows with one short-range light, so the path edge and avatar stay readable in the
+-- dark. No shadows: it must stay cheap on phones. Lights never affect the guardian's sight rays.
+local LANTERN_GLASS = 'FK_LanternMarker_Glass'
+local LANTERN_LIGHT = { Brightness = 1.0, Range = 18, Color = Color3.fromRGB(255, 165, 85) }
 
 local function refuse(message)
     error('forest dress refused: ' .. message, 0)
@@ -78,6 +82,14 @@ local function place(template, item, parent)
             descendant.CanTouch = false
             descendant.CanQuery = QUERY_PARTS[descendant.Name] == true
         end
+    end
+    if item.name == 'FK_LanternMarker' then
+        local glass = model:FindFirstChild(LANTERN_GLASS, true)
+        assert(glass and glass:IsA('BasePart'), 'lantern template needs ' .. LANTERN_GLASS)
+        local light = Instance.new('PointLight')
+        light.Brightness, light.Range, light.Color = LANTERN_LIGHT.Brightness, LANTERN_LIGHT.Range, LANTERN_LIGHT.Color
+        light.Shadows = false
+        light.Parent = glass
     end
     model:ScaleTo(item.scale)
     model:PivotTo(CFrame.new(item.x, FLOOR_Y, item.z) * CFrame.Angles(0, math.rad(item.rotation_y_deg), 0))
