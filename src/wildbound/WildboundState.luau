@@ -123,10 +123,23 @@ local function carriedUnits(player)
 	return total
 end
 
--- Every new item enters the bag here, so the expedition counts it once.
+-- The bag item warded by this source ("Seal" or "Totem"), if any. Each wards at most one item.
+local function warded(player, source)
+	for _, entry in ipairs(player.pending) do
+		if entry.protected and entry.wardSource == source then return entry end
+	end
+	return nil
+end
+
+-- Every new item enters the bag here, so the expedition counts it once and an armed seal (M5.5)
+-- wards it. A reclaimed drop is not new and never takes the armed seal.
 local function addToBag(self, player, entry)
 	table.insert(player.pending, entry)
 	if player.expedition then player.expedition.newItems += 1 end
+	if player.sealArmed and player.consumables.seal > 0 and not warded(player, "Seal") then
+		entry.protected, entry.wardSource = true, "Seal"
+		player.sealArmed = false
+	end
 	return entry
 end
 
@@ -253,8 +266,25 @@ function State:gather(key, nodeId, slotId, material, quantity, alive, distance, 
 	return true, receipt
 end
 
+-- An expedition that left camp ends here, by extraction or defeat. An armed totem is spent with it,
+-- whether or not it saved anything (M5.5).
 local function closeExpedition(self, player)
+	if player.expedition and player.totemActive then player.totemActive = false end
 	player.expedition = nil
+end
+
+-- A bag item moves to the collection or the bank and pays its Ember. Shared by extraction and capsule.
+local function bankItem(self, player, entry)
+	if entry.kind == "Egg" then
+		table.insert(player.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species })
+	elseif entry.kind == "Nightbloom" then
+		player.banked.nightbloom += entry.quantity
+	else
+		table.insert(player.registered, { uid = entry.uid, species = entry.species })
+	end
+	local ember = self.economy.itemEmber(self.config, entry)
+	player.ember += ember
+	return ember
 end
 
 function State:extract(key, alive, distance, now)
@@ -265,16 +295,7 @@ function State:extract(key, alive, distance, now)
 	if count == 0 and units == 0 then return false, "Empty" end
 	local economy, config = self.economy, self.config
 	local receipt = { items = count, units = table.clone(player.carried), ember = 0, baseEmber = 0 }
-	for _, entry in ipairs(player.pending) do
-		receipt.ember += economy.itemEmber(config, entry)
-		if entry.kind == "Egg" then
-			table.insert(player.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species })
-		elseif entry.kind == "Nightbloom" then
-			player.banked.nightbloom += entry.quantity
-		else
-			table.insert(player.registered, { uid = entry.uid, species = entry.species })
-		end
-	end
+	for _, entry in ipairs(player.pending) do receipt.ember += bankItem(self, player, entry) end
 	for material, quantity in pairs(player.carried) do
 		player.banked[material] += quantity
 		player.carried[material] = 0
@@ -284,8 +305,8 @@ function State:extract(key, alive, distance, now)
 		receipt.baseEmber = economy.baseEmber(config, now - expedition.startedAt, expedition.maxDistanceFromCamp,
 			expedition.newUnits + expedition.newItems)
 		receipt.ember += receipt.baseEmber
+		player.ember += receipt.baseEmber
 	end
-	player.ember += receipt.ember
 	player.pending = {}
 	if not player.earnedSeal then
 		-- Adds, never assigns, so crafted seals are kept (ECO-07). Held seals never pass their cap.
@@ -325,12 +346,126 @@ function State:protect(key, uid, alive)
 	local _, entry = find(player.pending, uid)
 	if not entry then return false, "NotOwnedPending" end
 	if entry.protected then return true, uid end
-	if player.consumables.seal < 1 then return false, "NoSeal" end
-	for _, pending in ipairs(player.pending) do
-		if pending.protected then return false, "AlreadyProtected" end
+	-- An active totem wards first: it is spent with the trip anyway, so the seal is kept for later.
+	if player.totemActive and not warded(player, "Totem") then
+		entry.protected, entry.wardSource = true, "Totem"
+		return true, uid
 	end
-	entry.protected = true
+	if player.consumables.seal < 1 then return false, "NoSeal" end
+	if warded(player, "Seal") then return false, "AlreadyProtected" end
+	-- B8: anywhere, alive. A manual seal uses an armed one, so one seal never wards two items.
+	entry.protected, entry.wardSource = true, "Seal"
+	player.sealArmed = false
 	return true, uid
+end
+
+-- B8 one-tap field seal: the newest unwarded bag item.
+function State:sealNewest(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	for index = #player.pending, 1, -1 do
+		local entry = player.pending[index]
+		if not entry.protected then return self:protect(key, entry.uid, true) end
+	end
+	return false, "Empty"
+end
+
+-- B8 seal before leaving: the next new item into the bag is warded. Not spent if nothing comes.
+function State:armSeal(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if player.consumables.seal < 1 then return false, "NoSeal" end
+	if warded(player, "Seal") then return false, "AlreadyProtected" end
+	player.sealArmed = true
+	return true
+end
+
+local function atCamp(self, alive, distance)
+	if alive ~= true then return false, "InvalidContext" end
+	if not context(true, distance, self.config.sinks.campRange) then return false, "NotAtCamp" end
+	return true
+end
+
+-- Check, pay, grant, with no yield. A refusal changes nothing.
+local function purchase(self, player, cost)
+	local purse = { ember = player.ember, banked = player.banked }
+	if not self.economy.canPay(purse, cost) then return false end
+	self.economy.pay(purse, cost)
+	player.ember = purse.ember
+	return true
+end
+
+-- Crafting at camp, repeatable up to each consumable's cap.
+function State:craft(key, recipe, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local spec = type(recipe) == "string" and self.config.recipes[recipe] or nil
+	if not spec then return false, "UnknownRecipe" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.consumables[recipe] >= self.config.capacity.consumableCaps[recipe] then return false, "AtLimit" end
+	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+	player.consumables[recipe] += 1
+	return true, player.consumables[recipe]
+end
+
+-- Permanent upgrades at camp, once each.
+function State:upgrade(key, name, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local spec = type(name) == "string" and self.config.upgrades[name] or nil
+	if not spec then return false, "UnknownUpgrade" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.upgrades[name] then return false, "AlreadyOwned" end
+	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+	player.upgrades[name] = true
+	return true, name
+end
+
+-- The totem is armed at camp before leaving. Its downside (detection and ambush weight) is applied by
+-- the world adapter while it is active. Disarming before leaving refunds it.
+function State:armTotem(key, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.expedition then return false, "AlreadyLeft" end
+	if player.totemActive then return true end
+	if player.consumables.totem < 1 then return false, "NoTotem" end
+	player.consumables.totem -= 1
+	player.totemActive = true
+	return true
+end
+
+function State:disarmTotem(key, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.expedition then return false, "AlreadyLeft" end
+	if not player.totemActive then return false, "NoTotem" end
+	local entry = warded(player, "Totem")
+	if entry then entry.protected, entry.wardSource = false, nil end
+	player.totemActive = false
+	player.consumables.totem += 1
+	return true
+end
+
+-- At the shelter, one bag item banks on the spot and pays its Ember now. No hatching.
+function State:useCapsule(key, uid, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if not context(true, distance, self.config.capsule.range) then return false, "NotAtShelter" end
+	local index, entry = find(player.pending, uid)
+	if not index then return false, "NotOwnedPending" end
+	if player.consumables.capsule < 1 then return false, "NoCapsule" end
+	table.remove(player.pending, index)
+	player.consumables.capsule -= 1
+	return true, { uid = entry.uid, ember = bankItem(self, player, entry) }
 end
 
 local function described(entry)
@@ -386,11 +521,9 @@ end
 -- Which bag items a defeat right now would keep. The one rule for both defeat and the risk preview.
 local function survivors(player)
 	local kept = {}
-	if player.consumables.seal > 0 then
-		for _, entry in ipairs(player.pending) do
-			if entry.protected then kept[entry] = "Seal"; break end
-		end
-	end
+	local seal, totem = warded(player, "Seal"), warded(player, "Totem")
+	if seal and player.consumables.seal > 0 then kept[seal] = "Seal" end
+	if totem and player.totemActive then kept[totem] = "Totem" end
 	return kept
 end
 
@@ -413,8 +546,9 @@ end
 
 -- Returns true, the number of items lost and a detached loss summary. A repeated operation id loses
 -- nothing and returns no summary. Ember, banked materials, banked eggs and registered pets are never
--- touched. Order per the economy document: warded items, other bag items, dropped items, then half of
--- each carried stack (a quarter with the Reinforced Pack), then the expedition closes.
+-- touched. Order per the economy document: warded items (a seal is spent only if it saves), other bag
+-- items, dropped items, half of each carried stack (a quarter with the Reinforced Pack), then the
+-- expedition closes and spends an active totem.
 function State:defeat(key, operationId)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -434,7 +568,7 @@ function State:defeat(key, operationId)
 	player.pending, player.dropped = {}, {}
 	for _, entry in ipairs(remaining) do
 		if kept[entry] == "Seal" then player.consumables.seal -= 1 end
-		entry.protected = false
+		entry.protected, entry.wardSource = false, nil
 		table.insert(player.pending, entry)
 		table.insert(savedItems, described(entry))
 	end

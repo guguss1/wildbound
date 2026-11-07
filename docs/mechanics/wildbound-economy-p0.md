@@ -532,7 +532,8 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "maxActive": 1,
     "consumedWhen": "expedition_ends_after_leaving_camp"
   },
-  "capsule": { "site": "shelter", "range": 12, "itemsSecured": 1 },
+  "capsule": { "site": "shelter", "x": 105, "z": 125, "range": 12, "itemsSecured": 1 },
+  "sinks": { "campRange": 20 },
   "skills": {
     "explorer_1": { "branch": "explorer", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "nodeHintRange": 60 } },
     "explorer_2": { "branch": "explorer", "tier": 2, "requires": ["explorer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "nightbloomHintRange": 100 } },
