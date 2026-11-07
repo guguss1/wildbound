@@ -446,7 +446,7 @@ task.spawn(function()
 			if pendingAttack and payload.attackId == pendingAttack.attackId then pendingAttack = nil end
 			gui:SetAttribute("LastResolvedOutcome", type(payload.outcome) == "string" and payload.outcome or "?")
 			if type(payload.notice) == "string" and payload.notice ~= "" then
-				View.setNotice(noticeState, payload.notice, os.clock())
+				View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
 			end
 		end)
 	end

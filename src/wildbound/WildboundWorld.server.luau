@@ -262,11 +262,11 @@ end
 
 -- Every attack ends with exactly one message to its target. "Missed" covers every cancel and never
 -- names the gate.
-local function tellResolved(attack, outcome, notice, dropped)
+local function tellResolved(attack, outcome, notice, dropped, noticeShort)
 	local player = playerByUserId(attack.userId)
 	if player and player.Parent == Players then
 		attackResolved:FireClient(player, { attackId = attack.attackId, outcome = outcome, notice = notice or "",
-			dropped = dropped })
+			noticeShort = noticeShort or notice or "", dropped = dropped })
 	end
 end
 
@@ -370,16 +370,6 @@ local function applyRealStrike(context, effect, attack)
 	return true, ok and type(dropped) == "table" and dropped or nil
 end
 
-local function strikeNotice(effect, dropped)
-	if effect == "Defeated" then return "Silueta defeated you." end
-	local lead = "Silueta marked you! Next hit defeats you. "
-	if dropped then
-		local name = dropped.kind == "Egg" and "Lumipol egg" or "Lumipol"
-		lead ..= ("Dropped: %s. Grab it within 30 s. "):format(name)
-	end
-	return lead .. "Rest at camp or shelter to clear the mark."
-end
-
 -- Telegraph entry: one attack for the current target and life, warned in the same step.
 local function issueAttack(now)
 	local attack = FairStrike.issue(ledger, { userId = target.UserId, life = targetLife,
@@ -409,14 +399,14 @@ local function resolveImpact(now)
 	if attack then
 		local out = FairStrike.resolve(ledger, attack,
 			{ guardian = guardianOk(attack), binding = binding, geometry = geometry }, now, damageMode)
-		local outcome, notice, dropped = "Missed", "", nil
+		local outcome, notice, dropped, noticeShort = "Missed", "", nil, nil
 		if out.outcome == "strike" and latest then
 			local applied, item = applyRealStrike(latest, out.effect, attack)
-			if applied then outcome, dropped = out.effect, item; notice = strikeNotice(out.effect, item) end
+			if applied then outcome, dropped = out.effect, item; notice, noticeShort = FairStrike.strikeNotice(out.effect, item) end
 		end
 		-- A strike that passed every gate ends that player's capture whether or not damage is on (M3.3).
 		if (out.outcome == "strike" or out.outcome == "shadow") and latest and strikeEvent then strikeEvent:Fire(latest.player) end
-		tellResolved(attack, outcome, notice, dropped)
+		tellResolved(attack, outcome, notice, dropped, noticeShort)
 		publish()
 	end
 	return geometry

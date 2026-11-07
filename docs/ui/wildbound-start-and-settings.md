@@ -28,3 +28,9 @@ The list showed about 1.5 rows on a Galaxy A06 held sideways (interface 705 x 28
 - Result by calculation, panel height 218 on the A06 interface: list height 162 (was 140) and three rows of 48 with gaps (was 1.8 rows of 76). iPhone 17 Pro sideways (750 x 323): list height 205, 3.8 rows.
 
 Contracts `tests/WildboundCampView_Test.luau` (CV-C1 to CV-C6): RED 15 passed 4 failed, GREEN 19 passed 0 failed. Phone captures are listed in Part C once taken.
+
+### A4. The dropped-item notice was cut off (found in W6)
+
+Cause: on a first strike the world script sent one long sentence, "Silueta marked you! Next hit defeats you. Dropped: Lumipol egg. Grab it within 30 s. Rest at camp or shelter to clear the mark." (about 130 characters), and the world client showed `payload.notice` directly. On a phone the HUD cuts text at the last whole sentence that fits, which left only "Silueta marked you!": the drop and its 30 s were lost.
+
+Fix: `FairStrike.strikeNotice(effect, dropped)` returns the unchanged full sentence plus a short form, "Marked! Grab your dropped Lumipol egg within 30 s." (49 characters, "Marked! Next hit defeats you. Rest at camp." when nothing dropped). The resolved payload carries `noticeShort` and the client uses `View.pickNotice(payload, compact)`, as the snapshot notices already did. Contracts FS-N1 to FS-N3 in `tests/WildboundFairStrike_Test.luau`: RED 36 passed 3 failed, GREEN 39 passed 0 failed. The phone capture is listed in Part C.

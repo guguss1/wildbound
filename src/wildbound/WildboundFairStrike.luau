@@ -304,4 +304,16 @@ function FairStrike.allow(bucket, now, limit, window)
 	return true
 end
 
+-- The words for a landed first strike, as the full sentence and a short form for a phone panel (found in W6:
+-- the long one was cut after its first sentence, so the dropped item and its 30 s never showed).
+function FairStrike.strikeNotice(effect, dropped)
+	if effect == "Defeated" then return "Silueta defeated you.", "Silueta defeated you." end
+	local name = type(dropped) == "table" and (dropped.kind == "Egg" and "Lumipol egg" or "Lumipol") or nil
+	local full = "Silueta marked you! Next hit defeats you. "
+		.. (name and ("Dropped: %s. Grab it within 30 s. "):format(name) or "") .. "Rest at camp or shelter to clear the mark."
+	local short = name and ("Marked! Grab your dropped %s within 30 s."):format(name)
+		or "Marked! Next hit defeats you. Rest at camp."
+	return full, short
+end
+
 return FairStrike

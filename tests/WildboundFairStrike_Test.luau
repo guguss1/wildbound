@@ -1,6 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshFairStrikeClone), require(freshFlagsClone),
--- freshFairStrikeClone.Source, WildboundWorld.Source). FS numbers refer to docs/mechanics/wildbound-fair-strike.md.
-return function(FairStrike, Flags, source, worldSource)
+-- freshFairStrikeClone.Source, WildboundWorld.Source, WildboundWorldClient.Source). FS numbers refer to docs/mechanics/wildbound-fair-strike.md.
+return function(FairStrike, Flags, source, worldSource, clientSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -460,6 +460,32 @@ return function(FairStrike, Flags, source, worldSource)
 		local calls = 0
 		for _ in worldSource:gmatch("stepMarks%(") do calls += 1 end
 		equal(calls, 2, "stepMarks is defined once and called once")
+	end)
+
+	-- Strike notice (found in W6): the long sentence was cut after "Silueta marked you!" on a phone, so the
+	-- dropped item and the 30 s never showed. The short form fits two lines of a phone panel.
+	case("FS-N1: the full strike notice keeps its wording", function()
+		local full = FairStrike.strikeNotice("Marked", { kind = "Egg" })
+		equal(full, "Silueta marked you! Next hit defeats you. Dropped: Lumipol egg. Grab it within 30 s. Rest at camp or shelter to clear the mark.")
+		equal((FairStrike.strikeNotice("Marked", nil)), "Silueta marked you! Next hit defeats you. Rest at camp or shelter to clear the mark.")
+		equal((FairStrike.strikeNotice("Defeated", nil)), "Silueta defeated you.")
+	end)
+	case("FS-N2: the short notice fits 50 characters and names the drop and the 30 seconds", function()
+		for _, dropped in ipairs({ { kind = "Egg" }, { kind = "Creature" } }) do
+			local _, short = FairStrike.strikeNotice("Marked", dropped)
+			assert(#short <= 50, short)
+			assert(short:find("30 s", 1, true) and short:find("dropped", 1, true), short)
+		end
+		local _, plain = FairStrike.strikeNotice("Marked", nil)
+		assert(#plain <= 50 and plain:find("Marked!", 1, true), plain)
+		local _, dead = FairStrike.strikeNotice("Defeated", nil)
+		equal(dead, "Silueta defeated you.")
+	end)
+	case("FS-N3: the world script sends the short form and the client picks by screen size", function()
+		assert(worldSource:find("FairStrike.strikeNotice", 1, true), "the server still builds its own notice")
+		assert(worldSource:find("noticeShort", 1, true), "the resolved payload has no short notice")
+		assert(clientSource:find("View.pickNotice(payload, compact)", 1, true), "the client shows the long notice")
+		assert(not clientSource:find("View.setNotice(noticeState, payload.notice", 1, true), "client still shows payload.notice directly")
 	end)
 
 	return result
