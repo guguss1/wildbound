@@ -9,6 +9,9 @@ Keys.CAMP = table.freeze({
 	extract = table.freeze({ key = "E", pad = "ButtonX", offset = table.freeze({ 0, 0 }) }),
 	hatch = table.freeze({ key = "R", pad = "ButtonB", offset = table.freeze({ 0, -56 }) }),
 	protect = table.freeze({ key = "T", pad = "ButtonL1", offset = table.freeze({ 0, -112 }) }),
+	-- Delivery B: the creature refuge and the upgrade board. F, Q, X, G, C, I and M are taken by other controls.
+	register = table.freeze({ key = "V", pad = "ButtonR1", offset = table.freeze({ 0, 56 }) }),
+	board = table.freeze({ key = "B", pad = "ButtonL2", offset = table.freeze({ 0, 112 }) }),
 })
 -- Lumipols and dropped items keep E: they are never inside the camp's prompt range together (a contract
 -- checks the spawn slots against the camp markers elsewhere in the world rules).
@@ -19,7 +22,7 @@ Keys.GATHER = table.freeze({ key = "G", pad = "ButtonY", offset = table.freeze({
 function Keys.conflicts()
 	local groups = {
 		{ "extract", Keys.CAMP.extract }, { "hatch", Keys.CAMP.hatch }, { "protect", Keys.CAMP.protect },
-		{ "gather", Keys.GATHER },
+		{ "register", Keys.CAMP.register }, { "board", Keys.CAMP.board }, { "gather", Keys.GATHER },
 	}
 	local found = {}
 	for first = 1, #groups do

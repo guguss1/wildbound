@@ -74,7 +74,8 @@ return function(Analytics, sources, Flags, Config, Wild)
 	case("every moment is hooked once or more where the server already decides it", function()
 		for _, call in ipairs({ "analytics:join(", "analytics:leave(", "analytics:closeAll(", "analytics:observeCamp(",
 			'analytics:gain(player.UserId, "pickup")', 'analytics:gain(player.UserId, "gather"', "analytics:capture(",
-			"analytics:extracted(", "analytics:crafted(", "analytics:noteStrike(", "analytics:death(" }) do
+			"analytics:extracted(", "analytics:crafted(", "analytics:noteStrike(", "analytics:death(",
+			"analytics:registered(" }) do
 			assert(server:find(call, 1, true), "missing " .. call)
 		end
 		assert(count(server, "analytics:death%(") >= 2, "both defeat boundaries")

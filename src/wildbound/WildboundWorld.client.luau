@@ -226,6 +226,22 @@ local function animateCapsules(now)
 		end
 	end
 end
+-- B4: every Lumipol on a camp display spot bobs and looks around a little, on this client only, from the Base
+-- frame the server set. The server's model never moves.
+local refugeModule = ReplicatedStorage:WaitForChild("WildboundRefuge", 10)
+local Refuge = refugeModule and require(refugeModule)
+local function animateDisplay(now)
+	local map = Refuge and workspace:FindFirstChild("WildboundP0")
+	local runtime = map and map:FindFirstChild("WildboundRuntime")
+	if not runtime then return end
+	for _, model in ipairs(runtime:GetChildren()) do
+		local base = model.Name == "DisplayLumipol" and model:GetAttribute("Base")
+		if typeof(base) == "CFrame" then
+			local pose = Refuge.idlePose(now, model:GetAttribute("Spot"))
+			model:PivotTo(base * CFrame.new(0, pose.y, 0) * CFrame.Angles(0, pose.yaw, 0))
+		end
+	end
+end
 -- Smooth only what the player sees. The server moves Body in 0.2 s steps and stays authoritative;
 -- Body is never written here. The art and the ground cue slide between the last two server poses.
 -- Set the local attribute GuardianSmoothing to false to see the raw steps (used to measure them).
@@ -341,6 +357,7 @@ listen(RunService.Heartbeat, function(dt)
 		destroyPet()
 	end
 	animateCapsules(os.clock())
+	animateDisplay(os.clock())
 	-- The chip is checked every frame and never hides with the inventory (M2.3); it is rebuilt only on change.
 	-- This client's own attack warning holds it on attack until the server says the strike resolved.
 	local guardianState = fresh and type(state.guardian) == "table" and state.guardian or NO_GUARDIAN

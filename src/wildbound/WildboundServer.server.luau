@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
+local TweenService = game:GetService("TweenService")
 local State = require(script.Parent:WaitForChild("WildboundState"))
 local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
@@ -13,6 +14,8 @@ local Capture = require(ReplicatedStorage:WaitForChild("WildboundCaptureSession"
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
 -- Delivery B (B2): the carried creature's mood, glow and sound hook rules.
 local Carry = require(ReplicatedStorage:WaitForChild("WildboundCarry"))
+-- Delivery B (B3 to B5): the refuge deposit, the display spots and the companion's follow offset.
+local Refuge = require(ReplicatedStorage:WaitForChild("WildboundRefuge"))
 -- M5.2: the pure economy rules and the generated tuning copy (docs/mechanics/wildbound-economy-p0.md).
 local Economy = require(ReplicatedStorage:WaitForChild("WildboundEconomy"))
 local EconomyConfig = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
@@ -32,6 +35,12 @@ local creatureMarker, eggMarker = marker("LumipolMarker"), marker("EggMarker")
 local extraction = marker("ExtractionMarker")
 local campCenter = marker("CampCenter")
 local hatchMarker, protectionMarker = marker("HatchMarker"), marker("ProtectionMarker")
+-- Delivery B camp stations (tools/build-wildbound-p0-map.luau, buildCamp). Optional, so an older map still runs.
+local function optionalMarker(name)
+	local value = map:FindFirstChild(name, true)
+	return value and value:IsA("BasePart") and value or nil
+end
+local refugeMarker, boardMarker = optionalMarker("RefugeMarker"), optionalMarker("BoardMarker")
 -- Never overwrite an unowned or already-running root on duplicate startup.
 if map:FindFirstChild("WildboundRuntime") or ReplicatedStorage:FindFirstChild("WildboundNetwork") then
 	warn("Wildbound: runtime/network already exists; duplicate startup refused.")
@@ -221,18 +230,22 @@ local function applyCarry(player)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
-local function send(player, action, ok, notice, lossSummary)
+-- B4: set below, once the display spots are known. Every reply refreshes the player's display spot.
+local refreshDisplay
+-- card: a registration receipt for the presentation card (B3); the client words it with WildboundRefuge.card.
+local function send(player, action, ok, notice, lossSummary, card)
 	local record = records[player]
 	if not record or player.Parent ~= Players then return end
 	applyCarry(player)
 	syncCapsule(player)
+	if refreshDisplay then refreshDisplay(player) end
 	local snapshot = state:snapshot(player.UserId)
 	if snapshot and record.totem ~= snapshot.totemActive then
 		record.totem = snapshot.totemActive
 		totemEvent:Fire(player, snapshot.totemActive)
 	end
 	stateRemote:FireClient(player, {
-		snapshot = snapshot, action = action, ok = ok, notice = notice or "", lossSummary = lossSummary,
+		snapshot = snapshot, action = action, ok = ok, notice = notice or "", lossSummary = lossSummary, card = card,
 	})
 end
 local function allowed(player, action)
@@ -288,16 +301,25 @@ end
 local function extractNotice(count, receipt)
 	local units = 0
 	for _, quantity in pairs(receipt.units) do units += quantity end
-	return ("Extracted %d item(s) and %d material(s). Earned %d Ember."):format(count, units, receipt.ember)
+	return Text.CAMP.stored:format(count, units, receipt.ember)
 end
 
-local extractPrompt = prompt(extraction, "Extract bag", "Camp · session only", 12, nil, Keys.CAMP.extract)
+-- B4: the storage chest is the old Extract prompt at ExtractionMarker. It moves the temporary bag and the pouch to
+-- permanent storage; a carried creature is told to go to the refuge instead.
+local extractPrompt = prompt(extraction, Text.CAMP.chest, Text.CAMP.chestObject, 12, nil, Keys.CAMP.extract)
 extractPrompt.Triggered:Connect(function(player)
 	if not validPrompt(extractPrompt, extraction) or not allowed(player, "Extract") then return end
 	local alive, distance = context(player, extraction)
 	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
-	if ok then analytics:extracted(player.UserId) end
-	reply(player, "Extract", ok, count, ok and extractNotice(count, receipt) or nil)
+	if ok then
+		analytics:extracted(player.UserId)
+		send(player, "Extract", true, extractNotice(count, receipt))
+	elseif count == "Empty" then
+		local snapshot = state:snapshot(player.UserId)
+		send(player, "Extract", false, snapshot and snapshot.carrying and Text.CAMP.chestCreature or Text.CAMP.chestEmpty)
+	else
+		reply(player, "Extract", false, count)
+	end
 end)
 local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12, nil, Keys.CAMP.hatch)
 hatchPrompt.Triggered:Connect(function(player)
@@ -343,6 +365,133 @@ local function visual(kind, position)
 	light.Color, light.Brightness, light.Range, light.Parent = Color3.fromRGB(151, 236, 175), 0.7, 10, body
 	model.PrimaryPart, model.Parent = body, runtime
 	return model, body
+end
+
+-- Delivery B, camp ------------------------------------------------------------------------------------------
+-- Station signs carry a SignKey and an empty label; their words come from the Spanish text module.
+for _, item in ipairs(map:GetDescendants()) do
+	local key = item:GetAttribute("SignKey")
+	local label = key and item:FindFirstChild("Label", true)
+	if label and label:IsA("TextLabel") and type(Text.CAMP[key]) == "string" then label.Text = Text.CAMP[key] end
+end
+
+-- B4: the camp display. Each player with a registered Lumipol gets one pedestal, first come first served, showing
+-- the equipped (else the first registered) Lumipol and the owner's name. Everyone sees every spot; nothing on it can
+-- be taken or moved by another player. Each client adds the idle motion locally from the Base attribute.
+local displaySpots, displayOwners, displayModels = {}, {}, {}
+for index = 1, Refuge.CONFIG.DISPLAY_SPOTS do displaySpots[index] = optionalMarker("DisplaySpot" .. index) end
+local function plaqueOf(index)
+	local spot = displaySpots[index]
+	local plaque = spot and spot.Parent and spot.Parent:FindFirstChild("Plaque" .. index)
+	local label = plaque and plaque:FindFirstChild("Label", true)
+	return label and label:IsA("TextLabel") and label or nil
+end
+local function clearDisplay(player)
+	local model = displayModels[player]
+	if model then model:Destroy() end
+	displayModels[player] = nil
+	local index = displayOwners[player.UserId]
+	local label = index and plaqueOf(index)
+	if label then label.Text = "" end
+	Refuge.releaseSpot(displayOwners, player.UserId)
+end
+refreshDisplay = function(player)
+	local choice = Refuge.displayChoice(state:snapshot(player.UserId))
+	if not choice then
+		if displayModels[player] then clearDisplay(player) end
+		return
+	end
+	local index = Refuge.assignSpot(displayOwners, player.UserId, Refuge.CONFIG.DISPLAY_SPOTS)
+	local spot = index and displaySpots[index]
+	if not spot then return end
+	local current = displayModels[player]
+	if current and current.Parent and current:GetAttribute("Uid") == choice.uid then return end
+	if current then current:Destroy() end
+	local model = visual("Creature", spot.Position)
+	model.Name = "DisplayLumipol"
+	model:ScaleTo(0.6)
+	local at = spot.Position + Vector3.new(0, 0.75, 0)
+	local base = CFrame.lookAt(at, Vector3.new(campCenter.Position.X, at.Y, campCenter.Position.Z))
+	model:PivotTo(base)
+	model:SetAttribute("OwnerUserId", player.UserId)
+	model:SetAttribute("Uid", choice.uid)
+	model:SetAttribute("Spot", index)
+	model:SetAttribute("Base", base)
+	displayModels[player] = model
+	local label = plaqueOf(index)
+	if label then label.Text = Text.DISPLAY.owner:format(player.DisplayName) end
+end
+
+-- B3: the deposit. The creature leaves the capsule on the carrier's back and arcs into the refuge's nest, shrinking.
+local function playDeposit(from)
+	local nest = refugeMarker.Position + Vector3.new(0, 0.6, 0)
+	local model = visual("Creature", from)
+	model.Name = "RefugeDeposit"
+	model:ScaleTo(0.4)
+	local glow = map:FindFirstChild("RefugeGlow", true)
+	local light = glow and glow:FindFirstChildOfClass("PointLight")
+	-- A tweened clock drives the pose, so the adapter keeps no waiting loop (ECO-20 AFK-1).
+	local clock = Instance.new("NumberValue")
+	clock.Changed:Connect(function(t)
+		if not model.Parent then return end
+		local pose = Refuge.depositPose(t)
+		model:ScaleTo(0.4 * pose.scale)
+		model:PivotTo(CFrame.new(from:Lerp(nest, pose.alpha) + Vector3.new(0, pose.lift, 0)))
+	end)
+	local tween = TweenService:Create(clock, TweenInfo.new(Refuge.CONFIG.DEPOSIT_SECONDS, Enum.EasingStyle.Linear),
+		{ Value = Refuge.CONFIG.DEPOSIT_SECONDS })
+	tween.Completed:Connect(function()
+		if light then light.Brightness = 3 end
+		task.delay(0.4, function()
+			if light then light.Brightness = 1.2 end
+			model:Destroy()
+			clock:Destroy()
+		end)
+	end)
+	tween:Play()
+end
+
+-- B3: the creature refuge. The server picks the token, the carried creature's uid; a repeat is idempotent in State
+-- (a double press or a resent request is told it is already registered and pays nothing).
+if refugeMarker then
+	local refugePrompt = prompt(refugeMarker, Text.CAMP.register, Text.CAMP.refuge, 10, 0.4, Keys.CAMP.register)
+	refugePrompt.Triggered:Connect(function(player)
+		if not validPrompt(refugePrompt, refugeMarker) or not allowed(player, "Register") then return end
+		local record = records[player]
+		local snapshot = state:snapshot(player.UserId)
+		local carried = snapshot and snapshot.carrying
+		local uid = carried and carried.uid or (record and record.lastRegistered)
+		local capsule = player.Character and player.Character:FindFirstChild(CAPSULE)
+		local shell = capsule and capsule:FindFirstChild("Shell")
+		local from = shell and shell.Position or (refugeMarker.Position + Vector3.new(0, 3, 0))
+		local alive, distance = context(player, refugeMarker)
+		local ok, result, receipt = state:register(player.UserId, uid, alive, distance, workspace:GetServerTimeNow())
+		if not ok then
+			send(player, "Register", false, result == "NotCarried" and Text.CAMP.nothingCarried or notices[result]
+				or Text.CAPTURE_NOTICES.InvalidContext)
+			return
+		end
+		if receipt.repeated then
+			send(player, "Register", true, Text.CAMP.alreadyRegistered)
+			return
+		end
+		if record then record.lastRegistered = uid end
+		analytics:registered(player.UserId)
+		playDeposit(from)
+		send(player, "Register", true, Text.CAMP.registered:format(Text.CARD.species[receipt.species] or receipt.species),
+			nil, { uid = receipt.uid, species = receipt.species, ember = receipt.ember, isNew = receipt.isNew,
+				repeated = false })
+	end)
+end
+
+-- B4: the upgrade board opens the camp screen (upgrades, skills, crafting), paid with what trips banked.
+if boardMarker then
+	local boardPrompt = prompt(boardMarker, Text.CAMP.board, Text.CAMP.boardObject, 10, nil, Keys.CAMP.board)
+	boardPrompt.Triggered:Connect(function(player)
+		if not validPrompt(boardPrompt, boardMarker) or not allowed(player, "OpenBoard") then return end
+		local alive, distance = context(player, boardMarker)
+		if alive and distance <= 12 then send(player, "OpenBoard", true, Text.CAMP.boardOpen) end
+	end)
 end
 
 -- Slots, sessions and wildlife -------------------------------------------------------------------
@@ -1004,6 +1153,8 @@ Players.PlayerRemoving:Connect(function(player)
 	if out then handleEnding(out) end
 	-- D10 hold is not built: a disconnected owner's drops go with the profile.
 	removeDropsOf(player)
+	-- B4: the display spot frees for the next player.
+	clearDisplay(player)
 	analytics:leave(player.UserId, "left")
 	records[player] = nil
 	playersByUserId[player.UserId] = nil

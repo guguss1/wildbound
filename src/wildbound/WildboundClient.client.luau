@@ -26,6 +26,9 @@ local carryModule = ReplicatedStorage:WaitForChild("WildboundCarry", 10)
 local textModule = ReplicatedStorage:WaitForChild("WildboundText", 10)
 local Carry = carryModule and require(carryModule)
 local Text = textModule and require(textModule)
+-- B3: the presentation card after a registration.
+local refugeModule = ReplicatedStorage:WaitForChild("WildboundRefuge", 10)
+local Refuge = refugeModule and require(refugeModule)
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
@@ -508,6 +511,53 @@ local function showLossSummary(summary, fallback)
 end
 listen(gui.Destroying, closeLossSummary)
 
+-- B3: the presentation card. A short pop-in panel with the creature, its collection entry and its Ember, an Equip
+-- button and a Close button, both 44 pixels high. It closes by itself after a while.
+local cardGui
+local function closeCard()
+	if cardGui then cardGui:Destroy(); cardGui = nil end
+end
+local function showCard(view)
+	if not view then return end
+	closeCard()
+	cardGui = make("ScreenGui", {Name = "WildboundCard", ResetOnSpawn = false, DisplayOrder = 40, IgnoreGuiInset = true}, playerGui)
+	local size = gui.AbsoluteSize
+	local width = math.min(380, math.max(260, size.X - 32))
+	local sheet = make("Frame", {Name = "Card", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromOffset(width, 236), BackgroundColor3 = dark, BackgroundTransparency = 0.05}, cardGui)
+	make("UICorner", {CornerRadius = UDim.new(0, 12)}, sheet)
+	make("UIStroke", {Thickness = 2, Color = amber}, sheet)
+	local scale = make("UIScale", {Scale = 0.6}, sheet)
+	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Scale = 1}):Play()
+	local title = label(sheet, view.title, 22)
+	title.Font, title.TextColor3 = Enum.Font.GothamBold, amber
+	title.TextXAlignment = Enum.TextXAlignment.Center
+	title.Position, title.Size = UDim2.fromOffset(12, 10), UDim2.new(1, -24, 0, 28)
+	local name = label(sheet, view.name, 20)
+	name.Font, name.TextXAlignment = Enum.Font.GothamBold, Enum.TextXAlignment.Center
+	name.Position, name.Size = UDim2.fromOffset(12, 40), UDim2.new(1, -24, 0, 24)
+	local lines = {}
+	if view.blurb then table.insert(lines, view.blurb) end
+	if view.entry then table.insert(lines, view.entry) end
+	if view.ember then table.insert(lines, view.ember) end
+	local body = label(sheet, table.concat(lines, "\n"), 15)
+	body.TextXAlignment = Enum.TextXAlignment.Center
+	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, 100)
+	local equip = button(sheet, view.equip)
+	equip.Name = "CardEquip"
+	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -56), UDim2.fromOffset(120, 44)
+	local closer = button(sheet, view.close)
+	closer.Name = "CardClose"
+	closer.BackgroundColor3 = accentOff
+	closer.Position, closer.Size = UDim2.new(0.5, 8, 1, -56), UDim2.fromOffset(120, 44)
+	local uid = view.uid
+	equip.Activated:Connect(function() request("Equip", uid); closeCard() end)
+	closer.Activated:Connect(closeCard)
+	local shown = cardGui
+	task.delay(12, function() if cardGui == shown then closeCard() end end)
+end
+listen(gui.Destroying, closeCard)
+
 task.spawn(function()
 	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
 	local action = folder and folder:WaitForChild("Action", 10)
@@ -528,6 +578,12 @@ task.spawn(function()
 		if type(payload.notice) == "string" and payload.notice ~= "" then showNotice(payload.notice) end
 		if payload.action == "Defeat" and type(payload.lossSummary) == "table" then
 			showLossSummary(payload.lossSummary, type(payload.notice) == "string" and payload.notice or "Defeated.")
+		end
+		-- B3: a registration's card; B4: the upgrade board opens the camp screen.
+		if type(payload.card) == "table" and Refuge and Text then showCard(Refuge.card(payload.card, Text)) end
+		if payload.action == "OpenBoard" and payload.ok == true then
+			panel.Visible = false
+			toggle("camp")
 		end
 	end)
 	request("RequestSnapshot")

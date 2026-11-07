@@ -97,4 +97,40 @@ return freeze({
 		unwarded = "sin proteger",
 		registerHint = "Regístralo en el refugio del campamento.",
 	},
+	-- Delivery B (B3 to B5): camp stations. Prompt actions fit 24 bytes, objects and signs 28, notices 72.
+	CAMP = {
+		register = "Registrar criatura",
+		refuge = "Refugio",
+		chest = "Guardar en el cofre",
+		chestObject = "Cofre del campamento",
+		board = "Ver mejoras",
+		boardObject = "Tablón de mejoras",
+		incubator = "Próximamente",
+		incubatorObject = "Incubadora",
+		display = "Tus criaturas",
+		registered = "%s registrado. Ahora es tuyo para siempre.",
+		alreadyRegistered = "Esa criatura ya está registrada.",
+		nothingCarried = "No llevas ninguna criatura. Captura una en la niebla.",
+		chestCreature = "Las criaturas se registran en el refugio, no en el cofre.",
+		chestEmpty = "No llevas nada para guardar.",
+		stored = "Guardado: %d objeto(s) y %d material(es). +%d Ember.",
+		boardOpen = "Mejoras y habilidades del campamento.",
+		incubatorSoon = "La incubadora llegará pronto.",
+		equipped = "%s te acompaña.",
+	},
+	-- The presentation card after a registration (WildboundRefuge.card).
+	CARD = {
+		title = "¡Nueva criatura!",
+		titleAgain = "Criatura registrada",
+		entry = "Entrada de colección desbloqueada",
+		ember = "+%d Ember",
+		equip = "Equipar",
+		close = "Cerrar",
+		species = { Lumipol = "Lumipol" },
+		blurb = { Lumipol = "Brilla en la niebla. Su pulso revela a La Silueta." },
+	},
+	-- The plaque under each display spot: whose creature it is.
+	DISPLAY = {
+		owner = "de %s",
+	},
 })

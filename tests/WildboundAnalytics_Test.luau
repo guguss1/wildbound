@@ -28,8 +28,8 @@ return function(Analytics, sources)
 		return Analytics.new(options), recorder, clock
 	end
 	local EXPECTED = { "capture_end", "death", "first_capture", "first_craft", "first_extract", "first_gain",
-		"first_gather", "session_end", "session_join", "spent", "start_play", "strike", "trip_end", "trip_open",
-		"tutorial_complete", "tutorial_skip" }
+		"first_gather", "first_register", "session_end", "session_join", "spent", "start_play", "strike", "trip_end",
+		"trip_open", "tutorial_complete", "tutorial_skip" }
 
 	-- vocabulary ----------------------------------------------------------------------------------------------
 	case("the vocabulary is the closed, versioned set", function()
@@ -183,6 +183,20 @@ return function(Analytics, sources)
 		equal(tail[2].f.gained, "yes")
 		analytics:extracted(1)
 		equal(#recorder.events, 5, "no second first_extract and no trip to end")
+	end)
+	case("delivery B: a registration logs first_register once and ends an open trip as extracted", function()
+		local analytics, recorder, clock = setup()
+		analytics:join(1)
+		analytics:gain(1, "capture", "fog")
+		clock.t += 200
+		assert(analytics:registered(1))
+		local tail = {}
+		for i = 5, #recorder.events do table.insert(tail, recorder.events[i]) end
+		equal(names(tail), "first_register,trip_end")
+		equal(tail[2].f.outcome, "extracted")
+		analytics:registered(1)
+		equal(#recorder.events, 6, "no second first_register and no trip to end")
+		equal(analytics:registered(99), false, "an unknown session")
 	end)
 	case("trip length bands break at 3 and 8 minutes", function()
 		local function band(seconds)

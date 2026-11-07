@@ -46,6 +46,8 @@ Analytics.EVENTS = table.freeze({
 	first_gather = event({ zone = ZONES }, true),
 	first_capture = event({ zone = ZONES }, true),
 	first_extract = event({}, true),
+	-- Delivery B: the first carried creature registered at the camp refuge.
+	first_register = event({}, true),
 	first_craft = event({ recipe = set("seal", "capsule", "totem") }, true),
 	trip_end = event({ outcome = set("extracted", "defeated", "left"), band = TRIP_BANDS, gained = YESNO }),
 	capture_end = event({ zone = ZONES, reason = set("Completed", "LeftRing", "TimedOut", "TooFar", "Struck",
@@ -61,7 +63,7 @@ Analytics.EVENTS = table.freeze({
 -- The capture rule names zones by tier; gathering uses the economy's zone names.
 Analytics.ZONE_OF_TIER = table.freeze({ Safe = "outside", Fog = "fog", Territory = "territory" })
 
-Analytics.METHODS = set("join", "leave", "closeAll", "observeCamp", "gain", "extracted", "crafted", "spent",
+Analytics.METHODS = set("join", "leave", "closeAll", "observeCamp", "gain", "extracted", "registered", "crafted", "spent",
 	"capture", "noteStrike", "death", "fromClient")
 Analytics.COUNTERS = set("sent", "rejected", "rejectedClient", "duplicates", "droppedRate", "droppedCap",
 	"droppedSink", "droppedSessions", "sinkErrors", "unknownSession")
@@ -319,6 +321,15 @@ function Analytics:extracted(key)
 	local session = sessionOf(self, key)
 	if not session then return false end
 	emit(self, session, "first_extract")
+	closeTrip(self, session, "extracted")
+	return true
+end
+
+-- Delivery B: a carried creature was registered at the refuge. Like the chest, the refuge ends an open trip.
+function Analytics:registered(key)
+	local session = sessionOf(self, key)
+	if not session then return false end
+	emit(self, session, "first_register")
 	closeTrip(self, session, "extracted")
 	return true
 end

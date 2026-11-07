@@ -39,5 +39,14 @@ return function(Keys, serverSource, gatherSource)
 			assert(serverSource:find("Keys.CAMP." .. name, 1, true), "no Keys.CAMP." .. name .. " in the server script")
 		end
 	end)
+	case("B3 and B4: the refuge and the board have their own keys, and the server uses them", function()
+		for _, name in ipairs({ "register", "board" }) do
+			local entry = Keys.CAMP[name]
+			assert(entry and Enum.KeyCode[entry.key] and Enum.KeyCode[entry.pad], name .. " has a key and a pad button")
+			assert(serverSource:find("Keys.CAMP." .. name, 1, true), "no Keys.CAMP." .. name .. " in the server script")
+		end
+		local listed = table.concat(Keys.conflicts(), "; ")
+		equal(#Keys.conflicts(), 0, listed)
+	end)
 	return result
 end

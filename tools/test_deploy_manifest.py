@@ -306,6 +306,9 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery B2: pure carried-creature mood, movement, sound hook and HUD line rules, shared with the clients
         "src/wildbound/WildboundCarry.luau": "ReplicatedStorage.WildboundCarry",
         "tests/WildboundCarry_Test.luau": "ServerStorage.WildboundCarry_Test",
+        # Delivery B3 to B5: pure camp rules (deposit, card, display spots, companion offset), shared with the clients
+        "src/wildbound/WildboundRefuge.luau": "ReplicatedStorage.WildboundRefuge",
+        "tests/WildboundRefuge_Test.luau": "ServerStorage.WildboundRefuge_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
