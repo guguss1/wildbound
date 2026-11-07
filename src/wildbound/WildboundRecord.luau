@@ -216,10 +216,14 @@ function Record.toProfile(record, economy, config, sessionNow)
 		defeats = {}, defeatOrder = {}, dropped = {}, strikeDrops = {}, strikeOrder = {},
 		carried = carried, banked = banked, ember = record.ember, consumables = consumables, upgrades = upgrades,
 		sealArmed = false, totemActive = false, expedition = nil, skills = copy(record.skills), bond = {},
+		-- Delivery B: the carry slot is not saved (a carried creature is at risk, like the old bag creature, and
+		-- schema 1 has no field for it); collection entries follow from the registered species.
+		carrying = nil, discovered = {},
 	}
 	profile.equippedUid = record.equippedUid
 	for _, entry in ipairs(record.collection.registered) do
 		table.insert(profile.registered, { uid = entry.uid, species = entry.species })
+		profile.discovered[entry.species] = true
 	end
 	for _, entry in ipairs(record.collection.bankedEggs) do
 		table.insert(profile.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species })

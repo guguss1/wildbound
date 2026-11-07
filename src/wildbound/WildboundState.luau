@@ -74,6 +74,9 @@ function State:addPlayer(key)
 			banked = zeroed(self.economy.materials(self.config)),
 			ember = 0, consumables = consumables, upgrades = upgrades,
 			sealArmed = false, totemActive = false, expedition = nil, skills = {}, bond = {},
+			-- Delivery B (B1): the one wild creature on its way home, apart from the bag, and the collection
+			-- entries (species) a registration or a hatch unlocked.
+			carrying = nil, discovered = {},
 		}
 	end
 	return true
@@ -107,14 +110,30 @@ local function bagCapacity(self, player)
 	return self.economy.bagCapacity(self.config, player.upgrades)
 end
 
--- Companions toward the collection limit: bag creatures and eggs, banked eggs and registered pets.
+-- Companions toward the collection limit: the carried creature, bag eggs, banked eggs and registered pets.
 -- A Nightbloom bundle banks as a material, so it never counts.
 local function collectionSize(player)
-	local total = #player.bankedEggs + #player.registered
+	local total = #player.bankedEggs + #player.registered + (player.carrying and 1 or 0)
 	for _, entry in ipairs(player.pending) do
 		if entry.kind ~= "Nightbloom" then total += 1 end
 	end
 	return total
+end
+
+-- B1: what a ward can cover, oldest first: the bag items, then the carried creature (the newest catch).
+local function wardables(player)
+	local list = table.clone(player.pending)
+	if player.carrying then table.insert(list, player.carrying) end
+	return list
+end
+
+-- A bag item or the carried creature, by uid.
+local function findHeld(player, uid)
+	local index, entry = find(player.pending, uid)
+	if entry then return entry, index end
+	local carried = player.carrying
+	if carried and validId(uid) and carried.uid == uid then return carried, nil end
+	return nil
 end
 
 local function carriedUnits(player)
@@ -123,24 +142,28 @@ local function carriedUnits(player)
 	return total
 end
 
--- The bag item warded by this source ("Seal" or "Totem"), if any. Each wards at most one item.
+-- The item warded by this source ("Seal" or "Totem"), if any. Each wards at most one item.
 local function warded(player, source)
-	for _, entry in ipairs(player.pending) do
+	for _, entry in ipairs(wardables(player)) do
 		if entry.protected and entry.wardSource == source then return entry end
 	end
 	return nil
 end
 
--- Every new item enters the bag here, so the expedition counts it once and an armed seal (M5.5)
--- wards it. A reclaimed drop is not new and never takes the armed seal.
-local function addToBag(self, player, entry)
-	table.insert(player.pending, entry)
+-- Every new item, in the bag or the carry slot, is admitted here, so the expedition counts it once and an
+-- armed seal (M5.5) wards it. A reclaimed drop is not new and never takes the armed seal.
+local function admit(player, entry)
 	if player.expedition then player.expedition.newItems += 1 end
 	if player.sealArmed and player.consumables.seal > 0 and not warded(player, "Seal") then
 		entry.protected, entry.wardSource = true, "Seal"
 		player.sealArmed = false
 	end
 	return entry
+end
+
+local function addToBag(self, player, entry)
+	table.insert(player.pending, entry)
+	return admit(player, entry)
 end
 
 function State:pickup(key, id, alive, distance)
@@ -167,11 +190,12 @@ end
 
 local TIERS = table.freeze({ Safe = true, Fog = true, Territory = true })
 
--- Whether a capture could be granted now: bag room, then collection room. Missing players have neither.
+-- Whether a capture could be granted now: a free carry slot (B1), then collection room. Missing players have
+-- neither. The capture rule still calls the first value bagRoom and ends a session BackpackFull without it.
 function State:captureRoom(key)
 	local player = profile(self, key)
 	if not player then return false, false end
-	return #player.pending < bagCapacity(self, player), collectionSize(player) < self.config.capacity.collectionLimit
+	return player.carrying == nil, collectionSize(player) < self.config.capacity.collectionLimit
 end
 
 -- "Open", "Claimed" or nil for an unknown or retired id. Lets the adapter name the encounter state.
@@ -184,7 +208,9 @@ end
 
 -- The grant for a finished capture. The ring session already proved skill, owner and reservation, and a
 -- correct finish can be farther than the 10 stud pickup range, so there is no distance here. It claims
--- and grants in one step with no yield, so the creature has exactly one owner.
+-- and grants in one step with no yield, so the creature has exactly one carrier.
+-- B1: the creature goes to the carry slot, never the bag. It is not the player's until the refuge registers
+-- it, and only one is carried at a time.
 function State:completeCapture(key, id, alive, tier)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -194,13 +220,12 @@ function State:completeCapture(key, id, alive, tier)
 	if alive ~= true then return false, "InvalidContext" end
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	if type(tier) ~= "string" or not TIERS[tier] then return false, "InvalidTier" end
-	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
+	if player.carrying then return false, "AlreadyCarrying" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
 	local uid = newUid(self)
 	encounter.claimed = true
-	addToBag(self, player, {
-		uid = uid, kind = "Creature", species = "Lumipol", protected = false, riskTier = tier,
-	})
+	player.carrying = { uid = uid, kind = "Creature", species = "Lumipol", protected = false, riskTier = tier }
+	admit(player, player.carrying)
 	return true, uid
 end
 
@@ -325,25 +350,17 @@ local function bankItem(self, player, entry)
 		player.banked.nightbloom += entry.quantity
 	else
 		table.insert(player.registered, { uid = entry.uid, species = entry.species })
+		player.discovered[entry.species] = true
 	end
 	local ember = self.economy.itemEmber(self.config, entry)
 	player.ember += ember
 	return ember
 end
 
-function State:extract(key, alive, distance, now)
-	local player = profile(self, key)
-	if not player then return false, "InvalidPlayer" end
-	if not context(alive, distance, 12) then return false, "InvalidContext" end
-	local count, units = #player.pending, carriedUnits(player)
-	if count == 0 and units == 0 then return false, "Empty" end
+-- A trip home ends at the first camp station that takes something: the chest (extract) or the refuge
+-- (register). The base Ember, the companion's bond and the first seal are paid once, there; the trip then closes.
+local function finishTrip(self, player, now, receipt)
 	local economy, config = self.economy, self.config
-	local receipt = { items = count, units = table.clone(player.carried), ember = 0, baseEmber = 0 }
-	for _, entry in ipairs(player.pending) do receipt.ember += bankItem(self, player, entry) end
-	for material, quantity in pairs(player.carried) do
-		player.banked[material] += quantity
-		player.carried[material] = 0
-	end
 	local expedition = player.expedition
 	if expedition and finite(now) then
 		receipt.baseEmber = economy.baseEmber(config, now - expedition.startedAt, expedition.maxDistanceFromCamp,
@@ -352,7 +369,6 @@ function State:extract(key, alive, distance, now)
 		player.ember += receipt.baseEmber
 	end
 	bankBond(self, player, receipt.baseEmber > 0)
-	player.pending = {}
 	if not player.earnedSeal then
 		-- Adds, never assigns, so crafted seals are kept (ECO-07). Held seals never pass their cap.
 		player.earnedSeal = true
@@ -360,7 +376,47 @@ function State:extract(key, alive, distance, now)
 			player.consumables.seal + config.earn.firstExtractionSeal)
 	end
 	closeExpedition(self, player)
+end
+
+-- The storage chest (B4): the temporary bag and the pouch move to permanent storage. The carried creature
+-- stays in its slot; only the refuge registers it.
+function State:extract(key, alive, distance, now)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 12) then return false, "InvalidContext" end
+	local count, units = #player.pending, carriedUnits(player)
+	if count == 0 and units == 0 then return false, "Empty" end
+	local receipt = { items = count, units = table.clone(player.carried), ember = 0, baseEmber = 0 }
+	for _, entry in ipairs(player.pending) do receipt.ember += bankItem(self, player, entry) end
+	for material, quantity in pairs(player.carried) do
+		player.banked[material] += quantity
+		player.carried[material] = 0
+	end
+	player.pending = {}
+	finishTrip(self, player, now, receipt)
 	return true, count, receipt
+end
+
+-- The creature refuge (B3). The carried creature joins the permanent collection, pays its Ember and unlocks its
+-- collection entry. Idempotent per token (the creature's uid): a repeat of a registration that already happened
+-- succeeds again and pays nothing, so a double press or a resent request never rewards twice.
+function State:register(key, uid, alive, distance, now)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 12) then return false, "InvalidContext" end
+	local index, owned = find(player.registered, uid)
+	if index then
+		return true, owned.uid, { uid = owned.uid, species = owned.species, ember = 0, baseEmber = 0, isNew = false,
+			repeated = true }
+	end
+	local carried = player.carrying
+	if not carried or not validId(uid) or carried.uid ~= uid then return false, "NotCarried" end
+	player.carrying = nil
+	local isNew = player.discovered[carried.species] ~= true
+	local receipt = { uid = uid, species = carried.species, ember = 0, baseEmber = 0, isNew = isNew, repeated = false }
+	receipt.ember += bankItem(self, player, carried)
+	finishTrip(self, player, now, receipt)
+	return true, uid, receipt
 end
 
 function State:hatch(key, uid, alive, distance)
@@ -372,6 +428,7 @@ function State:hatch(key, uid, alive, distance)
 	local petUid = newUid(self)
 	table.remove(player.bankedEggs, index)
 	table.insert(player.registered, { uid = petUid, species = egg.species })
+	player.discovered[egg.species] = true
 	return true, petUid
 end
 
@@ -388,7 +445,8 @@ function State:protect(key, uid, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if alive ~= true then return false, "InvalidContext" end
-	local _, entry = find(player.pending, uid)
+	-- B1: a bag item or the carried creature.
+	local entry = findHeld(player, uid)
 	if not entry then return false, "NotOwnedPending" end
 	if entry.protected then return true, uid end
 	-- An active totem wards first: it is spent with the trip anyway, so the seal is kept for later.
@@ -404,13 +462,14 @@ function State:protect(key, uid, alive)
 	return true, uid
 end
 
--- B8 one-tap field seal: the newest unwarded bag item.
+-- B8 one-tap field seal: the newest unwarded item. B1: the carried creature counts as the newest.
 function State:sealNewest(key, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if alive ~= true then return false, "InvalidContext" end
-	for index = #player.pending, 1, -1 do
-		local entry = player.pending[index]
+	local list = wardables(player)
+	for index = #list, 1, -1 do
+		local entry = list[index]
 		if not entry.protected then return self:protect(key, entry.uid, true) end
 	end
 	return false, "Empty"
@@ -524,10 +583,11 @@ function State:useCapsule(key, uid, alive, distance)
 	if not player then return false, "InvalidPlayer" end
 	if alive ~= true then return false, "InvalidContext" end
 	if not context(true, distance, self.config.capsule.range) then return false, "NotAtShelter" end
-	local index, entry = find(player.pending, uid)
-	if not index then return false, "NotOwnedPending" end
+	-- B1: a bag item or the carried creature, which the capsule registers like the refuge would.
+	local entry, index = findHeld(player, uid)
+	if not entry then return false, "NotOwnedPending" end
 	if player.consumables.capsule < 1 then return false, "NoCapsule" end
-	table.remove(player.pending, index)
+	if index then table.remove(player.pending, index) else player.carrying = nil end
 	player.consumables.capsule -= 1
 	return true, { uid = entry.uid, ember = bankItem(self, player, entry) }
 end
@@ -629,11 +689,20 @@ function State:defeat(key, operationId)
 		if kept[entry] then table.insert(remaining, entry) else table.insert(lostItems, described(entry)) end
 	end
 	for _, entry in ipairs(player.dropped) do table.insert(lostItems, described(entry)) end
+	-- B1: the carried creature is lost like a bag item unless a ward saves it. Registered pets are never touched.
+	local carried = player.carrying
+	if carried and not kept[carried] then
+		table.insert(lostItems, described(carried))
+		player.carrying = nil
+	end
 	player.pending, player.dropped = {}, {}
+	for _, entry in ipairs(remaining) do
+		table.insert(player.pending, entry)
+	end
+	if player.carrying then table.insert(remaining, player.carrying) end
 	for _, entry in ipairs(remaining) do
 		if kept[entry] == "Seal" then player.consumables.seal -= 1 end
 		entry.protected, entry.wardSource = false, nil
-		table.insert(player.pending, entry)
 		table.insert(savedItems, described(entry))
 	end
 	local materialsLost = materialLoss(self, player)
@@ -670,6 +739,7 @@ function State:snapshot(key)
 		sessionOnly = true, capacity = bagCapacity(self, player), collectionLimit = self.config.capacity.collectionLimit,
 		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs),
 		registered = copy(player.registered), dropped = copy(player.dropped), equippedUid = player.equippedUid,
+		carrying = player.carrying and table.clone(player.carrying) or nil, discovered = table.clone(player.discovered),
 		sealCharges = player.consumables.seal,
 		carried = table.clone(player.carried), banked = table.clone(player.banked),
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
@@ -681,7 +751,7 @@ function State:snapshot(key)
 			maxDistanceFromCamp = expedition.maxDistanceFromCamp, newUnits = expedition.newUnits,
 			newItems = expedition.newItems } or nil,
 		-- What a defeat right now would cost, computed by the same rules defeat uses (HUD, M5.8).
-		riskPreview = { loseItems = #player.pending - keep + #player.dropped, keep = keep,
+		riskPreview = { loseItems = #player.pending + (player.carrying and 1 or 0) - keep + #player.dropped, keep = keep,
 			loseMaterials = materialLoss(self, player) },
 	}
 end

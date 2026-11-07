@@ -23,7 +23,9 @@ return freeze({
 		Lost = "El Lumipol ya no está.",
 		LostTrack = "Se perdió el rastro. El Lumipol está libre.",
 		Watchdog = "La captura se detuvo. Inténtalo de nuevo.",
-		BackpackFull = "Bolsa llena. Vuelve al campamento a extraer.",
+		-- B1: the capture rule's bagRoom is now the carry slot, so BackpackFull means a creature is already carried.
+		BackpackFull = "Ya llevas una criatura. Regístrala en el refugio.",
+		AlreadyCarrying = "Solo puedes llevar una criatura. Regístrala primero.",
 		CollectionFull = "Límite de colección de la sesión (100).",
 		SealMissed = "Fallaste el sello. El Lumipol huyó asustado.",
 		AlreadyCapturing = "Primero termina de calmar a este Lumipol.",

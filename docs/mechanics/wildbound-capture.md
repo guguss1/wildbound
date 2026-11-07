@@ -295,7 +295,7 @@ Eggs use the same reservation-free pickup as today, at new slots:
 
 Place max players has not been read. Active `L` slots are picked by the server's spawn pipeline (M5.4), with at least one Territory slot always active. Encounter IDs keep advancing and are never reused, as today.
 
-**First-capture rule.** `S0` slots accept a start only if the player has no registered creature (`FirstCaptureOnly`) and no creature in the bag (`FirstCapturePending`). Defeat clears the bag, so a player who lost their first catch can try again. This changes existing behavior: the clearing Lumipol is no longer farmable.
+**First-capture rule.** `S0` slots accept a start only if the player has no registered creature (`FirstCaptureOnly`) and no creature in the bag or, from delivery B, the carry slot (`FirstCapturePending`). Defeat clears the bag, so a player who lost their first catch can try again. This changes existing behavior: the clearing Lumipol is no longer farmable.
 
 ## Egg carry cost
 
@@ -308,7 +308,7 @@ Roadmap M3.5. Server sets `Humanoid.WalkSpeed` when the bag changes and on each 
 | 2 | 10 | 29.6 s |
 | 3 or 4 | 9 | 32.9 s |
 
-Contract: `carrySpeed(eggs) > 8` for every bag size, including the Reinforced Pack and every skill, because 8 is Silueta's fastest speed (`WildboundWorldRules.luau:78`). Captured creatures add no cost. A cheating client could ignore the speed; log displacement over `WalkSpeed * 1.5` to a counter, do not punish.
+Contract: `carrySpeed(eggs) > 8` for every bag size, including the Reinforced Pack and every skill, because 8 is Silueta's fastest speed (`WildboundWorldRules.luau:78`). Delivery B (B1): a creature in the carry slot costs a slight, configurable speed, `CREATURE_CARRY_SPEED` 14 (from 16), and the slower of egg and creature speed applies; set it to 16 to turn it off. Light Load adds its bonus to that speed too, never past 16. A cheating client could ignore the speed; log displacement over `WalkSpeed * 1.5` to a counter, do not punish.
 
 **Honest limit:** a carrier walking straight still outruns Silueta. The cost is more time in territory, not a catch. See the falsifier below.
 

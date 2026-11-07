@@ -52,7 +52,12 @@ User, 2026-11-07: walking and picking things up has no risk, collection has no c
 - [x] A2 Interactive capture: calm ring plus timed seal tap, flee on fail, per-player capture skills, Spanish strings for the capture path. Same writer. Commits `68b7bf3` (seal, wary refusal, Spanish text module), `8e86de9` (capturer skills live).
 - [x] A3 Client smoothing and readable reactions on the provisional model. Same writer. Commit `a846fc2`.
 - [x] A4 Play check: approach, scare, chase, capture, fail, two-player claim probe, phone captures. Studio Play solo; two real clients and real phones not run.
-- [ ] B Extraction and registration.
+- [ ] B Extraction and registration. Route: delegated, one Studio writer (Opus), instance `81631061-...`, place 122652861404212.
+  - [x] B1 Carry slot and rules, with state tests: one carried wild creature apart from the bag, refuge registration idempotent per token, loss on defeat unless warded, registered never lost, slight configurable carry speed. Route: inline in the Studio writer (State, Wild, Text, Record plus their tests). RED State 34/33 (new `register`, `carrying`; 27 older cases whose premise moved: creature no longer a bag item), GREEN 67/0; Record 17/1 (RT-2 needs `carrying`, `discovered`), then 18/0; LumipolWild 46/2, then 48/0; Text 9/1, then 10/0. Play evidence is in B5.
+  - [ ] B2 Visible carried capsule (server-built, replicated) and fear cues from the existing threat signal; HUD name and state; sound hook only.
+  - [ ] B3 Refuge station "Registrar criatura": deposit animation, presentation card, collection entry.
+  - [ ] B4 Display spot, storage chest, upgrade board and incubator placeholder in the camp; map builder and its tests.
+  - [ ] B5 Server-owned replicated companion that follows, pulses and survives death; Play check and phone captures.
 - [ ] C Guardian navigation, damage and death.
 - [ ] D Horror audio, hiding and stamina.
 - [ ] E Special egg and incubator.

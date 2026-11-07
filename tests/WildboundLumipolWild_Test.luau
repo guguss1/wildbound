@@ -235,6 +235,23 @@ return function(Wild, Rules, source)
 		equal(Wild.carrySpeed(1.5), 11)
 	end)
 
+	case("B1: a creature in the carry slot keeps the safe slot refusing, like one in the bag did", function()
+		local carrying = { registered = {}, pending = {}, carrying = { uid = "a", kind = "Creature" } }
+		equal(Wild.slotRefusal("Safe", carrying), "FirstCapturePending")
+		equal(Wild.slotRefusal("Safe", { registered = {}, pending = {}, carrying = "x" }), nil, "junk is ignored")
+		equal(Wild.slotRefusal("Fog", carrying), nil)
+	end)
+
+	case("B1: carrying a creature costs a slight, configurable speed that never reaches Silueta's", function()
+		equal(C.CREATURE_CARRY_SPEED, 14)
+		equal(Wild.carrySpeed(0, true), 14)
+		equal(Wild.carrySpeed(0, false), 16)
+		equal(Wild.carrySpeed(1, true), 11, "eggs are slower already")
+		for _, bad in ipairs({ "yes", 1, {} }) do equal(Wild.carrySpeed(0, bad), 16, tostring(bad)) end
+		for eggs = 0, 50 do assert(Wild.carrySpeed(eggs, true) > C.SILUETA_FASTEST, "too slow at " .. eggs) end
+		assert(C.CREATURE_CARRY_SPEED > C.SILUETA_FASTEST and C.CREATURE_CARRY_SPEED <= C.WALK_SPEED)
+	end)
+
 	case("eggs carried counts only eggs in the bag and ignores junk", function()
 		local snapshot = { pending = { { kind = "Egg" }, { kind = "Creature" }, { kind = "Egg" }, "x", { kind = 5 } } }
 		equal(Wild.eggsCarried(snapshot), 2)

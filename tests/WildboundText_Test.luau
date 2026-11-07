@@ -126,6 +126,13 @@ return function(Text, source, sources)
 		assert(not server:find("\"Calm\"", 1, true), "the Lumipol prompt still says Calm")
 	end)
 
+	case("B1: a capture refused or ended for a full carry slot says so in Spanish", function()
+		local N = Text.CAPTURE_NOTICES
+		text(N.AlreadyCarrying, "AlreadyCarrying", 64)
+		assert(N.BackpackFull:find("criatura", 1, true), "BackpackFull now means the carry slot: " .. N.BackpackFull)
+		assert(N.AlreadyCarrying:find("criatura", 1, true), N.AlreadyCarrying)
+	end)
+
 	case("the module source holds data only", function()
 		assert(type(source) == "string" and #source > 200, "source missing")
 		for _, banned in ipairs({ "GetService", "require", "workspace", "game%.", "Instance" }) do

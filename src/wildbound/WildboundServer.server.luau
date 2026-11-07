@@ -119,8 +119,8 @@ local notices = {
 local function captureNotice(reason)
 	return Text.CAPTURE_NOTICES[reason] or notices[reason] or Text.CAPTURE_NOTICES.InvalidPlayer
 end
--- Walk speed is the slower of the egg speed (M3.5) and the pouch load step (M5.2). Set when a reply is
--- sent and for each new character.
+-- Walk speed is the slower of the egg and carried-creature speed (M3.5, B1) and the pouch load step (M5.2).
+-- Set when a reply is sent and for each new character.
 local function applyCarry(player)
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -128,7 +128,8 @@ local function applyCarry(player)
 	if not humanoid or not snapshot then return end
 	local units = 0
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
-	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, Wild.carrySpeed(Wild.eggsCarried(snapshot)), snapshot.skills)
+	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
+	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 local function send(player, action, ok, notice, lossSummary)

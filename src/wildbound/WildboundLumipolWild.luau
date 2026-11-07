@@ -36,6 +36,9 @@ Wild.CONSTANTS = table.freeze({
 	WALK_SPEED = 16,
 	-- Silueta's fastest speed is 8 (fog night), so a loaded carrier must stay above it.
 	SILUETA_FASTEST = 8,
+	-- Delivery B (B1): walk speed while a wild creature rides in the carry capsule. A slight cost (16 to 14) that
+	-- never reaches Silueta's fastest; set it to WALK_SPEED to turn the cost off.
+	CREATURE_CARRY_SPEED = 14,
 })
 local C = Wild.CONSTANTS
 
@@ -128,6 +131,9 @@ function Wild.slotRefusal(tier, snapshot)
 		return "InvalidContext"
 	end
 	if #snapshot.registered > 0 then return "FirstCaptureOnly" end
+	-- B1: the creature now rides in the carry slot, not the bag.
+	local carried = snapshot.carrying
+	if type(carried) == "table" and carried.kind == "Creature" then return "FirstCapturePending" end
 	for _, item in ipairs(snapshot.pending) do
 		if type(item) == "table" and item.kind == "Creature" then return "FirstCapturePending" end
 	end
@@ -143,12 +149,19 @@ function Wild.eggsCarried(snapshot)
 	return total
 end
 
--- Walk speed by eggs in the bag. Captured creatures add no cost. Never at or below Silueta's fastest.
-function Wild.carrySpeed(eggs)
+-- Walk speed by eggs in the bag and, from delivery B, a creature in the carry slot (`creature` true). The slower
+-- of the two applies. Never at or below Silueta's fastest.
+local function eggSpeed(eggs)
 	if not finite(eggs) or eggs < 1 then return C.WALK_SPEED end
 	if eggs < 2 then return 11 end
 	if eggs < 3 then return 10 end
 	return 9
+end
+
+function Wild.carrySpeed(eggs, creature)
+	local speed = eggSpeed(eggs)
+	if creature == true then speed = math.min(speed, C.CREATURE_CARRY_SPEED) end
+	return speed
 end
 
 local function unit(x, z)
