@@ -52,26 +52,26 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 | W1a | 1 | Stale banners, M0.2 | Haiku | Done, `ca40685` |
 | W1b | 1 | Deployment manifest, M0.3 | Sonnet | Done, `823389f`, 24 tests |
 | W1c | 1 | Lighting, Play route, captures, T7 | Sonnet, Studio writer | Done |
-| W2a | 2 | Hash comparison, full contracts, natural cycle, C1 to C7, M1.1, M1.5, M1.6 | Sonnet, Studio writer | Running |
+| W2a | 2 | Hash comparison, full contracts, natural cycle, C1 to C7, M1.1, M1.5, M1.6 | Sonnet, Studio writer | Done, `c452771` |
 | W2b | 2 | Fair-strike proposal, M4.1 | Opus high | Done, `af0900c` |
-| W2c | 2 | Silueta pressure simulator | Sonnet | Running |
-| W3a | 3 | Awareness rule with contracts, M2.1 | Opus high | After W2a |
-| W3b | 3 | Server and HUD wiring, M2.2, M2.3, M2.6, compact phone HUD | Sonnet, Studio writer | After W3a |
+| W2c | 2 | Silueta pressure simulator | Sonnet | Done, `023b998`, `2ef29fc` |
+| W3a | 3 | Awareness rule with contracts, M2.1 | Opus high | Done, `e2a8f02` |
+| W3b | 3 | Server and HUD wiring, M2.2, M2.3, M2.6, compact phone HUD | Sonnet, Studio writer | Done, `7e08250` to `1fe1e93` |
 | W4a | 4 | Capture and economy proposals, M3.1, M5.1 | Opus high | Done, `af0900c` |
-| W4b | 4 | Lumipol v2 and search pose clip, local only | Sonnet, Blender | Pending |
+| W4b | 4 | Lumipol v2 and search pose clip, local only | Sonnet, Blender | Done, `fb7f3f3`, `7c3493b` |
 | W5 | 5 | Skill capture code, M3.2 to M3.5, no uploads | Opus high, Sonnet | Done, `620ef97`, `9f436d6` to `7567957`; parent reran state 25, capture 103, wild 34, capture view 40. Open: moving back and forth inside the ring counts as still; wander smoothing; phone taps, rejoin, Reduced off, muted and latency not run; equipped companion glow may still bloom |
 | W6 | 6 | Done, partial: `a40c634` to `3914a5c`, 487 Studio contracts. Parent verified `ServerScriptService.WildboundFlags` reads `damageMode="off"` with no private place ids, and `TakeDamage` is reachable only in `"private"`. Not run: Network Simulator, 30-minute ambush, phones, muted client. Found: dwell gate cannot read `StreamingMinRadius`, falls back to 64; world script cleanup never runs on destroy; dropped-item notice text is cut. Original scope: fair damage code, M4.2 to M4.8, `damageMode` default off. First item, from the audit: `WildboundWorld.server.luau:33` sets damage on whenever streaming is off and `:282-284` calls `TakeDamage`; replace it with an explicit flag defaulting to off, test first. Also from the audit: attack chip ends up to about 0.22 s before the strike, and the HUD allocates every frame | Opus high, Sonnet | After W5 |
-| W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | After W6 |
-| W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Pending |
+| W7 | 7 | Reason to return code, M5.2 to M5.8 | Opus high, Sonnet | Done, partial. Part 1 `dd5228b` to `843248c`; part 2 `ea1836e` to `25aeb05`. Cycle now 720 s. Parent reran on fresh clones: state 61, rules 31, economy 19, camp view 13, gather field 11; Python 876 OK; `damageMode` off, streaming on. Writer reports 575 Studio contracts. Open: five skill effects are `EffectPending` and refused before payment; bond level effects unwired; dodge event never fired; camp list shows about 1.5 rows on a sideways Galaxy A06. Not run: two clients, phone taps, totem, capsule, Reinforced Pack |
+| W8 | 8 | Camp, nest and shelter art, local | Sonnet, Blender | Done, `d15f2a6` |
 | W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6 | Sonnet, Studio writer | After W7 preferred |
 | W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Pending |
 | F1 | Gate | Ten testers. Agents prepare the kit and analyze results | Humans | Needs people |
 | W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Done, read by parent |
 | W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | Done, 11 species, `1327955` to `a7f9989`, 36 tests; parent reran |
-| W13 | 13 | El Vigia and Yeti models and rigs, local, E3, E5 | Sonnet, Blender | Running |
+| W13 | 13 | El Vigia and Yeti models and rigs, local, E3, E5 | Sonnet, Blender | Done, `629d70b`, `3f7a9c3` |
 | W14 | 14 | Living Forest and Frozen Mountains kits and layout plans, local, E4, E5 | Sonnet, Blender | Done, `6b3a9ad` to `636f7e9`; parent reran. Helper modules `biome_kit_spec` and `layout_geometry` were written before their tests, so they have no observed RED: a TDD gap |
-| W14d | 14 | Art pass on props that read wrong: FM_RockOverhang, FM_IcePass, FM_SnowMound, LF_LogBridge, LF_HollowArch, LF_FlowerClump, LF_ResinStump | Sonnet, Blender | After W13 |
-| W15 | 15 | Rock and Caves, Volcanic Lands, Cryptic Ruins, Demon Abyss kits, local, E6 | Sonnet, Blender | After W14d, so its lessons carry over |
+| W14d | 14 | Art pass on props that read wrong: FM_RockOverhang, FM_IcePass, FM_SnowMound, LF_LogBridge, LF_HollowArch, LF_FlowerClump, LF_ResinStump | Sonnet, Blender | Done, `822fcd8`, `dd589e4` |
+| W15 | 15 | Rock and Caves, Volcanic Lands, Cryptic Ruins, Demon Abyss kits, local, E6 | Sonnet, Blender | Done, kits `8327a52` to `eef6a9f`, layouts to `43640c1`, art pass 2 to `756adf0`; integration plan `8e51b48` |
 | W16 | 16 | F2 kit: analytics funnel, retention targets proposal, M9.5 | Opus high, Sonnet | Pending |
 | W17 | 17 | Import and integrate expansion in Studio | Sonnet, Studio writer | Needs upload consent and place decision |
 | F2 | Gate | Beta data from real players | Humans | Needs people and approved beta |
@@ -87,8 +87,9 @@ Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the 
 - 2026-11-07: plan created from the user's request. W1b committed.
 - Overnight status, parent-verified by rerun: W2a `c452771`. W3a `e2a8f02`. W3b `7e08250` to `1fe1e93`: nine scenes pass on desktop with two clients; bugs 1, 2 and 3 fixed; wrong prompt near camp not fixed; phone taps, muted client, real phones and real network stay blocked. Studio suites rerun by parent: state 17, rules 28, awareness 57, smoothing 23, view 29, layout 23, map 6, dress 25. Hunt 9 and visual 26 are as reported by the writer, not rerun by the parent. Python tools 650 OK with 11 skipped.
 - Economy retune `37b8ba1`: loss raised to 50% and 25%, for review. W4b and W8 `fb7f3f3`, `7c3493b`, `d15f2a6`. W10 and W16 plans `a70ccf1`; F1 is no-go until W5 to W7 and a publish approval. W13 `629d70b`, `3f7a9c3`. W14d `822fcd8`, `dd589e4`.
-- Studio backups: `assets/exports/wildbound-dressed-forest-20261107.rbxl`, `wildbound-forest-lit-20261107.rbxl`, `wildbound-awareness-hud-20261107.rbxl`.
+- Studio backups: `assets/exports/wildbound-dressed-forest-20261107.rbxl`, `wildbound-forest-lit-20261107.rbxl`, `wildbound-awareness-hud-20261107.rbxl`, `wildbound-skill-capture-20261107.rbxl`, `wildbound-fair-strike-20261107.rbxl`, `wildbound-economy-20261107.rbxl` (412,414 bytes, after W7).
+- W5, W6 and W7 done. Everything F1 needs from agents is built; F1 itself still needs testers and a publish approval.
 
 ## Next step
 
-W5 capture, then W6 fair damage, then W7 return loop, one Studio writer at a time. W15 biomes run beside them locally.
+W9 start screen, tutorial and settings, plus the open fixes found in W5 to W7, one Studio writer. W10 fake-store contracts and W16 analytics after it.
