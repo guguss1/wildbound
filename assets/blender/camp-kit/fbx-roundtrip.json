@@ -1,0 +1,144 @@
+{
+  "props": {
+    "CP_Campfire": {
+      "model": {
+        "triangles": 312,
+        "size": [
+          6.0,
+          6.0,
+          3.6
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CP_Campfire",
+          "CP_Campfire_Logs",
+          "CP_Campfire_Neon_Flame",
+          "CP_Campfire_Stones"
+        ],
+        "materials": [
+          "CP_Campfire_Logs",
+          "CP_Campfire_Neon_Flame",
+          "CP_Campfire_Stones"
+        ]
+      }
+    },
+    "CP_CampShelter": {
+      "model": {
+        "triangles": 338,
+        "size": [
+          6.0,
+          8.0,
+          5.0
+        ],
+        "min_z": 0.0,
+        "objects": [
+          "CP_CampShelter",
+          "CP_CampShelter_Canvas",
+          "CP_CampShelter_Poles",
+          "CP_CampShelter_Rope"
+        ],
+        "materials": [
+          "CP_CampShelter_Canvas",
+          "CP_CampShelter_Poles",
+          "CP_CampShelter_Rope"
+        ]
+      }
+    },
+    "CP_HatchAltar": {
+      "model": {
+        "triangles": 292,
+        "size": [
+          5.0,
+          5.0,
+          3.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CP_HatchAltar",
+          "CP_HatchAltar_Moss",
+          "CP_HatchAltar_Neon_Rune",
+          "CP_HatchAltar_Stone"
+        ],
+        "materials": [
+          "CP_HatchAltar_Moss",
+          "CP_HatchAltar_Neon_Rune",
+          "CP_HatchAltar_Stone"
+        ]
+      }
+    },
+    "CP_ExtractionMarker": {
+      "model": {
+        "triangles": 296,
+        "size": [
+          3.0,
+          3.0,
+          9.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CP_ExtractionMarker",
+          "CP_ExtractionMarker_Iron",
+          "CP_ExtractionMarker_Neon_Beacon",
+          "CP_ExtractionMarker_Post",
+          "CP_ExtractionMarker_Stones"
+        ],
+        "materials": [
+          "CP_ExtractionMarker_Iron",
+          "CP_ExtractionMarker_Neon_Beacon",
+          "CP_ExtractionMarker_Post",
+          "CP_ExtractionMarker_Stones"
+        ]
+      }
+    },
+    "CP_EggNest": {
+      "model": {
+        "triangles": 526,
+        "size": [
+          17.0,
+          17.0,
+          4.5
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CP_EggNest",
+          "CP_EggNest_Egg",
+          "CP_EggNest_Neon_Speck",
+          "CP_EggNest_Stones",
+          "CP_EggNest_Twigs"
+        ],
+        "materials": [
+          "CP_EggNest_Egg",
+          "CP_EggNest_Neon_Speck",
+          "CP_EggNest_Stones",
+          "CP_EggNest_Twigs"
+        ]
+      }
+    },
+    "CP_MarshShelter": {
+      "model": {
+        "triangles": 690,
+        "size": [
+          18.0,
+          12.0,
+          11.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CP_MarshShelter",
+          "CP_MarshShelter_Iron",
+          "CP_MarshShelter_Moss",
+          "CP_MarshShelter_Neon_Lamp",
+          "CP_MarshShelter_Posts",
+          "CP_MarshShelter_Roof"
+        ],
+        "materials": [
+          "CP_MarshShelter_Iron",
+          "CP_MarshShelter_Moss",
+          "CP_MarshShelter_Neon_Lamp",
+          "CP_MarshShelter_Posts",
+          "CP_MarshShelter_Roof"
+        ]
+      }
+    }
+  }
+}

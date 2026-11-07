@@ -1,0 +1,495 @@
+{
+  "generator": "tools/build-camp-kit.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Blender (x, y, z) arrives in Studio as (-x, z, y), observed for the forest kit only. Scale and axes of this kit stay unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "camp-kit-sheet.png",
+  "lineup_file": "camp-kit-scale.png",
+  "blend": "assets/blender/camp-kit/camp-kit-v1.blend",
+  "collision": "none: kit meshes are non-colliding, as the forest templates are",
+  "props": {
+    "CP_Campfire": {
+      "status": "unvalidated",
+      "triangles": 312,
+      "size": [
+        6.0,
+        6.0,
+        3.6
+      ],
+      "bbox_min": [
+        -3.0,
+        -3.0,
+        0.0
+      ],
+      "bbox_max": [
+        3.0,
+        3.0,
+        3.6
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9706,
+        1.0294,
+        1.001
+      ],
+      "parts": [
+        {
+          "object": "CP_Campfire_Stones",
+          "material": "CP_Campfire_Stones",
+          "material_count": 1,
+          "palette_name": "FK_Charcoal",
+          "triangles": 128,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "55585D"
+        },
+        {
+          "object": "CP_Campfire_Logs",
+          "material": "CP_Campfire_Logs",
+          "material_count": 1,
+          "palette_name": "FK_Bark",
+          "triangles": 130,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4C3226"
+        },
+        {
+          "object": "CP_Campfire_Neon_Flame",
+          "material": "CP_Campfire_Neon_Flame",
+          "material_count": 1,
+          "palette_name": "FK_Neon_Ember",
+          "triangles": 54,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "F08C2E"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_Campfire.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_Campfire.png",
+      "collision": "none"
+    },
+    "CP_CampShelter": {
+      "status": "unvalidated",
+      "triangles": 338,
+      "size": [
+        6.0,
+        8.0,
+        5.0
+      ],
+      "bbox_min": [
+        -3.0,
+        -4.0007,
+        0.0
+      ],
+      "bbox_max": [
+        3.0,
+        3.9993,
+        5.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9771,
+        0.9996,
+        0.9796
+      ],
+      "parts": [
+        {
+          "object": "CP_CampShelter_Canvas",
+          "material": "CP_CampShelter_Canvas",
+          "material_count": 1,
+          "palette_name": "FK_PaleWood",
+          "triangles": 72,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "BE9C70"
+        },
+        {
+          "object": "CP_CampShelter_Poles",
+          "material": "CP_CampShelter_Poles",
+          "material_count": 1,
+          "palette_name": "FK_Bark",
+          "triangles": 194,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4C3226"
+        },
+        {
+          "object": "CP_CampShelter_Rope",
+          "material": "CP_CampShelter_Rope",
+          "material_count": 1,
+          "palette_name": "FK_Rope",
+          "triangles": 72,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9C8152"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_CampShelter.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_CampShelter.png",
+      "collision": "none"
+    },
+    "CP_HatchAltar": {
+      "status": "unvalidated",
+      "triangles": 292,
+      "size": [
+        5.0,
+        5.0,
+        3.0
+      ],
+      "bbox_min": [
+        -2.5024,
+        -2.5438,
+        0.0
+      ],
+      "bbox_max": [
+        2.4976,
+        2.4562,
+        3.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0158,
+        1.0086,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CP_HatchAltar_Stone",
+          "material": "CP_HatchAltar_Stone",
+          "material_count": 1,
+          "palette_name": "FK_Charcoal",
+          "triangles": 158,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "55585D"
+        },
+        {
+          "object": "CP_HatchAltar_Moss",
+          "material": "CP_HatchAltar_Moss",
+          "material_count": 1,
+          "palette_name": "FK_Moss",
+          "triangles": 54,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B7036"
+        },
+        {
+          "object": "CP_HatchAltar_Neon_Rune",
+          "material": "CP_HatchAltar_Neon_Rune",
+          "material_count": 1,
+          "palette_name": "FK_Neon_MarkerCyan",
+          "triangles": 80,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "66D2CA"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_HatchAltar.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_HatchAltar.png",
+      "collision": "none"
+    },
+    "CP_ExtractionMarker": {
+      "status": "unvalidated",
+      "triangles": 296,
+      "size": [
+        3.0,
+        3.0,
+        9.0
+      ],
+      "bbox_min": [
+        -1.3928,
+        -1.5,
+        0.0
+      ],
+      "bbox_max": [
+        1.6072,
+        1.5,
+        9.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9678,
+        1.0397,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CP_ExtractionMarker_Post",
+          "material": "CP_ExtractionMarker_Post",
+          "material_count": 1,
+          "palette_name": "FK_Bark",
+          "triangles": 70,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4C3226"
+        },
+        {
+          "object": "CP_ExtractionMarker_Iron",
+          "material": "CP_ExtractionMarker_Iron",
+          "material_count": 1,
+          "palette_name": "FK_Iron",
+          "triangles": 76,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2C2D30"
+        },
+        {
+          "object": "CP_ExtractionMarker_Stones",
+          "material": "CP_ExtractionMarker_Stones",
+          "material_count": 1,
+          "palette_name": "FK_Charcoal",
+          "triangles": 84,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "55585D"
+        },
+        {
+          "object": "CP_ExtractionMarker_Neon_Beacon",
+          "material": "CP_ExtractionMarker_Neon_Beacon",
+          "material_count": 1,
+          "palette_name": "FK_Neon_MarkerCyan",
+          "triangles": 66,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "66D2CA"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_ExtractionMarker.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_ExtractionMarker.png",
+      "collision": "none"
+    },
+    "CP_EggNest": {
+      "status": "unvalidated",
+      "triangles": 526,
+      "size": [
+        17.0,
+        17.0,
+        4.5
+      ],
+      "bbox_min": [
+        -8.5,
+        -8.4372,
+        0.0
+      ],
+      "bbox_max": [
+        8.5,
+        8.5628,
+        4.5
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0009,
+        1.0513,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "CP_EggNest_Stones",
+          "material": "CP_EggNest_Stones",
+          "material_count": 1,
+          "palette_name": "FK_Charcoal",
+          "triangles": 158,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "55585D"
+        },
+        {
+          "object": "CP_EggNest_Twigs",
+          "material": "CP_EggNest_Twigs",
+          "material_count": 1,
+          "palette_name": "FK_Bark",
+          "triangles": 230,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4C3226"
+        },
+        {
+          "object": "CP_EggNest_Egg",
+          "material": "CP_EggNest_Egg",
+          "material_count": 1,
+          "palette_name": "FK_PaleWood",
+          "triangles": 78,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "BE9C70"
+        },
+        {
+          "object": "CP_EggNest_Neon_Speck",
+          "material": "CP_EggNest_Neon_Speck",
+          "material_count": 1,
+          "palette_name": "FK_Neon_MarkerCyan",
+          "triangles": 60,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "66D2CA"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_EggNest.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_EggNest.png",
+      "collision": "none"
+    },
+    "CP_MarshShelter": {
+      "status": "unvalidated",
+      "triangles": 690,
+      "size": [
+        18.0,
+        12.0,
+        11.0
+      ],
+      "bbox_min": [
+        -9.0019,
+        -5.9847,
+        0.0
+      ],
+      "bbox_max": [
+        8.9981,
+        6.0153,
+        11.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        0.9877,
+        0.9903
+      ],
+      "parts": [
+        {
+          "object": "CP_MarshShelter_Posts",
+          "material": "CP_MarshShelter_Posts",
+          "material_count": 1,
+          "palette_name": "FK_Bark",
+          "triangles": 244,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4C3226"
+        },
+        {
+          "object": "CP_MarshShelter_Roof",
+          "material": "CP_MarshShelter_Roof",
+          "material_count": 1,
+          "palette_name": "FK_Rope",
+          "triangles": 298,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9C8152"
+        },
+        {
+          "object": "CP_MarshShelter_Moss",
+          "material": "CP_MarshShelter_Moss",
+          "material_count": 1,
+          "palette_name": "FK_Moss",
+          "triangles": 72,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B7036"
+        },
+        {
+          "object": "CP_MarshShelter_Iron",
+          "material": "CP_MarshShelter_Iron",
+          "material_count": 1,
+          "palette_name": "FK_Iron",
+          "triangles": 32,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2C2D30"
+        },
+        {
+          "object": "CP_MarshShelter_Neon_Lamp",
+          "material": "CP_MarshShelter_Neon_Lamp",
+          "material_count": 1,
+          "palette_name": "FK_Neon_Ember",
+          "triangles": 44,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "F08C2E"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/camp-kit/CP_MarshShelter.fbx"
+      },
+      "render": "assets/blender/camp-kit/CP_MarshShelter.png",
+      "collision": "none"
+    }
+  }
+}
