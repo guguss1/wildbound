@@ -1,0 +1,60 @@
+{
+  "glb": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Attack",
+      "SiluetaV3_Locomotion",
+      "SiluetaV3_Telegraph",
+      "SiluetaV3_Idle"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393265634775162,
+      2.4000009382373264
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [
+      "Icosphere"
+    ]
+  },
+  "fbx_model": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": []
+  },
+  "fbx_telegraph": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": []
+  },
+  "isolation": "Separate background factory-startup process; live Blender untouched."
+}

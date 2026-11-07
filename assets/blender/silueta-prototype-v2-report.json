@@ -1,0 +1,202 @@
+{
+  "asset": "Wildbound_Silueta_Prototype",
+  "static_only": true,
+  "rigged": false,
+  "animated": false,
+  "forward": "-Y",
+  "up": "+Z",
+  "origin": [
+    0,
+    0,
+    0
+  ],
+  "world_vertex_min_m": [
+    -0.9054252505302429,
+    -0.275182843208313,
+    0.0
+  ],
+  "world_vertex_max_m": [
+    0.9052800536155701,
+    0.2115456908941269,
+    2.3999998569488525
+  ],
+  "world_vertex_dimensions_m": [
+    1.810705304145813,
+    0.4867285341024399,
+    2.3999998569488525
+  ],
+  "height_studs_at_0_28_m_per_stud": 8.571428060531616,
+  "body_center_m": [
+    0,
+    0.01880406196282873,
+    1.2504701205281106
+  ],
+  "triangles": 984,
+  "materials": [
+    "Silueta_DeepBark",
+    "Silueta_BarkRidge",
+    "Silueta_MossMantle",
+    "Silueta_VioletEyes"
+  ],
+  "objects": [
+    {
+      "name": "Silueta_Body",
+      "vertices": 132,
+      "polygons": 102,
+      "triangles": 228,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.16504027720738118,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 9,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_Head",
+      "vertices": 48,
+      "polygons": 38,
+      "triangles": 84,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.02102207120391599,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 3,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_Eyes",
+      "vertices": 10,
+      "polygons": 10,
+      "triangles": 12,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 2.691943931747029e-05,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 2,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_ArmLeft",
+      "vertices": 68,
+      "polygons": 56,
+      "triangles": 116,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.02709946121327773,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 5,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_ArmRight",
+      "vertices": 68,
+      "polygons": 56,
+      "triangles": 116,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.02687367672709407,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 5,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_BranchCrown",
+      "vertices": 140,
+      "polygons": 116,
+      "triangles": 248,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.01082918791946733,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 8,
+      "inward_or_zero_volume_shells": 0
+    },
+    {
+      "name": "Silueta_RaggedMantle",
+      "vertices": 150,
+      "polygons": 180,
+      "triangles": 180,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "signed_volume_m3": 0.033131866472810995,
+      "uv_layer": "PrototypePlanarUV",
+      "closed_shells": 30,
+      "inward_or_zero_volume_shells": 0
+    }
+  ],
+  "blender_version": "5.1.2",
+  "scene": "Wildbound_Silueta_Prototype",
+  "initial_context": {
+    "file": "",
+    "scene": "Scene",
+    "mode": "OBJECT",
+    "active": "Cube",
+    "selection": [
+      "Cube"
+    ]
+  },
+  "export_status": "Not exported or uploaded; approved directory and consent pending.",
+  "notes": [
+    "Original hand-authored procedural geometry inspired by authorized concept tone, not copied mesh.",
+    "Disconnected overlapping closed shells; no welded deformation topology or collision hull.",
+    "Per-face planar UV placeholders only; opaque color materials; runtime owns reveal transparency.",
+    "Triangle target is a provisional art budget, not measured mobile performance."
+  ],
+  "original_context_preserved": true,
+  "blend_bytes": 92491,
+  "preview_bytes": 1195359,
+  "version": "v2",
+  "visual_qa": "Front/back inspected; ankle gap observed in v1 and corrected by overlapping owned ankle rings with foot shells.",
+  "source_blend": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-prototype-v2.blend",
+  "preview": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-prototype-v2-preview.png",
+  "saved_library_contents": {
+    "scenes": [
+      "Wildbound_Silueta_Prototype"
+    ],
+    "objects": [
+      "Silueta_RaggedMantle",
+      "Silueta_PreviewRim",
+      "Silueta_PreviewKey",
+      "Silueta_PreviewFill",
+      "Silueta_PreviewCamera",
+      "Silueta_Head",
+      "Silueta_FeetOrigin",
+      "Silueta_Eyes",
+      "Silueta_BranchCrown",
+      "Silueta_Body",
+      "Silueta_ArmRight",
+      "Silueta_ArmLeft"
+    ],
+    "materials": [
+      "Silueta_VioletEyes",
+      "Silueta_MossMantle",
+      "Silueta_DeepBark",
+      "Silueta_BarkRidge"
+    ]
+  },
+  "back_preview": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-prototype-v2-back.png",
+  "source_blend_sha256": "3586DA8B9F3E1135ECB2BDEDDE31E2AF45C3E2ED351300AE03B4DB3CFC08E835",
+  "final_context": {
+    "file": "",
+    "scene": "Scene",
+    "mode": "OBJECT",
+    "active": "Cube",
+    "selection": [
+      "Cube"
+    ]
+  }
+}

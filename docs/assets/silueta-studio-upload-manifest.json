@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 1,
+  "status": "approved-staged-partial-material-fidelity-no-clips",
+  "studioId": "dfda4f65-05a7-459a-b38f-a054490feece",
+  "placeId": "122652861404212",
+  "gameId": "10774749224",
+  "creatorUserId": "11937129310",
+  "file": "C:/Users/Jesus/Documents/ChatGPT/roblox-terror/assets/exports/silueta-horror-rig-v3-model.fbx",
+  "fileBytes": 258524,
+  "sha256": "A7E10A43D217C413EBA07F99399A93B8D5312CD12878D375E22D18808D43291F",
+  "priorAttempt": "Rejected by upload-directory permission gate before transfer; no operation or asset ID",
+  "currentAttempts": [
+    {
+      "response": {
+        "content": [
+          {
+            "type": "text",
+            "text": "POST https://apis.roblox.com/assets/v1/assets -> 200 OK\n\n{\"path\":\"operations/9a063a15-aa41-41a7-902f-ace1ddbbb9b5\",\"operationId\":\"9a063a15-aa41-41a7-902f-ace1ddbbb9b5\",\"done\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "timestampUtc": "2026-11-05T22:38:01.4375657Z"
+    }
+  ],
+  "verificationTargets": {
+    "heightMetres": 2.4,
+    "heightStuds": 8.571428571428571,
+    "sourceAxes": "Z-up, face -Y",
+    "asymmetricFeatures": "Crown negative-X branches extend farther and higher; eyes project toward source -Y",
+    "meshTriangles": {
+      "Body": 228,
+      "ArmLeft": 116,
+      "ArmRight": 116,
+      "BranchCrown": 248,
+      "RaggedMantle": 180,
+      "Head": 190,
+      "Eyes": 12,
+      "Neck": 38,
+      "BarkRidges": 160
+    },
+    "bones": 18,
+    "usedMaterials": {
+      "BarkShadow": {
+        "linear": [
+          0.013,
+          0.019,
+          0.022
+        ]
+      },
+      "DryBark": {
+        "linear": [
+          0.047,
+          0.057,
+          0.055
+        ]
+      },
+      "RecessedViolet": {
+        "linear": [
+          0.26,
+          0.032,
+          0.48
+        ],
+        "emissionStrength": 1.7
+      }
+    },
+    "materialNote": "Four materials exist in Blender, but actual GLB contains only three used materials. DeadFoliage is unused; Head has two material primitives. No color textures exist."
+  },
+  "animationAssetIds": {},
+  "runtimeIntegration": "not authorized in this unit",
+  "operationId": "9a063a15-aa41-41a7-902f-ace1ddbbb9b5",
+  "operationPoll": {
+    "content": [
+      {
+        "type": "text",
+        "text": "GET https://apis.roblox.com/assets/v1/operations/9a063a15-aa41-41a7-902f-ace1ddbbb9b5 -> 200 OK\n\n{\"path\":\"operations/9a063a15-aa41-41a7-902f-ace1ddbbb9b5\",\"operationId\":\"9a063a15-aa41-41a7-902f-ace1ddbbb9b5\",\"done\":true,\"response\":{\"path\":\"assets/123768633946912\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-05T22:38:05.653Z\",\"assetId\":\"123768633946912\",\"displayName\":\"Wildbound Silueta Horror Rig V3\",\"description\":\"Original low-poly Silueta custom rig v3; model only, separate animation clips retained locally.\",\"assetType\":\"Model\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}}"
+      }
+    ],
+    "isError": false
+  },
+  "assetId": "123768633946912",
+  "moderationState": "Approved",
+  "insertResponse": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"insertGuid\":\"88a6c75f-fa1d-45d0-b2e2-c41b9dad32c8\",\"insertedInstances\":[{\"fullPath\":\"game.ServerStorage.WildboundAssets.SiluetaV3\",\"name\":\"SiluetaV3\",\"className\":\"Model\"}],\"sandboxed\":false,\"assetType\":\"Model\",\"assetId\":\"123768633946912\",\"assetName\":\"SiluetaV3\",\"status\":\"success\",\"isPackage\":true,\"tag\":\"Assistant:88a6c75f-fa1d-45d0-b2e2-c41b9dad32c8\"}"
+      }
+    ],
+    "isError": false
+  },
+  "rawInspection": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"bones\":{\"18\":{\"cf\":\"-7.15255737e-07, 0.454404056, 3.91155481e-08, 0.998051405, 0.060198579, -0.0164186135, -0.0348810032, 0.320086986, -0.946745932, -0.0517373681, 0.945473731, 0.321563035\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Thigh.R.Shin.R\",\"name\":\"Foot.R\",\"world\":\"-80.9539108, 1.10151982, -10.8928499, -0.0132445991, -0.967737794, -0.251612127, 0.103299253, -0.251612067, 0.962299943, -0.994562387, -0.013246052, 0.103299081\"},\"9\":{\"cf\":\"4.17232513e-07, 0.393986881, 5.96046448e-08, 0.906859159, 0.178589523, -0.381722718, -0.30321151, 0.905566096, -0.296669692, 0.292693019, 0.384780347, 0.875371337\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest.UpperArm.R\",\"name\":\"Forearm.R\",\"world\":\"-81.0470276, 2.17081022, -10.5504627, 0.182508916, -0.118289918, -0.976062834, -0.202039599, -0.976062655, 0.08051157, -0.962221682, 0.182509139, -0.202039301\"},\"1\":{\"cf\":\"0, 0, 0, 0.99738735, -0.0511142164, -0.0510474071, 0.0510473922, 0.99869287, -0.00261282618, 0.0511142276, 1.63046991e-07, 0.99869287\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart\",\"name\":\"Root\",\"world\":\"-80.9723663, 1.00000095, -11.0828247, 0.0511142276, 1.63046991e-07, 0.99869287, 0.0510473922, 0.99869287, -0.00261282618, -0.99738735, 0.0511142164, 0.0510474071\"},\"15\":{\"cf\":\"2.98023224e-08, 0.453416467, -1.21071935e-08, 0.992625535, 0.00352854421, -0.121170469, -0.115931496, 0.319705278, -0.940398157, 0.0354205966, 0.94751054, 0.317756683\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Thigh.L.Shin.L\",\"name\":\"Foot.L\",\"world\":\"-80.9539108, 1.1015197, -11.2620096, -0.0132450406, -0.967738092, -0.25161162, 0.103297614, -0.251611561, 0.962300301, -0.994562566, -0.013245143, 0.103297614\"},\"3\":{\"cf\":\"2.60770321e-08, 0.197161615, -2.98023224e-08, 0.999996603, -0.000950360496, -0.0024235521, 0.00101013284, 0.99969238, 0.0247823596, 0.00239925436, -0.0247847233, 0.999689937\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis\",\"name\":\"Spine\",\"world\":\"-80.9799728, 2.01518965, -11.0822544, -0.0388240106, -0.203272715, 0.978352249, -0.0476744547, 0.978352308, 0.201380834, -0.998108208, -0.0388239995, -0.0476744622\"},\"2\":{\"cf\":\"0.0347124636, 0.820748627, 0.025946578, 0.99074322, 0.081924282, 0.108241998, -0.100037523, 0.979613006, 0.174215347, -0.0917627886, -0.18343094, 0.978740454\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root\",\"name\":\"Pelvis\",\"world\":\"-80.9446793, 1.82138097, -11.0741701, -0.0410017818, -0.179003507, 0.982993841, -0.04909214, 0.982993841, 0.176955819, -0.997952402, -0.0410017632, -0.0490921512\"},\"5\":{\"cf\":\"0.377214491, 0.205987215, -0.00251244009, 0.768178284, 0.522598326, -0.369855642, 0.50479424, -0.849717855, -0.152192146, -0.393808246, -0.0697902814, -0.916539431\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest\",\"name\":\"UpperArm.L\",\"world\":\"-81.0971069, 2.50432587, -11.4735193, -0.511389375, 0.12760672, -0.849822402, 0.385409534, -0.849822104, -0.359530896, -0.768076003, -0.511389732, 0.385409057\"},\"4\":{\"cf\":\"3.7252903e-08, 0.30186224, 1.49011612e-08, 0.999103248, -0.0252821427, -0.0339650437, 0.0264721178, 0.999034762, 0.0350548178, 0.033045996, -0.035922505, 0.998808205\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine\",\"name\":\"Chest\",\"world\":\"-81.0413361, 2.31051731, -11.0939741, -0.0118396282, -0.237239823, 0.97137922, -0.0150778145, 0.97137922, 0.237056062, -0.999816358, -0.0118396273, -0.0150778219\"},\"7\":{\"cf\":\"-2.98023224e-07, 0.610762894, 3.7252903e-08, 0.984322488, -0.0953354537, 0.148392722, 0.117780335, 0.981543303, -0.150667593, -0.131289899, 0.165783256, 0.977383792\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest.UpperArm.L.Forearm.L\",\"name\":\"Hand.L\",\"world\":\"-81.1200333, 1.568434, -11.7438211, 0.00323168933, -0.269962728, -0.962865889, -0.00426225271, -0.96286577, 0.269948363, -0.999985933, 0.00323162042, -0.00426218659\"},\"6\":{\"cf\":\"-2.38418579e-07, 0.392453134, 1.1920929e-07, 0.864226758, -0.231459096, 0.446697682, 0.380816847, 0.881180346, -0.28017807, -0.328771442, 0.41224736, 0.849683166\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest.UpperArm.L\",\"name\":\"Forearm.L\",\"world\":\"-81.0470276, 2.17081046, -11.6742153, -0.11396423, -0.119526774, -0.986268878, 0.127658159, -0.986268699, 0.104775697, -0.985249162, -0.113964528, 0.127657995\"},\"14\":{\"cf\":\"-2.98023224e-08, 0.369209707, 2.98023224e-08, 0.955638766, -0.181875408, 0.231680587, 0.220561698, 0.963196278, -0.153640792, -0.195210397, 0.197924957, 0.960582435\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Thigh.L\",\"name\":\"Shin.L\",\"world\":\"-80.9216003, 1.55374014, -11.2683239, 0.0139258206, -0.0712403804, -0.997362316, -0.0149543341, -0.997362137, 0.0710315481, -0.999791324, 0.0139257014, -0.014954403\"},\"8\":{\"cf\":\"-0.342031449, 0.197470069, -0.0133591443, 0.762475669, -0.505616069, 0.403711826, -0.490769923, -0.858561814, -0.148379475, 0.421634614, -0.0849938765, -0.902773678\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest\",\"name\":\"UpperArm.R\",\"world\":\"-81.0971069, 2.50432587, -10.7541409, 0.51696986, 0.127110064, -0.846513867, -0.388269126, -0.846513808, -0.364227802, -0.762882411, 0.51696974, -0.388269067\"},\"16\":{\"cf\":\"-0.115185112, 0.087823391, 0.00172418356, 0.932444453, -0.224207282, 0.283334702, -0.242704198, -0.969589472, 0.0314791575, 0.267660499, -0.0981190801, -0.958504379\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis\",\"name\":\"Thigh.R\",\"world\":\"-80.9539795, 1.91367066, -10.9629068, 0.268321633, 0.0863023698, -0.959455967, -0.236988336, -0.959456384, -0.152578622, -0.933723927, 0.268319964, -0.236990213\"},\"17\":{\"cf\":\"-1.78813934e-07, 0.375139952, -4.47034836e-08, 0.893996, 0.279658616, -0.350089073, -0.342048168, 0.930639982, -0.130047426, 0.289437979, 0.236009166, 0.927645087\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Thigh.R\",\"name\":\"Shin.R\",\"world\":\"-80.9216003, 1.55374014, -10.8622484, -0.0673440993, -0.0710855126, -0.995194495, 0.072151646, -0.995194256, 0.0662030429, -0.995117784, -0.0673465282, 0.0721494108\"},\"13\":{\"cf\":\"0.114146143, 0.097245574, 0.0130056292, 0.9588539, 0.24864839, -0.13701582, 0.256520927, -0.965587378, 0.0428734347, -0.121640325, -0.0762567744, -0.989640772\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis\",\"name\":\"Thigh.L\",\"world\":\"-80.9539795, 1.91367054, -11.192708, -0.204804555, 0.0876885578, -0.974867404, 0.18356134, -0.974867165, -0.126251966, -0.961436749, -0.204804882, 0.183560967\"},\"12\":{\"cf\":\"-1.86264515e-08, 0.154570937, 0, 0.999537647, -0.0158955585, -0.0259196647, 0.00618762802, 0.940965593, -0.338445902, 0.029769294, 0.338129044, 0.940628886\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest.Neck\",\"name\":\"Head\",\"world\":\"-81.1776657, 2.7258215, -11.0977745, 0.0403905436, -0.115733325, 0.992459178, 0.0453324318, 0.992459178, 0.113888443, -0.998155236, 0.0403905436, 0.0453324206\"},\"11\":{\"cf\":\"0.0029741209, 0.285062671, 4.47332859e-05, 0.998730898, -0.0247248188, -0.0438779369, 0.0337453447, 0.97524035, 0.218558148, 0.0373877212, -0.219761461, 0.974837005\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest\",\"name\":\"Neck\",\"world\":\"-81.1089478, 2.58738708, -11.1003227, 0.0164873116, -0.444544822, 0.895605206, 0.0265838318, 0.895605206, 0.444055438, -0.999510765, 0.016487319, 0.0265838131\"},\"10\":{\"cf\":\"5.96046448e-08, 0.617149115, 1.71363354e-07, 0.963555634, 0.14238216, -0.226468235, -0.179002628, 0.972298384, -0.150312752, 0.198792845, 0.185373113, 0.962350368\",\"parent\":\"ServerStorage.WildboundAssets.SiluetaV3.RootPart.Root.Pelvis.Spine.Chest.UpperArm.R.Forearm.R\",\"name\":\"Hand.R\",\"world\":\"-81.1200333, 1.568434, -10.4378271, 0.00299739838, -0.269962877, -0.962866426, -0.00395349041, -0.962866247, 0.269950539, -0.999987721, 0.00299748778, -0.00395341218\"}},\"classes\":{\"Motor6D\":9,\"Folder\":1,\"AnimationController\":1,\"Bone\":18,\"Part\":1,\"CFrameValue\":84,\"MeshPart\":9,\"PackageLink\":1},\"scale\":1,\"pivot\":\"-80.9723663, 1.00000095, -11.0828247, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"packages\":{\"1\":{\"autoUpdate\":\"Read denied: RobloxScript capability; not changed\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.PackageLink\"}},\"parts\":{\"1\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_ArmLeft\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.0843658, 1.97138298, -11.5997858, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.47880491614341736, 1.206268072128296, 0.2694443464279175\",\"name\":\"SiluetaV3_ArmLeft\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://137191581748428\",\"texture\":\"\"},\"3\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_BarkRidges\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.1865463, 2.36081171, -11.1004686, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.6535099744796753, 0.3347829580307007, 0.18486538529396057\",\"name\":\"SiluetaV3_BarkRidges\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://139515213010734\",\"texture\":\"\"},\"2\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_ArmRight\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.0843658, 1.97138298, -10.6024141, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.5101315975189209, 1.206268072128296, 0.2694443464279175\",\"name\":\"SiluetaV3_ArmRight\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://76871433531483\",\"texture\":\"\"},\"5\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_BranchCrown\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.2247314, 3.11349559, -11.136117, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"1.687235713005066, 0.5730103254318237, 0.24167561531066895\",\"name\":\"SiluetaV3_BranchCrown\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://118014670178505\",\"texture\":\"\"},\"4\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_Body\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.0428619, 1.82599521, -11.0974846, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.7047255039215088, 1.6519887447357178, 0.4732309579849243\",\"name\":\"SiluetaV3_Body\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://132879106432738\",\"texture\":\"\"},\"7\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_Head\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.194191, 2.76273751, -11.0949373, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.31036290526390076, 0.35070133209228516, 0.2812260389328003\",\"name\":\"SiluetaV3_Head\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://128606459589285\",\"texture\":\"\"},\"6\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_Eyes\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.2579193, 2.78950167, -11.0952883, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.199346125125885, 0.020303845405578613, 0.015268921852111816\",\"name\":\"SiluetaV3_Eyes\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://103966401554446\",\"texture\":\"\"},\"9\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_RaggedMantle\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.1129303, 2.21118283, -11.0792809, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"1.181959629058838, 0.9019654989242554, 0.4447517991065979\",\"name\":\"SiluetaV3_RaggedMantle\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://85073074927153\",\"texture\":\"\"},\"8\":{\"colorMap\":\"\",\"path\":\"ServerStorage.WildboundAssets.SiluetaV3.SiluetaV3_Neck\",\"collide\":true,\"anchored\":false,\"cf\":\"-81.1183319, 2.62891722, -11.0961218, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"size\":\"0.16666816174983978, 0.2122666835784912, 0.2136053442955017\",\"name\":\"SiluetaV3_Neck\",\"query\":true,\"color\":{\"1\":0.6392157077789307,\"3\":0.6470588445663452,\"2\":0.6352941393852234},\"material\":\"Enum.Material.Plastic\",\"mesh\":\"rbxassetid://73094103469012\",\"texture\":\"\"}}}"
+      }
+    ],
+    "isError": false
+  },
+  "repairs": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"crownSize\":\"6.02584171295166, 2.0464653968811035, 0.8631271719932556\",\"visualSize\":\"6.02584171295166, 8.571427345275879, 1.9261527061462402\",\"beforeMax\":\"-80.80624389648438, 3.400000810623169, -10.292499542236328\",\"uprightHeight\":2.399999976158142,\"unresolved\":\"Head had two source materials but one imported MeshPart; base BarkShadow restored, DryBark socket accents not separately recoverable. Source eye emission1.7 not recreated; no invented Neon.\",\"finalMin\":\"-2.8225913047790527, 0, -1.3328675031661987\",\"originalPivot\":\"-80.9723663, 1.00000095, -11.0828247, 0, 0, 1, 0, 1, 0, -1, 0, 0\",\"colors\":{\"1\":{\"name\":\"SiluetaV3_ArmLeft\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"3\":{\"name\":\"SiluetaV3_BarkRidges\",\"color\":{\"1\":0.239215686917305,\"3\":0.25882354378700259,\"2\":0.26274511218070986}},\"2\":{\"name\":\"SiluetaV3_ArmRight\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"5\":{\"name\":\"SiluetaV3_BranchCrown\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"4\":{\"name\":\"SiluetaV3_Body\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"7\":{\"name\":\"SiluetaV3_Head\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"6\":{\"name\":\"SiluetaV3_Eyes\",\"color\":{\"1\":0.545098066329956,\"3\":0.7215686440467835,\"2\":0.19607843458652497}},\"9\":{\"name\":\"SiluetaV3_RaggedMantle\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}},\"8\":{\"name\":\"SiluetaV3_Neck\",\"color\":{\"1\":0.11764705926179886,\"3\":0.1568627506494522,\"2\":0.14509804546833039}}},\"scaleFactor\":3.571428606907527,\"beforeMin\":\"-81.34556579589844, 1.0000008344650269, -11.979734420776367\",\"eyesMinusHead\":\"0.0012533999979496002, 0.09558582305908203, -0.22760117053985596\",\"finalMax\":\"3.2032504081726074, 8.571427345275879, 0.5932852625846863\",\"crownCenter\":\"0.19032955169677734, 7.548194885253906, -0.9013039469718933\"}"
+      }
+    ],
+    "isError": false
+  },
+  "finalReadback": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"meshParts\":9,\"baseParts\":10,\"placeId\":122652861404212,\"unsafeParts\":[],\"animators\":0,\"packageLinks\":1,\"animationControllers\":1,\"meshAssets\":{\"1\":{\"id\":\"rbxassetid://137191581748428\",\"name\":\"SiluetaV3_ArmLeft\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"3\":{\"id\":\"rbxassetid://139515213010734\",\"name\":\"SiluetaV3_BarkRidges\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"2\":{\"id\":\"rbxassetid://76871433531483\",\"name\":\"SiluetaV3_ArmRight\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"5\":{\"id\":\"rbxassetid://118014670178505\",\"name\":\"SiluetaV3_BranchCrown\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"4\":{\"id\":\"rbxassetid://132879106432738\",\"name\":\"SiluetaV3_Body\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"7\":{\"id\":\"rbxassetid://128606459589285\",\"name\":\"SiluetaV3_Head\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"6\":{\"id\":\"rbxassetid://103966401554446\",\"name\":\"SiluetaV3_Eyes\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"9\":{\"id\":\"rbxassetid://85073074927153\",\"name\":\"SiluetaV3_RaggedMantle\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"},\"8\":{\"id\":\"rbxassetid://73094103469012\",\"name\":\"SiluetaV3_Neck\",\"fetchStatus\":\"Enum.AssetFetchStatus.Success\"}},\"animationAssets\":0,\"bones\":18,\"streaming\":true,\"nonNeutralBones\":[],\"gameId\":10774749224,\"template\":\"ServerStorage.WildboundAssets.SiluetaV3\",\"scale\":3.5714285373687746,\"pivot\":\"0, 2.38418579e-07, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1\",\"motors\":9}"
+      }
+    ],
+    "isError": false
+  },
+  "deformationProbe": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"headBefore\":\"0.0533917323, 1006.16364, -0.733212769, 0.998155236, -0.0403905436, -0.0453324206, 0.0453324318, 0.992459178, 0.113888443, 0.0403905436, -0.115733325, 0.992459178\",\"scope\":\"Temporary clone only; no animation clip or runtime edit\",\"headAfter\":\"0.0533917323, 1006.16364, -0.733212769, 0.831195116, -0.312540829, 0.459818602, 0.289867163, 0.949349821, 0.121296495, -0.474438727, 0.0324652642, 0.879690111\",\"forearmBefore\":\"2.11211181, 1004.18146, -0.2666471, 0.985249162, 0.113964528, -0.127657995, 0.127658159, -0.986268759, 0.104775697, -0.11396423, -0.119526774, -0.986268878\",\"forearmAfter\":\"2.11211181, 1004.18146, -0.2666471, 0.519671202, -0.844775558, -0.127657995, -0.839912415, -0.532512724, 0.104775697, -0.156491414, 0.0527724735, -0.986268878\"}"
+      }
+    ],
+    "isError": false
+  },
+  "captures": [
+    "SiluetaV3_Imported_Front_Loaded",
+    "SiluetaV3_NativeBone_Deformation"
+  ],
+  "templatePath": "game.ServerStorage.WildboundAssets.SiluetaV3",
+  "unresolved": [
+    "Head mixed-material socket accents not separately restored",
+    "Eye emission not recreated",
+    "No Roblox AnimationIDs uploaded",
+    "Package AutoUpdate read denied; state unchanged",
+    "Exact native triangle counts not measured"
+  ]
+}

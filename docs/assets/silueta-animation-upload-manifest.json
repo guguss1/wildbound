@@ -1,0 +1,224 @@
+{
+  "schemaVersion": 1,
+  "creator": {
+    "type": "User",
+    "id": "11937129310"
+  },
+  "destination": {
+    "placeId": "122652861404212",
+    "universeId": "10774749224",
+    "studioId": "81631061-9001-4c69-be21-f79a34aaa1d8"
+  },
+  "authorizedNewAssetCount": 4,
+  "submittedPostCount": 4,
+  "createdAssetCount": 4,
+  "clips": [
+    {
+      "clip": "Idle",
+      "sourcePath": "assets/exports/silueta-horror-rig-v3-native-idle-v1.rbxmx",
+      "sha256": "75415765FC55B1164A5A717C6E70591FA26CDF9DC0A1408D6070C74B29C67F1B",
+      "bytes": 2107587,
+      "keyframes": 91,
+      "posesPerKeyframe": 20,
+      "duration": 3,
+      "postAttempts": 1,
+      "status": "complete",
+      "postResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "POST https://apis.roblox.com/assets/v1/assets -> 200 OK\n\n{\"path\":\"operations/ca273cef-8415-46a3-ad5f-e01636679b60\",\"operationId\":\"ca273cef-8415-46a3-ad5f-e01636679b60\",\"done\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "operationPolls": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "GET https://apis.roblox.com/assets/v1/operations/ca273cef-8415-46a3-ad5f-e01636679b60 -> 200 OK\n\n{\"path\":\"operations/ca273cef-8415-46a3-ad5f-e01636679b60\",\"operationId\":\"ca273cef-8415-46a3-ad5f-e01636679b60\",\"done\":true,\"response\":{\"path\":\"assets/90427760879990\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:05:11.362Z\",\"assetId\":\"90427760879990\",\"displayName\":\"Wildbound Silueta V3 Idle\",\"description\":\"Original Silueta horror rig v3 neutral-basis Idle, 3 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}}"
+            }
+          ],
+          "isError": false
+        }
+      ],
+      "assetId": "90427760879990",
+      "operationId": "ca273cef-8415-46a3-ad5f-e01636679b60",
+      "creatorUserId": "11937129310",
+      "moderationState": "Approved",
+      "assetState": "Active",
+      "metadataResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "GET https://apis.roblox.com/assets/v1/assets/90427760879990 -> 200 OK\n\n{\"path\":\"assets/90427760879990\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:05:11.362Z\",\"assetId\":\"90427760879990\",\"displayName\":\"Wildbound Silueta V3 Idle\",\"description\":\"Original Silueta horror rig v3 neutral-basis Idle, 3 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}"
+          }
+        ],
+        "isError": false
+      },
+      "metadataVerified": true
+    },
+    {
+      "clip": "Locomotion",
+      "sourcePath": "assets/exports/silueta-horror-rig-v3-native-locomotion-v1.rbxmx",
+      "sha256": "D0E311DDA0F385E451E0674D8DE471A6467A02528FC16F740DF02D3280DC5289",
+      "bytes": 1437233,
+      "keyframes": 61,
+      "posesPerKeyframe": 20,
+      "duration": 2,
+      "postAttempts": 1,
+      "status": "complete",
+      "postResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "POST https://apis.roblox.com/assets/v1/assets -> 200 OK\n\n{\"path\":\"operations/5c67a4a0-589f-4760-b034-a9cfe12a2748\",\"operationId\":\"5c67a4a0-589f-4760-b034-a9cfe12a2748\",\"done\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "operationPolls": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "GET https://apis.roblox.com/assets/v1/operations/5c67a4a0-589f-4760-b034-a9cfe12a2748 -> 200 OK\n\n{\"path\":\"operations/5c67a4a0-589f-4760-b034-a9cfe12a2748\",\"operationId\":\"5c67a4a0-589f-4760-b034-a9cfe12a2748\",\"done\":true,\"response\":{\"path\":\"assets/109004575414309\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:07:21.332Z\",\"assetId\":\"109004575414309\",\"displayName\":\"Wildbound Silueta V3 Locomotion\",\"description\":\"Original Silueta horror rig v3 neutral-basis in-place Locomotion, 2 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}}"
+            }
+          ],
+          "isError": false
+        }
+      ],
+      "assetId": "109004575414309",
+      "operationId": "5c67a4a0-589f-4760-b034-a9cfe12a2748",
+      "creatorUserId": "11937129310",
+      "moderationState": "Approved",
+      "assetState": "Active",
+      "metadataResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "GET https://apis.roblox.com/assets/v1/assets/109004575414309 -> 200 OK\n\n{\"path\":\"assets/109004575414309\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:07:21.332Z\",\"assetId\":\"109004575414309\",\"displayName\":\"Wildbound Silueta V3 Locomotion\",\"description\":\"Original Silueta horror rig v3 neutral-basis in-place Locomotion, 2 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}"
+          }
+        ],
+        "isError": false
+      },
+      "metadataVerified": true
+    },
+    {
+      "clip": "Telegraph",
+      "sourcePath": "assets/exports/silueta-horror-rig-v3-native-telegraph-v1.rbxmx",
+      "sha256": "32F043B55BB292D56C3F3ADE4AC6F0CEA2EDDDE337D9C378E175CC1FB2B67F8C",
+      "bytes": 1002607,
+      "keyframes": 43,
+      "posesPerKeyframe": 20,
+      "duration": 1.39999998,
+      "postAttempts": 1,
+      "status": "complete",
+      "postResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "POST https://apis.roblox.com/assets/v1/assets -> 200 OK\n\n{\"path\":\"operations/69892ddd-eb58-4c9f-ad5a-3c3a12e139d9\",\"operationId\":\"69892ddd-eb58-4c9f-ad5a-3c3a12e139d9\",\"done\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "operationPolls": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "GET https://apis.roblox.com/assets/v1/operations/69892ddd-eb58-4c9f-ad5a-3c3a12e139d9 -> 200 OK\n\n{\"path\":\"operations/69892ddd-eb58-4c9f-ad5a-3c3a12e139d9\",\"operationId\":\"69892ddd-eb58-4c9f-ad5a-3c3a12e139d9\",\"done\":true,\"response\":{\"path\":\"assets/106571946482274\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:09:03.865Z\",\"assetId\":\"106571946482274\",\"displayName\":\"Wildbound Silueta V3 Telegraph\",\"description\":\"Original Silueta horror rig v3 neutral-basis Telegraph windup, 1.4 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}}"
+            }
+          ],
+          "isError": false
+        }
+      ],
+      "assetId": "106571946482274",
+      "operationId": "69892ddd-eb58-4c9f-ad5a-3c3a12e139d9",
+      "creatorUserId": "11937129310",
+      "moderationState": "Approved",
+      "assetState": "Active",
+      "metadataResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "GET https://apis.roblox.com/assets/v1/assets/106571946482274 -> 200 OK\n\n{\"path\":\"assets/106571946482274\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:09:03.865Z\",\"assetId\":\"106571946482274\",\"displayName\":\"Wildbound Silueta V3 Telegraph\",\"description\":\"Original Silueta horror rig v3 neutral-basis Telegraph windup, 1.4 seconds, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}"
+          }
+        ],
+        "isError": false
+      },
+      "metadataVerified": true
+    },
+    {
+      "clip": "Attack",
+      "sourcePath": "assets/exports/silueta-horror-rig-v3-native-attack-v1.rbxmx",
+      "sha256": "E2F38FBD8E6FC590E87D58178141D7E81DC898C01F3FFCE6C955ED8EBADEC383",
+      "bytes": 725297,
+      "keyframes": 31,
+      "posesPerKeyframe": 20,
+      "duration": 1,
+      "postAttempts": 1,
+      "status": "complete",
+      "postResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "POST https://apis.roblox.com/assets/v1/assets -> 200 OK\n\n{\"path\":\"operations/61acf4cc-554b-430a-a8cf-637fe7eec4f9\",\"operationId\":\"61acf4cc-554b-430a-a8cf-637fe7eec4f9\",\"done\":false}"
+          }
+        ],
+        "isError": false
+      },
+      "operationPolls": [
+        {
+          "content": [
+            {
+              "type": "text",
+              "text": "GET https://apis.roblox.com/assets/v1/operations/61acf4cc-554b-430a-a8cf-637fe7eec4f9 -> 200 OK\n\n{\"path\":\"operations/61acf4cc-554b-430a-a8cf-637fe7eec4f9\",\"operationId\":\"61acf4cc-554b-430a-a8cf-637fe7eec4f9\",\"done\":true,\"response\":{\"path\":\"assets/139759980248576\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:10:47.888Z\",\"assetId\":\"139759980248576\",\"displayName\":\"Wildbound Silueta V3 Attack\",\"description\":\"Original Silueta horror rig v3 neutral-basis Attack and recovery, 1 second, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}}"
+            }
+          ],
+          "isError": false
+        }
+      ],
+      "assetId": "139759980248576",
+      "operationId": "61acf4cc-554b-430a-a8cf-637fe7eec4f9",
+      "creatorUserId": "11937129310",
+      "moderationState": "Approved",
+      "assetState": "Active",
+      "metadataResponse": {
+        "content": [
+          {
+            "type": "text",
+            "text": "GET https://apis.roblox.com/assets/v1/assets/139759980248576 -> 200 OK\n\n{\"path\":\"assets/139759980248576\",\"revisionId\":\"1\",\"revisionCreateTime\":\"2026-11-07T00:10:47.888Z\",\"assetId\":\"139759980248576\",\"displayName\":\"Wildbound Silueta V3 Attack\",\"description\":\"Original Silueta horror rig v3 neutral-basis Attack and recovery, 1 second, 30 fps.\",\"assetType\":\"Animation\",\"creationContext\":{\"creator\":{\"userId\":\"11937129310\"}},\"moderationResult\":{\"moderationState\":\"Approved\"},\"state\":\"Active\",\"isPublished\":true}"
+          }
+        ],
+        "isError": false
+      },
+      "metadataVerified": true
+    }
+  ],
+  "status": "complete_upload_and_metadata_only",
+  "notes": [
+    "Exactly four permanent Animation assets authorized. No game publication.",
+    "Each native Studio single-sequence file is uploaded once; persist full POST response before polling. Never repeat POST for pending or ambiguous outcomes."
+  ],
+  "verification": {
+    "allMetadataVerified": true,
+    "allNativeHashesRechecked": true,
+    "allFilesSingleSequence": true,
+    "allKeysTwentyPoses": true,
+    "backupSha256": "76D26F1CDFE9181FC9247164B572130065DFEF96E43B36E75CCC9DBB6906DAD2",
+    "actualAnimatorPlayback": "pending_separate_owner",
+    "runtimeIntegration": "pending_separate_owner"
+  },
+  "studioHandoff": {
+    "released": true,
+    "editMode": true,
+    "streamingEnabled": true,
+    "stagedSequenceCount": 4,
+    "lastSelection": "ServerStorage.WildboundAnimationStaging.SiluetaV3_Attack_NeutralBasis_v1",
+    "runtimeOrTemplateEdited": false,
+    "gamePublished": false
+  }
+}

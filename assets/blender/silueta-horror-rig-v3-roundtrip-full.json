@@ -1,0 +1,213 @@
+{
+  "glb": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Attack",
+      "SiluetaV3_Locomotion",
+      "SiluetaV3_Telegraph",
+      "SiluetaV3_Idle"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393265634775162,
+      2.4000009382373264
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [
+      "Icosphere"
+    ],
+    "evaluated_actions": [
+      {
+        "name": "SiluetaV3_Attack",
+        "frames": [
+          0.8000000715255737,
+          24.799999237060547
+        ],
+        "fps": 24,
+        "duration_seconds": 0.9999999652306238,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.956125020980835
+      },
+      {
+        "name": "SiluetaV3_Locomotion",
+        "frames": [
+          0.8000000715255737,
+          48.79999923706055
+        ],
+        "fps": 24,
+        "duration_seconds": 1.999999965230624,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.013756439089775085
+      },
+      {
+        "name": "SiluetaV3_Telegraph",
+        "frames": [
+          0.8000000715255737,
+          34.39999771118164
+        ],
+        "fps": 24,
+        "duration_seconds": 1.3999999016523361,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.6679512485861778
+      },
+      {
+        "name": "SiluetaV3_Idle",
+        "frames": [
+          0.8000000715255737,
+          72.80000305175781
+        ],
+        "fps": 24,
+        "duration_seconds": 3.0000001241763434,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.00204429030418396
+      }
+    ]
+  },
+  "fbx_model": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [],
+    "evaluated_actions": []
+  },
+  "fbx_idle": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [],
+    "evaluated_actions": [
+      {
+        "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+        "frames": [
+          2.0,
+          92.0
+        ],
+        "fps": 30,
+        "duration_seconds": 3.0,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.05752410739660263
+      }
+    ]
+  },
+  "fbx_locomotion": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [],
+    "evaluated_actions": [
+      {
+        "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+        "frames": [
+          2.0,
+          62.0
+        ],
+        "fps": 30,
+        "duration_seconds": 2.0,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.26144491136074066
+      }
+    ]
+  },
+  "fbx_telegraph": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [],
+    "evaluated_actions": [
+      {
+        "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+        "frames": [
+          2.0,
+          44.0
+        ],
+        "fps": 30,
+        "duration_seconds": 1.4,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.6692948415875435
+      }
+    ]
+  },
+  "fbx_attack": {
+    "armatures": 1,
+    "bones": [
+      18
+    ],
+    "meshes": 9,
+    "actions": [
+      "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "vertices_without_weights": 0,
+    "dimensions_m": [
+      1.687235713005066,
+      0.5393261760473251,
+      2.3999998621187135
+    ],
+    "triangles": 1288,
+    "unskinned_importer_helpers": [],
+    "evaluated_actions": [
+      {
+        "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+        "frames": [
+          2.0,
+          32.0
+        ],
+        "fps": 30,
+        "duration_seconds": 1.0,
+        "root_matrix_error": 0.0,
+        "pose_matrix_motion": 0.9980772733688354
+      }
+    ]
+  },
+  "isolation": "Separate background factory-startup process; live Blender untouched."
+}

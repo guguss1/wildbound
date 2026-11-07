@@ -1,0 +1,584 @@
+{
+  "asset": "Wildbound_Silueta_HorrorRig_v3",
+  "source_axes": "Z up, face -Y",
+  "source_origin": [
+    0,
+    0,
+    0
+  ],
+  "fps": 30,
+  "custom_bones": [
+    "Root",
+    "Pelvis",
+    "Spine",
+    "Chest",
+    "Neck",
+    "Head",
+    "UpperArm.L",
+    "Forearm.L",
+    "Hand.L",
+    "UpperArm.R",
+    "Forearm.R",
+    "Hand.R",
+    "Thigh.L",
+    "Shin.L",
+    "Foot.L",
+    "Thigh.R",
+    "Shin.R",
+    "Foot.R"
+  ],
+  "mesh_health": [
+    {
+      "name": "SiluetaV3_Body",
+      "vertices": 132,
+      "triangles": 228,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 2,
+      "signed_volume": 0.13466534864826038
+    },
+    {
+      "name": "SiluetaV3_ArmLeft",
+      "vertices": 68,
+      "triangles": 116,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 2,
+      "signed_volume": 0.02806961307657419
+    },
+    {
+      "name": "SiluetaV3_ArmRight",
+      "vertices": 68,
+      "triangles": 116,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 2,
+      "signed_volume": 0.025810184501198145
+    },
+    {
+      "name": "SiluetaV3_BranchCrown",
+      "vertices": 140,
+      "triangles": 248,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 0.009601810913026245
+    },
+    {
+      "name": "SiluetaV3_RaggedMantle",
+      "vertices": 150,
+      "triangles": 180,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 0.03911642133167733
+    },
+    {
+      "name": "SiluetaV3_Head",
+      "vertices": 107,
+      "triangles": 190,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 0.007328776691592937
+    },
+    {
+      "name": "SiluetaV3_Eyes",
+      "vertices": 10,
+      "triangles": 12,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 6.618093063448688e-06
+    },
+    {
+      "name": "SiluetaV3_Neck",
+      "vertices": 21,
+      "triangles": 38,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 0.0026926213891865078
+    },
+    {
+      "name": "SiluetaV3_BarkRidges",
+      "vertices": 96,
+      "triangles": 160,
+      "nonmanifold_edges": 0,
+      "boundary_edges": 0,
+      "loose_vertices": 0,
+      "degenerate_faces": 0,
+      "bad_weight_vertices": [],
+      "max_influences": 1,
+      "signed_volume": 0.000748643909238914
+    }
+  ],
+  "actions": {
+    "Idle": {
+      "action": "SiluetaV3_Idle",
+      "frames": [
+        1,
+        91
+      ],
+      "duration_seconds": 3.0,
+      "sampled_frames": 91,
+      "root_max_error": 0.0,
+      "max_world_vertex_displacement_m": {
+        "SiluetaV3_Body": 0.02231254084120885,
+        "SiluetaV3_ArmLeft": 0.03485709063778134,
+        "SiluetaV3_ArmRight": 0.03673039388908111,
+        "SiluetaV3_BranchCrown": 0.09160018771935427,
+        "SiluetaV3_RaggedMantle": 0.02368188996490404,
+        "SiluetaV3_Head": 0.03834713981137949,
+        "SiluetaV3_Eyes": 0.03332536612670748,
+        "SiluetaV3_Neck": 0.0252345261292857,
+        "SiluetaV3_BarkRidges": 0.01772175571312313
+      },
+      "endpoint_mesh_error_m": 0.0
+    },
+    "Locomotion": {
+      "action": "SiluetaV3_Locomotion",
+      "frames": [
+        1,
+        61
+      ],
+      "duration_seconds": 2.0,
+      "sampled_frames": 61,
+      "root_max_error": 0.0,
+      "max_world_vertex_displacement_m": {
+        "SiluetaV3_Body": 0.2574368660994378,
+        "SiluetaV3_ArmLeft": 0.2058544092398279,
+        "SiluetaV3_ArmRight": 0.23092693549624685,
+        "SiluetaV3_BranchCrown": 0.0708114731049004,
+        "SiluetaV3_RaggedMantle": 0.03868856469535568,
+        "SiluetaV3_Head": 0.04104193662344722,
+        "SiluetaV3_Eyes": 0.03412060079487345,
+        "SiluetaV3_Neck": 0.029919465514196754,
+        "SiluetaV3_BarkRidges": 0.03159233912521436
+      },
+      "endpoint_mesh_error_m": 0.0
+    },
+    "Telegraph": {
+      "action": "SiluetaV3_Telegraph",
+      "frames": [
+        1,
+        43
+      ],
+      "duration_seconds": 1.4,
+      "sampled_frames": 43,
+      "root_max_error": 0.0,
+      "max_world_vertex_displacement_m": {
+        "SiluetaV3_Body": 0.15271828816066685,
+        "SiluetaV3_ArmLeft": 0.9386465928843654,
+        "SiluetaV3_ArmRight": 0.9675704173403644,
+        "SiluetaV3_BranchCrown": 0.24575794009216337,
+        "SiluetaV3_RaggedMantle": 0.16256985895721326,
+        "SiluetaV3_Head": 0.16287565781834054,
+        "SiluetaV3_Eyes": 0.15848223729359856,
+        "SiluetaV3_Neck": 0.14822184156999976,
+        "SiluetaV3_BarkRidges": 0.12361300748468755
+      },
+      "endpoint_mesh_error_m": 0.9675704173403644
+    },
+    "Attack": {
+      "action": "SiluetaV3_Attack",
+      "frames": [
+        1,
+        31
+      ],
+      "duration_seconds": 1.0,
+      "sampled_frames": 31,
+      "root_max_error": 0.0,
+      "max_world_vertex_displacement_m": {
+        "SiluetaV3_Body": 0.3659348349836598,
+        "SiluetaV3_ArmLeft": 1.16085060410203,
+        "SiluetaV3_ArmRight": 1.2611321768375807,
+        "SiluetaV3_BranchCrown": 0.8304095279879553,
+        "SiluetaV3_RaggedMantle": 0.3910708309143628,
+        "SiluetaV3_Head": 0.49971060601559164,
+        "SiluetaV3_Eyes": 0.4364393812575637,
+        "SiluetaV3_Neck": 0.3892191718905876,
+        "SiluetaV3_BarkRidges": 0.29657236374111023
+      },
+      "endpoint_mesh_error_m": 0.9675704173403644
+    }
+  },
+  "preview_files": {
+    "front": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3-front.png",
+    "back": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3-back.png",
+    "telegraph-qa": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3-telegraph-qa.png",
+    "attack-qa": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3-attack-qa.png",
+    "locomotion-qa": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3-locomotion-qa.png"
+  },
+  "exports": {
+    "silueta-horror-rig-v3.blend": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\blender\\silueta-horror-rig-v3.blend",
+      "bytes": 148445,
+      "sha256": "7b10270784c135d71cee7fcdcc5f54b9b7de70b00b7ef26e7c37e27d16765e64"
+    },
+    "silueta-horror-rig-v3.glb": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3.glb",
+      "bytes": 237188,
+      "sha256": "b3a84f5ded238228abe12e46dd8498d1dee196f5f8ec0db202754d2cb704b406"
+    },
+    "silueta-horror-rig-v3-model.fbx": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3-model.fbx",
+      "bytes": 258524,
+      "sha256": "a7e10a43d217c413eba07f99399a93b8d5312cd12878d375e22d18808d43291f"
+    },
+    "silueta-horror-rig-v3-idle.fbx": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3-idle.fbx",
+      "bytes": 451772,
+      "sha256": "f6dd2648b4dbd4e3ee06237f67cee1808e6dc4e22dc02a47a7965cb9cfbbf1f0"
+    },
+    "silueta-horror-rig-v3-locomotion.fbx": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3-locomotion.fbx",
+      "bytes": 425804,
+      "sha256": "508fdb93f14a4f9c2b1f2783f4e6cd615ba451c9864a60d38aaed116bdb6c2dc"
+    },
+    "silueta-horror-rig-v3-telegraph.fbx": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3-telegraph.fbx",
+      "bytes": 402364,
+      "sha256": "edb505ae22310d07cc89d8bdb2886e0c03c1fdbd192d6d234e3c3e798148c5b9"
+    },
+    "silueta-horror-rig-v3-attack.fbx": {
+      "path": "C:\\Users\\Jesus\\Documents\\ChatGPT\\roblox-terror\\assets\\exports\\silueta-horror-rig-v3-attack.fbx",
+      "bytes": 404188,
+      "sha256": "4b0db223ede75d361682293926a5d25c3b8fe40a04ac5504352dbf94cbcc2336"
+    }
+  },
+  "initial_context": {
+    "file": "",
+    "scene": "Scene",
+    "mode": "OBJECT",
+    "active": "Cube",
+    "selection": [
+      "Cube"
+    ]
+  },
+  "runtime_damage_authority": "None; runtime server FSM must retain control.",
+  "limitations": [
+    "Not yet imported or played in Roblox; exported clips are not Roblox AnimationIDs.",
+    "Intentional overlapping closed shells, not welded production deformation topology.",
+    "Per-face planar UV placeholders and four opaque materials; no textures/LOD.",
+    "Mobile performance and real gameplay animation synchronization remain pending."
+  ],
+  "triangles": 1288,
+  "vertices": 792,
+  "world_vertex_min_m": [
+    -0.8969103097915649,
+    -0.37320464849472046,
+    0.0
+  ],
+  "world_vertex_max_m": [
+    0.790325403213501,
+    0.16612178087234497,
+    2.3999998569488525
+  ],
+  "world_vertex_dimensions_m": [
+    1.687235713005066,
+    0.5393264293670654,
+    2.3999998569488525
+  ],
+  "source_readback": {
+    "scenes": [
+      "Wildbound_Silueta_HorrorRig_v3"
+    ],
+    "objects": [
+      "SiluetaV3_Rim",
+      "SiluetaV3_Rig",
+      "SiluetaV3_RaggedMantle",
+      "SiluetaV3_PreviewCamera",
+      "SiluetaV3_Neck",
+      "SiluetaV3_Key",
+      "SiluetaV3_Head",
+      "SiluetaV3_Fill",
+      "SiluetaV3_Eyes",
+      "SiluetaV3_BranchCrown",
+      "SiluetaV3_Body",
+      "SiluetaV3_BarkRidges",
+      "SiluetaV3_ArmRight",
+      "SiluetaV3_ArmLeft"
+    ],
+    "armatures": [
+      "SiluetaV3_CustomSkeleton"
+    ],
+    "actions": [
+      "SiluetaV3_Telegraph",
+      "SiluetaV3_Locomotion",
+      "SiluetaV3_Idle",
+      "SiluetaV3_Attack"
+    ]
+  },
+  "glb_structure": {
+    "skins": 1,
+    "joints_per_skin": [
+      18
+    ],
+    "animations": [
+      "SiluetaV3_Attack",
+      "SiluetaV3_Idle",
+      "SiluetaV3_Locomotion",
+      "SiluetaV3_Telegraph"
+    ],
+    "meshes": 9,
+    "materials": 3,
+    "cameras": 0
+  },
+  "local_roundtrip": {
+    "glb": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [
+        "SiluetaV3_Attack",
+        "SiluetaV3_Locomotion",
+        "SiluetaV3_Telegraph",
+        "SiluetaV3_Idle"
+      ],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393265634775162,
+        2.4000009382373264
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [
+        "Icosphere"
+      ],
+      "evaluated_actions": [
+        {
+          "name": "SiluetaV3_Attack",
+          "frames": [
+            0.8000000715255737,
+            24.799999237060547
+          ],
+          "fps": 24,
+          "duration_seconds": 0.9999999652306238,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.956125020980835
+        },
+        {
+          "name": "SiluetaV3_Locomotion",
+          "frames": [
+            0.8000000715255737,
+            48.79999923706055
+          ],
+          "fps": 24,
+          "duration_seconds": 1.999999965230624,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.013756439089775085
+        },
+        {
+          "name": "SiluetaV3_Telegraph",
+          "frames": [
+            0.8000000715255737,
+            34.39999771118164
+          ],
+          "fps": 24,
+          "duration_seconds": 1.3999999016523361,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.6679512485861778
+        },
+        {
+          "name": "SiluetaV3_Idle",
+          "frames": [
+            0.8000000715255737,
+            72.80000305175781
+          ],
+          "fps": 24,
+          "duration_seconds": 3.0000001241763434,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.00204429030418396
+        }
+      ]
+    },
+    "fbx_model": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393261760473251,
+        2.3999998621187135
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [],
+      "evaluated_actions": []
+    },
+    "fbx_idle": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [
+        "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+      ],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393261760473251,
+        2.3999998621187135
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [],
+      "evaluated_actions": [
+        {
+          "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+          "frames": [
+            2.0,
+            92.0
+          ],
+          "fps": 30,
+          "duration_seconds": 3.0,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.05752410739660263
+        }
+      ]
+    },
+    "fbx_locomotion": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [
+        "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+      ],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393261760473251,
+        2.3999998621187135
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [],
+      "evaluated_actions": [
+        {
+          "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+          "frames": [
+            2.0,
+            62.0
+          ],
+          "fps": 30,
+          "duration_seconds": 2.0,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.26144491136074066
+        }
+      ]
+    },
+    "fbx_telegraph": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [
+        "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+      ],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393261760473251,
+        2.3999998621187135
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [],
+      "evaluated_actions": [
+        {
+          "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+          "frames": [
+            2.0,
+            44.0
+          ],
+          "fps": 30,
+          "duration_seconds": 1.4,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.6692948415875435
+        }
+      ]
+    },
+    "fbx_attack": {
+      "armatures": 1,
+      "bones": [
+        18
+      ],
+      "meshes": 9,
+      "actions": [
+        "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3"
+      ],
+      "vertices_without_weights": 0,
+      "dimensions_m": [
+        1.687235713005066,
+        0.5393261760473251,
+        2.3999998621187135
+      ],
+      "triangles": 1288,
+      "unskinned_importer_helpers": [],
+      "evaluated_actions": [
+        {
+          "name": "SiluetaV3_Rig|Wildbound_Silueta_HorrorRig_v3",
+          "frames": [
+            2.0,
+            32.0
+          ],
+          "fps": 30,
+          "duration_seconds": 1.0,
+          "root_matrix_error": 0.0,
+          "pose_matrix_motion": 0.9980772733688354
+        }
+      ]
+    },
+    "isolation": "Separate background factory-startup process; live Blender untouched."
+  },
+  "original_context_preserved": true,
+  "existing_object_geometry_preserved": true,
+  "verification": {
+    "motion_contracts": "Actual RED six stub errors, then GREEN6/6; revised profiles rerun GREEN6/6.",
+    "runner": "D:/blender/5.1/python/bin/python.exe tools/test_silueta_motion_v3.py",
+    "evaluated_frames": 226,
+    "visual_qa": "Front/back, wide-held Telegraph, forward Attack and Locomotion inspected via Blender MCP look.",
+    "importer_gotcha": "A failed live-scene GLB importer attempted wrong-context unlink and changed window.scene; only test-created IDs cleaned and original Scene/Cube selection explicitly restored. Final successful GLB/modelFBX/all4FBXclip roundtrips used a separate background process.",
+    "renderer_gotcha": "Use temp_override(scene/view_layer) for correct inactive-scene animated render frame."
+  },
+  "roblox_import_status": {
+    "status": "BLOCKED",
+    "evidence_source": "Parent reported one supported model-FBX upload rejected before transfer.",
+    "reason": "assets/exports is not approved in Assistant Settings -> MCP Permissions upload-directory allowlist.",
+    "asset_id": null,
+    "operation_id": null,
+    "user_consent": "Permanent asset User11937129310 and assets/exports approved; native directory permission still missing.",
+    "bypass_attempted": false
+  }
+}
