@@ -95,6 +95,8 @@ local function applyChip(view)
 	chip:SetAttribute("Kind", view.kind)
 end
 local reduced = true
+-- The capture screen reads this to stop its ring pulsing (M3.4).
+gui:SetAttribute("Reduced", reduced)
 local state, actionRemote, lastUpdate = nil, nil, 0
 local connections = {}
 local function listen(signal, callback)
@@ -159,6 +161,7 @@ listen(flashlight.Activated, function() request("Flashlight") end)
 listen(pulse.Activated, function() request("LumipolPulse") end)
 listen(effects.Activated, function()
 	reduced = not reduced
+	gui:SetAttribute("Reduced", reduced)
 	effects.Text = reduced and "Reduced: On" or "Reduced: Off"
 end)
 listen(UserInputService.InputBegan, function(input, processed)

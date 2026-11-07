@@ -86,3 +86,26 @@ Before (baseline, `docs/testing/wildbound-baseline-m1.md`): panels reached 57% o
 Captures, in `assets/exports/forest-kit/captures/`: `hud-iphone17pro-landscape-seen.jpg`, `hud-iphone17pro-landscape-seen-inventory-open.jpg`, `hud-iphone17pro-landscape-attack-inventory-open.jpg`, `hud-iphone17pro-portrait-seen.jpg`, `hud-galaxya06-landscape-ally.jpg`, `hud-galaxya06-portrait-ally.jpg`, and desktop `hud-desktop-none-day.jpg`, `hud-desktop-none-inventory-open.jpg`, `hud-desktop-seen-inventory-open.jpg`, `hud-desktop-seen-amber-disc-companion.jpg`.
 
 Not verified: any tap on a phone button (Studio mouse clicks do not activate buttons under a phone profile, and the keyboard hides the touch controls), a real phone, safe areas on a physical notch (the profiles' inset is read, not a device), a genuinely muted client, and whether people read the chip correctly (the five-pair test).
+
+## Capture screen (M3.4, wave W5)
+
+Pure rules: `src/wildbound/WildboundCaptureView.luau` (`ReplicatedStorage.WildboundCaptureView`, 40 contracts). Controller: `src/wildbound/WildboundCapture.client.luau` (`StarterPlayerScripts.WildboundCaptureClient`, `WildboundCaptureUI`, `DisplayOrder` 20). It reads the owner-only `CaptureState` feed and sends only `CaptureCancel` with the token. Mechanics and results are in `docs/mechanics/wildbound-capture.md`.
+
+- **World ring.** 32 thin neon parts made on this client only (nothing replicates, so streaming cannot hide it), placed at the ring centre for the server clock, on the ground by a short raycast with a fallback. Solid and green-white when you are inside, dashed and amber when outside. The pulse is off when Reduced is on (`WildboundWorldUI` attribute `Reduced`).
+- **Panel.** One line of words, a meter bar, a glyph and, on panels 70 pixels tall or more, a second line. Each state has its own words and glyph, with colour only as a redundant cue (text contrast at least 4.5:1, meter at least 3:1, both contracts). Direction cue: a rotated arrow in the glyph slot, plus "Move right." and so on on the tall panels.
+
+| State | Words (desktop, phone) | Glyph |
+| --- | --- | --- |
+| Inside and still | "Stay still..." | o |
+| Moving too fast | "Slow down" | \|\| |
+| Ring edge within a stud of you | "Step this way" | arrow |
+| Outside | "Back into the ring 1.8s", "Back in! 1.8s" | arrow |
+| No news from the server for 1 s | "Waiting for server...", "Waiting..." | ... |
+| Caught | "Caught!" and "Lumipol is in your bag. Extract at camp to keep it." | OK |
+| Failed or stopped | "You left the ring", "Too restless", "Too far from it", "Silueta struck you", "You were defeated", "You stopped", "Lumipol is gone", "Lost track of you", "Capture stopped" (short forms under 17 characters) | X, = |
+
+  The result stays 3 s. The server's own sentence also goes to the status line, so the reason is stated twice. The awareness chip stays above everything, so a Silueta warning is never covered.
+- **Placement.** `View.layout` searches for the largest panel (340 x 76 down to 190 x 40) and a 64 x 64 Stop button (56 at the least) that overlap no HUD rectangle, the avatar keep-out, the thumbstick or the jump zone, and the contracts repeat that on 13 viewports. Chosen on the tested interfaces: iPhone landscape 750 x 323, panel 304, 243, 340 x 76, Stop 442, 172. Galaxy A06 landscape 705 x 280, panel 286, 224, 300 x 52, Stop 418, 154. iPhone portrait 401 x 720, panel 52, 196, 300 x 52, Stop 268, 256. Galaxy A06 portrait 359 x 660 has no free band, so the panel is drawn over the objective line (343 x 42 at 8, 52) and Stop sits at 244, 196. Desktop 1069 x 501, panel 364, 421, 340 x 76, Stop 352, 352 (it touches the Flashlight button's margin but does not overlap).
+- **Inventory.** Opening it is refused with "Finish calming the Lumipol first." while a session runs, and an open one closes. Keyboard players can press X to stop.
+- **Captures** (`assets/exports/forest-kit/captures/capture-*.jpg`, Device Simulator, Play): the calm, outside, failed and caught states on iPhone 17 Pro landscape and portrait, the Galaxy A06 in both orientations, a night fog frame with Reduced on, and the desktop window with the attack chip showing. Looked at: the ring reads at night in fog, the panel and Stop do not touch the stick, the jump button or the avatar, and the text fits. One defect found and fixed from them: the first caught line was cut off at the panel edge (now two lines, and the leading "Caught!" is not repeated). The portrait Stop button can sit over the Lumipol itself.
+- **Not verified:** a tap on any button under a phone profile (BLOCKED, same cause as above), a real phone, a muted client, Reduced off, whether people understand the ring without coaching (CAP-36), and the ring over other terrain than the one captured.

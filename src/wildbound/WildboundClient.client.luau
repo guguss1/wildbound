@@ -214,9 +214,17 @@ local function render(snapshot)
 	end
 end
 local function toggle()
+	-- Opening the inventory is blocked during a capture session (M3.4). Closing it is always allowed.
+	if not panel.Visible and Players.LocalPlayer:GetAttribute("WildboundCapturing") == true then
+		showNotice("Finish calming the Lumipol first.")
+		return
+	end
 	panel.Visible = not panel.Visible
 	if panel.Visible and not receivedSnapshot then request("RequestSnapshot") end
 end
+listen(Players.LocalPlayer:GetAttributeChangedSignal("WildboundCapturing"), function()
+	if Players.LocalPlayer:GetAttribute("WildboundCapturing") == true then panel.Visible = false end
+end)
 listen(open.Activated, toggle)
 listen(close.Activated, function() panel.Visible = false end)
 listen(UserInputService.InputBegan, function(input, processed)
