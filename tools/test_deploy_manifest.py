@@ -284,6 +284,13 @@ class DefaultMappingTests(unittest.TestCase):
         # M5.8, wave W7 part 2: pure camp screen, loss line and compass rules the inventory client requires
         "src/wildbound/WildboundCampView.luau": "ReplicatedStorage.WildboundCampView",
         "tests/WildboundCampView_Test.luau": "ServerStorage.WildboundCampView_Test",
+        # M6.1 and M6.2, wave W10: server-only record and persistence sessions; the fake store is a test double
+        "src/wildbound/WildboundRecord.luau": "ServerScriptService.WildboundRecord",
+        "tests/WildboundRecord_Test.luau": "ServerStorage.WildboundRecord_Test",
+        "src/wildbound/WildboundPersistence.luau": "ServerScriptService.WildboundPersistence",
+        "tests/WildboundPersistence_Test.luau": "ServerStorage.WildboundPersistence_Test",
+        "tests/WildboundFakePlayerStore.luau": "ServerStorage.WildboundFakePlayerStore",
+        "tests/WildboundFakePlayerStore_Test.luau": "ServerStorage.WildboundFakePlayerStore_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
