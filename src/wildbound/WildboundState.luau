@@ -73,7 +73,7 @@ function State:addPlayer(key)
 			carried = zeroed(self.economy.pouchMaterials(self.config)),
 			banked = zeroed(self.economy.materials(self.config)),
 			ember = 0, consumables = consumables, upgrades = upgrades,
-			sealArmed = false, totemActive = false, expedition = nil,
+			sealArmed = false, totemActive = false, expedition = nil, skills = {}, bond = {},
 		}
 	end
 	return true
@@ -206,7 +206,8 @@ end
 
 local function openExpedition(player, now)
 	if not player.expedition then
-		player.expedition = { startedAt = now, maxDistanceFromCamp = 0, paidSlots = {}, newUnits = 0, newItems = 0 }
+		player.expedition = { startedAt = now, maxDistanceFromCamp = 0, paidSlots = {}, newUnits = 0, newItems = 0,
+			bondXp = 0, bondEvents = {}, pendingBond = {} }
 	end
 	return player.expedition
 end
@@ -266,6 +267,49 @@ function State:gather(key, nodeId, slotId, material, quantity, alive, distance, 
 	return true, receipt
 end
 
+-- Bond (M5.6, D14). XP is earned only by the equipped companion, only from an event the server observed, and
+-- only an extraction banks it. A defeat closes the expedition and the pending XP goes with it.
+local BOND_EVENTS = table.freeze({ pulseRevealInFog = true, pulseThenDodge = true })
+
+local function addBondXp(self, expedition, event, uid)
+	local spec = self.config.bond.events[event]
+	if (expedition.bondEvents[event] or 0) >= spec.maxPerExpedition then return false, "EventCap" end
+	local xp = math.min(spec.xp, self.config.bond.maxXpPerExpedition - expedition.bondXp)
+	if xp < 1 then return false, "XpCap" end
+	expedition.bondEvents[event] = (expedition.bondEvents[event] or 0) + 1
+	expedition.bondXp += xp
+	expedition.pendingBond[uid] = (expedition.pendingBond[uid] or 0) + xp
+	return true, xp
+end
+
+-- At extraction: the completed-trip bonus for the equipped companion, then every companion's pending XP banks.
+local function bankBond(self, player, completed)
+	local expedition = player.expedition
+	if not expedition then return end
+	if completed and player.equippedUid and find(player.registered, player.equippedUid) then
+		addBondXp(self, expedition, "extractWithCompanion", player.equippedUid)
+	end
+	for uid, xp in pairs(expedition.pendingBond) do
+		local entry = player.bond[uid] or { xp = 0, level = 1 }
+		entry.xp += xp
+		entry.level = self.economy.bondLevel(self.config, entry.xp)
+		player.bond[uid] = entry
+	end
+end
+
+-- The adapter reports a pulse that revealed Silueta to a player in the fog (or a dodge after one).
+function State:bondEvent(key, event, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if type(event) ~= "string" or not BOND_EVENTS[event] then return false, "UnknownEvent" end
+	if alive ~= true then return false, "InvalidContext" end
+	local expedition = player.expedition
+	if not expedition then return false, "NoExpedition" end
+	local uid = player.equippedUid
+	if not uid or not find(player.registered, uid) then return false, "NoCompanion" end
+	return addBondXp(self, expedition, event, uid)
+end
+
 -- An expedition that left camp ends here, by extraction or defeat. An armed totem is spent with it,
 -- whether or not it saved anything (M5.5).
 local function closeExpedition(self, player)
@@ -307,6 +351,7 @@ function State:extract(key, alive, distance, now)
 		receipt.ember += receipt.baseEmber
 		player.ember += receipt.baseEmber
 	end
+	bankBond(self, player, receipt.baseEmber > 0)
 	player.pending = {}
 	if not player.earnedSeal then
 		-- Adds, never assigns, so crafted seals are kept (ECO-07). Held seals never pass their cap.
@@ -454,6 +499,25 @@ function State:disarmTotem(key, alive, distance)
 	return true
 end
 
+-- Skills (M5.6): permanent, bought at camp with banked materials and Ember. Only skills whose effect the
+-- game applies can be bought (Economy.LIVE_EFFECTS); the rest are refused before any payment.
+function State:learn(key, skillId, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local spec = type(skillId) == "string" and self.config.skills[skillId] or nil
+	if not spec then return false, "UnknownSkill" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.skills[skillId] then return false, "AlreadyOwned" end
+	for _, required in ipairs(spec.requires) do
+		if not player.skills[required] then return false, "NeedsPrerequisite" end
+	end
+	if spec.effectLive ~= true then return false, "EffectPending" end
+	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+	player.skills[skillId] = true
+	return true, skillId
+end
+
 -- At the shelter, one bag item banks on the spot and pays its Ember now. No hatching.
 function State:useCapsule(key, uid, alive, distance)
 	local player = profile(self, key)
@@ -589,6 +653,12 @@ function State:isClaimed(id)
 	return encounter ~= nil and encounter.claimed == true
 end
 
+local function bondCopy(player)
+	local out = {}
+	for uid, entry in pairs(player.bond) do out[uid] = { xp = entry.xp, level = entry.level } end
+	return out
+end
+
 function State:snapshot(key)
 	local player = profile(self, key)
 	if not player then return nil end
@@ -605,6 +675,8 @@ function State:snapshot(key)
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
+		skills = table.clone(player.skills), bond = bondCopy(player),
+		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,
 			maxDistanceFromCamp = expedition.maxDistanceFromCamp, newUnits = expedition.newUnits,
 			newItems = expedition.newItems } or nil,

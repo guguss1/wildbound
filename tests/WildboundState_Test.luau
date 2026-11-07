@@ -1037,5 +1037,187 @@ return function(State, Economy, Config)
 		equal(snap(third).registered[#snap(third).registered].uid, pet); equal(snap(third).ember, 16)
 	end)
 
+	-- M5.6: skills and bond ------------------------------------------------------------------------
+	local function rich(state)
+		stock(state, "Alice", 80, 60, 6, 12)
+	end
+	local function companion(state, key)
+		local pet = captured(state, key, "Territory")
+		accepted(state:extract(key, true, 0))
+		accepted(state:equip(key, pet, true))
+		return pet
+	end
+
+	case("ECO-13 a skill is learned at camp, once, after its prerequisite, for its price", function()
+		local state = setup()
+		rich(state)
+		local before = snap(state)
+		refusedWith("NeedsPrerequisite", state:learn("Alice", "explorer_2", true, 0))
+		refusedWith("NotAtCamp", state:learn("Alice", "explorer_1", true, 20.01))
+		refusedWith("InvalidContext", state:learn("Alice", "explorer_1", false, 0))
+		refusedWith("UnknownSkill", state:learn("Alice", "moonwalk", true, 0))
+		refusedWith("UnknownSkill", state:learn("Alice", 7, true, 0))
+		refusedWith("InvalidPlayer", state:learn("Nobody", "explorer_1", true, 0))
+		equal(snap(state).ember, before.ember, "refusals change nothing")
+		accepted(state:learn("Alice", "explorer_1", true, 20))
+		local after = snap(state)
+		equal(after.skills.explorer_1, true)
+		equal(after.ember, before.ember - 40); equal(after.banked.fogbark, before.banked.fogbark - 20)
+		equal(after.banked.glowmoss, before.banked.glowmoss - 10)
+		refusedWith("AlreadyOwned", state:learn("Alice", "explorer_1", true, 0))
+		accepted(state:learn("Alice", "explorer_2", true, 0))
+		equal(snap(state).banked.nightbloom, before.banked.nightbloom - 3)
+		equal(snap(state).ember, before.ember - 140)
+		equal(state:snapshot("Bob").skills.explorer_1, nil, "skills are per player")
+		after.skills.explorer_2 = nil
+		equal(snap(state).skills.explorer_2, true, "the snapshot is detached")
+	end)
+
+	case("ECO-13 learning is atomic: one Fogbark short pays nothing, then it works", function()
+		local state = setup()
+		stock(state, "Alice", 19, 10, 0, 3)
+		local before = snap(state)
+		refusedWith("CannotAfford", state:learn("Alice", "explorer_1", true, 0))
+		equal(snap(state).ember, before.ember); equal(snap(state).banked.fogbark, 19)
+		equal(snap(state).skills.explorer_1, nil)
+		stock(state, "Alice", 1, 0, 0, 0)
+		accepted(state:learn("Alice", "explorer_1", true, 0))
+		equal(snap(state).banked.fogbark, 0)
+	end)
+
+	case("only skills whose effect is built can be learned, and the rest say so", function()
+		local state = setup()
+		rich(state)
+		for id, spec in pairs(Config.skills) do
+			equal(type(spec.effectLive), "boolean", id .. " declares whether its effect is built")
+		end
+		for _, id in ipairs({ "explorer_1", "explorer_2", "survivor_1" }) do equal(Config.skills[id].effectLive, true, id) end
+		for _, id in ipairs({ "capturer_1", "capturer_2", "survivor_2", "occultist_1", "occultist_2" }) do
+			equal(Config.skills[id].effectLive, false, id)
+		end
+		refusedWith("EffectPending", state:learn("Alice", "capturer_1", true, 0))
+		refusedWith("EffectPending", state:learn("Alice", "occultist_1", true, 0))
+		refusedWith("NeedsPrerequisite", state:learn("Alice", "capturer_2", true, 0))
+		accepted(state:learn("Alice", "survivor_1", true, 0))
+		refusedWith("EffectPending", state:learn("Alice", "survivor_2", true, 0))
+		equal(snap(state).skills.capturer_1, nil)
+	end)
+
+	case("ECO-04 skills and bond survive a defeat untouched", function()
+		local state = setup()
+		rich(state)
+		accepted(state:learn("Alice", "explorer_1", true, 0))
+		local pet = companion(state, "Alice")
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
+		gathered(state, "Alice", "fogbark", 2, 5)
+		accepted(state:extract("Alice", true, 0, 100))
+		local banked = snap(state).bond[pet].xp
+		accepted(state:observeExpedition("Alice", 80, true, 200))
+		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
+		accepted(state:defeat("Alice", "life:1"))
+		local after = snap(state)
+		equal(after.skills.explorer_1, true); equal(after.bond[pet].xp, banked); equal(after.pendingBondXp, 0)
+	end)
+
+	case("ECO-19 bond grows only from observed events of the equipped companion, within caps", function()
+		local state = setup()
+		refusedWith("NoExpedition", state:bondEvent("Alice", "pulseRevealInFog", true))
+		local pet = companion(state, "Alice")
+		refusedWith("NoExpedition", state:bondEvent("Alice", "pulseRevealInFog", true))
+		accepted(state:observeExpedition("Alice", 80, true, 10))
+		refusedWith("InvalidContext", state:bondEvent("Alice", "pulseRevealInFog", false))
+		refusedWith("UnknownEvent", state:bondEvent("Alice", "extractWithCompanion", true))
+		refusedWith("UnknownEvent", state:bondEvent("Alice", "owl", true))
+		refusedWith("UnknownEvent", state:bondEvent("Alice", 5, true))
+		refusedWith("InvalidPlayer", state:bondEvent("Nobody", "pulseRevealInFog", true))
+		for _ = 1, 4 do equal(accepted(state:bondEvent("Alice", "pulseRevealInFog", true)), 5) end
+		refusedWith("EventCap", state:bondEvent("Alice", "pulseRevealInFog", true))
+		accepted(state:bondEvent("Alice", "pulseThenDodge", true)); accepted(state:bondEvent("Alice", "pulseThenDodge", true))
+		refusedWith("EventCap", state:bondEvent("Alice", "pulseThenDodge", true))
+		equal(snap(state).pendingBondXp, 30)
+		equal(next(snap(state).bond), nil, "nothing is banked before extraction")
+		gathered(state, "Alice", "fogbark", 2, 20)
+		local ok, _, receipt = state:extract("Alice", true, 0, 100)
+		equal(ok, true); equal(receipt.baseEmber, 4)
+		local bond = snap(state).bond[pet]
+		equal(bond.xp, 40, "20 + 10 + 10 for extracting with it"); equal(bond.level, 2)
+		equal(snap(state).pendingBondXp, 0)
+		accepted(state:observeExpedition("Alice", 80, true, 300))
+		equal(accepted(state:bondEvent("Alice", "pulseRevealInFog", true)), 5, "a new trip has fresh caps")
+	end)
+
+	case("ECO-19 a trip that is not complete banks its pulses but earns no extraction bonus", function()
+		local state = setup()
+		local pet = companion(state, "Alice")
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
+		gathered(state, "Alice", "fogbark", 2, 5)
+		local _, _, receipt = state:extract("Alice", true, 0, 30)
+		equal(receipt.baseEmber, 0, "30 s is too short")
+		equal(snap(state).bond[pet].xp, 5)
+	end)
+
+	case("ECO-19 equipping another companion neither moves nor loses XP already earned", function()
+		local state = setup()
+		local first = companion(state, "Alice")
+		local second = companion(state, "Alice")
+		accepted(state:equip("Alice", first, true))
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
+		accepted(state:equip("Alice", second, true))
+		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
+		gathered(state, "Alice", "fogbark", 2, 5)
+		accepted(state:extract("Alice", true, 0, 100))
+		local bond = snap(state).bond
+		equal(bond[first].xp, 5); equal(bond[second].xp, 15, "5 earned plus 10 for extracting with it")
+	end)
+
+	case("ECO-19 the per-trip cap holds even where event caps would allow more", function()
+		local function deep(value)
+			if type(value) ~= "table" then return value end
+			local out = {}
+			for key, item in pairs(value) do out[key] = deep(item) end
+			return out
+		end
+		local tight = deep(Config)
+		tight.bond.maxXpPerExpedition = 12
+		local state = State.new(Economy, tight)
+		accepted(state:addPlayer("Alice"))
+		companion(state, "Alice")
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		equal(accepted(state:bondEvent("Alice", "pulseRevealInFog", true)), 5)
+		equal(accepted(state:bondEvent("Alice", "pulseRevealInFog", true)), 5)
+		equal(accepted(state:bondEvent("Alice", "pulseRevealInFog", true)), 2, "only the room that is left")
+		refusedWith("XpCap", state:bondEvent("Alice", "pulseRevealInFog", true))
+		equal(snap(state).pendingBondXp, 12)
+	end)
+
+	case("ECO-20 AFK-4 and AFK-6 an idle hour or a pulse macro cannot move skills or bond", function()
+		local state = setup()
+		rich(state)
+		accepted(state:learn("Alice", "explorer_1", true, 0))
+		local pet = companion(state, "Alice")
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		local function fingerprint(snapshot)
+			local keys = {}
+			for id in pairs(snapshot.skills) do table.insert(keys, id) end
+			table.sort(keys)
+			for id, entry in pairs(snapshot.bond) do table.insert(keys, id .. entry.xp .. "/" .. entry.level) end
+			return table.concat(keys, ",") .. "|" .. snapshot.pendingBondXp .. "|" .. snapshot.ember
+		end
+		local before = fingerprint(snap(state))
+		for second = 1, 3600 do accepted(state:observeExpedition("Alice", 80, true, second)) end
+		equal(fingerprint(snap(state)), before, "an hour of standing still changes nothing")
+		local ok, reason = state:extract("Alice", true, 0, 4000)
+		equal(ok, false); equal(reason, "Empty", "nothing to bank, so no bond either")
+		equal(snap(state).bond[pet], nil)
+		for _ = 1, 1000 do state:bondEvent("Alice", "pulseRevealInFog", true) end
+		equal(snap(state).pendingBondXp, 20, "a macro stops at the event cap")
+		equal(snap(state).bond[pet], nil, "and banks nothing without a walk back")
+		accepted(state:defeat("Alice", "life:1"))
+		equal(snap(state).bond[pet], nil); equal(snap(state).pendingBondXp, 0)
+	end)
+
 	return result
 end

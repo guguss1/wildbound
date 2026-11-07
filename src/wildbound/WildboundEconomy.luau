@@ -72,10 +72,42 @@ function Economy.pouchSpeed(config, units, capacity)
 	return speed
 end
 
--- The slower of the pouch step and the egg speed from the capture rules.
-function Economy.carrySpeed(config, units, capacity, eggSpeed)
+-- Effect keys that are applied today (M5.6). A skill can be learned only when every effect it names is here,
+-- so a player never pays for something that does nothing yet.
+Economy.LIVE_EFFECTS = table.freeze({ nodeHintRange = true, nightbloomHintRange = true, carrySpeedBonus = true })
+
+-- The effects of the skills a player owns: numbers take the highest owned value, flags are kept.
+function Economy.skillEffects(config, skills)
+	local effects = {}
+	if type(skills) ~= "table" then return effects end
+	for name, spec in pairs(config.skills) do
+		if skills[name] == true then
+			for key, value in pairs(spec.effects) do
+				if type(value) == "number" then effects[key] = math.max(effects[key] or value, value) else effects[key] = value end
+			end
+		end
+	end
+	return effects
+end
+
+-- Bond level (1 to 5) for banked XP.
+function Economy.bondLevel(config, xp)
+	if not count(xp) then return 1 end
+	local level = 1
+	for index, threshold in ipairs(config.bond.levelThresholdsXp) do
+		if xp >= threshold then level = index end
+	end
+	return level
+end
+
+-- The slower of the pouch step and the egg speed from the capture rules. Light Load adds to the egg speed
+-- only, never past the base speed, so a loaded player still outruns Silueta.
+function Economy.carrySpeed(config, units, capacity, eggSpeed, skills)
 	local pouch = Economy.pouchSpeed(config, units, capacity)
-	if finite(eggSpeed) and eggSpeed < pouch then return eggSpeed end
+	if not finite(eggSpeed) then return pouch end
+	local bonus = Economy.skillEffects(config, skills).carrySpeedBonus
+	if bonus and eggSpeed < config.carry.baseSpeed then eggSpeed = math.min(config.carry.baseSpeed, eggSpeed + bonus) end
+	if eggSpeed < pouch then return eggSpeed end
 	return pouch
 end
 
@@ -163,6 +195,14 @@ function Economy.validate(config)
 		if config.capacity.consumableCaps[name] == nil then problem("recipe " .. name .. " has no cap") end
 		for key, amount in pairs(recipe.cost) do
 			if not count(amount) or (key ~= "ember" and config.materials[key] == nil) then problem("bad cost in " .. name) end
+		end
+	end
+	for name, skill in pairs(config.skills) do
+		if type(skill.effectLive) ~= "boolean" then problem(name .. " does not say whether its effect is built") end
+		if skill.effectLive == true then
+			for key in pairs(skill.effects) do
+				if not Economy.LIVE_EFFECTS[key] then problem(name .. " claims an effect that is not applied yet: " .. key) end
+			end
 		end
 	end
 	local holds = config.gather.holdSeconds

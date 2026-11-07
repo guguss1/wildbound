@@ -575,14 +575,14 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   "capsule": { "site": "shelter", "x": 105, "z": 125, "range": 12, "itemsSecured": 1 },
   "sinks": { "campRange": 20 },
   "skills": {
-    "explorer_1": { "branch": "explorer", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "nodeHintRange": 60 } },
-    "explorer_2": { "branch": "explorer", "tier": 2, "requires": ["explorer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "nightbloomHintRange": 100 } },
-    "capturer_1": { "branch": "capturer", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "calmRequired": 4.0 } },
-    "capturer_2": { "branch": "capturer", "tier": 2, "requires": ["capturer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "retryCooldown": 3 } },
-    "survivor_1": { "branch": "survivor", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "carrySpeedBonus": 1 } },
-    "survivor_2": { "branch": "survivor", "tier": 2, "requires": ["survivor_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "restSeconds": 2 } },
-    "occultist_1": { "branch": "occultist", "tier": 1, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "relocationNotice": true } },
-    "occultist_2": { "branch": "occultist", "tier": 2, "requires": ["occultist_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "flashlightRevealSeconds": 5 } }
+    "explorer_1": { "branch": "explorer", "tier": 1, "effectLive": true, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "nodeHintRange": 60 } },
+    "explorer_2": { "branch": "explorer", "tier": 2, "effectLive": true, "requires": ["explorer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "nightbloomHintRange": 100 } },
+    "capturer_1": { "branch": "capturer", "tier": 1, "effectLive": false, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "calmRequired": 4.0 } },
+    "capturer_2": { "branch": "capturer", "tier": 2, "effectLive": false, "requires": ["capturer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "retryCooldown": 3 } },
+    "survivor_1": { "branch": "survivor", "tier": 1, "effectLive": true, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "carrySpeedBonus": 1 } },
+    "survivor_2": { "branch": "survivor", "tier": 2, "effectLive": false, "requires": ["survivor_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "restSeconds": 2 } },
+    "occultist_1": { "branch": "occultist", "tier": 1, "effectLive": false, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "relocationNotice": true } },
+    "occultist_2": { "branch": "occultist", "tier": 2, "effectLive": false, "requires": ["occultist_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "flashlightRevealSeconds": 5 } }
   },
   "bond": {
     "levelThresholdsXp": [0, 40, 100, 180, 280],

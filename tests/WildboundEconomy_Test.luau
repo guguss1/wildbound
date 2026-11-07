@@ -139,6 +139,39 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(doubled[1].weight, plain[1].weight * 2)
 	end)
 
+	case("M5.6 skill effects are read from the tuning, owned ones only, and bond levels follow the thresholds", function()
+		local none = Economy.skillEffects(Config, {})
+		equal(next(none), nil); equal(next(Economy.skillEffects(Config, nil)), nil)
+		local effects = Economy.skillEffects(Config, { explorer_1 = true, explorer_2 = true, survivor_1 = true })
+		equal(effects.nodeHintRange, 60); equal(effects.nightbloomHintRange, 100); equal(effects.carrySpeedBonus, 1)
+		equal(Economy.skillEffects(Config, { explorer_1 = "yes" }).nodeHintRange, nil, "only true owns")
+		equal(Economy.skillEffects(Config, { moonwalk = true }).nodeHintRange, nil)
+		for xp, level in pairs({ [0] = 1, [39] = 1, [40] = 2, [99] = 2, [100] = 3, [179] = 3, [180] = 4, [279] = 4, [280] = 5, [100000] = 5 }) do
+			equal(Economy.bondLevel(Config, xp), level, "xp " .. xp)
+		end
+		for _, bad in ipairs({ -1, 0 / 0, 2.5, "40", math.huge }) do equal(Economy.bondLevel(Config, bad), 1) end
+	end)
+
+	case("ECO-24 the Light Load skill softens the egg slowdown but never passes the base speed or Silueta", function()
+		local skills = { survivor_1 = true }
+		for eggs = 0, 4 do
+			for units = 0, 30 do
+				local plain = Economy.carrySpeed(Config, units, 30, Wild.carrySpeed(eggs))
+				local skilled = Economy.carrySpeed(Config, units, 30, Wild.carrySpeed(eggs), skills)
+				assert(skilled >= plain and skilled > 8 and skilled <= Config.carry.baseSpeed, ("%d eggs %d units: %s"):format(eggs, units, skilled))
+				assert(skilled <= Economy.pouchSpeed(Config, units, 30), "the pouch step still applies")
+			end
+		end
+		local slowest = 0
+		for eggs = 1, 4 do
+			if Wild.carrySpeed(eggs) < Wild.carrySpeed(0) then slowest = eggs end
+		end
+		assert(slowest >= 1, "eggs slow the player")
+		equal(Economy.carrySpeed(Config, 0, 30, Wild.carrySpeed(slowest), skills),
+			math.min(Config.carry.baseSpeed, Wild.carrySpeed(slowest) + 1), "plus one, capped at the base speed")
+		equal(Economy.carrySpeed(Config, 0, 30, 16, skills), 16, "no gain above the cap")
+	end)
+
 	case("validate catches broken tuning", function()
 		local function broken(mutate)
 			local copy = {}
@@ -159,11 +192,14 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		broken(function(c) c.spawnWeights.outside.Day = { fogbark = 0, glowmoss = 0 } end)
 		broken(function(c) c.gather.holdSeconds.heart = 2 end)
 		broken(function(c) c.recipes.seal.cost.moonstone = 1 end)
+		broken(function(c) c.skills.capturer_1.effectLive = true end)
+		broken(function(c) c.skills.explorer_1.effectLive = nil end)
 		equal(#Economy.validate(nil), 1)
 	end)
 
 	-- Wiring contracts read the deployed adapters' source. They prove where grants can run, not behaviour.
 	local GRANTS = { "state:gather(", "state:extract(", "state:craft(", "state:upgrade(", "state:useCapsule(",
+		"state:learn(", "state:bondEvent(",
 		"state:pickup(", "state:completeCapture(", "state:hatch(" }
 	case("ECO-20 AFK-1 no grant runs on a timer: the heartbeat and every delay only track or remove", function()
 		assert(type(serverSource) == "string" and #serverSource > 1000, "server source missing")
@@ -195,6 +231,9 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 			'SetAttribute("SpawnSeed"', '"TotemChanged"', "state:extract(player.UserId, alive, distance, " }) do
 			assert(serverSource:find(needle, 1, true), needle .. " not wired")
 		end
+		for _, needle in ipairs({ '"Learn"', '"PulseHit"', "state:bondEvent(", "state:learn(", "snapshot.skills" }) do
+			assert(serverSource:find(needle, 1, true), needle .. " not wired")
+		end
 		equal(serverSource:find('stateRemote:FireClient(player, { seed', 1, true), nil)
 		local seedLine = serverSource:match("[^\n]*SpawnSeed[^\n]*")
 		assert(seedLine and seedLine:find("telemetry", 1, true), "the seed is logged only to ServerStorage")
@@ -208,6 +247,8 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(worldSource:find("detectionFor(target, Rules.CHASE_RANGE", 1, true), nil, "chase range stays 65")
 		assert(worldSource:find("totem = totemHolders[player] == true", 1, true), "ambush sees holders")
 		assert(worldSource:find('network:FindFirstChild("TotemChanged")', 1, true), "holders come from the inventory script")
+		assert(worldSource:find('network:FindFirstChild("PulseHit")', 1, true), "the pulse hit is reported to the inventory script")
+		assert(worldSource:find("pulseHit:Fire(player", 1, true), "a revealing pulse fires the reverse event")
 		equal(worldSource:find(":GetAttribute(", 1, true), nil, "no attribute is read back")
 	end)
 

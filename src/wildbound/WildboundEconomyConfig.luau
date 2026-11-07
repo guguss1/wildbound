@@ -165,6 +165,7 @@ return freeze({
 		explorer_1 = {
 			branch = "explorer",
 			tier = 1,
+			effectLive = true,
 			requires = {},
 			cost = { ember = 40, fogbark = 20, glowmoss = 10 },
 			effects = { nodeHintRange = 60 },
@@ -172,6 +173,7 @@ return freeze({
 		explorer_2 = {
 			branch = "explorer",
 			tier = 2,
+			effectLive = true,
 			requires = { "explorer_1" },
 			cost = { ember = 100, fogbark = 30, glowmoss = 20, nightbloom = 3 },
 			effects = { nightbloomHintRange = 100 },
@@ -179,6 +181,7 @@ return freeze({
 		capturer_1 = {
 			branch = "capturer",
 			tier = 1,
+			effectLive = false,
 			requires = {},
 			cost = { ember = 40, fogbark = 20, glowmoss = 10 },
 			effects = { calmRequired = 4.0 },
@@ -186,6 +189,7 @@ return freeze({
 		capturer_2 = {
 			branch = "capturer",
 			tier = 2,
+			effectLive = false,
 			requires = { "capturer_1" },
 			cost = { ember = 100, fogbark = 30, glowmoss = 20, nightbloom = 3 },
 			effects = { retryCooldown = 3 },
@@ -193,6 +197,7 @@ return freeze({
 		survivor_1 = {
 			branch = "survivor",
 			tier = 1,
+			effectLive = true,
 			requires = {},
 			cost = { ember = 40, fogbark = 20, glowmoss = 10 },
 			effects = { carrySpeedBonus = 1 },
@@ -200,6 +205,7 @@ return freeze({
 		survivor_2 = {
 			branch = "survivor",
 			tier = 2,
+			effectLive = false,
 			requires = { "survivor_1" },
 			cost = { ember = 100, fogbark = 30, glowmoss = 20, nightbloom = 3 },
 			effects = { restSeconds = 2 },
@@ -207,6 +213,7 @@ return freeze({
 		occultist_1 = {
 			branch = "occultist",
 			tier = 1,
+			effectLive = false,
 			requires = {},
 			cost = { ember = 40, fogbark = 20, glowmoss = 10 },
 			effects = { relocationNotice = true },
@@ -214,6 +221,7 @@ return freeze({
 		occultist_2 = {
 			branch = "occultist",
 			tier = 2,
+			effectLive = false,
 			requires = { "occultist_1" },
 			cost = { ember = 100, fogbark = 30, glowmoss = 20, nightbloom = 3 },
 			effects = { flashlightRevealSeconds = 5 },

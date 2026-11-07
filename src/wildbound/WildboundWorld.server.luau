@@ -36,6 +36,9 @@ do
 	end
 end
 local totemHolders = setmetatable({}, { __mode = "k" })
+-- M5.6 bond: a pulse that revealed Silueta to a player in the fog is reported on a server-only event.
+local pulseHit = network:FindFirstChild("PulseHit")
+if pulseHit and not pulseHit:IsA("BindableEvent") then pulseHit = nil end
 local totemEvent = network:FindFirstChild("TotemChanged")
 if totemEvent and totemEvent:IsA("BindableEvent") then
 	totemEvent.Event:Connect(function(player, active)
@@ -628,6 +631,9 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 		-- Concurrent reveals overlap; they never add seconds to an existing expiry.
 		revealedUntil = math.max(revealedUntil, now + Rules.REVEAL_SECONDS)
 		guardian:SetAttribute("RevealedUntil", revealedUntil)
+		if action == "LumipolPulse" and pulseHit and root and Rules.zone(root.Position.X, root.Position.Z) then
+			pulseHit:Fire(player, true)
+		end
 	end
 	snapshot(player, action, ok, notices[reason] or "Ability not available.", noticesShort[reason] or "Not available.")
 end))

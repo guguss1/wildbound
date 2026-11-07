@@ -49,6 +49,9 @@ strikeEvent.Name, strikeEvent.Parent = "CaptureStrike", network
 -- M5.5: server-only totem holders for the world script, which applies the totem's downside.
 local totemEvent = Instance.new("BindableEvent")
 totemEvent.Name, totemEvent.Parent = "TotemChanged", network
+-- M5.6 reverse event: the world script reports a pulse that revealed Silueta to a player in the fog.
+local pulseHit = Instance.new("BindableEvent")
+pulseHit.Name, pulseHit.Parent = "PulseHit", network
 network.Parent = ReplicatedStorage
 
 -- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
@@ -90,6 +93,8 @@ local notices = {
 	AlreadyOwned = "Already owned.", NoTotem = "You have no totem.",
 	AlreadyLeft = "The totem stays set once you leave camp.", NotAtShelter = "Use a capsule at the shelter.",
 	NoCapsule = "You have no capsule.", MovedAway = "You moved. Hold still while you gather.",
+	NeedsPrerequisite = "Learn the first skill of this branch first.",
+	EffectPending = "This skill's effect is not in the build yet, so it cannot be bought.",
 }
 -- The capture rule owns the words for its own refusals and endings.
 for reason, text in pairs(Capture.NOTICES) do
@@ -104,7 +109,7 @@ local function applyCarry(player)
 	if not humanoid or not snapshot then return end
 	local units = 0
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
-	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, Wild.carrySpeed(Wild.eggsCarried(snapshot)))
+	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, Wild.carrySpeed(Wild.eggsCarried(snapshot)), snapshot.skills)
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 local function send(player, action, ok, notice, lossSummary)
@@ -429,6 +434,14 @@ strikeEvent.Event:Connect(function(player)
 	end
 end)
 
+-- M5.6 bond: only the world script fires this, and only for a pulse that revealed Silueta to a player in the
+-- fog. The state decides whether it counts (equipped companion, open expedition, caps).
+pulseHit.Event:Connect(function(player, inFog)
+	if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or inFog ~= true then return end
+	local ok, xp = state:bondEvent(player.UserId, "pulseRevealInFog", (context(player)))
+	if ok then send(player, "Bond", true, ("Bond +%d pending. Extract at camp to keep it."):format(xp)) end
+end)
+
 -- Dropped items (D6, M4.6). Each lies near its owner for 30 s; only the owner can pick it up.
 local DROP_SECONDS = 30
 local drops = {}
@@ -640,7 +653,7 @@ RunService.Heartbeat:Connect(function(dt)
 end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
-local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
+local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
 	DisarmTotem = true, UseCapsule = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
@@ -668,6 +681,11 @@ local function economyAction(player, action, argument)
 		else ok, result = state:disarmTotem(key, alive, distance) end
 		reply(player, action, ok, result, action == "ArmTotem" and "Totem: Silueta senses you from farther."
 			or "Totem put away and refunded.")
+	elseif action == "Learn" then
+		if not EconomyConfig.skills[argument] then return end
+		local alive, distance = context(player, campCenter)
+		local ok, result = state:learn(key, argument, alive, distance)
+		reply(player, action, ok, result, "Skill learned. It lasts this session.")
 	elseif action == "UseCapsule" then
 		local alive, root = context(player), rootOf(player)
 		local distance = root and Rules.distance(root.Position.X, root.Position.Z, SHELTER_X, SHELTER_Z) or math.huge
