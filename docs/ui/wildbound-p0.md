@@ -6,6 +6,6 @@ The panel uses a bounded, scrolling layout. It closes without losing state and s
 
 ## Verification pending
 
-No Studio runtime, client/server, touch, or device-emulator tests were run in this local-source stage. Check portrait and landscape safe areas, small-screen text, control overlap, scrolling, spawn/respawn duplication, server rejection notices, and two-client updates before considering the UI verified. Gamepad navigation and accessibility beyond the current text and layout have not been validated.
+Solo Studio runtime checks ran on 11-05, including inventory Equip and Protect (`odd/tasks/wildbound-first-playable.md:113`, `:118`); touch, device-emulator and two-client inventory tests were not run. Check portrait and landscape safe areas, small-screen text, control overlap, scrolling, spawn/respawn duplication, server rejection notices, and two-client updates before considering the UI verified. Gamepad navigation and accessibility beyond the current text and layout have not been validated.
 
 Static width check: with viewport widths of 360, 401, and 750 pixels, HUD widths are 192, 233, and 430 pixels respectively (430 maximum); its right edge remains left of the inventory button at x=216, 257, and 606. Pending entries have distinct current-list numbers for selecting protection. Action buttons are 44 pixels high. These calculations are not device tests.

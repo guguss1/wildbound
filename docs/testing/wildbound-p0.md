@@ -1,6 +1,6 @@
 # Wildbound P0 local verification guide
 
-**Status: source-only; not deployed. All tests and Studio/runtime checks are PENDING.** This guide records a future authorized workflow; it is not evidence of compilation, RED/GREEN, or gameplay verification. The user deferred the blocked Studio tests for this local-source stage. Do not run tests or edit Studio now, and do not work around Studio MCP permission controls through Play, another execution surface, APIs, or HTTP.
+**Status: deployed and run in Studio on 11-05; the 41 contract cases passed and a first solo session was observed (`odd/tasks/wildbound-first-playable.md:111-118`). Co-op, mobile, rewards and isolated persistence remain PENDING.** This guide records a future authorized workflow; it is not evidence of compilation, RED/GREEN, or gameplay verification. Studio testing was resumed under later authorization (`odd/tasks/wildbound-first-playable.md:108`). Do not work around Studio MCP permission controls through Play, another execution surface, APIs, or HTTP.
 
 ## Source-to-Explorer mapping
 
@@ -57,4 +57,4 @@ When the user resumes runtime testing after the MCP permission gate is resolved,
 No publishing, DataStore setup, monetization, global lighting change, or production-data operation is authorized by this guide.
 
 ## World source continuation
-See [world integration and verification](wildbound-world.md) for the separately authored Silueta, flashlight, registered Lumipol pulse, local decorative follower and shared day/night source. The inventory adapter now places each current, living new character near CampCenter after guarded root readiness; the existing SpawnLocation instance itself is untouched. This future runtime behavior is not deployed or verified. All previously listed tests remain pending.
+See [world integration and verification](wildbound-world.md) for the separately authored Silueta, flashlight, registered Lumipol pulse, local decorative follower and shared day/night source. The inventory adapter now places each current, living new character near CampCenter after guarded root readiness; the existing SpawnLocation instance itself is untouched. This runtime behavior was deployed and run from 2026-11-05 (`odd/tasks/wildbound-first-playable.md:111-113`). Touch, co-op and real-device tests remain pending.

@@ -1,6 +1,6 @@
 # P0 world rules and Silueta
 
-Status: locally authored source and contract tests; **not deployed, compiled or playtested**. The user deferred blocked Studio execution. This does not change global strict TDD or authorize an MCP permission bypass. Native review is disabled/unmanaged.
+Status: authored source and contract tests; **deployed and run in Studio on 11-05** (`odd/tasks/wildbound-first-playable.md:111-112`, `:131-133`). Co-op and mobile checks remain **pending**, and the damaging strike remains **BLOCKED**. This does not change global strict TDD or authorize an MCP permission bypass. Native review is disabled/unmanaged.
 
 ## Authority and installation boundary
 
@@ -63,6 +63,6 @@ Absolute times use `Workspace:GetServerTimeNow()` seconds; `cycleElapsed`/`phase
 
 ## Verification still required
 
-`tests/WildboundWorldRules_Test.luau` is a function receiving a fresh Rules module result and returning `{passed, failed, messages}`. Cases cover clock boundaries/NaN, safe/fog/territory, day/night limits, ability ownership/LOS/range/cooldown and attack predicates. These cases are **authored, not executed**.
+`tests/WildboundWorldRules_Test.luau` is a function receiving a fresh Rules module result and returning `{passed, failed, messages}`. Cases cover clock boundaries/NaN, safe/fog/territory, day/night limits, ability ownership/LOS/range/cooldown and attack predicates. These cases last ran in Studio on 2026-11-06, 23 of 23 passing (`odd/tasks/wildbound-first-playable.md:219-221`).
 
 Before acceptance: compile all modules; run fresh-clone rules tests; verify one and two clients at phase boundaries, shared reveal expiry, spam/malformed payloads, real LOS/facing, current-character replacement, death/disconnect cleanup, safe-region escapes, attack telegraph at low FPS, initial spawn clearance, off-volume cues, low-graphics/mobile controls and a streaming-enabled non-damaging run. Confirm no damage from an unseen guardian. Measure performance on an actual device before claiming a frame budget. No persistence or reward-rarity claims are made by this unit.

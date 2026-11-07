@@ -1,6 +1,6 @@
 # Silueta horror rig v3 — source and exports ready
 
-**Blender rig, four original animations and local export roundtrips pass. Roblox import is BLOCKED by the upload-directory permission allowlist.** The user approved permanent creation under User `11937129310` and `assets/exports`; that consent does not itself configure the tool permission. The parent attempted one model-FBX upload, rejected before transfer because this exact folder is not approved in Assistant Settings → MCP Permissions. No asset/operation ID was created. Do not retry or move files around that gate.
+**Blender rig, four original animations and local export roundtrips pass. Roblox model import is done (`silueta-studio-import.md:9`); the first attempt was BLOCKED by the upload-directory permission allowlist until that folder was enabled.** The user approved permanent creation under User `11937129310` and `assets/exports`; that consent does not itself configure the tool permission. The first model-FBX upload was rejected before transfer because the folder was not yet approved in Assistant Settings → MCP Permissions, and it created no ID. A retry after approval succeeded. Reuse the recorded asset ID instead of uploading again.
 
 ## Deliverables
 

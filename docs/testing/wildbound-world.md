@@ -1,6 +1,6 @@
 # Wildbound P0 world integration and verification guide
 
-**Status: local source only. Not deployed or run.** Source inspection is not compilation or gameplay evidence. Testing is deferred by the user; do not use Studio MCP, Play, networking, alternate execution surfaces, or permission workarounds now. Resume only after the user authorizes tests and the supported Studio permission gate is resolved. Do not ask for or bypass that permission in this stage.
+**Status: deployed and run in Studio on 11-05; world contracts passed and solo Play was observed (`odd/tasks/wildbound-first-playable.md:111-112`, `:119`, `:131-133`). Damage stays off under streaming, the damaging strike remains BLOCKED, and full co-op and mobile checks remain PENDING.** Source inspection is not compilation or gameplay evidence. Do not use alternate execution surfaces, APIs or permission workarounds, and do not bypass the Studio MCP permission gate.
 
 ## Source-to-Explorer mapping (future, manual only)
 

@@ -1,6 +1,6 @@
 # Silueta visual adapter verification
 
-**Status: initial strict-TDD RED 0/19 → GREEN 19/19 was observed in fresh Studio Edit ModuleScripts. The motion/readiness follow-up observed RED (16 passed / 7 failed) → GREEN 23/23, plus 41/41 refreshed baseline cases. The runtime adapter/World hooks are NOT deployed and Play visuals are NOT tested: the native package warning awaits user acknowledgement and four actual animation IDs remain absent.**
+**Status: initial strict-TDD RED 0/19 → GREEN 19/19 was observed in fresh Studio Edit ModuleScripts. The motion/readiness follow-up observed RED (16 passed / 7 failed) → GREEN 23/23, plus 41/41 refreshed baseline cases. The runtime adapter/World hooks are deployed, the four animation IDs exist, and Studio Play visual checks ran (`silueta-animation-runtime.md:5-15`); touch, muted-audio, latency and cold-timing cases remain open. The native package warning awaits user acknowledgement.**
 
 ## Scope and deployment
 
@@ -21,7 +21,7 @@ Each template attribute must hold an actual, separately verified positive asset 
 | `TelegraphAnimationId` | No | 1.4s |
 | `AttackAnimationId` | No | 1s; strike pose at 0.23s |
 
-**All four actual animation IDs are currently missing.** Do not copy the synthetic test IDs onto the real template. Static imported art is the honest fallback; this is not successful animation import. No manual Bone animation fallback is implemented. With four valid IDs, the server creates/reuses an AnimationController and Animator on its clone before loading tracks. `animationReady` requires all four `Length` values to match the authored durations within one 30 fps frame plus floating-point tolerance. A zero length is polled without yielding for up to five seconds. Wrong lengths, timeout, and load/play errors discard the attempted track set and keep static art revealable; the adapter does not retry. Server readiness does not prove client replication, visible deformation, or mobile performance. Actual asset playback remains a separate live acceptance check.
+**All four actual animation IDs now exist** (`silueta-animation-assets.md`) and loaded through a server Animator in Play (`silueta-animation-runtime.md:5`). Do not copy the synthetic test IDs onto the real template. Static imported art remains the fallback if a track set fails to load. No manual Bone animation fallback is implemented. With four valid IDs, the server creates/reuses an AnimationController and Animator on its clone before loading tracks. `animationReady` requires all four `Length` values to match the authored durations within one 30 fps frame plus floating-point tolerance. A zero length is polled without yielding for up to five seconds. Wrong lengths, timeout, and load/play errors discard the attempted track set and keep static art revealable; the adapter does not retry. Server readiness does not prove client replication, visible deformation, or mobile performance. Actual asset playback remains a separate live acceptance check.
 
 Reveal transforms every cloned BasePart's original transparency using `baseline + (1 - baseline) * revealAlpha`, where hidden alpha is 0.86 and revealed alpha is 0.25. Invisible rig parts remain invisible and partially transparent art retains its baseline. Only validated art hides Body/Head. Missing/invalid templates keep the original primitive reveal behavior. Destroy restores both proxy baselines and removes only the owned clone/tracks.
 
@@ -57,8 +57,8 @@ Twenty-three cases use real Roblox Instances and isolated ServerStorage fixture 
 - **Motion/readiness GREEN observed by parent:** Studio Edit, fresh clones, 23 passed / 0 failed. These contracts use injected clock and track doubles, not real uploaded clips.
 - **Refreshed baseline observed by parent:** fresh map 5/5, state 17/17 and world 19/19; 41 passed / 0 failed total. This does not run the new World presentation hook in Play.
 - **Local static checks:** writer source readback and whitespace inspection passed; actual Studio executions above were performed by the parent, not the source writer.
-- **Runtime deployment and Play NOT performed:** only isolated contract ModuleScripts were executed. The adapter and World hooks remain local pending the native package-warning acknowledgement; no acceptance, bypass or source deployment is implied by the GREEN suites.
-- **Pending authorized live checks:** imported art orientation/feet/scale, all-part reveal and restore, preserved helpers/pivot, static fallback, then four real Animator clips and state transitions once actual IDs are available. Inspect both server and client; synthetic track contracts alone do not establish replication or deformation.
+- **Runtime deployment and Play:** later units deployed the adapter and ran it in Play (`silueta-animation-runtime.md:5-15`). The GREEN suites here cover contracts only and do not establish that on their own.
+- **Pending live checks:** touch, muted audio, latency and cold-timing cases. Inspect both server and client; synthetic track contracts alone do not establish replication or deformation.
 - **Unchanged blocked checks:** damaging strike/causal escape while streaming protection remains active, prior literal muted-client check, co-op/mobile/performance and isolated persistence. Do not convert these into passes.
 
 Rollback removes this new adapter/test/guide and reverts only the bounded World hooks; keep the original imported template, package, inventory, clients, map and unrelated work. No commit was made because the parent delivery-chain decision remains pending; native review remains OFF.

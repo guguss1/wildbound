@@ -2,7 +2,7 @@
 
 ## Status and boundaries
 
-Local source is implemented; Studio deployment, compilation, contract execution, multiplayer, prompt interaction and mobile checks are **pending**. The user explicitly deferred the blocked execution stage. No RED/GREEN, persistent storage or completed playable verification is claimed. Existing Rescue code is untouched.
+Local source is implemented and deployed; its 17 state contracts passed and a solo Studio session ran on 11-05 (`odd/tasks/wildbound-first-playable.md:112-113`). Multiplayer and mobile checks are **pending**. No RED/GREEN, persistent storage or completed playable verification is claimed. Existing Rescue code is untouched.
 
 Deploy `WildboundState` and `WildboundServer` together under a new server-owned folder in ServerScriptService. The adapter expects Workspace.WildboundP0 with recursive BasePart markers named CampCenter, LumipolMarker, EggMarker, ExtractionMarker, HatchMarker and ProtectionMarker. It refuses duplicate WildboundRuntime/WildboundNetwork roots rather than overwriting existing content. Restart a fresh server for a clean session; do not hot-rerun over live roots.
 

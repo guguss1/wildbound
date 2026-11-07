@@ -1,5 +1,7 @@
 # Wildbound preparation: references ready, gameplay unchanged
 
+**Superseded:** the stop before gameplay and the `newPlace1` target below were replaced by later P0 authorization and the confirmed test place `Experiencia sin título` (`odd/tasks/wildbound-first-playable.md:4`, `:105`).
+
 The master prompt is an **installation/audit request that stops before gameplay implementation**. Its separate prototype prompt is reference material, not permission to execute it. The complete v0.4.2 source is available locally for deliberate, guarded role loading; its 32 original skills are **not activated or installed as project instructions**.
 
 ## Source and verification
