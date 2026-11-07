@@ -75,11 +75,13 @@ local SHAPES = {
 	dot = {size = Vector2.new(24, 24), rotation = 0, radius = UDim.new(0.5, 0), filled = true},
 	dash = {size = Vector2.new(22, 6), rotation = 0, radius = UDim.new(0, 3), filled = true},
 }
-local chipKey
+-- The view module hands back the same table until something visible changes, so a steady chip costs
+-- one comparison per frame and no allocation.
+local chipCache, chipView = View.newChipCache(), nil
+local NO_GUARDIAN = table.freeze({})
 local function applyChip(view)
-	local key = view.kind .. "|" .. view.text
-	if key == chipKey then return end
-	chipKey = key
+	if view == chipView then return end
+	chipView = view
 	local tone = View.TONES[view.tone] or View.TONES.none
 	local shape = SHAPES[view.shape] or SHAPES.dash
 	chip.BackgroundColor3, chip.BackgroundTransparency = rgb(tone.bg), tone.transparency
@@ -267,9 +269,9 @@ listen(RunService.Heartbeat, function(dt)
 	else
 		destroyPet()
 	end
-	-- The chip updates every frame and never hides with the inventory (M2.3).
-	local guardianState = fresh and type(state.guardian) == "table" and state.guardian or {}
-	applyChip(View.chip(guardianState.awareness, fresh == true, workspace:GetServerTimeNow(), compact))
+	-- The chip is checked every frame and never hides with the inventory (M2.3); it is rebuilt only on change.
+	local guardianState = fresh and type(state.guardian) == "table" and state.guardian or NO_GUARDIAN
+	applyChip(View.chipCached(chipCache, guardianState.awareness, fresh == true, workspace:GetServerTimeNow(), compact))
 	elapsed += dt
 	if elapsed < 0.1 then return end
 	local step = elapsed
@@ -289,7 +291,8 @@ listen(RunService.Heartbeat, function(dt)
 	local guardian = guardianState
 	-- Only the targeted player receives an attack deadline, inside their own awareness (M2.2).
 	local aware = type(guardian.awareness) == "table" and guardian.awareness or {}
-	local attack = aware.state == "seen" and type(aware.attackEndsAt) == "number" and aware.attackEndsAt > now
+	-- Held until the server resolves or cancels the strike, not only until the deadline (W6 audit).
+	local attack = View.attackPending(aware)
 	local hint = View.hint({attack = attack, threat = guardian.threat == true,
 		revealed = type(guardian.revealedUntil) == "number" and guardian.revealedUntil > now,
 		phase = state.phase, isFog = state.isFog == true})

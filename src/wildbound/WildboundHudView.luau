@@ -41,6 +41,14 @@ local function entry(kind, state, shape, glyph, text, extra)
 	return value
 end
 
+-- The server sends an attack deadline only while its strike is unresolved, and resolves it up to one
+-- 0.2 s step after the deadline. So the warning holds while the deadline is present, not until it passes.
+function View.attackPending(awareness)
+	if type(awareness) ~= "table" or awareness.state ~= "seen" then return false end
+	local deadline = awareness.attackEndsAt
+	return finite(deadline) and deadline > 0
+end
+
 -- awareness is the snapshot value ({ state, searchEndsAt?, attackEndsAt? }); fresh is false when the
 -- world state is stale; now is the server clock. Shapes: square attack, diamond seen, ring searching,
 -- dot ally, dash none. The text always names the state, so the chip never depends on hue or audio.
@@ -50,8 +58,7 @@ function View.chip(awareness, fresh, now, compact)
 	end
 	local state = type(awareness) == "table" and awareness.state or "none"
 	if state == "seen" then
-		local deadline = awareness.attackEndsAt
-		if finite(deadline) and deadline > now then
+		if View.attackPending(awareness) then
 			return entry("attack", "seen", "square", "!!", compact and "ATTACK! Move!" or "ATTACK! Move away!")
 		end
 		return entry("seen", "seen", "diamond", "!", "Silueta sees you")
@@ -67,6 +74,32 @@ function View.chip(awareness, fresh, now, compact)
 		return entry("ally", "ally", "dot", "i", compact and "Friend hunted" or "Silueta hunts a friend")
 	end
 	return entry("none", "none", "dash", "-", "No hunt nearby")
+end
+
+function View.newChipCache()
+	return {}
+end
+
+-- The chip for a per-frame caller. It is rebuilt only when what it shows changes: freshness, size,
+-- state, the attack flag or the searching countdown's tenth. Otherwise the previous table comes back,
+-- so a steady chip allocates nothing.
+function View.chipCached(cache, awareness, fresh, now, compact)
+	if type(cache) ~= "table" then return View.chip(awareness, fresh, now, compact) end
+	local live = fresh == true and finite(now)
+	local state = live and (type(awareness) == "table" and awareness.state or "none") or "unknown"
+	local attack = live and View.attackPending(awareness)
+	local tenth = -1
+	if live and state == "searching" and finite(awareness.searchEndsAt) then
+		tenth = math.floor(math.max(0, awareness.searchEndsAt - now) * 10 + 0.5)
+	end
+	compact = compact == true
+	if cache.view and cache.state == state and cache.attack == attack and cache.tenth == tenth
+		and cache.compact == compact then
+		return cache.view
+	end
+	cache.state, cache.attack, cache.tenth, cache.compact = state, attack, tenth, compact
+	cache.view = View.chip(awareness, fresh, now, compact)
+	return cache.view
 end
 
 -- The panel line under the phase. Priority: attack, threat, revealed, dusk, fog, calm.
