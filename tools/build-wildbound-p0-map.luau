@@ -261,6 +261,71 @@ function Builder.buildCamp(root)
     return camp
 end
 
+-- Delivery D7: hiding spots from assets/maps/forest-layout/hide-spots-v1.json (tools/plan_hide_spots.py); a Python
+-- test keeps this table equal to the file. Bushes are primitive placeholders; logs mark existing FK_FallenLog models.
+local HIDE_SPOTS = {
+    { id = 'H01', kind = 'bush', x = 34.0, z = -77.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H02', kind = 'bush', x = -45.0, z = -36.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H03', kind = 'bush', x = 82.0, z = -8.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H04', kind = 'bush', x = 125.0, z = 6.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H05', kind = 'bush', x = 101.0, z = 47.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H06', kind = 'bush', x = -116.0, z = 83.0, yaw = 0.0, scale = 1.0 },
+    { id = 'H07', kind = 'log', x = 26.035, z = -127.646, yaw = 69.307, scale = 1.023 },
+    { id = 'H08', kind = 'log', x = 106.187, z = -38.363, yaw = 201.296, scale = 0.927 },
+    { id = 'H09', kind = 'log', x = 56.05, z = -37.936, yaw = 344.359, scale = 0.994 },
+    { id = 'H10', kind = 'log', x = -43.753, z = 24.663, yaw = 318.678, scale = 0.911 },
+}
+local HIDE_GROUND = 0.5
+local hideColors = { bush = Color3.fromRGB(34, 58, 38), bushDark = Color3.fromRGB(24, 42, 30), hollow = Color3.fromRGB(14, 12, 10) }
+
+local function hidePart(parent, name, size, frame, color, query, shape)
+    local item = part(parent, name, size, frame, color, Enum.Material.Grass, false)
+    item.CanQuery = query
+    item.CanTouch = false
+    item.CastShadow = query
+    if shape then item.Shape = shape end
+    return item
+end
+
+-- Adds the hiding spots to an existing WildboundP0 root (patches a dressed map without a rebuild), once.
+function Builder.buildHideSpots(root)
+    assert(typeof(root) == 'Instance', 'root must be an Instance')
+    assert(not root:FindFirstChild('HideSpots'), 'HideSpots already exists')
+    local CollectionService = game:GetService('CollectionService')
+    local spots = Instance.new('Folder')
+    spots.Name = 'HideSpots'
+    for _, spec in ipairs(HIDE_SPOTS) do
+        local model = Instance.new('Model')
+        model.Name = 'HideSpot_' .. spec.id
+        model:SetAttribute('SpotId', spec.id)
+        model:SetAttribute('Kind', spec.kind)
+        local frame = CFrame.new(spec.x, HIDE_GROUND, spec.z) * CFrame.Angles(0, math.rad(spec.yaw), 0)
+        if spec.kind == 'bush' then
+            hidePart(model, 'Bush', Vector3.new(4.6, 3.5, 4.6), frame * CFrame.new(0, 1.6, 0), hideColors.bush, true, Enum.PartType.Ball)
+            hidePart(model, 'Bush', Vector3.new(3.4, 2.6, 3.4), frame * CFrame.new(1.6, 1.2, 0.8), hideColors.bushDark, true, Enum.PartType.Ball)
+            hidePart(model, 'Bush', Vector3.new(3.2, 2.4, 3.2), frame * CFrame.new(-1.5, 1.1, -0.9), hideColors.bushDark, true, Enum.PartType.Ball)
+        else
+            -- The log itself stays untouched; a dark disc at one end reads as the hollow.
+            local reach = 8.2 * spec.scale
+            hidePart(model, 'Hollow', Vector3.new(0.3, 2.6 * spec.scale, 2.6 * spec.scale),
+                frame * CFrame.new(reach, 1.9 * spec.scale, 0), hideColors.hollow, false, Enum.PartType.Cylinder)
+        end
+        local zone = part(model, 'HideZone', Vector3.new(5, 3, 5), frame * CFrame.new(0, 1.5, 0), hideColors.bush, nil, false)
+        zone.Transparency, zone.CanQuery, zone.CanTouch, zone.CastShadow = 1, false, false, false
+        local prompt = Instance.new('ProximityPrompt')
+        prompt.Name = 'HidePrompt'
+        prompt.RequiresLineOfSight = false
+        prompt.MaxActivationDistance = 7
+        prompt.HoldDuration = 0.4
+        prompt.Parent = zone
+        model.PrimaryPart = zone
+        CollectionService:AddTag(model, 'WildboundHideSpot')
+        model.Parent = spots
+    end
+    spots.Parent = root
+    return spots
+end
+
 function Builder.build(parent)
     assert(typeof(parent) == 'Instance', 'parent must be an Instance')
     assert(not parent:FindFirstChild('WildboundP0'), 'WildboundP0 already exists')

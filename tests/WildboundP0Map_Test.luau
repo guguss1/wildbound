@@ -198,6 +198,58 @@ return function(builder)
         expect(not pcall(function() builder.buildCamp(bare) end), 'a second camp is refused')
         holder:Destroy()
     end)
+    -- Delivery D7: ten hiding spots patched onto a map once (six bushes, four hollow logs).
+    local function hideRoot()
+        local holder = Instance.new('Folder')
+        local bare = Instance.new('Model')
+        bare.Name = 'WildboundP0'
+        bare.Parent = holder
+        return holder, bare, builder.buildHideSpots(bare)
+    end
+    check('D7: hide spots are tagged, named by id and carry one prompt each', function()
+        local holder, _, spots = hideRoot()
+        expect(spots and spots.Name == 'HideSpots', 'buildHideSpots returns the HideSpots folder')
+        local CollectionService = game:GetService('CollectionService')
+        local count, bushes, logs = 0, 0, 0
+        for _, spot in ipairs(spots:GetChildren()) do
+            count += 1
+            expect(spot:IsA('Model') and CollectionService:HasTag(spot, 'WildboundHideSpot'), spot.Name .. ' is not tagged')
+            local id = spot:GetAttribute('SpotId')
+            expect(spot.Name == 'HideSpot_' .. tostring(id), spot.Name .. ' name does not carry its id')
+            local zone = spot:FindFirstChild('HideZone')
+            expect(zone and zone:IsA('BasePart'), spot.Name .. ' has no HideZone')
+            local prompts = 0
+            for _, child in ipairs(zone:GetChildren()) do if child:IsA('ProximityPrompt') then prompts += 1 end end
+            expect(prompts == 1, spot.Name .. ' needs exactly one prompt')
+            local kind = spot:GetAttribute('Kind')
+            if kind == 'bush' then bushes += 1 elseif kind == 'log' then logs += 1 end
+            expect((kind == 'log') == (spot:FindFirstChild('Hollow') ~= nil), spot.Name .. ' Hollow must mark logs only')
+        end
+        expect(count == 10 and bushes == 6 and logs == 4, ('expected 10 spots (6 bushes, 4 logs), got %d (%d, %d)'):format(count, bushes, logs))
+        holder:Destroy()
+    end)
+    check('D7: zones do not collide or query, bush geometry queries, nothing touches', function()
+        local holder, _, spots = hideRoot()
+        for _, spot in ipairs(spots:GetChildren()) do
+            local zone = spot.HideZone
+            expect(zone.Transparency == 1 and not zone.CanCollide and not zone.CanQuery and not zone.CanTouch, spot.Name .. ' zone')
+            expect(zone.Anchored, spot.Name .. ' zone must be anchored')
+            for _, item in ipairs(spot:GetDescendants()) do
+                if item:IsA('BasePart') and item ~= zone then
+                    expect(item.Anchored and not item.CanCollide and not item.CanTouch, item:GetFullName() .. ' must be anchored, non-colliding')
+                    if spot:GetAttribute('Kind') == 'bush' then expect(item.CanQuery, item:GetFullName() .. ' bush must block sight') end
+                end
+            end
+        end
+        holder:Destroy()
+    end)
+    check('D7: a second build is refused and the planned positions are kept', function()
+        local holder, bare, spots = hideRoot()
+        expect(not pcall(function() builder.buildHideSpots(bare) end), 'a second set of hide spots is refused')
+        local h01 = spots:FindFirstChild('HideSpot_H01')
+        expect(h01 and math.abs(h01.HideZone.Position.X - 34) < 0.01 and math.abs(h01.HideZone.Position.Z + 77) < 0.01, 'H01 at (34, -77)')
+        holder:Destroy()
+    end)
     container:Destroy()
     return { passed = passed, failed = #failures, failures = failures }
 end

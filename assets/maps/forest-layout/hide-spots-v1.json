@@ -1,0 +1,131 @@
+{
+  "name": "hide-spots-v1",
+  "source": "tools/plan_hide_spots.py",
+  "conventions": "studs, origin at the map centre, x east, z south (as forest-layout-v1)",
+  "rules": {
+    "spacing": 25.0,
+    "route_band_bush": [
+      8.0,
+      14.0
+    ],
+    "route_band_log": [
+      15.0,
+      32.0
+    ],
+    "core_clear": 10.0,
+    "patrol_clear": 12.0,
+    "prop_clear_bush": 6.0,
+    "safe_margin": 3.0,
+    "objective_band": [
+      25.0,
+      45.0
+    ],
+    "clearing_reach": 45.0
+  },
+  "spots": [
+    {
+      "id": "H01",
+      "kind": "bush",
+      "x": 34.0,
+      "z": -77.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 13.456,
+      "core_gap": 13.565
+    },
+    {
+      "id": "H02",
+      "kind": "bush",
+      "x": -45.0,
+      "z": -36.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 13.677,
+      "core_gap": 11.35
+    },
+    {
+      "id": "H03",
+      "kind": "bush",
+      "x": 82.0,
+      "z": -8.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 13.801,
+      "core_gap": 13.206
+    },
+    {
+      "id": "H04",
+      "kind": "bush",
+      "x": 125.0,
+      "z": 6.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 13.355,
+      "core_gap": 14.652
+    },
+    {
+      "id": "H05",
+      "kind": "bush",
+      "x": 101.0,
+      "z": 47.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 11.045,
+      "core_gap": 21.372
+    },
+    {
+      "id": "H06",
+      "kind": "bush",
+      "x": -116.0,
+      "z": 83.0,
+      "yaw": 0.0,
+      "scale": 1.0,
+      "route_distance": 12.712,
+      "core_gap": 12.305
+    },
+    {
+      "id": "H07",
+      "kind": "log",
+      "x": 26.035,
+      "z": -127.646,
+      "yaw": 69.307,
+      "scale": 1.023,
+      "route_distance": 30.016,
+      "core_gap": 10.442,
+      "log_id": "FK_FallenLog_014"
+    },
+    {
+      "id": "H08",
+      "kind": "log",
+      "x": 106.187,
+      "z": -38.363,
+      "yaw": 201.296,
+      "scale": 0.927,
+      "route_distance": 23.439,
+      "core_gap": 12.306,
+      "log_id": "FK_FallenLog_005"
+    },
+    {
+      "id": "H09",
+      "kind": "log",
+      "x": 56.05,
+      "z": -37.936,
+      "yaw": 344.359,
+      "scale": 0.994,
+      "route_distance": 17.846,
+      "core_gap": 11.837,
+      "log_id": "FK_FallenLog_001"
+    },
+    {
+      "id": "H10",
+      "kind": "log",
+      "x": -43.753,
+      "z": 24.663,
+      "yaw": 318.678,
+      "scale": 0.911,
+      "route_distance": 18.366,
+      "core_gap": 15.339,
+      "log_id": "FK_FallenLog_011"
+    }
+  ]
+}
