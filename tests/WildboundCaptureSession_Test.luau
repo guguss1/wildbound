@@ -1223,7 +1223,7 @@ return function(CaptureSession, source)
 		local view = start(capture)
 		local snapshot = CaptureSession.toSnapshot(view)
 		local allowed = { token = true, phase = true, calm = true, inside = true, moving = true,
-			outsideFor = true, deadline = true, ring = true, stage = true }
+			outsideFor = true, deadline = true, ring = true, stage = true, required = true }
 		for key in pairs(snapshot) do assert(allowed[key], "extra field " .. tostring(key)) end
 		equal(snapshot.playerKey, nil); equal(snapshot.encounterId, nil)
 		equal(snapshot.token, view.token); equal(snapshot.phase, "Active")
@@ -1247,7 +1247,7 @@ return function(CaptureSession, source)
 		equal(snapshot.moving, false); equal(snapshot.inside, true)
 		near(snapshot.calm, 0.2)
 		equal(snapshot.stage, "Calm")
-		assert(count(snapshot) <= 8, "per-sample snapshot too large: " .. count(snapshot))
+		assert(count(snapshot) <= 9, "per-sample snapshot too large: " .. count(snapshot))
 	end)
 
 	case("the ending snapshot carries the phase, the reason, the text and the retry moment", function()
@@ -1509,6 +1509,62 @@ return function(CaptureSession, source)
 		local out = calmFull(capture, view)
 		equal(#capture:sweep(out.deadline + C.WATCHDOG_GRACE - 0.01), 0)
 		equal(#capture:sweep(out.deadline + C.WATCHDOG_GRACE), 1)
+	end)
+
+	-- H2: the capture skills act on their owner's session only, inside fixed bounds.
+	case("H2: skill bounds: the meter never drops to standing-still territory, the retry never below its floor", function()
+		equal(C.CALM_MIN, 4); equal(C.RETRY_MIN, 3)
+		assert(C.CALM_MIN < C.CALM_REQUIRED and C.RETRY_MIN < C.RETRY_COOLDOWN, "bounds sit under the defaults")
+	end)
+
+	case("H2: a shorter calm requirement opens the seal sooner and the view carries it", function()
+		local capture = fresh()
+		local view = start(capture, { calmRequired = 4 })
+		equal(view.required, 4)
+		local out, calmAt = calmFull(capture, view)
+		equal(out.stage, "Seal"); equal(out.required, 4)
+		near(calmAt, 4, C.SAMPLE + 1e-6)
+		equal(CaptureSession.toSnapshot(out).required, 4)
+		local plain = fresh()
+		local second = start(plain)
+		equal(second.required, C.CALM_REQUIRED)
+		local _, plainAt = calmFull(plain, second)
+		assert(plainAt > calmAt + 0.3, "the default stays 4.5 s")
+	end)
+
+	case("H2: skill values are clamped to their bounds and junk reads as the default", function()
+		for value, expected in pairs({ [1] = C.CALM_MIN, [99] = C.CALM_REQUIRED, [4.2] = 4.2 }) do
+			equal(start(fresh(), { calmRequired = value }).required, expected, tostring(value))
+		end
+		for _, junk in ipairs({ NAN, INF, -INF, "4" }) do
+			equal(start(fresh(), { calmRequired = junk }).required, C.CALM_REQUIRED, tostring(junk))
+		end
+	end)
+
+	case("H2: a shorter retry wait applies to its owner's failures only, and the third failure still costs the long wait", function()
+		local capture = fresh()
+		local view = start(capture, { retryCooldown = 3 })
+		local _, out = capture:cancel(view.token, 1, 1)
+		equal(out.retryAt, 1 + 3)
+		local other = start(capture, { playerKey = 2, life = lifeB, encounterId = OTHER, now = 1 })
+		local _, theirs = capture:cancel(other.token, 2, 2)
+		equal(theirs.retryAt, 2 + C.RETRY_COOLDOWN, "another player keeps the default")
+		for value, expected in pairs({ [0] = C.RETRY_MIN, [99] = C.RETRY_COOLDOWN }) do
+			local again = fresh()
+			local session = start(again, { retryCooldown = value })
+			local _, ended = again:cancel(session.token, 1, 1)
+			equal(ended.retryAt, 1 + expected, tostring(value))
+		end
+		local long = fresh()
+		local now = 0
+		for index = 1, C.MAX_FAILS do
+			local session = start(long, { retryCooldown = 3, now = now })
+			local endedAt = now + 0.2
+			local ended = long:sample(session.token, at(endedAt, 40, 0))
+			equal(ended.reason, "TooFar", "failure " .. index)
+			near(ended.retryAt, endedAt + (index < C.MAX_FAILS and 3 or C.LONG_COOLDOWN), 1e-9, "failure " .. index)
+			now = ended.retryAt + 0.01
+		end
 	end)
 
 	case("A1: a wary Lumipol refuses a start after the claim checks, reserving nothing", function()

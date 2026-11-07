@@ -43,6 +43,10 @@ CaptureSession.CONSTANTS = table.freeze({
 	LONG_COOLDOWN = 45,
 	SPOOK_SECONDS = 2,
 	MAX_FAILS = 3,
+	-- H2: floors for the per-player capture skills. CALM_MIN stays above the 3.6 s a still player can fill by chance
+	-- (tools/simulate_economy.py); RETRY_MIN keeps a miss from being free.
+	CALM_MIN = 4,
+	RETRY_MIN = 3,
 	-- H1 seal step. The marker waits SEAL_DELAY after the meter fills, then sweeps the bar from 0 to 1 in SEAL_SWEEP
 	-- seconds. The band is SEAL_BAND of the bar wide (SEAL_BAND_SAFE on Safe slots), placed by a server roll inside
 	-- [SEAL_LO_MIN, SEAL_HI_MAX]. A press counts when it arrives while the marker is in the band or up to SEAL_LATENCY
@@ -97,6 +101,12 @@ end
 
 local function length(x, z)
 	return math.sqrt(x * x + z * z)
+end
+
+-- H2: a skill value clamped into [low, high]; anything unusable reads as the default, which is high.
+local function bounded(value, low, high)
+	if not finite(value) then return high end
+	return math.clamp(value, low, high)
 end
 
 -- True only while a stamped delay is running. A clock that stepped back cannot stretch one past its length.
@@ -157,7 +167,8 @@ end
 -- Checks run in the order of the capture document, with no yield before the reservation.
 -- input = { playerKey, encounterId, dir, lumipolX, lumipolZ, now, alive, life, distance, x, y, z,
 --           encounterStatus = "Open" | "Claimed" | other, slotRefusal?, bagRoom, collectionRoom,
---           wary?, tier?, sealRoll? (0 to 1, a server roll for the band's place) }
+--           wary?, tier?, sealRoll? (0 to 1, a server roll for the band's place),
+--           calmRequired?, retryCooldown? (H2: the starting player's own skills, clamped here) }
 -- Returns true, view or false, reason.
 function CaptureSession:begin(input)
 	if type(input) ~= "table" then return false, "InvalidContext" end
@@ -195,6 +206,8 @@ function CaptureSession:begin(input)
 		hardDeadline = now + C.TIME_LIMIT + C.MAX_STALL_EXTENSION, lastSample = now,
 		lastX = input.x, lastZ = input.z, pathTotal = 0, trail = { { t = now, c = 0 } }, calm = 0, outsideFor = 0, inside = true, moving = false,
 		struck = false, badSamples = 0, stage = "Calm", tier = input.tier, sealRoll = input.sealRoll, seal = nil,
+		required = bounded(input.calmRequired, C.CALM_MIN, C.CALM_REQUIRED),
+		retrySpan = bounded(input.retryCooldown, C.RETRY_MIN, C.RETRY_COOLDOWN),
 	}
 	self.sessions[token] = session
 	self.byPlayer[key] = token
@@ -205,7 +218,7 @@ end
 local function activeView(session)
 	return { token = session.token, phase = "Active", calm = session.calm, inside = session.inside,
 		moving = session.moving, outsideFor = session.outsideFor, deadline = session.deadline, stage = session.stage,
-		seal = session.seal }
+		seal = session.seal, required = session.required }
 end
 
 -- H1: the band for this session. A missing or unusable roll places it in the middle of its range.
@@ -252,7 +265,7 @@ local function finish(self, session, reason, now)
 	if rule.spook then record.spookedUntil = at + C.SPOOK_SECONDS end
 	-- Failures belong to the player who failed, so one player cannot make a Lumipol leave for everyone.
 	-- The MAX_FAILS-th failure costs that player the long hold-off, and then the count starts over.
-	local span = C.RETRY_COOLDOWN
+	local span = session.retrySpan
 	if rule.fail then
 		local counts = self.failures[session.key] or {}
 		self.failures[session.key] = counts
@@ -358,7 +371,7 @@ function CaptureSession:sample(token, obs)
 	end
 	session.outsideFor = 0
 	if not moving then session.calm += elapsed end
-	if session.calm + EPSILON >= C.CALM_REQUIRED then
+	if session.calm + EPSILON >= session.required then
 		if obs.bagRoom ~= true then return finish(self, session, "BackpackFull", now) end
 		if obs.collectionRoom ~= true then return finish(self, session, "CollectionFull", now) end
 		openSeal(session, now)
@@ -477,13 +490,13 @@ function CaptureSession:encounterState(encounterId, now)
 end
 
 -- The value for the owner's snapshot. Never names the player or the encounter. Detached copy.
--- Active: eight fields with the stage, plus the ring only from view(), since the ring never changes during a
+-- Active: nine fields with the stage and the meter's target, plus the ring only from view(), since the ring never changes during a
 -- session, and the seal once it is open. Ended: adds reason and retryAt; the server adds the notice's words.
 function CaptureSession.toSnapshot(view)
 	if type(view) ~= "table" or not PHASES[view.phase] then return nil end
 	return { token = view.token, phase = view.phase, calm = view.calm, inside = view.inside,
 		moving = view.moving, outsideFor = view.outsideFor, deadline = view.deadline, stage = view.stage,
-		ring = view.ring and table.clone(view.ring) or nil, seal = view.seal and table.clone(view.seal) or nil,
+		required = view.required, ring = view.ring and table.clone(view.ring) or nil, seal = view.seal and table.clone(view.seal) or nil,
 		reason = view.reason, notice = view.notice, retryAt = view.retryAt }
 end
 

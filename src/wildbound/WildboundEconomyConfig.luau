@@ -181,7 +181,7 @@ return freeze({
 		capturer_1 = {
 			branch = "capturer",
 			tier = 1,
-			effectLive = false,
+			effectLive = true,
 			requires = {},
 			cost = { ember = 40, fogbark = 20, glowmoss = 10 },
 			effects = { calmRequired = 4.0 },
@@ -189,7 +189,7 @@ return freeze({
 		capturer_2 = {
 			branch = "capturer",
 			tier = 2,
-			effectLive = false,
+			effectLive = true,
 			requires = { "capturer_1" },
 			cost = { ember = 100, fogbark = 30, glowmoss = 20, nightbloom = 3 },
 			effects = { retryCooldown = 3 },

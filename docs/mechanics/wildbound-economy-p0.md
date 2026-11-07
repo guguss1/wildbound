@@ -36,7 +36,7 @@ Not run in Play: two clients (BLOCKED: one operator and no way to start a second
 
 | Point | Decision |
 | --- | --- |
-| Eight skills, each with an effect | Five effects would change capture, Silueta or the fair strike (Steady Hands, Soft Approach, Quick Rest, Read the Signs, Long Reveal), which this wave must not touch. They are tuned (`effectLive = false`), shown as "Effect not built yet" and refused by `State:learn` as `EffectPending` before any payment. Live: Trail Sense, Night Nose, Light Load. `Economy.validate` rejects a live skill whose effect key is not applied |
+| Eight skills, each with an effect | Five effects would change capture, Silueta or the fair strike (Steady Hands, Soft Approach, Quick Rest, Read the Signs, Long Reveal), which this wave must not touch. They are tuned (`effectLive = false`), shown as "Effect not built yet" and refused by `State:learn` as `EffectPending` before any payment. Live: Trail Sense, Night Nose, Light Load. `Economy.validate` rejects a live skill whose effect key is not applied. Delivery A (decision H2, 2026-11-07) made `capturer_1` (`calmRequired` 4.0 s) and `capturer_2` (`retryCooldown` 3 s) live: the server reads the learner's own skills at each capture start and the capture rule clamps them to 4.0 to 4.5 s and 3 to 6 s |
 | Bond level effects (pulse cooldown 27 and 25 s, cue, glow) | Level is banked and shown; no level changes a cooldown yet, for the same reason |
 | Bond event "telegraph misses you" | `State:bondEvent` accepts `pulseThenDodge`, but nothing fires it: it needs a hook in the fair-strike resolution |
 | "Compass shows active gather nodes" | Display only. Nodes replicate to every client anyway, so the compass is a convenience, not hidden information. Night Nose shows Nightbloom up to 100 studs at Night only |
@@ -606,8 +606,8 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   "skills": {
     "explorer_1": { "branch": "explorer", "tier": 1, "effectLive": true, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "nodeHintRange": 60 } },
     "explorer_2": { "branch": "explorer", "tier": 2, "effectLive": true, "requires": ["explorer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "nightbloomHintRange": 100 } },
-    "capturer_1": { "branch": "capturer", "tier": 1, "effectLive": false, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "calmRequired": 4.0 } },
-    "capturer_2": { "branch": "capturer", "tier": 2, "effectLive": false, "requires": ["capturer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "retryCooldown": 3 } },
+    "capturer_1": { "branch": "capturer", "tier": 1, "effectLive": true, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "calmRequired": 4.0 } },
+    "capturer_2": { "branch": "capturer", "tier": 2, "effectLive": true, "requires": ["capturer_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "retryCooldown": 3 } },
     "survivor_1": { "branch": "survivor", "tier": 1, "effectLive": true, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "carrySpeedBonus": 1 } },
     "survivor_2": { "branch": "survivor", "tier": 2, "effectLive": false, "requires": ["survivor_1"], "cost": { "ember": 100, "fogbark": 30, "glowmoss": 20, "nightbloom": 3 }, "effects": { "restSeconds": 2 } },
     "occultist_1": { "branch": "occultist", "tier": 1, "effectLive": false, "requires": [], "cost": { "ember": 40, "fogbark": 20, "glowmoss": 10 }, "effects": { "relocationNotice": true } },

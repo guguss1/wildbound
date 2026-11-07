@@ -73,8 +73,10 @@ function Economy.pouchSpeed(config, units, capacity)
 end
 
 -- Effect keys that are applied today (M5.6). A skill can be learned only when every effect it names is here,
--- so a player never pays for something that does nothing yet.
-Economy.LIVE_EFFECTS = table.freeze({ nodeHintRange = true, nightbloomHintRange = true, carrySpeedBonus = true })
+-- so a player never pays for something that does nothing yet. Delivery A (H2): calmRequired and retryCooldown are
+-- passed by the server into that player's own capture session, which clamps them (WildboundCaptureSession).
+Economy.LIVE_EFFECTS = table.freeze({ nodeHintRange = true, nightbloomHintRange = true, carrySpeedBonus = true,
+	calmRequired = true, retryCooldown = true })
 
 -- The effects of the skills a player owns: numbers take the highest owned value, flags are kept.
 function Economy.skillEffects(config, skills)

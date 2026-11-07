@@ -1091,16 +1091,23 @@ return function(State, Economy, Config)
 		for id, spec in pairs(Config.skills) do
 			equal(type(spec.effectLive), "boolean", id .. " declares whether its effect is built")
 		end
-		for _, id in ipairs({ "explorer_1", "explorer_2", "survivor_1" }) do equal(Config.skills[id].effectLive, true, id) end
-		for _, id in ipairs({ "capturer_1", "capturer_2", "survivor_2", "occultist_1", "occultist_2" }) do
+		-- Delivery A (H2): the two capture skills are live and act on the learner's own captures.
+		for _, id in ipairs({ "explorer_1", "explorer_2", "survivor_1", "capturer_1", "capturer_2" }) do
+			equal(Config.skills[id].effectLive, true, id)
+		end
+		for _, id in ipairs({ "survivor_2", "occultist_1", "occultist_2" }) do
 			equal(Config.skills[id].effectLive, false, id)
 		end
-		refusedWith("EffectPending", state:learn("Alice", "capturer_1", true, 0))
 		refusedWith("EffectPending", state:learn("Alice", "occultist_1", true, 0))
 		refusedWith("NeedsPrerequisite", state:learn("Alice", "capturer_2", true, 0))
+		accepted(state:learn("Alice", "capturer_1", true, 0))
+		rich(state)
+		accepted(state:learn("Alice", "capturer_2", true, 0))
+		rich(state)
 		accepted(state:learn("Alice", "survivor_1", true, 0))
 		refusedWith("EffectPending", state:learn("Alice", "survivor_2", true, 0))
-		equal(snap(state).skills.capturer_1, nil)
+		equal(snap(state).skills.capturer_1, true)
+		equal(snap(state).skills.capturer_2, true)
 	end)
 
 	case("ECO-04 skills and bond survive a defeat untouched", function()

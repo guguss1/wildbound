@@ -81,6 +81,14 @@ return function(View, Layout, CaptureSession, source, Text)
 		equal(view.arrow, false)
 	end)
 
+	case("H2: the meter fills against the session's own requirement when it has one", function()
+		near(View.status(active({ calm = 2, required = 4 }), info()).fraction, 0.5, 1e-9)
+		near(View.status(active({ calm = 2.25 }), info()).fraction, 0.5, 1e-9)
+		for _, junk in ipairs({ NAN, 0, -1, "4" }) do
+			near(View.status(active({ calm = 2.25, required = junk }), info()).fraction, 0.5, 1e-9, tostring(junk))
+		end
+	end)
+
 	case("the meter fraction is clamped and a bad meter reads empty", function()
 		near(View.status(active({ calm = 0 }), info()).fraction, 0)
 		near(View.status(active({ calm = 99 }), info()).fraction, 1)

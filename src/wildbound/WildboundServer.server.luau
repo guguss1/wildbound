@@ -357,6 +357,7 @@ local function startCapture(player, entry)
 		return
 	end
 	local bag, collection = state:captureRoom(player.UserId)
+	local skills = Economy.skillEffects(EconomyConfig, snapshot.skills)
 	local position, lumipol = root.Position, entry.body.Position
 	local ok, result = capture:begin({
 		playerKey = player.UserId, encounterId = entry.id, dir = rng:NextInteger(0, 1) * 2 - 1,
@@ -366,6 +367,8 @@ local function startCapture(player, entry)
 		slotRefusal = Wild.slotRefusal(entry.slot.tier, snapshot), bagRoom = bag, collectionRoom = collection,
 		-- Delivery A: a scared Lumipol refuses; the seal band is wide on Safe slots and placed by a server roll.
 		wary = Wild.wary(entry.brain), tier = entry.slot.tier, sealRoll = rng:NextNumber(),
+		-- H2: this player's own capture skills; the rule clamps them.
+		calmRequired = skills.calmRequired, retryCooldown = skills.retryCooldown,
 	})
 	if not ok then
 		counters.rejected += 1

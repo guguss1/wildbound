@@ -146,6 +146,12 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(effects.nodeHintRange, 60); equal(effects.nightbloomHintRange, 100); equal(effects.carrySpeedBonus, 1)
 		equal(Economy.skillEffects(Config, { explorer_1 = "yes" }).nodeHintRange, nil, "only true owns")
 		equal(Economy.skillEffects(Config, { moonwalk = true }).nodeHintRange, nil)
+		-- Delivery A (H2): the capture skills shorten the calm meter and the retry wait for their owner only.
+		local capturer = Economy.skillEffects(Config, { capturer_1 = true, capturer_2 = true })
+		equal(capturer.calmRequired, 4); equal(capturer.retryCooldown, 3)
+		equal(Economy.skillEffects(Config, { capturer_1 = true }).retryCooldown, nil)
+		assert(Economy.LIVE_EFFECTS.calmRequired and Economy.LIVE_EFFECTS.retryCooldown, "capture effects are applied")
+		equal(#Economy.validate(Config), 0)
 		for xp, level in pairs({ [0] = 1, [39] = 1, [40] = 2, [99] = 2, [100] = 3, [179] = 3, [180] = 4, [279] = 4, [280] = 5, [100000] = 5 }) do
 			equal(Economy.bondLevel(Config, xp), level, "xp " .. xp)
 		end
@@ -192,7 +198,7 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		broken(function(c) c.spawnWeights.outside.Day = { fogbark = 0, glowmoss = 0 } end)
 		broken(function(c) c.gather.holdSeconds.heart = 2 end)
 		broken(function(c) c.recipes.seal.cost.moonstone = 1 end)
-		broken(function(c) c.skills.capturer_1.effectLive = true end)
+		broken(function(c) c.skills.occultist_1.effectLive = true end)
 		broken(function(c) c.skills.explorer_1.effectLive = nil end)
 		equal(#Economy.validate(nil), 1)
 	end)

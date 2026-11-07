@@ -78,9 +78,11 @@ local function hidden()
 		ringStyle = "hidden", ringTone = "inside", arrow = false, pulse = false }
 end
 
-local function fractionOf(calm)
+-- H2: the meter fills against the session's own target (a capture skill can lower it), else the rule's default.
+local function fractionOf(calm, required)
 	if type(calm) ~= "number" or calm ~= calm then return 0 end
-	return math.clamp(calm / K.CALM_REQUIRED, 0, 1)
+	local target = finite(required) and required > 0 and required or K.CALM_REQUIRED
+	return math.clamp(calm / target, 0, 1)
 end
 
 local function validSeal(seal)
@@ -109,7 +111,7 @@ function View.status(snap, info)
 	info = type(info) == "table" and info or {}
 	if type(snap) ~= "table" or not PHASES[snap.phase] or not validToken(snap.token) then return hidden() end
 	local compact = info.compact == true
-	local fraction = fractionOf(snap.calm)
+	local fraction = fractionOf(snap.calm, snap.required)
 	if snap.phase == "Active" then
 		local stale = not finite(info.age) or info.age < 0 or info.age > K.STALE_AFTER
 		if stale then
