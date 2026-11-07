@@ -102,7 +102,9 @@ end
 -- Each creature declares its own night scope instead of inheriting a global boost.
 local CREATURE_PROFILES = table.freeze({
 	Silueta = table.freeze({
-		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 1.30,
+		-- Dread pass: 2.0 (was 1.30) makes the 8.57-stud SiluetaV3 art about 17 studs, three avatars tall. Art only:
+		-- the gameplay body, sight, reach and pathing agent are unchanged, so the fair-strike rules hold as they were.
+		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 2.0,
 		base = table.freeze({ speed = 6, detectionRange = 28 }),
 		night = table.freeze({ scope = "Fog", speed = 8, detectionRange = 38 }),
 	}),

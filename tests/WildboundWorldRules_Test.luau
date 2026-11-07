@@ -134,8 +134,16 @@ return function(Rules)
 			local profile = Rules.resolveCreatureProfile("Silueta", sample[1], sample[2])
 			equal(profile.name, "Silueta"); equal(profile.specialBehaviorId, "Silueta")
 			equal(profile.speed, sample[3]); equal(profile.detectionRange, sample[4])
-			equal(profile.visualScale, 1.30)
+			equal(profile.visualScale, 2.0)
 		end
+	end)
+	-- Dread pass (user: much taller, about three times the player): the SiluetaV3 art is 8.57 studs at scale 1
+	-- (its WildboundExpectedHeightStuds), so 2.0 stands about 17 studs over a 5.3-stud avatar. Deliberately
+	-- changed from 1.30 (11.1 studs).
+	case("Silueta stands about three times a player's height", function()
+		local height = 8.571428571428571 * Rules.resolveCreatureProfile("Silueta", "Night", true).visualScale
+		assert(height >= 16 and height <= 18, "Silueta height " .. height)
+		assert(height / 5.3 >= 3, "at least three avatars tall")
 	end)
 	case("unknown creature profiles fail closed", function()
 		equal(Rules.resolveCreatureProfile("Unknown", "Night", true), nil)
@@ -149,8 +157,8 @@ return function(Rules)
 		local second = Rules.resolveCreatureProfile("Silueta", "Night", true)
 		local base = Rules.resolveCreatureProfile("Silueta", "Day", true)
 		equal(second.name, "Silueta"); equal(second.specialBehaviorId, "Silueta")
-		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 1.30)
-		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 1.30)
+		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 2.0)
+		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 2.0)
 	end)
 	case("guardian compatibility agrees with creature resolver", function()
 		for _, sample in ipairs({ { "Day", true }, { "Night", true }, { "Night", false } }) do

@@ -8,6 +8,11 @@ local WALKING = table.freeze({ Patrol = true, Hunt = true, Retreat = true, Inves
 local WARNING_SECONDS, STRIKE_POSE_SECONDS, ATTACK_SECONDS = 1.4, 0.23, 1
 local LENGTHS = { Idle = 3, Locomotion = 2, Telegraph = WARNING_SECONDS, Attack = ATTACK_SECONDS }
 local READINESS_TIMEOUT = 5
+-- Dread pass (user: darker, scarier, barely seen): every art colour times `tint`, the eyes a pale Neon glow that
+-- stays lit, and the unrevealed body a dark shape (alpha 0.5) the fog swallows, instead of the 0.86 ghost.
+Visual.DREAD_LOOK = table.freeze({ tint = 0.35, eyes = Color3.fromRGB(214, 226, 200), hiddenAlpha = 0.5,
+	revealedAlpha = 0.1 })
+local DEFAULT_LOOK = table.freeze({ hiddenAlpha = 0.86, revealedAlpha = 0.25 })
 local LENGTH_TOLERANCE = 1 / 30 + 0.000001 -- One authored frame, plus floating-point error.
 
 local function finite(value)
@@ -75,6 +80,7 @@ function Visual.new(options)
 		end,
 		_baselines = {}, _tracks = {}, _animations = {}, _state = "Alert", _moving = false,
 		_bodyAlpha = options.body.Transparency, _headAlpha = options.head.Transparency,
+		_look = type(options.look) == "table" and options.look or DEFAULT_LOOK, _glowing = {},
 	}, Visual)
 	local template = options.template
 	if not validTemplate(template) then return self end
@@ -87,10 +93,19 @@ function Visual.new(options)
 		if not finite(factor) or factor < 0.5 or factor > 2 then factor = 1 end
 		art:ScaleTo(art:GetScale() * factor)
 		art:PivotTo(options.body.CFrame * CFrame.new(0, -options.body.Size.Y / 2, 0))
+		local look = self._look
 		for _, item in ipairs(art:GetDescendants()) do
 			if item:IsA("BasePart") then
 				self._baselines[item] = item.Transparency
 				item.Anchored, item.CanCollide, item.CanTouch, item.CanQuery = true, false, false, false
+				if finite(look.tint) then
+					if typeof(look.eyes) == "Color3" and item.Name:find("Eyes", 1, true) then
+						item.Color, item.Material, self._glowing[item] = look.eyes, Enum.Material.Neon, true
+					else
+						local c = item.Color
+						item.Color = Color3.new(c.R * look.tint, c.G * look.tint, c.B * look.tint)
+					end
+				end
 			end
 		end
 		art.Parent = options.guardian
@@ -138,8 +153,10 @@ end
 function Visual:setRevealed(revealed)
 	if self._destroyed then return end
 	if self.artReady then
+		local look = self._look
+		local alpha = revealed and look.revealedAlpha or look.hiddenAlpha
 		for part, baseline in pairs(self._baselines) do
-			part.Transparency = baseline + (1 - baseline) * (revealed and 0.25 or 0.86)
+			part.Transparency = self._glowing[part] and baseline or baseline + (1 - baseline) * alpha
 		end
 		self._body.Transparency, self._head.Transparency = 1, 1
 	else

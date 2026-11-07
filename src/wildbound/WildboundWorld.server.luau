@@ -191,7 +191,8 @@ if visualModule and visualModule:IsA("ModuleScript") then
 	local ok, adapter = pcall(function()
 		local profile = Rules.resolveCreatureProfile("Silueta", "Day", false)
 		return require(visualModule).new({ guardian = guardian, body = body, head = head,
-			template = assets and assets:FindFirstChild("SiluetaV3"), visualScale = profile.visualScale })
+			template = assets and assets:FindFirstChild("SiluetaV3"), visualScale = profile.visualScale,
+			look = require(visualModule).DREAD_LOOK })
 	end)
 	if ok then visual = adapter else warn("Wildbound world: optional Silueta art unavailable.") end
 end
