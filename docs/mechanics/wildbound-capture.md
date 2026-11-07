@@ -2,7 +2,7 @@
 
 Unit M3.1, wave W4a. Implements decision D3, and D4 and D14 where they touch capture.
 
-**Status: proposal. Only the pure rule (M3.2) is built, with contracts; nothing is wired or playtested.** Every number is a hypothesis to test. Written 2026-11-07 from source and the layout plan, with no Studio or Play session. Calculated values say so. Where M3.2 departs from this document, the section [M3.2 build notes](#m32-build-notes) wins.
+**Status: built and run in Studio Play (wave W5, 2026-11-07): the rule (M3.2), the server wiring (M3.3), the touch screen (M3.4) and the slots, wild behavior and egg carry cost (M3.5). Every number is still a hypothesis. No person has played it, no real phone or real network was used, and tapping on a phone profile is BLOCKED (see [M3.3 to M3.5 build notes](#m33-to-m35-build-notes)).** Written 2026-11-07 from source and the layout plan. Where a build note disagrees with an earlier section, the build note wins.
 
 ## Choices worth your review
 
@@ -445,3 +445,78 @@ Snapshot for the owner only, never naming the player or the encounter. Active: `
 ### Still unverified
 
 All numbers remain hypotheses. Nothing has run in Play: replication lag against the 0.5 stud margin, whether `GetServerTimeNow` on the server can step backward (handled by `LostTrack`, not observed), touch prompts, and the two-client race (CAP-30 is covered only as a pure contract plus a 6000-step seeded fuzz). Exposure inside territory comes from `tools/simulate_silueta_pressure.py` for a still player: at a 4.5 s hold, `L1` is warned in 60% of patrol phases and struck in 15% by day (98% and 24% by night); `L2` is warned in 39% and never struck by day. This document's calculated capture length is 4.7 to 5.5 s, between the simulator's 4.5 s and 6 s columns.
+
+## M3.3 to M3.5 build notes
+
+Wave W5, 2026-11-07, Studio place 122652861404212, Play on one machine (Studio Play solo, then Server and Clients with two clients). Damage stayed off, streaming stayed on, nothing was uploaded, published or saved.
+
+### What exists
+
+| Piece | Source | Explorer | Contracts |
+| --- | --- | --- | --- |
+| Capture rule, with the audit fix above | `src/wildbound/WildboundCaptureSession.luau` | `ReplicatedStorage.WildboundCaptureSession` | 103 |
+| Grant, refusal, room | `WildboundState.luau`: `completeCapture(key, id, alive, tier)`, `captureRoom`, `encounterStatus`; `pickup` refuses a creature with `CaptureRequired` | `ServerScriptService.WildboundState` | 25 |
+| Slots, wander and flee, first-capture rule, carry speed | `WildboundLumipolWild.luau` | `ServerScriptService.WildboundLumipolWild` | 34 |
+| Words, shapes, ring geometry, placement | `WildboundCaptureView.luau` | `ReplicatedStorage.WildboundCaptureView` | 40 |
+| Server adapter | `WildboundServer.server.luau` | `ServerScriptService.WildboundServer` | Play only |
+| Strike signal | `WildboundWorld.server.luau`: one `BindableEvent:Fire(player)` after a resolved strike. The damage logic is untouched | `ServerScriptService.WildboundWorld` | Play only |
+| Touch screen | `WildboundCapture.client.luau` | `StarterPlayerScripts.WildboundCaptureClient` | Play only |
+
+Network: `Action` accepts `CaptureCancel` with the token as its one string (whitelisted, 128 bytes at most, rate limited like every action). `CaptureState` is a `RemoteEvent` fired only to the session owner. `CaptureStrike` is a `BindableEvent` under `WildboundNetwork`, so a client firing its own copy reaches nothing. The prompt for a creature has no hold. Measurement is kept in `ServerStorage.WildboundTelemetry` attributes (not replicated): `CaptureAnomaly`, `CaptureWatchdog`, counters, and `CaptureLog` with the last 40 sessions (slot, tier, reason, seconds, calm, in territory, Silueta's mode and distance at the start).
+
+### Where this document was wrong again
+
+| Section | Problem found | Built instead |
+| --- | --- | --- |
+| Spawn slots, which `L` slots are active | "Picked by the pipeline" gave no order, and L4 would be the last to appear | Order `L1`, `L4`, `L2`, `L3`: one player gets a territory slot and the no-Silueta fog slot, two get `L2`, three or more get all four |
+| `State:completeCapture(key, id, token, alive, tier)` | The reservation lives in the session rule, so State has nothing to check a token against | No token. State claims, grants and refuses only |
+| Touch UI flow, "at least 300 x 90" panel and a 64 px Stop | A 280 pixel tall phone interface has no free band that high | Panel from 340 x 76 down to 190 x 40 and Stop 64 x 64, chosen by a pure search that keeps clear of the avatar keep-out, the thumbstick, the jump button and every HUD rectangle. On a 359 x 660 portrait interface no free band exists, so the panel takes the objective line's place (drawn above it) |
+| Touch UI flow, Stop and Inventory | Said the inventory button is disabled | Opening the inventory is refused with a notice while a session runs, and an open inventory closes when one starts |
+| A still player | "Standing still fails" | Moving back and forth a stud or two inside the ring never exceeds 5 studs per second over a sample, so it counts as still and completed a capture in Play (4.6 s). Only real travel pauses the meter. Not changed |
+| Wander smoothing | Left to M2.6 | Not done: the Lumipol steps 0.4 stud every 0.2 s on the server and the client does not smooth it. Not judged by eye |
+
+### Played in Studio
+
+Solo (Studio Play), unless marked.
+
+| Case | Result | Evidence |
+| --- | --- | --- |
+| Capture succeeds, fog slot `L4`, safe slot `S0a` (new player) and territory slot `L1` | PASS | 4.77 to 5.00 s each, one or two steps, Lumipol in the bag with its risk tier, slot refilled |
+| `LeftRing` | PASS | Stood still, about 6 s, calm 2.2 |
+| `Cancelled` (Stop message) | PASS | Ended at once with the Stop text |
+| `TooFar` | PASS | Moved the character 25 studs |
+| `Defeated` | PASS | Humanoid health set to 0 |
+| `TimedOut` | PASS | Moved in a circle for 12.2 s, calm 0.37 |
+| `Struck` | PASS | A real Silueta strike at `L1` ended it at 5.42 s and again at 4.82 s (calm 4.38 of 4.5) with damage off and health at 100 |
+| Third failure on one Lumipol, the audit fix | PASS | The third failure at `L1` (`LeftRing`, `TooFar`, `Struck`) returned `retryAt` 44.97 s ahead, and the Lumipol stayed |
+| `FirstCapturePending`, `FirstCaptureOnly` | PASS | Carrying a creature, then owning one, both refused at `S0a` with their texts |
+| Two clients, one Lumipol, 28 rounds | PASS | 20 rounds with 40 ms offset and roles swapped, 8 with none: exactly one owner every round. The server `Reserved` reply was never reached: the loser's prompt was already disabled by replication, so that branch is covered by the pure contracts only |
+| Spam: 200 taps, then 12 junk tokens, 90 foreign tokens and 4 bad actions, three times | PASS | Two sessions started in total, both from real taps after the first ended. The other player's running session was not touched. No error or warning line in the server output, anomaly 0, watchdog 0 |
+| Leave mid-session (server `Kick`) | PASS | Ended `Disconnected`, no grant, the prompt was free again 1.07 s after the kick, the Lumipol did not flee, and the other player started a capture at once |
+| Leave then rejoin | BLOCKED | Studio cannot rejoin the same test user |
+| Reset mid-session | PASS | Same path as `Defeated` |
+| `Lost`, `LostTrack`, `Watchdog` | Not reached | Pure contracts only; counters stayed 0 |
+| Egg carry cost | PASS | Walk speed 16, then 11 with one egg (measured 11.0 studs per second), 16 after extraction |
+| Night, fog, Reduced on | PASS | Ring readable in a capture (below) |
+| Reduced off, muted client | Not run | The ring pulse is off when Reduced is on; no sound exists |
+| Tap Stop or the prompt on a phone profile | BLOCKED | MCP clicks do not activate phone buttons (see `docs/testing/wildbound-baseline-m1.md`). Stop was exercised by its message only |
+| Latency and loss | Not run | CAP-33 needs the Network Simulator |
+
+### Exposure inside territory (CAP-37)
+
+Measured at `L1`, which is 27 studs from Silueta's home, at night, with a bot that steps twice (about 16 studs per second for 0.22 s). Five sessions from one run, not independent: Silueta was already in Alert for four of them because the same player had just stood there.
+
+| Result | Seconds | Silueta at start |
+| --- | --- | --- |
+| Caught | 4.77, 4.85, 4.77, 4.85 | Alert at 20.1, 27.5 and 25.8; Retreat at 27.1 |
+| Struck | 4.82 | Alert at 24.0 |
+
+Mean 4.81 s in territory, so about 5 s plus the walk in and out. 4 of 5 completed before the strike. By day, two earlier sessions at `L1` with a still player ended `LeftRing` at 5.88 s (Patrol, 39.6 studs) and `Struck` at 5.42 s (Alert, 20.6 studs). This agrees with the simulator's order of magnitude and says nothing about how fun it is.
+
+### Captures
+
+`assets/exports/forest-kit/captures/capture-*.jpg`, taken with Studio's Device Simulator (`StudioDeviceSimulatorService:SetDeviceAsync`, `SetOrientationAsync`): iPhone 17 Pro landscape (750 x 323 interface) and portrait (401 x 720), Galaxy A06 portrait (359 x 660) and landscape (705 x 280), and the desktop window. They show the calm state with a solid ring, the outside state with a dashed ring and a countdown, the left-the-ring and caught results, and a night fog capture. The device simulator was switched back off afterwards.
+
+### Still unverified
+
+All numbers. The 0.5 stud margin against real latency (CAP-33). Touch prompts, the Stop button and the movement stick on a real phone (CAP-34, CAP-36). Whether the ring reads as a skill or as waiting (CAP-36). Trunk collision against the slots. Wander smoothness. Behavior with more than two clients.

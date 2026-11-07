@@ -257,6 +257,12 @@ class DefaultMappingTests(unittest.TestCase):
         # M3.2, wave W5: pure capture rule, shared because the client draws the ring from it
         "src/wildbound/WildboundCaptureSession.luau": "ReplicatedStorage.WildboundCaptureSession",
         "tests/WildboundCaptureSession_Test.luau": "ServerStorage.WildboundCaptureSession_Test",
+        # M3.3 to M3.5, wave W5: server-only wild rules, the shared capture view and the touch client
+        "src/wildbound/WildboundLumipolWild.luau": "ServerScriptService.WildboundLumipolWild",
+        "tests/WildboundLumipolWild_Test.luau": "ServerStorage.WildboundLumipolWild_Test",
+        "src/wildbound/WildboundCaptureView.luau": "ReplicatedStorage.WildboundCaptureView",
+        "tests/WildboundCaptureView_Test.luau": "ServerStorage.WildboundCaptureView_Test",
+        "src/wildbound/WildboundCapture.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCaptureClient",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
