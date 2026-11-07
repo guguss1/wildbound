@@ -160,7 +160,7 @@ return freeze({
 		materialNames = { fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" },
 		savedMany = "Salvado por sello o tótem: %s.",
 		savedOne = "Salvado por tu sello: %s.",
-		kept = "Conservas: %d registrados, %s.",
+		kept = "Conservas: %d criatura(s) registrada(s), %s.",
 		egg = "huevo guardado",
 		eggs = "huevos guardados",
 		safe = "A salvo: %d Ember, %s.",
