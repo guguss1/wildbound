@@ -1,0 +1,142 @@
+{
+  "props": {
+    "FM_SnowPine": {
+      "model": {
+        "triangles": 298,
+        "size": [
+          18.0,
+          18.0,
+          26.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_SnowPine",
+          "FM_SnowPine_Canopy",
+          "FM_SnowPine_Snow",
+          "FM_SnowPine_Trunk"
+        ],
+        "materials": [
+          "FM_SnowPine_Canopy",
+          "FM_SnowPine_Snow",
+          "FM_SnowPine_Trunk"
+        ]
+      }
+    },
+    "FM_IceSpire": {
+      "model": {
+        "triangles": 162,
+        "size": [
+          7.0,
+          7.0,
+          14.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_IceSpire",
+          "FM_IceSpire_Base",
+          "FM_IceSpire_Ice"
+        ],
+        "materials": [
+          "FM_IceSpire_Base",
+          "FM_IceSpire_Ice"
+        ]
+      }
+    },
+    "FM_RockOverhang": {
+      "model": {
+        "triangles": 316,
+        "size": [
+          20.0,
+          12.0,
+          9.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_RockOverhang",
+          "FM_RockOverhang_Rock",
+          "FM_RockOverhang_Snow"
+        ],
+        "materials": [
+          "FM_RockOverhang_Rock",
+          "FM_RockOverhang_Snow"
+        ]
+      }
+    },
+    "FM_ScourShelf": {
+      "model": {
+        "triangles": 120,
+        "size": [
+          16.0,
+          16.0,
+          1.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_ScourShelf",
+          "FM_ScourShelf_Rock"
+        ],
+        "materials": [
+          "FM_ScourShelf_Rock"
+        ]
+      }
+    },
+    "FM_Cairn": {
+      "model": {
+        "triangles": 100,
+        "size": [
+          4.0,
+          4.0,
+          6.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_Cairn",
+          "FM_Cairn_Ribbon",
+          "FM_Cairn_Stones"
+        ],
+        "materials": [
+          "FM_Cairn_Ribbon",
+          "FM_Cairn_Stones"
+        ]
+      }
+    },
+    "FM_SnowMound": {
+      "model": {
+        "triangles": 58,
+        "size": [
+          6.0,
+          6.0,
+          3.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_SnowMound",
+          "FM_SnowMound_Mound"
+        ],
+        "materials": [
+          "FM_SnowMound_Mound"
+        ]
+      }
+    },
+    "FM_IcePass": {
+      "model": {
+        "triangles": 502,
+        "size": [
+          30.0,
+          14.0,
+          18.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "FM_IcePass",
+          "FM_IcePass_Ice",
+          "FM_IcePass_Rock"
+        ],
+        "materials": [
+          "FM_IcePass_Ice",
+          "FM_IcePass_Rock"
+        ]
+      }
+    }
+  }
+}

@@ -1,0 +1,536 @@
+{
+  "generator": "tools/build-frozen-mountains-kit.py",
+  "blender_version": "5.1.2",
+  "unvalidated": true,
+  "studs_per_blender_unit": 1.0,
+  "fbx_settings": {
+    "axis_forward": "-Z",
+    "axis_up": "Y",
+    "apply_scale_options": "FBX_SCALE_ALL",
+    "global_scale": 1.0,
+    "apply_unit_scale": true,
+    "add_leaf_bones": false,
+    "bake_anim_simplify_factor": 0.0,
+    "bake_anim_step": 1.0
+  },
+  "roblox_scale_verified": false,
+  "scale_note": "Authored at 1 Blender unit = 1 stud with no rescale step. Rigged Silueta once arrived at the wrong size (docs/assets/silueta-studio-import.md:23), so scale in Roblox stays unverified until a real import.",
+  "scale_block_height": 5.0,
+  "sheet_file": "frozen-mountains-kit-sheet.png",
+  "lineup_file": "frozen-mountains-kit-scale.png",
+  "blend": "assets/blender/frozen-mountains-kit/frozen-mountains-kit-v1.blend",
+  "props": {
+    "FM_SnowPine": {
+      "status": "unvalidated",
+      "triangles": 298,
+      "size": [
+        18.0,
+        18.0,
+        26.0
+      ],
+      "bbox_min": [
+        -9.0357,
+        -9.0007,
+        0.0
+      ],
+      "bbox_max": [
+        8.9643,
+        8.9993,
+        26.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.007
+      ],
+      "parts": [
+        {
+          "object": "FM_SnowPine_Trunk",
+          "material": "FM_SnowPine_Trunk",
+          "material_count": 1,
+          "palette_name": "FM_Bark",
+          "triangles": 76,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4A3B33"
+        },
+        {
+          "object": "FM_SnowPine_Canopy",
+          "material": "FM_SnowPine_Canopy",
+          "material_count": 1,
+          "palette_name": "FM_Pine",
+          "triangles": 144,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2F5450"
+        },
+        {
+          "object": "FM_SnowPine_Snow",
+          "material": "FM_SnowPine_Snow",
+          "material_count": 1,
+          "palette_name": "FM_Snow",
+          "triangles": 78,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "E6EFF4"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_SnowPine.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_SnowPine.png"
+    },
+    "FM_IceSpire": {
+      "status": "unvalidated",
+      "triangles": 162,
+      "size": [
+        7.0,
+        7.0,
+        14.0
+      ],
+      "bbox_min": [
+        -3.5,
+        -3.5,
+        0.0
+      ],
+      "bbox_max": [
+        3.5,
+        3.5,
+        14.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "FM_IceSpire_Ice",
+          "material": "FM_IceSpire_Ice",
+          "material_count": 1,
+          "palette_name": "FM_Ice",
+          "triangles": 134,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9CCBE0"
+        },
+        {
+          "object": "FM_IceSpire_Base",
+          "material": "FM_IceSpire_Base",
+          "material_count": 1,
+          "palette_name": "FM_Granite",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "566069"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_IceSpire.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_IceSpire.png",
+      "gather_point": [
+        0.0,
+        -3.0,
+        2.0
+      ]
+    },
+    "FM_RockOverhang": {
+      "status": "unvalidated",
+      "triangles": 316,
+      "size": [
+        20.0,
+        12.0,
+        9.0
+      ],
+      "bbox_min": [
+        -10.0,
+        -6.0453,
+        0.0
+      ],
+      "bbox_max": [
+        10.0,
+        5.9547,
+        9.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9939,
+        0.9925,
+        1.029
+      ],
+      "parts": [
+        {
+          "object": "FM_RockOverhang_Rock",
+          "material": "FM_RockOverhang_Rock",
+          "material_count": 1,
+          "palette_name": "FM_Granite",
+          "triangles": 236,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "566069"
+        },
+        {
+          "object": "FM_RockOverhang_Snow",
+          "material": "FM_RockOverhang_Snow",
+          "material_count": 1,
+          "palette_name": "FM_Snow",
+          "triangles": 80,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "E6EFF4"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_RockOverhang.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_RockOverhang.png",
+      "clear_box": {
+        "min": [
+          -6.0,
+          -6.0,
+          0.0
+        ],
+        "max": [
+          6.0,
+          2.0,
+          6.0
+        ]
+      },
+      "no_track_rects": [
+        {
+          "name": "shelter_floor",
+          "center": [
+            0.0,
+            -2.0
+          ],
+          "size": [
+            12.0,
+            8.0
+          ]
+        }
+      ],
+      "occluders": [
+        {
+          "name": "back_wall",
+          "center": [
+            0.0,
+            4.35,
+            4.0
+          ],
+          "size": [
+            20.0,
+            3.3,
+            8.0
+          ]
+        },
+        {
+          "name": "left_wall",
+          "center": [
+            -8.3,
+            0.05,
+            3.5
+          ],
+          "size": [
+            3.4,
+            11.8,
+            7.0
+          ]
+        },
+        {
+          "name": "right_wall",
+          "center": [
+            8.3,
+            0.05,
+            3.5
+          ],
+          "size": [
+            3.4,
+            11.8,
+            7.0
+          ]
+        }
+      ]
+    },
+    "FM_ScourShelf": {
+      "status": "unvalidated",
+      "triangles": 120,
+      "size": [
+        16.0,
+        16.0,
+        1.0
+      ],
+      "bbox_min": [
+        -8.0,
+        -8.0,
+        0.0
+      ],
+      "bbox_max": [
+        8.0,
+        8.0,
+        1.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "FM_ScourShelf_Rock",
+          "material": "FM_ScourShelf_Rock",
+          "material_count": 1,
+          "palette_name": "FM_Granite",
+          "triangles": 120,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "566069"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_ScourShelf.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_ScourShelf.png",
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "size": [
+            9.224,
+            9.224,
+            1.0
+          ],
+          "pitch_deg": 0.0
+        }
+      ],
+      "no_track_rects": [
+        {
+          "name": "scoured_rock",
+          "center": [
+            0.0,
+            0.0
+          ],
+          "size": [
+            9.224,
+            9.224
+          ]
+        }
+      ]
+    },
+    "FM_Cairn": {
+      "status": "unvalidated",
+      "triangles": 100,
+      "size": [
+        4.0,
+        4.0,
+        6.0
+      ],
+      "bbox_min": [
+        -2.0,
+        -2.0,
+        0.0
+      ],
+      "bbox_max": [
+        2.0,
+        2.0,
+        6.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0,
+        1.0,
+        0.9997
+      ],
+      "parts": [
+        {
+          "object": "FM_Cairn_Stones",
+          "material": "FM_Cairn_Stones",
+          "material_count": 1,
+          "palette_name": "FM_Granite",
+          "triangles": 72,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "566069"
+        },
+        {
+          "object": "FM_Cairn_Ribbon",
+          "material": "FM_Cairn_Ribbon",
+          "material_count": 1,
+          "palette_name": "FM_Ribbon",
+          "triangles": 28,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "E0602A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_Cairn.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_Cairn.png"
+    },
+    "FM_SnowMound": {
+      "status": "unvalidated",
+      "triangles": 58,
+      "size": [
+        6.0,
+        6.0,
+        3.0
+      ],
+      "bbox_min": [
+        -2.8837,
+        -3.0181,
+        0.0
+      ],
+      "bbox_max": [
+        3.1163,
+        2.9819,
+        3.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0056,
+        0.9965,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "FM_SnowMound_Mound",
+          "material": "FM_SnowMound_Mound",
+          "material_count": 1,
+          "palette_name": "FM_Snow",
+          "triangles": 58,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "E6EFF4"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_SnowMound.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_SnowMound.png",
+      "tiny": true
+    },
+    "FM_IcePass": {
+      "status": "unvalidated",
+      "triangles": 502,
+      "size": [
+        30.0,
+        14.0,
+        18.0
+      ],
+      "bbox_min": [
+        -15.0,
+        -6.8575,
+        0.0
+      ],
+      "bbox_max": [
+        15.0,
+        7.1425,
+        18.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9809,
+        1.0,
+        1.0008
+      ],
+      "parts": [
+        {
+          "object": "FM_IcePass_Ice",
+          "material": "FM_IcePass_Ice",
+          "material_count": 1,
+          "palette_name": "FM_Ice",
+          "triangles": 318,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "9CCBE0"
+        },
+        {
+          "object": "FM_IcePass_Rock",
+          "material": "FM_IcePass_Rock",
+          "material_count": 1,
+          "palette_name": "FM_Granite",
+          "triangles": 184,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "566069"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/frozen-mountains-kit/FM_IcePass.fbx"
+      },
+      "render": "assets/blender/frozen-mountains-kit/FM_IcePass.png",
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 17.0246,
+        "gap_low_x": -8.5957,
+        "gap_high_x": 8.429,
+        "height": 11.4094,
+        "width_probe_height": 11.0,
+        "height_probe_width": 16.0
+      }
+    }
+  }
+}
