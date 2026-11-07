@@ -22,10 +22,13 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the script folder off the path
 import plan_forest_layout as forest  # noqa: E402
+import plan_relief as relief_plan  # noqa: E402
 
 REPO = Path(__file__).resolve().parent.parent
 LAYOUT = REPO / "assets/maps/forest-layout/forest-layout-v1.json"
 OUTPUT = REPO / "assets/maps/forest-layout/hide-spots-v1.json"
+RELIEF = REPO / "assets/maps/forest-layout/relief-v1.json"
+RELIEF_FLAT = 5.0  # expedition relief (R4): a spot keeps flat ground this far around it
 
 BUSHES, LOGS = 6, 4
 SPACING = 25.0
@@ -68,21 +71,40 @@ def patrol_gap(p):
     return min(forest.point_seg_dist(p, loop[i], loop[(i + 1) % len(loop)]) for i in range(len(loop)))
 
 
+def load_relief(path=RELIEF):
+    path = Path(path)
+    return json.loads(path.read_text(encoding="utf-8"))["segments"] if path.exists() else []
+
+
+def relief_flat(p, segments, radius=RELIEF_FLAT, step=1.0):
+    """True when the relief leaves the floor flat within `radius` of p (hiding anchors on flat ground)."""
+    if all(relief_plan.footprint_distance(seg, *p) > radius for seg in segments):
+        return True
+    n = int(radius // step)
+    for i in range(-n, n + 1):
+        for j in range(-n, n + 1):
+            if math.hypot(i * step, j * step) <= radius:
+                if relief_plan.height_at(segments, p[0] + i * step, p[1] + j * step) != relief_plan.FLOOR_TOP:
+                    return False
+    return True
+
+
 def spaced(p, spots):
     return all(math.hypot(p[0] - s["x"], p[1] - s["z"]) >= SPACING for s in spots)
 
 
-def bush_ok(p, layout, core_list, spots):
+def bush_ok(p, layout, core_list, spots, relief=()):
     lo, hi = ROUTE_BAND
     return (lo <= forest.route_distance(p) <= hi and abs(p[0]) <= forest.LIMIT - 4 and abs(p[1]) <= forest.LIMIT - 4
             and safe_clear(p) and spaced(p, spots) and patrol_gap(p) >= PATROL_CLEAR and core_gap(p, core_list) >= CORE_CLEAR
-            and prop_gap(p, layout) >= PROP_CLEAR)
+            and prop_gap(p, layout) >= PROP_CLEAR and relief_flat(p, relief))
 
 
-def log_ok(log, core_list):
+def log_ok(log, core_list, relief=()):
     p = (log["x"], log["z"])
     lo, hi = LOG_ROUTE_BAND
-    return safe_clear(p) and lo <= forest.route_distance(p) <= hi and core_gap(p, core_list) >= CORE_CLEAR
+    return (safe_clear(p) and lo <= forest.route_distance(p) <= hi and core_gap(p, core_list) >= CORE_CLEAR
+            and relief_flat(p, relief))
 
 
 def _grid():
@@ -101,14 +123,15 @@ def _best(candidates, score):
     return best[1] if best else None
 
 
-def plan(layout=None):
+def plan(layout=None, relief=None):
     layout = layout or load_layout()
+    relief = load_relief() if relief is None else relief
     core_list = cores(layout)
     by_id = {i["id"]: i for i in layout["instances"]}
     spots = []
     for log_id in LOG_IDS:
         log = by_id[log_id]
-        if not log_ok(log, core_list) or not spaced((log["x"], log["z"]), spots):
+        if not log_ok(log, core_list, relief) or not spaced((log["x"], log["z"]), spots):
             raise ValueError(f"{log_id} breaks the hollow-log rule")
         spots.append({"kind": "log", "x": log["x"], "z": log["z"], "yaw": log["rotation_y_deg"], "scale": log["scale"],
                       "log_id": log_id})
@@ -126,7 +149,7 @@ def plan(layout=None):
 
         def in_band(p, target=target, band=band):
             return band[0] <= math.hypot(p[0] - target[0], p[1] - target[1]) <= band[1]
-        pick = _best((p for p in grid if in_band(p) and bush_ok(p, layout, core_list, spots)),
+        pick = _best((p for p in grid if in_band(p) and bush_ok(p, layout, core_list, spots, relief)),
                      lambda p, target=target, middle=middle: -abs(math.hypot(p[0] - target[0], p[1] - target[1]) - middle))
         if pick is None:
             raise ValueError(f"no bush can cover {target}")
@@ -136,7 +159,7 @@ def plan(layout=None):
         def score(p):
             spread = min(math.hypot(p[0] - s["x"], p[1] - s["z"]) for s in spots)
             return min(spread, 60.0) + (25.0 if forest.in_fog(*p) else 0.0)
-        pick = _best((p for p in grid if bush_ok(p, layout, core_list, spots)), score)
+        pick = _best((p for p in grid if bush_ok(p, layout, core_list, spots, relief)), score)
         if pick is None:
             raise ValueError("not enough room for the bushes")
         spots.append({"kind": "bush", "x": pick[0], "z": pick[1], "yaw": 0.0, "scale": 1.0})

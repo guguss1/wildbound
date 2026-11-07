@@ -112,6 +112,15 @@ class HideSpotLayout(unittest.TestCase):
     def test_d7_planner_route_matches_the_forest_plan(self):
         self.assertEqual([tuple(p) for p in forest.ROUTE], ROUTE)
 
+    def test_hide_spots_on_flat_relief(self):
+        relief = json.loads((REPO / "assets/maps/forest-layout/relief-v1.json").read_text(encoding="utf-8"))["segments"]
+        for s in saved()["spots"]:
+            self.assertTrue(hide.relief_flat((s["x"], s["z"]), relief), s["id"])
+        crest = relief[0]
+        middle = ((crest["a"][0] + crest["b"][0]) / 2, (crest["a"][1] + crest["b"][1]) / 2)
+        self.assertFalse(hide.relief_flat(middle, relief), "a crest is not a hiding place")
+        self.assertFalse(hide.bush_ok(middle, layout(), hide.cores(layout()), [], relief), "the bush rule reads the relief")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -41,6 +41,11 @@ local LANTERN_LIGHT = { Brightness = 1.0, Range = 18, Color = Color3.fromRGB(255
 -- deleted, and its glass stops glowing, so a lit lantern in the fog means a place you can find again.
 Dress.LIT_LANTERNS = table.freeze({ FK_LanternMarker_012 = true, FK_LanternMarker_014 = true, FK_LanternMarker_003 = true })
 local DARK_GLASS = { Material = Enum.Material.Glass, Color = Color3.fromRGB(58, 44, 34) }
+-- Expedition relief (R4): props stand on the relief's height rule (a WildboundRelief object passed in as
+-- `options.relief`, anything with heightAt and slopeAt), trees the relief planner lists as removed are not placed,
+-- and no tree stands where the ground is steeper than this. Without a relief everything stands on the floor.
+Dress.TREE_MAX_SLOPE = 12
+local GROUND_ATTRIBUTE = 'WildboundGround'
 
 local function refuse(message)
     error('forest dress refused: ' .. message, 0)
@@ -96,15 +101,36 @@ local function propOf(id)
     return (string.match(id, '^(.+)_%d+$'))
 end
 
--- Adds the core to one placed tree model, standing on the floor at its pivot. Returns the core.
-local function addCore(model, prop, scale)
+local function groundAt(relief, x, z)
+    return relief and relief:heightAt(x, z) or FLOOR_Y
+end
+
+-- Sizes and places a trunk core about its pivot: its top CORE_HEIGHT above the ground at the pivot, its bottom one
+-- stud below the lowest ground under its rim (eight points), so no gap opens under it on a slope or a crest edge.
+local function frameCore(core, radius, pivot, relief)
+    local ground = groundAt(relief, pivot.X, pivot.Z)
+    local sink = 0
+    if relief then
+        local lowest = ground
+        for k = 0, 7 do
+            local angle = k * math.pi / 4
+            lowest = math.min(lowest, relief:heightAt(pivot.X + radius * math.cos(angle), pivot.Z + radius * math.sin(angle)))
+        end
+        sink = 1 + ground - lowest
+    end
+    local height = CORE_HEIGHT + sink
+    core.Size = Vector3.new(height, radius * 2, radius * 2)
+    core.CFrame = CFrame.new(pivot.X, ground + CORE_HEIGHT - height / 2, pivot.Z) * CFrame.Angles(0, 0, math.pi / 2)
+end
+
+-- Adds the core to one placed tree model, standing on the ground at its pivot. Returns the core.
+local function addCore(model, prop, scale, relief)
     local radius = CORE_RADIUS[prop] * scale
     local pivot = model:GetPivot().Position
     local core = Instance.new('Part')
     core.Name = CORE_NAME
     core.Shape = Enum.PartType.Cylinder
-    core.Size = Vector3.new(CORE_HEIGHT, radius * 2, radius * 2)
-    core.CFrame = CFrame.new(pivot.X, FLOOR_Y + CORE_HEIGHT / 2, pivot.Z) * CFrame.Angles(0, 0, math.pi / 2)
+    frameCore(core, radius, pivot, relief)
     core.Anchored, core.CanCollide, core.CanQuery, core.CanTouch = true, true, true, false
     core.Transparency, core.CastShadow = 1, false
     core.Parent = model
@@ -158,7 +184,7 @@ function Dress.growTrees(kit)
     return grown
 end
 
-local function place(template, item, parent)
+local function place(template, item, parent, relief)
     local model = template:Clone()
     assert(model, 'template ' .. item.name .. ' cannot be cloned')
     model.Name = item.id
@@ -186,11 +212,12 @@ local function place(template, item, parent)
     end
     local growth = Dress.TREE_GROWTH[item.name]
     model:ScaleTo(item.scale * (growth or 1))
-    model:PivotTo(CFrame.new(item.x, FLOOR_Y, item.z) * CFrame.Angles(0, math.rad(item.rotation_y_deg), 0))
+    model:PivotTo(CFrame.new(item.x, groundAt(relief, item.x, item.z), item.z) * CFrame.Angles(0, math.rad(item.rotation_y_deg), 0))
     if CORE_RADIUS[item.name] then
-        addCore(model, item.name, item.scale * (growth or 1))
+        addCore(model, item.name, item.scale * (growth or 1), relief)
     end
     if growth then model:SetAttribute(GROWTH_ATTRIBUTE, growth) end
+    if relief then model:SetAttribute(GROUND_ATTRIBUTE, true) end
     model.Parent = parent
 end
 
@@ -215,6 +242,7 @@ function Dress.thicken(root, kit, options)
         if number and number >= THICKEN_FIRST_ID then return 0 end
     end
     local templates, avoid, keepClear = options.templates, options.avoid or {}, options.keepClear or {}
+    local relief = options.relief
     local legs = {}
     for _, path in root.Paths:GetChildren() do
         local half = (path.Size.Z - path.Size.X) / 2
@@ -255,10 +283,11 @@ function Dress.thicken(root, kit, options)
                 if not ok then break end
                 ok = segmentDistance(x, z, segment.ax, segment.az, segment.bx, segment.bz) - r >= 2
             end
+            if ok and relief then ok = relief:slopeAt(x, z) <= Dress.TREE_MAX_SLOPE end
             if ok then
                 local item = { id = prop .. '_' .. (THICKEN_FIRST_ID + added), name = prop, x = x, z = z,
                     rotation_y_deg = math.floor(roll(seed * 11) * 360), scale = scale }
-                place(templates:FindFirstChild(prop), item, kit)
+                place(templates:FindFirstChild(prop), item, kit, relief)
                 table.insert(cores, { x, z, r })
                 added += 1
                 if added % YIELD_EVERY == 0 then task.wait() end
@@ -268,16 +297,51 @@ function Dress.thicken(root, kit, options)
     return added
 end
 
--- instances: { { id, name, x, z, rotation_y_deg, scale }, ... } from the layout plan.
+-- Expedition relief (R4): patches an already dressed, flat ForestKit folder (the live map) onto the relief once. Trees
+-- listed in `removed` (a set of ids) and extra trees left on ground steeper than TREE_MAX_SLOPE are destroyed; every
+-- other prop moves up to the ground at its pivot and each trunk core is refitted. Returns how many props it settled
+-- and how many it removed; a second call returns 0, 0.
+function Dress.settleOnRelief(kit, relief, removed)
+    assert(typeof(kit) == 'Instance', 'kit must be an Instance')
+    assert(type(relief) == 'table' and relief.heightAt and relief.slopeAt, 'relief needs heightAt and slopeAt')
+    removed = removed or {}
+    local settled, gone = 0, 0
+    for _, model in kit:GetChildren() do
+        local prop = model:IsA('Model') and propOf(model.Name) or nil
+        if prop and PROPS[prop] then
+            local pivot = model:GetPivot()
+            local fresh = model:GetAttribute(GROUND_ATTRIBUTE) == nil
+            local steep = CORE_RADIUS[prop] ~= nil and relief:slopeAt(pivot.X, pivot.Z) > Dress.TREE_MAX_SLOPE
+            if removed[model.Name] or (fresh and steep) then
+                model:Destroy()
+                gone += 1
+            elseif fresh then
+                local ground = relief:heightAt(pivot.X, pivot.Z)
+                model:PivotTo(pivot + Vector3.new(0, ground - pivot.Y, 0))
+                local core = model:FindFirstChild(CORE_NAME)
+                if core then frameCore(core, core.Size.Y / 2, model:GetPivot().Position, relief) end
+                model:SetAttribute(GROUND_ATTRIBUTE, true)
+                settled += 1
+                if settled % YIELD_EVERY == 0 then task.wait() end
+            end
+        end
+    end
+    return settled, gone
+end
+
+-- instances: { { id, name, x, z, rotation_y_deg, scale }, ... } from the layout plan. options (optional):
+-- { relief = WildboundRelief object, removed = { [id] = true } } puts props on the relief and skips removed trees.
 -- Returns the new Decorations.ForestKit folder.
-function Dress.dress(root, templates, instances)
+function Dress.dress(root, templates, instances, options)
     local decorations = validate(root, templates, instances)
+    local relief = options and options.relief
+    local removed = options and options.removed or {}
 
     local kit = Instance.new('Folder')
     kit.Name = 'ForestKit'
     local ok, failure = pcall(function()
         for index, item in ipairs(instances) do
-            place(templates:FindFirstChild(item.name), item, kit)
+            if not removed[item.id] then place(templates:FindFirstChild(item.name), item, kit, relief) end
             if index % YIELD_EVERY == 0 then
                 task.wait()
             end

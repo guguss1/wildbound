@@ -2,7 +2,8 @@
 -- module, the dress module and the layout module, plus the kit templates folder
 -- (ServerStorage.WildboundAssets.ForestKit). It builds into a detached Folder; only the line-of-sight
 -- checks park a copy in a uniquely named Workspace folder 5000 studs from the map, and remove it.
-return function(builder, forest, templates, layout)
+-- The relief cases (R4) also take the relief layout module and the WildboundRelief module, fresh clones too.
+return function(builder, forest, templates, layout, reliefLayout, Relief)
     local HttpService = game:GetService('HttpService')
     local failures, notes = {}, {}
     local passed = 0
@@ -736,6 +737,136 @@ return function(builder, forest, templates, layout)
     if arena then
         arena:Destroy()
     end
+
+    -- Expedition relief (R4): the same dressing on a map with relief. Props stand on the relief's height rule, trees
+    -- the planner listed as removed are not placed, trunk cores reach 14 studs above their own ground, and a flat
+    -- dressed kit (the live map) is patched once by settleOnRelief.
+    local relief = Relief and reliefLayout and Relief.new(reliefLayout)
+    local removed = {}
+    for _, id in ipairs(reliefLayout and reliefLayout.removedTrees or {}) do removed[id] = true end
+    local reliefHolder = Instance.new('Folder')
+    local reliefMap, reliefKit
+    check('R4: dressing on relief skips the removed trees', function()
+        expect(relief, 'relief layout and module missing')
+        reliefMap = builder.build(reliefHolder, reliefLayout)
+        expect(reliefMap:FindFirstChild('Relief'), 'the map builds its relief')
+        reliefKit = forest.dress(reliefMap, templates, layout, { relief = relief, removed = removed })
+        local placed, skipped = 0, 0
+        for _, item in ipairs(layout) do
+            if removed[item.id] then
+                skipped += 1
+                expect(reliefKit:FindFirstChild(item.id) == nil, item.id .. ' was listed as removed')
+            else
+                placed += 1
+                expect(reliefKit:FindFirstChild(item.id), item.id .. ' missing')
+            end
+        end
+        expect(skipped == #reliefLayout.removedTrees and skipped > 0, 'every listed tree is skipped')
+        expect(#reliefKit:GetChildren() == placed, 'nothing else placed')
+    end)
+    check('R4: every prop pivot sits on heightAt within 0.2', function()
+        expect(reliefKit, 'relief kit missing')
+        local raised = 0
+        for _, model in ipairs(reliefKit:GetChildren()) do
+            local pivot = model:GetPivot().Position
+            local ground = relief:heightAt(pivot.X, pivot.Z)
+            expect(math.abs(pivot.Y - ground) <= 0.2, ('%s pivot %.2f, ground %.2f'):format(model.Name, pivot.Y, ground))
+            if ground > FLOOR_Y + 0.5 then raised += 1 end
+            if TREES[propOf(model.Name)] then
+                expect(relief:slopeAt(pivot.X, pivot.Z) <= 12 + 1e-6, model.Name .. ' stands on a flank over 12 degrees')
+            end
+        end
+        expect(raised > 0, 'some props stand on the relief')
+        note(('relief: %d props raised above the floor'):format(raised))
+    end)
+    local function checkCores(kitToCheck)
+        local checked = 0
+        for _, model in ipairs(kitToCheck:GetChildren()) do
+            local core = model:FindFirstChild(CORE)
+            if core then
+                local pivot = model:GetPivot().Position
+                local ground = relief:heightAt(pivot.X, pivot.Z)
+                local radius = core.Size.Y / 2
+                local top, bottom = core.Position.Y + core.Size.X / 2, core.Position.Y - core.Size.X / 2
+                expect(top >= ground + 14 - TOLERANCE, model.Name .. ' core top below 14 studs over its ground')
+                local lowest = ground
+                for k = 0, 7 do
+                    local angle = k * math.pi / 4
+                    lowest = math.min(lowest, relief:heightAt(pivot.X + radius * math.cos(angle), pivot.Z + radius * math.sin(angle)))
+                end
+                expect(bottom <= lowest + TOLERANCE, model.Name .. ' core floats over the low side of its ground')
+                expect(core.CanCollide and core.CanQuery and core.Anchored, model.Name .. ' core must stay solid')
+                checked += 1
+            end
+        end
+        return checked
+    end
+    check('R4: trunk cores reach 14 studs above local ground', function()
+        expect(reliefKit, 'relief kit missing')
+        expect(checkCores(reliefKit) > 100, 'cores checked')
+    end)
+    check('R4: thicken keeps off ground steeper than 12 degrees and stands on the relief', function()
+        expect(reliefKit, 'relief kit missing')
+        local added = forest.thicken(reliefMap, reliefKit, { templates = templates, relief = relief })
+        expect(added > 0, 'thicken added trees')
+        for _, model in ipairs(reliefKit:GetChildren()) do
+            local number = tonumber(string.match(model.Name, '_(%d+)$'))
+            if number and number >= 9001 then
+                local pivot = model:GetPivot().Position
+                expect(relief:slopeAt(pivot.X, pivot.Z) <= 12 + 1e-6, model.Name .. ' on a steep flank')
+                expect(math.abs(pivot.Y - relief:heightAt(pivot.X, pivot.Z)) <= 0.2, model.Name .. ' not on the ground')
+            end
+        end
+    end)
+    check('R4: settleOnRelief patches a flat dressed kit once', function()
+        expect(relief, 'relief missing')
+        local flatHolder = Instance.new('Folder')
+        local flatMap = builder.build(flatHolder)
+        local flatKit = forest.dress(flatMap, templates, layout)
+        forest.growTrees(flatKit)
+        local settled, gone = forest.settleOnRelief(flatKit, relief, removed)
+        expect(gone == #reliefLayout.removedTrees, ('removed %d, listed %d'):format(gone, #reliefLayout.removedTrees))
+        expect(settled == #layout - gone, ('settled %d of %d'):format(settled, #layout - gone))
+        for _, model in ipairs(flatKit:GetChildren()) do
+            local pivot = model:GetPivot().Position
+            expect(math.abs(pivot.Y - relief:heightAt(pivot.X, pivot.Z)) <= 0.2, model.Name .. ' not settled')
+            expect(not removed[model.Name], model.Name .. ' should be gone')
+        end
+        expect(checkCores(flatKit) > 100, 'patched cores checked')
+        local again, goneAgain = forest.settleOnRelief(flatKit, relief, removed)
+        expect(again == 0 and goneAgain == 0, 'a second call changes nothing')
+        flatHolder:Destroy()
+    end)
+    check('R4: nest sight E and N still open and S and W still blocked at eye height above ground', function()
+        expect(reliefMap, 'relief map missing')
+        local offset = Vector3.new(-5000, 0, 0)
+        reliefMap:PivotTo(reliefMap:GetPivot() + offset)
+        local reliefArena = Instance.new('Folder')
+        reliefArena.Name = 'WildboundForestReliefArena_' .. HttpService:GenerateGUID(false)
+        reliefArena.Parent = workspace
+        reliefMap.Parent = reliefArena
+        local ok, err = pcall(function()
+            local nest = layout.nest_cover.nest
+            local targetY = relief:heightAt(nest[1], nest[2]) + (TARGET_Y - FLOOR_Y)
+            local target = Vector3.new(nest[1], targetY, nest[2]) + offset
+            local params = RaycastParams.new()
+            params.FilterType = Enum.RaycastFilterType.Include
+            params.FilterDescendantsInstances = { reliefArena }
+            for name, entry in layout.nest_cover.sight do
+                local eye = relief:heightAt(entry.waypoint[1], entry.waypoint[2]) + (EYE_Y - FLOOR_Y)
+                local from = Vector3.new(entry.waypoint[1], eye, entry.waypoint[2]) + offset
+                local hit = workspace:Raycast(from, target - from, params)
+                if entry.blocked then
+                    expect(hit and hit.Instance.Name == 'RuinPillar', name .. ' should stay blocked by a RuinPillar')
+                else
+                    expect(hit == nil, name .. ' should still see the nest, hit ' .. (hit and hit.Instance:GetFullName() or ''))
+                end
+            end
+        end)
+        reliefArena:Destroy()
+        expect(ok, tostring(err))
+    end)
+    reliefHolder:Destroy()
     container:Destroy()
     return { passed = passed, failed = #failures, failures = failures, notes = notes }
 end
