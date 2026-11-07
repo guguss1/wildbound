@@ -15,6 +15,14 @@ CaptureSession.CONSTANTS = table.freeze({
 	ORBIT_MIN = 5.5,
 	ORBIT_MAX = 9,
 	STILL_SPEED = 5,
+	-- Stillness is also judged over a short window (found in W5): shuffling a stud back and forth stays under
+	-- STILL_SPEED on every sample. Path length over the last STILL_WINDOW seconds, divided by its span in seconds,
+	-- must stay at or under STILL_PATH_RATE, twice the ring's own speed, so following the ring or swaying a
+	-- little is still, and shuffling is not. Needs STILL_MIN_SPAN seconds of history; stopping after real
+	-- movement waits for the window to pass.
+	STILL_WINDOW = 1,
+	STILL_PATH_RATE = 3,
+	STILL_MIN_SPAN = 0.55,
 	JUMP_SPEED = 40,
 	OUTSIDE_DRAIN = 0.5,
 	OUTSIDE_LIMIT = 2.5,
@@ -193,7 +201,7 @@ function CaptureSession:begin(input)
 		life = input.life, lumipolX = input.lumipolX, lumipolZ = input.lumipolZ, startY = input.y,
 		ring = buildRing(input), startedAt = now, deadline = now + C.TIME_LIMIT,
 		hardDeadline = now + C.TIME_LIMIT + C.MAX_STALL_EXTENSION, lastSample = now,
-		lastX = input.x, lastZ = input.z, calm = 0, outsideFor = 0, inside = true, moving = false,
+		lastX = input.x, lastZ = input.z, pathTotal = 0, trail = { { t = now, c = 0 } }, calm = 0, outsideFor = 0, inside = true, moving = false,
 		struck = false, badSamples = 0,
 	}
 	self.sessions[token] = session
@@ -271,6 +279,18 @@ local function badSample(self, session, now)
 	return view
 end
 
+-- Path length per second over the last STILL_WINDOW seconds, or 0 while the history is shorter than STILL_MIN_SPAN.
+local function windowedRate(session, now, displacement)
+	session.pathTotal += displacement
+	local trail = session.trail
+	table.insert(trail, { t = now, c = session.pathTotal })
+	-- The newest entry at or before the window start stays as the anchor.
+	while #trail > 2 and trail[2].t <= now - C.STILL_WINDOW + EPSILON do table.remove(trail, 1) end
+	local span = now - trail[1].t
+	if span < C.STILL_MIN_SPAN - EPSILON then return 0 end
+	return (session.pathTotal - trail[1].c) / span
+end
+
 -- obs = { now, alive, life, x, y, z, bagRoom, collectionRoom }, all read by the server.
 -- Returns nil for a dead or malformed token. First match ends the session, in the document's order.
 function CaptureSession:sample(token, obs)
@@ -309,6 +329,7 @@ function CaptureSession:sample(token, obs)
 	local cx, cz = CaptureSession.ringCenter(session.ring, now - session.startedAt)
 	local inside = length(obs.x - cx, obs.z - cz) <= C.RING_RADIUS_SERVER + EPSILON
 	local moving = displacement / paced > C.STILL_SPEED + EPSILON
+		or windowedRate(session, now, displacement) > C.STILL_PATH_RATE + EPSILON
 	session.lastSample, session.lastX, session.lastZ = now, obs.x, obs.z
 	session.inside, session.moving = inside, moving
 	if not inside then
