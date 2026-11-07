@@ -194,9 +194,11 @@ return function(builder, forest, templates, layout)
                 item.id .. ' yaw differs from rotation_y_deg')
             local lowest, highest, reach = extents(model)
             local wanted = reference[item.name]
-            expect(math.abs((highest - lowest) / wanted.height - item.scale) < 0.005,
-                string.format('%s height ratio %.4f differs from scale %.3f', item.id, (highest - lowest) / wanted.height, item.scale))
-            expect(math.abs(reach / wanted.reach - item.scale) < 0.005, item.id .. ' horizontal reach does not follow scale')
+            -- Dread pass: trees grow uniformly on top of the layout scale (TREE_GROWTH).
+            local tall = item.scale * (forest.TREE_GROWTH[item.name] or 1)
+            expect(math.abs((highest - lowest) / wanted.height - tall) < 0.005,
+                string.format('%s height ratio %.4f differs from %.3f', item.id, (highest - lowest) / wanted.height, tall))
+            expect(math.abs(reach / wanted.reach - tall) < 0.005, item.id .. ' horizontal reach does not follow scale')
             expect(math.abs(lowest) < 0.05, string.format('%s floats or sinks by %.3f studs', item.id, lowest))
         end
     end)
@@ -245,7 +247,7 @@ return function(builder, forest, templates, layout)
                 expect(core.Anchored and core.CanCollide and core.CanQuery and not core.CanTouch, item.id .. ' core flags')
                 expect(core.Transparency == 1 and core.CastShadow == false, item.id .. ' core must be invisible')
                 local pivot = model:GetPivot().Position
-                local radius = CORE_RADIUS[item.name] * item.scale
+                local radius = CORE_RADIUS[item.name] * item.scale * (forest.TREE_GROWTH[item.name] or 1)
                 expect(math.abs(core.Size.Y / 2 - radius) < TOLERANCE and math.abs(core.Size.Z / 2 - radius) < TOLERANCE,
                     string.format('%s core radius %.3f, wanted %.3f', item.id, core.Size.Y / 2, radius))
                 expect(math.abs(core.Position.X - pivot.X) < TOLERANCE and math.abs(core.Position.Z - pivot.Z) < TOLERANCE,
@@ -331,6 +333,95 @@ return function(builder, forest, templates, layout)
         local landmarks = 0
         for _ in pairs(forest.LIT_LANTERNS) do landmarks += 1 end
         expect(landmarks == 3 and #enabled == 3, string.format('expected 3 lit landmark lanterns, found %d', #enabled))
+    end)
+
+    -- Dread pass (user: taller trees and trunk cores to match, a denser forest so we feel small).
+    check('trees stand taller: evergreens x1.6 and dead trees x1.4 on top of the layout scale', function()
+        expect(forest.TREE_GROWTH.FK_Evergreen == 1.6 and forest.TREE_GROWTH.FK_DeadTree == 1.4, 'growth factors')
+        local tallest = 0
+        for _, item in ipairs(layout) do
+            if TREES[item.name] then
+                local _, highest = extents(kit[item.id])
+                tallest = math.max(tallest, highest)
+                expect(kit[item.id]:GetAttribute('WildboundGrowth') == forest.TREE_GROWTH[item.name], item.id .. ' not marked')
+            end
+        end
+        expect(tallest >= 50, string.format('the tallest tree is only %.1f studs', tallest))
+        note(string.format('tallest tree after the growth: %.1f studs', tallest))
+    end)
+
+    check('growTrees patches an ungrown kit once, cores included', function()
+        local folder = Instance.new('Folder')
+        local heights = {}
+        for index, name in ipairs({ 'FK_Evergreen', 'FK_DeadTree' }) do
+            local model = templates[name]:Clone()
+            model.Name = name .. '_00' .. index
+            model:PivotTo(CFrame.new(index * 40, FLOOR_Y, 0))
+            model.Parent = folder
+            forest.addTrunkCores(folder)
+            local lowest, highest = extents(model)
+            heights[model.Name] = highest - lowest
+        end
+        expect(forest.growTrees(folder) == 2, 'growTrees must grow both trees')
+        expect(forest.growTrees(folder) == 0, 'a second patch must change nothing')
+        for _, model in folder:GetChildren() do
+            local lowest, highest = extents(model)
+            local factor = forest.TREE_GROWTH[propOf(model.Name)]
+            expect(math.abs((highest - lowest) / heights[model.Name] - factor) < 0.01, model.Name .. ' height ratio')
+            expect(math.abs(lowest) < 0.05, model.Name .. ' must stay on the floor')
+            local core = model:FindFirstChild(CORE, true)
+            expect(math.abs(core.Size.Y / 2 - CORE_RADIUS[propOf(model.Name)] * factor) < TOLERANCE, model.Name .. ' core grows too')
+            expect(math.abs(core.Position.Y - core.Size.X / 2 - FLOOR_Y) < TOLERANCE, model.Name .. ' core stays on the floor')
+        end
+        folder:Destroy()
+    end)
+
+    check('thicken adds trees that keep the route, the cores, the nest sight and the given places clear', function()
+        expect(kit, 'ForestKit missing')
+        local copy = root:Clone()
+        local copyKit = copy.Decorations.ForestKit
+        local nest = layout.nest_cover.nest
+        local keepClear = {}
+        for _, entry in layout.nest_cover.sight do
+            table.insert(keepClear, { ax = entry.waypoint[1], az = entry.waypoint[2], bx = nest[1], bz = nest[2] })
+        end
+        local avoid = { { x = nest[1], z = nest[2], r = 20 } }
+        local before = #copyKit:GetChildren()
+        local added = forest.thicken(copy, copyKit, { templates = templates, avoid = avoid, keepClear = keepClear })
+        expect(added >= 30 and added <= forest.THICKEN_MAX, string.format('thicken added %d trees', added))
+        expect(#copyKit:GetChildren() == before + added, 'one model per added tree')
+        expect(forest.thicken(copy, copyKit, { templates = templates, avoid = avoid, keepClear = keepClear }) == 0,
+            'a second call must add nothing')
+        local legs, cores = routeLegs(copy), {}
+        for _, part in copyKit:GetDescendants() do
+            if part.Name == CORE then table.insert(cores, part) end
+        end
+        local floorHalf = math.min(copy.Floor.Size.X, copy.Floor.Size.Z) / 2
+        local fx, fz = copy.Floor.Position.X, copy.Floor.Position.Z
+        for _, model in copyKit:GetChildren() do
+            if tonumber(string.match(model.Name, '_(%d+)$')) >= 9000 then
+                local core = model:FindFirstChild(CORE, true)
+                expect(core and TREES[propOf(model.Name)], model.Name .. ' must be a tree with a core')
+                local x, z, r = core.Position.X, core.Position.Z, core.Size.Y / 2
+                expect(math.abs(x - fx) <= floorHalf - 8 and math.abs(z - fz) <= floorHalf - 8, model.Name .. ' off the floor')
+                for index, leg in ipairs(legs) do
+                    expect(segmentDistance(x, z, leg) - r >= HALF_ROUTE + 3, model.Name .. ' crowds route leg ' .. index)
+                end
+                for _, other in cores do
+                    if other ~= core then
+                        local gap = math.sqrt((other.Position.X - x) ^ 2 + (other.Position.Z - z) ^ 2) - r - other.Size.Y / 2
+                        expect(gap >= 5, string.format('%s is %.1f studs from another core', model.Name, gap))
+                    end
+                end
+                for _, segment in keepClear do
+                    local leg = { a = Vector3.new(segment.ax, 0, segment.az), b = Vector3.new(segment.bx, 0, segment.bz) }
+                    expect(segmentDistance(x, z, leg) - r >= 2, model.Name .. ' blocks the nest sight')
+                end
+                expect(math.sqrt((x - nest[1]) ^ 2 + (z - nest[2]) ^ 2) - r >= 20, model.Name .. ' inside an avoided place')
+            end
+        end
+        note(string.format('thicken: %d extra trees', added))
+        copy:Destroy()
     end)
 
     check('dimLanterns patches an already dressed kit once and never deletes a lantern', function()
@@ -579,7 +670,9 @@ return function(builder, forest, templates, layout)
                 local into = castWorld(Vector3.new(center.X - 6, EYE_Y, center.Z), Vector3.new(center.X, EYE_Y, center.Z))
                 expect(into and into.Instance:IsDescendantOf(model) and (QUERY_PARTS[into.Instance.Name] or into.Instance.Name == CORE),
                     item.id .. ' must block a ray aimed at its trunk, got ' .. describe(into, center))
-                local aside = layout.inputs.props[item.name].core_r * item.scale + 2
+                -- Dread pass: a grown tree keeps its proportions, so the delivery C allowance (core plus 2 studs at
+                -- the layout scale) grows with it; the root flare at eye height is wider than the core plus 2.
+                local aside = (layout.inputs.props[item.name].core_r * item.scale + 2) * (forest.TREE_GROWTH[item.name] or 1)
                 local beside = castWorld(Vector3.new(center.X - 8, EYE_Y, center.Z + aside), Vector3.new(center.X + 8, EYE_Y, center.Z + aside))
                 expect(beside == nil or not beside.Instance:IsDescendantOf(model),
                     string.format('%s blocks a ray %.1f studs off its axis: %s', item.id, aside, describe(beside, center)))
@@ -606,8 +699,11 @@ return function(builder, forest, templates, layout)
         note(label .. ': clear; with CanQuery on it hits ' .. describe(control, from))
     end
     local function centerLine(model, partName, axis)
-        local center = model:GetPivot():PointToObjectSpace(model:FindFirstChild(partName, true).Position)
-        return center - axis * 14, center + axis * 14
+        local part = model:FindFirstChild(partName, true)
+        local center = model:GetPivot():PointToObjectSpace(part.Position)
+        -- Dread pass: grown canopies are wider than 28 studs, so the ray starts outside the part.
+        local reach = math.max(14, (axis == Vector3.new(1, 0, 0) and part.Size.X or part.Size.Z) / 2 + 4)
+        return center - axis * reach, center + axis * reach
     end
     local AXIS_X, AXIS_Z = Vector3.new(1, 0, 0), Vector3.new(0, 0, 1)
 

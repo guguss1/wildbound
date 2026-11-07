@@ -22,6 +22,16 @@ local CORE_RADIUS = { FK_Evergreen = 2.5, FK_DeadTree = 3.4 }
 local CORE_HEIGHT = 14 -- above a jump, below every tree top
 Dress.CORE_RADIUS = table.freeze(table.clone(CORE_RADIUS))
 local YIELD_EVERY = 12 -- props per frame, so Studio stays responsive
+-- Dread pass (user: taller trees and trunk cores to match, a denser, more disturbing forest so we feel small).
+-- Trees grow uniformly on top of their layout scale; the trunk core grows with them.
+Dress.TREE_GROWTH = table.freeze({ FK_Evergreen = 1.6, FK_DeadTree = 1.4 })
+local GROWTH_ATTRIBUTE = 'WildboundGrowth'
+-- Extra trees from thicken carry ids from 9001 up, so a second call can see it already ran.
+Dress.THICKEN_MAX = 50
+local THICKEN_FIRST_ID = 9001
+local THICKEN_STEP = 11 -- candidate grid, studs
+local THICKEN_ROUTE_MARGIN = 3 -- extra studs beyond the half route width
+local THICKEN_SPACING = 5 -- studs between core edges
 -- Each lantern holds one short-range light (lit only on the landmarks below since the dread pass). No shadows:
 -- it must stay cheap on phones. Lights never affect the guardian's sight rays.
 local LANTERN_GLASS = 'FK_LanternMarker_Glass'
@@ -132,6 +142,22 @@ function Dress.dimLanterns(kit)
     return dimmed
 end
 
+-- Patches an already dressed ForestKit folder: every tree not yet grown scales once about its pivot on the floor,
+-- its trunk core included (radius and height times the growth). Returns how many it grew.
+function Dress.growTrees(kit)
+    local grown = 0
+    for _, model in kit:GetChildren() do
+        local prop = model:IsA('Model') and propOf(model.Name) or nil
+        local factor = prop and Dress.TREE_GROWTH[prop]
+        if factor and model:GetAttribute(GROWTH_ATTRIBUTE) == nil then
+            model:ScaleTo(model:GetScale() * factor)
+            model:SetAttribute(GROWTH_ATTRIBUTE, factor)
+            grown += 1
+        end
+    end
+    return grown
+end
+
 local function place(template, item, parent)
     local model = template:Clone()
     assert(model, 'template ' .. item.name .. ' cannot be cloned')
@@ -158,12 +184,88 @@ local function place(template, item, parent)
             glass.Material, glass.Color = DARK_GLASS.Material, DARK_GLASS.Color
         end
     end
-    model:ScaleTo(item.scale)
+    local growth = Dress.TREE_GROWTH[item.name]
+    model:ScaleTo(item.scale * (growth or 1))
     model:PivotTo(CFrame.new(item.x, FLOOR_Y, item.z) * CFrame.Angles(0, math.rad(item.rotation_y_deg), 0))
     if CORE_RADIUS[item.name] then
-        addCore(model, item.name, item.scale)
+        addCore(model, item.name, item.scale * (growth or 1))
     end
+    if growth then model:SetAttribute(GROWTH_ATTRIBUTE, growth) end
     model.Parent = parent
+end
+
+local function segmentDistance(x, z, ax, az, bx, bz)
+    local dx, dz = bx - ax, bz - az
+    local length = dx * dx + dz * dz
+    local t = length > 0 and math.clamp(((x - ax) * dx + (z - az) * dz) / length, 0, 1) or 0
+    return math.sqrt((x - (ax + dx * t)) ^ 2 + (z - (az + dz * t)) ^ 2)
+end
+
+-- A small deterministic generator, so the same map always gets the same extra trees.
+local function roll(seed)
+    return ((seed * 1103515245 + 12345) % 2147483648) / 2147483648
+end
+
+-- Dread pass: adds up to THICKEN_MAX extra trees to a dressed root, on a fixed jittered grid, keeping the 14-stud
+-- route plus a margin, other cores, the floor edge, `options.avoid` circles ({ x, z, r }) and `options.keepClear`
+-- segments ({ ax, az, bx, bz }, sight lines) clear. Returns how many it added; a second call adds none.
+function Dress.thicken(root, kit, options)
+    for _, child in kit:GetChildren() do
+        local number = tonumber(string.match(child.Name, '_(%d+)$'))
+        if number and number >= THICKEN_FIRST_ID then return 0 end
+    end
+    local templates, avoid, keepClear = options.templates, options.avoid or {}, options.keepClear or {}
+    local legs = {}
+    for _, path in root.Paths:GetChildren() do
+        local half = (path.Size.Z - path.Size.X) / 2
+        local a, b = path.Position - path.CFrame.LookVector * half, path.Position + path.CFrame.LookVector * half
+        table.insert(legs, { a.X, a.Z, b.X, b.Z, path.Size.X / 2 })
+    end
+    local cores = {}
+    for _, part in kit:GetDescendants() do
+        if part.Name == CORE_NAME then table.insert(cores, { part.Position.X, part.Position.Z, part.Size.Y / 2 }) end
+    end
+    local floor = root:FindFirstChild('Floor')
+    local half = (floor and math.min(floor.Size.X, floor.Size.Z) / 2 or 170) - 8
+    local cx, cz = floor and floor.Position.X or 0, floor and floor.Position.Z or 0
+    local added, seed = 0, 0
+    for gx = -half, half, THICKEN_STEP do
+        for gz = -half, half, THICKEN_STEP do
+            if added >= Dress.THICKEN_MAX then break end
+            seed += 1
+            local x = cx + gx + (roll(seed * 3) - 0.5) * THICKEN_STEP * 0.6
+            local z = cz + gz + (roll(seed * 3 + 1) - 0.5) * THICKEN_STEP * 0.6
+            local prop = roll(seed * 3 + 2) < 0.7 and 'FK_Evergreen' or 'FK_DeadTree'
+            local scale = 0.9 + 0.25 * roll(seed * 7)
+            local r = CORE_RADIUS[prop] * scale * Dress.TREE_GROWTH[prop]
+            local ok = math.abs(x - cx) <= half and math.abs(z - cz) <= half
+            for _, leg in ipairs(legs) do
+                if not ok then break end
+                ok = segmentDistance(x, z, leg[1], leg[2], leg[3], leg[4]) - r >= leg[5] + THICKEN_ROUTE_MARGIN
+            end
+            for _, core in ipairs(cores) do
+                if not ok then break end
+                ok = math.sqrt((core[1] - x) ^ 2 + (core[2] - z) ^ 2) - r - core[3] >= THICKEN_SPACING
+            end
+            for _, circle in ipairs(avoid) do
+                if not ok then break end
+                ok = math.sqrt((circle.x - x) ^ 2 + (circle.z - z) ^ 2) - r >= circle.r
+            end
+            for _, segment in ipairs(keepClear) do
+                if not ok then break end
+                ok = segmentDistance(x, z, segment.ax, segment.az, segment.bx, segment.bz) - r >= 2
+            end
+            if ok then
+                local item = { id = prop .. '_' .. (THICKEN_FIRST_ID + added), name = prop, x = x, z = z,
+                    rotation_y_deg = math.floor(roll(seed * 11) * 360), scale = scale }
+                place(templates:FindFirstChild(prop), item, kit)
+                table.insert(cores, { x, z, r })
+                added += 1
+                if added % YIELD_EVERY == 0 then task.wait() end
+            end
+        end
+    end
+    return added
 end
 
 -- instances: { { id, name, x, z, rotation_y_deg, scale }, ... } from the layout plan.
