@@ -34,19 +34,25 @@ U, V = (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)
 # ---------------------------------------------------------------------------
 
 def column(part, rng, cx, cy, radius, top, tilt, lean, chip=0.8, sides=6):
-    """A joined basalt column: an uneven hexagon that leans, with a sloped, chipped top. Two bands, flat base."""
-    base = org.irregular_ring((cx, cy, 0.0), U, V, radius, radius, sides, rng, wobble=0.1, jitter=0.05,
-                              phase=rng.uniform(0.0, 1.0))
-    mid = [(x + lean[0] * 0.5 + rng.uniform(-0.06, 0.06), y + lean[1] * 0.5 + rng.uniform(-0.06, 0.06), top * 0.55)
-           for x, y, _ in base]
+    """A basalt column: a regular hexagonal prism with straight sides, a small stepped joint at mid height (a
+    flange turned a few degrees, where the column cracked and settled), a sloped top and one chipped corner."""
+    turn = rng.uniform(-0.05, 0.05)
+    base = org.irregular_ring((cx, cy, 0.0), U, V, radius, radius, sides, rng, wobble=0.02, jitter=0.01, phase=turn)
+    twist = math.radians(rng.uniform(3.0, 5.0))
+    cos_t, sin_t = math.cos(twist), math.sin(twist)
+    mid = []
+    for x, y, _ in base:
+        dx, dy = (x - cx) * 1.05, (y - cy) * 1.05
+        mid.append((cx + dx * cos_t - dy * sin_t + lean[0] * 0.5, cy + dx * sin_t + dy * cos_t + lean[1] * 0.5,
+                    top * 0.55))
     direction = rng.uniform(0.0, math.tau)
     dx, dy = math.cos(direction), math.sin(direction)
     crown = []
     for k, (x, y, _) in enumerate(base):
         slope = tilt * ((x - cx) * dx + (y - cy) * dy)
-        crown.append((cx + (x - cx) * 0.88 + lean[0] * 0.95 + rng.uniform(-0.05, 0.05),
-                      cy + (y - cy) * 0.88 + lean[1] * 0.95 + rng.uniform(-0.05, 0.05),
-                      top + slope - (chip if k == 2 else 0.0) + rng.uniform(-0.05, 0.05)))
+        crown.append((cx + (x - cx) * 0.97 + lean[0] * 0.95 + rng.uniform(-0.02, 0.02),
+                      cy + (y - cy) * 0.97 + lean[1] * 0.95 + rng.uniform(-0.02, 0.02),
+                      top + slope - (chip if k == 2 else 0.0) + rng.uniform(-0.03, 0.03)))
     loft(part, [base, mid, crown], W)
 
 
@@ -71,14 +77,15 @@ def inscribed_walk_box(part_vertices, height, name="walk"):
 # ---------------------------------------------------------------------------
 
 def build_basalt_column(a):
-    """Three joined six-sided columns at 12, 8.6 and 5.4 studs, each leaning with a tilted, chipped top, and a
-    broken piece lying beside them."""
+    """Three joined hexagonal columns at 12, 8.6 and 5.4 studs, packed face to face on a hexagon grid, each with a
+    stepped joint and a tilted, chipped top, and a broken hexagonal piece lying beside them."""
     rng = a.rng
     rock = a.part("Rock")
-    column(rock, rng, -1.0, 0.8, 2.3, 12.0, 0.32, (0.3, 0.1), chip=1.2)
-    column(rock, rng, 2.1, -1.0, 2.1, 8.6, -0.34, (-0.25, 0.2), chip=0.9)
-    column(rock, rng, -0.2, -3.0, 1.8, 5.4, 0.4, (0.1, -0.2), chip=0.8)
-    org.rough_tube(rock, rng, [(1.6, 2.2, 0.8), (3.9, 3.4, 0.8)], [0.85, 0.7], 6, rough=0.07, flutes=0.08, floor=0.0)
+    column(rock, rng, -1.0, 0.8, 2.3, 11.4, 0.3, (0.12, 0.05), chip=1.2)
+    column(rock, rng, 2.3, -1.1, 2.1, 8.15, -0.34, (-0.1, 0.1), chip=0.9)
+    column(rock, rng, -0.9, -2.8, 1.8, 5.1, 0.4, (0.05, -0.1), chip=0.8)
+    org.rough_tube(rock, rng, [(1.4, 2.3, 0.8), (3.5, 2.5, 0.8)], [0.85, 0.8], 6, rough=0.02, flutes=0.0, floor=0.0,
+                   phase=0.0)
 
 
 def tags_basalt_column(a):
@@ -104,15 +111,37 @@ def build_vent(a):
     org.rock_blob(glow, rng, (0.55, 0.3, 2.0), 0.5, 0.45, 0.45, rings=2, sides=5, wobble=0.15, jitter=0.05)
 
 
+def inside_ellipse(points, rx, ry):
+    """Pull any point that lies outside the ellipse back onto it."""
+    out = []
+    for x, y in points:
+        t = max(1.0, math.hypot(x / rx, y / ry))
+        out.append((x / t, y / t))
+    return out
+
+
 def build_cool_stone(a):
-    """A flat bluish slab with an uneven outline, an undercut foot, a bevelled flat top and a chipped corner."""
+    """A flat bluish stepping slab: a lumpy outline, a small undercut foot, a belly that overhangs it and bulges
+    unevenly, and a flat top that stays level to walk on."""
     rng = a.rng
     stone = a.part("Stone")
-    outline = org.outline_points(rng, 10, 3.0, 2.5, wobble=0.12, jitter=0.05)
+    outline = org.outline_points(rng, 10, 3.0, 2.5, wobble=0.3, jitter=0.1)
+    outline = inside_ellipse(outline, 3.0, 2.5)  # lobes only bite inward: the plan's 3.3 stud circle still holds
+    right, left = max(x for x, _ in outline), -min(x for x, _ in outline)
+    up, down = max(y for _, y in outline), -min(y for _, y in outline)
+    outline = inside_ellipse([(x * 2.9 / (right if x > 0 else left), y * 2.4 / (up if y > 0 else down))
+                              for x, y in outline], 2.9, 2.4)  # reaches 2.9 and 2.4 on both sides, so the fit barely stretches
+    pinned = {max(range(len(outline)), key=lambda i: outline[i][0]), min(range(len(outline)), key=lambda i: outline[i][0]),
+              max(range(len(outline)), key=lambda i: outline[i][1]), min(range(len(outline)), key=lambda i: outline[i][1])}
     rings = []
-    for z, scale, noise in ((0.0, 0.93, 0.05), (0.55, 1.0, 0.07), (1.0, 0.9, 0.0)):
-        rings.append([(x * scale * (1.0 + rng.uniform(-noise, noise)), y * scale * (1.0 + rng.uniform(-noise, noise)),
-                       z) for x, y in outline])
+    for z, scale, noise, rise, shift in ((0.0, 0.8, 0.05, 0.0, (-0.15, 0.1)), (0.55, 1.0, 0.04, 0.15, (0.0, 0.0)),
+                                         (1.0, 0.9, 0.0, 0.0, (0.0, 0.0))):
+        rings.append([(x * scale * (1.0 - (0.0 if (scale == 1.0 and k in pinned) else rng.uniform(0.0, noise)))
+                       + shift[0],
+                       y * scale * (1.0 - (0.0 if (scale == 1.0 and k in pinned) else rng.uniform(0.0, noise)))
+                       + shift[1],
+                       z + (0.0 if (scale == 1.0 and k in pinned) else rng.uniform(-rise, rise)))
+                      for k, (x, y) in enumerate(outline)])
     loft(stone, rings, W, start="cap", end=(0.0, 0.0, 1.0))
 
 
@@ -195,11 +224,13 @@ def build_crust_plate(a):
     across the top and stands proud of the crust."""
     rng = a.rng
     crust, seam = a.part("Crust"), a.part("Neon_Magma")
-    outline = org.outline_points(rng, 12, 10.0, 10.0, wobble=0.12, jitter=0.04)
+    outline = org.outline_points(rng, 12, 10.0, 10.8, wobble=0.12, jitter=0.04)
+    for k, bite in ((1, 0.74), (4, 0.76), (7, 0.84), (10, 0.78)):  # bays on the diagonals, clear of the seam
+        outline[k] = (outline[k][0] * bite, outline[k][1] * bite)
     rings = []
-    for z, scale in ((0.0, 0.96), (0.28, 1.0), (0.5, 0.97)):
+    for z, scale, rise in ((0.0, 0.96, 0.0), (0.28, 1.0, 0.09), (0.5, 0.97, 0.0)):
         rings.append([(x * scale + rng.uniform(-0.1, 0.1) * (z < 0.5), y * scale + rng.uniform(-0.1, 0.1) * (z < 0.5),
-                       z) for x, y in outline])
+                       z + rng.uniform(-rise, rise)) for x, y in outline])
     loft(crust, rings, W, start="cap", end=(0.0, 0.0, 0.5))
     points = ((-7.4, -3.6), (-2.6, -0.6), (2.0, -3.0), (7.2, 1.4))
     top, low = [], []

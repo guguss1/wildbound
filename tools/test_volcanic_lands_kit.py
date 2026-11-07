@@ -286,5 +286,66 @@ class VolcanicLandsBoxes(unittest.TestCase):
             self.assertLessEqual(box["size"][0], high[0] - low[0] + 0.5)
 
 
+class VolcanicReads(unittest.TestCase):
+    """The W16 art pass. The basalt cluster read as three rough pillars, the cool stone as a bun and the crust plate
+    as a bevelled coin. Each limit below sits between the old geometry and the reworked one."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(VolcanicLandsKit.GEOMETRY)
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    def test_basalt_columns_are_regular_hexagonal_prisms(self):
+        columns = [s for s in shells(self.part("VL_BasaltColumn", "Rock")) if max(v[2] for v in s) >= 5.0]
+        self.assertEqual(len(columns), 3)
+        for shell in columns:
+            foot = sorted({(v[0], v[1]) for v in shell if v[2] < 0.05})
+            self.assertEqual(len(foot), 6, "a hexagonal foot")
+            cx, cy = sum(p[0] for p in foot) / 6, sum(p[1] for p in foot) / 6
+            radii = [math.hypot(p[0] - cx, p[1] - cy) for p in foot]
+            self.assertLessEqual(max(radii) / min(radii), 1.08, f"foot radii {[round(r, 2) for r in radii]}")
+            angles = sorted(math.degrees(math.atan2(p[1] - cy, p[0] - cx)) for p in foot)
+            gaps = [(b - a) for a, b in zip(angles, angles[1:] + [angles[0] + 360.0])]
+            self.assertLessEqual(max(abs(g - 60.0) for g in gaps), 9.0, f"hexagon corners spaced {[round(g) for g in gaps]}")
+
+    def test_basalt_columns_have_a_stepped_joint_and_straight_sides(self):
+        columns = [s for s in shells(self.part("VL_BasaltColumn", "Rock")) if max(v[2] for v in s) >= 5.0]
+        for shell in columns:
+            high = max(v[2] for v in shell)
+            joint = [v for v in shell if 0.4 * high < v[2] < 0.7 * high]
+            foot = [v for v in shell if v[2] < 0.05]
+            top = [v for v in shell if v[2] > high - 1.5]
+            reach = lambda points: max(math.hypot(v[0] - sum(p[0] for p in points) / len(points),  # noqa: E731
+                                                  v[1] - sum(p[1] for p in points) / len(points)) for v in points)
+            self.assertGreaterEqual(reach(joint), reach(foot) * 1.015, "the joint is a small flange")
+            self.assertGreaterEqual(reach(top), reach(foot) * 0.9, "no taper: a prism, not a cone")
+
+    def test_cool_stone_is_an_undercut_lumpy_slab_not_a_bun(self):
+        stone = self.part("VL_CoolStone", "Stone")["vertices"]
+        foot = [v for v in stone if v[2] < 0.05]
+        belly = [v for v in stone if 0.3 < v[2] < 0.8]
+        top = [v for v in stone if v[2] > 0.95 and math.hypot(v[0], v[1]) > 0.5]
+
+        def span(points):
+            return max(max(p[0] for p in points) - min(p[0] for p in points),
+                       max(p[1] for p in points) - min(p[1] for p in points))
+
+        self.assertGreaterEqual(span(belly) / span(foot), 1.14, "the belly overhangs the foot")
+        self.assertGreaterEqual(max(v[2] for v in belly) - min(v[2] for v in belly), 0.25, "the waist is uneven")
+        radii = [math.hypot(v[0] / 3.0, v[1] / 2.5) for v in top]
+        self.assertGreaterEqual(max(radii) / min(radii), 1.25, "an irregular outline on top")
+
+    def test_crust_plate_is_a_broken_plate_with_bays_and_an_uneven_edge(self):
+        crust = self.part("VL_CrustPlate", "Crust")["vertices"]
+        top = [v for v in crust if v[2] > 0.45 and math.hypot(v[0], v[1]) > 1.0]
+        radii = sorted(math.hypot(v[0], v[1]) for v in top)
+        median = radii[len(radii) // 2]
+        self.assertGreaterEqual(sum(1 for r in radii if r < 0.86 * median), 3, "bays bitten into the outline")
+        edge = [v[2] for v in crust if 0.1 < v[2] < 0.4]
+        self.assertGreaterEqual(max(edge) - min(edge), 0.07, "the edge steps up and down")
+
+
 if __name__ == "__main__":
     unittest.main()
