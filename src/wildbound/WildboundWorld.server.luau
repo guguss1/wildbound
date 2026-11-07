@@ -138,20 +138,26 @@ local awareness, awarenessResults, anySeen = Awareness.new(), {}, false
 -- Ambush relocation (M4.7). The patrol diamond and the retreat point follow the current anchor.
 local rng = Random.new()
 local anchors = Ambush.anchors()
-local center, patrol = home, nil
+local center = home
+-- The home diamond (tools/simulate_silueta_pressure.py reads it). Relocation keeps these offsets.
+local patrol = {
+	home + Vector3.new(16, 0, 0), home + Vector3.new(0, 0, 16),
+	home + Vector3.new(-16, 0, 0), home + Vector3.new(0, 0, -16),
+}
+local patrolOffsets = {}
+for index, point in ipairs(patrol) do patrolOffsets[index] = point - home end
 local lastHuntAt, acquireBlockedUntil = -math.huge, 0
 local ambushNextAt = originTime + Ambush.nextDelay(Rules.cycle(0).phase, rng:NextNumber())
 local function setCenter(x, z)
 	center = Vector3.new(x, home.Y, z)
 	patrol = {}
-	for _, offset in ipairs({ Vector3.new(16, 0, 0), Vector3.new(0, 0, 16), Vector3.new(-16, 0, 0), Vector3.new(0, 0, -16) }) do
+	for _, offset in ipairs(patrolOffsets) do
 		-- Clamped like every step, so a corner outside the leash can still be reached.
 		local px, pz = Rules.clampTerritory(center.X + offset.X, center.Z + offset.Z)
 		table.insert(patrol, Vector3.new(px, home.Y, pz))
 	end
 	patrolIndex = 1
 end
-setCenter(home.X, home.Z)
 
 local function characterContext(player)
 	local record, character = records[player], player.Character
