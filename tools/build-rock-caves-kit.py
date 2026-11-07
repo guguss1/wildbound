@@ -33,11 +33,12 @@ PROFILE = cp.tunnel_profile()
 SEGMENTS_STRAIGHT, SEGMENTS_BEND = 6, 6
 RELIEF = 1.5
 
-# Clay veins: (first station, last station, vertex, fraction along the edge to the next vertex, half width).
-# Outer chain vertices 9 to 20 run (12,0) (12,6) (12,12) (9.5,15) (7,18) (2.3,18) (-2.3,18) (-7,18) (-9.5,15)
-# (-12,12) (-12,6) (-12,0).
-VEINS_STRAIGHT = ((1, 4, 10, 0.45, 0.2), (2, 5, 11, 0.4, 0.17))
-VEINS_BEND = ((1, 4, 18, 0.45, 0.2), (2, 5, 13, 0.4, 0.17))
+# Clay seeps: (first station, last station, vertex, fraction along the edge to the next vertex, half width). They
+# are scattered patches, one or two stations long, spread over the walls and the shoulders. Outer chain vertices
+# 9 to 20 run (12,0) (12,6) (12,12) (9.5,15) (7,18) (2.3,18) (-2.3,18) (-7,18) (-9.5,15) (-12,12) (-12,6) (-12,0).
+# Three patches of two stations and one of three give the same 56 triangles as the two stripes did.
+VEINS_STRAIGHT = ((1, 2, 10, 0.5, 0.25), (3, 4, 18, 0.5, 0.25), (4, 5, 12, 0.5, 0.25), (2, 4, 17, 0.5, 0.22))
+VEINS_BEND = ((1, 2, 11, 0.5, 0.25), (3, 4, 10, 0.5, 0.25), (4, 5, 12, 0.5, 0.25), (2, 4, 17, 0.5, 0.22))
 
 
 def straight_normals(count):
@@ -53,10 +54,75 @@ def bend_normals(count):
     return rows
 
 
-def roof_knob(part, rng, x, y, base_z, rx, ry, rings, sides, lean):
-    """A blunt boulder that stands up out of the shoulder: base sunk into the rock, flat top at Z 19.4."""
-    org.rock_blob(part, rng, (x, y, base_z), rx, ry, 19.4 - base_z, rings=rings, sides=sides, wobble=0.25,
-                  jitter=0.1, lean=lean, flat_top=True, shoulder=0.12)
+def roof_knob(part, rng, x, y, base_z, top_z, rx, ry, rings, sides, lean):
+    """A broad, rough lump of rock that sits in the roof: base sunk into the hull, a flat top at top_z."""
+    org.rock_blob(part, rng, (x, y, base_z), rx, ry, top_z - base_z, rings=rings, sides=sides, wobble=0.38,
+                  jitter=0.14, lean=lean, flat_top=True, shoulder=0.3)
+
+
+def rugged_straight(rings, rng):
+    """Rework the outer hull of the middle stations: walls that recess in places, shoulders that bulge, a roof that
+    sags and rises. Only the outer chain moves, never the end rings, the inner chain or the floor points, so the
+    snap profile, the 14 x 10 corridor and the footprint the layout plan measured stay as they were. The outer
+    wall never comes nearer than 1.6 to the inner wall."""
+    for s in range(1, len(rings) - 1):
+        ring = rings[s]
+        recess = rng.uniform(1.2, 3.6)
+        floor = {1.0: max(ring[6][0], ring[7][0]) + 1.6, -1.0: -min(ring[1][0], ring[2][0]) + 1.6}
+        for k in range(10, 20):
+            x, y, z = ring[k]
+            sign = 1.0 if x > 0 else -1.0
+            dz = 0.0
+            if k in (10, 19):
+                x = sign * max(abs(x) - recess * rng.uniform(0.85, 1.0), floor[sign])
+            elif k in (11, 18):
+                x, dz = sign * max(abs(x) - recess * rng.uniform(0.85, 1.0), floor[sign]), rng.uniform(-1.6, 0.4)
+            elif k in (12, 17):
+                x, dz = x + sign * rng.uniform(-1.4, 1.0), rng.uniform(-2.6, 0.6)
+            elif k in (13, 16):
+                x, dz = x + sign * rng.uniform(-1.2, 1.0), rng.uniform(-3.6, 0.3)
+            else:
+                dz = rng.uniform(-3.4, 0.6)
+            ring[k] = (x, y, min(z + dz, 19.2))
+
+
+def rugged_bend(rings, rng):
+    """The same for the bend: the displacement is done along the radius from the arc centre."""
+    chord = 1.0 / math.cos(math.radians((cp.BEND_START_DEGREES - cp.BEND_END_DEGREES) / SEGMENTS_BEND / 2))
+
+    def local_x(ring, k):
+        x, y, _ = ring[k]
+        radius = math.hypot(x - cp.BEND_CENTRE[0], y - cp.BEND_CENTRE[1])
+        return radius / chord - cp.BEND_RADIUS if radius > cp.BEND_RADIUS else radius - cp.BEND_RADIUS
+
+    for s in range(1, len(rings) - 1):
+        recess = rng.uniform(1.2, 3.6)
+        ring = rings[s]
+        floor = {1.0: max(local_x(ring, 6), local_x(ring, 7)) + 1.6, -1.0: -min(local_x(ring, 1), local_x(ring, 2)) + 1.6}
+        for k in range(10, 20):
+            x, y, z = ring[k]
+            radius = math.hypot(x - cp.BEND_CENTRE[0], y - cp.BEND_CENTRE[1])
+            outer = radius > cp.BEND_RADIUS
+            local = local_x(ring, k)
+            sign = 1.0 if outer else -1.0
+            dz = 0.0
+            if k in (10, 19):
+                local = sign * max(abs(local) - recess * rng.uniform(0.85, 1.0), floor[sign])
+            elif k in (11, 18):
+                local = sign * max(abs(local) - recess * rng.uniform(0.85, 1.0), floor[sign])
+                dz = rng.uniform(-1.6, 0.4)
+            elif k in (12, 17):
+                local += sign * rng.uniform(-1.4, 1.0)
+                dz = rng.uniform(-2.6, 0.6)
+            elif k in (13, 16):
+                local += sign * rng.uniform(-1.2, 1.0)
+                dz = rng.uniform(-3.6, 0.3)
+            else:
+                dz = rng.uniform(-3.4, 0.6)
+            new_radius = (cp.BEND_RADIUS + local) * (chord if local > 0.0 else 1.0)
+            scale = new_radius / radius
+            ring[k] = (cp.BEND_CENTRE[0] + (x - cp.BEND_CENTRE[0]) * scale,
+                       cp.BEND_CENTRE[1] + (y - cp.BEND_CENTRE[1]) * scale, min(z + dz, 19.2))
 
 
 # ---------------------------------------------------------------------------
@@ -68,12 +134,14 @@ def build_tunnel_straight(a):
     rng = a.rng
     rock, stain = a.part("Rock"), a.part("Stain")
     rings = cp.straight_rings(PROFILE, rng, SEGMENTS_STRAIGHT, 24.0, RELIEF)
+    rugged_straight(rings, rng)
     loft(rock, rings, W)
     for vein in VEINS_STRAIGHT:
         org.ribbon_along(stain, rng, rings, straight_normals(len(rings)), *vein)
-    for x, y, z, rx, ry, lean in ((-7.6, -5.2, 15.0, 3.0, 3.2, (-0.4, 0.3)), (7.9, 1.4, 14.8, 3.1, 2.8, (0.5, 0.2)),
-                                  (-7.0, 7.6, 15.0, 2.8, 3.0, (-0.3, -0.4))):
-        roof_knob(rock, rng, x, y, z, rx, ry, 2, 6, lean)
+    for x, y, z, top, rx, ry, lean in ((-6.8, -5.2, 14.0, 18.4, 3.6, 3.4, (-0.9, 0.5)),
+                                       (7.4, 1.4, 13.6, 19.2, 3.4, 3.0, (1.0, 0.4)),
+                                       (-6.0, 7.6, 14.0, 17.6, 3.2, 3.3, (-0.5, -0.8))):
+        roof_knob(rock, rng, x, y, z, top, rx, ry, 2, 6, lean)
 
 
 def tags_tunnel_straight(a):
@@ -93,14 +161,16 @@ def build_tunnel_bend(a):
     rng = a.rng
     rock, stain = a.part("Rock"), a.part("Stain")
     rings = cp.bend_rings(PROFILE, rng, SEGMENTS_BEND, RELIEF)
+    rugged_bend(rings, rng)
     loft(rock, rings, W)
     for vein in VEINS_BEND:
         org.ribbon_along(stain, rng, rings, bend_normals(len(rings)), *vein)
-    for degrees, radius, rx, ry, lean in ((152.0, 25.2, 2.3, 2.5, (0.6, 0.4)), (128.0, 11.0, 2.4, 2.2, (-0.5, 0.6)),
-                                          (107.0, 25.6, 2.2, 2.4, (0.5, -0.4))):
+    for degrees, radius, top, rx, ry, lean in ((152.0, 25.2, 18.6, 2.8, 3.0, (0.9, 0.6)),
+                                               (128.0, 11.0, 19.2, 2.8, 2.6, (-0.8, 0.9)),
+                                               (107.0, 25.6, 17.8, 2.6, 2.9, (0.8, -0.6))):
         angle = math.radians(degrees)
         roof_knob(rock, rng, cp.BEND_CENTRE[0] + radius * math.cos(angle), cp.BEND_CENTRE[1] + radius * math.sin(angle),
-                  15.0, rx, ry, 2, 6, lean)
+                  14.0, top, rx, ry, 2, 6, lean)
 
 
 def tags_tunnel_bend(a):
@@ -164,11 +234,13 @@ def mouth_rings(rng):
                 ring.append((x + rng.uniform(-0.3, 0.3), y + jitter, z + rng.uniform(0.0, 0.9) + flare * 0.9))
         for j in range(9):  # outer chain: right foot, over the crest, left foot
             theta = math.pi * j / 8
-            scale = 1.0 - 0.1 * t - 0.09 * ((j + s) % 2) - 0.1 * zig[j] * (0.4 + t)
+            scale = 1.0 - 0.14 * t - 0.06 * ((j + s) % 2) - 0.06 * zig[j] * (0.4 + t)
             if j in (0, 8):
                 scale = 0.98 - 0.05 * t
             jitter = rng.uniform(-0.3, 0.3) if 0 < s < MOUTH_STATIONS - 1 else rng.uniform(-0.55, 0.55)
-            x, z = 18.4 * scale * math.cos(theta), 21.0 * scale * math.sin(theta)
+            # A squared-off dome, not a half ellipse: a cliff face with a hole in it, high on both shoulders.
+            x = 18.4 * scale * math.copysign(abs(math.cos(theta)) ** 0.62, math.cos(theta))
+            z = 21.0 * scale * math.sin(theta) ** 0.62
             ring.append((x, y + jitter, 0.0 if j in (0, 8) else z))
         rings.append(ring)
     return rings

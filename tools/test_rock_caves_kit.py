@@ -22,6 +22,24 @@ import unittest
 from biome_kit_spec import BiomeKitMixin, top_height
 from kit_spec_common import ROOT, asset_triangles, bounds, load_json, part_triangles
 
+
+def hull_area(points):
+    """Area of the convex hull of 2D points (monotone chain)."""
+    pts = sorted(set((round(p[0], 6), round(p[1], 6)) for p in points))
+
+    def half(sequence):
+        out = []
+        for p in sequence:
+            while len(out) >= 2 and ((out[-1][0] - out[-2][0]) * (p[1] - out[-2][1])
+                                     - (out[-1][1] - out[-2][1]) * (p[0] - out[-2][0])) <= 0:
+                out.pop()
+            out.append(p)
+        return out[:-1]
+
+    ring = half(pts) + half(reversed(pts))
+    return abs(sum(ring[i][0] * ring[(i + 1) % len(ring)][1] - ring[(i + 1) % len(ring)][0] * ring[i][1]
+                   for i in range(len(ring)))) / 2.0
+
 KIT_DIR = ROOT / "assets/blender/rock-caves-kit"
 EXPORT_DIR = ROOT / "assets/exports/rock-caves-kit"
 
@@ -497,6 +515,65 @@ class PropReads(unittest.TestCase):
             tops.setdefault(round(math.atan2(y, x) / (math.pi / 4)), []).append(z)
         peaks = [max(v) for v in tops.values()]
         self.assertGreaterEqual(max(peaks) - min(peaks), 0.25)
+
+
+class RockReads(unittest.TestCase):
+    """The W16 art pass. The first tunnels passed every rule above and read as bunkers: a box hull with a flat roof,
+    flat walls, two long stripes and three stumps. The cave mouth read as a leaning arch: a thin half ellipse."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.geometry = load_json(RockCavesKit.GEOMETRY)
+
+    def part(self, asset, label):
+        return self.geometry[asset]["parts"][f"{asset}_{label}"]
+
+    def test_straight_tunnel_roof_sags_and_rises_between_the_ends(self):
+        roof = {}
+        for x, y, z in self.part("RC_TunnelStraight", "Rock")["vertices"]:
+            if abs(x) < 4.0 and z > 12.5:
+                roof.setdefault(round(y / 4.0), []).append(z)
+        tops = [max(v) for k, v in sorted(roof.items())]
+        self.assertGreaterEqual(len(tops), 6)
+        self.assertGreaterEqual(max(tops) - min(tops), 2.5, f"roof heights per station {[round(t, 1) for t in tops]}")
+        self.assertLessEqual(min(tops), 16.2)
+
+    def test_straight_tunnel_outer_walls_wander_between_the_ends(self):
+        reach = {}
+        for x, y, z in self.part("RC_TunnelStraight", "Rock")["vertices"]:
+            if 5.0 < z < 13.0 and abs(x) > 8.0:
+                reach.setdefault(round(y / 4.0), []).append(abs(x))
+        spread = [max(v) for v in reach.values()]
+        self.assertGreaterEqual(max(spread) - min(spread), 2.0, f"outer wall reach per station {sorted(spread)}")
+
+    def test_tunnel_stain_is_scattered_patches_not_long_stripes(self):
+        for asset in ("RC_TunnelStraight", "RC_TunnelBend"):
+            with self.subTest(asset=asset):
+                stain = self.part(asset, "Stain")
+                groups = {}
+                parent = list(range(len(stain["vertices"])))
+
+                def find(i):
+                    while parent[i] != i:
+                        parent[i] = parent[parent[i]]
+                        i = parent[i]
+                    return i
+
+                for triple in stain["triangles"]:
+                    for other in triple[1:]:
+                        parent[find(other)] = find(triple[0])
+                for i in {i for t in stain["triangles"] for i in t}:
+                    groups.setdefault(find(i), []).append(stain["vertices"][i])
+                self.assertGreaterEqual(len(groups), 4, "four or more separate patches")
+                for found in groups.values():
+                    reach = max(max(v[k] for v in found) - min(v[k] for v in found) for k in (0, 1))
+                    self.assertLessEqual(reach, 9.0, "a patch, not a stripe along the tunnel")
+
+    def test_cave_mouth_is_a_broad_cliff_mass_not_a_thin_leaning_arch(self):
+        points = [(v[0], v[2]) for v in self.part("RC_CaveMouth", "Rock")["vertices"]]
+        xs, zs = [p[0] for p in points], [p[1] for p in points]
+        box = (max(xs) - min(xs)) * (max(zs) - min(zs))
+        self.assertGreaterEqual(hull_area(points) / box, 0.82, "the silhouette fills its box like a cliff face")
 
 
 if __name__ == "__main__":
