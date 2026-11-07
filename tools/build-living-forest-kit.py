@@ -22,9 +22,8 @@ if str(TOOLS) not in sys.path:
 import biome_kit_common as bk  # noqa: E402
 import kit_common as kc  # noqa: E402
 from biome_kit_common import no_weight as W  # noqa: E402
-from kit_common import add, lathe, loft, mul, ring_points, tube  # noqa: E402
+from kit_common import add, arc_profile, lathe, loft, mul, ring_points, slab, tube  # noqa: E402
 
-Z = (0.0, 0.0, 1.0)
 U, V = (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)
 
 
@@ -32,7 +31,7 @@ U, V = (1.0, 0.0, 0.0), (0.0, 1.0, 0.0)
 # Shared little shapes
 # ---------------------------------------------------------------------------
 
-def stone_block(part, x, y, radius, height, sides, rng, top=0.62, yaw=0.0, cap="cap"):
+def stone_block(part, x, y, radius, height, sides, rng, top=0.62, yaw=0.0):
     """Low faceted stone: a frustum of a polygon, or a pyramid when top is 0."""
     phase = yaw + rng.uniform(-0.25, 0.25)
     lower = ring_points((x, y, 0.0), U, V, radius, radius, sides, phase)
@@ -49,9 +48,136 @@ def diamond_flower(part, center, radius, thickness, phase):
     lathe(part, [(0.0, -thickness), (radius, 0.0), (0.0, thickness)], 4, W, center=center, phase=phase)
 
 
+def profile_radius(profile, z):
+    """Radius of a lathe profile at height z, by linear interpolation."""
+    for (r0, z0), (r1, z1) in zip(profile, profile[1:]):
+        if z0 <= z <= z1:
+            return r0 + (r1 - r0) * (z - z0) / (z1 - z0)
+    return profile[-1][0]
+
+
 # ---------------------------------------------------------------------------
 # Props
 # ---------------------------------------------------------------------------
+
+def build_broadleaf(a):
+    """Upright thick trunk, three limbs, a crown of four faceted lobes that starts above Z 12."""
+    rng = a.rng
+    trunk, crown = a.part("Trunk"), a.part("Crown")
+    lathe(trunk, [(2.1, 0.0), (1.8, 1.3), (1.5, 6.0), (1.4, 13.0), (1.15, 22.0)], 6, W, jitter=0.04, rng=rng)
+    for azimuth, reach, rise in ((0.4, 8.0, 6.5), (2.5, 7.5, 6.0), (4.5, 8.2, 5.5)):
+        c, s = math.cos(azimuth), math.sin(azimuth)
+        tube(trunk, [(c * 1.0, s * 1.0, 11.5), (c * reach * 0.5, s * reach * 0.5, 11.5 + rise * 0.5),
+                     (c * reach, s * reach, 11.5 + rise)], [0.95, 0.7, 0.0], 4, W)
+    for azimuth in (0.9, 3.0, 5.1):  # short surface roots
+        c, s = math.cos(azimuth), math.sin(azimuth)
+        tube(trunk, [(c * 1.4, s * 1.4, 1.3), (c * 2.6, s * 2.6, 0.6), (c * 3.9, s * 3.9, 0.0)],
+             [0.75, 0.5, 0.0], 4, W)
+    # Four lobes. The lowest vertex is Z 12.3 so the Crown never dips under Z 12; the top is Z 32.
+    for cx, cy, cz, rx, rz in ((-4.2, -3.8, 20.6, 8.0, 8.3), (4.4, -3.4, 21.6, 7.8, 8.0),
+                               (-2.6, 4.4, 22.6, 7.8, 8.0), (3.6, 3.6, 24.0, 8.0, 8.0)):
+        lathe(crown, arc_profile(rx, rz, 5), 9, W, center=(cx, cy, cz), scale=(1.0, 1.0),
+              jitter=0.05, rng=rng, phase=rng.uniform(0.0, 1.0))
+
+
+STUMP_PROFILE = [(3.0, 0.0), (2.6, 0.9), (2.35, 2.2), (2.25, 3.6), (2.1, 4.9), (1.95, 6.0)]
+
+
+def build_resin_stump(a):
+    """Cut stump with amber beads running down the -Y side."""
+    rng = a.rng
+    stump, resin = a.part("Stump"), a.part("Resin")
+    lathe(stump, STUMP_PROFILE, 10, W, jitter=0.04, rng=rng)
+    for x, z, size in ((-1.0, 4.4, 0.42), (0.0, 3.5, 0.55), (0.9, 4.7, 0.38), (-0.45, 2.3, 0.5),
+                       (0.5, 1.5, 0.45), (1.25, 2.9, 0.36)):
+        surface = profile_radius(STUMP_PROFILE, z)
+        y = -math.sqrt(max(surface ** 2 - x * x, 0.1)) - 0.04
+        lathe(resin, arc_profile(size, size * 1.6, 2), 4, W, center=(x, y, z), scale=(1.0, 0.5), phase=0.0)
+
+
+def build_stream_stone(a):
+    """Flat-topped river stone with moss on one edge."""
+    rng = a.rng
+    stone, moss = a.part("Stone"), a.part("Moss")
+    rings = []
+    for z, scale in ((0.0, 0.86), (0.62, 1.0), (0.92, 0.9)):
+        rings.append([(x * scale * (1 + rng.uniform(-0.04, 0.04)), y * scale * (1 + rng.uniform(-0.04, 0.04)), z)
+                      for x, y, _ in ring_points((0, 0, 0), U, V, 2.1, 1.9, 10, 0.2)])
+    loft(stone, rings, W)
+    for x, y in ((1.75, 0.3), (1.5, -1.0)):  # two lumps hugging the +X edge, tips at Z 1
+        lathe(moss, arc_profile(0.85, 0.5, 2, base_z=0.5), 5, W, center=(x, y, 0.0), phase=rng.uniform(0, 1))
+
+
+def build_hollow_arch(a):
+    """Two living trunks grown together over the path, with a leafy top. No exposed roots."""
+    rng = a.rng
+    wood, leaf = a.part("Wood"), a.part("Leaf")
+    spring, half, rise = 12.0, 12.0, 3.1
+    for side in (-1, 1):
+        points = [(side * half, 0.0, 0.0), (side * half, 0.0, 4.0), (side * half, 0.0, 8.0)]
+        radii = [3.5, 3.4, 3.4]
+        for k in range(1, 9):
+            angle = math.radians(180.0 - 88.0 * k / 8) if side < 0 else math.radians(88.0 * k / 8)
+            points.append((half * math.cos(angle), 0.0, spring + rise * math.sin(angle)))
+            radii.append(3.2 - 1.0 * k / 8)
+        tube(wood, points, radii, 8, W, squash=1.4, phase=0.4)
+    # A knot where the two trunks meet at the crown.
+    lathe(wood, arc_profile(2.7, 2.1, 4, base_z=15.1), 7, W, scale=(1.0, 1.3), phase=0.3)
+    for x, y, z, rx, ry in ((0.0, -4.2, 15.3, 5.6, 3.4), (0.4, 0.2, 15.4, 6.0, 3.5), (-0.3, 4.2, 15.3, 5.6, 3.4)):
+        lathe(leaf, arc_profile(rx, 2.7, 3), 9, W, center=(x, y, z), scale=(1.0, ry / rx),
+              jitter=0.05, rng=rng, phase=rng.uniform(0, 1))
+
+
+def build_log_bridge(a):
+    """Fallen log along Y: flat walkable top, ends that slope to the ground, moss at both ends."""
+    rng = a.rng
+    bark, moss = a.part("Bark"), a.part("Moss")
+    section = ((-2.0, 2.2), (2.0, 2.2), (2.5, 1.4), (2.2, 0.5), (1.3, 0.0), (-1.3, 0.0), (-2.2, 0.5), (-2.5, 1.4))
+    rings = []
+    for y in (-9.0, -7.2, -5.4, -3.6, -1.8, 0.0, 1.8, 3.6, 5.4, 7.2, 9.0):
+        top = 2.2 if abs(y) <= 5.4 else 2.2 - (abs(y) - 5.4) * (1.9 / 3.6)
+        ring = []
+        for x, z in section:
+            keep = z in (0.0, 2.2)  # the walking surface and the ground contact stay exact
+            ring.append((x * (0.55 + 0.45 * top / 2.2) + (0.0 if z == 2.2 else rng.uniform(-0.07, 0.07)), y,
+                         z * top / 2.2 + (0.0 if keep else rng.uniform(-0.05, 0.05))))
+        rings.append(ring)
+    loft(bark, rings, W)
+    run, drop = 3.6, 1.9
+    length = math.hypot(run, drop)
+    for side in (-1, 1):  # a moss mat lying on each sloped end, and a lump on the shoulder
+        origin = (0.0, side * 7.2, 1.25)
+        v = (0.0, side * run / length, -drop / length)
+        normal = (0.0, side * drop / length, run / length)
+        patch = [(1.5 * math.cos(t), 1.3 * math.sin(t)) for t in (math.tau * k / 7 for k in range(7))]
+        slab(moss, patch, add(origin, mul(normal, -0.06)), U, v, normal, 0.2, W)
+        lathe(moss, arc_profile(0.75, 0.35, 2, base_z=1.85), 5, W, center=(1.2, side * 5.2, 0.0),
+              phase=rng.uniform(0, 1))
+
+
+def tags_stream_stone(a):
+    return {"collision_boxes": [{"name": "walk", "center": [0.0, 0.0, 0.5], "size": [4.2, 3.2, 1.0],
+                                 "pitch_deg": 0.0}]}
+
+
+def tags_log_bridge(a):
+    """One solid walk box over the flat top and one tilted box under each sloped end."""
+    low, high = a.bbox()
+    half_length, height = high[1], high[2]
+    flat = 5.4 * half_length / 9.0
+    run, drop = half_length - flat, height - 0.3
+    length = math.hypot(run, drop)
+    pitch = math.degrees(math.atan2(drop, run))
+    boxes = [{"name": "walk", "center": [0.0, 0.0, round(height / 2, 4)],
+              "size": [4.0, round(2 * flat, 4), round(height, 4)], "pitch_deg": 0.0}]
+    for side in (-1, 1):
+        middle = (side * (flat + run / 2), (height + 0.3) / 2)
+        normal = (side * drop / length, run / length)  # upward normal of the sloped surface
+        boxes.append({"name": "ramp_plus_y" if side > 0 else "ramp_minus_y",
+                      "center": [0.0, round(middle[0] - 0.3 * normal[0], 4), round(middle[1] - 0.3 * normal[1], 4)],
+                      "size": [4.0, round(length, 4), 0.6], "pitch_deg": round(-side * pitch, 4)})
+    return {"collision_boxes": boxes}
+
 
 def build_trail_post(a):
     """Straight pale post, red ribbon tied near the top, three stones at the foot."""
@@ -87,13 +213,27 @@ PALETTE = {
     "Stone": ("LF_Stone", "8C8A7E"), "Ribbon": ("LF_Ribbon", "D9482B"),
 }
 
+# Order is the bible's table order; the sheet is 4 columns by 2 rows in this order.
 KIT = {
+    "LF_Broadleaf": {"size": (24.0, 24.0, 32.0), "seed": 5, "build": build_broadleaf,
+                     "colors": {"Trunk": PALETTE["Bark"], "Crown": PALETTE["Leaf"]}},
+    "LF_ResinStump": {"size": (6.0, 6.0, 6.0), "seed": 9, "build": build_resin_stump,
+                      "colors": {"Stump": PALETTE["Bark"], "Resin": PALETTE["Resin"]},
+                      "tags": lambda a: {"gather_point": [0.0, -3.0, 2.5]}},
     "LF_FlowerClump": {"size": (5.0, 5.0, 2.5), "seed": 21, "build": build_flower_clump,
                        "colors": {"Stems": PALETTE["Leaf"], "Petals": PALETTE["Petal"]},
                        "tags": lambda a: {"tiny": True}},
+    "LF_StreamStone": {"size": (5.0, 4.0, 1.0), "seed": 31, "build": build_stream_stone,
+                       "colors": {"Stone": PALETTE["Stone"], "Moss": PALETTE["MossBright"]},
+                       "tags": tags_stream_stone},
+    "LF_HollowArch": {"size": (30.0, 14.0, 18.0), "seed": 41, "build": build_hollow_arch,
+                      "colors": {"Wood": PALETTE["Bark"], "Leaf": PALETTE["Leaf"]}, "clear": (16.0, 11.0)},
     "LF_TrailPost": {"size": (3.0, 3.0, 7.0), "seed": 17, "build": build_trail_post,
                      "colors": {"Post": PALETTE["PaleWood"], "Ribbon": PALETTE["Ribbon"],
                                 "Stones": PALETTE["Stone"]}},
+    "LF_LogBridge": {"size": (5.0, 18.0, 2.2), "seed": 53, "build": build_log_bridge,
+                     "colors": {"Bark": PALETTE["Bark"], "Moss": PALETTE["MossBright"]},
+                     "tags": tags_log_bridge},
 }
 
 KIT_PATHS = bk.Kit("living-forest", "LF", "tools/build-living-forest-kit.py", KIT, "LIVING_FOREST_KIT_MODE")

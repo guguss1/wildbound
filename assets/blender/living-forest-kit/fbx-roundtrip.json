@@ -1,5 +1,45 @@
 {
   "props": {
+    "LF_Broadleaf": {
+      "model": {
+        "triangles": 428,
+        "size": [
+          24.0,
+          24.0,
+          32.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_Broadleaf",
+          "LF_Broadleaf_Crown",
+          "LF_Broadleaf_Trunk"
+        ],
+        "materials": [
+          "LF_Broadleaf_Crown",
+          "LF_Broadleaf_Trunk"
+        ]
+      }
+    },
+    "LF_ResinStump": {
+      "model": {
+        "triangles": 164,
+        "size": [
+          6.0,
+          6.0,
+          6.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_ResinStump",
+          "LF_ResinStump_Resin",
+          "LF_ResinStump_Stump"
+        ],
+        "materials": [
+          "LF_ResinStump_Resin",
+          "LF_ResinStump_Stump"
+        ]
+      }
+    },
     "LF_FlowerClump": {
       "model": {
         "triangles": 80,
@@ -17,6 +57,46 @@
         "materials": [
           "LF_FlowerClump_Petals",
           "LF_FlowerClump_Stems"
+        ]
+      }
+    },
+    "LF_StreamStone": {
+      "model": {
+        "triangles": 76,
+        "size": [
+          5.0,
+          4.0,
+          1.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_StreamStone",
+          "LF_StreamStone_Moss",
+          "LF_StreamStone_Stone"
+        ],
+        "materials": [
+          "LF_StreamStone_Moss",
+          "LF_StreamStone_Stone"
+        ]
+      }
+    },
+    "LF_HollowArch": {
+      "model": {
+        "triangles": 494,
+        "size": [
+          30.0,
+          14.0,
+          18.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_HollowArch",
+          "LF_HollowArch_Leaf",
+          "LF_HollowArch_Wood"
+        ],
+        "materials": [
+          "LF_HollowArch_Leaf",
+          "LF_HollowArch_Wood"
         ]
       }
     },
@@ -39,6 +119,26 @@
           "LF_TrailPost_Post",
           "LF_TrailPost_Ribbon",
           "LF_TrailPost_Stones"
+        ]
+      }
+    },
+    "LF_LogBridge": {
+      "model": {
+        "triangles": 240,
+        "size": [
+          5.0,
+          18.0,
+          2.2
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "LF_LogBridge",
+          "LF_LogBridge_Bark",
+          "LF_LogBridge_Moss"
+        ],
+        "materials": [
+          "LF_LogBridge_Bark",
+          "LF_LogBridge_Moss"
         ]
       }
     }

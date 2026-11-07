@@ -20,6 +20,129 @@
   "lineup_file": "living-forest-kit-scale.png",
   "blend": "assets/blender/living-forest-kit/living-forest-kit-v1.blend",
   "props": {
+    "LF_Broadleaf": {
+      "status": "unvalidated",
+      "triangles": 428,
+      "size": [
+        24.0,
+        24.0,
+        32.0
+      ],
+      "bbox_min": [
+        -11.2931,
+        -11.2739,
+        0.0
+      ],
+      "bbox_max": [
+        12.7069,
+        12.7261,
+        32.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.998,
+        1.046,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "LF_Broadleaf_Trunk",
+          "material": "LF_Broadleaf_Trunk",
+          "material_count": 1,
+          "palette_name": "LF_Bark",
+          "triangles": 140,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4A2F"
+        },
+        {
+          "object": "LF_Broadleaf_Crown",
+          "material": "LF_Broadleaf_Crown",
+          "material_count": 1,
+          "palette_name": "LF_Leaf",
+          "triangles": 288,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "5E9A3C"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/living-forest-kit/LF_Broadleaf.fbx"
+      },
+      "render": "assets/blender/living-forest-kit/LF_Broadleaf.png"
+    },
+    "LF_ResinStump": {
+      "status": "unvalidated",
+      "triangles": 164,
+      "size": [
+        6.0,
+        6.0,
+        6.0
+      ],
+      "bbox_min": [
+        -3.0,
+        -3.0,
+        0.0
+      ],
+      "bbox_max": [
+        3.0,
+        3.0,
+        6.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0014,
+        1.0341,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "LF_ResinStump_Stump",
+          "material": "LF_ResinStump_Stump",
+          "material_count": 1,
+          "palette_name": "LF_Bark",
+          "triangles": 116,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4A2F"
+        },
+        {
+          "object": "LF_ResinStump_Resin",
+          "material": "LF_ResinStump_Resin",
+          "material_count": 1,
+          "palette_name": "LF_Resin",
+          "triangles": 48,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "D98A1F"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/living-forest-kit/LF_ResinStump.fbx"
+      },
+      "render": "assets/blender/living-forest-kit/LF_ResinStump.png",
+      "gather_point": [
+        0.0,
+        -3.0,
+        2.5
+      ]
+    },
     "LF_FlowerClump": {
       "status": "unvalidated",
       "triangles": 80,
@@ -79,6 +202,149 @@
       },
       "render": "assets/blender/living-forest-kit/LF_FlowerClump.png",
       "tiny": true
+    },
+    "LF_StreamStone": {
+      "status": "unvalidated",
+      "triangles": 76,
+      "size": [
+        5.0,
+        4.0,
+        1.0
+      ],
+      "bbox_min": [
+        -2.1791,
+        -1.9806,
+        0.0
+      ],
+      "bbox_max": [
+        2.8209,
+        2.0194,
+        1.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0826,
+        1.0616,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "LF_StreamStone_Stone",
+          "material": "LF_StreamStone_Stone",
+          "material_count": 1,
+          "palette_name": "LF_Stone",
+          "triangles": 56,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8C8A7E"
+        },
+        {
+          "object": "LF_StreamStone_Moss",
+          "material": "LF_StreamStone_Moss",
+          "material_count": 1,
+          "palette_name": "LF_MossBright",
+          "triangles": 20,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8DB04A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/living-forest-kit/LF_StreamStone.fbx"
+      },
+      "render": "assets/blender/living-forest-kit/LF_StreamStone.png",
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.0,
+            0.0,
+            0.5
+          ],
+          "size": [
+            4.2,
+            3.2,
+            1.0
+          ],
+          "pitch_deg": 0.0
+        }
+      ]
+    },
+    "LF_HollowArch": {
+      "status": "unvalidated",
+      "triangles": 494,
+      "size": [
+        30.0,
+        14.0,
+        18.0
+      ],
+      "bbox_min": [
+        -15.0,
+        -7.0232,
+        0.0
+      ],
+      "bbox_max": [
+        15.0,
+        6.9768,
+        18.0
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.984,
+        0.9782,
+        0.9945
+      ],
+      "parts": [
+        {
+          "object": "LF_HollowArch_Wood",
+          "material": "LF_HollowArch_Wood",
+          "material_count": 1,
+          "palette_name": "LF_Bark",
+          "triangles": 386,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4A2F"
+        },
+        {
+          "object": "LF_HollowArch_Leaf",
+          "material": "LF_HollowArch_Leaf",
+          "material_count": 1,
+          "palette_name": "LF_Leaf",
+          "triangles": 108,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "5E9A3C"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/living-forest-kit/LF_HollowArch.fbx"
+      },
+      "render": "assets/blender/living-forest-kit/LF_HollowArch.png",
+      "clearance": {
+        "method": "triangles projected along Y",
+        "width": 17.234,
+        "gap_low_x": -8.617,
+        "gap_high_x": 8.617,
+        "height": 11.6096,
+        "width_probe_height": 11.0,
+        "height_probe_width": 16.0
+      }
     },
     "LF_TrailPost": {
       "status": "unvalidated",
@@ -149,6 +415,109 @@
         "model": "assets/exports/living-forest-kit/LF_TrailPost.fbx"
       },
       "render": "assets/blender/living-forest-kit/LF_TrailPost.png"
+    },
+    "LF_LogBridge": {
+      "status": "unvalidated",
+      "triangles": 240,
+      "size": [
+        5.0,
+        18.0,
+        2.2
+      ],
+      "bbox_min": [
+        -2.4337,
+        -9.0,
+        0.0
+      ],
+      "bbox_max": [
+        2.5663,
+        9.0,
+        2.2
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9923,
+        1.0,
+        1.0
+      ],
+      "parts": [
+        {
+          "object": "LF_LogBridge_Bark",
+          "material": "LF_LogBridge_Bark",
+          "material_count": 1,
+          "palette_name": "LF_Bark",
+          "triangles": 172,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6B4A2F"
+        },
+        {
+          "object": "LF_LogBridge_Moss",
+          "material": "LF_LogBridge_Moss",
+          "material_count": 1,
+          "palette_name": "LF_MossBright",
+          "triangles": 68,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "8DB04A"
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/living-forest-kit/LF_LogBridge.fbx"
+      },
+      "render": "assets/blender/living-forest-kit/LF_LogBridge.png",
+      "collision_boxes": [
+        {
+          "name": "walk",
+          "center": [
+            0.0,
+            0.0,
+            1.1
+          ],
+          "size": [
+            4.0,
+            10.8,
+            2.2
+          ],
+          "pitch_deg": 0.0
+        },
+        {
+          "name": "ramp_minus_y",
+          "center": [
+            0.0,
+            -7.06,
+            0.9847
+          ],
+          "size": [
+            4.0,
+            4.0706,
+            0.6
+          ],
+          "pitch_deg": 27.8241
+        },
+        {
+          "name": "ramp_plus_y",
+          "center": [
+            0.0,
+            7.06,
+            0.9847
+          ],
+          "size": [
+            4.0,
+            4.0706,
+            0.6
+          ],
+          "pitch_deg": -27.8241
+        }
+      ]
     }
   }
 }
