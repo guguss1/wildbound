@@ -326,7 +326,93 @@ function Builder.buildHideSpots(root)
     return spots
 end
 
-function Builder.build(parent)
+-- Expedition relief (R3, decision EI-1): low ridges of anchored parts from ServerStorage.WildboundReliefLayout
+-- (tools/plan_relief.py, tools/export_relief_luau.py), never Roblox Terrain. Each segment is a flat crest Part, two
+-- flank WedgeParts, two end-cap WedgeParts and four CornerWedgeParts, so its surface is exactly the height rule in
+-- src/wildbound/WildboundRelief.luau. Every part collides (players and La Silueta walk on it) and answers queries (a
+-- crest blocks sight rays); none is touched. Builds detached and attaches the folder once complete; refuses a second.
+local RELIEF_FLOOR = 0.5
+local RELIEF_UP = Vector3.new(0, 1, 0)
+
+local function reliefPart(parent, class, name, size, frame)
+    local item = Instance.new(class)
+    item.Name = name
+    item.Size = size
+    item.CFrame = frame
+    item.Color = palette.ground
+    item.Material = Enum.Material.Grass
+    item.Anchored, item.CanCollide, item.CanQuery, item.CanTouch = true, true, true, false
+    item.TopSurface, item.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+    item.Parent = parent
+    return item
+end
+
+-- A WedgePart rises toward its local +Z: `rise` is the horizontal direction toward the high side.
+local function reliefWedge(parent, name, centre, rise, width, height, run)
+    local xAxis = Vector3.new(rise.Z, 0, -rise.X)
+    return reliefPart(parent, 'WedgePart', name, Vector3.new(width, height, run), CFrame.fromMatrix(centre, xAxis, RELIEF_UP))
+end
+
+-- A CornerWedgePart's apex is over its local (+X, -Z) corner; the apex goes to the crest corner, opposite `across`
+-- and `along` (the outward directions of the corner region).
+local function reliefCorner(parent, centre, across, along, height, run)
+    local xAxis = -across
+    if xAxis:Cross(RELIEF_UP):Dot(along) < 0.5 then xAxis = -along end
+    return reliefPart(parent, 'CornerWedgePart', 'RidgeCorner', Vector3.new(run, height, run), CFrame.fromMatrix(centre, xAxis, RELIEF_UP))
+end
+
+local function finiteNumber(value)
+    return type(value) == 'number' and value == value and math.abs(value) < 1e6
+end
+
+local function buildRidge(parent, seg)
+    for _, key in ipairs({ 'ax', 'az', 'bx', 'bz', 'height', 'crestWidth', 'slopeDeg' }) do
+        assert(finiteNumber(seg[key]), 'relief segment ' .. tostring(seg.id) .. ' has a bad ' .. key)
+    end
+    local a, b = Vector3.new(seg.ax, 0, seg.az), Vector3.new(seg.bx, 0, seg.bz)
+    local length, height, crest = (b - a).Magnitude, seg.height, seg.crestWidth
+    assert(length > 0.01 and height > 0 and crest > 0 and seg.slopeDeg > 0 and seg.slopeDeg <= 20,
+        'relief segment ' .. tostring(seg.id) .. ' is degenerate or too steep')
+    local run = height / math.tan(math.rad(seg.slopeDeg))
+    local u = (b - a).Unit
+    local v = Vector3.new(-u.Z, 0, u.X) -- across the ridge, as WildboundRelief measures d
+    local middle = (a + b) / 2 + Vector3.new(0, RELIEF_FLOOR + height / 2, 0)
+    local model = Instance.new('Model')
+    model.Name = 'Ridge_' .. tostring(seg.id)
+    model:SetAttribute('Feature', seg.feature)
+    reliefPart(model, 'Part', 'RidgeCrest', Vector3.new(crest, height, length), CFrame.fromMatrix(middle, v, RELIEF_UP))
+    local flankOut, capOut = crest / 2 + run / 2, length / 2 + run / 2
+    for _, side in ipairs({ 1, -1 }) do
+        reliefWedge(model, 'RidgeFlank', middle + v * side * flankOut, -v * side, length, height, run)
+        reliefWedge(model, 'RidgeCap', middle + u * side * capOut, -u * side, crest, height, run)
+    end
+    for _, along in ipairs({ 1, -1 }) do
+        for _, across in ipairs({ 1, -1 }) do
+            reliefCorner(model, middle + u * along * capOut + v * across * flankOut, v * across, u * along, height, run)
+        end
+    end
+    model.Parent = parent
+    return model
+end
+
+function Builder.buildRelief(root, layout)
+    assert(typeof(root) == 'Instance', 'root must be an Instance')
+    assert(not root:FindFirstChild('Relief'), 'Relief already exists')
+    assert(type(layout) == 'table' and type(layout.segments) == 'table', 'relief layout needs segments')
+    local relief = Instance.new('Folder')
+    relief.Name = 'Relief'
+    local ok, failure = pcall(function()
+        for _, seg in ipairs(layout.segments) do buildRidge(relief, seg) end
+    end)
+    if not ok then
+        relief:Destroy()
+        error(failure, 0)
+    end
+    relief.Parent = root
+    return relief
+end
+
+function Builder.build(parent, reliefLayout)
     assert(typeof(parent) == 'Instance', 'parent must be an Instance')
     assert(not parent:FindFirstChild('WildboundP0'), 'WildboundP0 already exists')
 
@@ -398,6 +484,7 @@ function Builder.build(parent)
         end
     end
     Builder.buildCamp(root)
+    if reliefLayout ~= nil then Builder.buildRelief(root, reliefLayout) end
     if parent:FindFirstChild('WildboundP0') then
         root:Destroy()
         error('WildboundP0 appeared during construction')

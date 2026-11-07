@@ -1,5 +1,6 @@
--- Standalone Studio test: require this module and call it with the builder module.
-return function(builder)
+-- Standalone Studio test: require this module and call it with the builder module and, for the relief cases (R3),
+-- the relief layout module (ServerStorage.WildboundReliefLayout).
+return function(builder, reliefLayout)
     local failures = {}
     local passed = 0
     local function check(name, callback)
@@ -250,7 +251,88 @@ return function(builder)
         expect(h01 and math.abs(h01.HideZone.Position.X - 34) < 0.01 and math.abs(h01.HideZone.Position.Z + 77) < 0.01, 'H01 at (34, -77)')
         holder:Destroy()
     end)
+    -- Expedition relief (R3): ridge segments of parts, patched onto a map once.
+    local function reliefRoot()
+        local holder = Instance.new('Folder')
+        local bare = Instance.new('Model')
+        bare.Name = 'WildboundP0'
+        bare.Parent = holder
+        return holder, bare, builder.buildRelief(bare, reliefLayout)
+    end
+    local function reliefParts(relief)
+        local parts = {}
+        for _, item in ipairs(relief:GetDescendants()) do
+            if item:IsA('BasePart') then table.insert(parts, item) end
+        end
+        return parts
+    end
+    check('R3: relief parts are anchored, collide and query, never touch', function()
+        expect(type(reliefLayout) == 'table', 'relief layout missing')
+        local holder, _, relief = reliefRoot()
+        expect(relief and relief.Name == 'Relief', 'buildRelief returns the Relief folder')
+        local parts = reliefParts(relief)
+        expect(#parts > 0, 'relief has parts')
+        for _, item in ipairs(parts) do
+            expect(item.Anchored and item.CanCollide and item.CanQuery and not item.CanTouch, item:GetFullName())
+            expect(item.Material == Enum.Material.Grass, item:GetFullName() .. ' must be grass')
+        end
+        holder:Destroy()
+    end)
+    check('R3: part count within 250', function()
+        local holder, _, relief = reliefRoot()
+        local count = #reliefParts(relief)
+        expect(count == #reliefLayout.segments * 9, ('9 parts per segment, got %d for %d'):format(count, #reliefLayout.segments))
+        expect(count <= 250, 'over the 250-part budget: ' .. count)
+        holder:Destroy()
+    end)
+    check('R3: a downward ray hits each crest at heightAt within 0.1 (parked folder)', function()
+        local holder, _, relief = reliefRoot()
+        local arena = Instance.new('Folder')
+        arena.Name = 'WildboundReliefProbe_' .. game:GetService('HttpService'):GenerateGUID(false)
+        local offset = Vector3.new(5000, 0, 5000)
+        for _, ridge in ipairs(relief:GetChildren()) do ridge:PivotTo(ridge:GetPivot() + offset) end
+        relief.Parent = arena
+        arena.Parent = workspace
+        local params = RaycastParams.new()
+        params.FilterType = Enum.RaycastFilterType.Include
+        params.FilterDescendantsInstances = { arena }
+        local ok, err = pcall(function()
+            for index, sample in ipairs(reliefLayout.samples) do
+                local hit = workspace:Raycast(Vector3.new(sample.x, 40, sample.z) + offset, Vector3.new(0, -60, 0), params)
+                local y = hit and hit.Position.Y or 0.5
+                expect(math.abs(y - sample.y) <= 0.1, ('sample %d at %.2f, %.2f: ray %.3f, heightAt %.3f'):format(index, sample.x, sample.z, y, sample.y))
+            end
+        end)
+        arena:Destroy()
+        holder:Destroy()
+        expect(ok, tostring(err))
+    end)
+    check('R3: a second relief build is refused', function()
+        local holder, bare, relief = reliefRoot()
+        expect(not pcall(function() builder.buildRelief(bare, reliefLayout) end), 'a second relief is refused')
+        expect(bare:FindFirstChild('Relief') == relief and #bare:GetChildren() == 1, 'the first relief stays intact')
+        local empty = Instance.new('Model')
+        expect(not pcall(function() builder.buildRelief(empty, nil) end), 'a missing layout is refused')
+        expect(empty:FindFirstChild('Relief') == nil, 'a refused build leaves nothing behind')
+        empty:Destroy()
+        holder:Destroy()
+    end)
+    check('R3: camp stations still clear of every relief part', function()
+        local holder, _, relief = reliefRoot()
+        for _, item in ipairs(reliefParts(relief)) do
+            -- The part's footprint edges, sampled: every point stays outside both safe circles plus 3 studs.
+            for i = 0, 8 do
+                for _, edge in ipairs({ { i / 8 - 0.5, -0.5 }, { i / 8 - 0.5, 0.5 }, { -0.5, i / 8 - 0.5 }, { 0.5, i / 8 - 0.5 } }) do
+                    local point = item.CFrame:PointToWorldSpace(Vector3.new(edge[1] * item.Size.X, 0, edge[2] * item.Size.Z))
+                    for _, circle in ipairs({ { -140, 140, 35 }, { 105, 125, 22 } }) do
+                        local gap = Vector2.new(point.X - circle[1], point.Z - circle[2]).Magnitude
+                        expect(gap >= circle[3] + 3, item:GetFullName() .. ' inside a safe circle plus 3')
+                    end
+                end
+            end
+        end
+        holder:Destroy()
+    end)
     container:Destroy()
     return { passed = passed, failed = #failures, failures = failures }
 end
-
