@@ -81,6 +81,10 @@ DEFAULT_MAPPINGS = [
         "src/wildbound/WildboundCapture.client.luau",
         "StarterPlayer.StarterPlayerScripts.WildboundCaptureClient",
     ),
+    # M4.2 to M4.7, wave W6: server-only damage flag and pure fair-strike rules
+    ("src/wildbound/WildboundFlags.luau", "ServerScriptService.WildboundFlags"),
+    ("src/wildbound/WildboundFairStrike.luau", "ServerScriptService.WildboundFairStrike"),
+    ("tests/WildboundFairStrike_Test.luau", "ServerStorage.WildboundFairStrike_Test"),
 ]
 
 

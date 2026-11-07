@@ -6,6 +6,7 @@ local ServerStorage = game:GetService("ServerStorage")
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Hunt = require(script.Parent:WaitForChild("WildboundSiluetaHunt"))
 local Awareness = require(script.Parent:WaitForChild("WildboundSiluetaAwareness"))
+local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
@@ -32,9 +33,13 @@ local actionRemote, stateRemote = Instance.new("RemoteEvent"), Instance.new("Rem
 actionRemote.Name, stateRemote.Name = "WorldAction", "WorldState"
 actionRemote.Parent, stateRemote.Parent = network, network
 local originTime = workspace:GetServerTimeNow()
--- No trustworthy client-loaded receipt exists yet. Do not damage unseen streaming targets.
-local damageEnabled = not workspace.StreamingEnabled
-runtime:SetAttribute("DamageEnabled", damageEnabled)
+-- Damage never follows streaming. A missing or unreadable flag module means off, which is shadow mode
+-- (M4.2). The attribute and payload only report the result; nothing reads them back to decide.
+local flagsModule = script.Parent:FindFirstChild("WildboundFlags")
+local flagsOk, flags = false, nil
+if flagsModule and flagsModule:IsA("ModuleScript") then flagsOk, flags = pcall(require, flagsModule) end
+local damageMode, flagMisconfigured = FairStrike.effectiveMode(flagsOk and flags or nil, game.PlaceId)
+runtime:SetAttribute("DamageEnabled", damageMode == "private")
 runtime:SetAttribute("NightRewardsEnabled", false)
 runtime:SetAttribute("CycleStartedAt", originTime)
 
@@ -206,10 +211,17 @@ local function snapshot(player, action, ok, notice, noticeShort)
 		-- The attack deadline travels only inside this player's awareness, never to everyone (M2.2).
 		guardian = { state = mode, distance = distance, threat = Rules.isThreat(mode, root ~= nil, isFog, isSafe, distance),
 			revealedUntil = revealedUntil, awareness = Awareness.toSnapshot(awarenessResults[player.UserId]) },
-		nightRewardsEnabled = false, damageEnabled = damageEnabled,
+		nightRewardsEnabled = false, damageEnabled = damageMode == "private",
 		action = action or "WorldTick", ok = ok ~= false, notice = notice or "",
 		noticeShort = noticeShort or notice or "",
 	})
+end
+
+-- The only path to harm. Shadow mode returns before touching any Humanoid (M4.2, FS-03).
+local function applyRealStrike(context)
+	if damageMode ~= "private" then return false end
+	context.humanoid:TakeDamage(Rules.DAMAGE)
+	return true
 end
 
 local function step(now, dt)
@@ -282,10 +294,7 @@ local function step(now, dt)
 			-- Presentation may finish a validated warning even while streaming safety blocks damage.
 			local completedPresentation = latest and Rules.canStrike(now, telegraphEndsAt, lastAttackAt,
 				latest.distance, true, false, true)
-			if latest and damageEnabled and Rules.canStrike(now, telegraphEndsAt, lastAttackAt,
-				latest.distance, true, false, true) then
-				latest.humanoid:TakeDamage(Rules.DAMAGE)
-			end
+			if latest and completedPresentation then applyRealStrike(latest) end
 			-- A resolved strike ends that player's capture whether or not damage is on (M3.3).
 			if completedPresentation and strikeEvent then strikeEvent:Fire(latest.player) end
 			lastAttackAt = now
