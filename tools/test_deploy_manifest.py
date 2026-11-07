@@ -309,6 +309,9 @@ class DefaultMappingTests(unittest.TestCase):
         # Delivery B3 to B5: pure camp rules (deposit, card, display spots, companion offset), shared with the clients
         "src/wildbound/WildboundRefuge.luau": "ReplicatedStorage.WildboundRefuge",
         "tests/WildboundRefuge_Test.luau": "ServerStorage.WildboundRefuge_Test",
+        # Delivery C1: pure guardian brain (suspicion, noises, search, day and night profiles), server only
+        "src/wildbound/WildboundGuardianBrain.luau": "ServerScriptService.WildboundGuardianBrain",
+        "tests/WildboundGuardianBrain_Test.luau": "ServerStorage.WildboundGuardianBrain_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
