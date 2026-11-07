@@ -1,0 +1,383 @@
+{
+  "guardians": {
+    "GD_Yeti": {
+      "model": {
+        "triangles": 1330,
+        "size": [
+          11.0,
+          9.0,
+          11.0
+        ],
+        "min_z": 0.0,
+        "bones": [
+          "Root",
+          "Pelvis",
+          "Spine",
+          "Chest",
+          "Neck",
+          "Head",
+          "UpperArm.L",
+          "Forearm.L",
+          "Hand.L",
+          "UpperArm.R",
+          "Forearm.R",
+          "Hand.R",
+          "Thigh.L",
+          "Shin.L",
+          "Foot.L",
+          "Thigh.R",
+          "Shin.R",
+          "Foot.R"
+        ],
+        "objects": [
+          "GD_Yeti",
+          "GD_Yeti_Hands",
+          "GD_Yeti_Hide",
+          "GD_Yeti_Ice",
+          "GD_Yeti_Mask",
+          "GD_Yeti_Neon_Eye"
+        ],
+        "materials": [
+          "GD_Yeti_Hands",
+          "GD_Yeti_Hide",
+          "GD_Yeti_Ice",
+          "GD_Yeti_Mask",
+          "GD_Yeti_Neon_Eye"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 1330,
+          "size": [
+            11.0,
+            9.1753,
+            11.0
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Stalk": {
+          "triangles": 1330,
+          "size": [
+            11.0,
+            9.0,
+            11.0
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        },
+        "Sniff": {
+          "triangles": 1330,
+          "size": [
+            11.0,
+            9.3381,
+            11.1072
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Telegraph": {
+          "triangles": 1330,
+          "size": [
+            11.0,
+            9.0,
+            11.0
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 55,
+          "frame_range": [
+            2.0,
+            56.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 1.8
+        },
+        "Charge": {
+          "triangles": 1330,
+          "size": [
+            14.8452,
+            12.2311,
+            11.0787
+          ],
+          "min_z": 0.3004,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 31,
+          "frame_range": [
+            2.0,
+            32.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 1.0
+        },
+        "Recover": {
+          "triangles": 1330,
+          "size": [
+            14.8452,
+            12.2311,
+            11.0787
+          ],
+          "min_z": 0.3004,
+          "bones": [
+            "Root",
+            "Pelvis",
+            "Spine",
+            "Chest",
+            "Neck",
+            "Head",
+            "UpperArm.L",
+            "Forearm.L",
+            "Hand.L",
+            "UpperArm.R",
+            "Forearm.R",
+            "Hand.R",
+            "Thigh.L",
+            "Shin.L",
+            "Foot.L",
+            "Thigh.R",
+            "Shin.R",
+            "Foot.R"
+          ],
+          "objects": [
+            "GD_Yeti",
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "materials": [
+            "GD_Yeti_Hands",
+            "GD_Yeti_Hide",
+            "GD_Yeti_Ice",
+            "GD_Yeti_Mask",
+            "GD_Yeti_Neon_Eye"
+          ],
+          "actions": [
+            "GD_Yeti|WildboundGuardians"
+          ],
+          "animated_channels": 189,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
+    }
+  }
+}
