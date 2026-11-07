@@ -1,0 +1,11 @@
+# Lumipol forest sprite
+
+User authorized a local Blender model based on the supplied creature sheet. This sheet supersedes the cream cube as the target for this variant. Preserve v1, existing rigs, open scenes, and Studio. No uploads, rigging, or game changes.
+
+- [x] LFS-1: Build an editable, reference-matched Lumipol and verify a saved Blender file, three rendered angles, and mesh checks. Delegated direct: one writer owned the new generator and outputs; parent reviewed the four actual renders and integrated. Work-unit commit: `eaf704d`.
+- Acceptance: rounded turquoise quadruped, large blue eyes, scalloped mantle, three veined petals per side, two curved cyan-tipped antennae, chest gem and leaf-bud tail. Achieved as a stylized approximation, not a replica. The side view still exposes leg seams and a partially detached tail vein.
+- Verification: Blender 5.1 background factory-startup generation using `tools/build-lumipol-forest-sprite.py` and native reopening passed. Confirmed 115 editable parts, four paws, four leg bridges, six petals, two stalks and a compositor. Parent inspected three-quarter, front, side and rear renders and independently checked their SHA-256 hashes and the .blend hash against the JSON report. v1 SHA-256 unchanged. `git diff --cached --check` passed. Initial Blender compositor attempts failed on 5.1 API differences and succeeded after using `scene.compositing_node_group` with glare input sockets.
+- Runtime boundary: local static art only. Geometry audit reported 106,172 evaluated triangles and 2,208 non-manifold curve edges. Overlapping parts are not unioned. Clean up geometry and bake portable materials before any rig/export/import; Roblox scale and Studio transfer were not tested.
+- Rollback: only `tools/build-lumipol-forest-sprite.py` and the six `assets/blender/lumipol-forest-sprite-v2*` outputs, subject to any subsequent edits. v1 and Studio were not touched.
+
+TDD: no game test runner applies to visual-only art; native Blender build/reopen, evaluated geometry, visual checks and artifact integrity exercised. RDD: disabled/unmanaged (clone-local reported; native diagnostic also reported Git-directory access denied in sandbox). Delivery: ask-on-risk; 194 authored generator lines plus this tracker, below the threshold (generated JSON, renders and .blend excluded). No push, PR or publish.
