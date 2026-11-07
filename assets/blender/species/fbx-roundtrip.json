@@ -1148,6 +1148,123 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Vetilla": {
+      "model": {
+        "triangles": 564,
+        "size": [
+          1.8,
+          5.0,
+          1.6
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "Head",
+          "TailA",
+          "TailB",
+          "TailC",
+          "LegFL",
+          "LegFR",
+          "LegBL",
+          "LegBR"
+        ],
+        "objects": [
+          "SP_Vetilla",
+          "SP_Vetilla_Body",
+          "SP_Vetilla_Neon_Crystal"
+        ],
+        "materials": [
+          "SP_Vetilla_Body",
+          "SP_Vetilla_Neon_Crystal"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 564,
+          "size": [
+            1.8624,
+            4.9482,
+            1.6
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "Head",
+            "TailA",
+            "TailB",
+            "TailC",
+            "LegFL",
+            "LegFR",
+            "LegBL",
+            "LegBR"
+          ],
+          "objects": [
+            "SP_Vetilla",
+            "SP_Vetilla_Body",
+            "SP_Vetilla_Neon_Crystal"
+          ],
+          "materials": [
+            "SP_Vetilla_Body",
+            "SP_Vetilla_Neon_Crystal"
+          ],
+          "actions": [
+            "SP_Vetilla|WildboundSpecies"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 564,
+          "size": [
+            1.8,
+            4.8546,
+            1.6
+          ],
+          "min_z": -0.0,
+          "bones": [
+            "Root",
+            "Body",
+            "Head",
+            "TailA",
+            "TailB",
+            "TailC",
+            "LegFL",
+            "LegFR",
+            "LegBL",
+            "LegBR"
+          ],
+          "objects": [
+            "SP_Vetilla",
+            "SP_Vetilla_Body",
+            "SP_Vetilla_Neon_Crystal"
+          ],
+          "materials": [
+            "SP_Vetilla_Body",
+            "SP_Vetilla_Neon_Crystal"
+          ],
+          "actions": [
+            "SP_Vetilla|WildboundSpecies"
+          ],
+          "animated_channels": 109,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }

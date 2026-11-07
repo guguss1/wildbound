@@ -81,6 +81,11 @@ SPECS = {
                   "Neon_Eye": ("E2803B", 50)},
         "bones": ("Root", "Body", "Head", "ShinL", "FootL", "ShinR", "FootR", "Tail"),
     },
+    "SP_Vetilla": {
+        "size": (1.8, 5.0, 1.6), "tris": 600,
+        "parts": {"Body": ("4E4A48", 340), "Neon_Crystal": ("3FBFA8", 260)},
+        "bones": ("Root", "Body", "Head", "TailA", "TailB", "TailC", "LegFL", "LegFR", "LegBL", "LegBR"),
+    },
 }
 
 

@@ -64,6 +64,7 @@ SPECS = {
                       "colors": {"Log": "241F1D", "Legs": "3A3330", "Neon_Ember": "C8481A"}},
     "SP_Humarel": {"size": (2.4, 3.0, 3.8),
                    "colors": {"Body": "6F6863", "Feet": "2E2B2C", "Tail": "A8A29C", "Neon_Eye": "E2803B"}},
+    "SP_Vetilla": {"size": (1.8, 5.0, 1.6), "colors": {"Body": "4E4A48", "Neon_Crystal": "3FBFA8"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -547,10 +548,48 @@ def build_humarel():
     return asset
 
 
+def build_vetilla():
+    asset = Asset("SP_Vetilla", seed=111)
+    body, crystals = asset.part("Body"), asset.part("Neon_Crystal")
+    spine = kc.chain(("Head", "Body", "TailA", "TailB", "TailC"), (-1.4, -0.3, 1.3, 1.9, 2.5), axis=1)
+    along = kc.basis((0, -1, 0))
+
+    # Flat, long lizard: flattened torso, wedge head and a tapering tail, all weighted along Y.
+    lathe(body, kc.arc_profile(0.6, 1.15, 6), 8, spine, center=(0, 0.1, 0.5), frame=along, scale=(1.0, 0.45))
+    lathe(body, kc.arc_profile(0.42, 0.6, 4), 8, spine, center=(0, -1.5, 0.5), frame=along, scale=(1.0, 0.5))
+    tube(body, [(0, 1.1, 0.5), (0, 1.55, 0.46), (0, 2.0, 0.42), (0, 2.45, 0.36), (0, 2.8, 0.3), (0, 3.0, 0.26)],
+         [0.36, 0.3, 0.24, 0.17, 0.1, 0.0], 6, spine, squash=1.4)
+
+    # Four sprawled legs with flat toe pads.
+    legs = (("LegFL", 1, -0.8), ("LegFR", -1, -0.8), ("LegBL", 1, 0.9), ("LegBR", -1, 0.9))
+    for name, side, y in legs:
+        weigh = rigid(name)
+        tube(body, [(side * 0.4, y, 0.38), (side * 0.68, y - 0.1, 0.3), (side * 0.78, y - 0.25, 0.06)],
+             [0.1, 0.09, 0.08], 4, weigh)
+        kc.box(body, (side * 0.8, y - 0.3, 0.04), (0.3, 0.45, 0.08), weigh)
+
+    # Five crystal fins along the spine: two crystals and a small shard each.
+    for index, (y, height) in enumerate(((-0.75, 0.8), (-0.1, 0.98), (0.55, 1.02), (1.2, 0.85), (1.85, 0.6))):
+        side = 1 if index % 2 == 0 else -1
+        kc.crystal(crystals, (0, y, 0.62), (0, 0.28, 1), 0.13, height, spine)
+        kc.crystal(crystals, (side * 0.12, y + 0.05, 0.6), (side * 0.5, 0.2, 1), 0.1, height * 0.7, spine)
+        pyramid(crystals, (-side * 0.1, y - 0.05, 0.6), (-side * 0.4, 0.3, 1), 0.07, height * 0.3, spine, sides=4)
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.4))
+    asset.bone("Body", "Root", (0, -0.3, 0.5), (0, 0.9, 0.5))
+    asset.bone("Head", "Body", (0, -1.2, 0.5), (0, -2.0, 0.5))
+    asset.bone("TailA", "Body", (0, 1.3, 0.48), (0, 1.9, 0.44))
+    asset.bone("TailB", "TailA", (0, 1.9, 0.44), (0, 2.5, 0.38))
+    asset.bone("TailC", "TailB", (0, 2.5, 0.38), (0, 2.95, 0.3))
+    for name, side, y in legs:
+        asset.bone(name, "Body", (side * 0.4, y, 0.38), (side * 0.78, y - 0.25, 0.06))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
             "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo,
             "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo, "SP_Tizoncillo": build_tizoncillo,
-            "SP_Humarel": build_humarel}
+            "SP_Humarel": build_humarel, "SP_Vetilla": build_vetilla}
 ORDER = tuple(SPECS)
 
 

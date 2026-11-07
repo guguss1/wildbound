@@ -35,6 +35,7 @@ BONES = {
     "SP_Tinajuelo": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
     "SP_Tizoncillo": ("Root", "Body", "LegFL", "LegFR", "LegBL", "LegBR"),
     "SP_Humarel": ("Root", "Body", "Head", "ShinL", "FootL", "ShinR", "FootR", "Tail"),
+    "SP_Vetilla": ("Root", "Body", "Head", "TailA", "TailB", "TailC", "LegFL", "LegFR", "LegBL", "LegBR"),
 }
 
 
@@ -193,6 +194,27 @@ MOTION = {
             "FootL": (term("rx", -0.15, 2, 0.25, "lift"),),
             "FootR": (term("rx", -0.15, 2, 0.25, "lift"),),
             "Tail": (term("rx", 0.20, 2, 0.30), term("rz", 0.10, 1, 0.0)),
+        },
+    },
+    # A flat crawling lizard: the spine and tail ripple, legs sprawl in a diagonal gait.
+    "SP_Vetilla": {
+        "Idle": {
+            "Body": (term("rx", 0.02, 1, 0.0), term("rz", 0.03, 1, 0.25)),
+            "Head": (term("rz", 0.10, 1, 0.10), term("rx", 0.04, 1, 0.30)),
+            "TailA": (term("rz", 0.10, 1, 0.15),),
+            "TailB": (term("rz", 0.15, 1, 0.30),),
+            "TailC": (term("rz", 0.20, 1, 0.45),),
+        },
+        "Move": {
+            "Body": (term("rz", 0.06, 1, 0.0), term("lz", 0.02, 2, 0, "rise")),
+            "Head": (term("rz", -0.12, 1, 0.10),),
+            "TailA": (term("rz", 0.20, 1, 0.15),),
+            "TailB": (term("rz", 0.30, 1, 0.30),),
+            "TailC": (term("rz", 0.40, 1, 0.45),),
+            "LegFL": (term("rz", 0.45, 1, 0.0),),
+            "LegBR": (term("rz", -0.45, 1, 0.0),),
+            "LegFR": (term("rz", -0.45, 1, 0.5),),
+            "LegBL": (term("rz", 0.45, 1, 0.5),),
         },
     },
 }

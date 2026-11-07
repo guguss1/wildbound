@@ -1115,6 +1115,101 @@
           "lowest_z": -0.0655
         }
       }
+    },
+    "SP_Vetilla": {
+      "status": "unvalidated",
+      "triangles": 564,
+      "size": [
+        1.8,
+        5.0,
+        1.6
+      ],
+      "bbox_min": [
+        -0.9,
+        -1.8137,
+        0.0
+      ],
+      "bbox_max": [
+        0.9,
+        3.1863,
+        1.6
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        0.9474,
+        0.9804,
+        0.9986
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "Head",
+        "TailA",
+        "TailB",
+        "TailC",
+        "LegFL",
+        "LegFR",
+        "LegBL",
+        "LegBR"
+      ],
+      "parts": [
+        {
+          "object": "SP_Vetilla_Body",
+          "material": "SP_Vetilla_Body",
+          "material_count": 1,
+          "triangles": 314,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "4E4A48",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Vetilla_Neon_Crystal",
+          "material": "SP_Vetilla_Neon_Crystal",
+          "material_count": 1,
+          "triangles": 250,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "3FBFA8",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Vetilla.fbx",
+        "Idle": "assets/exports/species/SP_Vetilla_Idle.fbx",
+        "Move": "assets/exports/species/SP_Vetilla_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Vetilla.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Vetilla_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0219
+        },
+        "Move": {
+          "action": "SP_Vetilla_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": 0.0
+        }
+      }
     }
   }
 }
