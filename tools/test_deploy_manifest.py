@@ -330,6 +330,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundAudioCatalog.luau": "ReplicatedStorage.WildboundAudioCatalog",
         "src/wildbound/WildboundAudioMix.luau": "ReplicatedStorage.WildboundAudioMix",
         "tests/WildboundAudioMix_Test.luau": "ServerStorage.WildboundAudioMix_Test",
+        # Delivery D10: the horror audio controller and its source contracts
+        "src/wildbound/WildboundAudio.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundAudioClient",
+        "tests/WildboundAudioWiring_Test.luau": "ServerStorage.WildboundAudioWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
