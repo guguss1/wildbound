@@ -1074,6 +1074,8 @@ local function updateCarryMoods(now)
 			local inFog, safe = Rules.zone(position.X, position.Z)
 			local mood = Carry.mood({ mode = mode, distance = distance, inFog = inFog, safe = safe,
 				alive = context(player) == true })
+			-- Dread pass (D-D5): a creature frightened by sprinting stays afraid until it settles.
+			if record.stamina and record.stamina.warned then mood = "afraid" end
 			if capsule:GetAttribute("Mood") ~= mood then paintCapsule(capsule, mood) end
 			record.sound = record.sound or Carry.newSoundMemory()
 			local cue = Carry.soundCue(record.sound, mood, now)

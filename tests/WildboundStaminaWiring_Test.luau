@@ -47,6 +47,9 @@ return function(serverSource, worldSource, clientSource, Text)
 		has(serverSource, "Text.STAMINA.slipWarning")
 		has(serverSource, "state:releaseCarried(player.UserId)")
 		has(serverSource, "Text.STAMINA.slipped")
+		-- Found in Play: the threat-based mood repainted the capsule calm 0.2 s after the warning. A warned
+		-- creature now stays afraid until it settles, so the warning shows on the capsule too.
+		has(serverSource, 'if record.stamina and record.stamina.warned then mood = "afraid" end')
 	end)
 
 	case("D3: the world server lets a sprint reach the guardian", function()
