@@ -699,26 +699,35 @@ def render_species(collections, built, dumps):
 
 
 def render_lineup(collections, report, dumps):
+    """Species in a row that runs across the screen: spaced along the camera's right axis."""
     from mathutils import Vector
     scene = bpy.data.scenes.new("SP_Lineup")
     kc.set_render_engine(scene)
     camera = kc.add_studio(scene)
     block, corners, half = kc.make_scale_block(scene)
+    right = Vector((math.cos(kc.CAMERA_AZIMUTH), math.sin(kc.CAMERA_AZIMUTH), 0.0))
     points = [Vector(c) for c in corners]
-    cursor, gap = half + 1.6, 1.6
+    cursor, gap = 1.6, 1.0
+    block.location = right * (-half - 0.5)
+    points = [Vector(c) + block.location for c in corners]
     for name in collections:
-        info = report[name]
-        offset = cursor - info["bbox_min"][0]
+        vertices = [Vector(v) for part in dumps[name]["parts"].values() for v in part["vertices"]]
+        shadows = [right.dot(v) for v in vertices]
+        offset = cursor - min(shadows)
         instance = bpy.data.objects.new(f"{name}_Lineup", None)
         instance.instance_type = "COLLECTION"
         instance.instance_collection = collections[name]
-        instance.location = (offset, 0.0, 0.0)
+        instance.location = right * offset
         scene.collection.objects.link(instance)
-        points.extend(Vector(v) + Vector((offset, 0.0, 0.0))
-                      for part in dumps[name]["parts"].values() for v in part["vertices"])
-        cursor = offset + info["bbox_max"][0] + gap
-    kc.frame_camera(camera, points, 2400, 800, margin=1.05)
-    kc.render_to(scene, LINEUP, 2400, 800)
+        points.extend(v + instance.location for v in vertices)
+        cursor += max(shadows) - min(shadows) + gap
+    kc.frame_camera(camera, points, 2800, 700, margin=1.05)
+    hidden = [o for c in collections.values() for o in c.objects if o.get("default_hidden")]
+    for obj in hidden:
+        obj.hide_render = True
+    kc.render_to(scene, LINEUP, 2800, 700)
+    for obj in hidden:
+        obj.hide_render = False
 
 
 def build():
