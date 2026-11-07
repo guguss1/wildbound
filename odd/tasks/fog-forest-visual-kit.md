@@ -35,8 +35,8 @@ The greybox uses plain trunks and spheres, so it does not read as the intended f
 - [x] T1 Connect Studio MCP in this session. Route: inline. Evidence: `list_roblox_studios` and a read-only `execute_luau` both answered on 2026-11-07. Blender MCP stays optional and untouched; headless Blender is the working route.
 - [x] T2 Verify Studio instance and place, and get user confirmation. Route: inline. Evidence: user confirmed target and Codex paused on 2026-11-07.
 - [x] T3 Model the kit headless with spec tests and renders. Route: delegated, Opus high, one writer.
-- [ ] T4 Review renders with the user. Route: inline.
-- [ ] T5 Get upload consent, import the kit, and dress the map in Studio. Route: delegated, one Studio writer.
+- [x] T4 Review renders with the user. Route: inline. Evidence: user approved placing the props on 2026-11-07.
+- [x] T5 Get upload consent, import the kit, and dress the map in Studio. Route: import inline, dressing delegated to one Sonnet Studio writer. Commit `13086db`.
 - [x] T6 Move the nest with a failing map test first in source and Studio builder. Route: inline, three mechanical edits. The live `Workspace.WildboundP0` is rebuilt with the T5 dressing step.
 - [ ] T7 Lighting pass and day and night captures, desktop and phone emulation. Route: delegated.
 
@@ -67,4 +67,9 @@ Started 2026-11-07.
   - Studio captures: `assets/exports/forest-kit/captures/`. A minimized Studio window or an open modal gives blank white captures.
 - T6 test: `tests/WildboundP0Map_Test.luau` now expects the nest at (35, -99) and adds a leash and nest ring check. RED on fresh clones: 2 failed, 4 passed, both failures on nest position. GREEN after `tools/build-wildbound-p0-map.luau` lines 19, 101 and 119: 6 passed, 0 failed. The live root has the same class and name inventory as a fresh build, so a rebuild loses no manual additions by name and class.
 - Delivery note: the originating session relayed the user's local commit approval and asked for a work-unit commit per task, by exact path, never staging `.rbxl`, with no AI attribution. T6 commit: `8ae35d3`. Native review mode read off, decided by global, so no review candidate was opened.
-- Next step: T4. Waiting for the user to approve the props seen in the Studio captures before placing them. Then rebuild the live root and dress it from `assets/maps/forest-layout/forest-layout-v1.json`.
+- T5 dressing: live root rebuilt and dressed with 207 props. Dress test RED 2 passed 22 failed, then GREEN 24 of 24; map test 6 of 6; parent reran both on fresh clones with the same result. Backup after apply: `assets/exports/wildbound-dressed-forest-20261107.rbxl`.
+  - LOS decision: only `FK_Evergreen_Trunk` and `FK_DeadTree_Wood` have CanQuery on, with `PreciseConvexDecomposition`. Measured: nest clear from patrol E and N, blocked by a pillar from S and W, as planned. All 172 trunks block at eye height. Canopy, log, arch, doorway and lantern do not.
+  - Open: `moveToward` also raycasts, so trunks can stop the guardian. Territory has 38 query trunks against 18 before. Parent reading: during direct chase the sight ray and step share a line, so stalls should be rare, but this is unmeasured. Measure in T7 Play.
+  - Known minor: arch root toes touch the path edge; two models' part boxes cross the map edge by 0.6 studs or less; `tools/export_forest_layout_luau.py` has no unit test, only a checksum check.
+  - A computer-use screenshot of Studio can show a stale viewport. `screen_capture` and data-model readback are the evidence.
+- Next step: T7 lighting, Play walk and final captures.

@@ -38,6 +38,8 @@ All follow the roadmap section 5 recommendation. All values are hypotheses and c
 | D16 | Keep binaries in git for now. |
 
 Not taken: D8 isolated experience, D9 tool installs, D12 testers, D13 languages, D15 final thresholds. These need the user.
+
+Expansion bible `docs/design/wildbound-expansion-bible.md` section 8, taken the same way: X1 whole direction as local drafts, wider than its recommendation because the user asked for more biomes and creatures. X2 hybrid, re-decided after phone measurement, and only needed by W17. X3 all eleven species, built in the bible's order. X4 keep El Vigia's "moves only unseen" rule with the plinth and surveyor changes, with an IP check before release. X5 keep names, trademark search before release. X6 hostile night only in Fog Forest, Ruins and Abyss. X7 no optional guardians yet. X8 keep "Demon Abyss" internally. X9 accept caps as ceilings. X10 accept contextual phone buttons.
 - Original IP only. No recreation of existing games, characters or art. Designs are proposals until the user approves them.
 - Strict TDD with observed RED and GREEN. Studio target is reconfirmed in each new session.
 - Commits per work unit by exact path, no `.rbxl`, no AI attribution, no push.
@@ -64,8 +66,8 @@ Not taken: D8 isolated experience, D9 tool installs, D12 testers, D13 languages,
 | W9 | 9 | Start screen, tutorial, quick bar, settings, M8.5, M8.6 | Sonnet, Studio writer | After W7 preferred |
 | W10 | 10 | Persistence schema, fake-store contracts, M6.1, M6.2 | Opus high | Pending |
 | F1 | Gate | Ten testers. Agents prepare the kit and analyze results | Humans | Needs people |
-| W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Running |
-| W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | After W11 |
+| W11 | 11 | Expansion bible: biomes, species, guardians, Blender specs | Opus high | Done, read by parent |
+| W12 | 12 | New species models and rigs, local, E1 | Sonnet, Blender | Running |
 | W13 | 13 | El Vigia and Yeti models and rigs, local, E3, E5 | Sonnet, Blender | After W11 |
 | W14 | 14 | Living Forest and Frozen Mountains kits and layout plans, local, E4, E5 | Sonnet, Blender | After W11 |
 | W15 | 15 | Rock and Caves, Volcanic Lands, Cryptic Ruins, Demon Abyss kits, local, E6 | Sonnet, Blender | After W14 |
