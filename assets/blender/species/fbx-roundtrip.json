@@ -1025,6 +1025,129 @@
           "duration_seconds": 2.0
         }
       }
+    },
+    "SP_Humarel": {
+      "model": {
+        "triangles": 504,
+        "size": [
+          2.4,
+          3.0,
+          3.8
+        ],
+        "min_z": -0.0,
+        "bones": [
+          "Root",
+          "Body",
+          "Head",
+          "ShinL",
+          "FootL",
+          "ShinR",
+          "FootR",
+          "Tail"
+        ],
+        "objects": [
+          "SP_Humarel",
+          "SP_Humarel_Body",
+          "SP_Humarel_Feet",
+          "SP_Humarel_Neon_Eye",
+          "SP_Humarel_Tail"
+        ],
+        "materials": [
+          "SP_Humarel_Body",
+          "SP_Humarel_Feet",
+          "SP_Humarel_Neon_Eye",
+          "SP_Humarel_Tail"
+        ],
+        "actions": []
+      },
+      "clips": {
+        "Idle": {
+          "triangles": 504,
+          "size": [
+            2.4,
+            2.875,
+            3.8249
+          ],
+          "min_z": -0.0454,
+          "bones": [
+            "Root",
+            "Body",
+            "Head",
+            "ShinL",
+            "FootL",
+            "ShinR",
+            "FootR",
+            "Tail"
+          ],
+          "objects": [
+            "SP_Humarel",
+            "SP_Humarel_Body",
+            "SP_Humarel_Feet",
+            "SP_Humarel_Neon_Eye",
+            "SP_Humarel_Tail"
+          ],
+          "materials": [
+            "SP_Humarel_Body",
+            "SP_Humarel_Feet",
+            "SP_Humarel_Neon_Eye",
+            "SP_Humarel_Tail"
+          ],
+          "actions": [
+            "SP_Humarel|WildboundSpecies"
+          ],
+          "animated_channels": 89,
+          "keyed_frames": 91,
+          "frame_range": [
+            2.0,
+            92.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 3.0
+        },
+        "Move": {
+          "triangles": 504,
+          "size": [
+            2.4,
+            2.7036,
+            3.8148
+          ],
+          "min_z": -0.0533,
+          "bones": [
+            "Root",
+            "Body",
+            "Head",
+            "ShinL",
+            "FootL",
+            "ShinR",
+            "FootR",
+            "Tail"
+          ],
+          "objects": [
+            "SP_Humarel",
+            "SP_Humarel_Body",
+            "SP_Humarel_Feet",
+            "SP_Humarel_Neon_Eye",
+            "SP_Humarel_Tail"
+          ],
+          "materials": [
+            "SP_Humarel_Body",
+            "SP_Humarel_Feet",
+            "SP_Humarel_Neon_Eye",
+            "SP_Humarel_Tail"
+          ],
+          "actions": [
+            "SP_Humarel|WildboundSpecies"
+          ],
+          "animated_channels": 89,
+          "keyed_frames": 61,
+          "frame_range": [
+            2.0,
+            62.0
+          ],
+          "scene_fps": 30,
+          "duration_seconds": 2.0
+        }
+      }
     }
   }
 }

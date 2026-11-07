@@ -1000,6 +1000,121 @@
           "lowest_z": -0.077
         }
       }
+    },
+    "SP_Humarel": {
+      "status": "unvalidated",
+      "triangles": 504,
+      "size": [
+        2.4,
+        3.0,
+        3.8
+      ],
+      "bbox_min": [
+        -1.2,
+        -1.1016,
+        -0.0
+      ],
+      "bbox_max": [
+        1.2,
+        1.8984,
+        3.8
+      ],
+      "base_center": [
+        0.0,
+        0.0
+      ],
+      "non_manifold_edges": 0,
+      "flat_shaded": true,
+      "transforms_applied": true,
+      "fit_scale": [
+        1.0526,
+        0.9375,
+        0.9949
+      ],
+      "bones": [
+        "Root",
+        "Body",
+        "Head",
+        "ShinL",
+        "FootL",
+        "ShinR",
+        "FootR",
+        "Tail"
+      ],
+      "parts": [
+        {
+          "object": "SP_Humarel_Body",
+          "material": "SP_Humarel_Body",
+          "material_count": 1,
+          "triangles": 248,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "6F6863",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Humarel_Feet",
+          "material": "SP_Humarel_Feet",
+          "material_count": 1,
+          "triangles": 100,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "2E2B2C",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Humarel_Tail",
+          "material": "SP_Humarel_Tail",
+          "material_count": 1,
+          "triangles": 116,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.0,
+          "color_hex": "A8A29C",
+          "default_hidden": false
+        },
+        {
+          "object": "SP_Humarel_Neon_Eye",
+          "material": "SP_Humarel_Neon_Eye",
+          "material_count": 1,
+          "triangles": 40,
+          "non_manifold_edges": 0,
+          "roughness": 0.92,
+          "emission_strength": 0.75,
+          "color_hex": "E2803B",
+          "default_hidden": false
+        }
+      ],
+      "fbx": {
+        "model": "assets/exports/species/SP_Humarel.fbx",
+        "Idle": "assets/exports/species/SP_Humarel_Idle.fbx",
+        "Move": "assets/exports/species/SP_Humarel_Move.fbx"
+      },
+      "render": "assets/blender/species/SP_Humarel.png",
+      "clips": {
+        "Idle": {
+          "action": "SP_Humarel_Idle",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 91,
+          "duration_seconds": 3.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0454
+        },
+        "Move": {
+          "action": "SP_Humarel_Move",
+          "fps": 30,
+          "frame_start": 1,
+          "frame_end": 61,
+          "duration_seconds": 2.0,
+          "finite": true,
+          "loop_endpoint_error": 0.0,
+          "lowest_z": -0.0655
+        }
+      }
     }
   }
 }

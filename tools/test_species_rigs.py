@@ -75,6 +75,12 @@ SPECS = {
         "parts": {"Log": ("241F1D", 340), "Legs": ("3A3330", 130), "Neon_Ember": ("C8481A", 80)},
         "bones": ("Root", "Body", "LegFL", "LegFR", "LegBL", "LegBR"),
     },
+    "SP_Humarel": {
+        "size": (2.4, 3.0, 3.8), "tris": 600,
+        "parts": {"Body": ("6F6863", 280), "Feet": ("2E2B2C", 130), "Tail": ("A8A29C", 140),
+                  "Neon_Eye": ("E2803B", 50)},
+        "bones": ("Root", "Body", "Head", "ShinL", "FootL", "ShinR", "FootR", "Tail"),
+    },
 }
 
 

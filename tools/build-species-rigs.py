@@ -62,6 +62,8 @@ SPECS = {
                      "colors": {"Jar": "A0694A", "Lid": "7C5038", "Arms": "6B4632", "Neon_NightEye": "8E5BD6"}},
     "SP_Tizoncillo": {"size": (3.0, 5.0, 2.6),
                       "colors": {"Log": "241F1D", "Legs": "3A3330", "Neon_Ember": "C8481A"}},
+    "SP_Humarel": {"size": (2.4, 3.0, 3.8),
+                   "colors": {"Body": "6F6863", "Feet": "2E2B2C", "Tail": "A8A29C", "Neon_Eye": "E2803B"}},
 }
 CLIPS = ("Idle", "Move")
 
@@ -503,9 +505,52 @@ def build_tizoncillo():
     return asset
 
 
+def build_humarel():
+    asset = Asset("SP_Humarel", seed=101)
+    body, feet, tail, eye = (asset.part(n) for n in ("Body", "Feet", "Tail", "Neon_Eye"))
+    on_body, on_head = rigid("Body"), rigid("Head")
+
+    # Upright egg body and a small head with two pointed ears.
+    lathe(body, kc.arc_profile(1.1, 0.95, 7), 10, on_body, center=(0, 0.1, 2.15), scale=(1.0, 0.9), phase=0.3)
+    lathe(body, kc.arc_profile(0.6, 0.5, 5), 8, on_head, center=(0, -0.25, 3.2))
+    for side in (-1, 1):
+        pyramid(body, (side * 0.3, -0.2, 3.58), (side * 0.3, 0.0, 1), 0.14, 0.25, on_head, sides=4)
+
+    # Thin shins, soft at the hip, ending inside the oversized feet.
+    for side, shin, foot in ((1, "ShinL", "FootL"), (-1, "ShinR", "FootR")):
+        x = 0.7 * side
+        top = blend("Body", shin, (x, 0.1, 1.5), (x, 0.05, 1.05), 0.0, 1.0)
+        tube(body, [(x, 0.1, 1.45), (x, 0.05, 0.9), (x, 0.0, 0.2)], [0.14, 0.12, 0.11], 5, top)
+        # Flat feet: long, with toes forward (-Y).
+        toes = [(-0.25, -0.5), (-0.4, 0.2), (-0.35, 1.0), (-0.2, 1.6), (0.0, 1.85), (0.2, 1.6), (0.35, 1.0),
+                (0.4, 0.2), (0.25, -0.5)]
+        slab(feet, [(a * 1.1, b) for a, b in toes], (x, 0.3, 0.0), (1, 0, 0), (0, -1, 0), (0, 0, 1), 0.18,
+             rigid(foot), bevel=0.3)
+
+    # Tail: a short stem that ends in an open faceted ring, like a smoke ring.
+    on_tail = rigid("Tail")
+    tube(tail, [(0, 0.85, 1.7), (0, 1.2, 1.95), (0, 1.45, 2.3)], [0.18, 0.15, 0.12], 4, on_tail)
+    torus(tail, (0, 1.55, 2.85), (1, 0, 0), (0, 0, 1), 0.5, 0.1, 12, 4, on_tail)
+
+    # Two orange eyes on the front of the head.
+    for side in (-1, 1):
+        lathe(eye, kc.arc_profile(0.14, 0.14, 3), 5, on_head, center=(side * 0.27, -0.72, 3.3), scale=(1.0, 0.8))
+
+    asset.bone("Root", None, (0, 0, 0), (0, 0, 0.5))
+    asset.bone("Body", "Root", (0, 0.1, 2.15), (0, -0.6, 2.15))
+    asset.bone("Head", "Body", (0, -0.1, 3.0), (0, -0.5, 3.5))
+    asset.bone("ShinL", "Body", (0.7, 0.1, 1.45), (0.7, 0.0, 0.3))
+    asset.bone("FootL", "ShinL", (0.7, 0.0, 0.3), (0.7, -0.9, 0.1))
+    asset.bone("ShinR", "Body", (-0.7, 0.1, 1.45), (-0.7, 0.0, 0.3))
+    asset.bone("FootR", "ShinR", (-0.7, 0.0, 0.3), (-0.7, -0.9, 0.1))
+    asset.bone("Tail", "Body", (0, 0.85, 1.7), (0, 1.55, 2.6))
+    return asset
+
+
 BUILDERS = {"SP_Soplillo": build_soplillo, "SP_Cortezon": build_cortezon, "SP_Cestillo": build_cestillo,
             "SP_Zancanieve": build_zancanieve, "SP_Polvilla": build_polvilla, "SP_Espejuelo": build_espejuelo,
-            "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo, "SP_Tizoncillo": build_tizoncillo}
+            "SP_Aldabon": build_aldabon, "SP_Tinajuelo": build_tinajuelo, "SP_Tizoncillo": build_tizoncillo,
+            "SP_Humarel": build_humarel}
 ORDER = tuple(SPECS)
 
 

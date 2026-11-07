@@ -34,6 +34,7 @@ BONES = {
     "SP_Aldabon": ("Root", "Body", "Ring", "LegL", "LegR"),
     "SP_Tinajuelo": ("Root", "Jar", "Lid", "ArmL", "ArmR"),
     "SP_Tizoncillo": ("Root", "Body", "LegFL", "LegFR", "LegBL", "LegBR"),
+    "SP_Humarel": ("Root", "Body", "Head", "ShinL", "FootL", "ShinR", "FootR", "Tail"),
 }
 
 
@@ -175,6 +176,23 @@ MOTION = {
             "LegBR": (term("rx", 0.35, 1, 0.0),),
             "LegFR": (term("rx", 0.35, 1, 0.5),),
             "LegBL": (term("rx", 0.35, 1, 0.5),),
+        },
+    },
+    # An upright hopper: crouches in place, then bounds along with the smoke-ring tail trailing.
+    "SP_Humarel": {
+        "Idle": {
+            "Body": (term("lz", 0.04, 1, 0, "rise"), term("rx", 0.03, 1, 0.25)),
+            "Head": (term("rx", 0.08, 1, 0.30), term("rz", 0.08, 1, 0.0)),
+            "Tail": (term("rx", 0.10, 1, 0.15), term("rz", 0.08, 1, 0.0)),
+        },
+        "Move": {
+            "Body": (term("lz", 0.40, 2, 0, "rise"), term("rx", 0.08, 2, 0.25)),
+            "Head": (term("rx", 0.10, 2, 0.40),),
+            "ShinL": (term("rx", -0.12, 2, 0.0, "lift"),),
+            "ShinR": (term("rx", -0.12, 2, 0.0, "lift"),),
+            "FootL": (term("rx", -0.15, 2, 0.25, "lift"),),
+            "FootR": (term("rx", -0.15, 2, 0.25, "lift"),),
+            "Tail": (term("rx", 0.20, 2, 0.30), term("rz", 0.10, 1, 0.0)),
         },
     },
 }
