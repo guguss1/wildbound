@@ -2,7 +2,47 @@
 
 Unit M5.1, wave W4a. Implements D5 and D10, and D4 and D14 where they touch rewards.
 
-**Status: proposal. All numbers are hypotheses. Nothing here is built, balanced or tested with people.** Written 2026-11-07 without Studio, then revised the same day because `tools/simulate_economy.py` showed the first version did not work. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
+**Status: partly built (W7 part 1, M5.2, M5.4, M5.5). All numbers are hypotheses, not balanced or tested with people.** Written 2026-11-07 without Studio, then revised the same day because `tools/simulate_economy.py` showed the first version did not work. Everything stays session-only until M6. **No monetization: no Robux, no paid items, no `MarketplaceService`.** Ember cannot be bought.
+
+## Build status, W7 part 1 (2026-11-07)
+
+| Built | Where | Proof |
+| --- | --- | --- |
+| Tuning copy of the JSON below, generated, never hand-edited | `src/wildbound/WildboundEconomyConfig.luau` by `tools/export_economy_config_luau.py`; `tools/test_export_economy_config_luau.py` fails on any drift | 11 Python tests |
+| Loss rule, capacities, carry speed, Ember, atomic payment | `src/wildbound/WildboundEconomy.luau` | 14 Studio contracts, incl. AFK-1 source checks |
+| Materials, Ember, gather claims, Nightbloom bundles, extraction, defeat loss, risk preview; seal fix (B8), crafting, totem, Reinforced Pack, capsule | `src/wildbound/WildboundState.luau` | 52 Studio contracts, incl. AFK-2 to AFK-6 |
+| Spawn pipeline: biome, zone, phase, weather, event; seeded | `src/wildbound/WildboundSpawn.luau` | 11 Studio contracts, 100,000 draws |
+| Server wiring: expedition tracking, actions, gather seam, carry speed, totem downside | `WildboundServer.server.luau`, `WildboundWorld.server.luau` | One solo Play, below |
+
+Not built: world nodes, Night resource on, skills, bond, camp screen, HUD loss display (part 2); 12-minute cycle (M5.7); D10 hold (M6.5). `nightRewardsEnabled` stays false.
+
+**Play, desktop Studio, damage off throughout.** Eight fog nodes through the seam paid 19 units and set walk speed 13; a repeat slot gave `AlreadyGathered`, a far claim `InvalidContext`. A 47 s, 369-stud materials-only trip extracted for 4 Ember and the first seal. Crafted a seal at camp, armed it, and the next egg was warded. Defeat through `Health = 0` lost 2 of 4 Glowmoss and 2 of 3 Fogbark, kept the egg, spent one seal, kept Ember and banked materials. No errors or warnings. Not run in Play: totem, capsule, pack, two players, phones.
+
+**Where this document proved wrong or silent, and what was decided:**
+
+| Point | Decision |
+| --- | --- |
+| ECO-07 assumes crafted seals before the first extraction | Unreachable: crafting needs banked materials, which only an extraction gives. The grant still adds, and is capped at the seal limit of 3 |
+| ECO-02 uses a stack of 100 | The pouch holds 30, or 45 with the pack. Tested with 25 and 30 |
+| Camp sink range and shelter point were prose only | Added `sinks.campRange` 20 and `capsule.x`, `capsule.z` to the JSON |
+| Which ward a totem holder's first Protect uses | The totem: it is spent with the trip anyway, so the seal is kept |
+| "Next item into the bag" for an armed seal | Next new item only; a reclaimed drop is not new. A manual seal uses the armed one |
+| Night tables with night rewards off | Nightbloom is filtered out and the rest renormalized; nothing is multiplied |
+| Weather and events in M5.4 | P0 has none. Only `Clear` and `None` are accepted; a future table replaces, never multiplies |
+| Egg tier at pickup | Every nest is in territory, so eggs are stored as `Territory` |
+| "Camp safe circle" for expeditions | The `Rules.zone` safe circle nearer camp than the shelter |
+| Existing contract `kept.ember == 0` | Became 18: Ember now exists and is never lost |
+
+## Wiring notes for part 2
+
+| Unit | What exists | What part 2 does |
+| --- | --- | --- |
+| World nodes (M5.3) | Server-only bindables in `WildboundNetwork`. `GatherSpawn:Invoke(slotId)` rolls and registers a node and returns `{ id, slotId, zone, heart, x, z, material, quantity, phase, hold }`. `GatherClaim:Invoke(player, id)` checks reach (8 studs, flat), claims, replies to the player and returns `ok, receipt` or `false, reason`. `GatherRetire:Invoke(id)` removes only | Draw the node, a `ProximityPrompt` with `HoldDuration = hold`; claim on `Triggered`. Keep the node on `PouchFull`, `BackpackFull`, `AlreadyGathered`. Keep `Spawn.activeCount` nodes per zone; after a claim wait `respawnSeconds`, then `Spawn.pickSlot`. ECO-25 cancel-on-move needs its own check |
+| Night resource | `GatherSpawn` reads `WildboundWorldRuntime` attributes `CycleStartedAt` and `NightRewardsEnabled` at spawn time | Turn it on test-first at `WildboundWorld.server.luau:54` and its payload; reword the Night notice; at Dawn, `GatherRetire` unclaimed Nightbloom nodes |
+| Skill tree (M5.6) | `config.skills`; `State` has `atCamp` and `purchase` helpers | Add `State:learn` with `NeedsPrerequisite`, a `Learn` entry in `ECONOMY_ACTIONS`, then each effect where its rule lives |
+| Bond | Nothing | Pending XP on the expedition, banked in `extract`, cleared in `defeat`. Pulse hits are decided in the world script, so they need a server-only event to this script, like `TotemChanged` in reverse |
+| Camp screen (M5.8) | `Action` arguments: `Craft` seal, capsule, totem; `Upgrade` reinforcedPack; `ArmSeal`, `SealNewest` seal; `ArmTotem`, `DisarmTotem` totem; `UseCapsule` pending uid. Costs in `ReplicatedStorage.WildboundEconomyConfig`; `Economy.canPay` for disabled buttons | Camp is 20 studs from `CampCenter`; the shelter is the point (105, 125), range 12. No `ShelterMarker` part exists yet |
+| HUD loss display | Snapshot adds `carried`, `banked`, `pouchCapacity`, `ember`, `consumables`, `sealArmed`, `totemActive`, `upgrades`, `expedition`, `riskPreview = { loseItems, keep, loseMaterials }`. The loss summary adds `materialsLost` and `savedItems` | `WildboundHudView.lossSummary` shows items and one saved item only; add materials, a second save and the name of a `Nightbloom` bundle (`quantity`). `WildboundClient.client.luau:199-200` still says seals work only at camp |
 
 ## Choices worth your review
 
