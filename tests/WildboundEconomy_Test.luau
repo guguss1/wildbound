@@ -230,6 +230,14 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(worldSource:find("originTime + Ambush", 1, true), nil, "the first ambush counts from the real start")
 	end)
 
+	case("M5.3 the world turns the night-only resource on, and the Night notice no longer says it is off", function()
+		equal(worldSource:find('SetAttribute("NightRewardsEnabled", false)', 1, true), nil)
+		assert(worldSource:find('SetAttribute("NightRewardsEnabled", true)', 1, true), "the attribute reports on")
+		equal(worldSource:find("nightRewardsEnabled = false", 1, true), nil)
+		assert(worldSource:find("nightRewardsEnabled = true", 1, true), "the snapshot reports on")
+		equal(worldSource:find("Night rewards are not", 1, true), nil, "no developer wording")
+	end)
+
 	case("the module is pure: no services, clock, randomness or persistence", function()
 		for _, word in ipairs({ "game", "GetService", "os.", "tick", "Random", "math.random", "DataStore",
 			"task.", "workspace", "MarketplaceService", "Robux" }) do

@@ -95,6 +95,10 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundEconomy_Test.luau", "ServerStorage.WildboundEconomy_Test"),
     ("src/wildbound/WildboundSpawn.luau", "ServerScriptService.WildboundSpawn"),
     ("tests/WildboundSpawn_Test.luau", "ServerStorage.WildboundSpawn_Test"),
+    # M5.3, wave W7 part 2: pure gather-field rules (server only) and the script that draws the world nodes
+    ("src/wildbound/WildboundGatherField.luau", "ServerScriptService.WildboundGatherField"),
+    ("src/wildbound/WildboundGather.server.luau", "ServerScriptService.WildboundGather"),
+    ("tests/WildboundGatherField_Test.luau", "ServerStorage.WildboundGatherField_Test"),
 ]
 
 

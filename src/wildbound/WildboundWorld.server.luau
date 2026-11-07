@@ -78,7 +78,7 @@ local flagsOk, flags = false, nil
 if flagsModule and flagsModule:IsA("ModuleScript") then flagsOk, flags = pcall(require, flagsModule) end
 local damageMode, flagMisconfigured = FairStrike.effectiveMode(flagsOk and flags or nil, game.PlaceId)
 runtime:SetAttribute("DamageEnabled", damageMode == "private")
-runtime:SetAttribute("NightRewardsEnabled", false)
+runtime:SetAttribute("NightRewardsEnabled", true)
 runtime:SetAttribute("CycleStartedAt", originTime)
 
 -- Server-only counters. ServerStorage never replicates, so no client can read or change them.
@@ -332,7 +332,7 @@ local function snapshot(player, action, ok, notice, noticeShort)
 		-- The attack deadline travels only inside this player's awareness, never to everyone (M2.2).
 		guardian = { state = mode, distance = distance, threat = Rules.isThreat(mode, root ~= nil, isFog, isSafe, distance),
 			revealedUntil = revealedUntil, awareness = Awareness.toSnapshot(awarenessResults[player.UserId]) },
-		nightRewardsEnabled = false, damageEnabled = damageMode == "private", marked = isMarked(player),
+		nightRewardsEnabled = true, damageEnabled = damageMode == "private", marked = isMarked(player),
 		action = action or "WorldTick", ok = ok ~= false, notice = notice or "",
 		noticeShort = noticeShort or notice or "",
 	})

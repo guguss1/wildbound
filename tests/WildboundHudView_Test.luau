@@ -219,6 +219,14 @@ return function(View, source)
 		equal(View.hint({ attack = "yes", threat = 1, revealed = {} }), "Explore or return to camp.")
 	end)
 
+	case("M5.3 Night outside the fog says why to go there, and danger lines still come first", function()
+		equal(hint({ phase = "Night" }), "Night: Nightbloom blooms in the fog.")
+		equal(hint({ phase = "Night", isFog = true }), "Fog forest: stay alert.")
+		equal(hint({ phase = "Night", threat = true }), "Threat nearby: move toward shelter.")
+		equal(hint({ phase = "Night", attack = true }), "Attack incoming: move away!")
+		assert(#hint({ phase = "Night" }) <= 50, "fits the two line phone budget")
+	end)
+
 	-- Notice expiry: a line shows for a while, then goes.
 	case("a notice shows, then expires exactly at the limit", function()
 		local notice = View.newNotice()

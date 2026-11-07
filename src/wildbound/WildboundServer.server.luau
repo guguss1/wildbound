@@ -89,7 +89,7 @@ local notices = {
 	CannotAfford = "Not enough banked materials or Ember.", AtLimit = "You cannot hold more of that.",
 	AlreadyOwned = "Already owned.", NoTotem = "You have no totem.",
 	AlreadyLeft = "The totem stays set once you leave camp.", NotAtShelter = "Use a capsule at the shelter.",
-	NoCapsule = "You have no capsule.",
+	NoCapsule = "You have no capsule.", MovedAway = "You moved. Hold still while you gather.",
 }
 -- The capture rule owns the words for its own refusals and endings.
 for reason, text in pairs(Capture.NOTICES) do
@@ -541,11 +541,16 @@ end
 gatherSpawn.Parent = network
 local gatherClaim = Instance.new("BindableFunction")
 gatherClaim.Name = "GatherClaim"
-gatherClaim.OnInvoke = function(player, nodeId)
+gatherClaim.OnInvoke = function(player, nodeId, moved)
 	if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] then return false, "InvalidPlayer" end
 	local node = type(nodeId) == "string" and gatherNodes[nodeId] or nil
 	if not node then return false, "InvalidEncounter" end
 	if not allowed(player, "Gather") then return false, "RateLimited" end
+	-- ECO-25: the node script saw the player move during the hold. Nothing is claimed.
+	if moved == true then
+		reply(player, "Gather", false, "MovedAway")
+		return false, "MovedAway"
+	end
 	local alive, root = context(player), rootOf(player)
 	local distance = root and Rules.distance(root.Position.X, root.Position.Z, node.slot.x, node.slot.z) or math.huge
 	local ok, result = state:gather(player.UserId, nodeId, node.slot.id, node.material, node.quantity, alive, distance,

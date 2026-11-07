@@ -102,7 +102,7 @@ function View.chipCached(cache, awareness, fresh, now, compact)
 	return cache.view
 end
 
--- The panel line under the phase. Priority: attack, threat, revealed, dusk, fog, calm.
+-- The panel line under the phase. Priority: attack, threat, revealed, dusk, fog, night, calm.
 function View.hint(info)
 	info = type(info) == "table" and info or {}
 	if info.attack == true then return "Attack incoming: move away!" end
@@ -110,6 +110,7 @@ function View.hint(info)
 	if info.revealed == true then return "Silueta revealed. Keep moving." end
 	if info.phase == "Dusk" then return "Dusk: night is approaching." end
 	if info.isFog == true then return "Fog forest: stay alert." end
+	if info.phase == "Night" then return "Night: Nightbloom blooms in the fog." end
 	return "Explore or return to camp."
 end
 
