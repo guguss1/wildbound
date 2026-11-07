@@ -304,22 +304,53 @@ return function(builder, forest, templates, layout)
         copy:Destroy()
     end)
 
-    check('each lantern glass carries one short-range PointLight without shadows, nothing else is lit', function()
+    -- Dread pass (user: fewer lights, the flashlight is what helps): every lantern keeps its light, but only the
+    -- few landmark lanterns (near camp and at two forks) are lit. The others are disabled, not deleted, and their
+    -- glass no longer glows.
+    check('each lantern glass carries one short-range PointLight without shadows; only the landmark lanterns are lit', function()
         expect(kit, 'ForestKit missing')
-        local lit = 0
+        local lights, enabled = 0, {}
         for _, descendant in kit:GetDescendants() do
             if descendant:IsA('Light') then
-                lit += 1
+                lights += 1
                 expect(descendant:IsA('PointLight'), descendant:GetFullName() .. ' must be a PointLight')
                 expect(descendant.Parent.Name == 'FK_LanternMarker_Glass', 'light on ' .. descendant.Parent.Name .. ' instead of a lantern glass')
                 expect(descendant.Shadows == false, descendant:GetFullName() .. ' must not cast shadows')
-                expect(descendant.Enabled, descendant:GetFullName() .. ' must be enabled')
                 expect(descendant.Range >= 12 and descendant.Range <= 24, string.format('light range %.1f must stay between 12 and 24', descendant.Range))
                 expect(descendant.Brightness > 0 and descendant.Brightness <= 3, string.format('light brightness %.2f out of range', descendant.Brightness))
+                local model = descendant:FindFirstAncestorWhichIsA('Model')
+                while model and model.Parent ~= kit do model = model.Parent end
+                local landmark = forest.LIT_LANTERNS[model.Name] == true
+                expect(descendant.Enabled == landmark, model.Name .. (landmark and ' must stay lit' or ' must be dark'))
+                expect((descendant.Parent.Material == Enum.Material.Neon) == landmark, model.Name .. ' glass glow must match its light')
+                if descendant.Enabled then table.insert(enabled, model.Name) end
             end
         end
         local lanterns = layout.totals.by_name.FK_LanternMarker.count
-        expect(lit == lanterns, string.format('expected %d lantern lights, found %d', lanterns, lit))
+        expect(lights == lanterns, string.format('expected %d lantern lights, found %d', lanterns, lights))
+        local landmarks = 0
+        for _ in pairs(forest.LIT_LANTERNS) do landmarks += 1 end
+        expect(landmarks == 3 and #enabled == 3, string.format('expected 3 lit landmark lanterns, found %d', #enabled))
+    end)
+
+    check('dimLanterns patches an already dressed kit once and never deletes a lantern', function()
+        expect(kit, 'ForestKit missing')
+        local copy = kit:Clone()
+        local before = 0
+        for _, light in copy:GetDescendants() do
+            if light:IsA('PointLight') then
+                light.Enabled, light.Parent.Material = true, Enum.Material.Neon
+                before += 1
+            end
+        end
+        expect(forest.dimLanterns(copy) == before - 3, 'dimLanterns must darken every lantern but the landmarks')
+        expect(forest.dimLanterns(copy) == 0, 'a second patch must change nothing')
+        local after = 0
+        for _, light in copy:GetDescendants() do
+            if light:IsA('PointLight') then after += 1 end
+        end
+        expect(after == before, 'no lantern light may be deleted')
+        copy:Destroy()
         for _, child in kit:GetChildren() do
             if propOf(child.Name) == 'FK_LanternMarker' then
                 local own = 0

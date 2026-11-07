@@ -22,10 +22,15 @@ local CORE_RADIUS = { FK_Evergreen = 2.5, FK_DeadTree = 3.4 }
 local CORE_HEIGHT = 14 -- above a jump, below every tree top
 Dress.CORE_RADIUS = table.freeze(table.clone(CORE_RADIUS))
 local YIELD_EVERY = 12 -- props per frame, so Studio stays responsive
--- Each lantern glows with one short-range light, so the path edge and avatar stay readable in the
--- dark. No shadows: it must stay cheap on phones. Lights never affect the guardian's sight rays.
+-- Each lantern holds one short-range light (lit only on the landmarks below since the dread pass). No shadows:
+-- it must stay cheap on phones. Lights never affect the guardian's sight rays.
 local LANTERN_GLASS = 'FK_LanternMarker_Glass'
 local LANTERN_LIGHT = { Brightness = 1.0, Range = 18, Color = Color3.fromRGB(255, 165, 85) }
+-- Dread pass (user: fewer lights, the flashlight is what helps): only these landmark lanterns stay lit, one near the
+-- camp exit (012) and one at each main fork (014 west, 003 east). Every other lantern keeps its light disabled, not
+-- deleted, and its glass stops glowing, so a lit lantern in the fog means a place you can find again.
+Dress.LIT_LANTERNS = table.freeze({ FK_LanternMarker_012 = true, FK_LanternMarker_014 = true, FK_LanternMarker_003 = true })
+local DARK_GLASS = { Material = Enum.Material.Glass, Color = Color3.fromRGB(58, 44, 34) }
 
 local function refuse(message)
     error('forest dress refused: ' .. message, 0)
@@ -109,6 +114,24 @@ function Dress.addTrunkCores(kit)
     return added
 end
 
+-- Dread pass: patches an already dressed ForestKit folder so only the landmark lanterns glow. Returns how many it
+-- darkened; a second call changes nothing. No lantern or light is deleted.
+function Dress.dimLanterns(kit)
+    local dimmed = 0
+    for _, model in kit:GetChildren() do
+        if model:IsA('Model') and propOf(model.Name) == 'FK_LanternMarker' and not Dress.LIT_LANTERNS[model.Name] then
+            local glass = model:FindFirstChild(LANTERN_GLASS, true)
+            local light = glass and glass:FindFirstChildOfClass('PointLight')
+            if light and (light.Enabled or glass.Material == Enum.Material.Neon) then
+                light.Enabled = false
+                glass.Material, glass.Color = DARK_GLASS.Material, DARK_GLASS.Color
+                dimmed += 1
+            end
+        end
+    end
+    return dimmed
+end
+
 local function place(template, item, parent)
     local model = template:Clone()
     assert(model, 'template ' .. item.name .. ' cannot be cloned')
@@ -130,6 +153,10 @@ local function place(template, item, parent)
         light.Brightness, light.Range, light.Color = LANTERN_LIGHT.Brightness, LANTERN_LIGHT.Range, LANTERN_LIGHT.Color
         light.Shadows = false
         light.Parent = glass
+        if not Dress.LIT_LANTERNS[item.id] then
+            light.Enabled = false
+            glass.Material, glass.Color = DARK_GLASS.Material, DARK_GLASS.Color
+        end
     end
     model:ScaleTo(item.scale)
     model:PivotTo(CFrame.new(item.x, FLOOR_Y, item.z) * CFrame.Angles(0, math.rad(item.rotation_y_deg), 0))
