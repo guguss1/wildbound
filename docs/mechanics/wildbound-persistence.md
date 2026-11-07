@@ -477,6 +477,28 @@ Built as pure modules with contracts run in Studio Edit on fresh clones. **No da
 | --- | --- | --- | --- | --- |
 | `src/wildbound/WildboundRecord.luau` | `ServerScriptService.WildboundRecord` | `tests/WildboundRecord_Test.luau`, RT-1 to RT-18 | 1 passed, 17 failed (empty stub; RT-18 source check passes on a stub) | 17 passed, 1 failed (test defect, below), then 18 passed, 0 failed |
 | `tests/WildboundFakePlayerStore.luau` (test double) | `ServerStorage.WildboundFakePlayerStore` | `tests/WildboundFakePlayerStore_Test.luau`, FK-1 to FK-13 | 1 passed, 12 failed (empty stub; FK-13 source check) | 13 passed, 0 failed |
+| `src/wildbound/WildboundPersistence.luau` | `ServerScriptService.WildboundPersistence` | `tests/WildboundPersistence_Test.luau`, PS-1 to PS-30 | 1 passed, 29 failed (empty stub; PS-29 checks only the live server source) | 30 passed, 0 failed |
+
+Section 8 contracts covered by PS cases: F1.1 to F1.10 (PS-1 to PS-10), F2.2 and F2.6 (PS-28, PS-23), F3.1 to F3.3 and F3.9 (PS-22 to PS-24), F4.1, F4.2, F4.4 (PS-25, PS-26), F5.1 to F5.5, F5.7, F5.8 (PS-11 to PS-16), D10.7 (PS-19). F2.1, F2.3 to F2.5 and F4.5 are covered by RT cases on the record. **Not covered yet**, because they need the economy reducers and the State wiring of M6.4: F2.7, F2.8, F3.4 to F3.8, F4.3, F4.6, F4.7, F5.6, D10.1 to D10.6, D10.8.
+
+### Persistence API (the seam M6.4 will wire)
+
+`Persistence.new{ store, serverId, record, economy, config, clock, wait, random, spawn, onStatus, encode, migrations, maxAttempts, maxChars }`, then `load(key, sessionNow) -> outcome, profile?`, `info`, `markDirty`, `allocateUid`, `newOp(key, kind, build)`, `commit(key, op, reduce)`, `checkpoint(key, profile, meta)`, `tick(provider)`, `release(key, profile, meta)` and `closeAll(provider, budget)`. Constants: lock expiry 300 s, autosave 60 s with a random first offset, refresh of a clean profile after 150 s, 3 attempts with backoff 1, 2, 4 s (cap 8) plus up to 1 s jitter, close budget 25 s, size limit 4,194,304 characters. The port is section 8's `update(key, transform)` and `read(key)`; `info.updatedAt` is in seconds, so the M6.3 adapter must convert `UpdatedTime` (unit unverified, R2).
+
+| # | Decision | Why |
+| --- | --- | --- |
+| W10-8 | No live wiring and no `persistenceMode` flag this wave | A seam with nothing reachable is safer than a flag defaulting to off. `WildboundFlags` is untouched; the flag arrives with M6.3/M6.4. PS-29 checks the live server does not name the module |
+| W10-9 | Lock owner is the server id (the JobId in M6.3) | A retry after a claim whose reply was lost finds its own lock and proceeds |
+| W10-10 | A claim writes the value unchanged plus the lock; only saves bump `revision` | F1.7: after Try again the stored value equals the seed plus the lock |
+| W10-11 | Autosaves and checkpoints try once; the next autosave retries. Release tries 3 times; close retries until its budget; commits try 3 times, then read back | One serial write per player; a failing store is not hammered |
+| W10-12 | A clean profile is skipped by autosave until its lock is 150 s old | Dirty tracking without letting the lock near its 300 s expiry |
+| W10-13 | Every outgoing record is validated and size-checked before the store is called; failure pauses saving (`Invalid`, `TooLarge`) | A bug can never write a malformed record |
+| W10-14 | `Unknown` blocks every other write for that player until the same op is retried | Section 6. Nothing may be claimed while an outcome is in doubt |
+| W10-15 | `LockLost`, `Diverged` and a vanished record revoke the session; no further writes | Contract F1.10 and F5.2 |
+| W10-16 | Close runs players through an injected `spawn` (task.spawn by default) and waits up to the budget | Parallel in production, deterministic in tests |
+| W10-17 | IDs reserved by `allocateUid` or `newOp` are never reused in the session even if the write fails | Gaps are harmless; reuse could collide |
+
+Known limits, for M6.4: a release while an op is `Unknown` writes the profile only if the op did not land (otherwise `Diverged` stops it); folding an in-flight op into the final write is not built. After `Committed` the caller must rebuild its State profile from the returned record, or the next checkpoint would write the old memory over it (revision checks stop a stale write only across servers, not inside one).
 
 The fake implements section 8's controls: scripted `throwBefore`, `commitThenThrow`, `timeout`, `throttle` per update call, a separate read queue (`scriptReads`) so a read never consumes an update's fault, `failAll`, scripted latency on the shared injected clock, a `before` hook that lets a second server land first, the transform run twice on detached JSON copies, a per-minute write budget, a 4,194,304-character limit, a full `writes` log and byte-exact `raw`. It lives under `tests/` and `ServerStorage`, never in the running game.
 
