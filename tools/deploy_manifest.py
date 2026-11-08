@@ -173,6 +173,15 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundSpecies_Test.luau", "ServerStorage.WildboundSpecies_Test"),
     # Expedition islands, I6: source contracts for the island wiring
     ("tests/WildboundIslandWiring_Test.luau", "ServerStorage.WildboundIslandWiring_Test"),
+    # Dev tuning, DT1 to DT4: the shared schema, the server bridge, the developer panel and their suites
+    ("src/wildbound/WildboundTuningSchema.luau", "ReplicatedStorage.WildboundTuningSchema"),
+    ("src/wildbound/WildboundTuning.server.luau", "ServerScriptService.WildboundTuning"),
+    (
+        "src/wildbound/WildboundTuning.client.luau",
+        "StarterPlayer.StarterPlayerScripts.WildboundTuningClient",
+    ),
+    ("tests/WildboundTuning_Test.luau", "ServerStorage.WildboundTuning_Test"),
+    ("tests/WildboundTuningWiring_Test.luau", "ServerStorage.WildboundTuningWiring_Test"),
 ]
 
 

@@ -779,7 +779,7 @@ end
 
 local function readoutLevel(meter)
 	if meter.state == "Alert" then return "alert" end
-	return meter.value >= Island.CONSTANTS.STIR and "stir" or "sleep"
+	return meter.value >= Island.live.STIR and "stir" or "sleep"
 end
 
 local function paintReadout(island)
@@ -976,7 +976,7 @@ local function stepIslands(now, dt)
 		local entry = entries[session.encounterId]
 		if entry and entry.slot.island then lulled[entry.slot.island] = true end
 	end
-	local C = Island.CONSTANTS
+	local C = Island.live
 	for _, island in ipairs(islandList) do
 		local spec, meter = island.spec, island.meter
 		local radius = Island.wakeRadius(spec, phase)
@@ -1450,11 +1450,11 @@ if RunService:IsStudio() then
 		local island = type(id) == "string" and islands[id] or nil
 		if not island then return false, "UnknownIsland" end
 		if op == "set" and type(value) == "number" and value == value then
-			island.meter.value = math.clamp(value, 0, Island.CONSTANTS.WAKE - 1)
+			island.meter.value = math.clamp(value, 0, Island.live.WAKE - 1)
 			return true
 		end
 		if op == "wake" then
-			island.meter.value = Island.CONSTANTS.WAKE - 0.001
+			island.meter.value = Island.live.WAKE - 0.001
 			local out = Island.event(island.meter, "Rustle")
 			if out.woke then wakeIsland(island, workspace:GetServerTimeNow()) end
 			return out.woke
@@ -1482,7 +1482,7 @@ noiseEvent.Event:Connect(function(kind, _, x, z)
 		local spec = island.spec
 		local distance = math.sqrt((x - spec.x) ^ 2 + (z - spec.z) ^ 2)
 		local result
-		if kind == "sprint" and distance <= Island.CONSTANTS.SPRINT_NOISE_REACH then
+		if kind == "sprint" and distance <= Island.live.SPRINT_NOISE_REACH then
 			result = Island.event(island.meter, "SprintNoise")
 		elseif kind == "rustle" and distance <= Island.wakeRadius(spec, phase) then
 			result = Island.event(island.meter, "Rustle")
@@ -1610,7 +1610,11 @@ local function updateStamina(now, dt)
 				blocked = capturing or hidden,
 				carrying = snapshot ~= nil and snapshot.carrying ~= nil, inCamp = safe,
 			}, now)
-			if out.changed then applyCarry(player) end
+			-- Dev tuning: a changed sprint value re-applies WalkSpeed at once, not only on the next stance change.
+			if out.changed or record.tuned ~= Stamina.version then
+				record.tuned = Stamina.version
+				applyCarry(player)
+			end
 			local rounded = math.floor(record.stamina.stamina + 0.5)
 			if player:GetAttribute("WildboundStamina") ~= rounded then player:SetAttribute("WildboundStamina", rounded) end
 			if player:GetAttribute("WildboundStance") ~= record.stamina.stance then
