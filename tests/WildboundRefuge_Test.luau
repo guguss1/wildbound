@@ -175,5 +175,44 @@ return function(Refuge, source, Text, sources)
 		end
 	end)
 
+	-- Expedition islands (K2): the first card pays the first-steal bonus once, names a new species, and teases the next
+	-- island whose species the player has not registered.
+	case("K2: the first card names the next unregistered island", function()
+		local islands = {
+			{ id = "I1", species = "Lumipol" }, { id = "I2", species = "Cortezon" }, { id = "I3", species = "Cestillo" },
+		}
+		local nextIsland = Refuge.nextIsland(islands, { Lumipol = true })
+		equal(nextIsland.id, "I2")
+		equal(Refuge.nextIsland(islands, { Lumipol = true, Cortezon = true }).id, "I3")
+		equal(Refuge.nextIsland(islands, { Lumipol = true, Cortezon = true, Cestillo = true }), nil, "all found")
+		equal(Refuge.nextIsland(nil, {}), nil)
+		local card = Refuge.card({ uid = "wb:1", species = "Lumipol", ember = 10, isNew = true, firstEver = true,
+			firstBonus = 4, nextIsland = "I2", nextSpecies = "Cortezon" }, Text)
+		equal(card.title, Text.CARD.title, "the very first creature")
+		equal(card.next, Text.CARD.next:format(Text.ISLAND.names.I2, Text.CARD.species.Cortezon))
+		local species = Refuge.card({ uid = "wb:2", species = "Cortezon", ember = 10, isNew = true, firstEver = false, nextIsland = "I3",
+			nextSpecies = "Cestillo" }, Text)
+		equal(species.title, Text.CARD.newSpecies, "a new species after the first")
+		equal(species.name, Text.CARD.species.Cortezon)
+		equal(Refuge.card({ uid = "wb:3", species = "Lumipol", ember = 6, isNew = false }, Text).next, nil, "no tease")
+	end)
+
+	case("K2: the first-steal bonus is paid once", function()
+		local first = Refuge.card({ uid = "wb:1", species = "Lumipol", ember = 10, isNew = true, firstEver = true,
+			firstBonus = 4 }, Text)
+		equal(first.bonus, Text.CARD.firstBonus:format(4))
+		equal(first.ember, Text.CARD.ember:format(6), "the cria's own Ember, the bonus on its own line")
+		local later = Refuge.card({ uid = "wb:2", species = "Lumipol", ember = 6, isNew = false, firstBonus = 0 }, Text)
+		equal(later.bonus, nil)
+		equal(later.ember, Text.CARD.ember:format(6))
+	end)
+
+	case("K2: the display shows any registered species", function()
+		local snapshot = { registered = { { uid = "a", species = "Cortezon" }, { uid = "b", species = "Lumipol" } } }
+		equal(Refuge.displayChoice(snapshot).uid, "a")
+		snapshot.equippedUid = "b"
+		equal(Refuge.displayChoice(snapshot).uid, "b")
+	end)
+
 	return result
 end

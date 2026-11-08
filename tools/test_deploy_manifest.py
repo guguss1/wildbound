@@ -347,6 +347,9 @@ class DefaultMappingTests(unittest.TestCase):
         # Expedition islands, I2: the pure island rule (server only)
         "src/wildbound/WildboundIsland.luau": "ServerScriptService.WildboundIsland",
         "tests/WildboundIsland_Test.luau": "ServerStorage.WildboundIsland_Test",
+        # Expedition islands, I8: species stand-ins in one module (shared with the clients)
+        "src/wildbound/WildboundSpecies.luau": "ReplicatedStorage.WildboundSpecies",
+        "tests/WildboundSpecies_Test.luau": "ServerStorage.WildboundSpecies_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

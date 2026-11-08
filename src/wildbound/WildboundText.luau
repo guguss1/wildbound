@@ -96,6 +96,8 @@ return freeze({
 		warded = "protegido",
 		unwarded = "sin proteger",
 		registerHint = "Regístralo en el refugio del campamento.",
+		-- Expedition islands (I5, EI-6): a carried cria that cries is a noise La Silueta can hear.
+		cry = "La cría llora. ¡Algo la escucha!",
 	},
 	-- Delivery B (B3 to B5): camp stations. Prompt actions fit 24 bytes, objects and signs 28, notices 72.
 	CAMP = {
@@ -126,8 +128,46 @@ return freeze({
 		ember = "+%d Ember",
 		equip = "Equipar",
 		close = "Cerrar",
-		species = { Lumipol = "Lumipol" },
-		blurb = { Lumipol = "Brilla en la niebla. Su pulso revela a La Silueta." },
+		species = { Lumipol = "Lumipol", Cortezon = "Cortezón", Cestillo = "Cestillo", Polvilla = "Polvilla",
+			Tizoncillo = "Tizoncillo" },
+		blurb = {
+			Lumipol = "Brilla en la niebla. Su pulso revela a La Silueta.",
+			Cortezon = "Lleva musgo en el caparazón. Duerme en la hondonada.",
+			Cestillo = "Camina entre los juncos con su cesto a cuestas.",
+			Polvilla = "Polilla de las ruinas. Suelta polvo dorado al volar.",
+			Tizoncillo = "Un tronco que arde por dentro. Solo nace de noche.",
+		},
+		-- Expedition islands (K2): the card's first line for a later species, the one-off bonus and the tease.
+		newSpecies = "¡Nueva especie!",
+		firstBonus = "+%d Ember por tu primera cría",
+		next = "Próxima isla: %s. Allí duermen los %s.",
+	},
+	-- Expedition islands (I8, docs/mechanics/wildbound-expedition-islands.md section 6). Names at most 28 bytes,
+	-- prompts 24, notices 72.
+	ISLAND = {
+		names = {
+			I1 = "Claro de los Lumipol",
+			I2 = "Hondonada del Musgo",
+			I3 = "Pantano de los Juncos",
+			I4 = "Ruinas del Nido",
+			I5 = "Corazón de la Niebla",
+		},
+		takeCria = "Tomar la cría",
+		takeEgg = "Tomar el huevo",
+		stir = "Shh... se están despertando.",
+		woke = "¡Te descubrieron! Su grito resuena en el bosque.",
+		guarded = "El nido está vigilado. Vuelve más tarde.",
+		firstOnly = "En el claro solo se toma la primera cría. Busca más adentro.",
+		chased = "¡Un adulto te persigue! Corre o suelta la cría.",
+		caught = "¡Te alcanzó! La cría volvió a su nido.",
+		screamHeard = "Un grito lejano... algo se acerca.",
+	},
+	-- Expedition islands (I7): the starter upgrade on the board.
+	UPGRADE = {
+		farolTapado = {
+			name = "Farol tapado",
+			description = "Tu linterna molesta menos a las criaturas dormidas.",
+		},
 	},
 	-- The plaque under each display spot: whose creature it is.
 	DISPLAY = {

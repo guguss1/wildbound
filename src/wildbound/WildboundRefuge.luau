@@ -50,16 +50,44 @@ function Refuge.card(receipt, Text)
 	end
 	local words = Text.CARD
 	local ember = finite(receipt.ember) and math.floor(receipt.ember) or 0
+	-- K2: the first-steal bonus gets its own line; the Ember line keeps the creature's own pay.
+	local bonus = finite(receipt.firstBonus) and math.floor(receipt.firstBonus) or 0
+	if bonus > 0 and bonus <= ember then ember -= bonus else bonus = 0 end
+	local title = words.titleAgain
+	if receipt.isNew == true then
+		title = receipt.firstEver == false and words.newSpecies or words.title
+	end
+	local islandNames = type(Text.ISLAND) == "table" and Text.ISLAND.names or {}
+	local tease = nil
+	if receipt.isNew == true and type(receipt.nextIsland) == "string" and type(receipt.nextSpecies) == "string"
+		and islandNames[receipt.nextIsland] and words.next then
+		tease = words.next:format(islandNames[receipt.nextIsland], words.species[receipt.nextSpecies] or receipt.nextSpecies)
+	end
 	return {
 		uid = receipt.uid,
-		title = receipt.isNew == true and words.title or words.titleAgain,
+		title = title,
 		name = words.species[receipt.species] or receipt.species,
 		blurb = words.blurb[receipt.species],
 		entry = receipt.isNew == true and words.entry or nil,
 		ember = ember > 0 and words.ember:format(ember) or nil,
+		bonus = bonus > 0 and words.firstBonus and words.firstBonus:format(bonus) or nil,
+		next = tease,
 		equip = words.equip,
 		close = words.close,
 	}
+end
+
+-- K2: the next island, in island order, whose species the player has not registered. islands = list of
+-- { id, species }; discovered = { [species] = true }. nil when every species is found.
+function Refuge.nextIsland(islands, discovered)
+	if type(islands) ~= "table" then return nil end
+	discovered = type(discovered) == "table" and discovered or {}
+	for _, island in ipairs(islands) do
+		if type(island) == "table" and type(island.species) == "string" and discovered[island.species] ~= true then
+			return island
+		end
+	end
+	return nil
 end
 
 -- One display spot per owner key, the lowest free one, kept until released. nil when every spot is taken.
@@ -86,7 +114,8 @@ function Refuge.displayChoice(snapshot)
 	if type(snapshot) ~= "table" or type(snapshot.registered) ~= "table" then return nil end
 	local first
 	for _, entry in ipairs(snapshot.registered) do
-		if type(entry) == "table" and validId(entry.uid) and entry.species == "Lumipol" then
+		-- K2: any registered species can stand on the display (it was Lumipol only).
+		if type(entry) == "table" and validId(entry.uid) and type(entry.species) == "string" then
 			if entry.uid == snapshot.equippedUid then return entry end
 			first = first or entry
 		end

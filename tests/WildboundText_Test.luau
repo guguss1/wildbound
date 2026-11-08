@@ -171,5 +171,42 @@ return function(Text, source, sources)
 		end
 	end)
 
+	-- Expedition islands (I8, K2, EI-6): the island, cry, card and upgrade words, Spanish and within their budgets.
+	case("I8: island words exist and are Spanish", function()
+		local I = Text.ISLAND
+		assert(type(I) == "table" and table.isfrozen(I), "ISLAND frozen")
+		equal(I.names.I1, "Claro de los Lumipol"); equal(I.names.I2, "Hondonada del Musgo")
+		equal(I.names.I3, "Pantano de los Juncos"); equal(I.names.I4, "Ruinas del Nido")
+		equal(I.names.I5, "Corazón de la Niebla")
+		for id, name in pairs(I.names) do text(name, "ISLAND.names." .. id, 28) end
+		equal(I.takeCria, "Tomar la cría"); equal(I.takeEgg, "Tomar el huevo")
+		text(I.takeCria, "takeCria", 24); text(I.takeEgg, "takeEgg", 24)
+		for _, key in ipairs({ "stir", "woke", "guarded", "firstOnly", "caught", "chased", "screamHeard" }) do
+			text(I[key], "ISLAND." .. key, 72)
+		end
+		equal(I.stir, "Shh... se están despertando.")
+		equal(I.woke, "¡Te descubrieron! Su grito resuena en el bosque.")
+		equal(I.guarded, "El nido está vigilado. Vuelve más tarde.")
+		equal(I.firstOnly, "En el claro solo se toma la primera cría. Busca más adentro.")
+		equal(Text.CARRY.cry, "La cría llora. ¡Algo la escucha!")
+		equal(Text.CARD.newSpecies, "¡Nueva especie!")
+		equal(Text.CARD.next, "Próxima isla: %s. Allí duermen los %s.")
+		equal(Text.CARD.firstBonus, "+%d Ember por tu primera cría")
+		equal(Text.UPGRADE.farolTapado.name, "Farol tapado")
+		equal(Text.UPGRADE.farolTapado.description, "Tu linterna molesta menos a las criaturas dormidas.")
+		for _, species in ipairs({ "Lumipol", "Cortezon", "Cestillo", "Polvilla", "Tizoncillo" }) do
+			text(Text.CARD.species[species], "species " .. species, 16)
+			text(Text.CARD.blurb[species], "blurb " .. species, 80)
+		end
+		equal(Text.CARD.species.Cortezon, "Cortezón")
+		for key, value in pairs(I) do
+			if type(value) == "string" then
+				for _, english in ipairs({ "the ", "nest", "wake", "steal" }) do
+					assert(not value:lower():find(english, 1, true), key .. " reads English: " .. value)
+				end
+			end
+		end
+	end)
+
 	return result
 end
