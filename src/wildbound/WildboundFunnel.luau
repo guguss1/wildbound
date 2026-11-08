@@ -32,6 +32,13 @@ Funnel.FIRST_STEPS = freezeSteps({
 	{ step = "ThirdTrip", name = "trip_open", where = { n = { "3", "4plus" } } },
 })
 
+-- Expedition islands (K3): the first-minute hook. A steal within 60 s of the join, then a registration within 120 s.
+Funnel.HOOK_STEPS = freezeSteps({
+	{ step = "Joined", name = "session_join" },
+	{ step = "StealWithin60", name = "first_steal", where = { band = { "under30", "30to60" } } },
+	{ step = "RegisterWithin120", name = "first_register_timed", where = { band = { "under30", "30to60", "60to120" } } },
+})
+
 local function usable(e)
 	if type(e) ~= "table" or e.v ~= Funnel.SCHEMA or type(e.name) ~= "string" or type(e.f) ~= "table" then return false end
 	if type(e.sid) ~= "string" or #e.sid == 0 or #e.sid > 64 then return false end

@@ -209,5 +209,22 @@ return function(Funnel, Analytics)
 		equal(w.n, 10)
 	end)
 
+	-- Expedition islands (K3): the first-minute hook funnel.
+	case("K3: steal within 60 s and register within 120 s are funnel steps", function()
+		local events = {
+			ev("A", 1, "session_join"), ev("A", 2, "first_steal", { band = "30to60" }),
+			ev("A", 3, "first_register_timed", { band = "60to120" }),
+			ev("B", 1, "session_join"), ev("B", 2, "first_steal", { band = "over120" }),
+			ev("B", 3, "first_register_timed", { band = "over120" }),
+			ev("C", 1, "session_join"), ev("C", 2, "first_steal", { band = "under30" }),
+			ev("C", 3, "first_register_timed", { band = "over120" }),
+		}
+		local out = Funnel.reduce(events, Funnel.HOOK_STEPS)
+		equal(out.sessions, 3)
+		equal(out.steps[1].step, "Joined"); equal(out.steps[1].reached, 3)
+		equal(out.steps[2].step, "StealWithin60"); equal(out.steps[2].reached, 2)
+		equal(out.steps[3].step, "RegisterWithin120"); equal(out.steps[3].reached, 1)
+	end)
+
 	return result
 end

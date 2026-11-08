@@ -31,6 +31,9 @@ local YESNO = set("yes", "no")
 local TRIP_BANDS = set("under3", "3to8", "over8") -- minutes, from D5's 3 to 8 minute trip
 local CAPTURE_BANDS = set("under4", "4to8", "over8") -- seconds, around the 4 to 6 s hold
 local SESSION_BANDS = set("under1", "1to5", "5to15", "15to30", "over30") -- minutes
+-- Expedition islands (K3): seconds from the join to the first steal and the first registration.
+local HOOK_BANDS = set("under30", "30to60", "60to120", "over120")
+local ISLANDS = set("I1", "I2", "I3", "I4", "I5")
 
 local function event(fields, once, client)
 	return table.freeze({ fields = table.freeze(fields), once = once == true, client = client == true })
@@ -48,6 +51,11 @@ Analytics.EVENTS = table.freeze({
 	first_extract = event({}, true),
 	-- Delivery B: the first carried creature registered at the camp refuge.
 	first_register = event({}, true),
+	-- Expedition islands (K3): the first-minute hook. The first cria taken, the first registration timed, and each
+	-- island a session reaches (once per island).
+	first_steal = event({ band = HOOK_BANDS }, true),
+	first_register_timed = event({ band = HOOK_BANDS }, true),
+	island_reached = event({ island = ISLANDS }),
 	first_craft = event({ recipe = set("seal", "capsule", "totem") }, true),
 	trip_end = event({ outcome = set("extracted", "defeated", "left"), band = TRIP_BANDS, gained = YESNO }),
 	capture_end = event({ zone = ZONES, reason = set("Completed", "LeftRing", "TimedOut", "TooFar", "Struck",
@@ -64,7 +72,7 @@ Analytics.EVENTS = table.freeze({
 Analytics.ZONE_OF_TIER = table.freeze({ Safe = "outside", Fog = "fog", Territory = "territory" })
 
 Analytics.METHODS = set("join", "leave", "closeAll", "observeCamp", "gain", "extracted", "registered", "crafted", "spent",
-	"capture", "noteStrike", "death", "fromClient")
+	"capture", "noteStrike", "death", "fromClient", "stole", "islandReached")
 Analytics.COUNTERS = set("sent", "rejected", "rejectedClient", "duplicates", "droppedRate", "droppedCap",
 	"droppedSink", "droppedSessions", "sinkErrors", "unknownSession")
 
@@ -230,6 +238,13 @@ local function emit(self, session, name, fields)
 	return true
 end
 
+local function hookBand(seconds)
+	if type(seconds) ~= "number" or seconds ~= seconds or seconds < 30 then return "under30" end
+	if seconds < 60 then return "30to60" end
+	if seconds < 120 then return "60to120" end
+	return "over120"
+end
+
 local function sessionOf(self, key)
 	local session = key ~= nil and self.sessions[key] or nil
 	if not session then self.counters.unknownSession += 1 end
@@ -330,7 +345,31 @@ function Analytics:registered(key)
 	local session = sessionOf(self, key)
 	if not session then return false end
 	emit(self, session, "first_register")
+	emit(self, session, "first_register_timed", { band = hookBand(self.clock() - session.startedAt) })
 	closeTrip(self, session, "extracted")
+	return true
+end
+
+-- K3: the first cria taken from an island nest, timed from the join.
+function Analytics:stole(key)
+	local session = sessionOf(self, key)
+	if not session then return false end
+	emit(self, session, "first_steal", { band = hookBand(self.clock() - session.startedAt) })
+	return true
+end
+
+-- K3: a session walked onto an island floor. Each island is logged once per session.
+function Analytics:islandReached(key, island)
+	if not member(ISLANDS, island) then
+		self.counters.rejected += 1
+		return false
+	end
+	local session = sessionOf(self, key)
+	if not session then return false end
+	session.islands = session.islands or {}
+	if session.islands[island] then return true end
+	session.islands[island] = true
+	emit(self, session, "island_reached", { island = island })
 	return true
 end
 

@@ -27,9 +27,10 @@ return function(Analytics, sources)
 		for k, v in pairs(extra or {}) do options[k] = v end
 		return Analytics.new(options), recorder, clock
 	end
+	-- Deliberately changed (K3): first_steal, first_register_timed and island_reached measure the first-minute hook.
 	local EXPECTED = { "capture_end", "death", "first_capture", "first_craft", "first_extract", "first_gain",
-		"first_gather", "first_register", "session_end", "session_join", "spent", "start_play", "strike", "trip_end",
-		"trip_open", "tutorial_complete", "tutorial_skip" }
+		"first_gather", "first_register", "first_register_timed", "first_steal", "island_reached", "session_end",
+		"session_join", "spent", "start_play", "strike", "trip_end", "trip_open", "tutorial_complete", "tutorial_skip" }
 
 	-- vocabulary ----------------------------------------------------------------------------------------------
 	case("the vocabulary is the closed, versioned set", function()
@@ -192,10 +193,11 @@ return function(Analytics, sources)
 		assert(analytics:registered(1))
 		local tail = {}
 		for i = 5, #recorder.events do table.insert(tail, recorder.events[i]) end
-		equal(names(tail), "first_register,trip_end")
-		equal(tail[2].f.outcome, "extracted")
+		-- Deliberately changed (K3): the first registration is also logged with its time band.
+		equal(names(tail), "first_register,first_register_timed,trip_end")
+		equal(tail[3].f.outcome, "extracted")
 		analytics:registered(1)
-		equal(#recorder.events, 6, "no second first_register and no trip to end")
+		equal(#recorder.events, 7, "no second first_register and no trip to end")
 		equal(analytics:registered(99), false, "an unknown session")
 	end)
 	case("trip length bands break at 3 and 8 minutes", function()
@@ -493,6 +495,51 @@ return function(Analytics, sources)
 			"MessagingService", "DisplayName", "UserId", "GetService", "Players", "TeleportService" }) do
 			assert(not source:find(word, 1, true), "source mentions " .. word)
 		end
+	end)
+
+	-- Expedition islands (K3): the first-minute hook is measured, not assumed. Bands are seconds since the join.
+	case("K3: first_steal once per session", function()
+		local a, recorder, clock = setup()
+		a:join(1)
+		clock.t += 25
+		equal(a:stole(1), true)
+		equal(a:stole(1), true)
+		local steals = {}
+		for _, e in ipairs(recorder.events) do if e.name == "first_steal" then table.insert(steals, e) end end
+		equal(#steals, 1, "once per session")
+		equal(steals[1].f.band, "under30")
+		for _, case_ in ipairs({ { 45, "30to60" }, { 90, "60to120" }, { 200, "over120" } }) do
+			local b, rec, c = setup()
+			b:join(2)
+			c.t += case_[1]
+			b:stole(2)
+			equal(rec.events[#rec.events].f.band, case_[2], tostring(case_[1]))
+		end
+		equal(a:stole(99), false, "unknown session")
+	end)
+
+	case("K3: island_reached once per island per session", function()
+		local a, recorder = setup()
+		a:join(1)
+		a:islandReached(1, "I2")
+		a:islandReached(1, "I2")
+		a:islandReached(1, "I3")
+		equal(a:islandReached(1, "I9"), false, "unknown island")
+		local reached = {}
+		for _, e in ipairs(recorder.events) do
+			if e.name == "island_reached" then table.insert(reached, e.f.island) end
+		end
+		equal(table.concat(reached, ","), "I2,I3")
+	end)
+
+	case("K3: the first registration is timed", function()
+		local a, recorder, clock = setup()
+		a:join(1)
+		clock.t += 100
+		a:registered(1)
+		local timed
+		for _, e in ipairs(recorder.events) do if e.name == "first_register_timed" then timed = e end end
+		equal(timed and timed.f.band, "60to120")
 	end)
 
 	return result

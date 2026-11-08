@@ -939,7 +939,10 @@ local function stepIslands(now, dt)
 			lulling = lulled[spec.id] == true, phase = phase, firstSteal = false }
 		local insidePlayers = {}
 		for _, reading in ipairs(readings) do
-			if math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2) <= radius then
+			local away = math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2)
+			-- K3: walking onto the island floor counts as reaching it (once per island per session).
+			if away <= spec.floorRadius then analytics:islandReached(reading.player.UserId, spec.id) end
+			if away <= radius then
 				input.inside = true
 				table.insert(insidePlayers, reading.player)
 				if reading.sprinting then input.sprint = true end
@@ -1062,6 +1065,8 @@ handleEnding = function(out)
 		if ok then
 			counters.completed += 1
 			if entry and entry.brain then Wild.capture(entry.brain) end
+			-- K3: the first cria taken from a nest is the hook's first beat.
+			if slot and slot.island then analytics:stole(out.playerKey) end
 		else
 			-- The rule said finished but the bag disagreed. Nothing is granted and the Lumipol still goes.
 			counters.grantRefused += 1
