@@ -181,7 +181,7 @@ return function(Text, source, sources)
 		for id, name in pairs(I.names) do text(name, "ISLAND.names." .. id, 28) end
 		equal(I.takeCria, "Tomar la cría"); equal(I.takeEgg, "Tomar el huevo")
 		text(I.takeCria, "takeCria", 24); text(I.takeEgg, "takeEgg", 24)
-		for _, key in ipairs({ "stir", "woke", "guarded", "firstOnly", "caught", "chased", "screamHeard" }) do
+		for _, key in ipairs({ "stir", "woke", "guarded", "firstOnly", "caught", "chased", "screamHeard", "strike", "hit" }) do
 			text(I[key], "ISLAND." .. key, 72)
 		end
 		equal(I.stir, "Shh... se están despertando.")

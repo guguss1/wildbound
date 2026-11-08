@@ -25,6 +25,9 @@ local Relief = require(script.Parent:WaitForChild("WildboundRelief"))
 local Stamina = require(script.Parent:WaitForChild("WildboundStamina"))
 -- Expedition islands (I6): the island rule (sleep meter, nest roll, the woken adult's chase) and the species looks.
 local Island = require(script.Parent:WaitForChild("WildboundIsland"))
+-- Chase pass (CP-D5): the damage gates La Silueta uses (private mode on the listed place, lethal after a paid trip).
+local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
+local CollectionService = game:GetService("CollectionService")
 local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
@@ -104,6 +107,8 @@ local flagsModule = script.Parent:FindFirstChild("WildboundFlags")
 local flagsOk, flags = false, nil
 if flagsModule and flagsModule:IsA("ModuleScript") then flagsOk, flags = pcall(require, flagsModule) end
 local analytics, recorder = Analytics.fromMode(flagsOk and type(flags) == "table" and flags.analyticsMode or "off")
+-- Chase pass (CP-D5): an adult's strike hurts only where La Silueta's would (WildboundFlags, this exact place).
+local damageMode = FairStrike.effectiveMode(flagsOk and flags or nil, game.PlaceId)
 if recorder then
 	-- Server-only: ServerStorage never replicates. Returns the recorded events and the counters, for tests.
 	local dump = Instance.new("BindableFunction")
@@ -742,13 +747,27 @@ local function nestSlot(island, index, kind)
 end
 
 -- An adult lies on its side asleep (eyes shut) and stands facing out, or toward whoever it chases, when awake.
-local function poseAdult(adult, awake, x, z, fx, fz)
+-- Chase pass (CP-D5): rearing is the swing's wind-up tell: it rises and leans back, its eyes turn red, and the audio
+-- client plays a crack on it (an existing catalog id) when its "Swing" attribute turns on.
+local ADULT_EYES_SWING = Color3.fromRGB(235, 40, 30)
+local function poseAdult(adult, awake, x, z, fx, fz, rearing)
 	x, z = x or adult.point.x, z or adult.point.z
 	fx, fz = fx or adult.point.faceX, fz or adult.point.faceZ
 	local at = Vector3.new(x, relief:heightAt(x, z) + adult.lift, z)
 	local frame = CFrame.lookAt(at, at + Vector3.new(fx, 0, fz))
 	if not awake then frame = frame * CFrame.new(0, -adult.lift * 0.35, 0) * CFrame.Angles(0, 0, math.rad(70)) end
+	if rearing then frame = frame * CFrame.new(0, adult.lift * 0.5, 0) * CFrame.Angles(math.rad(25), 0, 0) end
 	adult.model:PivotTo(frame)
+	if adult.rearing ~= (rearing == true) then
+		adult.rearing = rearing == true
+		for _, part in ipairs(adult.model:GetChildren()) do
+			if part:IsA("BasePart") and part.Name == "Eye" then
+				adult.eyeColor = adult.eyeColor or part.Color
+				part.Color = rearing and ADULT_EYES_SWING or adult.eyeColor
+			end
+		end
+		adult.model:SetAttribute("Swing", adult.rearing)
+	end
 	if adult.awake ~= awake then
 		adult.awake = awake
 		for _, part in ipairs(adult.model:GetChildren()) do
@@ -794,6 +813,7 @@ for _, spec in ipairs(islandLayout.islands) do
 		model:SetAttribute("Adult", index)
 		local adult = { model = model, point = point, lift = model.PrimaryPart.Position.Y - relief:heightAt(point.x, point.z),
 			awake = nil }
+		CollectionService:AddTag(model, "WildboundIslandAdult")
 		poseAdult(adult, false)
 		table.insert(island.adults, adult)
 	end
@@ -908,18 +928,41 @@ local function wakeIsland(island, now)
 	islandLog("woke", spec.id, target and target.UserId or 0)
 end
 
--- A touch: the thief drops this island's cria and it runs home. Never damage; La Silueta stays the only killer.
-local function caught(island, player)
+-- Chase pass (CP-D5): whether this player has made a paid trip home (one registered creature, banked material or
+-- Ember), the same rule La Silueta uses (WildboundFairStrike.lethal). Anything unreadable spares the player.
+local islandHitDamage = 0
+local function lethalPlayer(player)
+	local snapshot = state:snapshot(player.UserId)
+	if not snapshot then return false end
+	local banked = 0
+	for _, value in pairs(snapshot.banked or {}) do
+		if type(value) == "number" and value > 0 then banked += value end
+	end
+	return FairStrike.lethal({ registered = #snapshot.registered, banked = banked, ember = snapshot.ember or 0 })
+end
+
+-- A landed adult strike (EI-2, chase pass CP-D5): the thief drops this island's cria and it runs home; the hit hurts
+-- only in the private damage mode and after a paid trip. A death goes through the ordinary defeat flow (Died).
+local function adultHit(island, player)
 	local snapshot = state:snapshot(player.UserId)
 	local carried = snapshot and snapshot.carrying
 	local root = rootOf(player)
-	islandLog("caught", island.spec.id, player.UserId)
-	if not carried or carried.island ~= island.spec.id then return end
-	local ok = state:releaseCarried(player.UserId)
-	if ok then
+	islandLog("hit", island.spec.id, player.UserId)
+	local effect = Island.hitEffect({ carrying = carried ~= nil and carried.island == island.spec.id,
+		lethal = lethalPlayer(player), damageMode = damageMode })
+	local dropped = false
+	if effect.drop and state:releaseCarried(player.UserId) then
+		dropped = true
 		returnCriaToNest(island, root and root.Position or Vector3.new(island.spec.x, 3, island.spec.z))
-		send(player, "IslandCaught", false, Text.ISLAND.caught)
 	end
+	if effect.damage > 0 then
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		if humanoid and humanoid.Health > 0 then humanoid:TakeDamage(effect.damage) end
+		islandHitDamage += effect.damage
+		telemetry:SetAttribute("IslandHitDamage", islandHitDamage)
+	end
+	send(player, "IslandCaught", false, dropped and Text.ISLAND.caught or Text.ISLAND.hit)
 end
 
 local function stepIslands(now, dt)
@@ -983,8 +1026,10 @@ local function stepIslands(now, dt)
 			local live = root ~= nil and context(target) == true
 			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
 			local c = chase.state
-			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz)
-			if event == "Caught" then caught(island, target) end
+			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike")
+			if event == "WindUp" then send(target, "IslandStrike", false, Text.ISLAND.strike) end
+			if event == "Hit" and live then adultHit(island, target) end
+			if event == "Missed" then islandLog("missed", spec.id, target.UserId) end
 			if event == "GaveUp" then islandLog("gaveUp", spec.id, target.UserId) end
 			if c.mode == "Home" then
 				island.chase = nil

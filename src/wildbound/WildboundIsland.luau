@@ -1,9 +1,10 @@
 -- Pure rules for the creature islands (docs/mechanics/wildbound-expedition-islands.md section 2, task I2).
 -- One shared sleep meter ("inquietud", 0 to 100) per island: what raises it, its stir at 40 and wake at 100, the
 -- Alerta window that closes the nest, the nest content roll, respawn, and island 1's first-steal cap. When the adults
--- wake (decision EI-2) they scream (the server's guardian noise) and one adult chases the thief: a short, leashed,
--- non-lethal chase; a touch only makes the thief drop the cria. Positions, time, phase and randomness are passed in;
--- nothing here reads the world. Every number is a hypothesis to tune in play.
+-- wake (decision EI-2) they scream (the server's guardian noise) and one adult chases the thief, leashed to its island.
+-- Chase pass (CP-D5, user: "the parents can kill you"): the adult stands up for a short wind-up, and a reach starts a
+-- readable strike; a landed strike drops the cria and, behind the damage gates, hurts (three hits kill). Positions,
+-- time, phase and randomness are passed in; nothing here reads the world. Every number is a hypothesis to tune in play.
 local Island = {}
 
 Island.CONSTANTS = table.freeze({
@@ -29,13 +30,20 @@ Island.CONSTANTS = table.freeze({
 	RESET = 30,
 	FIRST_CAP = 95,
 	FIRST_SCALE = 0.5, -- island 1 halves every input
-	-- EI-2: the woken adult's chase. Faster than a carrier (14), slower than a sprinting carrier (14 x 1.3 = 18.2).
-	CHASE_SPEED = 16,
-	CHASE_SECONDS = 7,
+	-- EI-2, chase pass (CP-D5): the woken adult's chase. It stands up for WAKE_WINDUP (IW-4: it used to catch a thief
+	-- beside it in about 0.3 s), then runs faster than a walker (16) and slower than a sprinting carrier (14 x 1.45 =
+	-- 20.3). Within STRIKE_REACH it stands still and swings for STRIKE_WINDUP (above the 0.35 s floor of a readable
+	-- tell); the swing lands if the thief is still within HIT_RANGE. DAMAGE 35: three hits kill (100, 65, 30, 0).
+	WAKE_WINDUP = 0.6,
+	CHASE_SPEED = 17,
+	CHASE_SECONDS = 10,
 	CHASE_LEASH = 35,
-	CATCH = 3.5,
+	STRIKE_REACH = 3.5,
+	STRIKE_WINDUP = 0.45,
+	HIT_RANGE = 5,
+	STRIKE_COOLDOWN = 1.2,
 	RETURN_SPEED = 8,
-	DAMAGE = 0,
+	DAMAGE = 35,
 	-- Nests (as the old slots): respawn by kind, sooner on a crowded server; island 1 refills fast for the tutorial.
 	RESPAWN_CREATURE = 45,
 	RESPAWN_CREATURE_CROWDED = 30,
@@ -176,8 +184,8 @@ end
 
 function Island.newChase(island, point)
 	if type(island) ~= "table" or type(point) ~= "table" or not finite(point.x) or not finite(point.z) then return nil end
-	return { mode = "Chase", x = point.x, z = point.z, homeX = point.x, homeZ = point.z, nestX = island.x,
-		nestZ = island.z, left = C.CHASE_SECONDS, fx = 0, fz = 1 }
+	return { mode = "Wake", wake = C.WAKE_WINDUP, x = point.x, z = point.z, homeX = point.x, homeZ = point.z,
+		nestX = island.x, nestZ = island.z, left = C.CHASE_SECONDS, fx = 0, fz = 1, swing = 0, cooldown = 0 }
 end
 
 local function moveToward(chase, tx, tz, distance)
@@ -193,33 +201,66 @@ local function moveToward(chase, tx, tz, distance)
 	return false
 end
 
--- One step. While chasing, runs at CHASE_SPEED toward (targetX, targetZ), never past CHASE_LEASH from the nest;
--- returns "Caught" on a touch or "GaveUp" when its time runs out, then walks home. Returns nil otherwise.
+-- One step. "Wake": stands up for WAKE_WINDUP, still. "Chase": runs at CHASE_SPEED toward (targetX, targetZ), never past
+-- CHASE_LEASH from the nest, and within STRIKE_REACH (cooldown over) starts a swing: returns "WindUp". "Strike": stands
+-- still; after STRIKE_WINDUP returns "Hit" if the target is within HIT_RANGE, else "Missed", and chases again after
+-- STRIKE_COOLDOWN. Returns "GaveUp" when its time runs out (the wind-up does not count), then walks home.
+local function distanceTo(chase, x, z)
+	return math.sqrt((x - chase.x) ^ 2 + (z - chase.z) ^ 2)
+end
+
 function Island.chaseStep(chase, dt, targetX, targetZ)
 	if type(chase) ~= "table" or not finite(dt) or dt <= 0 then return nil end
 	if chase.mode == "Return" then
 		if moveToward(chase, chase.homeX, chase.homeZ, C.RETURN_SPEED * dt) then chase.mode = "Home" end
 		return nil
 	end
-	if chase.mode ~= "Chase" then return nil end
-	if finite(targetX) and finite(targetZ) then
-		moveToward(chase, targetX, targetZ, C.CHASE_SPEED * dt)
-		local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
-		local out = math.sqrt(ox * ox + oz * oz)
-		if out > C.CHASE_LEASH then
-			chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
+	if chase.mode == "Wake" then
+		chase.wake -= dt
+		if chase.wake > 1e-9 then return nil end
+		chase.mode = "Chase"
+		return nil
+	end
+	if chase.mode ~= "Chase" and chase.mode ~= "Strike" then return nil end
+	local seen = finite(targetX) and finite(targetZ)
+	local event = nil
+	if chase.mode == "Strike" then
+		chase.swing -= dt
+		if seen then moveToward(chase, targetX, targetZ, 0) end
+		if chase.swing <= 1e-9 then
+			chase.mode, chase.cooldown = "Chase", C.STRIKE_COOLDOWN
+			event = seen and distanceTo(chase, targetX, targetZ) <= C.HIT_RANGE and "Hit" or "Missed"
 		end
-		if math.sqrt((targetX - chase.x) ^ 2 + (targetZ - chase.z) ^ 2) <= C.CATCH then
-			chase.mode = "Return"
-			return "Caught"
+	else
+		chase.cooldown = math.max(0, chase.cooldown - dt)
+		if seen then
+			moveToward(chase, targetX, targetZ, C.CHASE_SPEED * dt)
+			local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
+			local out = math.sqrt(ox * ox + oz * oz)
+			if out > C.CHASE_LEASH then
+				chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
+			end
+			if chase.cooldown <= 1e-9 and distanceTo(chase, targetX, targetZ) <= C.STRIKE_REACH then
+				chase.mode, chase.swing = "Strike", C.STRIKE_WINDUP
+				event = "WindUp"
+			end
 		end
 	end
 	chase.left -= dt
-	if chase.left <= 1e-9 then
+	if chase.left <= 1e-9 and event ~= "Hit" then
 		chase.mode = "Return"
 		return "GaveUp"
 	end
-	return nil
+	return event
+end
+
+-- Chase pass (CP-D5): what one landed adult strike does. input = { carrying = this island's cria is carried,
+-- lethal = past the first paid trip (WildboundFairStrike.lethal), damageMode = the effective mode }. Damage only in the
+-- private damage mode and for a lethal player, the same gates as La Silueta; the cria always drops.
+function Island.hitEffect(input)
+	if type(input) ~= "table" then return { drop = false, damage = 0 } end
+	local hurts = input.damageMode == "private" and input.lethal == true
+	return { drop = input.carrying == true, damage = hurts and C.DAMAGE or 0 }
 end
 
 return Island

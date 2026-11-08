@@ -64,13 +64,26 @@ return function(serverSource, worldSource, clientSource)
 		hasNot(serverSource, "Facing", "no client facing input")
 	end)
 
-	case("I6: the woken adult chases with the leashed rule and never damages", function()
+	-- Deliberately changed in the chase pass (CP-D5). It was "never damages": La Silueta was the only thing that hurt.
+	-- Now a landed adult strike drops the cria and, only in the private damage mode and for a player past the first
+	-- paid trip (the same gates as La Silueta), deals damage through one TakeDamage behind that guard.
+	case("CP4: the woken adult chases with the leashed rule and its strike can hurt, behind the damage gates", function()
 		has(serverSource, "Island.chaseTarget(")
 		has(serverSource, "Island.newChase(")
 		has(serverSource, "Island.chaseStep(")
 		has(serverSource, "state:releaseCarried(")
-		hasNot(serverSource, "TakeDamage", "La Silueta stays the only thing that hurts")
-		hasNot(serverSource, "Health -", "no health change")
+		has(serverSource, "FairStrike.effectiveMode(")
+		has(serverSource, "FairStrike.lethal(")
+		has(serverSource, "Island.hitEffect(")
+		local count = 0
+		for _ in serverSource:gmatch("TakeDamage") do count += 1 end
+		assert(count == 1, "one TakeDamage, found " .. count)
+		local strike = block(serverSource, "local function adultHit(", "\nend\n")
+		has(strike, "TakeDamage", "the damage lives in adultHit")
+		has(strike, "if effect.damage > 0 then", "behind the gate")
+		has(serverSource, "Text.ISLAND.strike", "the wind-up warns the thief")
+		has(serverSource, 'adult.model:SetAttribute("Swing", adult.rearing)', "the swing is visible to every client")
+		hasNot(serverSource, "Health -", "no direct health write")
 	end)
 
 	case("I6: a carried cria cries into the guardian noise", function()

@@ -161,6 +161,8 @@ local jumpscare = Mix.newJumpscare()
 local rng = Random.new()
 local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
+local CollectionService = game:GetService("CollectionService")
+local swinging = {}
 
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
@@ -241,6 +243,14 @@ local function update(dt)
 				if sound:IsA("Sound") and sound.Name == "fear" then sound:Destroy() end
 			end
 		end
+	end
+	-- Chase pass (CP-D5): an island adult's swing is heard as well as seen (the crack, an existing id, on the adult).
+	for _, adult in ipairs(CollectionService:GetTagged("WildboundIslandAdult")) do
+		local swing = adult:GetAttribute("Swing") == true
+		if swing and not swinging[adult] and adult.PrimaryPart then
+			playOnce("crack", adult.PrimaryPart, reduced and 0.3 or 0.6, 0.02, 1.25)
+		end
+		swinging[adult] = swing or nil
 	end
 	if level ~= state.level then state.nextAt = {} end
 	state.level = level

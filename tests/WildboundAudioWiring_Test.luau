@@ -75,5 +75,12 @@ return function(source)
 		has('setLayer("hiddenBreath", Mix.breath(hidden, stance, reduced), reduced)')
 		has('cue("groan", level, reduced, body, root)', "the roar at chase start")
 	end)
+
+	-- Chase pass (CP-D5): an island adult's swing has an audible tell, from the catalog, on the adult.
+	case("chase pass: an adult's swing is heard", function()
+		has('CollectionService:GetTagged("WildboundIslandAdult")')
+		has('adult:GetAttribute("Swing")')
+		has('playOnce("crack", adult.PrimaryPart')
+	end)
 	return result
 end

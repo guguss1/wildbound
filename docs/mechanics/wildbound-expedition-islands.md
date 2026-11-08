@@ -289,3 +289,19 @@ Each task: write the test, run it against an empty stub (Luau in a temporary `Se
 ## 8. Not verified
 
 Everything. No relief, island or hook exists. Not measured: the navmesh on slopes, wedge seams under a real character, frame cost of the relief on phones, whether 6-stud crests are enough to lose La Silueta in practice, whether the crest sighting reads at 51 studs in the day mist, the meter numbers' feel, the 30 to 45 s and 2 minute hook times, and the economy effect of the island rewards until the simulator runs them.
+
+## Chase pass: lethal adults (2026-11-08)
+
+User: "you can steal from the parents and they chase you and can kill you". This replaces the non-lethal part of decision EI-2 (the touch that only dropped the cria) and answers IW-4 (no wind-up). `WildboundIsland` and the inventory server; decisions CP-D5 and CP-A1 to CP-A3 in `odd/tasks/wildbound-capture-extraction-horror.md`.
+
+| Step | Rule |
+| --- | --- |
+| Wake | The island screams as before; the nearest adult stands up for 0.6 s (`WAKE_WINDUP`) before it moves |
+| Chase | 17 studs/s (was 16): faster than a walker (16) and a carrier (14), slower than a carrying sprinter (20.3); 10 s (was 7), leashed 35 studs from the nest |
+| Swing | Within 3.5 studs it stops and rears for 0.45 s (`STRIKE_WINDUP`): it rises and leans back, its eyes turn red, a crack sounds on it (catalog `crack`, played by the audio client from the adult's `Swing` attribute) and the thief reads "¡Va a golpearte! Apártate." |
+| Hit | Lands only if the thief is still within 5 studs; then 1.2 s before the next swing, and the chase goes on |
+| Effect | The cria drops and runs back to its nest ("¡Te alcanzó! La cría volvió a su nido."); 35 damage, so three hits kill; later hits read "¡Otro golpe! Aléjate del nido." |
+| Gates | Damage only where La Silueta's strikes are real: `damageMode = "private"` on place 122652861404212 (`FairStrike.effectiveMode`) and a player past the first paid trip (`FairStrike.lethal`). Anywhere else, or before the first paid trip, a hit only drops the cria |
+| Death | Through the ordinary defeat flow (`Humanoid.Died`): the carried creature is lost and the Spanish defeat summary shows |
+| Island 1 | Unchanged first-steal cap (95, halved inputs): the first steal never wakes island 1, and a first-time player is never lethal anyway |
+

@@ -158,8 +158,11 @@ return freeze({
 		woke = "¡Te descubrieron! Su grito resuena en el bosque.",
 		guarded = "El nido está vigilado. Vuelve más tarde.",
 		firstOnly = "En el claro solo se toma la primera cría. Busca más adentro.",
-		chased = "¡Un adulto te persigue! Corre o suelta la cría.",
+		chased = "¡Un adulto te persigue! Corre: sus golpes hieren.",
 		caught = "¡Te alcanzó! La cría volvió a su nido.",
+		-- Chase pass (CP-D5): the adult's swing (the wind-up warning) and a later hit.
+		strike = "¡Va a golpearte! Apártate.",
+		hit = "¡Otro golpe! Aléjate del nido.",
 		screamHeard = "Un grito lejano... algo se acerca.",
 	},
 	-- Expedition islands (I7): the starter upgrade on the board.

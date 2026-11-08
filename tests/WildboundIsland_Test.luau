@@ -187,23 +187,31 @@ return function(Island, layout)
 		assert(Island.nestCount(island("I3"), 3) == 2, "three players, two nests")
 	end)
 
-	case("I2: the woken adult chases between carry and carry-sprint speed", function()
-		assert(C.CHASE_SPEED > 14 and C.CHASE_SPEED < 18.2, "speed " .. tostring(C.CHASE_SPEED))
-		assert(C.CHASE_SECONDS >= 6 and C.CHASE_SECONDS <= 8, "duration")
+	-- Deliberately changed in the chase pass (CP-D5, user: "the parents can kill you"). It was "between carry (14) and
+	-- carry-sprint (18.2) speed, 6 to 8 s, no wind-up" (IW-4: a thief next to the adults was caught in about 0.3 s).
+	-- Now the adult stands up for a short wind-up, then runs faster than a walker (16) and slower than a carrying
+	-- sprinter (14 x 1.45 = 20.3) by at least 3 studs/s, for 10 s.
+	case("CP4: the woken adult winds up, then chases faster than a walker, slower than a carrying sprinter", function()
+		assert(C.WAKE_WINDUP >= 0.35 and C.WAKE_WINDUP <= 1, "wind-up " .. tostring(C.WAKE_WINDUP))
+		assert(C.CHASE_SPEED > 16 and C.CHASE_SPEED <= 20.3 - 3, "speed " .. tostring(C.CHASE_SPEED))
+		assert(C.CHASE_SECONDS >= 8 and C.CHASE_SECONDS <= 12, "duration")
 		near(C.CHASE_LEASH, 35, 1e-9, "leash")
 		local entry = island("I2")
-		local chase = Island.newChase(entry, entry.adultPoints[1])
+		local start = entry.adultPoints[1]
+		local chase = Island.newChase(entry, start)
+		assert(Island.chaseStep(chase, C.WAKE_WINDUP - 0.05, start.x + 1, start.z) == nil, "no strike while it stands up")
+		near(chase.x, start.x, 1e-9, "it does not move during the wind-up")
+		Island.chaseStep(chase, 0.05, entry.x + 5, entry.z + 30)
 		local event = Island.chaseStep(chase, 0.5, entry.x + 5, entry.z + 30)
 		assert(event == nil, "still running")
-		near(math.sqrt((chase.x - entry.adultPoints[1].x) ^ 2 + (chase.z - entry.adultPoints[1].z) ^ 2),
-			C.CHASE_SPEED * 0.5, 1e-6, "moved at chase speed")
+		near(math.sqrt((chase.x - start.x) ^ 2 + (chase.z - start.z) ^ 2), C.CHASE_SPEED * 0.5, 1e-6, "moved at chase speed")
 	end)
 
 	case("I2: the chase is leashed to its island and gives up on time", function()
 		local entry = island("I3")
 		local chase = Island.newChase(entry, entry.adultPoints[1])
 		local gaveUp = false
-		for _ = 1, 50 do
+		for _ = 1, 80 do
 			local event = Island.chaseStep(chase, 0.2, entry.x + 200, entry.z)
 			assert(math.sqrt((chase.x - entry.x) ^ 2 + (chase.z - entry.z) ^ 2) <= C.CHASE_LEASH + 1e-6, "leash")
 			if event == "GaveUp" then gaveUp = true break end
@@ -215,15 +223,40 @@ return function(Island, layout)
 		near(chase.x, entry.adultPoints[1].x, 1e-6)
 	end)
 
-	case("I2: touching the thief catches, once, and never hurts", function()
+	-- Deliberately changed in the chase pass (CP-D1, CP-D5). It was "touching the thief catches, once, and never
+	-- hurts". Now a reach starts a readable strike (it stands still for the wind-up, never under the 0.35 s floor); it
+	-- lands only if the thief is still within the hit range, and the chase goes on after a cooldown.
+	case("CP4: a reach starts a readable strike that lands only if the thief stays close", function()
+		assert(C.STRIKE_WINDUP >= 0.35, "a readable tell")
+		assert(C.HIT_RANGE > C.STRIKE_REACH, "a little slack for the swing")
 		local entry = island("I2")
 		local start = entry.adultPoints[1]
 		local chase = Island.newChase(entry, start)
-		local event = Island.chaseStep(chase, 0.2, start.x + C.CATCH - 0.1, start.z)
-		assert(event == "Caught", tostring(event))
-		assert(chase.mode == "Return", "goes home after a catch")
-		assert(Island.chaseStep(chase, 0.2, chase.x, chase.z) == nil, "a returning adult catches nobody")
-		assert(C.DAMAGE == 0, "no damage")
+		Island.chaseStep(chase, C.WAKE_WINDUP, entry.x + 200, entry.z)
+		local tx, tz = chase.x + C.STRIKE_REACH - 0.5, chase.z
+		assert(Island.chaseStep(chase, 0.05, tx, tz) == "WindUp", "a reach starts the swing")
+		assert(chase.mode == "Strike", chase.mode)
+		local x, z = chase.x, chase.z
+		assert(Island.chaseStep(chase, C.STRIKE_WINDUP - 0.1, tx, tz) == nil, "the swing is still coming")
+		near(chase.x, x, 1e-9); near(chase.z, z, 1e-9, "it stands still to swing")
+		assert(Island.chaseStep(chase, 0.1, tx, tz) == "Hit", "it lands on a thief who stayed")
+		assert(chase.mode == "Chase", "it keeps chasing after a hit")
+		assert(Island.chaseStep(chase, 0.1, chase.x + 1, chase.z) == nil, "no new swing during the cooldown")
+		assert(Island.chaseStep(chase, C.STRIKE_COOLDOWN, chase.x + 1, chase.z) == "WindUp", "then it swings again")
+		Island.chaseStep(chase, C.STRIKE_WINDUP - 0.01, chase.x + 1, chase.z)
+		assert(Island.chaseStep(chase, 0.01, chase.x + C.HIT_RANGE + 2, chase.z) == "Missed", "a dodge makes it miss")
+	end)
+
+	case("CP4: three hits kill a lethal player; first-timers and other places only drop the cria", function()
+		assert(C.DAMAGE * 3 >= 100 and C.DAMAGE * 2 < 100, "three hits, not two " .. tostring(C.DAMAGE))
+		local hit = Island.hitEffect({ carrying = true, lethal = true, damageMode = "private" })
+		assert(hit.drop == true and hit.damage == C.DAMAGE, "a thief drops the cria and is hurt")
+		hit = Island.hitEffect({ carrying = false, lethal = true, damageMode = "private" })
+		assert(hit.drop == false and hit.damage == C.DAMAGE, "an empty-handed intruder is hurt")
+		assert(Island.hitEffect({ carrying = true, lethal = false, damageMode = "private" }).damage == 0, "before a paid trip")
+		assert(Island.hitEffect({ carrying = true, lethal = true, damageMode = "off" }).damage == 0, "damage off here")
+		assert(Island.hitEffect({ carrying = true, lethal = true, damageMode = "on" }).damage == 0, "only private counts")
+		assert(Island.hitEffect(nil).damage == 0, "bad input")
 	end)
 
 	case("I2: the chase picks the thief first, then the nearest intruder", function()
