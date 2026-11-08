@@ -87,6 +87,16 @@ local function reason(ctx, snapshot, cost, extra)
 	return View.shortfall(walletOf(snapshot), cost)
 end
 
+-- Each upgrade's own words. I7: "Farol tapado" is the starter upgrade, listed first.
+local UPGRADE_WORDS = table.freeze({
+	farolTapado = table.freeze({ order = 1, title = "Farol tapado",
+		effect = "tu linterna molesta menos a las criaturas dormidas",
+		owned = "Farol tapado: owned. Tu linterna molesta menos a las criaturas dormidas." }),
+	reinforcedPack = table.freeze({ order = 2, title = "Reinforced Pack",
+		effect = "bag 4, pouch 45, a defeat takes a tenth instead of a fifth",
+		owned = "Reinforced Pack: owned. Bag 4, pouch 45, a defeat takes a quarter." }),
+})
+
 local function line(title, effect, cost, why)
 	local text = ("%s: %s. Cost: %s."):format(title, effect, View.costText(cost))
 	return why and why ~= "" and (text .. " " .. why .. ".") or text
@@ -141,14 +151,19 @@ function View.campRows(config, economy, snapshot, ctx)
 			"ArmTotem", "totem", "Set", why == nil and not ctx.busy, why))
 	end
 	local upgrades = type(snapshot.upgrades) == "table" and snapshot.upgrades or {}
-	for name, spec in pairs(config.upgrades) do
+	local names = {}
+	for name in pairs(config.upgrades) do table.insert(names, name) end
+	table.sort(names, function(a, b) return (UPGRADE_WORDS[a] and UPGRADE_WORDS[a].order or 9) < (UPGRADE_WORDS[b] and UPGRADE_WORDS[b].order or 9) end)
+	for _, name in ipairs(names) do
+		local spec = config.upgrades[name]
+		local words = UPGRADE_WORDS[name] or { title = name, effect = "", owned = name .. ": owned." }
 		if upgrades[name] == true then
-			table.insert(rows, row("upgrade:" .. name, "Upgrade", "Reinforced Pack: owned. Bag 4, pouch 45, a defeat takes a quarter.", nil, nil, nil, false))
+			table.insert(rows, row("upgrade:" .. name, "Upgrade", words.owned, nil, nil, nil, false))
 		else
 			local why = reason(ctx, snapshot, spec.cost)
-			local made = row("upgrade:" .. name, "Upgrade", line("Reinforced Pack", "bag 4, pouch 45, a defeat takes a tenth instead of a fifth",
-				spec.cost, why), "Upgrade", name, "Buy", why == nil, why)
-			made.short = shortLine("Reinforced Pack", spec.cost, why)
+			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why), "Upgrade", name, "Buy",
+				why == nil, why)
+			made.short = shortLine(words.title, spec.cost, why)
 			table.insert(rows, made)
 		end
 	end

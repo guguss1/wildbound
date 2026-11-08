@@ -345,5 +345,19 @@ return function(View, Config, Economy, Layout, source)
 		end
 	end)
 
+	-- Expedition islands (I7, K2): the starter upgrade shows on the board under its own name and price.
+	case("I7: the board lists Farol tapado with its own words and a 10 Ember price", function()
+		local rich = { ember = 10, banked = { fogbark = 0, glowmoss = 0, nightbloom = 0 } }
+		local row = byId(rowsOf(rich, { atCamp = true }), "upgrade:farolTapado")
+		assert(row.text:find("Farol tapado", 1, true), row.text)
+		assert(row.text:find("10 Ember", 1, true), row.text)
+		assert(not row.text:find("Reinforced", 1, true), "not the pack's words: " .. row.text)
+		equal(row.enabled, true)
+		local owned = byId(rowsOf({ upgrades = { farolTapado = true } }), "upgrade:farolTapado")
+		assert(owned.text:find("Farol tapado", 1, true) and owned.text:find("owned", 1, true), owned.text)
+		local pack = byId(rowsOf(rich, { atCamp = true }), "upgrade:reinforcedPack")
+		assert(pack.text:find("Reinforced Pack", 1, true), pack.text)
+	end)
+
 	return result
 end
