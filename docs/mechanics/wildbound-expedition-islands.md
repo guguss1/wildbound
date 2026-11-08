@@ -24,7 +24,7 @@ Leave camp, follow the lit lanterns, crest a low rim and look down into an islan
 | EI-6 | A carried cría cries when its capsule mood is `afraid` (B-6) or in the 6 s after its island woke: a `cry` noise every 6 s. This deliberately changes B-6 and D-D1 ("carrying adds nothing to what La Silueta senses"). |
 | EI-7 | No new currency. The first-minute reward is paid in Ember (existing), plus the first creature on display (existing), plus one cheap first upgrade ("Farol tapado"). |
 | EI-8 | La Silueta's territory, leash (80 around (0, -85)), clamp, fair-strike gates and camp safety are unchanged. Islands 4 and 5 are inside the territory; islands 1 to 3 are not, so La Silueta can only be seen, heard or stalk the edge there. |
-| EI-9 | One scripted-feeling but fair first sighting: La Silueta walks to a crest inside its territory, 51 studs from island 2, stands, looks, and walks down out of sight. It is a patrol variant: it never attacks from it and acquires only by the normal rules. |
+| EI-9 | One scripted-feeling but fair first sighting: La Silueta walks to a crest inside its territory, 51 studs from island 2 (69 since IW-5 moved the island), stands, looks, and walks down out of sight. It is a patrol variant: it never attacks from it and acquires only by the normal rules. |
 | EI-10 | New species for islands 2 to 5 use the existing exported rigs (`assets/exports/species`, not uploaded). Until an upload is approved they are primitive stand-ins with the species' colours and name (H4 pattern). Lumipol stays the tutorial species. |
 
 ## 1. Terrain relief
@@ -63,8 +63,8 @@ Alternative, Roblox Terrain (`Terrain:FillBlock` or `WriteVoxels` from the same 
 | --- | --- | ---: | --- |
 | Rim of island 1, "Loma del Claro" | ring around (-95, 75), floor radius 14 | 3 | The reveal: you crest it and look down into the sleeping nest |
 | "Loma Larga" | (-10, 70), 60 long, east to west | 10 | Outside the territory, between the east and west routes: the camp to shelter walk loses its sight lines |
-| Rim of island 2 | ring around (-27, 0), floor radius 16 | 4 | Hollow next to the fog edge |
-| "Cresta de la Vigía" | (5, -40), 40 long, east to west | 6 | Inside the territory (45 from home), 51 from island 2: the first-sighting crest (section 4) |
+| Rim of island 2 | ring around (-20, 15) (IW-5; was (-27, 0)), floor radius 16, wholly outside the territory | 4 | Hollow next to the fog edge |
+| "Cresta de la Vigía" | (5, -40), 40 long, east to west | 6 | Inside the territory (45 from home), 51 from island 2 (69 since IW-5): the first-sighting crest (section 4) |
 | Hummocks of the marsh | around (115, 15) | 2 to 3 | Low cover around island 3 |
 | Rim of island 4, around the ruin pillars | ring around (35, -99), floor radius 16 | 5 | Two entrances, on the route |
 | Rim of island 5 | ring around (60, -135), floor radius 16 | 6 | One entrance only: one way in, one way out |
@@ -104,7 +104,7 @@ Path distances are measured along the route from the spawn point (-140, 150) at 
 | # | Name (player-facing) | Theme | Centre | Zone, tier | From spawn | Species (stand-in until approved) | Adults asleep | Wake radius day / night |
 | --- | --- | --- | --- | --- | --- | --- | ---: | --- |
 | 1 | Claro de los Lumipol | Sunny clearing, soft glow, the tutorial | (-95, 75), existing `S0a` | Outside the fog, Safe | 88 studs, about 6 s | Lumipol (existing) | 2 | 12 / 15 |
-| 2 | Hondonada del Musgo | Mossy hollow at the fog edge | (-27, 0) | Fog, outside the leash (90 from home) | about 206 studs, 13 s | Cortezón (mossy shell) | 2 | 16 / 20 |
+| 2 | Hondonada del Musgo | Mossy hollow at the fog edge | (-20, 15) (IW-5; was (-27, 0)) | Fog, outside the leash (102 from home; the floor keeps leash + ATTACK_RANGE, 87) | about 206 studs, 13 s | Cortezón (mossy shell) | 2 | 16 / 20 |
 | 3 | Pantano de los Juncos | Reed marsh, pale water, no Silueta | (115, 15), near `L4` | Fog, outside the leash (158 from home) | about 366 studs east, 23 s (450 west) | Cestillo (long-necked wader) | 3 | 18 / 22.5 |
 | 4 | Ruinas del Nido | Ruin pillars around the old nest | (35, -99), the nest `E1` | Territory, 37.7 from home | about 311 studs west, 19.5 s | Polvilla (dusty moth) | 3 | 20 / 25 |
 | 5 | Corazón de la Niebla | Deepest bowl, ember glow | (60, -135), near `E3` | Territory, 78 from home | about 355 studs, 22 s | Tizoncillo (glowing ember log) | 4 | 22 / 27.5 |
@@ -211,7 +211,7 @@ First steal by 30 to 45 s, first registration under 2 minutes, a first purchase 
 | Moment | Rule | Fairness |
 | --- | --- | --- |
 | Footsteps before sight | Unchanged DP5: steps from Distant (within 120 studs), roll-off 150; over a crest you hear before you see | Information, never a strike |
-| First sighting on a crest (EI-9) | When a player who has registered at least one creature comes within 60 studs of island 2, La Silueta is in Patrol, and nobody was hunted in the last 20 s: it walks (investigate speed) to the crest point (5, -40) of "Cresta de la Vigía", stands 3 s facing the player, then walks down the far side, out of sight. Once per player per session; later, 25 % per island 2 visit by Day or Dusk | The crest is 51 studs from island 2, beyond every detection radius (26, 32, 38), and it acquires only by the normal sight rules. No attack from a show; threat level Distant |
+| First sighting on a crest (EI-9) | When a player who has registered at least one creature comes within 60 studs of island 2, La Silueta is in Patrol, and nobody was hunted in the last 20 s: it walks (investigate speed) to the crest point (5, -40) of "Cresta de la Vigía", stands 3 s facing the player, then walks down the far side, out of sight. Once per player per session; later, 25 % per island 2 visit by Day or Dusk | The crest is 51 studs from island 2 (69 since IW-5), beyond every detection radius (26, 32, 38), and it acquires only by the normal sight rules. No attack from a show; threat level Distant |
 | Edge stalk | A scream at islands 2 or 3 clamps its goal to the territory edge; it stands visible for 10 s, then returns | It cannot cross the clamp |
 | The hunt | Islands 4 and 5: a scream brings an investigation, then the normal Alert, Hunt, Telegraph | All fair-strike gates; hunt speeds 7 to 10 stay under the carry speed 14 |
 | Relief | A chase breaks over a crest (queryable ridge), then Search 6, 9 or 12 s | Existing `lostSight` and Search |
