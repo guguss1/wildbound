@@ -18,14 +18,13 @@
     "treeKeepNest": 27.0
   },
   "totals": {
-    "segments": 17,
-    "parts": 153,
+    "segments": 18,
+    "parts": 162,
     "dropped": [
       "rim-claro#2",
       "rim-claro#3",
       "rim-claro#5",
       "rim-hondonada#0",
-      "rim-hondonada#2",
       "rim-hondonada#3",
       "rim-hondonada#4",
       "rim-hondonada#5",
@@ -42,7 +41,7 @@
   "removedTrees": [
     "FK_DeadTree_012",
     "FK_DeadTree_013",
-    "FK_DeadTree_015",
+    "FK_DeadTree_018",
     "FK_DeadTree_019",
     "FK_DeadTree_023",
     "FK_DeadTree_035",
@@ -56,8 +55,8 @@
     "FK_Evergreen_020",
     "FK_Evergreen_024",
     "FK_Evergreen_028",
-    "FK_Evergreen_029",
     "FK_Evergreen_036",
+    "FK_Evergreen_038",
     "FK_Evergreen_039",
     "FK_Evergreen_040",
     "FK_Evergreen_050",
@@ -151,19 +150,34 @@
       "id": "R06",
       "feature": "rim-hondonada",
       "a": [
-        -10.237,
-        22.357
+        6.357,
+        33.835
       ],
       "b": [
-        -25.471,
-        27.902
+        -16.867,
+        47.243
       ],
-      "height": 3.0,
+      "height": 4.0,
       "crestWidth": 3.0,
       "slopeDeg": 20.0
     },
     {
       "id": "R07",
+      "feature": "rim-hondonada",
+      "a": [
+        -4.975,
+        53.687
+      ],
+      "b": [
+        -47.351,
+        46.215
+      ],
+      "height": 4.0,
+      "crestWidth": 3.0,
+      "slopeDeg": 20.0
+    },
+    {
+      "id": "R08",
       "feature": "rim-ruinas",
       "a": [
         75.49,
@@ -178,7 +192,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R08",
+      "id": "R09",
       "feature": "rim-ruinas",
       "a": [
         36.65,
@@ -193,7 +207,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R09",
+      "id": "R10",
       "feature": "rim-corazon",
       "a": [
         89.49,
@@ -208,7 +222,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R10",
+      "id": "R11",
       "feature": "rim-corazon",
       "a": [
         85.803,
@@ -223,7 +237,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R11",
+      "id": "R12",
       "feature": "rim-corazon",
       "a": [
         30.532,
@@ -238,7 +252,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R12",
+      "id": "R13",
       "feature": "rim-corazon",
       "a": [
         68.309,
@@ -253,7 +267,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R13",
+      "id": "R14",
       "feature": "saddle-west",
       "a": [
         -70.125,
@@ -268,7 +282,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R14",
+      "id": "R15",
       "feature": "saddle-east",
       "a": [
         -6.75,
@@ -283,7 +297,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R15",
+      "id": "R16",
       "feature": "hummock-marsh",
       "a": [
         133.239,
@@ -298,7 +312,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R16",
+      "id": "R17",
       "feature": "hummock-marsh",
       "a": [
         88.641,
@@ -313,7 +327,7 @@
       "slopeDeg": 20.0
     },
     {
-      "id": "R17",
+      "id": "R18",
       "feature": "hummock-marsh",
       "a": [
         128.835,
@@ -405,19 +419,34 @@
       "y": 3.167
     },
     {
-      "x": -17.854,
-      "z": 25.13,
-      "y": 3.5
+      "x": -5.255,
+      "z": 40.539,
+      "y": 4.5
     },
     {
-      "x": -19.777,
-      "z": 19.847,
-      "y": 2.0
-    },
-    {
-      "x": -29.506,
-      "z": 24.85,
+      "x": -8.752,
+      "z": 34.481,
       "y": 2.5
+    },
+    {
+      "x": -22.621,
+      "z": 44.603,
+      "y": 3.167
+    },
+    {
+      "x": -26.163,
+      "z": 49.951,
+      "y": 4.5
+    },
+    {
+      "x": -24.948,
+      "z": 43.062,
+      "y": 2.5
+    },
+    {
+      "x": -50.062,
+      "z": 40.494,
+      "y": 3.167
     },
     {
       "x": 75.49,
@@ -632,22 +661,7 @@
     {
       "x": -32.0,
       "z": 44.0,
-      "y": 2.129
-    },
-    {
-      "x": 5.0,
-      "z": 15.0,
-      "y": 0.5
-    },
-    {
-      "x": 42.0,
-      "z": -14.0,
-      "y": 0.5
-    },
-    {
-      "x": 79.0,
-      "z": -43.0,
-      "y": 0.5
+      "y": 3.282
     }
   ]
 }

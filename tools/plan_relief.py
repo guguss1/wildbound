@@ -24,6 +24,7 @@ Rules (all checked against the combined height):
 - no footprint inside a safe circle plus 3, an island floor, 5 studs of a hide spot, Lumipol or egg slot, gather
   slot, map marker or ambush anchor, 10 studs of a route landmark, 4.5 of a ruin pillar or 2 of the marsh pool;
 - the nest's open sight lanes to patrol E and N stay on flat ground;
+- the rim of an island outside the guardian's territory stays wholly outside it (EI-8, IW-5);
 - at most 250 parts.
 
     python -I -B tools/plan_relief.py            # prints JSON, writes nothing
@@ -38,6 +39,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the script folder off the path
 import plan_forest_layout as forest  # noqa: E402
+import plan_islands as islands  # noqa: E402  (island centres and design floor radii)
 import simulate_economy as eco  # noqa: E402  (the one reader of the economy tuning block)
 
 REPO = Path(__file__).resolve().parent.parent
@@ -62,8 +64,8 @@ TREE_REMOVAL_PER_SEGMENT, TREE_REMOVAL_BUDGET = 4, 30  # of the layout's 172 tre
 TREE_KEEP_NEST = 27.0  # the nest cover band (13 to 26) stays
 LOG_REACH = 8.5  # half a fallen log's length per unit scale, plus a little
 
-ISLANDS = {"claro": ((-95.0, 75.0), 14.0), "hondonada": ((-27.0, 0.0), 16.0), "pantano": ((115.0, 15.0), 16.0),
-           "ruinas": ((35.0, -99.0), 16.0), "corazon": ((60.0, -135.0), 16.0)}
+# Island floors come from the island planner, so a moved island (IW-5) moves its rim and its flat floor with it.
+ISLANDS = {key: (centre, design) for _, key, centre, design, *_ in islands.ISLANDS}
 # src/wildbound/WildboundLumipolWild.luau slots S0a, S0b, L1 to L4, E1 to E3.
 LUMIPOL_SLOTS = ((-95, 75), (-112, 92), (-10, -60), (30, -105), (65, -60), (110, 5), (35, -99), (-38, -85),
                  (60, -125))
@@ -309,6 +311,8 @@ def place_rim(spec, placed, inputs, removed):
 
 def _rim_chord(spec, k, floor, cx, cz, placed, inputs, removed):
     n = spec["chords"]
+    # EI-8 and IW-5: the rim of an island outside the territory stays wholly outside it, like its floor.
+    outside = not forest.in_territory(cx, cz)
     for height in _heights(spec["height"]):
         for turn in (0.0, 10.0, -10.0, 20.0, -20.0):
             angle = 2 * math.pi * k / n + math.radians(turn)
@@ -322,6 +326,8 @@ def _rim_chord(spec, k, floor, cx, cz, placed, inputs, removed):
                         # yaw is measured from +z toward +x: the chord runs perpendicular to the radius.
                         yaw = math.degrees(math.atan2(-math.sin(angle), math.cos(angle)))
                         candidate = make_segment(spec["feature"], centre, yaw, length, height, spec["crest"], slope)
+                        if outside and any(forest.in_territory(x, z) for x, z in footprint_points(candidate, 1.0)):
+                            continue
                         if fits(candidate, placed, inputs, removed) is None:
                             return candidate
     return None

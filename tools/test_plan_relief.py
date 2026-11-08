@@ -22,7 +22,7 @@ ROUTE_HALF = 7.0
 SAFE = (((-140.0, 140.0), 35.0), ((105.0, 125.0), 22.0))
 HOME, LEASH = (0.0, -85.0), 80.0
 FOG = (-45.0, 165.0, -165.0, 35.0)
-ISLANDS = {"claro": ((-95.0, 75.0), 14.0), "hondonada": ((-27.0, 0.0), 16.0), "pantano": ((115.0, 15.0), 16.0),
+ISLANDS = {"claro": ((-95.0, 75.0), 14.0), "hondonada": ((-20.0, 15.0), 16.0), "pantano": ((115.0, 15.0), 16.0),
            "ruinas": ((35.0, -99.0), 16.0), "corazon": ((60.0, -135.0), 16.0)}
 # WildboundLumipolWild slots (S0a to E3) and the economy gather slots are read where they live; the Lumipol slots
 # are restated because they live in Luau. tests/WildboundLumipolWild_Test.luau checks the same flatness in Studio.

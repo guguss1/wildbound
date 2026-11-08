@@ -412,6 +412,15 @@ return function(builder, reliefLayout, islandLayout)
         expect(names.FK_Evergreen and names.FK_LanternMarker, 'far trees and other props stay')
         holder:Destroy()
     end)
+    check('IW-5: trees the island plan lists (the show crest sight line) go even off a floor', function()
+        expect(type(islandLayout.removedTrees) == 'table' and #islandLayout.removedTrees > 0, 'removedTrees missing')
+        local listed = islandLayout.removedTrees[1]
+        local i2 = islandLayout.islands[2]
+        local holder, bare = islandRoot({ { listed, i2.x + 60, i2.z + 8 }, { 'FK_Evergreen_9999', i2.x + 60, i2.z } })
+        expect(not bare.ForestKit:FindFirstChild(listed), listed .. ' listed by the plan goes')
+        expect(bare.ForestKit:FindFirstChild('FK_Evergreen_9999'), 'an unlisted far tree stays')
+        holder:Destroy()
+    end)
     container:Destroy()
     return { passed = passed, failed = #failures, failures = failures }
 end

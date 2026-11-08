@@ -63,8 +63,8 @@
       "id": "I2",
       "key": "hondonada",
       "centre": [
-        -27.0,
-        0.0
+        -20.0,
+        15.0
       ],
       "floorRadius": 14.0,
       "zone": "fog",
@@ -77,19 +77,19 @@
         "night": 20.0
       },
       "nest": {
-        "x": -27.0,
-        "z": 0.0
+        "x": -20.0,
+        "z": 15.0
       },
       "adultPoints": [
         {
-          "x": -27.0,
-          "z": 6.0,
+          "x": -20.0,
+          "z": 21.0,
           "faceX": 0.0,
           "faceZ": 1.0
         },
         {
-          "x": -27.0,
-          "z": -6.0,
+          "x": -20.0,
+          "z": 9.0,
           "faceX": -0.0,
           "faceZ": -1.0
         }
@@ -110,7 +110,8 @@
         338
       ],
       "rimSegments": [
-        "R06"
+        "R06",
+        "R07"
       ],
       "hideSpot": "H10"
     },
@@ -234,8 +235,8 @@
         338
       ],
       "rimSegments": [
-        "R07",
-        "R08"
+        "R08",
+        "R09"
       ],
       "hideSpot": "H07"
     },
@@ -297,10 +298,10 @@
         247
       ],
       "rimSegments": [
-        "R09",
         "R10",
         "R11",
-        "R12"
+        "R12",
+        "R13"
       ],
       "hideSpot": "H07"
     }
@@ -313,8 +314,10 @@
   },
   "removedTrees": [
     "FK_DeadTree_005",
+    "FK_DeadTree_015",
     "FK_DeadTree_027",
     "FK_DeadTree_036",
-    "FK_Evergreen_016"
+    "FK_Evergreen_016",
+    "FK_Evergreen_019"
   ]
 }
