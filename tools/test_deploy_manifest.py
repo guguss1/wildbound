@@ -342,6 +342,8 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundRelief_Test.luau": "ServerStorage.WildboundRelief_Test",
         # Expedition relief, R5: source contracts for the guardian and creatures on the relief
         "tests/WildboundReliefWiring_Test.luau": "ServerStorage.WildboundReliefWiring_Test",
+        # Expedition islands, I1: the generated island layout (server only)
+        "src/wildbound/WildboundIslandLayout.luau": "ServerScriptService.WildboundIslandLayout",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

@@ -1,0 +1,320 @@
+{
+  "name": "islands-v1",
+  "source": "tools/plan_islands.py; docs/mechanics/wildbound-expedition-islands.md section 2",
+  "conventions": "studs, origin at the map centre, x east, z south; wake radius night = day x 1.25",
+  "islands": [
+    {
+      "id": "I1",
+      "key": "claro",
+      "centre": [
+        -95.0,
+        75.0
+      ],
+      "floorRadius": 14.0,
+      "zone": "outside",
+      "tier": "Safe",
+      "rewardTier": "Safe",
+      "species": "Lumipol",
+      "adults": 2,
+      "wakeRadius": {
+        "day": 12.0,
+        "night": 15.0
+      },
+      "nest": {
+        "x": -95.0,
+        "z": 75.0
+      },
+      "adultPoints": [
+        {
+          "x": -95.0,
+          "z": 81.0,
+          "faceX": 0.0,
+          "faceZ": 1.0
+        },
+        {
+          "x": -95.0,
+          "z": 69.0,
+          "faceX": -0.0,
+          "faceZ": -1.0
+        }
+      ],
+      "entrances": [
+        0,
+        112,
+        135,
+        158,
+        180,
+        202,
+        225,
+        247,
+        270,
+        292,
+        315,
+        338
+      ],
+      "rimSegments": [
+        "R01",
+        "R02",
+        "R03"
+      ],
+      "hideSpot": null
+    },
+    {
+      "id": "I2",
+      "key": "hondonada",
+      "centre": [
+        -27.0,
+        0.0
+      ],
+      "floorRadius": 14.0,
+      "zone": "fog",
+      "tier": "Fog",
+      "rewardTier": "Fog",
+      "species": "Cortezon",
+      "adults": 2,
+      "wakeRadius": {
+        "day": 16.0,
+        "night": 20.0
+      },
+      "nest": {
+        "x": -27.0,
+        "z": 0.0
+      },
+      "adultPoints": [
+        {
+          "x": -27.0,
+          "z": 6.0,
+          "faceX": 0.0,
+          "faceZ": 1.0
+        },
+        {
+          "x": -27.0,
+          "z": -6.0,
+          "faceX": -0.0,
+          "faceZ": -1.0
+        }
+      ],
+      "entrances": [
+        0,
+        22,
+        112,
+        135,
+        158,
+        180,
+        202,
+        225,
+        247,
+        270,
+        292,
+        315,
+        338
+      ],
+      "rimSegments": [
+        "R06"
+      ],
+      "hideSpot": "H10"
+    },
+    {
+      "id": "I3",
+      "key": "pantano",
+      "centre": [
+        115.0,
+        15.0
+      ],
+      "floorRadius": 16.0,
+      "zone": "fog",
+      "tier": "Fog",
+      "rewardTier": "FogFar",
+      "species": "Cestillo",
+      "adults": 3,
+      "wakeRadius": {
+        "day": 18.0,
+        "night": 22.5
+      },
+      "nest": {
+        "x": 115.0,
+        "z": 15.0
+      },
+      "adultPoints": [
+        {
+          "x": 115.0,
+          "z": 21.0,
+          "faceX": 0.0,
+          "faceZ": 1.0
+        },
+        {
+          "x": 109.804,
+          "z": 12.0,
+          "faceX": -0.866,
+          "faceZ": -0.5
+        },
+        {
+          "x": 120.196,
+          "z": 12.0,
+          "faceX": 0.866,
+          "faceZ": -0.5
+        }
+      ],
+      "entrances": [
+        0,
+        22,
+        45,
+        68,
+        90,
+        112,
+        180,
+        202,
+        225,
+        247,
+        270,
+        292,
+        315,
+        338
+      ],
+      "rimSegments": [],
+      "hideSpot": "H05"
+    },
+    {
+      "id": "I4",
+      "key": "ruinas",
+      "centre": [
+        35.0,
+        -99.0
+      ],
+      "floorRadius": 15.6,
+      "zone": "territory",
+      "tier": "Territory",
+      "rewardTier": "Territory",
+      "species": "Polvilla",
+      "adults": 3,
+      "wakeRadius": {
+        "day": 20.0,
+        "night": 25.0
+      },
+      "nest": {
+        "x": 35.0,
+        "z": -99.0
+      },
+      "adultPoints": [
+        {
+          "x": 35.0,
+          "z": -93.0,
+          "faceX": 0.0,
+          "faceZ": 1.0
+        },
+        {
+          "x": 29.804,
+          "z": -102.0,
+          "faceX": -0.866,
+          "faceZ": -0.5
+        },
+        {
+          "x": 40.196,
+          "z": -102.0,
+          "faceX": 0.866,
+          "faceZ": -0.5
+        }
+      ],
+      "entrances": [
+        0,
+        22,
+        45,
+        68,
+        90,
+        112,
+        135,
+        158,
+        180,
+        202,
+        225,
+        247,
+        270,
+        292,
+        315,
+        338
+      ],
+      "rimSegments": [
+        "R07",
+        "R08"
+      ],
+      "hideSpot": "H07"
+    },
+    {
+      "id": "I5",
+      "key": "corazon",
+      "centre": [
+        60.0,
+        -135.0
+      ],
+      "floorRadius": 14.0,
+      "zone": "territory",
+      "tier": "Territory",
+      "rewardTier": "Heart",
+      "species": "Tizoncillo",
+      "adults": 4,
+      "wakeRadius": {
+        "day": 22.0,
+        "night": 27.5
+      },
+      "nest": {
+        "x": 60.0,
+        "z": -135.0
+      },
+      "adultPoints": [
+        {
+          "x": 60.0,
+          "z": -129.0,
+          "faceX": 0.0,
+          "faceZ": 1.0
+        },
+        {
+          "x": 54.0,
+          "z": -135.0,
+          "faceX": -1.0,
+          "faceZ": 0.0
+        },
+        {
+          "x": 60.0,
+          "z": -141.0,
+          "faceX": -0.0,
+          "faceZ": -1.0
+        },
+        {
+          "x": 66.0,
+          "z": -135.0,
+          "faceX": 1.0,
+          "faceZ": -0.0
+        }
+      ],
+      "entrances": [
+        90,
+        112,
+        135,
+        158,
+        180,
+        202,
+        225,
+        247
+      ],
+      "rimSegments": [
+        "R09",
+        "R10",
+        "R11",
+        "R12"
+      ],
+      "hideSpot": "H07"
+    }
+  ],
+  "showCrest": {
+    "segment": "R05",
+    "x": 9.343,
+    "z": -47.657,
+    "y": 4.5
+  },
+  "removedTrees": [
+    "FK_DeadTree_005",
+    "FK_DeadTree_027",
+    "FK_DeadTree_036",
+    "FK_Evergreen_016"
+  ]
+}
