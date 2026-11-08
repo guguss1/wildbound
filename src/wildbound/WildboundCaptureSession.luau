@@ -79,7 +79,6 @@ local ENDINGS = table.freeze({
 	SealMissed = { phase = "Failed", spook = true, retry = true, fail = true },
 })
 
-local C = CaptureSession.CONSTANTS
 local EPSILON = 1e-7
 local PHASES = table.freeze({ Active = true, Completed = true, Failed = true, Cancelled = true })
 local SLOT_REFUSALS = table.freeze({ FirstCaptureOnly = true, FirstCapturePending = true })
@@ -87,6 +86,28 @@ local SLOT_REFUSALS = table.freeze({ FirstCaptureOnly = true, FirstCapturePendin
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests and the client pin; the server's
+-- rules read `live`, a copy its tuning bridge may override at runtime. A session keeps the values it started with
+-- where it stores them (deadline, required calm, seal sweep). No override, no change.
+local C = {}
+CaptureSession.live = C
+
+function CaptureSession.tunable()
+	return table.clone(CaptureSession.CONSTANTS)
+end
+
+function CaptureSession.tune(overrides)
+	for key, value in pairs(CaptureSession.CONSTANTS) do C[key] = value end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		if type(CaptureSession.CONSTANTS[key]) == "number" and finite(value) then C[key] = value end
+	end
+	-- The skill floors stay under their ceilings, so math.clamp never sees an inverted range.
+	C.CALM_REQUIRED = math.max(C.CALM_REQUIRED, C.CALM_MIN)
+	C.RETRY_COOLDOWN = math.max(C.RETRY_COOLDOWN, C.RETRY_MIN)
+end
+CaptureSession.tune(nil)
 
 local function validId(value)
 	return type(value) == "string" and #value > 0 and #value <= 128

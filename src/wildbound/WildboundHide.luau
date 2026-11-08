@@ -19,7 +19,6 @@ Hide.CONFIG = table.freeze({
 	PROMPT_DISTANCE = 7,
 	PROMPT_HOLD = 0.4,
 })
-local C = Hide.CONFIG
 -- Modes that walk around and can stumble on a spot. Alert, Hunt and Telegraph count only when the quarry is
 -- someone else: a hunt on this player has already lost sight of them.
 local WANDER = { Patrol = true, Suspicious = true, Investigate = true, Search = true, Retreat = true }
@@ -28,6 +27,43 @@ local COMBAT = { Alert = true, Hunt = true, Telegraph = true }
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONFIG stays the defaults the tests pin; the rules read `live`, a copy
+-- the server's tuning bridge may override at runtime. Keys: the flat numbers and "<Day|Twilight|Night>.<radius|dwell>"
+-- (Twilight sets Dusk and Dawn together). No override, no change.
+local C = { DISCOVER = {} }
+Hide.live = C
+local PHASE_KEYS = { Day = { "Day" }, Twilight = { "Dusk", "Dawn" }, Night = { "Night" } }
+
+function Hide.tunable()
+	local defaults = {}
+	for key, value in pairs(Hide.CONFIG) do
+		if type(value) == "number" then defaults[key] = value end
+	end
+	for group, phases in pairs(PHASE_KEYS) do
+		for field, value in pairs(Hide.CONFIG.DISCOVER[phases[1]]) do defaults[group .. "." .. field] = value end
+	end
+	return defaults
+end
+
+function Hide.tune(overrides)
+	for key, value in pairs(Hide.CONFIG) do
+		if type(value) == "number" then C[key] = value end
+	end
+	for phase, rule in pairs(Hide.CONFIG.DISCOVER) do C.DISCOVER[phase] = { radius = rule.radius, dwell = rule.dwell } end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		if type(key) == "string" and finite(value) then
+			local group, field = key:match("^(%a+)%.(%a+)$")
+			if group and PHASE_KEYS[group] and (field == "radius" or field == "dwell") then
+				for _, phase in ipairs(PHASE_KEYS[group]) do C.DISCOVER[phase][field] = value end
+			elseif type(Hide.CONFIG[key]) == "number" then
+				C[key] = value
+			end
+		end
+	end
+end
+Hide.tune(nil)
 
 -- canEnter({ alive, capturing, occupied, seen, cooldownUntil, now }) -> true | false, reason
 function Hide.canEnter(ctx)

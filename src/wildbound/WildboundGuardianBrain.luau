@@ -50,31 +50,70 @@ Brain.PROFILES = freeze({
 Brain.NOISE = freeze({ ring = 32, seal = 48, sprint = 30, rustle = 10, scream = 70, cry = 18 })
 Brain.TIER_NOISE = freeze({ Safe = 0.5, Fog = 1.0, Territory = 1.4 })
 
-local SPEED_KEY = { Patrol = "patrol", Investigate = "investigate", Hunt = "hunt", Search = "search", Retreat = "retreat" }
-local COMBAT = { Alert = true, Hunt = true, Telegraph = true }
-
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): PROFILES and NOISE stay the frozen defaults the tests pin; the rules
+-- read live copies the server's tuning bridge may override at runtime. No override, no change. Tuning keys are
+-- "<Day|Twilight|Night>.<field>" (Twilight sets Dusk and Dawn together) and "NOISE.<kind>".
+local LIVE, NOISE = {}, {}
+local PHASE_KEYS = { Day = { "Day" }, Twilight = { "Dusk", "Dawn" }, Night = { "Night" } }
+
+function Brain.tunable()
+	local defaults = {}
+	for group, phases in pairs(PHASE_KEYS) do
+		for field, value in pairs(Brain.PROFILES[phases[1]]) do defaults[group .. "." .. field] = value end
+	end
+	for kind, value in pairs(Brain.NOISE) do defaults["NOISE." .. kind] = value end
+	return defaults
+end
+
+-- overrides: { ["Night.hunt"] = number, ["NOISE.sprint"] = number }. Unknown keys and non-finite values are ignored;
+-- nil restores the defaults.
+function Brain.tune(overrides)
+	for phase, profile in pairs(Brain.PROFILES) do
+		local copy = {}
+		for field, value in pairs(profile) do copy[field] = value end
+		LIVE[phase] = copy
+	end
+	for kind, value in pairs(Brain.NOISE) do NOISE[kind] = value end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		local group, field
+		if type(key) == "string" then group, field = key:match("^(%a+)%.([%w_]+)$") end
+		if group and finite(value) then
+			if group == "NOISE" and Brain.NOISE[field] ~= nil then
+				NOISE[field] = value
+			elseif PHASE_KEYS[group] and type(Brain.PROFILES.Day[field]) == "number" then
+				for _, phase in ipairs(PHASE_KEYS[group]) do LIVE[phase][field] = value end
+			end
+		end
+	end
+end
+Brain.tune(nil)
+
+local SPEED_KEY = { Patrol = "patrol", Investigate = "investigate", Hunt = "hunt", Search = "search", Retreat = "retreat" }
+local COMBAT = { Alert = true, Hunt = true, Telegraph = true }
 
 local function distance(ax, az, bx, bz)
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end
 
 function Brain.profile(phase)
-	return table.clone(Brain.PROFILES[phase] or DAY)
+	return table.clone(LIVE[phase] or LIVE.Day)
 end
 
 function Brain.speed(mode, phase)
 	local key = SPEED_KEY[mode]
 	if not key then return 0 end
-	return (Brain.PROFILES[phase] or DAY)[key]
+	return (LIVE[phase] or LIVE.Day)[key]
 end
 
 function Brain.noiseRadius(kind, tier, phase)
-	local base = Brain.NOISE[kind]
+	local base = NOISE[kind]
 	if not base then return 0 end
-	return base * (Brain.TIER_NOISE[tier] or Brain.TIER_NOISE.Fog) * (Brain.PROFILES[phase] or DAY).hearing
+	return base * (Brain.TIER_NOISE[tier] or Brain.TIER_NOISE.Fog) * (LIVE[phase] or LIVE.Day).hearing
 end
 
 function Brain.new(now)
@@ -94,7 +133,7 @@ local function startSearch(state, x, z, now, phase, clamp)
 	state.stalk = nil
 	state.point = place(x, z, clamp)
 	state.lookIndex = 0
-	state.untilAt = now + (Brain.PROFILES[phase] or DAY).searchSeconds
+	state.untilAt = now + (LIVE[phase] or LIVE.Day).searchSeconds
 	Brain.set(state, "Search", now)
 end
 
@@ -131,7 +170,7 @@ end
 
 -- A player was detected. Returns the wind-up before the chase; spotting someone again during a search is quicker.
 function Brain.engage(state, now, phase)
-	local seconds = state.mode == "Search" and C.REACQUIRE_ALERT_SECONDS or (Brain.PROFILES[phase] or DAY).alertSeconds
+	local seconds = state.mode == "Search" and C.REACQUIRE_ALERT_SECONDS or (LIVE[phase] or LIVE.Day).alertSeconds
 	Brain.set(state, "Alert", now)
 	return seconds
 end
@@ -144,7 +183,7 @@ function Brain.canDetect(state, now, recoveryEndsAt)
 end
 
 function Brain.chaseExpired(startedAt, now, phase)
-	return finite(startedAt) and finite(now) and now - startedAt >= (Brain.PROFILES[phase] or DAY).chaseSeconds
+	return finite(startedAt) and finite(now) and now - startedAt >= (LIVE[phase] or LIVE.Day).chaseSeconds
 end
 
 -- The look-around point for this step of a search: the last known spot first, then around it.

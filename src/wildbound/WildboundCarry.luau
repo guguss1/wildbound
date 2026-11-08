@@ -21,10 +21,30 @@ Carry.CONFIG = table.freeze({
 	CRY_EVERY = 6,
 	CRY_AFTER_WAKE = 6,
 })
-local K = Carry.CONFIG
-
 Carry.MOODS = table.freeze({ "calm", "uneasy", "afraid" })
 local RANK = table.freeze({ calm = 0, uneasy = 1, afraid = 2 })
+
+local function isFinite(value)
+	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONFIG stays the defaults the tests pin; the rules read `live`, a copy
+-- the server's tuning bridge may override at runtime. No override, no change.
+local K = {}
+Carry.live = K
+
+function Carry.tunable()
+	return table.clone(Carry.CONFIG)
+end
+
+function Carry.tune(overrides)
+	for key, value in pairs(Carry.CONFIG) do K[key] = value end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		if type(Carry.CONFIG[key]) == "number" and isFinite(value) then K[key] = value end
+	end
+end
+Carry.tune(nil)
 
 local LOOKS = table.freeze({
 	calm = table.freeze({ glow = table.freeze({ r = 151, g = 236, b = 175 }), brightness = 0.8 }),

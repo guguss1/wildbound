@@ -36,6 +36,29 @@ function Rules.finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
+-- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning
+-- bridge may override these four at runtime; the territory (HOME_LEASH) and the strike range never change, so a
+-- tuned chase never adds a place to be struck. No override, no change.
+local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH" }
+local DEFAULTS = {}
+for _, key in ipairs(TUNABLE) do DEFAULTS[key] = Rules[key] end
+table.freeze(DEFAULTS)
+
+function Rules.tunable()
+	return table.clone(DEFAULTS)
+end
+
+-- overrides: { [field] = number }. Unknown keys and non-finite values are ignored; nil restores the defaults. The
+-- chase leash never drops under the territory.
+function Rules.tune(overrides)
+	for key, value in pairs(DEFAULTS) do Rules[key] = value end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		if DEFAULTS[key] ~= nil and Rules.finite(value) then Rules[key] = value end
+	end
+	Rules.CHASE_LEASH = math.max(Rules.CHASE_LEASH, Rules.HOME_LEASH)
+end
+
 function Rules.distance(x1, z1, x2, z2)
 	if not Rules.finite(x1) or not Rules.finite(z1) or not Rules.finite(x2) or not Rules.finite(z2) then
 		return math.huge

@@ -21,7 +21,29 @@ View.CONSTANTS = table.freeze({
 	DREAD_VIGNETTE_REDUCED = 0.3,
 })
 
-local CONSTANTS = View.CONSTANTS
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
+-- copy the client's tuning bridge may override at runtime (client-only values such as the camera kick). No override,
+-- no change.
+local CONSTANTS = {}
+View.live = CONSTANTS
+
+function View.tunable()
+	return table.clone(View.CONSTANTS)
+end
+
+function View.tune(overrides)
+	for key, value in pairs(View.CONSTANTS) do CONSTANTS[key] = value end
+	if type(overrides) ~= "table" then return end
+	for key, value in pairs(overrides) do
+		if type(View.CONSTANTS[key]) == "number" and type(value) == "number" and value == value
+			and value > -math.huge and value < math.huge then
+			CONSTANTS[key] = value
+		end
+	end
+	-- A dread range under one stud would divide by nothing.
+	CONSTANTS.DREAD_RANGE = math.max(CONSTANTS.DREAD_RANGE, 1)
+end
+View.tune(nil)
 
 -- Colour is a redundant cue. Every pairing keeps at least 4.5:1 contrast (a contract checks it).
 View.TONES = table.freeze({

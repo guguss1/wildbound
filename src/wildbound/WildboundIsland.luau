@@ -53,13 +53,36 @@ Island.CONSTANTS = table.freeze({
 	CROWDED_PLAYERS = 5,
 	CREATURE_SHARE = 0.7,
 })
-local C = Island.CONSTANTS
 local FIRST = "I1"
 local HEART = "Heart"
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the rules and the server
+-- read `live`, a copy the server's tuning bridge may override at runtime. No override, no change.
+local C = {}
+Island.live = C
+
+function Island.tunable()
+	local defaults = {}
+	for key, value in pairs(Island.CONSTANTS) do
+		if type(value) == "number" then defaults[key] = value end
+	end
+	return defaults
+end
+
+-- overrides: { [constant] = number }. Unknown keys and non-finite values are ignored; nil restores the defaults.
+function Island.tune(overrides)
+	for key, value in pairs(Island.CONSTANTS) do C[key] = value end
+	if type(overrides) == "table" then
+		for key, value in pairs(overrides) do
+			if type(Island.CONSTANTS[key]) == "number" and finite(value) then C[key] = value end
+		end
+	end
+end
+Island.tune(nil)
 
 local function dark(phase)
 	return phase == "Dusk" or phase == "Night"

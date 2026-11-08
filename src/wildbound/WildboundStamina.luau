@@ -24,13 +24,40 @@ Stamina.CONSTANTS = table.freeze({
 	FEAR_WARN = 45, -- the warning cue (1.5 s into a sprint)
 	FEAR_SLIP = 100, -- it slips free (3.4 s into a sprint, before a full pool runs out)
 })
-local C = Stamina.CONSTANTS
 local EPSILON = 1e-6
 local INTENTS = { sprint = true, walk = true }
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
+
+-- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the rules read `live`, a
+-- copy the server's tuning bridge may override at runtime. No override, no change. `version` counts the tunes, so the
+-- server re-applies WalkSpeed after a sprint value changes.
+local C = {}
+Stamina.live = C
+Stamina.version = 0
+
+function Stamina.tunable()
+	local defaults = {}
+	for key, value in pairs(Stamina.CONSTANTS) do
+		if type(value) == "number" then defaults[key] = value end
+	end
+	return defaults
+end
+
+-- overrides: { [constant] = number }. Unknown keys and non-finite values are ignored; nil restores the defaults.
+function Stamina.tune(overrides)
+	local defaults = Stamina.tunable()
+	for key, value in pairs(defaults) do C[key] = value end
+	if type(overrides) == "table" then
+		for key, value in pairs(overrides) do
+			if defaults[key] ~= nil and finite(value) then C[key] = value end
+		end
+	end
+	Stamina.version += 1
+end
+Stamina.tune(nil)
 
 function Stamina.new(now)
 	return {
