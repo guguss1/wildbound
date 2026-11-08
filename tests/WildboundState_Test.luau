@@ -1390,5 +1390,66 @@ return function(State, Economy, Config)
 		refusedWith("AlreadyProtected", fresh:sealNewest("Alice", true))
 	end)
 
+	-- Expedition islands (I5, K2): a cria stolen from an island nest keeps its species, stage and island to the refuge,
+	-- an egg from a nest keeps the tier and species of its island, and the first cria registered pays the bonus once.
+	case("I5: species and stage survive register", function()
+		local state = setup()
+		accepted(state:registerEncounter("nest:I2", "Creature"))
+		local uid = accepted(state:completeCapture("Alice", "nest:I2", true, "Fog",
+			{ species = "Cortezon", island = "I2" }))
+		local carried = snap(state).carrying
+		equal(carried.species, "Cortezon"); equal(carried.stage, "Cria"); equal(carried.island, "I2")
+		equal(carried.riskTier, "Fog")
+		local _, _, receipt = state:register("Alice", uid, true, 0)
+		equal(receipt.species, "Cortezon"); equal(receipt.isNew, true)
+		local snapshot = snap(state)
+		equal(snapshot.registered[1].species, "Cortezon"); equal(snapshot.registered[1].stage, "Cria")
+		equal(snapshot.discovered.Cortezon, true)
+		accepted(state:registerEncounter("nest:x", "Creature"))
+		refusedWith("InvalidSpecies", state:completeCapture("Alice", "nest:x", true, "Fog", { species = 7 }))
+	end)
+
+	case("I5: an egg from an island nest keeps its tier and species", function()
+		local state = setup()
+		accepted(state:registerEncounter("nest:I5", "Egg"))
+		local uid = accepted(state:pickup("Alice", "nest:I5", true, 10, { species = "Tizoncillo", tier = "Heart",
+			island = "I5" }))
+		local egg = snap(state).pending[1]
+		equal(egg.uid, uid); equal(egg.species, "Tizoncillo"); equal(egg.riskTier, "Heart"); equal(egg.island, "I5")
+		accepted(state:registerEncounter("nest:old", "Egg"))
+		accepted(state:pickup("Alice", "nest:old", true, 10))
+		equal(snap(state).pending[2].riskTier, "Territory", "no island keeps the old Territory egg")
+		accepted(state:registerEncounter("nest:bad", "Egg"))
+		refusedWith("InvalidTier", state:pickup("Alice", "nest:bad", true, 10, { species = "Polvilla", tier = "Moon" }))
+	end)
+
+	case("I5: the island tiers are accepted for a cria", function()
+		local state = setup()
+		for _, tier in ipairs({ "Safe", "Fog", "FogFar", "Territory", "Heart" }) do
+			local id = "tier:" .. tier
+			accepted(state:registerEncounter(id, "Creature"))
+			local uid = accepted(state:completeCapture("Alice", id, true, tier, { species = "Lumipol", island = "I1" }))
+			accepted(state:releaseCarried("Alice"))
+			assert(uid, tier)
+		end
+	end)
+
+	case("K2: the first cria registered pays the first-steal bonus once", function()
+		local state = setup()
+		accepted(state:registerEncounter("nest:I1", "Creature"))
+		local uid = accepted(state:completeCapture("Alice", "nest:I1", true, "Safe", { species = "Lumipol", island = "I1" }))
+		local _, _, receipt = state:register("Alice", uid, true, 0)
+		equal(receipt.firstBonus, 4); equal(receipt.ember, 6 + 4); equal(snap(state).ember, 10)
+		local _, _, again = state:register("Alice", uid, true, 0)
+		equal(again.repeated, true); equal(again.ember, 0); equal(snap(state).ember, 10)
+		accepted(state:registerEncounter("nest:I1b", "Creature"))
+		local second = accepted(state:completeCapture("Alice", "nest:I1b", true, "Safe", { species = "Lumipol", island = "I1" }))
+		local _, _, next = state:register("Alice", second, true, 0)
+		equal(next.firstBonus, 0); equal(next.ember, 6); equal(snap(state).ember, 16)
+		local other = setup()
+		bring(other)
+		equal(snap(other).ember, 10, "a creature with no island pays no bonus")
+	end)
+
 	return result
 end

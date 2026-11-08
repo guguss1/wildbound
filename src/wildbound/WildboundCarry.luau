@@ -16,6 +16,10 @@ Carry.CONFIG = table.freeze({
 	SHAKE_ROLL = 0.12,
 	-- The sound hook (delivery D plays it) fires only when fear rises, and never more often than this.
 	SOUND_COOLDOWN = 8,
+	-- Expedition islands (I5, EI-6): a cria cries every CRY_EVERY seconds while afraid and for CRY_AFTER_WAKE seconds
+	-- after its island woke. Each cry is a guardian noise the server fires.
+	CRY_EVERY = 6,
+	CRY_AFTER_WAKE = 6,
 })
 local K = Carry.CONFIG
 
@@ -76,6 +80,26 @@ function Carry.soundCue(memory, mood, now)
 	if not rose or now - memory.lastAt < K.SOUND_COOLDOWN then return nil end
 	memory.lastAt = now
 	return mood == "afraid" and "fear" or "unease"
+end
+
+-- I5: whether a carried cria is crying now. input = { mood, wokeAt = server time its island woke, or nil }.
+function Carry.crying(input, now)
+	if type(input) ~= "table" or not finite(now) then return false end
+	if input.mood == "afraid" then return true end
+	local woke = input.wokeAt
+	return finite(woke) and now >= woke and now - woke <= K.CRY_AFTER_WAKE
+end
+
+function Carry.newCryMemory()
+	return { lastAt = -math.huge }
+end
+
+-- I5: true when a crying cria lets out a cry now (at most once per CRY_EVERY seconds).
+function Carry.cry(memory, input, now)
+	if type(memory) ~= "table" or not Carry.crying(input, now) then return false end
+	if now - memory.lastAt < K.CRY_EVERY - 1e-6 then return false end
+	memory.lastAt = now
+	return true
 end
 
 -- The HUD line for the carried creature: its name, its state and its ward, the longest wording that fits

@@ -152,5 +152,40 @@ return function(Carry, source, Text, sources)
 		end
 	end)
 
+	-- Expedition islands (I5, decision EI-6): a carried cria cries while afraid and for 6 s after its island woke.
+	case("I5: an afraid cria cries every 6 s", function()
+		local memory = Carry.newCryMemory()
+		local cries = {}
+		for step = 0, 70 do
+			local now = step * 0.2
+			if Carry.cry(memory, { mood = "afraid" }, now) then table.insert(cries, now) end
+		end
+		equal(#cries, 3)
+		assert(math.abs(cries[1] - 0) < 1e-9 and math.abs(cries[2] - 6) < 1e-6 and math.abs(cries[3] - 12) < 1e-6,
+			"cries at 0, 6 and 12")
+		equal(Carry.CONFIG.CRY_EVERY, 6)
+	end)
+
+	case("I5: a calm cria is silent", function()
+		local memory = Carry.newCryMemory()
+		for step = 0, 70 do
+			equal(Carry.cry(memory, { mood = "calm" }, step * 0.2), false)
+			equal(Carry.cry(memory, { mood = "uneasy" }, step * 0.2 + 0.1), false)
+		end
+		equal(Carry.cry(nil, { mood = "afraid" }, 0), false)
+		equal(Carry.cry(memory, nil, 0), false)
+		equal(Carry.cry(memory, { mood = "afraid" }, 0 / 0), false)
+	end)
+
+	case("I5: a cria cries 6 s after its island woke", function()
+		local memory = Carry.newCryMemory()
+		equal(Carry.crying({ mood = "calm", wokeAt = 10 }, 15.9), true)
+		equal(Carry.crying({ mood = "calm", wokeAt = 10 }, 16.1), false)
+		equal(Carry.cry(memory, { mood = "calm", wokeAt = 10 }, 10), true)
+		equal(Carry.cry(memory, { mood = "calm", wokeAt = 10 }, 15), false, "every 6 s at most")
+		equal(Carry.cry(memory, { mood = "calm", wokeAt = 10 }, 16.5), false, "the window closed")
+		equal(Carry.CONFIG.CRY_AFTER_WAKE, 6)
+	end)
+
 	return result
 end

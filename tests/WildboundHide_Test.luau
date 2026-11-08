@@ -112,5 +112,23 @@ return function(Hide)
 		equal(dwellFor(Hide.newDwell(), guardian("Search", 3.9, "Moon"), 2.0), true, "unknown phase reads as Day")
 	end)
 
+	-- Expedition islands (I5): a crying cria in the capsule widens the guardian's discover radius by 2 studs.
+	case("I5: a crying cria widens discovery by 2", function()
+		local radius = Hide.CONFIG.DISCOVER.Day.radius
+		local function found(crying, distance)
+			local state = Hide.newDwell()
+			local hit = false
+			for _ = 1, 20 do
+				hit = Hide.discover(state, { dt = 0.2, mode = "Search", distance = distance, phase = "Day", crying = crying })
+				if hit then break end
+			end
+			return hit
+		end
+		equal(found(false, radius + 1.5), false, "a quiet cria")
+		equal(found(true, radius + 1.5), true, "a crying cria")
+		equal(found(true, radius + 2.5), false, "only 2 studs wider")
+		equal(Hide.CONFIG.CRY_WIDEN, 2)
+	end)
+
 	return result
 end

@@ -166,7 +166,15 @@ local function addToBag(self, player, entry)
 	return admit(player, entry)
 end
 
-function State:pickup(key, id, alive, distance)
+-- I7: the reward tiers an island item can carry (the economy's Ember rows).
+local TIERS = table.freeze({ Safe = true, Fog = true, FogFar = true, Territory = true, Heart = true })
+local function validSpecies(value)
+	return type(value) == "string" and #value > 0 and #value <= 32
+end
+
+-- Expedition islands (I5): `meta` = { species, tier, island } from the island nest the egg came from. Without it the
+-- egg keeps the old rule: a Lumipol egg of the Territory tier.
+function State:pickup(key, id, alive, distance, meta)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if not validId(id) then return false, "InvalidEncounter" end
@@ -176,19 +184,23 @@ function State:pickup(key, id, alive, distance)
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	-- A creature is granted only by a finished capture session (completeCapture), never by a prompt.
 	if encounter.kind == "Creature" then return false, "CaptureRequired" end
+	local species, tier, island = "Lumipol", "Territory", nil
+	if meta ~= nil then
+		if type(meta) ~= "table" or not validSpecies(meta.species) then return false, "InvalidSpecies" end
+		if type(meta.tier) ~= "string" or not TIERS[meta.tier] then return false, "InvalidTier" end
+		species, tier, island = meta.species, meta.tier, type(meta.island) == "string" and meta.island or nil
+	end
 	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
 	local uid = newUid(self)
 	-- No yield occurs between availability check, global claim and ownership grant.
 	encounter.claimed = true
-	-- Every nest sits in the territory, so an egg is a Territory item (economy document, Earning Ember).
+	-- An egg pays by the tier of the nest it came from (I7); the old nest sat in the territory.
 	addToBag(self, player, {
-		uid = uid, kind = encounter.kind, species = "Lumipol", protected = false, riskTier = "Territory",
+		uid = uid, kind = encounter.kind, species = species, protected = false, riskTier = tier, island = island,
 	})
 	return true, uid
 end
-
-local TIERS = table.freeze({ Safe = true, Fog = true, Territory = true })
 
 -- Whether a capture could be granted now: a free carry slot (B1), then collection room. Missing players have
 -- neither. The capture rule still calls the first value bagRoom and ends a session BackpackFull without it.
@@ -211,7 +223,9 @@ end
 -- and grants in one step with no yield, so the creature has exactly one carrier.
 -- B1: the creature goes to the carry slot, never the bag. It is not the player's until the refuge registers
 -- it, and only one is carried at a time.
-function State:completeCapture(key, id, alive, tier)
+-- Expedition islands (I5): `meta` = { species, island } for a cria taken from an island nest; it rides as a cria of
+-- that species and island. Without it the creature is a Lumipol, as before.
+function State:completeCapture(key, id, alive, tier, meta)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if not validId(id) then return false, "InvalidEncounter" end
@@ -220,11 +234,17 @@ function State:completeCapture(key, id, alive, tier)
 	if alive ~= true then return false, "InvalidContext" end
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	if type(tier) ~= "string" or not TIERS[tier] then return false, "InvalidTier" end
+	local species, island, stage = "Lumipol", nil, nil
+	if meta ~= nil then
+		if type(meta) ~= "table" or not validSpecies(meta.species) then return false, "InvalidSpecies" end
+		species, island, stage = meta.species, type(meta.island) == "string" and meta.island or nil, "Cria"
+	end
 	if player.carrying then return false, "AlreadyCarrying" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
 	local uid = newUid(self)
 	encounter.claimed = true
-	player.carrying = { uid = uid, kind = "Creature", species = "Lumipol", protected = false, riskTier = tier }
+	player.carrying = { uid = uid, kind = "Creature", species = species, protected = false, riskTier = tier,
+		stage = stage, island = island }
 	admit(player, player.carrying)
 	return true, uid
 end
@@ -349,7 +369,7 @@ local function bankItem(self, player, entry)
 	elseif entry.kind == "Nightbloom" then
 		player.banked.nightbloom += entry.quantity
 	else
-		table.insert(player.registered, { uid = entry.uid, species = entry.species })
+		table.insert(player.registered, { uid = entry.uid, species = entry.species, stage = entry.stage })
 		player.discovered[entry.species] = true
 	end
 	local ember = self.economy.itemEmber(self.config, entry)
@@ -413,7 +433,14 @@ function State:register(key, uid, alive, distance, now)
 	if not carried or not validId(uid) or carried.uid ~= uid then return false, "NotCarried" end
 	player.carrying = nil
 	local isNew = player.discovered[carried.species] ~= true
-	local receipt = { uid = uid, species = carried.species, ember = 0, baseEmber = 0, isNew = isNew, repeated = false }
+	local receipt = { uid = uid, species = carried.species, ember = 0, baseEmber = 0, isNew = isNew, repeated = false,
+		firstBonus = 0, island = carried.island }
+	-- K2: the first cria a player ever registers pays a one-off bonus (an island cria only).
+	if carried.stage == "Cria" then
+		receipt.firstBonus = self.economy.firstStealBonus(self.config, player)
+		player.ember += receipt.firstBonus
+		receipt.ember += receipt.firstBonus
+	end
 	receipt.ember += bankItem(self, player, carried)
 	finishTrip(self, player, now, receipt)
 	return true, uid, receipt
@@ -427,7 +454,7 @@ function State:releaseCarried(key)
 	local carried = player.carrying
 	if not carried then return false, "NotCarried" end
 	player.carrying = nil
-	return true, { uid = carried.uid, species = carried.species, tier = carried.tier }
+	return true, { uid = carried.uid, species = carried.species, tier = carried.riskTier, island = carried.island }
 end
 
 function State:hatch(key, uid, alive, distance)

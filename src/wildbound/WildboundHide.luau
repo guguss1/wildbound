@@ -10,6 +10,8 @@ Hide.CONFIG = table.freeze({
 		Dawn = table.freeze({ radius = 5, dwell = 1.6 }),
 		Night = table.freeze({ radius = 6, dwell = 1.2 }),
 	}),
+	-- Expedition islands (I5): a crying cria in the capsule widens the discover radius by this much.
+	CRY_WIDEN = 2,
 	DECAY = 2, -- outside the radius the dwell timer falls this many times faster than it grows
 	MAX_STAY = 45,
 	COOLDOWN = 8,
@@ -41,7 +43,7 @@ function Hide.newDwell()
 	return { dwell = 0 }
 end
 
--- discover(state, { dt, mode, distance, phase, targetIsMe }) -> true when the hidden player is found.
+-- discover(state, { dt, mode, distance, phase, targetIsMe, crying }) -> true when the hidden player is found.
 function Hide.discover(state, input)
 	if type(state) ~= "table" or type(input) ~= "table" then return false end
 	local dt, distance = input.dt, input.distance
@@ -49,7 +51,8 @@ function Hide.discover(state, input)
 	if not finite(state.dwell) then state.dwell = 0 end
 	local looking = WANDER[input.mode] or (COMBAT[input.mode] and input.targetIsMe ~= true)
 	local rule = C.DISCOVER[input.phase] or C.DISCOVER.Day
-	if looking and finite(distance) and distance >= 0 and distance <= rule.radius then
+	local radius = rule.radius + (input.crying == true and C.CRY_WIDEN or 0)
+	if looking and finite(distance) and distance >= 0 and distance <= radius then
 		state.dwell += dt
 	else
 		state.dwell = math.max(0, state.dwell - C.DECAY * dt)
