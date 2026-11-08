@@ -65,11 +65,26 @@ EGG_PICKUP_SECONDS = 0.25
 EGG_CARRY_SPEED = {0: 16.0, 1: 11.0, 2: 10.0}   # 3 or more eggs: 9
 EGG_CARRY_SPEED_MANY = 9.0
 # Dread pass, D-D5 (src/wildbound/WildboundStamina.luau): the longest chained sprint duty is 10 / (25 + 10) of the
-# time at x1.3, so holding sprint gains at most 8.6 percent. Sprinting is loud: an invented assumption says a sprinted
-# leg ending in the territory is exposed like standing at its end for the sprinted seconds times SPRINT_NOISE_REACH
-# (sprint radius 30 x territory 1.4 over the 26 to 38 stud detection, about 1.3); a warning there costs an evade.
+# time at the sprint multiplier, read from the stamina source (chase pass: 1.45, was 1.3). Sprinting is loud: an
+# invented assumption says a sprinted leg ending in the territory is exposed like standing at its end for the sprinted
+# seconds times SPRINT_NOISE_REACH (sprint radius 30 x territory 1.4 over the 26 to 38 stud detection, about 1.3); a
+# warning there costs an evade.
+STAMINA_PATH = "src/wildbound/WildboundStamina.luau"
+
+
+def _sprint_multiplier(repo=REPO):
+    text = (repo / STAMINA_PATH).read_text(encoding="utf-8")
+    found = re.search(r"SPRINT_MULTIPLIER = ([0-9.]+)", text)
+    if not found:
+        raise RuntimeError(f"{STAMINA_PATH}: SPRINT_MULTIPLIER not found")
+    return float(found.group(1))
+
+
+SPRINT_MULTIPLIER = _sprint_multiplier()
 SPRINT_DUTY = 10.0 / 35.0
-SPRINT_BOOST = 1.0 + SPRINT_DUTY * 0.3
+SPRINT_BOOST = 1.0 + SPRINT_DUTY * (SPRINT_MULTIPLIER - 1.0)
+# Chase pass (CP-D2): a rested sprint must outrun La Silueta's fastest hunt by this much (studs per second).
+SPRINT_ESCAPE_MARGIN = 5.0
 SPRINT_NOISE_REACH = 1.3
 FENCE = re.compile(r"^```json economy-tuning[ \t]*\n(.*?)^```[ \t]*$", re.M | re.S)
 ALL_ZONES = ("outside", "fog", "territory")
@@ -936,11 +951,14 @@ def check_invariants(tuning, ctx):
             problems.append(f"document loss table: {quantity} -> {at_normal} but the JSON rate gives {lost(quantity, tuning['loss']['rateBasisPoints'])}")
         if lost(quantity, tuning["loss"]["rateBasisPointsReinforced"]) != at_reinforced:
             problems.append(f"document loss table: {quantity} -> {at_reinforced} (reinforced) but the JSON rate gives {lost(quantity, tuning['loss']['rateBasisPointsReinforced'])}")
+    # Chase pass (CP-D2): the hunt now catches a walker at night, by design. What must hold is that a rested sprint at
+    # the base walk still outruns the fastest hunt; a loaded pouch or a carried creature must hide instead.
     carry = tuning["carry"]
     fastest = ctx.world.night.speed
-    for label, speed in [("baseSpeed", carry["baseSpeed"])] + [(f"load step {i}", step["speed"]) for i, step in enumerate(carry["pouchLoadSteps"])]:
-        if speed <= fastest:
-            problems.append(f"carry {label}: {speed} studs/s is not above Silueta's fastest {fastest:g}")
+    sprint = carry["baseSpeed"] * SPRINT_MULTIPLIER
+    if sprint < fastest + SPRINT_ESCAPE_MARGIN:
+        problems.append(f"carry baseSpeed: a rested sprint ({sprint:g} studs/s) does not outrun Silueta's fastest "
+                        f"{fastest:g} by {SPRINT_ESCAPE_MARGIN:g}")
     holds = tuning["gather"]["holdSeconds"]
     if not holds["outside"] < holds["fog"] < holds["territory"] < holds["heart"]:
         problems.append("gather holds must grow only with exposure: outside < fog < territory < heart")

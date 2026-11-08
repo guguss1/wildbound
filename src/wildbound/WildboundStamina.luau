@@ -6,7 +6,9 @@ local Stamina = {}
 
 Stamina.CONSTANTS = table.freeze({
 	POOL = 100, -- full at spawn and after respawn; never saved
-	SPRINT_MULTIPLIER = 1.3, -- of the current walk speed, so carry, egg and pouch costs still count
+	-- of the current walk speed, so carry, egg and pouch costs still count. Chase pass (CP-D2): 1.45 (was 1.3), so a
+	-- rested sprint (23.2) outruns La Silueta's fastest hunt (17) by 6 studs/s and the difference is felt.
+	SPRINT_MULTIPLIER = 1.45,
 	SPEED_CAP = 24,
 	DRAIN = 25, -- per second while sprinting and moving: a full pool lasts 4 s
 	START = 10, -- a sprint needs this much to start
@@ -44,7 +46,7 @@ function Stamina.intent(state, value, now)
 	return true
 end
 
--- Sprint is the walk speed times 1.3, capped at 24 and never slower than the walk. Other stances keep the walk.
+-- Sprint is the walk speed times 1.45, capped at 24 and never slower than the walk. Other stances keep the walk.
 function Stamina.speed(base, stance)
 	if not finite(base) or base < 0 then return 0 end
 	if stance ~= "sprint" then return base end

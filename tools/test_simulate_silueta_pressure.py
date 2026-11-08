@@ -38,7 +38,9 @@ HOME, LEASH = (0, -85), 80
 FOG = (-45, 165, -165, 35)
 SAFE = [((-140, 140), 35), ((105, 125), 22)]
 PATROL = [(16, -85), (0, -69), (-16, -85), (0, -101)]  # E, S, W, N
-DAY, NIGHT = (7, 26), (10, 38)                         # (hunt speed, detection) from the brain, delivery C
+# (hunt speed, detection) from the brain. Deliberately changed in the chase pass (CP-D2, CP-R1): delivery C had
+# (7, 26) and (10, 38); the hunt is faster and the sight radius shorter.
+DAY, NIGHT = (13, 21), (17, 30)
 
 # One simple model used by the hand cases: 0.2 s step, 1.2 s alert, 1.4 s
 # telegraph, attack range 7, chase limit 10 s, patrol speed 3.
@@ -70,8 +72,10 @@ class SourceParsing(unittest.TestCase):
         self.assertEqual((world.day.speed, world.day.detection_range), DAY)
         self.assertEqual((world.night.speed, world.night.detection_range), NIGHT)
         m = world.model
-        self.assertEqual((m.step_s, m.patrol_speed, m.alert_s), (0.2, 4.0, 1.2))
-        self.assertEqual((m.telegraph_s, m.attack_range, m.max_chase_s), (1.4, 7.0, 10.0))
+        # Deliberately changed in the chase pass: Day patrol 4 to 5, alert 1.2 to 0.8, telegraph 1.4 to 0.9, Day chase
+        # limit 10 to 30 s.
+        self.assertEqual((m.step_s, m.patrol_speed, m.alert_s), (0.2, 5.0, 0.8))
+        self.assertEqual((m.telegraph_s, m.attack_range, m.max_chase_s), (0.9, 7.0, 30.0))
 
     def test_objectives_come_from_the_sources(self):
         world = sp.load_world(REPO)
@@ -308,15 +312,15 @@ class Analysis(unittest.TestCase):
         nest = sp.analyse(world, next(o for o in world.objectives if o.name == "nest"), phases=360)
         self.assertTrue(nest.targetable)
         self.assertEqual(nest.zone, "territory")
-        # The patrol loop passes through detection range once per lap (30.2 s), so a still
-        # player is eventually detected in every phase, but only some phases are quick.
-        self.assertEqual(nest.day.share_never, 0.0)
-        self.assertGreater(nest.day.strike_max, 20.0)
+        # Deliberately changed in the chase pass (CP-R1): the Day sight radius is 21 (was 26), and the nest is 23.6
+        # from the nearest home patrol corner, so by day a still player at the nest is never seen from the home
+        # diamond (the ambush anchors still reach it); at night (30) it is seen every lap, and quickly.
+        self.assertEqual(nest.day.share_never, 1.0)
+        self.assertEqual(nest.night.share_never, 0.0)
         warned_day, _ = sp.exposure(nest.day, 6.0)
         warned_night, _ = sp.exposure(nest.night, 6.0)
-        self.assertGreater(warned_day, 0.0)
+        self.assertEqual(warned_day, 0.0)
         self.assertGreater(warned_night, warned_day)
-        self.assertLessEqual(nest.night.strike_min, nest.day.strike_min)
 
 
 class Report(unittest.TestCase):

@@ -12,12 +12,23 @@ local PHASES = table.freeze({
 Rules.CYCLE_SECONDS = 720
 Rules.REVEAL_SECONDS = 4
 Rules.REVEAL_RANGE = 55
-Rules.TELEGRAPH_SECONDS = 1.4
-Rules.ATTACK_COOLDOWN = 4
+-- Chase pass (CP-D1): a 0.9 s telegraph (was 1.4) and a 2.5 s repeat (was 4). Still a full, standing wind-up with the
+-- target's warning, above the 0.35 s floor of a readable tell; the fair-strike warning lead is 0.8 s.
+Rules.TELEGRAPH_SECONDS = 0.9
+Rules.ATTACK_COOLDOWN = 2.5
 Rules.ATTACK_RANGE = 7
 Rules.HOME_X, Rules.HOME_Z = 0, -85
 Rules.HOME_LEASH = 80
+-- The proximity cue and the awareness ally range; since the chase pass a hunt uses GIVE_UP_DISTANCE.
 Rules.CHASE_RANGE = 65
+-- Chase pass (CP-D2): a hunt keeps its quarry up to 100 studs away (beyond what the mist shows by day, 60 to 80, and
+-- far beyond the night fog, about 39), and may follow it out of the territory up to 100 studs from home. A strike
+-- still needs the target inside the territory (HOME_LEASH), so the pursuit leash never adds a place to be struck.
+Rules.GIVE_UP_DISTANCE = 100
+Rules.CHASE_LEASH = 100
+-- The place's default SpawnLocation (12 x 12 at the origin) reaches one stud into the territory; its half diagonal
+-- (8.49) rounded up is never a strike or acquisition point (CP-D3).
+Rules.SPAWN_PAD_X, Rules.SPAWN_PAD_Z, Rules.SPAWN_PAD_RADIUS = 0, 0, 9
 Rules.MAX_CHASE_SECONDS = 10
 Rules.DAMAGE = 20
 
@@ -81,17 +92,23 @@ function Rules.zone(x, z)
 	return fog, safe
 end
 
-function Rules.inTerritory(x, z)
-	local fog, safe = Rules.zone(x, z)
-	return fog and not safe and Rules.distance(x, z, Rules.HOME_X, Rules.HOME_Z) <= Rules.HOME_LEASH
+-- leash: optional, studs from home (default HOME_LEASH, the territory); the chase pass passes CHASE_LEASH while hunting.
+local function leashOf(leash)
+	return Rules.finite(leash) and leash > 0 and leash or Rules.HOME_LEASH
 end
 
-function Rules.clampTerritory(x, z)
+function Rules.inTerritory(x, z, leash)
+	local fog, safe = Rules.zone(x, z)
+	return fog and not safe and Rules.distance(x, z, Rules.HOME_X, Rules.HOME_Z) <= leashOf(leash)
+end
+
+function Rules.clampTerritory(x, z, leash)
 	if not Rules.finite(x) or not Rules.finite(z) then return Rules.HOME_X, Rules.HOME_Z end
+	leash = leashOf(leash)
 	x, z = math.clamp(x, -45, 165), math.clamp(z, -165, 35)
 	local distance = Rules.distance(x, z, Rules.HOME_X, Rules.HOME_Z)
-	if distance > Rules.HOME_LEASH then
-		local scale = Rules.HOME_LEASH / distance
+	if distance > leash then
+		local scale = leash / distance
 		x = Rules.HOME_X + (x - Rules.HOME_X) * scale
 		z = Rules.HOME_Z + (z - Rules.HOME_Z) * scale
 	end
@@ -104,7 +121,8 @@ local CREATURE_PROFILES = table.freeze({
 	Silueta = table.freeze({
 		-- Dread pass: 2.0 (was 1.30) makes the 8.57-stud SiluetaV3 art about 17 studs, three avatars tall. Art only:
 		-- the gameplay body, sight, reach and pathing agent are unchanged, so the fair-strike rules hold as they were.
-		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 2.0,
+		-- Chase pass (CP-D4): 2.6, about 22.3 studs. Still art only (the clamp in WildboundSiluetaVisual allows up to 3).
+		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 2.6,
 		base = table.freeze({ speed = 6, detectionRange = 28 }),
 		night = table.freeze({ scope = "Fog", speed = 8, detectionRange = 38 }),
 	}),
@@ -128,9 +146,11 @@ function Rules.guardianParameters(phase, inFog)
 	return { speed = profile.speed, detectionRange = profile.detectionRange }
 end
 
-function Rules.validTarget(alive, x, z, guardianX, guardianZ, range)
+-- leash as in inTerritory: the default is the territory, used for acquisition and every strike check.
+function Rules.validTarget(alive, x, z, guardianX, guardianZ, range, leash)
 	local fog, safe = Rules.zone(x, z)
-	return alive == true and fog and not safe and Rules.inTerritory(x, z)
+	return alive == true and fog and not safe and Rules.inTerritory(x, z, leash)
+		and Rules.distance(x, z, Rules.SPAWN_PAD_X, Rules.SPAWN_PAD_Z) > Rules.SPAWN_PAD_RADIUS
 		and Rules.finite(range) and range >= 0
 		and Rules.distance(x, z, guardianX, guardianZ) <= range
 end

@@ -560,6 +560,27 @@ return function(Awareness, Hunt, Rules, source)
 		expect(out, 1, "none"); expect(out, 2, "none")
 	end)
 
+	-- Chase pass (CP-D2): the world passes the hunt's memory as searchSeconds, so the chip keeps "searching" for as
+	-- long as La Silueta still hunts a lost quarry. Without it the 1.5 s default holds.
+	case("chase pass: a passed search length matches the hunt's memory", function()
+		local state, a = fresh(), aAt(10)
+		local hunt = Hunt.new({ id = 1, life = lifeA, position = Vector3.zero }, 0)
+		local hidden = { id = 1, life = lifeA, valid = true, visible = false }
+		step(state, seen(0, a, { a }))
+		local frame = lost(5.9, a, hunt.lastVisibleAt, { a })
+		frame.searchSeconds = 6
+		local out = step(state, frame)
+		expect(out, 1, "searching"); equal(out[1].searchEndsAt, 6)
+		equal(Hunt.step(hunt, 5.9, hidden, {}, 6).expired, false)
+		frame = lost(6, a, hunt.lastVisibleAt, { a })
+		frame.searchSeconds = 6
+		expect(step(state, frame), 1, "none")
+		equal(Hunt.step(hunt, 6, hidden, {}, 6).expired, true)
+		frame = lost(1, a, 0, { a })
+		frame.searchSeconds = -2
+		equal(step(fresh(), frame)[1].searchEndsAt, 1.5, "a bad length reads the default")
+	end)
+
 	case("the real Hunt retarget flips both in the step it switches", function()
 		local state, a, b = fresh(), aAt(20), bAt(16)
 		local hunt = Hunt.new({ id = 1, life = lifeA, position = Vector3.zero }, 0)

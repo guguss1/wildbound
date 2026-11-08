@@ -21,22 +21,26 @@ Brain.CONSTANTS = freeze({
 	STALK_SECONDS = 10, -- I4: a scream from beyond the territory: it stands at the edge facing it this long
 	ARRIVE_RADIUS = 3, -- this close to a point counts as there
 	SEARCH_RADIUS = 7, -- look-around points circle the last known spot at this distance
-	REACQUIRE_ALERT_SECONDS = 0.6, -- spotting its quarry again while searching needs a shorter wind-up
+	REACQUIRE_ALERT_SECONDS = 0.4, -- spotting its quarry again while searching needs a shorter wind-up (chase pass: was 0.6)
+	RECOVERY_SECONDS = 1.5, -- after an attack that ends the hunt, no detection for this long (chase pass: was 3)
 })
 local C = Brain.CONSTANTS
 
--- Studs per second, seconds and studs. Day is the least aggressive phase, Night the most active. Every hunt speed
--- stays below a carrying player's 14 (WildboundLumipolWild.CONSTANTS.CREATURE_CARRY_SPEED) and below the slowest
--- loaded-pouch walk, 11 (the economy simulator checks it), so running away always works; detection is the sight
--- radius for a new target and stays inside the chase range (65).
-local DAY = { patrol = 4, investigate = 6, hunt = 7, search = 5, retreat = 6, hearing = 0.8,
-	searchSeconds = 6, chaseSeconds = 10, alertSeconds = 1.2, detection = 26 }
-local TWILIGHT = { patrol = 4.5, investigate = 7, hunt = 9, search = 5.5, retreat = 6.5, hearing = 1.0,
-	searchSeconds = 9, chaseSeconds = 12, alertSeconds = 1.0, detection = 32 }
+-- Studs per second, seconds and studs. Day is the least aggressive phase, Night the most active. Chase pass (CP-D2,
+-- user: "walks faster, chases more"): a rested sprinter (16 x 1.45 = 23.2) outruns every hunt by at least 5 studs/s,
+-- but a walker (16) is caught at night and a carrier (14) at dusk and night; a loaded pouch must hide. detection is
+-- the sight radius for a new target, deliberately shorter than before (Day 26, Dusk 32, Night 38): it notices you a
+-- little later in the mist, and that keeps the economy simulator's greedy median at its floor (CP-R1); the Day patrol
+-- is 5 (not more) for the same reason: the simulator's exposure grows fastest with the Day patrol speed. memorySeconds:
+-- how long a hunt keeps walking to where it last saw its quarry before it searches.
+local DAY = { patrol = 5, investigate = 9, hunt = 13, search = 8, retreat = 8, hearing = 0.8,
+	searchSeconds = 12, chaseSeconds = 30, alertSeconds = 0.8, detection = 21, memorySeconds = 4 }
+local TWILIGHT = { patrol = 6, investigate = 10, hunt = 15, search = 9, retreat = 8.5, hearing = 1.0,
+	searchSeconds = 16, chaseSeconds = 40, alertSeconds = 0.65, detection = 26, memorySeconds = 5 }
 Brain.PROFILES = freeze({
 	Day = DAY, Dusk = TWILIGHT, Dawn = table.clone(TWILIGHT),
-	Night = { patrol = 5, investigate = 8, hunt = 10, search = 6, retreat = 7, hearing = 1.3,
-		searchSeconds = 12, chaseSeconds = 15, alertSeconds = 0.9, detection = 38 },
+	Night = { patrol = 7, investigate = 11, hunt = 17, search = 10, retreat = 9, hearing = 1.3,
+		searchSeconds = 20, chaseSeconds = 50, alertSeconds = 0.5, detection = 30, memorySeconds = 6 },
 })
 
 -- Capture noise (C1): base hearing radius in studs per capture step, scaled by the slot's tier and the phase.

@@ -287,6 +287,10 @@ lossSummary = { operationId: string, lostItems: { {uid: string, kind: string, sp
 
 **Disconnect** is not a defeat (D10). Open attack closes with `attack.cancelledEarly`. The mark and K are retained in the hold record, so leaving does not clear them.
 
+## Chase pass timing (2026-11-08)
+
+User: "attacks faster". Decision CP-D1 keeps every gate above and shortens the numbers: `Rules.TELEGRAPH_SECONDS` 1.4 to 0.9, `WARNING_LEAD` 1.2 to 0.8, `ATTACK_COOLDOWN` 4 to 2.5, and a live quarry still in sight is hunted again at once instead of the guardian going home (recovery 3 to 1.5 s when the hunt ends). The 0.9 s wind-up stays above the 0.35 s floor of a visible and audible tell; the acknowledgement must now arrive within the 0.9 s telegraph. The earlier "floor 1.2 s" below (MT-11) is superseded; MT-11 (warning to first readable frame per client) is still not measured. Two strikes still kill (mark, then defeat). A strike needs the target inside the territory even while a hunt follows its quarry out to the 100-stud pursuit leash (CP-D3).
+
 ## Ambush relocation
 
 M4.7. Silueta quietly moves its patrol to a place near an objective, on a server timer. **It never reads camera, gaze, look direction or who can see it.** It is not El Vigia.

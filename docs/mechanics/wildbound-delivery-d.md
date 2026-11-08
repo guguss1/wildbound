@@ -72,7 +72,7 @@ Studio phone gates (D13, from the same single-capture pixel method as the T7 pas
 | Parameter | Value |
 | --- | --- |
 | Pool | 100, full at spawn and after respawn; not saved |
-| Sprint speed | walk x 1.3, capped at 24: 16 -> 20.8, carrying 14 -> 18.2, loaded pouch 11 -> 14.3, three eggs 9 -> 11.7 |
+| Sprint speed | walk x 1.45 since the chase pass (x 1.3 before), capped at 24: 16 -> 23.2, carrying 14 -> 20.3, loaded pouch 11 -> 15.95, three eggs 9 -> 13.05 |
 | Drain | 25 per second while sprinting and moving (4.0 s from full) |
 | Start threshold | 10 (30 after exhaustion) |
 | Exhaustion | at 0: no sprint until stamina is back at 30 |

@@ -11,7 +11,10 @@ function Hunt.shouldScan(state, now)
 	return now + EPSILON >= state.nextScanAt
 end
 
-function Hunt.step(state, now, current, candidates)
+-- memory: optional seconds a quarry out of sight is still hunted at its last position (chase pass: the world passes
+-- the phase's memorySeconds); anything that is not a positive finite number reads as the original 1.5 s.
+function Hunt.step(state, now, current, candidates, memory)
+	if type(memory) ~= "number" or memory ~= memory or memory <= 0 or memory == math.huge then memory = 1.5 end
 	local output = { id = state.id, life = state.life, switched = false, scanned = false,
 		expired = false, canAttack = false }
 	if not current or not current.valid or current.id ~= state.id or current.life ~= state.life then
@@ -20,7 +23,7 @@ function Hunt.step(state, now, current, candidates)
 	end
 	if not current.visible then
 		state.challengerId, state.challengerLife, state.challengerSince = nil, nil, nil
-		output.expired = now - state.lastVisibleAt >= 1.5
+		output.expired = now - state.lastVisibleAt >= memory
 		if not output.expired then output.destination = state.lastPosition end
 		return output
 	end

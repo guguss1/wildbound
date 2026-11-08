@@ -136,7 +136,7 @@ return function(FairStrike, Flags, source, worldSource, clientSource)
 
 	case("constants match the decision record", function()
 		equal(C.K, 2); equal(C.ACK_SECONDS, 1.0); equal(C.LIVENESS_SECONDS, 3); equal(C.DWELL_SECONDS, 3.0)
-		equal(C.WARNING_LEAD, 1.2); equal(C.MAX_ID_BYTES, 64); equal(C.CLOSED_MEMORY, 8)
+		equal(C.WARNING_LEAD, 0.8); equal(C.MAX_ID_BYTES, 64); equal(C.CLOSED_MEMORY, 8)
 		equal(C.MARKED_HEALTH, 35); equal(C.REST_SECONDS, 5); equal(C.STALL_SECONDS, 0.5)
 		assert(table.isfrozen(C), "constants must be frozen")
 	end)
@@ -188,7 +188,8 @@ return function(FairStrike, Flags, source, worldSource, clientSource)
 		end, nil, "cancel.warning")
 		run(function(state)
 			local issued = attack(state, 100)
-			issued.at = 101.1 -- the warning stood under 1.2 s
+			-- Deliberately changed in the chase pass: the lead is 0.8 s (was 1.2), so the short warning is 0.7 s (was 1.1).
+			issued.at = 100.7 -- the warning stood under 0.8 s
 			return issued
 		end, nil, "cancel.warning")
 		run(function(state)

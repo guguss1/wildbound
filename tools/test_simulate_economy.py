@@ -484,6 +484,20 @@ class Invariants(unittest.TestCase):
     def test_real_tuning_passes(self):
         self.assertEqual(eco.check_invariants(tuning(), context()), [])
 
+    # Chase pass (CP-D2), deliberately replacing "every carry speed is above Silueta's fastest": La Silueta's Night
+    # hunt (17) now catches a walker (16). The invariant is that a rested sprint at the base walk still outruns it by
+    # at least 5 studs/s; loaded pouches and carriers must hide instead.
+    def test_rested_sprint_must_outrun_silueta(self):
+        self.assertEqual(eco.check_invariants(tuning(), context()), [])
+        problems = self.check(lambda t: t["carry"].__setitem__("baseSpeed", 14))
+        self.assertTrue(any("sprint" in p for p in problems), problems)
+
+    def test_sprint_multiplier_comes_from_the_stamina_source(self):
+        text = (REPO / "src/wildbound/WildboundStamina.luau").read_text(encoding="utf-8")
+        found = re.search(r"SPRINT_MULTIPLIER = ([0-9.]+)", text)
+        self.assertAlmostEqual(eco.SPRINT_MULTIPLIER, float(found.group(1)))
+        self.assertAlmostEqual(eco.SPRINT_BOOST, 1 + eco.SPRINT_DUTY * (eco.SPRINT_MULTIPLIER - 1))
+
     def test_phases_must_sum_to_the_cycle(self):
         problems = self.check(lambda t: t["cycle"]["phases"].__setitem__("Day", 361))
         self.assertTrue(any("phases" in p for p in problems), problems)
@@ -756,8 +770,9 @@ class EconomyTargets(unittest.TestCase):
                 self.assertGreaterEqual(row["completion"]["median_minutes"], 60, (label, name))
 
     def test_sprint_boost_is_the_stamina_bound(self):
-        # Dread pass, D-D5: holding sprint at most gains 10 / (25 + 10) of the time x 30 percent (delivery D section 2).
-        self.assertAlmostEqual(eco.SPRINT_BOOST, 1 + (10 / 35) * 0.3, places=3)
+        # Dread pass, D-D5: holding sprint at most gains 10 / (25 + 10) of the time at the multiplier (delivery D
+        # section 2). Deliberately changed in the chase pass: x1.45 (was x1.3, 30 percent).
+        self.assertAlmostEqual(eco.SPRINT_BOOST, 1 + (10 / 35) * 0.45, places=3)
         t = tuning()
         state = eco.new_state(t)
         walk = eco.carry_speed(t, state)
@@ -865,9 +880,13 @@ class TimeAndCarrying(unittest.TestCase):
         self.assertEqual(eco.carry_speed(t, s), 9.0)
         self.assertGreater(eco.carry_speed(t, s), 8.0)   # 8 is Silueta's fastest speed
 
-    def test_a_load_step_at_or_below_silueta_speed_is_caught(self):
+    # Deliberately changed in the chase pass (CP-D2): load steps may be slower than La Silueta now (a loaded pouch must
+    # hide); the invariant is on the rested sprint at the base walk (Invariants.test_rested_sprint_must_outrun_silueta).
+    def test_a_load_step_below_silueta_speed_is_allowed_but_a_slow_sprint_is_caught(self):
         t = tuning()
         t["carry"]["pouchLoadSteps"][-1]["speed"] = 8
+        self.assertEqual(eco.check_invariants(t, context()), [])
+        t["carry"]["baseSpeed"] = 12
         problems = eco.check_invariants(t, context())
         self.assertTrue(any("carry" in p.lower() for p in problems), problems)
 

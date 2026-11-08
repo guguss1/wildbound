@@ -297,12 +297,13 @@ local function visible(character, from, destination, ignoreBodies)
 	return workspace:Raycast(from, direction, params) == nil
 end
 
-local function targetContext(player, range, allowHidden)
+-- leash: optional; a hunt passes Rules.CHASE_LEASH (chase pass), every acquisition and strike check uses the territory.
+local function targetContext(player, range, allowHidden, leash)
 	if not player then return nil end
 	local character, humanoid, root = characterContext(player)
 	if not root then return nil end
 	local position, guardianPosition = root.Position, body.Position
-	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range) then return nil end
+	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range, leash) then return nil end
 	-- Do not acquire through cover or on a different floor; recheck these at strike time.
 	if math.abs(position.Y - guardianPosition.Y) > 8 then return nil end
 	-- Delivery D6: a hidden player is never in sight, so never acquired, and hunts and strikes read them as lost.
@@ -310,7 +311,7 @@ local function targetContext(player, range, allowHidden)
 	local inSight = not hidden and visible(character, guardianPosition, position, true)
 	if not inSight and not allowHidden then return nil end
 	return { player = player, character = character, humanoid = humanoid, root = root,
-		distance = (position - guardianPosition).Magnitude, visible = inSight }
+		distance = (position - guardianPosition).Magnitude, visible = inSight, hidden = hidden }
 end
 
 local function setMode(nextMode)
@@ -362,7 +363,7 @@ local function clearTarget(now, completedPresentation, reason)
 	GuardianPath.clear(nav)
 	target, targetLife, huntState, telegraphEndsAt = nil, nil, nil, 0
 	guardian:SetAttribute("TelegraphEndsAt", 0)
-	recoveryEndsAt = now + 3
+	recoveryEndsAt = now + Brain.CONSTANTS.RECOVERY_SECONDS
 	setMode("Retreat")
 end
 
@@ -372,8 +373,16 @@ end
 -- core than the body allows, so a blocked step tries to slide past at up to 70 degrees before it gives up. Since the
 -- relief (R5) each step rides the ground and the relief folder is left out of the cast: a rising slope is not a wall.
 local SLIDE_ANGLES = { 0, math.rad(35), -math.rad(35), math.rad(70), -math.rad(70) }
+-- Chase pass (CP-D2): a hunt may follow its quarry out to the chase leash. Any other mode outside the territory may only
+-- walk back in (the leash is where it stands, never more), so leaving a chase never teleports it to the edge.
+local function stepLeash(position)
+	if mode == "Hunt" then return Rules.CHASE_LEASH end
+	local away = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z)
+	return math.clamp(away, Rules.HOME_LEASH, Rules.CHASE_LEASH)
+end
 local function stepToward(destination, speed, dt)
 	local position = body.Position
+	local leash = stepLeash(position)
 	local difference = Vector3.new(destination.X - position.X, 0, destination.Z - position.Z)
 	if difference.Magnitude < 0.05 then return false end
 	local params = RaycastParams.new()
@@ -393,7 +402,7 @@ local function stepToward(destination, speed, dt)
 		local direction = CFrame.Angles(0, angle, 0):VectorToWorldSpace(difference.Unit)
 		local stepX, _, stepZ = GuardianPath.groundStep(position.X, position.Z, direction.X, direction.Z, length, groundAt,
 			BODY_LIFT)
-		local x, z = Rules.clampTerritory(stepX, stepZ)
+		local x, z = Rules.clampTerritory(stepX, stepZ, leash)
 		local nextPosition = bodyAt(x, z)
 		local move = nextPosition - position
 		if move.Magnitude > 0.01 and not workspace:Spherecast(position, 1, move, params) then
@@ -438,7 +447,7 @@ end
 -- Walks toward goal at speed: along the planned route when there is one, else a direct step that still refuses to
 -- enter geometry. The goal is clamped to the territory first, so no route ever leads into camp.
 local function navigate(goal, speed, dt, now)
-	local gx, gz = Rules.clampTerritory(goal.X, goal.Z)
+	local gx, gz = Rules.clampTerritory(goal.X, goal.Z, mode == "Hunt" and Rules.CHASE_LEASH or nil)
 	goal = bodyAt(gx, gz)
 	if GuardianPath.needsPlan(nav, gx, gz, now) then requestPlan(goal, now) end
 	local x, z = GuardianPath.steer(nav, body.Position.X, body.Position.Z, now)
@@ -675,8 +684,11 @@ local function step(now, dt)
 			end
 		end
 	else
-		local candidate = targetContext(target, Rules.CHASE_RANGE, mode == "Hunt")
+		local candidate = targetContext(target, Rules.GIVE_UP_DISTANCE, mode == "Hunt", Rules.CHASE_LEASH)
 		if not candidate or candidate.character ~= targetLife then
+			loseTarget(now, phase)
+		elseif candidate.hidden and not candidate.visible then
+			-- Chase pass (CP-D2): a quarry who hides unseen breaks the chase at once; the search starts where it was seen.
 			loseTarget(now, phase)
 		elseif Brain.chaseExpired(chaseStartedAt, now, phase) then
 			clearTarget(now)
@@ -701,16 +713,18 @@ local function step(now, dt)
 					end
 				end
 			end
-			local decision = Hunt.step(huntState, now, current, candidates)
+			local decision = Hunt.step(huntState, now, current, candidates, profile.memorySeconds)
 			if decision.expired then
 				loseTarget(now, phase)
 			else
 				if decision.switched then
 					target, targetLife = playersById[decision.id], decision.life
-					candidate = targetContext(target, Rules.CHASE_RANGE)
+					candidate = targetContext(target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
 				end
+				-- Chase pass (CP-D3): a telegraph only starts on a quarry inside the territory, where a strike can land.
 				if decision.canAttack and candidate and candidate.character == targetLife
-					and candidate.distance <= Rules.ATTACK_RANGE and now - lastAttackAt >= Rules.ATTACK_COOLDOWN then
+					and candidate.distance <= Rules.ATTACK_RANGE and now - lastAttackAt >= Rules.ATTACK_COOLDOWN
+					and Rules.inTerritory(candidate.root.Position.X, candidate.root.Position.Z) then
 					telegraphEndsAt = now + Rules.TELEGRAPH_SECONDS
 					guardian:SetAttribute("TelegraphEndsAt", telegraphEndsAt)
 					setMode("Telegraph")
@@ -723,7 +737,17 @@ local function step(now, dt)
 			-- Never lunge/teleport into a hit. Stationary wind-up; the gates validate the current character again.
 			local completedPresentation = resolveImpact(now)
 			lastAttackAt = now
-			clearTarget(now, completedPresentation)
+			-- Chase pass (CP-D1): a quarry still alive, in sight and in reach of the hunt is chased again at once; the
+			-- cooldown spaces the next telegraph. Anything else ends the hunt as before.
+			local again = targetContext(target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
+			if again and again.character == targetLife and huntState then
+				if visual then visual:finishTelegraph(completedPresentation == true) end
+				telegraphEndsAt = 0
+				guardian:SetAttribute("TelegraphEndsAt", 0)
+				setMode("Hunt")
+			else
+				clearTarget(now, completedPresentation)
+			end
 		end
 	end
 	if mode == "Alert" or mode == "Hunt" or mode == "Telegraph" then lastHuntAt = now end
@@ -738,7 +762,7 @@ end
 -- every player whose awareness changed, so a warning never waits for the 1 Hz tick.
 local discSeen
 local function stepAwareness(now)
-	local context = target and targetContext(target, Rules.CHASE_RANGE, true)
+	local context = target and targetContext(target, Rules.GIVE_UP_DISTANCE, true, Rules.CHASE_LEASH)
 	local entries = {}
 	for player in pairs(records) do
 		local character, _, root = characterContext(player)
@@ -754,7 +778,8 @@ local function stepAwareness(now)
 		targetId = target and target.UserId, targetLife = targetLife,
 		targetVisible = context ~= nil and context.visible,
 		lastVisibleAt = huntState and huntState.lastVisibleAt,
-		telegraphEndsAt = telegraphEndsAt, players = entries })
+		telegraphEndsAt = telegraphEndsAt, players = entries,
+		searchSeconds = Brain.profile(cycleAt(now).phase).memorySeconds })
 	anySeen = false
 	for player in pairs(records) do
 		local result = awarenessResults[player.UserId]

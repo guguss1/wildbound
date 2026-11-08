@@ -90,7 +90,7 @@ function Visual.new(options)
 	ok = pcall(function()
 		art.Name = "SiluetaVisual"
 		local factor = options.visualScale
-		if not finite(factor) or factor < 0.5 or factor > 2 then factor = 1 end
+		if not finite(factor) or factor < 0.5 or factor > 3 then factor = 1 end
 		art:ScaleTo(art:GetScale() * factor)
 		art:PivotTo(options.body.CFrame * CFrame.new(0, -options.body.Size.Y / 2, 0))
 		local look = self._look
@@ -190,7 +190,8 @@ end
 function Visual:setState(state, deadline, deferStep)
 	if self._destroyed then return end
 	if state == self._state and (state ~= "Telegraph" or deadline == self._deadline) then return end
-	local preserve = state == "Retreat" and self._state == "Telegraph" and self._completed
+	-- Chase pass: a strike on a live quarry goes straight back to Hunt; the follow-through is kept there too.
+	local preserve = (state == "Retreat" or state == "Hunt") and self._state == "Telegraph" and self._completed
 	self._state = state
 	if state == "Telegraph" and finite(deadline) and deadline > 0 then
 		if self._active == "Telegraph" or self._active == "Attack" then

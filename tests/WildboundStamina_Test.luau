@@ -36,7 +36,8 @@ return function(Stamina)
 	local STILL = { speed = 0, blocked = false, carrying = false, inCamp = false }
 
 	case("D2: the numbers of the design", function()
-		equal(C.POOL, 100); equal(C.SPRINT_MULTIPLIER, 1.3); equal(C.SPEED_CAP, 24); equal(C.DRAIN, 25)
+		-- Deliberately changed in the chase pass (CP-D2, user: make sprint felt): the multiplier is 1.45 (was 1.3).
+		equal(C.POOL, 100); equal(C.SPRINT_MULTIPLIER, 1.45); equal(C.SPEED_CAP, 24); equal(C.DRAIN, 25)
 		equal(C.START, 10); equal(C.RECOVER, 30); equal(C.REGEN_DELAY, 1.5); equal(C.REGEN_WALK, 10)
 		equal(C.REGEN_STILL, 15); equal(C.MOVING_SPEED, 4); equal(C.NOISE_INTERVAL, 1.2); equal(C.INTENT_SECONDS, 1.2)
 		local state = Stamina.new(0)
@@ -91,9 +92,10 @@ return function(Stamina)
 		equal(low.stance, "sprint", "10 is enough to start")
 	end)
 
-	case("D2: sprint speed is base x 1.3 capped at 24, other stances keep the base", function()
-		near(Stamina.speed(16, "sprint"), 20.8, "walk"); near(Stamina.speed(14, "sprint"), 18.2, "carrying")
-		near(Stamina.speed(11, "sprint"), 14.3, "loaded pouch"); near(Stamina.speed(9, "sprint"), 11.7, "three eggs")
+	-- Deliberately changed in the chase pass: x1.45 (was x1.3: 20.8, 18.2, 14.3, 11.7).
+	case("D2: sprint speed is base x 1.45 capped at 24, other stances keep the base", function()
+		near(Stamina.speed(16, "sprint"), 23.2, "walk"); near(Stamina.speed(14, "sprint"), 20.3, "carrying")
+		near(Stamina.speed(11, "sprint"), 15.95, "loaded pouch"); near(Stamina.speed(9, "sprint"), 13.05, "three eggs")
 		equal(Stamina.speed(20, "sprint"), 24, "capped")
 		equal(Stamina.speed(16, "walk"), 16); equal(Stamina.speed(16, "exhausted"), 16)
 		equal(Stamina.speed(0 / 0, "sprint"), 0, "a bad base never becomes a speed")
@@ -174,7 +176,8 @@ return function(Stamina)
 		equal(Stamina.step(nil, 0.1, MOVING, 0.1).noise or false, false)
 	end)
 
-	case("D2: holding sprint forever gains at most 8.6 percent over walking", function()
+	-- Deliberately changed in the chase pass: 10 / 35 of the time at x1.45 is at most 12.9 percent (was 8.6 at x1.3).
+	case("D2: holding sprint forever gains at most 12.9 percent over walking", function()
 		local state = Stamina.new(0)
 		local now, distance, walked, dt = 0, 0, 0, 0.1
 		for _ = 1, 6000 do
@@ -184,7 +187,7 @@ return function(Stamina)
 			distance += Stamina.speed(16, state.stance) * dt
 			walked += 16 * dt
 		end
-		assert(distance / walked <= 1.086, "mean gain " .. distance / walked)
+		assert(distance / walked <= 1.129, "mean gain " .. distance / walked)
 		assert(distance / walked > 1.0, "sprint still helps")
 	end)
 

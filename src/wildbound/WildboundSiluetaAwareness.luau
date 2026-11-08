@@ -50,8 +50,10 @@ local function readThreat(input, byId, now)
 	if not finite(input.lastVisibleAt) then return nil end
 	-- A clock that stepped back cannot make the countdown longer than the search itself.
 	local lastVisibleAt = math.min(input.lastVisibleAt, now)
-	if now - lastVisibleAt >= CONSTANTS.SEARCH_SECONDS then return nil end
-	return { target = target, visible = false, searchEndsAt = lastVisibleAt + CONSTANTS.SEARCH_SECONDS }
+	-- Chase pass: the world passes the hunt's memory as searchSeconds; otherwise the 1.5 s default.
+	local search = finite(input.searchSeconds) and input.searchSeconds > 0 and input.searchSeconds or CONSTANTS.SEARCH_SECONDS
+	if now - lastVisibleAt >= search then return nil end
+	return { target = target, visible = false, searchEndsAt = lastVisibleAt + search }
 end
 
 -- Returns state, searchEndsAt, attackEndsAt and updates this player's debounce memory.
@@ -80,7 +82,7 @@ local function evaluate(memory, entry, threat, now)
 	return memory.near and "ally" or "none"
 end
 
--- input = { now, mode, targetId, targetLife, targetVisible, lastVisibleAt, telegraphEndsAt,
+-- input = { now, mode, targetId, targetLife, targetVisible, lastVisibleAt, telegraphEndsAt, searchSeconds?,
 --           players = { { id, life, alive, distance, safe } } }
 -- Returns { [id] = { state, searchEndsAt?, attackEndsAt?, changed } }, each table fresh.
 function Awareness.step(state, input)

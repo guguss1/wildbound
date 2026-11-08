@@ -167,7 +167,8 @@ return function(Visual)
 		visual:destroy()
 	end)
 	case("invalid visual scale falls back to original clone scale", function()
-		for _, factor in ipairs({ false, "1.3", 0, -1, 0.49, 2.01, math.huge, -math.huge, 0 / 0 }) do
+		-- Chase pass (CP-D4): the supported ceiling is 3 (was 2), so 2.6 is a valid scale; 3.01 is the new invalid edge.
+		for _, factor in ipairs({ false, "1.3", 0, -1, 0.49, 3.01, math.huge, -math.huge, 0 / 0 }) do
 			local f = fixture(true, true)
 			f.template:ScaleTo(3.571); f.options.visualScale = factor
 			local visual = f:create()
@@ -177,7 +178,7 @@ return function(Visual)
 		end
 	end)
 	case("omitted visual scale keeps existing behavior and supported bounds scale art only", function()
-		for _, factor in ipairs({ 0.5, 1, 2 }) do
+		for _, factor in ipairs({ 0.5, 1, 2, 2.6, 3 }) do
 			local f = fixture(true, true)
 			local originalBodySize = f.body.Size
 			f.options.visualScale = factor
@@ -391,6 +392,19 @@ return function(Visual)
 		f:tick(102.16); equal(f.tracks.Locomotion.plays, 0)
 		f:tick(102.18); equal(f.tracks.Locomotion.plays, 1)
 		assert(f.tracks.Attack.stops >= 1); visual:destroy()
+	end)
+	-- Chase pass (CP-D1): after a strike on a live quarry the guardian hunts again at once; the follow-through still
+	-- plays before it walks.
+	case("chase pass: a strike followed by a renewed hunt keeps the short followthrough", function()
+		local f = fixture(true, true)
+		local visual = f:create()
+		visual:setState("Telegraph", 101.4); f:tick(101.4)
+		visual:finishTelegraph(true); visual:setState("Hunt")
+		visual:setMoving(true)
+		equal(f.tracks.Attack.stops, 0)
+		f:tick(102.16); equal(f.tracks.Locomotion.plays, 0)
+		f:tick(102.18); equal(f.tracks.Locomotion.plays, 1)
+		visual:destroy()
 	end)
 	case("new warning supersedes old deadline and invalid deadline cancels safely", function()
 		local f = fixture(true, true)

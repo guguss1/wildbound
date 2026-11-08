@@ -1,6 +1,7 @@
 -- Contract cases only: execution is deferred until authorized Studio testing resumes.
--- Invoke this function with a freshly cloned WildboundWorldRules ModuleScript result.
-return function(Rules)
+-- Invoke this function with a freshly cloned WildboundWorldRules ModuleScript result and, for the chase pass
+-- no-strike cases, the island layout (require(freshIslandLayoutClone), ServerScriptService.WildboundIslandLayout).
+return function(Rules, islandLayout)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -134,16 +135,20 @@ return function(Rules)
 			local profile = Rules.resolveCreatureProfile("Silueta", sample[1], sample[2])
 			equal(profile.name, "Silueta"); equal(profile.specialBehaviorId, "Silueta")
 			equal(profile.speed, sample[3]); equal(profile.detectionRange, sample[4])
-			equal(profile.visualScale, 2.0)
+			equal(profile.visualScale, 2.6)
 		end
 	end)
 	-- Dread pass (user: much taller, about three times the player): the SiluetaV3 art is 8.57 studs at scale 1
 	-- (its WildboundExpectedHeightStuds), so 2.0 stands about 17 studs over a 5.3-stud avatar. Deliberately
 	-- changed from 1.30 (11.1 studs).
-	case("Silueta stands about three times a player's height", function()
+	-- Deliberately changed again in the chase pass (CP-D4, user: "bigger"): 2.0 (17.1 studs) to 2.6, about 22.3
+	-- studs, four avatars tall. Art only: the gameplay body, ATTACK_RANGE 7 and the pathing agent are unchanged, and
+	-- the art's arms (half span about 9 studs at 2.6) reach past the 7-stud strike, so no hit lands from beyond what
+	-- the player sees.
+	case("Silueta stands about four times a player's height", function()
 		local height = 8.571428571428571 * Rules.resolveCreatureProfile("Silueta", "Night", true).visualScale
-		assert(height >= 16 and height <= 18, "Silueta height " .. height)
-		assert(height / 5.3 >= 3, "at least three avatars tall")
+		assert(height >= 21 and height <= 24, "Silueta height " .. height)
+		assert(height / 5.3 >= 4, "at least four avatars tall")
 	end)
 	case("unknown creature profiles fail closed", function()
 		equal(Rules.resolveCreatureProfile("Unknown", "Night", true), nil)
@@ -157,8 +162,8 @@ return function(Rules)
 		local second = Rules.resolveCreatureProfile("Silueta", "Night", true)
 		local base = Rules.resolveCreatureProfile("Silueta", "Day", true)
 		equal(second.name, "Silueta"); equal(second.specialBehaviorId, "Silueta")
-		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 2.0)
-		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 2.0)
+		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 2.6)
+		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 2.6)
 	end)
 	case("guardian compatibility agrees with creature resolver", function()
 		for _, sample in ipairs({ { "Day", true }, { "Night", true }, { "Night", false } }) do
@@ -229,8 +234,15 @@ return function(Rules)
 		equal(Rules.tryAbility(bob, "Flashlight", 100, context()), true)
 		equal(alice.LumipolPulse, 130); equal(bob.LumipolPulse, nil)
 	end)
+	-- Deliberately changed in the chase pass (CP-D1, user: "attacks faster"). It was "TELEGRAPH_SECONDS >= 1.2". The
+	-- telegraph is 0.9 s (was 1.4), the repeat 2.5 s (was 4): never under the 0.35 s floor of a visible and audible
+	-- tell, and longer than the 0.8 s warning lead the fair-strike gate needs.
+	case("chase pass: a shorter telegraph above the tell floor, a quicker repeat", function()
+		equal(Rules.TELEGRAPH_SECONDS, 0.9); equal(Rules.ATTACK_COOLDOWN, 2.5)
+		assert(Rules.TELEGRAPH_SECONDS >= 0.35 + 0.5, "the floor plus a margin for the network")
+		assert(Rules.ATTACK_COOLDOWN > Rules.TELEGRAPH_SECONDS, "no back-to-back telegraphs")
+	end)
 	case("strike waits for telegraph and cooldown", function()
-		assert(Rules.TELEGRAPH_SECONDS >= 1.2)
 		equal(Rules.canStrike(11, 11.4, 0, 4, true, false, true), false)
 		equal(Rules.canStrike(11.4, 11.4, 0, 4, true, false, true), true)
 		equal(Rules.canStrike(11.4, 11.4, 10, 4, true, false, true), false)
@@ -281,6 +293,52 @@ return function(Rules)
 		first.r, first.diameter = 0, 0
 		equal(Rules.groundCue(true).diameter > 0, true)
 		equal(Rules.groundCue(true).r > 200, true)
+	end)
+	-- Chase pass (CP-D2, CP-D3): La Silueta gives up only far away, and its pursuit may leave the territory to the
+	-- chase leash, but a strike still needs the target inside the territory (the default leash, 80), so no island 1
+	-- to 3 floor, camp circle or the spawn pad can ever be struck from anywhere it can stand.
+	case("chase pass: give-up distance 90 to 120 and a pursuit leash", function()
+		equal(Rules.GIVE_UP_DISTANCE, 100); equal(Rules.CHASE_LEASH, 100)
+		assert(Rules.GIVE_UP_DISTANCE >= 90 and Rules.GIVE_UP_DISTANCE <= 120)
+		assert(Rules.GIVE_UP_DISTANCE > Rules.CHASE_RANGE, "it keeps a quarry well past the old 65")
+		equal(Rules.HOME_LEASH, 80, "the territory itself is unchanged")
+		equal(Rules.inTerritory(20, 5, Rules.CHASE_LEASH), true, "92 from home is inside the pursuit leash")
+		equal(Rules.inTerritory(20, 5), false, "but outside the territory")
+		equal(Rules.validTarget(true, 20, 5, 20, -5, 20, Rules.CHASE_LEASH), true, "chased beyond the territory")
+		equal(Rules.validTarget(true, 20, 5, 20, -2, 7), false, "never a strike target there")
+		local x, z = Rules.clampTerritory(0, 40, Rules.CHASE_LEASH)
+		assert(math.abs(Rules.distance(x, z, Rules.HOME_X, Rules.HOME_Z) - Rules.CHASE_LEASH) < 1e-6, "clamped to the chase leash")
+		x, z = Rules.clampTerritory(0, 40)
+		assert(math.abs(Rules.distance(x, z, Rules.HOME_X, Rules.HOME_Z) - Rules.HOME_LEASH) < 1e-6, "default leash unchanged")
+		local _, safe = Rules.zone(Rules.clampTerritory(-140, 140, Rules.CHASE_LEASH))
+		equal(safe, false, "the pursuit leash never reaches camp")
+	end)
+	case("chase pass: no strike on island 1 to 3 floors, at camp or on the spawn pad", function()
+		assert(type(islandLayout) == "table" and type(islandLayout.islands) == "table", "island layout passed")
+		local floors = {}
+		for _, island in ipairs(islandLayout.islands) do
+			if island.id == "I1" or island.id == "I2" or island.id == "I3" then table.insert(floors, island) end
+		end
+		equal(#floors, 3)
+		-- Spawn pad: the place's default SpawnLocation, 12 x 12 at the origin (half diagonal 8.49). Its north edge
+		-- reached one stud into the territory before the chase pass (found by this case: 21 points).
+		table.insert(floors, { id = "spawn", x = 0, z = 0, floorRadius = 8.49 })
+		table.insert(floors, { id = "camp", x = -140, z = 140, floorRadius = 35 })
+		table.insert(floors, { id = "shelter", x = 105, z = 125, floorRadius = 22 })
+		local struck = 0
+		for _, floor in ipairs(floors) do
+			for ring = 0, 4 do
+				local r = floor.floorRadius * ring / 4
+				for step = 0, 23 do
+					local angle = step * math.pi / 12
+					local px, pz = floor.x + math.cos(angle) * r, floor.z + math.sin(angle) * r
+					-- The guardian stands anywhere the pursuit leash allows, as close as it likes.
+					local gx, gz = Rules.clampTerritory(px, pz, Rules.CHASE_LEASH)
+					if Rules.validTarget(true, px, pz, gx, gz, Rules.ATTACK_RANGE) then struck += 1 end
+				end
+			end
+		end
+		equal(struck, 0, "strikeable floor points")
 	end)
 	return result
 end

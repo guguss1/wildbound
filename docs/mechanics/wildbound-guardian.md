@@ -9,11 +9,11 @@ How La Silueta senses, moves, fights and kills, and what a defeat costs. Every n
 | Patrol | Walks the home diamond (or the current ambush anchor's) at the phase's patrol speed | World script |
 | Suspicious | A faint capture noise: stands and faces it for 1.2 s | `WildboundGuardianBrain` |
 | Investigate | Walks to a noise; gives up after 14 s | Brain |
-| Alert | Has seen a player: winds up for the phase's alert time (0.6 s when it spots its quarry again during a search) | Brain and world |
-| Hunt | Chases at the phase's hunt speed; ends after the phase's chase limit | World script, `WildboundSiluetaHunt` |
-| Telegraph | Stands still for 1.4 s with the warning on the target's screen, then the fair-strike gates decide | World script, `WildboundFairStrike` |
+| Alert | Has seen a player: winds up for the phase's alert time (0.4 s when it spots its quarry again during a search; 0.6 before the chase pass) | Brain and world |
+| Hunt | Chases at the phase's hunt speed; keeps walking to where it last saw its quarry for the phase's memory, gives up beyond 100 studs or when the quarry hides unseen; ends after the phase's chase limit | World script, `WildboundSiluetaHunt` |
+| Telegraph | Stands still for 0.9 s (1.4 before the chase pass) with the warning on the target's screen, then the fair-strike gates decide; a live quarry in sight is hunted again at once | World script, `WildboundFairStrike` |
 | Search | Lost its quarry: the last known spot first, then four points 7 studs around it | Brain |
-| Retreat | Returns to its anchor; detects again once 3 s of recovery have passed | World script |
+| Retreat | Returns to its anchor; detects again once 1.5 s of recovery have passed (3 s before the chase pass) | World script |
 
 It never enters camp: every goal, noise point and search point is clamped to the territory (`WildboundWorldRules.clampTerritory`), and every step is clamped again.
 
@@ -92,3 +92,26 @@ Captures (desktop Play view, 1336 x 699; phone captures were BLOCKED: the Device
 User: much taller and scarier, about three times the player's height, thin, long arms, antlers, darker. Built from the existing SiluetaV3 art (no uploads, no new mesh): `visualScale` 1.30 to 2.0 in `WildboundWorldRules` (the art is 8.57 studs at scale 1, so about 17 studs), and `WildboundSiluetaVisual.DREAD_LOOK` passed by the world server: every art colour x0.35, the eyes pale Neon that stays lit, and the unrevealed body alpha 0.5 (a dark shape the fog swallows) instead of the 0.86 ghost; revealed 0.1. The long arms, ragged mantle and branch crown (read as antlers) are the model's own; scaling keeps them in proportion. Measured in Play: visible art 17.1 studs tall against a 4.9-stud avatar (3.5x).
 
 What scale touches, re-checked: the gameplay body, head, ground cue, sight-ray origin, `ATTACK_RANGE` 7, the 1.4 s telegraph, the PathfindingService agent (radius 2, height 7) and the territory clamp are unchanged, so the fair-strike guarantees of delivery C hold by construction (FairStrike 42/0, Ambush 12/0, SiluetaAwareness 57/0, SiluetaHunt 9/0 after the change). Animation tracks are unchanged; they scale with the bones. Known visual cost: at 2.0 the arms and crown span about 14 studs, so the art can clip through trunk canopies when it passes close to a tree (the body still routes around the trunk cores). The guardian never enters camp (unchanged clamp).
+
+## Chase pass: a faster, longer, bigger hunt (2026-11-08)
+
+User: it chases more, does not lose you until you are very far, is scarier, walks faster, is bigger and attacks faster. Decisions CP-D1 to CP-D6 and CP-R1 are in `odd/tasks/wildbound-capture-extraction-horror.md` (Chase pass). The day and night table above is the delivery C history; the current numbers are:
+
+| Phase | Patrol | Investigate | Hunt | Search | Retreat | Detection | Alert | Chase limit | Search time | Memory |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Day | 5 | 9 | 13 | 8 | 8 | 21 | 0.8 s | 30 s | 12 s | 4 s |
+| Dusk, Dawn | 6 | 10 | 15 | 9 | 8.5 | 26 | 0.65 s | 40 s | 16 s | 5 s |
+| Night | 7 | 11 | 17 | 10 | 9 | 30 | 0.5 s | 50 s | 20 s | 6 s |
+
+| Rule | Old | New | Why |
+| --- | --- | --- | --- |
+| Hunt speed against the player | Every hunt under a carrier's 14 and a loaded pouch's 11: walking away always worked | A rested sprint (16 x 1.45 = 23.2) outruns every hunt by at least 6 studs/s; a walker (16) is caught at night, a carrier (14) at dusk and night, a loaded pouch must hide | CP-D2: caught in the open is usually deadly, escape stays possible |
+| Give-up distance | 65 studs (`CHASE_RANGE`) | 100 studs (`GIVE_UP_DISTANCE`) | Beyond what the mist shows by day (60 to 80 studs) and far beyond the night fog (about 39); a sprinter gains about 6 studs/s, so 100 is reached by breaking sight and hiding, not by running alone |
+| Memory after losing sight | 1.5 s, then search | 4, 5, 6 s (Day, Dusk, Night), then a search of 12, 16, 20 s | It keeps walking to the last spot it saw you; the awareness chip shows "searching" for the same time |
+| Hiding unseen | The hunt ran out after 1.5 s | Lost at once; the search starts where it last saw you | CP-D2 |
+| Pursuit leash | 80 from home (the territory) | 100 from home while hunting; any other mode walks back in, never jumping to the edge | A strike still needs the target inside the territory, and the spawn pad (12 x 12 at the origin, which reached one stud into the territory) is never a target, so no island 1 to 3 floor, camp or spawn point can be struck (`WildboundWorldRules_Test`) |
+| Telegraph | 1.4 s, warning lead 1.2 s | 0.9 s, warning lead 0.8 s | CP-D1: above the 0.35 s floor of a visible and audible tell |
+| Repeat | Cooldown 4 s, then home and 3 s of recovery | Cooldown 2.5 s; a live quarry in sight is hunted again at once (the follow-through still plays); otherwise 1.5 s of recovery | "Attacks faster"; two hits still kill (mark, then defeat) |
+| Detection | 26, 32, 38 | 21, 26, 30 | CP-R1: the faster walk and chase pushed the simulator's greedy median under its 180 s floor (176.96 s); a shorter sight radius in the mist (it notices you later, then does not let go) brings it back to 183 s. By day a still player at the nest is no longer seen from the home diamond (the ambush anchors still reach it) |
+| Art scale | 2.0 (17.1 studs) | 2.6 (about 22.3 studs) | CP-D4; art only, the arms reach past the 7-stud strike, so no hit lands from beyond what the player sees |
+

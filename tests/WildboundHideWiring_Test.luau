@@ -37,7 +37,10 @@ return function(worldSource, serverSource, clientSource)
 
 	case("D6: a hunt on a player who hides becomes Search", function()
 		-- Hunt keeps the context with visible = false, so the hunt memory runs out and loseTarget searches.
-		has(worldSource, "targetContext(target, Rules.CHASE_RANGE, mode == \"Hunt\")")
+		-- Deliberately changed in the chase pass (CP-D2): the hunt keeps its quarry to the give-up distance and the
+		-- pursuit leash (was Rules.CHASE_RANGE, 65); a quarry who hides unseen is lost at once.
+		has(worldSource, "targetContext(target, Rules.GIVE_UP_DISTANCE, mode == \"Hunt\", Rules.CHASE_LEASH)")
+		has(worldSource, "candidate.hidden and not candidate.visible", "hiding unseen breaks the chase")
 		has(worldSource, "Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)")
 	end)
 

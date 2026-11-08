@@ -31,7 +31,7 @@ return function(Brain, Rules, source)
 			local profile = Brain.profile(phase)
 			assert(type(profile) == "table", phase)
 			for _, key in ipairs({ "patrol", "investigate", "hunt", "search", "retreat", "hearing", "searchSeconds",
-				"chaseSeconds", "alertSeconds", "detection" }) do
+				"chaseSeconds", "alertSeconds", "detection", "memorySeconds" }) do
 				assert(type(profile[key]) == "number" and profile[key] > 0, phase .. "." .. key)
 			end
 		end
@@ -42,18 +42,44 @@ return function(Brain, Rules, source)
 		assert(day.chaseSeconds < night.chaseSeconds, "chases longer at night")
 		assert(day.alertSeconds > night.alertSeconds, "reacts faster at night")
 		assert(day.detection < night.detection, "sees farther at night")
+		assert(day.memorySeconds < night.memorySeconds, "remembers longer at night")
 		equal(Brain.profile("Nonsense").hunt, day.hunt, "an unknown phase reads as Day")
 	end)
 
-	case("chases stay escapable: every hunt speed is below a carrying player's 14 and above patrol", function()
+	-- Deliberately changed in the chase pass (CP-D2, user: "chases more, walks faster"). It was "every hunt speed is
+	-- below a carrying player's 14 and the slowest loaded walk, 11": running away always worked at a walk. Now a rested
+	-- sprinter (16 x 1.45 = 23.2) still outruns every hunt by at least 5 studs/s, while a walker (16) is caught at night.
+	case("chase pass: a rested sprinter outruns every hunt; a walker is caught at night", function()
 		for _, phase in ipairs(PHASES) do
 			local profile = Brain.profile(phase)
-			assert(profile.hunt < 14, phase .. " hunt " .. profile.hunt)
-			assert(profile.hunt < 11, phase .. " stays below the slowest loaded walk, 11: " .. profile.hunt)
+			assert(profile.hunt + 5 <= 16 * 1.45, phase .. " hunt " .. profile.hunt)
 			assert(profile.hunt > profile.patrol and profile.investigate > profile.patrol, phase)
-			assert(profile.alertSeconds >= 0.6, phase .. " leaves time to react")
+			assert(profile.alertSeconds >= 0.35, phase .. " keeps the 0.35 s floor of a readable wind-up")
 			assert(profile.detection <= Rules.CHASE_RANGE, phase .. " detects inside the chase range")
+			assert(profile.chaseSeconds >= 30, phase .. " chases for at least 30 s")
+			assert(profile.memorySeconds >= 3, phase .. " remembers a lost quarry for at least 3 s")
 		end
+		assert(Brain.profile("Night").hunt > 16, "a walking player is caught at night")
+	end)
+
+	-- Chase pass: the numbers themselves (walk faster, react faster, chase longer). Detection is deliberately shorter
+	-- (Day 26 to 21, Dusk 32 to 26, Night 38 to 30): it notices you a little later in the mist, which keeps the
+	-- expedition simulator's greedy median at its 180 s floor with the faster walk and chase (CP-R1).
+	case("chase pass: profile values", function()
+		local expected = {
+			Day = { patrol = 5, investigate = 9, hunt = 13, search = 8, retreat = 8, detection = 21, alertSeconds = 0.8,
+				chaseSeconds = 30, searchSeconds = 12, memorySeconds = 4 },
+			Dusk = { patrol = 6, investigate = 10, hunt = 15, search = 9, retreat = 8.5, detection = 26, alertSeconds = 0.65,
+				chaseSeconds = 40, searchSeconds = 16, memorySeconds = 5 },
+			Night = { patrol = 7, investigate = 11, hunt = 17, search = 10, retreat = 9, detection = 30, alertSeconds = 0.5,
+				chaseSeconds = 50, searchSeconds = 20, memorySeconds = 6 },
+		}
+		expected.Dawn = expected.Dusk
+		for phase, values in pairs(expected) do
+			local profile = Brain.profile(phase)
+			for key, value in pairs(values) do equal(profile[key], value, phase .. "." .. key) end
+		end
+		equal(Brain.CONSTANTS.RECOVERY_SECONDS, 1.5, "recovers faster after an attack (was 3)")
 	end)
 
 	case("speed by mode: standing modes are 0, moving modes follow the phase", function()
@@ -205,7 +231,9 @@ return function(Brain, Rules, source)
 		Brain.lostSight(searching, 1, -80, 0, "Day", clamp)
 		local again = Brain.engage(searching, 1, "Day")
 		near(again, Brain.CONSTANTS.REACQUIRE_ALERT_SECONDS)
-		assert(again < Brain.profile("Day").alertSeconds and again >= 0.6)
+		-- Chase pass: 0.6 to 0.4 s, still above the 0.35 s floor (CP-D1).
+		assert(again < Brain.profile("Day").alertSeconds and again >= 0.35)
+		near(again, 0.4)
 	end)
 
 	case("a chase gives up after the phase's limit", function()

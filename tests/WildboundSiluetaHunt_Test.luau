@@ -95,6 +95,20 @@ return function(Hunt)
 		equal(out.expired, true); equal(out.canAttack, false)
 	end)
 
+	-- Chase pass (CP-D2): the world passes the phase's memory, so a lost quarry is remembered far longer than 1.5 s.
+	-- The default (no memory given) stays 1.5 s for the awareness contract.
+	case("chase pass: a given memory keeps the last position for that long", function()
+		local state, current = fixture()
+		local remembered = Vector3.new(9, 2, 4)
+		current.position = remembered
+		tick(state, 0, current)
+		local hidden = { id = 1, life = lifeA, valid = true, visible = false }
+		local out = Hunt.step(state, 5.99, hidden, {}, 6)
+		equal(out.destination, remembered); equal(out.expired, false); equal(out.canAttack, false)
+		equal(Hunt.step(state, 6, hidden, {}, 6).expired, true)
+		equal(Hunt.step(Hunt.new(seen(1, lifeA, 20), 0), 1.5, hidden, {}, 0 / 0).expired, true, "a bad memory reads 1.5 s")
+	end)
+
 	case("regained sight refreshes destination and permits normal attack checks", function()
 		local state, current = fixture()
 		tick(state, 0, current)
