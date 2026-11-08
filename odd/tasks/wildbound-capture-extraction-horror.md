@@ -417,3 +417,54 @@ Captures (each looked at), `assets/exports/forest-kit/captures/`: `chase-sprint-
 Counts: Studio 50 suites, 1085 passed, 0 failed on fresh clones (from 1070; new or changed: GuardianBrain 26, WorldRules 35, SiluetaHunt 10, SiluetaAwareness 58, SiluetaVisual 29, FairStrike 42, HudView 43, AudioMix 9, AudioWiring 9, StaminaWiring 9, Stamina 13, Island 21, IslandWiring 10, Text 13, HideWiring 12). Python: 924 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. Every changed Studio source matches the repo by Adler-32 and length. Studio left in Edit; the temporary runner and its output value were removed; the place is not saved to a file by this session.
 
 Next step: the user reviews CP-D1 to CP-D6, CP-R1 (shorter sight radius to keep the economy floors; greedy is 3 s over its floor), CP-A1 to CP-A3, and the findings: La Silueta lags a sprinting quarry because of replanning; a player standing just outside the territory (an island 2 floor edge) is safe from La Silueta even with it looming at arm's length; the simulator still assumes walking is never struck. Save the place.
+
+## Dev tuning
+
+User, 2026-11-08: "Where can we, as developers, configure the creature system and the general game systems (sprint, etc.) to test and tune them without asking for every adjustment? Show us with screenshots." Approved proposal: one `WildboundTuning` Configuration in ReplicatedStorage (one subfolder per system, every value an attribute), live edits in Studio's Properties pane during Play, an in-game slider panel visible only in Studio or on the private place 122652861404212 for allowed developers, and a "Copiar valores" button that shows the current values as a Luau snippet in a selectable TextBox.
+
+Route: delegated, one Studio and repo writer (Opus), instance `b18079a2-...`, PlaceId 122652861404212 verified read-only; 104 of 104 Wildbound sources in the place matched the repo by Adler-32 and length before the first edit (the two `WildboundTests.H1_*` copies are old snapshots; the Hunt and Visual suites run from `SiluetaHuntTest_Contract` and `SiluetaScaleContract`, which match). Mode: strict TDD (global); runners: Studio fresh clones (temporary `ServerStorage.WildboundFreshRunnerTmp`, removed at the end), `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 50 suites, 1085 passed, 0 failed.
+
+Design rules: module defaults (`CONSTANTS`, `CONFIG`, profiles, `Rules.*`) stay the source of truth and the tests' expected values; the tuning layer only overrides at runtime, so with no folder or no attribute the game behaves as before. Gameplay values are read on the server; client-only values (camera kick, dread shake and vignette) on the client. The change remote validates caller, key, type, range and rate on the server.
+
+Tasks (route per task: inline in the one writer; no further delegation):
+
+- [x] DT1 Tuning schema. `src/wildbound/WildboundTuningSchema.luau` (ReplicatedStorage): 7 systems, 70 values, each with a Spanish label, min, max, step, default and the module that reads it; `sanitize` (clamp, ignore wrong types), `apply`, `changed`, `snippet`, `isDeveloper`, a token-bucket limiter (burst 20, 10 per second) and `validateRequest`; `ensureFolder`. `tests/WildboundTuning_Test.luau`. RED (Studio fresh clones, new schema against the unchanged modules): 8/6 (parity: no `tunable`; no `live` table; overrides ignored; no `version`; and one test bug, the "no CHANGED" check matched the header's wording, fixed in the test). GREEN with DT2: 14/0. A Play finding (a change is easy to miss in 70 lines) added a summary of changed values at the top of the snippet: RED 13/1, GREEN 14/0. Commit `cb1fc9a`.
+- [x] DT2 Live overrides in the modules. `tunable()` and `tune(overrides)` on Stamina, Island, GuardianBrain (keys `Day|Twilight|Night.<field>`, Twilight sets Dusk and Dawn, and `NOISE.<kind>`), WorldRules (four fields; the chase leash never drops under the territory), Hide (`Day|Twilight|Night.radius|dwell` and the flat numbers), Carry, CaptureSession (the skill floors stay under their ceilings) and HudView (dread range at least 1). The frozen defaults are untouched; the rules read the live copy. A bug found in review before GREEN: `a and s:match()` keeps one value, so Brain's dotted keys were ignored; fixed. Commit `cb1fc9a` (same commit as DT1: the test covers both).
+- [x] DT3 Server bridge. `src/wildbound/WildboundTuning.server.luau`; `WildboundServer` reads `Island.live` and re-applies WalkSpeed when `Stamina.version` changes. `tests/WildboundTuningWiring_Test.luau`: RED 0/7, GREEN 7/0 after one sync fix (a Studio `replace_all` edit had left two `Island.CONSTANTS.WAKE` reads in the Studio copy; the repo was right). Manifest: Python RED 23/1, GREEN 24/0. Commit `7540277`.
+- [x] DT4 Developer panel. `src/wildbound/WildboundTuning.client.luau`. Play findings fixed before the captures: the arrows in the system headers rendered as missing glyphs (now `+` and `−`), and the toggle read "Ajustes" like the start screen's settings button (now "Ajustes dev"). Commit `7540277` (the fixes were made before it).
+- [x] DT5 Documents and manifest. `docs/testing/wildbound-tuning.md`; five manifest rows.
+- [x] DT6 Studio sync and Play check (table below).
+
+Writer decisions, for user review:
+
+| ID | Decision |
+| --- | --- |
+| DT-W1 | The schema holds a copy of each default (the client cannot read the server modules); `WildboundTuning_Test` fails on any divergence, so the module stays the source of truth. |
+| DT-W2 | Twilight is one value for Dusk and Dawn (they share a profile today). |
+| DT-W3 | Not exposed: the territory (`HOME_LEASH`), La Silueta's strike range and damage, island positions, the economy, and La Silueta's art scale (it is applied when the model is built, so it is not safe live). Ranges keep the fairness floors: telegraph at least 0.8 s (the warning lead), island strike wind-up at least 0.35 s, chase leash at least 80, island `WAKE` at least 96 (above the first-steal cap 95), capture calm at least 4 and retry at least 3. |
+| DT-W4 | A running capture keeps the deadline, calm and seal it started with; the new values apply to the next capture. |
+| DT-W5 | The remote refuses out-of-range values; a Properties attribute out of range is clamped and written back. Edit-mode values persist in the place and are printed at server start when they differ from the repo. |
+| DT-W6 | Allowed developers outside Studio: the place's owning user (or rank 255 of an owning group) on place 122652861404212, plus `ALLOWLIST` (empty) in the bridge. |
+
+Play check (Studio Play solo, desktop 1336 x 699):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Panel only for a developer | PASS (Studio) | `WildboundTuningDev` true, panel built; the GUI is created only after that check (wiring contract). A real non-developer client was NOT tested (one Studio client) |
+| Sprint from the panel | PASS | `+` three times: 1.45 to 1.60; sprinting WalkSpeed 24.0 (the 24 cap; 23.2 before) |
+| Sprint from the attribute (server view) | PASS | 1.2: sprint WalkSpeed and measured speed 19.2; set to 1.35 while still sprinting: 21.6 within 0.5 s, no stance change needed |
+| Island adult value | PASS | Island 2 woken by the probe, player 24 studs from the adult: `CHASE_SPEED` 17 (default): first swing 1.55 s after the wake; 6 (attribute): 4.13 s; 10 (panel, eight `+` taps): 2.53 s. Health stayed 100 (no paid trip, damage gate) |
+| Restablecer | PASS | 0 values differ afterwards; sprint WalkSpeed back to 23.2 |
+| Export snippet | PASS | "2 changed of 70", `SPRINT_MULTIPLIER = 1.35, -- CHANGED (default 1.45)` and `CHASE_SPEED = 10, -- CHANGED (default 17)`, each group naming its file; after the fix the changed values are also listed first |
+| Non-developer refused | PASS | `TuningSimulateNonDev` in Studio: set and reset both `false, NotDeveloper`, attribute unchanged, `Tuning_rejected` 2, one log line (one per second) |
+| Bad requests refused | PASS | out of range `OutOfRange`, string and NaN `BadValue`, unknown key and a table system `UnknownKey`, a fifth argument `ExtraArguments`; 40 back-to-back requests: 37 accepted, 3 `RateLimited` |
+| Properties attribute out of range or wrong type | PASS | `SPRINT_MULTIPLIER` 5 written back as 2; `DRAIN` "fast" ignored (default applies, warning) |
+| Play edits revert | PASS | after Stop, 0 values differ from the defaults in Edit |
+| Phones and touch | NOT VERIFIED | Device Simulator not switched; controls are 40 to 44 px |
+| Text typed into a value box | NOT VERIFIED | the MCP keyboard input did not reach the TextBox; the buttons and slider were used |
+
+Captures (each looked at), `assets/exports/forest-kit/captures/`: `tuning-panel-silueta-desktop.jpg` (the panel open, La Silueta expanded, "1 cambiado(s)", the changed day hunt in amber with "repo 13"), `tuning-export-snippet-desktop.jpg` (the export box: the summary line, then the table with `HUNT_DAY = 15, -- CHANGED (default 13)`). The Properties pane with the folder selected was NOT captured (the MCP capture shows only the game view).
+
+Counts: Studio 52 suites, 1106 passed, 0 failed on fresh clones (baseline 50 suites, 1085; new Tuning 14, TuningWiring 7). Python: 924 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. Every changed or new Studio source matches the repo by Adler-32 and length. `ReplicatedStorage.WildboundTuning` exists in the place (7 systems, 70 attributes at the repo defaults, built by `ensureFolder`); the place is not saved to a file by this session. Studio left in Edit with no temporary instances (the runner was removed). Studio was found in Play (an idle session about 11 minutes in) and was stopped before the first edit.
+
+Next step: the user tries the panel (F8 or "Ajustes dev"), reviews DT-W1 to DT-W6 and saves the place so the folder persists.
