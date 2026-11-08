@@ -344,6 +344,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundReliefWiring_Test.luau": "ServerStorage.WildboundReliefWiring_Test",
         # Expedition islands, I1: the generated island layout (server only)
         "src/wildbound/WildboundIslandLayout.luau": "ServerScriptService.WildboundIslandLayout",
+        # Expedition islands, I2: the pure island rule (server only)
+        "src/wildbound/WildboundIsland.luau": "ServerScriptService.WildboundIsland",
+        "tests/WildboundIsland_Test.luau": "ServerStorage.WildboundIsland_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
