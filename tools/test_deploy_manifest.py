@@ -350,6 +350,8 @@ class DefaultMappingTests(unittest.TestCase):
         # Expedition islands, I8: species stand-ins in one module (shared with the clients)
         "src/wildbound/WildboundSpecies.luau": "ReplicatedStorage.WildboundSpecies",
         "tests/WildboundSpecies_Test.luau": "ServerStorage.WildboundSpecies_Test",
+        # Expedition islands, I6: source contracts for the island wiring
+        "tests/WildboundIslandWiring_Test.luau": "ServerStorage.WildboundIslandWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

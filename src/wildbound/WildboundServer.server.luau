@@ -23,6 +23,9 @@ local Spawn = require(script.Parent:WaitForChild("WildboundSpawn"))
 local Relief = require(script.Parent:WaitForChild("WildboundRelief"))
 -- Dread pass (D2, D3, D-D5): stamina, sprint and its two costs (noise, a frightened carried Lumipol).
 local Stamina = require(script.Parent:WaitForChild("WildboundStamina"))
+-- Expedition islands (I6): the island rule (sleep meter, nest roll, the woken adult's chase) and the species looks.
+local Island = require(script.Parent:WaitForChild("WildboundIsland"))
+local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -44,6 +47,16 @@ local function optionalMarker(name)
 	return value and value:IsA("BasePart") and value or nil
 end
 local refugeMarker, boardMarker = optionalMarker("RefugeMarker"), optionalMarker("BoardMarker")
+-- Expedition islands (I6): where each island is and what it carries (tools/plan_islands.py). Without the layout the
+-- game runs with no nests and says so.
+local islandLayoutModule = script.Parent:FindFirstChild("WildboundIslandLayout")
+local islandsLoaded, islandLayout = pcall(function()
+	return islandLayoutModule and islandLayoutModule:IsA("ModuleScript") and require(islandLayoutModule) or nil
+end)
+if not islandsLoaded or type(islandLayout) ~= "table" or type(islandLayout.islands) ~= "table" then
+	warn("Wildbound: WildboundIslandLayout is missing; no island nests this session.")
+	islandLayout = { islands = {} }
+end
 -- Never overwrite an unowned or already-running root on duplicate startup.
 if map:FindFirstChild("WildboundRuntime") or ReplicatedStorage:FindFirstChild("WildboundNetwork") then
 	warn("Wildbound: runtime/network already exists; duplicate startup refused.")
@@ -123,6 +136,11 @@ eligibility.OnInvoke = function(player, ability)
 		end
 		return false
 	end
+	-- Expedition islands (I5): whether this player's carried cria is crying now. A yes or no only.
+	if ability == "Crying" then
+		local record = records[player]
+		return record ~= nil and record.crying == true
+	end
 	if ability ~= "LumipolPulse" then return false end
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot or not snapshot.equippedUid then return false end
@@ -189,6 +207,8 @@ end
 local function buildCapsule(character, carried)
 	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
 	if not torso or not torso:IsA("BasePart") then return nil end
+	-- I8: the cria inside wears its species' stand-in colours.
+	local look = Species.look(carried.species)
 	local model = Instance.new("Model")
 	model.Name = CAPSULE
 	model:SetAttribute("Uid", carried.uid)
@@ -207,15 +227,15 @@ local function buildCapsule(character, carried)
 		Color3.fromRGB(120, 86, 52), Enum.Material.Wood)
 	weld("BaseJoint", shell, base, CFrame.new(0, -0.45, 0) * CFrame.Angles(0, 0, math.rad(90)))
 	local creature = capsulePart(model, "Creature", Vector3.new(1.15, 0.85, 1), Enum.PartType.Ball,
-		Color3.fromRGB(121, 202, 160), Enum.Material.SmoothPlastic)
+		Color3.fromRGB(look.body[1], look.body[2], look.body[3]), Enum.Material.SmoothPlastic)
 	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
 	-- It faces away from the carrier's back, so whoever follows sees its face.
 	for _, x in ipairs({ -0.25, 0.25 }) do
 		local eye = capsulePart(model, "Eye", Vector3.new(0.14, 0.16, 0.1), Enum.PartType.Block,
-			Color3.fromRGB(25, 43, 48), Enum.Material.SmoothPlastic)
+			Color3.fromRGB(look.eye[1], look.eye[2], look.eye[3]), Enum.Material.SmoothPlastic)
 		weld("EyeJoint", creature, eye, CFrame.new(x, 0.12, 0.47))
 		local ear = capsulePart(model, "Ear", Vector3.new(0.22, 0.5, 0.26), Enum.PartType.Block,
-			Color3.fromRGB(81, 151, 117), Enum.Material.SmoothPlastic)
+			Color3.fromRGB(look.accent[1], look.accent[2], look.accent[3]), Enum.Material.SmoothPlastic)
 		weld("EarJoint", creature, ear, CFrame.new(x, 0.45, 0) * CFrame.Angles(0, 0, x * 1.2))
 	end
 	paintCapsule(model, "calm")
@@ -377,23 +397,34 @@ local function block(model, name, size, offset, color, shape)
 	part.Parent = model
 	return part
 end
-local function visual(kind, position)
+-- I8 (decision EI-4): a creature is its species' primitive stand-in (WildboundSpecies), `scale` times an adult; a
+-- Lumipol at scale 1 is the old provisional model. An island egg is pale gold; the old Lumipol egg stays green.
+local function rgb(value) return Color3.fromRGB(value[1], value[2], value[3]) end
+local function visual(kind, position, species, scale)
 	local model = Instance.new("Model")
 	local bloom = kind == "Nightbloom"
+	local look = Species.look(species)
+	scale = type(scale) == "number" and scale > 0 and scale or 1
 	model.Name = kind == "Egg" and "LumipolEgg" or bloom and "NightbloomBundle" or "Lumipol"
-	local size = kind == "Egg" and Vector3.new(2, 2.8, 2) or bloom and Vector3.new(1.6, 1.6, 1.6) or Vector3.new(3, 2, 2.4)
-	local body = block(model, "Body", size, CFrame.new(position + Vector3.new(0, 2, 0)),
-		bloom and Color3.fromRGB(150, 110, 230) or Color3.fromRGB(121, 202, 160), Enum.PartType.Ball)
+	local creatureSize = Vector3.new(look.size[1], look.size[2], look.size[3]) * scale
+	local size = kind == "Egg" and Vector3.new(2, 2.8, 2) or bloom and Vector3.new(1.6, 1.6, 1.6) or creatureSize
+	local color = bloom and Color3.fromRGB(150, 110, 230) or kind == "Egg" and species and rgb(Species.NEST_GLOW.egg)
+		or rgb(look.body)
+	local lift = kind == "Creature" and size.Y / 2 + 1 or 2
+	local body = block(model, "Body", size, CFrame.new(position + Vector3.new(0, lift, 0)), color, Enum.PartType.Ball)
 	if kind == "Creature" then
-		for _, x in ipairs({ -0.65, 0.65 }) do
-			block(model, "Eye", Vector3.new(0.35, 0.4, 0.25),
-				body.CFrame * CFrame.new(x, 0.3, -1.15), Color3.fromRGB(25, 43, 48))
-			block(model, "Ear", Vector3.new(0.6, 1.3, 0.7),
-				body.CFrame * CFrame.new(x, 1.1, 0) * CFrame.Angles(0, 0, x * 0.3), Color3.fromRGB(81, 151, 117))
+		local glowing = look.name ~= "Lumipol"
+		for _, side in ipairs({ -1, 1 }) do
+			local eye = block(model, "Eye", Vector3.new(0.35, 0.4, 0.25) * scale,
+				body.CFrame * CFrame.new(side * size.X * 0.22, size.Y * 0.15, -size.Z / 2 + 0.05), rgb(look.eye))
+			if glowing then eye.Material = Enum.Material.Neon end
+			block(model, "Ear", Vector3.new(0.6, 1.3, 0.7) * scale,
+				body.CFrame * CFrame.new(side * size.X * 0.22, size.Y * 0.55, 0) * CFrame.Angles(0, 0, side * 0.195),
+				rgb(look.accent))
 		end
 	end
 	local light = Instance.new("PointLight")
-	light.Color, light.Brightness, light.Range, light.Parent = Color3.fromRGB(151, 236, 175), 0.7, 10, body
+	light.Color, light.Brightness, light.Range, light.Parent = rgb(look.glow), 0.7, 10, body
 	model.PrimaryPart, model.Parent = body, runtime
 	return model, body
 end
@@ -438,7 +469,7 @@ refreshDisplay = function(player)
 	local current = displayModels[player]
 	if current and current.Parent and current:GetAttribute("Uid") == choice.uid then return end
 	if current then current:Destroy() end
-	local model = visual("Creature", spot.Position)
+	local model = visual("Creature", spot.Position, choice.species)
 	model.Name = "DisplayLumipol"
 	model:ScaleTo(0.6)
 	local at = spot.Position + Vector3.new(0, 0.75, 0)
@@ -454,9 +485,9 @@ refreshDisplay = function(player)
 end
 
 -- B3: the deposit. The creature leaves the capsule on the carrier's back and arcs into the refuge's nest, shrinking.
-local function playDeposit(from)
+local function playDeposit(from, species)
 	local nest = refugeMarker.Position + Vector3.new(0, 0.6, 0)
-	local model = visual("Creature", from)
+	local model = visual("Creature", from, species)
 	model.Name = "RefugeDeposit"
 	model:ScaleTo(0.4)
 	local glow = map:FindFirstChild("RefugeGlow", true)
@@ -508,10 +539,14 @@ if refugeMarker then
 		end
 		if record then record.lastRegistered = uid end
 		analytics:registered(player.UserId)
-		playDeposit(from)
+		playDeposit(from, receipt.species)
+		-- K2: the card pays the first-steal bonus on its own line and names the next island to find.
+		local after = state:snapshot(player.UserId)
+		local nextIsland = Refuge.nextIsland(islandLayout.islands, after and after.discovered)
 		send(player, "Register", true, Text.CAMP.registered:format(Text.CARD.species[receipt.species] or receipt.species),
 			nil, { uid = receipt.uid, species = receipt.species, ember = receipt.ember, isNew = receipt.isNew,
-				repeated = false })
+				repeated = false, firstBonus = receipt.firstBonus, firstEver = receipt.firstEver,
+				nextIsland = nextIsland and nextIsland.id, nextSpecies = nextIsland and nextIsland.species })
 	end)
 end
 
@@ -529,7 +564,7 @@ end
 -- Every wild encounter lives in `entries`, keyed by its never-reused id. Slot ids decide where and when.
 local rng = Random.new()
 local function rand() return rng:NextNumber() end
-local entries, slotState = {}, {}
+local entries = {}
 local sessionMeta = {}
 local captureLog = {}
 local counters = { started = 0, completed = 0, failed = 0, cancelled = 0, grantRefused = 0, rejected = 0 }
@@ -556,6 +591,14 @@ for _, part in ipairs(map:GetDescendants()) do
 		table.insert(coverCandidates, { x = part.Position.X, z = part.Position.Z,
 			r = math.min(part.Size.X, part.Size.Z) / 2 })
 	end
+end
+
+-- I6: a short server-only log of island events for the Play checks (ServerStorage, never replicated).
+local islandEvents = {}
+local function islandLog(kind, islandId, userId)
+	table.insert(islandEvents, { kind = kind, island = islandId, user = userId, at = math.floor(workspace:GetServerTimeNow() * 10) / 10 })
+	while #islandEvents > 40 do table.remove(islandEvents, 1) end
+	telemetry:SetAttribute("IslandLog", HttpService:JSONEncode(islandEvents))
 end
 
 local function publishTelemetry()
@@ -603,7 +646,11 @@ syncCompanion = function(player)
 	anchor.Name = "WildboundCompanionAnchor"
 	anchor.Position = Vector3.new(offset.x, offset.y, offset.z)
 	anchor.Parent = root
-	local model, body = visual("Creature", (root.CFrame * CFrame.new(offset.x, offset.y - 2, offset.z)).Position)
+	local species
+	for _, pet in ipairs(snapshot.registered) do
+		if pet.uid == uid then species = pet.species end
+	end
+	local model, body = visual("Creature", (root.CFrame * CFrame.new(offset.x, offset.y - 2, offset.z)).Position, species)
 	model.Name = COMPANION
 	model:ScaleTo(0.5)
 	for _, part in ipairs(model:GetDescendants()) do
@@ -653,17 +700,6 @@ local function guardianReading(position)
 	return guardian:GetAttribute("State"), (body.Position - position).Magnitude
 end
 
-local function slotOf(id)
-	local slot = Wild.slot(id)
-	if not slot then return nil end
-	-- The map's own markers stay the truth for the two slots that already had one.
-	local at = id == "S0a" and creatureMarker or id == "E1" and eggMarker or nil
-	if not at then return slot end
-	local moved = table.clone(slot)
-	moved.x, moved.z = at.Position.X, at.Position.Z
-	return moved
-end
-
 local function removeEntry(entry, now)
 	if entries[entry.id] ~= entry then return end
 	entries[entry.id] = nil
@@ -675,19 +711,291 @@ local function removeEntry(entry, now)
 	if out then handleEnding(out) end
 end
 
+-- Expedition islands (I6, docs/mechanics/wildbound-expedition-islands.md section 2) ------------------------
+-- The wandering slots are retired: every cria or egg lies in an island nest. Each island has one shared sleep meter
+-- (WildboundIsland), fed only by values this script reads (positions, speed, the server's forward vector, the
+-- stance, capture endings and the guardian noises); no client can read or set it. When it wakes, the adults
+-- scream (a guardian noise, EI-5) and one adult chases the thief for a few seconds inside its island (EI-2): a
+-- touch makes the thief drop the cria, which runs home; nobody is hurt. Adults, nests and readouts are visuals.
+local islands, islandList = {}, {}
+local nestState, nestGen = {}, {}
+local islandFolder = map:FindFirstChild("Islands")
+local READOUT = { sleep = Color3.fromRGB(170, 205, 255), stir = Color3.fromRGB(255, 190, 80),
+	alert = Color3.fromRGB(255, 70, 70) }
+
+-- The phase, with the Studio-only Play clock shift the world script also reads (D-D7), so both agree in Play.
+local function islandPhase()
+	local world = map:FindFirstChild("WildboundWorldRuntime")
+	local origin = world and world:GetAttribute("CycleStartedAt")
+	local shift = 0
+	local value = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
+	if value and value:IsA("NumberValue") and Rules.finite(value.Value) then shift = value.Value end
+	return Rules.cycle((Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0) + shift).phase
+end
+
+local function nestSlot(island, index, kind)
+	local spec = island.spec
+	local offset = index == 1 and 0 or 3
+	return { id = spec.id .. ":" .. index, island = spec.id, index = index, kind = kind, tier = spec.tier,
+		rewardTier = spec.rewardTier, species = spec.species, x = spec.x + offset, z = spec.z,
+		leash = math.max(4, spec.floorRadius - 4) }
+end
+
+-- An adult lies on its side asleep (eyes shut) and stands facing out, or toward whoever it chases, when awake.
+local function poseAdult(adult, awake, x, z, fx, fz)
+	x, z = x or adult.point.x, z or adult.point.z
+	fx, fz = fx or adult.point.faceX, fz or adult.point.faceZ
+	local at = Vector3.new(x, relief:heightAt(x, z) + adult.lift, z)
+	local frame = CFrame.lookAt(at, at + Vector3.new(fx, 0, fz))
+	if not awake then frame = frame * CFrame.new(0, -adult.lift * 0.35, 0) * CFrame.Angles(0, 0, math.rad(70)) end
+	adult.model:PivotTo(frame)
+	if adult.awake ~= awake then
+		adult.awake = awake
+		for _, part in ipairs(adult.model:GetChildren()) do
+			if part:IsA("BasePart") and part.Name == "Eye" then part.Transparency = awake and 0 or 1 end
+		end
+		adult.model:SetAttribute("Awake", awake)
+	end
+end
+
+local function readoutLevel(meter)
+	if meter.state == "Alert" then return "alert" end
+	return meter.value >= Island.CONSTANTS.STIR and "stir" or "sleep"
+end
+
+local function paintReadout(island)
+	local level = readoutLevel(island.meter)
+	if island.level == level then return end
+	island.level = level
+	for _, pip in ipairs(island.pips) do pip.Color = READOUT[level] end
+	island.model:SetAttribute("Sleep", level)
+end
+
+for _, spec in ipairs(islandLayout.islands) do
+	local holder = Instance.new("Model")
+	holder.Name = "Island_" .. spec.id
+	holder:SetAttribute("IslandId", spec.id)
+	local island = { spec = spec, meter = Island.newMeter(spec), adults = {}, pips = {}, model = holder,
+		wokeAt = nil, chase = nil, level = nil }
+	-- One shared "Zzz" readout over the nest: three pips, pale while asleep, amber when stirring, red when awake.
+	for index = 1, 3 do
+		local pip = block(holder, "SleepPip", Vector3.new(0.5, 0.5, 0.5) * (0.7 + index * 0.25),
+			CFrame.new(spec.x - 1.2 + index * 0.8, relief:heightAt(spec.x, spec.z) + 5 + index * 0.7, spec.z),
+			READOUT.sleep, Enum.PartType.Ball)
+		pip.Material = Enum.Material.Neon
+		table.insert(island.pips, pip)
+	end
+	holder.Parent = runtime
+	for index, point in ipairs(spec.adultPoints) do
+		local model = visual("Creature", Vector3.new(point.x, relief:heightAt(point.x, point.z) + MARKER_LIFT, point.z),
+			spec.species, 1)
+		model.Name = "IslandAdult"
+		model:SetAttribute("Island", spec.id)
+		model:SetAttribute("Adult", index)
+		local adult = { model = model, point = point, lift = model.PrimaryPart.Position.Y - relief:heightAt(point.x, point.z),
+			awake = nil }
+		poseAdult(adult, false)
+		table.insert(island.adults, adult)
+	end
+	paintReadout(island)
+	islands[spec.id] = island
+	table.insert(islandList, island)
+end
+telemetry:SetAttribute("IslandCount", #islandList)
+telemetry:SetAttribute("IslandNestsBuilt", islandFolder ~= nil)
+
 local spawnEncounter
-local function ensureSlots()
-	for _, id in ipairs(Wild.activeSlotIds(math.max(1, #Players:GetPlayers()))) do
-		if slotState[id] == nil then spawnEncounter(slotOf(id)) end
+local function ensureNests()
+	local count = math.max(1, #Players:GetPlayers())
+	local phase = islandPhase()
+	for _, island in ipairs(islandList) do
+		for index = 1, Island.nestCount(island.spec, count) do
+			local id = island.spec.id .. ":" .. index
+			if nestState[id] == nil then
+				spawnEncounter(nestSlot(island, index, Island.rollContent(island.spec, phase, rand) or "Creature"))
+			end
+		end
 	end
 end
 local function scheduleRespawn(slot)
-	slotState[slot.id] = "wait"
-	task.delay(Wild.respawnSeconds(slot, #Players:GetPlayers()), function()
-		slotState[slot.id] = nil
-		ensureSlots()
+	nestState[slot.id] = "wait"
+	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
+	local generation = nestGen[slot.id]
+	local island = islands[slot.island]
+	task.delay(island and Island.respawnSeconds(island.spec, slot.kind, #Players:GetPlayers()) or 45, function()
+		if nestGen[slot.id] ~= generation then return end
+		nestState[slot.id] = nil
+		ensureNests()
 	end)
 end
+
+-- EI-2: a caught thief's cria runs home. The nest takes it back at once (a scheduled respawn is cancelled).
+local function returnCriaToNest(island, from)
+	local slot = nestSlot(island, 1, "Creature")
+	local current = nestState[slot.id]
+	if current ~= nil and current ~= "wait" then return end
+	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
+	nestState[slot.id] = "returning"
+	local model = visual("Creature", from, island.spec.species, Species.CRIA_SCALE)
+	model.Name = "WildboundReturning"
+	local goal = Vector3.new(slot.x, relief:heightAt(slot.x, slot.z) + MARKER_LIFT, slot.z)
+	local clock = Instance.new("NumberValue")
+	clock.Changed:Connect(function(t)
+		if model.Parent then model:PivotTo(CFrame.new(from:Lerp(goal, t) + Vector3.new(0, math.sin(t * math.pi) * 3, 0))) end
+	end)
+	local tween = TweenService:Create(clock, TweenInfo.new(1.4, Enum.EasingStyle.Quad), { Value = 1 })
+	tween.Completed:Connect(function()
+		model:Destroy()
+		clock:Destroy()
+		if nestState[slot.id] == "returning" then
+			nestState[slot.id] = nil
+			spawnEncounter(slot)
+		end
+	end)
+	tween:Play()
+end
+
+-- What every live player looks like to the islands this step, read here only.
+local function islandReadings()
+	local list = {}
+	for player, record in pairs(records) do
+		local root = rootOf(player)
+		if root and context(player) then
+			local snapshot = state:snapshot(player.UserId)
+			local velocity = root.AssemblyLinearVelocity
+			local look = root.CFrame.LookVector
+			local flat = math.sqrt(look.X * look.X + look.Z * look.Z)
+			table.insert(list, { player = player, record = record, x = root.Position.X, z = root.Position.Z,
+				lookX = flat > 1e-3 and look.X / flat or 0, lookZ = flat > 1e-3 and look.Z / flat or 0,
+				sprinting = record.stamina ~= nil and record.stamina.stance == "sprint"
+					and Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 1,
+				first = snapshot ~= nil and #snapshot.registered == 0 and snapshot.carrying == nil,
+				farol = snapshot ~= nil and Economy.islandLightScale(EconomyConfig, snapshot.upgrades) < 1,
+				carrying = snapshot and snapshot.carrying and snapshot.carrying.island or nil })
+		end
+	end
+	return list
+end
+
+local function wakeIsland(island, now)
+	local spec = island.spec
+	island.wokeAt = now
+	-- EI-5: the scream is a guardian noise from the island, on the same hearing scale as every other noise.
+	noiseEvent:Fire("scream", spec.tier, spec.x, spec.z)
+	for _, adult in ipairs(island.adults) do poseAdult(adult, true) end
+	local radius = Island.wakeRadius(spec, islandPhase())
+	local candidates = {}
+	for _, reading in ipairs(islandReadings()) do
+		local distance = math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2)
+		if reading.carrying == spec.id then reading.record.criaWokeAt = now end
+		if distance <= radius + 20 then send(reading.player, "IslandWoke", false, Text.ISLAND.woke) end
+		table.insert(candidates, { key = reading.player, x = reading.x, z = reading.z, carrying = reading.carrying })
+	end
+	-- EI-2: one adult, the nearest to the thief, gives a short chase inside the island.
+	local target = Island.chaseTarget(spec, candidates)
+	local root = target and rootOf(target)
+	if root and not island.chase then
+		local best, bestD
+		for _, adult in ipairs(island.adults) do
+			local d = (Vector3.new(adult.point.x, 0, adult.point.z) - Vector3.new(root.Position.X, 0, root.Position.Z)).Magnitude
+			if not bestD or d < bestD then best, bestD = adult, d end
+		end
+		if best then
+			island.chase = { state = Island.newChase(spec, best.point), adult = best, target = target, startedAt = now }
+			send(target, "IslandChase", false, Text.ISLAND.chased)
+		end
+	end
+	islandLog("woke", spec.id, target and target.UserId or 0)
+end
+
+-- A touch: the thief drops this island's cria and it runs home. Never damage; La Silueta stays the only killer.
+local function caught(island, player)
+	local snapshot = state:snapshot(player.UserId)
+	local carried = snapshot and snapshot.carrying
+	local root = rootOf(player)
+	islandLog("caught", island.spec.id, player.UserId)
+	if not carried or carried.island ~= island.spec.id then return end
+	local ok = state:releaseCarried(player.UserId)
+	if ok then
+		returnCriaToNest(island, root and root.Position or Vector3.new(island.spec.x, 3, island.spec.z))
+		send(player, "IslandCaught", false, Text.ISLAND.caught)
+	end
+end
+
+local function stepIslands(now, dt)
+	if #islandList == 0 then return end
+	local phase = islandPhase()
+	local readings = islandReadings()
+	local lulled = {}
+	for _, session in ipairs(capture:activeSessions()) do
+		local entry = entries[session.encounterId]
+		if entry and entry.slot.island then lulled[entry.slot.island] = true end
+	end
+	local C = Island.CONSTANTS
+	for _, island in ipairs(islandList) do
+		local spec, meter = island.spec, island.meter
+		local radius = Island.wakeRadius(spec, phase)
+		local input = { inside = false, linger = false, sprint = false, light = false, farol = true,
+			lulling = lulled[spec.id] == true, phase = phase, firstSteal = false }
+		local insidePlayers = {}
+		for _, reading in ipairs(readings) do
+			if math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2) <= radius then
+				input.inside = true
+				table.insert(insidePlayers, reading.player)
+				if reading.sprinting then input.sprint = true end
+				if reading.first then input.firstSteal = true end
+				for _, adult in ipairs(island.adults) do
+					local ax, az = adult.point.x - reading.x, adult.point.z - reading.z
+					local d = math.sqrt(ax * ax + az * az)
+					if d <= C.LINGER_RANGE then input.linger = true end
+					-- The light on a sleeping face: the server's own forward vector, never a camera or gaze input.
+					if d > 0.1 and d <= C.LIGHT_RANGE and (reading.lookX * ax + reading.lookZ * az) / d >= C.LIGHT_DOT then
+						input.light = true
+						if not reading.farol then input.farol = false end
+					end
+				end
+			end
+		end
+		if not input.light then input.farol = false end
+		local out = Island.step(meter, dt, input)
+		if out.stirred then
+			for _, player in ipairs(insidePlayers) do send(player, "IslandStir", false, Text.ISLAND.stir) end
+		end
+		if out.woke then wakeIsland(island, now) end
+		if out.settled and not island.chase then
+			for _, adult in ipairs(island.adults) do poseAdult(adult, false) end
+		end
+		paintReadout(island)
+		-- Eggs have no brain: their prompt follows the nest alone.
+		for _, entry in pairs(entries) do
+			if entry.slot.island == spec.id and not entry.brain then
+				local open = Island.nestOpen(meter)
+				if entry.prompt.Enabled ~= open then entry.prompt.Enabled = open end
+			end
+		end
+		local chase = island.chase
+		if chase then
+			local target = chase.target
+			local root = target.Parent == Players and rootOf(target) or nil
+			local live = root ~= nil and context(target) == true
+			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
+			local c = chase.state
+			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz)
+			if event == "Caught" then caught(island, target) end
+			if event == "GaveUp" then islandLog("gaveUp", spec.id, target.UserId) end
+			if c.mode == "Home" then
+				island.chase = nil
+				poseAdult(chase.adult, meter.state == "Alert")
+				if meter.state ~= "Alert" then
+					for _, adult in ipairs(island.adults) do poseAdult(adult, false) end
+				end
+			end
+		end
+		telemetry:SetAttribute("Island_" .. spec.id, ("%s %.1f%s"):format(meter.state, meter.value,
+			chase and (" chase " .. chase.state.mode) or ""))
+	end
+end
+
 
 local function startCapture(player, entry)
 	local record = records[player]
@@ -698,6 +1006,11 @@ local function startCapture(player, entry)
 	local snapshot = state:snapshot(player.UserId)
 	if not alive or not root or not snapshot then
 		send(player, "Capture", false, captureNotice("InvalidContext"))
+		return
+	end
+	local island = entry.slot.island and islands[entry.slot.island]
+	if island and not Island.nestOpen(island.meter) then
+		send(player, "Capture", false, Text.ISLAND.guarded)
 		return
 	end
 	local bag, collection = state:captureRoom(player.UserId)
@@ -716,7 +1029,8 @@ local function startCapture(player, entry)
 	})
 	if not ok then
 		counters.rejected += 1
-		send(player, "Capture", false, captureNotice(result))
+		send(player, "Capture", false, island and result == "FirstCaptureOnly" and Text.ISLAND.firstOnly
+			or captureNotice(result))
 		return
 	end
 	counters.started += 1
@@ -739,8 +1053,11 @@ handleEnding = function(out)
 	local notice, granted = Text.CAPTURE_NOTICES[out.reason] or "", false
 	if out.grant then
 		local alive = player ~= nil and context(player) == true
+		-- I5: an island cria rides with its species and island, and pays by its island's reward tier.
+		local slot = entry and entry.slot
 		local ok, reason = state:completeCapture(out.playerKey, out.encounterId, alive,
-			entry and entry.slot.tier or "Fog")
+			slot and (slot.rewardTier or slot.tier) or "Fog",
+			slot and slot.island and { species = slot.species, island = slot.island } or nil)
 		granted = ok
 		if ok then
 			counters.completed += 1
@@ -755,6 +1072,16 @@ handleEnding = function(out)
 			scheduleRespawn(entry.slot)
 		end
 	elseif entry and entry.brain then
+		-- I2: a capture mistake disturbs the island's sleepers.
+		local island = entry.slot.island and islands[entry.slot.island]
+		local mistake = out.reason == "LeftRing" and "LeftRing" or out.reason == "SealMissed" and "SealMissed"
+			or (out.reason == "TimedOut" or out.reason == "TooFar") and "Failed" or nil
+		if island and mistake then
+			local snapshot = state:snapshot(out.playerKey)
+			local result = Island.event(island.meter, mistake, { firstSteal = snapshot ~= nil
+				and #snapshot.registered == 0 and snapshot.carrying == nil })
+			if result.woke then wakeIsland(island, now) end
+		end
 		if out.spook then
 			local threat = player and rootOf(player)
 			Wild.spook(entry.brain, threat and threat.Position.X, threat and threat.Position.Z, rand)
@@ -788,33 +1115,51 @@ spawnEncounter = function(slot)
 	serial += 1
 	local id = slot.kind .. ":" .. serial
 	if not state:registerEncounter(id, slot.kind) then return end
-	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z), slot.z))
+	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z), slot.z), slot.species,
+		slot.island and slot.kind == "Creature" and Species.CRIA_SCALE or nil)
 	model:SetAttribute("EncounterId", id)
 	model:SetAttribute("Slot", slot.id)
 	local isEgg = slot.kind == "Egg"
 	-- A wandering creature keeps this lift over whatever ground it walks onto.
 	local entry = { id = id, slot = slot, model = model, body = body, lift = body.Position.Y - relief:heightAt(slot.x, slot.z) }
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
-	entry.prompt = prompt(body, isEgg and "Collect" or Text.PROMPTS.calm, isEgg and "Lumipol egg" or Text.PROMPTS.lumipol, 10,
-		isEgg and 0.25 or 0)
+	-- I3: the take prompts; an island egg has a 1 s hold and no ring.
+	local speciesName = Text.CARD.species[slot.species or "Lumipol"] or slot.species or Text.PROMPTS.lumipol
+	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10, isEgg and 1 or 0)
 	if not isEgg then
-		entry.brain = Wild.newBrain(slot, rand, { cover = coverCandidates })
+		local cover = table.clone(coverCandidates)
+		local island = slot.island and islands[slot.island]
+		-- A failed lull sends the cria behind the nearest adult (A1 flee and hide, the adult as cover).
+		if island then
+			for _, adult in ipairs(island.adults) do table.insert(cover, { x = adult.point.x, z = adult.point.z, r = 1.5 }) end
+		end
+		entry.brain = Wild.newBrain(slot, rand, { cover = cover, leash = slot.leash })
 		model:SetAttribute("Mode", entry.brain.mode)
 	end
+	model:SetAttribute("Island", slot.island)
+	model:SetAttribute("Species", slot.species)
 	entries[id] = entry
-	slotState[slot.id] = id
+	nestState[slot.id] = id
 	entry.connection = entry.prompt.Triggered:Connect(function(player)
 		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
 		if isEgg then
 			if not allowed(player, "Pickup") then return end
+			local island = slot.island and islands[slot.island]
+			if island and not Island.nestOpen(island.meter) then
+				send(player, "Pickup", false, Text.ISLAND.guarded)
+				return
+			end
 			local alive, distance = context(player, body)
-			local ok, reason = state:pickup(player.UserId, id, alive, distance)
+			local ok, reason = state:pickup(player.UserId, id, alive, distance, slot.island and
+				{ species = slot.species, tier = slot.rewardTier, island = slot.island } or nil)
 			if ok then
 				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
 				scheduleRespawn(slot)
+				-- I2: rolling an egg out of the nest is noisy.
+				if island and Island.event(island.meter, "EggTaken").woke then wakeIsland(island, workspace:GetServerTimeNow()) end
 			end
-			reply(player, "Pickup", ok, reason, "Collected temporary loot. Extract it at camp before defeat.")
+			reply(player, "Pickup", ok, reason, "Huevo guardado en tu bolsa. Llévalo al cofre del campamento.")
 		else
 			if not allowed(player, "CaptureStart") then return end
 			startCapture(player, entry)
@@ -1037,7 +1382,57 @@ if RunService:IsStudio() then
 		return false, "UnknownOp"
 	end
 	carryProbe.Parent = telemetry
+	-- Expedition islands (I6): read and drive the island meters for the Play checks. Studio only, ServerStorage
+	-- only; it never grants, registers or removes anything a player owns.
+	local islandProbe = Instance.new("BindableFunction")
+	islandProbe.Name = "IslandProbe"
+	islandProbe.OnInvoke = function(op, id, value)
+		if op == "read" then
+			local out = { phase = islandPhase() }
+			for _, item in ipairs(islandList) do
+				out[item.spec.id] = { state = item.meter.state, value = item.meter.value,
+					chase = item.chase and item.chase.state.mode or nil }
+			end
+			return out
+		end
+		local island = type(id) == "string" and islands[id] or nil
+		if not island then return false, "UnknownIsland" end
+		if op == "set" and type(value) == "number" and value == value then
+			island.meter.value = math.clamp(value, 0, Island.CONSTANTS.WAKE - 1)
+			return true
+		end
+		if op == "wake" then
+			island.meter.value = Island.CONSTANTS.WAKE - 0.001
+			local out = Island.event(island.meter, "Rustle")
+			if out.woke then wakeIsland(island, workspace:GetServerTimeNow()) end
+			return out.woke
+		end
+		if op == "settle" then
+			island.meter.alertFor = math.huge
+			return true
+		end
+		return false, "UnknownOp"
+	end
+	islandProbe.Parent = telemetry
 end
+
+-- I6: a sprint (DP1) or a rustle (D6) near an island disturbs its sleepers; one player's noise wakes it for everyone.
+noiseEvent.Event:Connect(function(kind, _, x, z)
+	if (kind ~= "sprint" and kind ~= "rustle") or not Rules.finite(x) or not Rules.finite(z) then return end
+	local now = workspace:GetServerTimeNow()
+	local phase = islandPhase()
+	for _, island in ipairs(islandList) do
+		local spec = island.spec
+		local distance = math.sqrt((x - spec.x) ^ 2 + (z - spec.z) ^ 2)
+		local result
+		if kind == "sprint" and distance <= Island.CONSTANTS.SPRINT_NOISE_REACH then
+			result = Island.event(island.meter, "SprintNoise")
+		elseif kind == "rustle" and distance <= Island.wakeRadius(spec, phase) then
+			result = Island.event(island.meter, "Rustle")
+		end
+		if result and result.woke then wakeIsland(island, now) end
+	end
+end)
 
 -- A1: the brain hears the nearest live player's position and horizontal speed, both read here.
 local function stepWildlife(now)
@@ -1061,7 +1456,9 @@ local function stepWildlife(now)
 			local fx, fz = brain.fx, brain.fz
 			Wild.step(brain, Wild.CONSTANTS.STEP, near, rand)
 			-- A scared Lumipol cannot be calmed, so its prompt hides until it peeks or settles.
-			local prompting = capture:encounterState(entry.id, now) == "Free" and not Wild.wary(brain)
+			local island = entry.slot.island and islands[entry.slot.island]
+			local nestOpen = island == nil or Island.nestOpen(island.meter)
+			local prompting = nestOpen and capture:encounterState(entry.id, now) == "Free" and not Wild.wary(brain)
 			if entry.prompt.Enabled ~= prompting then entry.prompt.Enabled = prompting end
 			if entry.model:GetAttribute("Mode") ~= brain.mode then entry.model:SetAttribute("Mode", brain.mode) end
 			if entry.model:GetAttribute("Peek") ~= brain.peek then entry.model:SetAttribute("Peek", brain.peek) end
@@ -1090,6 +1487,21 @@ local function updateCarryMoods(now)
 			-- Dread pass (D-D5): a creature frightened by sprinting stays afraid until it settles.
 			if record.stamina and record.stamina.warned then mood = "afraid" end
 			if capsule:GetAttribute("Mood") ~= mood then paintCapsule(capsule, mood) end
+			-- I5 (EI-6): a carried island cria cries while afraid and for 6 s after its island woke.
+			local snapshot = state:snapshot(player.UserId)
+			local carried = snapshot and snapshot.carrying
+			local cria = carried ~= nil and carried.stage == "Cria"
+			record.crying = cria and Carry.crying({ mood = mood, wokeAt = record.criaWokeAt }, now)
+			record.cryMemory = record.cryMemory or Carry.newCryMemory()
+			if cria and Carry.cry(record.cryMemory, { mood = mood, wokeAt = record.criaWokeAt }, now) then
+				if not safe then
+					noiseEvent:Fire("cry", Rules.inTerritory(position.X, position.Z) and "Territory" or "Fog", position.X,
+						position.Z)
+				end
+				capsule:SetAttribute("SoundCue", "fear")
+				capsule:SetAttribute("SoundCueAt", now)
+				send(player, "CriaCry", false, Text.CARRY.cry)
+			end
 			record.sound = record.sound or Carry.newSoundMemory()
 			local cue = Carry.soundCue(record.sound, mood, now)
 			if cue then
@@ -1199,6 +1611,7 @@ RunService.Heartbeat:Connect(function(dt)
 	end
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
+	stepIslands(now, stepSeconds)
 	updateCarryMoods(now)
 	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
 	local campX, campZ = campCenter.Position.X, campCenter.Position.Z
@@ -1298,7 +1711,12 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 			player:SetAttribute("WildboundEquippedUid", uid)
 			player:SetAttribute("WildboundHasLumipol", true)
 		end
-		reply(player, action, ok, reason, Text.CAMP.equipped:format(Text.CARD.species.Lumipol))
+		local species = "Lumipol"
+		local snapshot = state:snapshot(player.UserId)
+		for _, pet in ipairs(snapshot and snapshot.registered or {}) do
+			if pet.uid == uid then species = pet.species end
+		end
+		reply(player, action, ok, reason, Text.CAMP.equipped:format(Text.CARD.species[species] or species))
 	end
 end)
 
@@ -1367,7 +1785,7 @@ local function addPlayer(player)
 	analytics:join(player.UserId)
 	record.characterConnection = player.CharacterAdded:Connect(function(character) bindCharacter(player, character) end)
 	if player.Character then task.spawn(bindCharacter, player, player.Character) end
-	ensureSlots()
+	ensureNests()
 end
 Players.PlayerAdded:Connect(addPlayer)
 Players.PlayerRemoving:Connect(function(player)
@@ -1389,5 +1807,5 @@ Players.PlayerRemoving:Connect(function(player)
 	state:removePlayer(player.UserId)
 end)
 for _, player in ipairs(Players:GetPlayers()) do addPlayer(player) end
-ensureSlots()
+ensureNests()
 publishTelemetry()

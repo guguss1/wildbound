@@ -53,7 +53,9 @@ return function(serverSource, worldSource, clientSource, Text)
 	end)
 
 	case("D3: the world server lets a sprint reach the guardian", function()
-		has(worldSource, 'if kind == "ring" or kind == "seal" or kind == "sprint" then hearNoise(kind, tier, x, z) end')
+		-- Deliberately changed (I4): the filter now also lets a scream and a cry through, on more lines.
+		has(worldSource, 'if kind == "ring" or kind == "seal" or kind == "sprint" or kind == "scream" or kind == "cry" then')
+		has(worldSource, 'hearNoise(kind, tier, x, z)')
 	end)
 
 	case("D4: the client asks through a sinking high-priority action, so Shift does not toggle shift lock", function()

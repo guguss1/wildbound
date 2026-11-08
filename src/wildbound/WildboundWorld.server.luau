@@ -797,6 +797,11 @@ local function isCapturing(player)
 	local ok, value = pcall(function() return eligibility:Invoke(player, "Capturing") end)
 	return ok and value == true
 end
+-- Expedition islands (I5): whether this player's carried cria is crying, a yes or no from the inventory server.
+local function isCrying(player)
+	local ok, value = pcall(function() return eligibility:Invoke(player, "Crying") end)
+	return ok and value == true
+end
 local function noiseTier(x, z)
 	local _, safe = Rules.zone(x, z)
 	if safe then return nil end
@@ -856,7 +861,11 @@ local function enterHide(player, spot)
 	root.CFrame = CFrame.new(inside.X, inside.Y + 1.5, inside.Z) * root.CFrame.Rotation
 	player:SetAttribute("WildboundHidden", id)
 	local tier = noiseTier(inside.X, inside.Z)
-	if tier then hearNoise("rustle", tier, inside.X, inside.Z) end
+	if tier then
+		hearNoise("rustle", tier, inside.X, inside.Z)
+		-- Expedition islands (I6): a rustle inside an island's wake radius disturbs its sleepers too.
+		if noiseEvent then noiseEvent:Fire("rustle", tier, inside.X, inside.Z) end
+	end
 	hideNotice(player, true, "entered")
 end
 
@@ -875,7 +884,7 @@ local function stepHiding(now)
 			else
 				local dx, dz = body.Position.X - hide.x, body.Position.Z - hide.z
 				if Hide.discover(hide.dwell, { dt = 0.2, mode = mode, phase = phase, targetIsMe = target == player,
-					distance = math.sqrt(dx * dx + dz * dz) }) then
+					distance = math.sqrt(dx * dx + dz * dz), crying = isCrying(player) }) then
 					releaseHide(player, "found", now)
 					if not COMBAT[mode] then
 						target, targetLife, chaseStartedAt = player, player.Character, now
@@ -1024,7 +1033,10 @@ end)
 if noiseEvent then
 	table.insert(connections, noiseEvent.Event:Connect(function(kind, tier, x, z)
 		-- Dread pass (D-D5): a sprint from the inventory server's stamina rule is heard the same way.
-		if kind == "ring" or kind == "seal" or kind == "sprint" then hearNoise(kind, tier, x, z) end
+		-- Expedition islands (I4): a woken island's scream and a carried cria's cry are heard the same way.
+		if kind == "ring" or kind == "seal" or kind == "sprint" or kind == "scream" or kind == "cry" then
+			hearNoise(kind, tier, x, z)
+		end
 	end))
 end
 -- A replaced or removed guardian closes its attack; its old ids then classify as forged (FS-15).

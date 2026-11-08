@@ -525,7 +525,8 @@ local function showCard(view)
 	local size = gui.AbsoluteSize
 	local width = math.min(380, math.max(260, size.X - 32))
 	local sheet = make("Frame", {Name = "Card", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(width, 236), BackgroundColor3 = dark, BackgroundTransparency = 0.05}, cardGui)
+		Size = UDim2.fromOffset(width, (view.bonus or view.next) and 288 or 236), BackgroundColor3 = dark,
+		BackgroundTransparency = 0.05}, cardGui)
 	make("UICorner", {CornerRadius = UDim.new(0, 12)}, sheet)
 	make("UIStroke", {Thickness = 2, Color = amber}, sheet)
 	local scale = make("UIScale", {Scale = 0.6}, sheet)
@@ -541,9 +542,13 @@ local function showCard(view)
 	if view.blurb then table.insert(lines, view.blurb) end
 	if view.entry then table.insert(lines, view.entry) end
 	if view.ember then table.insert(lines, view.ember) end
+	-- Expedition islands (K2): the one-off first-steal bonus and the next island's tease.
+	if view.bonus then table.insert(lines, view.bonus) end
+	if view.next then table.insert(lines, view.next) end
 	local body = label(sheet, table.concat(lines, "\n"), 15)
 	body.TextXAlignment = Enum.TextXAlignment.Center
-	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, 100)
+	body.TextWrapped = true
+	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, (view.bonus or view.next) and 152 or 100)
 	local equip = button(sheet, view.equip)
 	equip.Name = "CardEquip"
 	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -56), UDim2.fromOffset(120, 44)

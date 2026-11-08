@@ -434,7 +434,7 @@ function State:register(key, uid, alive, distance, now)
 	player.carrying = nil
 	local isNew = player.discovered[carried.species] ~= true
 	local receipt = { uid = uid, species = carried.species, ember = 0, baseEmber = 0, isNew = isNew, repeated = false,
-		firstBonus = 0, island = carried.island }
+		firstBonus = 0, island = carried.island, firstEver = #player.registered == 0 }
 	-- K2: the first cria a player ever registers pays a one-off bonus (an island cria only).
 	if carried.stage == "Cria" then
 		receipt.firstBonus = self.economy.firstStealBonus(self.config, player)
