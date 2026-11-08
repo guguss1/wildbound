@@ -18,6 +18,7 @@ Brain.CONSTANTS = freeze({
 	SUSPICIOUS_SECONDS = 1.2, -- a faint noise: it stops and faces the sound this long before walking to it
 	LOUD = 0.5, -- a noise at least this strong (1 at the source, 0 at the edge of its radius) skips suspicion
 	INVESTIGATE_MAX_SECONDS = 14, -- gives up walking to a noise it cannot reach
+	STALK_SECONDS = 10, -- I4: a scream from beyond the territory: it stands at the edge facing it this long
 	ARRIVE_RADIUS = 3, -- this close to a point counts as there
 	SEARCH_RADIUS = 7, -- look-around points circle the last known spot at this distance
 	REACQUIRE_ALERT_SECONDS = 0.6, -- spotting its quarry again while searching needs a shorter wind-up
@@ -41,7 +42,8 @@ Brain.PROFILES = freeze({
 -- Capture noise (C1): base hearing radius in studs per capture step, scaled by the slot's tier and the phase.
 -- Delivery D5 adds sprinting and the rustle of entering a hiding spot (10). The dread pass (D-D5) raised sprint from
 -- 16 to 30 so a night sprint in the fog is heard from beyond the night sight radius: speed has a price.
-Brain.NOISE = freeze({ ring = 32, seal = 48, sprint = 30, rustle = 10 })
+-- Expedition islands (I4): a woken island's scream (EI-5) and a carried cria's cry (EI-6).
+Brain.NOISE = freeze({ ring = 32, seal = 48, sprint = 30, rustle = 10, scream = 70, cry = 18 })
 Brain.TIER_NOISE = freeze({ Safe = 0.5, Fog = 1.0, Territory = 1.4 })
 
 local SPEED_KEY = { Patrol = "patrol", Investigate = "investigate", Hunt = "hunt", Search = "search", Retreat = "retreat" }
@@ -85,6 +87,7 @@ local function place(x, z, clamp)
 end
 
 local function startSearch(state, x, z, now, phase, clamp)
+	state.stalk = nil
 	state.point = place(x, z, clamp)
 	state.lookIndex = 0
 	state.untilAt = now + (Brain.PROFILES[phase] or DAY).searchSeconds
@@ -102,6 +105,9 @@ function Brain.hear(state, noise, gx, gz, now, phase, clamp)
 	if radius <= 0 or away > radius then return false end
 	local strength = 1 - away / radius
 	state.point = place(noise.x, noise.z, clamp)
+	-- I4: a scream the territory clamp moved came from beyond the leash; the guardian will only stalk the edge.
+	local moved = distance(state.point.x, state.point.z, noise.x, noise.z) > 1
+	state.stalk = noise.kind == "scream" and moved and { x = noise.x, z = noise.z } or nil
 	state.heardAt = now
 	if state.mode == "Investigate" or state.mode == "Search" or strength >= C.LOUD then
 		state.untilAt = now + C.INVESTIGATE_MAX_SECONDS
@@ -159,7 +165,11 @@ function Brain.step(state, now, gx, gz, phase, clamp)
 	if mode == "Investigate" then
 		local point = state.point
 		if distance(gx, gz, point.x, point.z) <= C.ARRIVE_RADIUS or now >= state.untilAt then
+			local stalk = state.stalk
 			startSearch(state, point.x, point.z, now, phase, nil)
+			if stalk then
+				state.stalk, state.untilAt = stalk, now + C.STALK_SECONDS
+			end
 			mode = "Search"
 		else
 			return { mode = mode, speed = Brain.speed(mode, phase), destination = point }
@@ -169,6 +179,9 @@ function Brain.step(state, now, gx, gz, phase, clamp)
 		if now >= state.untilAt then
 			Brain.set(state, "Retreat", now)
 			return { mode = "Retreat", speed = Brain.speed("Retreat", phase) }
+		end
+		if state.stalk then
+			return { mode = mode, speed = Brain.speed(mode, phase), destination = state.point, face = state.stalk }
 		end
 		local look = lookPoint(state, clamp)
 		if distance(gx, gz, look.x, look.z) <= C.ARRIVE_RADIUS then
