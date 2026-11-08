@@ -1,18 +1,20 @@
--- First-run tutorial (W9, M8.5), pure state. It walks the first reward loop in three steps: gather a plant,
--- extract at camp, then open the Camp tab to see what it can craft. Crafting itself is not required: the first
--- recipe costs 8 Fogbark and 4 Glowmoss, more than one trip pays. The controller feeds it facts read from the
--- player's own state snapshot; it never decides anything for the server.
+-- First-run tutorial, pure state. Expedition islands (K1, docs/mechanics/wildbound-expedition-islands.md section 3):
+-- the first minute is follow the lit lanterns to the clearing, take the sleeping cria, carry it to the refuge and
+-- register it. The controller feeds it facts read from the player's own state snapshot and the character's position;
+-- it never decides anything for the server. Player-facing words are neutral Spanish.
 local Tutorial = {}
 
 Tutorial.STEPS = table.freeze({
-	table.freeze({ id = "gather", full = "1/3 Gather: hold the Gather prompt beside a glowing plant in the fog.",
-		short = "1/3 Hold Gather by a glowing plant." }),
-	table.freeze({ id = "extract", full = "2/3 Extract: walk back to camp and use Extract to keep what you carry.",
-		short = "2/3 Return to camp and press Extract." }),
-	table.freeze({ id = "camp", full = "3/3 Craft: open Inventory, then Camp, to see what you can make.",
-		short = "3/3 Inventory, Camp: see what you can craft." }),
+	table.freeze({ id = "claro", full = "1/3 Sigue los faroles encendidos hasta el claro de los Lumipol.",
+		short = "1/3 Sigue los faroles hasta el claro." }),
+	table.freeze({ id = "cria", full = "2/3 Acércate sin correr y toma la cría sin despertar a sus padres.",
+		short = "2/3 Acércate sin correr y toma la cría." }),
+	table.freeze({ id = "refugio", full = "3/3 Llévala al refugio del campamento y regístrala.",
+		short = "3/3 Llévala al refugio y regístrala." }),
 })
-Tutorial.DONE_TEXT = "That is the loop: gather, extract, craft."
+Tutorial.DONE_TEXT = "¡Es tuya! Más adentro duermen criaturas más raras."
+-- Island 1, Claro de los Lumipol (assets/maps/forest-layout/islands-v1.json): within this radius counts as arrived.
+Tutorial.CLARO = table.freeze({ x = -95, z = 75, radius = 22 })
 
 function Tutorial.new()
 	return { index = 1, status = "running" }
@@ -28,7 +30,7 @@ function Tutorial.step(t)
 end
 
 function Tutorial.progress(t)
-	return ("Step %d of %d"):format(math.min(t.index, #Tutorial.STEPS), #Tutorial.STEPS)
+	return ("Paso %d de %d"):format(math.min(t.index, #Tutorial.STEPS), #Tutorial.STEPS)
 end
 
 function Tutorial.cardText(step, compact)
@@ -36,9 +38,9 @@ function Tutorial.cardText(step, compact)
 end
 
 local function met(id, f)
-	if id == "gather" then return f.carried > 0 or f.pending > 0 or f.banked > 0 or f.ember > 0 end
-	if id == "extract" then return f.banked > 0 or f.ember > 0 end
-	return f.campOpen == true
+	if id == "claro" then return f.reachedClaro == true or f.carrying == true or (f.registered or 0) > 0 end
+	if id == "cria" then return f.carrying == true or (f.registered or 0) > 0 end
+	return (f.registered or 0) > 0
 end
 
 -- Advances as far as the facts allow, in order. Returns whether anything changed.
@@ -64,23 +66,23 @@ function Tutorial.restart(t)
 	t.index, t.status = 1, "running"
 end
 
-local function sum(values)
-	local total = 0
-	if type(values) == "table" then
-		for _, amount in pairs(values) do
-			if type(amount) == "number" and amount == amount and amount > 0 and amount < math.huge then total += amount end
-		end
-	end
-	return total
+local function finite(value)
+	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
--- Facts from a state snapshot (WildboundState:snapshot), tolerating any missing or odd field.
-function Tutorial.factsFrom(snapshot, campOpen)
+-- Facts from a state snapshot (WildboundState:snapshot) and the character's position { x, z }, tolerating any
+-- missing or odd field. campOpen is kept for the caller's signature; no step needs it any more.
+function Tutorial.factsFrom(snapshot, campOpen, position)
 	snapshot = type(snapshot) == "table" and snapshot or {}
-	local ember = snapshot.ember
-	if type(ember) ~= "number" or ember ~= ember or ember < 0 or ember == math.huge then ember = 0 end
-	return { carried = sum(snapshot.carried), pending = type(snapshot.pending) == "table" and #snapshot.pending or 0,
-		banked = sum(snapshot.banked), ember = ember, campOpen = campOpen == true }
+	local carrying = type(snapshot.carrying) == "table"
+	local registered = type(snapshot.registered) == "table" and #snapshot.registered or 0
+	local near = false
+	if type(position) == "table" and finite(position.x) and finite(position.z) then
+		local dx, dz = position.x - Tutorial.CLARO.x, position.z - Tutorial.CLARO.z
+		near = math.sqrt(dx * dx + dz * dz) <= Tutorial.CLARO.radius
+	end
+	return { reachedClaro = near or carrying or registered > 0, carrying = carrying, registered = registered,
+		campOpen = campOpen == true }
 end
 
 return Tutorial

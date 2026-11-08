@@ -160,14 +160,16 @@ return function(View, Layout, Settings, Tutorial, source)
 		equal(View.card(layoutFor({ 750, 323 })).mode, "bottom")
 	end)
 
-	case("SV-7: every string is plain English with no developer words", function()
+	-- Deliberately changed (K1): the start screen is Spanish now (it was plain English and ASCII only).
+	case("SV-7: every string is Spanish, valid UTF-8, with no developer words", function()
 		local all = { View.TEXT.title, View.TEXT.tagline, View.TEXT.note, View.TEXT.settingsTitle, View.TEXT.howtoTitle }
 		for _, line in ipairs(View.TEXT.howto) do table.insert(all, line) end
 		for _, text in ipairs(all) do
 			for _, bad in ipairs({ "TODO", "P0", "debug", "nil", "TBD" }) do assert(not text:find(bad, 1, true), text) end
-			assert(not text:find("[\128-\255]"), "plain ASCII: " .. text)
+			assert(utf8.len(text) ~= nil, "valid UTF-8: " .. text)
 		end
-		assert(View.TEXT.note:find("not saved", 1, true), "session-only must be said")
+		assert(View.TEXT.note:find("no se guarda", 1, true), "session-only must be said")
+		equal(View.TEXT.howtoTitle, "Cómo jugar")
 	end)
 
 	case("SV-8: the module is pure: no services, clock, randomness or persistence", function()

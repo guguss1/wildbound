@@ -10,15 +10,16 @@ View.TEXT_SIZE = 13
 
 View.TEXT = table.freeze({
 	title = "Wildbound",
-	tagline = "Gather in the fog. Return to camp. Stay unseen.",
-	note = "Progress is not saved.",
-	settingsTitle = "Settings",
-	howtoTitle = "How to play",
+	-- K1: player-facing words in neutral Spanish (they were English).
+	tagline = "Roba crías dormidas. Vuelve sin que te vean.",
+	note = "El progreso no se guarda.",
+	settingsTitle = "Ajustes",
+	howtoTitle = "Cómo jugar",
 	howto = table.freeze({
-		"Gather glowing plants in the fog: hold the Gather button beside one.",
-		"Walk back to camp and use Extract to keep what you carry.",
-		"To calm a Lumipol, stand still inside its ring.",
-		"If Silueta marks you, move away. A defeat costs items.",
+		"Sigue los faroles hasta las islas de criaturas dormidas.",
+		"Acércate sin correr, calma a la cría y séllala.",
+		"Llévala al refugio del campamento y regístrala.",
+		"Si La Silueta te ve, escóndete. Correr hace ruido.",
 	}),
 })
 

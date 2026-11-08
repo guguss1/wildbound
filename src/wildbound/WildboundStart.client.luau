@@ -137,9 +137,9 @@ build = function()
 		place(panel, v.panel)
 		label(panel, v.title, View.TEXT.title, 24, true, amber, true)
 		label(panel, v.tagline, View.TEXT.tagline, View.TEXT_SIZE, false, ink, true)
-		button(panel, v.play, "Play", "PlayButton", accentOn, 18).Activated:Connect(actions.play)
-		button(panel, v.settings, "Settings", "SettingsButton").Activated:Connect(actions.openSettings)
-		button(panel, v.howto, "How to play", "HowToButton").Activated:Connect(actions.openHowto)
+		button(panel, v.play, "Jugar", "PlayButton", accentOn, 18).Activated:Connect(actions.play)
+		button(panel, v.settings, "Ajustes", "SettingsButton").Activated:Connect(actions.openSettings)
+		button(panel, v.howto, "Cómo jugar", "HowToButton").Activated:Connect(actions.openHowto)
 		button(panel, v.reduced, Settings.buttonText("reducedEffects", Settings.get(settings, "reducedEffects")), "ReducedToggle").Activated:Connect(actions.toggleReduced)
 		label(panel, v.note, View.TEXT.note, View.TEXT_SIZE, false, muted, true)
 	elseif screen == "settings" then
@@ -157,14 +157,14 @@ build = function()
 			button(panel, row.toggle, Settings.stateText(on), "Toggle_" .. key, on and accentOn or Color3.fromRGB(58, 68, 62)).Activated:Connect(
 				key == "reducedEffects" and actions.toggleReduced or actions.toggleHints)
 		end
-		button(panel, v.replay, "Replay tutorial", "ReplayButton").Activated:Connect(actions.replay)
-		button(panel, v.back, "Back", "BackButton").Activated:Connect(actions.back)
+		button(panel, v.replay, "Repetir tutorial", "ReplayButton").Activated:Connect(actions.replay)
+		button(panel, v.back, "Volver", "BackButton").Activated:Connect(actions.back)
 	elseif screen == "howto" then
 		local v = View.howto(layout)
 		place(panel, v.panel)
 		label(panel, v.title, View.TEXT.howtoTitle, 22, true, amber, true)
 		for index, text in ipairs(View.TEXT.howto) do label(panel, v.lines[index], text, View.TEXT_SIZE) end
-		button(panel, v.back, "Back", "BackButton").Activated:Connect(actions.back)
+		button(panel, v.back, "Volver", "BackButton").Activated:Connect(actions.back)
 	end
 end
 show = function(name)
@@ -222,7 +222,7 @@ make("UICorner", { CornerRadius = UDim.new(0, 8) }, card)
 make("UIStroke", { Color = amber, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, card)
 local cardText = make("TextLabel", { Name = "CardText", BackgroundTransparency = 1, TextColor3 = ink, Font = Enum.Font.Gotham,
 	TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center, Text = "" }, card)
-local skip = button(card, { x = 0, y = 0, w = 64, h = 44 }, "Skip", "SkipButton", Color3.fromRGB(58, 68, 62), 15)
+local skip = button(card, { x = 0, y = 0, w = 64, h = 44 }, "Saltar", "SkipButton", Color3.fromRGB(58, 68, 62), 15)
 local cardMode, cardKey = nil, nil
 local function layoutCard()
 	local geometry = View.card(currentLayout())
@@ -253,7 +253,10 @@ local function updateTutorial()
 	local inventory = worldReady and worldReady:FindFirstChild("InventoryPanel")
 	local tab = worldReady and worldReady:GetAttribute("PanelTab")
 	if Tutorial.state(tutorial) == "running" then
-		Tutorial.observe(tutorial, Tutorial.factsFrom(snapshotNow(), tab == "camp"))
+		-- K1: the first step reads where the character stands (the clearing), the others the state snapshot.
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local at = root and root:IsA("BasePart") and { x = root.Position.X, z = root.Position.Z } or nil
+		Tutorial.observe(tutorial, Tutorial.factsFrom(snapshotNow(), tab == "camp", at))
 		if Tutorial.state(tutorial) == "done" then doneUntil = os.clock() + 5 end
 	end
 	local step = Tutorial.step(tutorial)
