@@ -41,6 +41,9 @@ return function(worldSource, serverSource, clientSource)
 		-- pursuit leash (was Rules.CHASE_RANGE, 65); a quarry who hides unseen is lost at once.
 		has(worldSource, "targetContext(target, Rules.GIVE_UP_DISTANCE, mode == \"Hunt\", Rules.CHASE_LEASH)")
 		has(worldSource, "candidate.hidden and not candidate.visible", "hiding unseen breaks the chase")
+		-- Chase pass, found in the Play check: during the 2.5 s repeat the giant walked into its quarry and stood inside
+		-- the player. It now holds at half its reach and faces the quarry.
+		has(worldSource, "candidate.distance <= Rules.ATTACK_RANGE * 0.5", "it holds at arm's length")
 		has(worldSource, "Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)")
 	end)
 

@@ -730,7 +730,13 @@ local function step(now, dt)
 					setMode("Telegraph")
 					issueAttack(now)
 				elseif decision.destination then
-					navigate(decision.destination, parameters.speed, dt, now)
+					-- Chase pass (found in Play): while its next swing recovers it holds at half its reach and faces the
+					-- quarry, so the giant never stands inside the player.
+					if candidate and candidate.visible and candidate.distance <= Rules.ATTACK_RANGE * 0.5 then
+						face({ x = candidate.root.Position.X, z = candidate.root.Position.Z })
+					else
+						navigate(decision.destination, parameters.speed, dt, now)
+					end
 				end
 			end
 		elseif mode == "Telegraph" and now >= telegraphEndsAt then
