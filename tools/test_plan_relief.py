@@ -163,6 +163,12 @@ class ReliefLayout(unittest.TestCase):
             for x, z in disk(p, 5.0):
                 self.assertEqual(height_at(segs(), x, z), FLOOR_TOP, f"slot {p} not flat at {x}, {z}")
 
+    def test_default_spawn_pad_stays_flat(self):
+        # Found in the R6 Play check: the place keeps Roblox's default SpawnLocation, a 12 by 12 pad at the origin;
+        # characters appear on it before the inventory server moves them to camp, so it must not sit in a ridge.
+        for x, z in disk((0.0, 0.0), 6.0 * math.sqrt(2) + 3.0):
+            self.assertEqual(height_at(segs(), x, z), FLOOR_TOP, f"relief over the spawn pad at {x}, {z}")
+
     def test_part_budget_at_most_250(self):
         totals = saved()["totals"]
         self.assertEqual(totals["segments"], len(segs()))

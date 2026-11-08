@@ -72,6 +72,9 @@ MARKERS = ((-140, 140), (-146, 140), (-135, 146), (-135, 134), (-95, 75), (0, -8
            (-152, 128), (-150, 154), (-136, 158))
 AMBUSH = ((0, -85), (40, -125), (55, -38), (-30, -45), (-40, -110), (40, -140))
 POOL = (112.0, 144.0, 3.0, 27.0)  # MarshPool, xmin xmax zmin zmax
+# The place's default SpawnLocation, a 12 by 12 pad at the origin where characters appear before the inventory server
+# moves them to camp (found in the R6 Play check): its half-diagonal plus 3 studs stays flat.
+SPAWN_PAD, SPAWN_PAD_CLEAR = (0.0, 0.0), 6.0 * math.sqrt(2) + 3.0
 NEST, LANES = (35.0, -99.0), ((16.0, -85.0), (0.0, -101.0))
 
 # Candidate features from the design table, in placement order. Rims are rings of chords around an island floor;
@@ -221,6 +224,8 @@ def fits(seg, placed, inputs, removed=frozenset()):
     for p in forest.PILLARS:
         if footprint_distance(seg, *p) < PILLAR_CLEAR:
             return "pillar"
+    if footprint_distance(seg, *SPAWN_PAD) < SPAWN_PAD_CLEAR:
+        return "spawn pad"
     for x, z, scale in inputs["logs"]:
         if footprint_distance(seg, x, z) < LOG_REACH * scale:
             return "log"
