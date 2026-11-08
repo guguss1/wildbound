@@ -449,5 +449,32 @@ return function(View, source)
 		end
 	end)
 
+	-- Chase pass (CP1, CP3): sprint is felt (a wider view, a Spanish hint per input) and a close hunting Silueta shakes
+	-- the view and darkens the edges. "Efectos suaves" keeps a softer vignette and no shake.
+	case("chase pass: sprint widens the view, softer with Efectos suaves", function()
+		equal(View.sprintFov(70, "sprint", false), 80); equal(View.sprintFov(70, "sprint", true), 74)
+		equal(View.sprintFov(70, "walk", false), 70); equal(View.sprintFov(70, "exhausted", false), 70)
+		equal(View.sprintFov(NAN, "sprint", false), 80, "a bad base reads 70")
+	end)
+	case("chase pass: the sprint hint follows the input", function()
+		local words = { hintKeyboard = "Shift: Correr", hintGamepad = "L3: Correr" }
+		equal(View.sprintHint("keyboard", words), "Shift: Correr"); equal(View.sprintHint("gamepad", words), "L3: Correr")
+		equal(View.sprintHint("touch", words), nil, "touch has the Correr button")
+		equal(View.sprintHint("keyboard", nil), "Shift: Correr", "Spanish default without words")
+	end)
+	case("chase pass: dread grows as a hunting Silueta closes in", function()
+		local near10, near25 = View.dread(10, "Hunt", false), View.dread(25, "Hunt", false)
+		assert(near10.shake > near25.shake and near25.shake > 0, "shake grows when closer")
+		assert(near10.vignette > near25.vignette and near25.vignette > 0, "vignette grows when closer")
+		assert(View.dread(10, "Telegraph", false).shake > near10.shake, "the wind-up shakes harder")
+		for _, quiet in ipairs({ View.dread(CONST.DREAD_RANGE + 0.1, "Hunt", false), View.dread(10, "Patrol", false),
+			View.dread(10, "Retreat", false), View.dread(NAN, "Hunt", false), View.dread(-1, "Hunt", false) }) do
+			equal(quiet.shake, 0); equal(quiet.vignette, 0)
+		end
+		local soft = View.dread(10, "Hunt", true)
+		equal(soft.shake, 0, "Efectos suaves never shakes")
+		assert(soft.vignette > 0 and soft.vignette < near10.vignette, "a softer vignette")
+		assert(near10.shake <= 0.5 and near10.vignette <= 0.7, "bounded")
+	end)
 	return result
 end

@@ -69,5 +69,11 @@ return function(source)
 		has('{ "snap", "dirt", "whisper", "signature", "crack", "groan" }', "the new one-shots are scheduled")
 	end)
 
+	-- Chase pass (CP1, CP3): the breath layer follows the sprint stance, and a chase opens with a roar from its body.
+	case("chase pass: sprint breath and the chase roar", function()
+		has('player:GetAttribute("WildboundStance")')
+		has('setLayer("hiddenBreath", Mix.breath(hidden, stance, reduced), reduced)')
+		has('cue("groan", level, reduced, body, root)', "the roar at chase start")
+	end)
 	return result
 end

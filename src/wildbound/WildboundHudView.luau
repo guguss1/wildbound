@@ -12,6 +12,13 @@ View.CONSTANTS = table.freeze({
 	COMPANION_FADED_TRANSPARENCY = 0.9,
 	COMPANION_FADE_START = 8,
 	COMPANION_FADE_END = 3,
+	-- Chase pass (CP1, CP3): the sprint field-of-view kick, and how close a hunting Silueta must be to shake the view.
+	SPRINT_FOV_KICK = 10,
+	SPRINT_FOV_KICK_REDUCED = 4,
+	DREAD_RANGE = 35,
+	DREAD_SHAKE = 0.35, -- studs of camera offset at contact while it hunts; the wind-up shakes 1.4 times that
+	DREAD_VIGNETTE = 0.6,
+	DREAD_VIGNETTE_REDUCED = 0.3,
 })
 
 local CONSTANTS = View.CONSTANTS
@@ -273,6 +280,37 @@ function View.companionTransparency(distance)
 	local start, finish = CONSTANTS.COMPANION_FADE_START, CONSTANTS.COMPANION_FADE_END
 	local fraction = math.clamp((start - distance) / (start - finish), 0, 1)
 	return base + (faded - base) * fraction
+end
+
+-- Chase pass (CP1): the camera's field of view while sprinting; out of breath or walking it returns to the base.
+function View.sprintFov(base, stance, reduced)
+	if not finite(base) or base <= 0 then base = 70 end
+	if stance ~= "sprint" then return base end
+	return base + (reduced == true and CONSTANTS.SPRINT_FOV_KICK_REDUCED or CONSTANTS.SPRINT_FOV_KICK)
+end
+
+-- Chase pass (CP1): the always-on sprint hint. Touch already has the "Correr" button, so it gets none.
+function View.sprintHint(input, words)
+	words = type(words) == "table" and words or {}
+	if input == "keyboard" then return words.hintKeyboard or "Shift: Correr" end
+	if input == "gamepad" then return words.hintGamepad or "L3: Correr" end
+	return nil
+end
+
+-- Chase pass (CP3): a hunting Silueta close by shakes the view and darkens its edges, more during the wind-up.
+-- Returns { shake = studs, vignette = 0 to 1 }. "Efectos suaves" never shakes and keeps half the vignette.
+local DREAD_MODES = table.freeze({ Alert = 1, Hunt = 1, Telegraph = 1.4 })
+function View.dread(distance, mode, reduced)
+	local weight = DREAD_MODES[mode]
+	if not weight or not finite(distance) or distance < 0 or distance > CONSTANTS.DREAD_RANGE then
+		return { shake = 0, vignette = 0 }
+	end
+	local closeness = 1 - distance / CONSTANTS.DREAD_RANGE
+	local soft = reduced == true
+	return {
+		shake = soft and 0 or CONSTANTS.DREAD_SHAKE * closeness * weight,
+		vignette = (soft and CONSTANTS.DREAD_VIGNETTE_REDUCED or CONSTANTS.DREAD_VIGNETTE) * closeness,
+	}
 end
 
 return View

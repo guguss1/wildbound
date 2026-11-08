@@ -453,6 +453,66 @@ local function followGuardian()
 end
 RunService:BindToRenderStep("WildboundGuardianSmoothing", Enum.RenderPriority.Last.Value, followGuardian)
 
+-- Chase pass (CP1, CP3): sprint is shown and felt, and a close hunting Silueta is felt too. An always-on hint
+-- ("Shift: Correr", "L3: Correr"; touch has the button), a wider view while sprinting, and near a hunting Silueta a
+-- small camera shake and darker screen edges. The numbers are pure rules in WildboundHudView; "Efectos suaves" softens
+-- the kick and the vignette and removes the shake.
+local sprintHint = make("TextLabel", {Name = "SprintHint", AnchorPoint = Vector2.new(0.5, 1),
+	Position = UDim2.new(0.5, 0, 1, -10), Size = UDim2.fromOffset(150, 24), BackgroundColor3 = Color3.fromRGB(25, 34, 31),
+	BackgroundTransparency = 0.35, Font = Enum.Font.GothamBold, TextSize = 15, Text = "",
+	TextColor3 = Color3.fromRGB(240, 244, 231), Visible = false}, gui)
+make("UICorner", {CornerRadius = UDim.new(0, 6)}, sprintHint)
+local vignette = make("Frame", {Name = "DreadVignette", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
+	Active = false, ZIndex = 40, Visible = false}, gui)
+local VIGNETTE_EDGES = {
+	{ UDim2.fromScale(1, 0.35), UDim2.fromScale(0, 0), 90 }, { UDim2.fromScale(1, 0.35), UDim2.fromScale(0, 0.65), -90 },
+	{ UDim2.fromScale(0.3, 1), UDim2.fromScale(0, 0), 0 }, { UDim2.fromScale(0.3, 1), UDim2.fromScale(0.7, 0), 180 },
+}
+local vignetteGradients = {}
+for _, edge in ipairs(VIGNETTE_EDGES) do
+	local frame = make("Frame", {Size = edge[1], Position = edge[2], BackgroundColor3 = Color3.fromRGB(0, 0, 0),
+		BorderSizePixel = 0, BackgroundTransparency = 0, Active = false, ZIndex = 40}, vignette)
+	table.insert(vignetteGradients, make("UIGradient", {Rotation = edge[3]}, frame))
+end
+local fov = { base = nil, applied = nil }
+local shakeRng = Random.new()
+local function chaseFeel(dt)
+	local camera = workspace.CurrentCamera
+	if not camera then return end
+	if isHidden() then
+		sprintHint.Visible = false
+	else
+		local input = touchPrimary() and "touch"
+			or (UserInputService:GetLastInputType().Name:find("Gamepad", 1, true) and "gamepad" or "keyboard")
+		local hint = View.sprintHint(input, staminaWords)
+		sprintHint.Text, sprintHint.Visible = hint or "", hint ~= nil
+	end
+	-- Someone else changed the field of view (a cutscene, a setting): follow it as the new base.
+	if fov.applied == nil or math.abs(camera.FieldOfView - fov.applied) > 0.01 then fov.base = camera.FieldOfView end
+	local goal = View.sprintFov(fov.base, player:GetAttribute("WildboundStance"), reduced)
+	camera.FieldOfView += (goal - camera.FieldOfView) * math.min(1, dt * 8)
+	fov.applied = camera.FieldOfView
+	local model, body = guardianParts()
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local dread = { shake = 0, vignette = 0 }
+	if model and root then
+		dread = View.dread((root.Position - body.Position).Magnitude, model:GetAttribute("State"), reduced)
+	end
+	vignette.Visible = dread.vignette > 0.001
+	if vignette.Visible then
+		local edge = 1 - dread.vignette
+		for _, gradient in ipairs(vignetteGradients) do
+			gradient.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, edge),
+				NumberSequenceKeypoint.new(1, 1) })
+		end
+	end
+	if dread.shake > 0 then
+		local amount = dread.shake
+		camera.CFrame *= CFrame.new(shakeRng:NextNumber(-amount, amount), shakeRng:NextNumber(-amount, amount), 0)
+	end
+end
+RunService:BindToRenderStep("WildboundChaseFeel", Enum.RenderPriority.Camera.Value + 1, chaseFeel)
+
 -- Camp preload (M4.5): wait for the replicated guardian, preload it and the four Silueta clips, then
 -- report. The template lives in ServerStorage, so clips are preloaded from Animation instances. 20 s cap.
 local CLIP_IDS = { "rbxassetid://90427760879990", "rbxassetid://109004575414309",
@@ -595,6 +655,8 @@ end)
 listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	pcall(function() RunService:UnbindFromRenderStep("WildboundGuardianSmoothing") end)
+	pcall(function() RunService:UnbindFromRenderStep("WildboundChaseFeel") end)
+	if fov.base and workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = fov.base end
 	pcall(function() ContextActionService:UnbindAction("WildboundSprint") end)
 	local beam = player.Character and player.Character:FindFirstChild("WildboundFlashlight", true)
 	if beam then beam:Destroy() end

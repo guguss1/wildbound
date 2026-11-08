@@ -35,6 +35,15 @@ local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
+-- Chase pass (CP1): the player's own breath on the existing hiddenBreath layer. Hiding keeps its quiet 0.12; a sprint
+-- breathes at 0.22 and running out of breath at 0.3; "Efectos suaves" halves the sprint and exhausted breath.
+local BREATH = table.freeze({ sprint = 0.22, exhausted = 0.3 })
+function Mix.breath(hidden, stance, reduced)
+	if hidden == true then return 0.12 end
+	local volume = BREATH[stance] or 0
+	return reduced == true and volume / 2 or volume
+end
+
 function Mix.master(reduced)
 	return reduced == true and Mix.REDUCED_MASTER or 1
 end

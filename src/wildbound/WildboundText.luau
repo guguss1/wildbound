@@ -234,6 +234,9 @@ return freeze({
 		notice = "Te falta el aliento. Espera un momento.",
 		slipWarning = "¡Tu Lumipol se asusta! Deja de correr.",
 		slipped = "Tu Lumipol se soltó y huyó al bosque.",
+		-- Chase pass (CP1): the always-on sprint hint by input (touch has the "Correr" button).
+		hintKeyboard = "Shift: Correr",
+		hintGamepad = "L3: Correr",
 	},
 	-- Delivery D12: the comfort switch and the settings panel. WildboundSettings repeats these; a test keeps them equal.
 	SETTINGS = {

@@ -200,7 +200,9 @@ local function update(dt)
 			setLayer(slot, volume, reduced)
 		end
 	end
-	setLayer("hiddenBreath", hidden and 0.12 or 0, reduced)
+	-- Chase pass (CP1): the player's own breath while sprinting or out of breath, on the same layer as hiding.
+	local stance = player:GetAttribute("WildboundStance")
+	setLayer("hiddenBreath", Mix.breath(hidden, stance, reduced), reduced)
 	if state.hidden ~= hidden then
 		state.hidden = hidden
 		local goal = hidden and { HighGain = Mix.MUFFLE.highGain, MidGain = Mix.MUFFLE.midGain } or { HighGain = 0, MidGain = 0 }
@@ -231,6 +233,8 @@ local function update(dt)
 	if level == "Chase" and state.level ~= "Chase" then
 		state.chaseStartedAt, state.signatures = now, 0
 		if body then cue("signature", level, reduced, body, root) state.signatures = 1 end
+		-- Chase pass (CP3): the chase opens with a roar from its body (the groan, existing id; quieter with Reduced).
+		if body then cue("groan", level, reduced, body, root) end
 		if character then
 			local capsule = character:FindFirstChild("WildboundCarryCapsule")
 			for _, sound in ipairs(capsule and capsule:GetDescendants() or {}) do

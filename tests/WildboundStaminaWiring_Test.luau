@@ -75,6 +75,19 @@ return function(serverSource, worldSource, clientSource, Text)
 		assert(words.label == "Aliento" and words.sprint == "Correr" and words.exhausted == "Sin aliento", "labels")
 		assert(words.slipWarning == "¡Tu Lumipol se asusta! Deja de correr.", "warning: " .. tostring(words.slipWarning))
 		assert(type(words.slipped) == "string" and words.slipped:find("Lumipol", 1, true), "slipped notice")
+		-- Chase pass (CP1): the hint the user asked for.
+		assert(words.hintKeyboard == "Shift: Correr" and words.hintGamepad == "L3: Correr", "hints")
+	end)
+
+	-- Chase pass (CP1, CP3): the world client shows the hint on keyboard and gamepad, widens the view while sprinting
+	-- and shakes and darkens it near a hunting Silueta; all three come from pure WildboundHudView rules.
+	case("chase pass: the hint, the field of view and the dread are wired", function()
+		has(clientSource, "View.sprintHint(")
+		has(clientSource, '"SprintHint"')
+		has(clientSource, "View.sprintFov(")
+		has(clientSource, "View.dread(")
+		has(clientSource, '"DreadVignette"')
+		has(clientSource, "camera.FieldOfView")
 	end)
 
 	return result

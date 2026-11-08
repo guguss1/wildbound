@@ -194,5 +194,14 @@ return function(Mix, Catalog)
 		assert(#Catalog.GROUPS == 5, "five groups")
 	end)
 
+	-- Chase pass (CP1): the player's own breath while sprinting and out of breath, the existing hidden breath (no new id).
+	case("chase pass: breath while sprinting, hidden or out of breath", function()
+		near(Mix.breath(true, "walk", false), 0.12, "hidden, as before")
+		near(Mix.breath(false, "sprint", false), 0.22, "sprinting")
+		near(Mix.breath(false, "exhausted", false), 0.3, "out of breath")
+		near(Mix.breath(false, "walk", false), 0, "walking is quiet")
+		near(Mix.breath(false, "sprint", true), 0.11, "Efectos suaves halves it")
+		near(Mix.breath(true, "sprint", false), 0.12, "hiding wins")
+	end)
 	return result
 end
