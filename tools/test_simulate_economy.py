@@ -333,13 +333,17 @@ class Sinks(unittest.TestCase):
 
     def test_buy_affordable_takes_cheapest_first_and_repeats(self):
         # 40 Ember, 20 Fogbark and 10 Glowmoss buy exactly one tier 1 skill. All four cost the same,
-        # so the tie breaks on id, and capturer_1 sorts first.
+        # so the tie breaks on id, and capturer_1 sorts first. Deliberately changed (I7): "Farol tapado" (10 Ember)
+        # is owned first here, as it is the cheapest item.
         t, s = self.funded(fogbark=20, glowmoss=10, ember=40)
+        s["upgrades"]["farolTapado"] = True
         self.assertEqual(eco.buy_affordable(t, s), ["capturer_1"])
-        # Rich enough for everything: all 8 skills plus the pack, tier 1 before tier 2.
+        t, s = self.funded(ember=10)
+        self.assertEqual(eco.buy_affordable(t, s), ["farolTapado"])
+        # Rich enough for everything: all 8 skills plus the two upgrades, tier 1 before tier 2.
         t, s = self.funded(fogbark=500, glowmoss=500, nightbloom=50, ember=1000)
         bought = eco.buy_affordable(t, s)
-        self.assertEqual(len(bought), 9)
+        self.assertEqual(len(bought), 10)
         self.assertEqual(set(bought), set(t["skills"]) | set(t["upgrades"]))
         for skill_id, spec in t["skills"].items():
             for required in spec["requires"]:
@@ -358,8 +362,9 @@ class ExtractionAndAfk(unittest.TestCase):
     def test_extraction_ember_exact_payout(self):
         t = tuning()
         both = [{"kind": "creature", "tier": "Territory"}, {"kind": "egg", "tier": "Territory"}]
-        self.assertEqual(eco.extraction_ember(t, both, 60.0, 70.0, 5), 4 + 14 + 10)
-        self.assertEqual(eco.extraction_ember(t, [{"kind": "creature", "tier": "Fog"}], 44.0, 70.0, 1), 8)
+        # Deliberately changed (I7): the egg pays 11 at Territory, a Fog cria 10.
+        self.assertEqual(eco.extraction_ember(t, both, 60.0, 70.0, 5), 4 + 14 + 11)
+        self.assertEqual(eco.extraction_ember(t, [{"kind": "creature", "tier": "Fog"}], 44.0, 70.0, 1), 10)
         self.assertEqual(eco.extraction_ember(t, [{"kind": "creature", "tier": "Safe"}], 90.0, 70.0, 1), 4 + 6)
         self.assertEqual(eco.extraction_ember(t, [], 90.0, 70.0, 3), 4)   # materials-only trip
         self.assertEqual(eco.extraction_ember(t, [], 90.0, 70.0, 0), 0)   # empty trip
@@ -416,7 +421,9 @@ class Expeditions(unittest.TestCase):
         run = eco.simulate_policy(t, ctx, "safe", policy, seed=1, trips=1)
         d = math.dist((-140, 140), (-95, 75))
         self.assertAlmostEqual(run.trips[0]["seconds"], 2 * d / 16.0 + 5.5, places=6)
-        self.assertEqual(run.state["ember"], 6)
+        # Deliberately changed (I7, K2): the first cria pays 6 plus the one-off 4, and camp buys "Farol tapado".
+        self.assertEqual(run.state["ember"], 0)
+        self.assertTrue(run.state["upgrades"]["farolTapado"])
         self.assertEqual(len(run.state["registered"]), 1)
         self.assertEqual(run.state["consumables"]["seal"], 1)   # first-extraction seal
 
@@ -991,6 +998,39 @@ class Analysis(unittest.TestCase):
         a = eco.analyse_policies(t, ctx, runs=6, trips=40, seed=5)
         b = eco.analyse_policies(t, ctx, runs=6, trips=40, seed=5)
         self.assertEqual(a, b)
+
+    def test_island_tiers_keep_expedition_targets(self):
+        # Expedition islands (I7): each island pays by the reward tier stored at the steal; the five tiers rise with
+        # depth, and the expedition-length targets still hold for every archetype with these numbers.
+        earn = tuning()["earn"]
+        self.assertEqual(earn["creatureEmberByTier"], {"Safe": 6, "Fog": 10, "FogFar": 12, "Territory": 14, "Heart": 22})
+        self.assertEqual(earn["eggEmberByTier"], {"Fog": 8, "FogFar": 10, "Territory": 11, "Heart": 14})
+        low, high = tuning()["cycle"]["targetExpeditionSeconds"]
+        for name, row in targets().items():
+            self.assertGreaterEqual(row["seconds_median"], low, name)
+            self.assertLessEqual(row["seconds_median"], high, name)
+            self.assertEqual(row["trivial"], [], name)
+
+    def test_first_trip_pays_at_least_10_ember(self):
+        # The first-minute hook (K2): the first cria from island 1 plus the one-off bonus pays for "Farol tapado".
+        t = tuning()
+        first = eco.item_ember(t, {"kind": "creature", "tier": "Safe"}) + t["earn"]["firstStealBonus"]
+        self.assertGreaterEqual(first, 10)
+        farol = t["upgrades"]["farolTapado"]
+        self.assertEqual(farol["cost"], {"ember": 10})
+        self.assertTrue(farol.get("starter"))
+        self.assertLessEqual(farol["cost"]["ember"], first)
+        state = eco.new_state(t)
+        bag = [{"kind": "creature", "tier": "Safe"}]
+        paid = eco.extraction_ember(t, bag, 30, 20, 0) + eco.first_steal_bonus(t, state, bag)
+        self.assertEqual(paid, first)
+        state["registered"].append(bag[0])
+        self.assertEqual(eco.first_steal_bonus(t, state, bag), 0, "the bonus is paid once")
+        self.assertEqual(eco.first_steal_bonus(t, eco.new_state(t), [{"kind": "egg", "tier": "Fog"}]), 0, "crias only")
+
+    def test_a_starter_upgrade_is_not_flagged_trivial(self):
+        self.assertEqual(eco.classify_upgrade({"reached_share": 1.0, "median_trip": 1}, starter=True), "STARTER")
+        self.assertEqual(eco.classify_upgrade({"reached_share": 1.0, "median_trip": 1}), "TRIVIAL")
 
     def test_trivial_and_unreachable_flags_follow_the_thresholds(self):
         row = {"reached_share": 1.0, "median_trip": 1}

@@ -316,10 +316,14 @@ Paid once at extraction. Only at extraction, so it can be lost by not returning,
 | Source | Ember | Condition |
 | --- | --- | --- |
 | Completed trip | 4 | Expedition at least 45 s, reached 60 studs from camp, at least one new item or unit |
-| Lumipol, tier Safe | 6 | First-capture slot |
-| Lumipol, tier Fog | 8 | `L4` |
-| Lumipol, tier Territory | 14 | `L1` to `L3` |
-| Egg, tier Territory | 10 | Any nest |
+| Cria, tier Safe | 6, plus 4 once for the first steal (`firstStealBonus`) | Island 1, Claro de los Lumipol |
+| Cria, tier Fog | 10 | Island 2, Hondonada del Musgo |
+| Cria, tier FogFar | 12 | Island 3, Pantano de los Juncos |
+| Cria, tier Territory | 14 | Island 4, Ruinas del Nido |
+| Cria, tier Heart | 22 | Island 5, Corazón de la Niebla |
+| Egg, tiers Fog, FogFar, Territory, Heart | 8, 10, 11, 14 | The nest of islands 2 to 5 (30 % of rolls) |
+
+Expedition islands (I7, `docs/mechanics/wildbound-expedition-islands.md`): the islands replace the old slots; the tier stored on the item at the steal picks the row. "Farol tapado" (10 Ember, once, `starter`) halves the light input on sleeping adults; a starter upgrade is meant to be bought after the first trip, so the simulator reports it as STARTER, not TRIVIAL. The design's Territory 16 and egg 12 failed the simulator (greedy expedition median 178.9 s against the 180 s floor; with holdThroughWarning x 1.5, 148.9 s against 150), and every richer Territory row tried (15 to 20 with eggs 11 to 16) failed the expedition floor, the perturbation floor or the pouch pressure; 14 and 11 is the one tested pair that keeps every invariant (greedy 180.0 s). The simulator models only Fog and Territory captures, so the FogFar and Heart rows are not simulated.
 | Nightbloom bundle | 0 | Banks as a material |
 
 Duplicates pay the same. This fixes B1, "duplicates are useless". Tier is stored on the item at capture and read at extraction, so nobody can upgrade it on the way home. **Changes existing behavior:** `extract` accepts materials-only trips; `Empty` now means no bag items and no carried units. Its first-extraction seal stays, but must add 1, not assign, so a crafted seal is not overwritten (`WildboundState.luau:123`).
@@ -578,8 +582,9 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
   "earn": {
     "extractBaseEmber": 4,
     "baseRequires": { "minExpeditionSeconds": 45, "minDistanceFromCamp": 60, "minNewUnitsOrItems": 1 },
-    "creatureEmberByTier": { "Safe": 6, "Fog": 8, "Territory": 14 },
-    "eggEmberByTier": { "Territory": 10 },
+    "creatureEmberByTier": { "Safe": 6, "Fog": 10, "FogFar": 12, "Territory": 14, "Heart": 22 },
+    "eggEmberByTier": { "Fog": 8, "FogFar": 10, "Territory": 11, "Heart": 14 },
+    "firstStealBonus": 4,
     "firstExtractionSeal": 1
   },
   "recipes": {
@@ -588,6 +593,11 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "totem": { "cost": { "glowmoss": 12, "nightbloom": 2, "ember": 20 } }
   },
   "upgrades": {
+    "farolTapado": {
+      "cost": { "ember": 10 },
+      "effects": { "islandLightScale": 0.5 },
+      "starter": true
+    },
     "reinforcedPack": {
       "cost": { "fogbark": 60, "glowmoss": 30, "ember": 120 },
       "effects": { "bagItems": 4, "pouchUnits": 45, "lossBasisPoints": 1000 }

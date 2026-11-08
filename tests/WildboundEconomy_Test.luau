@@ -94,10 +94,12 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 
 	case("ECO-17 item Ember reads the stored tier, and a trip pays its base only when complete", function()
 		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Safe" }), 6)
-		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Fog" }), 8)
+		-- Deliberately changed (I7): Fog 8 to 10, the Territory egg 10 to 11, and nests at islands 2 and 3 hold eggs.
+		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Fog" }), 10)
 		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Territory" }), 14)
-		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Territory" }), 10)
-		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Fog" }), 0)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Territory" }), 11)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Fog" }), 8)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Safe" }), 0)
 		equal(Economy.itemEmber(Config, { kind = "Nightbloom", quantity = 3 }), 0)
 		equal(Economy.itemEmber(Config, { kind = "Creature" }), 0, "no tier pays nothing")
 		equal(Economy.itemEmber(Config, nil), 0)
@@ -182,6 +184,34 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(Economy.carrySpeed(Config, 0, 30, Wild.carrySpeed(slowest), skills),
 			math.min(Config.carry.baseSpeed, Wild.carrySpeed(slowest) + 1), "plus one, capped at the base speed")
 		equal(Economy.carrySpeed(Config, 0, 30, 16, skills), 16, "no gain above the cap")
+	end)
+
+	case("I7: island tier Ember by tier", function()
+		local creature = { Safe = 6, Fog = 10, FogFar = 12, Territory = 14, Heart = 22 }
+		local egg = { Fog = 8, FogFar = 10, Territory = 11, Heart = 14 }
+		for tier, ember in pairs(creature) do
+			equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = tier }), ember, "cria " .. tier)
+		end
+		for tier, ember in pairs(egg) do
+			equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = tier }), ember, "egg " .. tier)
+		end
+		equal(Config.earn.firstStealBonus, 4, "first steal bonus")
+		equal(Economy.firstStealBonus(Config, { registered = {} }), 4)
+		equal(Economy.firstStealBonus(Config, { registered = { { uid = "a" } } }), 0, "only before the first")
+		equal(Economy.firstStealBonus(Config, nil), 0)
+	end)
+
+	case("I7: Farol tapado costs 10 Ember once", function()
+		local farol = Config.upgrades.farolTapado
+		equal(farol.cost.ember, 10)
+		local keys = 0
+		for _ in pairs(farol.cost) do keys += 1 end
+		equal(keys, 1, "Ember only, no materials")
+		equal(farol.starter, true)
+		equal(Economy.islandLightScale(Config, {}), 1)
+		equal(Economy.islandLightScale(Config, { farolTapado = true }), 0.5)
+		equal(Economy.islandLightScale(Config, nil), 1)
+		equal(6 + Config.earn.firstStealBonus >= farol.cost.ember, true, "the first cria pays for it")
 	end)
 
 	case("validate catches broken tuning", function()

@@ -130,8 +130,9 @@ return freeze({
 	earn = {
 		extractBaseEmber = 4,
 		baseRequires = { minExpeditionSeconds = 45, minDistanceFromCamp = 60, minNewUnitsOrItems = 1 },
-		creatureEmberByTier = { Safe = 6, Fog = 8, Territory = 14 },
-		eggEmberByTier = { Territory = 10 },
+		creatureEmberByTier = { Safe = 6, Fog = 10, FogFar = 12, Territory = 14, Heart = 22 },
+		eggEmberByTier = { Fog = 8, FogFar = 10, Territory = 11, Heart = 14 },
+		firstStealBonus = 4,
 		firstExtractionSeal = 1,
 	},
 	recipes = {
@@ -146,6 +147,11 @@ return freeze({
 		},
 	},
 	upgrades = {
+		farolTapado = {
+			cost = { ember = 10 },
+			effects = { islandLightScale = 0.5 },
+			starter = true,
+		},
 		reinforcedPack = {
 			cost = { fogbark = 60, glowmoss = 30, ember = 120 },
 			effects = { bagItems = 4, pouchUnits = 45, lossBasisPoints = 1000 },

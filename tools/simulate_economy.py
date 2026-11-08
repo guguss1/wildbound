@@ -489,6 +489,13 @@ def item_ember(tuning, item):
     return 0
 
 
+def first_steal_bonus(tuning, state, bag):
+    """K2: a one-off bonus when a player's first cria is registered (never before a creature is registered)."""
+    if state["registered"] or not any(item["kind"] == "creature" for item in bag):
+        return 0
+    return tuning["earn"].get("firstStealBonus", 0)
+
+
 def extraction_ember(tuning, bag, seconds, distance, units_carried):
     return base_ember(tuning, seconds, distance, units_carried + len(bag)) + sum(item_ember(tuning, i) for i in bag)
 
@@ -781,7 +788,7 @@ def run_expedition(tuning, ctx, state, policy, rng, players=1, start_clock=0.0):
         return trip
     walk(camp)
     trip["seconds"] = clock
-    ember = extraction_ember(tuning, state["bag"], clock, max_distance, new_units)
+    ember = extraction_ember(tuning, state["bag"], clock, max_distance, new_units) +         first_steal_bonus(tuning, state, state["bag"])
     state["ember"] += ember
     trip["ember_gained"] = ember
     trip["banked_units"] = sum(state["carried"].values())
@@ -1033,11 +1040,12 @@ def pack_loss_comparison(tuning):
     }
 
 
-def classify_upgrade(row):
+def classify_upgrade(row, starter=False):
     if row["reached_share"] < UNREACHABLE_BELOW:
         return "UNREACHABLE"
     if row["median_trip"] is not None and row["median_trip"] <= TRIVIAL_TRIP:
-        return "TRIVIAL"
+        # A starter upgrade (I7, "Farol tapado") is meant to be bought right after the first trip.
+        return "STARTER" if starter else "TRIVIAL"
     return "ok"
 
 
@@ -1069,7 +1077,7 @@ def analyse_policies(tuning, ctx, runs, trips, seed, players=1, policies=None):
                 "standalone_share": sum(a is not None for a in alone) / len(sims),
                 "standalone_median_trip": _median([a for a in alone if a is not None]),
             }
-            row["class"] = classify_upgrade(row)
+            row["class"] = classify_upgrade(row, tuning["upgrades"].get(item, {}).get("starter", False))
             upgrades[item] = row
         n = float(len(all_trips))
         finished = []

@@ -121,6 +121,25 @@ function Economy.itemEmber(config, item)
 	return table_ and table_[item.riskTier] or 0
 end
 
+-- K2 (expedition islands): a one-off bonus when a player's first creature is registered. `snapshot` is the
+-- player's record before the registration; anything but an empty `registered` list pays nothing.
+function Economy.firstStealBonus(config, snapshot)
+	if type(snapshot) ~= "table" or type(snapshot.registered) ~= "table" or #snapshot.registered > 0 then return 0 end
+	local bonus = config.earn.firstStealBonus
+	return finite(bonus) and bonus > 0 and bonus or 0
+end
+
+-- I7: how much the light on a sleeping adult's face disturbs it, by owned upgrades ("Farol tapado" halves it).
+function Economy.islandLightScale(config, upgrades)
+	local scale = 1
+	if type(upgrades) ~= "table" then return scale end
+	for name, spec in pairs(config.upgrades) do
+		local value = spec.effects and spec.effects.islandLightScale
+		if upgrades[name] == true and finite(value) and value > 0 then scale = math.min(scale, value) end
+	end
+	return scale
+end
+
 -- The completed-trip Ember: long enough, far enough and something new.
 function Economy.baseEmber(config, seconds, maxDistance, newCount)
 	local need = config.earn.baseRequires
