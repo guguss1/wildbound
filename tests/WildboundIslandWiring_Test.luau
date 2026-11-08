@@ -83,6 +83,11 @@ return function(serverSource, worldSource, clientSource)
 		has(strike, "if effect.damage > 0 then", "behind the gate")
 		has(serverSource, "Text.ISLAND.strike", "the wind-up warns the thief")
 		has(serverSource, 'adult.model:SetAttribute("Swing", adult.rearing)', "the swing is visible to every client")
+		-- The Studio-only IslandProbe can mark a player lethal for the Play check (no paid trip needed); it lives inside
+		-- the RunService:IsStudio() block, so a live server never has it.
+		local probe = block(serverSource, "if RunService:IsStudio() then", "\nend\n")
+		has(probe, 'op == "lethal"', "the probe op lives in the Studio block")
+		has(serverSource, "probeLethal[player.UserId] == true", "lethalPlayer honours it")
 		hasNot(serverSource, "Health -", "no direct health write")
 	end)
 

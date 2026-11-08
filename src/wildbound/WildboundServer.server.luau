@@ -931,7 +931,9 @@ end
 -- Chase pass (CP-D5): whether this player has made a paid trip home (one registered creature, banked material or
 -- Ember), the same rule La Silueta uses (WildboundFairStrike.lethal). Anything unreadable spares the player.
 local islandHitDamage = 0
+local probeLethal = {} -- Studio only: the IslandProbe "lethal" op, for the Play check
 local function lethalPlayer(player)
+	if probeLethal[player.UserId] == true then return true end
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot then return false end
 	local banked = 0
@@ -1459,6 +1461,11 @@ if RunService:IsStudio() then
 		end
 		if op == "settle" then
 			island.meter.alertFor = math.huge
+			return true
+		end
+		-- Chase pass (CP6): treat a real player as past the first paid trip, so the Play check can see an adult kill.
+		if op == "lethal" and type(value) == "number" then
+			probeLethal[value] = true
 			return true
 		end
 		return false, "UnknownOp"
