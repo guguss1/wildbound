@@ -1105,6 +1105,9 @@ handleEnding = function(out)
 		local alive = player ~= nil and context(player) == true
 		-- I5: an island cria rides with its species and island, and pays by its island's reward tier.
 		local slot = entry and entry.slot
+		-- Fear pass (FA2): read before the bag changes; afterwards the thief carries the cria.
+		local before = slot and slot.island and state:snapshot(out.playerKey) or nil
+		local firstSteal = before ~= nil and #before.registered == 0 and before.carrying == nil
 		local ok, reason = state:completeCapture(out.playerKey, out.encounterId, alive,
 			slot and (slot.rewardTier or slot.tier) or "Fog",
 			slot and slot.island and { species = slot.species, island = slot.island } or nil)
@@ -1114,6 +1117,11 @@ handleEnding = function(out)
 			if entry and entry.brain then Wild.capture(entry.brain) end
 			-- K3: the first cria taken from a nest is the hook's first beat.
 			if slot and slot.island then analytics:stole(out.playerKey) end
+			-- Fear pass (FA2): lifting the cria is loud; a stirred island wakes and its parents chase the thief.
+			local island = slot and slot.island and islands[slot.island]
+			if island and Island.event(island.meter, "CriaTaken", { firstSteal = firstSteal }).woke then
+				wakeIsland(island, now)
+			end
 		else
 			-- The rule said finished but the bag disagreed. Nothing is granted and the Lumipol still goes.
 			counters.grantRefused += 1

@@ -93,9 +93,32 @@ return function(Island, layout)
 		assert(meter.state == "Alert", meter.state)
 		near(C.PENALTY.LeftRing, 25, 1e-9)
 		near(C.PENALTY.SealMissed, 35, 1e-9)
-		near(C.PENALTY.EggTaken, 30, 1e-9)
+		-- Deliberately changed in the fear pass (FA2): an egg was its own 30; a grab (cria or egg) is now GRAB.
+		near(C.GRAB, 45, 1e-9, "a grab")
 		near(C.PENALTY.Rustle, 10, 1e-9)
 		near(C.PENALTY.SprintNoise, 25, 1e-9)
+	end)
+
+	-- Fear pass (FA2, user: "stealing must be an adrenaline rush"): the grab itself is loud. Taking a cria (a granted
+	-- capture) or an egg adds GRAB to the meter, so a careful thief on a calm island keeps it asleep, while a sloppy one
+	-- (a mistake, lingering) wakes the parents the moment the cria is lifted. Island 1's first steal stays capped.
+	case("FA2: a grab is loud enough to wake a stirred island, and island 1's first steal stays safe", function()
+		local calm = Island.newMeter(island("I2"))
+		run(calm, 3, { inside = true, linger = true, phase = "Day" })
+		local quiet = Island.event(calm, "CriaTaken")
+		assert(not quiet.woke and calm.state == "Asleep", "a careful grab on a calm island: " .. tostring(calm.value))
+		local stirred = Island.newMeter(island("I2"))
+		run(stirred, 3, { inside = true, linger = true, phase = "Day" })
+		Island.event(stirred, "LeftRing")
+		Island.event(stirred, "LeftRing")
+		assert(Island.event(stirred, "CriaTaken").woke, "a grab after mistakes wakes the parents")
+		local egg = Island.newMeter(island("I4"))
+		Island.event(egg, "EggTaken")
+		near(egg.value, C.GRAB, 1e-9, "an egg is the same grab")
+		local first = Island.newMeter(island("I1"))
+		first.value = 90
+		local out = Island.event(first, "CriaTaken", { firstSteal = true })
+		assert(not out.woke and first.value <= C.FIRST_CAP + 1e-9, "the first steal never wakes island 1")
 	end)
 
 	case("I2: decay starts after 2 s", function()
@@ -189,12 +212,14 @@ return function(Island, layout)
 
 	-- Deliberately changed in the chase pass (CP-D5, user: "the parents can kill you"). It was "between carry (14) and
 	-- carry-sprint (18.2) speed, 6 to 8 s, no wind-up" (IW-4: a thief next to the adults was caught in about 0.3 s).
-	-- Now the adult stands up for a short wind-up, then runs faster than a walker (16) and slower than a carrying
-	-- sprinter (14 x 1.45 = 20.3) by at least 3 studs/s, for 10 s.
+	-- Deliberately changed again in the fear pass (FA2, user: "faster; the parents chase you and hit you"): it was a
+	-- 0.35 to 1 s wind-up, 16 to 17.3 studs/s and 8 to 12 s. Now it stands up quicker (0.35 to 0.5 s, never under the
+	-- readable floor), runs well past a walker (16) yet still under a carrying sprinter (14 x 1.45 = 20.3) by at
+	-- least 1 stud/s, so a sprint (which scares the cria) is the only way out, and it chases for 12 to 16 s.
 	case("CP4: the woken adult winds up, then chases faster than a walker, slower than a carrying sprinter", function()
-		assert(C.WAKE_WINDUP >= 0.35 and C.WAKE_WINDUP <= 1, "wind-up " .. tostring(C.WAKE_WINDUP))
-		assert(C.CHASE_SPEED > 16 and C.CHASE_SPEED <= 20.3 - 3, "speed " .. tostring(C.CHASE_SPEED))
-		assert(C.CHASE_SECONDS >= 8 and C.CHASE_SECONDS <= 12, "duration")
+		assert(C.WAKE_WINDUP >= 0.35 and C.WAKE_WINDUP <= 0.5, "wind-up " .. tostring(C.WAKE_WINDUP))
+		assert(C.CHASE_SPEED >= 18 and C.CHASE_SPEED <= 20.3 - 1, "speed " .. tostring(C.CHASE_SPEED))
+		assert(C.CHASE_SECONDS >= 12 and C.CHASE_SECONDS <= 16, "duration")
 		near(C.CHASE_LEASH, 35, 1e-9, "leash")
 		local entry = island("I2")
 		local start = entry.adultPoints[1]

@@ -83,9 +83,11 @@ Schema.SYSTEMS = table.freeze({
 		value("LIGHT", "Luz en la cara de noche (por s)", "Island", "LIGHT", 10, 0, 50, 1),
 		value("DECAY", "Se calma (por s)", "Island", "DECAY", 8, 0, 50, 1),
 		value("ALERT_SECONDS", "Alerta dura (s)", "Island", "ALERT_SECONDS", 30, 5, 120, 1),
-		value("WAKE_WINDUP", "Tarda en levantarse (s)", "Island", "WAKE_WINDUP", 0.6, 0.2, 3, 0.05),
-		value("CHASE_SPEED", "Velocidad del adulto (studs/s)", "Island", "CHASE_SPEED", 17, 4, 30, 0.5),
-		value("CHASE_SECONDS", "Persigue durante (s)", "Island", "CHASE_SECONDS", 10, 1, 60, 1),
+		-- Fear pass (FA2): the noise of lifting a cria or an egg.
+		value("GRAB", "Ruido al robar una cría o un huevo", "Island", "GRAB", 45, 0, 100, 1),
+		value("WAKE_WINDUP", "Tarda en levantarse (s)", "Island", "WAKE_WINDUP", 0.4, 0.2, 3, 0.05),
+		value("CHASE_SPEED", "Velocidad del adulto (studs/s)", "Island", "CHASE_SPEED", 19, 4, 30, 0.5),
+		value("CHASE_SECONDS", "Persigue durante (s)", "Island", "CHASE_SECONDS", 14, 1, 60, 1),
 		value("CHASE_LEASH", "Correa desde el nido (studs)", "Island", "CHASE_LEASH", 35, 10, 80, 1),
 		value("STRIKE_REACH", "Empieza el golpe a (studs)", "Island", "STRIKE_REACH", 3.5, 1, 10, 0.5),
 		-- At least 0.35 s: the floor of a readable tell (CP-D1).

@@ -75,7 +75,9 @@ return function(Schema, modules)
 		for _, id in ipairs({ "Silueta.HUNT_NIGHT", "Silueta.SIGHT_DAY", "Silueta.MEMORY_NIGHT", "Silueta.GIVE_UP_DISTANCE",
 			"Silueta.CHASE_LEASH", "Silueta.TELEGRAPH_SECONDS", "Silueta.ATTACK_COOLDOWN", "Sprint.SPRINT_MULTIPLIER",
 			"Sprint.DRAIN", "Carry.FEAR_SLIP", "Islands.WAKE", "Islands.CHASE_SPEED", "Islands.DAMAGE",
-			"Islands.STRIKE_WINDUP", "Capture.CALM_REQUIRED", "Hide.NIGHT_RADIUS", "Camera.SPRINT_FOV_KICK" }) do
+			"Islands.STRIKE_WINDUP", "Capture.CALM_REQUIRED", "Hide.NIGHT_RADIUS", "Camera.SPRINT_FOV_KICK",
+			-- Fear pass (FA2): the grab's noise is tunable.
+			"Islands.GRAB" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
@@ -194,7 +196,8 @@ return function(Schema, modules)
 		near(modules.Stamina.speed(16, "sprint"), 23.2, "sprint 16 x 1.45")
 		equal(modules.Brain.speed("Hunt", "Night"), 17)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 0.9)
-		equal(modules.Island.live.CHASE_SPEED, 17)
+		-- Deliberately changed in the fear pass (FA2): the adult's chase speed default was 17.
+		equal(modules.Island.live.CHASE_SPEED, 19)
 		equal(modules.Island.hitEffect({ damageMode = "private", lethal = true }).damage, 35)
 		equal(modules.View.sprintFov(70, "sprint", false), 80)
 		equal(modules.Carry.mood({ alive = true, inFog = true, safe = false, mode = "Hunt", distance = 39 }), "afraid")
@@ -231,7 +234,7 @@ return function(Schema, modules)
 		near(modules.Stamina.speed(16, "sprint"), 23.2, "back to the default")
 		equal(modules.Brain.speed("Hunt", "Dawn"), 15)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 0.9)
-		equal(modules.Island.live.CHASE_SPEED, 17)
+		equal(modules.Island.live.CHASE_SPEED, 19)
 		equal(modules.View.sprintFov(70, "sprint", false), 80)
 	end)
 

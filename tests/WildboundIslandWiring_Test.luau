@@ -105,6 +105,17 @@ return function(serverSource, worldSource, clientSource)
 		has(worldSource, "crying = isCrying(player)")
 	end)
 
+	-- Fear pass (FA2): a granted island capture is a loud grab, and the first-steal flag is read before the bag
+	-- changes (afterwards the thief carries the cria and island 1's cap would no longer apply).
+	case("FA2: a granted island capture is a grab that can wake the parents", function()
+		local grant = block(serverSource, "if out.grant then", "elseif entry and entry.brain then")
+		has(grant, 'Island.event(island.meter, "CriaTaken", { firstSteal = firstSteal })')
+		has(grant, "wakeIsland(island, now)")
+		local before = grant:find("local firstSteal", 1, true)
+		local complete = grant:find("state:completeCapture(", 1, true)
+		assert(before and complete and before < complete, "firstSteal is read before the capture completes")
+	end)
+
 	case("K2: the refuge card carries the bonus and the next island", function()
 		has(serverSource, "Refuge.nextIsland(")
 		has(serverSource, "firstBonus = receipt.firstBonus")

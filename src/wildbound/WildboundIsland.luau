@@ -19,8 +19,12 @@ Island.CONSTANTS = table.freeze({
 	LIGHT_RANGE = 12,
 	LIGHT_DOT = 0.85,
 	LULL = 3,
-	-- Once, from the capture session, the egg pickup, the hide spot and the sprint noise.
-	PENALTY = table.freeze({ LeftRing = 25, Failed = 25, SealMissed = 35, EggTaken = 30, Rustle = 10, SprintNoise = 25 }),
+	-- Once, from the capture session, the hide spot and the sprint noise.
+	PENALTY = table.freeze({ LeftRing = 25, Failed = 25, SealMissed = 35, Rustle = 10, SprintNoise = 25 }),
+	-- Fear pass (FA2, user: "stealing must be an adrenaline rush"): the grab itself is loud. A granted cria capture
+	-- ("CriaTaken") or an egg pickup ("EggTaken", was 30) adds GRAB once: a careful thief on a calm island keeps it
+	-- asleep (63 after 3 s by an adult), a sloppy one wakes the parents the moment the cria is lifted.
+	GRAB = 45,
 	SPRINT_NOISE_REACH = 30, -- a sprint noise (DP-2) this close to the nest counts
 	DECAY = 8,
 	DECAY_EMPTY = 20,
@@ -34,9 +38,11 @@ Island.CONSTANTS = table.freeze({
 	-- beside it in about 0.3 s), then runs faster than a walker (16) and slower than a sprinting carrier (14 x 1.45 =
 	-- 20.3). Within STRIKE_REACH it stands still and swings for STRIKE_WINDUP (above the 0.35 s floor of a readable
 	-- tell); the swing lands if the thief is still within HIT_RANGE. DAMAGE 35: three hits kill (100, 65, 30, 0).
-	WAKE_WINDUP = 0.6,
-	CHASE_SPEED = 17,
-	CHASE_SECONDS = 10,
+	-- Fear pass (FA2, user: "faster"): up in 0.4 s (was 0.6), 19 studs/s (was 17), for 14 s (was 10). A walking
+	-- carrier (14) or walker (16) is caught; only a sprint (which scares a carried cria) outruns it, by 1.3 studs/s.
+	WAKE_WINDUP = 0.4,
+	CHASE_SPEED = 19,
+	CHASE_SECONDS = 14,
 	CHASE_LEASH = 35,
 	STRIKE_REACH = 3.5,
 	STRIKE_WINDUP = 0.45,
@@ -120,8 +126,9 @@ local function raise(meter, amount, capped)
 end
 
 -- A one-off input. options.firstSteal: a player on their first steal is the cause (island 1 caps at 95).
+local GRABS = { CriaTaken = true, EggTaken = true }
 function Island.event(meter, kind, options)
-	local amount = type(meter) == "table" and type(kind) == "string" and C.PENALTY[kind] or nil
+	local amount = type(meter) == "table" and type(kind) == "string" and (GRABS[kind] and C.GRAB or C.PENALTY[kind]) or nil
 	if not amount then return { stirred = false, woke = false, settled = false } end
 	meter.quiet = 0
 	local capped = meter.first and type(options) == "table" and options.firstSteal == true
