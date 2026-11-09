@@ -600,3 +600,12 @@ Play check (Studio Play solo, desktop; `HATCH_SECONDS` set to 20 in Play only, r
 | Hatch on the server's clock | PASS | 20.8 s after the start (20 s plus the 1 s step): notice "¡Tu huevo eclosionó! Lumipol se unió a tu colección.", registered 1, the card "¡Nueva criatura!" (`nb4-hatched-card-desktop.jpg`) |
 | Prompt and sign | PASS | "Incubar huevo" / "Incubadora", key R, range 12 at the incubator; no prompt left on the hatch altar; sign "Deja tu huevo" |
 | Steal-to-hatch by hand, phones, two players | NOT VERIFIED | eggs came from the probe; one Studio client |
+
+### Batch stop: delivery F waits on a product question
+
+- [ ] NB5 Delivery F (Esencia progression, the rest of the Spanish UI, phone and touch polish). STOPPED before any change, per the brief's rule to stop on a real product decision: no document defines "Esencia" (searched the repo, the docs and the shared knowledge library). The game already has one currency earned only by play, Ember (chest, refuge, capsules; spent on crafts, the upgrade board and skills). Open question for the user: is Esencia (a) the Spanish name for Ember, so only the words change and the economy and its simulator floors stay exactly as they are, or (b) a second play-earned currency with its own sources and uses (which needs a design, a simulator change and new floors)? No Robux, purchases or MarketplaceService either way.
+- [ ] NB6 PI-1 design proposal (steal a creature from La Silueta). Not started: it comes after NB5 in the brief's order.
+
+Batch end state: commits `047f10e` (NB1), `7b060c7` (NB2), `d10f5c4` (NB3), `8302b1f` (NB4). Studio 54 suites, 1145 passed, 0 failed on fresh clones (baseline 53 suites, 1130); Python 925 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. 113 of 113 mapped Wildbound sources in the place match the repo by Adler-32 and length (the Rescue prototype is not in this place). Studio left in Edit; the temporary runner removed; the place is not saved (no file backup was possible without computer use; every change is in git). Untouched user decisions: CP-R1 (the shorter sight radius) and whether the flashlight has a battery.
+
+Next step: the user answers the Esencia question (NB5), saves the place (Archivo > Descargar una copia, then save), and the batch resumes with NB5, then NB6.
