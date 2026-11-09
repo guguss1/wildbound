@@ -551,3 +551,23 @@ Play check (Studio Play solo, desktop; the Studio clock shift set Dusk and Night
 Counts: Studio 53 suites, 1130 passed, 0 failed (HudView 53, FearWiring 7). Python: 924 run, the 1 known failure, 28 skipped. Studio left in Edit, the temporary runner removed.
 
 Next step: the user plays an evening and says whether sightings are too rare or too subtle (`STALK_EVERY`, the band, the eye size); save the place.
+
+## Next batch (2026-11-09)
+
+Coordinator brief, 2026-11-09: in order, the Silueta memory bug, a readable chase-start sound, the remaining English player strings, delivery E (eggs and incubator), delivery F (Esencia progression, Spanish UI, phone layout), and a design-only proposal for PI-1. Left to the user, untouched: CP-R1 (the shorter sight radius) and whether the flashlight gets a battery.
+
+Route: delegated, one Studio and repo writer (Opus), no nested delegation, background only (no computer use). Instance `2a15a1ec-...`, PlaceId 122652861404212 verified in Edit; 111 of 111 mapped Wildbound sources matched the repo by Adler-32 and length before the first edit (the Rescue prototype is not in this place). No file backup was possible without computer use: every Studio source changed in a unit is committed first, so the place can be rebuilt from git; the last full copy is `assets/exports/wildbound-stalk-20261108.rbxl`. Mode: strict TDD (global); runners: Studio fresh clones (temporary `ServerStorage.WildboundFreshRunnerTmp`), `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 53 suites, 1130 passed, 0 failed; Python 924 run, the 1 known failure. Route per task: inline in the one writer.
+
+### NB1 Silueta memory
+
+- [x] NB1 After losing a sprinter La Silueta searched far earlier than the night memory. Reproduced in Play (night): a sprinter running north from the home patrol crossed the spawn pad's no-target circle at 76 studs from home and the hunt went to Search 0.08 s later; the same happens at the fog edge, at the pursuit leash (100 from home) and on a floor change (8 studs). Cause: in Hunt the world asked `targetContext`, whose territory, spawn-pad and floor checks return nothing, and nothing meant "lost": only plain cover read as out of sight. A sight break during a telegraph also dropped to Search at once (Telegraph used the sight-only check), and the repeat after a telegraph dropped an unseen quarry. Fix: pure `Rules.pursuit` (keep unless gone, hidden unseen or beyond `GIVE_UP_DISTANCE`) and the world's `quarryContext` for Hunt, Telegraph and the repeat: anything but legal sight only reads as out of sight, so the phase memory runs. Alert keeps the sight check. RED: WorldRules 35/1 (`Rules.pursuit` missing), HideWiring 11/2 (the CP-D2 pin, deliberately changed and marked, and the new contract); GREEN 36/0 and 13/0; Studio 53 suites, 1132 passed, 0 failed; Python 924 run, the 1 known failure.
+
+Play check (Studio Play solo, night by the Studio clock shift, the player moved by the server's `Humanoid:MoveTo` at 23.2 studs/s):
+
+| Check | Before | After |
+| --- | --- | --- |
+| Sprinter crosses the spawn pad, then the leash | Search 0.08 s after the spawn-pad circle | Hunt held across the pad; out of legal sight at the leash at 4.43 s, Search at 10.33 s (5.9 s, night memory 6) |
+| Sight broken behind a trunk core during a telegraph | (the old code searched at once) | telegraph finished, Hunt resumed on memory, Search 6.0 s after the last sight |
+| Plain cover in the open | Hunt held while out of sight (already worked) | unchanged |
+
+No tuning value changed. Not verified: dawn and day memory in Play (unit-tested through the profiles), two players.

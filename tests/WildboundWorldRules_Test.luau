@@ -340,5 +340,26 @@ return function(Rules, islandLayout)
 		end
 		equal(struck, 0, "strikeable floor points")
 	end)
+	case("memory fix: a quarry out of legal sight is kept for the memory; only gone, hid or far ends the chase", function()
+		-- Found in Play (2026-11-09): a sprinter crossing the spawn pad, the fog edge or the pursuit leash ended the hunt at
+		-- once (Search 0.1 s later) instead of after the night memory. Those places now only read as out of sight.
+		assert(type(Rules.pursuit) == "function", "Rules.pursuit missing")
+		local function obs(overrides)
+			local value = { alive = true, hidden = false, visible = true, distance = 24 }
+			for key, item in pairs(overrides or {}) do value[key] = item end
+			return value
+		end
+		equal(Rules.pursuit(obs()), true)
+		equal(Rules.pursuit(obs({ visible = false })), true)
+		equal(Rules.pursuit(obs({ visible = false, distance = Rules.GIVE_UP_DISTANCE })), true)
+		equal(Rules.pursuit(obs({ alive = false })), false)
+		equal(Rules.pursuit(obs({ hidden = true, visible = false })), false)
+		-- A hidden player still in sight (seen while entering) is not lost by hiding.
+		equal(Rules.pursuit(obs({ hidden = true, visible = true })), true)
+		equal(Rules.pursuit(obs({ distance = Rules.GIVE_UP_DISTANCE + 0.5 })), false)
+		equal(Rules.pursuit(obs({ visible = false, distance = Rules.GIVE_UP_DISTANCE + 0.5 })), false)
+		for _, bad in ipairs({ 0 / 0, math.huge, -1, "24" }) do equal(Rules.pursuit(obs({ distance = bad })), false) end
+		equal(Rules.pursuit(nil), false)
+	end)
 	return result
 end

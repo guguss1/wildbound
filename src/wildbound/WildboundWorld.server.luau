@@ -314,6 +314,22 @@ local function targetContext(player, range, allowHidden, leash)
 		distance = (position - guardianPosition).Magnitude, visible = inSight, hidden = hidden }
 end
 
+-- Memory fix (2026-11-09, found in Play): a hunt or a telegraph reads its quarry here. Legal sight is the old check;
+-- anything else (cover, the spawn pad, the fog edge, the pursuit leash, another floor) only reads as out of sight, so the
+-- phase's memory runs before the search. Rules.pursuit ends the chase only for a gone, hidden-unseen or far quarry.
+local function quarryContext(player)
+	if not player then return nil end
+	local character, humanoid, root = characterContext(player)
+	if not root then return nil end
+	local seen = targetContext(player, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
+	local hidden = records[player] ~= nil and records[player].hide ~= nil
+	local position, guardianPosition = root.Position, body.Position
+	local flat = Rules.distance(position.X, position.Z, guardianPosition.X, guardianPosition.Z)
+	if not Rules.pursuit({ alive = true, hidden = hidden, visible = seen ~= nil, distance = flat }) then return nil end
+	return { player = player, character = character, humanoid = humanoid, root = root,
+		distance = (position - guardianPosition).Magnitude, visible = seen ~= nil, hidden = hidden }
+end
+
 local function setMode(nextMode)
 	mode = nextMode
 	if brain.mode ~= nextMode then Brain.set(brain, nextMode, workspace:GetServerTimeNow()) end
@@ -684,7 +700,13 @@ local function step(now, dt)
 			end
 		end
 	else
-		local candidate = targetContext(target, Rules.GIVE_UP_DISTANCE, mode == "Hunt", Rules.CHASE_LEASH)
+		-- Alert still needs its quarry in sight; Hunt and Telegraph keep an unseen quarry for the memory (memory fix).
+		local candidate
+		if mode == "Alert" then
+			candidate = targetContext(target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
+		else
+			candidate = quarryContext(target)
+		end
 		if not candidate or candidate.character ~= targetLife then
 			loseTarget(now, phase)
 		elseif candidate.hidden and not candidate.visible then
@@ -743,9 +765,10 @@ local function step(now, dt)
 			-- Never lunge/teleport into a hit. Stationary wind-up; the gates validate the current character again.
 			local completedPresentation = resolveImpact(now)
 			lastAttackAt = now
-			-- Chase pass (CP-D1): a quarry still alive, in sight and in reach of the hunt is chased again at once; the
-			-- cooldown spaces the next telegraph. Anything else ends the hunt as before.
-			local again = targetContext(target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
+			-- Chase pass (CP-D1): a quarry still alive and in reach of the hunt is chased again at once; the cooldown spaces
+			-- the next telegraph. Memory fix: one that slipped out of sight is hunted on memory from where it was last seen.
+			-- Anything else ends the hunt as before.
+			local again = quarryContext(target)
 			if again and again.character == targetLife and huntState then
 				if visual then visual:finishTelegraph(completedPresentation == true) end
 				telegraphEndsAt = 0

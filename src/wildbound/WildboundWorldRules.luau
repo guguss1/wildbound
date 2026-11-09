@@ -178,6 +178,18 @@ function Rules.validTarget(alive, x, z, guardianX, guardianZ, range, leash)
 		and Rules.distance(x, z, guardianX, guardianZ) <= range
 end
 
+-- Memory fix (2026-11-09): whether a hunt keeps its quarry this step. observation = { alive, hidden, visible, distance }
+-- where visible is legal sight (validTarget, same floor, nothing between) and distance is flat studs to the guardian.
+-- Only a gone quarry, one that hid unseen, or one beyond the give-up distance ends the chase; anything else that is not
+-- legal sight (cover, the spawn pad, the fog edge, the pursuit leash, another floor) only reads as out of sight, so the
+-- phase's memory runs before the search.
+function Rules.pursuit(observation)
+	if type(observation) ~= "table" or observation.alive ~= true then return false end
+	if observation.hidden == true and observation.visible ~= true then return false end
+	local distance = observation.distance
+	return Rules.finite(distance) and distance >= 0 and distance <= Rules.GIVE_UP_DISTANCE
+end
+
 function Rules.canStrike(now, telegraphEndsAt, lastAttackAt, distance, alive, safe, visible)
 	return Rules.finite(now) and Rules.finite(telegraphEndsAt) and telegraphEndsAt > 0
 		and Rules.finite(lastAttackAt) and now >= telegraphEndsAt
