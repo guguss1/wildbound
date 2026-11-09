@@ -158,23 +158,8 @@ eligibility.Parent = network
 
 local records, serial = {}, 0
 local playersByUserId = {}
-local notices = {
-	InvalidContext = "Move closer while alive and try again.", Empty = "Your bag is empty.",
-	BackpackFull = "Bag full. Return to camp to extract.", AlreadyClaimed = "Someone collected this encounter.",
-	CollectionFull = "Session collection limit reached (100 items).",
-	NotOwnedEgg = "Select one of your banked eggs.", NotOwnedPet = "Only your registered pets can be equipped.",
-	NotOwnedPending = "Select an item in your temporary bag.",
-	NoSeal = "No seal. Craft one at camp; your first extraction also earns one.",
-	AlreadyProtected = "One item is already protected.", InvalidEncounter = "This encounter is no longer available.",
-	PouchFull = "Pouch full. Extract at camp to bank materials.", AlreadyGathered = "You already gathered here this trip.",
-	InvalidYield = "This node is no longer available.", NotAtCamp = "Do this at camp.",
-	CannotAfford = "Not enough banked materials or Ember.", AtLimit = "You cannot hold more of that.",
-	AlreadyOwned = "Already owned.", NoTotem = "You have no totem.",
-	AlreadyLeft = "The totem stays set once you leave camp.", NotAtShelter = "Use a capsule at the shelter.",
-	NoCapsule = "You have no capsule.", MovedAway = "You moved. Hold still while you gather.",
-	NeedsPrerequisite = "Learn the first skill of this branch first.",
-	EffectPending = "This skill's effect is not in the build yet, so it cannot be bought.",
-}
+-- Next batch NB3: every refusal and reply of this script, in Spanish, from WildboundText.NOTICES.
+local notices = Text.NOTICES
 -- The capture path's own refusals and endings read the shared text module first (H3).
 local function captureNotice(reason)
 	return Text.CAPTURE_NOTICES[reason] or notices[reason] or Text.CAPTURE_NOTICES.InvalidPlayer
@@ -326,7 +311,7 @@ local function context(player, target)
 	return true, (root.Position - target.Position).Magnitude
 end
 local function reply(player, action, ok, reason, success)
-	send(player, action, ok, ok and success or (notices[reason] or "That action is not available."))
+	send(player, action, ok, ok and success or (notices[reason] or notices.fallback))
 end
 -- input = one entry of WildboundPromptKeys. Camp prompts each have their own, so the nearest marker cannot take
 -- the key of another (found in W3b); Lumipol and drop prompts keep E.
@@ -347,12 +332,12 @@ end
 local function hatch(player, uid)
 	local alive, distance = context(player, hatchMarker)
 	local ok, reason = state:hatch(player.UserId, uid, alive, distance)
-	reply(player, "Hatch", ok, reason, "Lumipol hatched and registered. Hatching is free.")
+	reply(player, "Hatch", ok, reason, notices.hatched)
 end
 -- B8: a seal wards a bag item anywhere while alive (M5.5). It is spent only if it saves the item.
 local function protect(player, uid)
 	local ok, reason = state:protect(player.UserId, uid, context(player))
-	reply(player, "Protect", ok, reason, "Item warded for one defeat. A seal is spent only if it saves the item.")
+	reply(player, "Protect", ok, reason, notices.warded)
 end
 local function extractNotice(count, receipt)
 	local units = 0
@@ -377,19 +362,19 @@ extractPrompt.Triggered:Connect(function(player)
 		reply(player, "Extract", false, count)
 	end
 end)
-local hatchPrompt = prompt(hatchMarker, "Hatch first egg", "Free hatch", 12, nil, Keys.CAMP.hatch)
+local hatchPrompt = prompt(hatchMarker, notices.hatchPrompt, notices.hatchObject, 12, nil, Keys.CAMP.hatch)
 hatchPrompt.Triggered:Connect(function(player)
 	if not validPrompt(hatchPrompt, hatchMarker) or not allowed(player, "Hatch") then return end
 	local snapshot = state:snapshot(player.UserId)
 	local egg = snapshot and snapshot.bankedEggs[1]
 	hatch(player, egg and egg.uid)
 end)
-local protectionPrompt = prompt(protectionMarker, "Choose protected item", "Earned protection", 12, nil, Keys.CAMP.protect)
+local protectionPrompt = prompt(protectionMarker, notices.protectPrompt, notices.protectObject, 12, nil, Keys.CAMP.protect)
 protectionPrompt.Triggered:Connect(function(player)
 	if not validPrompt(protectionPrompt, protectionMarker) or not allowed(player, "ProtectHint") then return end
 	local alive, distance = context(player, protectionMarker)
 	if alive and distance == distance and distance <= 12 then
-		send(player, "ProtectHint", true, "Choose a bag item and press Protect, anywhere. Or arm a seal before you leave.")
+		send(player, "ProtectHint", true, notices.protectHint)
 	end
 end)
 
@@ -1240,7 +1225,7 @@ end)
 pulseHit.Event:Connect(function(player, inFog)
 	if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or inFog ~= true then return end
 	local ok, xp = state:bondEvent(player.UserId, "pulseRevealInFog", (context(player)))
-	if ok then send(player, "Bond", true, ("Bond +%d pending. Extract at camp to keep it."):format(xp)) end
+	if ok then send(player, "Bond", true, notices.bond:format(xp)) end
 end)
 
 -- Dropped items (D6, M4.6). Each lies near its owner for 30 s; only the owner can pick it up.
@@ -1262,7 +1247,7 @@ local function removeDropsOf(player)
 	end
 end
 local function itemName(entry)
-	return entry.kind == "Egg" and "Lumipol egg" or entry.kind == "Nightbloom" and "Nightbloom bundle" or "Lumipol"
+	return entry.kind == "Egg" and notices.itemEgg or entry.kind == "Nightbloom" and notices.itemBundle or notices.itemCreature
 end
 local function spawnDrop(player, entry, towardX, towardZ)
 	local root = rootOf(player)
@@ -1277,25 +1262,25 @@ local function spawnDrop(player, entry, towardX, towardZ)
 	model.Name = "DroppedItem"
 	model:SetAttribute("OwnerUserId", player.UserId)
 	local drop = { owner = player, uid = entry.uid, model = model }
-	drop.prompt = prompt(body, "Pick up", "Dropped " .. itemName(entry), 10, 0.25)
+	drop.prompt = prompt(body, notices.pickUp, notices.droppedObject:format(itemName(entry)), 10, 0.25)
 	drop.connection = drop.prompt.Triggered:Connect(function(who)
 		if drops[entry.uid] ~= drop or not validPrompt(drop.prompt, body) then return end
 		if who ~= drop.owner then
-			if allowed(who, "DropRefused") then send(who, "Pickup", false, "This belongs to another player.") end
+			if allowed(who, "DropRefused") then send(who, "Pickup", false, notices.notYours) end
 			return
 		end
 		if not allowed(who, "Reclaim") then return end
 		local alive, distance = context(who, body)
 		local ok, reason = state:reclaimDropped(who.UserId, entry.uid, alive, distance)
 		if ok then removeDrop(entry.uid) end
-		reply(who, "Reclaim", ok, reason, "Picked up your dropped " .. itemName(entry) .. ".")
+		reply(who, "Reclaim", ok, reason, notices.reclaimed:format(itemName(entry)))
 	end)
 	drops[entry.uid] = drop
 	task.delay(DROP_SECONDS, function()
 		if drops[entry.uid] ~= drop then return end
 		removeDrop(entry.uid)
 		local ok = state:loseDropped(player.UserId, entry.uid)
-		if ok then send(player, "DropLost", false, "Your dropped " .. itemName(entry) .. " was lost.") end
+		if ok then send(player, "DropLost", false, notices.dropLost:format(itemName(entry))) end
 	end)
 end
 
@@ -1332,9 +1317,9 @@ end
 local function gatherNotice(receipt)
 	local name = MATERIAL_NAMES[receipt.material] or receipt.material
 	if receipt.wasted > 0 then
-		return ("Gathered %d %s. Pouch full: %d left behind."):format(receipt.taken, name, receipt.wasted)
+		return notices.gatheredFull:format(receipt.taken, name, receipt.wasted)
 	end
-	return ("Gathered %d %s."):format(receipt.taken, name)
+	return notices.gathered:format(receipt.taken, name)
 end
 local gatherSpawn = Instance.new("BindableFunction")
 gatherSpawn.Name = "GatherSpawn"
@@ -1712,35 +1697,32 @@ local function economyAction(player, action, argument)
 		if ok then
 			if action == "Craft" then analytics:crafted(key, argument) else analytics:spent(key, "upgrade") end
 		end
-		reply(player, action, ok, result, action == "Craft" and ("Crafted. You now hold %s."):format(tostring(result))
-			or "Upgrade bought. It lasts this session.")
+		reply(player, action, ok, result, action == "Craft" and notices.crafted:format(tostring(result)) or notices.upgraded)
 	elseif action == "ArmSeal" or action == "SealNewest" then
 		if argument ~= "seal" then return end
 		local alive = context(player)
 		local ok, result
 		if action == "ArmSeal" then ok, result = state:armSeal(key, alive) else ok, result = state:sealNewest(key, alive) end
-		reply(player, action, ok, result, action == "ArmSeal" and "Seal armed: your next new bag item is warded."
-			or "Newest item warded. A seal is spent only if it saves the item.")
+		reply(player, action, ok, result, action == "ArmSeal" and notices.sealArmed or notices.sealNewest)
 	elseif action == "ArmTotem" or action == "DisarmTotem" then
 		if argument ~= "totem" then return end
 		local alive, distance = context(player, campCenter)
 		local ok, result
 		if action == "ArmTotem" then ok, result = state:armTotem(key, alive, distance)
 		else ok, result = state:disarmTotem(key, alive, distance) end
-		reply(player, action, ok, result, action == "ArmTotem" and "Totem: Silueta senses you from farther."
-			or "Totem put away and refunded.")
+		reply(player, action, ok, result, action == "ArmTotem" and notices.totemSet or notices.totemAway)
 	elseif action == "Learn" then
 		if not EconomyConfig.skills[argument] then return end
 		local alive, distance = context(player, campCenter)
 		local ok, result = state:learn(key, argument, alive, distance)
 		if ok then analytics:spent(key, "skill") end
-		reply(player, action, ok, result, "Skill learned. It lasts this session.")
+		reply(player, action, ok, result, notices.learned)
 	elseif action == "UseCapsule" then
 		local alive, root = context(player), rootOf(player)
 		local distance = root and Rules.distance(root.Position.X, root.Position.Z, SHELTER_X, SHELTER_Z) or math.huge
 		local ok, result = state:useCapsule(key, argument, alive, distance)
 		if ok then analytics:spent(key, "capsule") end
-		reply(player, action, ok, result, ok and ("Banked at the shelter. Earned %d Ember."):format(result.ember) or nil)
+		reply(player, action, ok, result, ok and notices.capsule:format(result.ember) or nil)
 	end
 end
 
@@ -1750,7 +1732,7 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 		and action ~= "CaptureCancel" and action ~= "CaptureSeal" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
-		send(player, action, true, "Session only: collection resets when you leave this server.")
+		send(player, action, true, notices.sessionOnly)
 		return
 	end
 	if type(uid) ~= "string" or #uid == 0 or #uid > 128 or not allowed(player, action) then return end
@@ -1843,7 +1825,7 @@ local function bindCharacter(player, character)
 	-- Once per new character, not an ability teleport; preserve the existing SpawnLocation.
 	character:PivotTo(CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))
 	applyCarry(player)
-	send(player, "Respawn", true, "Return temporary loot to camp. Registered collection is session only.")
+	send(player, "Respawn", true, notices.respawn)
 end
 local function addPlayer(player)
 	if records[player] then return end

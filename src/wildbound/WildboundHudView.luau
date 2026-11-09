@@ -104,19 +104,20 @@ end
 
 -- awareness is the snapshot value ({ state, searchEndsAt?, attackEndsAt? }); fresh is false when the
 -- world state is stale; now is the server clock. Shapes: square attack, diamond seen, ring searching,
--- dot ally, dash none. The text always names the state, so the chip never depends on hue or audio.
+-- dot ally, dash none. The text always names the state, so the chip never depends on hue or audio. Next batch NB3:
+-- the words are neutral Spanish (full forms at most 26 bytes, compact at most 17).
 function View.chip(awareness, fresh, now, compact)
 	if fresh ~= true or not finite(now) then
-		return entry("unknown", "unknown", "dash", "-", compact and "No signal" or "Waiting for server")
+		return entry("unknown", "unknown", "dash", "-", compact and "Sin señal" or "Esperando al servidor")
 	end
 	local state = type(awareness) == "table" and awareness.state or "none"
 	if state == "seen" then
 		if View.attackPending(awareness) then
-			return entry("attack", "seen", "square", "!!", compact and "ATTACK! Move!" or "ATTACK! Move away!")
+			return entry("attack", "seen", "square", "!!", compact and "¡ATAQUE! Huye" or "¡ATAQUE! ¡Apártate!")
 		end
-		return entry("seen", "seen", "diamond", "!", "Silueta sees you")
+		return entry("seen", "seen", "diamond", "!", "La Silueta te ve")
 	elseif state == "searching" then
-		local label = compact and "Searching" or "Silueta is searching"
+		local label = compact and "Te busca" or "La Silueta te busca"
 		local deadline = awareness.searchEndsAt
 		if finite(deadline) then
 			local seconds = math.max(0, deadline - now)
@@ -124,9 +125,9 @@ function View.chip(awareness, fresh, now, compact)
 		end
 		return entry("searching", "searching", "ring", "?", label)
 	elseif state == "ally" then
-		return entry("ally", "ally", "dot", "i", compact and "Friend hunted" or "Silueta hunts a friend")
+		return entry("ally", "ally", "dot", "i", compact and "Caza a un amigo" or "La Silueta caza a un amigo")
 	end
-	return entry("none", "none", "dash", "-", "No hunt nearby")
+	return entry("none", "none", "dash", "-", "Sin caza cerca")
 end
 
 function View.newChipCache()
@@ -155,16 +156,16 @@ function View.chipCached(cache, awareness, fresh, now, compact)
 	return cache.view
 end
 
--- The panel line under the phase. Priority: attack, threat, revealed, dusk, fog, night, calm.
+-- The panel line under the phase. Priority: attack, threat, revealed, dusk, fog, night, calm. Spanish since NB3.
 function View.hint(info)
 	info = type(info) == "table" and info or {}
-	if info.attack == true then return "Attack incoming: move away!" end
-	if info.threat == true then return "Threat nearby: move toward shelter." end
-	if info.revealed == true then return "Silueta revealed. Keep moving." end
-	if info.phase == "Dusk" then return "Dusk: night is approaching." end
-	if info.isFog == true then return "Fog forest: stay alert." end
-	if info.phase == "Night" then return "Night: Nightbloom blooms in the fog." end
-	return "Explore or return to camp."
+	if info.attack == true then return "¡Ataque en camino! Apártate." end
+	if info.threat == true then return "Peligro cerca: ve a un refugio." end
+	if info.revealed == true then return "La Silueta se ve. ¡Muévete!" end
+	if info.phase == "Dusk" then return "Atardecer: llega la noche." end
+	if info.isFog == true then return "Bosque de niebla: mantente alerta." end
+	if info.phase == "Night" then return "Noche: florece el Nightbloom." end
+	return "Explora o vuelve al campamento."
 end
 
 function View.newNotice()

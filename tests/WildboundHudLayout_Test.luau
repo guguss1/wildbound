@@ -222,8 +222,10 @@ return function(Layout, View, source)
 	end)
 
 	case("every phone hint and chip text fits the room the layout gives it", function()
-		local hints = { "Attack incoming: move away!", "Threat nearby: move toward shelter.", "Silueta revealed. Keep moving.",
-			"Dusk: night is approaching.", "Fog forest: stay alert.", "Explore or return to camp." }
+		-- Deliberately changed in NB3: the Spanish hints and short notices.
+		local hints = { "¡Ataque en camino! Apártate.", "Peligro cerca: ve a un refugio.", "La Silueta se ve. ¡Muévete!",
+			"Atardecer: llega la noche.", "Bosque de niebla: mantente alerta.", "Explora o vuelve al campamento.",
+			"Noche: florece el Nightbloom." }
 		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[5], DEVICES[6] }) do
 			local layout = layoutOf(device)
 			local twoLines = Layout.charBudget(layout.rects.panel.w - 16, 13, 2)
@@ -232,7 +234,7 @@ return function(Layout, View, source)
 			end
 			local chipRoom = Layout.charBudget(layout.rects.chip.w - Layout.CHIP_TEXT_INSET, 14, 1)
 			assert(chipRoom >= View.CONSTANTS.COMPACT_CHIP_CHARS, device.name .. ": chip room " .. chipRoom)
-			for _, text in ipairs({ "Revealed 4 s. Keep moving.", "Missed. Move closer, face it.", "Not available right now." }) do
+			for _, text in ipairs({ "Revelada 4 s. ¡Muévete!", "Fallaste. Acércate y mírala.", "No disponible ahora." }) do
 				assert(#text <= twoLines, device.name .. ": notice '" .. text .. "'")
 			end
 		end

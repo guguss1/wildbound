@@ -207,7 +207,8 @@ return function(Field, Config, Spawn, source, gatherSource, serverSource)
 	case("the server's claim seam accepts a moved flag and names the refusal for the player", function()
 		assert(serverSource:find("function(player, nodeId, moved)", 1, true), "the claim takes the moved flag")
 		assert(serverSource:find('"MovedAway"', 1, true), "the refusal is named")
-		assert(serverSource:find("MovedAway = ", 1, true), "and has words")
+		-- Deliberately changed in NB3: the words live in WildboundText.NOTICES, which the server reads.
+		assert(serverSource:find("local notices = Text.NOTICES", 1, true), "and has words")
 	end)
 
 	return result

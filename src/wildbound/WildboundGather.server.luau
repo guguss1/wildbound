@@ -8,6 +8,8 @@ local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Field = require(script.Parent:WaitForChild("WildboundGatherField"))
 local Spawn = require(script.Parent:WaitForChild("WildboundSpawn"))
 local Config = require(ReplicatedStorage:WaitForChild("WildboundEconomyConfig"))
+-- Next batch NB3: the gather prompt's words in Spanish.
+local Words = require(ReplicatedStorage:WaitForChild("WildboundText")).NOTICES
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network then
@@ -102,8 +104,8 @@ local function build(node)
 		light.Parent = body
 	end
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText = "Gather"
-	prompt.ObjectText = ("%s x%d%s"):format(look.name, node.quantity or 1, node.material == "nightbloom" and " · wilts at Dawn" or "")
+	prompt.ActionText = Words.gather
+	prompt.ObjectText = ("%s x%d%s"):format(look.name, node.quantity or 1, node.material == "nightbloom" and Words.wilts or "")
 	prompt.MaxActivationDistance, prompt.HoldDuration = Config.gather.promptRange, node.hold
 	prompt.RequiresLineOfSight = false
 	-- Its own keys, so a wild Lumipol standing on a node (it roams near T1) cannot take the button: prompts on the

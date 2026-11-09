@@ -65,12 +65,15 @@ local totemHolders = setmetatable({}, { __mode = "k" })
 -- D-C5: Spanish strike, dodge and rest words. Missing means the English fallbacks in FairStrike.
 local strikeWords
 local hideWords = {}
+-- Next batch NB3: the flashlight and pulse replies in Spanish (WildboundText.ABILITY).
+local abilityWords = { notices = {}, short = {} }
 do
 	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
 	if textModule and textModule:IsA("ModuleScript") then
 		local ok, value = pcall(require, textModule)
 		if ok and type(value) == "table" and type(value.STRIKE) == "table" then strikeWords = value.STRIKE end
 		if ok and type(value) == "table" and type(value.HIDE) == "table" then hideWords = value.HIDE end
+		if ok and type(value) == "table" and type(value.ABILITY) == "table" then abilityWords = value.ABILITY end
 	end
 end
 -- M5.6 bond: a pulse that revealed Silueta to a player in the fog is reported on a server-only event.
@@ -543,7 +546,7 @@ local function issueAttack(now)
 		guardianGeneration = guardianGeneration, now = now, endsAt = telegraphEndsAt, salt = salt,
 		dwellOk = FairStrike.dwellOk(ledger, target.UserId, targetLife, now) })
 	attackWarning:FireClient(target, { attackId = attack.attackId, issuedAt = now, endsAt = telegraphEndsAt,
-		notice = strikeWords and strikeWords.dodge or "Dodge! Move away from Silueta." })
+		notice = strikeWords and strikeWords.dodge or "" })
 	FairStrike.warned(ledger, attack.attackId, now)
 	-- Diagnostic for MT-6 and the dwell gate: seconds near at issue, or -1 for not near or another life.
 	local life = ledger.lives[target.UserId]
@@ -579,7 +582,7 @@ local function resolveImpact(now)
 		elseif out.outcome == "shadow" and latest and damageMode == "private" and strikeMode == "off" then
 			extra.spared += 1
 			outcome = "Spared"
-			notice = strikeWords and strikeWords.spared or "Silueta reached you, but it cannot hurt you yet."
+			notice = strikeWords and strikeWords.spared or ""
 		end
 		-- A strike that passed every gate ends that player's capture whether or not damage is on (M3.3).
 		if (out.outcome == "strike" or out.outcome == "shadow") and latest and strikeEvent then strikeEvent:Fire(latest.player) end
@@ -600,8 +603,8 @@ local function stepMarks(now)
 				humanoid.Health = MARKED_HEALTH
 			elseif rest == "cleared" then
 				humanoid.Health = humanoid.MaxHealth
-				snapshot(player, "Rest", true, strikeWords and strikeWords.rested or "You rested. The mark is gone.",
-					strikeWords and strikeWords.restedShort or "Mark cleared.")
+				snapshot(player, "Rest", true, strikeWords and strikeWords.rested or "",
+					strikeWords and strikeWords.restedShort or "")
 			end
 		end
 	end
@@ -991,17 +994,9 @@ end
 for _, spot in ipairs(CollectionService:GetTagged("WildboundHideSpot")) do bindHideSpot(spot) end
 table.insert(connections, CollectionService:GetInstanceAddedSignal("WildboundHideSpot"):Connect(bindHideSpot))
 
-local notices = {
-	InvalidContext = "Use abilities while alive in your current character.",
-	NotEquipped = "Extract and equip a registered Lumipol first. The flashlight is always free.",
-	Cooldown = "Ability is cooling down.", Miss = "No Silueta revealed. Move within 55 studs; face it for flashlight.",
-	Revealed = "Silueta revealed for 4 seconds. Keep moving; it is not defeated.",
-}
--- Short forms for small screens, so the line is collapsed instead of shrunk or clipped.
-local noticesShort = {
-	InvalidContext = "Not available right now.", NotEquipped = "Equip a Lumipol first.",
-	Cooldown = "Cooling down.", Miss = "Missed. Move closer, face it.", Revealed = "Revealed 4 s. Keep moving.",
-}
+-- Next batch NB3: the replies come from WildboundText.ABILITY; the short forms are for small screens, so the line is
+-- collapsed instead of shrunk or clipped.
+local notices, noticesShort = abilityWords.notices, abilityWords.short
 table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, action, ...)
 	if stopped or select("#", ...) ~= 0 or type(action) ~= "string" then return end
 	if action ~= "RequestSnapshot" and action ~= "Flashlight" and action ~= "LumipolPulse" and action ~= "HideExit" then return end
@@ -1013,7 +1008,7 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 	record.lastRequest, record.rates[action] = now, now
 	if action == "HideExit" then return releaseHide(player, "exit", now) end
 	if action == "RequestSnapshot" then
-		snapshot(player, action, true, "Connected to the shared world clock.")
+		snapshot(player, action, true, abilityWords.connected or "")
 		return
 	end
 	local eligible = action == "LumipolPulse" and hasLumipol(player)
@@ -1037,7 +1032,8 @@ table.insert(connections, actionRemote.OnServerEvent:Connect(function(player, ac
 			pulseHit:Fire(player, true)
 		end
 	end
-	snapshot(player, action, ok, notices[reason] or "Ability not available.", noticesShort[reason] or "Not available.")
+	snapshot(player, action, ok, notices[reason] or abilityWords.unavailable or "",
+		noticesShort[reason] or abilityWords.unavailableShort or "")
 end))
 
 -- AttackAck(attackId): at most 4 per second per player; excess is dropped silently, with no reply.

@@ -2,7 +2,8 @@
 -- part 2). Snapshot in, plain rows and rectangles out. Nothing here reads or writes an interface object,
 -- the clock or a service; the controllers apply it. The tuning copy and the economy rules are passed in.
 -- Every disabled row says why in words, and every line has a budget it never exceeds, so no text depends on
--- hue and none is clipped. See docs/ui/wildbound-world.md.
+-- hue and none is clipped. See docs/ui/wildbound-world.md. Next batch NB3: every player word here is neutral Spanish;
+-- the material names (Fogbark, Glowmoss, Nightbloom) and Ember stay as proper names.
 local View = {}
 
 View.MIN_TARGET = 44
@@ -22,21 +23,21 @@ View.HEADER_H = 44
 local NAMES = table.freeze({ ember = "Ember", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
 local ORDER = table.freeze({ "ember", "fogbark", "glowmoss", "nightbloom" })
 local RECIPES = table.freeze({
-	{ id = "seal", title = "Ward Seal", effect = "saves one bag item if you are defeated" },
-	{ id = "totem", title = "Last Breath Totem", effect = "wards one more item, but Silueta senses you from farther" },
-	{ id = "capsule", title = "Extraction Capsule", effect = "banks one bag item at the shelter" },
+	{ id = "seal", title = "Sello protector", effect = "salva un objeto de la bolsa si te derrotan" },
+	{ id = "totem", title = "Tótem", effect = "protege un objeto más; La Silueta te nota antes" },
+	{ id = "capsule", title = "Cápsula", effect = "guarda un objeto en el refugio" },
 })
 local SKILLS = table.freeze({
-	{ id = "explorer_1", title = "Trail Sense", effect = "gather nodes within %d studs", key = "nodeHintRange" },
-	{ id = "explorer_2", title = "Night Nose", effect = "Nightbloom within %d studs at Night", key = "nightbloomHintRange" },
-	{ id = "capturer_1", title = "Steady Hands", effect = "calm a Lumipol faster" },
-	{ id = "capturer_2", title = "Soft Approach", effect = "shorter wait after a failed calm" },
-	{ id = "survivor_1", title = "Light Load", effect = "eggs slow you %d less", key = "carrySpeedBonus" },
-	{ id = "survivor_2", title = "Quick Rest", effect = "clears a Silueta mark sooner" },
-	{ id = "occultist_1", title = "Read the Signs", effect = "hints when Silueta moves" },
-	{ id = "occultist_2", title = "Long Reveal", effect = "your flashlight reveal lasts longer" },
+	{ id = "explorer_1", title = "Rastro", effect = "puntos de recolección a %d studs", key = "nodeHintRange" },
+	{ id = "explorer_2", title = "Olfato nocturno", effect = "Nightbloom a %d studs de noche", key = "nightbloomHintRange" },
+	{ id = "capturer_1", title = "Manos firmes", effect = "calmas a un Lumipol más rápido" },
+	{ id = "capturer_2", title = "Paso suave", effect = "esperas menos tras fallar la calma" },
+	{ id = "survivor_1", title = "Carga ligera", effect = "los huevos te frenan %d menos", key = "carrySpeedBonus" },
+	{ id = "survivor_2", title = "Descanso rápido", effect = "la marca se borra antes" },
+	{ id = "occultist_1", title = "Leer señales", effect = "avisos si La Silueta se mueve" },
+	{ id = "occultist_2", title = "Luz larga", effect = "tu linterna revela más tiempo" },
 })
-local BRANCHES = table.freeze({ explorer = "Explorer", capturer = "Capturer", survivor = "Survivor", occultist = "Occultist" })
+local BRANCHES = table.freeze({ explorer = "Rastreo", capturer = "Captura", survivor = "Aguante", occultist = "Ocultismo" })
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -46,14 +47,14 @@ local function amount(value)
 	return finite(value) and math.max(0, math.floor(value)) or 0
 end
 
--- "8 Fogbark, 4 Glowmoss" in a fixed order. Nothing to pay reads "Free".
+-- "8 Fogbark, 4 Glowmoss" in a fixed order. Nothing to pay reads "Gratis".
 function View.costText(cost)
 	local parts = {}
 	for _, key in ipairs(ORDER) do
 		local value = type(cost) == "table" and cost[key] or nil
 		if finite(value) and value > 0 then table.insert(parts, ("%d %s"):format(value, NAMES[key])) end
 	end
-	return #parts == 0 and "Free" or table.concat(parts, ", ")
+	return #parts == 0 and "Gratis" or table.concat(parts, ", ")
 end
 
 -- What is missing to pay a cost from this wallet, as words, or nil when it can be paid.
@@ -63,11 +64,11 @@ function View.shortfall(wallet, cost)
 		local need = type(cost) == "table" and cost[key] or nil
 		if finite(need) and need > 0 then
 			local have = key == "ember" and amount(wallet and wallet.ember) or amount(wallet and wallet.banked and wallet.banked[key])
-			if have < need then table.insert(missing, ("%d more %s"):format(need - have, NAMES[key])) end
+			if have < need then table.insert(missing, ("%d %s más"):format(need - have, NAMES[key])) end
 		end
 	end
 	if #missing == 0 then return nil end
-	return "Need " .. table.concat(missing, " and ")
+	return "Faltan " .. table.concat(missing, " y ")
 end
 
 local function walletOf(snapshot)
@@ -81,8 +82,8 @@ end
 
 -- First reason a purchase is unavailable, in the order a player would fix them.
 local function reason(ctx, snapshot, cost, extra)
-	if ctx.busy == true then return "Wait a moment" end
-	if ctx.atCamp == false then return "Go to camp" end
+	if ctx.busy == true then return "Espera un momento" end
+	if ctx.atCamp == false then return "Ve al campamento" end
 	if extra then return extra end
 	return View.shortfall(walletOf(snapshot), cost)
 end
@@ -91,23 +92,23 @@ end
 local UPGRADE_WORDS = table.freeze({
 	farolTapado = table.freeze({ order = 1, title = "Farol tapado",
 		effect = "tu linterna molesta menos a las criaturas dormidas",
-		owned = "Farol tapado: owned. Tu linterna molesta menos a las criaturas dormidas." }),
-	reinforcedPack = table.freeze({ order = 2, title = "Reinforced Pack",
-		effect = "bag 4, pouch 45, a defeat takes a tenth instead of a fifth",
-		owned = "Reinforced Pack: owned. Bag 4, pouch 45, a defeat takes a quarter." }),
+		owned = "Farol tapado: comprado. Tu linterna molesta menos a las criaturas dormidas." }),
+	reinforcedPack = table.freeze({ order = 2, title = "Mochila reforzada",
+		effect = "bolsa 4, zurrón 45, una derrota quita un décimo",
+		owned = "Mochila reforzada: comprada. Bolsa 4, zurrón 45, una derrota quita un décimo." }),
 })
 
 local function line(title, effect, cost, why)
-	local text = ("%s: %s. Cost: %s."):format(title, effect, View.costText(cost))
+	local text = ("%s: %s. Precio: %s."):format(title, effect, View.costText(cost))
 	return why and why ~= "" and (text .. " " .. why .. ".") or text
 end
 
 -- The compact wording: the name and either what is missing or the price, never both.
 local function shortLine(title, cost, why)
 	if why and why ~= "" then
-		-- "Need 3 more Fogbark and 2 more Glowmoss" becomes "Short 3 Fogbark, 2 Glowmoss": shorter, same facts.
-		local missing = why:match("^Need (%d.*)$")
-		if missing then why = "Short " .. missing:gsub(" more ", " "):gsub(" and ", ", ") end
+		-- "Faltan 3 Fogbark más y 2 Glowmoss más" becomes "Faltan 3 Fogbark, 2 Glowmoss": shorter, same facts.
+		local missing = why:match("^Faltan (%d.*)$")
+		if missing then why = "Faltan " .. missing:gsub(" más", ""):gsub(" y ", ", ") end
 		return ("%s: %s."):format(title, why)
 	end
 	return ("%s: %s."):format(title, View.costText(cost))
@@ -120,35 +121,37 @@ function View.campRows(config, economy, snapshot, ctx)
 	ctx = type(ctx) == "table" and ctx or {}
 	local rows = {}
 	local banked = type(snapshot.banked) == "table" and snapshot.banked or {}
-	table.insert(rows, row("banked", "Stock", ("Banked: %d Fogbark, %d Glowmoss, %d Nightbloom. Ember: %d."):format(
+	table.insert(rows, row("banked", "Stock", ("Guardado: %d Fogbark, %d Glowmoss, %d Nightbloom. Ember: %d."):format(
 		amount(banked.fogbark), amount(banked.glowmoss), amount(banked.nightbloom), amount(snapshot.ember))))
 	local consumables = type(snapshot.consumables) == "table" and snapshot.consumables or {}
 	for _, recipe in ipairs(RECIPES) do
 		local spec = config.recipes[recipe.id]
 		if spec then
 			local held, cap = amount(consumables[recipe.id]), config.capacity.consumableCaps[recipe.id]
-			local extra = held >= cap and ("You hold the most (%d)"):format(cap) or nil
+			local extra = held >= cap and ("Ya tienes el máximo (%d)"):format(cap) or nil
 			local why = reason(ctx, snapshot, spec.cost, extra)
-			local made = row("craft:" .. recipe.id, "Craft", line(("%s (hold %d of %d)"):format(recipe.title, held, cap),
-				recipe.effect, spec.cost, why), "Craft", recipe.id, "Craft", why == nil, why)
+			local made = row("craft:" .. recipe.id, "Craft", line(("%s (tienes %d de %d)"):format(recipe.title, held, cap),
+				recipe.effect, spec.cost, why), "Craft", recipe.id, "Fabricar", why == nil, why)
 			made.short = shortLine(("%s %d/%d"):format(recipe.title, held, cap), spec.cost, why)
 			table.insert(rows, made)
 		end
 	end
 	if amount(consumables.seal) > 0 or snapshot.sealArmed == true then
 		local armed = snapshot.sealArmed == true
-		local why = armed and "Armed" or (ctx.busy and "Wait a moment" or nil)
-		table.insert(rows, row("arm:seal", "Craft", armed and "Seal armed: your next new bag item is warded."
-			or "Arm a seal before you leave: your next new bag item is warded.", "ArmSeal", "seal", "Arm", not armed and not ctx.busy, why))
+		local why = armed and "Preparado" or (ctx.busy and "Espera un momento" or nil)
+		table.insert(rows, row("arm:seal", "Craft", armed and "Sello preparado: tu próximo objeto nuevo queda protegido."
+			or "Prepara un sello antes de salir: tu próximo objeto nuevo queda protegido.", "ArmSeal", "seal", "Preparar",
+			not armed and not ctx.busy, why))
 	end
 	if snapshot.totemActive == true then
-		local why = ctx.atCamp == false and "Go to camp" or (snapshot.expedition and "Already out" or nil)
-		table.insert(rows, row("totem:off", "Craft", "Totem set: Silueta senses you from farther. Put it away before you leave to get it back.",
-			"DisarmTotem", "totem", "Put away", why == nil and not ctx.busy, why))
+		local why = ctx.atCamp == false and "Ve al campamento" or (snapshot.expedition and "Ya saliste" or nil)
+		table.insert(rows, row("totem:off", "Craft",
+			"Tótem puesto: La Silueta te percibe antes. Guárdalo antes de salir para recuperarlo.",
+			"DisarmTotem", "totem", "Guardar", why == nil and not ctx.busy, why))
 	elseif amount(consumables.totem) > 0 then
-		local why = ctx.atCamp == false and "Go to camp" or nil
-		table.insert(rows, row("totem:on", "Craft", "Set the totem: it wards one more item, but Silueta senses you from farther.",
-			"ArmTotem", "totem", "Set", why == nil and not ctx.busy, why))
+		local why = ctx.atCamp == false and "Ve al campamento" or nil
+		table.insert(rows, row("totem:on", "Craft", "Pon el tótem: protege un objeto más, pero La Silueta te percibe antes.",
+			"ArmTotem", "totem", "Poner", why == nil and not ctx.busy, why))
 	end
 	local upgrades = type(snapshot.upgrades) == "table" and snapshot.upgrades or {}
 	local names = {}
@@ -156,12 +159,12 @@ function View.campRows(config, economy, snapshot, ctx)
 	table.sort(names, function(a, b) return (UPGRADE_WORDS[a] and UPGRADE_WORDS[a].order or 9) < (UPGRADE_WORDS[b] and UPGRADE_WORDS[b].order or 9) end)
 	for _, name in ipairs(names) do
 		local spec = config.upgrades[name]
-		local words = UPGRADE_WORDS[name] or { title = name, effect = "", owned = name .. ": owned." }
+		local words = UPGRADE_WORDS[name] or { title = name, effect = "", owned = name .. ": comprado." }
 		if upgrades[name] == true then
 			table.insert(rows, row("upgrade:" .. name, "Upgrade", words.owned, nil, nil, nil, false))
 		else
 			local why = reason(ctx, snapshot, spec.cost)
-			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why), "Upgrade", name, "Buy",
+			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why), "Upgrade", name, "Comprar",
 				why == nil, why)
 			made.short = shortLine(words.title, spec.cost, why)
 			table.insert(rows, made)
@@ -174,15 +177,15 @@ function View.campRows(config, economy, snapshot, ctx)
 			local effect = skill.key and skill.effect:format(spec.effects[skill.key] or 0) or skill.effect
 			local title = ("%s %d %s"):format(BRANCHES[spec.branch] or spec.branch, spec.tier, skill.title)
 			if owned[skill.id] == true then
-				table.insert(rows, row("skill:" .. skill.id, "Skills", ("%s: learned. %s."):format(title, effect), nil, nil, nil, false))
+				table.insert(rows, row("skill:" .. skill.id, "Skills", ("%s: aprendida. %s."):format(title, effect), nil, nil, nil, false))
 			else
 				local extra
 				for _, required in ipairs(spec.requires) do
-					if not owned[required] then extra = "Needs " .. (config.skills[required] and (BRANCHES[config.skills[required].branch] or "") .. " 1" or required) end
+					if not owned[required] then extra = "Requiere " .. (config.skills[required] and (BRANCHES[config.skills[required].branch] or "") .. " 1" or required) end
 				end
-				if not extra and spec.effectLive ~= true then extra = "Effect not built yet" end
+				if not extra and spec.effectLive ~= true then extra = "Efecto aún no disponible" end
 				local why = reason(ctx, snapshot, spec.cost, extra)
-				local made = row("skill:" .. skill.id, "Skills", line(title, effect, spec.cost, why), "Learn", skill.id, "Learn", why == nil, why)
+				local made = row("skill:" .. skill.id, "Skills", line(title, effect, spec.cost, why), "Learn", skill.id, "Aprender", why == nil, why)
 				made.short = shortLine(title, spec.cost, why)
 				table.insert(rows, made)
 			end
@@ -193,8 +196,8 @@ function View.campRows(config, economy, snapshot, ctx)
 	if equipped then
 		local xp, level = bond and amount(bond.xp) or 0, bond and amount(bond.level) or 1
 		local pending = amount(snapshot.pendingBondXp)
-		table.insert(rows, row("bond", "Bond", ("Companion bond: level %d, %d XP.%s Pulse hits in the fog earn XP; extracting banks it."):format(
-			level, xp, pending > 0 and (" +%d pending."):format(pending) or "")))
+		table.insert(rows, row("bond", "Bond", ("Vínculo del compañero: nivel %d, %d XP.%s Los pulsos que aciertan en la niebla dan XP; extraer la guarda."):format(
+			level, xp, pending > 0 and (" +%d pendiente."):format(pending) or "")))
 	end
 	if ctx.compact == true then
 		for _, item in ipairs(rows) do
@@ -215,15 +218,16 @@ function View.quickRows(snapshot, ctx)
 		if entry.protected == true and entry.wardSource == "Seal" then sealed = true end
 		if entry.protected ~= true then unsealed += 1 end
 	end
-	local why = ctx.busy and "Wait a moment" or seals < 1 and "No seal. Craft one at camp" or unsealed < 1 and "Nothing to ward"
-		or sealed and "One item is already sealed" or nil
-	local armWhy = ctx.busy and "Wait a moment" or snapshot.sealArmed == true and "Armed" or seals < 1 and "No seal. Craft one at camp" or nil
+	local why = ctx.busy and "Espera un momento" or seals < 1 and "No tienes sello. Fabrica uno en el campamento"
+		or unsealed < 1 and "Nada que proteger" or sealed and "Ya hay un objeto sellado" or nil
+	local armWhy = ctx.busy and "Espera un momento" or snapshot.sealArmed == true and "Preparado"
+		or seals < 1 and "No tienes sello. Fabrica uno en el campamento" or nil
 	return {
-		row("seal:newest", "Quick", why and ("Seal the newest item. " .. why .. ".") or "Seal the newest item in your bag.",
-			"SealNewest", "seal", "Seal newest", why == nil, why),
-		row("seal:arm", "Quick", snapshot.sealArmed == true and "Seal armed: your next new bag item is warded."
-			or armWhy and ("Arm a seal for your next item. " .. armWhy .. ".") or "Arm a seal for your next item.",
-			"ArmSeal", "seal", "Arm", armWhy == nil, armWhy),
+		row("seal:newest", "Quick", why and ("Sella el objeto más nuevo. " .. why .. ".") or "Sella el objeto más nuevo de tu bolsa.",
+			"SealNewest", "seal", "Sellar", why == nil, why),
+		row("seal:arm", "Quick", snapshot.sealArmed == true and "Sello preparado: tu próximo objeto nuevo queda protegido."
+			or armWhy and ("Prepara un sello para tu próximo objeto. " .. armWhy .. ".") or "Prepara un sello para tu próximo objeto.",
+			"ArmSeal", "seal", "Preparar", armWhy == nil, armWhy),
 	}
 end
 
@@ -252,22 +256,22 @@ function View.lossLine(snapshot, budget)
 	local items, lines, total, keep = lossTotals(snapshot)
 	budget = finite(budget) and math.floor(budget) or 40
 	if items == 0 and total == 0 then
-		return { text = "Nothing at risk.", tone = "safe", glyph = "OK", atRisk = false }
+		return { text = "Nada en riesgo.", tone = "safe", glyph = "OK", atRisk = false }
 	end
 	local parts = {}
-	if items > 0 then table.insert(parts, plural(items, "item", "items")) end
+	if items > 0 then table.insert(parts, plural(items, "objeto", "objetos")) end
 	for _, text in ipairs(lines) do table.insert(parts, text) end
-	local kept = keep > 0 and (" %d kept."):format(keep) or ""
+	local kept = keep > 0 and (" %d a salvo."):format(keep) or ""
 	local both = items > 0 and total > 0
-	local short = both and ("%s, %d mats"):format(plural(items, "item", "items"), total)
-		or items > 0 and plural(items, "item", "items") or plural(total, "mat", "mats")
+	local short = both and ("%s, %d mat."):format(plural(items, "obj.", "obj."), total)
+		or items > 0 and plural(items, "objeto", "objetos") or plural(total, "mat.", "mat.")
 	local candidates = {
-		"! If defeated you lose: " .. table.concat(parts, ", ") .. "." .. kept,
-		"! If defeated you lose: " .. table.concat(parts, ", ") .. ".",
-		"! Lose if defeated: " .. table.concat(parts, ", "),
-		"! Lose: " .. short,
+		"! Si te derrotan pierdes: " .. table.concat(parts, ", ") .. "." .. kept,
+		"! Si te derrotan pierdes: " .. table.concat(parts, ", ") .. ".",
+		"! En riesgo: " .. table.concat(parts, ", "),
+		"! Pierdes: " .. short,
 		"! " .. short,
-		"! Lose " .. (items + total),
+		"! Pierdes " .. (items + total),
 	}
 	for _, text in ipairs(candidates) do
 		if #text <= budget then return { text = text, tone = "risk", glyph = "!", atRisk = true } end
@@ -275,7 +279,7 @@ function View.lossLine(snapshot, budget)
 	return { text = ("! " .. (items + total)):sub(1, math.max(1, budget)), tone = "risk", glyph = "!", atRisk = true }
 end
 
-local DIRECTIONS = table.freeze({ "N", "NE", "E", "SE", "S", "SW", "W", "NW" })
+local DIRECTIONS = table.freeze({ "N", "NE", "E", "SE", "S", "SO", "O", "NO" })
 
 -- The compass line from Trail Sense and Night Nose. Gather nodes only: no creature, egg or capture slot is
 -- ever listed. `nodes` is a list of { x, z, material }; the player's position is (x, z). North is -Z.
@@ -299,7 +303,7 @@ function View.compass(effects, nodes, x, z, phase)
 	if not best then return nil end
 	local angle = math.atan2(best.x - x, -(best.z - z))
 	local index = math.floor((angle / (math.pi / 4)) + 0.5) % 8 + 1
-	local text = ("Nearest node: %s, %d studs %s"):format(NAMES[best.material], math.floor(bestDistance + 0.5), DIRECTIONS[index])
+	local text = ("Nodo cerca: %s, %d studs al %s"):format(NAMES[best.material], math.floor(bestDistance + 0.5), DIRECTIONS[index])
 	return { text = text, count = count, material = best.material, distance = bestDistance, direction = DIRECTIONS[index] }
 end
 
@@ -365,10 +369,12 @@ end
 -- The short line under the header for each tab.
 function View.note(tab, atCamp, compact)
 	if tab == "camp" then
-		if atCamp == false then return compact and "Walk to camp to craft and learn." or "Walk to camp, within 20 studs, to craft, buy and learn." end
-		return compact and "At camp: craft, buy and learn." or "At camp: you can craft, buy and learn."
+		if atCamp == false then
+			return compact and "Ve al campamento a fabricar." or "Ve al campamento, a 20 studs, para fabricar, comprar y aprender."
+		end
+		return compact and "Campamento: fabrica y aprende." or "En el campamento puedes fabricar, comprar y aprender."
 	end
-	return compact and "Session only: lost when you leave." or "Session only: progress is lost when you leave or the server stops."
+	return compact and "Solo esta sesión: se pierde al salir." or "Solo esta sesión: el progreso se pierde al salir del servidor."
 end
 
 return View

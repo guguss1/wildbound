@@ -216,5 +216,69 @@ return function(Text, source, sources)
 		assert(Text.FEAR.damage:find("%d", 1, true), "the damage line takes the number")
 	end)
 
+	-- Next batch NB3: the remaining English player strings (HUD, prompts, notices, the inventory and camp panels) are
+	-- neutral Spanish. Only string literals are scanned, so comments may stay English. The developer tuning panel is
+	-- out of scope. sources also carries inventory (WildboundClient), world (WildboundWorldClient), worldServer,
+	-- gather, hudView and campView. A phrase starting with "=" must equal the whole literal ("=Ready"), so internal
+	-- action and remote names that contain English words are not read as player text.
+	local function literals(code)
+		local found = {}
+		for line in (code .. "\n"):gmatch("([^\n]*)\n") do
+			local trimmed = line:match("^%s*(.-)$")
+			if trimmed:sub(1, 2) ~= "--" then
+				for literal in line:gmatch('"([^"]*)"') do table.insert(found, literal) end
+			end
+		end
+		return found
+	end
+	local ENGLISH = {
+		inventory = { "Collect. Return", "Connecting to", "Inventory (", "=Inventory", "Session only", "Server unavailable", "Pending bag",
+			"Protected", "No pending", "Banked eggs", "Registered creatures", "Equipped", "Finish calming", "No response",
+			"Your stock", "Craft and carry", "Dropped nearby", "[ Bag ]", "=Bag", "=Camp", "=Close", "=Menu",
+			" egg" },
+		world = { "Connecting to world", "Flashlight (", "Flashlight\\", "Pulse (", "Pulse\\", "=Ready", "Flashlight unavailable",
+			"Pulse unavailable", "World state unavailable", "World server unavailable", "Waiting for server", "MARKED", "Equip Lumipol" },
+		worldServer = { "Use abilities", "Extract and equip", "cooling down", "Cooling down", "No Silueta revealed",
+			"Silueta revealed for", "Not available", "Missed. Move", "Revealed 4 s", "Connected to the shared",
+			"Ability not available", "Dodge!", "cannot hurt you", "You rested", "Mark cleared" },
+		server = { "Move closer while", "Your bag is empty", "Bag full", "Someone collected", "Session collection",
+			"Select one of", "Only your registered", "Select an item", "No seal.", "already protected", "no longer available",
+			"Pouch full", "You already gathered", "Do this at camp", "Not enough banked", "You cannot hold", "Already owned",
+			"You have no", "The totem stays", "Use a capsule", "You moved", "Learn the first", "not in the build",
+			"That action is not", "hatched and registered", "Item warded", "Hatch first egg", "Free hatch",
+			"Choose protected", "Earned protection", "Choose a bag item", "Lumipol egg", "Pick up", "Dropped ",
+			"Picked up", "was lost", "belongs to another", "Gathered %d", "Bond +", "Crafted.", "Upgrade bought",
+			"Seal armed", "Newest item", "Totem:", "Totem put away", "Skill learned", "Banked at the shelter",
+			"Session only", "Return temporary loot", "Nightbloom bundle" },
+		gather = { "=Gather", "wilts at Dawn" },
+		hudView = { "sees you", "ATTACK", "No hunt", "is searching", "Searching", "hunts a friend", "Friend hunted",
+			"Waiting for server", "No signal", "Attack incoming", "Threat nearby", "Silueta revealed", "Dusk:",
+			"Fog forest", "Night:", "Explore or return" },
+		campView = { "Ward Seal", "=Free", "Need ", "Wait a moment", "Go to camp", "owned", "Reinforced Pack", "Cost:",
+			"Banked:", "You hold the most", "Seal armed", "Arm a seal", "Totem set", "Set the totem", "Put away", "learned",
+			"Needs ", "Effect not built", "Companion bond", "No seal", "Nothing to ward", "Seal the newest", "Nothing at risk",
+			"If defeated", "Lose", "Nearest node", "Walk to camp", "At camp", "Session only", "Trail Sense", "Night Nose",
+			"Steady Hands", "Soft Approach", "Light Load", "Quick Rest", "Read the Signs", "Long Reveal", "Explorer",
+			"Capturer", "Survivor", "Occultist", "Last Breath", "Extraction Capsule", "Short ", "already sealed" },
+	}
+	case("NB3: no known English player string is left in the HUD, prompts, notices or panels", function()
+		local left = {}
+		for key, phrases in pairs(ENGLISH) do
+			local code = sources[key]
+			assert(type(code) == "string" and #code > 0, "source " .. key .. " missing")
+			for _, literal in ipairs(literals(code)) do
+				for _, phrase in ipairs(phrases) do
+					local exact = phrase:sub(1, 1) == "="
+					if (exact and literal == phrase:sub(2)) or (not exact and literal:find(phrase, 1, true)) then
+						table.insert(left, key .. ": \"" .. literal .. "\"")
+						break
+					end
+				end
+			end
+		end
+		table.sort(left)
+		assert(#left == 0, #left .. " English strings left: " .. table.concat(left, " | ", 1, math.min(#left, 12)))
+	end)
+
 	return result
 end

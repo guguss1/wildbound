@@ -29,6 +29,8 @@ local Text = textModule and require(textModule)
 -- B3: the presentation card after a registration.
 local refugeModule = ReplicatedStorage:WaitForChild("WildboundRefuge", 10)
 local Refuge = refugeModule and require(refugeModule)
+-- Next batch NB3: every word on this HUD and its panel comes from WildboundText.HUD.
+local H = Text.HUD
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
@@ -77,13 +79,13 @@ local hud = make("Frame", {BackgroundColor3 = dark, BackgroundTransparency = 0.1
 	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82)}, gui)
 make("UISizeConstraint", {MaxSize = Vector2.new(430, 82)}, hud)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, hud)
-local objective = label(hud, "Collect. Return to camp.\nSession only.", 15)
+local objective = label(hud, H.objective .. "\n" .. H.sessionOnly, 15)
 objective.Position = UDim2.fromOffset(10, 5)
 objective.Size = UDim2.new(1, -20, 0, 42)
-local status = label(hud, "Connecting to server...", 14)
+local status = label(hud, H.connecting, 14)
 status.Position = UDim2.fromOffset(10, 49)
 status.Size = UDim2.new(1, -20, 0, 28)
-local open = button(gui, "Inventory (I)")
+local open = button(gui, H.inventoryKey)
 open.AnchorPoint = Vector2.new(1, 0)
 open.Position = UDim2.new(1, -12, 0, 12)
 open.Size = UDim2.fromOffset(132, 44)
@@ -93,20 +95,20 @@ local panel = make("Frame", {Name = "InventoryPanel", Visible = false, Backgroun
 	Size = UDim2.fromScale(0.88, 0.75)}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
 -- Header: two tabs and Close, each at least 44 pixels (the rectangles come from the camp view module).
-local bagTab = button(panel, "Bag")
+local bagTab = button(panel, H.bag)
 bagTab.Name = "BagTab"
-local campTab = button(panel, "Camp")
+local campTab = button(panel, H.camp)
 campTab.Name = "CampTab"
-local close = button(panel, "Close")
+local close = button(panel, H.close)
 close.Name = "CloseButton"
 -- W9: opens the Settings screen (WildboundStartUI) from the inventory header.
-local menuTab = button(panel, "Menu")
+local menuTab = button(panel, H.menu)
 menuTab.Name = "MenuTab"
 for _, tab in ipairs({ bagTab, campTab }) do
 	tab.TextSize = 16
 	make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
 end
-local warning = label(panel, "Session only: progress is lost when you leave or the server stops.", 14)
+local warning = label(panel, H.sessionNote, 14)
 warning.Name = "TabNote"
 local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
@@ -118,7 +120,7 @@ menuTab.Visible = campReady
 
 -- Status line: a server notice shows for a few seconds and then goes; a local error stays until replaced.
 local compact, statusBudget = false, 40
-local stickyStatus = "Connecting to server..."
+local stickyStatus = H.connecting
 local noticeState = View and View.newNotice()
 local hudWidth = 430
 local lastSnapshot, compassText = nil, nil
@@ -173,9 +175,9 @@ local function updateObjective()
 	local risky = (loss ~= nil and loss.atRisk) or (carryLine ~= nil and carryLine.tone == "risk")
 	local second = carryLine and carryLine.text or risky and loss.text or compassText
 	if compact then
-		objective.Text = second and (View and View.fit(second, budget) or second) or "Collect. Return to camp."
+		objective.Text = second and (View and View.fit(second, budget) or second) or H.objective
 	else
-		objective.Text = "Collect. Return to camp.\n" .. (second and (View and View.fit(second, budget) or second) or "Session only.")
+		objective.Text = H.objective .. "\n" .. (second and (View and View.fit(second, budget) or second) or H.sessionOnly)
 	end
 	objective.TextColor3 = risky and amber or ink
 end
@@ -192,7 +194,7 @@ local function applyLayout()
 	open.AnchorPoint = Vector2.new(0, 0)
 	open.Position = UDim2.fromOffset(rects.inventory.x, rects.inventory.y)
 	open.Size = UDim2.fromOffset(rects.inventory.w, rects.inventory.h)
-	open.Text = UserInputService.KeyboardEnabled and "Inventory (I)" or "Inventory"
+	open.Text = UserInputService.KeyboardEnabled and H.inventoryKey or H.inventory
 	open.TextSize = compact and 14 or 16
 	rowText = compact and 13 or 15
 	local noteHeight = compact and 20 or 24
@@ -247,7 +249,7 @@ local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = 
 	ArmTotem = true, DisarmTotem = true }
 local function request(action, uid)
 	if not actionRemote then
-		showSticky("Server unavailable. Please rejoin.")
+		showSticky(H.serverDown)
 		return
 	end
 	local now = os.clock()
@@ -309,8 +311,7 @@ local function bagRows(snapshot)
 	local eggs = snapshot.bankedEggs or {}
 	local registered = snapshot.registered or {}
 	local seals = snapshot.consumables and snapshot.consumables.seal or snapshot.sealCharges or 0
-	addRow({ text = ("Pending bag: %d/%d | Seals: %d%s"):format(#pending, snapshot.capacity or 3, seals,
-		snapshot.sealArmed and " | Seal armed" or "") })
+	addRow({ text = H.pendingBag:format(#pending, snapshot.capacity or 3, seals, snapshot.sealArmed and H.sealArmed or "") })
 	if campReady then
 		for _, spec in ipairs(Camp.quickRows(snapshot, { busy = busy })) do addRow(spec) end
 	end
@@ -319,28 +320,29 @@ local function bagRows(snapshot)
 	if carried and Text then
 		local words = Text.CARRY
 		addRow({ text = ("%s: %s · %s. %s"):format(words.label, carried.species, carried.protected and words.warded
-			or words.unwarded, words.registerHint), label = not carried.protected and "Protect" or nil,
+			or words.unwarded, words.registerHint), label = not carried.protected and H.protect or nil,
 			action = "Protect", argument = carried.uid })
 	end
-	addRow({ text = "Pending items are lost on defeat unless warded. A seal works anywhere." })
-	if #pending == 0 then addRow({ text = "No pending items." }) end
+	addRow({ text = H.pendingRule })
+	if #pending == 0 then addRow({ text = H.noPending }) end
 	for index, item in ipairs(pending) do
-		local name = item.kind == "Nightbloom" and ("Nightbloom bundle (%d)"):format(item.quantity or 1) or item.species .. " " .. item.kind
-		addRow({ text = ("#%d "):format(index) .. name .. (item.protected and " · Protected" or " · Unprotected"),
-			label = not item.protected and "Protect" or nil, action = "Protect", argument = item.uid })
+		local name = item.kind == "Nightbloom" and H.bundle:format(item.quantity or 1)
+			or H.item:format(H.kinds[item.kind] or tostring(item.kind), tostring(item.species))
+		addRow({ text = ("#%d "):format(index) .. name .. (item.protected and H.protected or H.unprotected),
+			label = not item.protected and H.protect or nil, action = "Protect", argument = item.uid })
 	end
 	-- A first strike drops one item near you for 30 s (M4.6). Only you can pick it up.
 	for _, item in ipairs(snapshot.dropped or {}) do
-		addRow({ text = "Dropped nearby: " .. item.species .. " " .. item.kind .. " · pick it up within 30 s" })
+		addRow({ text = H.dropped:format(H.item:format(H.kinds[item.kind] or tostring(item.kind), tostring(item.species))) })
 	end
-	addRow({ text = "Banked eggs · Hatch at camp" })
-	if #eggs == 0 then addRow({ text = "No banked eggs." }) end
-	for _, egg in ipairs(eggs) do addRow({ text = egg.species .. " egg", label = "Hatch", action = "Hatch", argument = egg.uid }) end
-	addRow({ text = "Registered creatures" })
-	if #registered == 0 then addRow({ text = "No registered creatures." }) end
+	addRow({ text = H.eggsHeader })
+	if #eggs == 0 then addRow({ text = H.noEggs }) end
+	for _, egg in ipairs(eggs) do addRow({ text = H.egg:format(egg.species), label = H.hatch, action = "Hatch", argument = egg.uid }) end
+	addRow({ text = H.registeredHeader })
+	if #registered == 0 then addRow({ text = H.noRegistered }) end
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
-		addRow({ text = creature.species .. (equipped and " · Equipped" or ""), label = not equipped and "Equip" or nil,
+		addRow({ text = creature.species .. (equipped and H.equipped or ""), label = not equipped and H.equip or nil,
 			action = "Equip", argument = creature.uid })
 	end
 end
@@ -350,8 +352,9 @@ local function campRows(snapshot)
 	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways })) do
 		if spec.section ~= previous then
 			previous = spec.section
-			if Camp.showSectionHeaders(sideways) then addRow({ header = true, text = spec.section == "Stock" and "Your stock" or spec.section == "Craft" and "Craft and carry"
-				or spec.section == "Upgrade" and "Upgrade" or spec.section == "Skills" and "Skills" or "Companion" }) end
+			if Camp.showSectionHeaders(sideways) then
+				addRow({ header = true, text = H.sections[spec.section] or H.sections.Bond })
+			end
 		end
 		addRow(spec)
 	end
@@ -365,7 +368,8 @@ local function paintTabs()
 		-- The chosen tab also wears an outline, so it is not told apart by colour alone.
 		local stroke = item:FindFirstChildOfClass("UIStroke")
 		if stroke then stroke.Thickness = selected and 3 or 0 end
-		item.Text = selected and (name == "bag" and "[ Bag ]" or "[ Camp ]") or (name == "bag" and "Bag" or "Camp")
+		local word = name == "bag" and H.bag or H.camp
+		item.Text = selected and ("[" .. word .. "]") or word
 	end
 end
 -- The tutorial reads which tab is open ("bag", "camp" or "closed").
@@ -396,7 +400,7 @@ listen(UserInputService:GetPropertyChangedSignal("KeyboardEnabled"), applyLayout
 local function toggle(wanted)
 	-- Opening the inventory is blocked during a capture session (M3.4). Closing it is always allowed.
 	if not panel.Visible and Players.LocalPlayer:GetAttribute("WildboundCapturing") == true then
-		showNotice("Finish calming the Lumipol first.")
+		showNotice(H.calmFirst)
 		return
 	end
 	if wanted == "camp" and not campReady then wanted = "bag" end
@@ -504,7 +508,7 @@ local function showLossSummary(summary, fallback)
 		BackgroundTransparency = 0.05, AutoButtonColor = false, Modal = true, TextColor3 = ink, Font = Enum.Font.GothamBold,
 		TextScaled = true, TextWrapped = true,
 		Text = View and View.lossSummary(summary, Text and Text.DEFEAT) or (fallback .. "\n"
-			.. (Text and Text.DEFEAT.close or "Tap to close."))}, summaryGui)
+			.. Text.DEFEAT.close)}, summaryGui)
 	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
 	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
 		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)
@@ -570,7 +574,7 @@ task.spawn(function()
 	local state = folder and folder:WaitForChild("State", 10)
 	if not gui.Parent then return end
 	if not (action and action:IsA("RemoteEvent") and state and state:IsA("RemoteEvent")) then
-		showSticky("Server unavailable. Please rejoin.")
+		showSticky(H.serverDown)
 		return
 	end
 	actionRemote = action
@@ -578,7 +582,7 @@ task.spawn(function()
 		if type(payload) ~= "table" then return end
 		if type(payload.snapshot) == "table" then
 			receivedSnapshot = true
-			if stickyStatus == "Connecting to server..." then showSticky("") end
+			if stickyStatus == H.connecting then showSticky("") end
 			render(payload.snapshot)
 		end
 		if type(payload.notice) == "string" and payload.notice ~= "" then showNotice(payload.notice) end
@@ -596,5 +600,5 @@ task.spawn(function()
 	task.wait(3)
 	if gui.Parent and not receivedSnapshot then request("RequestSnapshot") end
 	task.wait(3)
-	if gui.Parent and not receivedSnapshot then showSticky("No response. Open inventory to retry.") end
+	if gui.Parent and not receivedSnapshot then showSticky(H.noResponse) end
 end)

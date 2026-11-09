@@ -22,11 +22,15 @@ end
 local Layout, View = require(layoutModule), require(viewModule)
 -- Delivery D12: the comfort switch's words, in Spanish from WildboundText (one switch: fog, audio and the defeat fade).
 local settingsWords = {}
+local worldWords = { phases = {} }
+local function word(key) return worldWords[key] or "" end
 do
 	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
 	local ok, value = false, nil
 	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
 	if ok and type(value) == "table" and type(value.SETTINGS) == "table" then settingsWords = value.SETTINGS end
+	-- Next batch NB3: the panel and ability words (WildboundText.WORLD). A missing module leaves the buttons blank.
+	if ok and type(value) == "table" and type(value.WORLD) == "table" then worldWords = value.WORLD end
 end
 local function reducedText(on)
 	return on and (settingsWords.shortOn or "Suave: Sí") or (settingsWords.shortOff or "Suave: No")
@@ -54,7 +58,7 @@ local function label(parent, text, position, size)
 		Text = text, TextColor3 = Color3.fromRGB(240, 244, 231), TextSize = 14,
 		TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.Gotham}, parent)
 end
-local phaseLabel = label(panel, "Connecting to world...", UDim2.fromOffset(10, 4), UDim2.new(1, -140, 0, 24))
+local phaseLabel = label(panel, word("connecting"), UDim2.fromOffset(10, 4), UDim2.new(1, -140, 0, 24))
 local warningLabel = label(panel, "", UDim2.fromOffset(10, 29), UDim2.new(1, -146, 0, 29))
 local statusLabel = label(panel, "", UDim2.fromOffset(10, 60), UDim2.new(1, -20, 0, 26))
 local function button(parent, text, position, size)
@@ -66,8 +70,8 @@ local function button(parent, text, position, size)
 end
 -- Positions come from the layout module (applyLayout below); only the sizes start here.
 local effects = button(gui, reducedText(false), UDim2.new(), UDim2.fromOffset(126, 44))
-local flashlight = button(gui, "Flashlight (F)", UDim2.new(), UDim2.fromOffset(110, 44))
-local pulse = button(gui, "Pulse (Q)", UDim2.new(), UDim2.fromOffset(110, 44))
+local flashlight = button(gui, word("flashlightKey"), UDim2.new(), UDim2.fromOffset(110, 44))
+local pulse = button(gui, word("pulseKey"), UDim2.new(), UDim2.fromOffset(110, 44))
 effects.Name, flashlight.Name, pulse.Name = "ReducedButton", "FlashlightButton", "PulseButton"
 -- The awareness chip lives outside the panel, so it stays visible while the inventory is open (M2.3).
 -- It always carries words and a shape; colour is only a redundant cue, and nothing depends on audio.
@@ -558,7 +562,7 @@ end)
 local function cooldown(readyAt, now)
 	if type(readyAt) ~= "number" then return "?" end
 	local remaining = math.max(0, math.ceil(readyAt - now))
-	return remaining > 0 and (remaining .. "s") or "Ready"
+	return remaining > 0 and (remaining .. "s") or word("ready")
 end
 local elapsed, pulseElapsed = 0, 0
 listen(RunService.Heartbeat, function(dt)
@@ -592,14 +596,14 @@ listen(RunService.Heartbeat, function(dt)
 	flashlight.Active, pulse.Active = not not fresh, not not fresh
 	flashlight.AutoButtonColor, pulse.AutoButtonColor = not not fresh, not not fresh
 	if not fresh then
-		flashlight.Text, pulse.Text = "Flashlight unavailable", "Pulse unavailable"
-		phaseLabel.Text = "World state unavailable"
-		warningLabel.Text = "Waiting for server updates."
+		flashlight.Text, pulse.Text = word("flashlightOff"), word("pulseOff")
+		phaseLabel.Text = word("stateOff")
+		warningLabel.Text = word("waiting")
 		return
 	end
 	local now = workspace:GetServerTimeNow()
-	phaseLabel.Text = tostring(state.phase or "Unknown") .. " · " .. math.max(0, math.ceil((state.nextPhaseAt or now) - now)) .. "s"
-		.. (state.marked == true and " · MARKED" or "")
+	phaseLabel.Text = tostring(worldWords.phases[state.phase] or state.phase or "?") .. " · "
+		.. math.max(0, math.ceil((state.nextPhaseAt or now) - now)) .. "s" .. (state.marked == true and word("marked") or "")
 	local guardian = guardianState
 	-- Only the targeted player receives an attack deadline, inside their own awareness (M2.2).
 	local aware = type(guardian.awareness) == "table" and guardian.awareness or {}
@@ -617,9 +621,9 @@ listen(RunService.Heartbeat, function(dt)
 		statusLabel.Text = notice and View.fit(notice, noticeBudget) or ""
 	end
 	local keys = UserInputService.KeyboardEnabled
-	flashlight.Text = (keys and "Flashlight (F)\n" or "Flashlight\n") .. cooldown(state.flashlightReadyAt, now)
-	pulse.Text = (keys and "Pulse (Q)\n" or "Pulse\n")
-		.. (state.hasLumipol and cooldown(state.pulseReadyAt, now) or "Equip Lumipol")
+	flashlight.Text = (keys and word("flashlightKey") or word("flashlight")) .. "\n" .. cooldown(state.flashlightReadyAt, now)
+	pulse.Text = (keys and word("pulseKey") or word("pulse")) .. "\n"
+		.. (state.hasLumipol and cooldown(state.pulseReadyAt, now) or word("equipLumipol"))
 	local alpha = 1 - math.exp(-step * 0.5)
 	if Atmos then
 		local zone = state.isSafe == true and "camp" or (state.isFog == true and "fog" or "open")
@@ -675,7 +679,7 @@ task.spawn(function()
 	local updates = folder and folder:WaitForChild("WorldState", 10)
 	if not gui.Parent then return end
 	if not (action and action:IsA("RemoteEvent") and updates and updates:IsA("RemoteEvent")) then
-		phaseLabel.Text = "World server unavailable. Please rejoin."
+		phaseLabel.Text = word("serverDown")
 		return
 	end
 	actionRemote = action
