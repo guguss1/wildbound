@@ -168,7 +168,8 @@ return function(Visual)
 	end)
 	case("invalid visual scale falls back to original clone scale", function()
 		-- Chase pass (CP-D4): the supported ceiling is 3 (was 2), so 2.6 is a valid scale; 3.01 is the new invalid edge.
-		for _, factor in ipairs({ false, "1.3", 0, -1, 0.49, 3.01, math.huge, -math.huge, 0 / 0 }) do
+		-- Deliberately changed in the look pass (user: "mucho más alto"): the ceiling is 4.5, so 4.51 is the invalid edge.
+		for _, factor in ipairs({ false, "1.3", 0, -1, 0.49, 4.51, math.huge, -math.huge, 0 / 0 }) do
 			local f = fixture(true, true)
 			f.template:ScaleTo(3.571); f.options.visualScale = factor
 			local visual = f:create()
@@ -178,7 +179,7 @@ return function(Visual)
 		end
 	end)
 	case("omitted visual scale keeps existing behavior and supported bounds scale art only", function()
-		for _, factor in ipairs({ 0.5, 1, 2, 2.6, 3 }) do
+		for _, factor in ipairs({ 0.5, 1, 2, 2.6, 3, 3.8, 4.5 }) do -- look pass: 3.8 and the 4.5 ceiling are valid
 			local f = fixture(true, true)
 			local originalBodySize = f.body.Size
 			f.options.visualScale = factor
@@ -214,6 +215,133 @@ return function(Visual)
 		visual:setRevealed(true)
 		near(mesh.Transparency, look.revealedAlpha)
 		visual:destroy()
+	end)
+	-- Look pass (user: "mucho más alto y tenebroso"; a terrifying smile when she starts chasing). Art and presentation
+	-- only: the gameplay body, head, hit range and AI never read any of it.
+	local function boneChain(f)
+		local root = f.template:FindFirstChild("Root", true)
+		local function bone(name, parent, position)
+			local item = Instance.new("Bone")
+			item.Name, item.Position, item.Parent = name, position, parent
+			return item
+		end
+		local chest = bone("Chest", root, Vector3.new(0, 4, 0))
+		local neck = bone("Neck", chest, Vector3.new(0, 1, 0))
+		bone("Head", neck, Vector3.new(0, 0.5, 0))
+		for _, side in ipairs({ "L", "R" }) do
+			local upper = bone("UpperArm." .. side, chest, Vector3.new(side == "L" and 1 or -1, 0.6, 0))
+			local fore = bone("Forearm." .. side, upper, Vector3.new(0, -1.2, 0))
+			bone("Hand." .. side, fore, Vector3.new(0, -2, 0))
+		end
+	end
+	case("look pass: the dread look hunches the chest and neck and stretches the neck and arms in the rest pose", function()
+		local f = fixture(true, true)
+		boneChain(f)
+		local look = Visual.DREAD_LOOK
+		assert(type(look.pose) == "table", "the dread look carries a pose")
+		f.options.look = look
+		local visual = f:create()
+		local function pair(name)
+			return f.template:FindFirstChild(name, true), visual.art:FindFirstChild(name, true)
+		end
+		for name, degrees in pairs(look.pose.pitch) do
+			local source, shaped = pair(name)
+			assert(degrees < 0 and degrees >= -30, "a slight forward hunch " .. name)
+			local delta = source.CFrame:ToObjectSpace(shaped.CFrame)
+			local x = delta:ToEulerAnglesXYZ()
+			near(math.deg(x), degrees)
+			near((shaped.Position - source.Position).Magnitude, 0)
+		end
+		for name, stretch in pairs(look.pose.stretch) do
+			local source, shaped = pair(name)
+			assert(stretch > 1 and stretch <= 1.5, "longer, not broken " .. name)
+			near(shaped.Position.Magnitude, source.Position.Magnitude * stretch)
+		end
+		equal(f.template:FindFirstChild("Head", true).Position, Vector3.new(0, 0.5, 0))
+		visual:destroy()
+	end)
+	case("look pass: a pose without its bones is skipped and the plain look keeps the rest pose", function()
+		local f = fixture(true, true)
+		f.options.look = Visual.DREAD_LOOK
+		local visual = f:create()
+		equal(visual.artReady, true); visual:destroy()
+		local plain = fixture(true, true)
+		boneChain(plain)
+		local plainVisual = plain:create()
+		equal(plainVisual.art:FindFirstChild("Head", true).Position, Vector3.new(0, 0.5, 0))
+		plainVisual:destroy()
+	end)
+	case("look pass: setScale rescales the art about its feet, refuses bad values and never moves the body", function()
+		local f = fixture(true, true)
+		f.template:ScaleTo(3.571)
+		f.options.visualScale = 2.6
+		local visual = f:create()
+		local bodySize, bodyFrame = f.body.Size, f.body.CFrame
+		equal(visual:setScale(3.8), true)
+		near(visual.art:GetScale(), f.template:GetScale() * 3.8)
+		assert((visual.art:GetPivot().Position - Vector3.new(13, 0.5, -85)).Magnitude < 0.00001)
+		for _, bad in ipairs({ 4.51, 0.49, 0 / 0, "4" }) do equal(visual:setScale(bad), false) end
+		near(visual.art:GetScale(), f.template:GetScale() * 3.8)
+		equal(f.body.Size, bodySize); equal(f.body.CFrame, bodyFrame)
+		visual:destroy()
+		equal(visual:setScale(3), false)
+	end)
+	local function grinOf(root)
+		local grin = root and root:FindFirstChild("HorrorGrin", true)
+		assert(grin and grin:IsA("BillboardGui"), "a HorrorGrin billboard")
+		return grin
+	end
+	case("look pass: the horror grin hides until the hunt and stays through the warning and the strike", function()
+		local f = fixture(true, true)
+		boneChain(f)
+		f.options.look = Visual.DREAD_LOOK
+		local visual = f:create()
+		local grin = grinOf(visual.art)
+		equal(grin.Enabled, false)
+		equal(grin.Adornee, visual.art:FindFirstChild("Head", true), "rides the animated head bone")
+		equal(grin.LightInfluence, 0, "a faint glow the night fog cannot darken")
+		equal(grin.AlwaysOnTop, false, "trunks still hide it")
+		assert(grin.MaxDistance >= 60, "readable from the chase distance")
+		local teeth = 0
+		for _, item in ipairs(grin:GetDescendants()) do
+			if item.Name == "Tooth" then teeth += 1 end
+		end
+		assert(teeth >= 30, "too many teeth: " .. teeth)
+		local face = grin:FindFirstChild("Face")
+		assert(face and face:IsA("CanvasGroup") and face:FindFirstChild("Pop") and face.Pop:IsA("UIScale"),
+			"the client pops the Face through its UIScale")
+		local shown = { Hunt = true, Telegraph = true, Attack = true }
+		for _, state in ipairs({ "Patrol", "Alert", "Hunt", "Telegraph", "Attack", "Retreat", "Hunt", "Search",
+			"Investigate", "Suspicious", "Hunt", "Alert" }) do
+			visual:setState(state, state == "Telegraph" and 101.4 or nil)
+			equal(grin.Enabled, shown[state] == true, state)
+		end
+		near(f.body.Transparency, 1); equal(f.body.Size, Vector3.new(2.8, 6.4, 2.2))
+		visual:destroy()
+		equal(grin.Parent, nil)
+	end)
+	case("look pass: the grin is wider than the head and follows the art scale", function()
+		local f = fixture(true, true)
+		boneChain(f)
+		f.options.visualScale = 1.9
+		local visual = f:create()
+		local grin = grinOf(visual.art)
+		local small = grin.Size.X.Scale
+		assert(small > 0 and grin.Size.X.Offset == 0, "sized in studs")
+		visual:setScale(3.8)
+		near(grin.Size.X.Scale, small * 2)
+		assert(grin.Size.X.Scale > grin.Size.Y.Scale * 1.8, "a wide grin")
+		visual:destroy()
+	end)
+	case("look pass: without art the grin rides the plain head and leaves with it", function()
+		local f = fixture(false, false)
+		local visual = f:create()
+		local grin = grinOf(f.head)
+		equal(grin.Adornee, f.head); equal(grin.Enabled, false)
+		visual:setState("Hunt"); equal(grin.Enabled, true)
+		visual:setState("Retreat"); equal(grin.Enabled, false)
+		visual:destroy(); visual:destroy()
+		equal(grin.Parent, nil)
 	end)
 	case("all nested art uses baseline preserving reveal including invisible meshes", function()
 		local f = fixture(true, true)

@@ -501,4 +501,13 @@ function View.stalkVanish(input)
 	return nil
 end
 
+-- Look pass: how La Silueta's horror grin arrives when the server shows it (she starts a chase). A short snap from
+-- small and transparent past full size; "Efectos suaves" (reduced = true) only fades it in, a little slower, no pop.
+-- Returns { fromScale, fromAlpha, seconds, style } (style is an Enum.EasingStyle name).
+local GRIN_POP = table.freeze({ fromScale = 0.35, fromAlpha = 1, seconds = 0.22, style = "Back" })
+local GRIN_FADE = table.freeze({ fromScale = 1, fromAlpha = 1, seconds = 0.5, style = "Sine" })
+function View.grinPop(reduced)
+	return table.clone(reduced == true and GRIN_FADE or GRIN_POP)
+end
+
 return View

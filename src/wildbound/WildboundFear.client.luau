@@ -303,7 +303,11 @@ local function silhouette()
 		copy.PrimaryPart = body
 	end
 	for _, item in ipairs(copy:GetDescendants()) do
-		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator") then item:Destroy() end
+		-- Look pass: a sighting never copies the real one's horror grin.
+		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator")
+			or item.Name == "HorrorGrin" then
+			item:Destroy()
+		end
 	end
 	local parts = {}
 	for _, part in ipairs(copy:GetDescendants()) do
@@ -468,6 +472,37 @@ listen(RunService.Heartbeat, function(dt)
 	if not ok then gui:SetAttribute("StalkError", tostring(message)) end
 end)
 listen(player.CharacterAdded, function() vanish("Respawn") end)
+
+-- Look pass: the server shows La Silueta's HorrorGrin while she hunts, warns and strikes (and hides it after); this
+-- client only animates its arrival from the pure rule: a short pop, or with "Efectos suaves" a gentle fade, no pop.
+local grinWatched
+local function popGrin(grin)
+	local face = grin:FindFirstChild("Face")
+	local pop = face and face:FindFirstChild("Pop")
+	if not (face and face:IsA("CanvasGroup") and pop and pop:IsA("UIScale")) then return end
+	local shape = View.grinPop(worldGui:GetAttribute("Reduced") == true)
+	local info = TweenInfo.new(shape.seconds, Enum.EasingStyle[shape.style], Enum.EasingDirection.Out)
+	face.GroupTransparency, pop.Scale = shape.fromAlpha, shape.fromScale
+	TweenService:Create(face, info, { GroupTransparency = 0 }):Play()
+	if shape.fromScale ~= 1 then TweenService:Create(pop, info, { Scale = 1 }):Play() end
+end
+local function watchGrin()
+	local model = guardian()
+	local grin = model and model:FindFirstChild("HorrorGrin", true)
+	if not grin or grin == grinWatched or not grin:IsA("BillboardGui") then return end
+	grinWatched = grin
+	listen(grin:GetPropertyChangedSignal("Enabled"), function()
+		if grin.Enabled then popGrin(grin) end
+	end)
+end
+local grinClock = 1
+listen(RunService.Heartbeat, function(dt)
+	grinClock += dt
+	if grinClock < 1 then return end
+	grinClock = 0
+	local ok, message = pcall(watchGrin)
+	if not ok then gui:SetAttribute("GrinError", tostring(message)) end
+end)
 
 local function cleanup()
 	for _, connection in ipairs(connections) do connection:Disconnect() end

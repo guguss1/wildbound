@@ -627,5 +627,17 @@ return function(View, source, islandLayout)
 		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.7, guardianState = "Hunt" }), "Real")
 		equal(View.stalkVanish(nil), "Time")
 	end)
+	-- Look pass: La Silueta's horror grin pops in when she starts the chase; "Efectos suaves" fades it in, no pop.
+	case("Look pass: the grin pops in briefly, and only fades with Efectos suaves", function()
+		local full, soft = View.grinPop(false), View.grinPop(true)
+		assert(full.fromScale > 0 and full.fromScale < 1, "a pop grows from smaller")
+		assert(full.seconds > 0 and full.seconds <= 0.3, "short")
+		equal(full.style, "Back", "a snap past full size")
+		equal(soft.fromScale, 1, "no pop with Efectos suaves")
+		assert(soft.seconds >= full.seconds and soft.seconds <= 0.8, "a gentler fade")
+		equal(soft.style, "Sine")
+		equal(full.fromAlpha, 1); equal(soft.fromAlpha, 1)
+		equal(View.grinPop("yes").fromScale, full.fromScale, "anything but true is the full pop")
+	end)
 	return result
 end

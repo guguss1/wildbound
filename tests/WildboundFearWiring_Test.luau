@@ -91,5 +91,17 @@ return function(sources)
 		has(audio, 'kind == "stalk"')
 	end)
 
+	-- Look pass: the server shows La Silueta's HorrorGrin when she hunts; this client only animates its arrival.
+	case("Look pass: the fear client pops the horror grin from the pure rule and Efectos suaves", function()
+		has(fear, '"HorrorGrin"')
+		has(fear, 'GetPropertyChangedSignal("Enabled")')
+		has(fear, "View.grinPop(")
+		has(fear, "GroupTransparency")
+		has(fear, '"Pop"')
+	end)
+	case("Look pass: a stalk sighting never copies the grin", function()
+		has(fear, 'item.Name == "HorrorGrin"')
+	end)
+
 	return result
 end

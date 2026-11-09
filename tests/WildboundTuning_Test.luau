@@ -80,7 +80,9 @@ return function(Schema, modules)
 			-- Fear pass (FA2): the grab's noise is tunable.
 			"Islands.GRAB",
 			-- Next batch NB4 (delivery E): the incubation time.
-			"Incubator.HATCH_SECONDS" }) do
+			"Incubator.HATCH_SECONDS",
+			-- Look pass: La Silueta's height (art only).
+			"Silueta.VISUAL_SCALE" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
@@ -207,7 +209,8 @@ return function(Schema, modules)
 	end)
 
 	case("DT2: a live override changes the behaviour value, and clearing it restores the default", function()
-		applyServer({ Sprint = { SPRINT_MULTIPLIER = 1.2 }, Silueta = { HUNT_TWILIGHT = 20, TELEGRAPH_SECONDS = 1.5 },
+		applyServer({ Sprint = { SPRINT_MULTIPLIER = 1.2 },
+			Silueta = { HUNT_TWILIGHT = 20, TELEGRAPH_SECONDS = 1.5, VISUAL_SCALE = 3 },
 			Islands = { CHASE_SPEED = 10, DAMAGE = 50 }, Hide = { NIGHT_RADIUS = 9 }, Carry = { FEAR_RADIUS = 10 },
 			Capture = { CALM_REQUIRED = 6 } })
 		near(modules.Stamina.speed(16, "sprint"), 19.2, "sprint x1.2")
@@ -215,6 +218,7 @@ return function(Schema, modules)
 		equal(modules.Brain.speed("Hunt", "Dawn"), 20, "and dawn")
 		equal(modules.Brain.profile("Dusk").hunt, 20)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 1.5)
+		equal(modules.Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3, "look pass: the art scale")
 		local chase = modules.Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
 		modules.Island.chaseStep(chase, 1, 0, 0) -- the wake wind-up
 		modules.Island.chaseStep(chase, 0.1, 0, 30)
@@ -237,6 +241,7 @@ return function(Schema, modules)
 		near(modules.Stamina.speed(16, "sprint"), 23.2, "back to the default")
 		equal(modules.Brain.speed("Hunt", "Dawn"), 15)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 0.9)
+		equal(modules.Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3.8)
 		equal(modules.Island.live.CHASE_SPEED, 19)
 		equal(modules.View.sprintFov(70, "sprint", false), 80)
 	end)

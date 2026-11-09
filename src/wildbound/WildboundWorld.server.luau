@@ -205,12 +205,14 @@ guardian:SetAttribute("State", "Retreat")
 runtime.Parent = map
 
 -- Optional local art only. Missing module/template/IDs must not prevent the world from starting.
-local visual
+-- Look pass: artScale is the art scale in use; a tuned Silueta.VISUAL_SCALE rescales the art live (art only).
+local visual, artScale
 local visualModule = script.Parent:FindFirstChild("WildboundSiluetaVisual")
 if visualModule and visualModule:IsA("ModuleScript") then
 	local assets = ServerStorage:FindFirstChild("WildboundAssets")
 	local ok, adapter = pcall(function()
 		local profile = Rules.resolveCreatureProfile("Silueta", "Day", false)
+		artScale = profile.visualScale
 		return require(visualModule).new({ guardian = guardian, body = body, head = head,
 			template = assets and assets:FindFirstChild("SiluetaV3"), visualScale = profile.visualScale,
 			look = require(visualModule).DREAD_LOOK })
@@ -1149,6 +1151,11 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 			local after = body.Position
 			-- Measure horizontal displacement, not rotation or intent; retain until the next fixed step.
 			visual:setMoving(after.X ~= before.X or after.Z ~= before.Z)
+			-- Look pass: a designer's live height (the tuning bridge re-tunes Rules); one try per new value.
+			if Rules.SILUETA_VISUAL_SCALE ~= artScale then
+				artScale = Rules.SILUETA_VISUAL_SCALE
+				visual:setScale(Rules.SILUETA_VISUAL_SCALE)
+			end
 		end
 		stepAwareness(now)
 		stepHiding(now)

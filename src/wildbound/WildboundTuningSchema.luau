@@ -54,6 +54,9 @@ Schema.SYSTEMS = table.freeze({
 		-- At least the fair-strike warning lead (0.8 s), so a warning always fits before the hit.
 		value("TELEGRAPH_SECONDS", "Aviso antes del golpe (s)", "Rules", "TELEGRAPH_SECONDS", 0.9, 0.8, 3, 0.05),
 		value("ATTACK_COOLDOWN", "Pausa entre golpes (s)", "Rules", "ATTACK_COOLDOWN", 2.5, 1, 10, 0.1),
+		-- Look pass: art only (never the body, sight or hit range). Applied live: the world server rescales the art.
+		value("VISUAL_SCALE", "Altura de la figura (escala; 3,8 = 33 studs)", "Rules", "SILUETA_VISUAL_SCALE", 3.8, 2, 4.5,
+			0.1),
 	}) }),
 	table.freeze({ id = "Sprint", label = "Correr y aliento", entries = table.freeze({
 		value("SPRINT_MULTIPLIER", "Multiplicador al correr", "Stamina", "SPRINT_MULTIPLIER", 1.45, 1, 2, 0.05),

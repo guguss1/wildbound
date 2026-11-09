@@ -30,6 +30,10 @@ Rules.CHASE_LEASH = 100
 -- (8.49) rounded up is never a strike or acquisition point (CP-D3).
 Rules.SPAWN_PAD_X, Rules.SPAWN_PAD_Z, Rules.SPAWN_PAD_RADIUS = 0, 0, 9
 Rules.MAX_CHASE_SECONDS = 10
+-- Look pass (user: "mucho más alto y tenebroso"): La Silueta's art scale, about 32.6 studs over the 8.57-stud
+-- SiluetaV3 art (was 2.6, 22.3 studs). Art only: the gameplay body, sight, ATTACK_RANGE and the pathing agent never
+-- read it. Tunable live (Silueta.VISUAL_SCALE); WildboundSiluetaVisual accepts 0.5 to 4.5.
+Rules.SILUETA_VISUAL_SCALE = 3.8
 Rules.DAMAGE = 20
 
 function Rules.finite(value)
@@ -37,9 +41,9 @@ function Rules.finite(value)
 end
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning
--- bridge may override these four at runtime; the territory (HOME_LEASH) and the strike range never change, so a
--- tuned chase never adds a place to be struck. No override, no change.
-local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH" }
+-- bridge may override these five at runtime; the territory (HOME_LEASH) and the strike range never change, so a
+-- tuned chase never adds a place to be struck. No override, no change. The look pass adds the art scale (art only).
+local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH", "SILUETA_VISUAL_SCALE" }
 local DEFAULTS = {}
 for _, key in ipairs(TUNABLE) do DEFAULTS[key] = Rules[key] end
 table.freeze(DEFAULTS)
@@ -144,8 +148,8 @@ local CREATURE_PROFILES = table.freeze({
 	Silueta = table.freeze({
 		-- Dread pass: 2.0 (was 1.30) makes the 8.57-stud SiluetaV3 art about 17 studs, three avatars tall. Art only:
 		-- the gameplay body, sight, reach and pathing agent are unchanged, so the fair-strike rules hold as they were.
-		-- Chase pass (CP-D4): 2.6, about 22.3 studs. Still art only (the clamp in WildboundSiluetaVisual allows up to 3).
-		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 2.6,
+		-- Chase pass (CP-D4): 2.6, about 22.3 studs. Look pass: the scale is Rules.SILUETA_VISUAL_SCALE (3.8), tunable.
+		name = "Silueta", specialBehaviorId = "Silueta", visualScaleKey = "SILUETA_VISUAL_SCALE",
 		base = table.freeze({ speed = 6, detectionRange = 28 }),
 		night = table.freeze({ scope = "Fog", speed = 8, detectionRange = 38 }),
 	}),
@@ -160,7 +164,7 @@ function Rules.resolveCreatureProfile(name, phase, inFog)
 	local stats = applies and night or profile.base
 	return {
 		name = profile.name, specialBehaviorId = profile.specialBehaviorId,
-		visualScale = profile.visualScale, speed = stats.speed, detectionRange = stats.detectionRange,
+		visualScale = Rules[profile.visualScaleKey], speed = stats.speed, detectionRange = stats.detectionRange,
 	}
 end
 

@@ -135,7 +135,7 @@ return function(Rules, islandLayout)
 			local profile = Rules.resolveCreatureProfile("Silueta", sample[1], sample[2])
 			equal(profile.name, "Silueta"); equal(profile.specialBehaviorId, "Silueta")
 			equal(profile.speed, sample[3]); equal(profile.detectionRange, sample[4])
-			equal(profile.visualScale, 2.6)
+			equal(profile.visualScale, 3.8) -- look pass: deliberately changed from 2.6
 		end
 	end)
 	-- Dread pass (user: much taller, about three times the player): the SiluetaV3 art is 8.57 studs at scale 1
@@ -145,10 +145,25 @@ return function(Rules, islandLayout)
 	-- studs, four avatars tall. Art only: the gameplay body, ATTACK_RANGE 7 and the pathing agent are unchanged, and
 	-- the art's arms (half span about 9 studs at 2.6) reach past the 7-stud strike, so no hit lands from beyond what
 	-- the player sees.
-	case("Silueta stands about four times a player's height", function()
+	-- Deliberately changed again in the look pass (user: "¿Qué pasó con que tenía que ser mucho más alto y
+	-- tenebroso?"): 2.6 (22.3 studs) to 3.8, about 32.6 studs, six avatars tall, as tall as the dead trees and past
+	-- the evergreens' lowest boughs. Still art only, and live-tunable (Silueta.VISUAL_SCALE, 2 to 4.5).
+	case("Silueta stands about six times a player's height", function()
 		local height = 8.571428571428571 * Rules.resolveCreatureProfile("Silueta", "Night", true).visualScale
-		assert(height >= 21 and height <= 24, "Silueta height " .. height)
-		assert(height / 5.3 >= 4, "at least four avatars tall")
+		assert(height >= 30 and height <= 35, "Silueta height " .. height)
+		assert(height / 5.3 >= 6, "at least six avatars tall")
+	end)
+	case("look pass: the art scale is tunable, resolved live and restored by a reset", function()
+		equal(Rules.tunable().SILUETA_VISUAL_SCALE, 3.8)
+		Rules.tune({ SILUETA_VISUAL_SCALE = 3 })
+		equal(Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3)
+		Rules.tune(nil)
+		equal(Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3.8)
+		local speed = Rules.resolveCreatureProfile("Silueta", "Night", true).speed
+		Rules.tune({ SILUETA_VISUAL_SCALE = 4.5 })
+		equal(Rules.resolveCreatureProfile("Silueta", "Night", true).speed, speed, "art only")
+		equal(Rules.ATTACK_RANGE, 7, "the hit range never follows the art")
+		Rules.tune(nil)
 	end)
 	case("unknown creature profiles fail closed", function()
 		equal(Rules.resolveCreatureProfile("Unknown", "Night", true), nil)
@@ -162,8 +177,8 @@ return function(Rules, islandLayout)
 		local second = Rules.resolveCreatureProfile("Silueta", "Night", true)
 		local base = Rules.resolveCreatureProfile("Silueta", "Day", true)
 		equal(second.name, "Silueta"); equal(second.specialBehaviorId, "Silueta")
-		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 2.6)
-		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 2.6)
+		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 3.8)
+		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 3.8)
 	end)
 	case("guardian compatibility agrees with creature resolver", function()
 		for _, sample in ipairs({ { "Day", true }, { "Night", true }, { "Night", false } }) do
