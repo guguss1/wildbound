@@ -13,4 +13,4 @@ Ideas the user wants to come back to later. They are not approved for implementa
   - What happens after the theft: a full-speed chase to camp, or a chase that ends only at a hide spot.
   - The reward: a unique species, a large Ember payout, or a collection milestone.
   - How it fits the fair-strike rules (`docs/mechanics/wildbound-fair-strike.md`) and the expedition economy floors.
-- **Status:** parked. Do not build without an explicit request.
+- **Status:** design proposed, awaiting user approval (`docs/design/wildbound-pi1-steal-from-silueta.md`, 2026-11-09: a caged cría at her home, a sneak or lured theft, a fair "marked thief" chase, a unique species as the reward). Do not build without an explicit request.
