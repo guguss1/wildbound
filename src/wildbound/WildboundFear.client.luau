@@ -317,6 +317,25 @@ local function silhouette()
 			part.Transparency = 1
 		end
 	end
+	-- Play finding: in the night fog the art's thin pale eye slit did not read at 39 studs. Two red eyes on a billboard
+	-- that ignores the light (but not the trunks: AlwaysOnTop stays off) are what the player catches first.
+	local eye
+	for part in pairs(parts) do
+		if part.Name:lower():find("eye") then eye = part break end
+	end
+	local dots = {}
+	if eye then
+		local board = make("BillboardGui", { Name = "StalkEyes", Adornee = eye, Size = UDim2.new(3, 0, 1, 0),
+			LightInfluence = 0, AlwaysOnTop = false, MaxDistance = 120, ResetOnSpawn = false }, eye)
+		for _, x in ipairs({ 0.2, 0.8 }) do
+			local dot = make("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(x, 0.5),
+				Size = UDim2.fromScale(0.26, 0.75), BackgroundColor3 = Color3.fromRGB(255, 45, 30), BorderSizePixel = 0,
+				BackgroundTransparency = 1 }, board)
+			make("UICorner", { CornerRadius = UDim.new(1, 0) }, dot)
+			table.insert(dots, dot)
+		end
+	end
+	parts[dots] = "dots"
 	copy.Name = "WildboundStalkSighting"
 	return copy, parts
 end
@@ -325,7 +344,11 @@ local function fade(parts, to, seconds, done)
 	value.Value = to == 1 and 0 or 1
 	value.Changed:Connect(function(k)
 		for part, base in pairs(parts) do
-			if part.Parent then part.Transparency = base + (1 - base) * k end
+			if base == "dots" then
+				for _, dot in ipairs(part) do dot.BackgroundTransparency = k end
+			elseif part.Parent then
+				part.Transparency = base + (1 - base) * k
+			end
 		end
 	end)
 	local tween = TweenService:Create(value, TweenInfo.new(seconds), { Value = to == 1 and 1 or 0 })
@@ -335,12 +358,14 @@ local function fade(parts, to, seconds, done)
 	end)
 	tween:Play()
 end
-local function groundAt(x, z, ignore)
+-- The ground under a spot: only colliding geometry counts (a tree crown or a sight-only trunk mesh is not ground).
+local function groundAt(x, z, fromY, ignore)
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.FilterDescendantsInstances = ignore
 	params.IgnoreWater = false
-	local hit = workspace:Raycast(Vector3.new(x, 250, z), Vector3.new(0, -500, 0), params)
+	params.RespectCanCollide = true
+	local hit = workspace:Raycast(Vector3.new(x, fromY + 40, z), Vector3.new(0, -120, 0), params)
 	if hit and hit.Material ~= Enum.Material.Water then return hit.Position.Y end
 	return nil
 end
@@ -355,7 +380,7 @@ end
 local function show(x, z, root)
 	local ignore = { gui }
 	if player.Character then table.insert(ignore, player.Character) end
-	local y = groundAt(x, z, ignore)
+	local y = groundAt(x, z, root.Position.Y, ignore)
 	if not y or math.abs(y - root.Position.Y) > 12 then return false end
 	local model, parts = silhouette()
 	local box, size = model:GetBoundingBox()
