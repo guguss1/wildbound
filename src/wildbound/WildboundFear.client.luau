@@ -303,9 +303,9 @@ local function silhouette()
 		copy.PrimaryPart = body
 	end
 	for _, item in ipairs(copy:GetDescendants()) do
-		-- Look pass: a sighting never copies the real one's horror grin.
+		-- Look pass: a sighting never copies the real one's horror grin (fix pass: nor the jaw part it sits on).
 		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator")
-			or item.Name == "HorrorGrin" then
+			or item.Name == "HorrorGrin" or item.Name == "HorrorJaw" then
 			item:Destroy()
 		end
 	end
@@ -489,7 +489,8 @@ end
 local function watchGrin()
 	local model = guardian()
 	local grin = model and model:FindFirstChild("HorrorGrin", true)
-	if not grin or grin == grinWatched or not grin:IsA("BillboardGui") then return end
+	-- Fix pass (FP1): the grin is a SurfaceGui on the HorrorJaw part fitted to her face (was a BillboardGui).
+	if not grin or grin == grinWatched or not grin:IsA("SurfaceGui") then return end
 	grinWatched = grin
 	listen(grin:GetPropertyChangedSignal("Enabled"), function()
 		if grin.Enabled then popGrin(grin) end

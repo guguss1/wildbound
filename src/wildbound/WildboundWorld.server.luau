@@ -785,6 +785,15 @@ local function step(now, dt)
 		end
 	end
 	if mode == "Alert" or mode == "Hunt" or mode == "Telegraph" then lastHuntAt = now end
+	-- Fix pass (FP1): while she hunts, the art leans toward the quarry (presentation only; the camera is never touched).
+	if visual then
+		local quarryRoot
+		if (mode == "Hunt" or mode == "Telegraph") and target then
+			local _, _, root = characterContext(target)
+			quarryRoot = root
+		end
+		visual:setQuarry(quarryRoot and quarryRoot.Position or nil)
+	end
 	local revealed = now < revealedUntil
 	if visual then visual:setRevealed(revealed) else
 		body.Transparency, head.Transparency = revealed and 0.3 or 0.86, revealed and 0.25 or 0.82

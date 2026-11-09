@@ -286,24 +286,41 @@ return function(Visual)
 		visual:destroy()
 		equal(visual:setScale(3), false)
 	end)
+	-- Fix pass (FP1, user: the grin read as a flat sticker floating off the face): the grin is a SurfaceGui on a thin
+	-- anchored "HorrorJaw" part fitted to the head's own geometry, flush on its front face and turned with the head; no
+	-- BillboardGui and no camera-axis push remain anywhere on the guardian.
 	local function grinOf(root)
 		local grin = root and root:FindFirstChild("HorrorGrin", true)
-		assert(grin and grin:IsA("BillboardGui"), "a HorrorGrin billboard")
-		return grin
+		assert(grin and grin:IsA("SurfaceGui"), "a HorrorGrin SurfaceGui")
+		for _, item in ipairs(root:GetDescendants()) do
+			assert(not item:IsA("BillboardGui"), "no BillboardGui remains: " .. item:GetFullName())
+		end
+		local jaw = grin.Parent
+		assert(jaw and jaw:IsA("BasePart") and jaw.Name == "HorrorJaw", "the grin sits on the HorrorJaw part")
+		equal(jaw.Anchored, true); equal(jaw.CanCollide, false); equal(jaw.CanQuery, false); equal(jaw.CanTouch, false)
+		near(jaw.Transparency, 1)
+		equal(grin.Face, Enum.NormalId.Front, "drawn on the front face")
+		return grin, jaw
+	end
+	-- The art's head: one MeshPart whose name carries "Head" (SiluetaV3_Head in the real template), 1.11 x 1.25 x 1.0
+	-- studs, just in front of the neck, looking down -Z like the template pivot.
+	local HEAD_SIZE, HEAD_CFRAME = Vector3.new(1.1084, 1.2525, 1.0044), CFrame.new(0.043, 6.295, -0.792)
+	local function headPart(f)
+		local head = Instance.new("MeshPart")
+		head.Name, head.Size, head.CFrame = "SiluetaV3_Head", HEAD_SIZE, HEAD_CFRAME
+		head.Parent = f.template:FindFirstChild("NestedArt")
+		return head
 	end
 	case("look pass: the horror grin hides until the hunt and stays through the warning and the strike", function()
 		local f = fixture(true, true)
 		boneChain(f)
+		headPart(f)
 		f.options.look = Visual.DREAD_LOOK
 		local visual = f:create()
-		local grin = grinOf(visual.art)
+		local grin, jaw = grinOf(visual.art)
 		equal(grin.Enabled, false)
-		-- Play finding (night chase): adorned on the head bone itself the grin floated above the eyes once the hunch
-		-- tipped the head forward. It rides a GrinAnchor bone at the mouth, a child of the head bone, so it follows the
-		-- hunch, the stretch and every clip.
-		local anchor = grin.Adornee
-		assert(anchor and anchor:IsA("Bone") and anchor.Name == "GrinAnchor", "a GrinAnchor bone")
-		equal(anchor.Parent, visual.art:FindFirstChild("Head", true), "a child of the animated head bone")
+		equal(jaw.Parent, visual.art, "the jaw is part of the art, so it moves and scales with it")
+		equal(f.template:FindFirstChild("HorrorJaw", true), nil, "the template is untouched")
 		equal(f.template:FindFirstChild("GrinAnchor", true), nil, "the template is untouched")
 		equal(grin.LightInfluence, 0, "a faint glow the night fog cannot darken")
 		equal(grin.AlwaysOnTop, false, "trunks still hide it")
@@ -326,30 +343,117 @@ return function(Visual)
 		visual:destroy()
 		equal(grin.Parent, nil)
 	end)
-	case("look pass: the grin is wider than the head and follows the art scale", function()
+	-- Deliberately changed in the fix pass (FP1): the grin was a BillboardGui on a GrinAnchor bone at a hard-coded mouth
+	-- offset, pushed 0.7 studs per unit of scale toward the camera. It is now fitted to the head geometry.
+	local function headBounds(visual)
+		local head
+		for _, item in ipairs(visual.art:GetDescendants()) do
+			if item:IsA("BasePart") and item.Name:find("Head", 1, true) then head = item break end
+		end
+		assert(head, "the cloned head part")
+		return head
+	end
+	case("fix pass: the jaw is fitted to the head geometry, flush on its front face, at every supported scale", function()
+		for _, scale in ipairs({ 2, 3.8, 4.5 }) do
+			local f = fixture(true, true)
+			boneChain(f)
+			headPart(f)
+			f.options.visualScale = scale
+			local visual = f:create()
+			local grin, jaw = grinOf(visual.art)
+			local head = headBounds(visual)
+			-- Inside the head's bounds (plus 0.3 stud of slack) so it can never float off the face.
+			local inHead = head.CFrame:PointToObjectSpace(jaw.Position)
+			for _, axis in ipairs({ "X", "Y", "Z" }) do
+				assert(math.abs(inHead[axis]) <= head.Size[axis] / 2 + 0.3, ("scale %s: jaw %s=%.3f outside the head"):format(
+					scale, axis, inHead[axis]))
+			end
+			-- Flush on the front face: its centre sits at the face, not behind it and not pushed toward a camera.
+			assert(-inHead.Z >= head.Size.Z / 2 - 0.05 * scale and -inHead.Z <= head.Size.Z / 2 + 0.3, "flush on the front face")
+			assert(inHead.Y < 0, "on the lower half, where the mouth is")
+			assert(jaw.CFrame.LookVector:Dot(head.CFrame.LookVector) > 0.99, "turned with the head")
+			assert(jaw.Size.X >= head.Size.X * 1.0 and jaw.Size.X <= head.Size.X * 1.7, "about the head's width: " .. jaw.Size.X)
+			assert(jaw.Size.Y >= head.Size.Y * 0.25 and jaw.Size.Y <= head.Size.Y * 0.6, "a jaw, not a mask: " .. jaw.Size.Y)
+			assert(jaw.Size.Z <= 0.1 * scale, "thin")
+			assert(grin.MaxDistance >= 60, "readable from the chase distance")
+			equal(grin.AlwaysOnTop, false, "trunks still hide it")
+			if scale == 3.8 then
+				-- A live rescale refits the jaw to the rescaled head.
+				local width = jaw.Size.X
+				equal(visual:setScale(4.5), true)
+				near(jaw.Size.X / width, 4.5 / 3.8)
+				local again = headBounds(visual).CFrame:PointToObjectSpace(jaw.Position)
+				assert(math.abs(again.Y) <= headBounds(visual).Size.Y / 2 + 0.3, "still inside the head after a rescale")
+			end
+			visual:destroy()
+			equal(jaw.Parent, nil)
+		end
+	end)
+	case("fix pass: the jaw is locked to the head bone, so the hunch and a lean carry it with the face", function()
+		local plain = fixture(true, true)
+		boneChain(plain); headPart(plain)
+		local plainVisual = plain:create()
+		local _, plainJaw = grinOf(plainVisual.art)
+		local plainBone = plainVisual.art:FindFirstChild("Head", true)
+		local plainOffset = plainBone.WorldCFrame:ToObjectSpace(plainJaw.CFrame)
 		local f = fixture(true, true)
-		boneChain(f)
-		f.options.visualScale = 1.9
+		boneChain(f); headPart(f)
+		f.options.look = Visual.DREAD_LOOK
 		local visual = f:create()
-		local grin = grinOf(visual.art)
-		local small = grin.Size.X.Scale
-		assert(small > 0 and grin.Size.X.Offset == 0, "sized in studs")
-		-- Without a pose the anchor sits at the template's mouth, scaled with the art.
-		local mouth = visual.art:GetPivot():PointToWorldSpace(Visual.GRIN.mouth * 1.9)
-		assert((grin.Adornee.WorldPosition - mouth).Magnitude < 0.001, "the anchor sits at the mouth")
-		-- Play finding (night chase): 0.3 studs per unit of scale toward the camera let the hunched head hide the grin.
-		assert(grin.StudsOffset.Z >= 0.6 * 1.9, "in front of the face")
-		visual:setScale(3.8)
-		near(grin.Size.X.Scale, small * 2)
-		assert(grin.Size.X.Scale > grin.Size.Y.Scale * 1.8, "a wide grin")
-		assert(grin.StudsOffset.Z >= 0.6 * 3.8, "still in front of the face")
+		local _, jaw = grinOf(visual.art)
+		local bone = visual.art:FindFirstChild("Head", true)
+		local offset = bone.WorldCFrame:ToObjectSpace(jaw.CFrame)
+		assert((offset.Position - plainOffset.Position).Magnitude < 0.001, "the same place on the head bone")
+		assert(offset.LookVector:Dot(plainOffset.LookVector) > 0.999, "the same turn on the head bone")
+		assert((jaw.Position - plainJaw.Position).Magnitude > 0.1, "the hunch moved the jaw with the head")
+		plainVisual:destroy(); visual:destroy()
+	end)
+	-- Fix pass (FP1, framing): with the default camera the giant's face sat above the frame at chase range. While she
+	-- hunts she leans toward her quarry (chest and neck pitch, capped, eased in and out), so the face drops into view at
+	-- close range. The player camera is never touched; the gameplay body never moves.
+	local function leanOf(f, visual)
+		local total = 0
+		for name, degrees in pairs(Visual.DREAD_LOOK.pose.pitch) do
+			local source, shaped = f.template:FindFirstChild(name, true), visual.art:FindFirstChild(name, true)
+			local x = source.CFrame:ToObjectSpace(shaped.CFrame):ToEulerAnglesXYZ()
+			total += -math.deg(x) - (-degrees)
+		end
+		return total
+	end
+	case("fix pass: while hunting she leans toward a close quarry, capped and eased, and straightens afterwards", function()
+		local f = fixture(true, true)
+		boneChain(f); headPart(f)
+		f.options.look = Visual.DREAD_LOOK
+		local visual = f:create()
+		local bodyFrame = f.body.CFrame
+		assert(type(Visual.LEAN) == "table" and Visual.LEAN.max >= 20 and Visual.LEAN.max <= 30, "a lean cap near 25 degrees")
+		near(leanOf(f, visual), 0)
+		-- The body stands at (13, 3.7, -85) looking down -Z: a quarry 8 studs ahead, then one 60 studs ahead.
+		visual:setState("Hunt")
+		visual:setQuarry(Vector3.new(13, 0, -93))
+		f:tick(100.1)
+		local early = leanOf(f, visual)
+		assert(early > 0.5 and early < Visual.LEAN.max - 1, "eased in, not snapped: " .. early)
+		for t = 100.2, 104, 0.1 do f:tick(t) end
+		local full = leanOf(f, visual)
+		assert(math.abs(full - Visual.LEAN.max) < 0.5, "a close quarry reaches the cap: " .. full)
+		assert(full <= Visual.LEAN.max + 0.01, "never past the cap")
+		visual:setQuarry(Vector3.new(13, 0, -145))
+		for t = 104.1, 108, 0.1 do f:tick(t) end
+		local far = leanOf(f, visual)
+		assert(far > 0.5 and far < full - 5, "a far quarry gets a smaller lean: " .. far)
+		visual:setQuarry(nil)
+		visual:setState("Search")
+		for t = 108.1, 112, 0.1 do f:tick(t) end
+		assert(leanOf(f, visual) < 0.5, "straight again after the hunt")
+		equal(f.body.CFrame, bodyFrame, "the gameplay body never moves")
 		visual:destroy()
 	end)
 	case("look pass: without art the grin rides the plain head and leaves with it", function()
 		local f = fixture(false, false)
 		local visual = f:create()
-		local grin = grinOf(f.head)
-		equal(grin.Adornee, f.head); equal(grin.Enabled, false)
+		local grin = grinOf(f.guardian)
+		equal(grin.Parent.Parent, f.head); equal(grin.Enabled, false)
 		visual:setState("Hunt"); equal(grin.Enabled, true)
 		visual:setState("Retreat"); equal(grin.Enabled, false)
 		visual:destroy(); visual:destroy()
