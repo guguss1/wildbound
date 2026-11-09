@@ -330,6 +330,19 @@ listen(worldGui:GetAttributeChangedSignal("FearCueAt"), function()
 		local shot = Mix.oneShot("stinger", worldGui:GetAttribute("Reduced") == true)
 		playOnce(shot.slot, nil, shot.volume, shot.fadeIn)
 		master:SetAttribute("LastFearCue", kind)
+	elseif kind == "stalk" and worldGui:GetAttribute("Reduced") ~= true then
+		-- A stalk sighting: a faint whisper from where it stands (never with Efectos suaves).
+		local spot = worldGui:GetAttribute("StalkSpot")
+		if typeof(spot) == "Vector3" then
+			local attachment = Instance.new("Attachment")
+			attachment.Name = "WildboundCue"
+			attachment.WorldPosition = spot
+			attachment.Parent = workspace.Terrain
+			task.delay(8, function() attachment:Destroy() end)
+			local shot = Mix.oneShot("whisper", false)
+			playOnce(shot.slot, attachment, shot.volume, shot.fadeIn)
+			master:SetAttribute("LastFearCue", kind)
+		end
 	end
 end)
 -- Layers come back 2 s after respawn, fading in over 2 s.

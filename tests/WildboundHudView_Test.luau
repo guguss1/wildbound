@@ -1,6 +1,7 @@
--- Invoke with require(freshTestClone)(require(freshViewClone), freshViewClone.Source) in Studio.
--- Pure view-models for the Wildbound HUD: chip, hint, notice expiry, text fitting. Time is injected.
-return function(View, source)
+-- Invoke with require(freshTestClone)(require(freshViewClone), freshViewClone.Source,
+-- require(freshIslandLayoutClone)) in Studio. Pure view-models for the Wildbound HUD: chip, hint, notice expiry, text
+-- fitting. Time is injected. The island layout (stalk sightings) is optional; without it that case fails.
+return function(View, source, islandLayout)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -538,6 +539,92 @@ return function(View, source)
 		near(x, 0); near(z, CONST.KNOCKBACK) -- on top of it: a fixed push, never NaN
 		equal(View.knockback(NAN, 0, 0, 0), nil)
 		assert(CONST.HIT_FLASH <= 0.7 and CONST.FEAR_SHAKE <= 0.6 and CONST.FEAR_FOV <= 15, "bounded")
+	end)
+	-- Stalk sightings (fear pass, user: "Sí, armalo"): La Silueta's silhouette appears for a few seconds at the edge of
+	-- what the player can see, between trees, mostly at dusk and night, then vanishes. Client-only visuals: these
+	-- rules decide when one may appear, where (behind a trunk core, in the peripheral view, inside the distance band,
+	-- never in camp, on the spawn pad or on an island floor) and when it vanishes.
+	local function stalkInput(over)
+		local input = { phase = "Night", count = 0, reduced = false, guardianState = "Patrol", guardianDistance = 200 }
+		for key, value in pairs(over or {}) do input[key] = value end
+		return input
+	end
+
+	case("Stalk: allowed only at dusk, night and dawn, never while the real one is after you or near", function()
+		equal(View.stalkAllowed(stalkInput()), true)
+		equal(View.stalkAllowed(stalkInput({ phase = "Dusk" })), true)
+		equal(View.stalkAllowed(stalkInput({ phase = "Dawn" })), true)
+		equal(select(2, View.stalkAllowed(stalkInput({ phase = "Day" }))), "Day")
+		for _, state in ipairs({ "Alert", "Hunt", "Telegraph", "Search" }) do
+			equal(select(2, View.stalkAllowed(stalkInput({ guardianState = state }))), "Hunting")
+		end
+		equal(select(2, View.stalkAllowed(stalkInput({ guardianDistance = CONST.STALK_MAX + 10 }))), "Near")
+		equal(select(2, View.stalkAllowed(stalkInput({ count = CONST.STALK_PER_NIGHT }))), "Cap")
+		equal(select(2, View.stalkAllowed(stalkInput({ count = 1, reduced = true }))), "Cap")
+		equal(View.stalkAllowed(nil), false)
+	end)
+
+	case("Stalk: rare, sooner while carrying a cria or far from camp, rarer with Efectos suaves", function()
+		local base = View.stalkInterval(false, false, false, 0.5)
+		near(base, CONST.STALK_EVERY)
+		assert(View.stalkInterval(true, false, false, 0.5) < base, "carrying a cria")
+		assert(View.stalkInterval(false, true, false, 0.5) < base, "far from camp")
+		assert(View.stalkInterval(false, false, true, 0.5) > base, "Efectos suaves")
+		for _, roll in ipairs({ 0, 1, NAN }) do
+			assert(View.stalkInterval(true, true, false, roll) >= CONST.STALK_COOLDOWN, "never under the cooldown")
+		end
+		assert(CONST.STALK_COOLDOWN >= 20 and CONST.STALK_PER_NIGHT <= 4, "it stays rare")
+		-- Play finding: at 55 studs a night sighting was lost in the fog (about 39 studs at night); its red eyes must
+		-- still read, so the band sits inside the night fog and the flashlight.
+		assert(CONST.STALK_MAX <= 40 and CONST.STALK_MIN >= 15 and CONST.STALK_NEAR < CONST.STALK_MIN, "the band is visible")
+	end)
+
+	case("Stalk: the spot is behind a trunk, in the band, off to the side, and away from the player", function()
+		local cores = {
+			{ x = 0, z = 40, r = 1.5 }, -- straight ahead: too central
+			{ x = 18, z = 24, r = 1.5 }, -- about 37 degrees off, 30 studs: the one
+			{ x = 5, z = 8, r = 1.5 }, -- too close
+			{ x = 0, z = -40, r = 1.5 }, -- behind the player
+			{ x = 200, z = 200, r = 1.5 }, -- too far
+		}
+		local x, z = View.stalkSpot(0, 0, 0, 1, cores, {})
+		assert(x, "a spot")
+		local d = math.sqrt(x * x + z * z)
+		assert(d > 30, "behind the trunk, farther than its core")
+		assert(d >= CONST.STALK_MIN and d <= CONST.STALK_MAX + 5, "in the band " .. tostring(d))
+		equal(View.stalkSpot(0, 0, 0, 1, { cores[1], cores[3], cores[4], cores[5] }, {}), nil)
+		equal(View.stalkSpot(NAN, 0, 0, 1, cores, {}), nil)
+	end)
+
+	case("Stalk: never in camp, on the spawn pad or on an island floor", function()
+		assert(type(View.STALK_KEEP_OUT) == "table" and #View.STALK_KEEP_OUT >= 3, "keep-out circles")
+		local function covered(x, z, radius)
+			for _, zone in ipairs(View.STALK_KEEP_OUT) do
+				if math.sqrt((x - zone.x) ^ 2 + (z - zone.z) ^ 2) + radius <= zone.r + 1e-6 then return true end
+			end
+			return false
+		end
+		assert(covered(-140, 140, 35), "camp")
+		assert(covered(105, 125, 22), "shelter")
+		assert(covered(0, 0, 9), "spawn pad")
+		assert(islandLayout and islandLayout.islands, "the island layout is passed in")
+		for _, island in ipairs(islandLayout.islands) do
+			assert(covered(island.x, island.z, island.floorRadius), "island " .. island.id)
+		end
+		local zone = View.STALK_KEEP_OUT[1]
+		local inCamp = { { x = zone.x + 12, z = zone.z, r = 1.5 } }
+		assert(View.stalkSpot(zone.x, zone.z - 25, 0, 1, inCamp, {}), "a spot without the keep-out circles")
+		equal(View.stalkSpot(zone.x, zone.z - 25, 0, 1, inCamp, View.STALK_KEEP_OUT), nil)
+	end)
+
+	case("Stalk: it vanishes when looked at, approached, after its seconds, or when the real one hunts", function()
+		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.7, guardianState = "Patrol" }), nil)
+		equal(View.stalkVanish({ age = CONST.STALK_SECONDS, distance = 40, lookDot = 0.7 }), "Time")
+		equal(View.stalkVanish({ age = 1, distance = CONST.STALK_NEAR - 1, lookDot = 0.7 }), "Approach")
+		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.995 }), "Looked")
+		equal(View.stalkVanish({ age = 0.2, distance = 40, lookDot = 0.995 }), nil) -- a glimpse first
+		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.7, guardianState = "Hunt" }), "Real")
+		equal(View.stalkVanish(nil), "Time")
 	end)
 	return result
 end

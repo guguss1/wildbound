@@ -65,5 +65,24 @@ return function(sources)
 		has(audio, 'GetAttribute("Awake")', "a parent that wakes roars")
 	end)
 
+	-- Stalk sightings: a client-only apparition at the edge of sight, from the pure rules, that never collides, is
+	-- never seen by La Silueta's sight casts and never reaches the server.
+	case("Stalk: the fear client stages sightings from the pure rules, behind trunk cores, client-only", function()
+		has(fear, "View.stalkAllowed(")
+		has(fear, "View.stalkInterval(")
+		has(fear, "View.stalkSpot(")
+		has(fear, "View.stalkVanish(")
+		has(fear, "View.STALK_KEEP_OUT")
+		has(fear, '"FK_TrunkCore"')
+		has(fear, "CanCollide = false")
+		has(fear, "CanQuery = false")
+		has(fear, 'GetAttribute("Phase")')
+		has(fear, 'SetAttribute("StalkCount"')
+	end)
+
+	case("Stalk: the audio client whispers on a sighting, but not with Efectos suaves", function()
+		has(audio, 'kind == "stalk"')
+	end)
+
 	return result
 end

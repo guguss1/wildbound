@@ -259,9 +259,195 @@ RunService:BindToRenderStep("WildboundFear", Enum.RenderPriority.Camera.Value + 
 	if not ok then gui:SetAttribute("LastError", tostring(message)) end
 end)
 
+-- Stalk sightings (user: "Sí, armalo"): at dusk, night and dawn La Silueta is sometimes glimpsed at the edge of sight,
+-- standing still just behind a trunk, off to the side; it tilts its head and is gone when looked at, approached, or
+-- after a few seconds. A client-only copy of its art: no collision, no queries, no touch, nothing sent to the server,
+-- so it can never hit, be heard by the guardian or change the game. Never while the real one is after this player,
+-- near or in view; never in camp, on the spawn pad or on an island floor (View.STALK_KEEP_OUT). The rules and the
+-- numbers are in WildboundHudView (stalk*); "Efectos suaves": at most one per evening, twice as rare, no whisper.
+local STALK_FIRST_WAIT = 20
+local CAMP_X, CAMP_Z, FAR_FROM_CAMP = -140, 140, 150
+local stalk = { nextAt = os.clock() + STALK_FIRST_WAIT, count = 0, phase = nil, shown = nil }
+local coreCache
+local function trunkCores()
+	if coreCache and #coreCache > 0 then return coreCache end
+	local list = {}
+	local map = workspace:FindFirstChild("WildboundP0")
+	for _, part in ipairs(map and map:GetDescendants() or {}) do
+		if part:IsA("BasePart") and part.Name == "FK_TrunkCore" then
+			table.insert(list, { x = part.Position.X, z = part.Position.Z, r = math.min(part.Size.X, part.Size.Z) / 2 })
+		end
+	end
+	coreCache = list
+	return list
+end
+local function silhouette()
+	local model = guardian()
+	local art = model and model:FindFirstChild("SiluetaVisual")
+	local copy
+	if art then
+		local ok, made = pcall(function() return art:Clone() end)
+		copy = ok and made or nil
+	end
+	if not copy then
+		-- No art streamed in: a plain tall, thin dark figure with two red eyes.
+		copy = Instance.new("Model")
+		local body = make("Part", { Name = "Body", Size = Vector3.new(2.4, 16, 1.4), Color = Color3.fromRGB(8, 8, 10),
+			Material = Enum.Material.SmoothPlastic }, copy)
+		make("Part", { Name = "Head", Size = Vector3.new(2, 2.6, 1.6), Color = Color3.fromRGB(8, 8, 10),
+			CFrame = body.CFrame * CFrame.new(0, 9.3, 0) }, copy)
+		for _, side in ipairs({ -0.45, 0.45 }) do
+			make("Part", { Name = "Eye", Size = Vector3.new(0.3, 0.3, 0.2), Color = Color3.fromRGB(235, 40, 30),
+				Material = Enum.Material.Neon, CFrame = body.CFrame * CFrame.new(side, 9.5, -0.85) }, copy)
+		end
+		copy.PrimaryPart = body
+	end
+	for _, item in ipairs(copy:GetDescendants()) do
+		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator") then item:Destroy() end
+	end
+	local parts = {}
+	for _, part in ipairs(copy:GetDescendants()) do
+		if part:IsA("BasePart") then
+			part.Anchored = true
+			part.CanCollide = false
+			part.CanQuery = false
+			part.CanTouch = false
+			part.CastShadow = false
+			parts[part] = part.Transparency
+			part.Transparency = 1
+		end
+	end
+	copy.Name = "WildboundStalkSighting"
+	return copy, parts
+end
+local function fade(parts, to, seconds, done)
+	local value = Instance.new("NumberValue")
+	value.Value = to == 1 and 0 or 1
+	value.Changed:Connect(function(k)
+		for part, base in pairs(parts) do
+			if part.Parent then part.Transparency = base + (1 - base) * k end
+		end
+	end)
+	local tween = TweenService:Create(value, TweenInfo.new(seconds), { Value = to == 1 and 1 or 0 })
+	tween.Completed:Once(function()
+		value:Destroy()
+		if done then done() end
+	end)
+	tween:Play()
+end
+local function groundAt(x, z, ignore)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = ignore
+	params.IgnoreWater = false
+	local hit = workspace:Raycast(Vector3.new(x, 250, z), Vector3.new(0, -500, 0), params)
+	if hit and hit.Material ~= Enum.Material.Water then return hit.Position.Y end
+	return nil
+end
+local function vanish(why)
+	local shown = stalk.shown
+	stalk.shown = nil
+	if not shown then return end
+	gui:SetAttribute("StalkVanish", why)
+	gui:SetAttribute("StalkShownFor", math.floor((os.clock() - shown.at) * 10 + 0.5) / 10)
+	fade(shown.parts, 1, why == "Looked" and 0.15 or 0.4, function() shown.model:Destroy() end)
+end
+local function show(x, z, root)
+	local ignore = { gui }
+	if player.Character then table.insert(ignore, player.Character) end
+	local y = groundAt(x, z, ignore)
+	if not y or math.abs(y - root.Position.Y) > 12 then return false end
+	local model, parts = silhouette()
+	local box, size = model:GetBoundingBox()
+	local lift = model:GetPivot().Position.Y - (box.Position.Y - size.Y / 2)
+	local at = Vector3.new(x, y + lift, z)
+	local face = Vector3.new(root.Position.X, at.Y, root.Position.Z)
+	local base = CFrame.lookAt(at, face)
+	model:PivotTo(base)
+	model.Parent = workspace.CurrentCamera -- local to this client and out of every server-side cast
+	stalk.shown = { model = model, parts = parts, at = os.clock(), x = x, z = z, base = base }
+	fade(parts, 0, 0.5)
+	worldGui:SetAttribute("StalkSpot", at)
+	worldGui:SetAttribute("FearCue", "stalk")
+	worldGui:SetAttribute("FearCueAt", workspace:GetServerTimeNow())
+	return true
+end
+local function stalkStep()
+	local now = os.clock()
+	local phase = worldGui:GetAttribute("Phase")
+	if phase ~= stalk.phase then
+		-- A new evening: dusk, or the dark straight after the day (the Studio clock shift can skip dusk).
+		if phase == "Dusk" or (stalk.phase == "Day" and phase ~= "Day") then stalk.count = 0 end
+		stalk.phase = phase
+	end
+	local root, camera = rootPart(), workspace.CurrentCamera
+	if not (root and camera) then return end
+	local model, body = guardian()
+	local guardianState = model and model:GetAttribute("State")
+	local guardianDistance = body and (body.Position - root.Position).Magnitude or math.huge
+	local reduced = worldGui:GetAttribute("Reduced") == true
+	local shown = stalk.shown
+	if shown then
+		local toward = Vector3.new(shown.x, camera.CFrame.Position.Y, shown.z) - camera.CFrame.Position
+		local look = camera.CFrame.LookVector
+		local flatLook = Vector3.new(look.X, 0, look.Z)
+		local lookDot = toward.Magnitude > 0.1 and flatLook.Magnitude > 0.1
+			and flatLook.Unit:Dot(Vector3.new(toward.X, 0, toward.Z).Unit) or 0
+		local age = now - shown.at
+		local why = View.stalkVanish({ age = age, lookDot = lookDot, guardianState = guardianState,
+			distance = Vector3.new(shown.x - root.Position.X, 0, shown.z - root.Position.Z).Magnitude })
+		if why then
+			vanish(why)
+		elseif shown.model.Parent then
+			-- A slow head tilt while it watches.
+			shown.model:PivotTo(shown.base * CFrame.Angles(0, 0, math.rad(7) * math.sin(math.min(age, 2) * 0.8)))
+		end
+		return
+	end
+	if now < stalk.nextAt then return end
+	local ok, reason = View.stalkAllowed({ phase = phase, count = stalk.count, reduced = reduced,
+		guardianState = guardianState, guardianDistance = guardianDistance })
+	-- Never while the real one is in view, even far away.
+	if ok and body and guardianDistance < 160 then
+		local toward = body.Position - camera.CFrame.Position
+		if toward.Magnitude > 0.1 and camera.CFrame.LookVector:Dot(toward.Unit) > 0.5 then ok, reason = false, "InView" end
+	end
+	if not ok then
+		gui:SetAttribute("StalkSkip", reason)
+		stalk.nextAt = now + 3
+		return
+	end
+	local look = camera.CFrame.LookVector
+	local x, z = View.stalkSpot(root.Position.X, root.Position.Z, look.X, look.Z, trunkCores(), View.STALK_KEEP_OUT)
+	if not (x and show(x, z, root)) then
+		gui:SetAttribute("StalkSkip", "NoSpot")
+		stalk.nextAt = now + 2
+		return
+	end
+	stalk.count += 1
+	gui:SetAttribute("StalkCount", stalk.count)
+	gui:SetAttribute("StalkDistance", math.floor(Vector3.new(x - root.Position.X, 0, z - root.Position.Z).Magnitude * 10 + 0.5) / 10)
+	local character = player.Character
+	local carrying = character ~= nil and character:FindFirstChild("WildboundCarryCapsule") ~= nil
+	local far = Vector3.new(root.Position.X - CAMP_X, 0, root.Position.Z - CAMP_Z).Magnitude > FAR_FROM_CAMP
+	local delaySeconds = View.stalkInterval(carrying, far, reduced, rng:NextNumber())
+	gui:SetAttribute("StalkNextIn", math.floor(delaySeconds * 10 + 0.5) / 10)
+	stalk.nextAt = now + delaySeconds
+end
+local stalkClock = 0
+listen(RunService.Heartbeat, function(dt)
+	stalkClock += dt
+	if stalkClock < 0.1 then return end
+	stalkClock = 0
+	local ok, message = pcall(stalkStep)
+	if not ok then gui:SetAttribute("StalkError", tostring(message)) end
+end)
+listen(player.CharacterAdded, function() vanish("Respawn") end)
+
 local function cleanup()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 	pcall(function() RunService:UnbindFromRenderStep("WildboundFear") end)
+	if stalk.shown then stalk.shown.model:Destroy() end
 	if gui.Parent then gui:Destroy() end
 end
 listen(script.Destroying, cleanup)

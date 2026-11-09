@@ -27,6 +27,16 @@ View.CONSTANTS = table.freeze({
 	HIT_FLASH = 0.55,
 	HEART_RANGE = 45,
 	KNOCKBACK = 42,
+	-- Stalk sightings (fear pass): La Silueta glimpsed at the edge of sight. The mean gap between two (seconds), the
+	-- shortest gap, the most per evening, the distance band (studs, inside the night fog's end, about 39, so its eyes still
+	-- read), how long one may stand there (seconds) and how close the player may come before it is gone (studs).
+	STALK_EVERY = 50,
+	STALK_COOLDOWN = 30,
+	STALK_PER_NIGHT = 3,
+	STALK_MIN = 18,
+	STALK_MAX = 36,
+	STALK_SECONDS = 4,
+	STALK_NEAR = 12,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
@@ -52,6 +62,10 @@ function View.tune(overrides)
 	CONSTANTS.DREAD_RANGE = math.max(CONSTANTS.DREAD_RANGE, 1)
 	CONSTANTS.FEAR_SECONDS = math.max(CONSTANTS.FEAR_SECONDS, 0.1)
 	CONSTANTS.HEART_RANGE = math.max(CONSTANTS.HEART_RANGE, 1)
+	-- A sighting keeps a real band, a real gap and a visible moment whatever the panel says.
+	CONSTANTS.STALK_MAX = math.max(CONSTANTS.STALK_MAX, CONSTANTS.STALK_MIN + 5)
+	CONSTANTS.STALK_COOLDOWN = math.max(CONSTANTS.STALK_COOLDOWN, 5)
+	CONSTANTS.STALK_SECONDS = math.max(CONSTANTS.STALK_SECONDS, 0.5)
 end
 View.tune(nil)
 
@@ -399,6 +413,91 @@ function View.knockback(px, pz, ax, az)
 	local length = math.sqrt(dx * dx + dz * dz)
 	if length < 1e-6 then return 0, CONSTANTS.KNOCKBACK end
 	return dx / length * CONSTANTS.KNOCKBACK, dz / length * CONSTANTS.KNOCKBACK
+end
+
+-- Stalk sightings (fear pass). Never in camp, the shelter, on the spawn pad or on an island floor (each island circle
+-- is its floor radius plus 8; a contract checks the layout): x, z, radius in studs.
+View.STALK_KEEP_OUT = table.freeze({
+	table.freeze({ x = -140, z = 140, r = 45 }), -- camp
+	table.freeze({ x = 105, z = 125, r = 30 }), -- shelter
+	table.freeze({ x = 0, z = 0, r = 15 }), -- spawn pad
+	table.freeze({ x = -95, z = 75, r = 22 }), -- island 1
+	table.freeze({ x = -20, z = 15, r = 22 }), -- island 2
+	table.freeze({ x = 115, z = 15, r = 24 }), -- island 3
+	table.freeze({ x = 35, z = -99, r = 24 }), -- island 4
+	table.freeze({ x = 60, z = -135, r = 22 }), -- island 5
+})
+local STALK_THREAT = { Alert = true, Hunt = true, Telegraph = true, Search = true }
+local STALK_PHASES = { Dusk = true, Night = true, Dawn = true }
+local STALK_ANGLE_MIN, STALK_ANGLE_MAX, STALK_ANGLE_BEST = math.rad(15), math.rad(60), math.rad(35)
+local STALK_LOOK_DOT = 0.985 -- about 10 degrees: looked at directly
+local STALK_GLIMPSE = 0.5 -- seconds it always stays, even when looked at
+local STALK_BEHIND = 2.5 -- studs past the trunk core's edge
+
+-- input = { phase, count (sightings this evening), reduced, guardianState, guardianDistance }. Returns ok, reason.
+function View.stalkAllowed(input)
+	if type(input) ~= "table" then return false, "Bad" end
+	if not STALK_PHASES[input.phase] then return false, "Day" end
+	if STALK_THREAT[input.guardianState] then return false, "Hunting" end
+	if finite(input.guardianDistance) and input.guardianDistance < CONSTANTS.STALK_MAX + 25 then return false, "Near" end
+	local cap = input.reduced == true and 1 or CONSTANTS.STALK_PER_NIGHT
+	if not finite(input.count) or input.count >= cap then return false, "Cap" end
+	return true, nil
+end
+
+-- Seconds until the next sighting may come: STALK_EVERY scaled by a roll (0.6 to 1.4), sooner while carrying a cria
+-- or far from camp, twice as long with "Efectos suaves", never under STALK_COOLDOWN.
+function View.stalkInterval(carrying, far, reduced, roll)
+	roll = finite(roll) and math.clamp(roll, 0, 1) or 0.5
+	local seconds = CONSTANTS.STALK_EVERY * (0.6 + 0.8 * roll)
+	if carrying == true then seconds *= 0.6 end
+	if far == true then seconds *= 0.8 end
+	if reduced == true then seconds *= 2 end
+	return math.max(seconds, CONSTANTS.STALK_COOLDOWN)
+end
+
+-- Where to stand: just behind a trunk core (cores = { { x, z, r } }), inside the distance band, 15 to 60 degrees off
+-- the player's look (seen from the corner of the eye), outside every keep-out circle. The one nearest 35 degrees.
+function View.stalkSpot(px, pz, lookX, lookZ, cores, keepOut)
+	if not (finite(px) and finite(pz) and finite(lookX) and finite(lookZ)) or type(cores) ~= "table" then return nil end
+	local size = math.sqrt(lookX * lookX + lookZ * lookZ)
+	if size < 1e-6 then return nil end
+	lookX, lookZ = lookX / size, lookZ / size
+	local bestX, bestZ, bestScore
+	for _, core in ipairs(cores) do
+		if type(core) == "table" and finite(core.x) and finite(core.z) then
+			local dx, dz = core.x - px, core.z - pz
+			local d = math.sqrt(dx * dx + dz * dz)
+			if d >= CONSTANTS.STALK_MIN and d <= CONSTANTS.STALK_MAX then
+				local angle = math.acos(math.clamp((dx * lookX + dz * lookZ) / d, -1, 1))
+				if angle >= STALK_ANGLE_MIN and angle <= STALK_ANGLE_MAX then
+					local push = (finite(core.r) and core.r or 1) + STALK_BEHIND
+					local x, z = core.x + dx / d * push, core.z + dz / d * push
+					local clear = true
+					for _, zone in ipairs(type(keepOut) == "table" and keepOut or {}) do
+						if math.sqrt((x - zone.x) ^ 2 + (z - zone.z) ^ 2) <= zone.r then
+							clear = false
+							break
+						end
+					end
+					local score = math.abs(angle - STALK_ANGLE_BEST)
+					if clear and (not bestScore or score < bestScore) then bestX, bestZ, bestScore = x, z, score end
+				end
+			end
+		end
+	end
+	return bestX, bestZ
+end
+
+-- input = { age (seconds shown), distance (studs to the player), lookDot (player's look toward it), guardianState }.
+-- Returns why it vanishes now ("Real", "Time", "Approach", "Looked"), or nil while it stays.
+function View.stalkVanish(input)
+	if type(input) ~= "table" or not finite(input.age) then return "Time" end
+	if STALK_THREAT[input.guardianState] then return "Real" end
+	if input.age >= CONSTANTS.STALK_SECONDS then return "Time" end
+	if finite(input.distance) and input.distance <= CONSTANTS.STALK_NEAR then return "Approach" end
+	if input.age >= STALK_GLIMPSE and finite(input.lookDot) and input.lookDot >= STALK_LOOK_DOT then return "Looked" end
+	return nil
 end
 
 return View

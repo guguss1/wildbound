@@ -131,6 +131,14 @@ Schema.SYSTEMS = table.freeze({
 		value("HIT_FLASH", "Destello rojo al recibir un golpe (0 a 1)", "View", "HIT_FLASH", 0.55, 0, 1, 0.05, "client"),
 		value("HEART_RANGE", "Latido desde (studs)", "View", "HEART_RANGE", 45, 5, 120, 5, "client"),
 		value("KNOCKBACK", "Empujón de un golpe (studs/s)", "View", "KNOCKBACK", 42, 0, 100, 2, "client"),
+		-- Stalk sightings (fear pass): how often, how far and how long La Silueta is glimpsed at the edge of sight.
+		value("STALK_EVERY", "Aparición: cada (s, promedio)", "View", "STALK_EVERY", 50, 10, 300, 5, "client"),
+		value("STALK_COOLDOWN", "Aparición: espera mínima (s)", "View", "STALK_COOLDOWN", 30, 5, 300, 5, "client"),
+		value("STALK_PER_NIGHT", "Apariciones por noche", "View", "STALK_PER_NIGHT", 3, 0, 10, 1, "client"),
+		value("STALK_MIN", "Aparición: distancia mínima (studs)", "View", "STALK_MIN", 18, 10, 80, 1, "client"),
+		value("STALK_MAX", "Aparición: distancia máxima (studs)", "View", "STALK_MAX", 36, 20, 120, 1, "client"),
+		value("STALK_SECONDS", "Aparición: dura (s)", "View", "STALK_SECONDS", 4, 0.5, 10, 0.5, "client"),
+		value("STALK_NEAR", "Aparición: se esfuma si te acercas a (studs)", "View", "STALK_NEAR", 12, 5, 40, 1, "client"),
 	}) }),
 })
 
