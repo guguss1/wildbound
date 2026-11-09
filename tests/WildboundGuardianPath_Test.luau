@@ -48,6 +48,27 @@ return function(Path, source)
 		equal(Path.steer(state, 10, 9, 0.4), nil)
 	end)
 
+	-- Fear pass (FA1): the chase pass measured La Silueta at about 7 studs/s on a sprinting quarry (hunt 13 to 17). A
+	-- plan is asked from where the body stood and arrives after it has walked on, so its first waypoints lie behind
+	-- it; steering to them walked it back every replan (every 0.5 s while the quarry runs). Waypoints it has already
+	-- passed are skipped: it is no farther from the next waypoint than this one is.
+	case("FA1: waypoints a moving guardian already passed are skipped, never walked back to", function()
+		local state = Path.new()
+		planned(state, 30, 0, 0, { { x = 0, z = 0 }, { x = 4, z = 0 }, { x = 8, z = 0 }, { x = 12, z = 0 } })
+		local x, z = Path.steer(state, 5, 0, 0.1)
+		equal(x, 8, "the next waypoint ahead"); equal(z, 0)
+		equal(state.index, 3)
+	end)
+
+	case("FA1: a detour waypoint is kept while the guardian has not passed it", function()
+		local state = Path.new()
+		planned(state, 10, 10, 0, ROUTE)
+		local x, z = Path.steer(state, 0, -3, 0.1)
+		equal(x, 0, "it walks to the corner it has not reached"); equal(z, 0)
+		x, z = Path.steer(state, 3, 0.5, 0.2)
+		equal(x, 10, "it is no longer behind the corner"); equal(z, 0)
+	end)
+
 	case("a moved goal asks for a new plan, but not faster than the minimum interval", function()
 		local state = Path.new()
 		planned(state, 10, 10, 0, ROUTE)

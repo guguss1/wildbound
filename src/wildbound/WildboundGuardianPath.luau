@@ -74,7 +74,14 @@ end
 function Path.steer(state, gx, gz, now)
 	local points = state.points
 	if not points or not finite(gx) or not finite(gz) or not finite(now) then return nil end
-	while state.index <= #points and distance(gx, gz, points[state.index].x, points[state.index].z) <= C.REACH do
+	-- A waypoint is done when it is reached, or (fear pass, FA1) when the body is already no farther from the next one
+	-- than it is: a plan arrives after the body walked on, and its first waypoints then lie behind it.
+	while state.index <= #points do
+		local point, nextPoint = points[state.index], points[state.index + 1]
+		local reached = distance(gx, gz, point.x, point.z) <= C.REACH
+		local passed = nextPoint ~= nil
+			and distance(gx, gz, nextPoint.x, nextPoint.z) <= distance(point.x, point.z, nextPoint.x, nextPoint.z)
+		if not reached and not passed then break end
 		state.index += 1
 		state.best, state.progressAt = math.huge, now
 	end
