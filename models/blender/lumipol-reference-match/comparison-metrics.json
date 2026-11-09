@@ -1,0 +1,32 @@
+{
+  "front": {
+    "silhouette_iou": 0.847,
+    "reference_sha256": "1cc757ee7e55cfa9961379103f1ce18fd30b2eba336d0f014f3a25f995e141a8",
+    "render_sha256": "71cee6eb905bdb7662d483de5ad7fa2346c050fc730a236d407da4d234882e9f"
+  },
+  "side": {
+    "silhouette_iou": 0.815,
+    "reference_sha256": "ef65fed3983d314a082dc11eea702faa4906deb4474f804afac1d4424db0c80e",
+    "render_sha256": "34a1eda312aab0ab7ffd594bd68ac9911a5716c0a97676b826f8df24aa23575e"
+  },
+  "back": {
+    "silhouette_iou": 0.874,
+    "reference_sha256": "93fe108d83863dbc9be9d093f1a156c68c390d6e4e75cd49cf29c5ef555e9200",
+    "render_sha256": "52a26f5afe6544a647a878f63eeeb1767c82c2189dab5969ab863805ba62b553"
+  },
+  "underneath": {
+    "silhouette_iou": 0.836,
+    "reference_sha256": "66f8a467c76b681cdd1dac917c08fc850c4aa5eb6d2c0ec436f0aadabb9ec213",
+    "render_sha256": "a86ff84ab85a0c67affa0d0263a721fd43e844003fba20d46ca45912fdf9fdb4"
+  },
+  "low-front": {
+    "silhouette_iou": 0.811,
+    "reference_sha256": "08948cac4751cd606b863ce9d9a6e395ec75aebf62cb3e83856551b0f57e5d74",
+    "render_sha256": "ca684b9707a8884c9def40bf8c864efbad8eb1e4e0060e1262437ad458eb18e1"
+  },
+  "top": {
+    "silhouette_iou": 0.856,
+    "reference_sha256": "8ca335623dd808119765783abdbb6469f0fad556357aa014705dde015e7125e0",
+    "render_sha256": "9e55fc21a1245979961b30dfae857bbe2ec2e4bb65187b4d0ca9ff8a18b3a134"
+  }
+}
