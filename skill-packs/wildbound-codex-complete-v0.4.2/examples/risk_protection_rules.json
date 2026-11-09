@@ -1,0 +1,68 @@
+{
+  "version": "0.4",
+  "status": "provisional_balance",
+  "confirmed": {
+    "lose_unprotected_eggs_on_failure": true,
+    "lose_unprotected_new_specimens_on_failure": true,
+    "lose_small_share_resources": true,
+    "earnable_protection": true,
+    "registered_pets_permanent_on_defeat": true,
+    "day_night_cycle_and_night_risk_reward_for_horror_biomes": true
+  },
+  "resource_loss": {
+    "default_fraction": 0.12,
+    "reinforced_pack_fraction": 0.08,
+    "base_currency_loss_fraction": 0.0,
+    "rounded_per_stack": "floor"
+  },
+  "protections": [
+    {
+      "id": "ward_seal",
+      "name": "Sello de Resguardo",
+      "protects": "selected_egg_or_new_specimen",
+      "max_items": 1,
+      "duration": "until_successful_save",
+      "charge_use": "on_prevented_loss",
+      "obtain": "gameplay_or_crafting"
+    },
+    {
+      "id": "expedition_charm",
+      "name": "Amuleto de Expedición",
+      "protects": "selected_egg_or_new_specimen",
+      "max_items": 1,
+      "duration": "one_expedition",
+      "charge_use": "on_departure",
+      "obtain": "gameplay_or_crafting"
+    },
+    {
+      "id": "last_breath_totem",
+      "name": "Tótem del Último Aliento",
+      "protects": "selected_eggs_or_new_specimens",
+      "max_items": 2,
+      "duration": "one_expedition",
+      "charge_use": "on_departure",
+      "hostile_encounter_weight_multiplier": 1.5,
+      "obtain": "gameplay_or_crafting"
+    },
+    {
+      "id": "reinforced_bag",
+      "name": "Mochila Reforzada",
+      "protects": "resources_only",
+      "max_items": 0,
+      "duration": "permanent",
+      "resource_loss_fraction": 0.08,
+      "extra_protection_loadout_slots": 1,
+      "obtain": "skill_tree"
+    },
+    {
+      "id": "extraction_capsule",
+      "name": "Cápsula de Extracción",
+      "protects": "selected_egg",
+      "max_items": 1,
+      "duration": "single_bank_action_at_safe_point",
+      "charge_use": "on_successful_banking",
+      "obtain": "gameplay_or_crafting"
+    }
+  ],
+  "banked_pet_loss_mode": "never_on_defeat"
+}

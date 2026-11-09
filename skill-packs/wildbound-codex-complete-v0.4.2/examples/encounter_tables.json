@@ -1,0 +1,102 @@
+{
+  "version": "0.4-design-example",
+  "warning": "Server-only sample weighted tables: NOT production odds or a paid item offer.",
+  "tables": [
+    {
+      "id": "forest_day",
+      "biome": "forest",
+      "condition": "day_clear",
+      "weights": {
+        "CR001": 30,
+        "CR002": 35,
+        "CR003": 15,
+        "CR004": 10,
+        "empty": 10
+      }
+    },
+    {
+      "id": "forest_fog",
+      "biome": "fog",
+      "condition": "fog",
+      "weights": {
+        "CR001": 20,
+        "CR004": 25,
+        "CR005": 15,
+        "CR006": 5,
+        "empty": 35
+      }
+    },
+    {
+      "id": "forest_night",
+      "biome": "forest",
+      "condition": "night",
+      "weights": {
+        "CR001": 25,
+        "CR002": 15,
+        "CR004": 25,
+        "CR006": 5,
+        "empty": 30
+      }
+    },
+    {
+      "id": "snow_storm",
+      "biome": "snow",
+      "condition": "blizzard",
+      "weights": {
+        "CR007": 55,
+        "CR006": 10,
+        "empty": 35
+      }
+    },
+    {
+      "id": "volcano_ash",
+      "biome": "volcano",
+      "condition": "ashstorm",
+      "weights": {
+        "CR008": 45,
+        "empty": 55
+      }
+    },
+    {
+      "id": "crypt_dark",
+      "biome": "crypt",
+      "condition": "dark",
+      "weights": {
+        "CR009": 10,
+        "CR010": 5,
+        "CR005": 15,
+        "empty": 70
+      }
+    },
+    {
+      "id": "fog_night",
+      "biome": "fog",
+      "condition": "night",
+      "weights": {
+        "CR001": 12,
+        "CR004": 20,
+        "CR005": 25,
+        "CR006": 10,
+        "CR009": 8,
+        "empty": 25
+      }
+    },
+    {
+      "id": "crypt_night",
+      "biome": "crypt",
+      "condition": "night",
+      "weights": {
+        "CR005": 18,
+        "CR009": 12,
+        "CR010": 10,
+        "empty": 60
+      }
+    }
+  ],
+  "example_totem": {
+    "id": "gold_compass",
+    "rare_weight_multiplier": 2.0,
+    "monster_encounter_risk_multiplier": 1.5,
+    "warning": "Example: weights and event rates are different; re-normalize weights after modifiers. No paid version in MVP."
+  }
+}

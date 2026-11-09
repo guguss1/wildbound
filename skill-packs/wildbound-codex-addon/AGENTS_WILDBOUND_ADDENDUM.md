@@ -1,0 +1,13 @@
+# Reglas adicionales Wildbound — fusionar con AGENTS.md (no sustituir)
+- Este proyecto Roblox es exploración, supervivencia y colección de criaturas, **distinto** de los otros juegos del usuario.
+- Leer `knowledge/wildbound/GAME_BRIEF.md` y `OPEN_DECISIONS.md` antes de decisiones de diseño. Señalar supuestos, no convertir ideas en decisiones finales silenciosamente.
+- Flujo vertical: preparación → explorar → encontrar/capturar → evadir monstruos → extraer → eclosionar/coleccionar → progresar.
+- Diseñar PRIMERO para celulares (touch/UI, rendimiento, streaming, pantalla, sesiones), luego PC. Funcionar solo y en cooperativo.
+- La exploración es un mapa macro reconocible, con eventos, salas, entradas, refugios y encuentros seleccionados por semilla; no regenerar todo el mundo sin justificarlo.
+- La rareza, familia, afinidad, variante y hostilidad son dimensiones independientes.
+- Nunca bloquear el progreso esencial detrás de Robux, nunca usar probabilidades falsas, y no implementar compras aleatorias sin evaluación de Política Roblox.
+- Toda captura, eclosión, compra, semilla, recompensa, inventario y riesgo se decide y verifica en servidor. Cliente solo expresa intención y muestra feedback.
+- Para cambios en Studio: primera versión greybox no destructiva, en carpeta aislada, con test de 1 y 2 jugadores. Después arte.
+- No ejecutar Python descargado de un video ni scripts externos sin revisión.
+- Final de toda tarea: entregar criterios de aceptación, archivos cambiados, pruebas reales realizadas y pendientes comprobables.
+- Skills nuevas: `wildbound-creatures`, `wildbound-encounters`, `wildbound-monsters`, `wildbound-extraction`, `wildbound-procedural-map`, `wildbound-atmosphere`, `wildbound-creature-blender`, `wildbound-progression`, `wildbound-mobile-coop`, `wildbound-random-reward-policy`. Complementan las skills Roblox existentes; no las sustituyen.

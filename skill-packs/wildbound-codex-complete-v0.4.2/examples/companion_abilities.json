@@ -1,0 +1,126 @@
+{
+  "version": "0.2-design-proposal",
+  "warning": "Cooldowns and ranges are starting balance hypotheses only; test on mobile and multiplayer.",
+  "abilities": [
+    {
+      "id": "light_reveal",
+      "name": "Pulso luminoso",
+      "role": "revelador",
+      "species_id": "CR001",
+      "target": "hidden_enemy",
+      "effect": "reveals_outline",
+      "duration_s": 4,
+      "cooldown_s": 30,
+      "max_range_studs": 24,
+      "risk": "La luz puede atraer enemigos sensibles a brillo."
+    },
+    {
+      "id": "moss_shelter",
+      "name": "Abrigo de musgo",
+      "role": "protector",
+      "species_id": "CR002",
+      "target": "owner",
+      "effect": "reduce_environmental_chill",
+      "duration_s": 10,
+      "cooldown_s": 45,
+      "max_range_studs": 0,
+      "risk": "No cancela daño ni salva de persecuciones."
+    },
+    {
+      "id": "tremor_sense",
+      "name": "Sensor sísmico",
+      "role": "protector",
+      "species_id": "CR003",
+      "target": "owner",
+      "effect": "warn_ground_hazard",
+      "duration_s": 6,
+      "cooldown_s": 25,
+      "max_range_studs": 22,
+      "risk": "Señal aproximada; puede dar advertencia sin dirección exacta."
+    },
+    {
+      "id": "echo_decoy",
+      "name": "Eco señuelo",
+      "role": "distractor",
+      "species_id": "CR004",
+      "target": "ground_point",
+      "effect": "emit_false_noise",
+      "duration_s": 5,
+      "cooldown_s": 35,
+      "max_range_studs": 18,
+      "risk": "También atrae a ciertos depredadores."
+    },
+    {
+      "id": "mist_trace",
+      "name": "Sendero brumoso",
+      "role": "explorador",
+      "species_id": "CR005",
+      "target": "owner",
+      "effect": "mark_safe_fog_route",
+      "duration_s": 8,
+      "cooldown_s": 45,
+      "max_range_studs": 28,
+      "risk": "No revela enemigos ni garantiza que la ruta esté libre."
+    },
+    {
+      "id": "nest_ping",
+      "name": "Pulso de nido",
+      "role": "recolector",
+      "species_id": "CR006",
+      "target": "nearby_poi",
+      "effect": "approximate_nest_direction",
+      "duration_s": 3,
+      "cooldown_s": 50,
+      "max_range_studs": 65,
+      "risk": "Marca el sector, nunca la coordenada exacta."
+    },
+    {
+      "id": "snow_tracks",
+      "name": "Rastro helado",
+      "role": "explorador",
+      "species_id": "CR007",
+      "target": "owner",
+      "effect": "highlight_snow_tracks",
+      "duration_s": 9,
+      "cooldown_s": 40,
+      "max_range_studs": 35,
+      "risk": "La tormenta acorta el alcance."
+    },
+    {
+      "id": "thermal_scan",
+      "name": "Termosentido",
+      "role": "explorador",
+      "species_id": "CR008",
+      "target": "owner",
+      "effect": "warn_hot_surfaces",
+      "duration_s": 8,
+      "cooldown_s": 35,
+      "max_range_studs": 25,
+      "risk": "No inmuniza ante lava."
+    },
+    {
+      "id": "silent_steps",
+      "name": "Paso de sombra",
+      "role": "distractor",
+      "species_id": "CR009",
+      "target": "owner",
+      "effect": "reduce_step_noise",
+      "duration_s": 5,
+      "cooldown_s": 55,
+      "max_range_studs": 0,
+      "risk": "No evita enemigos que usan vista u olfato."
+    },
+    {
+      "id": "capture_focus",
+      "name": "Foco cristalino",
+      "role": "capturador",
+      "species_id": "CR010",
+      "target": "owner",
+      "effect": "extend_capture_timing_window",
+      "duration_s": 8,
+      "cooldown_s": 65,
+      "max_range_studs": 0,
+      "risk": "No modifica rareza ni garantiza éxito."
+    }
+  ]
+}

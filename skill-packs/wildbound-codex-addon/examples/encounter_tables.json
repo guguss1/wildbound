@@ -1,0 +1,47 @@
+{
+  "version": "0.1-design-example",
+  "warning": "Weights are examples for a conceptual encounter table, not final odds for any purchasable product.",
+  "tables": [
+    {
+      "id": "forest_day",
+      "biome": "forest",
+      "condition": "day_clear",
+      "weights": {
+        "CR001": 45,
+        "CR002": 20,
+        "CR003": 15,
+        "CR004": 0,
+        "empty": 20
+      }
+    },
+    {
+      "id": "forest_fog",
+      "biome": "forest",
+      "condition": "fog",
+      "weights": {
+        "CR001": 30,
+        "CR002": 20,
+        "CR007": 25,
+        "CR008": 5,
+        "empty": 20
+      }
+    },
+    {
+      "id": "snow_storm",
+      "biome": "snow",
+      "condition": "blizzard",
+      "weights": {
+        "CR004": 45,
+        "CR005": 30,
+        "CR003": 10,
+        "empty": 15
+      }
+    }
+  ],
+  "example_totem": {
+    "id": "gold_compass",
+    "rare_weight_multiplier": 2.0,
+    "monster_encounter_risk_multiplier": 2.0,
+    "note": "Multipliers must be applied to the correct stage, followed by normalization or capped risk calculation."
+  }
+}

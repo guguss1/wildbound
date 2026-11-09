@@ -1,0 +1,222 @@
+{
+  "version": "0.2-design-proposal",
+  "status": "proposal_not_implemented",
+  "species": [
+    {
+      "id": "CR001",
+      "name": "Lumipol",
+      "family": "espectral",
+      "affinity": "luz",
+      "role": "revelador",
+      "rarity": "comun",
+      "biomes": [
+        "forest",
+        "fog"
+      ],
+      "acquisition": [
+        "wild",
+        "egg"
+      ],
+      "ability_id": "light_reveal",
+      "mvp": true,
+      "counterplay": [
+        "silueta"
+      ],
+      "capture": "Seguir destellos sin esprintar; mantener el pulso de luz estable."
+    },
+    {
+      "id": "CR002",
+      "name": "Musguín",
+      "family": "vegetal",
+      "affinity": "naturaleza",
+      "role": "protector",
+      "rarity": "comun",
+      "biomes": [
+        "forest"
+      ],
+      "acquisition": [
+        "wild",
+        "egg"
+      ],
+      "ability_id": "moss_shelter",
+      "mvp": true,
+      "counterplay": [
+        "climate"
+      ],
+      "capture": "Dejar alimento vegetal y quedarse quieto hasta que se acerque."
+    },
+    {
+      "id": "CR003",
+      "name": "Rocuelo",
+      "family": "mineral",
+      "affinity": "tierra",
+      "role": "protector",
+      "rarity": "poco_comun",
+      "biomes": [
+        "forest",
+        "caves"
+      ],
+      "acquisition": [
+        "egg",
+        "wild"
+      ],
+      "ability_id": "tremor_sense",
+      "mvp": true,
+      "counterplay": [
+        "ground_ambush"
+      ],
+      "capture": "Interpretar vibraciones y proteger una grieta de roca."
+    },
+    {
+      "id": "CR004",
+      "name": "Ecozorro",
+      "family": "bestial",
+      "affinity": "sonido",
+      "role": "distractor",
+      "rarity": "poco_comun",
+      "biomes": [
+        "forest",
+        "fog"
+      ],
+      "acquisition": [
+        "wild"
+      ],
+      "ability_id": "echo_decoy",
+      "mvp": true,
+      "counterplay": [
+        "silueta",
+        "echo_hunter"
+      ],
+      "capture": "Seguir ecos en orden correcto, sin confundir rebotes falsos."
+    },
+    {
+      "id": "CR005",
+      "name": "Brumín",
+      "family": "espectral",
+      "affinity": "niebla",
+      "role": "explorador",
+      "rarity": "rara",
+      "biomes": [
+        "fog",
+        "crypt"
+      ],
+      "acquisition": [
+        "egg",
+        "wild"
+      ],
+      "ability_id": "mist_trace",
+      "mvp": true,
+      "counterplay": [
+        "fog_navigation"
+      ],
+      "capture": "Seguir puntos de luz durante neblina, evitando un guardián cercano."
+    },
+    {
+      "id": "CR006",
+      "name": "Ojobúho",
+      "family": "bestial",
+      "affinity": "viento",
+      "role": "recolector",
+      "rarity": "rara",
+      "biomes": [
+        "forest",
+        "fog",
+        "snow"
+      ],
+      "acquisition": [
+        "egg",
+        "wild"
+      ],
+      "ability_id": "nest_ping",
+      "mvp": true,
+      "counterplay": [
+        "vigia_warning"
+      ],
+      "capture": "Leer huellas de plumas y encontrar su nido en una ventana corta."
+    },
+    {
+      "id": "CR007",
+      "name": "Nevín",
+      "family": "bestial",
+      "affinity": "hielo",
+      "role": "explorador",
+      "rarity": "poco_comun",
+      "biomes": [
+        "snow"
+      ],
+      "acquisition": [
+        "egg",
+        "wild"
+      ],
+      "ability_id": "snow_tracks",
+      "mvp": false,
+      "counterplay": [
+        "yeti_terrain"
+      ],
+      "capture": "Rastrear huellas bajo ventisca sin alertar al Yeti."
+    },
+    {
+      "id": "CR008",
+      "name": "Ascua",
+      "family": "elemental",
+      "affinity": "fuego",
+      "role": "explorador",
+      "rarity": "rara",
+      "biomes": [
+        "volcano"
+      ],
+      "acquisition": [
+        "egg"
+      ],
+      "ability_id": "thermal_scan",
+      "mvp": false,
+      "counterplay": [
+        "lava_floor"
+      ],
+      "capture": "Rescatar huevo de un nido junto a ventilación volcánica."
+    },
+    {
+      "id": "CR009",
+      "name": "Umbrelín",
+      "family": "espectral",
+      "affinity": "sombra",
+      "role": "distractor",
+      "rarity": "epica",
+      "biomes": [
+        "crypt",
+        "fog"
+      ],
+      "acquisition": [
+        "wild"
+      ],
+      "ability_id": "silent_steps",
+      "mvp": false,
+      "counterplay": [
+        "echo_hunter"
+      ],
+      "capture": "Avanzar en silencio por un corredor de sombras."
+    },
+    {
+      "id": "CR010",
+      "name": "Cristalín",
+      "family": "mineral",
+      "affinity": "cristal",
+      "role": "capturador",
+      "rarity": "epica",
+      "biomes": [
+        "caves",
+        "crypt"
+      ],
+      "acquisition": [
+        "egg",
+        "wild"
+      ],
+      "ability_id": "capture_focus",
+      "mvp": false,
+      "counterplay": [
+        "capture_windows"
+      ],
+      "capture": "Resolver un patrón de cristales sin romper la secuencia."
+    }
+  ]
+}

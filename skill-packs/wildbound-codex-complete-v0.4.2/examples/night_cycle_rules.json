@@ -1,0 +1,74 @@
+{
+  "version": "0.4-design-example",
+  "status": "proposed_balance_not_implemented",
+  "time_authority": "server",
+  "visual_clock": "client_sync_from_server_phase",
+  "duration_minutes": 20,
+  "phases": [
+    {
+      "id": "day",
+      "minutes": 10,
+      "world_light": "day"
+    },
+    {
+      "id": "dusk",
+      "minutes": 2,
+      "world_light": "sunset"
+    },
+    {
+      "id": "night",
+      "minutes": 6,
+      "world_light": "night"
+    },
+    {
+      "id": "dawn",
+      "minutes": 2,
+      "world_light": "sunrise"
+    }
+  ],
+  "horror_biomes": {
+    "fog": {
+      "night_risk_reward": true,
+      "mvp": true
+    },
+    "crypt": {
+      "night_risk_reward": true,
+      "mvp": false
+    },
+    "abyss": {
+      "night_risk_reward": true,
+      "mvp": false
+    }
+  },
+  "other_biomes": {
+    "forest": "visual_only",
+    "snow": "visual_only",
+    "volcano": "visual_only",
+    "caves": "depends_on_parent_biome"
+  },
+  "night_modifiers_only_in_horror_biomes": {
+    "guardian_encounter_rate_multiplier": 1.5,
+    "rare_or_higher_creature_weight_multiplier": 1.75,
+    "rare_resource_weight_multiplier": 1.4,
+    "never_multiply_all_rates_and_weights_indiscriminately": true
+  },
+  "rarities_eligible_for_weight_boost": [
+    "rara",
+    "epica",
+    "legendaria",
+    "mitica",
+    "anomalia"
+  ],
+  "safe_zone_policy": "camp and designated shelters remain protected; no guardian spawning within safety radius",
+  "warnings": [
+    "Provide dusk warning before night",
+    "Screen icon and accessible audio+visual cues",
+    "Never spawn guardian on player",
+    "No P2W requirement or paid luck in MVP",
+    "Night boosts do not guarantee any rarity"
+  ],
+  "sources": [
+    "https://create.roblox.com/docs/reference/engine/classes/Lighting",
+    "https://create.roblox.com/docs/scripting/security/client-server-boundary"
+  ]
+}
