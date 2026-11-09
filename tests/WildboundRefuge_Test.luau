@@ -117,7 +117,7 @@ return function(Refuge, source, Text, sources)
 			words(C[key], key, 72)
 		end
 		equal(C.register, "Registrar criatura")
-		equal(C.incubator, "Próximamente")
+		equal(C.incubator, "Deja tu huevo") -- deliberately changed in NB4: the incubator works now
 		words(D.title, "card title", 28); words(D.titleAgain, "card again", 28); words(D.entry, "card entry", 40)
 		words(D.equip, "equip", 12); words(D.close, "close", 12); words(D.blurb.Lumipol, "blurb", 80)
 		assert(D.ember:find("%d", 1, true), "ember is a format")

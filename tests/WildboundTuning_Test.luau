@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshSchemaClone), { Stamina = require(freshStaminaClone),
 -- Island = require(freshIslandClone), Brain = require(freshBrainClone), Rules = require(freshRulesClone),
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
--- View = require(freshHudViewClone) }). Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
+-- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone) }).
+-- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
 return function(Schema, modules)
@@ -77,7 +78,9 @@ return function(Schema, modules)
 			"Sprint.DRAIN", "Carry.FEAR_SLIP", "Islands.WAKE", "Islands.CHASE_SPEED", "Islands.DAMAGE",
 			"Islands.STRIKE_WINDUP", "Capture.CALM_REQUIRED", "Hide.NIGHT_RADIUS", "Camera.SPRINT_FOV_KICK",
 			-- Fear pass (FA2): the grab's noise is tunable.
-			"Islands.GRAB" }) do
+			"Islands.GRAB",
+			-- Next batch NB4 (delivery E): the incubation time.
+			"Incubator.HATCH_SECONDS" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

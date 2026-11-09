@@ -24,6 +24,8 @@ Schema.MODULES = table.freeze({
 	Capture = table.freeze({ name = "WildboundCaptureSession",
 		file = "src/wildbound/WildboundCaptureSession.luau (CaptureSession.CONSTANTS)" }),
 	View = table.freeze({ name = "WildboundHudView", file = "src/wildbound/WildboundHudView.luau (View.CONSTANTS)" }),
+	Incubator = table.freeze({ name = "WildboundIncubator",
+		file = "src/wildbound/WildboundIncubator.luau (Incubator.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -118,6 +120,10 @@ Schema.SYSTEMS = table.freeze({
 		value("CRY_WIDEN", "Una cría que llora suma (studs)", "Hide", "CRY_WIDEN", 2, 0, 10, 0.5),
 		value("MAX_STAY", "Tiempo máximo escondido (s)", "Hide", "MAX_STAY", 45, 5, 300, 5),
 		value("COOLDOWN", "Espera para volver a esconderse (s)", "Hide", "COOLDOWN", 8, 0, 60, 1),
+	}) }),
+	-- Next batch NB4 (delivery E): how long an egg incubates.
+	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({
+		value("HATCH_SECONDS", "Tiempo hasta que eclosiona (s)", "Incubator", "HATCH_SECONDS", 90, 10, 900, 5),
 	}) }),
 	table.freeze({ id = "Camera", label = "Cámara y sensaciones (cliente)", entries = table.freeze({
 		value("SPRINT_FOV_KICK", "Apertura de cámara al correr (grados)", "View", "SPRINT_FOV_KICK", 10, 0, 30, 1, "client"),

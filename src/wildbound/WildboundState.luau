@@ -37,6 +37,13 @@ local function find(entries, uid)
 	return nil
 end
 
+-- NB4: the incubator list, made on first use. Neither a new profile nor one rebuilt from a saved record (WildboundRecord,
+-- schema 1) carries it: an incubating egg is session only, and the record contract pins the profile's shape.
+local function incubating(player)
+	player.incubating = player.incubating or {}
+	return player.incubating
+end
+
 local function copy(entries)
 	local detached = {}
 	for index, entry in ipairs(entries) do detached[index] = table.clone(entry) end
@@ -110,10 +117,11 @@ local function bagCapacity(self, player)
 	return self.economy.bagCapacity(self.config, player.upgrades)
 end
 
--- Companions toward the collection limit: the carried creature, bag eggs, banked eggs and registered pets.
+-- Companions toward the collection limit: the carried creature, bag eggs, banked eggs, incubating eggs (NB4) and
+-- registered pets.
 -- A Nightbloom bundle banks as a material, so it never counts.
 local function collectionSize(player)
-	local total = #player.bankedEggs + #player.registered + (player.carrying and 1 or 0)
+	local total = #player.bankedEggs + #player.registered + #incubating(player) + (player.carrying and 1 or 0)
 	for _, entry in ipairs(player.pending) do
 		if entry.kind ~= "Nightbloom" then total += 1 end
 	end
@@ -470,6 +478,49 @@ function State:hatch(key, uid, alive, distance)
 	return true, petUid
 end
 
+-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): an owned banked egg goes into the incubator.
+-- now is the server clock, seconds the live hatch time, slots how many eggs one player may incubate at once. The
+-- incubator stands in camp, so the egg is safe from defeat while it incubates. Session only, like the rest.
+function State:incubate(key, uid, alive, distance, now, seconds, slots)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 12) then return false, "InvalidContext" end
+	local clockOk = type(now) == "number" and now == now and math.abs(now) < math.huge
+	if not clockOk or type(seconds) ~= "number" or seconds ~= seconds or seconds <= 0 or seconds == math.huge then
+		return false, "InvalidContext"
+	end
+	local index, egg = find(player.bankedEggs, uid)
+	if not index then return false, "NotOwnedEgg" end
+	if #incubating(player) >= math.max(1, math.floor(tonumber(slots) or 1)) then return false, "IncubatorFull" end
+	table.remove(player.bankedEggs, index)
+	local entry = { uid = egg.uid, species = egg.species, startedAt = now, readyAt = now + seconds }
+	table.insert(incubating(player), entry)
+	return true, table.clone(entry)
+end
+
+-- NB4: every incubating egg whose time has come hatches into a registered creature of its species, exactly once (it
+-- leaves the incubator before it is registered). Returns a list of { uid, species, egg, isNew }; hatching pays nothing.
+function State:hatchReady(key, now)
+	local player = profile(self, key)
+	local hatched = {}
+	if not player or type(now) ~= "number" or now ~= now then return hatched end
+	local list, index = incubating(player), 1
+	while index <= #list do
+		local entry = list[index]
+		if now >= entry.readyAt then
+			table.remove(list, index)
+			local petUid = newUid(self)
+			local isNew = player.discovered[entry.species] ~= true
+			table.insert(player.registered, { uid = petUid, species = entry.species })
+			player.discovered[entry.species] = true
+			table.insert(hatched, { uid = petUid, species = entry.species, egg = entry.uid, isNew = isNew })
+		else
+			index += 1
+		end
+	end
+	return hatched
+end
+
 function State:equip(key, uid, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -775,7 +826,7 @@ function State:snapshot(key)
 	local expedition = player.expedition
 	return {
 		sessionOnly = true, capacity = bagCapacity(self, player), collectionLimit = self.config.capacity.collectionLimit,
-		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs),
+		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs), incubating = copy(incubating(player)),
 		registered = copy(player.registered), dropped = copy(player.dropped), equippedUid = player.equippedUid,
 		carrying = player.carrying and table.clone(player.carrying) or nil, discovered = table.clone(player.discovered),
 		sealCharges = player.consumables.seal,

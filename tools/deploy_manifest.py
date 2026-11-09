@@ -185,6 +185,9 @@ DEFAULT_MAPPINGS = [
     # Fear pass, FA3: the adrenaline burst and hit feedback client and its source contracts
     ("src/wildbound/WildboundFear.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundFearClient"),
     ("tests/WildboundFearWiring_Test.luau", "ServerStorage.WildboundFearWiring_Test"),
+    # Next batch NB4 (delivery E): the pure incubator timer, shared with the Bag tab, and its suite
+    ("src/wildbound/WildboundIncubator.luau", "ReplicatedStorage.WildboundIncubator"),
+    ("tests/WildboundIncubator_Test.luau", "ServerStorage.WildboundIncubator_Test"),
 ]
 
 

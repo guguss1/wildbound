@@ -50,6 +50,11 @@ local function optionalMarker(name)
 	return value and value:IsA("BasePart") and value or nil
 end
 local refugeMarker, boardMarker = optionalMarker("RefugeMarker"), optionalMarker("BoardMarker")
+-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): eggs incubate at the incubator; an older map
+-- without one uses the hatch altar instead.
+local incubatorMarker = map:FindFirstChild("IncubatorMarker", true)
+if not (incubatorMarker and incubatorMarker:IsA("BasePart")) then incubatorMarker = hatchMarker end
+local Incubator = require(ReplicatedStorage:WaitForChild("WildboundIncubator"))
 -- Expedition islands (I6): where each island is and what it carries (tools/plan_islands.py). Without the layout the
 -- game runs with no nests and says so.
 local islandLayoutModule = script.Parent:FindFirstChild("WildboundIslandLayout")
@@ -329,10 +334,14 @@ end
 local function validPrompt(value, target)
 	return value.Enabled and value.Parent == target and target:IsDescendantOf(map)
 end
+-- NB4: the Hatch action and the incubator prompt put an owned banked egg in the incubator, on the server's clock and
+-- with the live, tunable time; the hatch step below hatches it. The client names only the egg.
 local function hatch(player, uid)
-	local alive, distance = context(player, hatchMarker)
-	local ok, reason = state:hatch(player.UserId, uid, alive, distance)
-	reply(player, "Hatch", ok, reason, notices.hatched)
+	local alive, distance = context(player, incubatorMarker)
+	local ok, result = state:incubate(player.UserId, uid, alive, distance, workspace:GetServerTimeNow(),
+		Incubator.live.HATCH_SECONDS, Incubator.live.SLOTS)
+	local started = ok and Text.INCUBATOR.started:format(math.ceil(result.readyAt - result.startedAt)) or nil
+	reply(player, "Hatch", ok, result, started)
 end
 -- B8: a seal wards a bag item anywhere while alive (M5.5). It is spent only if it saves the item.
 local function protect(player, uid)
@@ -362,13 +371,31 @@ extractPrompt.Triggered:Connect(function(player)
 		reply(player, "Extract", false, count)
 	end
 end)
-local hatchPrompt = prompt(hatchMarker, notices.hatchPrompt, notices.hatchObject, 12, nil, Keys.CAMP.hatch)
+local hatchPrompt = prompt(incubatorMarker, Text.INCUBATOR.prompt, Text.INCUBATOR.object, Incubator.CONSTANTS.RANGE, nil,
+	Keys.CAMP.hatch)
 hatchPrompt.Triggered:Connect(function(player)
-	if not validPrompt(hatchPrompt, hatchMarker) or not allowed(player, "Hatch") then return end
+	if not validPrompt(hatchPrompt, incubatorMarker) or not allowed(player, "Hatch") then return end
 	local snapshot = state:snapshot(player.UserId)
 	local egg = snapshot and snapshot.bankedEggs[1]
-	hatch(player, egg and egg.uid)
+	if not egg then
+		send(player, "Hatch", false, Text.INCUBATOR.noEgg)
+		return
+	end
+	hatch(player, egg.uid)
 end)
+-- NB4: an egg whose time has come hatches on the server's clock, checked once a second, wherever its owner is. The
+-- creature joins the collection and the presentation card opens; hatching pays nothing.
+local nextHatchAt = 0
+local function stepIncubators(now)
+	if now < nextHatchAt then return end
+	nextHatchAt = now + 1
+	for player in pairs(records) do
+		for _, born in ipairs(state:hatchReady(player.UserId, now)) do
+			send(player, "Hatched", true, Text.INCUBATOR.hatched:format(Text.CARD.species[born.species] or born.species), nil,
+				{ uid = born.uid, species = born.species, ember = 0, isNew = born.isNew, repeated = false })
+		end
+	end
+end
 local protectionPrompt = prompt(protectionMarker, notices.protectPrompt, notices.protectObject, 12, nil, Keys.CAMP.protect)
 protectionPrompt.Triggered:Connect(function(player)
 	if not validPrompt(protectionPrompt, protectionMarker) or not allowed(player, "ProtectHint") then return end
@@ -917,6 +944,7 @@ end
 -- Ember), the same rule La Silueta uses (WildboundFairStrike.lethal). Anything unreadable spares the player.
 local islandHitDamage = 0
 local probeLethal = {} -- Studio only: the IslandProbe "lethal" op, for the Play check
+local probeEggs = 0 -- Studio only: the IslandProbe "egg" op (NB4)
 local function lethalPlayer(player)
 	if probeLethal[player.UserId] == true then return true end
 	local snapshot = state:snapshot(player.UserId)
@@ -1440,6 +1468,19 @@ if RunService:IsStudio() then
 			end
 			return out
 		end
+		-- Next batch NB4: bank one Lumipol egg for a real player (its UserId in value) through the normal pickup and chest
+		-- rules, so the Play check can incubate without a scripted steal. Studio only, like every op here.
+		if op == "egg" and type(value) == "number" then
+			probeEggs += 1
+			local encounter = "probe_egg_" .. probeEggs
+			state:registerEncounter(encounter, "Egg")
+			local ok, uid = state:pickup(value, encounter, true, 0)
+			if not ok then return false, uid end
+			local banked = state:extract(value, true, 0, workspace:GetServerTimeNow())
+			local player = playersByUserId[value]
+			if player then send(player, "Extract", banked == true, "") end
+			return banked == true, uid
+		end
 		local island = type(id) == "string" and islands[id] or nil
 		if not island then return false, "UnknownIsland" end
 		if op == "set" and type(value) == "number" and value == value then
@@ -1647,6 +1688,7 @@ RunService.Heartbeat:Connect(function(dt)
 	accumulator = 0
 	local now = workspace:GetServerTimeNow()
 	updateStamina(now, stepSeconds)
+	stepIncubators(now)
 	for _, item in ipairs(capture:activeSessions()) do
 		local player = playersByUserId[item.playerKey]
 		if not player or not records[player] then

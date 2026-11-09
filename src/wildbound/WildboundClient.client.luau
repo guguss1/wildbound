@@ -29,6 +29,9 @@ local Text = textModule and require(textModule)
 -- B3: the presentation card after a registration.
 local refugeModule = ReplicatedStorage:WaitForChild("WildboundRefuge", 10)
 local Refuge = refugeModule and require(refugeModule)
+-- Next batch NB4: the incubator's Bag row (delivery E).
+local incubatorModule = ReplicatedStorage:WaitForChild("WildboundIncubator", 10)
+local Incubator = incubatorModule and require(incubatorModule)
 -- Next batch NB3: every word on this HUD and its panel comes from WildboundText.HUD.
 local H = Text.HUD
 
@@ -338,6 +341,11 @@ local function bagRows(snapshot)
 	addRow({ text = H.eggsHeader })
 	if #eggs == 0 then addRow({ text = H.noEggs }) end
 	for _, egg in ipairs(eggs) do addRow({ text = H.egg:format(egg.species), label = H.hatch, action = "Hatch", argument = egg.uid }) end
+	-- NB4: what incubates, from the server snapshot and the server clock; the client never sends a time.
+	for _, entry in ipairs(snapshot.incubating or {}) do
+		local line = Incubator and Incubator.row(entry, workspace:GetServerTimeNow(), Text)
+		if line then addRow({ text = line }) end
+	end
 	addRow({ text = H.registeredHeader })
 	if #registered == 0 then addRow({ text = H.noRegistered }) end
 	for _, creature in ipairs(registered) do
@@ -490,6 +498,8 @@ task.spawn(function()
 				updateObjective()
 			end
 			if changed and panel.Visible and tab == "camp" then rebuild() end
+			-- NB4: the incubating egg's countdown refreshes while the Bag tab is open.
+			if panel.Visible and tab == "bag" and lastSnapshot and #(lastSnapshot.incubating or {}) > 0 then rebuild() end
 		end
 		task.wait(0.5)
 	end
