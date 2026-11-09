@@ -20,7 +20,8 @@ function View.showSectionHeaders(compact)
 end
 View.HEADER_H = 44
 
-local NAMES = table.freeze({ ember = "Ember", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
+-- NB5: players call the currency Esencia (internal name ember); a price reads "12 de Esencia, 8 Fogbark".
+local NAMES = table.freeze({ ember = "de Esencia", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
 local ORDER = table.freeze({ "ember", "fogbark", "glowmoss", "nightbloom" })
 local RECIPES = table.freeze({
 	{ id = "seal", title = "Sello protector", effect = "salva un objeto de la bolsa si te derrotan" },
@@ -29,7 +30,7 @@ local RECIPES = table.freeze({
 })
 local SKILLS = table.freeze({
 	{ id = "explorer_1", title = "Rastro", effect = "puntos de recolección a %d studs", key = "nodeHintRange" },
-	{ id = "explorer_2", title = "Olfato nocturno", effect = "Nightbloom a %d studs de noche", key = "nightbloomHintRange" },
+	{ id = "explorer_2", title = "Olfato", effect = "Nightbloom a %d studs de noche", key = "nightbloomHintRange" },
 	{ id = "capturer_1", title = "Manos firmes", effect = "calmas a un Lumipol más rápido" },
 	{ id = "capturer_2", title = "Paso suave", effect = "esperas menos tras fallar la calma" },
 	{ id = "survivor_1", title = "Carga ligera", effect = "los huevos te frenan %d menos", key = "carrySpeedBonus" },
@@ -121,7 +122,7 @@ function View.campRows(config, economy, snapshot, ctx)
 	ctx = type(ctx) == "table" and ctx or {}
 	local rows = {}
 	local banked = type(snapshot.banked) == "table" and snapshot.banked or {}
-	table.insert(rows, row("banked", "Stock", ("Guardado: %d Fogbark, %d Glowmoss, %d Nightbloom. Ember: %d."):format(
+	table.insert(rows, row("banked", "Stock", ("Guardado: %d Fogbark, %d Glowmoss, %d Nightbloom. Esencia: %d."):format(
 		amount(banked.fogbark), amount(banked.glowmoss), amount(banked.nightbloom), amount(snapshot.ember))))
 	local consumables = type(snapshot.consumables) == "table" and snapshot.consumables or {}
 	for _, recipe in ipairs(RECIPES) do

@@ -191,7 +191,8 @@ return function(Text, source, sources)
 		equal(Text.CARRY.cry, "La cría llora. ¡Algo la escucha!")
 		equal(Text.CARD.newSpecies, "¡Nueva especie!")
 		equal(Text.CARD.next, "Próxima isla: %s. Allí duermen los %s.")
-		equal(Text.CARD.firstBonus, "+%d Ember por tu primera cría")
+		-- Deliberately changed in NB5: the currency's player name is Esencia (the user's choice; Ember stays in code).
+		equal(Text.CARD.firstBonus, "+%d de Esencia por tu primera cría")
 		equal(Text.UPGRADE.farolTapado.name, "Farol tapado")
 		equal(Text.UPGRADE.farolTapado.description, "Tu linterna molesta menos a las criaturas dormidas.")
 		for _, species in ipairs({ "Lumipol", "Cortezon", "Cestillo", "Polvilla", "Tizoncillo" }) do
@@ -278,6 +279,29 @@ return function(Text, source, sources)
 		end
 		table.sort(left)
 		assert(#left == 0, #left .. " English strings left: " .. table.concat(left, " | ", 1, math.min(#left, 12)))
+	end)
+
+	-- Next batch NB5 (user, 2026-11-09: "Otro nombre"): players call the currency Esencia. Code, the saved record and the
+	-- economy keep the internal name Ember; only player words change.
+	case("NB5: every player word names the currency Esencia, never Ember", function()
+		local found = {}
+		local function walk(value, path)
+			if type(value) == "string" then
+				if value:find("Ember", 1, true) then table.insert(found, path .. " = " .. value) end
+			elseif type(value) == "table" then
+				for key, child in pairs(value) do walk(child, path .. "." .. tostring(key)) end
+			end
+		end
+		walk(Text, "Text")
+		for _, literal in ipairs(literals(sources.campView or "")) do
+			if literal:find("Ember", 1, true) then table.insert(found, "campView: " .. literal) end
+		end
+		table.sort(found)
+		assert(#found == 0, #found .. " player words say Ember: " .. table.concat(found, " | ", 1, math.min(#found, 8)))
+		for _, key in ipairs({ "ember", "firstBonus" }) do
+			assert(Text.CARD[key]:find("Esencia", 1, true), "CARD." .. key .. " names Esencia")
+		end
+		assert(Text.NOTICES.capsule:find("Esencia", 1, true) and Text.CAMP.stored:find("Esencia", 1, true), "pay lines")
 	end)
 
 	return result

@@ -34,7 +34,8 @@ return function(View, Config, Economy, Layout, source)
 	end
 
 	case("costText lists the price in a fixed order and reads Free for nothing", function()
-		equal(View.costText({ nightbloom = 1, fogbark = 8, ember = 12, glowmoss = 5 }), "12 Ember, 8 Fogbark, 5 Glowmoss, 1 Nightbloom")
+		-- Deliberately changed in NB5: the currency reads "de Esencia" to players.
+		equal(View.costText({ nightbloom = 1, fogbark = 8, ember = 12, glowmoss = 5 }), "12 de Esencia, 8 Fogbark, 5 Glowmoss, 1 Nightbloom")
 		equal(View.costText(Config.recipes.seal.cost), "8 Fogbark, 4 Glowmoss")
 		-- Deliberately changed in NB3: the camp panel's words are neutral Spanish.
 		equal(View.costText({}), "Gratis"); equal(View.costText(nil), "Gratis")
@@ -44,7 +45,7 @@ return function(View, Config, Economy, Layout, source)
 	case("shortfall names exactly what is missing", function()
 		local wallet = { ember = 5, banked = { fogbark = 5, glowmoss = 4 } }
 		equal(View.shortfall(wallet, Config.recipes.seal.cost), "Faltan 3 Fogbark más")
-		equal(View.shortfall({ ember = 0, banked = {} }, Config.recipes.totem.cost), "Faltan 20 Ember más y 12 Glowmoss más y 2 Nightbloom más")
+		equal(View.shortfall({ ember = 0, banked = {} }, Config.recipes.totem.cost), "Faltan 20 de Esencia más y 12 Glowmoss más y 2 Nightbloom más")
 		equal(View.shortfall(wallet, { fogbark = 5 }), nil, "affordable has no shortfall")
 		equal(View.shortfall(nil, { fogbark = 1 }), "Faltan 1 Fogbark más")
 	end)
@@ -351,7 +352,7 @@ return function(View, Config, Economy, Layout, source)
 		local rich = { ember = 10, banked = { fogbark = 0, glowmoss = 0, nightbloom = 0 } }
 		local row = byId(rowsOf(rich, { atCamp = true }), "upgrade:farolTapado")
 		assert(row.text:find("Farol tapado", 1, true), row.text)
-		assert(row.text:find("10 Ember", 1, true), row.text)
+		assert(row.text:find("10 de Esencia", 1, true), row.text)
 		assert(not row.text:find("Mochila", 1, true), "not the pack's words: " .. row.text)
 		equal(row.enabled, true)
 		local owned = byId(rowsOf({ upgrades = { farolTapado = true } }), "upgrade:farolTapado")
