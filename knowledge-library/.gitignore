@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.venv/
+# Medios pueden ser grandes; preservar notas y transcripciones
+knowledge/youtube/*/media/
+knowledge/youtube/*/frames/
+
+.atl/

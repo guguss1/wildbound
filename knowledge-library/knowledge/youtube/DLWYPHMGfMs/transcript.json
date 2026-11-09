@@ -1,0 +1,2447 @@
+[
+  {
+    "start": 0.12,
+    "duration": 3.696,
+    "text": "Bien, chicos, en el video de hoy, los"
+  },
+  {
+    "start": 2.043,
+    "duration": 4.04,
+    "text": "haré increíblemente buenos en el"
+  },
+  {
+    "start": 3.816,
+    "duration": 4.038,
+    "text": "desarrollo de Roblox. Verán, el problema"
+  },
+  {
+    "start": 6.083,
+    "duration": 3.458,
+    "text": "es que la mayoría de los desarrolladores"
+  },
+  {
+    "start": 7.854,
+    "duration": 3.466,
+    "text": "pasan meses en un juego que nadie juega"
+  },
+  {
+    "start": 9.541,
+    "duration": 3.339,
+    "text": "y nunca descubren por qué. Si quieren"
+  },
+  {
+    "start": 11.32,
+    "duration": 3.0,
+    "text": "saber qué ideas están funcionando en"
+  },
+  {
+    "start": 12.88,
+    "duration": 3.476,
+    "text": "Roblox ahora mismo antes que nadie,"
+  },
+  {
+    "start": 14.32,
+    "duration": 3.927,
+    "text": "echen un vistazo a Reblocks. Tiene todos"
+  },
+  {
+    "start": 16.356,
+    "duration": 3.732,
+    "text": "los juegos nuevos en tendencia que la"
+  },
+  {
+    "start": 18.247,
+    "duration": 3.969,
+    "text": "gente realmente no conoce todavía y"
+  },
+  {
+    "start": 20.088,
+    "duration": 4.115,
+    "text": "pueden usar estos juegos como ideas. Y"
+  },
+  {
+    "start": 22.216,
+    "duration": 3.489,
+    "text": "al final de este video, les enseñaré a"
+  },
+  {
+    "start": 24.203,
+    "duration": 3.197,
+    "text": "cómo crear una idea que pueda"
+  },
+  {
+    "start": 25.705,
+    "duration": 3.475,
+    "text": "convertirse en un juego viral."
+  },
+  {
+    "start": 27.4,
+    "duration": 3.228,
+    "text": "Aprenderán a construirlo rápidamente y a"
+  },
+  {
+    "start": 29.18,
+    "duration": 3.333,
+    "text": "conseguir jugadores lo más pronto"
+  },
+  {
+    "start": 30.628,
+    "duration": 3.73,
+    "text": "posible. Así que, quiero empezar con"
+  },
+  {
+    "start": 32.513,
+    "duration": 3.888,
+    "text": "cuánto dinero ganan realmente los juegos"
+  },
+  {
+    "start": 34.358,
+    "duration": 3.754,
+    "text": "de Roblox solo para motivarlos. Y obtuve"
+  },
+  {
+    "start": 36.401,
+    "duration": 3.291,
+    "text": "información privilegiada sobre lo que"
+  },
+  {
+    "start": 38.112,
+    "duration": 3.219,
+    "text": "cada rango en Roblox gana en un mes"
+  },
+  {
+    "start": 39.692,
+    "duration": 3.521,
+    "text": "promedio. Muy bien, esta es la"
+  },
+  {
+    "start": 41.331,
+    "duration": 3.392,
+    "text": "distribución. Como pueden ver, el primer"
+  },
+  {
+    "start": 43.213,
+    "duration": 2.805,
+    "text": "puesto gana alrededor de 14 millones de"
+  },
+  {
+    "start": 44.723,
+    "duration": 2.808,
+    "text": "dólares al mes. El segundo son 9"
+  },
+  {
+    "start": 46.018,
+    "duration": 2.909,
+    "text": "millones de dólares. El tercer puesto, 6"
+  },
+  {
+    "start": 47.531,
+    "duration": 3.021,
+    "text": "millones de dólares. Y después de eso,"
+  },
+  {
+    "start": 48.927,
+    "duration": 3.844,
+    "text": "son 5 millones, 4 millones de dólares. E"
+  },
+  {
+    "start": 50.552,
+    "duration": 3.697,
+    "text": "incluso llega hasta el puesto 100, que"
+  },
+  {
+    "start": 52.771,
+    "duration": 2.898,
+    "text": "gana unos 130 mil al mes,"
+  },
+  {
+    "start": 54.249,
+    "duration": 3.598,
+    "text": "aproximadamente."
+  },
+  {
+    "start": 55.669,
+    "duration": 4.247,
+    "text": "Digo, estas son solo estimaciones, como"
+  },
+  {
+    "start": 57.847,
+    "duration": 4.248,
+    "text": "dije, y pueden cambiar dependiendo de"
+  },
+  {
+    "start": 59.916,
+    "duration": 4.095,
+    "text": "muchos factores, los cuales cubriré en"
+  },
+  {
+    "start": 62.095,
+    "duration": 3.778,
+    "text": "el resto del video. Y 14 millones de"
+  },
+  {
+    "start": 64.011,
+    "duration": 3.339,
+    "text": "dólares al mes para el juego número uno"
+  },
+  {
+    "start": 65.873,
+    "duration": 2.87,
+    "text": ". Y ahora mismo, el juego número uno en"
+  },
+  {
+    "start": 67.35,
+    "duration": 2.666,
+    "text": "Roblox sigue siendo Adopt Me. Así que,"
+  },
+  {
+    "start": 68.743,
+    "duration": 2.981,
+    "text": "ellos podrían estar ganando esa cantidad"
+  },
+  {
+    "start": 70.016,
+    "duration": 3.229,
+    "text": "de dinero. Ahora, una cosa sobre ciertos"
+  },
+  {
+    "start": 71.724,
+    "duration": 3.211,
+    "text": "juegos, sin embargo, es que algunos"
+  },
+  {
+    "start": 73.245,
+    "duration": 3.487,
+    "text": "juegos en realidad podrían ganar mucho"
+  },
+  {
+    "start": 74.935,
+    "duration": 3.557,
+    "text": "dinero, pero tienen menos jugadores. Por"
+  },
+  {
+    "start": 76.732,
+    "duration": 3.607,
+    "text": "ejemplo, Rivals puede tener de cuatro a"
+  },
+  {
+    "start": 78.492,
+    "duration": 3.65,
+    "text": "ocho veces más dinero por jugador, ganar"
+  },
+  {
+    "start": 80.339,
+    "duration": 3.431,
+    "text": "muchísimo, pero Adopt Me puede ganar lo"
+  },
+  {
+    "start": 82.142,
+    "duration": 3.299,
+    "text": "mismo simplemente teniendo una mayor"
+  },
+  {
+    "start": 83.77,
+    "duration": 5.019,
+    "text": "cantidad de jugadores. Porque Adopt Me,"
+  },
+  {
+    "start": 85.441,
+    "duration": 3.348,
+    "text": "cada vez que reviso, ronda el millón."
+  },
+  {
+    "start": 91.22,
+    "duration": 3.909,
+    "text": "Mientras que Rivals tendrá mucho menos"
+  },
+  {
+    "start": 93.199,
+    "duration": 3.903,
+    "text": "que eso, probablemente una cuarta parte"
+  },
+  {
+    "start": 95.129,
+    "duration": 4.025,
+    "text": ". Pero, los jugadores ahí gastan mucho"
+  },
+  {
+    "start": 97.102,
+    "duration": 3.658,
+    "text": "más dinero. Además, las temporadas"
+  },
+  {
+    "start": 99.154,
+    "duration": 3.222,
+    "text": "importan en Roblox. Navidad es"
+  },
+  {
+    "start": 100.76,
+    "duration": 3.682,
+    "text": "obviamente el mes más importante para"
+  },
+  {
+    "start": 102.376,
+    "duration": 3.789,
+    "text": "todos. Digo, los niños reciben Robux, lo"
+  },
+  {
+    "start": 104.442,
+    "duration": 2.498,
+    "text": "que sea. La gente está gastando mucho"
+  },
+  {
+    "start": 106.165,
+    "duration": 2.292,
+    "text": "más."
+  },
+  {
+    "start": 106.94,
+    "duration": 2.996,
+    "text": "El verano también es muy bueno porque"
+  },
+  {
+    "start": 108.457,
+    "duration": 2.996,
+    "text": "todos están adentro y siempre están"
+  },
+  {
+    "start": 109.936,
+    "duration": 3.758,
+    "text": "jugando con sus iPads o lo que sea que"
+  },
+  {
+    "start": 111.453,
+    "duration": 4.193,
+    "text": "usen los niños, ¿me entienden? No tienen"
+  },
+  {
+    "start": 113.694,
+    "duration": 3.713,
+    "text": "escuela. El otoño es bastante lento, la"
+  },
+  {
+    "start": 115.646,
+    "duration": 3.387,
+    "text": "temporada de otoño, porque los niños"
+  },
+  {
+    "start": 117.407,
+    "duration": 3.432,
+    "text": "están en la escuela y realmente no"
+  },
+  {
+    "start": 119.033,
+    "duration": 3.612,
+    "text": "tienen tanto tiempo para jugar o gastar"
+  },
+  {
+    "start": 120.839,
+    "duration": 4.034,
+    "text": "como lo harían en Navidad o durante el"
+  },
+  {
+    "start": 122.645,
+    "duration": 4.588,
+    "text": "verano. Y chicos, la monetización es una"
+  },
+  {
+    "start": 124.873,
+    "duration": 4.931,
+    "text": "habilidad. Cuando un experto toma el"
+  },
+  {
+    "start": 127.233,
+    "duration": 5.144,
+    "text": "control de un juego en desarrollo, puede"
+  },
+  {
+    "start": 129.804,
+    "duration": 5.058,
+    "text": "multiplicar los ingresos de tres a cinco"
+  },
+  {
+    "start": 132.377,
+    "duration": 4.039,
+    "text": "veces con solo hacer unas pocas cosas."
+  },
+  {
+    "start": 134.862,
+    "duration": 3.066,
+    "text": "La monetización es una habilidad, y"
+  },
+  {
+    "start": 136.416,
+    "duration": 3.145,
+    "text": "puedes aumentar los ingresos de tus"
+  },
+  {
+    "start": 137.928,
+    "duration": 3.342,
+    "text": "juegos. Así es como obtengo mis ideas"
+  },
+  {
+    "start": 139.561,
+    "duration": 3.703,
+    "text": "para juegos de Roblox. No quiero más"
+  },
+  {
+    "start": 141.27,
+    "duration": 3.851,
+    "text": "datos. Solo quería saber qué construir."
+  },
+  {
+    "start": 143.264,
+    "duration": 3.586,
+    "text": "Así que creé Reblox. Ahora, para"
+  },
+  {
+    "start": 145.121,
+    "duration": 3.369,
+    "text": "encontrar una idea de juego en Reblox,"
+  },
+  {
+    "start": 146.85,
+    "duration": 3.458,
+    "text": "vas a Reblox, ves los juegos que son"
+  },
+  {
+    "start": 148.49,
+    "duration": 3.548,
+    "text": "tendencia ahora mismo, y puedes crear un"
+  },
+  {
+    "start": 150.308,
+    "duration": 3.193,
+    "text": "prompt a partir de ellos, o puedes ver"
+  },
+  {
+    "start": 152.038,
+    "duration": 3.337,
+    "text": "qué es exactamente lo que está"
+  },
+  {
+    "start": 153.501,
+    "duration": 3.693,
+    "text": "explotando y seguir esa tendencia. Y las"
+  },
+  {
+    "start": 155.375,
+    "duration": 3.683,
+    "text": "tendencias cambian cada semana, y Reblox"
+  },
+  {
+    "start": 157.194,
+    "duration": 3.732,
+    "text": "se actualiza cada día mucho antes de que"
+  },
+  {
+    "start": 159.058,
+    "duration": 3.536,
+    "text": "otras personas se enteren. Y así es como"
+  },
+  {
+    "start": 160.926,
+    "duration": 2.837,
+    "text": "detectas ideas antes que los demás. Si"
+  },
+  {
+    "start": 162.594,
+    "duration": 2.819,
+    "text": "quieres echarle un vistazo, el enlace"
+  },
+  {
+    "start": 163.763,
+    "duration": 3.37,
+    "text": "estará en la descripción. Pero bueno, lo"
+  },
+  {
+    "start": 165.413,
+    "duration": 3.646,
+    "text": "siguiente es cómo decide el algoritmo"
+  },
+  {
+    "start": 167.133,
+    "duration": 3.937,
+    "text": "quién recibe jugadores. Así que, el"
+  },
+  {
+    "start": 169.059,
+    "duration": 4.364,
+    "text": "algoritmo está prácticamente dividido en"
+  },
+  {
+    "start": 171.07,
+    "duration": 4.337,
+    "text": "cinco números. Entonces, los 28 días son"
+  },
+  {
+    "start": 173.423,
+    "duration": 4.381,
+    "text": "en los que Roblox te juzga, no los"
+  },
+  {
+    "start": 175.407,
+    "duration": 4.166,
+    "text": "primeros 7 días. Y lo siguiente son 60"
+  },
+  {
+    "start": 177.804,
+    "duration": 3.538,
+    "text": "segundos, que es el tiempo que tarda"
+  },
+  {
+    "start": 179.573,
+    "duration": 4.073,
+    "text": "Roblox en decidir si el hecho de que"
+  },
+  {
+    "start": 181.342,
+    "duration": 4.689,
+    "text": "alguien se vaya te perjudicará o no."
+  },
+  {
+    "start": 183.646,
+    "duration": 4.893,
+    "text": "Si un jugador entra a tu juego y se va"
+  },
+  {
+    "start": 186.031,
+    "duration": 4.859,
+    "text": "durante ese primer minuto, estás acabado"
+  },
+  {
+    "start": 188.539,
+    "duration": 4.717,
+    "text": ". Es por eso que tienes que tienes que"
+  },
+  {
+    "start": 190.89,
+    "duration": 4.387,
+    "text": "tienes que diseñar el primer minuto de"
+  },
+  {
+    "start": 193.256,
+    "duration": 3.936,
+    "text": "tu juego de Roblox. Ahora, ¿cómo puede"
+  },
+  {
+    "start": 195.277,
+    "duration": 3.71,
+    "text": "verse eso? Me uní a un montón de juegos"
+  },
+  {
+    "start": 197.192,
+    "duration": 3.558,
+    "text": "yo mismo y realicé una prueba. Puse un"
+  },
+  {
+    "start": 198.987,
+    "duration": 3.64,
+    "text": "temporizador para ver cuánto tiempo toma"
+  },
+  {
+    "start": 200.75,
+    "duration": 3.82,
+    "text": "divertirse. Y una cosa que descubrí es"
+  },
+  {
+    "start": 202.627,
+    "duration": 3.608,
+    "text": "que la mayoría de los juegos te permiten"
+  },
+  {
+    "start": 204.57,
+    "duration": 3.801,
+    "text": "divertirte dentro de los primeros 3"
+  },
+  {
+    "start": 206.235,
+    "duration": 4.212,
+    "text": "segundos. Y luego, desde esos 3 segundos"
+  },
+  {
+    "start": 208.371,
+    "duration": 4.203,
+    "text": ", los primeros 3 segundos, hasta casi el"
+  },
+  {
+    "start": 210.447,
+    "duration": 3.906,
+    "text": "primer minuto completo, estás totalmente"
+  },
+  {
+    "start": 212.574,
+    "duration": 3.582,
+    "text": "enganchado. Por lo tanto, el primer"
+  },
+  {
+    "start": 214.353,
+    "duration": 3.662,
+    "text": "minuto es muy importante en tu juego de"
+  },
+  {
+    "start": 216.156,
+    "duration": 4.005,
+    "text": "Roblox. Tienes que asegurarte de que"
+  },
+  {
+    "start": 218.015,
+    "duration": 4.007,
+    "text": "esta parte esté bien hecha. Ahora, lo"
+  },
+  {
+    "start": 220.161,
+    "duration": 3.868,
+    "text": "siguiente que quiero decir es que los"
+  },
+  {
+    "start": 222.022,
+    "duration": 4.269,
+    "text": "jugadores de anuncios no cuentan para tu"
+  },
+  {
+    "start": 224.029,
+    "duration": 3.89,
+    "text": "clasificación en absoluto. Y además,"
+  },
+  {
+    "start": 226.291,
+    "duration": 3.561,
+    "text": "tienes que tener cien jugadores"
+  },
+  {
+    "start": 227.919,
+    "duration": 4.5,
+    "text": "comprometidos de Roblox para llegar a"
+  },
+  {
+    "start": 229.852,
+    "duration": 5.14,
+    "text": "los niños. Quiero decir, el día de la"
+  },
+  {
+    "start": 232.419,
+    "duration": 4.321,
+    "text": "grabación son 250, pero serán 100 en"
+  },
+  {
+    "start": 234.992,
+    "duration": 4.5,
+    "text": "noviembre. Y una cosa más de la que"
+  },
+  {
+    "start": 236.74,
+    "duration": 2.752,
+    "text": "también quiero hablar"
+  },
+  {
+    "start": 240.114,
+    "duration": 3.737,
+    "text": "en la página principal. Tener un video"
+  },
+  {
+    "start": 241.989,
+    "duration": 3.912,
+    "text": "de jugabilidad en la página principal"
+  },
+  {
+    "start": 243.851,
+    "duration": 3.396,
+    "text": "aumenta el tiempo de juego un 39%. Ahora"
+  },
+  {
+    "start": 245.901,
+    "duration": 2.555,
+    "text": "quiero llegar a la parte principal que"
+  },
+  {
+    "start": 247.247,
+    "duration": 2.587,
+    "text": "es súper importante, es la razón"
+  },
+  {
+    "start": 248.456,
+    "duration": 3.603,
+    "text": "principal por la que hago este video."
+  },
+  {
+    "start": 249.834,
+    "duration": 4.744,
+    "text": "Todo el mundo puede crear juegos de"
+  },
+  {
+    "start": 252.059,
+    "duration": 4.579,
+    "text": "Roblox ahora mismo. Entonces, ¿cómo los"
+  },
+  {
+    "start": 254.578,
+    "duration": 3.914,
+    "text": "vences? Bueno, como claramente puedes"
+  },
+  {
+    "start": 256.638,
+    "duration": 3.978,
+    "text": "ver, el texto dice que tu idea es la"
+  },
+  {
+    "start": 258.492,
+    "duration": 3.988,
+    "text": "ventaja. Si todo el mundo tiene acceso a"
+  },
+  {
+    "start": 260.616,
+    "duration": 3.414,
+    "text": "Claude, ¿verdad? Tienes que vencerlos de"
+  },
+  {
+    "start": 262.48,
+    "duration": 3.847,
+    "text": "una manera diferente. Ya no puedes"
+  },
+  {
+    "start": 264.03,
+    "duration": 4.262,
+    "text": "vencerlos con tecnología. Roblox dijo"
+  },
+  {
+    "start": 266.327,
+    "duration": 3.818,
+    "text": "que cerca de la mitad de los 1,000"
+  },
+  {
+    "start": 268.292,
+    "duration": 4.204,
+    "text": "mejores creadores de Roblox usan"
+  },
+  {
+    "start": 270.145,
+    "duration": 4.313,
+    "text": "herramientas de IA en Studio. Si eres"
+  },
+  {
+    "start": 272.496,
+    "duration": 3.78,
+    "text": "obstinado y no quieres usar herramientas"
+  },
+  {
+    "start": 274.458,
+    "duration": 4.017,
+    "text": "de IA para crear juegos de Roblox, te"
+  },
+  {
+    "start": 276.276,
+    "duration": 3.918,
+    "text": "vas a quedar atrás. Todo el mundo está"
+  },
+  {
+    "start": 278.475,
+    "duration": 3.762,
+    "text": "haciendo juegos, varios juegos por"
+  },
+  {
+    "start": 280.194,
+    "duration": 3.889,
+    "text": "semana debido a lo fácil que es. Ahora,"
+  },
+  {
+    "start": 282.237,
+    "duration": 3.738,
+    "text": "si estás produciendo varios juegos por"
+  },
+  {
+    "start": 284.083,
+    "duration": 3.391,
+    "text": "semana, no serán de la más alta calidad"
+  },
+  {
+    "start": 285.975,
+    "duration": 3.047,
+    "text": ", por supuesto, uses o no IA."
+  },
+  {
+    "start": 287.474,
+    "duration": 2.967,
+    "text": "Simplemente se ven terribles porque"
+  },
+  {
+    "start": 289.022,
+    "duration": 3.353,
+    "text": "fueron hechos con IA y no fueron"
+  },
+  {
+    "start": 290.441,
+    "duration": 3.598,
+    "text": "corregidos. Quiero decir, puedes hacer"
+  },
+  {
+    "start": 292.375,
+    "duration": 3.439,
+    "text": "un juego realmente bueno con IA y"
+  },
+  {
+    "start": 294.039,
+    "duration": 3.631,
+    "text": "hacerlo de alta calidad. Es solo que"
+  },
+  {
+    "start": 295.814,
+    "duration": 4.239,
+    "text": "invertirás más tiempo en él. Pero la"
+  },
+  {
+    "start": 297.67,
+    "duration": 4.825,
+    "text": "cuestión es que, como cualquiera puede"
+  },
+  {
+    "start": 300.053,
+    "duration": 4.825,
+    "text": "programar en un teléfono, en una laptop"
+  },
+  {
+    "start": 302.495,
+    "duration": 5.071,
+    "text": "o en lo que sea, aunque no hagas juegos"
+  },
+  {
+    "start": 304.878,
+    "duration": 5.131,
+    "text": "en móvil. Pero como todo el mundo está"
+  },
+  {
+    "start": 307.566,
+    "duration": 4.765,
+    "text": "programando con IA, con Claude o lo que"
+  },
+  {
+    "start": 310.009,
+    "duration": 4.73,
+    "text": "sea, lo que te pondrá en esa página"
+  },
+  {
+    "start": 312.331,
+    "duration": 4.722,
+    "text": "principal es tu idea. La idea lo es todo"
+  },
+  {
+    "start": 314.739,
+    "duration": 4.331,
+    "text": ". Verás, las ideas vienen de lo que está"
+  },
+  {
+    "start": 317.053,
+    "duration": 4.047,
+    "text": "funcionando ahora mismo. Observas las"
+  },
+  {
+    "start": 319.07,
+    "duration": 4.111,
+    "text": "tendencias, tomas lo que los jugadores"
+  },
+  {
+    "start": 321.1,
+    "duration": 4.314,
+    "text": "ya quieren y luego cambias una sola cosa"
+  },
+  {
+    "start": 323.181,
+    "duration": 4.249,
+    "text": ". La investigación llama a esto lo más"
+  },
+  {
+    "start": 325.414,
+    "duration": 3.42,
+    "text": "avanzado pero aceptable. A la gente le"
+  },
+  {
+    "start": 327.43,
+    "duration": 3.126,
+    "text": "gustan los diseños cuando son nuevos"
+  },
+  {
+    "start": 328.834,
+    "duration": 4.292,
+    "text": "pero aún así familiares. Una copia"
+  },
+  {
+    "start": 330.556,
+    "duration": 4.835,
+    "text": "directa simplemente se perderá en el mar"
+  },
+  {
+    "start": 333.126,
+    "duration": 4.529,
+    "text": "de juegos, pero si creas algo súper"
+  },
+  {
+    "start": 335.391,
+    "duration": 4.813,
+    "text": "nuevo, la gente no lo entenderá, no"
+  },
+  {
+    "start": 337.655,
+    "duration": 4.336,
+    "text": "conectará con ello y no tendrá éxito."
+  },
+  {
+    "start": 340.204,
+    "duration": 4.162,
+    "text": "Tienes que tener un giro comprobado en"
+  },
+  {
+    "start": 341.991,
+    "duration": 4.943,
+    "text": "un juego. Podría ser como Mario Kart"
+  },
+  {
+    "start": 344.366,
+    "duration": 4.632,
+    "text": "pero con diferentes tipos de poderes."
+  },
+  {
+    "start": 346.934,
+    "duration": 4.12,
+    "text": "Aquí hay un ejemplo real. Mi amigo creó"
+  },
+  {
+    "start": 348.998,
+    "duration": 4.415,
+    "text": "un juego llamado Roba un Barco Pirata."
+  },
+  {
+    "start": 351.054,
+    "duration": 4.43,
+    "text": "Como puedes ver, el formato Roba un Algo"
+  },
+  {
+    "start": 353.413,
+    "duration": 4.316,
+    "text": "es viral y lo que hizo fue mirar un"
+  },
+  {
+    "start": 355.484,
+    "duration": 4.546,
+    "text": "juego como Roba un Huevo y simplemente"
+  },
+  {
+    "start": 357.729,
+    "duration": 4.103,
+    "text": "cambió el formato y le dio un giro con"
+  },
+  {
+    "start": 360.03,
+    "duration": 3.227,
+    "text": "barcos piratas. Así que ahora tienes"
+  },
+  {
+    "start": 361.832,
+    "duration": 2.845,
+    "text": "Roba un Barco Pirata y es un buen juego"
+  },
+  {
+    "start": 363.257,
+    "duration": 2.746,
+    "text": ". Quiero decir, solo míralo. Está"
+  },
+  {
+    "start": 364.677,
+    "duration": 2.481,
+    "text": "bastante bien hecho. Les recomiendo que"
+  },
+  {
+    "start": 366.003,
+    "duration": 2.953,
+    "text": "le echen un vistazo. Enlace en la"
+  },
+  {
+    "start": 367.158,
+    "duration": 3.808,
+    "text": "descripción. Pero, en realidad solo"
+  },
+  {
+    "start": 368.956,
+    "duration": 3.841,
+    "text": "necesitas dos cosas. Obviamente, puse"
+  },
+  {
+    "start": 370.966,
+    "duration": 3.515,
+    "text": "Reblox ahí. No tiene que ser Reblox."
+  },
+  {
+    "start": 372.797,
+    "duration": 3.445,
+    "text": "Podría ser como el sitio web de Roblox"
+  },
+  {
+    "start": 374.481,
+    "duration": 3.566,
+    "text": "también. Pero mi sitio organiza las"
+  },
+  {
+    "start": 376.242,
+    "duration": 3.658,
+    "text": "ideas de juegos de Roblox de la mejor"
+  },
+  {
+    "start": 378.047,
+    "duration": 3.838,
+    "text": "manera y la más visualmente atractiva"
+  },
+  {
+    "start": 379.9,
+    "duration": 4.034,
+    "text": "posible. Solo obtienes Cloud, lo"
+  },
+  {
+    "start": 381.885,
+    "duration": 3.487,
+    "text": "conectas a Roblox Studio y listo. La"
+  },
+  {
+    "start": 383.934,
+    "duration": 3.144,
+    "text": "gente piensa que necesitas esto, aquello"
+  },
+  {
+    "start": 385.372,
+    "duration": 3.341,
+    "text": "y todo este software. Cloud puede hacer"
+  },
+  {
+    "start": 387.078,
+    "duration": 3.296,
+    "text": "mucho. Ahora, algunos de los mejores"
+  },
+  {
+    "start": 388.713,
+    "duration": 3.762,
+    "text": "desarrolladores dicen que las ideas son"
+  },
+  {
+    "start": 390.374,
+    "duration": 4.001,
+    "text": "baratas y la ejecución lo es todo."
+  },
+  {
+    "start": 392.475,
+    "duration": 3.572,
+    "text": "Y tienen algo de razón."
+  },
+  {
+    "start": 394.375,
+    "duration": 3.764,
+    "text": "Pero una mala idea que construyes"
+  },
+  {
+    "start": 396.047,
+    "duration": 4.368,
+    "text": "rápidamente sigue siendo una mala idea."
+  },
+  {
+    "start": 398.139,
+    "duration": 4.528,
+    "text": "Y una buena idea de juego con un primer"
+  },
+  {
+    "start": 400.415,
+    "duration": 3.563,
+    "text": "minuto terrible también muere. De eso es"
+  },
+  {
+    "start": 402.667,
+    "duration": 2.767,
+    "text": "de lo que voy a hablar ahora. A"
+  },
+  {
+    "start": 403.978,
+    "duration": 3.137,
+    "text": "continuación, quiero hablar sobre"
+  },
+  {
+    "start": 405.434,
+    "duration": 3.397,
+    "text": "diseñar el primer minuto de tu juego."
+  },
+  {
+    "start": 407.115,
+    "duration": 3.407,
+    "text": "Esto es muy importante. La pregunta es,"
+  },
+  {
+    "start": 408.831,
+    "duration": 3.471,
+    "text": "¿cómo haces esto? Entonces, la regla"
+  },
+  {
+    "start": 410.522,
+    "duration": 3.561,
+    "text": "como dije antes, hice una prueba y en la"
+  },
+  {
+    "start": 412.302,
+    "duration": 3.642,
+    "text": "mayoría de los juegos, te ponen a jugar"
+  },
+  {
+    "start": 414.083,
+    "duration": 3.521,
+    "text": "en los primeros 3 a 5 segundos. Así que"
+  },
+  {
+    "start": 415.944,
+    "duration": 3.42,
+    "text": "la regla es que los jugadores deben"
+  },
+  {
+    "start": 417.604,
+    "duration": 3.711,
+    "text": "estar jugando en 5 segundos o menos."
+  },
+  {
+    "start": 419.364,
+    "duration": 4.407,
+    "text": "Justo de inmediato. No hay tiempo para"
+  },
+  {
+    "start": 421.315,
+    "duration": 5.228,
+    "text": "nada. Nada de ver una escena, ni leer un"
+  },
+  {
+    "start": 423.771,
+    "duration": 6.113,
+    "text": "menú, ni leer instrucciones. Eso es muy"
+  },
+  {
+    "start": 426.543,
+    "duration": 6.685,
+    "text": "aburrido. Google dijo en 2016 que el 53"
+  },
+  {
+    "start": 429.884,
+    "duration": 6.425,
+    "text": "%de la gente abandona un sitio móvil que"
+  },
+  {
+    "start": 433.228,
+    "duration": 6.437,
+    "text": "tarda más de 3 segundos en cargar. 3"
+  },
+  {
+    "start": 436.309,
+    "duration": 5.852,
+    "text": "segundos, hermano. Es muy poco tiempo."
+  },
+  {
+    "start": 439.665,
+    "duration": 4.398,
+    "text": "Pero nadie tiene tiempo al mismo tiempo"
+  },
+  {
+    "start": 442.161,
+    "duration": 4.127,
+    "text": ". Oh Dios mío, estoy rimando. Y Roblox"
+  },
+  {
+    "start": 444.063,
+    "duration": 4.452,
+    "text": "literalmente califica tus primeros 60"
+  },
+  {
+    "start": 446.288,
+    "duration": 3.831,
+    "text": "segundos. Porque la gente que se va en"
+  },
+  {
+    "start": 448.515,
+    "duration": 3.836,
+    "text": "esos primeros 60 segundos va a"
+  },
+  {
+    "start": 450.119,
+    "duration": 4.317,
+    "text": "perjudicar a tu juego de Roblox. Así que"
+  },
+  {
+    "start": 452.351,
+    "duration": 4.151,
+    "text": ", en el primer minuto, a los 5 segundos"
+  },
+  {
+    "start": 454.436,
+    "duration": 3.853,
+    "text": "ya están jugando. Y alrededor de los 10"
+  },
+  {
+    "start": 456.502,
+    "duration": 3.547,
+    "text": "segundos, reciben su primera recompensa"
+  },
+  {
+    "start": 458.289,
+    "duration": 3.942,
+    "text": ". Y luego, a los 40 segundos, están en"
+  },
+  {
+    "start": 460.049,
+    "duration": 4.014,
+    "text": "su primera mejora. Y el objetivo siempre"
+  },
+  {
+    "start": 462.231,
+    "duration": 4.024,
+    "text": "debe estar en la pantalla. Y lo"
+  },
+  {
+    "start": 464.063,
+    "duration": 4.24,
+    "text": "siguiente es cumplir la promesa en 30"
+  },
+  {
+    "start": 466.255,
+    "duration": 4.053,
+    "text": "segundos. Sea cual sea tu título, tu"
+  },
+  {
+    "start": 468.303,
+    "duration": 3.765,
+    "text": "título y el icono de tu juego de Roblox"
+  },
+  {
+    "start": 470.308,
+    "duration": 3.951,
+    "text": "o la idea, más les vale que estén"
+  },
+  {
+    "start": 472.068,
+    "duration": 4.447,
+    "text": "haciéndolo a los 30 segundos. Y también"
+  },
+  {
+    "start": 474.259,
+    "duration": 4.81,
+    "text": ", tienes que mostrar mucho, no decir."
+  },
+  {
+    "start": 476.515,
+    "duration": 4.814,
+    "text": "Usa consejos o ayuda que le muestren al"
+  },
+  {
+    "start": 479.069,
+    "duration": 4.445,
+    "text": "jugador cómo hacerlo. Por ejemplo,"
+  },
+  {
+    "start": 481.329,
+    "duration": 4.318,
+    "text": "tutoriales que se alinean y te dicen qué"
+  },
+  {
+    "start": 483.514,
+    "duration": 4.159,
+    "text": "hacer clic en lugar de hacerte leer algo"
+  },
+  {
+    "start": 485.647,
+    "duration": 3.746,
+    "text": "y luego hacer que el jugador lo haga."
+  },
+  {
+    "start": 487.673,
+    "duration": 3.348,
+    "text": "Nadie intenta hacer eso. Además, dales"
+  },
+  {
+    "start": 489.393,
+    "duration": 3.365,
+    "text": "una ventaja inicial. Hubo un estudio"
+  },
+  {
+    "start": 491.021,
+    "duration": 3.882,
+    "text": "sobre una tarjeta de lealtad para un"
+  },
+  {
+    "start": 492.758,
+    "duration": 3.824,
+    "text": "lavado de autos. Una tarjeta requería"
+  },
+  {
+    "start": 494.903,
+    "duration": 3.753,
+    "text": "ocho sellos, el 19%de la gente la"
+  },
+  {
+    "start": 496.582,
+    "duration": 3.951,
+    "text": "completó, y la otra requería 10 sellos,"
+  },
+  {
+    "start": 498.656,
+    "duration": 3.929,
+    "text": "pero dos ya estaban marcados, y el 34%"
+  },
+  {
+    "start": 500.533,
+    "duration": 3.922,
+    "text": "de la gente las completó. Era la misma"
+  },
+  {
+    "start": 502.585,
+    "duration": 4.041,
+    "text": "cantidad de trabajo, pero casi el doble"
+  },
+  {
+    "start": 504.455,
+    "duration": 4.44,
+    "text": "de personas. Haz que los jugadores"
+  },
+  {
+    "start": 506.626,
+    "duration": 4.6,
+    "text": "empiecen con una barra de progreso o"
+  },
+  {
+    "start": 508.895,
+    "duration": 4.425,
+    "text": "dales un poco de ventaja, un pequeño"
+  },
+  {
+    "start": 511.226,
+    "duration": 3.837,
+    "text": "impulso. Dales ese empujón que necesitan"
+  },
+  {
+    "start": 513.32,
+    "duration": 3.857,
+    "text": ". No veo a mucha gente hablando de esto"
+  },
+  {
+    "start": 515.063,
+    "duration": 3.858,
+    "text": ". Otro estudio del que quiero hablar es"
+  },
+  {
+    "start": 517.177,
+    "duration": 3.778,
+    "text": "sobre los compradores de café, que"
+  },
+  {
+    "start": 518.921,
+    "duration": 4.261,
+    "text": "compraban un 20%más rápido a medida que"
+  },
+  {
+    "start": 520.955,
+    "duration": 4.502,
+    "text": "se acercaban a un café gratis. La gente"
+  },
+  {
+    "start": 523.182,
+    "duration": 3.835,
+    "text": "acelera cuando la meta está cerca. Así"
+  },
+  {
+    "start": 525.457,
+    "duration": 3.24,
+    "text": "que muestra siempre a los jugadores lo"
+  },
+  {
+    "start": 527.017,
+    "duration": 3.296,
+    "text": "cerca que está la siguiente mejora."
+  },
+  {
+    "start": 528.697,
+    "duration": 3.46,
+    "text": "Ahora, lo siguiente de lo que quiero"
+  },
+  {
+    "start": 530.313,
+    "duration": 3.965,
+    "text": "hablar es de darle vida a cada acción."
+  },
+  {
+    "start": 532.157,
+    "duration": 4.586,
+    "text": "Añade un poco de emoción a todo en el"
+  },
+  {
+    "start": 534.278,
+    "duration": 4.311,
+    "text": "juego. Un sonido cada vez que haces algo"
+  },
+  {
+    "start": 536.743,
+    "duration": 3.543,
+    "text": ", cuando ocurre una animación, como"
+  },
+  {
+    "start": 538.589,
+    "duration": 3.692,
+    "text": "piezas saliendo volando, números"
+  },
+  {
+    "start": 540.286,
+    "duration": 3.891,
+    "text": "flotantes de más uno en cada golpe, un"
+  },
+  {
+    "start": 542.281,
+    "duration": 2.936,
+    "text": "ligero movimiento de cámara con cada"
+  },
+  {
+    "start": 544.177,
+    "duration": 2.636,
+    "text": "acción."
+  },
+  {
+    "start": 545.217,
+    "duration": 3.691,
+    "text": "Simplemente algo que haga el juego"
+  },
+  {
+    "start": 546.813,
+    "duration": 3.819,
+    "text": "visualmente atractivo. Además, no tienes"
+  },
+  {
+    "start": 548.908,
+    "duration": 3.308,
+    "text": "que adivinar dónde se van los jugadores"
+  },
+  {
+    "start": 550.632,
+    "duration": 3.6,
+    "text": ". Quiero decir, puedes ir a las"
+  },
+  {
+    "start": 552.216,
+    "duration": 3.984,
+    "text": "analíticas de creador y a los embudos de"
+  },
+  {
+    "start": 554.232,
+    "duration": 3.881,
+    "text": "eventos para corregir un paso a la vez y"
+  },
+  {
+    "start": 556.2,
+    "duration": 4.041,
+    "text": "ver qué están haciendo mal. Así que"
+  },
+  {
+    "start": 558.113,
+    "duration": 4.066,
+    "text": "necesito que hagas esto. Abre tu propio"
+  },
+  {
+    "start": 560.241,
+    "duration": 3.722,
+    "text": "juego en un teléfono como un jugador"
+  },
+  {
+    "start": 562.179,
+    "duration": 3.874,
+    "text": "nuevo con un cronómetro; si no te"
+  },
+  {
+    "start": 563.963,
+    "duration": 4.079,
+    "text": "diviertes en los primeros 5 segundos, no"
+  },
+  {
+    "start": 566.053,
+    "duration": 4.079,
+    "text": "recibes una recompensa en los primeros"
+  },
+  {
+    "start": 568.042,
+    "duration": 4.027,
+    "text": "15 o 20, ni mejoras en los primeros 30 o"
+  },
+  {
+    "start": 570.132,
+    "duration": 4.028,
+    "text": "40 segundos, vas a tener que volver a"
+  },
+  {
+    "start": 572.069,
+    "duration": 4.16,
+    "text": "Roblox Studio y empezar todo de nuevo, ¿"
+  },
+  {
+    "start": 574.16,
+    "duration": 3.669,
+    "text": "verdad? Arregla esos primeros 60"
+  },
+  {
+    "start": 576.229,
+    "duration": 3.016,
+    "text": "segundos. Ahora, lo siguiente de lo que"
+  },
+  {
+    "start": 577.829,
+    "duration": 3.95,
+    "text": "quiero hablar es de diseñar primero para"
+  },
+  {
+    "start": 579.245,
+    "duration": 5.138,
+    "text": "teléfonos. El informe de Roblox dice que"
+  },
+  {
+    "start": 581.779,
+    "duration": 4.807,
+    "text": "el 80%de sus jugadores diarios estaban"
+  },
+  {
+    "start": 584.383,
+    "duration": 4.944,
+    "text": "en móviles en 2024, y el móvil"
+  },
+  {
+    "start": 586.586,
+    "duration": 4.431,
+    "text": "representó el 46%del gasto en Robux. La"
+  },
+  {
+    "start": 589.327,
+    "duration": 3.466,
+    "text": "mayoría de las personas que juzgan tu"
+  },
+  {
+    "start": 591.017,
+    "duration": 3.948,
+    "text": "primer minuto lo hacen desde un teléfono"
+  },
+  {
+    "start": 592.793,
+    "duration": 4.343,
+    "text": ". Si construyes en PC y pruebas en PC,"
+  },
+  {
+    "start": 594.965,
+    "duration": 3.824,
+    "text": "estás probando para una minoría. Esto es"
+  },
+  {
+    "start": 597.136,
+    "duration": 3.942,
+    "text": "lo que dice Roblox que debes hacer. Cada"
+  },
+  {
+    "start": 598.789,
+    "duration": 4.245,
+    "text": "acción debe funcionar con el tacto, no"
+  },
+  {
+    "start": 601.078,
+    "duration": 3.589,
+    "text": "solo con un teclado. Debes ajustar el"
+  },
+  {
+    "start": 603.034,
+    "duration": 3.392,
+    "text": "tamaño de tu interfaz con escalas, no"
+  },
+  {
+    "start": 604.667,
+    "duration": 4.2,
+    "text": "con píxeles, para que quepa en cualquier"
+  },
+  {
+    "start": 606.426,
+    "duration": 4.581,
+    "text": "pantalla. Mantén los botones alejados de"
+  },
+  {
+    "start": 608.867,
+    "duration": 3.967,
+    "text": "la muesca del teléfono y de los botones"
+  },
+  {
+    "start": 611.007,
+    "duration": 3.759,
+    "text": "de Roblox, mueve los botones menos"
+  },
+  {
+    "start": 612.834,
+    "duration": 4.154,
+    "text": "importantes a un menú y usa fuentes"
+  },
+  {
+    "start": 614.766,
+    "duration": 4.091,
+    "text": "grandes y legibles. Muchos de estos"
+  },
+  {
+    "start": 616.988,
+    "duration": 3.841,
+    "text": "juegos de Roblox tienen fuentes muy"
+  },
+  {
+    "start": 618.857,
+    "duration": 3.996,
+    "text": "pequeñas por alguna razón, así que"
+  },
+  {
+    "start": 620.829,
+    "duration": 4.424,
+    "text": "prueba con el emulador de dispositivos"
+  },
+  {
+    "start": 622.853,
+    "duration": 4.451,
+    "text": "de Studio y luego en un teléfono real. Y"
+  },
+  {
+    "start": 625.253,
+    "duration": 4.858,
+    "text": "aquí están mis reglas personales además"
+  },
+  {
+    "start": 627.304,
+    "duration": 5.088,
+    "text": "de eso. Un botón grande principal abajo"
+  },
+  {
+    "start": 630.111,
+    "duration": 4.808,
+    "text": "a la derecha, unos cuatro botones en"
+  },
+  {
+    "start": 632.392,
+    "duration": 4.992,
+    "text": "total en pantalla, y que los residuos en"
+  },
+  {
+    "start": 634.919,
+    "duration": 4.992,
+    "text": "tu juego desaparezcan rápido, para que"
+  },
+  {
+    "start": 637.384,
+    "duration": 4.646,
+    "text": "la gente con teléfonos baratos no tenga"
+  },
+  {
+    "start": 639.911,
+    "duration": 4.164,
+    "text": "lag. Ahora, no tienes que seguir esto al"
+  },
+  {
+    "start": 642.03,
+    "duration": 3.895,
+    "text": "pie de la letra, pero tener un millón de"
+  },
+  {
+    "start": 644.075,
+    "duration": 3.895,
+    "text": "botones en tu pantalla en un juego de"
+  },
+  {
+    "start": 645.925,
+    "duration": 3.805,
+    "text": "Roblox no es lo más atractivo ni lo más"
+  },
+  {
+    "start": 647.97,
+    "duration": 3.184,
+    "text": "divertido de ver. Muy bien, lo siguiente"
+  },
+  {
+    "start": 649.73,
+    "duration": 3.279,
+    "text": "de lo que quiero hablar es de construir"
+  },
+  {
+    "start": 651.154,
+    "duration": 3.768,
+    "text": "rápido con Claude. Ahora, obviamente hay"
+  },
+  {
+    "start": 653.009,
+    "duration": 3.776,
+    "text": "otras alternativas a Claude, pero creo"
+  },
+  {
+    "start": 654.922,
+    "duration": 3.628,
+    "text": "que Claude es la mejor, más fácil y"
+  },
+  {
+    "start": 656.785,
+    "duration": 3.408,
+    "text": "rápida manera de hacer un juego de"
+  },
+  {
+    "start": 658.55,
+    "duration": 3.08,
+    "text": "Roblox. Hay otras formas rápidas, pero"
+  },
+  {
+    "start": 660.193,
+    "duration": 3.343,
+    "text": "da igual. No puedes simplemente decir \""
+  },
+  {
+    "start": 661.63,
+    "duration": 3.96,
+    "text": "hazme un juego\", ¿vale? Cuando le das un"
+  },
+  {
+    "start": 663.536,
+    "duration": 4.269,
+    "text": "comando a Claude, debes darle un plan"
+  },
+  {
+    "start": 665.59,
+    "duration": 4.053,
+    "text": "completo de un bucle de juego, el primer"
+  },
+  {
+    "start": 667.805,
+    "duration": 3.983,
+    "text": "minuto, la escala de mejoras y el"
+  },
+  {
+    "start": 669.643,
+    "duration": 3.8,
+    "text": "objetivo de tu juego. Ahora, tengo una"
+  },
+  {
+    "start": 671.788,
+    "duration": 2.798,
+    "text": "función de comandos de juego en mi sitio"
+  },
+  {
+    "start": 673.443,
+    "duration": 2.522,
+    "text": "web Reblox que puedes copiar"
+  },
+  {
+    "start": 674.586,
+    "duration": 2.995,
+    "text": "directamente a Claude para ahorrar"
+  },
+  {
+    "start": 675.965,
+    "duration": 3.353,
+    "text": "tiempo, pero cada juego que tiene éxito"
+  },
+  {
+    "start": 677.581,
+    "duration": 3.987,
+    "text": "funciona con un solo bucle, ¿entiendes?"
+  },
+  {
+    "start": 679.318,
+    "duration": 4.445,
+    "text": "Haces una cosa, obtienes una recompensa"
+  },
+  {
+    "start": 681.568,
+    "duration": 4.108,
+    "text": "instantánea, mejoras y luego haces lo"
+  },
+  {
+    "start": 683.763,
+    "duration": 4.447,
+    "text": "mismo, pero más grande, mientras"
+  },
+  {
+    "start": 685.676,
+    "duration": 4.282,
+    "text": "persigues un objetivo todo el tiempo. Y"
+  },
+  {
+    "start": 688.21,
+    "duration": 3.589,
+    "text": "si tocar lo principal no es divertido"
+  },
+  {
+    "start": 689.958,
+    "duration": 3.681,
+    "text": "por sí mismo, como el bucle principal,"
+  },
+  {
+    "start": 691.799,
+    "duration": 3.879,
+    "text": "entonces tu juego no será divertido en"
+  },
+  {
+    "start": 693.639,
+    "duration": 4.017,
+    "text": "absoluto y no atraerá jugadores."
+  },
+  {
+    "start": 695.678,
+    "duration": 3.903,
+    "text": "Así que el bucle principal debe ser"
+  },
+  {
+    "start": 697.656,
+    "duration": 4.125,
+    "text": "realmente divertido para la gente y"
+  },
+  {
+    "start": 699.581,
+    "duration": 3.892,
+    "text": "visualmente atractivo. Entonces, si"
+  },
+  {
+    "start": 701.781,
+    "duration": 3.383,
+    "text": "estás construyendo la versión uno de tu"
+  },
+  {
+    "start": 703.473,
+    "duration": 3.302,
+    "text": "juego, yo no añadiría todo esto a menos"
+  },
+  {
+    "start": 705.164,
+    "duration": 3.616,
+    "text": "que tu juego lo requiera absolutamente,"
+  },
+  {
+    "start": 706.775,
+    "duration": 3.949,
+    "text": "¿verdad? A menos que tengas un juego PvP"
+  },
+  {
+    "start": 708.78,
+    "duration": 3.565,
+    "text": ", por supuesto que necesitarás PvP. Si"
+  },
+  {
+    "start": 710.724,
+    "duration": 3.302,
+    "text": "tu juego está relacionado con mascotas,"
+  },
+  {
+    "start": 712.345,
+    "duration": 3.913,
+    "text": "por supuesto que vas a añadir mascotas."
+  },
+  {
+    "start": 714.026,
+    "duration": 4.938,
+    "text": "Pero ciertas cosas no recomiendo"
+  },
+  {
+    "start": 716.258,
+    "duration": 4.979,
+    "text": "incluirlas en la primera versión de tu"
+  },
+  {
+    "start": 718.964,
+    "duration": 4.191,
+    "text": "juego. Me refiero a la primera de todas"
+  },
+  {
+    "start": 721.237,
+    "duration": 3.998,
+    "text": ", ¿sabes? No después de una o dos"
+  },
+  {
+    "start": 723.155,
+    "duration": 3.871,
+    "text": "semanas, ¿entiendes? En la primera"
+  },
+  {
+    "start": 725.235,
+    "duration": 3.731,
+    "text": "versión, cosas como renacimientos,"
+  },
+  {
+    "start": 727.026,
+    "duration": 3.731,
+    "text": "ingresos sin conexión—bueno, añade"
+  },
+  {
+    "start": 728.966,
+    "duration": 3.781,
+    "text": "renacimientos—, pero ingresos sin"
+  },
+  {
+    "start": 730.757,
+    "duration": 4.008,
+    "text": "conexión, segundo mundo o códigos son"
+  },
+  {
+    "start": 732.747,
+    "duration": 3.858,
+    "text": "cosas innecesarias que no necesitas. O"
+  },
+  {
+    "start": 734.765,
+    "duration": 3.882,
+    "text": "como las cinemáticas. Mucha gente ha"
+  },
+  {
+    "start": 736.605,
+    "duration": 4.305,
+    "text": "estado añadiendo cinemáticas a sus"
+  },
+  {
+    "start": 738.647,
+    "duration": 4.527,
+    "text": "juegos y se ven bien, pero los jugadores"
+  },
+  {
+    "start": 740.91,
+    "duration": 4.805,
+    "text": "solo piden un botón para saltarlas. Y"
+  },
+  {
+    "start": 743.174,
+    "duration": 4.47,
+    "text": "desafortunadamente, eso es todo. Así que"
+  },
+  {
+    "start": 745.715,
+    "duration": 3.805,
+    "text": ", recomendaría construir primero la"
+  },
+  {
+    "start": 747.644,
+    "duration": 4.049,
+    "text": "acción principal de tu juego en un"
+  },
+  {
+    "start": 749.52,
+    "duration": 3.892,
+    "text": "muñeco de prueba. Entonces, si tu juego"
+  },
+  {
+    "start": 751.693,
+    "duration": 3.782,
+    "text": "trata sobre deslizarse, asegúrate de"
+  },
+  {
+    "start": 753.412,
+    "duration": 3.686,
+    "text": "probar el deslizamiento primero. Añade"
+  },
+  {
+    "start": 755.475,
+    "duration": 3.325,
+    "text": "herramientas en una tienda, por supuesto"
+  },
+  {
+    "start": 757.098,
+    "duration": 3.217,
+    "text": ", para comprar guardados. Asegúrate de"
+  },
+  {
+    "start": 758.8,
+    "duration": 3.239,
+    "text": "que la gente pueda guardar y que la"
+  },
+  {
+    "start": 760.315,
+    "duration": 3.68,
+    "text": "interfaz y el sonido sean importantes en"
+  },
+  {
+    "start": 762.039,
+    "duration": 4.184,
+    "text": "el pase de juego. Y también protege a"
+  },
+  {
+    "start": 763.995,
+    "duration": 4.292,
+    "text": "tus jugadores, guarda su progreso, nunca"
+  },
+  {
+    "start": 766.223,
+    "duration": 4.292,
+    "text": "borres un perfil si la carga falla, y"
+  },
+  {
+    "start": 768.287,
+    "duration": 4.377,
+    "text": "deja que el servidor verifique cada pago"
+  },
+  {
+    "start": 770.515,
+    "duration": 4.372,
+    "text": "para que nadie haga trampa. Y después"
+  },
+  {
+    "start": 772.664,
+    "duration": 4.34,
+    "text": "del lanzamiento, cada día arregla lo que"
+  },
+  {
+    "start": 774.887,
+    "duration": 4.278,
+    "text": "esté roto y cada semana actualiza algo"
+  },
+  {
+    "start": 777.004,
+    "duration": 4.297,
+    "text": "nuevo. Y también intenta arreglar una"
+  },
+  {
+    "start": 779.165,
+    "duration": 3.855,
+    "text": "estadística a la vez, ya sea la tasa de"
+  },
+  {
+    "start": 781.301,
+    "duration": 3.726,
+    "text": "rebote, el tiempo de juego o los"
+  },
+  {
+    "start": 783.02,
+    "duration": 3.558,
+    "text": "jugadores que regresan. Intenta dirigir"
+  },
+  {
+    "start": 785.027,
+    "duration": 3.085,
+    "text": "cada actualización a una de estas"
+  },
+  {
+    "start": 786.578,
+    "duration": 2.865,
+    "text": "estadísticas. A continuación, quiero"
+  },
+  {
+    "start": 788.112,
+    "duration": 2.845,
+    "text": "hablar sobre cómo conseguir jugadores."
+  },
+  {
+    "start": 789.443,
+    "duration": 3.139,
+    "text": "Anuncios, vas a necesitar más de lo que"
+  },
+  {
+    "start": 790.957,
+    "duration": 3.402,
+    "text": "crees, ¿de acuerdo? Roblox dice que la"
+  },
+  {
+    "start": 792.582,
+    "duration": 3.488,
+    "text": "mayoría de las campañas necesitan varios"
+  },
+  {
+    "start": 794.359,
+    "duration": 3.884,
+    "text": "días para mostrar resultados. En las"
+  },
+  {
+    "start": 796.07,
+    "duration": 4.405,
+    "text": "primeras 24 horas, solo está aprendiendo"
+  },
+  {
+    "start": 798.243,
+    "duration": 4.334,
+    "text": ". Un manual de desarrollo probado dice"
+  },
+  {
+    "start": 800.475,
+    "duration": 3.998,
+    "text": "al menos 16 dólares al día durante una"
+  },
+  {
+    "start": 802.577,
+    "duration": 4.346,
+    "text": "semana antes de que Roblox empiece a"
+  },
+  {
+    "start": 804.473,
+    "duration": 5.726,
+    "text": "recomendar tu juego. Un desarrollador"
+  },
+  {
+    "start": 806.923,
+    "duration": 5.274,
+    "text": "reportó más de 650 dólares en 2 meses."
+  },
+  {
+    "start": 810.199,
+    "duration": 4.34,
+    "text": "Algo como 20 dólares y volverte el"
+  },
+  {
+    "start": 812.197,
+    "duration": 4.119,
+    "text": "número uno, eso no es posible."
+  },
+  {
+    "start": 814.539,
+    "duration": 3.6,
+    "text": "A menos que tu juego sea realmente el"
+  },
+  {
+    "start": 816.316,
+    "duration": 3.6,
+    "text": "mejor que haya salido, no va a suceder"
+  },
+  {
+    "start": 818.139,
+    "duration": 3.554,
+    "text": "porque todos creen que su juego es el"
+  },
+  {
+    "start": 819.916,
+    "duration": 3.695,
+    "text": "mejor y hay miles de juegos de Roblox"
+  },
+  {
+    "start": 821.693,
+    "duration": 3.206,
+    "text": "saliendo todo el tiempo y todos compiten"
+  },
+  {
+    "start": 823.611,
+    "duration": 3.181,
+    "text": "por lo mismo."
+  },
+  {
+    "start": 824.899,
+    "duration": 3.883,
+    "text": "Ahora, un método para ganar jugadores"
+  },
+  {
+    "start": 826.792,
+    "duration": 3.981,
+    "text": "que creo que tiene retornos masivos y en"
+  },
+  {
+    "start": 828.782,
+    "duration": 5.154,
+    "text": "el que no tienes que gastar tanto dinero"
+  },
+  {
+    "start": 830.773,
+    "duration": 6.769,
+    "text": "es TikTok. TikTok, he revisado muchos"
+  },
+  {
+    "start": 833.936,
+    "duration": 7.126,
+    "text": "TikToks y las muestras de construcción o"
+  },
+  {
+    "start": 837.542,
+    "duration": 6.696,
+    "text": "cosas que exhiben tu juego obtienen unas"
+  },
+  {
+    "start": 841.062,
+    "duration": 5.999,
+    "text": "73 veces más reproducciones que los"
+  },
+  {
+    "start": 844.238,
+    "duration": 4.192,
+    "text": "seguidores en la cuenta. Así que, este"
+  },
+  {
+    "start": 847.061,
+    "duration": 3.605,
+    "text": "tipo de videos funcionan increíblemente"
+  },
+  {
+    "start": 848.43,
+    "duration": 4.572,
+    "text": "bien. Como Dress to Impress, ya sabes,"
+  },
+  {
+    "start": 850.666,
+    "duration": 4.73,
+    "text": "obviamente tuvo una tendencia masiva en"
+  },
+  {
+    "start": 853.002,
+    "duration": 4.806,
+    "text": "Roblox donde todos publicaban spam en la"
+  },
+  {
+    "start": 855.396,
+    "duration": 4.679,
+    "text": "vida real. Y YouTube también es bueno"
+  },
+  {
+    "start": 857.808,
+    "duration": 4.591,
+    "text": "porque YouTube es mejor para diarios de"
+  },
+  {
+    "start": 860.075,
+    "duration": 4.648,
+    "text": "desarrollo y construir una audiencia con"
+  },
+  {
+    "start": 862.399,
+    "duration": 4.703,
+    "text": "el tiempo en lugar de intentar conseguir"
+  },
+  {
+    "start": 864.723,
+    "duration": 3.83,
+    "text": "jugadores rápido para un solo juego."
+  },
+  {
+    "start": 867.102,
+    "duration": 2.899,
+    "text": "YouTube es más como una comunidad por la"
+  },
+  {
+    "start": 868.553,
+    "duration": 2.806,
+    "text": "forma en que funcionan las cosas allí."
+  },
+  {
+    "start": 870.001,
+    "duration": 3.55,
+    "text": "TikTok es tu mejor oportunidad para"
+  },
+  {
+    "start": 871.359,
+    "duration": 4.514,
+    "text": "volverte viral. Digo, ese juego con el"
+  },
+  {
+    "start": 873.551,
+    "duration": 4.12,
+    "text": "agua donde saltas y el monstruo te"
+  },
+  {
+    "start": 875.873,
+    "duration": 3.112,
+    "text": "persigue. Eso se volvió viral en TikTok"
+  },
+  {
+    "start": 877.671,
+    "duration": 2.35,
+    "text": "y le está yendo extremadamente bien"
+  },
+  {
+    "start": 878.985,
+    "duration": 2.636,
+    "text": "ahora mismo."
+  },
+  {
+    "start": 880.021,
+    "duration": 3.24,
+    "text": "Hustle Valley tuvo un buen desempeño a"
+  },
+  {
+    "start": 881.621,
+    "duration": 3.24,
+    "text": "pesar de que, según escuché, fue hecho"
+  },
+  {
+    "start": 883.261,
+    "duration": 3.598,
+    "text": "completamente en la nube, y también le"
+  },
+  {
+    "start": 884.861,
+    "duration": 3.468,
+    "text": "fue muy bien en TikTok. Ahora, hablemos"
+  },
+  {
+    "start": 886.859,
+    "duration": 4.098,
+    "text": "de cómo ganar dinero sin arruinar el"
+  },
+  {
+    "start": 888.329,
+    "duration": 5.363,
+    "text": "juego. Yo empezaría con uno o dos pases"
+  },
+  {
+    "start": 890.957,
+    "duration": 5.333,
+    "text": ", como el de monedas dobles por unos 99"
+  },
+  {
+    "start": 893.692,
+    "duration": 5.213,
+    "text": "Robux y algún cosmético por unos 50"
+  },
+  {
+    "start": 896.29,
+    "duration": 4.817,
+    "text": "Robux. Los pases solo se compran una vez"
+  },
+  {
+    "start": 898.905,
+    "duration": 4.056,
+    "text": ", nunca vendas saltos de nivel. No"
+  },
+  {
+    "start": 901.107,
+    "duration": 3.902,
+    "text": "vendas paquetes grandes de dinero que"
+  },
+  {
+    "start": 902.961,
+    "duration": 4.1,
+    "text": "rompan tu economía y no pongas el dinero"
+  },
+  {
+    "start": 905.009,
+    "duration": 3.166,
+    "text": "por encima de la diversión en el juego."
+  },
+  {
+    "start": 907.061,
+    "duration": 2.598,
+    "text": "También tenemos los productos de"
+  },
+  {
+    "start": 908.175,
+    "duration": 2.858,
+    "text": "desarrollador. Estos son productos que"
+  },
+  {
+    "start": 909.659,
+    "duration": 3.094,
+    "text": "se pueden comprar una y otra vez."
+  },
+  {
+    "start": 911.033,
+    "duration": 3.531,
+    "text": "Podrían ser pequeñas mejoras que se"
+  },
+  {
+    "start": 912.753,
+    "duration": 3.979,
+    "text": "compran con Robux o artículos limitados"
+  },
+  {
+    "start": 914.564,
+    "duration": 4.087,
+    "text": ". Pero asegúrate de que, al final del"
+  },
+  {
+    "start": 916.732,
+    "duration": 3.323,
+    "text": "día, priorices la diversión, porque la"
+  },
+  {
+    "start": 918.651,
+    "duration": 3.727,
+    "text": "era de los juegos basura tipo"
+  },
+  {
+    "start": 920.055,
+    "duration": 4.007,
+    "text": "tragamonedas en Roblox está cambiando."
+  },
+  {
+    "start": 922.378,
+    "duration": 3.322,
+    "text": "La diversión se está volviendo un"
+  },
+  {
+    "start": 924.062,
+    "duration": 3.416,
+    "text": "objetivo cada vez más importante,"
+  },
+  {
+    "start": 925.7,
+    "duration": 3.228,
+    "text": "especialmente para la mayoría de los"
+  },
+  {
+    "start": 927.478,
+    "duration": 3.181,
+    "text": "jugadores de Roblox, porque la"
+  },
+  {
+    "start": 928.928,
+    "duration": 3.563,
+    "text": "plataforma ha estado llena de juegos"
+  },
+  {
+    "start": 930.659,
+    "duration": 3.585,
+    "text": "mediocres por mucho tiempo. Así que eso"
+  },
+  {
+    "start": 932.491,
+    "duration": 3.586,
+    "text": "es todo. Ya sabes qué juegos funcionan,"
+  },
+  {
+    "start": 934.244,
+    "duration": 3.682,
+    "text": "cómo elegir una idea con potencial, cómo"
+  },
+  {
+    "start": 936.077,
+    "duration": 3.266,
+    "text": "crearla rápido y cómo atraer jugadores."
+  },
+  {
+    "start": 937.926,
+    "duration": 2.764,
+    "text": "Puedes revisar Reblocks, ver qué está"
+  },
+  {
+    "start": 939.343,
+    "duration": 2.486,
+    "text": "teniendo éxito y elegir un juego que"
+  },
+  {
+    "start": 940.69,
+    "duration": 2.511,
+    "text": "funcione. El enlace está en la"
+  },
+  {
+    "start": 941.829,
+    "duration": 2.608,
+    "text": "descripción aquí abajo. Pásalo por la"
+  },
+  {
+    "start": 943.201,
+    "duration": 2.823,
+    "text": "lista de verificación del primer minuto"
+  },
+  {
+    "start": 944.437,
+    "duration": 2.789,
+    "text": "que mencioné en este video. Además, \""
+  },
+  {
+    "start": 946.024,
+    "duration": 2.621,
+    "text": "Steal a Pirate Ship\" está en la"
+  },
+  {
+    "start": 947.226,
+    "duration": 3.055,
+    "text": "descripción por si quieren echarle un"
+  },
+  {
+    "start": 948.645,
+    "duration": 3.466,
+    "text": "vistazo al juego de mi amigo."
+  },
+  {
+    "start": 950.281,
+    "duration": 4.08,
+    "text": "Y sí, si les gustó este video, háganmelo"
+  },
+  {
+    "start": 952.111,
+    "duration": 2.25,
+    "text": "saber."
+  }
+]
