@@ -78,6 +78,13 @@ return function(sources)
 		has(fear, "CanQuery = false")
 		has(fear, 'GetAttribute("Phase")')
 		has(fear, 'SetAttribute("StalkCount"')
+		-- Play finding: at the night fog's edge the art's thin pale eye slit did not read. Two red eyes drawn on a
+		-- billboard that ignores the light (still hidden behind trunks) are what the player sees first.
+		has(fear, '"BillboardGui"')
+		has(fear, "LightInfluence = 0")
+		has(fear, "AlwaysOnTop = false")
+		-- Play finding: the ground probe hit a tree crown and refused the spot; only colliding ground counts.
+		has(fear, "RespectCanCollide = true")
 	end)
 
 	case("Stalk: the audio client whispers on a sighting, but not with Efectos suaves", function()
