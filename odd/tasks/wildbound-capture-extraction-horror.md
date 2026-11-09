@@ -468,3 +468,55 @@ Captures (each looked at), `assets/exports/forest-kit/captures/`: `tuning-panel-
 Counts: Studio 52 suites, 1106 passed, 0 failed on fresh clones (baseline 50 suites, 1085; new Tuning 14, TuningWiring 7). Python: 924 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. Every changed or new Studio source matches the repo by Adler-32 and length. `ReplicatedStorage.WildboundTuning` exists in the place (7 systems, 70 attributes at the repo defaults, built by `ensureFolder`); the place is not saved to a file by this session. Studio left in Edit with no temporary instances (the runner was removed). Studio was found in Play (an idle session about 11 minutes in) and was stopped before the first edit.
 
 Next step: the user tries the panel (F8 or "Ajustes dev"), reviews DT-W1 to DT-W6 and saves the place so the folder persists.
+
+## Fear and adrenaline pass
+
+User, 2026-11-08 (Spanish): the game must be scarier and faster, stealing or capturing creatures must feel like an adrenaline rush, and the island parents must chase and hit you. Adult chase and hits already existed (chase pass, CP4) but were not felt enough; La Silueta was measured at about 7 studs/s on a sprinting quarry (CP6).
+
+Route: delegated, one Studio and repo writer (Opus), no nested delegation. Instance `b18079a2-...`, PlaceId 122652861404212 verified in Edit (Studio was found in Play and stopped first). Every Wildbound source in the place matched the repo by Adler-32 and length before the first edit. Backups (Archivo > Descargar una copia): `assets/exports/wildbound-pre-fear-pass-20261108.rbxl` (642,558 bytes) before the first edit, `assets/exports/wildbound-fear-pass-20261108.rbxl` (651,464 bytes) at the end. Mode: strict TDD (global); runners: Studio fresh clones (temporary `ServerStorage.WildboundFreshRunnerTmp`, removed at the end), `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 52 suites, 1106 passed, 0 failed. Route per task: inline in the one writer.
+
+Tasks:
+
+- [x] FA1 La Silueta closes in. Cause: a route is planned from where the body stood and arrives after it walked on, so its first waypoints lie behind it; `GuardianPath.steer` walked back to them on every replan (every 0.5 s while the quarry moves). Now a waypoint is done when reached or when the body is no farther from the next waypoint than that waypoint is. RED: GuardianPath 12/2; GREEN 14/0. Commit `643a974`.
+- [x] FA2 Faster parents and a loud grab. `WildboundIsland`: `GRAB` 45 for a granted cria capture (`CriaTaken`, new) and an egg (`EggTaken`, was `PENALTY.EggTaken` 30); `WAKE_WINDUP` 0.6 to 0.4, `CHASE_SPEED` 17 to 19, `CHASE_SECONDS` 10 to 14. Server: a granted island capture fires `CriaTaken` with the first-steal flag read before the bag changes (island 1's cap holds). Schema: `Islands.GRAB` added, three defaults changed. RED: Island 19/3, IslandWiring 10/1, Tuning 11/3; GREEN: 22/0, 11/0, 14/0. Deliberately changed pins, each marked in its test: Island `PENALTY.EggTaken` and the CP4 speed, wind-up and duration ranges; Tuning's `CHASE_SPEED` 17. The place's Edit-mode tuning folder still held the old 17, 0.6 and 10 (they would have overridden the new defaults); set to the new defaults, 0 values differ. Commit `455b241`.
+- [x] FA3 The adrenaline and fear layer. Pure rules: `HudView.fear` (cues grab, woke, strike, hit, seen fade linearly; hit flash 0.35 s; the heartbeat lingers 6 s and follows the nearest threat; "Efectos suaves": no shake, half the rest), `HudView.threat`, `HudView.knockback`, six new client tunables (`FEAR_SECONDS` 3, `FEAR_SHAKE` 0.3, `FEAR_FOV` 8, `HIT_FLASH` 0.55, `HEART_RANGE` 45, `KNOCKBACK` 42); `AudioMix.heart`, the `roar` and `call` one-shots, `call` scheduled while Distant or Near; `AudioCatalog` `heartbeat` (9043365842, APM "HEARTBEAT 02 96BPM", found with `search_asset`, free, added to the dread shortlist), `roar` (lion growl 9113973128, shortlist) and `call` (the groan 9114628321, shared); `Text.FEAR` ("¡CORRE!", "¡PADRE DESPIERTO!", "¡VA A GOLPEARTE!", "¡GOLPE!", "-%d", "TE VIO"). New `WildboundFear.client.luau` (StarterPlayerScripts `WildboundFearClient`): reads the State remote's actions and replicated attributes only, never sends; draws the shouts, the red (or black) screen edge, the hit flash, the damage number and the shake; applies the hit's push to its own character; hands `FearHeart`, `FearCue` and `FearFov` to the audio and world clients. The world client adds `FearFov` to its field of view goal; the audio client plays the heartbeat layer, a roar when a parent wakes and on each swing, the stinger on a grab and La Silueta's distant call. RED: HudView 43/5, Text 13/1, AudioMix 9/2, FearWiring 0/5, Python manifest 23/1; GREEN: 48/0, 14/0, 11/0, 5/0, 24/0. Two contracts failed after the first GREEN and were fixed: HudView's purity scan caught the word "time" in a comment; AudioWiring pinned the scheduled one-shot list (deliberately changed, marked). Commit `7939d14`.
+- [x] FA4 Play finding: a grab that wakes the parents sent "¡PADRE DESPIERTO!" and "¡CORRE!" in the same step, so only the last showed. Shouts now queue, at least 0.7 s each. Checked in Play (no unit test: interface timing). Committed with FA5.
+- [x] FA5 Documents: this section, `docs/mechanics/wildbound-expedition-islands.md` (fear pass table), `docs/testing/wildbound-tuning.md` (new values, the stale Edit-mode folder), the dread audio shortlist (1.7, with FA3). `docs/wildbound-roadmap.md` untouched.
+
+Tuning values changed (old to new): Islands `WAKE_WINDUP` 0.6 to 0.4, `CHASE_SPEED` 17 to 19, `CHASE_SECONDS` 10 to 14, the egg grab 30 to `GRAB` 45 (a cria grab 0 to 45). New: `GRAB`, Camera `FEAR_SECONDS`, `FEAR_SHAKE`, `FEAR_FOV`, `HIT_FLASH`, `HEART_RANGE`, `KNOCKBACK`. Unchanged on purpose: La Silueta's telegraph 0.9 s (floor 0.8), the adult swing 0.45 s (floor 0.35), damage 35, hit range 5, leash 35, the sight radii (CP-R1 kept).
+
+Writer decisions, for user review:
+
+| ID | Decision |
+| --- | --- |
+| FA-W1 | `GRAB` 45 makes most steals wake the parents: a cria hides beside an adult, so a 6 s capture also counts as lingering (9 per s with the lull). Measured: island 3 at meter 0, a clean capture, woke on the grab at 102.5. A quiet egg on island 2 at meter 0 stayed asleep. If every steal waking feels too harsh, lower `GRAB` (panel, Islands) to about 30. |
+| FA-W2 | The economy floors are not affected: the simulator models neither island adults (CP-A3) nor La Silueta's route lag, and it already used the full hunt speeds. The pathing fix brings real play closer to what the simulator assumed, so the real pressure on walkers rises toward the simulated one. CP-R1 (shorter sight radii) is kept, not undone. |
+| FA-W3 | The hit's push is applied by the client to its own character (the client owns it; a server push would not replicate). It is feel only: the server already dropped the cria and applied any damage, so ignoring it gains nothing. |
+| FA-W4 | Stalk sightings at the fog edge were not built (scope); La Silueta's distant call (the groan at pitch 0.55, 30 to 140 studs away toward it) gives presence instead. |
+| FA-W5 | A lethal player who stands still beside a woken adult dies in about 4.8 s (three hits about 1.9 s apart). A sprint breaks the chase within the 35-stud leash. Damage keeps the existing gates (private mode, after the first paid trip). |
+
+Play check (Studio Play solo, desktop 1336 x 699; the Studio clock shift set Night; dev tuning made the capture ring slow and the seal band wide only to script the capture; the values reverted when Play stopped):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| La Silueta closes on a moving quarry | PASS | Night (hunt 17): 15.5 studs/s while hunting a quarry moving 17 to 23 studs/s (1.75 s window); before the fix about 7 (CP6). A walker 17.6 studs away was reached in about 1 s, then telegraphed. Finding: twice it dropped to Search within about 2 s at 24 studs (trees between), earlier than the 6 s night memory suggests; not investigated |
+| A grab wakes the parents | PASS | Island 2, meter 50 plus the lull: the capture completed and the island woke in the same step, first strike 1.3 s later; island 5 egg at meter 70: `IslandChase` and `Pickup` together; island 3 at meter 0 next to an adult: woke on the grab (102.5) |
+| A quiet grab stays quiet | PASS | Island 2 egg, meter 0: no wake; "¡CORRE!" with the red edge (`fear-grab-corre-red-edge-night-desktop.jpg`) |
+| The parent chases, telegraphs and hits | PASS | Wake to first wind-up 0.41 s, wind-up to hit 0.62 s; hits 1.9 s apart; "¡VA A GOLPEARTE!" then "¡GOLPE!" (`fear-adult-hit-golpe-night-desktop.jpg`); `fear-egg-grab-parent-awake-night-desktop.jpg` shows the red-eyed rearing adults, the red edge and "¡PADRE DESPIERTO!" |
+| Knockback | PASS | 35 studs/s just after the hit, 7.0 studs moved in 0.5 s (twice); the third hit (death) 2.8 studs |
+| A carried cria drops on the first hit | PASS | carrying nil after the first hit (island 2, non-lethal run) |
+| Three hits kill a lethal player | PASS | `IslandProbe` "lethal": health 100, 65, 32 (regeneration between), 0, then the defeat summary |
+| The chase gives up on time | PASS | woke to gave up 14.6 s |
+| La Silueta sees you | PASS | Hunt within 0.6 s at 16 studs: "TE VIO" with the black edge and the chip "Silueta sees you" (`fear-silueta-te-vio-dark-edge-night-desktop.jpg`) |
+| Heartbeat | PASS by properties, NOT VERIFIED by ear | La Silueta hunting close: `FearHeart` 0.95, heartbeat Volume 0.48, PlaybackSpeed 1.38, playing and loaded; no failed audio ids |
+| Grab stinger | PASS by properties | `LastFearCue` "grab" on the mix after the egg pickup |
+| Field-of-view punch | PASS | 70 to 77.1 at 0.5 s after a grab, back to 70.6 by 3.4 s |
+| "Efectos suaves" | PASS | hit flash peak 0.22 (0.55 full, unit-tested), `FearFov` peak 2.50 with it on against 4.75 off |
+| Frame time | desktop only | 16.7 ms average, 18.5 ms worst over 4 s (60 fps cap) |
+| Phones, touch, two players, the roar and the call by ear | NOT VERIFIED | One Studio client; no Device Simulator |
+
+Captures (each looked at), `assets/exports/forest-kit/captures/`: `fear-grab-corre-red-edge-night-desktop.jpg`, `fear-egg-grab-parent-awake-night-desktop.jpg`, `fear-adult-hit-golpe-night-desktop.jpg`, `fear-silueta-te-vio-dark-edge-night-desktop.jpg`.
+
+Counts: Studio 53 suites, 1123 passed, 0 failed on fresh clones (baseline 52 suites, 1106; new FearWiring 5; GuardianPath 14, Island 22, IslandWiring 11, HudView 48, Text 14, AudioMix 11, AudioWiring 9). Python: 924 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. 111 of 111 mapped sources in the place match the repo by Adler-32 and length. Studio left in Edit with no temporary instances; the place file is not saved by this session beyond the two downloaded copies.
+
+Next step: the user plays a steal and decides FA-W1 (how often a grab should wake the parents) and whether to build the stalk sightings (FA-W4); then saves the place.

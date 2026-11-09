@@ -45,7 +45,7 @@ An attribute edited in Edit mode is saved with the place and applies to every se
 - the server prints, at start, every value that differs from the repo defaults (`WildboundTuning: N value(s) differ from the repo defaults: ...`);
 - the panel shows those values in amber with the repo number.
 
-If the repo default later changes, a stale Edit-mode attribute still wins in that place: reset it (panel **Restablecer**, or delete the attribute, then run `ensureFolder` again).
+If the repo default later changes, a stale Edit-mode attribute still wins in that place: reset it (panel **Restablecer**, or delete the attribute, then run `ensureFolder` again). The fear pass hit this: the place's folder still held `CHASE_SPEED` 17, `WAKE_WINDUP` 0.6 and `CHASE_SECONDS` 10 after the defaults changed; they were set to the new defaults in Edit and `ensureFolder` added the new keys (0 values differ afterwards).
 
 ## Values
 
@@ -56,10 +56,10 @@ Ranges are clamps: an attribute outside its range is clamped (and written back, 
 | Silueta | patrol, hunt speed, sight radius and memory per phase (Day, Twilight = dusk and dawn, Night); `GIVE_UP_DISTANCE`; `CHASE_LEASH` (at least 80, the territory); `TELEGRAPH_SECONDS` (at least 0.8, the fair-strike warning lead); `ATTACK_COOLDOWN` |
 | Sprint | `SPRINT_MULTIPLIER`, `SPEED_CAP`, `DRAIN`, `START`, `RECOVER`, `REGEN_DELAY`, `REGEN_WALK`, `REGEN_STILL`, `NOISE_INTERVAL`, `SPRINT_NOISE` (hearing radius of a sprint) |
 | Carry | `FEAR_RISE`, `FEAR_FALL`, `FEAR_WARN`, `FEAR_SLIP` (the slip), `FEAR_RADIUS`, `UNEASY_RADIUS`, `CRY_EVERY` |
-| Islands | `STIR`, `WAKE` (at least 96, above island 1's first-steal cap 95), `LINGER`, `SPRINT`, `LIGHT`, `DECAY`, `ALERT_SECONDS`, `WAKE_WINDUP`, `CHASE_SPEED`, `CHASE_SECONDS`, `CHASE_LEASH`, `STRIKE_REACH`, `STRIKE_WINDUP` (at least 0.35 s), `HIT_RANGE`, `STRIKE_COOLDOWN`, `DAMAGE` |
+| Islands | `STIR`, `WAKE` (at least 96, above island 1's first-steal cap 95), `LINGER`, `SPRINT`, `LIGHT`, `DECAY`, `ALERT_SECONDS`, `GRAB` (the noise of lifting a cría or an egg), `WAKE_WINDUP`, `CHASE_SPEED`, `CHASE_SECONDS`, `CHASE_LEASH`, `STRIKE_REACH`, `STRIKE_WINDUP` (at least 0.35 s), `HIT_RANGE`, `STRIKE_COOLDOWN`, `DAMAGE` |
 | Capture | `CALM_REQUIRED` (at least 4), `TIME_LIMIT`, `RING_SPEED`, `OUTSIDE_LIMIT`, `SEAL_SWEEP`, `SEAL_BAND`, `SEAL_LATENCY`, `RETRY_COOLDOWN` (at least 3); a running capture keeps the deadline, calm and seal it started with |
 | Hide | discover radius and dwell per phase, `CRY_WIDEN`, `MAX_STAY`, `COOLDOWN` |
-| Camera (client) | `SPRINT_FOV_KICK`, `DREAD_RANGE`, `DREAD_SHAKE`, `DREAD_VIGNETTE` |
+| Camera (client) | `SPRINT_FOV_KICK`, `DREAD_RANGE`, `DREAD_SHAKE`, `DREAD_VIGNETTE`; fear pass: `FEAR_SECONDS` (the burst after a grab), `FEAR_SHAKE`, `FEAR_FOV` (the punch), `HIT_FLASH`, `HEART_RANGE` (the heartbeat's reach), `KNOCKBACK` (an adult hit's push, applied by the client) |
 
 Not exposed on purpose: the territory (`HOME_LEASH`), La Silueta's strike range and damage, the island positions, the economy (it has its own generated config and simulator), and La Silueta's art scale (applied when its model is built, not live).
 

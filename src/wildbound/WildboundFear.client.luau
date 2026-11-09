@@ -74,8 +74,7 @@ local damage = make("TextLabel", { Name = "FearDamage", AnchorPoint = Vector2.ne
 
 local cues = {}
 local shoutSerial = 0
-local function showShout(text, seconds)
-	if type(text) ~= "string" or text == "" then return end
+local function displayShout(text, seconds)
 	shoutSerial += 1
 	local serial = shoutSerial
 	shout.Text, shout.Visible, shout.TextTransparency, shout.TextStrokeTransparency = text, true, 0, 0.2
@@ -87,6 +86,17 @@ local function showShout(text, seconds)
 		fade:Play()
 		fade.Completed:Once(function() if serial == shoutSerial then shout.Visible = false end end)
 	end)
+end
+-- Shouts that arrive together (a grab that wakes the parents) are read one after another, each for at least
+-- SHOUT_MIN seconds: "¡PADRE DESPIERTO!", then "¡CORRE!".
+local SHOUT_MIN = 0.7
+local shoutFree = 0
+local function showShout(text, seconds)
+	if type(text) ~= "string" or text == "" then return end
+	local now = os.clock()
+	local delay = math.max(0, shoutFree - now)
+	shoutFree = now + delay + SHOUT_MIN
+	if delay <= 0 then displayShout(text, seconds) else task.delay(delay, displayShout, text, seconds) end
 end
 local function showDamage(amount)
 	damage.Text = (WORDS.damage or "-%d"):format(math.floor(amount + 0.5))

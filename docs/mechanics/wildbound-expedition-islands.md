@@ -133,7 +133,7 @@ Each island floor is cleared of trees by the island planner (listed tree ids are
 | Lulling the cría (calm ring active) | +3 per s | |
 | Leaving the ring (`LeftRing`) or a failed session | +25 once | |
 | Missing the seal (`SealMissed`) | +35 once | The cría squeaks |
-| Taking an egg | +30 once | Eggs have no ring; rolling one out of the nest is noisy |
+| Taking an egg, or a granted cría capture (fear pass, `GRAB`) | +45 once (an egg was +30; a cría added nothing) | The grab itself is loud: a careful thief on a calm island keeps it asleep, a sloppy one (mistakes, lingering by an adult) wakes the parents the moment the cría is lifted |
 | Entering a hide spot inside the radius (`rustle`) | +10 once | |
 | Decay | -8 per s after 2 s with no input; -20 per s with nobody inside the radius | |
 
@@ -304,4 +304,17 @@ User: "you can steal from the parents and they chase you and can kill you". This
 | Gates | Damage only where La Silueta's strikes are real: `damageMode = "private"` on place 122652861404212 (`FairStrike.effectiveMode`) and a player past the first paid trip (`FairStrike.lethal`). Anywhere else, or before the first paid trip, a hit only drops the cria |
 | Death | Through the ordinary defeat flow (`Humanoid.Died`): the carried creature is lost and the Spanish defeat summary shows |
 | Island 1 | Unchanged first-steal cap (95, halved inputs): the first steal never wakes island 1, and a first-time player is never lethal anyway |
+
+## Fear pass: faster parents and a loud grab (2026-11-08)
+
+User: "scarier, faster; capturing must be an adrenaline rush; the parents chase you and hit you". `WildboundIsland` and the inventory server; task FA2 and the decisions in `odd/tasks/wildbound-capture-extraction-horror.md` ("Fear and adrenaline pass"). Every value is in the dev tuning panel (Islands).
+
+| Step | Was (chase pass) | Now |
+| --- | --- | --- |
+| The grab (`GRAB`) | An egg +30; a granted cría capture added nothing | Both +45 once; island 1's first-steal cap (95) still holds |
+| Wake (`WAKE_WINDUP`) | 0.6 s | 0.4 s |
+| Chase (`CHASE_SPEED`, `CHASE_SECONDS`) | 17 studs/s for 10 s | 19 studs/s for 14 s: a walker (16) or a walking carrier (14) is caught; a carrying sprinter (20.3) gains 1.3 studs/s, and a sprint scares the carried cría (slip at about 3.4 s) |
+| Swing, hit, leash, damage | 0.45 s tell, 5-stud hit, 35 studs, 35 damage | Unchanged (fairness floor 0.35 s) |
+
+What a player now sees and hears is in the feature document (FA3): the shouts, the red edge, the hit's push and flash, the heartbeat and the roar.
 
