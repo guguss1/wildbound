@@ -107,6 +107,15 @@ Optional bed for a wood-heavy "something large is near" cue: 9126239555 above, p
    - 9125404796: 9.3 s, the longest, best for a looping approach bed.
 2. Also test the first-shortlist single-step 9114080709 for the step one-shot rhythm.
 
+### 1.7 Fear pass: heartbeat (2026-11-08)
+
+Found with Studio `search_asset` (Creator Store, Audio, free only), not uploaded. The roar and the distant call reuse
+9113973128 and 9114628321 above.
+
+| Id | Title | Creator | Length | Why it fits | Caution |
+| --- | --- | --- | --- | --- | --- |
+| 9043365842 | HEARTBEAT 02 96BPM | APMOfficial | 60 s | A steady 96 BPM heartbeat bed from the APM "Horror Tools" album, the same official library as the music beds. Loops for the threat heartbeat; faster `PlaybackSpeed` when close. | Free on the Creator Store; licence by Roblox's APM deal, like the other APM ids. Audition the loop seam. Sibling 9043365993 (HEARTBEAT 03). Verified via search_asset. |
+
 ## 2. Models: tall low-poly trees
 
 Target: pine and conifer plus dead bare trees, ideally 40 to 80 studs tall or scalable, close to the existing

@@ -20,15 +20,20 @@ local ONE_SHOTS = {
 	hit = { slot = "hit", volume = 0.35, reduced = 0.30 },
 	crack = { slot = "crack", volume = 0.25 }, groan = { slot = "groan", volume = 0.30, reduced = 0.15 },
 	stinger = { slot = "stinger", volume = 0.35, fadeIn = 0.1, reducedSlot = "softStinger", reduced = 0.25, reducedFadeIn = 0.3 },
+	-- Fear pass (FA3): a woken or swinging parent roars; La Silueta calls from far away while it is around.
+	roar = { slot = "roar", volume = 0.6, reduced = 0.3, fadeIn = 0.02 },
+	call = { slot = "call", volume = 0.45, reduced = 0.25, fadeIn = 0.3 },
 }
 local SCHEDULE = {
 	snap = { Distant = { 8, 20 }, Near = { 6, 14 } }, dirt = { Near = { 6, 14 } },
 	whisper = { Distant = { 20, 40 }, reducedOff = true }, signature = { Chase = { 12, 20 } },
 	crack = { Near = { 8, 16 } }, groan = { Chase = { 10, 18 } },
+	call = { Distant = { 18, 35 }, Near = { 14, 26 } },
 }
 -- Dread pass: the giant is heard before it is seen. Its steps roll off from 12 to 150 studs (the fog hides it from
 -- about 48 at night to 140 by day); every other spatial cue keeps 8 to 60.
-local ROLLOFF = { steps = { 12, 150 }, giantSteps = { 12, 150 }, approach = { 20, 180 } }
+local ROLLOFF = { steps = { 12, 150 }, giantSteps = { 12, 150 }, approach = { 20, 180 }, call = { 25, 220 },
+	roar = { 10, 90 } }
 Mix.STRIDE = 9 -- studs per step for a 17-stud giant (was 5)
 
 local function finite(value)
@@ -42,6 +47,15 @@ function Mix.breath(hidden, stance, reduced)
 	if hidden == true then return 0.12 end
 	local volume = BREATH[stance] or 0
 	return reduced == true and volume / 2 or volume
+end
+
+-- Fear pass (FA3): the heartbeat in the player's head from 0 (calm, silent) to 1 (a threat on top of you, or the
+-- burst after a grab): louder and faster as it rises. "Efectos suaves" keeps it at about half.
+function Mix.heart(intensity, reduced)
+	if not finite(intensity) or intensity <= 0.02 then return { volume = 0, speed = 1 } end
+	intensity = math.min(intensity, 1)
+	local volume = 0.15 + 0.35 * intensity
+	return { volume = reduced == true and volume * 0.5 or volume, speed = 0.9 + 0.5 * intensity }
 end
 
 function Mix.master(reduced)

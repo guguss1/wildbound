@@ -19,6 +19,14 @@ View.CONSTANTS = table.freeze({
 	DREAD_SHAKE = 0.35, -- studs of camera offset at contact while it hunts; the wind-up shakes 1.4 times that
 	DREAD_VIGNETTE = 0.6,
 	DREAD_VIGNETTE_REDUCED = 0.3,
+	-- Fear pass (FA3): the adrenaline burst after a grab (seconds, camera offset in studs, field-of-view punch in
+	-- degrees), the red flash of a landed hit (opacity), the heartbeat's reach (studs) and a hit's push (studs/s).
+	FEAR_SECONDS = 3,
+	FEAR_SHAKE = 0.3,
+	FEAR_FOV = 8,
+	HIT_FLASH = 0.55,
+	HEART_RANGE = 45,
+	KNOCKBACK = 42,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
@@ -40,8 +48,10 @@ function View.tune(overrides)
 			CONSTANTS[key] = value
 		end
 	end
-	-- A dread range under one stud would divide by nothing.
+	-- A dread range under one stud would divide by nothing; neither may the burst or the heartbeat's reach.
 	CONSTANTS.DREAD_RANGE = math.max(CONSTANTS.DREAD_RANGE, 1)
+	CONSTANTS.FEAR_SECONDS = math.max(CONSTANTS.FEAR_SECONDS, 0.1)
+	CONSTANTS.HEART_RANGE = math.max(CONSTANTS.HEART_RANGE, 1)
 end
 View.tune(nil)
 
@@ -333,6 +343,62 @@ function View.dread(distance, mode, reduced)
 		shake = soft and 0 or CONSTANTS.DREAD_SHAKE * closeness * weight,
 		vignette = (soft and CONSTANTS.DREAD_VIGNETTE_REDUCED or CONSTANTS.DREAD_VIGNETTE) * closeness,
 	}
+end
+
+-- Fear pass (FA3): what each cue does at its start, and over how many seconds it fades out (linearly). red: the red
+-- screen edge; dark: a black edge (La Silueta has seen you); shake and fov: multiples of FEAR_SHAKE and FEAR_FOV;
+-- heart: the heartbeat, which lingers HEART_SECONDS whatever the cue. grab's length is FEAR_SECONDS (tunable).
+local FEAR_CUES = table.freeze({
+	grab = table.freeze({ seconds = nil, red = 0.45, dark = 0, shake = 1, fov = 1, heart = 1 }),
+	woke = table.freeze({ seconds = 2.5, red = 0.4, dark = 0, shake = 0.8, fov = 0.6, heart = 1 }),
+	strike = table.freeze({ seconds = 0.6, red = 0.35, dark = 0, shake = 0.5, fov = 0, heart = 0.8 }),
+	hit = table.freeze({ seconds = 0.8, red = 0.7, dark = 0, shake = 2, fov = 0.6, heart = 1 }),
+	seen = table.freeze({ seconds = 2, red = 0, dark = 0.5, shake = 0.4, fov = 0, heart = 0.9 }),
+})
+local HEART_SECONDS = 6
+local FLASH_SECONDS = 0.35
+
+-- How close the nearest threat is, 0 (out of reach) to 1 (on top of you).
+function View.threat(distance)
+	if not finite(distance) or distance < 0 then return 0 end
+	return math.clamp(1 - distance / CONSTANTS.HEART_RANGE, 0, 1)
+end
+
+-- cues: { [kind] = the clock reading when it fired }. threat: View.threat of the nearest threat. Returns the screen and the
+-- heartbeat for this frame: { red, dark, shake, fov, flash, heart }.
+function View.fear(cues, now, threat, reduced)
+	local out = { red = 0, dark = 0, shake = 0, fov = 0, flash = 0, heart = finite(threat) and math.clamp(threat, 0, 1) or 0 }
+	if type(cues) ~= "table" or not finite(now) then return out end
+	for kind, spec in pairs(FEAR_CUES) do
+		local at = cues[kind]
+		local age = finite(at) and now - at or -1
+		if age >= 0 then
+			local seconds = spec.seconds or CONSTANTS.FEAR_SECONDS
+			local k = math.max(0, 1 - age / seconds)
+			out.red = math.max(out.red, spec.red * k)
+			out.dark = math.max(out.dark, spec.dark * k)
+			out.shake = math.max(out.shake, spec.shake * k)
+			out.fov = math.max(out.fov, spec.fov * k)
+			out.heart = math.max(out.heart, spec.heart * math.max(0, 1 - age / HEART_SECONDS))
+			if kind == "hit" then out.flash = math.max(0, 1 - age / FLASH_SECONDS) end
+		end
+	end
+	local soft = reduced == true
+	out.shake = soft and 0 or out.shake * CONSTANTS.FEAR_SHAKE
+	out.fov = out.fov * CONSTANTS.FEAR_FOV * (soft and 0.5 or 1)
+	out.red, out.dark = out.red * (soft and 0.5 or 1), out.dark * (soft and 0.5 or 1)
+	out.flash = out.flash * CONSTANTS.HIT_FLASH * (soft and 0.4 or 1)
+	return out
+end
+
+-- A landed adult hit pushes the player straight away from the adult (studs/s on the ground plane). On top of it the
+-- push is a fixed +Z, never NaN. Returns nil for a bad position.
+function View.knockback(px, pz, ax, az)
+	if not (finite(px) and finite(pz) and finite(ax) and finite(az)) then return nil end
+	local dx, dz = px - ax, pz - az
+	local length = math.sqrt(dx * dx + dz * dz)
+	if length < 1e-6 then return 0, CONSTANTS.KNOCKBACK end
+	return dx / length * CONSTANTS.KNOCKBACK, dz / length * CONSTANTS.KNOCKBACK
 end
 
 return View

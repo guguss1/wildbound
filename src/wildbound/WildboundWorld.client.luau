@@ -489,7 +489,9 @@ local function chaseFeel(dt)
 	end
 	-- Someone else changed the field of view (a cutscene, a setting): follow it as the new base.
 	if fov.applied == nil or math.abs(camera.FieldOfView - fov.applied) > 0.01 then fov.base = camera.FieldOfView end
-	local goal = View.sprintFov(fov.base, player:GetAttribute("WildboundStance"), reduced)
+	-- Fear pass (FA3): the fear client's punch (a grab, a hit) is added on top; it is already halved for Reduced.
+	local punch = tonumber(gui:GetAttribute("FearFov")) or 0
+	local goal = View.sprintFov(fov.base, player:GetAttribute("WildboundStance"), reduced) + punch
 	camera.FieldOfView += (goal - camera.FieldOfView) * math.min(1, dt * 8)
 	fov.applied = camera.FieldOfView
 	local model, body = guardianParts()

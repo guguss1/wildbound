@@ -42,12 +42,18 @@ Catalog.SOUNDS = table.freeze({
 	crack = slot("Threat", { 9126239755 }, { spatial = true }),
 	groan = slot("Chase", { 9114628321 }, { spatial = true, pitch = 0.7 }),
 	creak = slot("Threat", { 9120262025 }, { loop = true, spatial = true }),
+	-- Fear pass (FA3): the player's heartbeat (docs/audio/wildbound-dread-assets-shortlist.md, fear pass), a parent's
+	-- roar (the lion growl from the same shortlist, pitched down) and La Silueta's distant call (the groan, lower).
+	heartbeat = slot("Threat", { 9043365842 }, { loop = true }),
+	roar = slot("Impact", { 9113973128 }, { spatial = true, pitch = 0.8 }),
+	call = slot("Threat", { 9114628321 }, { spatial = true, pitch = 0.55 }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.
 Catalog.SHARED = table.freeze({
 	[9125440130] = table.freeze({ "signature", "whisper" }),
 	[9113586909] = table.freeze({ "breathing", "hiddenBreath" }),
+	[9114628321] = table.freeze({ "call", "groan" }),
 })
 
 return Catalog

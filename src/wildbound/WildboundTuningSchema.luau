@@ -124,6 +124,13 @@ Schema.SYSTEMS = table.freeze({
 		value("DREAD_RANGE", "Temblor y viñeta desde (studs)", "View", "DREAD_RANGE", 35, 1, 100, 1, "client"),
 		value("DREAD_SHAKE", "Temblor de cámara (studs)", "View", "DREAD_SHAKE", 0.35, 0, 2, 0.05, "client"),
 		value("DREAD_VIGNETTE", "Oscuridad de la viñeta (0 a 1)", "View", "DREAD_VIGNETTE", 0.6, 0, 1, 0.05, "client"),
+		-- Fear pass (FA3): the adrenaline burst after a grab, a hit's flash and push, the heartbeat's reach.
+		value("FEAR_SECONDS", "Adrenalina tras robar (s)", "View", "FEAR_SECONDS", 3, 0.5, 10, 0.5, "client"),
+		value("FEAR_SHAKE", "Temblor de la adrenalina (studs)", "View", "FEAR_SHAKE", 0.3, 0, 1, 0.05, "client"),
+		value("FEAR_FOV", "Golpe de cámara de la adrenalina (grados)", "View", "FEAR_FOV", 8, 0, 20, 1, "client"),
+		value("HIT_FLASH", "Destello rojo al recibir un golpe (0 a 1)", "View", "HIT_FLASH", 0.55, 0, 1, 0.05, "client"),
+		value("HEART_RANGE", "Latido desde (studs)", "View", "HEART_RANGE", 45, 5, 120, 5, "client"),
+		value("KNOCKBACK", "Empujón de un golpe (studs/s)", "View", "KNOCKBACK", 42, 0, 100, 2, "client"),
 	}) }),
 })
 

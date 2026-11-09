@@ -358,6 +358,8 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundTuning.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundTuningClient",
         "tests/WildboundTuning_Test.luau": "ServerStorage.WildboundTuning_Test",
         "tests/WildboundTuningWiring_Test.luau": "ServerStorage.WildboundTuningWiring_Test",
+        "src/wildbound/WildboundFear.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundFearClient",
+        "tests/WildboundFearWiring_Test.luau": "ServerStorage.WildboundFearWiring_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

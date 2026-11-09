@@ -476,5 +476,68 @@ return function(View, source)
 		assert(soft.vignette > 0 and soft.vignette < near10.vignette, "a softer vignette")
 		assert(near10.shake <= 0.5 and near10.vignette <= 0.7, "bounded")
 	end)
+	-- Fear pass (FA3, user: "scarier; capturing must be an adrenaline rush; the parents chase and hit you"): pure
+	-- rules for the burst after a grab, a woken parent, a swing, a landed hit and La Silueta seeing you. Each cue
+	-- fades linearly over its own seconds; a hit flashes red; the heartbeat lingers 6 s and follows the nearest threat.
+	-- "Efectos suaves" removes the shake and halves the rest; the heartbeat stays (the audio mix softens it).
+	case("FA3: a grab is a short adrenaline burst that fades out", function()
+		local cues = { grab = 10 }
+		local f = View.fear(cues, 10, 0, false)
+		near(f.shake, CONST.FEAR_SHAKE)
+		near(f.fov, CONST.FEAR_FOV)
+		assert(f.red > 0.3 and f.red <= 0.6, "a red edge " .. tostring(f.red))
+		near(f.heart, 1)
+		near(f.flash, 0)
+		local half = View.fear(cues, 10 + CONST.FEAR_SECONDS / 2, 0, false)
+		near(half.shake, CONST.FEAR_SHAKE / 2)
+		local gone = View.fear(cues, 10 + CONST.FEAR_SECONDS + 0.01, 0, false)
+		near(gone.shake, 0); near(gone.fov, 0); near(gone.red, 0)
+		assert(gone.heart > 0, "the heart is still racing after the burst")
+		near(View.fear(cues, 17, 0, false).heart, 0)
+		near(View.fear(cues, 9, 0, false).shake, 0) -- a cue from the future is ignored
+	end)
+
+	case("FA3: a landed hit flashes red and shakes hardest; a swing and a sighting are felt too", function()
+		local hit = View.fear({ hit = 5 }, 5, 0, false)
+		near(hit.flash, CONST.HIT_FLASH)
+		assert(hit.shake > View.fear({ grab = 5 }, 5, 0, false).shake, "a hit shakes harder than a grab")
+		near(View.fear({ hit = 5 }, 5.4, 0, false).flash, 0)
+		local strike = View.fear({ strike = 1 }, 1, 0, false)
+		assert(strike.red > 0 and strike.shake > 0 and strike.flash == 0, "the swing tightens the screen")
+		local seen = View.fear({ seen = 1 }, 1, 0, false)
+		assert(seen.dark > 0 and seen.red == 0, "La Silueta seeing you darkens the screen")
+		local woke = View.fear({ woke = 1 }, 1, 0, false)
+		assert(woke.red > 0 and woke.heart == 1, "a woken parent")
+	end)
+
+	case("FA3: the heartbeat follows the nearest threat", function()
+		near(View.threat(0), 1)
+		near(View.threat(CONST.HEART_RANGE / 2), 0.5)
+		near(View.threat(CONST.HEART_RANGE + 1), 0)
+		near(View.threat(NAN), 0); near(View.threat(nil), 0)
+		near(View.fear({}, 0, 0.7, false).heart, 0.7)
+		near(View.fear({ grab = 0 }, 4.5, 0.9, false).heart, 0.9)
+	end)
+
+	case("FA3: Efectos suaves removes the shake and halves the rest", function()
+		local full = View.fear({ hit = 0, grab = 0 }, 0, 0, false)
+		local soft = View.fear({ hit = 0, grab = 0 }, 0, 0, true)
+		near(soft.shake, 0)
+		near(soft.fov, full.fov / 2); near(soft.red, full.red / 2)
+		assert(soft.flash > 0 and soft.flash < full.flash, "a softer flash")
+		near(soft.heart, full.heart)
+	end)
+
+	case("FA3: bad input is calm, and the knockback pushes away from the adult", function()
+		local calm = View.fear(nil, NAN, NAN, false)
+		near(calm.shake, 0); near(calm.red, 0); near(calm.heart, 0); near(calm.flash, 0)
+		near(View.fear({ grab = "x" }, 1, 0, false).shake, 0)
+		local x, z = View.knockback(10, 0, 7, 0)
+		near(x, CONST.KNOCKBACK); near(z, 0)
+		x, z = View.knockback(0, 0, 0, 0)
+		near(x, 0); near(z, CONST.KNOCKBACK) -- on top of it: a fixed push, never NaN
+		equal(View.knockback(NAN, 0, 0, 0), nil)
+		assert(CONST.HIT_FLASH <= 0.7 and CONST.FEAR_SHAKE <= 0.6 and CONST.FEAR_FOV <= 15, "bounded")
+	end)
 	return result
 end

@@ -208,5 +208,13 @@ return function(Text, source, sources)
 		end
 	end)
 
+	-- Fear pass (FA3): the short shouts of the adrenaline burst, in neutral Spanish, short enough to read at a glance.
+	case("FA3: the fear shouts exist, short and in Spanish", function()
+		assert(type(Text.FEAR) == "table", "Text.FEAR")
+		for _, key in ipairs({ "run", "awake", "strike", "hit", "seen" }) do text(Text.FEAR[key], "FEAR." .. key, 24) end
+		equal(Text.FEAR.run, "¡CORRE!", "neutral Spanish, not voseo")
+		assert(Text.FEAR.damage:find("%d", 1, true), "the damage line takes the number")
+	end)
+
 	return result
 end

@@ -182,6 +182,9 @@ DEFAULT_MAPPINGS = [
     ),
     ("tests/WildboundTuning_Test.luau", "ServerStorage.WildboundTuning_Test"),
     ("tests/WildboundTuningWiring_Test.luau", "ServerStorage.WildboundTuningWiring_Test"),
+    # Fear pass, FA3: the adrenaline burst and hit feedback client and its source contracts
+    ("src/wildbound/WildboundFear.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundFearClient"),
+    ("tests/WildboundFearWiring_Test.luau", "ServerStorage.WildboundFearWiring_Test"),
 ]
 
 

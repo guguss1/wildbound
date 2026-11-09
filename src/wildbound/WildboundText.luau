@@ -241,6 +241,15 @@ return freeze({
 		hintKeyboard = "Shift: Correr",
 		hintGamepad = "L3: Correr",
 	},
+	-- Fear pass (FA3): the short shouts of the adrenaline burst (big, centred, a second or two).
+	FEAR = {
+		run = "¡CORRE!",
+		awake = "¡PADRE DESPIERTO!",
+		strike = "¡VA A GOLPEARTE!",
+		hit = "¡GOLPE!",
+		damage = "-%d",
+		seen = "TE VIO",
+	},
 	-- Delivery D12: the comfort switch and the settings panel. WildboundSettings repeats these; a test keeps them equal.
 	SETTINGS = {
 		reducedEffects = "Efectos suaves",

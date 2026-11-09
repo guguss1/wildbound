@@ -66,7 +66,8 @@ return function(source)
 		for _, slot in ipairs({ "giantSteps", "approach", "creak" }) do
 			has('setLayer("' .. slot .. '", body and targets.' .. slot .. ' or 0, reduced, body)', slot .. " on the body")
 		end
-		has('{ "snap", "dirt", "whisper", "signature", "crack", "groan" }', "the new one-shots are scheduled")
+		-- Deliberately changed in the fear pass (FA3): La Silueta's distant "call" joined the scheduled one-shots.
+		has('{ "snap", "dirt", "whisper", "signature", "crack", "groan", "call" }', "the new one-shots are scheduled")
 	end)
 
 	-- Chase pass (CP1, CP3): the breath layer follows the sprint stance, and a chase opens with a roar from its body.

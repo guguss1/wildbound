@@ -162,7 +162,7 @@ local rng = Random.new()
 local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
 local CollectionService = game:GetService("CollectionService")
-local swinging = {}
+local swinging, awakened = {}, {}
 
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
@@ -172,6 +172,10 @@ local function cue(kind, level, reduced, body, root)
 		local point = root and Mix.cuePosition(root.Position.X, root.Position.Z, body and body.Position.X,
 			body and body.Position.Z, rng:NextNumber(), rng:NextNumber())
 		if not point then return end
+		-- Fear pass (FA3): La Silueta's call comes from twice as far, out in the fog toward it.
+		if kind == "call" then
+			point = { x = root.Position.X + (point.x - root.Position.X) * 2, z = root.Position.Z + (point.z - root.Position.Z) * 2 }
+		end
 		local attachment = Instance.new("Attachment")
 		attachment.Name = "WildboundCue"
 		attachment.WorldPosition = Vector3.new(point.x, root.Position.Y, point.z)
@@ -205,6 +209,10 @@ local function update(dt)
 	-- Chase pass (CP1): the player's own breath while sprinting or out of breath, on the same layer as hiding.
 	local stance = player:GetAttribute("WildboundStance")
 	setLayer("hiddenBreath", Mix.breath(hidden, stance, reduced), reduced)
+	-- Fear pass (FA3): the heartbeat in the player's head, from the fear client's intensity (nearest threat, burst).
+	local heart = Mix.heart(tonumber(worldGui:GetAttribute("FearHeart")) or 0, reduced)
+	setLayer("heartbeat", heart.volume, reduced)
+	if layers.heartbeat then layers.heartbeat.PlaybackSpeed = heart.speed end
 	if state.hidden ~= hidden then
 		state.hidden = hidden
 		local goal = hidden and { HighGain = Mix.MUFFLE.highGain, MidGain = Mix.MUFFLE.midGain } or { HighGain = 0, MidGain = 0 }
@@ -245,16 +253,24 @@ local function update(dt)
 		end
 	end
 	-- Chase pass (CP-D5): an island adult's swing is heard as well as seen (the crack, an existing id, on the adult).
+	-- Fear pass (FA3): a parent that wakes roars, and roars again on every swing (the lion growl, pitched down).
 	for _, adult in ipairs(CollectionService:GetTagged("WildboundIslandAdult")) do
 		local swing = adult:GetAttribute("Swing") == true
+		local awake = adult:GetAttribute("Awake") == true
+		local roar = Mix.oneShot("roar", reduced)
 		if swing and not swinging[adult] and adult.PrimaryPart then
 			playOnce("crack", adult.PrimaryPart, reduced and 0.3 or 0.6, 0.02, 1.25)
+			playOnce(roar.slot, adult.PrimaryPart, roar.volume, roar.fadeIn, 1)
+		end
+		if awake and not awakened[adult] and adult.PrimaryPart then
+			playOnce(roar.slot, adult.PrimaryPart, roar.volume, roar.fadeIn)
 		end
 		swinging[adult] = swing or nil
+		awakened[adult] = awake or nil
 	end
 	if level ~= state.level then state.nextAt = {} end
 	state.level = level
-	for _, kind in ipairs({ "snap", "dirt", "whisper", "signature", "crack", "groan" }) do
+	for _, kind in ipairs({ "snap", "dirt", "whisper", "signature", "crack", "groan", "call" }) do
 		local due = state.nextAt[kind]
 		if due == nil then
 			local delay = Mix.nextDelay(kind, level, reduced, rng:NextNumber())
@@ -304,6 +320,16 @@ listen(worldGui:GetAttributeChangedSignal("LastHitAt"), function()
 			end
 			master:SetAttribute("StingerCount", (master:GetAttribute("StingerCount") or 0) + 1)
 		end)
+	end
+end)
+-- Fear pass (FA3): the fear client's cues. A grab is an alarm: the stinger (the soft one with Efectos suaves).
+listen(worldGui:GetAttributeChangedSignal("FearCueAt"), function()
+	local at, kind = worldGui:GetAttribute("FearCueAt"), worldGui:GetAttribute("FearCue")
+	if not Mix.fresh(at, workspace:GetServerTimeNow()) or state.defeated then return end
+	if kind == "grab" then
+		local shot = Mix.oneShot("stinger", worldGui:GetAttribute("Reduced") == true)
+		playOnce(shot.slot, nil, shot.volume, shot.fadeIn)
+		master:SetAttribute("LastFearCue", kind)
 	end
 end)
 -- Layers come back 2 s after respawn, fading in over 2 s.

@@ -203,5 +203,31 @@ return function(Mix, Catalog)
 		near(Mix.breath(false, "sprint", true), 0.11, "Efectos suaves halves it")
 		near(Mix.breath(true, "sprint", false), 0.12, "hiding wins")
 	end)
+	-- Fear pass (FA3): a heartbeat that rises with the threat, a parent's roar, and La Silueta's distant call.
+	case("FA3: the heartbeat follows its intensity, quieter with Efectos suaves", function()
+		local calm = Mix.heart(0, false)
+		near(calm.volume, 0, "silent when calm")
+		local full = Mix.heart(1, false)
+		assert(full.volume > 0.3 and full.volume <= 0.6, "audible " .. tostring(full.volume))
+		assert(full.speed > Mix.heart(0.3, false).speed, "it beats faster when close")
+		assert(Mix.heart(1, true).volume < full.volume, "softer")
+		near(Mix.heart(0 / 0, false).volume, 0, "bad input")
+		assert(Catalog.SOUNDS.heartbeat and Catalog.SOUNDS.heartbeat.loop and not Catalog.SOUNDS.heartbeat.spatial,
+			"a looping heartbeat in the player's head")
+	end)
+
+	case("FA3: a roar from the parents and a distant call from La Silueta", function()
+		assert(Catalog.SOUNDS.roar and Catalog.SOUNDS.roar.spatial, "the roar comes from the adult")
+		local roar = Mix.oneShot("roar", false)
+		assert(roar.volume > 0.3, "loud")
+		assert(Mix.oneShot("roar", true).volume < roar.volume, "softer")
+		assert(Catalog.SOUNDS.call and Catalog.SOUNDS.call.spatial, "the call comes from the forest")
+		local lo, hi = Mix.rollOff("call")
+		assert(hi >= 180, "heard from far away " .. tostring(hi))
+		assert(Mix.nextDelay("call", "Distant", false, 0.5) ~= nil, "it calls while it is around")
+		assert(Mix.nextDelay("call", "Safe", false, 0.5) == nil, "never in camp")
+		assert(Mix.nextDelay("call", "Chase", false, 0.5) == nil, "not during a chase (the roar is there)")
+	end)
+
 	return result
 end
