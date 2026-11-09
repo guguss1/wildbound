@@ -229,5 +229,34 @@ return function(Mix, Catalog)
 		assert(Mix.nextDelay("call", "Chase", false, 0.5) == nil, "not during a chase (the roar is there)")
 	end)
 
+	-- Next batch NB2: when La Silueta sees you, a sharp 2D sting in your head and the chase music cutting in at once.
+	case("NB2: a sharp chase-start sting, at most once per cooldown, softer with Efectos suaves", function()
+		local entry = Catalog.SOUNDS.chaseSting
+		assert(entry, "chaseSting slot missing")
+		assert(entry.group == "Impact" and not entry.loop and not entry.spatial, "a one-shot in the player's head")
+		assert(table.concat(entry.ids, ",") == "1846887425,1842083006", "APM sting ids from the shortlist")
+		local sting = Mix.oneShot("chaseSting", false)
+		assert(sting.slot == "chaseSting" and sting.volume >= 0.45, "loud enough to read " .. tostring(sting.volume))
+		assert(sting.volume > Mix.oneShot("signature", false).volume, "louder than the old whisper signature")
+		assert(sting.fadeIn <= 0.03, "a sharp attack")
+		local soft = Mix.oneShot("chaseSting", true)
+		assert(soft.volume <= 0.2 and soft.fadeIn >= 0.2, "Efectos suaves: quieter and eased in")
+		local state = Mix.newChaseSting()
+		assert(Mix.chaseStingAllowed(state, 100), "the first chase stings")
+		Mix.markChaseSting(state, 100)
+		assert(not Mix.chaseStingAllowed(state, 100 + Mix.CHASE_STING_COOLDOWN - 0.1), "no sting on a quick re-chase")
+		assert(Mix.chaseStingAllowed(state, 100 + Mix.CHASE_STING_COOLDOWN), "the next chase stings again")
+		assert(not Mix.chaseStingAllowed(state, 0 / 0) and not Mix.chaseStingAllowed(nil, 200), "bad input")
+		near(Mix.CHASE_STING_COOLDOWN, 8)
+	end)
+
+	case("NB2: the chase music and pulse cut in fast; other rises and Efectos suaves keep their fades", function()
+		assert(Mix.fadeSeconds("chaseMusic", true, false) <= 0.3, "chase music cuts in")
+		assert(Mix.fadeSeconds("pulse", true, false) <= 0.3, "pulse cuts in")
+		near(Mix.fadeSeconds("unsettling", true, false), 1.5, "other layers still rise over 1.5 s")
+		near(Mix.fadeSeconds("chaseMusic", true, true), 2, "Efectos suaves eases the chase in over 2 s")
+		near(Mix.fadeSeconds("chaseMusic", false, false), 3, "the chase still leaves over 3 s")
+	end)
+
 	return result
 end

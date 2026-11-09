@@ -37,6 +37,10 @@ class AudioCatalog(unittest.TestCase):
         missing = DREAD_IDS - catalog_ids()
         self.assertFalse(missing, f"dread pass ids missing from the catalog: {sorted(missing)}")
 
+    def test_nb2_chase_sting_ids_are_in_the_catalog(self):
+        missing = {"1846887425", "1842083006"} - catalog_ids()
+        self.assertFalse(missing, f"chase sting ids missing from the catalog: {sorted(missing)}")
+
     def test_d9_no_other_script_names_an_audio_id(self):
         for path in WILDBOUND.glob("*.luau"):
             if path == CATALOG:

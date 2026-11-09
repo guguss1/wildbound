@@ -158,6 +158,7 @@ end
 
 local state = { level = "Safe", nextAt = {}, lastStep = 0, chaseStartedAt = nil, signatures = 0, defeated = false, hidden = false }
 local jumpscare = Mix.newJumpscare()
+local chaseSting = Mix.newChaseSting()
 local rng = Random.new()
 local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
@@ -242,6 +243,13 @@ local function update(dt)
 	-- Chase start: the signature once, then on its schedule (once per chase with Reduced).
 	if level == "Chase" and state.level ~= "Chase" then
 		state.chaseStartedAt, state.signatures = now, 0
+		-- Next batch NB2: a sharp sting in the player's head the moment it sees them, once per cooldown.
+		if Mix.chaseStingAllowed(chaseSting, now) then
+			Mix.markChaseSting(chaseSting, now)
+			local sting = Mix.oneShot("chaseSting", reduced)
+			playOnce(sting.slot, nil, sting.volume, sting.fadeIn)
+			master:SetAttribute("LastChaseSting", now)
+		end
 		if body then cue("signature", level, reduced, body, root) state.signatures = 1 end
 		-- Chase pass (CP3): the chase opens with a roar from its body (the groan, existing id; quieter with Reduced).
 		if body then cue("groan", level, reduced, body, root) end

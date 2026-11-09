@@ -77,6 +77,21 @@ return function(source)
 		has('cue("groan", level, reduced, body, root)', "the roar at chase start")
 	end)
 
+	-- Next batch NB2: the chase start plays the sharp sting through its cooldown gate, before the signature.
+	case("NB2: the chase-start sting plays once per chase start through its gate", function()
+		has("local chaseSting = Mix.newChaseSting()", "one gate per client")
+		local start = source:find("if level == \"Chase\" and state.level ~= \"Chase\" then", 1, true)
+		assert(start, "chase start block missing")
+		local block = source:sub(start, start + 700)
+		local gate = block:find("Mix.chaseStingAllowed(chaseSting, now)", 1, true)
+		assert(gate, "the sting is gated")
+		assert(block:find("Mix.markChaseSting(chaseSting, now)", 1, true), "the gate is marked")
+		assert(block:find("Mix.oneShot(\"chaseSting\", reduced)", 1, true), "Efectos suaves picks the soft sting")
+		local signature = block:find("cue(\"signature\"", 1, true)
+		assert(signature and gate < signature, "the sting comes first")
+		has("master:SetAttribute(\"LastChaseSting\", now)", "Play checks read when it played")
+	end)
+
 	-- Chase pass (CP-D5): an island adult's swing has an audible tell, from the catalog, on the adult.
 	case("chase pass: an adult's swing is heard", function()
 		has('CollectionService:GetTagged("WildboundIslandAdult")')

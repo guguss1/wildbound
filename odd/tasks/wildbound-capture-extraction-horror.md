@@ -571,3 +571,7 @@ Play check (Studio Play solo, night by the Studio clock shift, the player moved 
 | Plain cover in the open | Hunt held while out of sight (already worked) | unchanged |
 
 No tuning value changed. Not verified: dawn and day memory in Play (unit-tested through the profiles), two players.
+
+### NB2 Chase-start sting
+
+- [x] NB2 A sharper, readable start of the chase when La Silueta sees you (details in `docs/mechanics/wildbound-delivery-d.md` section 14): new catalog slot `chaseSting` (APM 1846887425, fallback 1842083006, found with `search_asset`, free, not uploaded, added to the dread shortlist 1.8), `Mix.oneShot("chaseSting")` 0.45 with a 0.02 s attack ("Efectos suaves" 0.18 over 0.25 s), an 8 s cooldown gate, and the chase music and pulse rising over 0.2 s instead of 1.5 s. RED: AudioMix 11/2, AudioWiring 9/1, Python catalog 3/1 (ids missing); GREEN: 13/0, 10/0, 4/0. Studio 53 suites, 1135 passed, 0 failed. Play: sting 0.07 s and 0.12 s after the level turned Chase, Volume 0.45 (Reduced 0.18, master 0.6, chase music 0.20), peak loudness 348; the first draft at 0.5 was lowered to 0.45 after the reading (above the defeat hit's 290). Not verified: by ear, phones; the first sting of a session can start before its asset has loaded. No capture: the frame shows nothing of a sound.
