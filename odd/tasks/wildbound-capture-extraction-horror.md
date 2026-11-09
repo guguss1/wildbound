@@ -520,3 +520,34 @@ Captures (each looked at), `assets/exports/forest-kit/captures/`: `fear-grab-cor
 Counts: Studio 53 suites, 1123 passed, 0 failed on fresh clones (baseline 52 suites, 1106; new FearWiring 5; GuardianPath 14, Island 22, IslandWiring 11, HudView 48, Text 14, AudioMix 11, AudioWiring 9). Python: 924 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. 111 of 111 mapped sources in the place match the repo by Adler-32 and length. Studio left in Edit with no temporary instances; the place file is not saved by this session beyond the two downloaded copies.
 
 Next step: the user plays a steal and decides FA-W1 (how often a grab should wake the parents) and whether to build the stalk sightings (FA-W4); then saves the place.
+
+### Stalk sightings
+
+User, 2026-11-08: "Sí, armalo" (build FA-W4). La Silueta is sometimes glimpsed at the edge of sight, at dusk, night and dawn, standing still just behind a trunk, off to the side, with two red eyes; it tilts its head and is gone when looked at, approached, after a few seconds, or as soon as the real one hunts. Client-only: a copy of the art in the local camera, with no collision, queries or touch, nothing sent to the server, so it can never hit, be heard by the guardian or change the game.
+
+Route: delegated, the same single writer. Studio had been reopened as a new instance (`2a15a1ec-...`); PlaceId 122652861404212 verified, 66 key sources matched the repo by Adler-32 and length, and the fresh-clone baseline was 53 suites, 1123 passed, 0 failed. Backups: `assets/exports/wildbound-pre-stalk-20261108.rbxl` (651,450 bytes) before, `assets/exports/wildbound-stalk-20261108.rbxl` (658,112 bytes) after. Mode: strict TDD; route per task: inline.
+
+- [x] SS1 Rules in `WildboundHudView`: `stalkAllowed` (dusk, night, dawn only; never while La Silueta is in Alert, Hunt, Telegraph or Search, or within `STALK_MAX` + 25 studs; at most `STALK_PER_NIGHT` per evening, one with "Efectos suaves"), `stalkInterval` (the mean `STALK_EVERY` times a 0.6 to 1.4 roll, x0.6 carrying a cria, x0.8 more than 150 studs from camp, x2 with "Efectos suaves", never under `STALK_COOLDOWN`), `stalkSpot` (just behind a trunk core, in the band, 15 to 60 degrees off the look, nearest 35, outside `STALK_KEEP_OUT`: camp, shelter, spawn pad and the five island floors plus 8, checked against the island layout), `stalkVanish` ("Real", "Time", "Approach", "Looked" after a 0.5 s glimpse at about 10 degrees). RED: HudView 48/5 and FearWiring 5/2; GREEN 53/0 and 7/0.
+- [x] SS2 The fear client stages it (from `FK_TrunkCore` positions, ground probe, fade in 0.5 s, out 0.4 s or 0.15 s when looked at, a slow head tilt) and also refuses while the real one is in view within 160 studs ("InView"); the audio client whispers from the spot (the existing `whisper` slot), never with "Efectos suaves". Seven client tunables in the schema (Camera). Commit `963101f`.
+- [x] SS3 Play findings, each RED then GREEN: at 55 studs a night sighting was lost in the fog, so the band moved inside it (`STALK_MIN` 26 to 18, `STALK_MAX` 55 to 36, `STALK_NEAR` 16 to 12; HudView 52/1, then 53/0); the art's thin pale eye slit did not read, so two red eyes now sit on a light-ignoring billboard that trunks still hide (FearWiring 6/1, then 7/0); the ground probe hit a tree crown and refused the spot, so it now counts only colliding ground (FearWiring 6/1, then 7/0).
+
+Tuning values (Camera, client): `STALK_EVERY` 50 s (10 to 300), `STALK_COOLDOWN` 30 s (5 to 300), `STALK_PER_NIGHT` 3 (0 to 10), `STALK_MIN` 18 studs (10 to 80), `STALK_MAX` 36 studs (20 to 120), `STALK_SECONDS` 4 s (0.5 to 10), `STALK_NEAR` 12 studs (5 to 40). The place's Edit-mode folder holds the same values (0 differ).
+
+Play check (Studio Play solo, desktop; the Studio clock shift set Dusk and Night; the player stood at (60, 50), about 130 studs from La Silueta, while the camera swept 6 degrees per second; dev tuning sped the rate up only for the "looked at" and screenshot runs):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Rate at the defaults | PASS | Sightings at 172.6, 222.3 and 273.3 s (49.7 and 51.0 s apart, far from camp), then `Cap` from 304.1 s: three in the evening |
+| Distance | PASS | 37.9, 29.4 and 40.5 studs from the player (the core in the 18 to 36 band, then 2.5 studs behind it) |
+| Visible time | PASS | 4.0 to 4.1 s when not looked at ("Time") |
+| Looked at directly | PASS | gone 0.8 s after it appeared (0.5 s glimpse plus 0.3 s), "Looked", twice |
+| Not during a real chase | PASS | La Silueta hunting the player for 13 s (Hunt and Telegraph): skip "Hunting", no sighting; looking toward the real one 130 studs away: skip "InView" |
+| No spot in view | Expected | "NoSpot" while no trunk core lay 15 to 60 degrees off the look in the band; it retries every 2 s |
+| Whisper | PASS by properties | `LastFearCue` "stalk" on the mix; not heard |
+| Looks | PASS | `fear-stalk-night-eye-between-trees-desktop.jpg` (night, 41 studs: the antlered shape and one red eye between the trees), `fear-stalk-dusk-claws-behind-trunk-desktop.jpg` (dusk, 38 studs: its clawed hand around a trunk) |
+| Frame time | desktop only | 16.7 ms average, 24.2 ms worst over 3 s |
+| "Efectos suaves", approach vanish, "Real" vanish, phones, two players | NOT VERIFIED in Play | Unit-tested only (cap 1, twice as rare, no whisper; "Approach" within 12 studs; "Real" when it hunts) |
+
+Counts: Studio 53 suites, 1130 passed, 0 failed (HudView 53, FearWiring 7). Python: 924 run, the 1 known failure, 28 skipped. Studio left in Edit, the temporary runner removed.
+
+Next step: the user plays an evening and says whether sightings are too rare or too subtle (`STALK_EVERY`, the band, the eye size); save the place.

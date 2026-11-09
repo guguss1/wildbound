@@ -59,7 +59,7 @@ Ranges are clamps: an attribute outside its range is clamped (and written back, 
 | Islands | `STIR`, `WAKE` (at least 96, above island 1's first-steal cap 95), `LINGER`, `SPRINT`, `LIGHT`, `DECAY`, `ALERT_SECONDS`, `GRAB` (the noise of lifting a cría or an egg), `WAKE_WINDUP`, `CHASE_SPEED`, `CHASE_SECONDS`, `CHASE_LEASH`, `STRIKE_REACH`, `STRIKE_WINDUP` (at least 0.35 s), `HIT_RANGE`, `STRIKE_COOLDOWN`, `DAMAGE` |
 | Capture | `CALM_REQUIRED` (at least 4), `TIME_LIMIT`, `RING_SPEED`, `OUTSIDE_LIMIT`, `SEAL_SWEEP`, `SEAL_BAND`, `SEAL_LATENCY`, `RETRY_COOLDOWN` (at least 3); a running capture keeps the deadline, calm and seal it started with |
 | Hide | discover radius and dwell per phase, `CRY_WIDEN`, `MAX_STAY`, `COOLDOWN` |
-| Camera (client) | `SPRINT_FOV_KICK`, `DREAD_RANGE`, `DREAD_SHAKE`, `DREAD_VIGNETTE`; fear pass: `FEAR_SECONDS` (the burst after a grab), `FEAR_SHAKE`, `FEAR_FOV` (the punch), `HIT_FLASH`, `HEART_RANGE` (the heartbeat's reach), `KNOCKBACK` (an adult hit's push, applied by the client) |
+| Camera (client) | `SPRINT_FOV_KICK`, `DREAD_RANGE`, `DREAD_SHAKE`, `DREAD_VIGNETTE`; fear pass: `FEAR_SECONDS` (the burst after a grab), `FEAR_SHAKE`, `FEAR_FOV` (the punch), `HIT_FLASH`, `HEART_RANGE` (the heartbeat's reach), `KNOCKBACK` (an adult hit's push, applied by the client); stalk sightings: `STALK_EVERY`, `STALK_COOLDOWN`, `STALK_PER_NIGHT`, `STALK_MIN`, `STALK_MAX` (the distance band), `STALK_SECONDS`, `STALK_NEAR` |
 
 Not exposed on purpose: the territory (`HOME_LEASH`), La Silueta's strike range and damage, the island positions, the economy (it has its own generated config and simulator), and La Silueta's art scale (applied when its model is built, not live).
 
