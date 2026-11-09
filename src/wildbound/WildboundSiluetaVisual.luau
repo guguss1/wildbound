@@ -24,14 +24,18 @@ local DEFAULT_LOOK = table.freeze({ hiddenAlpha = 0.86, revealedAlpha = 0.25 })
 -- Supported art scale (a ratio of the template's own scale). Look pass: the ceiling is 4.5 (was 3).
 local MIN_SCALE, MAX_SCALE = 0.5, 4.5
 -- Look pass: the horror grin shown while she hunts, warns and strikes (presentation only: no rule reads it). Sizes are
--- studs at art scale 1 and grow with the art: wider than the head, a little under the eyes, pushed toward the camera so
--- the head never hides it. It ignores the light (LightInfluence 0) to glow faintly in the night fog; trunks still hide
+-- studs at art scale 1 and grow with the art: almost twice the head's width, pushed toward the camera so the head never
+-- hides it. It rides a GrinAnchor bone added under the head bone at `mouth` (SiluetaV3 studs from its feet pivot,
+-- just under the eyes), so it follows the hunch and every clip; a rig without a head bone falls back to its head mesh
+-- (`drop` lowers it there). It ignores the light (LightInfluence 0) to glow faintly in the night fog; trunks still hide
 -- it (AlwaysOnTop off). The clients only animate its arrival (WildboundFear.client.luau, View.grinPop).
-Visual.GRIN = table.freeze({ width = 1.7, height = 0.74, drop = -0.18, forward = 0.7, maxDistance = 90,
-	brightness = 1.5, upperTeeth = 22, lowerTeeth = 20, slices = 36,
+-- Play finding (night chase): at 1.7 x 0.74 studs, adorned on the head bone, it floated above the eyes and read as a
+-- thin row of teeth; now larger, brighter and on the mouth. Pushed only 0.3 toward the camera, the hunched head hid it.
+Visual.GRIN = table.freeze({ width = 2, height = 0.9, drop = -0.18, forward = 0.7, maxDistance = 90,
+	mouth = Vector3.new(0.045, 6.02, -1.15), brightness = 2, upperTeeth = 22, lowerTeeth = 20, slices = 36,
 	states = table.freeze({ Hunt = true, Telegraph = true, Attack = true }) })
-local TOOTH = Color3.fromRGB(232, 226, 196)
-local MOUTH = Color3.fromRGB(58, 0, 8)
+local TOOTH = Color3.fromRGB(245, 240, 215)
+local MOUTH = Color3.fromRGB(120, 6, 14)
 local LENGTH_TOLERANCE = 1 / 30 + 0.000001 -- One authored frame, plus floating-point error.
 
 local function finite(value)
@@ -106,7 +110,7 @@ function Visual:_sizeGrin(factor)
 	local G = Visual.GRIN
 	if not self._grin then return end
 	self._grin.Size = UDim2.new(G.width * factor, 0, G.height * factor, 0)
-	self._grin.StudsOffset = Vector3.new(0, G.drop * factor, G.forward * factor)
+	self._grin.StudsOffset = Vector3.new(0, self._grinOnMouth and 0 or G.drop * factor, G.forward * factor)
 end
 
 local function animationId(value)
@@ -179,6 +183,14 @@ function Visual.new(options)
 		local factor = options.visualScale
 		if not validScale(factor) then factor = 1 end
 		local look = self._look
+		-- The grin's anchor, placed before the pose so the hunch and the stretch carry it with the head.
+		local headBone = art:FindFirstChild("Head", true)
+		if headBone and headBone:IsA("Bone") then
+			local anchor = Instance.new("Bone")
+			anchor.Name = "GrinAnchor"
+			anchor.Position = headBone.WorldCFrame:PointToObjectSpace(art:GetPivot():PointToWorldSpace(Visual.GRIN.mouth))
+			anchor.Parent = headBone
+		end
 		if type(look.pose) == "table" then
 			for name, degrees in pairs(look.pose.pitch or {}) do
 				local bone = art:FindFirstChild(name, true)
@@ -213,10 +225,10 @@ function Visual.new(options)
 	if not ok then art:Destroy(); table.clear(self._baselines); return plainGrin() end
 	self.art, self.artReady, self.reason = art, true, "StaticArtMissingAnimationIds"
 	self:setRevealed(false)
-	-- The grin rides the animated head bone (or the head mesh when a rig has no such bone).
-	local head = art:FindFirstChild("Head", true)
-	if not (head and head:IsA("Bone")) then
-		head = nil
+	-- The grin rides the mouth anchor on the animated head bone (or the head mesh when a rig has no such bone).
+	local head = art:FindFirstChild("GrinAnchor", true)
+	self._grinOnMouth = head ~= nil
+	if not head then
 		for _, item in ipairs(art:GetDescendants()) do
 			if item:IsA("BasePart") and item.Name:find("Head", 1, true) then head = item break end
 		end

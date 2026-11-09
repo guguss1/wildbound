@@ -298,7 +298,13 @@ return function(Visual)
 		local visual = f:create()
 		local grin = grinOf(visual.art)
 		equal(grin.Enabled, false)
-		equal(grin.Adornee, visual.art:FindFirstChild("Head", true), "rides the animated head bone")
+		-- Play finding (night chase): adorned on the head bone itself the grin floated above the eyes once the hunch
+		-- tipped the head forward. It rides a GrinAnchor bone at the mouth, a child of the head bone, so it follows the
+		-- hunch, the stretch and every clip.
+		local anchor = grin.Adornee
+		assert(anchor and anchor:IsA("Bone") and anchor.Name == "GrinAnchor", "a GrinAnchor bone")
+		equal(anchor.Parent, visual.art:FindFirstChild("Head", true), "a child of the animated head bone")
+		equal(f.template:FindFirstChild("GrinAnchor", true), nil, "the template is untouched")
 		equal(grin.LightInfluence, 0, "a faint glow the night fog cannot darken")
 		equal(grin.AlwaysOnTop, false, "trunks still hide it")
 		assert(grin.MaxDistance >= 60, "readable from the chase distance")
@@ -328,9 +334,15 @@ return function(Visual)
 		local grin = grinOf(visual.art)
 		local small = grin.Size.X.Scale
 		assert(small > 0 and grin.Size.X.Offset == 0, "sized in studs")
+		-- Without a pose the anchor sits at the template's mouth, scaled with the art.
+		local mouth = visual.art:GetPivot():PointToWorldSpace(Visual.GRIN.mouth * 1.9)
+		assert((grin.Adornee.WorldPosition - mouth).Magnitude < 0.001, "the anchor sits at the mouth")
+		-- Play finding (night chase): 0.3 studs per unit of scale toward the camera let the hunched head hide the grin.
+		assert(grin.StudsOffset.Z >= 0.6 * 1.9, "in front of the face")
 		visual:setScale(3.8)
 		near(grin.Size.X.Scale, small * 2)
 		assert(grin.Size.X.Scale > grin.Size.Y.Scale * 1.8, "a wide grin")
+		assert(grin.StudsOffset.Z >= 0.6 * 3.8, "still in front of the face")
 		visual:destroy()
 	end)
 	case("look pass: without art the grin rides the plain head and leaves with it", function()
