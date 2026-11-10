@@ -23,7 +23,7 @@ The old instant "Incubar el primer huevo" at `HatchMarker` is gone: every egg no
 
 ## Persistence
 
-Session only, like everything else today: the incubating egg lives in the server's `WildboundState` and is not in the schema-1 record; leaving the server loses it. No DataStore is read or written.
+Saved since Nest Heist Phase 3 (NS2, NS3, 2026-11-10): the incubating egg is in the record (`incubating`, schema 2 and later) with its start and ready times in server Unix time (`GetServerTimeNow`), so it keeps incubating while the player is away and hatches on the server's first 1 s step after the next join, with the usual notice and card. A hatch with no companion out makes the newborn the companion at once ("...y ahora te acompaña."); the card's Equipar button and the Bag rows (Equipar, Guardar) swap or store it. Before NS2 it was session only (the W10 text above is historical).
 
 ## Tuning
 
