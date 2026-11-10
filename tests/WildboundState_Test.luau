@@ -1533,6 +1533,29 @@ return function(State, Economy, Config)
 		equal(state:snapshot("Alice").equippedUid, born[1].uid, "out again")
 	end)
 
+	-- Nest Heist Phase 3 (NS6): Esencia (Ember inside) is the only currency. A delivery pays each egg by its tier plus
+	-- the trip's base, as the economy document says; incubating and hatching pay nothing; nothing else is a currency.
+	case("NS6: a delivery pays the egg's tier and the trip base; a hatch pays nothing; Ember is the only currency", function()
+		local state = setup()
+		accepted(state:registerEncounter("egg-fog", "Egg"))
+		accepted(state:pickup("Alice", "egg-fog", true, 5, { species = "Lumipol", tier = "Fog", arms = true }))
+		local before = state:snapshot("Alice").ember
+		local ok, count, receipt = state:extract("Alice", true, 0, 0)
+		equal(ok, true); equal(count, 1)
+		equal(receipt.ember, Config.earn.eggEmberByTier.Fog + receipt.baseEmber, "tier pay plus the base")
+		equal(state:snapshot("Alice").ember - before, receipt.ember, "exactly what the receipt says")
+		local egg = state:snapshot("Alice").bankedEggs[1].uid
+		local banked = state:snapshot("Alice").ember
+		accepted(state:incubate("Alice", egg, true, 0, 100, 90, 1))
+		state:hatchReady("Alice", 200)
+		equal(state:snapshot("Alice").ember, banked, "incubating and hatching are free and pay nothing")
+		local snapshot = state:snapshot("Alice")
+		for _, name in ipairs({ "coins", "gems", "robux", "tokens", "money" }) do
+			equal(snapshot[name], nil, "no second currency: " .. name)
+			equal(Config[name], nil, "no second currency in the tuning: " .. name)
+		end
+	end)
+
 	case("NB4: an incubating egg survives a defeat and counts toward the collection limit", function()
 		local state = setup()
 		local egg = banked(state)

@@ -330,5 +330,16 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		end
 	end)
 
+	-- Nest Heist Phase 3 (NS6): no purchase path exists anywhere the server runs, and Esencia is never sold.
+	case("NS6: no Robux, Developer Product or Game Pass path in the server scripts", function()
+		for name, text in pairs({ server = serverSource, world = worldSource, economy = source }) do
+			for _, word in ipairs({ "MarketplaceService", "ProcessReceipt", "PromptProductPurchase", "PromptGamePassPurchase",
+				"DeveloperProduct", "UserOwnsGamePassAsync" }) do
+				assert(not string.find(text, word, 1, true), name .. " names " .. word)
+			end
+		end
+		equal(Config.monetization, "none")
+	end)
+
 	return result
 end
