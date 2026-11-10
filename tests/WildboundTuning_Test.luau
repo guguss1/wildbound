@@ -117,7 +117,10 @@ return function(Schema, modules)
 			-- Nest Heist (NH4): the Burst.
 			"Sprint.BURST_SECONDS", "Sprint.BURST_MULTIPLIER", "Sprint.BURST_COOLDOWN", "Sprint.BURST_CAP",
 			-- Nest Heist (NH5): drop and pickup.
-			"Eggs.PICKUP_DELAY", "Eggs.PICKUP_HOLD", "Eggs.PICKUP_RANGE", "Eggs.DROP_SECONDS", "Islands.PERCEIVE_RANGE" }) do
+			"Eggs.PICKUP_DELAY", "Eggs.PICKUP_HOLD", "Eggs.PICKUP_RANGE", "Eggs.DROP_SECONDS", "Islands.PERCEIVE_RANGE",
+			-- Nest Heist phase 2 (NP3): the bat.
+			"PvP.COOLDOWN", "PvP.REACH", "PvP.HALF_ANGLE", "PvP.HEIGHT", "PvP.STUMBLE_SECONDS", "PvP.TAP_SECONDS",
+			"PvP.STUMBLE_SPEED", "PvP.IMMUNITY" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

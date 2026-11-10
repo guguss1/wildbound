@@ -37,7 +37,9 @@ return function(sources)
 			-- Items and totem (plan Part 4): the gear rules.
 			"WildboundGear",
 			-- Nest Heist (NH1): the stolen egg's rules.
-			"WildboundEggCarry" }) do
+			"WildboundEggCarry",
+			-- Nest Heist phase 2 (NP3): the bat.
+			"WildboundBat" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")

@@ -26,7 +26,9 @@ for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland
 	-- Random world (RW2): the spawn clock.
 	SpawnClock = "WildboundSpawnClock",
 	-- Nest Heist (NH1 to NH8): the stolen egg's rules.
-	EggCarry = "WildboundEggCarry" }) do
+	EggCarry = "WildboundEggCarry",
+	-- Nest Heist phase 2 (NP3): the bat.
+	Bat = "WildboundBat" }) do
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

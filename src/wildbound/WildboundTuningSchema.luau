@@ -35,6 +35,7 @@ Schema.MODULES = table.freeze({
 	Gear = table.freeze({ name = "WildboundGear", file = "src/wildbound/WildboundGear.luau (Gear.CONSTANTS)" }),
 	EggCarry = table.freeze({ name = "WildboundEggCarry",
 		file = "src/wildbound/WildboundEggCarry.luau (EggCarry.CONSTANTS)" }),
+	Bat = table.freeze({ name = "WildboundBat", file = "src/wildbound/WildboundBat.luau (Bat.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -238,6 +239,18 @@ Schema.SYSTEMS = table.freeze({
 		-- At most 10 (NP1): State:takeEgg refuses a pickup beyond 10 studs.
 		value("PICKUP_RANGE", "Recoger un huevo: alcance (studs)", "EggCarry", "PICKUP_RANGE", 10, 4, 10, 1),
 		value("DROP_SECONDS", "Huevo abandonado: desaparece tras (s)", "EggCarry", "DROP_SECONDS", 30, 5, 300, 5),
+	}) }),
+	-- Nest Heist phase 2 (NP3): the bat every player carries. The rule keeps its floors whatever is tuned: a cooldown of
+	-- at least 3 s, a reach of 3 to 8 studs, a tap never longer than the stumble, an immunity that outlasts the stumble.
+	table.freeze({ id = "PvP", label = "Bate entre jugadores", entries = table.freeze({
+		value("COOLDOWN", "Bate: espera entre golpes (s)", "Bat", "COOLDOWN", 12, 3, 60, 0.5),
+		value("REACH", "Bate: alcance (studs)", "Bat", "REACH", 6, 3, 8, 0.5),
+		value("HALF_ANGLE", "Bate: ángulo a cada lado (grados)", "Bat", "HALF_ANGLE", 60, 15, 90, 5),
+		value("HEIGHT", "Bate: diferencia de altura (studs)", "Bat", "HEIGHT", 4, 1, 8, 0.5),
+		value("STUMBLE_SECONDS", "Tropiezo con huevo (s)", "Bat", "STUMBLE_SECONDS", 0.45, 0.1, 1, 0.05),
+		value("TAP_SECONDS", "Tropiezo sin huevo (s)", "Bat", "TAP_SECONDS", 0.2, 0, 1, 0.05),
+		value("STUMBLE_SPEED", "Velocidad al tropezar (studs/s)", "Bat", "STUMBLE_SPEED", 2, 0, 16, 0.5),
+		value("IMMUNITY", "Inmunidad tras un golpe (s)", "Bat", "IMMUNITY", 6, 1, 30, 0.5),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({
