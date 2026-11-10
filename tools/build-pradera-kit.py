@@ -56,7 +56,7 @@ SIGNS = (
     ("praderaPond", "Charca de la Nube Gruñona", 118.0, -16.0, 180.0, 6.5),
 )
 SIGN_PARTS = 2
-FIXED_PARTS = 1 + 1 + 5  # floor, pond, markers (gate, plaza, beast home, event nest, seta top)
+FIXED_PARTS = 1 + 1 + 5  # floor, pond, markers (gate, plaza, beast home, event nest at La Colmena, seta top)
 
 
 def hex_to_rgb(value):
@@ -390,8 +390,9 @@ function props.PA_SetaTrueno(parent, inst)
             * CFrame.Angles(0, -a, 0), CAPS[CAP_ORDER[k % 3 + 1]], { collide = true })
     end
     roof(model, Vector3.new(26, 1, 26), base * CFrame.new(0, 19, 0))
-    cylinder(model, 'EventPedestal', 3, 0.4, base * CFrame.new(0, 26.2, 0), palette.neonSun, { material = Enum.Material.Neon })
-    marker(model, 'EventEggMarker', base * CFrame.new(0, 27, 0))
+    -- No longer the event pedestal: the event egg sits at La Colmena (abeja_event in the plan). A plain crown stays.
+    cylinder(model, 'Crown', 3, 0.4, base * CFrame.new(0, 26.2, 0), palette.capButter)
+    marker(model, 'LookoutMarker', base * CFrame.new(0, 27, 0))
     model:SetAttribute('Landmark', 'SetaTrueno')
     model.Parent = parent
     return model

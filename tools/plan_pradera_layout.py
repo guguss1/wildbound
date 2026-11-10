@@ -80,14 +80,36 @@ SPECIES = (
      "body": "FFFFFF", "accent": "D9C8F0", "eye": "4A3F6B", "glow": "F2ECFF"},
     {"id": "Hongolin", "name": "Hongolín", "rarity": "Epica", "nest": (100.0, -45.0), "adults": 3,
      "body": "F28B9B", "accent": "FFF4E0", "eye": "3A2E22", "glow": "FFD7DE"},
-    {"id": "Relampino", "name": "Relampino", "rarity": "Legendaria", "nest": (136.0, -6.0), "adults": 0,
+    {"id": "Relampino", "name": "Relampino", "rarity": "Legendaria", "nest": (-75.0, 75.0), "adults": 0,
      "body": "B4A8D2", "accent": "FFD23F", "eye": "2B2440", "glow": "FFF1A8", "event_only": True},
 )
 NEST_RADIUS, NEST_ADULT_RING, NEST_CLEAR = 8.0, 6.0, 10.0
 BANDS = (("Legendaria", 0.0, LEGENDARIA_BAND), ("Epica", LEGENDARIA_BAND, EPICA_BAND),
          ("Rara", EPICA_BAND, RARA_BAND), ("Comun", RARA_BAND, math.inf))
-SETA_TRUENO = (136.0, -6.0)          # the tallest mushroom, in the shallows; the event nest sits on its cap
+SETA_TRUENO = (136.0, -6.0)          # the tallest mushroom, in the shallows; a landmark and roof, no longer the event pedestal
 SETA_TRUENO_CAP_TOP = 26.0
+
+# ---- Biome event: La Abeja Reina guards the event egg at La Colmena ------------------------
+# User decision 2026-11-10: la Nube is the permanent beast; La Abeja Reina wakes only while the
+# 20-minute event egg is up (visible 5 minutes) and guards it, then sleeps. Her ground never
+# touches la Nube's strike zone, a sun circle, the gate or the path, so one player is never the
+# target of two beasts at once. Every number is a hypothesis for the tuning panel.
+HIVE = (-75.0, 75.0)                  # La Colmena: the event egg pedestal, in a flat clearing south of the path
+HIVE_CLEAR = NEST_RADIUS + 2.0        # no solid footprint this close to the egg pedestal (the wild-nest rule)
+ABEJA_PATROL_RADIUS = 18.0            # her guard loop around the egg
+ABEJA_GUARD_RADIUS = 35.0             # her strike zone ("colmenar"): she telegraphs and stings only inside it
+ABEJA_LEASH = 45.0                    # she never flies farther than this from the egg
+ABEJA_WAKE_RADIUS = 70.0              # a player's own Abeja wakes only while its owner is this close during the event
+ABEJA_BEAST_GAP = 15.0                # her leash disc stays this far outside la Nube's strike zone
+ABEJA_SUN_GAP = 5.0                   # and this far from every sun circle's rim
+ABEJA_ROUTE_GAP = 3.0                 # and this far from the path's edge
+EVENT_FIRST_SECONDS, EVENT_PERIOD_SECONDS, EVENT_WINDOW_SECONDS = 300.0, 1200.0, 300.0
+ABEJA_TUNING = {"ABEJA_WAKE_SECONDS": 3.0, "ABEJA_SLEEP_SECONDS": 4.0, "ABEJA_PATROL_SPEED": 7.0,
+                "ABEJA_CHASE_SPEED": 10.0, "ABEJA_HEAR_WALK": 30.0, "ABEJA_HEAR_SPRINT": 55.0,
+                "ABEJA_HEAR_STILL": 0.0, "ABEJA_NOTICE_SECONDS": 1.0, "ABEJA_MEMORY_SECONDS": 3.0,
+                "ABEJA_TELEGRAPH_SECONDS": 1.2, "ABEJA_TELEGRAPH_FLOOR": 0.8, "ABEJA_LANE_WIDTH": 6.0,
+                "ABEJA_DIVE_LENGTH": 12.0, "ABEJA_COOLDOWN_SECONDS": 2.5, "ABEJA_STICKY_SPEED": 9.0,
+                "ABEJA_STICKY_SECONDS": 6.0, "ABEJA_PARK_SECONDS": 120.0, "ABEJA_NIGHT_HEARING_SCALE": 0.5}
 
 # ---- Kit (PA_) footprints and Luau part counts --------------------------------------------
 # "parts" is what tools/build-pradera-kit.py emits per instance (primitives), not MeshParts.
@@ -294,6 +316,8 @@ def plan_sun_circles(rng, nests):
             continue
         if any(dist(p, n) < SUN_RADIUS + NEST_RADIUS + 6.0 for n in nests):
             continue
+        if dist(p, HIVE) < ABEJA_LEASH + SUN_RADIUS + ABEJA_SUN_GAP:
+            continue
         if not hill_clearance(p, SUN_RADIUS + 2.0):
             continue
         placed.append({"id": f"sun-{len(placed) + 1:02d}", "x": r3(p[0]), "z": r3(p[1]), "radius": SUN_RADIUS,
@@ -315,11 +339,12 @@ def plan_nests():
             points.append({"x": r3(x + fx * NEST_ADULT_RING), "z": r3(z + fz * NEST_ADULT_RING),
                            "faceX": r3(fx), "faceZ": r3(fz)})
         event = bool(spec.get("event_only"))
+        # The event egg is Legendaria by rule (it hatches from the event only), not by its distance from her pond.
         nests.append({"id": f"N{len(nests) + 1}", "species": spec["id"], "displayName": spec["name"],
-                      "rarity": spec["rarity"], "x": r3(x), "z": r3(z),
-                      "y": r3(SETA_TRUENO_CAP_TOP if event else ground_height(x, z)),
+                      "rarity": spec["rarity"], "x": r3(x), "z": r3(z), "y": r3(ground_height(x, z)),
                       "radius": NEST_RADIUS, "adults": spec["adults"], "adultPoints": points,
-                      "band": band(x, z), "distance_to_home": r3(dist((x, z), HOME)), "zone": zone(x, z),
+                      "band": "Legendaria" if event else band(x, z), "distance_to_home": r3(dist((x, z), HOME)),
+                      "zone": zone(x, z),
                       "eventOnly": event, "colors": {k: spec[k] for k in ("body", "accent", "eye", "glow")}})
     return nests
 
@@ -584,6 +609,36 @@ def place_flowers(placer, ids, rng):
     return flowers, [p["size"] for p in patches]
 
 
+# ---- Biome event -------------------------------------------------------------------------
+def abeja_event(instances, circles, nests):
+    """La Colmena, La Abeja Reina's guard discs and the event clock, with the clearances the tests re-derive."""
+    solids = [i for i in instances if i["name"] != "PA_PuffFlower"]
+    egg = next(n for n in nests if n["eventOnly"])
+    assert (egg["x"], egg["z"]) == HIVE, "the event nest must sit at La Colmena"
+    nube_gap = dist(HIVE, HOME) - TORMENTA_RADIUS - ABEJA_LEASH
+    sun_gap = min(dist(HIVE, (c["x"], c["z"])) - c["radius"] - ABEJA_LEASH for c in circles)
+    route_gap = route_distance(HIVE) - CORRIDOR_HALF - ABEJA_LEASH
+    clear = min(g.shape_point_dist(footprint(i), HIVE) for i in solids)
+    assert nube_gap >= ABEJA_BEAST_GAP, "La Colmena overlaps la Nube's strike zone"
+    assert sun_gap >= ABEJA_SUN_GAP, "La Colmena overlaps a sun circle"
+    assert route_gap >= ABEJA_ROUTE_GAP, "La Colmena overlaps the path"
+    assert clear >= HIVE_CLEAR, "a prop crowds the event egg"
+    assert max(abs(HIVE[0]), abs(HIVE[1])) + ABEJA_LEASH <= LIMIT, "her leash leaves the sector"
+    return {
+        "name": "AbejaReina", "displayName": "La Abeja Reina", "event": "Huevo Real",
+        "hive": [HIVE[0], HIVE[1]], "hive_world": [r3(HIVE[0] + WORLD_OFFSET[0]), r3(HIVE[1] + WORLD_OFFSET[1])],
+        "egg_nest": egg["id"], "egg_species": egg["species"],
+        "patrol_radius": ABEJA_PATROL_RADIUS, "guard_radius": ABEJA_GUARD_RADIUS, "leash": ABEJA_LEASH,
+        "wake_radius": ABEJA_WAKE_RADIUS, "hive_clear": HIVE_CLEAR,
+        "clock": {"first_seconds": EVENT_FIRST_SECONDS, "period_seconds": EVENT_PERIOD_SECONDS,
+                  "window_seconds": EVENT_WINDOW_SECONDS, "awake": "only while the event egg is up"},
+        "clearances": {"beyond_nube_strike_zone": r3(nube_gap), "beyond_sun_circles": r3(sun_gap),
+                       "beyond_path_edge": r3(route_gap), "prop_clearance": r3(clear),
+                       "gate_distance": r3(dist(HIVE, GATE)), "nube_home_distance": r3(dist(HIVE, HOME))},
+        "tuning": dict(ABEJA_TUNING),
+    }
+
+
 # ---- Assembly ---------------------------------------------------------------------------
 def roof_coverage(instances):
     grid = tormenta_grid()
@@ -597,7 +652,9 @@ def generate(seed=DEFAULT_SEED):
     nests = plan_nests()
     nest_points = [(n["x"], n["z"]) for n in nests if not n["eventOnly"]]
     circles = plan_sun_circles(rng, nest_points)
-    placer, ids = Placer([(c["x"], c["z"], c["radius"]) for c in circles], nest_points), IdSource()
+    # The event nest at La Colmena is cleared like a wild nest, so the egg pedestal stands in an open glade.
+    placer = Placer([(c["x"], c["z"], c["radius"]) for c in circles], nest_points + [HIVE])
+    ids = IdSource()
     gate = place_gate(placer, ids)
     seta = place_seta_trueno(placer, ids)
     posts = place_posts(placer, ids, circles)
@@ -659,6 +716,7 @@ def generate(seed=DEFAULT_SEED):
                   "gate_distance": r3(dist(HOME, GATE))},
         "nests": nests,
         "sun_circles": circles,
+        "abeja_event": abeja_event(instances, circles, nests),
         "roof_coverage": roof_coverage(instances),
         "density": {"mushroom_scale_mean": {"tormenta": r3(sum(tormenta_scales) / len(tormenta_scales)),
                                             "prado": r3(sum(prado_scales) / len(prado_scales))},
@@ -696,6 +754,13 @@ def build_scene(layout):
         scene.circle(world.px(hill["x"]), world.py(hill["z"]), hill["footprint_radius"] * s * 0.55, fill="#bfeec4")
     scene.circle(world.px(HOME[0]), world.py(HOME[1]), TORMENTA_RADIUS * s, fill="#8c7fb0", fo=0.12,
                  stroke="#6b5e94", sw=1.2, dash=(6, 5))
+    ev = layout["abeja_event"]
+    scene.circle(world.px(ev["hive"][0]), world.py(ev["hive"][1]), ev["leash"] * s, fill="#f2a33a", fo=0.10,
+                 stroke="#b8793a", sw=1.0, dash=(3, 4))
+    scene.circle(world.px(ev["hive"][0]), world.py(ev["hive"][1]), ev["guard_radius"] * s, fill="#f2a33a", fo=0.18,
+                 stroke="#b8793a", sw=1.4, dash=(6, 5))
+    scene.text(world.px(ev["hive"][0]), world.py(ev["hive"][1]) + ev["leash"] * s + 14, "La Colmena (event only)",
+               size=12, bold=True, fill="#7a4a12", anchor="middle")
     pond = layout["terrain"]["pond"]
     scene.circle(world.px(pond["x"]), world.py(pond["z"]), pond["radius"] * s, fill="#b9b3cf", stroke="#6b5e94", sw=1)
     scene.line([world.pt(p) for p in ROUTE], stroke="#f5e6c8", sw=2 * CORRIDOR_HALF * s, so=0.95)
@@ -743,7 +808,8 @@ def build_scene(layout):
     scene.text(x0, y, "Legend", size=17, bold=True)
     rows = [("Cream path 14 wide, hub gate at the left", "#f5e6c8"), ("Giant mushroom cap = roof (3 colours)", "#f28b9b"),
             ("Puff tree crown = roof", "#8fd3f4"), ("Sun circle (solid permanent, dashed candidate)", "#ffd23f"),
-            ("La Nube's pond and strike zone (dashed)", "#b9b3cf"), ("Hill (lavender shoulder, grass top)", "#d9c8f0"),
+            ("La Nube's pond and strike zone (dashed)", "#b9b3cf"),
+            ("La Abeja's guard and leash at La Colmena (event)", "#f2a33a"), ("Hill (lavender shoulder, grass top)", "#d9c8f0"),
             ("Nest with sleeping parents / event nest", "#2b6cb0"), ("Puff flower (Pelusa)", "#ffffff"),
             ("Pinwheel", "#ff8c69"), ("Boulder", "#c2b3e0"), ("Mushroom ring", "#e0607a")]
     for label, colour in rows:

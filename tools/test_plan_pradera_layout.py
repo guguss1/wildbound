@@ -37,6 +37,12 @@ STEM_R, CAP_R, TRUNK_R, CROWN_R = 2.5, 9.0, 1.2, 5.0
 RING_R, FLOWER_R, POST_R, BOULDER_R, PINWHEEL_R = 3.5, 2.0, 1.5, 3.0, 1.0
 GATE_HALF, SETA_STEM_R, SETA_CAP_R, SETA_CAP_TOP = (15.0, 3.0), 3.5, 13.0, 26.0
 ROOF_REACH, MAX_SLOPE_DEG, NEST_RADIUS = 25.0, 25.0, 8.0
+# La Abeja Reina, the event beast (user decision 2026-11-10): her ground never meets la Nube's.
+HIVE, HIVE_CLEAR = (-75.0, 75.0), 10.0
+ABEJA_GUARD, ABEJA_LEASH, ABEJA_WAKE, ABEJA_PATROL = 35.0, 45.0, 70.0, 18.0
+ABEJA_BEAST_GAP, ABEJA_SUN_GAP, ABEJA_ROUTE_GAP = 15.0, 5.0, 3.0
+EVENT_CLOCK = {"first_seconds": 300.0, "period_seconds": 1200.0, "window_seconds": 300.0}
+FAIR_TELEGRAPH_FLOOR, PLAYER_WALK = 0.8, 16.0
 ALT_SEEDS = (11, 4242)
 
 
@@ -89,7 +95,7 @@ class RuleChecks:
     def check_schema(self):
         layout = self.layout
         for key in ("name", "biome", "status", "seed", "world", "caps", "totals", "route", "terrain", "zones",
-                    "beast", "nests", "sun_circles", "roof_coverage", "density", "instances"):
+                    "beast", "nests", "sun_circles", "abeja_event", "roof_coverage", "density", "instances"):
             self.assertIn(key, layout)
         self.assertIn("unvalidated", layout["status"])
         self.assertEqual(layout["biome"]["displayName"], "Pradera Arcoíris")
@@ -258,7 +264,8 @@ class RuleChecks:
             self.assertEqual(n["rarity"], SPECIES[n["species"]])
             lo, hi = BANDS[n["rarity"]]
             d = math.dist((n["x"], n["z"]), HOME)
-            self.assertTrue(lo <= d < hi, f"{n['species']} at {d:.1f} studs is not in the {n['rarity']} band")
+            if not n["eventOnly"]:  # the event egg is Legendaria by rule, wherever La Colmena stands
+                self.assertTrue(lo <= d < hi, f"{n['species']} at {d:.1f} studs is not in the {n['rarity']} band")
             self.assertEqual(n["band"], n["rarity"])
             self.assertEqual(n["radius"], NEST_RADIUS)
             self.assertEqual(len(n["adultPoints"]), n["adults"])
@@ -271,10 +278,9 @@ class RuleChecks:
             if n["eventOnly"]:
                 self.assertEqual(n["adults"], 0)
                 self.assertEqual(n["species"], "Relampino")
-                seta = by_name(self.layout, "PA_SetaTrueno")[0]
-                self.assertEqual((n["x"], n["z"]), xz(seta), "the event nest sits on the Seta Trueno")
-                self.assertEqual(n["y"], SETA_CAP_TOP)
-                self.assertLess(math.dist((n["x"], n["z"]), HOME), 20.0)
+                self.assertEqual((n["x"], n["z"]), HIVE, "the event nest sits at La Colmena, not on the Seta Trueno")
+                self.assertEqual(n["y"], 0.0, "the egg pedestal stands on flat ground")
+                self.assertGreater(math.dist((n["x"], n["z"]), HOME), TORMENTA_RADIUS, "outside la Nube's strike zone")
             else:
                 self.assertGreaterEqual(n["adults"], 2)
                 self.assertLessEqual(n["adults"], 3)
@@ -304,8 +310,7 @@ class RuleChecks:
             self.assertGreaterEqual(math.dist((hill["x"], hill["z"]), GATE) - foot, GATE_SUN + 2.0)
             self.assertGreaterEqual(math.dist((hill["x"], hill["z"]), PLAZA) - foot, SUN_RADIUS + 2.0)
             for n in self.layout["nests"]:
-                if not n["eventOnly"]:
-                    self.assertGreaterEqual(math.dist((hill["x"], hill["z"]), (n["x"], n["z"])) - foot, NEST_RADIUS)
+                self.assertGreaterEqual(math.dist((hill["x"], hill["z"]), (n["x"], n["z"])) - foot, NEST_RADIUS)
         for inst in self.layout["instances"]:
             expected = 0.0 if inst["name"] == "PA_SetaTrueno" else hill_height(hills, inst["x"], inst["z"])
             self.assertAlmostEqual(inst["y"], expected, delta=0.002, msg=inst["id"])
@@ -338,6 +343,40 @@ class RuleChecks:
         self.assertGreater(d, 12.0)
         self.assertLess(d, POND_RADIUS - SETA_STEM_R, "the Seta Trueno stands in the shallows")
         self.assertEqual(self.layout["zones"]["bands"]["Epica"], [45.0, 80.0])
+
+    def check_abeja_event(self):
+        ev = self.layout["abeja_event"]
+        self.assertEqual(ev["displayName"], "La Abeja Reina")
+        self.assertEqual(tuple(ev["hive"]), HIVE)
+        self.assertEqual(tuple(ev["hive_world"]), (HIVE[0] + WORLD_OFFSET[0], HIVE[1] + WORLD_OFFSET[1]))
+        self.assertEqual((ev["patrol_radius"], ev["guard_radius"], ev["leash"], ev["wake_radius"]),
+                         (ABEJA_PATROL, ABEJA_GUARD, ABEJA_LEASH, ABEJA_WAKE))
+        self.assertLess(ev["patrol_radius"], ev["guard_radius"])
+        self.assertLess(ev["guard_radius"], ev["leash"])
+        self.assertLess(ev["leash"], ev["wake_radius"])
+        self.assertEqual({k: ev["clock"][k] for k in EVENT_CLOCK}, EVENT_CLOCK)
+        egg = next(n for n in self.layout["nests"] if n["eventOnly"])
+        self.assertEqual(ev["egg_nest"], egg["id"])
+        # Never two beasts on one player: her whole leash disc stays outside la Nube's strike zone, with a margin.
+        self.assertGreaterEqual(math.dist(HIVE, HOME) - TORMENTA_RADIUS - ABEJA_LEASH, ABEJA_BEAST_GAP)
+        # Safe places stay safe: no sun circle (permanent or candidate, the gate's included) touches her leash disc.
+        for c in self.layout["sun_circles"]:
+            self.assertGreaterEqual(math.dist(HIVE, (c["x"], c["z"])) - c["radius"] - ABEJA_LEASH, ABEJA_SUN_GAP, c["id"])
+        self.assertGreater(math.dist(HIVE, GATE) - GATE_SUN - ABEJA_LEASH, 50.0, "far from the gate")
+        # A child on the cream path is never inside her ground.
+        self.assertGreaterEqual(g.project_to_polyline(ROUTE, HIVE)[0] - CORRIDOR_HALF - ABEJA_LEASH, ABEJA_ROUTE_GAP)
+        self.assertLessEqual(max(abs(HIVE[0]), abs(HIVE[1])) + ABEJA_LEASH, LIMIT, "her leash stays in the sector")
+        self.assertEqual(hill_height(self.layout["terrain"]["hills"], *HIVE), 0.0)
+        for solid in self.solids():
+            self.assertGreaterEqual(g.shape_point_dist(reach(solid), HIVE), HIVE_CLEAR - 1e-6, solid["id"])
+        tuning = ev["tuning"]
+        self.assertGreaterEqual(tuning["ABEJA_TELEGRAPH_SECONDS"], FAIR_TELEGRAPH_FLOOR)
+        self.assertEqual(tuning["ABEJA_TELEGRAPH_FLOOR"], FAIR_TELEGRAPH_FLOOR)
+        self.assertLess(tuning["ABEJA_CHASE_SPEED"], PLAYER_WALK, "walking away always works")
+        self.assertGreater(tuning["ABEJA_STICKY_SPEED"], 8.0, "the shared carrySpeed > 8 contract holds")
+        self.assertEqual(tuning["ABEJA_HEAR_STILL"], 0.0, "standing still is always silent")
+        # Leaving the 6-stud lane from its centre at the honey speed beats the telegraph.
+        self.assertLess((tuning["ABEJA_LANE_WIDTH"] / 2) / tuning["ABEJA_STICKY_SPEED"], tuning["ABEJA_TELEGRAPH_SECONDS"])
 
     def check_pinwheels_line_the_path(self):
         pinwheels = by_name(self.layout, "PA_Pinwheel")
@@ -418,6 +457,9 @@ class DefaultSeed(RuleChecks, unittest.TestCase):
 
     def test_beast(self):
         self.check_beast()
+
+    def test_abeja_event(self):
+        self.check_abeja_event()
 
     def test_pinwheels_line_the_path(self):
         self.check_pinwheels_line_the_path()

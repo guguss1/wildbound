@@ -462,15 +462,15 @@
    "species": "Relampino",
    "displayName": "Relampino",
    "rarity": "Legendaria",
-   "x": 136.0,
-   "z": -6.0,
-   "y": 26.0,
+   "x": -75.0,
+   "z": 75.0,
+   "y": 0.0,
    "radius": 8.0,
    "adults": 0,
    "adultPoints": [],
    "band": "Legendaria",
-   "distance_to_home": 15.232,
-   "zone": "tormenta",
+   "distance_to_home": 237.171,
+   "zone": "prado",
    "eventOnly": true,
    "colors": {
     "body": "B4A8D2",
@@ -562,6 +562,60 @@
    "distance_to_home": 64.676
   }
  ],
+ "abeja_event": {
+  "name": "AbejaReina",
+  "displayName": "La Abeja Reina",
+  "event": "Huevo Real",
+  "hive": [
+   -75.0,
+   75.0
+  ],
+  "hive_world": [
+   225.0,
+   75.0
+  ],
+  "egg_nest": "N5",
+  "egg_species": "Relampino",
+  "patrol_radius": 18.0,
+  "guard_radius": 35.0,
+  "leash": 45.0,
+  "wake_radius": 70.0,
+  "hive_clear": 10.0,
+  "clock": {
+   "first_seconds": 300.0,
+   "period_seconds": 1200.0,
+   "window_seconds": 300.0,
+   "awake": "only while the event egg is up"
+  },
+  "clearances": {
+   "beyond_nube_strike_zone": 82.171,
+   "beyond_sun_circles": 13.328,
+   "beyond_path_edge": 11.597,
+   "prop_clearance": 45.043,
+   "gate_distance": 133.963,
+   "nube_home_distance": 237.171
+  },
+  "tuning": {
+   "ABEJA_WAKE_SECONDS": 3.0,
+   "ABEJA_SLEEP_SECONDS": 4.0,
+   "ABEJA_PATROL_SPEED": 7.0,
+   "ABEJA_CHASE_SPEED": 10.0,
+   "ABEJA_HEAR_WALK": 30.0,
+   "ABEJA_HEAR_SPRINT": 55.0,
+   "ABEJA_HEAR_STILL": 0.0,
+   "ABEJA_NOTICE_SECONDS": 1.0,
+   "ABEJA_MEMORY_SECONDS": 3.0,
+   "ABEJA_TELEGRAPH_SECONDS": 1.2,
+   "ABEJA_TELEGRAPH_FLOOR": 0.8,
+   "ABEJA_LANE_WIDTH": 6.0,
+   "ABEJA_DIVE_LENGTH": 12.0,
+   "ABEJA_COOLDOWN_SECONDS": 2.5,
+   "ABEJA_STICKY_SPEED": 9.0,
+   "ABEJA_STICKY_SECONDS": 6.0,
+   "ABEJA_PARK_SECONDS": 120.0,
+   "ABEJA_NIGHT_HEARING_SCALE": 0.5
+  }
+ },
  "roof_coverage": {
   "grid_step": 5.0,
   "points": 1065,
