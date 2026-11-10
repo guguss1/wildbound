@@ -463,8 +463,8 @@ return function(EggCarry, source, sources)
 	-- (a zero-length local hold, or a trigger fired with no hold) no longer steals.
 	case("HB-T7: a steal counts only after a continuous hold of the effective time, less a small latency allowance", function()
 		local need = 0.8
-		equal(EggCarry.HOLD_ALLOWANCE > 0 and EggCarry.HOLD_ALLOWANCE <= 0.25, true, "a small allowance")
-		local a = EggCarry.HOLD_ALLOWANCE
+		local a = EggCarry.live.HOLD_ALLOWANCE
+		equal(a > 0 and a <= EggCarry.HOLD_ALLOWANCE_MAX, true, "a small allowance")
 		equal(EggCarry.holdComplete({ at = 10 }, 10.8, need), true, "a full hold")
 		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - a, need), true, "on the allowance")
 		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - a - 0.01, need), false, "short")
@@ -478,6 +478,41 @@ return function(EggCarry, source, sources)
 			equal(EggCarry.holdComplete({ at = bad }, 10.8, need), false, "at " .. tostring(bad))
 		end
 		equal(EggCarry.holdComplete(nil, 10, 0), true, "no hold needed (a cria's tap)")
+	end)
+	-- Hub follow-up (HF-T2): 0.2 s was too tight for real latency. The allowance is a tunable (0.35 s by default, 0.05
+	-- to 0.5), still refusing clearly short triggers, and a refused steal tells the player to hold a little longer.
+	case("HF-T2: the steal-hold allowance is a tuning value, 0.35 s, that still refuses clearly short triggers", function()
+		equal(EggCarry.CONSTANTS.HOLD_ALLOWANCE, 0.35, "the default allowance")
+		equal(EggCarry.live.HOLD_ALLOWANCE, 0.35)
+		equal(EggCarry.HOLD_ALLOWANCE_MIN, 0.05); equal(EggCarry.HOLD_ALLOWANCE_MAX, 0.5)
+		local need = 0.8
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - 0.35, need), true, "a hold 0.35 s short of a full one counts")
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - 0.36, need), false, "0.36 s short refuses")
+		equal(EggCarry.holdComplete({ at = 10 }, 10, need), false, "a zero-length hold refuses")
+		equal(EggCarry.holdComplete({ at = 10 }, 10.2, 0.6), false, "the glove floor 0.6 s still needs 0.25 s")
+		EggCarry.tune({ HOLD_ALLOWANCE = 0.2 })
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - 0.3, need), false, "the tuned allowance is the one read")
+		EggCarry.tune({ HOLD_ALLOWANCE = 5 })
+		equal(EggCarry.live.HOLD_ALLOWANCE, 0.5, "never more than half a second")
+		EggCarry.tune({ HOLD_ALLOWANCE = -1 })
+		equal(EggCarry.live.HOLD_ALLOWANCE, 0.05, "never zero or less")
+		EggCarry.tune(nil)
+		equal(EggCarry.live.HOLD_ALLOWANCE, 0.35, "no override, no change")
+		local Schema = sources.schema
+		local entry = Schema.find("Eggs", "HOLD_ALLOWANCE")
+		assert(entry, "a dev tuning entry")
+		equal(entry.module, "EggCarry"); equal(entry.target, "HOLD_ALLOWANCE"); equal(entry.default, 0.35)
+		equal(entry.min, 0.05); equal(entry.max, 0.5)
+	end)
+	case("HF-T2: a steal the server refuses as too short tells the player to hold a little longer", function()
+		local Text = sources.text
+		equal(Text.EGG.holdLonger, "Mantén presionado un poco más.")
+		assert(#Text.EGG.holdLonger <= 64, "a notice of at most 64 bytes")
+		local trigger = block(server, "entry.trigger = function(player)", "entry.connection = entry.prompt.Triggered")
+		has(trigger, "if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then\n"
+			.. "\t\t\t\tsend(player, \"Pickup\", false, Text.EGG.holdLonger)\n\t\t\t\treturn\n\t\t\tend",
+			"the refusal answers with the notice")
+		hasNot(trigger, "workspace:GetServerTimeNow(), need) then return end", "no silent refusal")
 	end)
 	case("HB-T7: the server records each player's hold and checks it, with the glove, before a steal", function()
 		local spawnBlock = block(server, "entry.holders = {}", "entry.trigger = function(player)")

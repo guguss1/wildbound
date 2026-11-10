@@ -213,6 +213,8 @@ return freeze({
 	EGG = {
 		stolen = "¡Tienes el huevo! Llévalo al cofre del campamento.",
 		already = "Ya llevas un huevo en brazos.",
+		-- Hub follow-up (HF-T2): the server measured a hold shorter than the steal needs.
+		holdLonger = "Mantén presionado un poco más.",
 		-- NH5: drop and pickup.
 		pickUp = "Recoger huevo",
 		knocked = "¡Te golpearon! Se te cayó el huevo.",

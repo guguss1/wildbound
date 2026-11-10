@@ -257,6 +257,9 @@ Schema.SYSTEMS = table.freeze({
 	table.freeze({ id = "Eggs", label = "Robo de huevos", entries = table.freeze({
 		value("STEAL_HOLD", "Robar un huevo normal: mantener (s)", "EggCarry", "STEAL_HOLD", 0.8, 0.6, 1, 0.05),
 		value("RARE_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARE_HOLD", 1, 0.6, 3, 0.05),
+		-- Hub follow-up (HF-T2): the server accepts a steal this much shorter than the hold (latency).
+		value("HOLD_ALLOWANCE", "Robar: margen de latencia del mantener (s)", "EggCarry", "HOLD_ALLOWANCE", 0.35, 0.05, 0.5,
+			0.05),
 		-- NH5: drop and pickup.
 		value("PICKUP_DELAY", "Huevo caído: se puede recoger tras (s)", "EggCarry", "PICKUP_DELAY", 0.4, 0, 2, 0.05),
 		value("PICKUP_HOLD", "Recoger un huevo: mantener (s)", "EggCarry", "PICKUP_HOLD", 0.4, 0.3, 0.5, 0.05),

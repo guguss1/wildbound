@@ -17,11 +17,16 @@ EggCarry.CONSTANTS = table.freeze({
 	DROP_SECONDS = 30,
 	DESPAWN_SECONDS = 1,
 	LAND_DEPTH = 40,
+	-- Hub follow-up (HF-T2): how much shorter than the effective hold a steal may be, as the server measures it, to
+	-- absorb latency (HB-T7 used 0.2 s, too tight). Clamped to HOLD_ALLOWANCE_MIN..MAX, so a clearly short trigger
+	-- still refuses (at the 0.6 s glove floor a hold of at least 0.1 s is always needed).
+	HOLD_ALLOWANCE = 0.35,
 })
 EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.6, 1
 EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.3, 0.5
 -- Nest Heist phase 2 (NP1): State:takeEgg refuses a pickup beyond 10 studs, so the tunable reach never exceeds it.
 EggCarry.PICKUP_RANGE_MAX = 10
+EggCarry.HOLD_ALLOWANCE_MIN, EggCarry.HOLD_ALLOWANCE_MAX = 0.05, 0.5
 -- Why an egg leaves the arms. Inside a safe zone (camp, a Refugio) only a death or leaving the server drops it.
 EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true })
 local SAFE_DROPS = table.freeze({ Death = true, Leave = true })
@@ -52,6 +57,7 @@ function EggCarry.tune(overrides)
 	C.PICKUP_HOLD = math.clamp(C.PICKUP_HOLD, EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX)
 	C.PICKUP_DELAY = math.max(C.PICKUP_DELAY, 0)
 	C.PICKUP_RANGE = math.clamp(C.PICKUP_RANGE, 1, EggCarry.PICKUP_RANGE_MAX)
+	C.HOLD_ALLOWANCE = math.clamp(C.HOLD_ALLOWANCE, EggCarry.HOLD_ALLOWANCE_MIN, EggCarry.HOLD_ALLOWANCE_MAX)
 end
 EggCarry.tune(nil)
 
@@ -233,14 +239,14 @@ end
 
 -- HB-T7 (verifier finding): the steal hold is measured on the server. hold = { at = when this player's hold began on the
 -- server (PromptButtonHoldBegan), ended = when it was released, if it was }; need = this player's effective hold. A
--- trigger counts only after a continuous hold of at least need - allowance seconds, begun at most need + HOLD_GRACE ago.
-EggCarry.HOLD_ALLOWANCE = 0.2
+-- trigger counts only after a continuous hold of at least need - allowance seconds (default the tunable HOLD_ALLOWANCE),
+-- begun at most need + HOLD_GRACE ago.
 local EPSILON = 1e-6
 function EggCarry.holdComplete(hold, now, need, allowance)
 	if not finite(need) then return false end
 	if need <= 0 then return true end
 	if type(hold) ~= "table" or not finite(hold.at) or not finite(now) then return false end
-	local least = need - (finite(allowance) and allowance or EggCarry.HOLD_ALLOWANCE)
+	local least = need - (finite(allowance) and allowance or C.HOLD_ALLOWANCE)
 	local held = now - hold.at
 	if held + EPSILON < least or held > need + EggCarry.HOLD_GRACE then return false end
 	if hold.ended ~= nil and not (finite(hold.ended) and hold.ended - hold.at + EPSILON >= least) then return false end

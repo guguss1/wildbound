@@ -1858,7 +1858,10 @@ spawnEncounter = function(slot)
 			-- Robo rápido this server wrote, never under the floor), less a small latency allowance.
 			local need = Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),
 				{ stats = { steal = player:GetAttribute("WildboundGloveSteal") or 0 } }, Gear.CONSTANTS.STEAL_FLOOR)
-			if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then return end
+			if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then
+				send(player, "Pickup", false, Text.EGG.holdLonger)
+				return
+			end
 			entry.holdStarts[player] = nil
 			local island = slot.island and islands[slot.island]
 			if island and not Island.nestOpen(island.meter) then

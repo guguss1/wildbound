@@ -113,6 +113,8 @@ return function(Schema, modules)
 			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP",
 			-- Nest Heist (NH1): the steal holds.
 			"Eggs.STEAL_HOLD", "Eggs.RARE_HOLD",
+			-- Hub follow-up (HF-T2): the server's steal-hold latency allowance.
+			"Eggs.HOLD_ALLOWANCE",
 			-- Nest Heist (NH3): the parents' charge and the immediate wake on an egg steal.
 			"Islands.CHARGE_SPEED", "Islands.CHARGE_HIT", "Islands.EXPOSED_SECONDS", "Islands.STEAL_WAKE",
 			-- Nest Heist (NH4): the Burst.
