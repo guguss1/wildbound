@@ -785,8 +785,8 @@ def generate(seed=DEFAULT_SEED, inputs=None):
             "persistent_models": ["La Silueta", "La Nube Gruñona", "La Abeja Reina (while the event runs)", "hub stations"],
             "triangles": {"forest_plan": inputs["layout"]["totals"]["triangles"], "pradera_cap": 40000, "hub_cap": 12000,
                           "ring_and_connectors_cap": 6000},
-            "note": "with a 420 target radius a player at the hub streams the hub and both transitions, about a third of each "
-                    "region, never both beasts' grounds at once; measure on a phone before trusting any number",
+            "note": "with a 420 target radius a player at the hub streams the hub, both transitions and about a third of each "
+                    "region (La Silueta's home is inside it, la Nube's is not); measure on a phone before trusting any number",
         },
     }
     return layout
