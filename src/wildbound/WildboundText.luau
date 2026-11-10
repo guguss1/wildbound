@@ -313,6 +313,16 @@ return freeze({
 		burst = "Impulso",
 		burstKey = "Impulso (Z)",
 	},
+	-- Nest Heist phase 2 (NP4, NP5): the bat. Notices at most 64 bytes.
+	BAT = {
+		button = "Bate",
+		buttonKey = "Bate (clic)",
+		safe = "Aquí no se usa el bate.",
+		immune = "Está protegido un momento.",
+		hit = "¡Te golpearon con un bate!",
+		knocked = "¡Te golpearon! Se te cayó el huevo.",
+		loose = "¡Se le cayó el huevo! Cualquiera puede tomarlo.",
+	},
 	-- Fear pass (FA3): the short shouts of the adrenaline burst (big, centred, a second or two).
 	FEAR = {
 		run = "¡CORRE!",

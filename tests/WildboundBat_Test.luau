@@ -144,5 +144,99 @@ return function(Bat, source, sources)
 		near(effect.stumble, 0.45, "an extra argument is ignored")
 	end)
 
+	-- NP4 the rules together: the bat, the egg in the arms and the state, with fake player keys (1 attacker, 2 carrier,
+	-- 3 and 4 bystanders). The Play check runs the real server paths with one client.
+	case("NP4: a bat drops the carrier's egg for anyone; the attacker does not get it; one pickup wins the race", function()
+		local EggCarry, State, Economy, Config = sources.eggCarry, sources.state, sources.economy, sources.config
+		assert(EggCarry and State and Economy and Config, "the egg-carry rule and the state")
+		local eggs, bats, s = EggCarry.new(), Bat.new(), State.new(Economy, Config)
+		for key = 1, 4 do s:addPlayer(key) end
+		EggCarry.add(eggs, "Egg:1", { species = "Lumipol", island = "I2" })
+		assert(s:registerEncounter("Egg:1", "Egg"))
+		local _, uid = s:pickup(2, "Egg:1", true, 0, { species = "Lumipol", tier = "Fog", arms = true })
+		assert(EggCarry.steal(eggs, "Egg:1", 2, uid), "the carrier stole it")
+		assert(Bat.swing(bats, 1, 100, CALM), "the attacker swings")
+		local hit = Bat.pickTarget(attacker(1), { target(2, 4) }, clear)
+		equal(hit and hit.key, 2, "the carrier is in front")
+		local effect = Bat.hit(bats, 2, 100, EggCarry.carriedBy(eggs, 2) ~= nil)
+		assert(effect.drop, "a carrier drops")
+		assert(EggCarry.drop(eggs, 2, "Bat", 100, { safe = false }), "the egg leaves the arms")
+		local _, entry = s:dropEgg(2)
+		local egg = EggCarry.get(eggs, "Egg:1")
+		equal(egg.state, "Dropped"); equal(egg.carrier, nil, "nobody's"); equal(egg.reason, "Bat")
+		equal(EggCarry.carriedBy(eggs, 1), nil, "the attacker does not get it")
+		equal(select(2, EggCarry.pickup(eggs, "Egg:1", 1, 100.1, "x")), "TooSoon", "not even at once")
+		-- Two pickups in the same server step: the first valid one wins, the second finds it carried.
+		local t = 100 + EggCarry.CONSTANTS.PICKUP_DELAY
+		local okA = EggCarry.canPickup(eggs, "Egg:1", 3, t) and s:takeEgg(3, entry, true, 3)
+		assert(okA and EggCarry.pickup(eggs, "Egg:1", 3, t, "u3"), "a third player picks it up")
+		equal(select(2, EggCarry.canPickup(eggs, "Egg:1", 4, t)), "NotDropped", "the second request loses")
+		equal(EggCarry.count(eggs, "Carried"), 1, "one carrier")
+		equal(#s:snapshot(4).pending, 0, "no duplicate in the loser's bag")
+		equal(#s:snapshot(3).pending, 1)
+		equal(#s:snapshot(2).pending, 0, "the old carrier's arms are empty")
+		-- The anti-chain immunity: the old carrier cannot be stunned again for 6 s; the new carrier can.
+		equal(Bat.hit(bats, 2, 104, false).immune, true, "a second stun within 6 s")
+		equal(Bat.hit(bats, 3, 104, true).immune, false, "the new carrier was never hit")
+		-- No bat in the camp, and a safe zone keeps the egg in the arms.
+		equal(select(2, Bat.swing(bats, 4, 200, { alive = true, safe = true })), "SafeZone")
+		equal(select(2, EggCarry.drop(eggs, 3, "Bat", 200, { safe = true })), "SafeZone")
+		-- No hit through a wall.
+		equal(select(2, Bat.pickTarget(attacker(4), { target(3, 4) }, function() return false end)), "Blocked")
+	end)
+
+	local server = sources.server or ""
+	case("NP4: the server swings over the Stance remote with the rule's cooldown and decides the hit itself", function()
+		has(server, 'Heist.Bat = require(script.Parent:WaitForChild("WildboundBat"))')
+		has(server, "Heist.bats = Heist.Bat.new()")
+		local stance = block(server, "stanceRemote.OnServerEvent:Connect(function(player, intent, ...)", "\nend)")
+		has(stance, 'if intent == "bat" then', "one known word")
+		assert(stance:find("STANCE_RATE", 1, true) < stance:find('intent == "bat"', 1, true), "after the rate limit")
+		assert(server:find("function Heist.swingBat(player, record, now)", 1, true)
+			< server:find("stanceRemote.OnServerEvent:Connect", 1, true), "defined before the handler that calls it")
+		local fn = block(server, "function Heist.swingBat(player, record, now)", "\nend\n")
+		has(fn, "Bat.swing(Heist.bats, player.UserId, now,", "the rule's cooldown")
+		has(fn, "Rules.zone(", "safe zones from the server's own positions")
+		has(fn, "capturing or hidden", "busy")
+		has(fn, "root.CFrame.LookVector", "the facing is the server's")
+		has(fn, "Bat.pickTarget(from, candidates,"); has(fn, "Heist.batClear(", "line of sight")
+		has(fn, "Bat.hit(Heist.bats, target.key, now,"); has(fn, 'Heist.dropEgg(victim, "Bat")', "the egg drops for anyone")
+		has(fn, "WildboundBatReady"); has(fn, "WildboundBatSwing"); has(fn, "WildboundBatHit")
+		has(fn, "applyCarry(victim)", "the stumble's speed"); has(fn, "Text.BAT.")
+		hasNot(fn, "Gear", "gloves never change the bat"); hasNot(fn, "TakeDamage", "the bat never hurts")
+		hasNot(fn, 'Instance.new("Sound")', "the inventory server makes no sounds")
+		local clearFn = block(server, "function Heist.batClear(", "\nend\n")
+		has(clearFn, "workspace:Raycast("); has(clearFn, "Heist.batParams")
+		has(block(server, "local function applyCarry(player)", "\nend\n"), "Heist.Bat.speed(speed, Heist.bats, player.UserId,")
+		local _, remotes = server:gsub('Instance.new%("RemoteEvent"%)', "")
+		equal(remotes, 5, "no new remote")
+		has(server, "Heist.Bat.forget(Heist.bats, player.UserId)", "a player who leaves is forgotten")
+		-- NH-W13: the server script is at Luau's local limit; the bat's helpers live in the Heist table.
+		for _, name in ipairs({ "swingBat", "equipBat", "batClear", "batParams", "Bat", "bats" }) do
+			hasNot(server, "\nlocal function " .. name .. "(", "a top-level local function")
+			hasNot(server, "\nlocal " .. name .. " ", "a top-level local")
+		end
+	end)
+
+	case("NP4: every character holds a bat: unanchored, massless, no collision, touch or query, welded to the hand", function()
+		local bind = block(server, "local function bindCharacter(player, character)", "\nend\n")
+		has(bind, "Heist.equipBat(character)")
+		local equip = block(server, "function Heist.equipBat(character)", "\nend\n")
+		has(equip, 'capsulePart(model, "Handle"'); has(equip, 'capsulePart(model, "Barrel"')
+		has(equip, 'weld("BatGrip", hand, handle'); has(equip, '"RightHand"'); has(equip, '"Right Arm"')
+		assert(server:find("function Heist.equipBat(character)", 1, true) < server:find("local function bindCharacter(", 1, true),
+			"defined before it is used")
+	end)
+
+	case("NP4: the bat's Spanish notices fit 64 bytes", function()
+		local B = sources.text and sources.text.BAT
+		assert(type(B) == "table", "Text.BAT")
+		for _, key in ipairs({ "button", "buttonKey", "safe", "immune", "hit", "knocked", "loose" }) do
+			local value = B[key]
+			assert(type(value) == "string" and #value > 0 and #value <= 64, "BAT." .. key .. " " .. tostring(value))
+		end
+		equal(B.button, "Bate")
+	end)
+
 	return result
 end

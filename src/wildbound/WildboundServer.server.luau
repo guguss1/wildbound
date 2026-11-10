@@ -81,6 +81,9 @@ local EggCarry = require(script.Parent:WaitForChild("WildboundEggCarry"))
 local eggs = EggCarry.new()
 -- The Nest Heist helpers share one table: this script is close to Luau's 200-local limit (a Play finding).
 local Heist = {}
+-- Nest Heist phase 2 (NP4): the bat rule and its registry ride in the same table.
+Heist.Bat = require(script.Parent:WaitForChild("WildboundBat"))
+Heist.bats = Heist.Bat.new()
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -346,6 +349,8 @@ local function applyCarry(player)
 	if record.stamina and Stamina.bursting(record.stamina, workspace:GetServerTimeNow()) then
 		speed = math.max(speed, Stamina.speed(record.baseSpeed, record.stamina.stance, true))
 	end
+	-- NP4: a bat stumble slows the player for a fraction of a second (never faster).
+	speed = Heist.Bat.speed(speed, Heist.bats, player.UserId, workspace:GetServerTimeNow())
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 -- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
@@ -2707,6 +2712,101 @@ function Heist.burst(player, record, now)
 	task.delay(2, function() attachment:Destroy() end)
 end
 
+-- Nest Heist phase 2 (NP4): the bat every player holds. Two parts welded to the right hand (R15) or arm (R6), built
+-- like the carry capsule's parts: unanchored, massless, no collision, touch or query, so it never pushes, blocks a ray
+-- or trips a prompt. Every client swings it on WildboundBatSwing; the grip's C1 puts the handle on the pivot.
+function Heist.equipBat(character)
+	local hand = character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm")
+	if not hand or not hand:IsA("BasePart") or character:FindFirstChild("WildboundBat") then return end
+	local model = Instance.new("Model")
+	model.Name = "WildboundBat"
+	local handle = capsulePart(model, "Handle", Vector3.new(0.25, 1.2, 0.25), Enum.PartType.Block,
+		Color3.fromRGB(70, 48, 32), Enum.Material.Wood)
+	local barrel = capsulePart(model, "Barrel", Vector3.new(0.45, 1.8, 0.45), Enum.PartType.Block,
+		Color3.fromRGB(150, 104, 62), Enum.Material.Wood)
+	local grip = weld("BatGrip", hand, handle, CFrame.new(0, -0.3, 0) * CFrame.Angles(math.rad(-45), 0, 0))
+	grip.C1 = CFrame.new(0, -0.5, 0)
+	weld("BatBarrel", handle, barrel, CFrame.new(0, 1.4, 0))
+	model.Parent = character
+end
+-- The line of sight a hit needs: chest to chest, ignoring every character, the runtime visuals and anything that does
+-- not collide; a wall, a trunk core or the relief in between blocks it.
+Heist.batParams = RaycastParams.new()
+Heist.batParams.FilterType = Enum.RaycastFilterType.Exclude
+Heist.batParams.RespectCanCollide = true
+function Heist.batClear(from, to)
+	local exclude = { runtime }
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then table.insert(exclude, other.Character) end
+	end
+	Heist.batParams.FilterDescendantsInstances = exclude
+	local a, b = from.Position + Vector3.new(0, 1, 0), to.Position + Vector3.new(0, 1, 0)
+	return workspace:Raycast(a, b - a, Heist.batParams) == nil
+end
+-- A swing. The client sends only the word; the server checks the rule's cooldown, the safe zones and the attacker's
+-- state, then picks the target from its own positions and facing (reach, angle, height) and a line-of-sight ray. A
+-- carrier hit stumbles and drops the egg for anyone (the attacker gets nothing for it); anyone else only taps; an
+-- immune target is untouched. No damage. The parents and La Silueta keep acting as before.
+function Heist.swingBat(player, record, now)
+	local Bat = Heist.Bat
+	local root = rootOf(player)
+	local capturing = false
+	for _, session in ipairs(capture:activeSessions()) do
+		if session.playerKey == player.UserId then capturing = true end
+	end
+	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
+	local at = root and root.Position
+	local safe = at ~= nil and select(2, Rules.zone(at.X, at.Z)) == true
+	local ok, readyAt = Bat.swing(Heist.bats, player.UserId, now,
+		{ alive = root ~= nil and record ~= nil and context(player) == true, safe = safe, busy = capturing or hidden })
+	if not ok then
+		if readyAt == "SafeZone" and allowed(player, "BatRefused") then send(player, "Bat", false, Text.BAT.safe) end
+		return
+	end
+	player:SetAttribute("WildboundBatReady", readyAt)
+	player:SetAttribute("WildboundBatSwing", now)
+	local look = root.CFrame.LookVector
+	local from = { key = player.UserId, x = at.X, y = at.Y, z = at.Z, lookX = look.X, lookZ = look.Z }
+	local candidates = {}
+	for other in pairs(records) do
+		local otherRoot = other ~= player and rootOf(other) or nil
+		if otherRoot and context(other) == true then
+			local p = otherRoot.Position
+			table.insert(candidates, { key = other.UserId, player = other, root = otherRoot, x = p.X, y = p.Y, z = p.Z,
+				alive = true, safe = select(2, Rules.zone(p.X, p.Z)) == true,
+				hidden = type(other:GetAttribute("WildboundHidden")) == "string" })
+		end
+	end
+	local target = Bat.pickTarget(from, candidates, function(candidate) return Heist.batClear(root, candidate.root) end)
+	if not target then return end
+	local victim = target.player
+	local effect = Bat.hit(Heist.bats, target.key, now, EggCarry.carriedBy(eggs, target.key) ~= nil)
+	islandLog(effect.immune and "batBlocked" or "batHit", "-", target.key)
+	if effect.immune then
+		send(player, "Bat", false, Text.BAT.immune)
+		return
+	end
+	local dropped = effect.drop and Heist.dropEgg(victim, "Bat") ~= nil
+	victim:SetAttribute("WildboundBatHit", now)
+	applyCarry(victim)
+	task.delay(effect.stumble + 0.05, function()
+		if records[victim] then applyCarry(victim) end
+	end)
+	local attachment = Instance.new("Attachment")
+	attachment.Name, attachment.Position = "WildboundBatHit", Vector3.new(0, 1.5, 0)
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate, emitter.Lifetime, emitter.Speed = 0, NumberRange.new(0.25, 0.45), NumberRange.new(8, 14)
+	emitter.SpreadAngle, emitter.LightEmission = Vector2.new(180, 180), 0.8
+	emitter.Size = NumberSequence.new(0.5, 0)
+	emitter.Color = ColorSequence.new(Color3.fromRGB(255, 236, 170))
+	emitter.Parent = attachment
+	attachment.Parent = target.root
+	emitter:Emit(20)
+	task.delay(2, function() attachment:Destroy() end)
+	send(victim, "BatHit", false, dropped and Text.BAT.knocked or Text.BAT.hit)
+	if dropped then send(player, "Bat", true, Text.BAT.loose) end
+end
+
 -- Dread pass (D3): one known word per call, at most STANCE_RATE a second; an intent not refreshed within 1.2 s
 -- lapses to walk inside the rule, so a lost release never leaves anyone sprinting.
 stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
@@ -2720,6 +2820,11 @@ stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
 	-- NH4: "burst" shares this remote and its rate limit; the rule refuses it during its cooldown.
 	if intent == "burst" then
 		Heist.burst(player, record, now)
+		return
+	end
+	-- NP4: "bat" shares this remote and its rate limit too; the rule refuses it during its cooldown.
+	if intent == "bat" then
+		Heist.swingBat(player, record, now)
 		return
 	end
 	Stamina.intent(record.stamina, intent, now)
@@ -2770,6 +2875,8 @@ local function bindCharacter(player, character)
 		or not campCenter:IsDescendantOf(map) or not map:IsDescendantOf(workspace) then return end
 	-- Once per new character, not an ability teleport; preserve the existing SpawnLocation.
 	character:PivotTo(CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))
+	-- NP4: every character holds a bat from the start.
+	Heist.equipBat(character)
 	applyCarry(player)
 	send(player, "Respawn", true, notices.respawn)
 end
@@ -2798,6 +2905,8 @@ Players.PlayerRemoving:Connect(function(player)
 	removeDropsOf(player)
 	-- NH5: an egg in the arms stays in the world for anyone.
 	Heist.dropEgg(player, "Leave")
+	-- NP4: the bat's cooldown and immunity go with the player.
+	Heist.Bat.forget(Heist.bats, player.UserId)
 	-- B4: the display spot frees for the next player; B5: the companion goes with its owner.
 	clearDisplay(player)
 	removeCompanion(player)
