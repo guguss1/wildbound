@@ -67,9 +67,12 @@ def code_marker_names():
 
 
 class Rendering(unittest.TestCase):
+    VARIANT, PARTS_CAP, LIGHTS_CAP = "v1", PARTS_CAP, LIGHTS_CAP
+    REQUIRED, SPANISH, EXTRA_SIGNS = REQUIRED_TAGS, SPANISH, 0
+
     @classmethod
     def setUpClass(cls):
-        cls.layout = json.loads(plan.to_json(plan.generate()))
+        cls.layout = json.loads(plan.to_json(plan.generate(variant=cls.VARIANT)))
         cls.data = kit.finalize(cls.layout)
         cls.parts = cls.data["parts"]
         cls.models = cls.data["models"]
@@ -101,8 +104,8 @@ class Rendering(unittest.TestCase):
         def tagged(tag):
             return ([r for r in self.parts if tag in r.get("tags", [])], [m for m in self.models if tag in m["tags"]])
 
-        for tag in REQUIRED_TAGS:
-            self.assertIn(tag, kit.TAGS)
+        for tag in self.REQUIRED:
+            self.assertIn(tag, kit.tags_for(self.layout))
             self.assertIn("'%s'" % tag, self.module)
         parts, models = tagged("WildboundBaseSlot")
         self.assertEqual(len(models), SLOTS)
@@ -137,8 +140,9 @@ class Rendering(unittest.TestCase):
     def test_budgets(self):
         counts = kit.part_count(self.layout)
         self.assertEqual(counts["total"], len(self.parts))
-        self.assertLessEqual(counts["total"], PARTS_CAP)
-        self.assertLessEqual(counts["lights"], LIGHTS_CAP)
+        self.assertLessEqual(counts["total"], self.PARTS_CAP)
+        self.assertLessEqual(counts["lights"], self.LIGHTS_CAP)
+        self.assertLessEqual(counts["total"], self.layout["budget"]["parts_cap"])
         self.assertEqual(counts["lights"], len(self.layout["lights"]))
         self.assertIn("Builder.EXPECTED_PARTS = %d" % counts["total"], self.module)
         self.assertIn("Builder.EXPECTED_LIGHTS = %d" % counts["lights"], self.module)
@@ -183,10 +187,10 @@ class Rendering(unittest.TestCase):
         self.assertEqual(len(seen), len(self.models))
 
     def test_spanish_signs_and_english_code(self):
-        for text in SPANISH:
+        for text in self.SPANISH:
             self.assertIn(text, self.module, text)
         signs = [r for r in self.parts if "sign" in r]
-        self.assertEqual(len(signs), SLOTS + len(self.layout["entrances"]) + 1)
+        self.assertEqual(len(signs), SLOTS + len(self.layout["entrances"]) + 1 + self.EXTRA_SIGNS)
         for r in signs:
             self.assertEqual(r["a"]["SignKey"], r["sign"]["key"])
         self.assertIn("gui.Face = Enum.NormalId.Front", self.module)
@@ -236,23 +240,83 @@ class Rendering(unittest.TestCase):
 
 
 class WrittenFiles(unittest.TestCase):
+    PLAN, MODULE, REPORT, REQUIRED = kit.PLAN, kit.MODULE, kit.REPORT, REQUIRED_TAGS
+
     def test_saved_module_is_fresh(self):
-        if not kit.MODULE.exists() or not kit.PLAN.exists():
+        if not self.MODULE.exists() or not self.PLAN.exists():
             self.skipTest("module not written yet")
-        layout = json.loads(kit.PLAN.read_text(encoding="utf-8"))
-        self.assertEqual(kit.MODULE.read_text(encoding="utf-8"), kit.render(layout))
-        self.assertEqual(kit.MODULE.read_bytes().count(b"\r\n"), 0, "LF line endings")
+        layout = json.loads(self.PLAN.read_text(encoding="utf-8"))
+        self.assertEqual(kit.module_path(layout["name"]), self.MODULE)
+        self.assertEqual(self.MODULE.read_text(encoding="utf-8"), kit.render(layout))
+        self.assertEqual(self.MODULE.read_bytes().count(b"\r\n"), 0, "LF line endings")
 
     def test_saved_report_matches_the_module(self):
-        if not kit.REPORT.exists() or not kit.MODULE.exists():
+        if not self.REPORT.exists() or not self.MODULE.exists():
             self.skipTest("report not written yet")
-        report = json.loads(kit.REPORT.read_text(encoding="utf-8"))
-        self.assertEqual(report["module_adler32"], kit.adler32(kit.MODULE.read_text(encoding="utf-8")))
-        layout = json.loads(kit.PLAN.read_text(encoding="utf-8"))
+        report = json.loads(self.REPORT.read_text(encoding="utf-8"))
+        self.assertEqual(report["module_adler32"], kit.adler32(self.MODULE.read_text(encoding="utf-8")))
+        layout = json.loads(self.PLAN.read_text(encoding="utf-8"))
+        self.assertEqual(kit.report_path(layout["name"]), self.REPORT)
         self.assertEqual(report["parts"], kit.part_count(layout))
         self.assertIn("unvalidated", report["status"])
-        for tag in REQUIRED_TAGS:
+        for tag in self.REQUIRED:
             self.assertGreater(report["tags"][tag], 0, tag)
+
+
+V2_TAGS = {"WildboundShopSpot": ("ShopCircle", 4), "WildboundChestStation": ("ChestZone", SLOTS),
+           "WildboundShowcase": ("ShowcasePlinth", SLOTS), "WildboundBaseZone": ("BaseZone", SLOTS)}
+V2_SPANISH = SPANISH + ("Taller de guantes", "Mejoras", "Suministros", "Árbol de habilidades", "Vitrina de <jugador>",
+                        "Cofre del explorador")
+
+
+class RenderingV2(Rendering):
+    """Every v1 rendering contract on the hub expansion, plus its own tags and attributes."""
+    VARIANT, PARTS_CAP, LIGHTS_CAP = "v2", 480, 36
+    REQUIRED, SPANISH, EXTRA_SIGNS = REQUIRED_TAGS + tuple(V2_TAGS), V2_SPANISH, 4 + SLOTS
+
+    def test_expansion_tags_and_attributes(self):
+        for tag, (name, count) in V2_TAGS.items():
+            rows = [r for r in self.parts if tag in r.get("tags", [])]
+            self.assertEqual(len(rows), count, tag)
+            self.assertEqual({r["n"] for r in rows}, {name}, tag)
+        for r in self.parts:
+            if "WildboundShopSpot" in r.get("tags", []):
+                shop = next(s for s in self.layout["shops"] if s["id"] == r["a"]["ShopId"])
+                self.assertEqual(r["a"]["TriggerRadius"], shop["trigger_radius"])
+                self.assertEqual(r["a"]["CloseRadius"], shop["close_radius"])
+                self.assertEqual(r["a"]["Range"], shop["server_range"])
+                self.assertEqual(r["a"]["Label"], shop["label"])
+                self.assertAlmostEqual(r["p"][0], shop["centre"][0], places=3)
+                self.assertAlmostEqual(r["p"][2], shop["centre"][1], places=3)
+                self.assertEqual(r["role"], "deco")
+            if "WildboundChestStation" in r.get("tags", []):
+                base = self.layout["bases"][r["a"]["SlotIndex"] - 1]
+                self.assertEqual(r["a"]["TriggerRadius"], base["chest"]["trigger_radius"])
+                self.assertEqual(r["a"]["Range"], base["chest"]["server_range"])
+                self.assertAlmostEqual(r["p"][0], base["chest"]["world"][0], places=3)
+                self.assertEqual(self.model_of(r)["path"], "Bases/Base%d" % base["slot"])
+            if "WildboundBaseZone" in r.get("tags", []):
+                self.assertEqual(r["role"], "zone")
+                self.assertEqual(r["a"]["ExitMargin"], 2.0)
+            if "WildboundShowcase" in r.get("tags", []):
+                self.assertEqual(r["a"]["Slots"], 1)
+                self.assertGreater(r["a"]["HoverHeight"], 0)
+        slots = {r["a"]["Slots"] for r in self.parts if "WildboundIncubatorStation" in r.get("tags", [])}
+        self.assertEqual(slots, {2})
+
+    def test_v1_module_is_untouched_by_the_expansion(self):
+        v1 = json.loads(plan.to_json(plan.generate(variant="v1")))
+        self.assertEqual(kit.tags_for(v1), kit.TAGS)
+        self.assertEqual(kit.module_path(v1["name"]), kit.MODULE)
+        self.assertNotIn("WildboundShopSpot", kit.render(v1))
+        self.assertNotEqual(kit.module_path(self.layout["name"]), kit.MODULE)
+
+
+class WrittenFilesV2(WrittenFiles):
+    PLAN = REPO / "assets" / "maps" / "hub-layout" / "hub-bases-v2.json"
+    MODULE = TOOLS / "build-wildbound-hub-map-v2.luau"
+    REPORT = REPO / "assets" / "maps" / "hub-layout" / "hub-kit-report-v2.json"
+    REQUIRED = REQUIRED_TAGS + tuple(V2_TAGS)
 
 
 if __name__ == "__main__":

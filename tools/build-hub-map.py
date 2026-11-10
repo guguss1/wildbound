@@ -44,6 +44,35 @@ TAGS = ("WildboundHub", "WildboundBaseSlot", "WildboundDeliveryStation", "Wildbo
         "WildboundCollectionDisplay", "WildboundGloveStation", "WildboundTrainingStation", "WildboundHubSafeZone",
         "WildboundHubEntrance", "WildboundHubSpawnPad", "WildboundBaseSign", "WildboundHubCampfire")
 STATION_RANGE = 8.0                            # suggested prompt reach for the game code, studs
+# Hub expansion (plan variant v2, docs/design/wildbound-hub-expansion.md): extra tags, and a lighter, warmer ground
+# palette given as "#hex" so the v1 palette and module stay byte-identical.
+EXPANSION_TAGS = ("WildboundShopSpot", "WildboundChestStation", "WildboundShowcase", "WildboundBaseZone")
+BRIGHT_GROUND = {"grass": "#8DBB63", "plaza": "#E6D7BA", "path": "#ECDDC2"}
+
+
+def expanded(plan):
+    return "shops" in plan
+
+
+def tags_for(plan):
+    return TAGS + EXPANSION_TAGS if expanded(plan) else TAGS
+
+
+def ground(plan, key):
+    return BRIGHT_GROUND.get(key, key) if expanded(plan) else key
+
+
+def module_path(plan_name):
+    """v1 keeps the module Studio deploys today; any other plan renders beside it under its own suffix."""
+    if plan_name == "hub-bases-v1":
+        return MODULE
+    return TOOLS / ("build-wildbound-hub-map-%s.luau" % plan_name.rsplit("-", 1)[-1])
+
+
+def report_path(plan_name):
+    if plan_name == "hub-bases-v1":
+        return REPORT
+    return REPORT.with_name("hub-kit-report-%s.json" % plan_name.rsplit("-", 1)[-1])
 
 
 def hex_to_rgb(value):
@@ -109,14 +138,14 @@ def build_lobby(kit, plan, lights):
     hub, lobby = plan["hub"], plan["lobby"]
     top = hub["floor_top"]
     m = kit.model("Lobby", "Folder")
-    kit.part(m, "Floor", "C", (2 * hub["floor_radius"], 1.0, 2 * hub["floor_radius"]), (0, 0), 0.0, 0.0, "grass",
-             "floor", "Grass")
+    kit.part(m, "Floor", "C", (2 * hub["floor_radius"], 1.0, 2 * hub["floor_radius"]), (0, 0), 0.0, 0.0,
+             ground(plan, "grass"), "floor", "Grass")
     kit.part(m, "Plaza", "C", (2 * lobby["plaza_radius"], 0.2, 2 * lobby["plaza_radius"]), (0, 0), top + 0.02, 0.0,
-             "plaza", "floor", "Pavement")
+             ground(plan, "plaza"), "floor", "Pavement")
     width = lobby["promenade"]["width"]
     for k, piece in enumerate(lobby["promenade"]["pieces"]):
         kit.part(m, "Promenade%d" % (k + 1), "B", (piece["length"], 0.2, width), piece["centre"], top, piece["yaw"],
-                 "path", "floor", "Pavement")
+                 ground(plan, "path"), "floor", "Pavement")
     pads = kit.model("Lobby/SpawnPads", "Folder")
     for k, pad in enumerate(lobby["spawn_pads"]):
         kit.part(pads, "SpawnPad%d" % (k + 1), "B", (pad["size"], 0.3, pad["size"]), pad["centre"], top + 0.2,
@@ -161,7 +190,7 @@ def build_wall_and_entrances(kit, plan, lights):
     for e in plan["entrances"]:
         p = e["path"]
         kit.part(paths, "GatePath_" + e["id"], "B", (p["width"], 0.2, p["length"]), p["centre"], top + 0.01, p["yaw"],
-                 "path", "floor", "Pavement")
+                 ground(plan, "path"), "floor", "Pavement")
     for e in plan["entrances"]:
         t = e["trail"]
         kit.part(paths, "Trail_" + e["id"], "B", (t["width"], 1.2, t["length"] + 1.0), t["centre"], top - 0.5 + 0.01,
@@ -230,7 +259,7 @@ def build_base(kit, base, lights):
 
     s = st["incubator"]
     kit.part(m, "IncubatorBase", "C", (5.0, 1.2, 5.0), s["world"], top + 0.6, yaw, "paleWood", "deco", "Wood",
-             tags=[s["tag"]], a=dict(station_attrs(base, s), Slots=1))
+             tags=[s["tag"]], a=dict(station_attrs(base, s), Slots=s.get("slots", 1)))
     kit.part(m, "IncubatorCradle", "C", (2.6, 0.4, 2.6), s["world"], top + 1.4, yaw, "straw", "deco", "Fabric")
     kit.part(m, "IncubatorDome", "S", (4.6, 4.6, 4.6), s["world"], top + 1.2, yaw, "glass", "deco", "Glass", t=0.45,
              ns=True)
@@ -266,6 +295,66 @@ def build_base(kit, base, lights):
                  "deco", "Metal")
 
     lantern(kit, m, "Lantern", base["lantern"]["world"], top, lights["base-%d" % slot], "base-%d" % slot)
+    if "chest" in base:
+        build_base_expansion(kit, m, base, lights, colour, top)
+
+
+def build_base_expansion(kit, m, base, lights, colour, top):
+    """v2: the chest zone and its chest, the showcase in front of the base, and the invisible bank zone."""
+    slot, yaw = base["slot"], base["yaw"]
+    c = base["chest"]
+    r = c["trigger_radius"]
+    kit.part(m, "ChestZone", "C", (2 * r, 0.12, 2 * r), c["world"], top + 0.07, yaw, colour, "deco", "Neon", t=0.35,
+             ns=True, tags=[c["tag"]],
+             a={"SlotIndex": slot, "StationKind": "chest", "Label": c["label"], "TriggerRadius": r,
+                "CloseRadius": c["close_radius"], "Range": c["server_range"]})
+    prop = c["prop"]
+    kit.part(m, "ChestBox", "B", (2 * prop["half"][0], 1.4, 2 * prop["half"][1]), prop["world"], top + 0.7, yaw, "wood",
+             "deco", "WoodPlanks")
+    kit.part(m, "ChestLid", "B", (2 * prop["half"][0] + 0.2, 0.5, 2 * prop["half"][1] + 0.2), prop["world"], top + 1.65,
+             yaw, colour, "deco", "WoodPlanks")
+    sc = base["showcase"]
+    floor = 0.5
+    kit.part(m, "ShowcasePlinth", "C", (2 * sc["r"], 1.6, 2 * sc["r"]), sc["world"], floor + 0.8, yaw, "paleWood",
+             "deco", "Wood", tags=[sc["tag"]],
+             a={"SlotIndex": slot, "Slots": sc["slots"], "HoverHeight": sc["hover"]})
+    light = lights["showcase-%d" % slot]
+    kit.part(m, "ShowcaseRing", "C", (2 * sc["r"] + 0.6, 0.15, 2 * sc["r"] + 0.6), sc["world"], floor + 0.08, yaw,
+             colour, "deco", "Neon", t=0.3, ns=True, l=[light["brightness"], light["range"], light["color"]],
+             a={"LightId": light["id"]})
+    kit.part(m, "ShowcasePlate", "B", (3.2, 0.9, 0.2), offset(sc["world"], yaw, 0.0, -(sc["r"] + 0.15)), floor + 0.9,
+             yaw, "paleWood", "deco", "WoodPlanks", a={"SignKey": sc["sign"]["key"], "SlotIndex": slot},
+             sign={"key": sc["sign"]["key"], "text": sc["sign"]["text"]})
+    z = base["bank_zone"]
+    kit.part(m, "BaseZone", "B", (2 * z["half"][0], z["height"], 2 * z["half"][1]), z["centre"], top + z["height"] / 2,
+             yaw, "zone", "zone", t=1, ns=True, tags=[z["tag"]],
+             a={"SlotIndex": slot, "ExitMargin": z["exit_margin"], "Height": z["height"]})
+
+
+def build_shops(kit, plan, lights):
+    """v2: a glowing circle on the lawn (stand on it to open the shop) and a small stall behind it."""
+    top = plan["hub"]["floor_top"]
+    for s in plan["shops"]:
+        m = kit.model("Shops/Shop_" + s["id"], attrs={"ShopId": s["id"]})
+        colour, yaw = "#" + s["colour"], s["yaw"]
+        r = s["trigger_radius"]
+        kit.part(m, "ShopCircle", "C", (2 * r, 0.12, 2 * r), s["centre"], top + 0.07, yaw, colour, "deco", "Neon",
+                 t=0.3, ns=True, tags=[s["tag"]],
+                 a={"ShopId": s["id"], "Label": s["label"], "TriggerRadius": r, "CloseRadius": s["close_radius"],
+                    "Range": s["server_range"]})
+        st = s["stall"]
+        hx, hz = st["half"]
+        kit.part(m, "Counter", "B", (2 * hx, 2.4, 2 * hz), st["centre"], top + 1.2, yaw, "wood", "deco", "WoodPlanks")
+        for side, name in ((-1, "AwningPostLeft"), (1, "AwningPostRight")):
+            kit.part(m, name, "B", (0.35, 6.0, 0.35), offset(st["centre"], yaw, side * (hx - 0.2), hz - 0.2),
+                     top + 3.0, yaw, "wood", "deco", "Wood")
+        light = lights["shop-" + s["id"]]
+        kit.part(m, "Awning", "B", (2 * hx + 1.0, 0.4, 2 * hz + 1.6), offset(st["centre"], yaw, 0.0, -0.3), top + 6.2,
+                 yaw, colour, "deco", "Fabric", l=[light["brightness"], light["range"], light["color"]],
+                 a={"LightId": light["id"]})
+        kit.part(m, "ShopSign", "B", (2 * hx, 1.4, 0.3), offset(st["centre"], yaw, 0.0, -(hz + 0.9)), top + 5.2, yaw,
+                 "paleWood", "deco", "WoodPlanks", a={"SignKey": "shop_" + s["id"]},
+                 sign={"key": "shop_" + s["id"], "text": s["sign"]})
 
 
 def validate(plan):
@@ -292,6 +381,8 @@ def finalize(plan):
     build_wall_and_entrances(kit, plan, lights)
     for base in plan["bases"]:
         build_base(kit, base, lights)
+    if expanded(plan):
+        build_shops(kit, plan, lights)
     paths = [mdl["path"] for mdl in kit.models]
     for path in list(paths):                       # implicit parent folders, e.g. "Bases", "Gates"
         parts = path.split("/")
@@ -530,10 +621,10 @@ def render(plan):
         raise ValueError("plan text would close the Luau long string")
     counts = part_count(plan)
     out = TEMPLATE
-    for token, value in (("@@PLANNAME@@", plan["name"]), ("@@PLAN@@", PLAN.name), ("@@SEED@@", str(plan["seed"])),
+    for token, value in (("@@PLANNAME@@", plan["name"]), ("@@PLAN@@", plan["name"] + ".json"), ("@@SEED@@", str(plan["seed"])),
                          ("@@ADLER@@", str(adler32(data))), ("@@PARTS@@", str(counts["total"])),
                          ("@@LIGHTS@@", str(counts["lights"])), ("@@ROOT@@", ROOT_NAME),
-                         ("@@TAGS@@", ", ".join("'%s'" % t for t in TAGS)), ("@@SAFE@@", str(plan["hub"]["safe_radius"])),
+                         ("@@TAGS@@", ", ".join("'%s'" % t for t in tags_for(plan))), ("@@SAFE@@", str(plan["hub"]["safe_radius"])),
                          ("@@PALETTE@@", palette_text()), ("@@DATA@@", data)):
         out = out.replace(token, value)
     return out
@@ -547,13 +638,13 @@ def report(plan, module_text):
         "plan": plan["name"],
         "seed": plan["seed"],
         "status": "unvalidated: the module was never run in Studio by this tool",
-        "module": MODULE.name,
+        "module": module_path(plan["name"]).name,
         "module_adler32": adler32(module_text),
         "data_adler32": adler32(data_text(plan)),
         "parts": part_count(plan),
         "budget": plan["budget"],
         "tags": {tag: sum(1 for row in data["parts"] if tag in row.get("tags", []))
-                 + sum(1 for mdl in data["models"] if tag in mdl["tags"]) for tag in TAGS},
+                 + sum(1 for mdl in data["models"] if tag in mdl["tags"]) for tag in tags_for(plan)},
         "palette": PALETTE,
         "signs": [{"key": row["sign"]["key"], "text": row["sign"]["text"]} for row in data["parts"] if "sign" in row],
     }
@@ -567,21 +658,22 @@ def main(argv=None):
     args = parser.parse_args(argv)
     plan = json.loads(args.plan.read_text(encoding="utf-8"))
     module = render(plan)
+    module_file, report_file = module_path(plan["name"]), report_path(plan["name"])
     if args.stdout:
         sys.stdout.buffer.write(module.encode("utf-8"))
         return 0
     if args.check:
-        current = MODULE.read_text(encoding="utf-8") if MODULE.exists() else ""
+        current = module_file.read_text(encoding="utf-8") if module_file.exists() else ""
         if current != module:
-            print("stale:", MODULE)
+            print("stale:", module_file)
             return 1
-        print("fresh:", MODULE, "adler32", adler32(module))
+        print("fresh:", module_file, "adler32", adler32(module))
         return 0
-    MODULE.write_bytes(module.encode("utf-8"))
-    REPORT.write_bytes((json.dumps(report(plan, module), indent=1, ensure_ascii=False) + "\n").encode("utf-8"))
+    module_file.write_bytes(module.encode("utf-8"))
+    report_file.write_bytes((json.dumps(report(plan, module), indent=1, ensure_ascii=False) + "\n").encode("utf-8"))
     counts = part_count(plan)
-    print("wrote", MODULE, "adler32", adler32(module))
-    print("wrote", REPORT)
+    print("wrote", module_file, "adler32", adler32(module))
+    print("wrote", report_file)
     print("parts: %d (%s), per base %d, lights %d" % (counts["total"], counts["by_group"], counts["per_base"],
                                                       counts["lights"]))
     return 0
