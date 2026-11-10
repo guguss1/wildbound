@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshViewClone), freshViewClone.Source,
--- require(freshIslandLayoutClone)) in Studio. Pure view-models for the Wildbound HUD: chip, hint, notice expiry, text
--- fitting. Time is injected. The island layout (stalk sightings) is optional; without it that case fails.
-return function(View, source, islandLayout)
+-- require(freshIslandLayoutClone), require(freshRulesClone)) in Studio. Pure view-models for the Wildbound HUD: chip,
+-- hint, notice expiry, text fitting. Time is injected. The island layout (stalk sightings) and the world rules (the
+-- hub circle) are optional; without them those cases fail.
+return function(View, source, islandLayout, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -631,6 +632,49 @@ return function(View, source, islandLayout)
 		local inCamp = { { x = zone.x + 12, z = zone.z, r = 1.5 } }
 		assert(View.stalkSpot(zone.x, zone.z - 25, 0, 1, inCamp, {}), "a spot without the keep-out circles")
 		equal(View.stalkSpot(zone.x, zone.z - 25, 0, 1, inCamp, View.STALK_KEEP_OUT), nil)
+	end)
+
+	case("HV-H1: no stalk sighting can land inside the hub disc, and the hub counts as home", function()
+		assert(Rules and Rules.HUB_X, "the world rules are passed in")
+		local hub = View.HUB_CIRCLE
+		assert(type(hub) == "table", "View.HUB_CIRCLE")
+		equal(hub.x, Rules.HUB_X); equal(hub.z, Rules.HUB_Z); equal(hub.r, Rules.HUB_RADIUS)
+		local zone
+		for _, candidate in ipairs(View.STALK_KEEP_OUT) do
+			if candidate.x == hub.x and candidate.z == hub.z then zone = candidate end
+		end
+		assert(zone and zone.r >= hub.r + 10, "a keep-out circle covers the hub disc with a margin")
+		-- A ring of trunk cores all around the hub, seen from many spots and looks: every spot found is outside the disc.
+		local cores = {}
+		for i = 0, 71 do
+			local a = i / 72 * 2 * math.pi
+			for _, d in ipairs({ 20, 45, 70, 85, 95, 110 }) do
+				table.insert(cores, { x = hub.x + d * math.cos(a), z = hub.z + d * math.sin(a), r = 1.5 })
+			end
+		end
+		local found = 0
+		for i = 0, 23 do
+			local a = i / 24 * 2 * math.pi
+			for _, d in ipairs({ 0, 40, 80, 100, 120, 140 }) do
+				local px, pz = hub.x + d * math.cos(a), hub.z + d * math.sin(a)
+				for j = 0, 7 do
+					local b = j / 8 * 2 * math.pi
+					local x, z = View.stalkSpot(px, pz, math.cos(b), math.sin(b), cores, View.STALK_KEEP_OUT)
+					if x then
+						found += 1
+						assert(math.sqrt((x - hub.x) ^ 2 + (z - hub.z) ^ 2) > hub.r, "a sighting inside the hub")
+					end
+				end
+			end
+		end
+		assert(found > 0, "spots outside the hub are still found")
+		equal(View.inHub(hub.x, hub.z), true); equal(View.inHub(hub.x + hub.r - 0.01, hub.z), true)
+		equal(View.inHub(hub.x + hub.r + 0.01, hub.z), false); equal(View.inHub(NAN, 0), false)
+		equal(View.farFromHome(hub.x, hub.z), false, "the hub is home")
+		equal(View.farFromHome(hub.x + 120, hub.z), false)
+		equal(View.farFromHome(Rules.CAMP_X, Rules.CAMP_Z), false, "the camp is home")
+		equal(View.farFromHome(Rules.CAMP_X, Rules.CAMP_Z - View.FAR_FROM_HOME - 1), true)
+		equal(View.farFromHome(NAN, 0), false)
 	end)
 
 	case("Stalk: it vanishes when looked at, approached, after its seconds, or when the real one hunts", function()

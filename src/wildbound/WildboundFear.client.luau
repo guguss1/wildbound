@@ -271,10 +271,10 @@ end)
 -- standing still just behind a trunk, off to the side; it tilts its head and is gone when looked at, approached, or
 -- after a few seconds. A client-only copy of its art: no collision, no queries, no touch, nothing sent to the server,
 -- so it can never hit, be heard by the guardian or change the game. Never while the real one is after this player,
--- near or in view; never in camp, on the spawn pad or on an island floor (View.STALK_KEEP_OUT). The rules and the
+-- near or in view; never in camp, the hub, on the spawn pad or on an island floor (View.STALK_KEEP_OUT), and never
+-- staged while the player stands in the hub (View.inHub). The rules and the
 -- numbers are in WildboundHudView (stalk*); "Efectos suaves": at most one per evening, twice as rare, no whisper.
 local STALK_FIRST_WAIT = 20
-local CAMP_X, CAMP_Z, FAR_FROM_CAMP = -140, 140, 150
 local stalk = { nextAt = os.clock() + STALK_FIRST_WAIT, count = 0, phase = nil, shown = nil }
 local coreCache
 local function trunkCores()
@@ -444,6 +444,7 @@ local function stalkStep()
 	if now < stalk.nextAt then return end
 	local ok, reason = View.stalkAllowed({ phase = phase, count = stalk.count, reduced = reduced,
 		guardianState = guardianState, guardianDistance = guardianDistance })
+	if ok and View.inHub(root.Position.X, root.Position.Z) then ok, reason = false, "Hub" end
 	-- Never while the real one is in view, even far away.
 	if ok and body and guardianDistance < 160 then
 		local toward = body.Position - camera.CFrame.Position
@@ -466,7 +467,7 @@ local function stalkStep()
 	gui:SetAttribute("StalkDistance", math.floor(Vector3.new(x - root.Position.X, 0, z - root.Position.Z).Magnitude * 10 + 0.5) / 10)
 	local character = player.Character
 	local carrying = character ~= nil and character:FindFirstChild("WildboundCarryCapsule") ~= nil
-	local far = Vector3.new(root.Position.X - CAMP_X, 0, root.Position.Z - CAMP_Z).Magnitude > FAR_FROM_CAMP
+	local far = View.farFromHome(root.Position.X, root.Position.Z)
 	local delaySeconds = View.stalkInterval(carrying, far, reduced, rng:NextNumber())
 	gui:SetAttribute("StalkNextIn", math.floor(delaySeconds * 10 + 0.5) / 10)
 	stalk.nextAt = now + delaySeconds

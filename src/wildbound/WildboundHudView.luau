@@ -429,10 +429,18 @@ function View.knockback(px, pz, ax, az)
 	return dx / length * CONSTANTS.KNOCKBACK, dz / length * CONSTANTS.KNOCKBACK
 end
 
--- Stalk sightings (fear pass). Never in camp, the shelter, on the spawn pad or on an island floor (each island circle
--- is its floor radius plus 8; a contract checks the layout): x, z, radius in studs.
+-- The hub's safe disc (Rules.HUB_X, HUB_Z, HUB_RADIUS repeated here: the clients cannot load the server's world
+-- rules; a test keeps them equal). The forest shift (S1) moves it with the rules.
+View.HUB_CIRCLE = table.freeze({ x = 0, z = 600, r = 90 })
+-- Studs from the camp's or the hub's centre past which the player counts as far from home (sightings come sooner).
+View.FAR_FROM_HOME = 150
+
+-- Stalk sightings (fear pass). Never in camp, the shelter, the hub, on the spawn pad or on an island floor (each
+-- island circle is its floor radius plus 8; a contract checks the layout; the hub's is its safe disc plus 10, like
+-- the camp's): x, z, radius in studs.
 View.STALK_KEEP_OUT = table.freeze({
 	table.freeze({ x = -140, z = 140, r = 45 }), -- camp
+	table.freeze({ x = View.HUB_CIRCLE.x, z = View.HUB_CIRCLE.z, r = View.HUB_CIRCLE.r + 10 }), -- hub
 	table.freeze({ x = 105, z = 125, r = 30 }), -- shelter
 	table.freeze({ x = 0, z = 0, r = 15 }), -- spawn pad
 	table.freeze({ x = -95, z = 75, r = 22 }), -- island 1
@@ -457,6 +465,22 @@ function View.stalkAllowed(input)
 	local cap = input.reduced == true and 1 or CONSTANTS.STALK_PER_NIGHT
 	if not finite(input.count) or input.count >= cap then return false, "Cap" end
 	return true, nil
+end
+
+-- True inside the hub's safe disc: no sighting is staged there.
+function View.inHub(x, z)
+	if not (finite(x) and finite(z)) then return false end
+	local hub = View.HUB_CIRCLE
+	return math.sqrt((x - hub.x) ^ 2 + (z - hub.z) ^ 2) <= hub.r
+end
+
+-- True when the player is farther than FAR_FROM_HOME from both the camp's and the hub's centre. False for a bad
+-- position (bad input never makes a sighting come sooner).
+function View.farFromHome(x, z)
+	if not (finite(x) and finite(z)) then return false end
+	local hub = View.HUB_CIRCLE
+	return math.sqrt((x + 140) ^ 2 + (z - 140) ^ 2) > View.FAR_FROM_HOME
+		and math.sqrt((x - hub.x) ^ 2 + (z - hub.z) ^ 2) > View.FAR_FROM_HOME
 end
 
 -- Seconds until the next sighting may come: STALK_EVERY scaled by a roll (0.6 to 1.4), sooner while carrying a cria
