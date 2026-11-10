@@ -397,6 +397,13 @@ class DefaultMappingTests(unittest.TestCase):
         # NS5: the treadmill rule (shared) and its suite
         "src/wildbound/WildboundTraining.luau": "ReplicatedStorage.WildboundTraining",
         "tests/WildboundTraining_Test.luau": "ServerStorage.WildboundTraining_Test",
+        # Nest Heist hub (HB-T1 to HB-T5): the generated hub builder, the hub script, the base rule, the stations and
+        # their suite, at the Explorer paths created in Studio by this unit
+        "tools/build-wildbound-hub-map.luau": "ServerStorage.WildboundHubBuilder",
+        "src/wildbound/WildboundHub.server.luau": "ServerScriptService.WildboundHub",
+        "src/wildbound/WildboundBases.luau": "ServerScriptService.WildboundBases",
+        "src/wildbound/WildboundHubStations.luau": "ServerScriptService.WildboundHubStations",
+        "tests/WildboundHub_Test.luau": "ServerStorage.WildboundHub_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

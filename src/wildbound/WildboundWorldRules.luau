@@ -38,6 +38,14 @@ Rules.SILUETA_VISUAL_SCALE = 3.8
 -- later player takes a freed slot). Tunable live (Silueta.MAX_HUNTERS, 1 to 16).
 Rules.MAX_HUNTERS = 8
 Rules.DAMAGE = 20
+-- Nest Heist hub (HB-T1): where the hub's centre is in this world, and the radius of its safe disc. This is the one
+-- value the forest shift (docs/design/wildbound-open-world-gaps.md step S1) changes: the hub script builds there, the
+-- camp link ends there and Rules.zone reads it. A translation only (the hub plan assumes no rotation). Until S1 the
+-- hub is previewed 600 studs south of the forest's origin, on open ground.
+Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 0, 600, 90
+-- The camp's safe circle (its centre is not the CampCenter marker, which sits 18 studs west of it); the hub link
+-- starts inside it.
+Rules.CAMP_X, Rules.CAMP_Z, Rules.CAMP_RADIUS = -140, 140, 35
 
 function Rules.finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -145,8 +153,8 @@ end
 
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
-	local safe = Rules.distance(x, z, -140, 140) <= 35 or Rules.distance(x, z, 105, 125) <= 22
-		or Rules.refugeAt(x, z) ~= nil
+	local safe = Rules.distance(x, z, Rules.CAMP_X, Rules.CAMP_Z) <= Rules.CAMP_RADIUS
+		or Rules.distance(x, z, 105, 125) <= 22 or Rules.refugeAt(x, z) ~= nil
 	local fog = x >= -45 and x <= 165 and z >= -165 and z <= 35
 	return fog, safe
 end
