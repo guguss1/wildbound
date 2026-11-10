@@ -1,0 +1,4400 @@
+{
+ "name": "hub-bases-v2",
+ "status": "design, unvalidated: never built in Studio, played or measured on a device",
+ "seed": 20261110,
+ "conventions": {
+  "units": "studs; the open-world hub frame of layout-v1.json (origin at the hub centre, x east, z south)",
+  "yaw": "rotation_y_deg as CFrame.Angles(0, rad, 0); local +X = (cos r, -sin r), local +Z = (sin r, cos r)",
+  "front": "a piece faces along its local -Z (its Front face); bases and gate signs face the lobby",
+  "bearing": "centre + radius * (cos b, sin b): 0 east, 90 south, 180 west, 270 north",
+  "station_local": "station local (lx, lz) is in its base's frame: -lz toward the lobby, +lx to the right",
+  "heights": "floor top y 0.5; base pad top y 0.9"
+ },
+ "sources": {
+  "open_world": "assets/maps/open-world/layout-v1.json",
+  "combined_plan": "docs/design/wildbound-combined-plan.md"
+ },
+ "supersedes": {
+  "layout_v1_hub_radius": 60.0,
+  "hub_safe_radius": 100.0,
+  "why": "the hub expansion (docs/design/wildbound-hub-expansion.md): a 100 disc is the most layout-v1's region squares (x -100 and 100) allow; bases grow to 29 x 24 for a chest zone, a showcase stands in front of each base, four shop circles sit on the lawn ring",
+  "transitions": "the transitions vanish: the hub disc meets both region squares; the fog and every beast stay beyond x -135 and x 340",
+  "hub_bases_v1_radius": 90.0
+ },
+ "hub": {
+  "centre": [
+   0.0,
+   0.0
+  ],
+  "safe_radius": 100.0,
+  "floor_radius": 102.0,
+  "floor_top": 0.5,
+  "max_players": 8,
+  "wall": {
+   "radius": 98.0,
+   "thick": 2.0,
+   "height": 4.0,
+   "gate_half_angle": 5.034
+  },
+  "pvp": false,
+  "beasts": false
+ },
+ "lobby": {
+  "plaza_radius": 34.0,
+  "campfire": {
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "r": 3.5,
+   "stones": [
+    {
+     "centre": [
+      3.031,
+      1.75
+     ]
+    },
+    {
+     "centre": [
+      0.0,
+      3.5
+     ]
+    },
+    {
+     "centre": [
+      -3.031,
+      1.75
+     ]
+    },
+    {
+     "centre": [
+      -3.031,
+      -1.75
+     ]
+    },
+    {
+     "centre": [
+      0.0,
+      -3.5
+     ]
+    },
+    {
+     "centre": [
+      3.031,
+      -1.75
+     ]
+    }
+   ],
+   "light": [
+    255,
+    176,
+    96
+   ]
+  },
+  "promenade": {
+   "radius": 54.0,
+   "width": 8.0,
+   "pieces": [
+    {
+     "centre": [
+      53.335,
+      0.0
+     ],
+     "length": 17.895,
+     "yaw": 90.0
+    },
+    {
+     "centre": [
+      50.725,
+      16.481
+     ],
+     "length": 17.895,
+     "yaw": 72.0
+    },
+    {
+     "centre": [
+      43.149,
+      31.35
+     ],
+     "length": 17.895,
+     "yaw": 54.0
+    },
+    {
+     "centre": [
+      31.35,
+      43.149
+     ],
+     "length": 17.895,
+     "yaw": 36.0
+    },
+    {
+     "centre": [
+      16.481,
+      50.725
+     ],
+     "length": 17.895,
+     "yaw": 18.0
+    },
+    {
+     "centre": [
+      0.0,
+      53.335
+     ],
+     "length": 17.895,
+     "yaw": 0.0
+    },
+    {
+     "centre": [
+      -16.481,
+      50.725
+     ],
+     "length": 17.895,
+     "yaw": 342.0
+    },
+    {
+     "centre": [
+      -31.35,
+      43.149
+     ],
+     "length": 17.895,
+     "yaw": 324.0
+    },
+    {
+     "centre": [
+      -43.149,
+      31.35
+     ],
+     "length": 17.895,
+     "yaw": 306.0
+    },
+    {
+     "centre": [
+      -50.725,
+      16.481
+     ],
+     "length": 17.895,
+     "yaw": 288.0
+    },
+    {
+     "centre": [
+      -53.335,
+      0.0
+     ],
+     "length": 17.895,
+     "yaw": 270.0
+    },
+    {
+     "centre": [
+      -50.725,
+      -16.481
+     ],
+     "length": 17.895,
+     "yaw": 252.0
+    },
+    {
+     "centre": [
+      -43.149,
+      -31.35
+     ],
+     "length": 17.895,
+     "yaw": 234.0
+    },
+    {
+     "centre": [
+      -31.35,
+      -43.149
+     ],
+     "length": 17.895,
+     "yaw": 216.0
+    },
+    {
+     "centre": [
+      -16.481,
+      -50.725
+     ],
+     "length": 17.895,
+     "yaw": 198.0
+    },
+    {
+     "centre": [
+      0.0,
+      -53.335
+     ],
+     "length": 17.895,
+     "yaw": 180.0
+    },
+    {
+     "centre": [
+      16.481,
+      -50.725
+     ],
+     "length": 17.895,
+     "yaw": 162.0
+    },
+    {
+     "centre": [
+      31.35,
+      -43.149
+     ],
+     "length": 17.895,
+     "yaw": 144.0
+    },
+    {
+     "centre": [
+      43.149,
+      -31.35
+     ],
+     "length": 17.895,
+     "yaw": 126.0
+    },
+    {
+     "centre": [
+      50.725,
+      -16.481
+     ],
+     "length": 17.895,
+     "yaw": 108.0
+    }
+   ]
+  },
+  "spawn_pads": [
+   {
+    "id": "spawn-1",
+    "centre": [
+     16.0,
+     0.0
+    ],
+    "size": 6.0,
+    "faces": "east",
+    "yaw": 270.0
+   },
+   {
+    "id": "spawn-2",
+    "centre": [
+     0.0,
+     16.0
+    ],
+    "size": 6.0,
+    "faces": "east",
+    "yaw": 270.0
+   },
+   {
+    "id": "spawn-3",
+    "centre": [
+     -16.0,
+     0.0
+    ],
+    "size": 6.0,
+    "faces": "east",
+    "yaw": 270.0
+   },
+   {
+    "id": "spawn-4",
+    "centre": [
+     0.0,
+     -16.0
+    ],
+    "size": 6.0,
+    "faces": "east",
+    "yaw": 270.0
+   }
+  ],
+  "rules_sign": {
+   "key": "hubRules",
+   "text": "Plaza segura\nSin peleas ni bestias",
+   "centre": [
+    26.0,
+    -6.0
+   ],
+   "yaw": 90.0,
+   "width": 6.0
+  }
+ },
+ "bases": [
+  {
+   "slot": 1,
+   "id": "base-1",
+   "bearing": 22.5,
+   "centre": [
+    71.139,
+    29.467
+   ],
+   "yaw": 67.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Rojo",
+    "hex": "E5484D"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 67.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     60.052,
+     24.875
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     56.819,
+     23.535
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 67.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      81.995,
+      33.964
+     ],
+     "yaw": 67.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      65.686,
+      42.632
+     ],
+     "yaw": 67.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      76.592,
+      16.302
+     ],
+     "yaw": 67.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      56.744,
+      33.516
+     ],
+     "yaw": 67.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      63.823,
+      16.425
+     ],
+     "yaw": 67.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base1",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     56.839,
+     33.285
+    ],
+    "yaw": 67.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     75.594,
+     44.842
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      66.52,
+      27.554
+     ],
+     "yaw": 67.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      69.964,
+      19.239
+     ],
+     "yaw": 67.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 67.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      62.614,
+      35.677
+     ],
+     "yaw": 67.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 67.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      72.697,
+      38.771
+     ],
+     "yaw": 67.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      79.664,
+      23.257
+     ],
+     "yaw": 67.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 67.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     78.068,
+     32.337
+    ],
+    "yaw": 67.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      80.655,
+      33.409
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 67.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     60.171,
+     15.182
+    ],
+    "yaw": 67.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase1",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     71.139,
+     29.467
+    ],
+    "yaw": 67.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 2,
+   "id": "base-2",
+   "bearing": 67.5,
+   "centre": [
+    29.467,
+    71.139
+   ],
+   "yaw": 22.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Naranja",
+    "hex": "F2913D"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 22.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     24.875,
+     60.052
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     23.535,
+     56.819
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 22.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      33.964,
+      81.995
+     ],
+     "yaw": 22.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      16.302,
+      76.592
+     ],
+     "yaw": 22.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      42.632,
+      65.686
+     ],
+     "yaw": 22.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      16.425,
+      63.823
+     ],
+     "yaw": 22.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      33.516,
+      56.744
+     ],
+     "yaw": 22.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base2",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     16.656,
+     63.728
+    ],
+    "yaw": 22.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     21.745,
+     85.161
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      27.554,
+      66.52
+     ],
+     "yaw": 22.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      35.868,
+      63.075
+     ],
+     "yaw": 22.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 22.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      19.047,
+      69.502
+     ],
+     "yaw": 22.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 22.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      23.989,
+      78.82
+     ],
+     "yaw": 22.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      39.887,
+      72.776
+     ],
+     "yaw": 22.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 22.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     32.337,
+     78.068
+    ],
+    "yaw": 22.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      33.409,
+      80.655
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 22.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     31.812,
+     53.282
+    ],
+    "yaw": 22.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase2",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     29.467,
+     71.139
+    ],
+    "yaw": 22.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 3,
+   "id": "base-3",
+   "bearing": 112.5,
+   "centre": [
+    -29.467,
+    71.139
+   ],
+   "yaw": 337.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Amarillo",
+    "hex": "F5D547"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 337.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     -24.875,
+     60.052
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     -23.535,
+     56.819
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 337.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      -33.964,
+      81.995
+     ],
+     "yaw": 337.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -42.632,
+      65.686
+     ],
+     "yaw": 337.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -16.302,
+      76.592
+     ],
+     "yaw": 337.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -33.516,
+      56.744
+     ],
+     "yaw": 337.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -16.425,
+      63.823
+     ],
+     "yaw": 337.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base3",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     -33.285,
+     56.839
+    ],
+    "yaw": 337.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     -44.842,
+     75.594
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      -27.554,
+      66.52
+     ],
+     "yaw": 337.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      -19.239,
+      69.964
+     ],
+     "yaw": 337.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 337.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      -35.677,
+      62.614
+     ],
+     "yaw": 337.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 337.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      -38.771,
+      72.697
+     ],
+     "yaw": 337.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      -23.257,
+      79.664
+     ],
+     "yaw": 337.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 337.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     -32.337,
+     78.068
+    ],
+    "yaw": 337.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      -33.409,
+      80.655
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 337.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     -15.182,
+     60.171
+    ],
+    "yaw": 337.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase3",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     -29.467,
+     71.139
+    ],
+    "yaw": 337.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 4,
+   "id": "base-4",
+   "bearing": 157.5,
+   "centre": [
+    -71.139,
+    29.467
+   ],
+   "yaw": 292.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Verde",
+    "hex": "5CC46A"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 292.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     -60.052,
+     24.875
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     -56.819,
+     23.535
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 292.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      -81.995,
+      33.964
+     ],
+     "yaw": 292.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -76.592,
+      16.302
+     ],
+     "yaw": 292.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -65.686,
+      42.632
+     ],
+     "yaw": 292.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -63.823,
+      16.425
+     ],
+     "yaw": 292.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -56.744,
+      33.516
+     ],
+     "yaw": 292.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base4",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     -63.728,
+     16.656
+    ],
+    "yaw": 292.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     -85.161,
+     21.745
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      -66.52,
+      27.554
+     ],
+     "yaw": 292.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      -63.075,
+      35.868
+     ],
+     "yaw": 292.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 292.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      -69.502,
+      19.047
+     ],
+     "yaw": 292.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 292.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      -78.82,
+      23.989
+     ],
+     "yaw": 292.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      -72.776,
+      39.887
+     ],
+     "yaw": 292.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 292.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     -78.068,
+     32.337
+    ],
+    "yaw": 292.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      -80.655,
+      33.409
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 292.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     -53.282,
+     31.812
+    ],
+    "yaw": 292.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase4",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     -71.139,
+     29.467
+    ],
+    "yaw": 292.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 5,
+   "id": "base-5",
+   "bearing": 202.5,
+   "centre": [
+    -71.139,
+    -29.467
+   ],
+   "yaw": 247.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Turquesa",
+    "hex": "3FC1C9"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 247.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     -60.052,
+     -24.875
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     -56.819,
+     -23.535
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 247.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      -81.995,
+      -33.964
+     ],
+     "yaw": 247.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -65.686,
+      -42.632
+     ],
+     "yaw": 247.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -76.592,
+      -16.302
+     ],
+     "yaw": 247.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -56.744,
+      -33.516
+     ],
+     "yaw": 247.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -63.823,
+      -16.425
+     ],
+     "yaw": 247.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base5",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     -56.839,
+     -33.285
+    ],
+    "yaw": 247.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     -75.594,
+     -44.842
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      -66.52,
+      -27.554
+     ],
+     "yaw": 247.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      -69.964,
+      -19.239
+     ],
+     "yaw": 247.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 247.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      -62.614,
+      -35.677
+     ],
+     "yaw": 247.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 247.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      -72.697,
+      -38.771
+     ],
+     "yaw": 247.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      -79.664,
+      -23.257
+     ],
+     "yaw": 247.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 247.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     -78.068,
+     -32.337
+    ],
+    "yaw": 247.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      -80.655,
+      -33.409
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 247.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     -60.171,
+     -15.182
+    ],
+    "yaw": 247.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase5",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     -71.139,
+     -29.467
+    ],
+    "yaw": 247.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 6,
+   "id": "base-6",
+   "bearing": 247.5,
+   "centre": [
+    -29.467,
+    -71.139
+   ],
+   "yaw": 202.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Azul",
+    "hex": "4F7FE0"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 202.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     -24.875,
+     -60.052
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     -23.535,
+     -56.819
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 202.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      -33.964,
+      -81.995
+     ],
+     "yaw": 202.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -16.302,
+      -76.592
+     ],
+     "yaw": 202.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      -42.632,
+      -65.686
+     ],
+     "yaw": 202.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -16.425,
+      -63.823
+     ],
+     "yaw": 202.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      -33.516,
+      -56.744
+     ],
+     "yaw": 202.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base6",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     -16.656,
+     -63.728
+    ],
+    "yaw": 202.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     -21.745,
+     -85.161
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      -27.554,
+      -66.52
+     ],
+     "yaw": 202.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      -35.868,
+      -63.075
+     ],
+     "yaw": 202.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 202.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      -19.047,
+      -69.502
+     ],
+     "yaw": 202.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 202.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      -23.989,
+      -78.82
+     ],
+     "yaw": 202.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      -39.887,
+      -72.776
+     ],
+     "yaw": 202.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 202.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     -32.337,
+     -78.068
+    ],
+    "yaw": 202.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      -33.409,
+      -80.655
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 202.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     -31.812,
+     -53.282
+    ],
+    "yaw": 202.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase6",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     -29.467,
+     -71.139
+    ],
+    "yaw": 202.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 7,
+   "id": "base-7",
+   "bearing": 292.5,
+   "centre": [
+    29.467,
+    -71.139
+   ],
+   "yaw": 157.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Morado",
+    "hex": "9B6BDB"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 157.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     24.875,
+     -60.052
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     23.535,
+     -56.819
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 157.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      33.964,
+      -81.995
+     ],
+     "yaw": 157.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      42.632,
+      -65.686
+     ],
+     "yaw": 157.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      16.302,
+      -76.592
+     ],
+     "yaw": 157.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      33.516,
+      -56.744
+     ],
+     "yaw": 157.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      16.425,
+      -63.823
+     ],
+     "yaw": 157.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base7",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     33.285,
+     -56.839
+    ],
+    "yaw": 157.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     44.842,
+     -75.594
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      27.554,
+      -66.52
+     ],
+     "yaw": 157.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      19.239,
+      -69.964
+     ],
+     "yaw": 157.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 157.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      35.677,
+      -62.614
+     ],
+     "yaw": 157.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 157.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      38.771,
+      -72.697
+     ],
+     "yaw": 157.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      23.257,
+      -79.664
+     ],
+     "yaw": 157.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 157.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     32.337,
+     -78.068
+    ],
+    "yaw": 157.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      33.409,
+      -80.655
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 157.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     15.182,
+     -60.171
+    ],
+    "yaw": 157.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase7",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     29.467,
+     -71.139
+    ],
+    "yaw": 157.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  },
+  {
+   "slot": 8,
+   "id": "base-8",
+   "bearing": 337.5,
+   "centre": [
+    71.139,
+    -29.467
+   ],
+   "yaw": 112.5,
+   "faces": "lobby",
+   "colour": {
+    "name": "Rosa",
+    "hex": "EE7DB8"
+   },
+   "pad": {
+    "half": [
+     14.5,
+     12.0
+    ],
+    "rim": 0.6,
+    "top": 0.9
+   },
+   "bounds": {
+    "kind": "rect",
+    "half": [
+     15.1,
+     12.6
+    ],
+    "yaw": 112.5
+   },
+   "entrance": {
+    "local": [
+     0.0,
+     -12.0
+    ],
+    "world": [
+     60.052,
+     -24.875
+    ],
+    "width": 8.0
+   },
+   "walk": {
+    "local": [
+     0.0,
+     -15.5
+    ],
+    "world": [
+     56.819,
+     -23.535
+    ],
+    "half": [
+     3.0,
+     3.7
+    ],
+    "yaw": 112.5
+   },
+   "fences": [
+    {
+     "id": "back",
+     "local": [
+      0.0,
+      11.75
+     ],
+     "half": [
+      14.5,
+      0.25
+     ],
+     "world": [
+      81.995,
+      -33.964
+     ],
+     "yaw": 112.5
+    },
+    {
+     "id": "left",
+     "local": [
+      -14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      76.592,
+      -16.302
+     ],
+     "yaw": 112.5
+    },
+    {
+     "id": "right",
+     "local": [
+      14.25,
+      0.0
+     ],
+     "half": [
+      0.25,
+      12.0
+     ],
+     "world": [
+      65.686,
+      -42.632
+     ],
+     "yaw": 112.5
+    },
+    {
+     "id": "frontLeft",
+     "local": [
+      -9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      63.823,
+      -16.425
+     ],
+     "yaw": 112.5
+    },
+    {
+     "id": "frontRight",
+     "local": [
+      9.25,
+      -11.75
+     ],
+     "half": [
+      5.25,
+      0.25
+     ],
+     "world": [
+      56.744,
+      -33.516
+     ],
+     "yaw": 112.5
+    }
+   ],
+   "fence": {
+    "height": 2.5,
+    "thick": 0.5
+   },
+   "sign": {
+    "key": "base8",
+    "text": "Base de <jugador>",
+    "local": [
+     -9.0,
+     -11.75
+    ],
+    "world": [
+     63.728,
+     -16.656
+    ],
+    "yaw": 112.5,
+    "width": 6.0
+   },
+   "lantern": {
+    "local": [
+     -12.5,
+     10.0
+    ],
+    "world": [
+     85.161,
+     -21.745
+    ],
+    "r": 0.5
+   },
+   "stations": [
+    {
+     "kind": "delivery",
+     "tag": "WildboundDeliveryStation",
+     "label": "Entrega de huevos",
+     "local": [
+      0.0,
+      -5.0
+     ],
+     "world": [
+      66.52,
+      -27.554
+     ],
+     "yaw": 112.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 2.5
+     }
+    },
+    {
+     "kind": "training",
+     "tag": "WildboundTrainingStation",
+     "label": "Entrenamiento",
+     "local": [
+      9.0,
+      -5.0
+     ],
+     "world": [
+      63.075,
+      -35.868
+     ],
+     "yaw": 112.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.0,
+       3.75
+      ],
+      "yaw": 112.5
+     }
+    },
+    {
+     "kind": "glove",
+     "tag": "WildboundGloveStation",
+     "label": "Guantes",
+     "local": [
+      -9.0,
+      -5.5
+     ],
+     "world": [
+      69.502,
+      -19.047
+     ],
+     "yaw": 112.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       2.5,
+       1.5
+      ],
+      "yaw": 112.5
+     }
+    },
+    {
+     "kind": "incubator",
+     "tag": "WildboundIncubatorStation",
+     "label": "Incubadora",
+     "local": [
+      -8.0,
+      5.0
+     ],
+     "world": [
+      78.82,
+      -23.989
+     ],
+     "yaw": 112.5,
+     "footprint": {
+      "kind": "circle",
+      "r": 3.0
+     },
+     "slots": 2
+    },
+    {
+     "kind": "display",
+     "tag": "WildboundCollectionDisplay",
+     "label": "Colección de Lumipols",
+     "local": [
+      9.0,
+      5.5
+     ],
+     "world": [
+      72.776,
+      -39.887
+     ],
+     "yaw": 112.5,
+     "footprint": {
+      "kind": "rect",
+      "half": [
+       4.5,
+       3.5
+      ],
+      "yaw": 112.5
+     }
+    }
+   ],
+   "display_slots": 3,
+   "treadmill_belt": 6.4,
+   "chest": {
+    "kind": "chest",
+    "tag": "WildboundChestStation",
+    "label": "Cofre del explorador",
+    "local": [
+     0.0,
+     7.5
+    ],
+    "world": [
+     78.068,
+     -32.337
+    ],
+    "yaw": 112.5,
+    "trigger_radius": 2.0,
+    "close_radius": 3.0,
+    "server_range": 3.5,
+    "prop": {
+     "local": [
+      0.0,
+      10.3
+     ],
+     "world": [
+      80.655,
+      -33.409
+     ],
+     "half": [
+      1.2,
+      0.7
+     ],
+     "yaw": 112.5
+    }
+   },
+   "showcase": {
+    "tag": "WildboundShowcase",
+    "local": [
+     9.0,
+     -15.6
+    ],
+    "world": [
+     53.282,
+     -31.812
+    ],
+    "yaw": 112.5,
+    "r": 2.0,
+    "slots": 1,
+    "hover": 3.5,
+    "sign": {
+     "key": "showcase8",
+     "text": "Vitrina de <jugador>"
+    }
+   },
+   "bank_zone": {
+    "tag": "WildboundBaseZone",
+    "kind": "rect",
+    "centre": [
+     71.139,
+     -29.467
+    ],
+    "yaw": 112.5,
+    "half": [
+     15.1,
+     12.6
+    ],
+    "exit_margin": 2.0,
+    "height": 12.0
+   }
+  }
+ ],
+ "entrances": [
+  {
+   "id": "E",
+   "bearing": 0.0,
+   "gate": [
+    98.0,
+    0.0
+   ],
+   "width": 16.0,
+   "leads": "pradera",
+   "sign": "Pradera Arcoíris",
+   "yaw": 90.0,
+   "path": {
+    "from": [
+     33.0,
+     0.0
+    ],
+    "to": [
+     99.0,
+     0.0
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     66.0,
+     0.0
+    ],
+    "yaw": 90.0
+   },
+   "trail": {
+    "from": [
+     99.0,
+     0.0
+    ],
+    "to": [
+     105.0,
+     0.0
+    ],
+    "width": 14.0,
+    "length": 6.0,
+    "centre": [
+     102.0,
+     0.0
+    ],
+    "yaw": 90.0
+   },
+   "joins": "umbral_este"
+  },
+  {
+   "id": "S",
+   "bearing": 90.0,
+   "gate": [
+    0.0,
+    98.0
+   ],
+   "width": 16.0,
+   "leads": "ring",
+   "sign": "Camino del anillo",
+   "yaw": 0.0,
+   "path": {
+    "from": [
+     0.0,
+     33.0
+    ],
+    "to": [
+     0.0,
+     99.0
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     0.0,
+     66.0
+    ],
+    "yaw": 0.0
+   },
+   "trail": {
+    "from": [
+     0.0,
+     99.0
+    ],
+    "to": [
+     0.0,
+     110.0
+    ],
+    "width": 14.0,
+    "length": 11.0,
+    "centre": [
+     0.0,
+     104.5
+    ],
+    "yaw": 0.0
+   },
+   "joins": "espolon_sur"
+  },
+  {
+   "id": "SW",
+   "bearing": 135.0,
+   "gate": [
+    -69.296,
+    69.296
+   ],
+   "width": 16.0,
+   "leads": "forest",
+   "sign": "Al bosque: sendero sur",
+   "yaw": 315.0,
+   "path": {
+    "from": [
+     -23.335,
+     23.335
+    ],
+    "to": [
+     -70.004,
+     70.004
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     -46.669,
+     46.669
+    ],
+    "yaw": 315.0
+   },
+   "trail": {
+    "from": [
+     -70.004,
+     70.004
+    ],
+    "to": [
+     -112.0,
+     90.0
+    ],
+    "width": 14.0,
+    "length": 46.513,
+    "centre": [
+     -91.002,
+     80.002
+    ],
+    "yaw": 295.461
+   },
+   "joins": "forest_floor"
+  },
+  {
+   "id": "W",
+   "bearing": 180.0,
+   "gate": [
+    -98.0,
+    0.0
+   ],
+   "width": 16.0,
+   "leads": "forest",
+   "sign": "Bosque de la Silueta",
+   "yaw": 270.0,
+   "path": {
+    "from": [
+     -33.0,
+     0.0
+    ],
+    "to": [
+     -99.0,
+     0.0
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     -66.0,
+     0.0
+    ],
+    "yaw": 270.0
+   },
+   "trail": {
+    "from": [
+     -99.0,
+     0.0
+    ],
+    "to": [
+     -100.0,
+     20.0
+    ],
+    "width": 14.0,
+    "length": 20.025,
+    "centre": [
+     -99.5,
+     10.0
+    ],
+    "yaw": 357.138
+   },
+   "joins": "umbral_oeste"
+  },
+  {
+   "id": "NW",
+   "bearing": 225.0,
+   "gate": [
+    -69.296,
+    -69.296
+   ],
+   "width": 16.0,
+   "leads": "forest",
+   "sign": "Al bosque: sendero norte",
+   "yaw": 225.0,
+   "path": {
+    "from": [
+     -23.335,
+     -23.335
+    ],
+    "to": [
+     -70.004,
+     -70.004
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     -46.669,
+     -46.669
+    ],
+    "yaw": 225.0
+   },
+   "trail": {
+    "from": [
+     -70.004,
+     -70.004
+    ],
+    "to": [
+     -112.0,
+     -90.0
+    ],
+    "width": 14.0,
+    "length": 46.513,
+    "centre": [
+     -91.002,
+     -80.002
+    ],
+    "yaw": 244.539
+   },
+   "joins": "forest_floor"
+  },
+  {
+   "id": "N",
+   "bearing": 270.0,
+   "gate": [
+    0.0,
+    -98.0
+   ],
+   "width": 16.0,
+   "leads": "ring",
+   "sign": "Camino del anillo",
+   "yaw": 180.0,
+   "path": {
+    "from": [
+     0.0,
+     -33.0
+    ],
+    "to": [
+     0.0,
+     -99.0
+    ],
+    "width": 12.0,
+    "length": 66.0,
+    "centre": [
+     0.0,
+     -66.0
+    ],
+    "yaw": 180.0
+   },
+   "trail": {
+    "from": [
+     0.0,
+     -99.0
+    ],
+    "to": [
+     0.0,
+     -110.0
+    ],
+    "width": 14.0,
+    "length": 11.0,
+    "centre": [
+     0.0,
+     -104.5
+    ],
+    "yaw": 180.0
+   },
+   "joins": "espolon_norte"
+  }
+ ],
+ "hedge": [
+  {
+   "centre": [
+    95.804,
+    18.178
+   ],
+   "length": 20.099,
+   "yaw": 79.256,
+   "bearing": 10.744
+  },
+  {
+   "centre": [
+    90.309,
+    36.786
+   ],
+   "length": 20.099,
+   "yaw": 67.837,
+   "bearing": 22.163
+  },
+  {
+   "centre": [
+    81.239,
+    53.937
+   ],
+   "length": 20.098,
+   "yaw": 56.419,
+   "bearing": 33.581
+  },
+  {
+   "centre": [
+    68.953,
+    68.953
+   ],
+   "length": 20.098,
+   "yaw": 45.0,
+   "bearing": 45.0
+  },
+  {
+   "centre": [
+    53.937,
+    81.239
+   ],
+   "length": 20.098,
+   "yaw": 33.581,
+   "bearing": 56.419
+  },
+  {
+   "centre": [
+    36.786,
+    90.309
+   ],
+   "length": 20.099,
+   "yaw": 22.163,
+   "bearing": 67.837
+  },
+  {
+   "centre": [
+    18.178,
+    95.804
+   ],
+   "length": 20.099,
+   "yaw": 10.744,
+   "bearing": 79.256
+  },
+  {
+   "centre": [
+    -18.363,
+    95.749
+   ],
+   "length": 20.482,
+   "yaw": 349.144,
+   "bearing": 100.856
+  },
+  {
+   "centre": [
+    -37.31,
+    90.073
+   ],
+   "length": 20.481,
+   "yaw": 337.5,
+   "bearing": 112.5
+  },
+  {
+   "centre": [
+    -54.721,
+    80.69
+   ],
+   "length": 20.481,
+   "yaw": 325.856,
+   "bearing": 124.144
+  },
+  {
+   "centre": [
+    -80.69,
+    54.721
+   ],
+   "length": 20.481,
+   "yaw": 304.144,
+   "bearing": 145.856
+  },
+  {
+   "centre": [
+    -90.073,
+    37.31
+   ],
+   "length": 20.481,
+   "yaw": 292.5,
+   "bearing": 157.5
+  },
+  {
+   "centre": [
+    -95.749,
+    18.363
+   ],
+   "length": 20.482,
+   "yaw": 280.856,
+   "bearing": 169.144
+  },
+  {
+   "centre": [
+    -95.749,
+    -18.363
+   ],
+   "length": 20.482,
+   "yaw": 259.144,
+   "bearing": 190.856
+  },
+  {
+   "centre": [
+    -90.073,
+    -37.31
+   ],
+   "length": 20.481,
+   "yaw": 247.5,
+   "bearing": 202.5
+  },
+  {
+   "centre": [
+    -80.69,
+    -54.721
+   ],
+   "length": 20.481,
+   "yaw": 235.856,
+   "bearing": 214.144
+  },
+  {
+   "centre": [
+    -54.721,
+    -80.69
+   ],
+   "length": 20.481,
+   "yaw": 214.144,
+   "bearing": 235.856
+  },
+  {
+   "centre": [
+    -37.31,
+    -90.073
+   ],
+   "length": 20.481,
+   "yaw": 202.5,
+   "bearing": 247.5
+  },
+  {
+   "centre": [
+    -18.363,
+    -95.749
+   ],
+   "length": 20.482,
+   "yaw": 190.856,
+   "bearing": 259.144
+  },
+  {
+   "centre": [
+    18.178,
+    -95.804
+   ],
+   "length": 20.099,
+   "yaw": 169.256,
+   "bearing": 280.744
+  },
+  {
+   "centre": [
+    36.786,
+    -90.309
+   ],
+   "length": 20.099,
+   "yaw": 157.837,
+   "bearing": 292.163
+  },
+  {
+   "centre": [
+    53.937,
+    -81.239
+   ],
+   "length": 20.098,
+   "yaw": 146.419,
+   "bearing": 303.581
+  },
+  {
+   "centre": [
+    68.953,
+    -68.953
+   ],
+   "length": 20.098,
+   "yaw": 135.0,
+   "bearing": 315.0
+  },
+  {
+   "centre": [
+    81.239,
+    -53.937
+   ],
+   "length": 20.098,
+   "yaw": 123.581,
+   "bearing": 326.419
+  },
+  {
+   "centre": [
+    90.309,
+    -36.786
+   ],
+   "length": 20.099,
+   "yaw": 112.163,
+   "bearing": 337.837
+  },
+  {
+   "centre": [
+    95.804,
+    -18.178
+   ],
+   "length": 20.099,
+   "yaw": 100.744,
+   "bearing": 349.256
+  }
+ ],
+ "safe_zones": [
+  {
+   "id": "hub",
+   "kind": "cylinder",
+   "centre": [
+    0.0,
+    0.0
+   ],
+   "radius": 100.0,
+   "height": 40.0,
+   "tag": "WildboundHubSafeZone"
+  }
+ ],
+ "decorations": [
+  {
+   "id": "bench-1",
+   "kind": "bench",
+   "centre": [
+    6.364,
+    6.364
+   ],
+   "yaw": 45.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.5,
+     0.6
+    ],
+    "yaw": 45.0
+   }
+  },
+  {
+   "id": "bench-2",
+   "kind": "bench",
+   "centre": [
+    -6.364,
+    6.364
+   ],
+   "yaw": 315.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.5,
+     0.6
+    ],
+    "yaw": 315.0
+   }
+  },
+  {
+   "id": "bench-3",
+   "kind": "bench",
+   "centre": [
+    -6.364,
+    -6.364
+   ],
+   "yaw": 225.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.5,
+     0.6
+    ],
+    "yaw": 225.0
+   }
+  },
+  {
+   "id": "bench-4",
+   "kind": "bench",
+   "centre": [
+    6.364,
+    -6.364
+   ],
+   "yaw": 135.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.5,
+     0.6
+    ],
+    "yaw": 135.0
+   }
+  },
+  {
+   "id": "plaza-lantern-1",
+   "kind": "lantern",
+   "centre": [
+    27.716,
+    11.481
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-2",
+   "kind": "lantern",
+   "centre": [
+    11.481,
+    27.716
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-3",
+   "kind": "lantern",
+   "centre": [
+    -11.481,
+    27.716
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-4",
+   "kind": "lantern",
+   "centre": [
+    -27.716,
+    11.481
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-5",
+   "kind": "lantern",
+   "centre": [
+    -27.716,
+    -11.481
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-6",
+   "kind": "lantern",
+   "centre": [
+    -11.481,
+    -27.716
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-7",
+   "kind": "lantern",
+   "centre": [
+    11.481,
+    -27.716
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "plaza-lantern-8",
+   "kind": "lantern",
+   "centre": [
+    27.716,
+    -11.481
+   ],
+   "yaw": 0.0,
+   "footprint": {
+    "kind": "circle",
+    "r": 0.5
+   }
+  },
+  {
+   "id": "planter-1",
+   "kind": "planter",
+   "centre": [
+    50.912,
+    50.912
+   ],
+   "yaw": 45.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.0,
+     2.0
+    ],
+    "yaw": 45.0
+   }
+  },
+  {
+   "id": "planter-2",
+   "kind": "planter",
+   "centre": [
+    50.912,
+    -50.912
+   ],
+   "yaw": 135.0,
+   "footprint": {
+    "kind": "rect",
+    "half": [
+     2.0,
+     2.0
+    ],
+    "yaw": 135.0
+   }
+  }
+ ],
+ "lights": [
+  {
+   "id": "campfire",
+   "brightness": 2.0,
+   "range": 30.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-1",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-2",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-3",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-4",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-5",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-6",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-7",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "plaza-lantern-8",
+   "brightness": 1.1,
+   "range": 18.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "gate-E",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "gate-S",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "gate-SW",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "gate-W",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "gate-NW",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "gate-N",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "base-1",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-2",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-3",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-4",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-5",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-6",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-7",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "base-8",
+   "brightness": 1.0,
+   "range": 16.0,
+   "color": [
+    255,
+    176,
+    96
+   ]
+  },
+  {
+   "id": "showcase-1",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-2",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-3",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-4",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-5",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-6",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-7",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "showcase-8",
+   "brightness": 0.9,
+   "range": 12.0,
+   "color": [
+    255,
+    214,
+    150
+   ]
+  },
+  {
+   "id": "shop-taller",
+   "brightness": 1.0,
+   "range": 14.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "shop-mejoras",
+   "brightness": 1.0,
+   "range": 14.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "shop-suministros",
+   "brightness": 1.0,
+   "range": 14.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  },
+  {
+   "id": "shop-arbol",
+   "brightness": 1.0,
+   "range": 14.0,
+   "color": [
+    255,
+    165,
+    85
+   ]
+  }
+ ],
+ "removed_forest_props": [
+  {
+   "id": "FK_Evergreen_095",
+   "by": [
+    "trail_SW"
+   ]
+  },
+  {
+   "id": "FK_Evergreen_101",
+   "by": [
+    "trail_NW"
+   ]
+  }
+ ],
+ "budget": {
+  "parts_cap": 480,
+  "lights_cap": 36,
+  "why": "the hub is always loaded (ModelStreamingMode Persistent); 480 parts and 36 shadowless PointLights raise layout-v1's cap of 400 parts on purpose and are unmeasured: record frame time on a phone with 8 players before accepting"
+ },
+ "rules": {
+  "station_margin": 1.0,
+  "station_gap": 2.0,
+  "base_path_clear": 2.0,
+  "beast_margin": 10.0,
+  "forest_clear": 10.0,
+  "hook_clear": 20.0
+ },
+ "shops": [
+  {
+   "id": "taller",
+   "tag": "WildboundShopSpot",
+   "label": "Taller de guantes",
+   "sign": "Taller de guantes",
+   "bearing": 45.0,
+   "colour": "F2C14E",
+   "centre": [
+    28.991,
+    28.991
+   ],
+   "yaw": 45.0,
+   "trigger_radius": 4.0,
+   "close_radius": 5.5,
+   "server_range": 6.0,
+   "stall": {
+    "centre": [
+     33.234,
+     33.234
+    ],
+    "half": [
+     3.0,
+     1.0
+    ],
+    "yaw": 45.0
+   },
+   "sells": {
+    "gear": [
+     "guantes"
+    ]
+   }
+  },
+  {
+   "id": "mejoras",
+   "tag": "WildboundShopSpot",
+   "label": "Mejoras",
+   "sign": "Mejoras",
+   "bearing": 157.5,
+   "colour": "6FCF97",
+   "centre": [
+    -37.879,
+    15.69
+   ],
+   "yaw": 292.5,
+   "trigger_radius": 4.0,
+   "close_radius": 5.5,
+   "server_range": 6.0,
+   "stall": {
+    "centre": [
+     -43.422,
+     17.986
+    ],
+    "half": [
+     3.0,
+     1.0
+    ],
+    "yaw": 292.5
+   },
+   "sells": {
+    "upgrades": [
+     "farolTapado",
+     "reinforcedPack"
+    ]
+   }
+  },
+  {
+   "id": "suministros",
+   "tag": "WildboundShopSpot",
+   "label": "Suministros",
+   "sign": "Suministros",
+   "bearing": 202.5,
+   "colour": "56CCF2",
+   "centre": [
+    -37.879,
+    -15.69
+   ],
+   "yaw": 247.5,
+   "trigger_radius": 4.0,
+   "close_radius": 5.5,
+   "server_range": 6.0,
+   "stall": {
+    "centre": [
+     -43.422,
+     -17.986
+    ],
+    "half": [
+     3.0,
+     1.0
+    ],
+    "yaw": 247.5
+   },
+   "sells": {
+    "recipes": [
+     "seal",
+     "capsule",
+     "totem"
+    ],
+    "gear": [
+     "totemSuerte"
+    ]
+   }
+  },
+  {
+   "id": "arbol",
+   "tag": "WildboundShopSpot",
+   "label": "Árbol de habilidades",
+   "sign": "Árbol de habilidades",
+   "bearing": 315.0,
+   "colour": "BB86FC",
+   "centre": [
+    28.991,
+    -28.991
+   ],
+   "yaw": 135.0,
+   "trigger_radius": 4.0,
+   "close_radius": 5.5,
+   "server_range": 6.0,
+   "stall": {
+    "centre": [
+     33.234,
+     -33.234
+    ],
+    "half": [
+     3.0,
+     1.0
+    ],
+    "yaw": 135.0
+   },
+   "sells": {
+    "skills": [
+     "explorer_1",
+     "explorer_2",
+     "capturer_1",
+     "capturer_2",
+     "survivor_1",
+     "survivor_2",
+     "occultist_1",
+     "occultist_2"
+    ]
+   }
+  }
+ ],
+ "lighting": {
+  "zone": "hub",
+  "blend_studs": 20.0,
+  "atmosphere": {
+   "Day": {
+    "density": 0.42,
+    "offset": 0.08,
+    "haze": 1.4,
+    "fogStart": 60.0,
+    "fogEnd": 380.0,
+    "color": [
+     214,
+     196,
+     168
+    ]
+   },
+   "Dusk": {
+    "density": 0.5,
+    "offset": 0.05,
+    "haze": 2.0,
+    "fogStart": 40.0,
+    "fogEnd": 260.0,
+    "color": [
+     206,
+     170,
+     130
+    ]
+   },
+   "Night": {
+    "density": 0.56,
+    "offset": 0.02,
+    "haze": 2.6,
+    "fogStart": 30.0,
+    "fogEnd": 180.0,
+    "color": [
+     150,
+     118,
+     90
+    ]
+   }
+  },
+  "ambient": {
+   "Day": [
+    120,
+    110,
+    96
+   ],
+   "Dusk": [
+    110,
+    96,
+    80
+   ],
+   "Night": [
+    96,
+    80,
+    64
+   ]
+  },
+  "tint": {
+   "brightness": 0.05,
+   "contrast": 0.05,
+   "saturation": 0.1,
+   "color": [
+    255,
+    240,
+    220
+   ]
+  },
+  "night_lamp_scale": 1.25,
+  "note": "client-only: WildboundAtmosphere gains a 'hub' zone row; inside inside_radius the world client blends to it over blend_studs, so the forest outside stays dark; PointLights stay shadowless",
+  "inside_radius": 100.0
+ },
+ "walk_times": {
+  "speed": 16.0,
+  "spawn_to_gate_s": 5.125,
+  "spawn_to_base_s": 3.5,
+  "around_promenade_half_s": 10.603,
+  "note": "straight lines at the walk speed, no sprint; a lower bound"
+ },
+ "open_world_changes": [
+  {
+   "kind": "refugio_candidate",
+   "id": "FA2",
+   "from": [
+    -120.0,
+    -20.0
+   ],
+   "to": [
+    -120.0,
+    -45.0
+   ],
+   "why": "the radius-100 disc leaves it 13.7 studs from the hub, under the 20-stud safe margin; the open-world planner must apply and re-check this move"
+  }
+ ]
+}
