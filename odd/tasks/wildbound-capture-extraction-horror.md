@@ -809,3 +809,43 @@ Route: delegated, one Studio and repo writer (Opus), no nested delegation, backg
 - [x] NH6 Delivery. Until personal bases exist the delivery points are the camp chest and the incubator. The chest banks the bag as before (the egg in the arms is a bag entry), then `Heist.secure` secures it through `EggCarry.secure`: only its carrier, only while `Carried`, once (`Secured`, out of the arms, out of the registry; the state's bank keeps it). The incubator prompt, with an egg in the arms, banks the bag the same way, secures the egg and puts that egg in the incubator at once. Entering the camp or a Refugio ends a chase (NH3) but the egg stays in the arms until delivered, and nothing but a death or leaving drops it there (NH5). TDD: EggCarry 23/2 (the state's chest banking an in-arms egg passed at once: it is the old behaviour, kept as a characterization), GREEN 25/0; full run 1230 + map suites, 0 failed. Play: see the phase Play check.
 - [x] NH7 Death while carrying. On `Died` (and when a character is replaced without one) the egg in the arms falls where the player was (`Heist.dropEgg(player, "Death")`; a replaced character passes its old body), before `State:defeat`, so the defeat never counts it lost; it lies `Dropped` for anyone for `DROP_SECONDS` 30, then fades. A death drops it even in a safe zone. Banked eggs, registered creatures, Esencia and upgrades are untouched (the defeat's existing rule). TDD: EggCarry 24/2 (one NH5 pin deliberately changed for the new `from` parameter), GREEN 26/0.
 - [x] NH8 No relocation mid-interaction or mid-chase. The spawn clock already held a spawn being captured; it now also holds one whose prompt someone is holding (`entry.holders` from `PromptButtonHoldBegan`/`Ended`; `EggCarry.holding` counts a hold for at most `HOLD_GRACE` 3 s, so a lost release never pins a spawn), for both the lifetime move and the wave reroll. Island nests are fixed points; a taken nest now refills only after its parents' chase is over (checked every second). Random spawns have no parents yet, so no chase starts from them; the guard extends when phase 4 gives them guards. TDD: EggCarry 26/2, GREEN 28/0; full run 1233 + map suites, 0 failed.
+
+Counts: Studio 63 suites, 1296 passed, 0 failed on fresh clones (baseline 62 suites, 1264; new EggCarry 28; Island 28, Stamina 16, Tuning 14, TuningWiring 8, plus the map suites). Python: 1027 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. Economy (`tools/simulate_economy.py`): median expedition cautious 208 s, balanced 201 s, greedy 183 s, unchanged (floor 180; the simulator reads only the sprint multiplier and models neither the eggs in the arms nor the Burst). 130 of 130 mapped Wildbound sources (including the new `WildboundEggCarry` and its test) match HEAD by Adler-32 and length in the place.
+
+Play check (Studio Play solo, background: no screenshots, probes through `execute_luau`, the Studio-only `HeistProbe` and the client's own prompt and remote calls):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Fast steal holds | PASS | Nine nest and spawn eggs at start: Común and Rara 0.8 s, Épica and Legendaria 1 s |
+| Egg in the arms | PASS | A nest egg at I4 stolen through the prompt's handler: `WildboundEggCarried` welded to the root, massless, no collision, query or touch; walk 11 (the egg cost) |
+| Parent reaction | PASS | I4 `Alert` and chasing 0.25 s after the steal (no meter); log `woke`; the charge's tell measured 0.78 s at a 0.1 s sampling (0.8 s rule), then `charge` and a `hit` |
+| Charge miss and exposure | NOT VERIFIED in Play | A sidestep before the tell ended was correctly re-aimed (the line locks at the tell's end); the miss and the 1 s exposure are unit-tested |
+| Drop and pickup | PASS | A landed hit dropped the egg (`eggDropped`); picked up again (Carried, model gone, walk 11); bottom of the egg on the ray's ground (1.00, 1.00), anchored; pickable about 0.6 s after the drop (0.4 s rule, 0.2 s server step); with `DROP_SECONDS` 5: `Despawning` at 5.2 s, gone at 6.4 s; the parents fetched a loose egg home (`eggFetch`, `eggHome`) |
+| Safe zone | PASS | In the camp a Hit drop was refused and the egg stayed in the arms |
+| Delivery | PASS | The chest prompt (client hold): arms empty, log `eggSecured`; the incubator prompt with an egg in the arms: banked, secured and incubating ("Huevo en la incubadora. Eclosiona en 90 s.") |
+| Death | PASS | Health 0 outside the camp: the egg `Dropped` 2 studs from the death point, last carrier kept; after the respawn the incubating egg was still there (77 s left) |
+| No relocation mid-interaction | PASS | `LIFETIME` 10 and a 2.5 s hold (tuned `RARE_HOLD`) begun at age 9.3: at age 11.6 the held spawn was still there while the other 5 had moved; 1.6 s after the release it moved too |
+| Burst | PASS | Walk 16, burst 27.2, back to 16 after 0.8 s; a second request in the cooldown refused; the button "Impulso 6" then "Impulso (Z)"; the puff and the `dirt` sound on the root |
+| Two players (pickup race, re-target, a stranger picking up a dropped egg), phones, the touch "Impulso" button by hand, sounds by ear, screenshots | NOT VERIFIED | One Studio client, background only (no Device Simulator, no 3D frame captures); the race and the re-target are unit-tested |
+
+Writer decisions, for user review:
+
+| ID | Decision |
+| --- | --- |
+| NH-W1 | Eggs never had the ring (only crías do), so "rare eggs keep the ring" could not be kept literally: Épica, Legendaria and the event egg keep their 1 s hold, normal eggs get 0.8 s. Crías keep the ring (a creature, not an object to grab). Giving rare eggs a ring is a product question |
+| NH-W2 | The parent's close swing keeps its 0.45 s wind-up (chase pass, floor 0.35); only the new charge uses the 0.8 s fair-strike lead. If every parent attack must be told 0.8 s, the swing changes too (it would make the chase much easier) |
+| NH-W3 | An egg steal wakes the island at once, but island 1 never holds eggs, so the first-minute cría hook is unchanged |
+| NH-W4 | The Burst key is Z (E is every field prompt's key, R the camp hatch prompt's), R3 on a gamepad, the "Impulso" button on touch (also the desktop ready indicator) |
+| NH-W5 | The Burst does not stack on the sprint (walk x1.7, capped at 28); an egg carrier bursts to 18.7, under the parents' 19, so a burst buys distance for 0.8 s but never outruns a parent alone |
+| NH-W6 | The burst's scuff plays on every audio client (the inventory server makes no sounds by an existing rule); the puff is server-made |
+| NH-W7 | La Silueta's first strike now knocks the egg in the arms loose (for anyone) before any other bag item; a ward (seal, totem) never holds a loose egg |
+| NH-W8 | A picked-up egg is not a new catch: it never takes an armed seal and does not count as a new expedition item |
+| NH-W9 | Delivering at the incubator banks the whole bag (as the chest does) and incubates the delivered egg at once |
+| NH-W10 | A parent turns on a new carrier only within 24 studs of the chasing adult; it never starts a chase for a pickup by itself |
+| NH-W11 | Random spawns have no parents yet; NH8's chase guard applies to the island nests (refill after the chase) and extends to random spawns when phase 4 gives them guards |
+| NH-W12 | Leaving the server drops the egg for anyone (like a death), not with the profile |
+| NH-W13 | The server script was at Luau's 200-local limit: every new helper lives in one `Heist` table; later work must keep adding to tables, not top-level locals |
+
+Open product questions: give rare eggs a capture ring (NH-W1)? the swing's wind-up under the 0.8 s fair-strike lead (NH-W2)? Z for the Burst (NH-W4)?
+
+End state: commits `30b2655` (NH1), `3cfe804` (NH2), `0f59c5b` (NH3), `c5d1f32` (NH4), `78881a2` (NH5), `6f39868` (NH6), `54c5a4e` (NH7), `b7eada2` (NH8) and this document's commit. Studio left in Edit; the temporary runner, hash and patch helpers removed; the place is not saved by this session (every change is committed, so the place can be rebuilt from git). The place's Edit-mode `WildboundTuning` folder has no `Eggs` system yet (the bridge adds it at Play start). Next step: the user saves the place, reviews NH-W1 to NH-W13, and tries a steal, a drop, a pickup race and the Impulso button with two players and on a phone.
