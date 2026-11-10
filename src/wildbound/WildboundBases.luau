@@ -84,4 +84,29 @@ function Bases.mayUse(ownerUserId, userId, distance, range)
 	return true
 end
 
+-- HB-T5: which registered Lumipols stand on the base's collection display: the companion first, then the others in
+-- registration order, at most `count` (the builder's three slots). Entries without an id or a species are skipped.
+function Bases.displayPicks(snapshot, count)
+	local picks = {}
+	if type(snapshot) ~= "table" or type(snapshot.registered) ~= "table" or not finite(count) then return picks end
+	local limit, valid = math.max(0, math.floor(count)), {}
+	for _, entry in ipairs(snapshot.registered) do
+		if type(entry) == "table" and type(entry.uid) == "string" and entry.uid ~= "" and type(entry.species) == "string" then
+			table.insert(valid, entry)
+		end
+	end
+	for _, entry in ipairs(valid) do
+		if entry.uid == snapshot.equippedUid then
+			table.insert(picks, entry)
+			break
+		end
+	end
+	for _, entry in ipairs(valid) do
+		if #picks >= limit then break end
+		if entry.uid ~= snapshot.equippedUid then table.insert(picks, entry) end
+	end
+	while #picks > limit do table.remove(picks) end
+	return picks
+end
+
 return Bases

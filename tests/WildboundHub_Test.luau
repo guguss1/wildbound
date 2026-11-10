@@ -234,5 +234,55 @@ return function(Bases, source, sources)
 		assert(type(sources.text.HUB.incubatorPrompt) == "string", "Text.HUB.incubatorPrompt")
 	end)
 
+	-- HB-T5 collection display, gloves and training ------------------------------------------------------------------
+	case("HB-T5: the display shows up to three registered Lumipols, the companion first", function()
+		local snapshot = { equippedUid = "u3", registered = {
+			{ uid = "u1", species = "Lumipol" }, { uid = "u2", species = "Polvilla" }, { uid = "u3", species = "Lumipol" },
+			{ uid = "u4", species = "Lumipol" }, { species = "Lumipol" }, { uid = "u5" } } }
+		local picks = Bases.displayPicks(snapshot, 3)
+		equal(#picks, 3)
+		equal(picks[1].uid, "u3", "the companion first")
+		equal(picks[2].uid, "u1"); equal(picks[3].uid, "u2")
+		equal(#Bases.displayPicks({ registered = { { uid = "u9", species = "Lumipol" } } }, 3), 1)
+		equal(#Bases.displayPicks(nil, 3), 0)
+		equal(#Bases.displayPicks({ registered = {} }, 3), 0)
+		equal(#Bases.displayPicks(snapshot, 0), 0)
+	end)
+	case("HB-T5: the stations module hovers the owner's Lumipols over the display slots and clears them", function()
+		local stations = sources.stations
+		has(stations, "function Stations:refreshDisplay(player)")
+		has(stations, 'GetTagged("WildboundCollectionDisplay")', "the display platforms by tag")
+		has(stations, '"DisplaySlot" .. index', "the builder's three slots")
+		has(stations, "deps.Bases.displayPicks(", "the pure choice")
+		has(stations, "deps.visual(", "the inventory server's creature look (MeshGen art when it loaded, else primitive)")
+		has(stations, '"DisplayLumipol"', "the name the world client bobs")
+		has(stations, 'SetAttribute("Base", ', "the hover frame the world client animates from")
+		has(stations, 'GetAttributeChangedSignal("OwnerUserId")', "a new or freed owner refreshes the display")
+		has(stations, "PlayerRemoving", "a leaving owner's display is cleared")
+		has(sources.server, "Heist.hub:refreshDisplay(player)", "every reply refreshes it, like the camp display")
+	end)
+	case("HB-T5: the glove bench opens the glove screen and lets the owner craft gloves there", function()
+		local stations, server = sources.stations, sources.server
+		has(stations, '["WildboundGloveStation"] = "glove"')
+		local glove = between(server, "glove = function(player)", "\n\t\t\tend,")
+		has(glove, 'send(player, "OpenBoard", true, Text.HUB.gloves)', "the client opens the camp screen")
+		local craft = between(server, 'if action == "CraftGear" then', 'elseif action == "EquipGlove" then')
+		has(craft, 'Heist.hub:distance(player, "WildboundGloveStation")', "the own bench counts as a place to craft gloves")
+		has(craft, 'spec.kind == "gloves"', "gloves only; the luck totem stays at the camp")
+		has(sources.client, '"WildboundGloveStation"', "the camp screen's buttons work at the own bench")
+	end)
+	case("HB-T5: the base treadmill uses the Phase 3 training with the measured distance", function()
+		local stations, server = sources.stations, sources.server
+		has(stations, '["WildboundTrainingStation"] = "train"')
+		local train = between(server, "train = function(player, distance, station)", "\n\t\t\tend,")
+		has(train, "Heist.train(player, station, distance)")
+		local rule = between(server, "function Heist.train(player, console, measured)", "\nend\n")
+		has(rule, "if measured then distance = measured end", "the base station's own distance")
+		has(rule, "state:train(player.UserId, \"walk\", alive, distance, price, C.MAX_LEVEL)", "the same purchase")
+		local Text = sources.text
+		assert(type(Text.HUB.glovePrompt) == "string" and type(Text.HUB.gloves) == "string"
+			and type(Text.HUB.trainPrompt) == "string", "Spanish words")
+	end)
+
 	return result
 end

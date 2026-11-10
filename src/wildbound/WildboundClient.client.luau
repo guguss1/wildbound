@@ -486,6 +486,16 @@ task.spawn(function()
 				now = (Vector3.new(root.Position.X, 0, root.Position.Z) - Vector3.new(marker.Position.X, 0, marker.Position.Z)).Magnitude
 					<= Config.sinks.campRange
 			end
+			-- HB-T5: the own base's glove bench opens this screen too; the server allows only glove crafting there.
+			if root and not now then
+				for _, bench in ipairs(game:GetService("CollectionService"):GetTagged("WildboundGloveStation")) do
+					local base = bench:FindFirstAncestorWhichIsA("Model")
+					if base and base:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId
+						and (root.Position - bench.Position).Magnitude <= (bench:GetAttribute("Range") or 8) + 2 then
+						now = true
+					end
+				end
+			end
 			local changed = now ~= atCamp
 			atCamp = now
 			local effects = lastSnapshot and Economy.skillEffects(Config, lastSnapshot.skills) or {}

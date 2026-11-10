@@ -4,6 +4,7 @@
 -- server's own position of the player (WildboundBases.mayUse). The client sends nothing but the prompt trigger. The
 -- inventory server passes its own rules as handlers, so the base stations reuse the camp's code paths.
 local CollectionService = game:GetService("CollectionService")
+local Players = game:GetService("Players")
 
 local Stations = {}
 Stations.__index = Stations
@@ -12,17 +13,27 @@ Stations.__index = Stations
 Stations.TAGS = table.freeze({
 	["WildboundDeliveryStation"] = "delivery",
 	["WildboundIncubatorStation"] = "incubator",
+	["WildboundGloveStation"] = "glove",
+	["WildboundTrainingStation"] = "train",
 })
 -- text: the prompt's action (Text.HUB key); action: the reply that carries a refusal; hold: seconds (nil = default).
 local PROMPTS = table.freeze({
 	delivery = table.freeze({ text = "deliveryPrompt", action = "Extract" }),
 	incubator = table.freeze({ text = "incubatorPrompt", action = "Hatch" }),
+	glove = table.freeze({ text = "glovePrompt", action = "OpenBoard" }),
+	train = table.freeze({ text = "trainPrompt", action = "Train", hold = 1 }),
 })
 
+-- HB-T5: the collection display's three slots, and how far over a slot's top a Lumipol hovers (the world client adds
+-- the idle bob from the Base frame).
+Stations.DISPLAY_SLOTS = 3
+Stations.HOVER = 0.8
+
 -- deps = { Bases, Text, Keys, prompt(target, action, object, range, hold, input), rootOf(player), alive(player),
--- allowed(player, action), refuse(player, action, reason), handlers = { [kind] = function(player, distance, station) } }
+-- allowed(player, action), refuse(player, action, reason), handlers = { [kind] = function(player, distance, station) },
+-- snapshot(userId), visual(species, position) -> model, dressed }
 function Stations.new(deps)
-	return setmetatable({ deps = deps, bound = {} }, Stations)
+	return setmetatable({ deps = deps, bound = {}, displays = {} }, Stations)
 end
 
 -- The base model a station belongs to and the owner the server wrote on it (0 while free).
@@ -94,11 +105,73 @@ function Stations:bind(station, tag)
 	end)
 end
 
+-- HB-T5: the collection display. The owner's chosen Lumipols (Bases.displayPicks) hover over DisplaySlot1..3 of the
+-- base's WildboundCollectionDisplay platform, facing the lobby; the inventory server's creature look dresses them in
+-- the MeshGen art when it loaded, else the primitive look. Rebuilt only when the choice or the base changes.
+function Stations:platformOf(userId)
+	for _, platform in ipairs(CollectionService:GetTagged("WildboundCollectionDisplay")) do
+		if platform:IsDescendantOf(workspace) and self:ownerOf(platform) == userId then return platform end
+	end
+	return nil
+end
+function Stations:clearDisplay(userId)
+	local shown = self.displays[userId]
+	if not shown then return end
+	for _, model in ipairs(shown.models) do model:Destroy() end
+	self.displays[userId] = nil
+end
+local function topOf(part)
+	local up, size = part.CFrame:VectorToObjectSpace(Vector3.yAxis), part.Size
+	return part.Position.Y + 0.5 * (math.abs(up.X) * size.X + math.abs(up.Y) * size.Y + math.abs(up.Z) * size.Z)
+end
+function Stations:refreshDisplay(player)
+	local deps = self.deps
+	local platform = self:platformOf(player.UserId)
+	local picks = platform and deps.Bases.displayPicks(deps.snapshot(player.UserId), Stations.DISPLAY_SLOTS) or {}
+	local parts = { platform and platform:GetFullName() or "" }
+	for _, pick in ipairs(picks) do table.insert(parts, pick.uid .. ":" .. pick.species) end
+	local key = table.concat(parts, "|")
+	local shown = self.displays[player.UserId]
+	if shown and shown.key == key then return end
+	self:clearDisplay(player.UserId)
+	if not platform or #picks == 0 then return end
+	local hub = platform:FindFirstAncestor("WildboundHub")
+	local centre = hub and hub:GetPivot().Position or platform.Position
+	local models = {}
+	for index, pick in ipairs(picks) do
+		local slot = platform.Parent:FindFirstChild("DisplaySlot" .. index)
+		if slot and slot:IsA("BasePart") then
+			local model, dressed = deps.visual(pick.species, slot.Position)
+			model.Name = "DisplayLumipol"
+			model:ScaleTo(0.6)
+			local at = Vector3.new(slot.Position.X, topOf(slot) + (dressed and 1.2 or 0.75) + Stations.HOVER, slot.Position.Z)
+			local frame = CFrame.lookAt(at, Vector3.new(centre.X, at.Y, centre.Z))
+			model:PivotTo(frame)
+			model:SetAttribute("OwnerUserId", player.UserId)
+			model:SetAttribute("Uid", pick.uid)
+			model:SetAttribute("Spot", 10 * (platform:GetAttribute("SlotIndex") or 0) + index)
+			model:SetAttribute("Base", frame)
+			table.insert(models, model)
+		end
+	end
+	self.displays[player.UserId] = { key = key, models = models }
+end
+function Stations:refreshAll()
+	for _, player in ipairs(Players:GetPlayers()) do self:refreshDisplay(player) end
+end
+
 function Stations:start()
 	for tag in pairs(Stations.TAGS) do
 		for _, station in ipairs(CollectionService:GetTagged(tag)) do self:bind(station, tag) end
 		CollectionService:GetInstanceAddedSignal(tag):Connect(function(station) self:bind(station, tag) end)
 	end
+	-- A base that gets or loses its owner moves that owner's display (the hub script writes OwnerUserId).
+	local function watch(model)
+		model:GetAttributeChangedSignal("OwnerUserId"):Connect(function() self:refreshAll() end)
+	end
+	for _, model in ipairs(CollectionService:GetTagged("WildboundBaseSlot")) do watch(model) end
+	CollectionService:GetInstanceAddedSignal("WildboundBaseSlot"):Connect(watch)
+	Players.PlayerRemoving:Connect(function(player) self:clearDisplay(player.UserId) end)
 	return self
 end
 

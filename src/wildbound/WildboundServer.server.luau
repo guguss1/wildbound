@@ -387,6 +387,8 @@ local function send(player, action, ok, notice, lossSummary, card)
 	applyCarry(player)
 	syncCapsule(player)
 	if refreshDisplay then refreshDisplay(player) end
+	-- HB-T5: the owner's base display follows the same snapshot.
+	if Heist.hub then Heist.hub:refreshDisplay(player) end
 	if syncCompanion then syncCompanion(player) end
 	local snapshot = state:snapshot(player.UserId)
 	-- NS1: the HUD says "saved" only while this player's progress really is being saved.
@@ -2662,6 +2664,10 @@ local function economyAction(player, action, argument)
 		local spec = type(EconomyConfig.gear) == "table" and EconomyConfig.gear[argument] or nil
 		if not spec or (spec.kind ~= "gloves" and spec.kind ~= "luckTotem") then return end
 		local alive, distance = context(player, campCenter)
+		-- HB-T5: the owner's glove bench counts as a place to craft gloves (measured on the server, within its range).
+		if spec.kind == "gloves" and Heist.hub then
+			distance = math.min(distance, Heist.hub:distance(player, "WildboundGloveStation"))
+		end
 		local roll = spec.kind == "gloves" and Gear.roll(function() return rng:NextNumber() end) or nil
 		local ok, result = state:craftGear(key, argument, alive, distance, roll)
 		if ok then analytics:spent(key, "craft") end -- the analytics schema has no "gear" kind; crafting it is
@@ -3036,9 +3042,11 @@ function Heist.buildTreadmill()
 	Heist.treadmill = console
 	return model
 end
-function Heist.train(player, console)
-	if not records[player] or not allowed(player, "Train") then return end
+-- HB-T5: measured = a base treadmill's distance (its prompt already passed the rate limit and the owner check).
+function Heist.train(player, console, measured)
+	if not records[player] or (not measured and not allowed(player, "Train")) then return end
 	local alive, distance = context(player, campCenter)
+	if measured then distance = measured end
 	local root = rootOf(player)
 	if not alive or not root or (root.Position - console.Position).Magnitude > Heist.Training.CONSTANTS.RANGE + 4 then
 		send(player, "Train", false, Text.TRAINING.farAway)
@@ -3119,7 +3127,21 @@ do
 				end
 				hatch(player, egg.uid, distance)
 			end,
+			-- HB-T5: the glove bench opens the camp screen on this client (its glove rows); crafting gloves there is
+			-- allowed by the bench's distance in the economy actions, and wearing one works anywhere (NS7).
+			glove = function(player)
+				send(player, "OpenBoard", true, Text.HUB.gloves)
+			end,
+			-- HB-T5: the base treadmill is the Phase 3 training (one hold buys the next walk level with Esencia).
+			train = function(player, distance, station)
+				Heist.train(player, station, distance)
+			end,
 		},
+		snapshot = function(userId) return state:snapshot(userId) end,
+		visual = function(species, position)
+			local model = visual("Creature", position, species)
+			return model, model:GetAttribute(Art.CONFIG.ATTRIBUTE) == true
+		end,
 	})
 	Heist.hub:start()
 	-- Studio only (ServerStorage, never replicated): "trigger" runs a base station's prompt path for a real player (its
