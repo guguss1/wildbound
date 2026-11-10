@@ -17,7 +17,9 @@ end
 Training.CONSTANTS = table.freeze({
 	WALK_STEP = 0.25, -- studs/s per level
 	MAX_LEVEL = 4,
-	WALK_CAP = 17.5, -- unencumbered walk speed ceiling for every bonus together (base 16)
+	-- Unencumbered walk speed ceiling for every bonus together. HF-T4 (user decision Q9): 16, the base walk (was
+	-- 17.5), so no walk reaches La Silueta's night hunt (17); walk levels and the glove's move stat add nothing on foot.
+	WALK_CAP = 16,
 	BASE_COST = 30, -- Esencia for level 1
 	COST_GROWTH = 1.6, -- each next level costs this much more, rounded
 	RANGE = 12, -- studs from the treadmill to use it

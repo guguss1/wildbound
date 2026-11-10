@@ -298,7 +298,7 @@ User: "you can steal from the parents and they chase you and can kill you". This
 | --- | --- |
 | Wake | The island screams as before; the nearest adult stands up for 0.6 s (`WAKE_WINDUP`) before it moves |
 | Chase | 17 studs/s (was 16): faster than a walker (16) and a carrier (14), slower than a carrying sprinter (20.3); 10 s (was 7), leashed 35 studs from the nest |
-| Swing | Within 3.5 studs it stops and rears for 0.45 s (`STRIKE_WINDUP`): it rises and leans back, its eyes turn red, a crack sounds on it (catalog `crack`, played by the audio client from the adult's `Swing` attribute) and the thief reads "¡Va a golpearte! Apártate." |
+| Swing | Within 3.5 studs it stops and rears for 0.8 s (`STRIKE_WINDUP`, 0.45 s until HF-T4): it rises and leans back, its eyes turn red, a crack sounds on it (catalog `crack`, played by the audio client from the adult's `Swing` attribute) and the thief reads "¡Va a golpearte! Apártate." |
 | Hit | Lands only if the thief is still within 5 studs; then 1.2 s before the next swing, and the chase goes on |
 | Effect | The cria drops and runs back to its nest ("¡Te alcanzó! La cría volvió a su nido."); 35 damage, so three hits kill; later hits read "¡Otro golpe! Aléjate del nido." |
 | Gates | Damage only where La Silueta's strikes are real: `damageMode = "private"` on place 122652861404212 (`FairStrike.effectiveMode`) and a player past the first paid trip (`FairStrike.lethal`). Anywhere else, or before the first paid trip, a hit only drops the cria |

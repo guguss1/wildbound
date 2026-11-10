@@ -25,16 +25,19 @@ return function(Training, source, sources)
 
 	case("TR-1: walk levels: a growing price, then nothing past the cap", function()
 		local C = Training.CONSTANTS
-		equal(C.WALK_STEP, 0.25); equal(C.MAX_LEVEL, 4); equal(C.WALK_CAP, 17.5)
+		equal(C.WALK_STEP, 0.25); equal(C.MAX_LEVEL, 4); equal(C.WALK_CAP, 16, "HF-T4, user decision Q9")
 		equal(Training.cost(0), 30); equal(Training.cost(1), 48); equal(Training.cost(2), 77); equal(Training.cost(3), 123)
 		equal(Training.cost(4), nil, "no level past the cap")
 		equal(Training.cost(-1), nil); equal(Training.cost(0 / 0), nil)
 	end)
 
+	-- Deliberately changed (HF-T4, user decision Q9): the walk cap fell from 17.5 to 16, the base walk, so no bonus
+	-- makes a walk reach La Silueta's night hunt (17); escaping needs the sprint, the Burst or a dodge.
 	case("TR-2: the walk bonus applies only unencumbered and never above WALK_CAP", function()
-		near(Training.walkSpeed(16, 16, { walk = 4 }), 17, "four levels: +1")
-		near(Training.walkSpeed(16, 16, { walk = 99 }), 17, "levels past the cap count as the cap")
-		near(Training.walkSpeed(16, 16, { walk = 4 }, 5), 17.5, "with any other bonus, never above the cap")
+		near(Training.walkSpeed(16, 16, { walk = 4 }), 16, "four levels: capped at the base walk")
+		near(Training.walkSpeed(16, 16, { walk = 99 }), 16, "levels past the cap count as the cap")
+		near(Training.walkSpeed(16, 16, { walk = 4 }, 5), 16, "with any other bonus, never above the cap")
+		near(Training.walkSpeed(15, 16, { walk = 2 }), 15, "a slowed walk gets nothing")
 		near(Training.walkSpeed(11, 16, { walk = 4 }), 11, "an egg in the arms gets nothing")
 		near(Training.walkSpeed(16, 16, nil), 16); near(Training.walkSpeed(16, 16, { walk = -2 }), 16)
 	end)
@@ -77,7 +80,7 @@ return function(Training, source, sources)
 			assert(keys[key], "schema entry " .. key)
 			equal(keys[key].default, Training.CONSTANTS[key], key)
 		end
-		assert(keys.WALK_CAP.max <= 18, "the tuning can never push the walk cap past 18")
+		assert(keys.WALK_CAP.max < 17, "the tuning can never push the walk cap to La Silueta's 17")
 		assert(sources.bridge:find('Training = "WildboundTraining"', 1, true), "the bridge requires the module")
 	end)
 

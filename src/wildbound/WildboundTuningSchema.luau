@@ -138,8 +138,8 @@ Schema.SYSTEMS = table.freeze({
 		value("CHASE_SECONDS", "Persigue durante (s)", "Island", "CHASE_SECONDS", 14, 1, 60, 1),
 		value("CHASE_LEASH", "Correa desde el nido (studs)", "Island", "CHASE_LEASH", 35, 10, 80, 1),
 		value("STRIKE_REACH", "Empieza el golpe a (studs)", "Island", "STRIKE_REACH", 3.5, 1, 10, 0.5),
-		-- At least 0.35 s: the floor of a readable tell (CP-D1).
-		value("STRIKE_WINDUP", "Aviso del golpe (s)", "Island", "STRIKE_WINDUP", 0.45, 0.35, 2, 0.05),
+		-- At least 0.8 s: the fair-strike floor (HF-T4, user decision Q1; was 0.45 with a 0.35 floor, CP-D1).
+		value("STRIKE_WINDUP", "Aviso del golpe (s)", "Island", "STRIKE_WINDUP", 0.8, 0.8, 2, 0.05),
 		value("HIT_RANGE", "El golpe acierta a (studs)", "Island", "HIT_RANGE", 5, 1, 12, 0.5),
 		value("STRIKE_COOLDOWN", "Pausa entre golpes (s)", "Island", "STRIKE_COOLDOWN", 1.2, 0.3, 5, 0.1),
 		value("DAMAGE", "Daño por golpe (100 = muerte)", "Island", "DAMAGE", 35, 0, 100, 1),
@@ -220,12 +220,12 @@ Schema.SYSTEMS = table.freeze({
 		-- RW6: the biome variant rotates every this many waves (never by nights).
 		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
 	}) }),
-	-- Nest Heist Phase 3 (NS5): the treadmill. The walk cap stays at most 18 so a trained player never runs away from
-	-- La Silueta's slowest hunt by walking alone; the sprint and the Burst keep the stamina caps (24 and 28).
+	-- Nest Heist Phase 3 (NS5): the treadmill. HF-T4 (user decision Q9): the walk cap is 16 and stays under 17, so no
+	-- walk reaches La Silueta's night hunt (17); the sprint and the Burst keep the stamina caps (24 and 28).
 	table.freeze({ id = "Training", label = "Entrenamiento", entries = table.freeze({
 		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 0.25, 0, 1, 0.05),
 		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 4, 0, 10, 1),
-		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 17.5, 16, 18, 0.5),
+		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 16, 16, 16.5, 0.5),
 		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 30, 0, 500, 5),
 		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.6, 1, 3, 0.1),
 	}) }),

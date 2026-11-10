@@ -319,5 +319,13 @@ return function(Schema, modules)
 		modules.Stamina.tune(nil)
 	end)
 
+	case("HF-T4: the parents' swing tell defaults to 0.8 s and can never be tuned under it", function()
+		local windup = Schema.find("Islands", "STRIKE_WINDUP")
+		equal(windup.default, 0.8); equal(windup.min, 0.8)
+		local cap = Schema.find("Training", "WALK_CAP")
+		equal(cap.default, 16, "user decision Q9: walk 16, under La Silueta's 17")
+		assert(cap.max < 17, "the tuning can never let a walk reach La Silueta's night hunt (17)")
+	end)
+
 	return result
 end

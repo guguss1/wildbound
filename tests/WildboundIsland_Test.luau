@@ -260,7 +260,7 @@ return function(Island, layout)
 	-- hurts". Now a reach starts a readable strike (it stands still for the wind-up, never under the 0.35 s floor); it
 	-- lands only if the thief is still within the hit range, and the chase goes on after a cooldown.
 	case("CP4: a reach starts a readable strike that lands only if the thief stays close", function()
-		assert(C.STRIKE_WINDUP >= 0.35, "a readable tell")
+		assert(C.STRIKE_WINDUP >= 0.8, "a readable tell: the fair-strike floor 0.8 s (HF-T4, user decision Q1)")
 		assert(C.HIT_RANGE > C.STRIKE_REACH, "a little slack for the swing")
 		local entry = island("I2")
 		local start = entry.adultPoints[1]
@@ -278,6 +278,10 @@ return function(Island, layout)
 		assert(Island.chaseStep(chase, C.STRIKE_COOLDOWN, chase.x + 1, chase.z) == "WindUp", "then it swings again")
 		Island.chaseStep(chase, C.STRIKE_WINDUP - 0.01, chase.x + 1, chase.z)
 		assert(Island.chaseStep(chase, 0.01, chase.x + C.HIT_RANGE + 2, chase.z) == "Missed", "a dodge makes it miss")
+	end)
+
+	case("HF-T4: the parents' close swing telegraph is 0.8 s (was 0.45 s), the fair-strike floor", function()
+		assert(Island.CONSTANTS.STRIKE_WINDUP == 0.8, "STRIKE_WINDUP " .. tostring(Island.CONSTANTS.STRIKE_WINDUP))
 	end)
 
 	case("CP4: three hits kill a lethal player; first-timers and other places only drop the cria", function()

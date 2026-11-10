@@ -10,7 +10,7 @@
 -- stealth, no hit immunity (the Chaleco is gone), no keeping the egg, no bat reach or stun, no fear relief (the
 -- Amuleto is gone; the free Efectos suaves setting softens the fear screen more than it did).
 -- Caps: every stat is capped (*_CAP, never above HARD_CAPS even when tuned). The walk speed from training and a glove
--- together stays under WildboundTraining.WALK_CAP (17.5); the sprint (24) and the Burst (28) keep the stamina caps.
+-- together stays under WildboundTraining.WALK_CAP (16 since HF-T4); sprint (24) and Burst (28) keep the stamina caps.
 --
 -- Items IT2: the Tótem de la suerte (Gear.LUCK, a "luckTotem" recipe, one held at a time) is placed at least LUCK_CAMP
 -- studs from the camp centre and stands LUCK_SECONDS. The next random spawn inside LUCK_RADIUS rolls one tier up (the
