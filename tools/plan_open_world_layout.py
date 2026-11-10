@@ -10,9 +10,11 @@ optional. Nothing here was imported into Roblox, played or measured on a device.
 World frame (studs): the origin is the hub centre, x grows east, z grows south. The existing
 400 x 400 fog forest (assets/maps/forest-layout/forest-layout-v1.json, with its islands, relief
 and hide spots) is translated as one block by FOREST_OFFSET; the forest's local frame stays the
-one its own planners use, so forest_world = forest_local + FOREST_OFFSET. The Pradera (east) is
-a region of the same size with no kit yet: its route, outpost, beast home and seed grid are a
-draft for the Pradera planner and the Studio writer.
+one its own planners use, so forest_world = forest_local + FOREST_OFFSET. The Pradera Arcoiris
+(east) is read from its own kit plan (assets/maps/pradera-layout/pradera-layout-v1.json, written
+by tools/plan_pradera_layout.py) and translated by PRADERA_OFFSET: La Nube Grunona's home, strike
+zone and leash, La Abeja Reina's event ground at La Colmena, the gate, the cream path, the nests,
+the sun circles and the prop footprints are never drafted twice (user decision 2026-11-10).
 
 Spec: docs/design/wildbound-open-world-hub.md.
 """
@@ -31,6 +33,7 @@ if str(TOOLS) not in sys.path:
 import layout_geometry as g  # noqa: E402
 import layout_render as render  # noqa: E402
 import plan_forest_layout as forest  # noqa: E402
+import plan_pradera_layout as pradera  # noqa: E402
 
 DEFAULT_SEED = 20261109
 LAYOUT_NAME = "layout-v1"
@@ -41,9 +44,13 @@ FOREST_LAYOUT = FOREST_DIR / "forest-layout-v1.json"
 FOREST_ISLANDS = FOREST_DIR / "islands-v1.json"
 FOREST_RELIEF = FOREST_DIR / "relief-v1.json"
 FOREST_HIDE_SPOTS = FOREST_DIR / "hide-spots-v1.json"
+PRADERA_LAYOUT = REPO / "assets" / "maps" / "pradera-layout" / "pradera-layout-v1.json"
 
 # ---- World ------------------------------------------------------------------------------
-WORLD_SIZE = (1040.0, 450.0)          # x, z extents; "about 1000 x 450" plus the ring road margin
+# x, z extents: "about 1000 x 450" plus the ring road margin. The east side is 80 studs wider than the west
+# because the ring road's east leg swings round La Nube's 110-stud strike zone, which reaches x 560.
+WORLD_BOUNDS = {"x": (-520.0, 600.0), "z": (-225.0, 225.0)}
+WORLD_SIZE = (WORLD_BOUNDS["x"][1] - WORLD_BOUNDS["x"][0], WORLD_BOUNDS["z"][1] - WORLD_BOUNDS["z"][0])
 WORLD_HALF = (WORLD_SIZE[0] / 2, WORLD_SIZE[1] / 2)
 REGION_SIZE = 400.0
 REGION_HALF = REGION_SIZE / 2
@@ -104,32 +111,25 @@ FOREST_LOCAL = {
     "route_names": [n for n, _ in forest.ROUTE_NODES],
 }
 
-# ---- Pradera (east), draft region for the second biome ------------------------------------
-PRADERA_LOCAL = {
-    "home": (100.0, -60.0), "leash": 80.0, "chase_leash": 100.0,
-    "roam": (0.0, 195.0, -165.0, 60.0),                        # the beast's rectangle, analog of the fog rect
-    "safe_circles": {"outpost": ((30.0, 130.0), 22.0)},
-    "route_nodes": (("gate", (-200.0, 0.0)), ("brotes", (-150.0, -45.0)), ("arroyo", (-85.0, -110.0)),
-                    ("colina", (0.0, -150.0)), ("nido", (100.0, -60.0)), ("estanque", (120.0, 60.0)),
-                    ("outpost", (30.0, 130.0)), ("pradera", (-100.0, 100.0))),
-}
-PRADERA_LOCAL["route"] = [p for _, p in PRADERA_LOCAL["route_nodes"]]
-PRADERA_LOCAL["route_names"] = [n for n, _ in PRADERA_LOCAL["route_nodes"]]
+# ---- Pradera (east): everything comes from the Pradera kit plan, see PraderaRegion ---------
+PRADERA_SAFE_IDS = {"sun-gate": "porton", "sun-plaza": "plaza_molino"}   # the two permanent sun circles
 
 # ---- Transitions, ring road, connectors ----------------------------------------------------
 TRANSITION_HALF_Z = 45.0
 RING_Z = 212.0
-RING_X = 510.0
+RING_X_WEST = 510.0                    # 10 studs outside the forest square
+RING_X_EAST = 590.0                    # 140 studs from La Nube's home: beyond her 110 strike zone and her 90 leash
 RING_CHAMFER = 12.0
-RING_ROAD = [(-RING_X + RING_CHAMFER, -RING_Z), (RING_X - RING_CHAMFER, -RING_Z), (RING_X, -RING_Z + RING_CHAMFER),
-             (RING_X, RING_Z - RING_CHAMFER), (RING_X - RING_CHAMFER, RING_Z), (-RING_X + RING_CHAMFER, RING_Z),
-             (-RING_X, RING_Z - RING_CHAMFER), (-RING_X, -RING_Z + RING_CHAMFER)]
+RING_ROAD = [(-RING_X_WEST + RING_CHAMFER, -RING_Z), (RING_X_EAST - RING_CHAMFER, -RING_Z),
+             (RING_X_EAST, -RING_Z + RING_CHAMFER), (RING_X_EAST, RING_Z - RING_CHAMFER),
+             (RING_X_EAST - RING_CHAMFER, RING_Z), (-RING_X_WEST + RING_CHAMFER, RING_Z),
+             (-RING_X_WEST, RING_Z - RING_CHAMFER), (-RING_X_WEST, -RING_Z + RING_CHAMFER)]
 
 # ---- Refugios, hooks, seeds -------------------------------------------------------------------
 REFUGIO_RADIUS = 8.0
 REFUGIO_SETS, REFUGIO_PER_SET = 3, 3
 REFUGIO_MIN_SPACING = 60.0             # inside one set
-REFUGIO_HOME_CLEAR = 110.0             # beyond the chase leash (100) with a margin
+REFUGIO_BEAST_MARGIN = 10.0            # beyond every beast's reach (the larger of strike radius and leash) by this
 REFUGIO_SAFE_MARGIN = 20.0             # from permanent safe circles and the hub
 REFUGIO_ROAD_CLEAR = REFUGIO_RADIUS + ROAD_HALF
 REFUGIO_PROP_CLEAR = REFUGIO_RADIUS + 1.0
@@ -174,9 +174,10 @@ def load_json(path):
 
 
 def load_forest_inputs(layout_path=FOREST_LAYOUT, islands_path=FOREST_ISLANDS, relief_path=FOREST_RELIEF,
-                       hide_path=FOREST_HIDE_SPOTS):
+                       hide_path=FOREST_HIDE_SPOTS, pradera_path=PRADERA_LAYOUT):
     return {"layout": load_json(layout_path), "islands": load_json(islands_path),
-            "relief": load_json(relief_path), "hide_spots": load_json(hide_path)}
+            "relief": load_json(relief_path), "hide_spots": load_json(hide_path),
+            "pradera": load_json(pradera_path)}
 
 
 # ---- Regions ----------------------------------------------------------------------------------
@@ -194,6 +195,12 @@ class Region:
         self.safe_circles = {name: (translate(c, offset), r) for name, (c, r) in local["safe_circles"].items()}
         self.route = [translate(p, offset) for p in local["route"]]
         self.route_names = list(local["route_names"])
+        self.route_closed = True
+
+    def beasts(self):
+        """Every beast of the region: strikes need `strike_radius`, `reach` is the farthest it hunts from home."""
+        return [{"key": "silueta", "name": self.beast_name, "home": self.home, "strike_radius": self.leash,
+                 "reach": max(self.leash, self.chase_leash), "active": "always"}]
 
     def in_bounds(self, x, z, margin=0.0):
         return (self.bounds[0] + margin <= x <= self.bounds[1] - margin
@@ -226,18 +233,104 @@ class Region:
         return {
             "key": self.key, "offset": list(self.offset), "bounds": {"x": [self.bounds[0], self.bounds[1]], "z": [self.bounds[2], self.bounds[3]]},
             "beast": {"name": self.beast_name, "home": list(self.home), "leash": self.leash, "chase_leash": self.chase_leash,
+                      "strike_radius": self.leash,
                       "rect": {"x": [self.beast_rect[0], self.beast_rect[1]], "z": [self.beast_rect[2], self.beast_rect[3]]},
                       "reach_toward_hub": self.reach()},
             "safe_circles": {name: {"centre": list(c), "r": r} for name, (c, r) in self.safe_circles.items()},
-            "route": {"names": self.route_names, "nodes": [list(p) for p in self.route],
+            "route": {"names": self.route_names, "nodes": [list(p) for p in self.route], "closed": True,
                       "loop_length": r3(g.polyline_length(self.route + self.route[:1])),
                       "walk_seconds": r3(g.polyline_length(self.route + self.route[:1]) / WALK_SPEED)},
         }
 
 
-def make_regions():
+class PraderaRegion:
+    """The Pradera Arcoiris read from its kit plan and translated by PRADERA_OFFSET.
+
+    La Nube Grunona is the permanent beast: a strike zone (circle) around her pond and a leash. La Abeja Reina
+    is the biome event's beast: awake only while the event egg is up, guarding La Colmena. Zones: "territory"
+    (inside la Nube's strike zone and not safe), "colmena" (inside the Abeja's guard radius, event only),
+    "outside" (everything else).
+    """
+
+    def __init__(self, layout, offset=PRADERA_OFFSET):
+        self.key, self.offset, self.centre = "pradera", offset, offset
+        self.source = layout
+        self.bounds = (offset[0] - REGION_HALF, offset[0] + REGION_HALF, offset[1] - REGION_HALF, offset[1] + REGION_HALF)
+        beast = layout["beast"]
+        self.beast_name = layout["biome"]["beast"]
+        self.home = translate(tuple(beast["home"]), offset)
+        self.strike_radius, self.leash = beast["strike_zone_radius"], beast["leash"]
+        self.seta_trueno = translate(tuple(beast["seta_trueno"]), offset)
+        ev = layout["abeja_event"]
+        self.event = ev
+        self.hive = translate(tuple(ev["hive"]), offset)
+        self.guard_radius, self.event_leash, self.wake_radius = ev["guard_radius"], ev["leash"], ev["wake_radius"]
+        self.safe_circles = {PRADERA_SAFE_IDS[c["id"]]: (translate((c["x"], c["z"]), offset), c["radius"])
+                             for c in layout["sun_circles"] if c["permanent"]}
+        self.sun_candidates = [{"id": c["id"], "centre": translate((c["x"], c["z"]), offset), "r": c["radius"]}
+                               for c in layout["sun_circles"] if not c["permanent"]]
+        self.gate = translate(tuple(layout["zones"]["sol"]["gate"][:2]), offset)
+        self.route = [translate(tuple(p), offset) for p in layout["route"]["nodes"]]
+        self.route_names = list(layout["route"]["names"])
+        self.route_closed = False
+        self.nests = [dict(n, x=r3(n["x"] + offset[0]), z=r3(n["z"] + offset[1])) for n in layout["nests"]]
+        self.solids = []
+        for inst in layout["instances"]:
+            if inst["name"] == "PA_PuffFlower":
+                continue
+            world = dict(inst, x=inst["x"] + offset[0], z=inst["z"] + offset[1])
+            self.solids.append((inst["id"], pradera.footprint(world)))
+
+    def beasts(self):
+        return [{"key": "nube", "name": self.beast_name, "home": self.home, "strike_radius": self.strike_radius,
+                 "reach": max(self.strike_radius, self.leash), "active": "always"},
+                {"key": "abeja", "name": self.event["displayName"], "home": self.hive, "strike_radius": self.guard_radius,
+                 "reach": max(self.guard_radius, self.event_leash), "active": "event"}]
+
+    def in_bounds(self, x, z, margin=0.0):
+        return (self.bounds[0] + margin <= x <= self.bounds[1] - margin
+                and self.bounds[2] + margin <= z <= self.bounds[3] - margin)
+
+    def in_safe(self, x, z, margin=0.0):
+        return any(math.dist((x, z), c) <= r + margin for c, r in self.safe_circles.values())
+
+    def distance_home(self, x, z):
+        return math.dist((x, z), self.home)
+
+    def in_territory(self, x, z):
+        return self.distance_home(x, z) <= self.strike_radius and not self.in_safe(x, z)
+
+    def zone(self, x, z):
+        if self.in_territory(x, z):
+            return "territory"
+        return "colmena" if math.dist((x, z), self.hive) <= self.guard_radius else "outside"
+
+    def reach(self):
+        return {"strike_x": r3(self.home[0] - self.strike_radius), "leash_x": r3(self.home[0] - self.leash)}
+
+    def report(self):
+        length = g.polyline_length(self.route)
+        return {
+            "key": self.key, "offset": list(self.offset), "bounds": {"x": [self.bounds[0], self.bounds[1]], "z": [self.bounds[2], self.bounds[3]]},
+            "source": "assets/maps/pradera-layout/pradera-layout-v1.json", "biome": self.source["biome"]["displayName"],
+            "beast": {"name": self.beast_name, "home": list(self.home), "strike_radius": self.strike_radius, "leash": self.leash,
+                      "seta_trueno": list(self.seta_trueno), "reach_toward_hub": self.reach()},
+            "event_beast": {"name": self.event["displayName"], "hive": list(self.hive), "guard_radius": self.guard_radius,
+                            "leash": self.event_leash, "wake_radius": self.wake_radius, "egg_nest": self.event["egg_nest"],
+                            "clock": dict(self.event["clock"]), "active": "event"},
+            "gate": list(self.gate),
+            "safe_circles": {name: {"centre": list(c), "r": r} for name, (c, r) in self.safe_circles.items()},
+            "sun_circle_candidates": [{"id": c["id"], "centre": list(c["centre"]), "r": c["r"]} for c in self.sun_candidates],
+            "nests": [{"id": n["id"], "species": n["species"], "rarity": n["rarity"], "x": n["x"], "z": n["z"],
+                       "eventOnly": n["eventOnly"]} for n in self.nests],
+            "route": {"names": self.route_names, "nodes": [list(p) for p in self.route], "closed": False,
+                      "length": r3(length), "walk_seconds": r3(length / WALK_SPEED)},
+        }
+
+
+def make_regions(pradera_layout=None):
     west = Region("forest", FOREST_OFFSET, FOREST_LOCAL, "La Silueta", "fog")
-    east = Region("pradera", PRADERA_OFFSET, PRADERA_LOCAL, "Bestia de la Pradera (pending user decision)", "roam")
+    east = PraderaRegion(pradera_layout or load_json(PRADERA_LAYOUT))
     return west, east
 
 
@@ -318,8 +411,7 @@ def hub_report():
 def connectors(west, east):
     shelter = west.safe_circles["shelter"][0]
     camp = west.safe_circles["camp"][0]
-    outpost = east.safe_circles["outpost"][0]
-    pradera_gate = east.route[0]
+    pradera_gate = east.route[0]   # where the Pradera's cream path starts, just west of the rainbow gate
     return {
         "umbral_oeste": {"from": "hub gate W", "to": "forest shelter", "nodes": [HUB_GATES["W"], (-100.0, 20.0), shelter],
                          "region": "forest", "removes_props": True},
@@ -331,14 +423,13 @@ def connectors(west, east):
                         "region": "hub", "removes_props": False},
         "espolon_campamento": {"from": "forest camp", "to": "ring road", "nodes": [camp, (camp[0], RING_Z)],
                                "region": "forest", "removes_props": True},
-        "espolon_pradera": {"from": "pradera outpost", "to": "ring road", "nodes": [outpost, (outpost[0], RING_Z)],
-                            "region": "pradera", "removes_props": False},
     }
 
 
 def all_road_polylines(west, east, conns):
     """(name, nodes, closed) for every corridor whose 14 studs must stay clear."""
-    roads = [("ring", RING_ROAD, True), ("forest_route", west.route, True), ("pradera_route", east.route, True)]
+    roads = [("ring", RING_ROAD, True), ("forest_route", west.route, west.route_closed),
+             ("pradera_route", east.route, east.route_closed)]
     for name, c in conns.items():
         roads.append((name, c["nodes"], False))
     return roads
@@ -403,14 +494,21 @@ def translated_hide_spots(hide):
 
 
 # ---- Refugios -----------------------------------------------------------------------------------
-def refugio_candidates(region, roads, shapes):
+def all_beasts(west, east):
+    return west.beasts() + east.beasts()
+
+
+def refugio_candidates(region, roads, shapes, beasts):
+    """Never inside any beast's reach (strike zone or leash) plus a margin, on either side of the world."""
     xs = range(int(region.bounds[0] + REFUGIO_EDGE_MARGIN), int(region.bounds[1] - REFUGIO_EDGE_MARGIN) + 1, 10)
     zs = range(int(region.bounds[2] + REFUGIO_EDGE_MARGIN), int(region.bounds[3] - REFUGIO_EDGE_MARGIN) + 1, 10)
     found = []
     for x in xs:
         for z in zs:
             p = (float(x), float(z))
-            if region.distance_home(*p) < REFUGIO_HOME_CLEAR or region.in_safe(*p, margin=REFUGIO_SAFE_MARGIN):
+            if any(math.dist(p, b["home"]) < b["reach"] + REFUGIO_BEAST_MARGIN for b in beasts):
+                continue
+            if region.in_safe(*p, margin=REFUGIO_SAFE_MARGIN):
                 continue
             if math.hypot(*p) <= HUB_RADIUS + REFUGIO_SAFE_MARGIN or road_distance(roads, p) < REFUGIO_ROAD_CLEAR:
                 continue
@@ -474,13 +572,17 @@ def west_hook(region, roads, shapes):
 
 
 def east_hook(region):
-    gate = region.route[0]
-    p = region.route[1]
+    """The Pradera kit's first nest (Chispin, N1), visible from the rainbow gate, is the east first-steal hook."""
+    gate = region.gate
+    nest = region.nests[0]
+    p = (nest["x"], nest["z"])
     d = math.dist(p, gate)
-    return {"id": "brotes", "name": "Prado de los Brotes", "side": "east", "x": p[0], "z": p[1], "gate": list(gate),
-            "distance_from_gate": r3(d), "walk_seconds_from_gate": r3(d / WALK_SPEED), "prop_clearance": None,
+    clear = min(g.shape_point_dist(shape, p) for _, shape in region.solids)
+    return {"id": "chispin", "name": "Nido de Chispín", "side": "east", "x": p[0], "z": p[1], "gate": list(gate),
+            "distance_from_gate": r3(d), "walk_seconds_from_gate": r3(d / WALK_SPEED), "prop_clearance": r3(clear),
             "zone": region.zone(*p), "distance_home": r3(region.distance_home(*p)), "tier": "Safe",
-            "species": "pending (Pradera creature design)", "note": "tutorial nest on the Pradera route, first node after the gate"}
+            "species": nest["species"], "nest": nest["id"],
+            "note": "the Pradera kit's first nest (N1, Comun), visible from the rainbow gate; replaces the draft Prado de los Brotes"}
 
 
 # ---- Spawn-graph seeds ----------------------------------------------------------------------------
@@ -530,19 +632,33 @@ def forest_seeds(region, instances, islands_world, roads):
     return seeds
 
 
+def pradera_seed_ok(region, p):
+    """No Legendaria seed: in the Pradera, Legendaria comes only from the event egg (Pradera plan section 4).
+
+    So nothing spawns within the Legendaria band of la Nube's pond, nothing inside La Colmena's leash disc
+    (the event egg's glade stays the event's), and nothing inside a kit prop's footprint."""
+    if region.distance_home(*p) < TIER_BANDS[0][2]:
+        return False
+    if math.dist(p, region.hive) < region.event_leash + SEED_SAFE_MARGIN:
+        return False
+    return all(g.shape_point_dist(shape, p) >= 1.0 for _, shape in region.solids)
+
+
 def pradera_seeds(region, roads, rng):
+    """A jittered meadow grid filtered by the kit, plus the kit's four wild nests (the event nest is not a seed)."""
     seeds = []
     x = region.bounds[0] + PRADERA_SEED_STEP
     while x < region.bounds[1] - PRADERA_SEED_STEP / 2:
         z = region.bounds[2] + PRADERA_SEED_STEP
         while z < region.bounds[3] - PRADERA_SEED_STEP / 2:
             p = (x + rng.uniform(-PRADERA_SEED_JITTER, PRADERA_SEED_JITTER), z + rng.uniform(-PRADERA_SEED_JITTER, PRADERA_SEED_JITTER))
-            if seed_ok(region, p) and road_distance(roads, p) >= ROAD_HALF + 3.0:
+            if seed_ok(region, p) and road_distance(roads, p) >= ROAD_HALF + 3.0 and pradera_seed_ok(region, p):
                 seeds.append(make_seed(region, "meadow", p, 0.0, "grid"))
             z += PRADERA_SEED_STEP
         x += PRADERA_SEED_STEP
-    p = region.route[1]
-    seeds.append(make_seed(region, "nest", p, 0.5, "brotes"))
+    for nest in region.nests:
+        if not nest["eventOnly"]:
+            seeds.append(make_seed(region, "nest", (nest["x"], nest["z"]), 0.5, nest["id"]))
     return seeds
 
 
@@ -563,22 +679,38 @@ def zone_rules(west, east):
         "forest": {"offset": list(FOREST_OFFSET), "home": list(west.home), "leash": west.leash, "chase_leash": west.chase_leash,
                    "fog": {"x": [west.beast_rect[0], west.beast_rect[1]], "z": [west.beast_rect[2], west.beast_rect[3]]},
                    "safe": {name: {"centre": list(c), "r": r} for name, (c, r) in west.safe_circles.items()}},
-        "pradera": {"offset": list(PRADERA_OFFSET), "home": list(east.home), "leash": east.leash, "chase_leash": east.chase_leash,
-                    "roam": {"x": [east.beast_rect[0], east.beast_rect[1]], "z": [east.beast_rect[2], east.beast_rect[3]]},
+        "pradera": {"offset": list(PRADERA_OFFSET), "source": "assets/maps/pradera-layout/pradera-layout-v1.json",
+                    "home": list(east.home), "strike_radius": east.strike_radius, "leash": east.leash,
+                    "beast": east.beast_name,
+                    "event_beast": {"name": east.event["displayName"], "hive": list(east.hive), "guard_radius": east.guard_radius,
+                                    "leash": east.event_leash, "wake_radius": east.wake_radius, "active": "event"},
                     "safe": {name: {"centre": list(c), "r": r} for name, (c, r) in east.safe_circles.items()}},
-        "beast_free_band": {"x": [west.reach()["chase_x"], east.reach()["chase_x"]],
-                            "note": "neither beast can hunt here: the hub, both transitions, the Pradera's west half and "
-                                    "the whole ring road (outside both rectangles, so never a strike point)"},
+        "strike_zones": [{"beast": b["name"], "key": b["key"], "home": list(b["home"]), "strike_radius": b["strike_radius"],
+                          "reach": b["reach"], "active": b["active"]} for b in all_beasts(west, east)],
+        "beast_free_band": {"x": [west.reach()["chase_x"], east.reach()["strike_x"]],
+                            "note": "no always-on beast can hunt here: the hub, both transitions, the Pradera's west half and "
+                                    "the whole ring road. Only while the Pradera event egg is up, La Abeja Reina guards La "
+                                    "Colmena inside this band; her ground touches no road, gate or safe circle"},
+        "one_beast_per_player": "the strike zones never overlap (no point is inside two), so one player is never the "
+                                "target of two beasts at once",
         "region_of": "x < -100: forest; -100..-60 and 60..100: transitions; |x| <= 60 inside the hub circle: hub; "
-                     "x > 100: pradera; |z| > 200: ring road",
+                     "x > 100: pradera; |z| > 200 or x > 500: ring road",
     }
+
+
+def plaza_walk(east, conns):
+    """Walking distance from the hub's east gate to the Plaza del Molino: connector, then the cream path."""
+    path = east.route
+    plaza = east.safe_circles["plaza_molino"][0]
+    index = min(range(len(path)), key=lambda k: math.dist(path[k], plaza))
+    return g.polyline_length(conns["umbral_este"]["nodes"]) + g.polyline_length(path[:index + 1])
 
 
 # ---- Generation -----------------------------------------------------------------------------------
 def generate(seed=DEFAULT_SEED, inputs=None):
     inputs = inputs or load_forest_inputs()
     rng = random.Random(seed)
-    west, east = make_regions()
+    west, east = make_regions(inputs.get("pradera"))
     conns = connectors(west, east)
     roads = all_road_polylines(west, east, conns)
     instances = translated_forest_instances(inputs["layout"])
@@ -587,8 +719,11 @@ def generate(seed=DEFAULT_SEED, inputs=None):
                                                              "espolon_sur")], shapes)
     kept_shapes = [(ident, shape) for ident, shape in shapes if ident not in removed]
     islands_world = translated_islands(inputs["islands"])
-    west_sets = pick_refugios(west, refugio_candidates(west, roads, kept_shapes), rng)
-    east_sets = pick_refugios(east, refugio_candidates(east, roads, []), rng)
+    beasts = all_beasts(west, east)
+    west_sets = pick_refugios(west, refugio_candidates(west, roads, kept_shapes, beasts), rng)
+    # East: keep clear of the kit's solid props and of its rerolled sun-circle candidates (no stacked safe discs).
+    east_shapes = east.solids + [(c["id"], g.Circle(c["centre"][0], c["centre"][1], c["r"])) for c in east.sun_candidates]
+    east_sets = pick_refugios(east, refugio_candidates(east, roads, east_shapes, beasts), rng)
     hooks = {"west": west_hook(west, roads, kept_shapes), "east": east_hook(east)}
     kept_instances = [i for i in instances if i["id"] not in removed]
     seeds = {"west": forest_seeds(west, kept_instances, islands_world, roads), "east": pradera_seeds(east, roads, rng)}
@@ -613,11 +748,12 @@ def generate(seed=DEFAULT_SEED, inputs=None):
             "forest_frame": "forest_world = forest_local + forest.offset; forest-layout-v1.json, islands-v1.json, relief-v1.json and "
                             "hide-spots-v1.json stay in the forest local frame",
             "sources": {"forest_layout": "assets/maps/forest-layout/forest-layout-v1.json", "islands": "assets/maps/forest-layout/islands-v1.json",
-                        "relief": "assets/maps/forest-layout/relief-v1.json", "hide_spots": "assets/maps/forest-layout/hide-spots-v1.json"},
+                        "relief": "assets/maps/forest-layout/relief-v1.json", "hide_spots": "assets/maps/forest-layout/hide-spots-v1.json",
+                        "pradera_layout": "assets/maps/pradera-layout/pradera-layout-v1.json"},
         },
-        "world": {"size": list(WORLD_SIZE), "bounds": {"x": [-WORLD_HALF[0], WORLD_HALF[0]], "z": [-WORLD_HALF[1], WORLD_HALF[1]]},
+        "world": {"size": list(WORLD_SIZE), "bounds": {"x": list(WORLD_BOUNDS["x"]), "z": list(WORLD_BOUNDS["z"])},
                   "walk_speed": WALK_SPEED, "hub_to_forest_camp": r3(math.dist(HUB_GATES["W"], west.safe_circles["camp"][0])),
-                  "hub_to_pradera_outpost": r3(math.dist(HUB_GATES["E"], east.safe_circles["outpost"][0]))},
+                  "hub_gate_to_plaza_molino_walk": r3(plaza_walk(east, conns))},
         "hub": hub_report(),
         "regions": {"forest": west.report(), "pradera": east.report()},
         "transitions": transitions,
@@ -636,15 +772,17 @@ def generate(seed=DEFAULT_SEED, inputs=None):
         },
         "hooks": hooks,
         "refugio_rules": {"radius": REFUGIO_RADIUS, "sets_per_side": REFUGIO_SETS, "per_set": REFUGIO_PER_SET, "min_spacing": REFUGIO_MIN_SPACING,
-                          "home_clear": REFUGIO_HOME_CLEAR, "safe_margin": REFUGIO_SAFE_MARGIN, "road_clear": REFUGIO_ROAD_CLEAR,
-                          "prop_clear": REFUGIO_PROP_CLEAR},
+                          "beast_margin": REFUGIO_BEAST_MARGIN, "safe_margin": REFUGIO_SAFE_MARGIN, "road_clear": REFUGIO_ROAD_CLEAR,
+                          "prop_clear": REFUGIO_PROP_CLEAR,
+                          "beast_rule": "centre at least reach + beast_margin from every beast's home (Silueta 100, Nube 110, "
+                                        "Abeja 45), so the whole disc stays outside every strike zone"},
         "refugio_sets": {"west": west_sets, "east": east_sets},
         "tier_bands": [{"tier": t, "min": lo, "max": (None if hi == math.inf else hi)} for t, lo, hi in TIER_BANDS],
         "spawn_seed_summary": {"west": seed_summary(seeds["west"]), "east": seed_summary(seeds["east"])},
         "spawn_seeds": seeds,
         "streaming": {
             "streaming_enabled": True, "min_radius": 64, "target_radius_recommended": 420, "stream_out": "Opportunistic",
-            "persistent_models": ["La Silueta", "Pradera beast", "hub stations"],
+            "persistent_models": ["La Silueta", "La Nube Gruñona", "La Abeja Reina (while the event runs)", "hub stations"],
             "triangles": {"forest_plan": inputs["layout"]["totals"]["triangles"], "pradera_cap": 40000, "hub_cap": 12000,
                           "ring_and_connectors_cap": 6000},
             "note": "with a 420 target radius a player at the hub streams the hub and both transitions, about a third of each "
@@ -670,10 +808,10 @@ def to_json(layout):
 
 
 # ---- Drawing ------------------------------------------------------------------------------------------
-CANVAS = (1340, 820)
+CANVAS = (1440, 820)
 MAP_SCALE, MAP_X0, MAP_Y0 = 1.2, 46.0, 70.0
 C_FOREST, C_FOG, C_TERR, C_CHASE = "#cfd8c4", "#4b5d73", "#c0392b", "#e67e22"
-C_PRADERA, C_ROAM = "#f3e7b8", "#e9a2b8"
+C_PRADERA, C_ROAM, C_ABEJA = "#f3e7b8", "#b4a8d2", "#f2a33a"
 C_HUB, C_ROAD, C_RING = "#f0d9a8", "#c9a96a", "#a88a4a"
 C_TREE, C_DEAD, C_LOG = "#1f6b3a", "#3d2610", "#8a5a2b"
 C_SAFE, C_REFUGIO, C_HOOK, C_SEED = "#27ae60", "#0b8fa8", "#d4a017", "#8e44ad"
@@ -681,9 +819,9 @@ C_SAFE, C_REFUGIO, C_HOOK, C_SEED = "#27ae60", "#0b8fa8", "#d4a017", "#8e44ad"
 
 def build_scene(layout):
     scene = render.Scene(*CANVAS)
-    half = WORLD_HALF[0]
-    # World adds the same half extent on both axes; shift the vertical origin so z = -225 lands at MAP_Y0.
-    world = render.World(MAP_SCALE, MAP_X0, MAP_Y0 - (half - WORLD_HALF[1]) * MAP_SCALE, half)
+    half = -WORLD_BOUNDS["x"][0]
+    # World adds the same half extent on both axes; shift the vertical origin so the north edge lands at MAP_Y0.
+    world = render.World(MAP_SCALE, MAP_X0, MAP_Y0 - (half + WORLD_BOUNDS["z"][0]) * MAP_SCALE, half)
     s = MAP_SCALE
     scene.text(MAP_X0, 30, "Wildbound open world plan v1 - DESIGN, unvalidated - top-down", size=22, bold=True)
     scene.text(MAP_X0, 52, "seed %d | %d x %d studs | hub at the origin, forest west, Pradera east | north (-z) is up"
@@ -694,17 +832,26 @@ def build_scene(layout):
         b = layout["regions"][key]["bounds"]
         scene.rect(world.px(b["x"][0]), world.py(b["z"][0]), (b["x"][1] - b["x"][0]) * s, (b["z"][1] - b["z"][0]) * s,
                    fill=colour, stroke="#555555", sw=1)
-    for key, colour in (("forest", C_FOG), ("pradera", C_ROAM)):
-        rect = layout["regions"][key]["beast"]["rect"]
-        scene.rect(world.px(rect["x"][0]), world.py(rect["z"][0]), (rect["x"][1] - rect["x"][0]) * s,
-                   (rect["z"][1] - rect["z"][0]) * s, fill=colour, fo=0.35, stroke=colour, sw=1.2)
-    for key in ("forest", "pradera"):
-        beast = layout["regions"][key]["beast"]
-        hx, hz = beast["home"]
-        scene.circle(world.px(hx), world.py(hz), beast["leash"] * s, stroke=C_TERR, sw=1.5, dash=(6, 4))
-        scene.circle(world.px(hx), world.py(hz), beast["chase_leash"] * s, stroke=C_CHASE, sw=1.0, dash=(3, 5))
-        scene.circle(world.px(hx), world.py(hz), 5, fill=C_TERR, stroke="#ffffff", sw=1)
-        scene.text(world.px(hx) + 8, world.py(hz) - 8, beast["name"].split(" (")[0], size=12, bold=True, fill=C_TERR)
+    rect = layout["regions"]["forest"]["beast"]["rect"]
+    scene.rect(world.px(rect["x"][0]), world.py(rect["z"][0]), (rect["x"][1] - rect["x"][0]) * s,
+               (rect["z"][1] - rect["z"][0]) * s, fill=C_FOG, fo=0.35, stroke=C_FOG, sw=1.2)
+    beast = layout["regions"]["forest"]["beast"]
+    hx, hz = beast["home"]
+    scene.circle(world.px(hx), world.py(hz), beast["leash"] * s, stroke=C_TERR, sw=1.5, dash=(6, 4))
+    scene.circle(world.px(hx), world.py(hz), beast["chase_leash"] * s, stroke=C_CHASE, sw=1.0, dash=(3, 5))
+    scene.circle(world.px(hx), world.py(hz), 5, fill=C_TERR, stroke="#ffffff", sw=1)
+    scene.text(world.px(hx) + 8, world.py(hz) - 8, beast["name"], size=12, bold=True, fill=C_TERR)
+    east = layout["regions"]["pradera"]
+    nube, abeja = east["beast"], east["event_beast"]
+    hx, hz = nube["home"]
+    scene.circle(world.px(hx), world.py(hz), nube["strike_radius"] * s, fill=C_ROAM, fo=0.35, stroke=C_TERR, sw=1.5, dash=(6, 4))
+    scene.circle(world.px(hx), world.py(hz), nube["leash"] * s, stroke=C_CHASE, sw=1.0, dash=(3, 5))
+    scene.circle(world.px(hx), world.py(hz), 5, fill=C_TERR, stroke="#ffffff", sw=1)
+    scene.text(world.px(hx) - 60, world.py(hz) - 8, nube["name"], size=12, bold=True, fill=C_TERR)
+    ax, az = abeja["hive"]
+    scene.circle(world.px(ax), world.py(az), abeja["leash"] * s, fill=C_ABEJA, fo=0.15, stroke=C_ABEJA, sw=1.0, dash=(3, 4))
+    scene.circle(world.px(ax), world.py(az), abeja["guard_radius"] * s, fill=C_ABEJA, fo=0.30, stroke="#b8793a", sw=1.4, dash=(6, 4))
+    scene.text(world.px(ax) - 50, world.py(az) + abeja["leash"] * s + 12, "La Abeja Reina (event)", size=11, bold=True, fill="#7a4a12")
     for t in layout["transitions"].values():
         scene.rect(world.px(t["x"][0]), world.py(t["z"][0]), (t["x"][1] - t["x"][0]) * s, (t["z"][1] - t["z"][0]) * s,
                    fill="#ffffff", fo=0.45, stroke="#888888", sw=0.8, dash=(4, 3))
@@ -714,8 +861,9 @@ def build_scene(layout):
         scene.line([world.pt(p) for p in c["nodes"]], stroke=C_ROAD, sw=ROAD_WIDTH * s)
     for key in ("forest", "pradera"):
         route = layout["regions"][key]["route"]["nodes"]
-        scene.line([world.pt(p) for p in route + route[:1]], stroke=C_ROAD, sw=ROAD_WIDTH * s)
-        scene.line([world.pt(p) for p in route + route[:1]], stroke="#6b5320", sw=1.0, dash=(8, 6))
+        drawn = route + route[:1] if layout["regions"][key]["route"]["closed"] else route
+        scene.line([world.pt(p) for p in drawn], stroke=C_ROAD, sw=ROAD_WIDTH * s)
+        scene.line([world.pt(p) for p in drawn], stroke="#6b5320", sw=1.0, dash=(8, 6))
         for name, p in zip(layout["regions"][key]["route"]["names"], route):
             scene.circle(world.px(p[0]), world.py(p[1]), 3.5, fill="#ffffff", stroke="#3a2f12", sw=1.2)
             scene.text(world.px(p[0]) + 6, world.py(p[1]) - 5, name, size=10, fill="#3a2f12")
@@ -765,9 +913,10 @@ def build_scene(layout):
     x0, y = MAP_X0, MAP_Y0 + WORLD_SIZE[1] * s + 40
     scene.text(x0, y, "Legend", size=16, bold=True)
     rows = [("Forest block (400 x 400, translated -300, 0)", C_FOREST), ("Fog rectangle (moves with the block)", C_FOG),
-            ("Pradera region (400 x 400, draft)", C_PRADERA), ("Pradera beast rectangle", C_ROAM),
+            ("Pradera Arcoiris (400 x 400, from its kit plan)", C_PRADERA), ("La Nube's strike zone r 110", C_ROAM),
+            ("La Abeja Reina at La Colmena, event only", C_ABEJA),
             ("Hub safe circle r 60, plaza ring 25-35", C_HUB), ("Ring road and spokes, 14 wide, beast-free", C_RING),
-            ("Routes and connectors, 14 wide", C_ROAD), ("Permanent safe circle (camp, shelter, outpost)", C_SAFE),
+            ("Routes and connectors, 14 wide", C_ROAD), ("Permanent safe circle (camp, shelter, Pradera sun circles)", C_SAFE),
             ("Refugio candidate (3 sets per side)", C_REFUGIO), ("First-steal hook nest", C_HOOK),
             ("Pradera seed grid / forest canopy and log seeds", C_SEED)]
     col, rowy = 0, y
@@ -788,7 +937,7 @@ def build_scene(layout):
                                                                         layout["forest_block"]["instances_total"],
                                                                         len(layout["forest_block"]["removed_props"])),
                  "Seeds west %d, east %d" % (sumw["count"], sume["count"]),
-                 "Dashed red: territory (leash 80); dotted orange: chase leash 100"]:
+                 "Dashed red: Silueta territory 80, Nube strike zone 110", "Dotted orange: Silueta chase 100, Nube leash 90"]:
         y += 22
         scene.text(xx, y, line, size=12)
     return scene

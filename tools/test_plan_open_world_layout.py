@@ -18,16 +18,19 @@ from pathlib import Path
 import layout_geometry as g
 import plan_forest_layout as forest
 import plan_open_world_layout as plan
+import plan_pradera_layout as pradera
 
 REPO = Path(__file__).resolve().parent.parent
 FOREST_JSON = REPO / "assets/maps/forest-layout/forest-layout-v1.json"
 ISLANDS_JSON = REPO / "assets/maps/forest-layout/islands-v1.json"
 RELIEF_JSON = REPO / "assets/maps/forest-layout/relief-v1.json"
 HIDE_JSON = REPO / "assets/maps/forest-layout/hide-spots-v1.json"
+PRADERA_JSON = REPO / "assets/maps/pradera-layout/pradera-layout-v1.json"
 COMMITTED = REPO / "assets/maps/open-world/layout-v1.json"
 
 # ---- Spec inputs, restated independently of the module under test ----------
-WORLD = (1040.0, 450.0)
+WORLD = (1120.0, 450.0)
+WORLD_X, WORLD_Z = (-520.0, 600.0), (-225.0, 225.0)
 HUB_R, HUB_WALL, PLAZA = 60.0, 58.0, (25.0, 35.0)
 STATION_BAND, SPOKE_CLEAR, STATION_GAP = (36.0, 56.0), 10.0, 8.0
 FOREST_OFFSET, PRADERA_OFFSET = (-300.0, 0.0), (300.0, 0.0)
@@ -35,11 +38,18 @@ FOREST_HOME_LOCAL, FOG_LOCAL = (0.0, -85.0), (-45.0, 165.0, -165.0, 35.0)
 FOREST_SAFE_LOCAL = {"camp": ((-140.0, 140.0), 35.0), "shelter": ((105.0, 125.0), 22.0)}
 FOREST_ROUTE_LOCAL = [(-140, 140), (-95, 75), (0, -85), (35, -99), (115, 15), (105, 125)]
 LEASH, CHASE = 80.0, 100.0
-PRADERA_HOME, PRADERA_ROAM = (400.0, -60.0), (300.0, 495.0, -165.0, 60.0)
-PRADERA_OUTPOST = ((330.0, 130.0), 22.0)
+# The Pradera Arcoiris and its beasts, restated from docs/design/wildbound-biome-pradera.md (user decision
+# 2026-11-10): La Nube Grunona is permanent, La Abeja Reina wakes only for the event egg at La Colmena.
+NUBE_HOME, NUBE_STRIKE, NUBE_LEASH = (450.0, 0.0), 110.0, 90.0
+HIVE, ABEJA_GUARD, ABEJA_LEASH = (225.0, 75.0), 35.0, 45.0
+PRADERA_GATE = (114.0, 0.0)
+PRADERA_SAFE = {"porton": ((114.0, 0.0), 25.0), "plaza_molino": ((260.0, 14.0), 12.0)}
+# Strike radius and reach (the larger of strike radius and leash) of every beast, both sides.
+BEASTS = (("silueta", (-300.0, -85.0), LEASH, CHASE), ("nube", NUBE_HOME, NUBE_STRIKE, max(NUBE_STRIKE, NUBE_LEASH)),
+          ("abeja", HIVE, ABEJA_GUARD, ABEJA_LEASH))
 ROAD_W, ROAD_CLEAR = 14.0, 10.0
-RING_Z, RING_X = 212.0, 510.0
-REFUGIO_R, HOME_CLEAR, SAFE_MARGIN, MIN_SPACING = 8.0, 110.0, 20.0, 60.0
+RING_Z, RING_X_WEST, RING_X_EAST = 212.0, 510.0, 590.0
+REFUGIO_R, BEAST_MARGIN, SAFE_MARGIN, MIN_SPACING = 8.0, 10.0, 20.0, 60.0
 HOOK_BAND, HOOK_FLOOR = (60.0, 110.0), 14.0
 TIERS = (("Legendaria", 0, 45), ("Épica", 45, 80), ("Rara", 80, 120), ("Común", 120, math.inf))
 ALT_SEEDS = (7, 1234)
@@ -74,7 +84,7 @@ def to_shape(shape):
 
 
 class Fixtures:
-    forest_layout = islands = relief = hide = None
+    forest_layout = islands = relief = hide = pradera = None
 
     @classmethod
     def load(cls):
@@ -82,6 +92,13 @@ class Fixtures:
         cls.islands = json.loads(ISLANDS_JSON.read_text(encoding="utf-8"))
         cls.relief = json.loads(RELIEF_JSON.read_text(encoding="utf-8"))
         cls.hide = json.loads(HIDE_JSON.read_text(encoding="utf-8"))
+        cls.pradera = json.loads(PRADERA_JSON.read_text(encoding="utf-8"))
+
+    @classmethod
+    def pradera_solids(cls):
+        """(id, footprint) for every solid Pradera kit prop, in world studs."""
+        return [(i["id"], pradera.footprint(dict(i, x=i["x"] + PRADERA_OFFSET[0], z=i["z"] + PRADERA_OFFSET[1])))
+                for i in cls.pradera["instances"] if i["name"] != "PA_PuffFlower"]
 
     @classmethod
     def world_props(cls):
@@ -102,8 +119,8 @@ class RuleChecks(Fixtures):
     def roads(self):
         lay = self.layout
         roads = [("ring", [tuple(p) for p in lay["ring_road"]["nodes"]], True)]
-        for key in ("forest", "pradera"):
-            roads.append((key, [tuple(p) for p in lay["regions"][key]["route"]["nodes"]], True))
+        for key, closed in (("forest", True), ("pradera", False)):  # the forest loop; the Pradera's gate-to-pond path
+            roads.append((key, [tuple(p) for p in lay["regions"][key]["route"]["nodes"]], closed))
         for name, c in lay["connectors"].items():
             roads.append((name, [tuple(p) for p in c["nodes"]], False))
         return roads
@@ -121,11 +138,13 @@ class RuleChecks(Fixtures):
             return "territory"
         return "fog" if fog else "outside"
 
+    def pradera_safe(self, p, margin=0.0):
+        return any(math.dist(p, c) <= r + margin for c, r in PRADERA_SAFE.values())
+
     def pradera_zone(self, p):
-        safe = math.dist(p, PRADERA_OUTPOST[0]) <= PRADERA_OUTPOST[1]
-        if in_rect(PRADERA_ROAM, p) and not safe and math.dist(p, PRADERA_HOME) <= LEASH:
+        if math.dist(p, NUBE_HOME) <= NUBE_STRIKE and not self.pradera_safe(p):
             return "territory"
-        return "fog" if in_rect(PRADERA_ROAM, p) else "outside"
+        return "colmena" if math.dist(p, HIVE) <= ABEJA_GUARD else "outside"
 
     # -- schema and frame --
     def check_schema(self):
@@ -136,7 +155,8 @@ class RuleChecks(Fixtures):
             self.assertIn(key, lay)
         self.assertIn("unvalidated", lay["status"])
         self.assertEqual(lay["world"]["size"], list(WORLD))
-        self.assertEqual(lay["world"]["bounds"], {"x": [-WORLD[0] / 2, WORLD[0] / 2], "z": [-WORLD[1] / 2, WORLD[1] / 2]})
+        self.assertEqual(lay["world"]["bounds"], {"x": list(WORLD_X), "z": list(WORLD_Z)})
+        self.assertEqual(WORLD, (WORLD_X[1] - WORLD_X[0], WORLD_Z[1] - WORLD_Z[0]))
         self.assertEqual(lay["regions"]["forest"]["offset"], list(FOREST_OFFSET))
         self.assertEqual(lay["regions"]["pradera"]["offset"], list(PRADERA_OFFSET))
 
@@ -220,19 +240,18 @@ class RuleChecks(Fixtures):
         self.assertEqual(ring["width"], ROAD_W)
         self.assertTrue(ring["beast_free"])
         for x, z in nodes:
-            self.assertLessEqual(abs(x) + ROAD_W / 2, WORLD[0] / 2)
-            self.assertLessEqual(abs(z) + ROAD_W / 2, WORLD[1] / 2)
-            self.assertTrue(abs(z) >= RING_Z or abs(x) >= RING_X - 1e-9)
+            self.assertTrue(WORLD_X[0] <= x - ROAD_W / 2 and x + ROAD_W / 2 <= WORLD_X[1], (x, z))
+            self.assertLessEqual(abs(z) + ROAD_W / 2, WORLD_Z[1])
+            self.assertTrue(abs(z) >= RING_Z or x <= -RING_X_WEST + 1e-9 or x >= RING_X_EAST - 1e-9)
         length = g.polyline_length(nodes + nodes[:1])
         self.assertAlmostEqual(ring["length"], length, delta=0.01)
         self.assertAlmostEqual(ring["walk_seconds"], length / 16.0, delta=0.01)
         fog_world = (FOG_LOCAL[0] + FOREST_OFFSET[0], FOG_LOCAL[1] + FOREST_OFFSET[0], FOG_LOCAL[2], FOG_LOCAL[3])
-        for k in range(400):  # sample the whole loop: outside both beast rectangles and beyond both chase leashes
+        for k in range(400):  # sample the whole loop: outside the fog and beyond every beast's reach, road edge included
             p = g.polyline_point(nodes + nodes[:1], length * k / 400)[0]
             self.assertFalse(in_rect(fog_world, p), p)
-            self.assertFalse(in_rect(PRADERA_ROAM, p), p)
-            self.assertGreater(math.dist(p, shift(FOREST_HOME_LOCAL, FOREST_OFFSET)), CHASE)
-            self.assertGreater(math.dist(p, PRADERA_HOME), CHASE)
+            for key, home, strike, reach in BEASTS:
+                self.assertGreater(math.dist(p, home) - ROAD_W / 2, reach, (key, p))
             for b in (self.layout["regions"]["forest"]["bounds"], self.layout["regions"]["pradera"]["bounds"]):
                 square = g.rect_poly((b["x"][0] + b["x"][1]) / 2, (b["z"][0] + b["z"][1]) / 2,
                                      (b["x"][1] - b["x"][0]) / 2, (b["z"][1] - b["z"][0]) / 2, 0.0)
@@ -249,7 +268,9 @@ class RuleChecks(Fixtures):
         self.assertEqual(c["espolon_sur"]["nodes"], [gates["S"], [0.0, RING_Z]])
         self.assertEqual(c["espolon_campamento"]["nodes"][0], list(shift(FOREST_SAFE_LOCAL["camp"][0], FOREST_OFFSET)))
         self.assertEqual(c["espolon_campamento"]["nodes"][-1][1], RING_Z)
-        self.assertEqual(c["espolon_pradera"]["nodes"][0], list(PRADERA_OUTPOST[0]))
+        self.assertNotIn("espolon_pradera", c, "the draft outpost spoke is gone with the draft outpost")
+        path = self.pradera["route"]["nodes"]
+        self.assertEqual(c["umbral_este"]["nodes"][-1], list(shift(tuple(path[0]), PRADERA_OFFSET)))
         fog_world = (FOG_LOCAL[0] + FOREST_OFFSET[0], FOG_LOCAL[1] + FOREST_OFFSET[0], FOG_LOCAL[2], FOG_LOCAL[3])
         nodes = [tuple(p) for p in c["umbral_oeste"]["nodes"]]
         length = g.polyline_length(nodes)
@@ -310,24 +331,76 @@ class RuleChecks(Fixtures):
         rules = self.layout["zone_rules"]
         west, east = rules["forest"], rules["pradera"]
         self.assertEqual(west["home"][0] + CHASE, -200.0)
-        self.assertEqual(east["home"][0] - CHASE, 300.0)
-        self.assertEqual(rules["beast_free_band"]["x"], [-200.0, 300.0])
+        self.assertEqual(tuple(east["home"]), NUBE_HOME)
+        self.assertEqual((east["strike_radius"], east["leash"]), (NUBE_STRIKE, NUBE_LEASH))
+        self.assertEqual(rules["beast_free_band"]["x"], [-200.0, NUBE_HOME[0] - NUBE_STRIKE])
         self.assertLess(west["fog"]["x"][1], -HUB_R - 40.0)   # fog ends before the west transition begins
-        self.assertGreater(east["roam"]["x"][0], HUB_R + 40.0)
         self.assertLessEqual(west["home"][0] + LEASH, west["fog"]["x"][1])
-        self.assertGreaterEqual(east["home"][0] - LEASH, east["roam"]["x"][0])
-        # The Pradera outpost and tutorial nest sit outside the beast's rectangle and beyond its chase leash.
-        self.assertFalse(in_rect(PRADERA_ROAM, PRADERA_OUTPOST[0]))
-        self.assertGreater(math.dist(PRADERA_OUTPOST[0], PRADERA_HOME), CHASE)
+        self.assertGreater(NUBE_HOME[0] - NUBE_STRIKE, HUB_R + 40.0 + 100.0, "la Nube never strikes near the gate")
+        # Her permanent safe circles and the first hook sit far outside her strike zone.
+        for name, (c, r) in PRADERA_SAFE.items():
+            self.assertEqual(east["safe"][name], {"centre": list(c), "r": r})
+            self.assertGreater(math.dist(c, NUBE_HOME) - r, NUBE_STRIKE + 50.0, name)
         hook = self.layout["hooks"]["east"]
-        self.assertGreater(math.dist(xz(hook), PRADERA_HOME), CHASE + 50.0)
+        self.assertGreater(math.dist(xz(hook), NUBE_HOME), NUBE_STRIKE + 50.0)
+        ev = east["event_beast"]
+        self.assertEqual((tuple(ev["hive"]), ev["guard_radius"], ev["leash"]), (HIVE, ABEJA_GUARD, ABEJA_LEASH))
+        self.assertEqual(ev["active"], "event")
+
+    # -- the user's rule: one beast per player, and roads and refugios outside every strike zone --
+    def check_strike_zones_never_overlap(self):
+        zones = {z["key"]: z for z in self.layout["zone_rules"]["strike_zones"]}
+        self.assertEqual(set(zones), {"silueta", "nube", "abeja"})
+        for key, home, strike, reach in BEASTS:
+            self.assertEqual((tuple(zones[key]["home"]), zones[key]["strike_radius"], zones[key]["reach"]), (home, strike, reach))
+        for i, (ka, ha, _, ra) in enumerate(BEASTS):
+            for kb, hb, _, rb in BEASTS[i + 1:]:
+                self.assertGreater(math.dist(ha, hb), ra + rb, (ka, kb))
+
+    def check_no_road_or_refugio_inside_any_strike_zone(self):
+        # Every world road (ring, spokes, connectors) stays outside every beast's strike radius, road edge
+        # included. The two biome routes are excluded on purpose: the short way always crosses a beast's ground.
+        for name, nodes, closed in self.roads():
+            if name in ("forest", "pradera"):
+                continue
+            loop = nodes + nodes[:1] if closed else nodes
+            length = g.polyline_length(loop)
+            steps = max(2, int(length / 2.0))
+            for k in range(steps + 1):
+                p = g.polyline_point(loop, min(length, length * k / steps))[0]
+                for key, home, strike, _ in BEASTS:
+                    self.assertGreater(math.dist(p, home) - ROAD_W / 2, strike, (name, key, p))
+        for side, sets in self.layout["refugio_sets"].items():
+            for group in sets:
+                for c in group["candidates"]:
+                    for key, home, strike, reach in BEASTS:
+                        self.assertGreater(math.dist(xz(c), home) - REFUGIO_R, strike, (c["id"], key))
+                        self.assertGreaterEqual(math.dist(xz(c), home), reach + BEAST_MARGIN - 1e-6, (c["id"], key))
+
+    def check_pradera_matches_its_kit(self):
+        kit, east = self.pradera, self.layout["regions"]["pradera"]
+        self.assertEqual(east["biome"], "Pradera Arcoíris")
+        self.assertEqual(east["beast"]["name"], "La Nube Gruñona")
+        self.assertEqual(tuple(east["beast"]["home"]), shift(tuple(kit["beast"]["home"]), PRADERA_OFFSET))
+        self.assertEqual(tuple(east["beast"]["home"]), NUBE_HOME)
+        self.assertEqual(east["beast"]["strike_radius"], kit["beast"]["strike_zone_radius"])
+        self.assertEqual(east["beast"]["leash"], kit["beast"]["leash"])
+        self.assertEqual(tuple(east["event_beast"]["hive"]), shift(tuple(kit["abeja_event"]["hive"]), PRADERA_OFFSET))
+        self.assertEqual(tuple(east["gate"]), shift(tuple(kit["zones"]["sol"]["gate"][:2]), PRADERA_OFFSET))
+        self.assertEqual(tuple(east["gate"]), PRADERA_GATE)
+        self.assertEqual([tuple(p) for p in east["route"]["nodes"]],
+                         [shift(tuple(p), PRADERA_OFFSET) for p in kit["route"]["nodes"]])
+        self.assertFalse(east["route"]["closed"])
+        self.assertEqual([(n["id"], n["x"], n["z"]) for n in east["nests"]],
+                         [(n["id"],) + shift((n["x"], n["z"]), PRADERA_OFFSET) for n in kit["nests"]])
+        self.assertEqual(len(east["sun_circle_candidates"]), sum(1 for c in kit["sun_circles"] if not c["permanent"]))
 
     # -- refugios --
     def check_refugio_sets(self):
         props = self.world_props()
         for side, sets in self.layout["refugio_sets"].items():
             self.assertIn(len(sets), (2, 3), side)
-            home = shift(FOREST_HOME_LOCAL, FOREST_OFFSET) if side == "west" else PRADERA_HOME
+            home = shift(FOREST_HOME_LOCAL, FOREST_OFFSET) if side == "west" else NUBE_HOME
             bounds = self.layout["regions"]["forest" if side == "west" else "pradera"]["bounds"]
             seen = set()
             for group in sets:
@@ -337,8 +410,8 @@ class RuleChecks(Fixtures):
                     p = xz(c)
                     self.assertNotIn(p, seen)
                     seen.add(p)
-                    self.assertGreaterEqual(math.dist(p, home), HOME_CLEAR, c["id"])
                     self.assertNotEqual(c["zone"], "territory", c["id"])
+                    self.assertNotEqual(c["zone"], "colmena", c["id"])
                     self.assertEqual(c["zone"], self.forest_zone(p) if side == "west" else self.pradera_zone(p), c["id"])
                     self.assertAlmostEqual(c["distance_home"], math.dist(p, home), delta=0.01)
                     self.assertGreater(math.hypot(*p), HUB_R + SAFE_MARGIN, c["id"])
@@ -350,7 +423,12 @@ class RuleChecks(Fixtures):
                             for s in shapes:
                                 self.assertGreaterEqual(g.shape_point_dist(s, p), REFUGIO_R + 1.0 - 1e-6, (c["id"], ident))
                     else:
-                        self.assertGreater(math.dist(p, PRADERA_OUTPOST[0]), PRADERA_OUTPOST[1] + SAFE_MARGIN, c["id"])
+                        self.assertFalse(self.pradera_safe(p, SAFE_MARGIN), c["id"])
+                        for ident, shape in self.pradera_solids():
+                            self.assertGreaterEqual(g.shape_point_dist(shape, p), REFUGIO_R + 1.0 - 1e-6, (c["id"], ident))
+                        for sun in self.pradera["sun_circles"]:
+                            centre = shift((sun["x"], sun["z"]), PRADERA_OFFSET)
+                            self.assertGreaterEqual(math.dist(p, centre) - sun["radius"], REFUGIO_R + 1.0 - 1e-6, (c["id"], sun["id"]))
                     self.assertGreaterEqual(self.road_dist(p), REFUGIO_R + ROAD_W / 2 - 1e-6, c["id"])
                     self.assertTrue(bounds["x"][0] + 20 <= p[0] <= bounds["x"][1] - 20, c["id"])
                     self.assertTrue(bounds["z"][0] + 20 <= p[1] <= bounds["z"][1] - 20, c["id"])
@@ -376,8 +454,10 @@ class RuleChecks(Fixtures):
         self.assertGreaterEqual(clear, HOOK_FLOOR + 2.0 - 1e-6)
         self.assertAlmostEqual(west["prop_clearance"], clear, delta=0.01)
         self.assertEqual(west["species"], "Lumipol")
-        self.assertEqual(xz(east), tuple(self.layout["regions"]["pradera"]["route"]["nodes"][1]))
-        self.assertEqual(tuple(east["gate"]), tuple(self.layout["regions"]["pradera"]["route"]["nodes"][0]))
+        first = self.pradera["nests"][0]
+        self.assertEqual(xz(east), shift((first["x"], first["z"]), PRADERA_OFFSET), "the kit's first nest is the east hook")
+        self.assertEqual(east["species"], "Chispin")
+        self.assertEqual(tuple(east["gate"]), PRADERA_GATE)
 
     # -- spawn-graph seeds --
     def check_spawn_seeds(self):
@@ -385,7 +465,7 @@ class RuleChecks(Fixtures):
         removed = {r["id"] for r in self.layout["forest_block"]["removed_props"]}
         kept = [i for i in self.forest_layout["instances"] if i["id"] not in removed]
         for side in ("west", "east"):
-            home = shift(FOREST_HOME_LOCAL, FOREST_OFFSET) if side == "west" else PRADERA_HOME
+            home = shift(FOREST_HOME_LOCAL, FOREST_OFFSET) if side == "west" else NUBE_HOME
             bounds = self.layout["regions"]["forest" if side == "west" else "pradera"]["bounds"]
             summary = self.layout["spawn_seed_summary"][side]
             self.assertEqual(summary["count"], len(seeds[side]))
@@ -403,10 +483,16 @@ class RuleChecks(Fixtures):
                 if side == "west":
                     self.assertFalse(self.forest_safe(p, 3.0), s)
                 else:
-                    self.assertGreater(math.dist(p, PRADERA_OUTPOST[0]), PRADERA_OUTPOST[1] + 3.0, s)
+                    self.assertFalse(self.pradera_safe(p, 3.0), s)
+                    # Legendaria comes only from the event egg: no east seed in her Legendaria band or at La Colmena.
+                    self.assertGreaterEqual(d, TIERS[0][2], s)
+                    self.assertGreaterEqual(math.dist(p, HIVE), ABEJA_LEASH + 3.0, s)
                 self.assertGreaterEqual(s["height"], 0.0)
             self.assertEqual(summary["by_tier"], by_tier)
             for tier in ("Legendaria", "Épica", "Rara", "Común"):
+                if side == "east" and tier == "Legendaria":
+                    self.assertEqual(by_tier.get(tier, 0), 0, "Legendaria comes only from the event egg in the Pradera")
+                    continue
                 self.assertGreater(by_tier.get(tier, 0), 0, (side, tier))
         west = seeds["west"]
         kinds = {k: [s for s in west if s["kind"] == k] for k in ("tree_base", "canopy", "log", "nest", "trail_edge")}
@@ -426,10 +512,13 @@ class RuleChecks(Fixtures):
             self.assertAlmostEqual(polyline_dist(xz(s), route, True), 10.0, delta=0.01)
         east = seeds["east"]
         self.assertGreaterEqual(len(east), 100)
-        self.assertEqual(sum(1 for s in east if s["kind"] == "nest"), 1)
+        wild = [n for n in self.pradera["nests"] if not n["eventOnly"]]
+        self.assertEqual(sorted(s["source"] for s in east if s["kind"] == "nest"), sorted(n["id"] for n in wild))
+        solids = self.pradera_solids()
         for s in east:
             if s["kind"] == "meadow":
                 self.assertGreaterEqual(self.road_dist(xz(s)), ROAD_W / 2 + 3.0 - 1e-6, s)
+                self.assertTrue(all(g.shape_point_dist(shape, xz(s)) >= 1.0 - 1e-6 for _, shape in solids), s)
 
     def check_everything(self):
         for name in sorted(n for n in dir(RuleChecks) if n.startswith("check_") and n != "check_everything"):
@@ -469,6 +558,15 @@ class DefaultSeed(RuleChecks, unittest.TestCase):
 
     def test_leash_bands(self):
         self.check_leash_bands()
+
+    def test_strike_zones_never_overlap(self):
+        self.check_strike_zones_never_overlap()
+
+    def test_no_road_or_refugio_inside_any_strike_zone(self):
+        self.check_no_road_or_refugio_inside_any_strike_zone()
+
+    def test_pradera_matches_its_kit(self):
+        self.check_pradera_matches_its_kit()
 
     def test_refugio_sets(self):
         self.check_refugio_sets()
