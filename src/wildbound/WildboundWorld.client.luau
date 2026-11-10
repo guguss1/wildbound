@@ -502,7 +502,11 @@ local function animateCompanions(now, root)
 			local pulseAt = owner:GetAttribute("WildboundPulseAt")
 			local age = type(pulseAt) == "number" and serverNow - pulseAt or nil
 			local light = body:FindFirstChildOfClass("PointLight")
-			if light then light.Brightness = age and age >= 0 and age < Refuge.CONFIG.PULSE_SECONDS and 3 or 0.7 end
+			-- NS4: at rest the light keeps the server's tuned brightness (the companion light), 0.7 for an older server.
+			if light then
+				light.Brightness = age and age >= 0 and age < Refuge.CONFIG.PULSE_SECONDS and 3
+					or (light:GetAttribute("WildboundBaseBrightness") or 0.7)
+			end
 			if owner == player then
 				local anchor = root and root:FindFirstChild("WildboundCompanionAnchor")
 				if anchor then

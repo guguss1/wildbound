@@ -234,6 +234,11 @@ return function(Refuge, source, Text, sources)
 		assert(server:find("state:unequip(player.UserId", 1, true), "the server stores it through State")
 		assert(client:find('"Unequip"', 1, true), "the Bag row offers to store the companion")
 		assert(type(Text.HUD.store) == "string" and type(Text.CAMP.companionStored) == "string", "Spanish words")
+		-- Play finding: the owner's client restores its own resting brightness after a pulse; it must be the server's.
+		assert(server:find('light:SetAttribute("WildboundBaseBrightness", Refuge.live.LIGHT_BRIGHTNESS)', 1, true),
+			"the server publishes the tuned brightness on the light")
+		assert(sources.world:find('light:GetAttribute("WildboundBaseBrightness")', 1, true),
+			"the owner's client rests at the server's brightness, not a fixed 0.7")
 	end)
 
 	return result

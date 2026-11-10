@@ -792,6 +792,10 @@ function Heist.lightCompanion(model)
 	if not light then return end
 	if light.Brightness ~= Refuge.live.LIGHT_BRIGHTNESS then light.Brightness = Refuge.live.LIGHT_BRIGHTNESS end
 	if light.Range ~= Refuge.live.LIGHT_RANGE then light.Range = Refuge.live.LIGHT_RANGE end
+	-- The owner's client animates the pulse locally and rests at this value afterwards.
+	if light:GetAttribute("WildboundBaseBrightness") ~= Refuge.live.LIGHT_BRIGHTNESS then
+		light:SetAttribute("WildboundBaseBrightness", Refuge.live.LIGHT_BRIGHTNESS)
+	end
 end
 local function removeCompanion(player)
 	local entry = companions[player]
