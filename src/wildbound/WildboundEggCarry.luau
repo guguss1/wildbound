@@ -165,6 +165,20 @@ function EggCarry.pickup(registry, id, key, now, uid)
 	return true, egg
 end
 
+-- NH6: the carrier delivered the egg (the chest or the incubator banked it). Only its carrier, only while Carried, once:
+-- Secured, and it leaves the registry (the state's bank keeps it from here). Returns true and the egg, or false and a
+-- reason ("NoEgg", "NotCarried", "NotCarrier").
+function EggCarry.secure(registry, id, key)
+	local egg = EggCarry.get(registry, id)
+	if not egg then return false, "NoEgg" end
+	if egg.state ~= "Carried" then return false, "NotCarried" end
+	if egg.carrier ~= key then return false, "NotCarrier" end
+	registry.carriers[key] = nil
+	egg.state, egg.carrier = "Secured", nil
+	registry.eggs[id] = nil
+	return true, egg
+end
+
 -- An adult carried a dropped egg home (FP5c): it leaves the registry.
 function EggCarry.recover(registry, id)
 	local egg = EggCarry.get(registry, id)

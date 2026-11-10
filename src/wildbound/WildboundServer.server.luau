@@ -465,6 +465,8 @@ extractPrompt.Triggered:Connect(function(player)
 	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
 	if ok then
 		analytics:extracted(player.UserId)
+		-- NH6: the egg in the arms was banked with the bag: Secured, out of the arms.
+		Heist.secure(player)
 		send(player, "Extract", true, extractNotice(count, receipt))
 	elseif count == "Empty" then
 		local snapshot = state:snapshot(player.UserId)
@@ -477,6 +479,22 @@ local hatchPrompt = prompt(incubatorMarker, Text.INCUBATOR.prompt, Text.INCUBATO
 	Keys.CAMP.hatch)
 hatchPrompt.Triggered:Connect(function(player)
 	if not validPrompt(hatchPrompt, incubatorMarker) or not allowed(player, "Hatch") then return end
+	-- NH6: an egg carried to the incubator is delivered there: banked with the bag (Secured), then incubated.
+	local carried = EggCarry.carriedBy(eggs, player.UserId)
+	if carried then
+		local uid = carried.uid
+		local alive, distance = context(player, incubatorMarker)
+		local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
+		if not ok then
+			reply(player, "Extract", false, count)
+			return
+		end
+		analytics:extracted(player.UserId)
+		Heist.secure(player)
+		send(player, "Extract", true, extractNotice(count, receipt))
+		hatch(player, uid)
+		return
+	end
 	local snapshot = state:snapshot(player.UserId)
 	local egg = snapshot and snapshot.bankedEggs[1]
 	if not egg then
@@ -971,6 +989,17 @@ local RARITY_GLOW = { Comun = Color3.fromRGB(205, 235, 215), Rara = Color3.fromR
 	Epica = Color3.fromRGB(190, 120, 255), Legendaria = Color3.fromRGB(255, 205, 80) }
 -- Nest Heist (NH2): the stolen egg rides in the arms, in front of the chest: welded to the root, massless, never
 -- colliding, touched or hit by a ray, so walking, sprinting and jumping are unchanged. One per living character.
+-- NH6: the egg in the arms reached a delivery point and was banked: Secured (only by its carrier, once), arms empty.
+function Heist.secure(player)
+	local egg = EggCarry.carriedBy(eggs, player.UserId)
+	if not egg then return nil end
+	local ok = EggCarry.secure(eggs, egg.id, player.UserId)
+	if ok then
+		islandLog("eggSecured", egg.meta.island or "-", player.UserId)
+		Heist.syncEggArms(player)
+	end
+	return ok and egg or nil
+end
 function Heist.syncEggArms(player)
 	local EGG_ARMS = "WildboundEggCarried"
 	local record, character = records[player], player.Character
