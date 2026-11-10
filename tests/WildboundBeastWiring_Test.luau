@@ -172,6 +172,19 @@ return function(sources, Proxies)
 		has(beasts, "pcall(stepEncounter, id, entry, at)", "an error never leaks an encounter")
 	end)
 
+	-- Nest Heist Phase 3 (verifier finding): an error while an encounter starts ends it as Error and frees its budget.
+	case("NS-B1: an encounter start runs under pcall; a failure closes it with reason Error and releases the budget", function()
+		local beasts = sources.beasts
+		has(beasts, "pcall(start, player, reservation, at)", "the start is protected")
+		has(beasts, 'close(reservation.id, "Error", at)', "a failed start closes as Error (close releases the budget)")
+		has(beasts, "for _, reservation in ipairs(started) do safeStart(player, reservation, at) end", "the tick starts safely")
+		has(beasts, "return safeStart(player, value, at)", "the Studio force spawn starts safely")
+		local bare = 0
+		local calls = string.gsub(beasts, "local function start%(player, reservation, at%)", "")
+		for _ in string.gmatch(calls, "[^%w]start%(player, ") do bare += 1 end
+		equal(bare, 0, "no unprotected start call")
+	end)
+
 	case("NB5: a hit goes through the inventory server's existing drop and damage path", function()
 		local beasts, server = sources.beasts, sources.server
 		has(beasts, 'network:FindFirstChild("BeastHit")')

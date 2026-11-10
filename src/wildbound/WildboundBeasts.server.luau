@@ -239,6 +239,17 @@ local function start(player, reservation, at)
 	return true, e.id
 end
 
+-- Verifier finding (Nest Heist Phase 3): an error while an encounter starts (spawn point, filters, the first message)
+-- must not leak its reservation. It ends as Error through close, which releases the threat budget exactly once.
+local function safeStart(player, reservation, at)
+	local ok, started, value = pcall(start, player, reservation, at)
+	if ok then return started, value end
+	count("errors")
+	warn("Wildbound beasts: encounter start error, ended: " .. tostring(started))
+	close(reservation.id, "Error", at)
+	return false, "Error"
+end
+
 local function targetOf(entry)
 	local character, humanoid, root = bodyOf(entry.player)
 	-- A new character is a new life: the encounter ends as a death, never carried to the respawned body.
@@ -307,7 +318,7 @@ RunService.Heartbeat:Connect(function(dt)
 		local at = now()
 		for _, player in ipairs(Players:GetPlayers()) do
 			local started, refused = Director.tick(director, player.UserId, contextFor(player, at), at)
-			for _, reservation in ipairs(started) do start(player, reservation, at) end
+			for _, reservation in ipairs(started) do safeStart(player, reservation, at) end
 			for _, refusal in ipairs(refused) do
 				count("refused")
 				telemetry:SetAttribute("Beast_lastRefusal", refusal.beast .. ":" .. refusal.reason)
@@ -352,7 +363,7 @@ if RunService:IsStudio() then
 			telemetry:SetAttribute("Beast_lastRefusal", name .. ":" .. tostring(value))
 			return false, value
 		end
-		return start(player, value, at)
+		return safeStart(player, value, at)
 	end
 	force.Parent = telemetry
 	local probe = Instance.new("BindableFunction")
