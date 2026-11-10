@@ -389,6 +389,7 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBeastDirector_Test.luau": "ServerStorage.WildboundBeastDirector_Test",
         "tests/WildboundBeastEncounters_Test.luau": "ServerStorage.WildboundBeastEncounters_Test",
         "tests/WildboundBeastWiring_Test.luau": "ServerStorage.WildboundBeastWiring_Test",
+        "src/wildbound/WildboundBeasts.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundBeastsClient",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

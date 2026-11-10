@@ -205,5 +205,55 @@ return function(sources, Proxies)
 		assert(T.Viper.hit and T.Pouncer.hit and T.hit, "hit notices")
 	end)
 
+	-- NB6 the client.
+	case("NB6: the client only listens: no request, no hit or dodge report, its own local folder", function()
+		local client = sources.client
+		has(client, "beastEvent.OnClientEvent:Connect(")
+		for _, bad in ipairs({ "FireServer", "InvokeServer", "Touched" }) do hasNot(client, bad, "client") end
+		has(client, 'folder.Name = "WildboundBeastsLocal"')
+		has(client, "folder.Parent = workspace", "client-made, so it exists on this client only")
+	end)
+
+	case("NB6: the tells come from the shared geometry and the server's timestamps, never hard-coded", function()
+		local client = sources.client
+		has(client, "Config.lane(L.ox, L.oz, L.dx, L.dz, L.length, L.width)", "the lane is the hit rectangle")
+		has(client, "c.radius * 2", "the circle uses the server's radius")
+		has(client, "Config.arc(l.from.x, l.from.y, l.from.z, l.to.x, l.to.y, l.to.z, l.height, t)", "the leap is the server's parabola")
+		has(client, "workspace:GetServerTimeNow()")
+		for _, literal in ipairs({ "32,", "4.5", "6.5", "1.15", "1.3," }) do hasNot(client, literal, "client") end
+		has(client, "view.laneSpec.locked = ev.dx, ev.dz, ev.length, true", "the lock carries the cut length")
+		has(client, "task.delay(0.35, function() clearCircle(view) end)", "the circle outlives the landing")
+	end)
+
+	case("NB6: the tells are effects, not models, and never collide, query or touch", function()
+		local client = sources.client
+		has(client, "part.Anchored, part.CanCollide, part.CanQuery, part.CanTouch = true, false, false, false")
+		has(client, 'lane.Name = "ViperLane"'); has(client, 'circle.Name = "PouncerCircle"')
+		has(client, "lane.Parent = folder"); has(client, "circle.Parent = folder")
+	end)
+
+	case("NB6: a sound and a Spanish line with every tell; Efectos suaves drops only shake and dust", function()
+		local client = sources.client
+		has(client, "Text.BEAST[beast]"); has(client, 'showWarning("Viper", ev.dashAt)'); has(client, 'showWarning("Pouncer", ev.landAt)')
+		has(client, 'play("whisper", rootOf(view), 1.7, 0.9)', "Viper's hiss"); has(client, 'play("snap", rootOf(view), 1.2, 0.9)', "Pouncer's click")
+		has(client, "Catalog.SOUNDS[slot]", "catalogue ids only")
+		assert(not client:find("rbxassetid://%d"), "no hard-coded asset id")
+		local shakeAt = client:find("local function shake(", 1, true)
+		local dustAt = client:find("local function dust(", 1, true)
+		assert(shakeAt and dustAt, "shake and dust exist")
+		has(client:sub(shakeAt, shakeAt + 80), "if reduced() then return end", "shake")
+		has(client:sub(dustAt, dustAt + 80), "if reduced() then return end", "dust")
+		local _, guards = client:gsub("if reduced%(%) then return end", "")
+		equal(guards, 2, "only shake and dust are reduced")
+	end)
+
+	case("NB6: an imported model wins over the proxy, and every view is destroyed on End", function()
+		local client = sources.client
+		has(client, "local real = models:FindFirstChild(beast)")
+		has(client, 'models:FindFirstChild(beast .. "Proxy")')
+		has(client, "function handlers.End(ev)")
+		has(client, "if view.model then view.model:Destroy() end")
+	end)
+
 	return result
 end
