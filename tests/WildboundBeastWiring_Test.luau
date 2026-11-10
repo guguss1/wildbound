@@ -130,5 +130,80 @@ return function(sources, Proxies)
 		equal(Proxies.modelFor(models, "Mire"), nil)
 	end)
 
+	-- NB5 the server wiring.
+	case("NB5: one scheduler: only the beast script rolls, through the director, on its 10 s tick", function()
+		local beasts = sources.beasts
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundBeastDirector"))')
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundBeastEncounters"))')
+		has(beasts, "Director.tick(director, player.UserId, contextFor(player, at), at)")
+		has(beasts, "tickClock >= D.TICK_SECONDS")
+		has(beasts, "Director.new({ random = function() return rng:NextNumber() end })")
+		for key, text in pairs({ server = sources.server }) do hasNot(text, "WildboundBeastDirector", key) end
+		hasNot(beasts, "math.random", "beasts")
+	end)
+
+	case("NB5: target-only and server-authoritative: FireClient to the owner, no client handler, no contact events", function()
+		local beasts = sources.beasts
+		has(beasts, "beastEvent:FireClient(player, payload)")
+		for _, bad in ipairs({ "OnServerEvent", "FireAllClients", "OnServerInvoke", "Touched", "SetNetworkOwner" }) do
+			hasNot(beasts, bad, "beasts")
+		end
+		has(beasts, 'beastEvent.Name = "BeastEvent"')
+		has(beasts, 'if network:FindFirstChild("BeastEvent") then', "the duplicate-start guard")
+		has(beasts, "character ~= entry.character", "a respawned body is a new life")
+	end)
+
+	case("NB5: the context reads real server state; storm stays x1 and no biome exists yet", function()
+		local beasts = sources.beasts
+		has(beasts, "local fog, safe = Rules.zone(p.X, p.Z)")
+		has(beasts, "Rules.cycle(at - origin + shift).phase == \"Night\"")
+		has(beasts, "dangerousZone = fog or Rules.inTerritory(p.X, p.Z)")
+		has(beasts, "storm = false")
+		has(beasts, "biomes = {}")
+		has(beasts, 'if state == "Hunt" or state == "Telegraph" then return true end', "La Silueta hunting or telegraphing")
+	end)
+
+	case("NB5: every end releases the budget once: step End, error, no spawn, no behaviour, leave", function()
+		local beasts = sources.beasts
+		has(beasts, "if Director.release(director, id, reason, at) then")
+		has(beasts, 'close(id, "Error", at)'); has(beasts, 'close(reservation.id, "NoSpawn", at)')
+		has(beasts, 'close(reservation.id, "NoBehaviour", at)'); has(beasts, "close(id, event.reason, at, event)")
+		has(beasts, "Director.forget(director, player.UserId, at)")
+		has(beasts, "pcall(stepEncounter, id, entry, at)", "an error never leaks an encounter")
+	end)
+
+	case("NB5: a hit goes through the inventory server's existing drop and damage path", function()
+		local beasts, server = sources.beasts, sources.server
+		has(beasts, 'network:FindFirstChild("BeastHit")')
+		has(beasts, "beastHit:Invoke(entry.player, entry.e.beast, event.damage)")
+		has(server, 'beastHit.Name = "BeastHit"')
+		has(server, 'local eggDropped = Heist.dropEgg(player, "Hit") ~= nil', "the one egg drop path")
+		has(server, 'if damageMode == "private" and lethalPlayer(player) then', "damage only in private mode, after a paid trip")
+		has(server, "humanoid:TakeDamage(damage)")
+		local i = server:find('beastHit.Name = "BeastHit"', 1, true)
+		local before = server:sub(1, i)
+		assert(before:find("\ndo\n\tlocal beastHit = Instance.new%(\"BindableFunction\"%)\n[^\n]*$"), "kept in a do block (200-local limit)")
+		hasNot(server, "\nlocal beastHit", "no new top-level local")
+		hasNot(server, "WildboundBeastEncounters", "server")
+	end)
+
+	case("NB5: ForceSpawnBeast is Studio only, server only, and goes through the director's reservation", function()
+		local beasts = sources.beasts
+		local i = beasts:find("if RunService:IsStudio() then", 1, true)
+		assert(i, "a Studio block")
+		local block = beasts:sub(i)
+		has(block, 'force.Name = "ForceSpawnBeast"'); has(block, "force.Parent = telemetry")
+		has(block, "Director.reserve(director, player.UserId, name, contextFor(player, at), at, { force = true })")
+		hasNot(beasts:sub(1, i), "ForceSpawnBeast", "outside the Studio block")
+		hasNot(block, "RemoteEvent", "no client remote")
+	end)
+
+	case("NB5: player strings are Spanish and live in WildboundText", function()
+		local T = sources.text.BEAST
+		assert(type(T) == "table", "Text.BEAST")
+		has(T.Viper.warn, "línea roja"); has(T.Pouncer.warn, "círculo rojo")
+		assert(T.Viper.hit and T.Pouncer.hit and T.hit, "hit notices")
+	end)
+
 	return result
 end

@@ -1938,6 +1938,33 @@ strikeEffect.OnInvoke = function(player, attackId, towardX, towardZ)
 end
 strikeEffect.Parent = network
 
+-- Nest Heist phase 4a (NB5): a beast's landed hit, decided by the beast script (server to server only, the StrikeEffect
+-- pattern). An egg in the arms falls through the one drop path, as for a parent's hit; health drops only in the private
+-- damage mode and after a paid trip (the parents' rule), so a defeat runs the ordinary Died flow. Kept in a do block:
+-- this script is at Luau's 200-local limit (NH-W13).
+do
+	local beastHit = Instance.new("BindableFunction")
+	beastHit.Name = "BeastHit"
+	beastHit.OnInvoke = function(player, beast, damage)
+		if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or type(beast) ~= "string"
+			or not Rules.finite(damage) or damage < 0 or damage > 100 then return nil end
+		local eggDropped = Heist.dropEgg(player, "Hit") ~= nil
+		local hurt = 0
+		if damageMode == "private" and lethalPlayer(player) then
+			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+			if humanoid and humanoid.Health > 0 then
+				humanoid:TakeDamage(damage)
+				hurt = damage
+			end
+		end
+		telemetry:SetAttribute("BeastHitDamage", (telemetry:GetAttribute("BeastHitDamage") or 0) + hurt)
+		local words = Text.BEAST[beast]
+		send(player, "BeastHit", false, eggDropped and Text.EGG.knocked or words and words.hit or Text.BEAST.hit)
+		return { eggDropped = eggDropped, damage = hurt }
+	end
+	beastHit.Parent = network
+end
+
 -- Nest Heist (NH5): drop and pickup. A dropped egg lands on the ground under its carrier (a downward ray that ignores
 -- characters and runtime visuals, else the relief), anchored and never colliding, so it neither falls through nor flies
 -- off. After PICKUP_DELAY anyone may pick it up with a PICKUP_HOLD hold: the first valid request wins (EggCarry and

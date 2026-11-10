@@ -323,6 +323,12 @@ return freeze({
 		knocked = "¡Te golpearon! Se te cayó el huevo.",
 		loose = "¡Se le cayó el huevo! Cualquiera puede tomarlo.",
 	},
+	-- Nest Heist phase 4a (NB5, NB6): the beasts' warnings (shown with the red lane or circle) and their hits.
+	BEAST = {
+		hit = "¡Una bestia te golpeó!",
+		Viper = { warn = "¡Una víbora va a embestir! Sal de la línea roja.", hit = "¡La víbora te embistió!" },
+		Pouncer = { warn = "¡Una araña va a saltar! Sal del círculo rojo.", hit = "¡La araña te cayó encima!" },
+	},
 	-- Fear pass (FA3): the short shouts of the adrenaline burst (big, centred, a second or two).
 	FEAR = {
 		run = "¡CORRE!",

@@ -78,9 +78,14 @@ return function(serverSource, worldSource, clientSource)
 		has(serverSource, "FairStrike.effectiveMode(")
 		has(serverSource, "FairStrike.lethal(")
 		has(serverSource, "Island.hitEffect(")
+		-- Deliberately changed in Nest Heist phase 4a (NB5): a second TakeDamage, for a beast's landed hit, lives in the
+		-- BeastHit block behind the same gates (private damage mode and a paid trip).
 		local count = 0
 		for _ in serverSource:gmatch("TakeDamage") do count += 1 end
-		assert(count == 1, "one TakeDamage, found " .. count)
+		assert(count == 2, "two TakeDamage (adult and beast), found " .. count)
+		local beastBlock = block(serverSource, 'beastHit.Name = "BeastHit"', "beastHit.Parent = network")
+		has(beastBlock, 'if damageMode == "private" and lethalPlayer(player) then', "the beast hit is behind the same gates")
+		has(beastBlock, "TakeDamage", "the second one lives in the beast hit")
 		local strike = block(serverSource, "local function adultHit(", "\nend\n")
 		has(strike, "TakeDamage", "the damage lives in adultHit")
 		has(strike, "if effect.damage > 0 then", "behind the gate")

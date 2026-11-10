@@ -230,6 +230,16 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundStartView_Test.luau", "ServerStorage.WildboundStartView_Test"),
     ("src/wildbound/WildboundTutorial.luau", "ReplicatedStorage.WildboundTutorial"),
     ("tests/WildboundTutorial_Test.luau", "ServerStorage.WildboundTutorial_Test"),
+    # Nest Heist phase 4a (NB2 to NB6): the shared beast config, the director, the encounters, the proxies, the beast
+    # script and their suites
+    ("src/wildbound/WildboundBeastConfig.luau", "ReplicatedStorage.WildboundBeastConfig"),
+    ("src/wildbound/WildboundBeastDirector.luau", "ServerScriptService.WildboundBeastDirector"),
+    ("src/wildbound/WildboundBeastEncounters.luau", "ServerScriptService.WildboundBeastEncounters"),
+    ("src/wildbound/WildboundBeastProxies.luau", "ServerScriptService.WildboundBeastProxies"),
+    ("src/wildbound/WildboundBeasts.server.luau", "ServerScriptService.WildboundBeasts"),
+    ("tests/WildboundBeastDirector_Test.luau", "ServerStorage.WildboundBeastDirector_Test"),
+    ("tests/WildboundBeastEncounters_Test.luau", "ServerStorage.WildboundBeastEncounters_Test"),
+    ("tests/WildboundBeastWiring_Test.luau", "ServerStorage.WildboundBeastWiring_Test"),
 ]
 
 

@@ -122,7 +122,21 @@ local function stepViper(events, e, now, target, world, dt)
 		elseif distance < C.attackMin then walk(e, target, C.stalkSpeed, -1, dt, world) end
 		distance = flat(e.pos.x, e.pos.z, target.x, target.z)
 		if distance >= C.attackMin and distance <= C.attackMax then
-			viperWindup(events, e, now, target, C)
+			-- In range: wind up only with a clear line to the target; with a trunk or a rock in the way, sidestep for at
+			-- most clearSearch seconds, then wind up anyway (the lock will cut the lane at the obstacle).
+			local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
+			local wall = dx and world.castLane and world.castLane(e.pos.x, e.pos.y, e.pos.z, dx, dz, math.min(distance, C.laneLength))
+			e.inRangeSince = e.inRangeSince or now
+			if not finite(wall) or now - e.inRangeSince >= C.clearSearch then
+				e.inRangeSince = nil
+				viperWindup(events, e, now, target, C)
+			elseif dx then
+				e.side = e.side or 1
+				e.pos.x += -dz * e.side * C.strafeSpeed * dt
+				e.pos.z += dx * e.side * C.strafeSpeed * dt
+				e.pos.y = groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+				e.dx, e.dz = dx, dz
+			end
 		elseif now - e.phaseAt >= C.stalkSeconds then
 			if distance <= C.laneLength then viperWindup(events, e, now, target, C)
 			else disengage(events, e, "NoApproach", now) end

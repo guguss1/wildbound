@@ -153,11 +153,25 @@ return function(Enc, source, Config, configSource)
 	case("NB3 Viper: a wall cuts the dash: the lane is shortened at the lock, nothing is hit beyond it, longer recovery", function()
 		local world = { castLane = function() return 12 end }
 		local e = Enc.new("Viper", "beast:1", 1, 0, { x = 0, y = 3, z = 25 })
-		local _, by = run(e, 0, 3.5, standing(0, 0), world)
+		local _, by = run(e, 0, 6, standing(0, 0), world)
 		near(by.Lock[1].length, 11.5, "cut half a stud before the wall")
 		equal(count(by, "Hit"), 0, "the target is 25 studs away, behind the wall")
 		equal(by.Recover[1].crashed, true)
 		near(by.Recover[1].untilAt - by.Recover[1].at, V.recoverCrash, "crash recovery")
+	end)
+
+	case("NB5 Viper: a trunk between it and the target: it sidesteps for a clear line before winding up", function()
+		-- Anything within 6 studs of the x = 0 line is behind a trunk.
+		local world = { castLane = function(ox) return math.abs(ox) < 6 and 5 or nil end }
+		local e = Enc.new("Viper", "beast:1", 1, 0, { x = 0, y = 3, z = 25 })
+		local _, by = run(e, 0, 4, standing(0, 0), world)
+		local w = by.Windup and by.Windup[1]
+		assert(w, "a windup")
+		assert(math.abs(w.origin.x) >= 6, "it moved out of the trunk's shadow, x = " .. w.origin.x)
+		near(by.Lock[1].length, 32, "a clear lane")
+		assert(w.at <= V.spawnSeconds + V.clearSearch + 1e-6, "the search is short")
+		local d = Config.flat(w.origin.x, w.origin.z, 0, 0)
+		assert(d >= V.attackMin and d <= V.attackMax, "still in range: " .. d)
 	end)
 
 	case("NB3 Viper: at most 3 attacks, then it disengages and ends", function()

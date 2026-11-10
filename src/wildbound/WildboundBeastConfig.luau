@@ -24,6 +24,7 @@ Config.BEASTS = table.freeze({
 		points = 1, chance = 1 / 45, cooldown = 35, biome = nil, damage = 35,
 		spawnMin = 35, spawnMax = 70, spawnSeconds = 0.75,
 		stalkSeconds = 4, stalkSpeed = 14, attackMin = 18, attackMax = 30,
+		clearSearch = 1.5, strafeSpeed = 7, -- in range but a trunk in the way: sidestep this long for a clear lane
 		windup = 1.15, lockLead = 0.45, -- the lane follows the target for 0.7 s, then its angle is locked for 0.45 s
 		laneLength = 32, laneWidth = 4.5, dashSpeed = 60, hitHeight = 5,
 		recover = 1.25, recoverCrash = 1.8, maxAttacks = 3, maxSeconds = 32,
