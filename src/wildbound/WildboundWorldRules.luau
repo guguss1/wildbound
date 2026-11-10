@@ -43,8 +43,8 @@ Rules.DAMAGE = 20
 -- camp link ends there and Rules.zone reads it. A translation only (the hub plan assumes no rotation). Until S1 the
 -- hub is previewed 600 studs south of the forest's origin, on open ground.
 Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 0, 600, 90
--- The camp's safe circle (its centre is not the CampCenter marker, which sits 18 studs west of it); the hub link
--- starts inside it.
+-- The camp's safe circle, as Rules.zone writes it (its centre is not the CampCenter marker, which sits 18 studs west of
+-- it in this place); the hub link starts inside it.
 Rules.CAMP_X, Rules.CAMP_Z, Rules.CAMP_RADIUS = -140, 140, 35
 
 function Rules.finite(value)
@@ -154,8 +154,10 @@ end
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
 	-- HB-T6: the hub disc is safe like the camp (no PvP, no beasts, no strikes, chases end).
-	local safe = Rules.distance(x, z, Rules.CAMP_X, Rules.CAMP_Z) <= Rules.CAMP_RADIUS
-		or Rules.distance(x, z, 105, 125) <= 22 or Rules.refugeAt(x, z) ~= nil
+	-- The camp and shelter circles stay literal: tools/simulate_economy.py and simulate_silueta_pressure.py read them from
+	-- this source (Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the camp's; a test keeps them equal).
+	local safe = Rules.distance(x, z, -140, 140) <= 35 or Rules.distance(x, z, 105, 125) <= 22
+		or Rules.refugeAt(x, z) ~= nil
 		or Rules.distance(x, z, Rules.HUB_X, Rules.HUB_Z) <= Rules.HUB_RADIUS
 	local fog = x >= -45 and x <= 165 and z >= -165 and z <= 35
 	return fog, safe

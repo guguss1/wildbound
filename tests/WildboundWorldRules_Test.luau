@@ -111,6 +111,12 @@ return function(Rules, islandLayout)
 			equal(Rules.inTerritory(x, z), false, "never La Silueta's territory")
 		end
 	end)
+	case("HB-T1: Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the zone's literal camp circle", function()
+		equal(select(2, Rules.zone(Rules.CAMP_X, Rules.CAMP_Z)), true)
+		equal(select(2, Rules.zone(Rules.CAMP_X + Rules.CAMP_RADIUS - 0.01, Rules.CAMP_Z)), true)
+		equal(select(2, Rules.zone(Rules.CAMP_X + Rules.CAMP_RADIUS + 0.01, Rules.CAMP_Z)), false)
+		equal(select(2, Rules.zone(Rules.CAMP_X, Rules.CAMP_Z - Rules.CAMP_RADIUS - 0.01)), false)
+	end)
 	case("HB-T6: every corner of every base pad of the hub plan is safe", function()
 		-- assets/maps/hub-layout/hub-bases-v1.json: pads 26 x 22 centred at radius 68, bearings 22.5 + 45k, yaw 90 - bearing
 		-- (each faces the lobby); local +X = (cos r, -sin r), local +Z = (sin r, cos r).
