@@ -352,8 +352,9 @@ local function bagRows(snapshot)
 	if #registered == 0 then addRow({ text = H.noRegistered }) end
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
-		addRow({ text = creature.species .. (equipped and H.equipped or ""), label = not equipped and H.equip or nil,
-			action = "Equip", argument = creature.uid })
+		-- NS4: the companion's row stores it; every other row equips (swaps) its creature.
+		addRow({ text = creature.species .. (equipped and H.equipped or ""), label = equipped and H.store or H.equip,
+			action = equipped and "Unequip" or "Equip", argument = creature.uid })
 	end
 end
 

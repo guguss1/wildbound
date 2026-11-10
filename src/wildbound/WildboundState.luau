@@ -540,6 +540,16 @@ function State:hatchReady(key, now)
 	return hatched
 end
 
+-- Nest Heist Phase 3 (NS4): the companion goes back to the collection (it stays registered and saved).
+function State:unequip(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if player.equippedUid == nil then return false, "NotEquipped" end
+	player.equippedUid = nil
+	return true
+end
+
 function State:equip(key, uid, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end

@@ -119,6 +119,8 @@ return freeze({
 		boardOpen = "Mejoras y habilidades del campamento.",
 		incubatorSoon = "La incubadora llegará pronto.",
 		equipped = "%s te acompaña.",
+		-- NS4: the companion is stored.
+		companionStored = "%s vuelve a tu colección.",
 	},
 	-- The presentation card after a registration (WildboundRefuge.card).
 	CARD = {
@@ -375,6 +377,8 @@ return freeze({
 		noRegistered = "Aún no tienes criaturas registradas.",
 		equipped = " · Equipada",
 		equip = "Equipar",
+		-- NS4: put the companion back in the collection.
+		store = "Guardar",
 		calmFirst = "Primero termina de calmar al Lumipol.",
 		sections = { Stock = "Tus reservas", Craft = "Fabricar y llevar", Gear = "Equipo", Upgrade = "Mejoras",
 			Skills = "Habilidades", Bond = "Compañero" },

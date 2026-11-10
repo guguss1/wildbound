@@ -36,6 +36,8 @@ Schema.MODULES = table.freeze({
 	EggCarry = table.freeze({ name = "WildboundEggCarry",
 		file = "src/wildbound/WildboundEggCarry.luau (EggCarry.CONSTANTS)" }),
 	Bat = table.freeze({ name = "WildboundBat", file = "src/wildbound/WildboundBat.luau (Bat.CONSTANTS)" }),
+	-- Nest Heist Phase 3 (NS4): the companion's light.
+	Refuge = table.freeze({ name = "WildboundRefuge", file = "src/wildbound/WildboundRefuge.luau (Refuge.LIGHT)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -214,6 +216,11 @@ Schema.SYSTEMS = table.freeze({
 		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
 		-- RW6: the biome variant rotates every this many waves (never by nights).
 		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
+	}) }),
+	-- Nest Heist Phase 3 (NS4): the companion's light.
+	table.freeze({ id = "Companion", label = "Compañero", entries = table.freeze({
+		value("LIGHT_BRIGHTNESS", "Luz del compañero: brillo", "Refuge", "LIGHT_BRIGHTNESS", 1.2, 0, 5, 0.1),
+		value("LIGHT_RANGE", "Luz del compañero: alcance (studs)", "Refuge", "LIGHT_RANGE", 12, 0, 30, 1),
 	}) }),
 	-- Items and totem (plan Part 4): the equipment's effects. The Amuleto's fear softening is read on the client.
 	table.freeze({ id = "Gear", label = "Equipo y tótem", entries = table.freeze({

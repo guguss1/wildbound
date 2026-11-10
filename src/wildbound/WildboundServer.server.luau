@@ -798,6 +798,14 @@ local COMPANION = "WildboundCompanion"
 local companionFolder = Instance.new("Folder")
 companionFolder.Name, companionFolder.Parent = "WildboundCompanions", runtime
 local companions = {}
+-- NS4: the companion's PointLight (built by `visual` on its body) follows the live, tunable values.
+function Heist.lightCompanion(model)
+	local body = model.PrimaryPart
+	local light = body and body:FindFirstChildOfClass("PointLight")
+	if not light then return end
+	if light.Brightness ~= Refuge.live.LIGHT_BRIGHTNESS then light.Brightness = Refuge.live.LIGHT_BRIGHTNESS end
+	if light.Range ~= Refuge.live.LIGHT_RANGE then light.Range = Refuge.live.LIGHT_RANGE end
+end
 local function removeCompanion(player)
 	local entry = companions[player]
 	if not entry then return end
@@ -814,7 +822,10 @@ syncCompanion = function(player)
 		return
 	end
 	local current = companions[player]
-	if current and current.uid == uid and current.root == root and current.model.Parent == companionFolder then return end
+	if current and current.uid == uid and current.root == root and current.model.Parent == companionFolder then
+		Heist.lightCompanion(current.model)
+		return
+	end
 	removeCompanion(player)
 	local offset = Refuge.companionOffset(0, nil)
 	local anchor = Instance.new("Attachment")
@@ -853,6 +864,7 @@ syncCompanion = function(player)
 	model.Parent = companionFolder
 	pcall(function() body:SetNetworkOwner(player) end)
 	companions[player] = { model = model, anchor = anchor, uid = uid, root = root }
+	Heist.lightCompanion(model)
 end
 
 -- Values the capture rule trusts: all read here, none from a client.
@@ -2707,7 +2719,7 @@ end)
 
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
-	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Protect" and action ~= "Hatch"
+	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Unequip" and action ~= "Protect" and action ~= "Hatch"
 		and action ~= "CaptureCancel" and action ~= "CaptureSeal" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
@@ -2734,6 +2746,20 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if ECONOMY_ACTIONS[action] then economyAction(player, action, uid)
 	elseif action == "Hatch" then hatch(player, uid)
 	elseif action == "Protect" then protect(player, uid)
+	elseif action == "Unequip" then
+		-- NS4: only the companion that is out can be stored; the uid is checked against the server's own state.
+		local snapshot = state:snapshot(player.UserId)
+		if not snapshot or snapshot.equippedUid ~= uid then return end
+		local species = "Lumipol"
+		for _, pet in ipairs(snapshot.registered) do
+			if pet.uid == uid then species = pet.species end
+		end
+		local ok, reason = state:unequip(player.UserId, context(player))
+		if ok then
+			player:SetAttribute("WildboundEquippedUid", nil)
+			player:SetAttribute("WildboundHasLumipol", false)
+		end
+		reply(player, action, ok, reason, Text.CAMP.companionStored:format(Text.CARD.species[species] or species))
 	else
 		local alive = context(player)
 		local ok, reason = state:equip(player.UserId, uid, alive)

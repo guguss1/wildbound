@@ -25,6 +25,26 @@ Refuge.CONFIG = table.freeze({
 })
 local K = Refuge.CONFIG
 
+-- Nest Heist Phase 3 (NS4): the companion's PointLight. Live values for the dev tuning (schema system "Companion");
+-- the server applies them to every companion on each refresh. No override, no change.
+Refuge.LIGHT = table.freeze({ LIGHT_BRIGHTNESS = 1.2, LIGHT_RANGE = 12 })
+Refuge.live = {}
+function Refuge.tunable()
+	return table.clone(Refuge.LIGHT)
+end
+function Refuge.tune(overrides)
+	table.clear(Refuge.live)
+	for key, value in pairs(Refuge.LIGHT) do Refuge.live[key] = value end
+	if type(overrides) ~= "table" then return end
+	for key in pairs(Refuge.LIGHT) do
+		local value = overrides[key]
+		if type(value) == "number" and value == value and value > -math.huge and value < math.huge then
+			Refuge.live[key] = math.max(0, value)
+		end
+	end
+end
+Refuge.tune(nil)
+
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
