@@ -553,5 +553,6 @@ return freeze({
 		deliveryPrompt = "Entregar huevo",
 		noEgg = "No llevas un huevo. Roba uno y tráelo a tu base.",
 		delivered = "¡Huevo a salvo en tu base!",
+		incubatorPrompt = "Incubar huevo",
 	},
 })

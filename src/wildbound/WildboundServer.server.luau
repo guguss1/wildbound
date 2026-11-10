@@ -448,8 +448,12 @@ local function validPrompt(value, target)
 end
 -- NB4: the Hatch action and the incubator prompt put an owned banked egg in the incubator, on the server's clock and
 -- with the live, tunable time; the hatch step below hatches it. The client names only the egg.
-local function hatch(player, uid)
+-- HB-T4: measured = the server's distance to the player's own base incubator (its prompt); otherwise the nearer of the
+-- camp's incubator and the own base's one in reach (the Bag's "Incubar"). Same state, one slot, saved (Phase 3).
+local function hatch(player, uid, measured)
 	local alive, distance = context(player, incubatorMarker)
+	distance = math.min(distance, measured or (Heist.hub and Heist.hub:distance(player, "WildboundIncubatorStation"))
+		or math.huge)
 	local ok, result = state:incubate(player.UserId, uid, alive, distance, workspace:GetServerTimeNow(),
 		Incubator.live.HATCH_SECONDS, Incubator.live.SLOTS)
 	local started = ok and Text.INCUBATOR.started:format(math.ceil(result.readyAt - result.startedAt)) or nil
@@ -3088,6 +3092,32 @@ do
 				analytics:extracted(player.UserId)
 				Heist.secure(player)
 				send(player, "Extract", true, Text.HUB.delivered .. " " .. extractNotice(count, receipt))
+			end,
+			-- HB-T4: the owner's base incubator works like the camp's (NH6, NS3): an egg in the arms is delivered there
+			-- and incubated at once; otherwise the first banked egg goes in. One slot, the same saved incubator state.
+			incubator = function(player, distance)
+				local carried = EggCarry.carriedBy(eggs, player.UserId)
+				if carried then
+					local uid = carried.uid
+					local ok, count, receipt = state:extract(player.UserId, (context(player)), distance,
+						workspace:GetServerTimeNow())
+					if not ok then
+						reply(player, "Extract", false, count)
+						return
+					end
+					analytics:extracted(player.UserId)
+					Heist.secure(player)
+					send(player, "Extract", true, extractNotice(count, receipt))
+					hatch(player, uid, distance)
+					return
+				end
+				local snapshot = state:snapshot(player.UserId)
+				local egg = snapshot and snapshot.bankedEggs[1]
+				if not egg then
+					send(player, "Hatch", false, Text.INCUBATOR.noEgg)
+					return
+				end
+				hatch(player, egg.uid, distance)
 			end,
 		},
 	})

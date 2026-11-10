@@ -212,5 +212,27 @@ return function(Bases, source, sources)
 		has(sources.stations, 'SetAttribute("WildboundHubStation", ', "the server marks them")
 	end)
 
+	-- HB-T4 incubator per base ------------------------------------------------------------------------------------
+	case("HB-T4: the owner's base incubator runs the same incubation as the camp's (one slot, saved state)", function()
+		local stations, server = sources.stations, sources.server
+		has(stations, '["WildboundIncubatorStation"] = "incubator"', "one tag for every base incubator (HB3)")
+		local block = between(server, "incubator = function(player, distance)", "\n\t\t\tend,")
+		local carried = block:find("EggCarry.carriedBy(eggs, player.UserId)", 1, true)
+		local banked = block:find("state:extract(player.UserId, ", 1, true)
+		local secured = block:find("Heist.secure(player)", 1, true)
+		local incubated = block:find("hatch(player, uid, distance)", 1, true)
+		assert(carried and banked and secured and incubated and carried < banked and banked < secured
+			and secured < incubated, "an egg in the arms is delivered, then incubated")
+		has(block, "snapshot.bankedEggs[1]", "else the first banked egg")
+		has(block, "hatch(player, egg.uid, distance)")
+		has(block, "Text.INCUBATOR.noEgg")
+		local hatch = between(server, "local function hatch(player, uid, measured)", "\nend\n")
+		has(hatch, 'Heist.hub:distance(player, "WildboundIncubatorStation")', "the Bag's Incubar works at the own base too")
+		has(hatch, "state:incubate(player.UserId, uid, alive, distance, workspace:GetServerTimeNow()",
+			"the Phase 3 incubation on the server's clock")
+		has(hatch, "Incubator.live.SLOTS", "still one slot")
+		assert(type(sources.text.HUB.incubatorPrompt) == "string", "Text.HUB.incubatorPrompt")
+	end)
+
 	return result
 end

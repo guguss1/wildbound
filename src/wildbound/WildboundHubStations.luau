@@ -11,10 +11,12 @@ Stations.__index = Stations
 -- Tag -> station kind; a kind names a handler, a prompt key (Keys.HUB) and the words below.
 Stations.TAGS = table.freeze({
 	["WildboundDeliveryStation"] = "delivery",
+	["WildboundIncubatorStation"] = "incubator",
 })
 -- text: the prompt's action (Text.HUB key); action: the reply that carries a refusal; hold: seconds (nil = default).
 local PROMPTS = table.freeze({
 	delivery = table.freeze({ text = "deliveryPrompt", action = "Extract" }),
+	incubator = table.freeze({ text = "incubatorPrompt", action = "Hatch" }),
 })
 
 -- deps = { Bases, Text, Keys, prompt(target, action, object, range, hold, input), rootOf(player), alive(player),
