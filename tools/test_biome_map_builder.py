@@ -309,5 +309,34 @@ class Written(unittest.TestCase):
                 self.assertIn(tag, text, (key, tag))
 
 
+class Doc(unittest.TestCase):
+    """docs/maps/wildbound-open-world-biomes.md must state what the placement JSON says."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.text = (REPO / "docs/maps/wildbound-open-world-biomes.md").read_text(encoding="utf-8")
+        cls.placement = placement()
+
+    def test_placement_table_matches_the_json(self):
+        for key, biome in self.placement["biomes"].items():
+            row = next((line for line in self.text.splitlines() if line.startswith("| `%s` |" % key)), None)
+            self.assertIsNotNone(row, key)
+            cx, cz = biome["world_centre"]
+            self.assertIn("(%g, %g)" % (cx, cz), row, key)
+            self.assertIn("%g" % biome["yaw_deg"], row, key)
+            self.assertIn("`%s`" % biome["root_name"], row, key)
+
+    def test_run_lines_name_every_builder(self):
+        for key in BIOMES:
+            self.assertIn("tools/build-wildbound-%s-map.luau" % key, self.text)
+        self.assertIn("tools/build-wildbound-open-world-roads.luau", self.text)
+        cx, cz = self.placement["biomes"]["pradera"]["world_centre"]
+        self.assertIn("CFrame.new(%g, 0, %g)" % (cx, cz), self.text)
+
+    def test_states_the_hub_it_was_made_for(self):
+        hub = self.placement["hub"]
+        self.assertIn("(%g, %g), radius %g" % (hub["centre"][0], hub["centre"][1], hub["radius"]), self.text)
+
+
 if __name__ == "__main__":
     unittest.main()
