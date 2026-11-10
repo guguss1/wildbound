@@ -56,7 +56,9 @@ return function(Brain, Rules, source)
 			assert(profile.hunt > profile.patrol and profile.investigate > profile.patrol, phase)
 			assert(profile.alertSeconds >= 0.35, phase .. " keeps the 0.35 s floor of a readable wind-up")
 			assert(profile.detection <= Rules.CHASE_RANGE, phase .. " detects inside the chase range")
-			assert(profile.chaseSeconds >= 30, phase .. " chases for at least 30 s")
+			-- Deliberately changed in the fix pass (FP3, chase sized to the sprint): was "chases for at least 30 s". The
+			-- sprint pool lasts about 4 s at 24, so a chase is a short burst of 12 to 18 s, not a minute.
+			assert(profile.chaseSeconds >= 10 and profile.chaseSeconds <= 20, phase .. " chases for 10 to 20 s")
 			assert(profile.memorySeconds >= 3, phase .. " remembers a lost quarry for at least 3 s")
 		end
 		assert(Brain.profile("Night").hunt > 16, "a walking player is caught at night")
@@ -65,14 +67,15 @@ return function(Brain, Rules, source)
 	-- Chase pass: the numbers themselves (walk faster, react faster, chase longer). Detection is deliberately shorter
 	-- (Day 26 to 21, Dusk 32 to 26, Night 38 to 30): it notices you a little later in the mist, which keeps the
 	-- expedition simulator's greedy median at its 180 s floor with the faster walk and chase (CP-R1).
+	-- Deliberately changed in the fix pass (FP3): chaseSeconds was 30 / 40 / 50, now 12 / 15 / 18 (Day / Dusk / Night).
 	case("chase pass: profile values", function()
 		local expected = {
 			Day = { patrol = 5, investigate = 9, hunt = 13, search = 8, retreat = 8, detection = 21, alertSeconds = 0.8,
-				chaseSeconds = 30, searchSeconds = 12, memorySeconds = 4 },
+				chaseSeconds = 12, searchSeconds = 12, memorySeconds = 4 },
 			Dusk = { patrol = 6, investigate = 10, hunt = 15, search = 9, retreat = 8.5, detection = 26, alertSeconds = 0.65,
-				chaseSeconds = 40, searchSeconds = 16, memorySeconds = 5 },
+				chaseSeconds = 15, searchSeconds = 16, memorySeconds = 5 },
 			Night = { patrol = 7, investigate = 11, hunt = 17, search = 10, retreat = 9, detection = 30, alertSeconds = 0.5,
-				chaseSeconds = 50, searchSeconds = 20, memorySeconds = 6 },
+				chaseSeconds = 18, searchSeconds = 20, memorySeconds = 6 },
 		}
 		expected.Dawn = expected.Dusk
 		for phase, values in pairs(expected) do

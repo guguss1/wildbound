@@ -48,6 +48,10 @@ Schema.SYSTEMS = table.freeze({
 		value("MEMORY_DAY", "Memoria tras perderte de día (s)", "Brain", "Day.memorySeconds", 4, 0.5, 20, 0.5),
 		value("MEMORY_TWILIGHT", "Memoria al atardecer y al alba (s)", "Brain", "Twilight.memorySeconds", 5, 0.5, 20, 0.5),
 		value("MEMORY_NIGHT", "Memoria de noche (s)", "Brain", "Night.memorySeconds", 6, 0.5, 20, 0.5),
+		-- Fix pass (FP3): how long a chase may last, sized to the sprint (about 4 s of sprint at 24).
+		value("CHASE_DAY", "Persecución máxima de día (s)", "Brain", "Day.chaseSeconds", 12, 4, 60, 1),
+		value("CHASE_TWILIGHT", "Persecución máxima al atardecer y al alba (s)", "Brain", "Twilight.chaseSeconds", 15, 4, 60, 1),
+		value("CHASE_NIGHT", "Persecución máxima de noche (s)", "Brain", "Night.chaseSeconds", 18, 4, 60, 1),
 		value("GIVE_UP_DISTANCE", "Se rinde a esta distancia (studs)", "Rules", "GIVE_UP_DISTANCE", 100, 30, 200, 5),
 		-- At least the territory (80): a strike still needs the target inside it, so a longer leash adds no strike place.
 		value("CHASE_LEASH", "Correa de persecución desde su casa (studs)", "Rules", "CHASE_LEASH", 100, 80, 200, 5),

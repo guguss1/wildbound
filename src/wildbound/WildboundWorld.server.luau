@@ -291,7 +291,10 @@ local function quarryContext(h, player)
 	local hidden = records[player] ~= nil and records[player].hide ~= nil
 	local position, guardianPosition = root.Position, h.body.Position
 	local flat = Rules.distance(position.X, position.Z, guardianPosition.X, guardianPosition.Z)
-	if not Rules.pursuit({ alive = true, hidden = hidden, visible = seen ~= nil, distance = flat }) then return nil end
+	-- Fix pass (FP3): a safe zone or the far side of the pursuit leash ends the chase at once.
+	local _, safe = Rules.zone(position.X, position.Z)
+	if not Rules.pursuit({ alive = true, hidden = hidden, visible = seen ~= nil, distance = flat, safe = safe,
+		homeDistance = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z) }) then return nil end
 	return { player = player, character = character, humanoid = humanoid, root = root,
 		distance = (position - guardianPosition).Magnitude, visible = seen ~= nil, hidden = hidden }
 end

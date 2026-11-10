@@ -84,7 +84,9 @@ return function(Schema, modules)
 			-- Look pass: La Silueta's height (art only).
 			"Silueta.VISUAL_SCALE",
 			-- Fix pass (FP2): one Silueta per player, the cap and how faint another player's is drawn.
-			"Silueta.MAX_HUNTERS", "Camera.OTHER_SILUETA_FADE" }) do
+			"Silueta.MAX_HUNTERS", "Camera.OTHER_SILUETA_FADE",
+			-- Fix pass (FP3): the chase limit per phase.
+			"Silueta.CHASE_DAY", "Silueta.CHASE_TWILIGHT", "Silueta.CHASE_NIGHT" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

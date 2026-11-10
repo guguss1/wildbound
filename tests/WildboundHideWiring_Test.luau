@@ -62,6 +62,13 @@ return function(worldSource, serverSource, clientSource)
 		assert(not worldSource:find("local again = targetContext(", 1, true), "the repeat still needs sight")
 	end)
 
+	-- Fix pass (FP3): the pursuit rule hears whether the owner stands in a safe zone and how far from home they are.
+	case("FP3: the quarry check passes the safe zone and the distance from home", function()
+		local quarry = body(worldSource, "local function quarryContext(")
+		has(quarry, "safe = safe", "a safe zone ends the chase")
+		has(quarry, "homeDistance = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z)", "the leash ends it")
+	end)
+
 	case("D6: entering during Alert, Hunt or Telegraph is refused", function()
 		local enter = body(worldSource, "local function enterHide(")
 		has(enter, "Hide.canEnter(", "the pure rule decides")

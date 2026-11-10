@@ -73,9 +73,9 @@ class SourceParsing(unittest.TestCase):
         self.assertEqual((world.night.speed, world.night.detection_range), NIGHT)
         m = world.model
         # Deliberately changed in the chase pass: Day patrol 4 to 5, alert 1.2 to 0.8, telegraph 1.4 to 0.9, Day chase
-        # limit 10 to 30 s.
+        # limit 10 to 30 s. Deliberately changed again in the fix pass (FP3, chase sized to the sprint): Day chase 30 to 12 s.
         self.assertEqual((m.step_s, m.patrol_speed, m.alert_s), (0.2, 5.0, 0.8))
-        self.assertEqual((m.telegraph_s, m.attack_range, m.max_chase_s), (0.9, 7.0, 30.0))
+        self.assertEqual((m.telegraph_s, m.attack_range, m.max_chase_s), (0.9, 7.0, 12.0))
 
     def test_objectives_come_from_the_sources(self):
         world = sp.load_world(REPO)

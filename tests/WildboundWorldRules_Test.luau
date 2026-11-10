@@ -376,5 +376,23 @@ return function(Rules, islandLayout)
 		for _, bad in ipairs({ 0 / 0, math.huge, -1, "24" }) do equal(Rules.pursuit(obs({ distance = bad })), false) end
 		equal(Rules.pursuit(nil), false)
 	end)
+	-- Fix pass (FP3, chase sized to the sprint): the chase also ends at once when the owner reaches a safe zone (camp or a
+	-- shelter) or runs past the pursuit leash from home. Deliberately changes the memory fix's "the pursuit leash only reads
+	-- as out of sight": a quarry beyond the leash is now lost, as the plan asks. No homeDistance reads as inside.
+	case("FP3: a quarry in a safe zone or past the leash is lost at once", function()
+		local function obs(overrides)
+			local value = { alive = true, hidden = false, visible = true, distance = 24, safe = false, homeDistance = 60 }
+			for key, item in pairs(overrides or {}) do value[key] = item end
+			return value
+		end
+		equal(Rules.pursuit(obs()), true)
+		equal(Rules.pursuit(obs({ safe = true })), false, "camp or a shelter ends the chase")
+		equal(Rules.pursuit(obs({ safe = true, visible = false })), false)
+		equal(Rules.pursuit(obs({ homeDistance = Rules.CHASE_LEASH })), true, "on the leash still counts")
+		equal(Rules.pursuit(obs({ homeDistance = Rules.CHASE_LEASH + 0.5 })), false, "past the leash ends the chase")
+		equal(Rules.pursuit(obs({ homeDistance = 0 / 0 })), true, "an unknown home distance reads as inside")
+		local plain = obs(); plain.safe, plain.homeDistance = nil, nil
+		equal(Rules.pursuit(plain), true, "the old observation shape still works")
+	end)
 	return result
 end

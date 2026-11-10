@@ -53,7 +53,7 @@ Ranges are clamps: an attribute outside its range is clamped (and written back, 
 
 | System | Values |
 | --- | --- |
-| Silueta | patrol, hunt speed, sight radius and memory per phase (Day, Twilight = dusk and dawn, Night); `GIVE_UP_DISTANCE`; `CHASE_LEASH` (at least 80, the territory); `TELEGRAPH_SECONDS` (at least 0.8, the fair-strike warning lead); `ATTACK_COOLDOWN`; fix pass: `MAX_HUNTERS` (1 to 16, default 8: one Silueta per player, a later player takes a freed slot) |
+| Silueta | patrol, hunt speed, sight radius, memory and (fix pass FP3) chase limit per phase (Day, Twilight = dusk and dawn, Night); `GIVE_UP_DISTANCE`; `CHASE_LEASH` (at least 80, the territory); `TELEGRAPH_SECONDS` (at least 0.8, the fair-strike warning lead); `ATTACK_COOLDOWN`; fix pass: `MAX_HUNTERS` (1 to 16, default 8: one Silueta per player, a later player takes a freed slot) |
 | Sprint | `SPRINT_MULTIPLIER`, `SPEED_CAP`, `DRAIN`, `START`, `RECOVER`, `REGEN_DELAY`, `REGEN_WALK`, `REGEN_STILL`, `NOISE_INTERVAL`, `SPRINT_NOISE` (hearing radius of a sprint) |
 | Carry | `FEAR_RISE`, `FEAR_FALL`, `FEAR_WARN`, `FEAR_SLIP` (the slip), `FEAR_RADIUS`, `UNEASY_RADIUS`, `CRY_EVERY` |
 | Islands | `STIR`, `WAKE` (at least 96, above island 1's first-steal cap 95), `LINGER`, `SPRINT`, `LIGHT`, `DECAY`, `ALERT_SECONDS`, `GRAB` (the noise of lifting a cría or an egg), `WAKE_WINDUP`, `CHASE_SPEED`, `CHASE_SECONDS`, `CHASE_LEASH`, `STRIKE_REACH`, `STRIKE_WINDUP` (at least 0.35 s), `HIT_RANGE`, `STRIKE_COOLDOWN`, `DAMAGE` |
