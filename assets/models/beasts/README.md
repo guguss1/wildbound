@@ -1,276 +1,285 @@
 # Wildbound beast models
 
-Stylized faceted low-poly models for the Wildbound beast pack. The first part covers **Viper** and
-**Pouncer**; Gargoyle and Mire (`gargoyle*`, `mire*`, `src/gargoyle_build.py`, `src/mire_build.py`,
-`src/beastkit.py`) are described in the "Gargoyle and Mire" section at the end. The `.blend` sources
-are not committed; every build script regenerates them.
+Stylized faceted low-poly models for the four Wildbound beasts: **Viper**, **Pouncer**, **Gargoyle**
+and **Mire**. Each has a rig, a full set of gameplay animation clips timed to the game at 30 fps,
+FBX exports for the Roblox 3D importer, rigless fallbacks, a collision proxy, preview renders and
+6-frame contact sheets per clip. The build scripts in `src/` regenerate every file. The `.blend`
+sources are not committed.
 
 Nothing here has been imported into Roblox Studio yet. The import steps below are the intended
 path and still need a Studio check.
 
+## What changed in this pass
+
+- **Animations:** every beast now has its complete gameplay clip set (25 clips in all), each its own
+  action and its own FBX, timed to `docs/mechanics/wildbound-beasts.md` (Viper, Pouncer) or to the
+  beast-pack specs (Gargoyle, Mire). Poses are written as key poses on a spline plus procedural
+  overlays (breathing, wing beats, gait) and baked to one key per frame, so the motion is no longer
+  linear blocking.
+- **Ground contact:** a cheap per-frame correction keeps the contact parts on the ground: Viper's coil
+  belly, Pouncer's eight feet (each leg's femur is solved so its claw tip touches Z = 0 while the
+  body moves), Gargoyle's hands and feet, Mire's hands. Flight and underwater clips are exempt.
+- **Painted detail:** the palette texture is now a 1024 × 256 atlas: the flat swatches on top, plus
+  painted tiles below. Faces that use a detail entry get planar UVs inside a tile, so thin lines are
+  painted *on* the face. Viper: magenta veins on about half of the upper body plates and on the
+  skull, dark cracks on some risers (the old solid-magenta faces are gone). Pouncer: magenta veins on
+  the abdomen and stripes down the legs. Gargoyle: dark cracks on the big torso, head, shoulder,
+  arm, thigh and wing-cap stones.
+- **Shape fixes:** Pouncer's fangs are larger and hooked (three curved segments instead of two
+  straight ones). Gargoyle's wing panels are thicker (0.28 instead of 0.16), bow backwards between the
+  spars and have scalloped trailing edges; the spars are thicker and the top edge is a chain of four
+  stones that arches over the elbow. Mire's fingers end in blunt blocks with a squared knuckle
+  instead of spikes, and the comb of moss spikes on the brow is replaced by a thick cap and three
+  broad drapes, with two strands at the outer corners, clear of the eyes.
+- **Checks:** `src/check_fbx.py` re-imports every FBX in a clean scene (see Checks).
+
 ## Files
 
 | File | What it is |
 | --- | --- |
-| `viper.blend`, `pouncer.blend` | Blender 5.1 source: skinned body, eye mesh, armature, three pose actions, collision proxy, hidden static copy |
-| `viper.fbx`, `pouncer.fbx` | Rigged FBX (armature + skinned body + skinned eyes), rest pose, no animation |
-| `viper_anim_{idle,windup,attack}.fbx`, `pouncer_anim_{idle,windup,attack}.fbx` | Same rig with one baked action each, for the Animation Editor's FBX animation import |
-| `viper_static.fbx`, `pouncer_static.fbx` | Rigless fallback: body + eyes merged into one mesh, rest pose |
-| `viper_collision.fbx`, `pouncer_collision.fbx` | Simple collision proxy mesh |
-| `textures/viper_palette.png`, `textures/pouncer_palette.png` | Flat colour palette strip (also embedded in the FBX files) |
-| `previews/viper-*.png`, `previews/pouncer-*.png` | Preview renders (see below) |
-| `src/beastlib.py`, `src/build_viper.py`, `src/build_pouncer.py`, `src/compare_sheet.py` | Procedural build scripts; they regenerate every file above |
+| `<beast>.blend` | Blender 5.1 source: skinned mesh, armature, every action (fake user), collision proxy, hidden static copies |
+| `<beast>.fbx` | Rigged FBX (armature + skinned mesh), rest pose, no animation |
+| `<beast>_anim_<clip>.fbx` | Same rig and mesh with exactly one baked clip, for the Animation Editor's FBX animation import |
+| `<beast>_static.fbx` | Rigless fallback in the rest pose |
+| `gargoyle_statue_static.fbx`, `mire_submerged_static.fbx` | Rigless fallbacks frozen in the statue pose and the submerged pose |
+| `<beast>_collision.fbx` | Simple collision proxy mesh |
+| `textures/viper_palette.png`, `textures/pouncer_palette.png`, `gargoyle_palette.png`, `mire_palette.png` | Palette texture (also embedded in every FBX). Viper, Pouncer and Gargoyle: 1024 × 256 atlas with painted tiles. Mire: 48 × 8 flat strip. |
+| `previews/*.png` | Preview renders, reference comparisons and contact sheets (see Previews) |
+| `src/beastlib.py`, `src/build_viper.py`, `src/build_pouncer.py` | Viper and Pouncer builders |
+| `src/beastkit.py`, `src/gargoyle_build.py`, `src/mire_build.py` | Gargoyle and Mire builders |
+| `src/beastanim.py` | Shared animation helpers: pose maths, spline keys, baking, ground contact, foot planting, contact sheets |
+| `src/beastatlas.py` | Shared palette atlas: painted crack/vein tiles and the planar UV pass |
+| `src/compare_sheet.py` | Builds the four `*-vs-reference.png` sheets |
+| `src/check_fbx.py` | Re-imports and checks every FBX |
 
-Rebuild one creature headless:
+Rebuild headless (each build takes 15–60 s; `-- --no-render` skips all renders, `-- --strips-only`
+renders only the contact sheets):
 
 ```
 blender -b --factory-startup -P assets/models/beasts/src/build_viper.py
 blender -b --factory-startup -P assets/models/beasts/src/build_pouncer.py
-blender -b --factory-startup -P assets/models/beasts/src/compare_sheet.py
-```
-
-## Scale, pivot and orientation
-
-- 1 Blender unit = 1 metre = **1 stud**. Scene unit scale is 1.0.
-- The FBX files use `Apply Scalings: FBX All`, so a re-import into Blender gives the same sizes in metres.
-- Pivot: the world origin, on the ground plane (Z = 0), centred under the creature's footprint.
-- The creatures face **-Y** in Blender (Blender's "front" view).
-
-| | Bounding box (X × Y × Z, studs) | Notes |
-| --- | --- | --- |
-| Viper (rest) | 7.5 × 10.3 × 7.4 | about 10 studs long; head about 4 × 3 × 2.5 including the open jaw; spine path about 22.7 studs |
-| Pouncer (rest) | 8.9 × 7.1 × 4.4 | body plus abdomen about 6 studs long; leg span 8.9 studs (about 4.5-stud leg radius) |
-
-Pouncer's leg span matches the `02_POUNCER.md` wording (4–6-stud leg *radius*) but is wider than the
-"4–6 studs wide leg span" line in `POUNCER_PROMPT_IA_MODELO_3D.txt`. Scale the model or the legs if you
-want the narrower reading.
-
-**Roblox import scale (not yet verified in Studio):** in the 3D Importer, check the reported size of the
-model in the preview. Viper should come in at about 10 studs long and Pouncer at about 9 studs wide. If
-the importer reads the file as centimetres (100× too small) or metres with a stud conversion, fix the
-unit setting in the importer or rescale the Model once after import. If the creature faces backwards in
-Roblox, rotate it 180° around Y.
-
-## Triangle counts
-
-| Mesh | Viper | Pouncer |
-| --- | --- | --- |
-| Body (skinned) | 1,206 | 1,574 |
-| Eyes (skinned, emissive) | 12 | 120 |
-| **Total render** | **1,218** | **1,694** |
-| Collision proxy | 68 | 56 |
-
-Both are below the 2k–8k art target, which is a budget ceiling, not a minimum. All faces are flat
-shaded. Meshes are triangulated and their normals were recalculated outward.
-
-## Materials
-
-- **Body:** one material per creature (`Viper_Palette`, `Pouncer_Palette`). It uses the palette PNG with
-  closest-pixel sampling. Each face's UVs point at a single swatch, so the body imports as one MeshPart
-  with one small texture. The same colours are also stored as a face-corner colour attribute (`Col`).
-- **Eyes:** a separate mesh with an emissive material. In Roblox, set the eye MeshPart's `Material` to
-  `Neon` and its colour to amber `#FF7A0A` (Viper) or magenta `#FF3FC0` (Pouncer) to get the glow.
-- Viper palette: charcoal purple `#3A2B46`, plate purple `#6A4A80` / `#584070`, violet crest `#80509F`,
-  magenta accent `#B8408E`, beige jaw and belly `#CBB39C`, ivory fangs `#EFE4CC`, mouth `#A02A62`.
-- Pouncer palette: charcoal plum `#352A3F`, plum `#5E4568` / `#4A3854`, violet `#7B5288`, magenta
-  `#A8407F`, lavender `#8F7F9E`, ivory `#E6D7C0`.
-
-## Rigs
-
-All bones deform. Bone-axis export settings are primary Y and secondary X, with no leaf bones.
-
-**Viper_Rig (15 bones)**
-
-- `Root`: on the ground at the origin.
-- `Spine01` … `Spine12`: one chain from the tail tip to the top of the neck. Body vertices blend linearly between neighbouring spine bones.
-- `Head`: the parent of `Jaw`. It drives the skull, crest, upper fangs and eyes.
-- `Jaw`: the hinge at the back of the mouth. It drives the lower jaw, lower teeth and tongue.
-
-**Pouncer_Rig (29 bones)**
-
-- `Root`: on the ground at the origin.
-- `Body`: the cephalothorax and face, rigid.
-- `Abdomen`: the child of `Body`.
-- `Fang.L` / `Fang.R`: each one drives a chelicera with its big and small fang.
-- `LegL1..4_Femur`, `_Tibia`, `_Tarsus` and `LegR1..4_*`: eight legs with three bones each, rigid per segment. Leg 1 is the front leg.
-
-**Pose actions (both creatures), stored in the .blend and exported one per FBX:**
-
-| Action | Frames | Viper | Pouncer |
-| --- | --- | --- | --- |
-| `*_Idle` | 1–60 / 1–40 | neck sway with a slight jaw flex, loops | body bob with a fang twitch, loops |
-| `*_Windup` | 1–35 / 1–25 | neck coils back, head rears up, mouth opens | knees rise, body lowers, fangs open |
-| `*_Attack` | 1–20 | lunge from the windup pose: neck extends, jaw opens wide | airborne tuck: legs fold under, fangs spread |
-
-These are blocking poses with linear in-betweens, not polished animation. Viper's slither, dash,
-crash and recovery are not done yet. Pouncer's landing splay, stalk and recovery are also not done.
-The rigs are FK only, so Pouncer's feet are not locked to the ground: the windup pose keeps the feet
-close to the ground by eye, not with IK.
-
-## Import into Roblox Studio (intended steps, not yet run)
-
-1. Avatar tab → **Import 3D** → choose `viper.fbx` or `pouncer.fbx`.
-2. In the importer, keep **Rig General** (custom rig, not R15), check the size in the preview, and import as a Model. The importer turns the armature into Bones under the MeshPart.
-3. Set the eye MeshPart to `Neon`. Keep the body MeshPart's texture (the embedded palette), or set `TextureID` to the uploaded `textures/*_palette.png`.
-4. Import `*_collision.fbx` as a separate MeshPart, set `Transparency = 1` and `CanCollide = true`, and turn off `CanCollide` and `CanQuery` on the visual parts. As a cheaper alternative, use Box collision fidelity on the body.
-5. For animation, open the Animation Editor on the imported rig and use **Import → From FBX Animation** with `*_anim_*.fbx`.
-6. Fallback: if the skinned import misbehaves, import `*_static.fbx` (no rig) and animate it with CFrame or TweenService, or drive the gameplay with the static mesh plus VFX.
-
-Gameplay telegraphs (Viper's red dash lane and Pouncer's red landing circle) are not part of the meshes,
-by design.
-
-## Previews
-
-- `previews/viper-front.png`, `viper-side.png`, `viper-34.png`, `viper-windup.png`, `viper-attack-avatar-scale.png` (lunge pose next to a 2 × 1 × 5-stud avatar-height block)
-- `previews/pouncer-front.png`, `pouncer-side.png`, `pouncer-34.png`, `pouncer-top.png`, `pouncer-windup.png`, `pouncer-attack-avatar-scale.png` (airborne tuck, lifted 2 studs for the shot, next to the 5-stud block)
-- `previews/viper-vs-reference.png`, `pouncer-vs-reference.png`: each reference render side by side with the model's 3/4 and front renders
-
-The previews are Blender EEVEE renders with a neutral grey set. They are not in-game captures, and the biome capture has not been made.
-
-## Final vs placeholder
-
-| Item | Status |
-| --- | --- |
-| Silhouettes, proportions and palettes | First production pass; matches the reference sheets in shape language and colour zones. Not final art. |
-| Surface detail | Flat colour zones only. The magenta crack lines from the references are flat magenta faces here. |
-| Rigs | Usable and simple. Bone counts are within the brief. |
-| Pose actions | Placeholder blocking poses |
-| Collision proxies | Final-ready simple shapes |
-| Roblox import, scale and orientation | **Unverified.** Needs a Studio import check. |
-| Biome capture and in-game performance | Not done |
-
----
-
-# Gargoyle and Mire
-
-This section covers **Gargoyle** and **Mire**. They were built headless (Blender 5.1.2, `blender -b`)
-from procedural scripts. Like the models above, they have not been imported into Roblox Studio yet.
-
-## Files
-
-| File | What it is |
-| --- | --- |
-| `gargoyle.blend`, `mire.blend` | Blender source: skinned body mesh, armature, three pose actions (fake user), collision proxy, hidden static copies, and a `Preview_Only` collection (lights, ground, 5-stud block) that is not exported |
-| `gargoyle.fbx`, `mire.fbx` | Rigged FBX (armature + skinned mesh), rest pose, no animation |
-| `gargoyle_anim_{statue,awaken,attack}.fbx` | Same rig, one baked action each |
-| `mire_anim_{submerged,emerge,swipe}.fbx` | Same rig, one baked action each |
-| `gargoyle_static.fbx`, `mire_static.fbx` | Rigless fallback in the rest pose |
-| `gargoyle_statue_static.fbx` | Rigless fallback frozen in the folded statue pose (for the inert cemetery statue) |
-| `mire_submerged_static.fbx` | Rigless fallback frozen in the submerged pose. Everything below Z = 0 sits under the water line. |
-| `gargoyle_collision.fbx`, `mire_collision.fbx` | Collision proxy: two boxes each, 24 triangles |
-| `gargoyle_palette.png`, `mire_palette.png` | 48 × 8 flat palette strip (also embedded in every FBX) |
-| `previews/gargoyle-*.png`, `previews/mire-*.png` | Preview renders (see below) |
-| `src/beastkit.py`, `src/gargoyle_build.py`, `src/mire_build.py` | Build scripts. Each creature's script regenerates all of its files above. |
-
-Rebuild one creature headless (append `-- --no-render` to skip the previews):
-
-```
 blender -b --factory-startup --python assets/models/beasts/src/gargoyle_build.py
 blender -b --factory-startup --python assets/models/beasts/src/mire_build.py
+blender -b --factory-startup --python assets/models/beasts/src/compare_sheet.py
+blender -b --factory-startup --python assets/models/beasts/src/check_fbx.py
 ```
+
+Saving over an existing `.blend` makes a `.blend1` backup next to it; delete it after a rebuild.
+
+## Animation clips
+
+All clips are 30 fps and start at frame 1. Duration = (last − first) / 30. Looping clips have the
+same pose on their first and last frame; set `Animation.Looped` (or `AnimationTrack.Looped`) in
+Roblox. Every bone is keyed on every frame. On re-import the FBX take starts one frame later
+(frame 2); the length is unchanged.
+
+Clips are **in place**: the game moves the model (dash, leap arc, flight path, swim path). The only
+root motion is small: the body leaning, the Viper's head staying on its lane while the body swings
+behind it, Gargoyle's recoil push-back.
+
+### Viper (`Viper_*`, file suffix in brackets)
+
+| Clip | Frames | Duration | Loop | In-game timing | Content |
+| --- | --- | --- | --- | --- | --- |
+| `Viper_Idle` (`idle`) | 1–61 | 2.00 s | yes | idle | coil breathing: slow neck rise, jaw flex, faint ripple along the coil |
+| `Viper_Slither` (`slither`) | 1–37 | 1.20 s | yes | approach / stalk | travelling wave around the coil, neck sways, head stays aimed |
+| `Viper_Windup` (`windup`) | 1–36 | 1.17 s | no | windup 1.15 s | neck compresses into an S spring by frame 22 (the 0.7 s aim phase), then holds and rattles during the 0.45 s lock |
+| `Viper_Dash` (`dash`) | 1–17 | 0.53 s | no | dash 0.53 s | explodes out in 3 frames, body unwinds into a trailing S, neck straight, jaw wide, fast ripple |
+| `Viper_Crash` (`crash`) | 1–17 | 0.53 s | no | wall hit (first part of the 1.8 s recovery) | head snaps back, neck accordions, rebounds and slumps into a dazed pose |
+| `Viper_Recover` (`recover`) | 1–39 | 1.27 s | no | recovery 1.25 s | dazed head shakes, the body re-coils into the rest pose |
+
+After a wall: `Crash` + `Recover` = 1.80 s, matching the 1.8 s recovery. After a clean dash, play
+`Recover` straight away with a short fade (about 0.15 s): it starts in the slumped pose that `Crash`
+ends in, not in the dash pose.
+
+### Pouncer (`Pouncer_*`)
+
+| Clip | Frames | Duration | Loop | In-game timing | Content |
+| --- | --- | --- | --- | --- | --- |
+| `Pouncer_Idle` (`idle`) | 1–41 | 1.33 s | yes | idle | body bob with all feet planted, two fang twitches, one front-leg tap |
+| `Pouncer_Stalk` (`stalk`) | 1–25 | 0.80 s | yes | approach / sidestep | in-place walk: two alternating groups of four legs, stance feet planted, body low and bobbing |
+| `Pouncer_Windup` (`windup`) | 1–40 | 1.30 s | no | telegraph 1.3 s | body sinks while the feet stay planted (the knees rise), fangs spread, quiver, a final dip from frame 33 |
+| `Pouncer_Leap` (`leap`) | 1–24 | 0.77 s | no | flight 0.75 s | push-off (feet leave the ground over frames 4–6), legs tucked frames 9–17, legs open and meet the ground on the last frame |
+| `Pouncer_Land` (`land`) | 1–7 | 0.20 s | no | landing / hit | slams down into a wide splay, fangs snap shut |
+| `Pouncer_Recover` (`recover`) | 1–31 | 1.00 s | no | rest after landing | shudder, two fang clicks, legs gather back to the rest pose |
+
+`Land` + `Recover` = 1.20 s, matching the 1.2 s pause after landing. The flight is 0.767 s
+(23 frames) against the game's 0.75 s: at 30 fps the choice is 22 or 23 frames.
+
+### Gargoyle
+
+| Clip | Frames | Duration | Loop | Spec state | Content |
+| --- | --- | --- | --- | --- | --- |
+| `Statue` (`statue`) | 1–30 | held | yes | inert statue | upright crouch, head lowered, wings folded back |
+| `Awaken` (`awaken`) | 1–49 | 1.60 s | no | AWAKENING 1.6 s | three crack tremors (frames 4, 9, 13), head lifts, wings unfold and rise, roar at frame 36, settles awake |
+| `Takeoff` (`takeoff`) | 1–40 | 1.30 s | no | TAKEOFF ~1.3 s | crouch with wings raised, push off on a big downstroke at frame 13, climbs on fast beats into the hover pose |
+| `Hover` (`hover`) | 1–25 | 0.80 s | yes | TRACK/HOVER, RECOVER/HOVER | wingbeat with lagging wing segments, body bobs against the beat, legs trailing, tail sway |
+| `CastTornado` (`cast`) | 1–61 | 2.00 s | no | TORNADO_CHARGE 1.65 s + release | frames 1–50: wings sweep forward and up, left arm raised, growing tremble; frames 50–54: thrust release (spawn the tornado around frame 52) |
+| `Recoil` (`recoil`) | 1–16 | 0.50 s | no | hit / knock-back | knocked back 0.8 studs, wings flung back, back into the hover beat |
+| `LandPetrify` (`land`) | 1–46 | 1.50 s | no | RETURN_TO_STONE | descends, touches down at frame 14, absorbs, folds the wings into the statue pose, settles |
+
+`Takeoff` ends, `Hover` starts and ends, `Recoil` ends and `LandPetrify` starts on the same hover
+pose. `Awaken` ends on the pose `Takeoff` starts from. The flight clips lift the rig 1.5 studs
+(`HOVER_Z`) so the dangling feet stay clear of the pivot; the game still places the model at its
+8–16-stud flight height. The crack *glow* of the awakening is VFX, not part of the mesh.
+
+### Mire
+
+| Clip | Frames | Duration | Loop | Spec state | Content |
+| --- | --- | --- | --- | --- | --- |
+| `Glide` (`glide`) | 1–49 | 1.60 s | yes | STALK_UNDERWATER | sunk 1.7 studs, slow surge bob, shell sway, eyes bobbing at the surface, limbs paddling below |
+| `Emerge` (`emerge`) | 1–13 | 0.40 s | no | EMERGE (first part) | bursts up out of the water, head first, then the front limbs |
+| `Swipe` (`swipe`) | 1–15 | 0.47 s | no | EMERGE (attack) | right front limb cocks back (frames 1–5), sweeps across (5–12, the 0.23 s active window), follows through |
+| `Recover` (`recover`) | 1–40 | 1.30 s | no | SURFACE_RECOVER 1.1–1.6 s | slumps on the bank, two heavy breaths, shakes off the mud, stands up |
+| `Sink` (`sink`) | 1–37 | 1.20 s | no | DIVE/REPOSITION 1.2 s | rocks back, folds the limbs, slides under into the glide pose |
+
+`Emerge` + `Swipe` = 0.87 s, inside the spec's 0.65–0.9 s EMERGE window. Each clip ends on the pose
+the next one starts from (Glide → Emerge → Swipe → Recover → Sink → Glide).
 
 ## Scale, pivot and orientation
 
 - 1 Blender unit = 1 metre = **1 stud**. Scene unit scale is 1.0.
-- The FBX files use `apply_unit_scale` with `FBX_SCALE_NONE`. A re-import into Blender gave scale 1.0 and the same sizes in metres.
 - Pivot: the world origin on the ground plane (Z = 0), where the `Root` bone sits.
-- The creatures face **-Y** in Blender. The FBX axes are forward -Z and up Y.
+- The creatures face **-Y** in Blender (Blender's "front" view).
+- Viper and Pouncer FBX: `Apply Scalings: FBX All`, primary bone axis Y, secondary X. Gargoyle and
+  Mire FBX: `FBX_SCALE_NONE`, forward -Z, up Y. All four re-import into Blender at scale 1.0 with
+  the same sizes in metres (see Checks).
 
 | | Bounding box X × Y × Z (studs) | Notes |
 | --- | --- | --- |
-| Gargoyle (rest, wings open) | 13.8 × 7.7 × 8.0 | wingspan 13.8 (target 11–15); 8.0 tall at the wing spikes, about 6.8 at the horn tip |
-| Gargoyle (statue pose) | 5.2 × 8.5 × 7.5 | wings folded back along the body |
-| Mire (rest) | 13.0 × 10.9 × 4.2 | central body (shell + head) about 6.5 long × 5.5 wide; the long forelimbs reach 13 studs across |
-| Mire (submerged) | about 2.5 above Z = 0 | only the mossy back, the brow and the eyes (0.1–0.4 above the water line) show |
+| Viper (rest) | 7.5 × 10.3 × 7.4 | about 10 studs long; spine path about 22.7 studs |
+| Pouncer (rest) | 8.9 × 7.1 × 4.4 | leg span 8.9 studs (about 4.5-stud leg radius) |
+| Gargoyle (rest, wings open) | 13.8 × 7.7 × 8.2 | wingspan 13.8 (target 11–15) |
+| Gargoyle (statue pose) | 5.2 × 8.3 × 7.7 | wings folded back along the body |
+| Mire (rest) | 13.4 × 11.1 × 4.3 | the long forelimbs reach 13 studs across |
+| Mire (submerged) | about 2.5 above Z = 0 | only the mossy back, the brow and the eyes show |
 
-**Roblox import scale (not verified in Studio):** check the size in the 3D Importer preview. Gargoyle
-should be about 14 studs wide and 8 tall, and Mire about 13 wide and 4 tall. If the importer reads
-the file as centimetres (100× too small), fix the unit setting in the importer or scale the Model once.
-If the creature faces backwards, rotate it 180° around Y.
+Pouncer's leg span matches the `02_POUNCER.md` wording (4–6-stud leg *radius*) but is wider than the
+"4–6 studs wide leg span" line in `POUNCER_PROMPT_IA_MODELO_3D.txt`.
+
+**Roblox import scale (not verified in Studio):** check the size in the 3D Importer preview. If the
+importer reads a file as centimetres (100× too small), fix the unit setting or rescale the Model
+once. If a creature faces backwards, rotate it 180° around Y.
 
 ## Triangle counts
 
-| Mesh | Gargoyle | Mire |
-| --- | --- | --- |
-| Body: one skinned mesh, eyes included | **3,782** | **3,016** |
-| Collision proxy | 24 | 24 |
+| Mesh | Viper | Pouncer | Gargoyle | Mire |
+| --- | --- | --- | --- | --- |
+| Body (skinned) | 1,206 | 1,630 | 4,678 (eyes included) | 4,540 (eyes included) |
+| Eyes (separate skinned mesh, emissive) | 12 | 120 | — | — |
+| **Total render** | **1,218** | **1,750** | **4,678** | **4,540** |
+| Before this pass | 1,218 | 1,694 | 3,782 | 3,016 |
+| Collision proxy | 68 | 56 | 24 | 24 |
+| Budget (ceiling) | 2k–8k | 2k–8k | 4k–10k | 2k–8k |
 
-Mire is inside its 2k–8k target. Gargoyle is just under its 4k–10k wing budget, which is a ceiling,
-not a minimum. All faces are flat shaded and triangulated. Every part is a closed shell, with normals
-recalculated outward.
+Viper's veins are texture only, so its count did not change. Pouncer +56 (curved fangs), Gargoyle
++896 (arched panels and the stone cap chain), Mire +1,524 (two knuckle and tip blocks per finger,
+the new brow). All faces are flat shaded and triangulated, and normals were recalculated outward.
 
-## Materials and colours
+## Materials and textures
 
-The body uses one palette material (`*_Palette`, closest-pixel sampling). Each face's UVs sit on one
-swatch. The eye faces are part of the same mesh but use a second, emissive material (`*_EyeGlow`).
-
-- Gargoyle (sRGB): stone `#9E94AD`, dark stone `#786E8C`, membrane `#80739C`, claw `#5E5773`, moss `#809924`, eye cyan `#4DFFEB`.
-- Mire (sRGB): stone `#4A6663`, dark stone `#304547`, moss `#8C9E38`, dark moss `#597326`, fungus cream `#DED4A3`, eye amber `#FFC74D`.
-- In Roblox, the eye faces carry the eye swatch from the palette. A real glow needs either a `SurfaceAppearance` emissive mask or two small `Neon` parts over the eyes. Which one to use is still open.
+- **Body:** one palette material per creature, closest-pixel sampling. Every flat face has its UVs
+  on one swatch; detail faces have planar UVs inside a painted tile (about 1.4–1.6 studs per tile,
+  shrunk to fit large faces, with a random offset and rotation per facet). The body imports as one
+  MeshPart with one small texture. Viper and Pouncer also keep a face-corner colour attribute
+  (`Col`) with the flat colours.
+- **Atlas layout** (Viper, Pouncer, Gargoyle): 1024 × 256; top 64 px = one flat swatch per palette
+  entry; bottom 192 px = painted 192 × 192 tiles. Tiles: Viper — plate + magenta veins, mid plate +
+  magenta veins, charcoal riser + dark cracks; Pouncer — dark plum + veins, violet + veins;
+  Gargoyle — stone + dark cracks, dark stone + darker cracks. Mire keeps the 48 × 8 flat strip.
+- **Eyes:** Viper and Pouncer: a separate emissive eye mesh. In Roblox set it to `Neon` with amber
+  `#FF7A0A` (Viper) or magenta `#FF3FC0` (Pouncer). Gargoyle and Mire: the eye faces are part of the
+  body mesh with a second emissive material (`*_EyeGlow`); a real glow in Roblox needs a
+  `SurfaceAppearance` emissive mask or two small `Neon` parts. Which one is still open.
+- Palettes (sRGB hex as authored): Viper charcoal purple `#3A2B46`, plate purple `#6A4A80` /
+  `#584070`, violet crest `#80509F`, magenta `#B8408E`, beige `#CBB39C`, ivory `#EFE4CC`, mouth
+  `#A02A62`, vein line `#C43C96`. Pouncer charcoal plum `#352A3F`, plum `#5E4568` / `#4A3854`, violet
+  `#7B5288`, magenta `#A8407F`, lavender `#8F7F9E`, ivory `#E6D7C0`. Gargoyle stone `#9E94AD`, dark
+  stone `#786E8C`, membrane `#80739C`, claw `#5E5773`, moss `#809924`, eye cyan `#4DFFEB`. Mire stone
+  `#4A6663`, dark stone `#304547`, moss `#8C9E38`, dark moss `#597326`, fungus `#DED4A3`, eye amber
+  `#FFC74D`.
+- **Known colour quirk (unchanged from the first pass):** the Viper and Pouncer textures store the
+  *linearised* palette values as pixels, so their PNG swatches are darker than the hex values above
+  (for example `#3A2B46` is stored as about `#0B0610`). The renders and the look in Blender use these
+  darker values. Gargoyle and Mire store the sRGB values. Decide whether to brighten Viper and
+  Pouncer before the Studio import.
 
 ## Rigs
 
-Each part is rigidly skinned to one bone (weight 1.0, one influence), which matches the stacked-rock
-construction. Leaf bones are off. `Root` has no weights.
+Bone names are unchanged from the first pass. All bones deform; `Root` sits at the origin.
 
-**Gargoyle_Rig (20 bones)**
+- **Viper_Rig (15 bones):** `Root`; `Spine01`…`Spine12` from the tail tip (the chain root) to the
+  top of the neck — `Spine01`–`Spine10` lie in the ground coil, `Spine11`–`Spine12` are the neck;
+  `Head` (skull, crest, upper fangs, eyes) → `Jaw` (lower jaw, lower teeth, tongue). Body vertices
+  blend linearly between neighbouring spine bones.
+- **Pouncer_Rig (29 bones):** `Root` → `Body` (cephalothorax, face, rigid) → `Abdomen`,
+  `Fang.L`/`Fang.R`, and `LegL1..4_{Femur,Tibia,Tarsus}` / `LegR1..4_*` (leg 1 is the front leg).
+- **Gargoyle_Rig (20 bones):** `Root` → `Hips` → `Spine` → `Head` → `Jaw`; `Hips` → `Tail`,
+  `Leg_{L,R}_Upper` → `_Lower`; `Spine` → `Arm_{L,R}_Upper` → `_Lower`, `Wing_{L,R}_1` → `_2` → `_3`.
+  Every part is rigidly skinned to one bone.
+- **Mire_Rig (15 bones):** `Root` → `Shell` → `Head`; `Shell` → `ArmF_{L,R}_1..3` and
+  `ArmM_{L,R}_1..3`. The hind stubs and the tail are skinned to `Shell`. Rigid skinning.
 
-- `Root` → `Hips` → `Spine` → `Head` → `Jaw`
-- `Hips` → `Tail`, `Leg_L_Upper` → `Leg_L_Lower`, and the matching right leg
-- `Spine` → `Arm_L_Upper` → `Arm_L_Lower` (forearm and hand), and the matching right arm
-- `Spine` → `Wing_L_1` → `Wing_L_2` → `Wing_L_3` (shoulder spar, wrist, long finger), and the matching right wing
-
-**Mire_Rig (15 bones)**
-
-- `Root` → `Shell` → `Head`
-- `Shell` → `ArmF_L_1` → `ArmF_L_2` → `ArmF_L_3` (front forelimb: upper, forearm, root-claw hand), and the matching right limb
-- `Shell` → `ArmM_L_1..3` (second forelimb pair), and the matching right limb
-- The short hind stubs and the dragging tail are skinned to `Shell`.
-
-**Pose actions (blocking poses with linear in-betweens, not polished animation):**
-
-| Action | Frames | Status |
-| --- | --- | --- |
-| `Statue` (Gargoyle) | 1–30, held | exists: upright crouch, head lowered, wings folded back |
-| `Awaken` (Gargoyle) | 1–50 | exists: statue → rest → wings raised with jaw open → rest |
-| `Attack` (Gargoyle) | 1–40 | exists: wings rise, then thrust forward with the left arm raised (tornado cast) |
-| Takeoff, hover, wingbeat, land/petrify (Gargoyle) | | missing |
-| `Submerged` (Mire) | 1–30, held | exists: body sunk 1.7 studs, limbs folded below the water line, head tilted up |
-| `Emerge` (Mire) | 1–30 | exists: submerged → reared up with the front limbs lifted → rest |
-| `Swipe` (Mire) | 1–34 | exists: right front limb winds up, swipes across, then recovers |
-| Underwater glide, recover, sink (Mire) | | missing |
-
-The rigs are FK only, and the feet are not locked to the ground. In the statue pose, the hands and feet
-were placed on the ground by measurement.
+The rigs are FK only. Ground contact is baked into the keys (see What changed), not driven by IK.
 
 ## Import into Roblox Studio (intended steps, not yet run)
 
-1. Avatar tab → **Import 3D** → choose `gargoyle.fbx` or `mire.fbx`. Keep Rig General (a custom rig, not R15), check the size in the preview, and import as a Model.
-2. Keep the embedded palette texture, or set `TextureID` to the uploaded `*_palette.png`. Add the eye glow as described under Materials and colours.
-3. Import `*_collision.fbx` as a separate MeshPart and set `Transparency = 1` and `CanCollide = true`. Turn off `CanCollide` and `CanQuery` on the visual mesh.
-4. For animation, open the Animation Editor on the imported rig and use **Import → From FBX Animation** with `*_anim_*.fbx`. The baked take is named `Scene`.
-5. Fallback: use the static FBX files with CFrame or TweenService. `gargoyle_statue_static.fbx` can serve as the inert statue, swapped for the rigged model on awaken. `mire_submerged_static.fbx` can serve as the lurking state.
+1. Avatar tab → **Import 3D** → choose `<beast>.fbx`. Keep **Rig General** (custom rig, not R15),
+   check the size in the preview, and import as a Model. The importer turns the armature into Bones
+   under the MeshPart.
+2. Keep the embedded palette texture, or set `TextureID` to the uploaded palette PNG. Set up the eye
+   glow as described under Materials.
+3. Import `<beast>_collision.fbx` as a separate MeshPart, set `Transparency = 1` and
+   `CanCollide = true`, and turn off `CanCollide` and `CanQuery` on the visual parts.
+4. For each clip, open the Animation Editor on the imported rig and use **Import → From FBX
+   Animation** with `<beast>_anim_<clip>.fbx` (one clip per file; the take is named `Scene`). Mark the
+   looping clips as looped.
+5. Fallback: if the skinned import misbehaves, use `<beast>_static.fbx` (and the statue or submerged
+   static) with CFrame or TweenService.
 
-By design, the meshes contain no gameplay VFX: the tornado, ripples, bubbles, dust, warning ring and
-crack glow are all separate.
+By design the meshes contain no gameplay VFX: Viper's red lane, Pouncer's red circle, the tornado,
+ripples, bubbles, dust and crack glow are separate.
 
 ## Previews
 
-- Gargoyle: `gargoyle-front.png`, `gargoyle-side.png`, `gargoyle-three-quarter.png`, `gargoyle-attack.png` (`Attack` frame 24), `gargoyle-statue.png`, `gargoyle-scale-avatar.png` (next to a 2 × 1 × 5-stud avatar block)
-- Mire: `mire-front.png`, `mire-side.png`, `mire-three-quarter.png`, `mire-attack.png` (`Swipe` wind-up, frame 10), `mire-submerged.png` (opaque murky water plane at Z = 0), `mire-scale-avatar.png`
-- `gargoyle-vs-reference.png` and `mire-vs-reference.png`: the reference render next to the 3/4, the front, and the statue or submerged render
+- Stills (EEVEE, neutral set): `viper-{front,side,34,windup,attack-avatar-scale}.png`,
+  `pouncer-{front,side,34,top,windup,attack-avatar-scale}.png`,
+  `gargoyle-{front,side,three-quarter,attack,statue,scale-avatar}.png`,
+  `mire-{front,side,three-quarter,attack,submerged,scale-avatar}.png`. The "attack" and "windup"
+  stills now show frames of the new clips (Viper dash frame 10, windup frame 36; Pouncer windup
+  frame 40, leap frame 12; Gargoyle cast frame 54; Mire swipe frame 5).
+- `*-vs-reference.png` (all four): the reference render next to the model renders.
+- Contact sheets `anim-<beast>-<clip>.png`: 6 evenly spaced frames of each clip in one strip
+  (6 × 420 × 340 px). The orange bar under each frame shows where it sits in the clip. Mire's glide,
+  emerge and sink sheets include an opaque water plane at Z = 0. 24 sheets: Viper 6, Pouncer 6,
+  Gargoyle 6 (no sheet for the held statue), Mire 5.
 
-These are Blender EEVEE renders on a neutral grey set, not in-game or biome captures.
+These are Blender renders, not in-game or biome captures.
+
+## Checks
+
+`src/check_fbx.py` re-imports each of the 38 FBX files into a clean factory scene and checks:
+one armature with the expected bone count and the same bone names as the creature's rigged FBX;
+every skinned vertex fully weighted to bones of that rig; exactly one action in each
+`*_anim_*.fbx` with the expected length; no armature, vertex groups or actions in static and
+collision files; object scale 1.0 and the mesh size in studs. Last run: **38 / 38 OK**.
+
+Each build also prints a per-clip ground report (lowest vertex overall and the contact range).
+Contact parts stay at Z = 0 (within 0.03 studs, the jitter of the claw tips) on every grounded
+frame. Known small dips of non-contact parts below Z = 0: Pouncer leap push-off 0.11; Gargoyle wing
+tips during the takeoff and landing downstrokes 0.33 and 0.58; Mire's head and tusks at the swipe
+hit 0.43 and the slumped belly in Recover 0.18; Viper's jaw 0.02.
 
 ## Final vs placeholder
 
 | Item | Status |
 | --- | --- |
-| Silhouette, proportions and palette | First production pass. Each reads as its reference creature, but this is not final art. |
-| Gargoyle gaps | The wings are flat, straight-edged plates; the reference wings are thicker, curved and arched. There are no painted cracks. The head is blockier and less sculpted than the reference. |
-| Mire gaps | The moss brow reads a little like a comb of teeth. The fingers are pointed spikes, where the reference has blunt block fingers. The shell is flatter on top, and the moss drapes less heavily than in the reference. |
-| Rigs | Usable and simple; they match the bones listed in the brief |
-| Pose actions | Placeholder blocking poses, 3 per creature. Several gameplay clips are still missing (see Rigs). |
-| Collision proxies | Final-ready simple boxes. The Gargoyle proxy ignores the wings on purpose. |
-| Eye glow in Roblox | Open: emissive mask or Neon parts |
-| Roblox import, scale and orientation | **Unverified.** Needs a Studio import check. |
+| Silhouettes, proportions and palettes | Production pass; matches the reference sheets in shape language and colour zones. Not final art. |
+| Surface detail | Painted thin veins/cracks on Viper, Pouncer and Gargoyle; Mire flat colour zones. |
+| Gameplay clips | Complete set per beast, timed to the game; procedural, not hand-polished. |
+| Rigs | Usable and simple, FK only; bone names unchanged. |
+| Collision proxies | Final-ready simple shapes (the Gargoyle proxy ignores the wings on purpose) |
+| Eye glow in Roblox (Gargoyle, Mire) | Open: emissive mask or Neon parts |
+| Viper/Pouncer texture brightness | Open: linearised swatches (see Materials) |
+| Roblox import, scale, orientation and clip playback | **Unverified.** Needs a Studio import check. |
+| Biome capture and in-game performance | Not done |

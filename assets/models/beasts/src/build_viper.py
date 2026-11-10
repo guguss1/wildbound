@@ -1,4 +1,4 @@
-"""Build the Wildbound Viper: mesh, rig, pose actions, exports and previews.
+"""Build the Wildbound Viper: mesh, rig, gameplay actions, exports, previews and contact sheets.
 
 Run: blender -b --factory-startup -P build_viper.py
 """
@@ -10,6 +10,8 @@ import bpy
 from mathutils import Vector
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import beastanim as ba  # noqa: E402
+import beastatlas as at  # noqa: E402
 import beastlib as bl  # noqa: E402
 
 OUT = os.path.normpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -26,9 +28,13 @@ PAL_HEX = [
     '#efe4cc',  # 5 ivory fangs
     '#a02a62',  # 6 mouth / tongue
     '#584070',  # 7 mid plate (alternating)
+    '#6a4a80',  # 8 purple plate with painted magenta veins (atlas tile 0)
+    '#584070',  # 9 mid plate with painted magenta veins (atlas tile 1)
+    '#3a2b46',  # 10 charcoal riser with thin dark cracks (atlas tile 2)
 ]
 PAL = [bl.hex_rgb(h) for h in PAL_HEX]
-CHAR, PLATE, CREST, MAG, BEIGE, IVORY, MOUTH, MID = range(8)
+CHAR, PLATE, CREST, MAG, BEIGE, IVORY, MOUTH, MID, VEIN_P, VEIN_M, CRACK_C = range(11)
+TILE_OF = {VEIN_P: 0, VEIN_M: 1, CRACK_C: 2}
 
 N_SPINE = 12
 
@@ -185,10 +191,12 @@ def build_body(mb, pts, frs):
         if sn < -0.55 or (ring_s[i] > 0.6 and sn < 0.1):
             return BEIGE
         if kind == 'riser':
-            return CHAR
-        if sn > 0.3 and accents[i] < 0.28 and side % 3 == 1:
-            return MAG
-        return PLATE if (i // 2) % 2 == 0 else MID
+            return CRACK_C if (sn > 0.3 and accents[i] < 0.3) else CHAR
+        plate = PLATE if (i // 2) % 2 == 0 else MID
+        # painted magenta veins on roughly half of the upper plate faces (thin lines, not whole faces)
+        if sn > 0.0 and (accents[i] + 0.37 * side) % 1.0 < 0.5:
+            return VEIN_P if plate == PLATE else VEIN_M
+        return plate
 
     mb.loft(rings, col, lambda i: spine_weights(ring_s[i]), cap_start=False, cap_end=True)
 
@@ -239,6 +247,8 @@ def build_head(mb, H0, F, U):
             return MOUTH  # palate
         if side in (0, 5):
             return MID
+        if i in (1, 2) and side in (1, 2, 3, 4):
+            return VEIN_P if (i + side) % 2 else VEIN_M
         return PLATE if (i + side) % 3 else MID
     mb.loft(skull, skull_col, W)
 
@@ -332,8 +342,144 @@ def build_eyes(mb, tw):
 # Main
 # --------------------------------------------------------------------------
 
+
+# action name, file suffix, first frame, last frame, loops
+ACTIONS = [
+    ('Viper_Idle', 'idle', 1, 61, True),        # 2.00 s coil breathing
+    ('Viper_Slither', 'slither', 1, 37, True),  # 1.20 s stalking slither
+    ('Viper_Windup', 'windup', 1, 36, False),   # 1.17 s neck compress (in-game windup 1.15 s)
+    ('Viper_Dash', 'dash', 1, 17, False),       # 0.53 s extended dash (in-game 0.53 s)
+    ('Viper_Crash', 'crash', 1, 17, False),     # 0.53 s wall impact (crash + recover = 1.8 s)
+    ('Viper_Recover', 'recover', 1, 39, False),  # 1.27 s dazed recovery (in-game 1.25 s)
+]
+
+DASH_HEAD = (0.0, -5.6)   # where the head sits (x, y) at full dash extension
+
+
+def build_actions(rig_obj, body):
+    sp = lambda i: f'Spine{i:02d}'  # noqa: E731
+    rig = ba.Rig(rig_obj)
+    # Spine01 is the tail tip (the chain root), Spine02-10 lie in the ground coil, Spine11-12 are the neck
+    ground = ba.Ground(body, [sp(i) for i in range(1, 10)])
+    coil = [sp(i) for i in range(2, 11)]
+
+    def grounded(f, p):
+        ba.ground_root(rig, ground, p)
+
+    rest = {}
+    # neck compressed into an S spring, head drawn back and low but still aimed forward
+    windup = ba.norm({
+        sp(11): (-22, 0, 0), sp(12): (24, 0, 0), 'Head': (2, 0, 0), 'Jaw': (12, 0, 0),
+    })
+    for b in coil:
+        windup[b] = ba.ch(rz=3.0)  # coil tightens like a spring
+    windup[sp(10)] = ba.ch(-6, 0, 3.0)
+    # fully extended dash: coil partly unwound into a trailing S, neck straight, jaw wide
+    dash = ba.norm({
+        sp(11): (16, 0, 0), sp(12): (4, 0, 0), 'Head': (-24, 0, 0), 'Jaw': (16, 0, 0),
+    })
+    for k, b in enumerate(coil):
+        dash[b] = ba.ch(rz=-24.0 + 20.0 * math.sin(k * 1.25))
+    dash[sp(10)][0] = 8.0
+    # dazed slump after a crash: neck folded down, head tilted, jaw slack
+    dazed = ba.norm({
+        sp(11): (9, 0, 6), sp(12): (8, 0, -8), 'Head': (-6, 16, 0), 'Jaw': (12, 0, 0),
+    })
+    for k, b in enumerate(coil):
+        dazed[b] = ba.ch(rz=-21.0 + 15.0 * math.sin(k * 1.25 + 0.5))
+    dazed[sp(10)][0] = 8.0
+
+    DAZED_HEAD = (DASH_HEAD[0] + 0.5, DASH_HEAD[1] + 1.3)
+    ba.anchor(rig, dash, 'Head', DASH_HEAD, facing=(0, -1))
+    ba.anchor(rig, dazed, 'Head', DAZED_HEAD, facing=(0.2, -1))
+    rig.apply({})
+    rest_head = rig.head('Head').copy()
+    rig.apply(windup)
+    windup_head = rig.head('Head').copy()
+    rig.apply({})
+
+    def head_path(keys):
+        """Post step: keep the head on a planned (x, y) path so Root yaw changes swing the body, not the head."""
+        def post(f, p):
+            i = 0
+            while i < len(keys) - 2 and keys[i + 1][0] <= f:
+                i += 1
+            (fa, a), (fb, b) = keys[i], keys[i + 1]
+            t = ba.smooth((f - fa) / max(1, fb - fa))
+            ba.anchor(rig, p, 'Head', (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t))
+            ba.ground_root(rig, ground, p)
+        return post
+
+    acts = {}
+
+    # ---- Idle: coil breathing, slow neck rise and jaw flex (loop, 60 frames)
+    def idle(f):
+        b = ba.wave(f, 1, 60)
+        p = ba.norm({sp(11): (-2.5 * b, 0, 0), sp(12): (1.8 * b, 0, 0),
+                     'Head': (1.5 * b, 0, 1.5 * ba.wave(f, 1, 60, 0.25)), 'Jaw': (2.5 + 2.5 * b, 0, 0)})
+        for k, bn in enumerate(coil):
+            p[bn] = ba.ch(rz=0.9 * ba.wave(f, 1, 60, k / len(coil)))
+        return p
+    acts['Viper_Idle'] = rig.bake('Viper_Idle', 1, 61, idle, grounded, loop=True)
+
+    # ---- Slither: travelling wave along the coil, neck sways, head stays aimed (loop, 36 frames)
+    def slither(f):
+        p = ba.norm({sp(11): (3 + 2 * ba.wave(f, 1, 18), 0, 8 * ba.wave(f, 1, 36)),
+                     sp(12): (-2, 0, -7 * ba.wave(f, 1, 36, 0.15)),
+                     'Head': (-1, 2.5 * ba.wave(f, 1, 36, 0.1), 2 * ba.wave(f, 1, 36, 0.4)),
+                     'Jaw': (1.5 + 1.5 * ba.wave(f, 1, 18), 0, 0)})
+        for k, bn in enumerate(coil):
+            p[bn] = ba.ch(rz=4.5 * ba.wave(f, 1, 36, -k / 4.0))
+        return p
+    acts['Viper_Slither'] = rig.bake('Viper_Slither', 1, 37, slither, grounded, loop=True)
+
+    # ---- Windup: compress over the 0.7 s aim phase, then hold and rattle while the lane is locked
+    def windup_fn(f):
+        p = ba.spline([(1, rest), (12, ba.pscale(windup, 0.55)), (22, windup, 'hold'), (36, windup, 'hold')], f)
+        if f > 20:
+            amp = 1.0 + 1.6 * (f - 20) / 16
+            p = ba.padd(p, ba.norm({'Head': (amp * ba.wave(f, 0, 4), 0, 0), sp(12): (0, 0, amp * ba.wave(f, 0, 3))}))
+        return p
+    acts['Viper_Windup'] = rig.bake('Viper_Windup', 1, 36, windup_fn, grounded)
+
+    # ---- Dash: explode out of the windup in 4 frames, hold the extended pose with a fast body ripple
+    def dash_fn(f):
+        p = ba.spline([(1, windup), (4, dash, 'hold'), (17, dash, 'hold')], f)
+        if f > 3:
+            ripple = {}
+            for k, bn in enumerate(coil):
+                ripple[bn] = ba.ch(rz=5.0 * ba.wave(f, 4, 8, -k / 5.0))
+            ripple['Head'] = ba.ch(rz=-2.0 * ba.wave(f, 4, 8, 0.1))
+            p = ba.padd(p, ripple)
+        return p
+
+    acts['Viper_Dash'] = rig.bake('Viper_Dash', 1, 17, dash_fn, head_path(
+        [(1, windup_head), (4, DASH_HEAD), (17, DASH_HEAD)]))
+
+    # ---- Crash: head snaps back on impact, neck accordions, rebounds and slumps into the dazed pose
+    impact = ba.padd(dash, ba.norm({sp(10): (-8, 0, 0), sp(11): (-18, 0, 0), sp(12): (-8, 0, 0),
+                                    'Head': (16, 0, 0), 'Jaw': (-14, 0, 0)}))
+    rebound = ba.padd(ba.plerp(dash, dazed, 0.4), ba.norm({sp(11): (2, 0, 0), 'Head': (-14, -8, 0)}))
+    acts['Viper_Crash'] = rig.bake('Viper_Crash', 1, 17, lambda f: ba.spline(
+        [(1, dash), (3, impact), (8, rebound), (17, dazed, 'hold')], f), head_path(
+        [(1, DASH_HEAD), (3, (DASH_HEAD[0], DASH_HEAD[1] + 0.9)), (17, DAZED_HEAD)]))
+
+    # ---- Recover: dazed head shakes, then the body re-coils into the rest pose
+    def recover(f):
+        p = ba.spline([(1, dazed, 'hold'), (14, ba.plerp(dazed, rest, 0.35)), (39, rest, 'hold')], f)
+        shake = max(0.0, 1 - (f - 1) / 26.0)
+        p = ba.padd(p, ba.norm({'Head': (0, 10 * shake * ba.wave(f, 1, 9), 9 * shake * ba.wave(f, 1, 9, 0.2)),
+                                sp(12): (0, 0, -5 * shake * ba.wave(f, 1, 9, 0.1))}))
+        return p
+    acts['Viper_Recover'] = rig.bake('Viper_Recover', 1, 39, recover, head_path(
+        [(1, DAZED_HEAD), (39, rest_head)]))
+    rig.apply({})
+    return acts
+
+
 def main():
     scene = bl.reset_scene()
+    scene.render.fps = ba.FPS
     col = bpy.data.collections.new('Viper')
     scene.collection.children.link(col)
 
@@ -344,7 +490,6 @@ def main():
     frs = frames(pts)
 
     neck_end = pts[-1]
-    T_end = frs[-1][0]
     F = Vector((0.0, -1.0, -0.12)).normalized()
     U = Vector((0.0, -0.12, 1.0)).normalized()
     H0 = neck_end + Vector((0.0, -0.15, 0.05))
@@ -352,10 +497,16 @@ def main():
     mb = bl.MeshBuilder(seed=7, jitter=0.035)
     build_body(mb, pts, frs)
     tw = build_head(mb, H0, F, U)
-    body = bl.build_object(mb, 'Viper_Body', PAL,
-                           bl.palette_material('Viper_Palette',
-                                               bl.palette_image('viper_palette', PAL, os.path.join(TEX, 'viper_palette.png'))),
-                           col)
+    plate, mid, char = PAL[PLATE], PAL[MID], PAL[CHAR]
+    vein, vein_rim, vein_core = bl.hex_rgb('#c43c96'), bl.hex_rgb('#2a1d33'), bl.hex_rgb('#ff8ad8')
+    tiles = [
+        at.paint_tile(plate, vein, rim=vein_rim, core=vein_core, seed=21, cracks=3, width=2.4),
+        at.paint_tile(mid, vein, rim=vein_rim, core=vein_core, seed=34, cracks=3, width=2.4),
+        at.paint_tile(char, bl.hex_rgb('#1d1424'), seed=55, cracks=2, width=1.3, branch=0.8),
+    ]
+    atlas = at.build_atlas('viper_palette', PAL, tiles, os.path.join(TEX, 'viper_palette.png'))
+    body = bl.build_object(mb, 'Viper_Body', PAL, bl.palette_material('Viper_Palette', atlas), col)
+    at.apply_uvs(body, len(PAL), TILE_OF, world_per_tile=1.4, seed=9)
 
     emb = bl.MeshBuilder(seed=3, jitter=0.0)
     build_eyes(emb, tw)
@@ -396,78 +547,67 @@ def main():
     for o in (body, eyes):
         o.vertex_groups.get('Head') or o.vertex_groups.new(name='Head')
 
-    sp = lambda i: f'Spine{i:02d}'  # noqa: E731
-    POSES = {
-        'rest': {},
-        'idle_a': {sp(10): (-3, 0, 0), sp(11): (-3, 0, 0), sp(12): (-2, 0, 0), 'Head': (4, 0, 0), 'Jaw': (6, 0, 0)},
-        'windup': {sp(9): (14, 0, 0), sp(10): (16, 0, 0), sp(11): (12, 0, 0), sp(12): (8, 0, 0),
-                   'Head': (-26, 0, 0), 'Jaw': (-6, 0, 0)},
-        'attack': {sp(9): (-5, 0, 0), sp(10): (-8, 0, 0), sp(11): (-6, 0, 0),
-                   sp(12): (-3, 0, 0), 'Head': (-4, 0, 0), 'Jaw': (-18, 0, 0)},
-    }
-    bl.make_action(rig, 'Viper_Idle', [(1, POSES['rest']), (30, POSES['idle_a']), (60, POSES['rest'])])
-    bl.make_action(rig, 'Viper_Windup', [(1, POSES['rest']), (35, POSES['windup'])])
-    bl.make_action(rig, 'Viper_Attack', [(1, POSES['windup']), (8, POSES['attack']), (20, POSES['attack'])])
-    rig.animation_data.action = None
-    bl.set_pose(rig, {})
+    acts = build_actions(rig, body)
 
     info = {
         'tris_body': bl.tri_count(body), 'tris_eyes': bl.tri_count(eyes), 'tris_proxy': bl.tri_count(proxy),
         'spine_length': round(L, 2), 'bones': [b[0] for b in bones],
+        'spine_heads': {b[0]: tuple(round(c, 2) for c in b[1]) for b in bones},
     }
 
     # ---------------- exports
+    ba.assign(rig, None, 1)
+    ba.Rig(rig).apply({})
     bl.export_fbx(os.path.join(OUT, 'viper.fbx'), [rig, body, eyes])
-    for act_name, short in (('Viper_Idle', 'idle'), ('Viper_Windup', 'windup'), ('Viper_Attack', 'attack')):
-        act = bpy.data.actions[act_name]
-        rig.animation_data.action = act
-        bpy.context.scene.frame_start = int(act.frame_range[0])
-        bpy.context.scene.frame_end = int(act.frame_range[1])
+    for act_name, short, f0, f1, _loop in ACTIONS:
+        ba.assign(rig, acts[act_name], f0)
+        scene.frame_start, scene.frame_end = f0, f1
         bl.export_fbx(os.path.join(OUT, f'viper_anim_{short}.fbx'), [rig, body, eyes], anim=True)
-    rig.animation_data.action = None
-    bl.set_pose(rig, {})
-    bpy.context.view_layer.update()
+    ba.assign(rig, None, 1)
+    ba.Rig(rig).apply({})
     static = bl.static_copy([body, eyes], 'Viper_Static', col)
     bl.export_fbx(os.path.join(OUT, 'viper_static.fbx'), [static])
     static.hide_render = True
     static.hide_set(True)
     bl.export_fbx(os.path.join(OUT, 'viper_collision.fbx'), [proxy])
 
-    min_c = Vector((1e9, 1e9, 1e9))
-    max_c = Vector((-1e9, -1e9, -1e9))
-    for v in static.data.vertices:
-        for k in range(3):
-            min_c[k] = min(min_c[k], v.co[k])
-            max_c[k] = max(max_c[k], v.co[k])
-    info['bbox_min'] = tuple(round(c, 2) for c in min_c)
-    info['bbox_max'] = tuple(round(c, 2) for c in max_c)
+    lo = [min(v.co[k] for v in static.data.vertices) for k in range(3)]
+    hi = [max(v.co[k] for v in static.data.vertices) for k in range(3)]
+    info['bbox_min'] = tuple(round(c, 2) for c in lo)
+    info['bbox_max'] = tuple(round(c, 2) for c in hi)
     info['tris_static'] = bl.tri_count(static)
+    info['actions'] = {a: (f0, f1, round((f1 - f0) / ba.FPS, 3), lp) for a, _s, f0, f1, lp in ACTIONS}
+    gr = ba.Ground(body, [f'Spine{i:02d}' for i in range(1, 10)])
+    info['ground'] = {a: ba.ground_report(rig, acts[a], gr) for a, _s, _f0, _f1, _lp in ACTIONS}
+    ba.Rig(rig).apply({})
 
+    scene.frame_start, scene.frame_end = 1, 61
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(OUT, 'viper.blend'), compress=True)
 
     # ---------------- previews (separate scene state, not saved)
     if '--no-render' not in sys.argv:
         pcol, cam = bl.setup_render(scene)
-        c = Vector((0, -0.4, 2.6))
-        shots = [
-            ('front', (0, -22, 4.2), c),
-            ('side', (22, -0.5, 3.6), c),
-            ('34', (10.5, -13.5, 5.8), c + Vector((0, 0, 0.6))),
-        ]
-        for name, loc, tgt in shots:
-            bl.aim_camera(cam, loc, tgt)
-            bl.render_to(scene, os.path.join(PREV, f'viper-{name}.png'))
-        # attack pose with avatar block
-        rig.animation_data.action = bpy.data.actions['Viper_Attack']
-        scene.frame_set(12)
-        blk = bl.avatar_block(pcol, (0.0, -8.5, 0))
-        bl.aim_camera(cam, (22, -12, 6.5), Vector((0.0, -2.5, 2.8)))
-        bl.render_to(scene, os.path.join(PREV, 'viper-attack-avatar-scale.png'))
-        rig.animation_data.action = bpy.data.actions['Viper_Windup']
-        scene.frame_set(35)
-        bpy.data.objects.remove(blk)
-        bl.aim_camera(cam, (20, -8, 5), c)
-        bl.render_to(scene, os.path.join(PREV, 'viper-windup.png'))
+        if '--strips-only' not in sys.argv:
+            c = Vector((0, -0.4, 2.6))
+            shots = [
+                ('front', (0, -22, 4.2), c),
+                ('side', (22, -0.5, 3.6), c),
+                ('34', (10.5, -13.5, 5.8), c + Vector((0, 0, 0.6))),
+            ]
+            for name, loc, tgt in shots:
+                bl.aim_camera(cam, loc, tgt)
+                bl.render_to(scene, os.path.join(PREV, f'viper-{name}.png'))
+            ba.assign(rig, acts['Viper_Dash'], 10)
+            blk = bl.avatar_block(pcol, (4.5, -8.5, 0))
+            bl.aim_camera(cam, (24, -16, 8.5), Vector((0.0, -3.0, 2.0)))
+            bl.render_to(scene, os.path.join(PREV, 'viper-attack-avatar-scale.png'))
+            bpy.data.objects.remove(blk)
+            ba.assign(rig, acts['Viper_Windup'], 36)
+            bl.aim_camera(cam, (20, -8, 5), c)
+            bl.render_to(scene, os.path.join(PREV, 'viper-windup.png'))
+        bl.aim_camera(cam, (21, -25, 12.5), Vector((0.0, -1.2, 2.0)))
+        for act_name, short, f0, f1, _loop in ACTIONS:
+            ba.contact_strip(scene, rig, acts[act_name], os.path.join(PREV, f'anim-viper-{short}.png'))
 
     print('VIPER_INFO', info)
 

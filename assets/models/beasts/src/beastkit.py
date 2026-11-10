@@ -162,6 +162,59 @@ class Builder:
         self._jitter(t, jitter)
         self._append(t, color, bone)
 
+    def arched_plate(self, points, thickness, bow, color, bone, normal=None, scallop=(), depth=0.0, segs=3, jitter=0.0):
+        """Thick slab that bows out between its corners (an arched wing panel).
+
+        points: polygon corners. normal: the side the panel bows toward. bow: how far the
+        middle bulges (studs). scallop: indices i of edges (points[i] -> points[i + 1]) that
+        curve inward by `depth` x edge length, like the scalloped trailing edge of a wing.
+        """
+        pts = [Vector(p) for p in points]
+        n = len(pts)
+        if normal is None:
+            normal = (pts[1] - pts[0]).cross(pts[2] - pts[0])
+        normal = Vector(normal).normalized()
+        c = sum(pts, Vector()) / n
+        rim = []
+        for i in range(n):
+            a, b = pts[i], pts[(i + 1) % n]
+            for s in range(segs):
+                t = s / segs
+                p = a.lerp(b, t)
+                if i in scallop and s > 0:
+                    p = p + (c - p).normalized() * (math.sin(math.pi * t) * depth * (b - a).length)
+                rim.append(p)
+        m = len(rim)
+        ring = [c.lerp(p, 0.55) for p in rim]
+
+        def lift(p, r):
+            return p + normal * (bow * (1.0 - r * r))
+        t = bmesh.new()
+        half = normal * (thickness * 0.5)
+        layers = []
+        for sgn in (1, -1):
+            layers.append((
+                [t.verts.new(lift(p, 1.0) + half * sgn) for p in rim],
+                [t.verts.new(lift(p, 0.55) + half * sgn) for p in ring],
+                t.verts.new(lift(c, 0.0) + half * sgn),
+            ))
+        for li, (r0, r1, cv) in enumerate(layers):
+            for i in range(m):
+                j = (i + 1) % m
+                quad = [r0[i], r0[j], r1[j], r1[i]]
+                tri = [r1[i], r1[j], cv]
+                if li == 1:
+                    quad.reverse()
+                    tri.reverse()
+                t.faces.new(quad)
+                t.faces.new(tri)
+        top, bot = layers[0][0], layers[1][0]
+        for i in range(m):
+            j = (i + 1) % m
+            t.faces.new([top[j], top[i], bot[i], bot[j]])
+        self._jitter(t, jitter)
+        self._append(t, color, bone)
+
     def mirror(self, fn, **kwargs):
         """Call a primitive (keyword args only) for the left side (+X) and mirrored (-X).
 

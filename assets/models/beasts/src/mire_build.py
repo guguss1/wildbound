@@ -4,14 +4,17 @@ Run:  blender -b --factory-startup --python mire_build.py -- [--no-render]
 Outputs into assets/models/beasts/ (blend, FBX, palette, previews).
 """
 
+import math
 import os
 import random
 import sys
 
 import bpy
+from mathutils import Vector
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
+import beastanim as ba  # noqa: E402
 import beastkit as bk  # noqa: E402
 
 OUT = os.path.normpath(os.path.join(HERE, ".."))
@@ -74,10 +77,17 @@ def limb(b, tag, pts, scale=1.0):
         ln = (dirx ** 2 + diry ** 2) ** 0.5
         dirx, diry = dirx / ln, diry / ln
         L1 = (0.75 + 0.15 * (k % 2)) * scale
-        k1 = (hx + dirx * L1, hy + diry * L1, 0.32 * scale)
-        k2 = (hx + dirx * (L1 + 0.75 * scale), hy + diry * (L1 + 0.75 * scale), 0.02)
-        M(P, p0=(hx, hy, wr[2] - 0.05), p1=k1, r0=0.24 * scale, r1=0.2 * scale, color="stone", bone=f"{tag}_L_3", sides=4)
-        M(P, p0=k1, p1=k2, r0=0.2 * scale, r1=0.0, color="stone_dark", bone=f"{tag}_L_3", sides=4)
+        k1 = (hx + dirx * L1, hy + diry * L1, 0.34 * scale)
+        k2 = (hx + dirx * (L1 + 0.62 * scale), hy + diry * (L1 + 0.62 * scale), 0.2 * scale)
+        yaw = math.degrees(math.atan2(diry, dirx)) - 90.0
+        # blunt block fingers: a thick first segment, a squared knuckle and a chunky blunt tip block
+        M(P, p0=(hx, hy, wr[2] - 0.05), p1=k1, r0=0.27 * scale, r1=0.24 * scale, color="stone", bone=f"{tag}_L_3", sides=4)
+        M(R, center=k1, size=(0.44 * scale, 0.42 * scale, 0.4 * scale), color="stone_dark", bone=f"{tag}_L_3",
+          rot=(0, 0, yaw), bevel=0.08, jitter=0.03)
+        M(P, p0=k1, p1=k2, r0=0.22 * scale, r1=0.2 * scale, color="stone", bone=f"{tag}_L_3", sides=4)
+        M(R, center=(k2[0] + dirx * 0.1 * scale, k2[1] + diry * 0.1 * scale, 0.17 * scale),
+          size=(0.42 * scale, 0.5 * scale, 0.34 * scale), color="stone_dark", bone=f"{tag}_L_3",
+          rot=(-8, 0, yaw), bevel=0.07, jitter=0.02, taper=(0.85, 0.8))
 
 
 def build_mesh(col):
@@ -102,8 +112,6 @@ def build_mesh(col):
     R(center=(-0.3, 1.95, 2.72), size=(1.5, 1.0, 0.2), color="moss_dark", bone="Shell", rot=(-14, 0, 0), jitter=0.05)
 
     # ---- hanging algae clumps around the shell rim --------------------------------
-    import math
-
     for i in range(26):
         a = math.radians(-90 + i * (360 / 26) + rng.uniform(-5, 5))
         rx, ry = 2.75, 2.95
@@ -120,11 +128,15 @@ def build_mesh(col):
     R(center=(0, -3.0, 0.85), size=(1.9, 1.1, 0.85), color="stone", bone="Head", rot=(10, 0, 0), taper=(0.85, 0.9))
     R(center=(0, -3.35, 0.55), size=(1.4, 0.6, 0.4), color="stone_dark", bone="Head")
     M(R, center=(0.52, -3.12, 1.3), size=(0.46, 0.16, 0.3), color="eye", bone="Head", rot=(0, 0, -10), bevel=0.2, jitter=0.0)
-    # ragged moss brow over the eyes
-    R(center=(0, -2.55, 1.98), size=(2.8, 1.8, 0.4), color="moss", bone="Head", rot=(-14, 0, 0), jitter=0.07)
-    for x, ln, w in ((-1.35, 1.25, 0.32), (-1.0, 0.9, 0.26), (-0.05, 0.95, 0.3), (0.25, 0.7, 0.22), (1.0, 0.85, 0.26), (1.35, 1.3, 0.34), (-0.6, 0.45, 0.22), (0.62, 0.42, 0.2)):
-        P(p0=(x, -3.05 - 0.1 * abs(x), 2.05), p1=(x * 1.08, -3.4 - 0.05 * abs(x), 2.05 - ln), r0=w, r1=0.04,
-          color="moss" if (x * 10) % 2 < 1 else "moss_dark", bone="Head", sides=4, jitter=0.1, twist=x * 30)
+    # heavy moss brow over the eyes: one thick cap and three broad drapes with an uneven lower edge
+    R(center=(0, -2.6, 2.0), size=(2.9, 1.9, 0.46), color="moss", bone="Head", rot=(-14, 0, 0), jitter=0.05)
+    R(center=(0, -3.05, 1.86), size=(2.5, 0.5, 0.34), color="moss_dark", bone="Head", rot=(-30, 0, 0), jitter=0.04)
+    for (x0, x1, b0, b1, col_name) in ((-1.55, -0.55, 1.42, 1.56, "moss_dark"), (-0.62, 0.62, 1.58, 1.5, "moss"),
+                                       (0.55, 1.55, 1.55, 1.4, "moss_dark")):
+        b.plate(points=[(x0, -3.22, 1.98), (x1, -3.22, 1.98), (x1 * 1.04, -3.42, b1), ((x0 + x1) * 0.5, -3.46, min(b0, b1) - 0.05),
+                        (x0 * 1.04, -3.42, b0)], thickness=0.16, color=col_name, bone="Head", normal=(0, -1, 0.35), jitter=0.02)
+    # two moss strands at the outer corners, clear of the eyes
+    M(P, p0=(1.5, -3.15, 1.75), p1=(1.62, -3.3, 0.95), r0=0.2, r1=0.06, color="moss", bone="Head", sides=4, jitter=0.04)
     # side moss sheets draping off the shell
     M(b.plate, points=[(1.9, -1.4, 3.0), (2.9, -1.0, 1.5), (3.0, 0.6, 1.3), (2.3, 0.4, 2.9)], thickness=0.18, color="moss_dark", bone="Shell", jitter=0.06)
     M(b.plate, points=[(1.5, 1.6, 2.9), (2.6, 1.6, 1.5), (2.2, 2.9, 1.2), (1.2, 2.6, 2.6)], thickness=0.18, color="moss", bone="Shell", jitter=0.06)
@@ -150,46 +162,101 @@ def build_mesh(col):
     return b.to_object("Mire_Mesh", col)
 
 
+SUNK_Z = -1.7  # Root offset that puts everything but the mossy back, brow and eyes under the water line
+
+# action name, file suffix, first frame, last frame, loops
+ACTIONS = [
+    ("Glide", "glide", 1, 49, True),         # 1.60 s submerged glide loop (STALK_UNDERWATER)
+    ("Emerge", "emerge", 1, 13, False),      # 0.40 s burst out of the water
+    ("Swipe", "swipe", 1, 15, False),        # 0.47 s short claw swipe, active frames 5-12 (emerge + swipe = 0.87 s)
+    ("Recover", "recover", 1, 40, False),    # 1.30 s exposed and sluggish on the bank (SURFACE_RECOVER 1.1-1.6 s)
+    ("Sink", "sink", 1, 37, False),          # 1.20 s dive back under (DIVE/REPOSITION 1.2 s)
+]
+
+
+def sym(bone_l, rx=0.0, ry=0.0, rz=0.0):
+    return {bone_l: ba.ch(rx, ry, rz), bone_l.replace("_L_", "_R_"): ba.ch(rx, -ry, -rz)}
+
+
 def poses():
-    X, Y, Z = (1, 0, 0), (0, 1, 0), (0, 0, 1)
-    rest = {}
-    submerged = {
-        "Root": {"loc": (0, 0, -1.7)},
-        "Shell": {"rot": [(X, -4)]},
-        "Head": {"rot": [(X, -14)]},
-    }
-    for side, sgn in (("L", 1), ("R", -1)):
-        submerged[f"ArmF_{side}_1"] = {"rot": [(Y, 75 * sgn), (Z, 20 * sgn)]}
-        submerged[f"ArmM_{side}_1"] = {"rot": [(Y, 75 * sgn), (Z, 20 * sgn)]}
-    reared = {
-        "Root": {"loc": (0, 0, 0.35)},
-        "Shell": {"rot": [(X, -14)]},
-        "Head": {"rot": [(X, -12)]},
-        "ArmF_L_1": {"rot": [(Y, -25)]},
-        "ArmF_R_1": {"rot": [(Y, 25)]},
-        "ArmF_L_2": {"rot": [(X, 20)]},
-        "ArmF_R_2": {"rot": [(X, 20)]},
-    }
-    swipe_up = {
-        "Shell": {"rot": [(X, -8), (Z, 8)]},
-        "Head": {"rot": [(X, -10)]},
-        "ArmF_R_1": {"rot": [(Y, 50), (Z, 30)]},
-        "ArmF_R_2": {"rot": [(Y, -15), (X, -20)]},
-        "ArmF_R_3": {"rot": [(X, 25)]},
-    }
-    swipe_hit = {
-        "Root": {"loc": (0, -0.4, 0)},
-        "Shell": {"rot": [(X, 6), (Z, -10)]},
-        "Head": {"rot": [(X, 8)]},
-        "ArmF_R_1": {"rot": [(Y, 5), (Z, 35)]},
-        "ArmF_R_2": {"rot": [(Y, -10)]},
-    }
-    return rest, submerged, reared, swipe_up, swipe_hit
+    submerged = ba.padd({"Root": ba.ch(0, 0, 0, (0, 0, SUNK_Z)), "Shell": ba.ch(-4), "Head": ba.ch(-14)},
+                        sym("ArmF_L_1", 0, 75, 20), sym("ArmM_L_1", 0, 75, 20))
+    reared = ba.padd({"Root": ba.ch(0, 0, 0, (0, 0, 0.35)), "Shell": ba.ch(-14), "Head": ba.ch(-12)},
+                     sym("ArmF_L_1", 0, -25, 0), sym("ArmF_L_2", 20, 0, 0))
+    swipe_up = ba.padd(reared, {"Shell": ba.ch(6, 0, 8), "Head": ba.ch(2),
+                                "ArmF_R_1": ba.ch(0, 75, 30), "ArmF_R_2": ba.ch(-40, -15, 0), "ArmF_R_3": ba.ch(25)})
+    swipe_hit = {"Root": ba.ch(0, 0, 0, (0, -0.4, 0)), "Shell": ba.ch(0, 0, -10), "Head": ba.ch(-2),
+                 "ArmF_R_1": ba.ch(0, 5, 35), "ArmF_R_2": ba.ch(0, -10, 0)}
+    follow = ba.padd(swipe_hit, {"Shell": ba.ch(2, 0, -6), "ArmF_R_1": ba.ch(0, 4, 18), "ArmF_R_3": ba.ch(-10)})
+    slump = ba.padd({"Shell": ba.ch(8, 0, 3), "Head": ba.ch(16, 0, -6)},
+                    sym("ArmF_L_1", 0, -12, 4), sym("ArmM_L_1", 0, -9, 0), sym("ArmF_L_2", 8))
+    return submerged, reared, swipe_up, swipe_hit, follow, slump
+
+
+def build_actions(arm, mesh):
+    rig = ba.Rig(arm)
+    hands = ba.Ground(mesh, ["ArmF_L_3", "ArmF_R_3", "ArmM_L_3", "ArmM_R_3"])
+    submerged, reared, swipe_up, swipe_hit, follow, slump = poses()
+
+    def grounded(weight):
+        def post(f, p):
+            w = weight(f) if callable(weight) else weight
+            if w <= 0:
+                return
+            root = p.setdefault("Root", [0.0] * 6)
+            z0 = root[5]
+            root[5] = 0.0
+            rig.apply(p)
+            dz = -hands.min_z()
+            root[5] = w * dz + (1 - w) * z0
+            rig.apply(p)
+        return post
+
+    acts = {}
+
+    # ---- Glide: sunk, slow surge bob, shell sway, eyes bobbing at the surface, limbs paddling below
+    def glide(f):
+        p = ba.padd(submerged, {"Root": ba.ch(0, 0, 0, (0, 0, 0.1 * ba.wave(f, 1, 24))),
+                                "Shell": ba.ch(2 * ba.wave(f, 1, 24, 0.15), 0, 3 * ba.wave(f, 1, 48)),
+                                "Head": ba.ch(3 * ba.wave(f, 1, 24, 0.35), 0, -2.5 * ba.wave(f, 1, 48))})
+        for tag, ph in (("ArmF", 0.0), ("ArmM", 0.5)):
+            p = ba.padd(p, sym(f"{tag}_L_1", 0, 4 * ba.wave(f, 1, 48, ph + 0.25), 14 * ba.wave(f, 1, 48, ph)),
+                        sym(f"{tag}_L_2", 10 * ba.wave(f, 1, 48, ph + 0.15)))
+        return p
+    acts["Glide"] = rig.bake("Glide", 1, 49, glide, loop=True)
+
+    # ---- Emerge: explode upward out of the water, head first, then the front limbs
+    burst = ba.padd(ba.plerp(submerged, reared, 0.55), {"Head": ba.ch(-14)}, sym("ArmF_L_1", 0, -20, 0))
+    acts["Emerge"] = rig.bake("Emerge", 1, 13, lambda f: ba.spline(
+        [(1, glide(1), "hold"), (6, burst), (13, reared)], f), grounded(lambda f: ba.smooth((f - 9) / 4.0)))
+
+    # ---- Swipe: right front limb cocks back (frames 1-5), sweeps across (5-12), follows through
+    acts["Swipe"] = rig.bake("Swipe", 1, 15, lambda f: ba.spline(
+        [(1, reared), (5, swipe_up, "hold"), (9, swipe_hit), (15, follow, "hold")], f),
+        grounded(1.0))
+
+    # ---- Recover: slumps on the bank, heaves two heavy breaths, shakes the mud off and stands up
+    def recover(f):
+        p = ba.spline([(1, follow, "hold"), (10, slump), (30, slump), (40, {}, "hold")], f)
+        breath = math.sin(math.pi * min(1.0, max(0.0, (f - 8) / 22.0)) * 2) * (1 if 8 <= f <= 30 else 0)
+        shake = math.exp(-((f - 33) / 2.5) ** 2)
+        return ba.padd(p, {"Shell": ba.ch(-3 * breath, 4 * shake * ba.wave(f, 0, 3), 0),
+                           "Head": ba.ch(-4 * breath, 0, 10 * shake * ba.wave(f, 0, 3, 0.25))})
+    acts["Recover"] = rig.bake("Recover", 1, 40, recover, grounded(1.0))
+
+    # ---- Sink: rocks back, folds the limbs and slides under, ending in the glide pose
+    def sink(f):
+        lean = ba.padd({"Root": ba.ch(0, 0, 0, (0, 0.3, -0.25)), "Shell": ba.ch(-8), "Head": ba.ch(-8)},
+                       sym("ArmF_L_1", 0, 30, 8), sym("ArmM_L_1", 0, 30, 8))
+        return ba.spline([(1, {}, "hold"), (12, lean), (37, glide(1), "hold")], f)
+    acts["Sink"] = rig.bake("Sink", 1, 37, sink, grounded(lambda f: max(0.0, 1 - (f - 1) / 8.0)))
+    rig.apply({})
+    return acts, hands
 
 
 def main():
     scene = bk.reset_scene()
-    scene.render.fps = 30
+    scene.render.fps = ba.FPS
     model_col = bk.get_collection("Mire")
     prev_col = bk.get_collection("Preview_Only")
 
@@ -206,26 +273,22 @@ def main():
         model_col,
     )
 
-    rest, submerged, reared, swipe_up, swipe_hit = poses()
-    acts = {
-        "Submerged": bk.make_action(arm, "Submerged", [(1, submerged), (30, submerged)]),
-        "Emerge": bk.make_action(arm, "Emerge", [(1, submerged), (14, reared), (30, rest)]),
-        "Swipe": bk.make_action(arm, "Swipe", [(1, rest), (10, swipe_up), (16, swipe_hit), (34, rest)]),
-    }
+    acts, hands = build_actions(arm, mesh)
 
     stats = {"tris": bk.tri_count(mesh), "bones": len(arm.data.bones), "collision_tris": bk.tri_count(coll)}
     mn, mx = bk.world_bbox(mesh)
     stats["rest_bbox"] = [tuple(round(c, 2) for c in mn), tuple(round(c, 2) for c in mx)]
+    stats["actions"] = {a: (f0, f1, round((f1 - f0) / ba.FPS, 3), lp) for a, _s, f0, f1, lp in ACTIONS}
+    stats["ground"] = {a: ba.ground_report(arm, acts[a], hands) for a, _s, _f0, _f1, _lp in ACTIONS}
 
     bk.set_action(arm, None, 1)
     bk.export_fbx(os.path.join(OUT, "mire.fbx"), [arm, mesh], animated=True, bake=False)
-    bk.export_anim_fbx(os.path.join(OUT, "mire_anim_submerged.fbx"), arm, mesh, acts["Submerged"])
-    bk.export_anim_fbx(os.path.join(OUT, "mire_anim_emerge.fbx"), arm, mesh, acts["Emerge"])
-    bk.export_anim_fbx(os.path.join(OUT, "mire_anim_swipe.fbx"), arm, mesh, acts["Swipe"])
+    for name, short, _f0, _f1, _lp in ACTIONS:
+        bk.export_anim_fbx(os.path.join(OUT, f"mire_anim_{short}.fbx"), arm, mesh, acts[name])
     static = bk.static_copy(mesh, "Mire_Static", model_col)
     static.vertex_groups.clear()
     bk.export_fbx(os.path.join(OUT, "mire_static.fbx"), [static], animated=False)
-    bk.set_action(arm, acts["Submerged"], 1)
+    bk.set_action(arm, acts["Glide"], 1)
     sub_static = bk.static_copy(mesh, "Mire_Static_SubmergedPose", model_col)
     sub_static.vertex_groups.clear()
     mn2, mx2 = bk.world_bbox(sub_static)
@@ -242,15 +305,15 @@ def main():
         arm.hide_render = True
         tgt = (0, -0.8, 1.5)
         g = lambda n: os.path.join(PREV, f"mire-{n}.png")  # noqa: E731
-        bk.shoot(scene, cam, tgt, (0, -1, 0.25), 20, g("front"))
-        bk.shoot(scene, cam, tgt, (1, 0, 0.2), 20, g("side"))
-        bk.shoot(scene, cam, tgt, (0.8, -1, 0.45), 20, g("three-quarter"))
-        block = bk.avatar_block(prev_col, (-8.0, -1.5))
-        bk.shoot(scene, cam, (-2.5, -0.8, 1.8), (0.3, -1, 0.3), 25, g("scale-avatar"))
-        block.hide_render = True
-        bk.set_action(arm, acts["Swipe"], 10)
-        bk.shoot(scene, cam, tgt, (0.8, -1, 0.35), 20, g("attack"))
-        bk.set_action(arm, acts["Submerged"], 1)
+        if "--strips-only" not in ARGS:
+            bk.shoot(scene, cam, tgt, (0, -1, 0.25), 20, g("front"))
+            bk.shoot(scene, cam, tgt, (1, 0, 0.2), 20, g("side"))
+            bk.shoot(scene, cam, tgt, (0.8, -1, 0.45), 20, g("three-quarter"))
+            block = bk.avatar_block(prev_col, (-8.0, -1.5))
+            bk.shoot(scene, cam, (-2.5, -0.8, 1.8), (0.3, -1, 0.3), 25, g("scale-avatar"))
+            block.hide_render = True
+            bk.set_action(arm, acts["Swipe"], 5)
+            bk.shoot(scene, cam, tgt, (0.8, -1, 0.35), 20, g("attack"))
         bpy.ops.mesh.primitive_plane_add(size=40, location=(0, 0, 0.0))
         water = bpy.context.active_object
         water.name = "Preview_Water"
@@ -258,7 +321,21 @@ def main():
             c.objects.unlink(water)
         prev_col.objects.link(water)
         water.data.materials.append(bk.flat_material("Preview_WaterMat", (0.09, 0.21, 0.22)))
-        bk.shoot(scene, cam, (0, -0.8, 0.6), (0.6, -1, 0.35), 18, g("submerged"))
+        water.hide_render = True
+        if "--strips-only" not in ARGS:
+            water.hide_render = False
+            bk.set_action(arm, acts["Glide"], 1)
+            bk.shoot(scene, cam, (0, -0.8, 0.6), (0.6, -1, 0.35), 18, g("submerged"))
+            water.hide_render = True
+        d = Vector((0.8, -1, 0.42)).normalized()
+        cam.location = Vector((0, -0.8, 1.4)) + d * 23
+        cam.rotation_euler = (-d).to_track_quat("-Z", "Y").to_euler()
+        cam.data.type = "PERSP"
+        cam.data.lens = 50
+        for name, short, _f0, _f1, _lp in ACTIONS:
+            # the water plane shows where the surface is for the in/out-of-water clips
+            water.hide_render = short not in ("glide", "emerge", "sink")
+            ba.contact_strip(scene, arm, acts[name], os.path.join(PREV, f"anim-mire-{short}.png"))
         water.hide_render = True
         bk.set_action(arm, None, 1)
     arm.hide_render = False

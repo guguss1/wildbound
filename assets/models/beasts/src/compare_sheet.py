@@ -39,4 +39,7 @@ def sheet(name, ref, ours):
 
 sheet('viper-vs-reference', 'VIPER_render.png', ['viper-34.png', 'viper-front.png'])
 sheet('pouncer-vs-reference', 'POUNCER_render.png', ['pouncer-34.png', 'pouncer-front.png'])
+sheet('gargoyle-vs-reference', 'GARGOYLE_render.png',
+      ['gargoyle-three-quarter.png', 'gargoyle-front.png', 'gargoyle-statue.png'])
+sheet('mire-vs-reference', 'MIRE_render.png', ['mire-three-quarter.png', 'mire-front.png', 'mire-submerged.png'])
 print('SHEETS_OK')
