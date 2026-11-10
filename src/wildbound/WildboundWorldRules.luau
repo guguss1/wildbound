@@ -38,17 +38,31 @@ Rules.SILUETA_VISUAL_SCALE = 3.8
 -- later player takes a freed slot). Tunable live (Silueta.MAX_HUNTERS, 1 to 16).
 Rules.MAX_HUNTERS = 8
 Rules.DAMAGE = 20
--- Nest Heist hub (HB-T1): where the hub's centre is in this world, and the radius of its safe disc. This is the one
--- value the forest shift (docs/design/wildbound-open-world-gaps.md step S1) changes: the hub script builds there, the
--- camp link ends there and Rules.zone reads it. A translation only (the hub plan assumes no rotation). Until S1 the
--- hub is previewed 600 studs south of the forest's origin, on open ground.
-Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 0, 600, 90
+-- Nest Heist hub (HB-T1): where the hub's centre is in this world, and the radius of its safe disc: the hub script
+-- builds there and Rules.zone reads it. A translation only (the hub plan assumes no rotation).
+-- Forest shift (HF-T3, open-world gaps S1, decision D2): the open-world and hub plans put the forest layout's (0, 0) at
+-- (-300, 0) of a hub frame centred on the hub, the forest west and the Pradera Arcoiris east. This place keeps the
+-- forest where it is (its rules, islands, spawn seeds and markers stay in the coordinates they were tested in) and
+-- puts the hub where the plan wants it relative to the forest kit, which the place builds 18 studs west and 3 north of
+-- its layout (Floor, CampCenter and every FK tree agree): the layout's (300, 0) moved by (-18, -3).
+Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 282, -3, 90
 -- The camp's safe circle, as Rules.zone writes it (its centre is not the CampCenter marker, which sits 18 studs west of
 -- it in this place); the hub link starts inside it.
 Rules.CAMP_X, Rules.CAMP_Z, Rules.CAMP_RADIUS = -140, 140, 35
 
 function Rules.finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+end
+
+-- HF-T3: a point of the hub frame (assets/maps/open-world/layout-v1.json, assets/maps/hub-layout/hub-bases-v1.json:
+-- origin at the hub's centre, x east, z south) in this place, and back. nil for a bad point.
+function Rules.toWorld(x, z)
+	if not (Rules.finite(x) and Rules.finite(z)) then return nil end
+	return x + Rules.HUB_X, z + Rules.HUB_Z
+end
+function Rules.toHub(x, z)
+	if not (Rules.finite(x) and Rules.finite(z)) then return nil end
+	return x - Rules.HUB_X, z - Rules.HUB_Z
 end
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning

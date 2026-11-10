@@ -111,6 +111,35 @@ return function(Rules, islandLayout)
 			equal(Rules.inTerritory(x, z), false, "never La Silueta's territory")
 		end
 	end)
+	-- Hub follow-up (HF-T3, open-world gaps S1 and decision D2): the hub sits east of the forest. The open-world and hub
+	-- plans use a hub frame (origin at the hub's centre, the forest layout's (0, 0) at (-300, 0)); Rules.toWorld turns
+	-- a hub-frame point into this place. The forest kit is built 18 studs west and 3 north of its layout here.
+	case("HF-T3: Rules.toWorld maps the hub frame into the place, and the hub is clear of the forest's dangers", function()
+		local x, z = Rules.toWorld(0, 0)
+		equal(x, Rules.HUB_X); equal(z, Rules.HUB_Z)
+		-- The camp marker of the forest kit: layout (-140, 140) is the hub frame's (-440, 140).
+		x, z = Rules.toWorld(-440, 140)
+		equal(x, -158); equal(z, 137)
+		-- A forest edge tree the NW trail clears (layout (177.784, -84.133) is FK_Evergreen_101 at (159.784, -87.133)).
+		x, z = Rules.toWorld(177.784 - 300, -84.133)
+		assert(math.abs(x - 159.784) < 1e-6 and math.abs(z + 87.133) < 1e-6, "the kit's offset")
+		local hx, hz = Rules.toHub(Rules.HUB_X + 5, Rules.HUB_Z - 7)
+		equal(hx, 5); equal(hz, -7)
+		equal((Rules.toWorld(0 / 0, 0)), nil)
+		-- Nothing of the forest's danger reaches the disc: fog, La Silueta's chase leash plus reach, any island floor.
+		local r = Rules.HUB_RADIUS
+		assert(Rules.HUB_X - r > 165, "east of the fog rectangle")
+		assert(Rules.distance(Rules.HUB_X, Rules.HUB_Z, Rules.HOME_X, Rules.HOME_Z) - r > Rules.CHASE_LEASH + 30,
+			"beyond La Silueta's chase leash")
+		for _, island in ipairs(islandLayout and islandLayout.islands or {}) do
+			assert(Rules.distance(Rules.HUB_X, Rules.HUB_Z, island.x, island.z) - r > island.floorRadius + 20,
+				"island " .. tostring(island.id))
+		end
+		assert(islandLayout and #islandLayout.islands > 0, "the island layout is passed in")
+		-- The Pradera Arcoíris sector (hub frame x 100 to 500) lies east of the hub, past its disc.
+		local west = Rules.toWorld(100, 0)
+		assert(west > Rules.HUB_X + r, "the Pradera starts east of the hub")
+	end)
 	case("HB-T1: Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the zone's literal camp circle", function()
 		equal(select(2, Rules.zone(Rules.CAMP_X, Rules.CAMP_Z)), true)
 		equal(select(2, Rules.zone(Rules.CAMP_X + Rules.CAMP_RADIUS - 0.01, Rules.CAMP_Z)), true)

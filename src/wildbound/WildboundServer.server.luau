@@ -2994,8 +2994,10 @@ local function bindCharacter(player, character)
 		or record.defeated or humanoid.Health <= 0 or not humanoid:IsDescendantOf(character)
 		or not root:IsDescendantOf(character) or not character:IsDescendantOf(workspace)
 		or not campCenter:IsDescendantOf(map) or not map:IsDescendantOf(workspace) then return end
-	-- Once per new character, not an ability teleport; preserve the existing SpawnLocation.
-	character:PivotTo(CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))
+	-- Once per new character, not an ability teleport; preserve the existing SpawnLocation. HF-T3 (HB6): on a hub spawn
+	-- pad facing east; the camp when the hub has none.
+	local start = Heist.hub and Heist.hub:spawnFrame(player)
+	character:PivotTo(start or CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))
 	-- NP4: every character holds a bat from the start.
 	Heist.equipBat(character)
 	applyCarry(player)

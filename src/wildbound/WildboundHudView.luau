@@ -430,8 +430,8 @@ function View.knockback(px, pz, ax, az)
 end
 
 -- The hub's safe disc (Rules.HUB_X, HUB_Z, HUB_RADIUS repeated here: the clients cannot load the server's world
--- rules; a test keeps them equal). The forest shift (S1) moves it with the rules.
-View.HUB_CIRCLE = table.freeze({ x = 0, z = 600, r = 90 })
+-- rules; a test keeps them equal). Beside the forest since the forest shift (HF-T3, S1).
+View.HUB_CIRCLE = table.freeze({ x = 282, z = -3, r = 90 })
 -- Studs from the camp's or the hub's centre past which the player counts as far from home (sightings come sooner).
 View.FAR_FROM_HOME = 150
 
