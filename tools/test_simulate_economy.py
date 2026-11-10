@@ -785,6 +785,9 @@ class EconomyTargets(unittest.TestCase):
     def test_training_walk_bonus_is_read_from_the_training_module(self):
         # Nest Heist Phase 3 (NS5): the treadmill's walk levels, read from src/wildbound/WildboundTraining.luau.
         self.assertGreater(eco.TRAINING_WALK_STEP, 0)
+        # NS7: the best glove's walk stat is added, and the sum never passes the walk cap.
+        self.assertEqual(eco.GLOVE_MOVE_CAP, 3.0)
+        self.assertAlmostEqual(eco.full_walk_bonus(16.0), min(1.0 + 0.48, eco.TRAINING_WALK_CAP - 16.0))
         self.assertGreaterEqual(eco.TRAINING_MAX_LEVEL, 1)
         t = tuning()
         state = eco.new_state(t)

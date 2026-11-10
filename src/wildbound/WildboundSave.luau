@@ -8,7 +8,8 @@
 --   Quarantined, TooNew) gives the player a fresh session profile that is never written: a failed or locked load can
 --   never overwrite the real record.
 -- * What is saved: banked eggs, registered creatures, the equipped companion, Ember (Esencia), materials banked at
---   camp, consumables, upgrades, skills, bond, the incubator (server Unix times) and the training levels. What is out
+--   camp, consumables, upgrades, skills, bond, the incubator (server Unix times), the training levels and the gloves
+--   with the worn one (NS7). What is out
 --   in the world (the bag, the pouch, a carried or dropped egg, the trip) is never saved.
 -- * State makes session IDs (wb:N). Each one gets a durable ID (uN) from the saved counter the first time it is saved,
 --   and keeps it for the rest of the session, so the next session loads the same IDs.
@@ -81,6 +82,12 @@ local function durableView(self, userId)
 	if not view.registered or not view.bankedEggs or (profile.incubating and not view.incubating) then return nil end
 	local registered = {}
 	for _, item in ipairs(view.registered) do registered[item.uid] = true end
+	-- NS7: the gloves keep their stats; their IDs follow the same durable map.
+	if profile.gloves then
+		local owned = list(profile.gloves.list)
+		if not owned then return nil end
+		view.gloves = { list = owned, equipped = profile.gloves.equipped and durable(profile.gloves.equipped) or nil }
+	end
 	view.equippedUid = profile.equippedUid and durable(profile.equippedUid) or nil
 	if view.equippedUid and not registered[view.equippedUid] then view.equippedUid = nil end
 	view.bond = {}
@@ -109,6 +116,7 @@ local function digestOf(self, view)
 		lists = stripped, equipped = view.equippedUid or "", banked = view.banked, ember = view.ember,
 		consumables = view.consumables, upgrades = view.upgrades, skills = view.skills, bond = bondXp,
 		training = view.training or {}, seal = view.earnedSeal == true,
+		gloves = view.gloves and { list = view.gloves.list, equipped = view.gloves.equipped or "" } or {},
 	})
 end
 

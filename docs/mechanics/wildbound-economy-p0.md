@@ -369,20 +369,23 @@ Spend-only-if-it-saves stays, per the existing contract. A warded item cannot dr
 
 Used within 12 studs of a new `ShelterMarker` at (105, 125). Choose one bag item; it moves to banked eggs, registered or banked Nightbloom, and pays its Ember now. No hatching. **Changes existing behavior:** the shelter gains one banking use (`docs/mechanics/wildbound-world.md:17`). Calculated distance: nest to shelter 235 studs, nest to camp 296.
 
-### Equipment (plan Part 4, IT1, 2026-11-10)
+### Gloves (Nest Heist Phase 3, NS7, 2026-11-10; replaced the IT1 equipment)
 
-The `gear` rows: four items crafted at camp (within `campRange`) with Ember (Esencia on screen) and banked materials, one of each, owned for the session only. They are not consumables and are not in the saved record (`WildboundRecord` copies `consumables`, never `gear`). Effects and their numbers live in `WildboundGear.CONSTANTS` and the dev tuning system `Gear`.
+User decision 2026-11-10: the four IT1 pieces (Guantes de captura, Botas, Chaleco, Amuleto) became gloves with random stats. The `gear.guantes` row (kind `gloves`) crafts one glove at camp (within `campRange`) for 30 Ember (Esencia on screen), 14 Fogbark and 8 Glowmoss; at most `cap` 12 are held. The server rolls the rarity (Común 60, Rara 28, Épica 10, Legendaria 2 out of 100) and then 1, 2, 3 or 4 different stats, each inside a share of its cap (Común 25 to 50 %, Rara 35 to 60 %, Épica 50 to 80 %, Legendaria 70 to 100 %). One glove is equipped at a time. Gloves are saved (record schema 3). Nothing is sold: no Robux, no paid roll.
 
-| Item | Cost | Effect |
+| Stat | Effect | Cap |
 | --- | --- | --- |
-| Guantes de captura | 30 Ember, 14 Fogbark, 8 Glowmoss | Calm meter x1.3 (never under `CALM_MIN` 4 s), the server ring 0.4 studs wider (kept under `ORBIT_MIN`) |
-| Botas | 30 Ember, 16 Fogbark, 6 Glowmoss | Sprint drain x0.7 |
-| Chaleco | 45 Ember, 20 Fogbark, 10 Glowmoss, 1 Nightbloom | Once per expedition a defeating second mark is kept as a mark |
-| Amuleto | 40 Ember, 12 Glowmoss, 2 Nightbloom | La Silueta's memory 1 s shorter (at least 0.5 s); heartbeat, red edge and shake x0.6 on the owner's screen |
+| Velocidad | Unencumbered walk speed, under the training walk cap 17.5 together with training | 3 % |
+| Robo rápido | Egg steal hold shorter, never under the egg rule's 0.6 s floor | 15 % |
+| Recarga de impulso | Burst cooldown shorter | 20 % |
+| Aliento al correr | Sprint stamina drain lower (the old Botas) | 30 % |
+| Calma | Capture calm meter faster, never under `CALM_MIN` (the old Guantes de captura) | 30 % |
+
+The Chaleco's kept hit and the Amuleto's memory and fear relief are gone; the free Efectos suaves setting already halves the fear screen and removes its shake. Numbers live in `WildboundGear.CONSTANTS` and the dev tuning system `Gear`; `WildboundGear.HARD_CAPS` bounds the tuning.
 
 The `totemSuerte` row (IT2) is the Tótem de la suerte: 15 Ember, 6 Fogbark, 6 Glowmoss, one held at a time (`cap`), placed at least 30 studs from the camp centre for 60 s. The next random spawn within 40 studs rolls one tier up (Comun to Rara, Rara to Epica, Epica to Legendaria; a Legendaria point stays) and pays by the raised tier; it is loud like a capture ring. Not saved, separate from the ward `totem` above.
 
-`tools/simulate_economy.py` does not buy or model equipment or the luck totem; its medians are unchanged by these rows.
+`tools/simulate_economy.py` does not buy gloves or the luck totem. Its fully trained policy (NS5) adds the largest glove walk bonus to the training cap as the worst case for the 180 s floor; the other glove stats are not modelled.
 
 ## Skill tree
 
@@ -627,10 +630,7 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "consumedWhen": "expedition_ends_after_leaving_camp"
   },
   "gear": {
-    "guantes": { "kind": "equipment", "cost": { "fogbark": 14, "glowmoss": 8, "ember": 30 } },
-    "botas": { "kind": "equipment", "cost": { "fogbark": 16, "glowmoss": 6, "ember": 30 } },
-    "chaleco": { "kind": "equipment", "cost": { "fogbark": 20, "glowmoss": 10, "nightbloom": 1, "ember": 45 } },
-    "amuleto": { "kind": "equipment", "cost": { "glowmoss": 12, "nightbloom": 2, "ember": 40 } },
+    "guantes": { "kind": "gloves", "cap": 12, "cost": { "fogbark": 14, "glowmoss": 8, "ember": 30 } },
     "totemSuerte": { "kind": "luckTotem", "cap": 1, "cost": { "fogbark": 6, "glowmoss": 6, "ember": 15 } }
   },
   "capsule": { "site": "shelter", "x": 105, "z": 125, "range": 12, "itemsSecured": 1 },

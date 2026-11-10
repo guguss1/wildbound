@@ -2,11 +2,11 @@
 -- world = WildboundWorld.Source, client = WildboundClient.Source, fear = WildboundFearClient.Source,
 -- text = require(freshTextClone), config = require(freshConfigClone), spawnClock = require(freshSpawnClockClone),
 -- stamina = require(freshStaminaClone), capture = require(freshCaptureClone), fairStrike = require(freshFairStrikeClone),
--- campView = require(freshCampViewClone), economy = require(freshEconomyClone), state = require(freshStateClone) }).
--- Items and totem (plan Part 4): four pieces of equipment crafted at camp with Esencia and materials, one of each and
--- session only (Guantes de captura, Botas, Chaleco, Amuleto), and the placeable Tótem de la suerte. Gameplay effects
--- are applied by the server (calm meter, ring, sprint drain, the vest's saved hit, La Silueta's memory); the fear
--- softening is presentation on the owner's client. Numbers live in Gear.CONSTANTS and the dev tuning schema.
+-- campView = require(freshCampViewClone), economy = require(freshEconomyClone), state = require(freshStateClone),
+-- record = require(freshRecordClone), training = require(freshTrainingClone) }).
+-- Nest Heist Phase 3 (NS7): gloves with rolled stats, crafted at camp with Esencia and materials and saved, one worn at
+-- a time, and the placeable Tótem de la suerte (items and totem, plan Part 4). Gameplay effects are applied by the
+-- server; the steal hold is shortened on the owner's client. Numbers live in Gear.CONSTANTS and the dev tuning schema.
 return function(Gear, source, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -27,56 +27,15 @@ return function(Gear, source, sources)
 		assert(type(text) == "string" and text:find(needle, 1, true), (label or "source") .. " lacks " .. needle)
 	end
 	sources = type(sources) == "table" and sources or {}
-	local ALL = { guantes = true, botas = true, chaleco = true, amuleto = true }
-
-	case("IT1: four items in a fixed order, each with its defaults", function()
-		equal(type(Gear.ITEMS), "table", "Gear.ITEMS")
-		equal(table.concat(Gear.ITEMS, ","), "guantes,botas,chaleco,amuleto")
-		local C = Gear.CONSTANTS
-		equal(C.GLOVES_CALM, 1.3, "gloves: calm meter +30%")
-		equal(C.GLOVES_RING, 0.4, "gloves: ring tolerance in studs")
-		equal(C.BOOTS_DRAIN, 0.7, "boots: sprint drain -30%")
-		equal(C.AMULET_MEMORY, 1, "amulet: La Silueta's memory -1 s")
-		equal(C.AMULET_FEAR, 0.6, "amulet: heartbeat and fear x0.6 (client)")
-		equal(Gear.attribute("chaleco"), "WildboundGear_chaleco")
-		equal(Gear.attribute("capa"), nil, "an unknown item has no attribute")
-	end)
-
-	case("IT1: each effect needs its own item, and nothing else changes", function()
-		equal(Gear.calmRate({ guantes = true }), 1.3); equal(Gear.calmRate({}), 1); equal(Gear.calmRate(nil), 1)
-		equal(Gear.ringBonus({ guantes = true }), 0.4); equal(Gear.ringBonus({ botas = true }), 0)
-		equal(Gear.drainScale({ botas = true }), 0.7); equal(Gear.drainScale({ guantes = true }), 1)
-		equal(Gear.memory(4, { amuleto = true }), 3); equal(Gear.memory(4, ALL), 3); equal(Gear.memory(4, {}), 4)
-		equal(Gear.memory(1, { amuleto = true }), 0.5, "memory never goes under half a second")
-		local f = { heart = 1, red = 0.8, shake = 0.5, dark = 0.5, flash = 0.4, fov = 6 }
-		local soft = Gear.softenFear(f, { amuleto = true })
-		near(soft.heart, 0.6); near(soft.red, 0.48); near(soft.shake, 0.3); near(soft.dark, 0.3)
-		equal(soft.flash, 0.4, "a hit's flash stays (it is information)"); equal(soft.fov, 6)
-		equal(f.heart, 1, "the input is not changed")
-		equal(Gear.softenFear(f, {}).heart, 1)
-	end)
-
-	case("IT1: tuning overrides the live values; no override, no change", function()
-		local defaults = Gear.tunable()
-		equal(defaults.BOOTS_DRAIN, 0.7)
-		Gear.tune({ BOOTS_DRAIN = 0.5, GLOVES_CALM = 2 })
-		equal(Gear.drainScale({ botas = true }), 0.5); equal(Gear.calmRate({ guantes = true }), 2)
-		Gear.tune(nil)
-		equal(Gear.drainScale({ botas = true }), 0.7); equal(Gear.calmRate({ guantes = true }), 1.3)
-	end)
-
-	case("IT1: the recipes cost Esencia and materials, in the economy config", function()
-		local config = sources.config
-		assert(type(config) == "table" and type(config.gear) == "table", "config.gear")
-		for _, id in ipairs(Gear.ITEMS) do
-			local spec = config.gear[id]
-			assert(type(spec) == "table" and type(spec.cost) == "table", "recipe " .. id)
-			assert((spec.cost.ember or 0) > 0, id .. " costs Esencia")
-			assert((spec.cost.fogbark or 0) + (spec.cost.glowmoss or 0) + (spec.cost.nightbloom or 0) > 0, id .. " costs materials")
-			equal(spec.kind, "equipment", id .. " kind")
+	-- Nest Heist Phase 3 (NS7, user decision 2026-11-10): gloves with rolled stats replaced the four IT1 pieces
+	-- (deliberately changed: every IT1 case below became an NS7 case). A seeded sequence stands in for the server's Random.
+	local function sequence(values)
+		local index = 0
+		return function()
+			index = index % #values + 1
+			return values[index]
 		end
-	end)
-
+	end
 	local function stocked(state, key)
 		state:addPlayer(key)
 		local profile = state.players["s:" .. key]
@@ -88,168 +47,156 @@ return function(Gear, source, sources)
 		return sources.state.new(sources.economy, sources.config)
 	end
 
-	case("IT1: crafted at camp, one of each, paid once, session only", function()
+	case("NS7: five stats with documented caps, four rarities, no ability stat", function()
+		equal(table.concat(Gear.STATS, ","), "move,steal,burst,drain,calm")
+		equal(table.concat(Gear.RARITIES, ","), "Comun,Rara,Epica,Legendaria")
+		local C = Gear.CONSTANTS
+		equal(C.MOVE_CAP, 3); equal(C.STEAL_CAP, 15); equal(C.BURST_CAP, 20); equal(C.DRAIN_CAP, 30); equal(C.CALM_CAP, 30)
+		for stat, hard in pairs(Gear.HARD_CAPS) do
+			assert(Gear.cap(stat) <= hard, stat .. " under its hard cap")
+			equal(sources.record.GLOVE_CAPS[stat], hard, "the record validates the same cap for " .. stat)
+		end
+		for _, banned in ipairs({ "stamina", "luck", "stealth", "immunity", "keepEgg", "reach", "stun", "fear" }) do
+			equal(Gear.HARD_CAPS[banned], nil, "no " .. banned .. " stat")
+		end
+		equal(Gear.RARITY.Comun.stats, 1); equal(Gear.RARITY.Rara.stats, 2)
+		equal(Gear.RARITY.Epica.stats, 3); equal(Gear.RARITY.Legendaria.stats, 4)
+	end)
+
+	case("NS7: a roll picks distinct stats inside the rarity's share of each cap", function()
+		for _, rarity in ipairs(Gear.RARITIES) do
+			for seed = 1, 20 do
+				local random = sequence({ (seed * 0.137) % 1, (seed * 0.61) % 1, (seed * 0.29) % 1, 0.999, 0, 0.5 })
+				local glove = Gear.roll(random, rarity)
+				equal(glove.rarity, rarity)
+				local count = 0
+				for stat, value in pairs(glove.stats) do
+					count += 1
+					local spec, cap = Gear.RARITY[rarity], Gear.cap(stat)
+					assert(value >= math.max(0.1, cap * spec.low - 0.05) and value <= cap * spec.high + 0.05,
+						rarity .. " " .. stat .. " " .. value)
+				end
+				equal(count, Gear.RARITY[rarity].stats, rarity .. " stat count")
+				equal(Gear.valid(glove), true, "a rolled glove is valid")
+			end
+		end
+		equal(Gear.rollRarity(function() return 0 end), "Comun")
+		equal(Gear.rollRarity(function() return 0.999 end), "Legendaria")
+		equal(Gear.rollRarity(function() return 0.7 end), "Rara", "60 Común, then 28 Rara")
+		equal(Gear.valid({ rarity = "Mitica", stats = { move = 1 } }), false)
+		equal(Gear.valid({ rarity = "Rara", stats = { stealth = 5 } }), false, "no ability stats")
+		equal(Gear.valid({ rarity = "Rara", stats = { move = 9 } }), false, "over its hard cap")
+	end)
+
+	case("NS7: effects come from the worn glove only and stay under every cap, even when tuned", function()
+		local glove = { rarity = "Legendaria", stats = { move = 3, steal = 15, burst = 20, drain = 30, calm = 30 } }
+		near(Gear.calmRate(glove), 1.3); near(Gear.drainScale(glove), 0.7); near(Gear.burstScale(glove), 0.8)
+		near(Gear.stealScale(glove), 0.85); near(Gear.moveBonus(glove, 16), 0.48)
+		equal(Gear.calmRate(nil), 1); equal(Gear.drainScale(nil), 1); equal(Gear.moveBonus(nil, 16), 0)
+		Gear.tune({ MOVE_CAP = 50, CALM_CAP = 10 })
+		near(Gear.moveBonus({ stats = { move = 3 } }, 16), 0.48, "the hard cap holds against a tuned cap")
+		near(Gear.calmRate(glove), 1.1, "a lower tuned cap lowers the effect of an old glove")
+		Gear.tune(nil)
+		near(Gear.stealHold(0.8, glove, 0.6), 0.68); near(Gear.stealHold(0.7, glove, 0.65), 0.65, "never under the floor")
+		local Training, Stamina = sources.training, sources.stamina
+		local walk = Training.walkSpeed(16, 16, { walk = 4 }, Gear.moveBonus(glove, 16))
+		assert(walk <= Training.CONSTANTS.WALK_CAP, "training and glove stay under the walk cap: " .. walk)
+		assert(Stamina.speed(walk, "sprint") <= Stamina.CONSTANTS.SPEED_CAP, "the sprint stays capped")
+		assert(Stamina.speed(walk, "walk", true) <= Stamina.CONSTANTS.BURST_CAP, "the Burst stays capped")
+		local state = {}
+		Stamina.burst(state, 100, { cooldownScale = Gear.burstScale(glove) })
+		near(state.burstReadyAt, 100 + Stamina.CONSTANTS.BURST_COOLDOWN * 0.8, "Burst recovery shortens the cooldown")
+		Stamina.burst(state, 200, { cooldownScale = 0.1 })
+		near(state.burstReadyAt, 200 + Stamina.CONSTANTS.BURST_COOLDOWN * 0.5, "never below half")
+	end)
+
+	case("NS7: the recipe costs Esencia and materials, no Robux; the old pieces are gone", function()
+		local config = sources.config
+		local spec = config.gear.guantes
+		equal(spec.kind, "gloves"); equal(spec.cap, Gear.CONSTANTS.GLOVE_LIMIT)
+		assert((spec.cost.ember or 0) > 0 and (spec.cost.fogbark or 0) + (spec.cost.glowmoss or 0) > 0, "Esencia and materials")
+		for _, gone in ipairs({ "botas", "chaleco", "amuleto" }) do equal(config.gear[gone], nil, gone .. " removed") end
+		for _, word in ipairs({ "MarketplaceService", "Robux", "game:", "workspace", "os.", "task." }) do
+			equal(source:find(word, 1, true), nil, "the rule mentions " .. word)
+		end
+	end)
+
+	case("NS7: crafted at camp with the server's roll, the first worn at once, one worn at a time, capped", function()
 		local state = newState()
 		local profile = stocked(state, "Ana")
 		local before = profile.ember
-		local ok, id = state:craftGear("Ana", "guantes", true, 5)
-		equal(ok, true, "craft"); equal(id, "guantes")
+		local roll = { rarity = "Rara", stats = { move = 1.5, calm = 12 } }
+		local farOk, farWhy = state:craftGear("Ana", "guantes", true, 999, roll)
+		equal(farOk, false); equal(farWhy, "NotAtCamp")
+		equal((state:craftGear("Ana", "guantes", true, 5, { rarity = "Rara" })), false, "a roll without stats is refused")
+		local ok, glove = state:craftGear("Ana", "guantes", true, 5, roll)
+		equal(ok, true); equal(glove.rarity, "Rara"); equal(glove.stats.calm, 12)
 		equal(profile.ember, before - sources.config.gear.guantes.cost.ember, "paid once")
-		local again, reason = state:craftGear("Ana", "guantes", true, 5)
-		equal(again, false); equal(reason, "AlreadyOwned")
-		equal(profile.ember, before - sources.config.gear.guantes.cost.ember, "a refusal pays nothing")
-		local far, farReason = state:craftGear("Ana", "botas", true, 25)
-		equal(far, false); equal(farReason, "NotAtCamp")
-		local bad, badReason = state:craftGear("Ana", "capa", true, 5)
-		equal(bad, false); equal(badReason, "UnknownGear")
-		state:addPlayer("Bea")
-		local poor, poorReason = state:craftGear("Bea", "botas", true, 5)
-		equal(poor, false); equal(poorReason, "CannotAfford")
 		local snapshot = state:snapshot("Ana")
-		equal(snapshot.gear.guantes, true); equal(snapshot.gear.botas, nil)
-		equal(snapshot.sessionOnly, true)
-		equal(snapshot.consumables.guantes, nil, "gear is not a saved consumable")
+		equal(#snapshot.gloves, 1); equal(snapshot.equippedGlove, glove.uid, "the first glove is worn")
+		equal(snapshot.glove.stats.move, 1.5)
+		local _, second = state:craftGear("Ana", "guantes", true, 5, { rarity = "Comun", stats = { drain = 9 } })
+		equal(state:snapshot("Ana").equippedGlove, glove.uid, "a second glove is not put on by itself")
+		equal((state:equipGlove("Ana", second.uid, true)), true)
+		equal(state:snapshot("Ana").glove.stats.drain, 9, "one glove at a time")
+		equal((state:equipGlove("Ana", "wb:999", true)), false, "only an owned glove")
+		equal((state:equipGlove("Ana", second.uid, false)), false, "alive only")
+		for _ = 3, Gear.CONSTANTS.GLOVE_LIMIT do state:craftGear("Ana", "guantes", true, 5, roll) end
+		local full, why = state:craftGear("Ana", "guantes", true, 5, roll)
+		equal(full, false); equal(why, "GlovesFull")
+		equal(#state:snapshot("Ana").gloves, Gear.CONSTANTS.GLOVE_LIMIT)
+		local poor = newState()
+		poor:addPlayer("Bo")
+		local cannot, reason = poor:craftGear("Bo", "guantes", true, 5, roll)
+		equal(cannot, false); equal(reason, "CannotAfford")
 	end)
 
-	case("IT1: the vest saves one hit per expedition", function()
-		local state = newState()
-		stocked(state, "Ana")
-		equal(state:snapshot("Ana").vestReady, false, "no vest, never ready")
-		assert(state:craftGear("Ana", "chaleco", true, 5))
-		equal(state:snapshot("Ana").vestReady, true)
-		state:observeExpedition("Ana", 80, true, 10)
-		equal(state:useVest("Ana"), true, "first saved hit")
-		equal(state:snapshot("Ana").vestReady, false)
-		local again, reason = state:useVest("Ana")
-		equal(again, false); equal(reason, "VestUsed")
-		state.players["s:Ana"].carried.fogbark = 1
-		assert(state:extract("Ana", true, 0), "extract closes the expedition")
-		equal(state:snapshot("Ana").vestReady, true, "back at camp the expedition is over")
-		state:observeExpedition("Ana", 80, true, 50)
-		equal(state:snapshot("Ana").vestReady, true, "a new expedition, a new save")
-		state:addPlayer("Bea")
-		local none, noneReason = state:useVest("Bea")
-		equal(none, false); equal(noneReason, "NoVest")
-	end)
-
-	case("IT1: boots drain the sprint 30% slower (server stamina)", function()
-		local Stamina = sources.stamina
-		local function after(scale)
-			local s = Stamina.new(0)
-			local now = 0
-			for _ = 1, 10 do
-				now += 0.1
-				Stamina.intent(s, "sprint", now)
-				Stamina.step(s, 0.1, { speed = 16, drainScale = scale }, now)
-			end
-			return s.stamina
-		end
-		near(after(nil), 75, "no boots", 1e-3)
-		near(after(0.7), 82.5, "boots", 1e-3)
-		near(after(-3), 75, "a bad scale is ignored", 1e-3)
-		near(after(5), 75, "a scale never makes the sprint cost more", 1e-3)
-	end)
-
-	case("IT1: gloves fill the calm meter faster, never under the floor, and widen the ring under the orbit", function()
-		local CaptureSession = sources.capture
-		local C = CaptureSession.CONSTANTS
-		local function begin(extra)
-			local capture = CaptureSession.new()
-			local entry = { playerKey = 1, encounterId = "wb:1", dir = 1, lumipolX = 0, lumipolZ = 0, now = 0, alive = true,
-				life = "L", distance = 7, x = 7, y = 3, z = 0, encounterStatus = "Open", bagRoom = true, collectionRoom = true }
-			for key, value in pairs(extra or {}) do entry[key] = value end
-			local ok, view = capture:begin(entry)
-			assert(ok, "begin " .. tostring(view))
-			return view, capture
-		end
-		equal(begin().required, C.CALM_REQUIRED, "no gloves")
-		near(begin({ calmRate = 1.1 }).required, C.CALM_REQUIRED / 1.1, "faster meter")
-		near(begin({ calmRate = 1.3 }).required, math.max(C.CALM_MIN, C.CALM_REQUIRED / 1.3), "gloves, floored")
-		equal(begin({ calmRate = 9 }).required, C.CALM_MIN, "never under CALM_MIN (standing still must not fill it)")
-		equal(begin({ calmRate = 0.2 }).required, C.CALM_REQUIRED, "never slower")
-		equal(begin().ringRadius, C.RING_RADIUS_SERVER)
-		near(begin({ ringBonus = 0.4 }).ringRadius, C.RING_RADIUS_SERVER + 0.4)
-		assert(begin({ ringBonus = 9 }).ringRadius < C.ORBIT_MIN, "the ring stays smaller than its orbit")
-		equal(begin({ ringBonus = -2 }).ringRadius, C.RING_RADIUS_SERVER, "never narrower")
-		-- A spot 0.2 studs outside the plain ring counts as inside with the gloves.
-		local function insideAt(extra)
-			local view, capture = begin(extra)
-			local cx, cz = CaptureSession.ringCenter(view.ring, 0.2)
-			local out = capture:sample(view.token, { now = 0.2, alive = true, life = "L", x = cx + C.RING_RADIUS_SERVER + 0.2,
-				y = 3, z = cz, bagRoom = true, collectionRoom = true })
-			return out and out.inside
-		end
-		equal(insideAt(nil), false, "plain ring")
-		equal(insideAt({ ringBonus = 0.4 }), true, "gloves")
-	end)
-
-	case("IT1: the vest turns a defeating second mark into a kept mark (fair strike)", function()
-		local FairStrike = sources.fairStrike
-		local ledger = FairStrike.new()
-		local record = FairStrike.lifeRecord(ledger, 7, "life")
-		record.marks = 1
-		equal(FairStrike.absorb(ledger, 7, "life"), false, "a first mark is not a defeat")
-		record.marks = 2
-		equal(FairStrike.absorb(ledger, 7, "other life"), false, "another life")
-		equal(FairStrike.absorb(ledger, 7, "life"), true)
-		equal(record.marks, 1, "still marked: the next hit defeats")
-		local words = sources.text.STRIKE
-		local full, short = FairStrike.strikeNotice("Vest", nil, words)
-		equal(full, words.vest); equal(short, words.vestShort)
-		assert(type(words.vest) == "string" and words.vest:find("chaleco", 1, true), "Spanish vest notice")
-	end)
-
-	case("IT1: the camp lists the four items with Spanish names, price and owned state", function()
-		local View, config, economy = sources.campView, sources.config, sources.economy
-		local snapshot = { ember = 0, banked = {}, gear = { guantes = true } }
+	case("NS7: the camp lists the craft row and every glove in Spanish, with each stat as a percent", function()
+		local View, config, economy, text = sources.campView, sources.config, sources.economy, sources.text
+		local snapshot = { ember = 999, banked = { fogbark = 999, glowmoss = 999 }, equippedGlove = "u1",
+			gloves = { { uid = "u1", rarity = "Rara", stats = { move = 1.5, calm = 12 } },
+				{ uid = "u2", rarity = "Legendaria", stats = { move = 3, steal = 15, burst = 20, drain = 30 } } } }
 		local rows = View.campRows(config, economy, snapshot, { atCamp = true })
 		local byId = {}
 		for _, row in ipairs(rows) do byId[row.id] = row end
-		local names = sources.text.GEAR
-		for _, id in ipairs(Gear.ITEMS) do
-			local row = byId["gear:" .. id]
-			assert(row, "row " .. id)
-			equal(row.section, "Gear", id .. " section")
-			has(row.text, names[id], id .. " name")
-		end
-		equal(byId["gear:guantes"].action, nil, "owned: no button")
-		has(byId["gear:guantes"].text, "Guantes de captura (equipados): calmas")
-		local boots = byId["gear:botas"]
-		equal(boots.action, "CraftGear"); equal(boots.argument, "botas"); equal(boots.label, "Fabricar")
-		equal(boots.enabled, false, "cannot afford"); has(boots.why, "Faltan")
-		local rich = View.campRows(config, economy, { ember = 999, banked = { fogbark = 999, glowmoss = 999, nightbloom = 99 } },
-			{ atCamp = true })
-		for _, row in ipairs(rich) do
-			if row.id == "gear:chaleco" then equal(row.enabled, true, "affordable at camp") end
-		end
-		equal(sources.text.HUD.sections.Gear, "Equipo", "a Spanish section title")
+		local craft = byId["gear:guantes"]
+		equal(craft.action, "CraftGear"); equal(craft.argument, "guantes"); equal(craft.enabled, true)
+		has(byId["glove:u1"].text, "Guantes raros: +1,5% Velocidad, +12,0% Calma (puestos)")
+		equal(byId["glove:u1"].action, nil, "the worn glove has no button")
+		local other = byId["glove:u2"]
+		equal(other.action, "EquipGlove"); equal(other.argument, "u2"); equal(other.label, "Ponerte")
+		has(other.text, "Guantes legendarios: +3,0% Velocidad, +15,0% Robo rápido")
+		assert(#other.text <= 140, "a glove row fits the camp row budget: " .. #other.text)
+		for _, entry in ipairs(View.GLOVE_STATS) do equal(text.GEAR.stats[entry.id], entry.word, entry.id) end
+		for rarity, word in pairs(View.GLOVE_RARITY) do equal(text.GEAR.rarity[rarity], word, rarity) end
+		equal(table.concat(Gear.describe({ stats = { move = 4.66, calm = 12 } }, text), " | "),
+			"+4,7% Velocidad | +12,0% Calma")
+		equal(text.HUD.sections.Gear, "Equipo", "a Spanish section title")
 	end)
 
-	case("IT1 wiring: the server crafts gear, publishes ownership and applies the gameplay effects", function()
-		local server = sources.server
+	case("NS7 wiring: the server rolls, saves and applies the worn glove; the Chaleco and the Amuleto are gone", function()
+		local server, world, fear, client = sources.server, sources.world, sources.fear, sources.client
 		has(server, 'require(ReplicatedStorage:WaitForChild("WildboundGear"))', "server")
-		has(server, "CraftGear = true", "server economy actions")
-		has(server, "state:craftGear(", "server")
-		has(server, "Gear.attribute(", "server publishes ownership to the owner's client")
-		has(server, '"GearChanged"', "server tells the world script the owned gear and the vest's charge")
-		has(server, "gearChanged:Fire(player,", "server")
-		has(server, "drainScale = Gear.drainScale(", "server stamina")
-		has(server, "calmRate = Gear.calmRate(", "server capture")
-		has(server, "ringBonus = Gear.ringBonus(", "server capture")
-		has(server, '"GearUsed"', "the world script reports a spent vest")
-		has(server, "state:useVest(", "server")
-		has(sources.client, "CraftGear = true", "the client waits for the server's reply")
-	end)
-
-	case("IT1 wiring: the world server reads the amulet and the vest; the owner's client softens fear", function()
-		local world = sources.world
-		has(world, 'require(ReplicatedStorage:WaitForChild("WildboundGear"))', "world")
-		has(world, "Gear.memory(", "world memory")
-		has(world, "FairStrike.absorb(", "world vest")
-		has(world, 'network:FindFirstChild("GearChanged")', "world gear comes from the inventory script")
-		assert(not world:find(":GetAttribute(", 1, true), "the world script never reads an attribute back")
-		has(world, '"Vest"', "world vest outcome")
-		has(sources.fear, "Gear.softenFear(", "fear client")
+		has(server, "Gear.roll(function() return rng:NextNumber() end)", "the server rolls, never the client")
+		has(server, "state:craftGear(key, argument, alive, distance, roll)", "server")
+		has(server, "state:equipGlove(key, argument, context(player))", "server")
+		has(server, "EquipGlove = true", "server economy actions")
+		has(server, "calmRate = Gear.calmRate(snapshot.glove), ringBonus = 0", "capture calm")
+		has(server, "drainScale = Gear.drainScale(snapshot and snapshot.glove)", "sprint drain")
+		has(server, "cooldownScale = Gear.burstScale(glove)", "Burst recovery")
+		has(server, "Gear.moveBonus(snapshot.glove, EconomyConfig.carry.baseSpeed)", "walk speed through the training cap")
+		has(server, 'entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration)', "steal hold base")
+		has(server, 'player:SetAttribute("WildboundGloveSteal", steal)', "steal bonus for the owner's client")
+		has(client, "Gear.stealHold(base, glove, Gear.CONSTANTS.STEAL_FLOOR)", "the client shortens only its own hold")
+		has(client, "EquipGlove = true", "the client waits for the server's reply")
+		for _, gone in ipairs({ "useVest", '"GearUsed"', '"GearChanged"', "Gear.ITEMS", "snapshot.gear" }) do
+			assert(not server:find(gone, 1, true), "server still names " .. gone)
+		end
+		assert(not world:find("WildboundGear", 1, true), "the world server no longer reads gear")
+		assert(not world:find("FairStrike.absorb(", 1, true), "no kept hit")
+		assert(not fear:find("Gear.", 1, true), "the fear client no longer softens by gear")
+		has(fear, "Efectos suaves", "the free setting owns the fear relief")
+		assert(not server:find("MarketplaceService", 1, true), "no purchase path")
 	end)
 
 	-- IT2: the Tótem de la suerte. Crafted at camp (one held at a time), placed away from camp for LUCK_SECONDS; the next

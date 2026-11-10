@@ -4,9 +4,10 @@
 -- (WildboundStoreRoblox) may name the data store service; this module and WildboundPersistence never do.
 -- Schema 2 (NS1, NS2): the incubator list (server timestamps) and the training levels are saved; what is out in the
 -- world (the bag, the pouch, a dropped or carried item, the trip) is never saved, so a death or a leave still loses it.
+-- Schema 3 (NS7): the gloves with their rolled stats and the worn one.
 local Record = {}
 
-Record.SCHEMA = 2
+Record.SCHEMA = 3
 Record.LEDGER_CAP = 64
 Record.MAX_CHARS = 4194304
 
@@ -17,9 +18,13 @@ local KNOWN = table.freeze({
 	schema = true, revision = true, lastCommitId = true, lastWriteId = true, nextUid = true, nextTrip = true,
 	nextOp = true, firstSealGranted = true, collection = true, equippedUid = true, banked = true, ember = true,
 	consumables = true, upgrades = true, skills = true, bondXp = true, settings = true, stats = true, atRisk = true,
-	ledger = true, incubating = true, training = true,
+	ledger = true, incubating = true, training = true, gloves = true,
 })
 local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlayedDay" })
+-- NS7: a glove's stats and their hard caps in percent. Must equal WildboundGear.HARD_CAPS (the Save suite checks).
+Record.GLOVE_CAPS = table.freeze({ move = 3, steal = 25, burst = 30, drain = 40, calm = 40 })
+Record.GLOVE_RARITIES = table.freeze({ Comun = true, Rara = true, Epica = true, Legendaria = true })
+Record.GLOVE_LIMIT = 12
 
 local function copy(value)
 	if type(value) ~= "table" then return value end
@@ -54,7 +59,7 @@ function Record.blank()
 		schema = Record.SCHEMA, revision = 0, nextUid = 1, nextTrip = 1, nextOp = 1, firstSealGranted = false,
 		collection = { registered = {}, bankedEggs = {} },
 		banked = {}, ember = 0, consumables = {}, upgrades = {}, skills = {}, bondXp = {}, settings = {},
-		stats = stats, ledger = {}, incubating = {}, training = {},
+		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} },
 	}
 end
 
@@ -115,6 +120,7 @@ local function everyUid(profile)
 	for _, name in ipairs({ "registered", "bankedEggs", "incubating" }) do
 		for _, entry in ipairs(profile[name] or {}) do table.insert(list, entry.uid) end
 	end
+	for _, glove in ipairs(profile.gloves and profile.gloves.list or {}) do table.insert(list, glove.uid) end
 	return list
 end
 
@@ -165,6 +171,15 @@ function Record.fromProfile(profile, base, meta, economy, config)
 			readyAtUnix = entry.readyAt })
 	end
 	record.training = copy(profile.training or {})
+	-- NS7: every glove and the worn one.
+	record.gloves = { owned = {} }
+	for _, glove in ipairs(profile.gloves and profile.gloves.list or {}) do
+		table.insert(record.gloves.owned, { uid = glove.uid, rarity = glove.rarity, stats = copy(glove.stats) })
+	end
+	record.gloves.equippedUid = profile.gloves and profile.gloves.equipped or nil
+	if profile.gloves and profile.gloves.equipped ~= nil and not uidNumber(profile.gloves.equipped) then
+		return nil, "SessionId"
+	end
 
 	-- NS2: nothing at risk is saved. Schema 1's atRisk writer is kept behind meta.saveAtRisk, which no caller sets, so
 	-- the legacy shape stays readable by the validator; toProfile never restores it.
@@ -246,6 +261,14 @@ function Record.toProfile(record, economy, config, sessionNow)
 		end
 	end
 	if type(record.training) == "table" and next(record.training) ~= nil then profile.training = copy(record.training) end
+	-- NS7: the gloves, made only when there is one.
+	local gloves = record.gloves
+	if type(gloves) == "table" and type(gloves.owned) == "table" and #gloves.owned > 0 then
+		profile.gloves = { list = {}, equipped = gloves.equippedUid }
+		for _, glove in ipairs(gloves.owned) do
+			table.insert(profile.gloves.list, { uid = glove.uid, rarity = glove.rarity, stats = copy(glove.stats) })
+		end
+	end
 	-- NS2: a legacy atRisk section is never restored, so carried things never come back after a leave.
 	return profile
 end
@@ -332,6 +355,31 @@ function Record.validate(record, economy, config)
 			if type(name) ~= "string" or #name == 0 or #name > 32 then fail("training has a malformed key") end
 			count(level, "training." .. tostring(name))
 		end
+	end
+
+	local gloves = record.gloves
+	if map(gloves, "gloves") and map(gloves.owned, "gloves.owned") then
+		local owned = {}
+		if #gloves.owned > Record.GLOVE_LIMIT then fail("gloves are over their limit") end
+		for index, glove in ipairs(gloves.owned) do
+			local label = "gloves[" .. index .. "]"
+			if type(glove) ~= "table" then fail(label .. " is not a table") else
+				claimUid(glove.uid, label)
+				owned[glove.uid] = true
+				if not Record.GLOVE_RARITIES[glove.rarity] then fail(label .. " has an unknown rarity") end
+				local statCount = 0
+				if type(glove.stats) ~= "table" then fail(label .. " has no stats") else
+					for stat, value in pairs(glove.stats) do
+						local cap = Record.GLOVE_CAPS[stat]
+						if not cap then fail(label .. " has an unknown stat " .. tostring(stat))
+						elseif not finite(value) or value <= 0 or value > cap then fail(label .. "." .. stat .. " is out of range") end
+						statCount += 1
+					end
+				end
+				if statCount < 1 or statCount > 5 then fail(label .. " has no valid stat count") end
+			end
+		end
+		if gloves.equippedUid ~= nil and not owned[gloves.equippedUid] then fail("the worn glove is not owned") end
 	end
 
 	if record.equippedUid ~= nil and not registeredSet[record.equippedUid] then fail("equippedUid is not registered") end
@@ -446,6 +494,30 @@ Record.MIGRATIONS = table.freeze({
 		data.atRisk = nil
 		if type(data.incubating) ~= "table" then data.incubating = {} end
 		if type(data.training) ~= "table" then data.training = {} end
+		return data
+	end,
+	-- NS7: schema 3 adds the gloves. The IT1 equipment was session only and never saved, but a hand-made or legacy
+	-- `gear` map ({ [id] = true }) migrates safely: the Guantes de captura and the Botas become a Común glove with the
+	-- stat they used to give (calm, drain), and the Chaleco and the Amuleto, whose effects are gone, refund their
+	-- Esencia (45 and 40, their IT1 price). Nothing else is invented.
+	[2] = function(data)
+		local gloves = type(data.gloves) == "table" and data.gloves or {}
+		if type(gloves.owned) ~= "table" then gloves.owned = {} end
+		local legacy = type(data.gear) == "table" and data.gear or {}
+		local nextUid = type(data.nextUid) == "number" and data.nextUid or 1
+		for _, item in ipairs({ { "guantes", "calm" }, { "botas", "drain" } }) do
+			if legacy[item[1]] == true and #gloves.owned < Record.GLOVE_LIMIT then
+				local uid = "u" .. nextUid
+				nextUid += 1
+				table.insert(gloves.owned, { uid = uid, rarity = "Comun", stats = { [item[2]] = 9 } })
+				if gloves.equippedUid == nil then gloves.equippedUid = uid end
+			end
+		end
+		local refund = (legacy.chaleco == true and 45 or 0) + (legacy.amuleto == true and 40 or 0)
+		if refund > 0 and type(data.ember) == "number" then data.ember += refund end
+		data.nextUid = nextUid
+		data.gear = nil
+		data.gloves = gloves
 		return data
 	end,
 })

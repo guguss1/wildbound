@@ -167,20 +167,9 @@ return freeze({
 	},
 	gear = {
 		guantes = {
-			kind = "equipment",
+			kind = "gloves",
+			cap = 12,
 			cost = { fogbark = 14, glowmoss = 8, ember = 30 },
-		},
-		botas = {
-			kind = "equipment",
-			cost = { fogbark = 16, glowmoss = 6, ember = 30 },
-		},
-		chaleco = {
-			kind = "equipment",
-			cost = { fogbark = 20, glowmoss = 10, nightbloom = 1, ember = 45 },
-		},
-		amuleto = {
-			kind = "equipment",
-			cost = { glowmoss = 12, nightbloom = 2, ember = 40 },
 		},
 		totemSuerte = {
 			kind = "luckTotem",

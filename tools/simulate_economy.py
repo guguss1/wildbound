@@ -98,6 +98,25 @@ def _training_constant(name, repo=REPO):
 TRAINING_WALK_STEP = _training_constant("WALK_STEP")
 TRAINING_MAX_LEVEL = int(_training_constant("MAX_LEVEL"))
 TRAINING_WALK_CAP = _training_constant("WALK_CAP")
+# NS7: the best glove's walk stat (percent of the base walk, src/wildbound/WildboundGear.luau MOVE_CAP) rides on the same
+# cap; a fully trained policy wears it too.
+GEAR_PATH = "src/wildbound/WildboundGear.luau"
+
+
+def _gear_constant(name, repo=REPO):
+    text = (repo / GEAR_PATH).read_text(encoding="utf-8")
+    found = re.search(r"^\s*" + name + r" = ([0-9.]+)", text, re.M)
+    if not found:
+        raise RuntimeError(f"{GEAR_PATH}: {name} not found")
+    return float(found.group(1))
+
+
+GLOVE_MOVE_CAP = _gear_constant("MOVE_CAP")
+
+
+def full_walk_bonus(base=WALK_SPEED):
+    """NS5 and NS7: the most a trained player in the best glove gains walking, under the training walk cap."""
+    return min(TRAINING_WALK_STEP * TRAINING_MAX_LEVEL + base * GLOVE_MOVE_CAP / 100.0, TRAINING_WALK_CAP - base)
 SPRINT_DUTY = 10.0 / 35.0
 SPRINT_BOOST = 1.0 + SPRINT_DUTY * (SPRINT_MULTIPLIER - 1.0)
 # Chase pass (CP-D2): a rested sprint must outrun La Silueta's fastest hunt by this much (studs per second).
@@ -874,7 +893,7 @@ def simulate_policy(tuning, ctx, name, policy, seed, trips, players=1):
     rng = random.Random(seed)
     state = new_state(tuning)
     if policy.get("trained"):
-        state["trainingWalk"] = TRAINING_WALK_STEP * TRAINING_MAX_LEVEL
+        state["trainingWalk"] = full_walk_bonus(float(tuning["carry"]["baseSpeed"]))
     log, purchases = [], []
     lifetime = {key: 0 for key in list(tuning["materials"]) + ["ember"]}
     standalone = {key: None for key in list(tuning["upgrades"]) + list(tuning["skills"])}

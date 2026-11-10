@@ -106,8 +106,9 @@ return function(Schema, modules)
 			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS",
 			-- Random world (RW6): the biome variant rotation.
 			"World.VARIANT_EVERY_WAVES",
-			-- Items and totem (plan Part 4, IT1): the equipment's effects.
-			"Gear.GLOVES_CALM", "Gear.GLOVES_RING", "Gear.BOOTS_DRAIN", "Gear.AMULET_MEMORY", "Gear.AMULET_FEAR",
+			-- NS7: the gloves' caps and rarity weights (deliberately changed from the IT1 equipment's effects).
+			"Gear.MOVE_CAP", "Gear.STEAL_CAP", "Gear.BURST_CAP", "Gear.DRAIN_CAP", "Gear.CALM_CAP",
+			"Gear.WEIGHT_COMUN", "Gear.WEIGHT_RARA", "Gear.WEIGHT_EPICA", "Gear.WEIGHT_LEGENDARIA",
 			-- Items and totem (IT2): the luck totem.
 			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP",
 			-- Nest Heist (NH1): the steal holds.
@@ -127,9 +128,9 @@ return function(Schema, modules)
 		equal(Schema.find("Camera", "SPRINT_FOV_KICK").side, "client", "the camera kick is read on the client")
 		equal(Schema.find("Camera", "OTHER_SILUETA_FADE").side, "client", "the fade of another player's Silueta is a client value")
 		equal(Schema.find("Silueta", "MAX_HUNTERS").min, 1, "at least one Silueta")
-		-- IT1: the amulet's fear softening is presentation on the owner's client; the rest is server gameplay.
-		equal(Schema.find("Gear", "AMULET_FEAR").side, "client", "the amulet's fear softening is read on the client")
-		equal(Schema.find("Gear", "BOOTS_DRAIN").side, "server", "the boots' drain is applied by the server")
+		-- NS7: the glove caps are server gameplay; the tuning can never push a cap past its hard cap.
+		equal(Schema.find("Gear", "DRAIN_CAP").side, "server", "the glove caps are applied by the server")
+		equal(Schema.find("Gear", "MOVE_CAP").max, 3, "the walk stat's cap tops out at 3 %")
 		-- Fix pass (FP4): a toggle is 0 (off) or 1 (on), on by default; the lunge tell keeps the readable floor.
 		for _, key in ipairs({ "LUNGE_ON", "FAKE_ON", "GLARE_ON", "SCREAM_ON" }) do
 			local toggle = Schema.find("Silueta", key)

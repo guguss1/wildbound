@@ -97,7 +97,9 @@ function Stamina.burst(state, now, input)
 	if type(state) ~= "table" or not finite(now) then return false, "Invalid" end
 	if type(input) == "table" and input.blocked == true then return false, "Blocked" end
 	if now < (state.burstReadyAt or -math.huge) - EPSILON then return false, "Cooldown" end
-	state.burstUntil, state.burstReadyAt, state.bursting = now + C.BURST_SECONDS, now + C.BURST_COOLDOWN, true
+	-- NS7: a glove's Burst recovery shortens the cooldown, never below half of it.
+	local scale = type(input) == "table" and finite(input.cooldownScale) and math.clamp(input.cooldownScale, 0.5, 1) or 1
+	state.burstUntil, state.burstReadyAt, state.bursting = now + C.BURST_SECONDS, now + C.BURST_COOLDOWN * scale, true
 	return true
 end
 

@@ -45,7 +45,8 @@ return function(sources)
 		hasNot(stepBody, "for player in pairs(records)", "no scan over every player")
 		-- Items IT1: the memory now passes through the owner's Amuleto (Gear.memory). Deliberately changed from
 		-- profile.memorySeconds; the empty challenger list is what this case pins.
-		has(stepBody, "Hunt.step(h.huntState, now, current, {}, Gear.memory(profile.memorySeconds, gearOf(target)))",
+		-- NS7: the Amuleto is gone; deliberately changed back to the profile's own memory.
+		has(stepBody, "Hunt.step(h.huntState, now, current, {}, profile.memorySeconds)",
 			"no challenger ever switches the hunt")
 	end)
 

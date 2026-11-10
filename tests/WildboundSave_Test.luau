@@ -388,6 +388,27 @@ return function(m, sources)
 		assert(not string.find(sources.store, "SetAsync", 1, true), "never SetAsync in the adapter")
 	end)
 
+	case("SV-21: gloves are saved with durable IDs and the worn one, and load back the same", function()
+		local store, clock, server = world()
+		seed(store, clock)
+		local save, state = server("A")
+		save:join(USER, 0)
+		local profile = state.players["n:" .. USER]
+		profile.banked.fogbark, profile.banked.glowmoss = 99, 99
+		local ok, glove = state:craftGear(USER, "guantes", true, 0, { rarity = "Epica", stats = { move = 2, burst = 14, calm = 20 } })
+		assert(ok, "crafted: " .. tostring(glove))
+		save:leave(USER)
+		local saved = stored(store)
+		equal(#saved.gloves.owned, 1)
+		local uid = saved.gloves.owned[1].uid
+		assert(Record.uidNumber(uid), "a durable glove ID: " .. tostring(uid))
+		equal(saved.gloves.equippedUid, uid); equal(saved.gloves.owned[1].stats.burst, 14)
+		local again, state2 = server("B")
+		again:join(USER, 0)
+		local snapshot = state2:snapshot(USER)
+		equal(snapshot.equippedGlove, uid); equal(snapshot.glove.stats.calm, 20); equal(snapshot.glove.rarity, "Epica")
+	end)
+
 	case("SV-19: the autosave loop steps every STEP_SECONDS until stopped", function()
 		local store, clock, server = world()
 		seed(store, clock)

@@ -664,21 +664,42 @@ function State:train(key, kind, alive, distance, cost, maxLevel)
 	return true, level + 1
 end
 
--- Items and totem (plan Part 4, IT1): equipment owned this session ({ [id] = true }) and the expedition the vest's
--- one save was spent on (vestUsedOn, "camp" when spent outside one). Never saved, so a profile (new or loaded from a
--- saved record) gets its gear table on first use and stays equal to what the record makes.
-local function gearOf(player)
-	if type(player.gear) ~= "table" then player.gear = {} end
-	return player.gear
+-- Nest Heist Phase 3 (NS7, user decision 2026-11-10): gloves with rolled stats replace the four IT1 pieces. A
+-- profile's gloves are { list = { { uid, rarity, stats } }, equipped = uid or nil }, made on first use (a blank profile
+-- must equal what the saved record makes) and saved (record schema 3). The server rolls the stats (WildboundGear.roll)
+-- and passes them in; State only checks the shape, pays and stores.
+local function glovesOf(player)
+	if type(player.gloves) ~= "table" then player.gloves = { list = {} } end
+	return player.gloves
 end
 
--- Items and totem (IT1): one piece of equipment, crafted at camp with banked materials and Ember. One of each, owned
--- for the session; the recipes are the config's `gear` rows of kind "equipment".
-function State:craftGear(key, id, alive, distance)
+local function gloveShape(roll)
+	if type(roll) ~= "table" or type(roll.rarity) ~= "string" or type(roll.stats) ~= "table" then return false end
+	local count = 0
+	for stat, value in pairs(roll.stats) do
+		if type(stat) ~= "string" or not finite(value) or value <= 0 or value > 100 then return false end
+		count += 1
+	end
+	return count >= 1 and count <= 5
+end
+
+local function gloveCopy(glove)
+	return { uid = glove.uid, rarity = glove.rarity, stats = table.clone(glove.stats) }
+end
+
+local function glovesCopy(player)
+	local out = {}
+	for index, glove in ipairs(player.gloves and player.gloves.list or {}) do out[index] = gloveCopy(glove) end
+	return out
+end
+
+-- Crafting at camp with banked materials and Ember: a glove (kind "gloves", up to its cap; the first one is equipped)
+-- or the Tótem de la suerte (IT2, kind "luckTotem"). roll = { rarity, stats } from the server, for a glove only.
+function State:craftGear(key, id, alive, distance, roll)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	local spec = type(id) == "string" and type(self.config.gear) == "table" and self.config.gear[id] or nil
-	if not spec or (spec.kind ~= "equipment" and spec.kind ~= "luckTotem") then return false, "UnknownGear" end
+	if not spec or (spec.kind ~= "gloves" and spec.kind ~= "luckTotem") then return false, "UnknownGear" end
 	local ok, reason = atCamp(self, alive, distance)
 	if not ok then return false, reason end
 	-- IT2: the Tótem de la suerte is held up to its cap and spent when placed.
@@ -689,24 +710,33 @@ function State:craftGear(key, id, alive, distance)
 		player.luckTotems = held + 1
 		return true, id
 	end
-	if gearOf(player)[id] then return false, "AlreadyOwned" end
+	if not gloveShape(roll) then return false, "InvalidRoll" end
+	local gloves = player.gloves
+	if gloves and #gloves.list >= (spec.cap or 12) then return false, "GlovesFull" end
 	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
-	gearOf(player)[id] = true
-	return true, id
+	gloves = glovesOf(player)
+	local glove = { uid = newUid(self), rarity = roll.rarity, stats = table.clone(roll.stats) }
+	table.insert(gloves.list, glove)
+	if gloves.equipped == nil then gloves.equipped = glove.uid end
+	return true, gloveCopy(glove)
 end
 
-local function vestReady(player)
-	return gearOf(player).chaleco == true and player.vestUsedOn ~= (player.expedition or "camp")
-end
-
--- The vest's one save for this expedition (the world script reports a defeating hit it turned into a mark).
-function State:useVest(key)
+-- NS7: one glove is worn at a time.
+function State:equipGlove(key, uid, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
-	if gearOf(player).chaleco ~= true then return false, "NoVest" end
-	if not vestReady(player) then return false, "VestUsed" end
-	player.vestUsedOn = player.expedition or "camp"
-	return true
+	if alive ~= true then return false, "InvalidContext" end
+	local gloves = player.gloves
+	if not gloves or not find(gloves.list, uid) then return false, "NotOwnedGlove" end
+	gloves.equipped = uid
+	return true, uid
+end
+
+local function equippedGlove(player)
+	local gloves = player.gloves
+	if not gloves or gloves.equipped == nil then return nil end
+	local _, glove = find(gloves.list, gloves.equipped)
+	return glove and gloveCopy(glove) or nil
 end
 
 -- Items IT2: one held Tótem de la suerte is spent when placed. Where (away from camp) is the adapter's check.
@@ -977,7 +1007,9 @@ function State:snapshot(key)
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
-		gear = table.clone(gearOf(player)), vestReady = vestReady(player), luckTotems = player.luckTotems or 0,
+		-- NS7: every glove (detached), the worn one's uid and a copy of it for the effects.
+		gloves = glovesCopy(player), equippedGlove = player.gloves and player.gloves.equipped,
+		glove = equippedGlove(player), luckTotems = player.luckTotems or 0,
 		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,

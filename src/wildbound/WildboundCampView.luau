@@ -28,13 +28,27 @@ local RECIPES = table.freeze({
 	{ id = "totem", title = "Tótem", effect = "protege un objeto más; La Silueta te nota antes" },
 	{ id = "capsule", title = "Cápsula", effect = "guarda un objeto en el refugio" },
 })
--- Items and totem (plan Part 4, IT1): the equipment, in order. Names equal WildboundText.GEAR (a test checks).
-local GEAR = table.freeze({
-	{ id = "guantes", title = "Guantes de captura", owned = "equipados", effect = "calmas más rápido y el círculo es más ancho" },
-	{ id = "botas", title = "Botas", owned = "equipadas", effect = "correr gasta menos aliento" },
-	{ id = "chaleco", title = "Chaleco", owned = "equipado", effect = "aguanta un golpe que te derrotaría, una vez por salida" },
-	{ id = "amuleto", title = "Amuleto", owned = "equipado", effect = "La Silueta te olvida antes y el miedo pesa menos" },
+-- NS7: gloves with rolled stats. The words equal WildboundText.GEAR.stats and .rarity (a test checks); the order is
+-- WildboundGear.STATS.
+View.GLOVE_STATS = table.freeze({
+	{ id = "move", word = "Velocidad" }, { id = "steal", word = "Robo rápido" }, { id = "burst", word = "Recarga de impulso" },
+	{ id = "drain", word = "Aliento al correr" }, { id = "calm", word = "Calma" },
 })
+View.GLOVE_RARITY = table.freeze({ Comun = "comunes", Rara = "raros", Epica = "épicos", Legendaria = "legendarios" })
+
+-- "Guantes raros: +4,7% Velocidad, +12,0% Calma".
+function View.gloveText(glove)
+	local parts = {}
+	local stats = type(glove) == "table" and type(glove.stats) == "table" and glove.stats or {}
+	for _, stat in ipairs(View.GLOVE_STATS) do
+		local value = stats[stat.id]
+		if type(value) == "number" and value > 0 then
+			table.insert(parts, "+" .. (string.gsub(string.format("%.1f", value), "%.", ",")) .. "% " .. stat.word)
+		end
+	end
+	local rarity = type(glove) == "table" and View.GLOVE_RARITY[glove.rarity] or ""
+	return ("Guantes %s: %s"):format(rarity, table.concat(parts, ", "))
+end
 local SKILLS = table.freeze({
 	{ id = "explorer_1", title = "Rastro", effect = "puntos de recolección a %d studs", key = "nodeHintRange" },
 	{ id = "explorer_2", title = "Olfato", effect = "Nightbloom a %d studs de noche", key = "nightbloomHintRange" },
@@ -161,22 +175,22 @@ function View.campRows(config, economy, snapshot, ctx)
 		table.insert(rows, row("totem:on", "Craft", "Pon el tótem: protege un objeto más, pero La Silueta te percibe antes.",
 			"ArmTotem", "totem", "Poner", why == nil and not ctx.busy, why))
 	end
-	-- IT1: the equipment, one of each, crafted at camp and kept for the session.
-	local gear = type(snapshot.gear) == "table" and snapshot.gear or {}
+	-- NS7: gloves. One craft row (a random glove), then one row per glove: the worn one says so, the others are put on.
 	local gearSpecs = type(config.gear) == "table" and config.gear or {}
-	for _, item in ipairs(GEAR) do
-		local spec = gearSpecs[item.id]
-		if spec then
-			if gear[item.id] == true then
-				table.insert(rows, row("gear:" .. item.id, "Gear", ("%s (%s): %s."):format(item.title, item.owned, item.effect),
-					nil, nil, nil, false))
-			else
-				local why = reason(ctx, snapshot, spec.cost)
-				local made = row("gear:" .. item.id, "Gear", line(item.title, item.effect, spec.cost, why), "CraftGear", item.id,
-					"Fabricar", why == nil, why)
-				made.short = shortLine(item.title, spec.cost, why)
-				table.insert(rows, made)
-			end
+	local gloveSpec = gearSpecs.guantes
+	if gloveSpec then
+		local owned = type(snapshot.gloves) == "table" and snapshot.gloves or {}
+		local cap = gloveSpec.cap or 12
+		local why = reason(ctx, snapshot, gloveSpec.cost, #owned >= cap and ("Ya tienes el máximo (%d)"):format(cap) or nil)
+		local made = row("gear:guantes", "Gear", line("Guantes", "de 1 a 4 mejoras al azar según su rareza", gloveSpec.cost,
+			why), "CraftGear", "guantes", "Fabricar", why == nil, why)
+		made.short = shortLine("Guantes", gloveSpec.cost, why)
+		table.insert(rows, made)
+		for _, glove in ipairs(owned) do
+			local worn = glove.uid == snapshot.equippedGlove
+			table.insert(rows, row("glove:" .. tostring(glove.uid), "Gear",
+				View.gloveText(glove) .. (worn and " (puestos)." or "."), not worn and "EquipGlove" or nil,
+				not worn and glove.uid or nil, not worn and "Ponerte" or nil, not worn and not ctx.busy, nil))
 		end
 	end
 	-- IT2: the Tótem de la suerte, held up to its cap and placed away from camp.

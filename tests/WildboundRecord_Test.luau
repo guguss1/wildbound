@@ -74,9 +74,10 @@ return function(Record, Economy, Config, State, source)
 	-- Deliberately changed pin: schema 1 -> 2.
 	case("RT-1: a blank record is schema 2, valid, starts every counter at 1 and holds nothing at risk", function()
 		local record = Record.blank()
-		equal(Record.SCHEMA, 2)
-		equal(record.schema, 2)
-		deepEqual(record.incubating, {}); deepEqual(record.training, {})
+		-- NS7: schema 3 adds the gloves (deliberately changed pin: 2 -> 3).
+		equal(Record.SCHEMA, 3)
+		equal(record.schema, 3)
+		deepEqual(record.incubating, {}); deepEqual(record.training, {}); deepEqual(record.gloves, { owned = {} })
 		equal(record.revision, 0)
 		equal(record.nextUid, 1); equal(record.nextTrip, 1); equal(record.nextOp, 1)
 		equal(record.firstSealGranted, false)
@@ -291,7 +292,7 @@ return function(Record, Economy, Config, State, source)
 		equal(status, "Migrated")
 		valid(migrated, "golden v1 migrated")
 		local expected = Record.copy(golden)
-		expected.schema = Record.SCHEMA; expected.incubating = {}; expected.training = {}
+		expected.schema = Record.SCHEMA; expected.incubating = {}; expected.training = {}; expected.gloves = { owned = {} }
 		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), expected)
 	end)
 
@@ -384,6 +385,46 @@ return function(Record, Economy, Config, State, source)
 		equal(old.atRisk ~= nil, true, "the input is never changed")
 		local status0, from0 = Record.migrate({ ember = 3 })
 		equal(status0, "Migrated"); equal(from0.schema, Record.SCHEMA); valid(from0, "v0 through every step")
+	end)
+
+	-- Nest Heist Phase 3 (NS7): gloves with rolled stats are saved with the worn one.
+	case("RT-22: gloves survive the round trip with their stats and the worn one; the record checks every stat", function()
+		local profile = stateProfile()
+		profile.gloves = { list = { { uid = "u1", rarity = "Rara", stats = { move = 1.5, calm = 12 } },
+			{ uid = "u2", rarity = "Comun", stats = { drain = 9 } } }, equipped = "u2" }
+		local base = Record.blank(); base.nextUid = 3
+		local record = assert(Record.fromProfile(profile, base, { nowUnix = 1 }, Economy, Config))
+		valid(record, "with gloves")
+		equal(#record.gloves.owned, 2); equal(record.gloves.equippedUid, "u2")
+		equal(record.gloves.owned[1].stats.calm, 12)
+		local back = Record.toProfile(record, Economy, Config, 0)
+		equal(back.gloves.equipped, "u2"); equal(back.gloves.list[1].stats.move, 1.5); equal(back.gloves.list[2].rarity, "Comun")
+		equal(Record.toProfile(Record.blank(), Economy, Config, 0).gloves, nil, "a blank profile has no glove table")
+		local r = Record.copy(record); r.gloves.owned[1].stats.move = 99; invalid(r, "a stat over its cap")
+		r = Record.copy(record); r.gloves.owned[1].stats.stealth = 5; invalid(r, "an unknown stat")
+		r = Record.copy(record); r.gloves.owned[1].rarity = "Mitica"; invalid(r, "an unknown rarity")
+		r = Record.copy(record); r.gloves.equippedUid = "u9"; invalid(r, "a worn glove that is not owned")
+		r = Record.copy(record); r.gloves.owned[2].uid = "u1"; invalid(r, "a glove ID used twice")
+		profile.gloves.list[1].uid = "wb:5"
+		equal((Record.fromProfile(profile, base, { nowUnix = 1 }, Economy, Config)), nil, "session IDs are never saved")
+	end)
+
+	case("RT-23: migration 2 -> 3 adds the gloves and turns a legacy gear map into gloves or Esencia, safely", function()
+		local old = Record.blank()
+		old.schema = 2; old.gloves = nil; old.ember = 10; old.nextUid = 5
+		old.gear = { guantes = true, botas = true, chaleco = true, amuleto = true }
+		local status, migrated = Record.migrate(old)
+		equal(status, "Migrated")
+		valid(migrated, "migrated legacy gear")
+		equal(#migrated.gloves.owned, 2, "the Guantes and the Botas became gloves")
+		equal(migrated.gloves.owned[1].stats.calm, 9); equal(migrated.gloves.owned[2].stats.drain, 9)
+		equal(migrated.gloves.owned[1].uid, "u5"); equal(migrated.nextUid, 7)
+		equal(migrated.gloves.equippedUid, "u5")
+		equal(migrated.ember, 10 + 45 + 40, "the Chaleco and the Amuleto refund their Esencia")
+		equal(migrated.gear, nil, "the legacy map is gone")
+		local plain = Record.blank(); plain.schema = 2; plain.gloves = nil
+		local _, none = Record.migrate(plain)
+		deepEqual(none.gloves, { owned = {} })
 	end)
 
 	return result

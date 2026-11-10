@@ -249,13 +249,16 @@ return freeze({
 		vest = "El chaleco aguantó el golpe. Sigues marcado: el próximo te derrota.",
 		vestShort = "El chaleco te salvó. Sigues marcado.",
 	},
-	-- Items and totem (plan Part 4, IT1): the equipment's names. WildboundCampView repeats them; a test keeps them equal.
+	-- NS7: gloves with rolled stats replaced the four IT1 pieces. WildboundCampView repeats the stat and rarity words;
+	-- a test keeps them equal.
 	GEAR = {
-		guantes = "Guantes de captura",
-		botas = "Botas",
-		chaleco = "Chaleco",
-		amuleto = "Amuleto",
-		crafted = "%s: fabricado. Dura esta sesión.",
+		guantes = "Guantes",
+		crafted = "%s: fabricado.",
+		glovesCrafted = "Guantes %s: %s. Se guardan contigo.",
+		gloveWorn = "Te pusiste los guantes %s: %s.",
+		stats = { move = "Velocidad", steal = "Robo rápido", burst = "Recarga de impulso", drain = "Aliento al correr",
+			calm = "Calma" },
+		rarity = { Comun = "comunes", Rara = "raros", Epica = "épicos", Legendaria = "legendarios" },
 		-- IT2: the Tótem de la suerte.
 		totemSuerte = "Tótem de la suerte",
 		luckPlaced = "Tótem de la suerte puesto: el próximo hallazgo cercano sale más raro. Hace ruido.",
@@ -433,6 +436,10 @@ return freeze({
 		CollectionFull = "Llegaste al límite de la colección de esta sesión (100).",
 		NotOwnedEgg = "Elige uno de tus huevos guardados.",
 		NotOwnedPet = "Solo puedes equipar tus criaturas registradas.",
+		-- NS7: gloves.
+		GlovesFull = "Ya tienes el máximo de guantes.",
+		NotOwnedGlove = "Solo puedes ponerte tus propios guantes.",
+		InvalidRoll = "No se pudieron fabricar los guantes. Inténtalo de nuevo.",
 		NotOwnedPending = "Elige un objeto de tu bolsa.",
 		NoSeal = "No tienes sellos. Fabrica uno en el campamento; tu primera extracción también te da uno.",
 		AlreadyProtected = "Ya hay un objeto protegido.",

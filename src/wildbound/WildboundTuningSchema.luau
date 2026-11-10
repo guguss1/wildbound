@@ -234,13 +234,18 @@ Schema.SYSTEMS = table.freeze({
 		value("LIGHT_BRIGHTNESS", "Luz del compañero: brillo", "Refuge", "LIGHT_BRIGHTNESS", 1.2, 0, 5, 0.1),
 		value("LIGHT_RANGE", "Luz del compañero: alcance (studs)", "Refuge", "LIGHT_RANGE", 12, 0, 30, 1),
 	}) }),
-	-- Items and totem (plan Part 4): the equipment's effects. The Amuleto's fear softening is read on the client.
-	table.freeze({ id = "Gear", label = "Equipo y tótem", entries = table.freeze({
-		value("GLOVES_CALM", "Guantes: calma más rápida (x)", "Gear", "GLOVES_CALM", 1.3, 1, 2, 0.05),
-		value("GLOVES_RING", "Guantes: círculo más ancho (studs)", "Gear", "GLOVES_RING", 0.4, 0, 1, 0.05),
-		value("BOOTS_DRAIN", "Botas: gasto de aliento (x)", "Gear", "BOOTS_DRAIN", 0.7, 0.3, 1, 0.05),
-		value("AMULET_MEMORY", "Amuleto: memoria de La Silueta (-s)", "Gear", "AMULET_MEMORY", 1, 0, 4, 0.5),
-		value("AMULET_FEAR", "Amuleto: latido y miedo (x)", "Gear", "AMULET_FEAR", 0.6, 0, 1, 0.05, "client"),
+	-- NS7: the gloves' caps (percent; WildboundGear.HARD_CAPS bounds them again) and the rarity weights, then IT2's
+	-- luck totem.
+	table.freeze({ id = "Gear", label = "Guantes y tótem", entries = table.freeze({
+		value("MOVE_CAP", "Guantes: tope de Velocidad (%)", "Gear", "MOVE_CAP", 3, 0, 3, 0.5),
+		value("STEAL_CAP", "Guantes: tope de Robo rápido (%)", "Gear", "STEAL_CAP", 15, 0, 25, 1),
+		value("BURST_CAP", "Guantes: tope de Recarga de impulso (%)", "Gear", "BURST_CAP", 20, 0, 30, 1),
+		value("DRAIN_CAP", "Guantes: tope de Aliento al correr (%)", "Gear", "DRAIN_CAP", 30, 0, 40, 1),
+		value("CALM_CAP", "Guantes: tope de Calma (%)", "Gear", "CALM_CAP", 30, 0, 40, 1),
+		value("WEIGHT_COMUN", "Guantes: peso de Común", "Gear", "WEIGHT_COMUN", 60, 0, 100, 1),
+		value("WEIGHT_RARA", "Guantes: peso de Rara", "Gear", "WEIGHT_RARA", 28, 0, 100, 1),
+		value("WEIGHT_EPICA", "Guantes: peso de Épica", "Gear", "WEIGHT_EPICA", 10, 0, 100, 1),
+		value("WEIGHT_LEGENDARIA", "Guantes: peso de Legendaria", "Gear", "WEIGHT_LEGENDARIA", 2, 0, 100, 1),
 		-- IT2: the Tótem de la suerte.
 		value("LUCK_SECONDS", "Tótem de la suerte: dura (s)", "Gear", "LUCK_SECONDS", 60, 10, 600, 5),
 		value("LUCK_RADIUS", "Tótem de la suerte: radio (studs)", "Gear", "LUCK_RADIUS", 40, 10, 120, 5),

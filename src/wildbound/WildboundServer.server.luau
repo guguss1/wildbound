@@ -142,12 +142,6 @@ strikeEvent.Name, strikeEvent.Parent = "CaptureStrike", network
 -- M5.5: server-only totem holders for the world script, which applies the totem's downside.
 local totemEvent = Instance.new("BindableEvent")
 totemEvent.Name, totemEvent.Parent = "TotemChanged", network
--- Items IT1: the world script reports a defeating hit the owner's Chaleco kept as a mark. Server only.
-local gearUsed = Instance.new("BindableEvent")
-gearUsed.Name, gearUsed.Parent = "GearUsed", network
--- Items IT1: the owned gear and the Chaleco's charge for the world script (memory, the saved hit). Server only.
-local gearChanged = Instance.new("BindableEvent")
-gearChanged.Name, gearChanged.Parent = "GearChanged", network
 -- M5.6 reverse event: the world script reports a pulse that revealed Silueta to a player in the fog.
 local pulseHit = Instance.new("BindableEvent")
 pulseHit.Name, pulseHit.Parent = "PulseHit", network
@@ -362,7 +356,9 @@ local function applyCarry(player)
 	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
 	-- NS5: trained walk levels, only while unencumbered and never over Training.WALK_CAP (sprint and Burst keep theirs).
-	speed = Heist.Training.walkSpeed(speed, EconomyConfig.carry.baseSpeed, snapshot.training)
+	-- NS7: the worn glove's Velocidad rides on the same rule and cap.
+	speed = Heist.Training.walkSpeed(speed, EconomyConfig.carry.baseSpeed, snapshot.training,
+		Gear.moveBonus(snapshot.glove, EconomyConfig.carry.baseSpeed))
 	record.baseSpeed = speed
 	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
 	-- NH4: a running burst pushes the speed for its 0.8 s (capped, never stacked on the sprint).
@@ -377,25 +373,12 @@ end
 local refreshDisplay, syncCompanion
 -- RW3: set with the wave clock below; Esencia a player gains reaches the wave board.
 local bankEsencia
--- Items IT1: on change only, the owned gear and the Chaleco's charge go to the world script (a server-only event, as
--- the totem does), and ownership goes to the owner's client as attributes only this server writes (the Amuleto's
--- fear softening is presentation there).
+-- NS7: the worn glove's "Robo rápido" goes to the owner's client as an attribute only this server writes: it shortens
+-- that client's own egg prompts' hold (never under Gear.STEAL_FLOOR). Every other glove effect is applied here.
 local function syncGear(player, snapshot)
-	local record = records[player]
-	if not snapshot or not record then return end
-	local owned = type(snapshot.gear) == "table" and snapshot.gear or {}
-	local parts = {}
-	for _, id in ipairs(Gear.ITEMS) do
-		local name, value = Gear.attribute(id), owned[id] == true
-		if player:GetAttribute(name) ~= value then player:SetAttribute(name, value) end
-		if value then table.insert(parts, id) end
-	end
-	local ready = snapshot.vestReady == true
-	local key = table.concat(parts, ",") .. (ready and "|vest" or "")
-	if record.gearKey ~= key then
-		record.gearKey = key
-		gearChanged:Fire(player, table.clone(owned), ready)
-	end
+	if not snapshot or not records[player] then return end
+	local steal = Gear.effect(snapshot.glove, "steal")
+	if player:GetAttribute("WildboundGloveSteal") ~= steal then player:SetAttribute("WildboundGloveSteal", steal) end
 end
 -- card: a registration receipt for the presentation card (B3); the client words it with WildboundRefuge.card.
 local function send(player, action, ok, notice, lossSummary, card)
@@ -1691,8 +1674,8 @@ local function startCapture(player, entry)
 		wary = Wild.wary(entry.brain), tier = entry.slot.tier, sealRoll = rng:NextNumber(),
 		-- H2: this player's own capture skills; the rule clamps them.
 		calmRequired = skills.calmRequired, retryCooldown = skills.retryCooldown,
-		-- Items IT1: the Guantes de captura; the rule floors the meter and keeps the ring under its orbit.
-		calmRate = Gear.calmRate(snapshot.gear), ringBonus = Gear.ringBonus(snapshot.gear),
+		-- NS7: the worn glove's Calma; the rule floors the meter (CALM_MIN). Gloves never widen the ring.
+		calmRate = Gear.calmRate(snapshot.glove), ringBonus = 0,
 	})
 	if not ok then
 		counters.rejected += 1
@@ -1822,6 +1805,8 @@ spawnEncounter = function(slot)
 	end
 	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10,
 		isEgg and EggCarry.holdFor(rarity, slot.special) or 0)
+	-- NS7: each client shortens its own copy of a steal hold by its glove's "Robo rápido" (WildboundGloveSteal).
+	if isEgg then entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration) end
 	-- NH8: who is holding this prompt right now (the spawn clock holds the spawn meanwhile). Gone with the model.
 	entry.holders = {}
 	entry.prompt.PromptButtonHoldBegan:Connect(function(player)
@@ -2570,8 +2555,8 @@ local function updateStamina(now, dt)
 				blocked = capturing or hidden,
 				carrying = snapshot ~= nil and snapshot.carrying ~= nil, inCamp = safe,
 				regenScale = Rules.refugeAt(x, z) and WaveClock.live.REFUGE_REGEN or 1,
-				-- Items IT1: the Botas drain the sprint slower.
-				drainScale = Gear.drainScale(snapshot and snapshot.gear),
+				-- NS7: the worn glove's "Aliento al correr" drains the sprint slower.
+				drainScale = Gear.drainScale(snapshot and snapshot.glove),
 			}, now)
 			-- Dev tuning: a changed sprint value re-applies WalkSpeed at once, not only on the next stance change.
 			if out.changed or record.tuned ~= Stamina.version then
@@ -2660,17 +2645,30 @@ end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
-	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true }
+	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
 	if action == "CraftGear" then
-		-- Items IT1: one piece of equipment; the id is looked up in the server's config, never trusted.
+		-- The id is looked up in the server's config, never trusted. NS7: a glove's rarity and stats are rolled here, on
+		-- the server, from earned Esencia and materials only; the client sends nothing but the recipe id.
 		local spec = type(EconomyConfig.gear) == "table" and EconomyConfig.gear[argument] or nil
-		if not spec or (spec.kind ~= "equipment" and spec.kind ~= "luckTotem") then return end
+		if not spec or (spec.kind ~= "gloves" and spec.kind ~= "luckTotem") then return end
 		local alive, distance = context(player, campCenter)
-		local ok, result = state:craftGear(key, argument, alive, distance)
+		local roll = spec.kind == "gloves" and Gear.roll(function() return rng:NextNumber() end) or nil
+		local ok, result = state:craftGear(key, argument, alive, distance, roll)
 		if ok then analytics:spent(key, "craft") end -- the analytics schema has no "gear" kind; crafting it is
-		reply(player, action, ok, result, Text.GEAR.crafted:format(Text.GEAR[argument] or argument))
+		local words = Text.GEAR.crafted:format(Text.GEAR[argument] or argument)
+		if ok and spec.kind == "gloves" then
+			words = Text.GEAR.glovesCrafted:format(Text.GEAR.rarity[result.rarity] or result.rarity,
+				table.concat(Gear.describe(result, Text), ", "))
+		end
+		reply(player, action, ok, result, words)
+	elseif action == "EquipGlove" then
+		-- NS7: one glove is worn at a time; the uid must be one of this player's gloves (State checks).
+		local ok, result = state:equipGlove(key, argument, context(player))
+		local glove = ok and state:snapshot(key).glove or nil
+		reply(player, action, ok, result, glove and Text.GEAR.gloveWorn:format(Text.GEAR.rarity[glove.rarity] or glove.rarity,
+			table.concat(Gear.describe(glove, Text), ", ")) or nil)
 	elseif action == "PlaceLuck" then
 		-- Items IT2: the Tótem de la suerte goes at the player's own feet; the argument names it and nothing else.
 		if argument ~= Gear.LUCK then return end
@@ -2714,12 +2712,6 @@ local function economyAction(player, action, argument)
 	end
 end
 
--- Items IT1: a defeating hit the Chaleco kept as a mark. Only the world script fires this server-only event.
-gearUsed.Event:Connect(function(player, id)
-	if typeof(player) ~= "Instance" or not player:IsA("Player") or id ~= "chaleco" or not records[player] then return end
-	state:useVest(player.UserId)
-	send(player, "Vest", true, "")
-end)
 
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
@@ -2791,7 +2783,10 @@ function Heist.burst(player, record, now)
 		if session.playerKey == player.UserId then capturing = true end
 	end
 	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
-	local ok = Stamina.burst(record.stamina, now, { blocked = root == nil or context(player) ~= true or capturing or hidden })
+	-- NS7: the worn glove's "Recarga de impulso" shortens the cooldown (the rule keeps at least half of it).
+	local glove = (state:snapshot(player.UserId) or {}).glove
+	local ok = Stamina.burst(record.stamina, now, { blocked = root == nil or context(player) ~= true or capturing or hidden,
+		cooldownScale = Gear.burstScale(glove) })
 	if not ok or not root then return end
 	applyCarry(player)
 	player:SetAttribute("WildboundBurstReady", record.stamina.burstReadyAt)

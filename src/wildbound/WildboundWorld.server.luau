@@ -30,8 +30,6 @@ local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 local Hunters = require(script.Parent:WaitForChild("WildboundHunters"))
 -- Fix pass (FP4): the lunge, the fake retreat, the flashlight glare and the chase-start scream (pure, each toggleable).
 local Moves = require(script.Parent:WaitForChild("WildboundSiluetaMoves"))
--- Items and totem (plan Part 4, IT1): the Amuleto shortens her memory; the Chaleco keeps a defeating hit as a mark.
-local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
 -- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
 -- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
 local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
@@ -94,23 +92,6 @@ if pulseHit and not pulseHit:IsA("BindableEvent") then pulseHit = nil end
 -- Delivery C1: capture noise from the inventory script (ring and seal, with the slot tier). Missing means silence.
 local noiseEvent = network:FindFirstChild("GuardianNoise")
 if noiseEvent and not noiseEvent:IsA("BindableEvent") then noiseEvent = nil end
--- Items IT1: the owned gear and the Chaleco's charge come from the inventory script (server-only events, as the
--- totem does); a spent Chaleco is reported back, since the inventory script owns the once-per-expedition charge.
-local gearHolders = setmetatable({}, { __mode = "k" })
-local gearChanged = network:FindFirstChild("GearChanged")
-if gearChanged and gearChanged:IsA("BindableEvent") then
-	gearChanged.Event:Connect(function(player, owned, vestReady)
-		if typeof(player) == "Instance" and player:IsA("Player") then
-			gearHolders[player] = { owned = type(owned) == "table" and owned or {}, vest = vestReady == true }
-		end
-	end)
-end
-local gearUsed = network:FindFirstChild("GearUsed")
-if gearUsed and not gearUsed:IsA("BindableEvent") then gearUsed = nil end
-local function gearOf(player)
-	local holder = gearHolders[player]
-	return holder and holder.owned or {}
-end
 local totemEvent = network:FindFirstChild("TotemChanged")
 if totemEvent and totemEvent:IsA("BindableEvent") then
 	totemEvent.Event:Connect(function(player, active)
@@ -524,11 +505,6 @@ end
 local function applyRealStrike(h, context, effect, attack)
 	if damageMode ~= "private" then return false end
 	local humanoid = context.humanoid
-	-- Items IT1: the Chaleco kept this hit as a mark: health stays pinned, nothing more drops.
-	if effect == "Vest" then
-		humanoid.Health = math.min(humanoid.Health, MARKED_HEALTH)
-		return true, nil
-	end
 	if effect == "Defeated" then
 		humanoid:TakeDamage(humanoid.Health)
 		-- A ForceField or another script can keep the player alive; that is counted, never retried.
@@ -581,14 +557,7 @@ local function resolveImpact(h, now)
 		local strikeMode = FairStrike.strikeMode(damageMode, isLethal(target))
 		local out = FairStrike.resolve(ledger, attack,
 			{ guardian = guardianOk(h, attack), binding = binding, geometry = geometry }, now, strikeMode)
-		-- Items IT1: a defeating second mark on an owner whose Chaleco is ready is kept as a mark, once per expedition.
-		local holder = latest and gearHolders[latest.player]
-		if out.outcome == "strike" and out.effect == "Defeated" and holder and holder.vest
-			and FairStrike.absorb(ledger, attack.userId, attack.life) then
-			out.effect = "Vest"
-			holder.vest = false
-			if gearUsed then gearUsed:Fire(latest.player, "chaleco") end
-		end
+		-- NS7 (user decision 2026-11-10): the Chaleco is gone, so a defeating second mark always defeats.
 		local outcome, notice, dropped, noticeShort = "Missed", "", nil, nil
 		if out.outcome == "strike" and latest then
 			local applied, item = applyRealStrike(h, latest, out.effect, attack)
@@ -782,8 +751,8 @@ local function step(h, now, dt)
 			local current = { id = target.UserId, life = h.targetLife, valid = true, visible = candidate.visible }
 			if candidate.visible then current.position, current.distance = candidate.root.Position, candidate.distance end
 			-- Fix pass (FP2): no other player is ever a challenger, so the hunt never switches quarry.
-			-- Items IT1: the owner's Amuleto shortens how long she remembers a lost quarry.
-			local decision = Hunt.step(h.huntState, now, current, {}, Gear.memory(profile.memorySeconds, gearOf(target)))
+			-- NS7: the Amuleto is gone, so her memory is the profile's own.
+			local decision = Hunt.step(h.huntState, now, current, {}, profile.memorySeconds)
 			if decision.expired then
 				loseTarget(h, now, phase)
 			else

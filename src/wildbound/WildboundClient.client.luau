@@ -251,7 +251,7 @@ local actionRemote
 local receivedSnapshot = false
 local lastRequest = 0
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
-	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true }
+	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true }
 local function request(action, uid)
 	if not actionRemote then
 		showSticky(H.serverDown)
@@ -768,3 +768,19 @@ task.spawn(function()
 	task.wait(3)
 	if gui.Parent and not receivedSnapshot then showSticky(H.noResponse) end
 end)
+-- NS7: the worn glove's "Robo rápido" shortens this player's own egg prompts' hold. The server sets the base hold
+-- (WildboundStealHold) and the bonus (WildboundGloveSteal); Gear keeps the floor. Only this client's copy changes.
+do
+	local ProximityPromptService = game:GetService("ProximityPromptService")
+	local gearModule = ReplicatedStorage:WaitForChild("WildboundGear", 10)
+	local Gear = gearModule and require(gearModule) or nil
+	if Gear then
+		ProximityPromptService.PromptShown:Connect(function(shown)
+			local base = shown:GetAttribute("WildboundStealHold")
+			if type(base) ~= "number" then return end
+			local pct = Players.LocalPlayer:GetAttribute("WildboundGloveSteal")
+			local glove = { stats = { steal = type(pct) == "number" and pct or 0 } }
+			shown.HoldDuration = Gear.stealHold(base, glove, Gear.CONSTANTS.STEAL_FLOOR)
+		end)
+	end
+end
