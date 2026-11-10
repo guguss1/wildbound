@@ -125,6 +125,22 @@ Schema.SYSTEMS = table.freeze({
 		value("HIT_RANGE", "El golpe acierta a (studs)", "Island", "HIT_RANGE", 5, 1, 12, 0.5),
 		value("STRIKE_COOLDOWN", "Pausa entre golpes (s)", "Island", "STRIKE_COOLDOWN", 1.2, 0.3, 5, 0.1),
 		value("DAMAGE", "Daño por golpe (100 = muerte)", "Island", "DAMAGE", 35, 0, 100, 1),
+		-- Fix pass (FP5): the parents' pounce, egg recovery and noon sleep (a toggle is 1 on, 0 off).
+		value("PACK_CALL_SECONDS", "Llamada de la manada: tarda (s)", "Island", "PACK_CALL_SECONDS", 0, 0, 10, 0.5),
+		value("POUNCE_ON", "Salto del adulto (1 sí, 0 no)", "Island", "POUNCE_ON", 1, 0, 1, 1),
+		value("POUNCE_RANGE", "Salto: desde (studs)", "Island", "POUNCE_RANGE", 8, 4, 20, 0.5),
+		value("POUNCE_AFTER", "Salto: tras perseguir (s)", "Island", "POUNCE_AFTER", 1, 0, 10, 0.5),
+		value("POUNCE_TELL", "Salto: aviso (s)", "Island", "POUNCE_TELL", 0.5, 0.35, 2, 0.05),
+		value("POUNCE_COOLDOWN", "Salto: espera (s)", "Island", "POUNCE_COOLDOWN", 6, 1, 30, 0.5),
+		value("EGG_RECOVERY_ON", "Recuperan huevos caídos (1 sí, 0 no)", "Island", "EGG_RECOVERY_ON", 1, 0, 1, 1),
+		value("DEEP_SLEEP_ON", "Sueño profundo al mediodía (1 sí, 0 no)", "Island", "DEEP_SLEEP_ON", 1, 0, 1, 1),
+		value("DEEP_SCALE", "Sueño profundo: ruido x", "Island", "DEEP_SCALE", 0.7, 0.1, 1, 0.05),
+		value("DEEP_FROM", "Sueño profundo: desde (hora)", "Island", "DEEP_FROM", 11, 0, 24, 0.5),
+		value("DEEP_TO", "Sueño profundo: hasta (hora)", "Island", "DEEP_TO", 13, 0, 24, 0.5),
+		value("BREATH_AMPLITUDE", "Respiración: altura (studs)", "View", "BREATH_AMPLITUDE", 0.15, 0, 0.5, 0.01, "client"),
+		value("BREATH_SECONDS", "Respiración: ritmo (s)", "View", "BREATH_SECONDS", 3, 1, 10, 0.5, "client"),
+		value("BREATH_DEEP_SECONDS", "Respiración profunda: ritmo (s)", "View", "BREATH_DEEP_SECONDS", 4.5, 1, 12, 0.5,
+			"client"),
 	}) }),
 	table.freeze({ id = "Capture", label = "Captura", entries = table.freeze({
 		-- At least CALM_MIN (4): the per-player skill floor.

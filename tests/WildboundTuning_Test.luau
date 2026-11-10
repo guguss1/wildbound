@@ -90,7 +90,10 @@ return function(Schema, modules)
 			"Silueta.CHASE_DAY", "Silueta.CHASE_TWILIGHT", "Silueta.CHASE_NIGHT",
 			-- Fix pass (FP4): La Silueta's moves, each with a toggle.
 			"Silueta.LUNGE_ON", "Silueta.LUNGE_SPEED", "Silueta.FAKE_ON", "Silueta.FAKE_CHANCE", "Silueta.GLARE_ON",
-			"Silueta.GLARE_HOLD", "Silueta.SCREAM_ON", "Silueta.SCREAM_REACH" }) do
+			"Silueta.GLARE_HOLD", "Silueta.SCREAM_ON", "Silueta.SCREAM_REACH",
+			-- Fix pass (FP5): the parents' moves.
+			"Islands.POUNCE_ON", "Islands.POUNCE_RANGE", "Islands.EGG_RECOVERY_ON", "Islands.DEEP_SLEEP_ON", "Islands.DEEP_SCALE",
+			"Islands.BREATH_SECONDS" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

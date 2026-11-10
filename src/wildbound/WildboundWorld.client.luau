@@ -521,6 +521,32 @@ listen(RunService.Heartbeat, function(dt)
 	if not ok then gui:SetAttribute("HunterFadeError", tostring(message)) end
 end)
 
+-- Fix pass (FP5d): a sleeping island adult breathes on this client only (View.breath, slower in the deep noon sleep the
+-- server marks with "Deep"). A server pose (waking, a chase, a carried egg) moves it, which resets the resting frame.
+local breathing = {}
+local function breathe()
+	local now = os.clock()
+	for _, adult in ipairs(game:GetService("CollectionService"):GetTagged("WildboundIslandAdult")) do
+		if adult:IsA("Model") and adult.PrimaryPart and adult:GetAttribute("Awake") ~= true then
+			local pivot = adult:GetPivot()
+			local entry = breathing[adult]
+			if not entry or (pivot.Position - entry.applied.Position).Magnitude > 0.02 then
+				entry = { base = pivot, applied = pivot, offset = (adult:GetAttribute("Adult") or 0) * 0.7 }
+				breathing[adult] = entry
+			end
+			local lift = View.breath(now + entry.offset, adult:GetAttribute("Deep") == true)
+			entry.applied = CFrame.new(0, lift, 0) * entry.base
+			adult:PivotTo(entry.applied)
+		else
+			breathing[adult] = nil
+		end
+	end
+end
+listen(RunService.RenderStepped, function()
+	local ok, message = pcall(breathe)
+	if not ok then gui:SetAttribute("BreathError", tostring(message)) end
+end)
+
 -- Chase pass (CP1, CP3): sprint is shown and felt, and a close hunting Silueta is felt too. An always-on hint
 -- ("Shift: Correr", "L3: Correr"; touch has the button), a wider view while sprinting, and near a hunting Silueta a
 -- small camera shake and darker screen edges. The numbers are pure rules in WildboundHudView; "Efectos suaves" softens

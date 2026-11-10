@@ -39,6 +39,11 @@ View.CONSTANTS = table.freeze({
 	STALK_NEAR = 12,
 	-- Fix pass (FP2): another player's Silueta is drawn this faint on this client (1 = not drawn at all).
 	OTHER_SILUETA_FADE = 0.75,
+	-- Fix pass (FP5d): a sleeping island adult rises and falls this many studs, once per BREATH_SECONDS (slower in the
+	-- deep noon sleep).
+	BREATH_AMPLITUDE = 0.15,
+	BREATH_SECONDS = 3,
+	BREATH_DEEP_SECONDS = 4.5,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
@@ -509,6 +514,15 @@ end
 function View.hunterFade(ownerId, localId)
 	if finite(ownerId) and finite(localId) and ownerId == localId then return 0 end
 	return math.clamp(CONSTANTS.OTHER_SILUETA_FADE, 0, 1)
+end
+
+-- Fix pass (FP5d): a sleeping adult's breath at `seconds`: 0 at rest, BREATH_AMPLITUDE studs at the top, a smooth rise
+-- and fall once per BREATH_SECONDS (BREATH_DEEP_SECONDS in the deep noon sleep). Presentation only.
+function View.breath(seconds, deep)
+	if not finite(seconds) then return 0 end
+	local period = deep == true and CONSTANTS.BREATH_DEEP_SECONDS or CONSTANTS.BREATH_SECONDS
+	if not finite(period) or period <= 0 then return 0 end
+	return CONSTANTS.BREATH_AMPLITUDE * (1 - math.cos(2 * math.pi * seconds / period)) / 2
 end
 
 -- Look pass: how La Silueta's horror grin arrives when the server shows it (she starts a chase). A short snap from

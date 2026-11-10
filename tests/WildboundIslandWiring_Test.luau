@@ -130,5 +130,19 @@ return function(serverSource, worldSource, clientSource)
 		has(serverSource, "islandProbe.Parent = telemetry")
 	end)
 
+	-- Fix pass (FP5): how the server runs the parents' pounce, egg recovery and noon sleep.
+	case("FP5: the server tells a pounce, recovers dropped eggs and sets the noon sleep", function()
+		local steps = block(serverSource, "local function stepIslands(now, dt)", "\nend\n")
+		has(steps, "Island.setSleep(meter, clock)", "noon sleep from the day cycle")
+		has(steps, 'adult.model:SetAttribute("Deep", meter.deep == true)', "the clients slow the breathing")
+		has(steps, 'event == "PounceWindUp"', "the pounce tell")
+		has(steps, "Text.ISLAND.pounce", "a Spanish warning")
+		has(steps, "Island.recoverTarget(spec, eggDrops)", "a dropped egg inside the leash")
+		has(steps, "Island.carryStep(island.carry.state, dt)", "carried home at return speed")
+		has(steps, "state:loseDropped(", "the thief loses the egg it dropped")
+		has(serverSource, "returnToNest(island, ", "the nest takes the egg back")
+		has(serverSource, 'op == "eggDrop"', "the Studio-only probe drops an egg for the Play check")
+	end)
+
 	return result
 end

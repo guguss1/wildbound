@@ -103,5 +103,12 @@ return function(sources)
 		has(fear, 'item.Name == "HorrorGrin"')
 	end)
 
+	-- Fix pass (FP5d): sleeping parents breathe on every client (slower in the deep noon sleep); presentation only.
+	case("FP5d: the world client makes sleeping adults breathe through the pure rule", function()
+		local world = sources.world or ""
+		assert(world:find("View.breath(", 1, true), "the pure breathing rule")
+		assert(world:find('GetAttribute("Awake") ~= true', 1, true), "only a sleeping adult breathes")
+		assert(world:find('GetAttribute("Deep") == true', 1, true), "deep sleep breathes slower")
+	end)
 	return result
 end

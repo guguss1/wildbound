@@ -60,7 +60,26 @@ Island.CONSTANTS = table.freeze({
 	RESPAWN_FIRST = 8,
 	CROWDED_PLAYERS = 5,
 	CREATURE_SHARE = 0.7,
+	-- Fix pass (FP5, parents; each toggle is 1 on, 0 off). (a) Pack call: the island's adults share one meter, so when
+	-- one wakes the pack wakes with it, after PACK_CALL_SECONDS (0: at once; the plan allows up to 10 s).
+	PACK_CALL_SECONDS = 0,
+	-- (b) Pounce: a thief within POUNCE_RANGE (but outside STRIKE_REACH) after POUNCE_AFTER s of chase gets a
+	-- POUNCE_TELL s tell (the adult rears, as for a swing), then a leap that closes the gap to STRIKE_REACH, never past
+	-- the leash. The leap never hits: the ordinary strike wind-up (0.45 s) follows. POUNCE_COOLDOWN between leaps.
+	POUNCE_ON = 1,
+	POUNCE_RANGE = 8,
+	POUNCE_AFTER = 1,
+	POUNCE_TELL = 0.5,
+	POUNCE_COOLDOWN = 6,
+	-- (c) Egg recovery: an egg dropped inside the leash is fetched and carried to the nest at RETURN_SPEED.
+	EGG_RECOVERY_ON = 1,
+	-- (d) Sleep cycle: from DEEP_FROM to DEEP_TO o'clock of the day cycle every wake input is scaled by DEEP_SCALE.
+	DEEP_SLEEP_ON = 1,
+	DEEP_SCALE = 0.7,
+	DEEP_FROM = 11,
+	DEEP_TO = 13,
 })
+local POUNCE_TELL_FLOOR = 0.35 -- the readable-tell floor of every strike
 local FIRST = "I1"
 local HEART = "Heart"
 
@@ -89,6 +108,7 @@ function Island.tune(overrides)
 			if type(Island.CONSTANTS[key]) == "number" and finite(value) then C[key] = value end
 		end
 	end
+	C.POUNCE_TELL = math.max(C.POUNCE_TELL, POUNCE_TELL_FLOOR)
 end
 Island.tune(nil)
 
@@ -115,6 +135,8 @@ local function raise(meter, amount, capped)
 	local out = { stirred = false, woke = false, settled = false }
 	if meter.state ~= "Asleep" or not finite(amount) or amount <= 0 then return out end
 	if meter.first then amount *= C.FIRST_SCALE end
+	-- Fix pass (FP5d): the deep noon sleep scales every wake input.
+	if finite(meter.sleepScale) then amount *= meter.sleepScale end
 	local value = meter.value + amount
 	if capped then value = math.min(value, math.max(meter.value, C.FIRST_CAP)) end
 	meter.value = value
@@ -172,6 +194,19 @@ function Island.step(meter, dt, input)
 	return out
 end
 
+-- Fix pass (FP5d): how deeply the adults sleep at this hour of the day cycle (clockTime 0 to 24): DEEP_SCALE from
+-- DEEP_FROM to DEEP_TO, else 1. setSleep stores it on the meter (every wake input reads it) with meter.deep.
+function Island.sleepScale(clockTime)
+	if C.DEEP_SLEEP_ON < 0.5 or not finite(clockTime) then return 1 end
+	return (clockTime >= C.DEEP_FROM and clockTime < C.DEEP_TO) and C.DEEP_SCALE or 1
+end
+
+function Island.setSleep(meter, clockTime)
+	if type(meter) ~= "table" then return end
+	local scale = Island.sleepScale(clockTime)
+	meter.sleepScale, meter.deep = scale, scale < 1
+end
+
 -- The nest's next content: island 1 always a cria; island 5 a cria only at Dusk and Night; otherwise 70 % cria.
 function Island.rollContent(island, phase, rand)
 	if type(island) ~= "table" or type(rand) ~= "function" then return nil end
@@ -217,7 +252,8 @@ end
 function Island.newChase(island, point)
 	if type(island) ~= "table" or type(point) ~= "table" or not finite(point.x) or not finite(point.z) then return nil end
 	return { mode = "Wake", wake = C.WAKE_WINDUP, x = point.x, z = point.z, homeX = point.x, homeZ = point.z,
-		nestX = island.x, nestZ = island.z, left = C.CHASE_SECONDS, fx = 0, fz = 1, swing = 0, cooldown = 0 }
+		nestX = island.x, nestZ = island.z, left = C.CHASE_SECONDS, fx = 0, fz = 1, swing = 0, cooldown = 0,
+		chased = 0, pounce = 0, pounceCooldown = 0 }
 end
 
 local function moveToward(chase, tx, tz, distance)
@@ -253,10 +289,28 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		chase.mode = "Chase"
 		return nil
 	end
-	if chase.mode ~= "Chase" and chase.mode ~= "Strike" then return nil end
+	if chase.mode ~= "Chase" and chase.mode ~= "Strike" and chase.mode ~= "Pounce" then return nil end
 	local seen = finite(targetX) and finite(targetZ)
 	local event = nil
-	if chase.mode == "Strike" then
+	chase.pounceCooldown = math.max(0, (chase.pounceCooldown or 0) - dt)
+	if chase.mode == "Pounce" then
+		-- Fix pass (FP5b): stands still for the tell, then leaps to the strike reach of where the thief is now.
+		chase.pounce -= dt
+		if seen then moveToward(chase, targetX, targetZ, 0) end
+		if chase.pounce <= 1e-9 then
+			chase.mode, chase.pounceCooldown = "Chase", C.POUNCE_COOLDOWN
+			if seen then
+				local gap = distanceTo(chase, targetX, targetZ)
+				if gap > C.STRIKE_REACH then moveToward(chase, targetX, targetZ, gap - C.STRIKE_REACH) end
+				local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
+				local out = math.sqrt(ox * ox + oz * oz)
+				if out > C.CHASE_LEASH then
+					chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
+				end
+			end
+			event = "Pounce"
+		end
+	elseif chase.mode == "Strike" then
 		chase.swing -= dt
 		if seen then moveToward(chase, targetX, targetZ, 0) end
 		if chase.swing <= 1e-9 then
@@ -265,7 +319,15 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		end
 	else
 		chase.cooldown = math.max(0, chase.cooldown - dt)
-		if seen then
+		chase.chased = (chase.chased or 0) + dt
+		local gap = seen and distanceTo(chase, targetX, targetZ) or math.huge
+		if seen and C.POUNCE_ON >= 0.5 and chase.chased + 1e-9 >= C.POUNCE_AFTER and chase.pounceCooldown <= 1e-9
+			and gap <= C.POUNCE_RANGE and gap > C.STRIKE_REACH then
+			-- Fix pass (FP5b): the pounce tell; it faces the thief and stands still.
+			moveToward(chase, targetX, targetZ, 0)
+			chase.mode, chase.pounce = "Pounce", C.POUNCE_TELL
+			event = "PounceWindUp"
+		elseif seen then
 			moveToward(chase, targetX, targetZ, C.CHASE_SPEED * dt)
 			local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
 			local out = math.sqrt(ox * ox + oz * oz)
@@ -284,6 +346,44 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		return "GaveUp"
 	end
 	return event
+end
+
+-- Fix pass (FP5c): which dropped egg an island goes to fetch. drops = list of { key, kind, x, z }: the nearest "Egg"
+-- within CHASE_LEASH of the nest, or nil.
+function Island.recoverTarget(island, drops)
+	if C.EGG_RECOVERY_ON < 0.5 or type(island) ~= "table" or type(drops) ~= "table" then return nil end
+	local best, bestD = nil, math.huge
+	for _, drop in ipairs(drops) do
+		if type(drop) == "table" and drop.kind == "Egg" and finite(drop.x) and finite(drop.z) then
+			local d = math.sqrt((drop.x - island.x) ^ 2 + (drop.z - island.z) ^ 2)
+			if d <= C.CHASE_LEASH and d < bestD then best, bestD = drop, d end
+		end
+	end
+	return best
+end
+
+-- An adult walks from its point to the egg ("Fetch"), picks it up (event "Picked"), walks it to the nest ("Carry") and
+-- arrives (event "Home"), at RETURN_SPEED throughout.
+function Island.newCarry(island, point, drop)
+	if type(island) ~= "table" or type(point) ~= "table" or type(drop) ~= "table" then return nil end
+	return { mode = "Fetch", x = point.x, z = point.z, fx = 0, fz = 1, eggX = drop.x, eggZ = drop.z,
+		nestX = island.x, nestZ = island.z, key = drop.key }
+end
+
+function Island.carryStep(carry, dt)
+	if type(carry) ~= "table" or not finite(dt) or dt <= 0 then return nil end
+	if carry.mode == "Fetch" then
+		if moveToward(carry, carry.eggX, carry.eggZ, C.RETURN_SPEED * dt) then
+			carry.mode = "Carry"
+			return "Picked"
+		end
+	elseif carry.mode == "Carry" then
+		if moveToward(carry, carry.nestX, carry.nestZ, C.RETURN_SPEED * dt) then
+			carry.mode = "Home"
+			return "Home"
+		end
+	end
+	return nil
 end
 
 -- Chase pass (CP-D5): what one landed adult strike does. input = { carrying = this island's cria is carried,

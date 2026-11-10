@@ -164,6 +164,9 @@ return freeze({
 		strike = "¡Va a golpearte! Apártate.",
 		hit = "¡Otro golpe! Aléjate del nido.",
 		screamHeard = "Un grito lejano... algo se acerca.",
+		-- Fix pass (FP5): the adult's pounce tell, and an egg an adult carried back to its nest.
+		pounce = "¡Va a saltarte encima! Esquívalo.",
+		eggRecovered = "Un adulto devolvió tu huevo a su nido.",
 	},
 	-- Expedition islands (I7): the starter upgrade on the board.
 	UPGRADE = {

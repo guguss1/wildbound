@@ -654,5 +654,21 @@ return function(View, source, islandLayout)
 		equal(full.fromAlpha, 1); equal(soft.fromAlpha, 1)
 		equal(View.grinPop("yes").fromScale, full.fromScale, "anything but true is the full pop")
 	end)
+	-- Fix pass (FP5d): a sleeping adult's breathing: a slow rise and fall, slower and deeper at noon.
+	case("FP5d: breathing pulse", function()
+		local amp = CONST.BREATH_AMPLITUDE
+		assert(amp > 0 and amp <= 0.5, "a small rise")
+		equal(View.breath(0, false), 0, "starts at rest")
+		local peak = View.breath(CONST.BREATH_SECONDS / 2, false)
+		assert(math.abs(peak - amp) < 1e-6, "peak at half a breath: " .. tostring(peak))
+		local deepPeak = View.breath(CONST.BREATH_DEEP_SECONDS / 2, true)
+		assert(math.abs(deepPeak - amp) < 1e-6, "deep peak")
+		assert(CONST.BREATH_DEEP_SECONDS > CONST.BREATH_SECONDS, "deep sleep breathes slower")
+		equal(View.breath(0 / 0, false), 0)
+		for t = 0, 6, 0.25 do
+			local v = View.breath(t, t > 3)
+			assert(v >= -1e-9 and v <= amp + 1e-9, "inside the range")
+		end
+	end)
 	return result
 end

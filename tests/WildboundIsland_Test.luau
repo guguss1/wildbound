@@ -316,5 +316,123 @@ return function(Island, layout)
 		assert(Island.chaseStep(chase, 0 / 0, 0, 0) == nil and chase.x == x, "bad dt")
 	end)
 
+	-- Fix pass (FP5): the parents' new behaviours, each behind a toggle (1 on, 0 off; default on).
+	case("FP5a: pack call: when the island wakes, every adult of it is awake at once (well inside 10 s)", function()
+		-- One shared meter per island (I2): a wake is one event for every adult, so the pack answers in 0 s.
+		local meter = Island.newMeter(island("I2"))
+		local out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		assert(out.woke == true and meter.state == "Alert", "the island woke")
+		assert(Island.CONSTANTS.PACK_CALL_SECONDS <= 10, "the pack answers within 10 s")
+	end)
+
+	case("FP5b: a pounce: a thief within 8 studs after 1 s of chase gets a 0.5 s telegraphed leap that closes the gap", function()
+		Island.tune(nil)
+		local C = Island.CONSTANTS
+		assert(C.POUNCE_ON == 1 and C.POUNCE_RANGE == 8 and C.POUNCE_AFTER == 1 and C.POUNCE_TELL == 0.5
+			and C.POUNCE_COOLDOWN == 6, "the plan's numbers")
+		assert(C.POUNCE_TELL >= 0.35, "a readable tell")
+		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+		Island.chaseStep(chase, C.WAKE_WINDUP + 0.01, 0, 0) -- stands up
+		-- The thief keeps out of reach for 0.8 s (12 studs ahead, beyond the 8-stud pounce), then is 7 studs ahead.
+		local event
+		for _ = 1, 4 do
+			event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 12)
+			assert(event ~= "PounceWindUp" and event ~= "WindUp", "no pounce and no swing yet")
+		end
+		event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 7)
+		near(chase.chased, 1, 1e-6, "chased")
+		assert(event == "PounceWindUp" and chase.mode == "Pounce", "the tell starts: " .. tostring(event))
+		local x, z = chase.x, chase.z
+		event = Island.chaseStep(chase, 0.4, x, z + 7)
+		assert(chase.mode == "Pounce" and chase.x == x and chase.z == z, "still during the tell")
+		event = Island.chaseStep(chase, 0.1, x, z + 7)
+		assert(event == "Pounce", "the leap: " .. tostring(event))
+		local gap = math.sqrt((chase.x - x) ^ 2 + (chase.z - (z + 7)) ^ 2)
+		assert(gap <= C.STRIKE_REACH + 1e-6, "the gap is closed to the strike reach: " .. gap)
+		-- The leap never hits by itself: the next step starts the ordinary, readable strike wind-up.
+		event = Island.chaseStep(chase, 0.1, x, z + 7)
+		assert(event == "WindUp", "then the normal strike tell: " .. tostring(event))
+		assert(chase.pounceCooldown > 5, "cooldown 6 s")
+	end)
+
+	case("FP5b: no pounce beyond 8 studs, inside the strike reach, during the cooldown, past the leash or when off", function()
+		Island.tune(nil)
+		local function pounces(distance, overrides, leash)
+			Island.tune(overrides)
+			local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+			Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+			chase.chased = 2
+			local event = Island.chaseStep(chase, 0.01, chase.x, chase.z + distance)
+			Island.tune(nil)
+			return event == "PounceWindUp"
+		end
+		assert(pounces(7.5) == true, "7.5 studs")
+		assert(pounces(8.5) == false, "beyond 8")
+		assert(pounces(3) == false, "inside the strike reach the swing comes first")
+		assert(pounces(7.5, { POUNCE_ON = 0 }) == false, "toggle off")
+		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+		Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+		chase.chased, chase.pounceCooldown = 2, 3
+		assert(Island.chaseStep(chase, 0.01, chase.x, chase.z + 7.5) ~= "PounceWindUp", "cooldown")
+		-- The leap never carries the adult past its leash.
+		local far = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 30 })
+		Island.chaseStep(far, Island.live.WAKE_WINDUP + 0.01, 0, 30)
+		far.chased = 2
+		Island.chaseStep(far, 0.01, 0, 37.5)
+		Island.chaseStep(far, 0.6, 0, 37.5)
+		assert(math.sqrt(far.x ^ 2 + far.z ^ 2) <= Island.live.CHASE_LEASH + 1e-6, "inside the leash")
+	end)
+
+	case("FP5c: egg recovery: the nearest dropped egg inside the leash is fetched and carried home at return speed", function()
+		Island.tune(nil)
+		local spec = { id = "I3", x = 0, z = 0 }
+		local drops = { { key = "a", kind = "Creature", x = 2, z = 0 }, { key = "b", kind = "Egg", x = 30, z = 0 },
+			{ key = "c", kind = "Egg", x = 10, z = 0 }, { key = "d", kind = "Egg", x = 36, z = 0 } }
+		local target = Island.recoverTarget(spec, drops)
+		assert(target and target.key == "c", "the nearest egg inside the leash, never a creature")
+		assert(Island.recoverTarget(spec, { { key = "d", kind = "Egg", x = 36, z = 0 } }) == nil, "outside the leash")
+		Island.tune({ EGG_RECOVERY_ON = 0 })
+		assert(Island.recoverTarget(spec, drops) == nil, "toggle off")
+		Island.tune(nil)
+		local carry = Island.newCarry(spec, { x = 0, z = 5 }, target)
+		local event = Island.carryStep(carry, 0.5)
+		near(carry.x, 0 + 0.5 * Island.live.RETURN_SPEED * 10 / math.sqrt(125), 1e-6, "walks at return speed")
+		local picked, home
+		for _ = 1, 40 do
+			event = Island.carryStep(carry, 0.25)
+			if event == "Picked" then picked = true end
+			if event == "Home" then home = true break end
+		end
+		assert(picked and home, "picked the egg up, then home")
+		assert(carry.x == 0 and carry.z == 0, "at the nest")
+	end)
+
+	case("FP5d: deeper sleep at noon: every wake input x0.7 from 11:00 to 13:00 of the day cycle", function()
+		Island.tune(nil)
+		assert(Island.CONSTANTS.DEEP_SCALE == 0.7 and Island.CONSTANTS.DEEP_FROM == 11 and Island.CONSTANTS.DEEP_TO == 13)
+		assert(Island.sleepScale(12) == 0.7 and Island.sleepScale(11) == 0.7, "noon")
+		assert(Island.sleepScale(13) == 1 and Island.sleepScale(10.9) == 1 and Island.sleepScale(0) == 1, "otherwise")
+		assert(Island.sleepScale(0 / 0) == 1, "unknown time reads as normal sleep")
+		local deep, light = Island.newMeter(island("I2")), Island.newMeter(island("I2"))
+		Island.setSleep(deep, 12)
+		Island.setSleep(light, 9)
+		Island.event(deep, "SprintNoise")
+		Island.event(light, "SprintNoise")
+		near(deep.value, light.value * 0.7, 1e-6, "an event")
+		local input = { inside = true, sprint = true, phase = "Day" }
+		local a, b = Island.newMeter(island("I2")), Island.newMeter(island("I2"))
+		Island.setSleep(a, 12)
+		Island.step(a, 0.2, input)
+		Island.step(b, 0.2, input)
+		near(a.value, b.value * 0.7, 1e-6, "a step")
+		assert(a.deep == true and b.deep ~= true, "the meter says whether it sleeps deeply (the breathing slows)")
+		Island.tune({ DEEP_SLEEP_ON = 0 })
+		assert(Island.sleepScale(12) == 1, "toggle off")
+		Island.tune(nil)
+	end)
+
 	return result
 end

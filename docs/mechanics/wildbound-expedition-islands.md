@@ -318,3 +318,14 @@ User: "scarier, faster; capturing must be an adrenaline rush; the parents chase 
 
 What a player now sees and hears is in the feature document (FA3): the shouts, the red edge, the hit's push and flash, the heartbeat and the roar.
 
+## Fix pass FP5: the parents (2026-11-09)
+
+Pure rules in `src/wildbound/WildboundIsland.luau`, wired in the inventory server; each has a tuning toggle (1 on, 0 off, all on by default) under Islas y adultos. Damage (35) and the leash (35) are unchanged.
+
+| Behaviour | Rule |
+| --- | --- |
+| Pack call | The adults of an island share one sleep meter, so when one wakes the whole pack wakes at the same instant (`PACK_CALL_SECONDS` 0; the plan allows up to 10 s). Whether the pack should also join the chase is an open question for the user |
+| Pounce | A thief within 8 studs (and outside the 3.5-stud strike reach) after 1 s of chase: the adult rears for 0.5 s (the swing's pose, eye colour and crack, plus "¡Va a saltarte encima! Esquívalo."), then leaps to the strike reach, never past the leash; the ordinary 0.45 s strike wind-up follows, so the leap itself never hits. Cooldown 6 s |
+| Egg recovery | An egg dropped inside the leash (a first strike drops the newest bag item) is fetched by the nearest adult at return speed (8) and carried to the nest; when the adult picks it up the thief loses it ("Un adulto devolvió tu huevo a su nido."), and the nest takes it back if its slot is free. Never during a chase |
+| Sleep cycle | Sleeping adults breathe on every client (0.15 studs, once per 3 s; 4.5 s in deep sleep). From 11:00 to 13:00 of the day cycle every wake input is x0.7 (the server marks the adults `Deep`) |
+

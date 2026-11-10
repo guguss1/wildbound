@@ -747,6 +747,14 @@ local READOUT = { sleep = Color3.fromRGB(170, 205, 255), stir = Color3.fromRGB(2
 	alert = Color3.fromRGB(255, 70, 70) }
 
 -- The phase, with the Studio-only Play clock shift the world script also reads (D-D7), so both agree in Play.
+local function islandCycle()
+	local world = map:FindFirstChild("WildboundWorldRuntime")
+	local origin = world and world:GetAttribute("CycleStartedAt")
+	local shift = 0
+	local value = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
+	if value and value:IsA("NumberValue") and Rules.finite(value.Value) then shift = value.Value end
+	return Rules.cycle((Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0) + shift)
+end
 local function islandPhase()
 	local world = map:FindFirstChild("WildboundWorldRuntime")
 	local origin = world and world:GetAttribute("CycleStartedAt")
@@ -868,13 +876,15 @@ local function scheduleRespawn(slot)
 end
 
 -- EI-2: a caught thief's cria runs home. The nest takes it back at once (a scheduled respawn is cancelled).
-local function returnCriaToNest(island, from)
-	local slot = nestSlot(island, 1, "Creature")
+-- Fix pass (FP5c): an egg an adult carried home goes back the same way (kind "Egg").
+local function returnToNest(island, from, kind)
+	kind = kind == "Egg" and "Egg" or "Creature"
+	local slot = nestSlot(island, 1, kind)
 	local current = nestState[slot.id]
 	if current ~= nil and current ~= "wait" then return end
 	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
 	nestState[slot.id] = "returning"
-	local model = visual("Creature", from, island.spec.species, Species.CRIA_SCALE)
+	local model = visual(kind, from, island.spec.species, Species.CRIA_SCALE)
 	model.Name = "WildboundReturning"
 	local goal = Vector3.new(slot.x, relief:heightAt(slot.x, slot.z) + MARKER_LIFT, slot.z)
 	local clock = Instance.new("NumberValue")
@@ -974,7 +984,7 @@ local function adultHit(island, player)
 	local dropped = false
 	if effect.drop and state:releaseCarried(player.UserId) then
 		dropped = true
-		returnCriaToNest(island, root and root.Position or Vector3.new(island.spec.x, 3, island.spec.z))
+		returnToNest(island, root and root.Position or Vector3.new(island.spec.x, 3, island.spec.z), "Creature")
 	end
 	if effect.damage > 0 then
 		local character = player.Character
@@ -986,8 +996,11 @@ local function adultHit(island, player)
 	send(player, "IslandCaught", false, dropped and Text.ISLAND.caught or Text.ISLAND.hit)
 end
 
+-- Fix pass (FP5c): the dropped items live further down (D6); the islands read them to recover eggs.
+local drops, removeDrop = {}, nil
 local function stepIslands(now, dt)
 	if #islandList == 0 then return end
+	local clock = islandCycle().clockTime
 	local phase = islandPhase()
 	local readings = islandReadings()
 	local lulled = {}
@@ -998,6 +1011,14 @@ local function stepIslands(now, dt)
 	local C = Island.live
 	for _, island in ipairs(islandList) do
 		local spec, meter = island.spec, island.meter
+		-- Fix pass (FP5d): the deep noon sleep scales every wake input; the clients slow the breathing.
+		Island.setSleep(meter, clock)
+		for _, adult in ipairs(island.adults) do
+			if adult.deep ~= (meter.deep == true) then
+				adult.deep = meter.deep == true
+				adult.model:SetAttribute("Deep", meter.deep == true)
+			end
+		end
 		local radius = Island.wakeRadius(spec, phase)
 		local input = { inside = false, linger = false, sprint = false, light = false, farol = true,
 			lulling = lulled[spec.id] == true, phase = phase, firstSteal = false }
@@ -1047,8 +1068,11 @@ local function stepIslands(now, dt)
 			local live = root ~= nil and context(target) == true
 			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
 			local c = chase.state
-			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike")
+			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike" or c.mode == "Pounce")
 			if event == "WindUp" then send(target, "IslandStrike", false, Text.ISLAND.strike) end
+			-- Fix pass (FP5b): the pounce's tell is the same rearing pose and crack as a swing, plus a warning.
+			if event == "PounceWindUp" then send(target, "IslandPounce", false, Text.ISLAND.pounce) end
+			if event == "Pounce" then islandLog("pounce", spec.id, target.UserId) end
 			if event == "Hit" and live then adultHit(island, target) end
 			if event == "Missed" then islandLog("missed", spec.id, target.UserId) end
 			if event == "GaveUp" then islandLog("gaveUp", spec.id, target.UserId) end
@@ -1058,6 +1082,54 @@ local function stepIslands(now, dt)
 				if meter.state ~= "Alert" then
 					for _, adult in ipairs(island.adults) do poseAdult(adult, false) end
 				end
+			end
+		end
+		-- Fix pass (FP5c): an egg dropped inside the leash is fetched by the nearest adult and carried to the nest at
+		-- return speed; its thief loses it when the adult picks it up. Never during a chase.
+		if not island.chase and not island.carry then
+			local eggDrops = {}
+			for uid, drop in pairs(drops) do
+				if drop.kind == "Egg" and not drop.claimed and drop.model.Parent then
+					local at = drop.model:GetPivot().Position
+					table.insert(eggDrops, { key = uid, kind = "Egg", x = at.X, z = at.Z })
+				end
+			end
+			local target = Island.recoverTarget(spec, eggDrops)
+			if target then
+				local best, bestD
+				for _, adult in ipairs(island.adults) do
+					local d = math.sqrt((adult.point.x - target.x) ^ 2 + (adult.point.z - target.z) ^ 2)
+					if not bestD or d < bestD then best, bestD = adult, d end
+				end
+				if best then
+					drops[target.key].claimed = true
+					island.carry = { state = Island.newCarry(spec, best.point, target), adult = best, uid = target.key }
+					islandLog("eggFetch", spec.id, 0)
+				end
+			end
+		end
+		local carry = island.carry
+		if carry then
+			local event = Island.carryStep(island.carry.state, dt)
+			local c = carry.state
+			poseAdult(carry.adult, true, c.x, c.z, c.fx, c.fz)
+			if event == "Picked" then
+				local drop = drops[carry.uid]
+				if drop then
+					local owner = drop.owner
+					removeDrop(carry.uid)
+					carry.has = true
+					if state:loseDropped(owner.UserId, carry.uid) and owner.Parent == Players then
+						send(owner, "DropLost", false, Text.ISLAND.eggRecovered)
+					end
+				end
+			elseif event == "Home" or c.mode == "Home" then
+				if carry.has then
+					returnToNest(island, Vector3.new(c.x, relief:heightAt(c.x, c.z) + MARKER_LIFT, c.z), "Egg")
+					islandLog("eggHome", spec.id, 0)
+				end
+				island.carry = nil
+				poseAdult(carry.adult, meter.state == "Alert")
 			end
 		end
 		telemetry:SetAttribute("Island_" .. spec.id, ("%s %.1f%s"):format(meter.state, meter.value,
@@ -1264,8 +1336,8 @@ end)
 
 -- Dropped items (D6, M4.6). Each lies near its owner for 30 s; only the owner can pick it up.
 local DROP_SECONDS = 30
-local drops = {}
-local function removeDrop(uid)
+-- `drops` and `removeDrop` are declared above stepIslands (fix pass FP5c).
+function removeDrop(uid)
 	local drop = drops[uid]
 	if not drop then return nil end
 	drops[uid] = nil
@@ -1295,7 +1367,7 @@ local function spawnDrop(player, entry, towardX, towardZ)
 	local model, body = visual(entry.kind, Vector3.new(x, groundAt(x, z), z))
 	model.Name = "DroppedItem"
 	model:SetAttribute("OwnerUserId", player.UserId)
-	local drop = { owner = player, uid = entry.uid, model = model }
+	local drop = { owner = player, uid = entry.uid, model = model, kind = entry.kind }
 	drop.prompt = prompt(body, notices.pickUp, notices.droppedObject:format(itemName(entry)), 10, 0.25)
 	drop.connection = drop.prompt.Triggered:Connect(function(who)
 		if drops[entry.uid] ~= drop or not validPrompt(drop.prompt, body) then return end
@@ -1486,6 +1558,21 @@ if RunService:IsStudio() then
 			local player = playersByUserId[value]
 			if player then send(player, "Extract", banked == true, "") end
 			return banked == true, uid
+		end
+		-- Fix pass (FP5c): put one egg in a real player's bag (its UserId in value) and drop it at their feet, as a first
+		-- strike would, so the Play check can watch an adult carry it home. Studio only, like every op here.
+		if op == "eggDrop" and type(value) == "number" then
+			probeEggs += 1
+			local encounter = "probe_egg_" .. probeEggs
+			state:registerEncounter(encounter, "Egg")
+			local ok, uid = state:pickup(value, encounter, true, 0)
+			if not ok then return false, uid end
+			local player = playersByUserId[value]
+			local dropped, entry = state:dropForStrike(value, "probe_drop_" .. probeEggs)
+			if not (dropped and entry and player) then return false, "NoDrop" end
+			local root = rootOf(player)
+			spawnDrop(player, entry, root and root.Position.X or 0, root and root.Position.Z + 1 or 0)
+			return true, entry.uid
 		end
 		local island = type(id) == "string" and islands[id] or nil
 		if not island then return false, "UnknownIsland" end
