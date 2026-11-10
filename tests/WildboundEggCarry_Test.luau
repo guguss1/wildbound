@@ -458,5 +458,41 @@ return function(EggCarry, source, sources)
 		has(studio, "best.trigger(player)"); has(studio, "pickupEgg(player, best)"); has(studio, "dropEgg(player,")
 	end)
 
+
+	-- Nest Heist hub (HB-T7, verifier finding): the steal hold is measured on the server. A client that skips the hold
+	-- (a zero-length local hold, or a trigger fired with no hold) no longer steals.
+	case("HB-T7: a steal counts only after a continuous hold of the effective time, less a small latency allowance", function()
+		local need = 0.8
+		equal(EggCarry.HOLD_ALLOWANCE > 0 and EggCarry.HOLD_ALLOWANCE <= 0.25, true, "a small allowance")
+		local a = EggCarry.HOLD_ALLOWANCE
+		equal(EggCarry.holdComplete({ at = 10 }, 10.8, need), true, "a full hold")
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - a, need), true, "on the allowance")
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need - a - 0.01, need), false, "short")
+		equal(EggCarry.holdComplete(nil, 10.8, need), false, "no hold began on the server")
+		equal(EggCarry.holdComplete({ at = 10, ended = 10.3 }, 10.8, need), false, "released early, then triggered")
+		equal(EggCarry.holdComplete({ at = 10, ended = 10.79 }, 10.8, need), true, "the release that comes with the trigger")
+		equal(EggCarry.holdComplete({ at = 10 }, 10 + need + EggCarry.HOLD_GRACE + 0.01, need), false, "a stale begin")
+		equal(EggCarry.holdComplete({ at = 11 }, 10.8, need), false, "a begin in the future")
+		for _, bad in ipairs({ 0 / 0, math.huge, "1" }) do
+			equal(EggCarry.holdComplete({ at = 10 }, bad, need), false, "now " .. tostring(bad))
+			equal(EggCarry.holdComplete({ at = bad }, 10.8, need), false, "at " .. tostring(bad))
+		end
+		equal(EggCarry.holdComplete(nil, 10, 0), true, "no hold needed (a cria's tap)")
+	end)
+	case("HB-T7: the server records each player's hold and checks it, with the glove, before a steal", function()
+		local spawnBlock = block(server, "entry.holders = {}", "entry.trigger = function(player)")
+		has(spawnBlock, "entry.holdStarts = {}")
+		has(spawnBlock, "entry.holdStarts[player] = { at = workspace:GetServerTimeNow() }", "the hold begins on the server")
+		has(spawnBlock, "hold.ended = workspace:GetServerTimeNow()", "and its release")
+		local trigger = block(server, "entry.trigger = function(player)", "entry.connection = entry.prompt.Triggered")
+		local measured = trigger:find("EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(),", 1, true)
+		local steal = trigger:find("EggCarry.canSteal(eggs, id, player.UserId)", 1, true)
+		assert(measured and steal and measured < steal, "the hold is checked before the steal")
+		has(trigger, 'Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),', "the player's own effective hold")
+		has(trigger, 'player:GetAttribute("WildboundGloveSteal")', "the glove's bonus the server wrote")
+		local studio = block(server, 'if op == "steal" then', "best.trigger(player)")
+		has(studio, "best.holdStarts[player] = { at = ", "the Studio probe completes a hold first")
+	end)
+
 	return result
 end

@@ -1819,11 +1819,16 @@ spawnEncounter = function(slot)
 	if isEgg then entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration) end
 	-- NH8: who is holding this prompt right now (the spawn clock holds the spawn meanwhile). Gone with the model.
 	entry.holders = {}
+	-- HB-T7: and each player's own hold as the server saw it (when it began, when it was released), for the steal check.
+	entry.holdStarts = {}
 	entry.prompt.PromptButtonHoldBegan:Connect(function(player)
 		entry.holders[player] = workspace:GetServerTimeNow()
+		entry.holdStarts[player] = { at = workspace:GetServerTimeNow() }
 	end)
 	entry.prompt.PromptButtonHoldEnded:Connect(function(player)
 		entry.holders[player] = nil
+		local hold = entry.holdStarts[player]
+		if hold and hold.ended == nil then hold.ended = workspace:GetServerTimeNow() end
 	end)
 	if not isEgg then
 		local cover = table.clone(coverCandidates)
@@ -1849,6 +1854,12 @@ spawnEncounter = function(slot)
 		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
 		if isEgg then
 			if not allowed(player, "Pickup") then return end
+			-- HB-T7: the hold is measured here, never trusted from the client: this player's effective hold (the glove's
+			-- Robo rápido this server wrote, never under the floor), less a small latency allowance.
+			local need = Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),
+				{ stats = { steal = player:GetAttribute("WildboundGloveSteal") or 0 } }, Gear.CONSTANTS.STEAL_FLOOR)
+			if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then return end
+			entry.holdStarts[player] = nil
 			local island = slot.island and islands[slot.island]
 			if island and not Island.nestOpen(island.meter) then
 				send(player, "Pickup", false, Text.ISLAND.guarded)
@@ -2382,6 +2393,8 @@ if RunService:IsStudio() then
 			end
 			if not best then return false, "NoEgg" end
 			root.CFrame = CFrame.new(best.body.Position + Vector3.new(3, 1, 0))
+			-- HB-T7: the probe stands in for a completed hold (the prompt's full time), so the real path accepts it.
+			best.holdStarts[player] = { at = workspace:GetServerTimeNow() - best.prompt.HoldDuration - 0.05 }
 			best.trigger(player)
 			local egg = EggCarry.get(eggs, best.id)
 			return egg ~= nil and egg.state == "Carried", best.id

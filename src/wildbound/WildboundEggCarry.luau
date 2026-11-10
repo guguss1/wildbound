@@ -231,6 +231,22 @@ function EggCarry.holding(holders, now)
 	return false
 end
 
+-- HB-T7 (verifier finding): the steal hold is measured on the server. hold = { at = when this player's hold began on the
+-- server (PromptButtonHoldBegan), ended = when it was released, if it was }; need = this player's effective hold. A
+-- trigger counts only after a continuous hold of at least need - allowance seconds, begun at most need + HOLD_GRACE ago.
+EggCarry.HOLD_ALLOWANCE = 0.2
+local EPSILON = 1e-6
+function EggCarry.holdComplete(hold, now, need, allowance)
+	if not finite(need) then return false end
+	if need <= 0 then return true end
+	if type(hold) ~= "table" or not finite(hold.at) or not finite(now) then return false end
+	local least = need - (finite(allowance) and allowance or EggCarry.HOLD_ALLOWANCE)
+	local held = now - hold.at
+	if held + EPSILON < least or held > need + EggCarry.HOLD_GRACE then return false end
+	if hold.ended ~= nil and not (finite(hold.ended) and hold.ended - hold.at + EPSILON >= least) then return false end
+	return true
+end
+
 function EggCarry.count(registry, state)
 	local total = 0
 	if type(registry) ~= "table" then return 0 end
