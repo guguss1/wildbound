@@ -63,14 +63,24 @@ Island.CONSTANTS = table.freeze({
 	-- Fix pass (FP5, parents; each toggle is 1 on, 0 off). (a) Pack call: the island's adults share one meter, so when
 	-- one wakes the pack wakes with it, after PACK_CALL_SECONDS (0: at once; the plan allows up to 10 s).
 	PACK_CALL_SECONDS = 0,
-	-- (b) Pounce: a thief within POUNCE_RANGE (but outside STRIKE_REACH) after POUNCE_AFTER s of chase gets a
-	-- POUNCE_TELL s tell (the adult rears, as for a swing), then a leap that closes the gap to STRIKE_REACH, never past
-	-- the leash. The leap never hits: the ordinary strike wind-up (0.45 s) follows. POUNCE_COOLDOWN between leaps.
+	-- (b) Charge (Nest Heist NH3, was the FP5b pounce): a thief within POUNCE_RANGE (but outside STRIKE_REACH) after
+	-- POUNCE_AFTER s of chase gets a POUNCE_TELL s tell (the adult rears and stands still; never under 0.8 s, the
+	-- fair-strike warning lead), then a straight charge at CHARGE_SPEED along the line to where the thief stood when the
+	-- tell ended, CHARGE_OVERSHOOT past that point (at most CHARGE_MAX, never past the leash). Touching the thief
+	-- (CHARGE_HIT) lands a hit; a miss leaves the adult EXPOSED_SECONDS still, then it chases again. POUNCE_COOLDOWN
+	-- between charges.
 	POUNCE_ON = 1,
-	POUNCE_RANGE = 8,
+	POUNCE_RANGE = 12,
 	POUNCE_AFTER = 1,
-	POUNCE_TELL = 0.5,
+	POUNCE_TELL = 0.8,
 	POUNCE_COOLDOWN = 6,
+	CHARGE_SPEED = 40,
+	CHARGE_OVERSHOOT = 4,
+	CHARGE_MAX = 18,
+	CHARGE_HIT = 3,
+	EXPOSED_SECONDS = 1,
+	-- Nest Heist (NH3): stealing an egg wakes the island at once (1), with no meter to fill; 0 restores the grab noise.
+	STEAL_WAKE = 1,
 	-- (c) Egg recovery: an egg dropped inside the leash is fetched and carried to the nest at RETURN_SPEED.
 	EGG_RECOVERY_ON = 1,
 	-- (d) Sleep cycle: from DEEP_FROM to DEEP_TO o'clock of the day cycle every wake input is scaled by DEEP_SCALE.
@@ -79,7 +89,7 @@ Island.CONSTANTS = table.freeze({
 	DEEP_FROM = 11,
 	DEEP_TO = 13,
 })
-local POUNCE_TELL_FLOOR = 0.35 -- the readable-tell floor of every strike
+local POUNCE_TELL_FLOOR = 0.8 -- NH3: the charge's tell never under the fair-strike warning lead
 local FIRST = "I1"
 local HEART = "Heart"
 
@@ -155,6 +165,13 @@ function Island.event(meter, kind, options)
 	local amount = type(meter) == "table" and type(kind) == "string" and (GRABS[kind] and C.GRAB or C.PENALTY[kind]) or nil
 	if not amount then return { stirred = false, woke = false, settled = false } end
 	meter.quiet = 0
+	-- Nest Heist (NH3): an egg steal is seen at once; the parents wake with no meter to fill (never island 1's cria).
+	if kind == "EggTaken" and C.STEAL_WAKE >= 0.5 and meter.state == "Asleep" then
+		local stirred = not meter.stirred
+		meter.value, meter.stirred = math.max(meter.value, C.WAKE), true
+		meter.state, meter.alertFor = "Alert", 0
+		return { stirred = stirred, woke = true, settled = false }
+	end
 	local capped = meter.first and type(options) == "table" and options.firstSteal == true
 	return raise(meter, amount, capped)
 end
@@ -253,7 +270,7 @@ function Island.newChase(island, point)
 	if type(island) ~= "table" or type(point) ~= "table" or not finite(point.x) or not finite(point.z) then return nil end
 	return { mode = "Wake", wake = C.WAKE_WINDUP, x = point.x, z = point.z, homeX = point.x, homeZ = point.z,
 		nestX = island.x, nestZ = island.z, left = C.CHASE_SECONDS, fx = 0, fz = 1, swing = 0, cooldown = 0,
-		chased = 0, pounce = 0, pounceCooldown = 0 }
+		chased = 0, pounce = 0, pounceCooldown = 0, charge = 0, exposed = 0 }
 end
 
 local function moveToward(chase, tx, tz, distance)
@@ -273,8 +290,29 @@ end
 -- CHASE_LEASH from the nest, and within STRIKE_REACH (cooldown over) starts a swing: returns "WindUp". "Strike": stands
 -- still; after STRIKE_WINDUP returns "Hit" if the target is within HIT_RANGE, else "Missed", and chases again after
 -- STRIKE_COOLDOWN. Returns "GaveUp" when its time runs out (the wind-up does not count), then walks home.
+-- NH3: "Pounce" is the charge's tell (returns "PounceWindUp" when it starts and "Charge" when the dash starts);
+-- "Charge" dashes and returns "Hit" on contact or "ChargeMissed" at its end; "Exposed" stands still, then "Chase".
 local function distanceTo(chase, x, z)
 	return math.sqrt((x - chase.x) ^ 2 + (z - chase.z) ^ 2)
+end
+
+-- The distance from (px, pz) to the segment (ax, az)-(bx, bz): a fast dash cannot pass through a thief between steps.
+local function segmentDistance(ax, az, bx, bz, px, pz)
+	local dx, dz = bx - ax, bz - az
+	local length2 = dx * dx + dz * dz
+	local t = length2 > 1e-12 and math.clamp(((px - ax) * dx + (pz - az) * dz) / length2, 0, 1) or 0
+	local cx, cz = ax + dx * t, az + dz * t
+	return math.sqrt((px - cx) ^ 2 + (pz - cz) ^ 2)
+end
+
+local function leash(chase)
+	local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
+	local out = math.sqrt(ox * ox + oz * oz)
+	if out > C.CHASE_LEASH then
+		chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
+		return true
+	end
+	return false
 end
 
 function Island.chaseStep(chase, dt, targetX, targetZ)
@@ -289,27 +327,38 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		chase.mode = "Chase"
 		return nil
 	end
-	if chase.mode ~= "Chase" and chase.mode ~= "Strike" and chase.mode ~= "Pounce" then return nil end
+	if chase.mode ~= "Chase" and chase.mode ~= "Strike" and chase.mode ~= "Pounce" and chase.mode ~= "Charge"
+		and chase.mode ~= "Exposed" then return nil end
 	local seen = finite(targetX) and finite(targetZ)
 	local event = nil
 	chase.pounceCooldown = math.max(0, (chase.pounceCooldown or 0) - dt)
 	if chase.mode == "Pounce" then
-		-- Fix pass (FP5b): stands still for the tell, then leaps to the strike reach of where the thief is now.
+		-- NH3: stands still for the tell, facing the thief; then the dash's line is locked on where the thief is now.
 		chase.pounce -= dt
 		if seen then moveToward(chase, targetX, targetZ, 0) end
 		if chase.pounce <= 1e-9 then
-			chase.mode, chase.pounceCooldown = "Chase", C.POUNCE_COOLDOWN
-			if seen then
-				local gap = distanceTo(chase, targetX, targetZ)
-				if gap > C.STRIKE_REACH then moveToward(chase, targetX, targetZ, gap - C.STRIKE_REACH) end
-				local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
-				local out = math.sqrt(ox * ox + oz * oz)
-				if out > C.CHASE_LEASH then
-					chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
-				end
-			end
-			event = "Pounce"
+			local gap = seen and distanceTo(chase, targetX, targetZ) or 0
+			chase.mode, chase.pounceCooldown = "Charge", C.POUNCE_COOLDOWN
+			chase.charge = math.min(gap + C.CHARGE_OVERSHOOT, C.CHARGE_MAX)
+			event = "Charge"
 		end
+	elseif chase.mode == "Charge" then
+		local fromX, fromZ = chase.x, chase.z
+		local step = math.min(C.CHARGE_SPEED * dt, chase.charge)
+		chase.x, chase.z = chase.x + chase.fx * step, chase.z + chase.fz * step
+		chase.charge -= step
+		local stopped = leash(chase)
+		if seen and segmentDistance(fromX, fromZ, chase.x, chase.z, targetX, targetZ) <= C.CHARGE_HIT then
+			chase.mode, chase.charge, chase.cooldown = "Chase", 0, C.STRIKE_COOLDOWN
+			event = "Hit"
+		elseif stopped or chase.charge <= 1e-9 then
+			chase.mode, chase.charge, chase.exposed = "Exposed", 0, C.EXPOSED_SECONDS
+			event = "ChargeMissed"
+		end
+	elseif chase.mode == "Exposed" then
+		-- NH3: the miss's opening; it neither turns nor strikes until it recovers.
+		chase.exposed -= dt
+		if chase.exposed <= 1e-9 then chase.mode = "Chase" end
 	elseif chase.mode == "Strike" then
 		chase.swing -= dt
 		if seen then moveToward(chase, targetX, targetZ, 0) end
@@ -323,17 +372,13 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		local gap = seen and distanceTo(chase, targetX, targetZ) or math.huge
 		if seen and C.POUNCE_ON >= 0.5 and chase.chased + 1e-9 >= C.POUNCE_AFTER and chase.pounceCooldown <= 1e-9
 			and gap <= C.POUNCE_RANGE and gap > C.STRIKE_REACH then
-			-- Fix pass (FP5b): the pounce tell; it faces the thief and stands still.
+			-- NH3: the charge's tell; it faces the thief and stands still.
 			moveToward(chase, targetX, targetZ, 0)
 			chase.mode, chase.pounce = "Pounce", C.POUNCE_TELL
 			event = "PounceWindUp"
 		elseif seen then
 			moveToward(chase, targetX, targetZ, C.CHASE_SPEED * dt)
-			local ox, oz = chase.x - chase.nestX, chase.z - chase.nestZ
-			local out = math.sqrt(ox * ox + oz * oz)
-			if out > C.CHASE_LEASH then
-				chase.x, chase.z = chase.nestX + ox / out * C.CHASE_LEASH, chase.nestZ + oz / out * C.CHASE_LEASH
-			end
+			leash(chase)
 			if chase.cooldown <= 1e-9 and distanceTo(chase, targetX, targetZ) <= C.STRIKE_REACH then
 				chase.mode, chase.swing = "Strike", C.STRIKE_WINDUP
 				event = "WindUp"

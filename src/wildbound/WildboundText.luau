@@ -202,7 +202,9 @@ return freeze({
 		hit = "¡Otro golpe! Aléjate del nido.",
 		screamHeard = "Un grito lejano... algo se acerca.",
 		-- Fix pass (FP5): the adult's pounce tell, and an egg an adult carried back to its nest.
-		pounce = "¡Va a saltarte encima! Esquívalo.",
+		-- Nest Heist (NH3): the pounce became a charge; a miss leaves the adult exposed.
+		pounce = "¡Va a embestir! Sal de su línea.",
+		exposed = "¡Falló! Aprovecha y huye.",
 		eggRecovered = "Un adulto devolvió tu huevo a su nido.",
 	},
 	-- Nest Heist (NH1 to NH8): the egg in the arms. Notices at most 64 bytes.

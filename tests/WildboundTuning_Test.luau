@@ -111,7 +111,9 @@ return function(Schema, modules)
 			-- Items and totem (IT2): the luck totem.
 			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP",
 			-- Nest Heist (NH1): the steal holds.
-			"Eggs.STEAL_HOLD", "Eggs.RARE_HOLD" }) do
+			"Eggs.STEAL_HOLD", "Eggs.RARE_HOLD",
+			-- Nest Heist (NH3): the parents' charge and the immediate wake on an egg steal.
+			"Islands.CHARGE_SPEED", "Islands.CHARGE_HIT", "Islands.EXPOSED_SECONDS", "Islands.STEAL_WAKE" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

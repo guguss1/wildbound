@@ -1320,7 +1320,9 @@ local function islandReadings()
 					and Vector3.new(velocity.X, 0, velocity.Z).Magnitude > 1,
 				first = snapshot ~= nil and #snapshot.registered == 0 and snapshot.carrying == nil,
 				farol = snapshot ~= nil and Economy.islandLightScale(EconomyConfig, snapshot.upgrades) < 1,
-				carrying = snapshot and snapshot.carrying and snapshot.carrying.island or nil })
+				-- NH3: a stolen egg's island counts like a carried cria's, so its parents chase the egg thief first.
+				carrying = snapshot and snapshot.carrying and snapshot.carrying.island
+					or (EggCarry.carriedBy(eggs, player.UserId) or { meta = {} }).meta.island })
 		end
 	end
 	return list
@@ -1338,8 +1340,8 @@ local function wakeIsland(island, now)
 		local distance = math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2)
 		if reading.carrying == spec.id then reading.record.criaWokeAt = now end
 		if distance <= radius + 20 then send(reading.player, "IslandWoke", false, Text.ISLAND.woke) end
-		-- RW4: a thief standing in a Refugio is never chased.
-		if not Rules.refugeAt(reading.x, reading.z) then
+		-- RW4: a thief standing in a Refugio is never chased; NH3: nor anyone inside the camp's safe circle.
+		if not Rules.refugeAt(reading.x, reading.z) and not select(2, Rules.zone(reading.x, reading.z)) then
 			table.insert(candidates, { key = reading.player, x = reading.x, z = reading.z, carrying = reading.carrying })
 		end
 	end
@@ -1469,17 +1471,24 @@ local function stepIslands(now, dt)
 		if chase then
 			local target = chase.target
 			local root = target.Parent == Players and rootOf(target) or nil
-			-- RW4: a thief who reaches a Refugio is out of reach; the adult gives up at once and walks home.
-			local sheltered = root ~= nil and Rules.refugeAt(root.Position.X, root.Position.Z) ~= nil
+			-- RW4: a thief who reaches a Refugio is out of reach; the adult gives up at once and walks home. NH3: the camp's
+			-- safe circle ends the chase too; an egg in the arms stays there until it is delivered.
+			local sheltered = root ~= nil and (Rules.refugeAt(root.Position.X, root.Position.Z) ~= nil
+				or select(2, Rules.zone(root.Position.X, root.Position.Z)) == true)
 			if sheltered and chase.state.mode ~= "Return" and chase.state.mode ~= "Home" then chase.state.left = 0 end
 			local live = root ~= nil and context(target) == true and not sheltered
 			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
 			local c = chase.state
 			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike" or c.mode == "Pounce")
 			if event == "WindUp" then send(target, "IslandStrike", false, Text.ISLAND.strike) end
-			-- Fix pass (FP5b): the pounce's tell is the same rearing pose and crack as a swing, plus a warning.
+			-- NH3 (was the FP5b pounce): the charge's 0.8 s tell is the same rearing pose and crack as a swing, plus a
+			-- warning; the dash hits like a swing (below); a miss leaves the adult exposed for a moment.
 			if event == "PounceWindUp" then send(target, "IslandPounce", false, Text.ISLAND.pounce) end
-			if event == "Pounce" then islandLog("pounce", spec.id, target.UserId) end
+			if event == "Charge" then islandLog("charge", spec.id, target.UserId) end
+			if event == "ChargeMissed" then
+				islandLog("chargeMissed", spec.id, target.UserId)
+				send(target, "IslandExposed", false, Text.ISLAND.exposed)
+			end
 			if event == "Hit" and live then adultHit(island, target) end
 			if event == "Missed" then islandLog("missed", spec.id, target.UserId) end
 			if event == "GaveUp" then islandLog("gaveUp", spec.id, target.UserId) end

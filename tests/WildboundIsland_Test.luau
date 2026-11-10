@@ -112,9 +112,17 @@ return function(Island, layout)
 		Island.event(stirred, "LeftRing")
 		Island.event(stirred, "LeftRing")
 		assert(Island.event(stirred, "CriaTaken").woke, "a grab after mistakes wakes the parents")
+		-- Deliberately changed in Nest Heist (NH3): an egg steal wakes the parents at once (STEAL_WAKE 1), even on a calm
+		-- island and in the deep noon sleep; with STEAL_WAKE 0 it is the old grab.
 		local egg = Island.newMeter(island("I4"))
-		Island.event(egg, "EggTaken")
-		near(egg.value, C.GRAB, 1e-9, "an egg is the same grab")
+		egg.sleepScale = 0.7
+		local stolen = Island.event(egg, "EggTaken")
+		assert(stolen.woke and egg.state == "Alert", "an egg steal wakes the island at once")
+		Island.tune({ STEAL_WAKE = 0 })
+		local grab = Island.newMeter(island("I4"))
+		Island.event(grab, "EggTaken")
+		near(grab.value, C.GRAB, 1e-9, "with the toggle off an egg is the same grab")
+		Island.tune(nil)
 		local first = Island.newMeter(island("I1"))
 		first.value = 90
 		local out = Island.event(first, "CriaTaken", { firstSteal = true })
@@ -328,37 +336,55 @@ return function(Island, layout)
 		assert(Island.CONSTANTS.PACK_CALL_SECONDS <= 10, "the pack answers within 10 s")
 	end)
 
-	case("FP5b: a pounce: a thief within 8 studs after 1 s of chase gets a 0.5 s telegraphed leap that closes the gap", function()
+	-- Deliberately changed in Nest Heist (NH3): the FP5b pounce (0.5 s tell, a leap that never hit) became the charge.
+	case("NH3: the charge: a 0.8 s tell, a straight dash that hits on contact, a miss leaves the adult exposed 1 s", function()
 		Island.tune(nil)
 		local C = Island.CONSTANTS
-		assert(C.POUNCE_ON == 1 and C.POUNCE_RANGE == 8 and C.POUNCE_AFTER == 1 and C.POUNCE_TELL == 0.5
-			and C.POUNCE_COOLDOWN == 6, "the plan's numbers")
-		assert(C.POUNCE_TELL >= 0.35, "a readable tell")
-		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
-		Island.chaseStep(chase, C.WAKE_WINDUP + 0.01, 0, 0) -- stands up
-		-- The thief keeps out of reach for 0.8 s (12 studs ahead, beyond the 8-stud pounce), then is 7 studs ahead.
-		local event
-		for _ = 1, 4 do
-			event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 12)
-			assert(event ~= "PounceWindUp" and event ~= "WindUp", "no pounce and no swing yet")
+		assert(C.POUNCE_ON == 1 and C.POUNCE_RANGE == 12 and C.POUNCE_AFTER == 1 and C.POUNCE_TELL == 0.8
+			and C.POUNCE_COOLDOWN == 6, "the charge's trigger and tell")
+		assert(C.CHARGE_SPEED == 40 and C.CHARGE_OVERSHOOT == 4 and C.CHARGE_MAX == 18 and C.CHARGE_HIT == 3
+			and C.EXPOSED_SECONDS == 1, "the dash and the opening")
+		Island.tune({ POUNCE_TELL = 0.2 })
+		near(Island.live.POUNCE_TELL, 0.8, 1e-9, "the tell never drops under the fair-strike 0.8 s")
+		Island.tune(nil)
+		local function start()
+			local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+			Island.chaseStep(chase, C.WAKE_WINDUP + 0.01, 0, 0) -- stands up
+			for _ = 1, 4 do
+				local early = Island.chaseStep(chase, 0.2, chase.x, chase.z + 14)
+				assert(early ~= "PounceWindUp" and early ~= "WindUp", "no charge beyond 12 studs and no swing yet")
+			end
+			local event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 10)
+			assert(event == "PounceWindUp" and chase.mode == "Pounce", "the tell starts: " .. tostring(event))
+			local x, z = chase.x, chase.z
+			event = Island.chaseStep(chase, 0.79, x, z + 10)
+			assert(event == nil and chase.mode == "Pounce" and chase.x == x and chase.z == z, "still for the whole tell")
+			event = Island.chaseStep(chase, 0.02, x, z + 10)
+			assert(event == "Charge" and chase.mode == "Charge", "the dash starts after 0.8 s: " .. tostring(event))
+			near(chase.charge, 14, 1e-6, "the gap plus the overshoot")
+			return chase, x, z
 		end
-		event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 7)
-		near(chase.chased, 1, 1e-6, "chased")
-		assert(event == "PounceWindUp" and chase.mode == "Pounce", "the tell starts: " .. tostring(event))
-		local x, z = chase.x, chase.z
-		event = Island.chaseStep(chase, 0.4, x, z + 7)
-		assert(chase.mode == "Pounce" and chase.x == x and chase.z == z, "still during the tell")
-		event = Island.chaseStep(chase, 0.1, x, z + 7)
-		assert(event == "Pounce", "the leap: " .. tostring(event))
-		local gap = math.sqrt((chase.x - x) ^ 2 + (chase.z - (z + 7)) ^ 2)
-		assert(gap <= C.STRIKE_REACH + 1e-6, "the gap is closed to the strike reach: " .. gap)
-		-- The leap never hits by itself: the next step starts the ordinary, readable strike wind-up.
-		event = Island.chaseStep(chase, 0.1, x, z + 7)
-		assert(event == "WindUp", "then the normal strike tell: " .. tostring(event))
-		assert(chase.pounceCooldown > 5, "cooldown 6 s")
+		-- A thief who stays on the line is hit by the dash itself, even between two steps.
+		local chase, x, z = start()
+		local event = Island.chaseStep(chase, 0.3, x, z + 10)
+		assert(event == "Hit" and chase.mode == "Chase", "contact lands: " .. tostring(event))
+		-- A thief who steps aside is missed; the adult stands exposed for 1 s, then chases again.
+		chase, x, z = start()
+		event = Island.chaseStep(chase, 0.2, x + 6, z + 10)
+		assert(event == nil and chase.mode == "Charge", "still dashing")
+		event = Island.chaseStep(chase, 0.2, x + 6, z + 10)
+		assert(event == "ChargeMissed" and chase.mode == "Exposed", "the miss: " .. tostring(event))
+		near(chase.z, z + 14, 1e-6, "it ran 4 studs past the point")
+		local ex, ez = chase.x, chase.z
+		event = Island.chaseStep(chase, 0.9, x + 6, z + 10)
+		assert(event == nil and chase.mode == "Exposed" and chase.x == ex and chase.z == ez, "exposed: still, no strike")
+		Island.chaseStep(chase, 0.15, x + 6, z + 10)
+		assert(chase.mode == "Chase", "then it chases again")
+		assert(chase.pounceCooldown > 4, "no second charge at once")
 	end)
 
-	case("FP5b: no pounce beyond 8 studs, inside the strike reach, during the cooldown, past the leash or when off", function()
+	-- Deliberately changed in Nest Heist (NH3): the range is 12 studs and the leash holds through the dash.
+	case("NH3: no charge beyond 12 studs, inside the strike reach, during the cooldown, past the leash or when off", function()
 		Island.tune(nil)
 		local function pounces(distance, overrides, leash)
 			Island.tune(overrides)
@@ -369,21 +395,23 @@ return function(Island, layout)
 			Island.tune(nil)
 			return event == "PounceWindUp"
 		end
-		assert(pounces(7.5) == true, "7.5 studs")
-		assert(pounces(8.5) == false, "beyond 8")
+		assert(pounces(11.5) == true, "11.5 studs")
+		assert(pounces(12.5) == false, "beyond 12")
 		assert(pounces(3) == false, "inside the strike reach the swing comes first")
 		assert(pounces(7.5, { POUNCE_ON = 0 }) == false, "toggle off")
 		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
 		Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
 		chase.chased, chase.pounceCooldown = 2, 3
 		assert(Island.chaseStep(chase, 0.01, chase.x, chase.z + 7.5) ~= "PounceWindUp", "cooldown")
-		-- The leap never carries the adult past its leash.
+		-- The dash never carries the adult past its leash; stopped there, it is a miss.
 		local far = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 30 })
 		Island.chaseStep(far, Island.live.WAKE_WINDUP + 0.01, 0, 30)
 		far.chased = 2
-		Island.chaseStep(far, 0.01, 0, 37.5)
-		Island.chaseStep(far, 0.6, 0, 37.5)
+		Island.chaseStep(far, 0.01, 0, 41)
+		Island.chaseStep(far, 0.8, 0, 41)
+		local event = Island.chaseStep(far, 0.6, 0, 41)
 		assert(math.sqrt(far.x ^ 2 + far.z ^ 2) <= Island.live.CHASE_LEASH + 1e-6, "inside the leash")
+		assert(event == "ChargeMissed", "stopped by the leash: " .. tostring(event))
 	end)
 
 	case("FP5c: egg recovery: the nearest dropped egg inside the leash is fetched and carried home at return speed", function()

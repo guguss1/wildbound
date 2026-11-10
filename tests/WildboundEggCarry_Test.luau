@@ -144,5 +144,23 @@ return function(EggCarry, source, sources)
 		assert(E.stolen and E.already, "stolen and already")
 	end)
 
+	-- NH3 the parent's reaction.
+	case("NH3: the parents chase the egg thief at once and the charge is told, logged and exposed", function()
+		local readings = block(server, "local function islandReadings()", "\nend\n")
+		has(readings, "EggCarry.carriedBy(eggs, player.UserId)", "an egg thief is this island's thief")
+		local spawn = block(server, "spawnEncounter = function(slot)", "\nend\n")
+		has(spawn, 'Island.event(island.meter, "EggTaken").woke then wakeIsland(', "the steal wakes the island")
+		local steps = block(server, "local function stepIslands(now, dt)", "\nend\n")
+		has(steps, 'event == "PounceWindUp"', "the tell's warning")
+		has(steps, 'event == "Charge"'); has(steps, 'event == "ChargeMissed"'); has(steps, "Text.ISLAND.exposed")
+		has(steps, 'event == "Hit" and live then adultHit(island, target)', "a dash that lands hurts like a swing")
+		has(steps, 'c.mode == "Strike" or c.mode == "Pounce"', "the tell is the rearing pose")
+		has(steps, "select(2, Rules.zone(root.Position.X, root.Position.Z)) == true", "the camp ends a chase")
+		local wake = block(server, "local function wakeIsland(island, now)", "\nend\n")
+		has(wake, "not select(2, Rules.zone(reading.x, reading.z))", "nobody in the camp is chased")
+		local Island = sources.island
+		assert(Island.CONSTANTS.POUNCE_TELL >= 0.8, "the charge's tell keeps the fair-strike 0.8 s")
+	end)
+
 	return result
 end
