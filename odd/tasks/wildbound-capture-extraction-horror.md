@@ -1126,3 +1126,37 @@ Baseline: 70 suites, 1433 passed, 0 failed. Route: one writer, inline; one offli
 - Commits: `e85f9e3`, `8532bf0`, `6f6d476`, `4226e3d`, `0de7e7a`, `37e54a0`, and this document's commit.
 - Studio is left in Edit, with the temporary runner and check helper removed.
 - This session did not save the place. Nothing needs saving: the hub, the tree removal and the spawn all happen at server start.
+
+## Edit visibility pass (2026-11-10, EV-W1 to EV-W5)
+
+Goal (user): everything that appears in Play is also visible, and editable, in Edit. Instance `cd4f53c7-...`, PlaceId 122652861404212, verified in Edit before the first edit. Mode: strict TDD (global); runners: a rebuilt fresh-clone runner (`ServerStorage.WildboundFreshRunnerTmp`, removed at the end) and `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 70 suites, 1442 passed, 0 failed (the rebuilt runner first missed two suites' sources, Text and Tuning; fixed in the runner). Route: one Studio writer; offline planner and builder work and the long source pastes went to bounded helpers, one per Studio target, each verified by length and Adler-32.
+
+- [x] **EV-W1 Hub in Edit, v2 features at radius 90.** Radius 100 does not fit at (282, -3): its floor (102) reaches x 180 over the forest floor (Floor (-18, -3), 400 wide, ends at x 182, measured) and exceeds the placement's hub radius 90. New plan variant `v2-r90` (`assets/maps/hub-layout/hub-bases-v2-r90.json`, builder `tools/build-wildbound-hub-map-v2-r90.luau`, now the manifest's `ServerStorage.WildboundHubBuilder`): the v1 disc (safe 90, hedge 88, floor 92, same gates, trails and removed trees) with the v2 features scaled: bases 29 x 23 at ring 72, a chest zone and chest per base, a Vitrina plinth in front of each base, 4 shop circles at ring 39 with stalls at 44.5, invisible bank zones, 2 incubator cradles, 35 warm shadowless lights and the hub ambience block (inside_radius 90). 470 parts, 35 PointLights. Geometry, tags and markers only: no shop, chest or auto-incubation gameplay. `Bases.hubCurrent` (the builder's data Adler-32 is the version) lets the hub script reuse a hub saved in the place and rebuild it once when it is missing or outdated, never duplicating. The hub was built in Edit at (282, 0, -3), and the two forest trees under its trails (`FK_Evergreen_095`, `_101`) were removed in Edit, as the script does at start. TDD: Hub 20/2, GREEN 22/0; Python plan and builder tests RED then GREEN. Commit `b45bdba`.
+- [x] **EV-W2 Biomes and roads in Edit.** The placement planner now uses the forest as built (measured square x -218..182) and keeps every biome square. Roads start at the hub's E, N and S trail ends (none behind the hedge), share N and S trunks, emit each leg once, keep 9 studs off the forest and never lie on a hub trail. Before, the forest road ran 30 studs on the forest floor, the Pradera road lay on the hub's E trail, and two roads duplicated a slab. Commits `8b015fe`, `6edfa21`. Built in Edit: Pradera at (612, -3), the six biomes at their placement, and the roads. Overlap check in Studio: no biome box within 10 studs of another, the forest or the hub (Pradera's buried hill spheres pass its square only underground); the diagonal roads keep at least 14.4 studs from forest props.
+- [x] **EV-W3 Beasts.** The four uploaded models were inserted from the recorded ids into `ServerStorage.WildboundAssets.Beasts` (they arrive as packages). Gargoyle and Mire arrived at 100 x scale and were scaled by 0.01 (13.8 and 13.4 studs wide, as designed). Each template has a `Root` on the ground with the head along its LookVector, every part anchored and inert, and an `AssetId` attribute. `Proxies.adopt` and `Proxies.ensure(replicated, templates)` put the real Viper and Pouncer next to the proxies, which stay as the fallback; hit checks and timing are unchanged. `Workspace.WildboundBeastGallery` (an Edit-only labelled preview of all four, east of the hub at x 394) is removed by the hub script at start. Animations are not uploaded: the models move in their rest pose. TDD: BeastWiring 20/3, GREEN 23/0; Hub +1 (gallery removal). Commit `a9815bf`.
+- [x] **EV-W4 HUD wording.** "Roba un huevo y llévalo a tu base.", egg notices "Llévalo a tu base.", calm hint "Explora o vuelve a tu base.", defeat "Derrotado. Volverás a la plaza.", eggs header "Incúbalos en tu base". The bag-full, capture and registration lines still name the camp (banking without an egg and registration are camp-only). TDD: Text 16/1, HudView 55/2, then GREEN. Commit `cbb01dd`.
+- [x] **EV-W5 Audit fixes.** Hub spawns face west (-X), toward the forest gate. The first wave's guaranteed common egg is forced within `FIRST_EGG_RADIUS` (70) of `Rules.FIRST_EGG_X, FIRST_EGG_Z` = (182, 17), where the hub's W trail meets the forest, outside the hub disc (at most about 8.7 s from the W gate). `MaxPlayers` 8 could not be set: `Players.MaxPlayers` is read only from scripts, so it remains a Game Settings step for the user. Island 1 (the first-steal hook) was not moved. TDD: WorldRules 43/1, WaveClock 20/1, Hub 22/1, then GREEN. Commit `9bd87a5`.
+
+**Counts.**
+- Studio: 70 suites, 1449 passed, 0 failed on fresh clones (the 5 new-mechanics suites skipped: not deployed).
+- Python: 1223 run, only the known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped.
+- Economy (`tools/simulate_economy.py`): median cautious 208 s, balanced 201 s, greedy 183 s (floor 180; the simulator models neither the hub nor the first egg).
+- Deployed sources: 151 of 151 present mapped sources match the working tree by Adler-32 and length (CRLF working copies normalized; the Rescue prototype and the 5 new-mechanics modules are not in the place).
+- Parts in Edit: hub 470 (35 PointLights), Pradera 1258, Living Forest 606, Frozen Mountains 553, Volcanic Lands 440, Demon Abyss 360, Cryptic Ruins 224, Rock Caves 1113, roads 27 (19 slabs and 8 gate markers). Biomes and roads have no lights. Workspace total: 6125 BaseParts.
+
+**Play check** (Studio Play solo, background, probes through `execute_luau`):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Hub reused, not duplicated | PASS | One `WildboundHub`, Plan hub-bases-v2-r90, DataAdler32 2951828672, 470 parts, 35 lights |
+| Gallery removed at start | PASS | `WildboundBeastGallery` nil in Play |
+| Biomes and roads in Play | PASS | All eight roots in workspace |
+| Real beast models | PASS | `Models` holds the real Viper and Pouncer next to the proxies; a forced Viper and Pouncer drew `WildboundBeastsLocal.Viper` and `.Pouncer`, 2 MeshParts each |
+| Spawn | PASS | Root (298, 3.9, -3), look (-1, 0, 0) |
+| First egg | PASS | Wave 1 egg at (174, 47): 31 studs from (182, 17), about 54 from the W gate |
+| Console | PASS | No script errors; only the known MeshGen permission lines and the Studio DataStore notice |
+| Phones, frame time with 35 lights and about 6100 parts, two players, beast animations | NOT VERIFIED | |
+
+Captures in `assets/exports/forest-kit/captures/`: `edit-overview-top-down-hub-biomes-roads.jpg`, `edit-overview-oblique-from-south-biomes.jpg`, `edit-hub-v2-r90-oblique-from-south.jpg`, `edit-beast-gallery-uploaded-models.jpg`. The first two were taken before the road rework (EV-W2's second commit), so they show the old road routes.
+
+**End state.** Edit builds persist only if the user saves the place (Ctrl+S / Archivo > Guardar); this session did not save it. The temporary runner, builder modules and paste folders are removed; Studio is left in Edit.
