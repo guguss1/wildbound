@@ -709,12 +709,18 @@ local function observe(player, now)
 		bagRoom = bag, collectionRoom = collection }
 end
 
-local function guardianReading(position)
+-- Fix pass (FP2, one Silueta per player): the reading is this player's own hunter, the model the world marks with the
+-- player's user id; without one (over the cap) there is no guardian reading.
+local function guardianReading(player, position)
 	local world = map:FindFirstChild("WildboundWorldRuntime")
-	local guardian = world and world:FindFirstChild("Silueta")
-	local body = guardian and guardian:FindFirstChild("Body")
-	if not body or not body:IsA("BasePart") then return nil, nil end
-	return guardian:GetAttribute("State"), (body.Position - position).Magnitude
+	if not world then return nil, nil end
+	for _, guardian in ipairs(world:GetChildren()) do
+		if guardian.Name == "Silueta" and guardian:GetAttribute("Owner") == player.UserId then
+			local body = guardian:FindFirstChild("Body")
+			if body and body:IsA("BasePart") then return guardian:GetAttribute("State"), (body.Position - position).Magnitude end
+		end
+	end
+	return nil, nil
 end
 
 local function removeEntry(entry, now)
@@ -1099,7 +1105,7 @@ local function startCapture(player, entry)
 	counters.started += 1
 	entry.prompt.Enabled = false
 	Wild.reserve(entry.brain, position.X, position.Z)
-	local mode, guardianDistance = guardianReading(position)
+	local mode, guardianDistance = guardianReading(player, position)
 	sessionMeta[result.token] = { startedAt = now, slot = entry.slot.id, tier = entry.slot.tier,
 		inTerritory = Rules.inTerritory(position.X, position.Z), guardianMode = mode,
 		guardianDistance = guardianDistance and math.floor(guardianDistance * 10 + 0.5) / 10 or nil,
@@ -1571,7 +1577,7 @@ local function updateCarryMoods(now)
 		local root = rootOf(player)
 		if capsule and root then
 			local position = root.Position
-			local mode, distance = guardianReading(position)
+			local mode, distance = guardianReading(player, position)
 			local inFog, safe = Rules.zone(position.X, position.Z)
 			local mood = Carry.mood({ mode = mode, distance = distance, inFog = inFog, safe = safe,
 				alive = context(player) == true })

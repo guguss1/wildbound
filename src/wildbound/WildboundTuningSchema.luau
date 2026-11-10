@@ -57,6 +57,8 @@ Schema.SYSTEMS = table.freeze({
 		-- Look pass: art only (never the body, sight or hit range). Applied live: the world server rescales the art.
 		value("VISUAL_SCALE", "Altura de la figura (escala; 3,8 = 33 studs)", "Rules", "SILUETA_VISUAL_SCALE", 3.8, 2, 4.5,
 			0.1),
+		-- Fix pass (FP2): one Silueta per player, capped per server.
+		value("MAX_HUNTERS", "Siluetas a la vez (una por jugador)", "Rules", "MAX_HUNTERS", 8, 1, 16, 1),
 	}) }),
 	table.freeze({ id = "Sprint", label = "Correr y aliento", entries = table.freeze({
 		value("SPRINT_MULTIPLIER", "Multiplicador al correr", "Stamina", "SPRINT_MULTIPLIER", 1.45, 1, 2, 0.05),
@@ -148,6 +150,9 @@ Schema.SYSTEMS = table.freeze({
 		value("STALK_MAX", "Aparición: distancia máxima (studs)", "View", "STALK_MAX", 36, 20, 120, 1, "client"),
 		value("STALK_SECONDS", "Aparición: dura (s)", "View", "STALK_SECONDS", 4, 0.5, 10, 0.5, "client"),
 		value("STALK_NEAR", "Aparición: se esfuma si te acercas a (studs)", "View", "STALK_NEAR", 12, 5, 40, 1, "client"),
+		-- Fix pass (FP2): how faint another player's Silueta is drawn on this client (1 = invisible).
+		value("OTHER_SILUETA_FADE", "Silueta ajena: transparencia (0 a 1)", "View", "OTHER_SILUETA_FADE", 0.75, 0, 1, 0.05,
+			"client"),
 	}) }),
 })
 

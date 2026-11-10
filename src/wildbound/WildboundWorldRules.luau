@@ -34,6 +34,9 @@ Rules.MAX_CHASE_SECONDS = 10
 -- SiluetaV3 art (was 2.6, 22.3 studs). Art only: the gameplay body, sight, ATTACK_RANGE and the pathing agent never
 -- read it. Tunable live (Silueta.VISUAL_SCALE); WildboundSiluetaVisual accepts 0.5 to 4.5.
 Rules.SILUETA_VISUAL_SCALE = 3.8
+-- Fix pass (FP2): one Silueta per player, at most this many on a server (the first eight players get one at once; a
+-- later player takes a freed slot). Tunable live (Silueta.MAX_HUNTERS, 1 to 16).
+Rules.MAX_HUNTERS = 8
 Rules.DAMAGE = 20
 
 function Rules.finite(value)
@@ -43,7 +46,8 @@ end
 -- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning
 -- bridge may override these five at runtime; the territory (HOME_LEASH) and the strike range never change, so a
 -- tuned chase never adds a place to be struck. No override, no change. The look pass adds the art scale (art only).
-local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH", "SILUETA_VISUAL_SCALE" }
+local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH", "SILUETA_VISUAL_SCALE",
+	"MAX_HUNTERS" }
 local DEFAULTS = {}
 for _, key in ipairs(TUNABLE) do DEFAULTS[key] = Rules[key] end
 table.freeze(DEFAULTS)
@@ -61,6 +65,7 @@ function Rules.tune(overrides)
 		if DEFAULTS[key] ~= nil and Rules.finite(value) then Rules[key] = value end
 	end
 	Rules.CHASE_LEASH = math.max(Rules.CHASE_LEASH, Rules.HOME_LEASH)
+	Rules.MAX_HUNTERS = math.max(1, math.floor(Rules.MAX_HUNTERS + 0.5))
 end
 
 function Rules.distance(x1, z1, x2, z2)

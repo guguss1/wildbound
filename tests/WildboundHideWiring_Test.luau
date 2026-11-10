@@ -29,10 +29,12 @@ return function(worldSource, serverSource, clientSource)
 		has(context, "if not inSight and not allowHidden then return nil end", "no acquisition out of sight")
 	end)
 
+	-- Deliberately changed in the fix pass (FP2, one Silueta per player): every sight check names the hunter asking
+	-- (`h`), which only ever asks about its owner.
 	case("D6: a hidden player is not struck even in dwell", function()
 		-- The strike gate asks without allowHidden, so a hidden target has no context and the strike fails.
-		has(worldSource, "targetContext(target, Rules.ATTACK_RANGE)", "strike re-check")
-		assert(not worldSource:find("targetContext(target, Rules.ATTACK_RANGE, true)", 1, true), "strike allows hidden")
+		has(worldSource, "targetContext(h, target, Rules.ATTACK_RANGE)", "strike re-check")
+		assert(not worldSource:find("targetContext(h, target, Rules.ATTACK_RANGE, true)", 1, true), "strike allows hidden")
 	end)
 
 	case("D6: a hunt on a player who hides becomes Search", function()
@@ -41,8 +43,8 @@ return function(worldSource, serverSource, clientSource)
 		-- pursuit leash (was Rules.CHASE_RANGE, 65); a quarry who hides unseen is lost at once.
 		-- Deliberately changed again by the memory fix (2026-11-09): Hunt and Telegraph read the quarry through
 		-- quarryContext, where anything but legal sight only reads as out of sight; Alert keeps the old sight check.
-		has(worldSource, "candidate = quarryContext(target)", "hunt and telegraph keep an unseen quarry")
-		has(worldSource, "targetContext(target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)")
+		has(worldSource, "candidate = quarryContext(h, target)", "hunt and telegraph keep an unseen quarry")
+		has(worldSource, "targetContext(h, target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)")
 		has(worldSource, "candidate.hidden and not candidate.visible", "hiding unseen breaks the chase")
 		-- Chase pass, found in the Play check: during the 2.5 s repeat the giant walked into its quarry and stood inside
 		-- the player. It now holds at half its reach and faces the quarry.
@@ -53,10 +55,10 @@ return function(worldSource, serverSource, clientSource)
 	case("memory fix: the spawn pad, the fog edge, the leash or a floor change never end a hunt early", function()
 		local quarry = body(worldSource, "local function quarryContext(")
 		has(quarry, "Rules.pursuit({", "the pure rule decides whether the chase goes on")
-		has(quarry, "targetContext(player, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)", "legal sight is the old check")
+		has(quarry, "targetContext(h, player, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)", "legal sight is the old check")
 		has(quarry, "visible = seen ~= nil", "anything else is out of sight, so the memory runs")
 		-- After a telegraph, a live quarry out of sight is hunted again on memory instead of dropped.
-		has(worldSource, "local again = quarryContext(target)", "the repeat keeps an unseen quarry")
+		has(worldSource, "local again = quarryContext(h, target)", "the repeat keeps an unseen quarry")
 		assert(not worldSource:find("local again = targetContext(", 1, true), "the repeat still needs sight")
 	end)
 

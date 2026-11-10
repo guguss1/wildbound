@@ -37,6 +37,8 @@ View.CONSTANTS = table.freeze({
 	STALK_MAX = 36,
 	STALK_SECONDS = 4,
 	STALK_NEAR = 12,
+	-- Fix pass (FP2): another player's Silueta is drawn this faint on this client (1 = not drawn at all).
+	OTHER_SILUETA_FADE = 0.75,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
@@ -499,6 +501,14 @@ function View.stalkVanish(input)
 	if finite(input.distance) and input.distance <= CONSTANTS.STALK_NEAR then return "Approach" end
 	if input.age >= STALK_GLIMPSE and finite(input.lookDot) and input.lookDot >= STALK_LOOK_DOT then return "Looked" end
 	return nil
+end
+
+-- Fix pass (FP2, one Silueta per player): how faint a hunter is drawn on this client. The player's own hunter (the
+-- model's owner id is this player's) is drawn in full; anyone else's, or one with no owner, at OTHER_SILUETA_FADE as a
+-- LocalTransparencyModifier (0 full, 1 invisible). Presentation only: the server never reads it.
+function View.hunterFade(ownerId, localId)
+	if finite(ownerId) and finite(localId) and ownerId == localId then return 0 end
+	return math.clamp(CONSTANTS.OTHER_SILUETA_FADE, 0, 1)
 end
 
 -- Look pass: how La Silueta's horror grin arrives when the server shows it (she starts a chase). A short snap from

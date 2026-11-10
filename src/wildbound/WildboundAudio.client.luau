@@ -115,12 +115,19 @@ local function playOnce(slot, parent, volume, fadeIn, pitch)
 	return sound
 end
 
+-- Fix pass (FP2, one Silueta per player): this player's own hunter (its Owner is this player), so the footsteps, the
+-- call and the chase music follow the one that hunts this player.
 local function guardianBody()
 	local map = workspace:FindFirstChild("WildboundP0")
 	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
-	local guardian = runtime and runtime:FindFirstChild("Silueta")
-	local body = guardian and guardian.PrimaryPart
-	return body and body:IsA("BasePart") and body or nil
+	if not runtime then return nil end
+	for _, guardian in ipairs(runtime:GetChildren()) do
+		if guardian.Name == "Silueta" and guardian:IsA("Model") and guardian:GetAttribute("Owner") == player.UserId then
+			local body = guardian.PrimaryPart
+			return body and body:IsA("BasePart") and body or nil
+		end
+	end
+	return nil
 end
 
 -- Looping layers are made when they are wanted and removed once faded out.

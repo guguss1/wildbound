@@ -285,7 +285,9 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		assert(type(worldSource) == "string" and #worldSource > 1000, "world source missing")
 		local count = 0
 		for _ in worldSource:gmatch("detectionFor%(player, parameters%.detectionRange%)") do count += 1 end
-		equal(count, 2, "both detection checks use the holder's range")
+		-- Deliberately changed in the fix pass (FP2, one Silueta per player): a hunter weighs only its owner, so the
+		-- hunt never scans for a closer challenger; the one acquisition check uses the holder's range (was 2).
+		equal(count, 1, "the acquisition check uses the holder's range")
 		equal(worldSource:find("detectionFor(target, Rules.CHASE_RANGE", 1, true), nil, "chase range stays 65")
 		assert(worldSource:find("totem = totemHolders[player] == true", 1, true), "ambush sees holders")
 		assert(worldSource:find('network:FindFirstChild("TotemChanged")', 1, true), "holders come from the inventory script")

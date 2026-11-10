@@ -108,8 +108,10 @@ class SourceParsing(unittest.TestCase):
 
     def test_changed_steering_assumption_fails_loudly(self):
         t = texts()
-        broken = t["server"].replace("navigate(decision.destination, parameters.speed, dt",
-                                     "navigate(decision.destination, 99, dt")
+        # Fix pass (FP2): every hunter is `h`, so the steering call names it.
+        broken = t["server"].replace("navigate(h, decision.destination, parameters.speed, dt",
+                                     "navigate(h, decision.destination, 99, dt")
+        self.assertNotEqual(broken, t["server"], "the steering call must exist to be broken")
         with self.assertRaisesRegex(sp.ParseError, "steering"):
             sp.parse_server(broken)
 

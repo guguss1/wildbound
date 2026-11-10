@@ -188,6 +188,10 @@ DEFAULT_MAPPINGS = [
     # Next batch NB4 (delivery E): the pure incubator timer, shared with the Bag tab, and its suite
     ("src/wildbound/WildboundIncubator.luau", "ReplicatedStorage.WildboundIncubator"),
     ("tests/WildboundIncubator_Test.luau", "ServerStorage.WildboundIncubator_Test"),
+    # Fix pass FP2: the pure roster of per-player hunters (server only) and the wiring contracts
+    ("src/wildbound/WildboundHunters.luau", "ServerScriptService.WildboundHunters"),
+    ("tests/WildboundHunters_Test.luau", "ServerStorage.WildboundHunters_Test"),
+    ("tests/WildboundHunterWiring_Test.luau", "ServerStorage.WildboundHunterWiring_Test"),
 ]
 
 

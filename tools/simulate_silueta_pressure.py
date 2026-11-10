@@ -132,7 +132,8 @@ def parse_rules(text):
 
 
 STEERING_CHECKS = (
-    ("steering", r"navigate\(decision\.destination, parameters\.speed, dt",
+    # Fix pass (FP2): every hunter is `h`; the patterns name it.
+    ("steering", r"navigate\(h, decision\.destination, parameters\.speed, dt",
      "Hunt steering no longer moves at parameters.speed"),
     ("hunt profile", r"local parameters = \{ speed = profile\.hunt, detectionRange = profile\.detection \}",
      "hunt speed and detection no longer come from the brain profile"),
@@ -144,7 +145,7 @@ STEERING_CHECKS = (
      "chase limit is no longer the brain profile's chaseSeconds"),
     ("alert", r"alertEndsAt = now \+ Brain\.engage\(brain, now, phase\)",
      "alert time is no longer the brain profile's alertSeconds"),
-    ("patrol speed", r"navigate\(patrol\[patrolIndex\], profile\.patrol, dt, now\)",
+    ("patrol speed", r"navigate\(h, patrol\[patrolIndex\], profile\.patrol, dt, now\)",
      "patrol speed is no longer the brain profile's patrol speed"),
 )
 

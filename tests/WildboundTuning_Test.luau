@@ -82,11 +82,15 @@ return function(Schema, modules)
 			-- Next batch NB4 (delivery E): the incubation time.
 			"Incubator.HATCH_SECONDS",
 			-- Look pass: La Silueta's height (art only).
-			"Silueta.VISUAL_SCALE" }) do
+			"Silueta.VISUAL_SCALE",
+			-- Fix pass (FP2): one Silueta per player, the cap and how faint another player's is drawn.
+			"Silueta.MAX_HUNTERS", "Camera.OTHER_SILUETA_FADE" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
 		equal(Schema.find("Camera", "SPRINT_FOV_KICK").side, "client", "the camera kick is read on the client")
+		equal(Schema.find("Camera", "OTHER_SILUETA_FADE").side, "client", "the fade of another player's Silueta is a client value")
+		equal(Schema.find("Silueta", "MAX_HUNTERS").min, 1, "at least one Silueta")
 		equal(Schema.find("Sprint", "SPRINT_MULTIPLIER").side, "server", "sprint is read on the server")
 		equal(Schema.find("Nope", "X"), nil)
 	end)

@@ -416,24 +416,42 @@ end
 local smoothingModule = ReplicatedStorage:WaitForChild("WildboundGuardianSmoothing", 10)
 local Smoothing = smoothingModule and require(smoothingModule)
 if not Smoothing then warn("Wildbound world: guardian smoothing unavailable; steps stay visible.") end
-local follow = { smoothing = Smoothing and Smoothing.new() }
-local function guardianParts()
+-- Fix pass (FP2, one Silueta per player): the runtime holds one "Silueta" model per player, each marked with its
+-- owner's user id. This client reads its own hunter for the chase feel, the preload and the awareness, and draws every
+-- other player's hunter faint (View.hunterFade as a LocalTransparencyModifier, its grin and glow hidden) here only.
+local function hunterModels()
 	local map = workspace:FindFirstChild("WildboundP0")
 	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
-	local model = runtime and runtime:FindFirstChild("Silueta")
+	local list = {}
+	if runtime then
+		for _, child in ipairs(runtime:GetChildren()) do
+			if child.Name == "Silueta" and child:IsA("Model") then table.insert(list, child) end
+		end
+	end
+	return list
+end
+local function ownHunter()
+	for _, model in ipairs(hunterModels()) do
+		if model:GetAttribute("Owner") == player.UserId then return model end
+	end
+	return nil
+end
+local function guardianParts()
+	local model = ownHunter()
 	local body = model and model:FindFirstChild("Body")
 	if not (model and body and body:IsA("BasePart")) then return nil end
 	return model, body, model:FindFirstChild("SiluetaVisual"), model:FindFirstChild("GroundCue")
 end
-local function followGuardian()
-	if not Smoothing then return end
-	local model, body, art, cue = guardianParts()
-	if model ~= follow.model then
-		follow.model, follow.art, follow.cue, follow.artRel, follow.cueRel, follow.lastPose = model, nil, nil, nil, nil, nil
-		Smoothing.reset(follow.smoothing)
+local follows = {}
+local function followOne(model, now)
+	local body = model:FindFirstChild("Body")
+	if not (body and body:IsA("BasePart")) then return end
+	local follow = follows[model]
+	if not follow then
+		follow = { smoothing = Smoothing.new() }
+		follows[model] = follow
 	end
-	if not model then return end
-	local now = os.clock()
+	local art, cue = model:FindFirstChild("SiluetaVisual"), model:FindFirstChild("GroundCue")
 	local pose = body.CFrame
 	if pose ~= follow.lastPose then
 		follow.lastPose, follow.changedAt = pose, now
@@ -455,7 +473,53 @@ local function followGuardian()
 	if follow.artRel then art:PivotTo(shown * follow.artRel) end
 	if follow.cueRel then cue.CFrame = shown * follow.cueRel end
 end
+local function followGuardian()
+	if not Smoothing then return end
+	local now = os.clock()
+	local seen = {}
+	for _, model in ipairs(hunterModels()) do
+		seen[model] = true
+		followOne(model, now)
+	end
+	for model in pairs(follows) do
+		if not seen[model] then follows[model] = nil end
+	end
+end
 RunService:BindToRenderStep("WildboundGuardianSmoothing", Enum.RenderPriority.Last.Value, followGuardian)
+
+-- Another player's hunter: every part faded by the pure rule, its grin, glow and outline off. Re-applied every half
+-- second because a server reveal or a new chase rewrites the replicated properties; the modifier itself is local.
+local fadedGrins = {}
+local function fadeHunters()
+	for _, model in ipairs(hunterModels()) do
+		local fade = View.hunterFade(model:GetAttribute("Owner"), player.UserId)
+		for _, item in ipairs(model:GetDescendants()) do
+			if item:IsA("BasePart") then
+				if item.LocalTransparencyModifier ~= fade then item.LocalTransparencyModifier = fade end
+			elseif fade > 0 and item.Name == "HorrorGrin" and item:IsA("SurfaceGui") then
+				if item.Enabled then item.Enabled = false end
+				if not fadedGrins[item] then
+					fadedGrins[item] = true
+					listen(item:GetPropertyChangedSignal("Enabled"), function()
+						if item.Enabled and View.hunterFade(model:GetAttribute("Owner"), player.UserId) > 0 then item.Enabled = false end
+					end)
+				end
+			elseif fade > 0 and item:IsA("PointLight") and item.Name == "Glow" then
+				if item.Enabled then item.Enabled = false end
+			elseif fade > 0 and item:IsA("Highlight") then
+				if item.Enabled then item.Enabled = false end
+			end
+		end
+	end
+end
+local fadeClock = 0
+listen(RunService.Heartbeat, function(dt)
+	fadeClock += dt
+	if fadeClock < 0.5 then return end
+	fadeClock = 0
+	local ok, message = pcall(fadeHunters)
+	if not ok then gui:SetAttribute("HunterFadeError", tostring(message)) end
+end)
 
 -- Chase pass (CP1, CP3): sprint is shown and felt, and a close hunting Silueta is felt too. An always-on hint
 -- ("Shift: Correr", "L3: Correr"; touch has the button), a wider view while sprinting, and near a hunting Silueta a

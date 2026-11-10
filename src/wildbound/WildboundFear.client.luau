@@ -192,12 +192,18 @@ listen(player.CharacterAdded, function(character)
 	task.spawn(watchHealth, character)
 end)
 
+-- Fix pass (FP2, one Silueta per player): this player's own hunter, the model whose Owner is this player; never
+-- anyone else's, so another player's chase never shouts, shakes or darkens this screen.
 local function guardian()
 	local map = workspace:FindFirstChild("WildboundP0")
 	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
-	local model = runtime and runtime:FindFirstChild("Silueta")
-	local body = model and model:FindFirstChild("Body")
-	if model and body and body:IsA("BasePart") then return model, body end
+	if not runtime then return nil end
+	for _, model in ipairs(runtime:GetChildren()) do
+		if model.Name == "Silueta" and model:IsA("Model") and model:GetAttribute("Owner") == player.UserId then
+			local body = model:FindFirstChild("Body")
+			if body and body:IsA("BasePart") then return model, body end
+		end
+	end
 	return nil
 end
 local THREAT_STATES = { Alert = true, Hunt = true, Telegraph = true }

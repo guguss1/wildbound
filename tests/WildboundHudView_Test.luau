@@ -344,6 +344,21 @@ return function(View, source, islandLayout)
 		equal(View.companionTransparency(-5), View.companionTransparency(0))
 	end)
 
+	-- Fix pass (FP2, one Silueta per player): this client draws its own hunter in full and anyone else's faint.
+	case("FP2: another player's Silueta is drawn faint, your own in full, tunable", function()
+		equal(View.hunterFade(101, 101), 0, "your own hunter")
+		equal(View.hunterFade(202, 101), CONST.OTHER_SILUETA_FADE, "someone else's")
+		assert(CONST.OTHER_SILUETA_FADE >= 0.5 and CONST.OTHER_SILUETA_FADE < 1, "faint, not gone: " .. CONST.OTHER_SILUETA_FADE)
+		for _, bad in ipairs({ nil, NAN, "101" }) do equal(View.hunterFade(bad, 101), CONST.OTHER_SILUETA_FADE, "no owner reads as foreign") end
+		View.tune({ OTHER_SILUETA_FADE = 1 })
+		equal(View.hunterFade(202, 101), 1, "1 hides them")
+		equal(View.hunterFade(101, 101), 0, "never your own")
+		View.tune({ OTHER_SILUETA_FADE = 7 })
+		equal(View.hunterFade(202, 101), 1, "clamped")
+		View.tune(nil)
+		equal(View.hunterFade(202, 101), CONST.OTHER_SILUETA_FADE)
+	end)
+
 	-- M4.6 defeat flow: a full-screen summary before respawn, in plain words.
 	case("the loss summary names what was lost, saved and kept", function()
 		local text = View.lossSummary({ operationId = "life:2",
