@@ -70,10 +70,13 @@ return function(Record, Economy, Config, State, source)
 		return state.players["n:1"], state
 	end
 
-	case("RT-1: a blank record is schema 1, valid, starts every counter at 1 and holds nothing at risk", function()
+	-- Nest Heist Phase 3 (NS1, NS2): schema 2 adds the incubator and the training levels and never holds atRisk.
+	-- Deliberately changed pin: schema 1 -> 2.
+	case("RT-1: a blank record is schema 2, valid, starts every counter at 1 and holds nothing at risk", function()
 		local record = Record.blank()
-		equal(Record.SCHEMA, 1)
-		equal(record.schema, 1)
+		equal(Record.SCHEMA, 2)
+		equal(record.schema, 2)
+		deepEqual(record.incubating, {}); deepEqual(record.training, {})
 		equal(record.revision, 0)
 		equal(record.nextUid, 1); equal(record.nextTrip, 1); equal(record.nextOp, 1)
 		equal(record.firstSealGranted, false)
@@ -137,7 +140,9 @@ return function(Record, Economy, Config, State, source)
 		equal(record.atRisk, nil, "nothing out in the world")
 	end)
 
-	case("RT-5: what is out in the world is saved in atRisk and comes back with its wards and trip time", function()
+	-- NS2 (user rule, 2026-11-10): carried, unsecured things are never saved; a death or a leave loses them as before.
+	-- Deliberately changed pin: RT-5 used to save them in atRisk.
+	case("RT-5: what is out in the world is never saved and never comes back", function()
 		local profile = stateProfile()
 		profile.pending = {
 			{ uid = "u4", kind = "Egg", species = "Lumipol", protected = true, riskTier = "Territory", wardSource = "Seal" },
@@ -146,29 +151,23 @@ return function(Record, Economy, Config, State, source)
 		profile.dropped = { { uid = "u5", kind = "Creature", species = "Lumipol", protected = false, riskTier = "Fog" } }
 		profile.carried.fogbark = 3
 		profile.totemActive = true
+		profile.carrying = { uid = "wb:9", kind = "Creature", species = "Lumipol" }
 		profile.expedition = { startedAt = 500, maxDistanceFromCamp = 80, paidSlots = { s1 = true }, newUnits = 3,
 			newItems = 2, bondXp = 4, bondEvents = { pulseRevealInFog = 1 }, pendingBond = {} }
 		local base = Record.blank(); base.nextUid = 7
 		local record = assert(Record.fromProfile(profile, base, { nowUnix = 2000, sessionNow = 590, leftAtUnix = 2000,
 			marks = 1, kUsed = 1, position = { x = 1, y = 2, z = 3 }, droppedExpiry = { u5 = 2025 } }, Economy, Config))
-		valid(record, "at risk")
-		local risk = record.atRisk
-		assert(risk, "atRisk written")
-		equal(risk.pending[1].wardSource, "Seal"); equal(risk.pending[1].protected, nil)
-		equal(risk.pending[2].quantity, 2)
-		equal(risk.dropped[1].entry.uid, "u5"); equal(risk.dropped[1].expiresAtUnix, 2025)
-		equal(risk.carried.fogbark, 3); equal(risk.totemActive, true)
-		equal(risk.marks, 1); equal(risk.kUsed, 1); equal(risk.position.z, 3)
-		equal(risk.checkpointAtUnix, 2000); equal(risk.leftAtUnix, 2000)
-		equal(risk.expedition.elapsedSeconds, 90)
-		equal(risk.expedition.startedAt, nil, "a server clock value is never saved")
-		local back = Record.toProfile(record, Economy, Config, 10000)
-		equal(back.pending[1].protected, true); equal(back.pending[1].wardSource, "Seal")
-		equal(back.pending[2].protected, false)
-		equal(back.dropped[1].uid, "u5")
-		equal(back.carried.fogbark, 3); equal(back.totemActive, true)
-		equal(back.expedition.startedAt, 10000 - 90)
-		equal(back.expedition.paidSlots.s1, true); equal(back.expedition.bondEvents.pulseRevealInFog, 1)
+		valid(record, "nothing at risk")
+		equal(record.atRisk, nil, "no atRisk section")
+		local text = HttpService:JSONEncode(record)
+		for _, banned in ipairs({ "u4", "u5", "u6", "wb:9", "pending", "paidSlots" }) do
+			assert(not string.find(text, banned, 1, true), "record must not hold " .. banned)
+		end
+		local legacy = fixture()
+		local back = Record.toProfile(legacy, Economy, Config, 10000)
+		equal(#back.pending, 0, "a legacy atRisk section is never restored")
+		equal(#back.dropped, 0); equal(back.carried.fogbark, 0); equal(back.expedition, nil)
+		equal(back.totemActive, false)
 	end)
 
 	case("RT-6: a session ID (wb:N) is refused by the serializer, so B17 IDs can never be saved", function()
@@ -248,21 +247,21 @@ return function(Record, Economy, Config, State, source)
 		r = fixture(); r.banked.gold = 1; invalid(r, "unknown material")
 		r = fixture(); r.consumables.potion = 1; invalid(r, "unknown consumable")
 		r = fixture(); r.upgrades.reinforcedPack = 1; invalid(r, "non-boolean upgrade")
-		r = fixture(); r.schema = 2; invalid(r, "schema 2 is not valid for this server")
+		r = fixture(); r.schema = Record.SCHEMA + 1; invalid(r, "a newer schema is not valid for this server")
 		r = fixture(); r.ledger[1].digest = nil; invalid(r, "ledger entry without digest")
 	end)
 
 	case("RT-13: migration ladder: current, too new, absent schema, throwing and invalid steps", function()
 		local status, migrated = Record.migrate(fixture())
-		equal(status, "Current"); equal(migrated.schema, 1)
-		local newer = fixture(); newer.schema = 2
+		equal(status, "Current"); equal(migrated.schema, Record.SCHEMA)
+		local newer = fixture(); newer.schema = Record.SCHEMA + 1
 		status, migrated = Record.migrate(newer)
 		equal(status, "TooNew"); equal(migrated, nil)
 		local unversioned = { collection = { registered = { { uid = "u4", species = "Lumipol" } }, bankedEggs = {} },
 			ember = 7 }
 		status, migrated = Record.migrate(unversioned)
 		equal(status, "Migrated")
-		equal(migrated.schema, 1); equal(migrated.ember, 7); equal(migrated.nextUid, 5)
+		equal(migrated.schema, Record.SCHEMA); equal(migrated.ember, 7); equal(migrated.nextUid, 5)
 		equal(unversioned.schema, nil, "the input is never changed")
 		valid(migrated, "migrated v0")
 		status, migrated = Record.migrate(unversioned, { [0] = function() error("boom") end })
@@ -279,7 +278,8 @@ return function(Record, Economy, Config, State, source)
 		equal((Record.migrate(fraction)), "Quarantined")
 	end)
 
-	case("RT-14: the golden schema 1 fixture stays valid and survives a JSON round trip", function()
+	-- NS1: a schema 1 save migrates to schema 2 (deliberately changed pin: "Current" -> "Migrated").
+	case("RT-14: the golden schema 1 fixture migrates to schema 2 and survives a JSON round trip", function()
 		local golden = HttpService:JSONDecode([[{"schema":1,"revision":42,"lastCommitId":"extract:31",
 			"lastWriteId":"srv:1:9","nextUid":18,"nextTrip":8,"nextOp":32,"firstSealGranted":true,
 			"collection":{"registered":[{"uid":"u12","species":"Lumipol"}],"bankedEggs":[{"uid":"u9","species":"Lumipol"}]},
@@ -287,10 +287,12 @@ return function(Record, Economy, Config, State, source)
 			"consumables":{"seal":0,"capsule":0,"totem":0},"upgrades":{"reinforcedPack":false},"skills":{},
 			"bondXp":{"u12":0},"settings":{},"stats":{"tripsOpened":0,"extractions":0,"defeats":0,"firstPlayedDay":0},
 			"ledger":[{"id":"extract:31","kind":"extract","digest":"x"}]}]])
-		valid(golden, "golden v1")
 		local status, migrated = Record.migrate(golden)
-		equal(status, "Current")
-		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), golden)
+		equal(status, "Migrated")
+		valid(migrated, "golden v1 migrated")
+		local expected = Record.copy(golden)
+		expected.schema = Record.SCHEMA; expected.incubating = {}; expected.training = {}
+		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), expected)
 	end)
 
 	case("RT-15: F2.1 and F2.2 new IDs continue the saved counter and never collide", function()
@@ -336,6 +338,52 @@ return function(Record, Economy, Config, State, source)
 		assert(not string.find(source, "DataStoreService", 1, true), "no DataStoreService")
 		assert(not string.find(source, "GetDataStore", 1, true), "no GetDataStore")
 		assert(not string.find(source, "UpdateAsync", 1, true), "no UpdateAsync")
+	end)
+
+	-- Nest Heist Phase 3 (NS2, NS3): what the save holds besides the collection.
+	case("RT-19: incubating eggs survive profile -> record -> profile with their server timestamps", function()
+		local profile = stateProfile()
+		profile.incubating = { { uid = "u2", species = "Lumipol", startedAt = 1700000000, readyAt = 1700000090 } }
+		local base = Record.blank(); base.nextUid = 3
+		local record = assert(Record.fromProfile(profile, base, { nowUnix = 1700000010 }, Economy, Config))
+		valid(record, "with an incubating egg")
+		equal(#record.incubating, 1)
+		equal(record.incubating[1].uid, "u2"); equal(record.incubating[1].readyAtUnix, 1700000090)
+		local back = Record.toProfile(record, Economy, Config, 0)
+		equal(#back.incubating, 1)
+		equal(back.incubating[1].startedAt, 1700000000); equal(back.incubating[1].readyAt, 1700000090)
+		equal(back.incubating[1].species, "Lumipol")
+		local r = Record.copy(record); r.incubating[1].readyAtUnix = 0 / 0; invalid(r, "NaN ready time")
+		r = Record.copy(record); r.incubating[1].uid = "wb:4"; invalid(r, "session id in the incubator")
+		r = Record.copy(record); r.collection.bankedEggs = { { uid = "u2", species = "Lumipol" } }
+		invalid(r, "the same egg banked and incubating")
+	end)
+
+	case("RT-20: training levels survive the round trip; a blank profile has none", function()
+		local profile = stateProfile()
+		profile.training = { speed = 3 }
+		local record = assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config))
+		equal(record.training.speed, 3)
+		valid(record, "with training")
+		equal(Record.toProfile(record, Economy, Config, 0).training.speed, 3)
+		local blank = Record.toProfile(Record.blank(), Economy, Config, 0)
+		equal(blank.training, nil, "made on first use, like the incubator list")
+		equal(blank.incubating, nil)
+		local r = Record.copy(record); r.training.speed = -1; invalid(r, "negative level")
+		r = Record.copy(record); r.training.speed = 1.5; invalid(r, "fractional level")
+	end)
+
+	case("RT-21: migration 1 -> 2 drops atRisk (carried items are never saved) and adds the new lists", function()
+		local old = fixture()
+		old.schema = 1
+		local status, migrated = Record.migrate(old)
+		equal(status, "Migrated")
+		equal(migrated.atRisk, nil, "what was out in the world is not carried into schema 2")
+		deepEqual(migrated.incubating, {}); deepEqual(migrated.training, {})
+		valid(migrated, "migrated fixture")
+		equal(old.atRisk ~= nil, true, "the input is never changed")
+		local status0, from0 = Record.migrate({ ember = 3 })
+		equal(status0, "Migrated"); equal(from0.schema, Record.SCHEMA); valid(from0, "v0 through every step")
 	end)
 
 	return result

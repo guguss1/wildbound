@@ -419,7 +419,8 @@ function View.note(tab, atCamp, compact)
 		end
 		return compact and "Campamento: fabrica y aprende." or "En el campamento puedes fabricar, comprar y aprender."
 	end
-	return compact and "Solo esta sesión: se pierde al salir." or "Solo esta sesión: el progreso se pierde al salir del servidor."
+	-- NS1: the collection is saved; what is carried is lost on a defeat or a leave.
+	return compact and "Lo que llevas se pierde al morir." or "Se guarda tu colección; lo que llevas se pierde al morir."
 end
 
 return View

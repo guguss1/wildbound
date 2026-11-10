@@ -182,7 +182,23 @@ if recorder then
 	dump.OnInvoke = function() return table.clone(recorder.events), table.clone(analytics.counters) end
 	dump.Parent = telemetry
 end
-game:BindToClose(function() analytics:closeAll() end)
+-- Nest Heist Phase 3 (NS1, NS2): saved progress (docs/mechanics/wildbound-persistence.md, "Live saving"). WildboundSave
+-- joins the State profile to one session-locked record per player; WildboundStoreRoblox is the only module that names
+-- the data store. WildboundFlags.persistenceMode: "datastore" (default), "memory" or "off".
+Heist.Save = require(script.Parent:WaitForChild("WildboundSave"))
+Heist.joining = {}
+Heist.saves = Heist.Save.start({
+	state = state, record = require(script.Parent:WaitForChild("WildboundRecord")),
+	persistence = require(script.Parent:WaitForChild("WildboundPersistence")),
+	store = require(script.Parent:WaitForChild("WildboundStoreRoblox")),
+	economy = Economy, config = EconomyConfig, telemetry = telemetry,
+	mode = flagsOk and type(flags) == "table" and flags.persistenceMode or "datastore",
+	notify = function(userId) if Heist.saveNotice then Heist.saveNotice(userId) end end,
+})
+game:BindToClose(function()
+	analytics:closeAll()
+	Heist.saves:closeAll()
+end)
 
 -- Server-to-server proof of registered ownership; clients cannot invoke bindables.
 -- Never use a replicated Player attribute alone to authorize a companion ability.
@@ -386,6 +402,8 @@ local function send(player, action, ok, notice, lossSummary, card)
 	if refreshDisplay then refreshDisplay(player) end
 	if syncCompanion then syncCompanion(player) end
 	local snapshot = state:snapshot(player.UserId)
+	-- NS1: the HUD says "saved" only while this player's progress really is being saved.
+	if snapshot then snapshot.sessionOnly = not Heist.saves:isSaving(player.UserId) end
 	-- RW3: Esencia gained since the last snapshot counts for this wave's board (spending never does).
 	if snapshot then
 		local ember = snapshot.ember or 0
@@ -2687,7 +2705,7 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 		and action ~= "CaptureCancel" and action ~= "CaptureSeal" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
-		send(player, action, true, notices.sessionOnly)
+		send(player, action, true, Heist.saves:isSaving(player.UserId) and Text.SAVE.saving or notices.sessionOnly)
 		return
 	end
 	if type(uid) ~= "string" or #uid == 0 or #uid > 128 or not allowed(player, action) then return end
@@ -2922,9 +2940,39 @@ local function bindCharacter(player, character)
 	applyCarry(player)
 	send(player, "Respawn", true, notices.respawn)
 end
+-- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
+-- attributes a loaded save needs (the Equip action sets them otherwise).
+function Heist.saveNotice(userId)
+	local player = playersByUserId[userId]
+	if not player then return end
+	local mode, outcome = Heist.saves:mode(userId)
+	local text = Text.SAVE.saving
+	if mode == "Off" then text = notices.sessionOnly
+	elseif mode == "Saved" then text = outcome == "New" and Text.SAVE.new or Text.SAVE.loaded
+	elseif outcome == "LockedElsewhere" then text = Text.SAVE.locked
+	elseif outcome == "Quarantined" then text = Text.SAVE.unreadable
+	elseif outcome == "TooNew" then text = Text.SAVE.tooNew
+	else text = Text.SAVE.unavailable end
+	if Heist.saves.label == "memory" and mode == "Saved" then text = text .. " " .. Text.SAVE.memory end
+	player:SetAttribute("WildboundSaveMode", mode)
+	local snapshot = state:snapshot(userId)
+	if snapshot and snapshot.equippedUid then
+		player:SetAttribute("WildboundEquippedUid", snapshot.equippedUid)
+		player:SetAttribute("WildboundHasLumipol", true)
+	end
+	send(player, "Save", true, text)
+end
 local function addPlayer(player)
-	if records[player] then return end
-	state:addPlayer(player.UserId)
+	if records[player] or Heist.joining[player] then return end
+	-- NS1: claim and load the saved record (this yields), or play unsaved. A player who left meanwhile is released.
+	Heist.joining[player] = true
+	Heist.saves:join(player.UserId, workspace:GetServerTimeNow())
+	Heist.joining[player] = nil
+	if player.Parent ~= Players then
+		Heist.saves:leave(player.UserId)
+		state:removePlayer(player.UserId)
+		return
+	end
 	local record = { rates = {}, lastAny = -math.huge, generation = 0, defeated = false }
 	records[player] = record
 	playersByUserId[player.UserId] = player
@@ -2933,6 +2981,7 @@ local function addPlayer(player)
 	if player.Character then task.spawn(bindCharacter, player, player.Character) end
 	ensureNests()
 	sendWave(player)
+	Heist.saveNotice(player.UserId)
 end
 Players.PlayerAdded:Connect(addPlayer)
 Players.PlayerRemoving:Connect(function(player)
@@ -2955,6 +3004,8 @@ Players.PlayerRemoving:Connect(function(player)
 	analytics:leave(player.UserId, "left")
 	records[player] = nil
 	playersByUserId[player.UserId] = nil
+	-- NS1: the final write and the lock release (nothing at risk is saved), then the session profile goes.
+	Heist.saves:leave(player.UserId)
 	state:removePlayer(player.UserId)
 end)
 for _, player in ipairs(Players:GetPlayers()) do addPlayer(player) end

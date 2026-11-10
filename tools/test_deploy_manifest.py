@@ -390,6 +390,10 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBeastEncounters_Test.luau": "ServerStorage.WildboundBeastEncounters_Test",
         "tests/WildboundBeastWiring_Test.luau": "ServerStorage.WildboundBeastWiring_Test",
         "src/wildbound/WildboundBeasts.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundBeastsClient",
+        # Nest Heist Phase 3 (NS1): saved progress, at the Explorer paths created in Studio
+        "src/wildbound/WildboundSave.luau": "ServerScriptService.WildboundSave",
+        "src/wildbound/WildboundStoreRoblox.luau": "ServerScriptService.WildboundStoreRoblox",
+        "tests/WildboundSave_Test.luau": "ServerStorage.WildboundSave_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

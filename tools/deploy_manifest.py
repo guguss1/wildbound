@@ -244,6 +244,10 @@ DEFAULT_MAPPINGS = [
         "src/wildbound/WildboundBeasts.client.luau",
         "StarterPlayer.StarterPlayerScripts.WildboundBeastsClient",
     ),
+    # Nest Heist Phase 3 (NS1): saved progress; the Explorer paths were created in Studio by this unit
+    ("src/wildbound/WildboundSave.luau", "ServerScriptService.WildboundSave"),
+    ("src/wildbound/WildboundStoreRoblox.luau", "ServerScriptService.WildboundStoreRoblox"),
+    ("tests/WildboundSave_Test.luau", "ServerStorage.WildboundSave_Test"),
 ]
 
 

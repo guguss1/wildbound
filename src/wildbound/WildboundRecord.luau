@@ -1,10 +1,12 @@
--- Saved-progress record, schema 1 (W10, M6.1). Pure: no service, no yield, no clock. It defines the one value
+-- Saved-progress record, schema 2 (W10, M6.1; Nest Heist Phase 3 NS1/NS2). Pure: no service, no yield, no clock. It defines the one value
 -- stored per player, turns a State profile into that value and back, validates every load and runs the migration
--- ladder. Design: docs/mechanics/wildbound-persistence.md sections 3 and 7. Only the store adapter (M6.3) may
--- name the data store service; this module and WildboundPersistence never do.
+-- ladder. Design: docs/mechanics/wildbound-persistence.md sections 3 and 7. Only the store adapter
+-- (WildboundStoreRoblox) may name the data store service; this module and WildboundPersistence never do.
+-- Schema 2 (NS1, NS2): the incubator list (server timestamps) and the training levels are saved; what is out in the
+-- world (the bag, the pouch, a dropped or carried item, the trip) is never saved, so a death or a leave still loses it.
 local Record = {}
 
-Record.SCHEMA = 1
+Record.SCHEMA = 2
 Record.LEDGER_CAP = 64
 Record.MAX_CHARS = 4194304
 
@@ -15,7 +17,7 @@ local KNOWN = table.freeze({
 	schema = true, revision = true, lastCommitId = true, lastWriteId = true, nextUid = true, nextTrip = true,
 	nextOp = true, firstSealGranted = true, collection = true, equippedUid = true, banked = true, ember = true,
 	consumables = true, upgrades = true, skills = true, bondXp = true, settings = true, stats = true, atRisk = true,
-	ledger = true,
+	ledger = true, incubating = true, training = true,
 })
 local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlayedDay" })
 
@@ -52,7 +54,7 @@ function Record.blank()
 		schema = Record.SCHEMA, revision = 0, nextUid = 1, nextTrip = 1, nextOp = 1, firstSealGranted = false,
 		collection = { registered = {}, bankedEggs = {} },
 		banked = {}, ember = 0, consumables = {}, upgrades = {}, skills = {}, bondXp = {}, settings = {},
-		stats = stats, ledger = {},
+		stats = stats, ledger = {}, incubating = {}, training = {},
 	}
 end
 
@@ -100,12 +102,6 @@ local function item(entry)
 		quantity = entry.quantity, wardSource = entry.wardSource }
 end
 
-local function profileItem(entry)
-	local out = { uid = entry.uid, kind = entry.kind, species = entry.species, riskTier = entry.riskTier,
-		quantity = entry.quantity, protected = entry.wardSource ~= nil, wardSource = entry.wardSource }
-	return out
-end
-
 local function anyPositive(amounts)
 	for _, quantity in pairs(amounts) do
 		if type(quantity) == "number" and quantity > 0 then return true end
@@ -113,9 +109,10 @@ local function anyPositive(amounts)
 	return false
 end
 
+-- Only the lists that are saved: the bag, the drops and the carry slot are never written (NS2).
 local function everyUid(profile)
 	local list = {}
-	for _, name in ipairs({ "registered", "bankedEggs", "pending", "dropped" }) do
+	for _, name in ipairs({ "registered", "bankedEggs", "incubating" }) do
 		for _, entry in ipairs(profile[name] or {}) do table.insert(list, entry.uid) end
 	end
 	return list
@@ -162,10 +159,18 @@ function Record.fromProfile(profile, base, meta, economy, config)
 	record.skills = copy(profile.skills)
 	record.bondXp = {}
 	for uid, entry in pairs(profile.bond) do record.bondXp[uid] = entry.xp end
+	record.incubating = {}
+	for _, entry in ipairs(profile.incubating or {}) do
+		table.insert(record.incubating, { uid = entry.uid, species = entry.species, startedAtUnix = entry.startedAt,
+			readyAtUnix = entry.readyAt })
+	end
+	record.training = copy(profile.training or {})
 
+	-- NS2: nothing at risk is saved. Schema 1's atRisk writer is kept behind meta.saveAtRisk, which no caller sets, so
+	-- the legacy shape stays readable by the validator; toProfile never restores it.
 	local expedition = profile.expedition
-	local atRisk = #profile.pending > 0 or #profile.dropped > 0 or anyPositive(profile.carried)
-		or profile.sealArmed or profile.totemActive or expedition ~= nil
+	local atRisk = meta.saveAtRisk == true and (#profile.pending > 0 or #profile.dropped > 0
+		or anyPositive(profile.carried) or profile.sealArmed or profile.totemActive or expedition ~= nil)
 	if atRisk then
 		local risk = {
 			pending = {}, carried = copy(profile.carried), dropped = {},
@@ -231,23 +236,17 @@ function Record.toProfile(record, economy, config, sessionNow)
 	for uid, xp in pairs(record.bondXp) do
 		profile.bond[uid] = { xp = xp, level = economy.bondLevel(config, xp) }
 	end
-	local risk = record.atRisk
-	if risk then
-		for _, entry in ipairs(risk.pending) do table.insert(profile.pending, profileItem(entry)) end
-		for _, drop in ipairs(risk.dropped) do table.insert(profile.dropped, profileItem(drop.entry)) end
-		for name, quantity in pairs(risk.carried) do carried[name] = quantity end
-		profile.sealArmed = risk.sealArmed == true
-		profile.totemActive = risk.totemActive == true
-		local expedition = risk.expedition
-		if expedition then
-			profile.expedition = {
-				startedAt = (finite(sessionNow) and sessionNow or 0) - expedition.elapsedSeconds,
-				maxDistanceFromCamp = expedition.maxDistanceFromCamp, paidSlots = copy(expedition.paidSlots),
-				newUnits = expedition.newUnits, newItems = expedition.newItems, bondXp = expedition.bondXp,
-				bondEvents = copy(expedition.bondEvents), pendingBond = copy(expedition.pendingBond),
-			}
+	-- NS2: the incubator and the training levels, made only when there is something (the blank profile must equal
+	-- State:addPlayer's, RT-2). Incubation times are server Unix seconds, so an egg keeps hatching while offline.
+	if type(record.incubating) == "table" and #record.incubating > 0 then
+		profile.incubating = {}
+		for _, entry in ipairs(record.incubating) do
+			table.insert(profile.incubating, { uid = entry.uid, species = entry.species, startedAt = entry.startedAtUnix,
+				readyAt = entry.readyAtUnix })
 		end
 	end
+	if type(record.training) == "table" and next(record.training) ~= nil then profile.training = copy(record.training) end
+	-- NS2: a legacy atRisk section is never restored, so carried things never come back after a leave.
 	return profile
 end
 
@@ -314,6 +313,24 @@ function Record.validate(record, economy, config)
 					end
 				end
 			end
+		end
+	end
+
+	if map(record.incubating, "incubating") then
+		for index, entry in ipairs(record.incubating) do
+			local label = "incubating[" .. index .. "]"
+			if type(entry) ~= "table" then fail(label .. " is not a table") else
+				claimUid(entry.uid, label)
+				species(entry, label)
+				companions += 1
+				if not finite(entry.startedAtUnix) or not finite(entry.readyAtUnix) then fail(label .. " has no times") end
+			end
+		end
+	end
+	if map(record.training, "training") then
+		for name, level in pairs(record.training) do
+			if type(name) ~= "string" or #name == 0 or #name > 32 then fail("training has a malformed key") end
+			count(level, "training." .. tostring(name))
 		end
 	end
 
@@ -421,6 +438,14 @@ Record.MIGRATIONS = table.freeze({
 			end
 		end
 		if type(data.nextUid) == "number" and data.nextUid <= highest then data.nextUid = highest + 1 end
+		return data
+	end,
+	-- NS1/NS2: schema 2 saves the incubator and the training levels, and nothing at risk. A schema 1 atRisk section
+	-- (the bag, the pouch, drops, the trip) is dropped: carried things are lost on leaving, as in play.
+	[1] = function(data)
+		data.atRisk = nil
+		if type(data.incubating) ~= "table" then data.incubating = {} end
+		if type(data.training) ~= "table" then data.training = {} end
 		return data
 	end,
 })

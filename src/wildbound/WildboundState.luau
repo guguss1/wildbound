@@ -89,6 +89,19 @@ function State:addPlayer(key)
 	return true
 end
 
+-- Nest Heist Phase 3 (NS1): a profile rebuilt from the saved record (WildboundRecord.toProfile) replaces the
+-- session's. Only the saved-progress glue (WildboundSave) calls it, right after a successful claim.
+function State:loadPlayer(key, loaded)
+	local normalized = playerKey(key)
+	if not normalized then return false, "InvalidPlayer" end
+	if type(loaded) ~= "table" or type(loaded.registered) ~= "table" or type(loaded.bankedEggs) ~= "table"
+		or type(loaded.banked) ~= "table" or type(loaded.consumables) ~= "table" or not finite(loaded.ember) then
+		return false, "InvalidProfile"
+	end
+	self.players[normalized] = loaded
+	return true
+end
+
 function State:removePlayer(key)
 	local normalized = playerKey(key)
 	if not normalized then return false, "InvalidPlayer" end

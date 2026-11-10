@@ -160,7 +160,7 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 
 	case("PS-6: F1.6 a record from a newer schema is TooNew with no write", function()
 		local store, _, server = setup()
-		local newer = seedRecord(); newer.schema = 2
+		local newer = seedRecord(); newer.schema = Record.SCHEMA + 1
 		store:seed(KEY, newer, {}, 0)
 		local before = store:raw(KEY)
 		equal((server("A"):load(KEY, 0)), "TooNew")
@@ -358,7 +358,8 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		assert(Persistence.AUTOSAVE < Persistence.LOCK_EXPIRY, "autosave more often than the expiry")
 	end)
 
-	case("PS-18: leaving writes a final record, releases the lock and stamps the leave time only with something at risk", function()
+	-- NS2 (user rule): a carried egg is never saved, not even at a leave. Deliberately changed pins in PS-18 and PS-19.
+	case("PS-18: leaving writes a final record and releases the lock; a bag egg is not saved", function()
 		local store, clock, server = setup()
 		local a = server("A")
 		local _, profile = a:load(KEY, 0)
@@ -367,7 +368,7 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		profile.pending = { { uid = uid, kind = "Egg", species = "Lumipol", protected = false, riskTier = "Territory" } }
 		equal(a:release(KEY, profile, { nowUnix = clock.t }), "Released")
 		local _, stored = store:read(KEY)
-		equal(stored.atRisk.leftAtUnix, clock.t)
+		equal(stored.atRisk, nil, "the bag egg is lost with the leave, never saved")
 		equal(store:metadata(KEY).LockId, nil)
 		equal(a:info(KEY), nil)
 		local writes = #store.writes
@@ -379,7 +380,7 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		equal(calm.atRisk, nil, "nothing at risk, nothing to expire")
 	end)
 
-	case("PS-19: D10.7 closing writes one final record per player, releases every lock and keeps no leave time", function()
+	case("PS-19: D10.7 closing writes one final record per player, releases every lock and saves nothing at risk", function()
 		local store, _, server = setup()
 		local a = server("A")
 		local profiles = {}
@@ -395,8 +396,8 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		equal(#store.writes, writes + 3)
 		for n = 1, 3 do equal(store:metadata("Player_" .. n).LockId, nil) end
 		local _, two = store:read("Player_2")
-		equal(two.atRisk.carried.fogbark, 4)
-		equal(two.atRisk.leftAtUnix, nil, "a close is not a leave")
+		equal(two.atRisk, nil, "the pouch is never saved")
+		equal(two.banked.fogbark, 0, "and never banked by a close")
 	end)
 
 	case("PS-20: closing keeps to its time budget when the store keeps failing", function()
@@ -567,14 +568,16 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		equal(op.id, "grant:2")
 	end)
 
-	case("PS-29: source check: no data store service and no live wiring this wave", function()
+	-- NS1 (user approval 2026-11-10): the live server now wires saving through WildboundSave. Deliberately changed pin:
+	-- "the live server does not load persistence" became "it loads it beside WildboundSave and names no data store".
+	case("PS-29: source check: no data store service here; the live server saves only through WildboundSave", function()
 		for name, text in pairs({ persistence = sources.persistence, record = sources.record }) do
 			assert(type(text) == "string" and #text > 0, name .. " source passed")
 			assert(not string.find(text, "DataStoreService", 1, true), name .. " names DataStoreService")
 			assert(not string.find(text, "GetDataStore", 1, true), name .. " names GetDataStore")
 		end
 		assert(type(sources.server) == "string" and #sources.server > 0, "server source passed")
-		assert(not string.find(sources.server, "WildboundPersistence", 1, true), "the live server does not load persistence")
+		assert(string.find(sources.server, "WildboundSave", 1, true), "the live server saves through WildboundSave")
 		assert(not string.find(sources.server, "DataStoreService", 1, true), "the live server names no data store")
 	end)
 

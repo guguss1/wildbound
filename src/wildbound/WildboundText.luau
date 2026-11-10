@@ -342,6 +342,8 @@ return freeze({
 	HUD = {
 		objective = "Roba y vuelve al campamento.",
 		sessionOnly = "Solo esta sesión.",
+		-- Nest Heist Phase 3 (NS1): the HUD line while the progress is being saved.
+		saved = "Progreso guardado.",
 		connecting = "Conectando con el servidor...",
 		-- NB5: "Mochila" (not "Inventario") fits the inventory button on a phone held upright.
 		inventory = "Mochila",
@@ -350,7 +352,8 @@ return freeze({
 		camp = "Taller",
 		close = "Cerrar",
 		menu = "Menú",
-		sessionNote = "Solo esta sesión: el progreso se pierde al salir del servidor.",
+		-- NS1: banked eggs, creatures and Esencia are saved; what the player carries is not.
+		sessionNote = "Se guarda tu colección; lo que llevas se pierde al morir.",
 		serverDown = "Sin conexión con el servidor. Vuelve a entrar.",
 		noResponse = "Sin respuesta. Abre la mochila para reintentar.",
 		pendingBag = "Bolsa: %d/%d | Sellos: %d%s",
@@ -481,6 +484,17 @@ return freeze({
 		wilts = " · se marchita al amanecer",
 	},
 	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
+	-- Nest Heist Phase 3 (NS1): saved progress. A failed or locked load never overwrites anything; the player is told.
+	SAVE = {
+		saving = "Tu progreso se guarda automáticamente.",
+		new = "Bienvenido. Tu progreso se guardará automáticamente.",
+		loaded = "Progreso cargado. Se guarda automáticamente.",
+		unavailable = "No pudimos cargar tu progreso. Tus datos están a salvo. Juegas sin guardar: vuelve a entrar más tarde.",
+		locked = "Tu última partida aún se está guardando. Juegas sin guardar: vuelve a entrar en un momento.",
+		unreadable = "No pudimos leer tu progreso. Tus datos están a salvo. Juegas sin guardar.",
+		tooNew = "Hay una versión nueva del juego. Vuelve a entrar para cargar tu progreso. Juegas sin guardar.",
+		memory = "Prueba en Studio: el progreso se guarda solo mientras dure esta prueba.",
+	},
 	INCUBATOR = {
 		prompt = "Incubar huevo",
 		object = "Incubadora",

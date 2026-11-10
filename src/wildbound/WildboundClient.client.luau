@@ -180,7 +180,9 @@ local function updateObjective()
 	if compact then
 		objective.Text = second and (View and View.fit(second, budget) or second) or H.objective
 	else
-		objective.Text = H.objective .. "\n" .. (second and (View and View.fit(second, budget) or second) or H.sessionOnly)
+		-- NS1: "Progreso guardado." while the server saves this player's progress, else "Solo esta sesión."
+		local saveLine = lastSnapshot and lastSnapshot.sessionOnly == false and H.saved or H.sessionOnly
+		objective.Text = H.objective .. "\n" .. (second and (View and View.fit(second, budget) or second) or saveLine)
 	end
 	objective.TextColor3 = risky and amber or ink
 end
