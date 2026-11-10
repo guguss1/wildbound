@@ -29,7 +29,9 @@ return function(sources)
 		for _, name in ipairs({ "WildboundStamina", "WildboundIsland", "WildboundGuardianBrain", "WildboundWorldRules",
 			"WildboundHide", "WildboundCarry", "WildboundCaptureSession",
 			-- Fix pass (FP4): La Silueta's moves.
-			"WildboundSiluetaMoves" }) do
+			"WildboundSiluetaMoves",
+			-- Random world (RW2): the spawn clock.
+			"WildboundSpawnClock" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")

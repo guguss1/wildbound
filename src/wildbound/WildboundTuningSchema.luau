@@ -28,6 +28,8 @@ Schema.MODULES = table.freeze({
 		file = "src/wildbound/WildboundIncubator.luau (Incubator.CONSTANTS)" }),
 	Moves = table.freeze({ name = "WildboundSiluetaMoves",
 		file = "src/wildbound/WildboundSiluetaMoves.luau (Moves.CONSTANTS)" }),
+	SpawnClock = table.freeze({ name = "WildboundSpawnClock",
+		file = "src/wildbound/WildboundSpawnClock.luau (SpawnClock.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -164,6 +166,19 @@ Schema.SYSTEMS = table.freeze({
 		value("CRY_WIDEN", "Una cría que llora suma (studs)", "Hide", "CRY_WIDEN", 2, 0, 10, 0.5),
 		value("MAX_STAY", "Tiempo máximo escondido (s)", "Hide", "MAX_STAY", 45, 5, 300, 5),
 		value("COOLDOWN", "Espera para volver a esconderse (s)", "Hide", "COOLDOWN", 8, 0, 60, 1),
+	}) }),
+	-- Random world (plan Part 3): the spawn clock (RW2).
+	table.freeze({ id = "World", label = "Mundo aleatorio", entries = table.freeze({
+		value("LIFETIME", "Un huevo o cría se muda tras (s)", "SpawnClock", "LIFETIME", 300, 10, 1800, 10),
+		value("RESPAWN_COMUN", "Reaparece Común tras (s)", "SpawnClock", "RESPAWN_COMUN", 90, 0, 1800, 10),
+		value("RESPAWN_RARA", "Reaparece Rara tras (s)", "SpawnClock", "RESPAWN_RARA", 150, 0, 1800, 10),
+		value("RESPAWN_EPICA", "Reaparece Épica tras (s)", "SpawnClock", "RESPAWN_EPICA", 240, 0, 1800, 10),
+		value("RESPAWN_LEGENDARIA", "Reaparece Legendaria tras (s)", "SpawnClock", "RESPAWN_LEGENDARIA", 360, 0, 1800, 10),
+		value("MAX_COMUN", "Comunes a la vez", "SpawnClock", "MAX_COMUN", 4, 0, 12, 1),
+		value("MAX_RARA", "Raras a la vez", "SpawnClock", "MAX_RARA", 3, 0, 12, 1),
+		value("MAX_EPICA", "Épicas a la vez", "SpawnClock", "MAX_EPICA", 2, 0, 12, 1),
+		value("MAX_LEGENDARIA", "Legendarias a la vez", "SpawnClock", "MAX_LEGENDARIA", 1, 0, 12, 1),
+		value("EGG_SHARE", "Parte que son huevos (0 a 1)", "SpawnClock", "EGG_SHARE", 0.4, 0, 1, 0.05),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

@@ -29,6 +29,9 @@ local Island = require(script.Parent:WaitForChild("WildboundIsland"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local CollectionService = game:GetService("CollectionService")
 local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
+-- Random world (plan Part 3, RW2): the spawn clock over the spawn graph (eggs and crias that live 300 s and move).
+local SpawnClock = require(script.Parent:WaitForChild("WildboundSpawnClock"))
+local spawnGraph = require(script.Parent:WaitForChild("WildboundSpawnGraph"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -851,6 +854,12 @@ telemetry:SetAttribute("IslandCount", #islandList)
 telemetry:SetAttribute("IslandNestsBuilt", islandFolder ~= nil)
 
 local spawnEncounter
+-- Random world (RW2): the random spawns. spawnClock owns which graph point holds what and for how long; wildEntries
+-- maps a spawn to its encounter. A random spawn pays by its spawn tier (SpawnClock.REWARD), never by an island.
+local spawnClock = SpawnClock.new(spawnGraph, Species)
+local wildEntries = {}
+local RARITY_GLOW = { Comun = Color3.fromRGB(205, 235, 215), Rara = Color3.fromRGB(110, 175, 255),
+	Epica = Color3.fromRGB(190, 120, 255), Legendaria = Color3.fromRGB(255, 205, 80) }
 local function ensureNests()
 	local count = math.max(1, #Players:GetPlayers())
 	local phase = islandPhase()
@@ -864,6 +873,12 @@ local function ensureNests()
 	end
 end
 local function scheduleRespawn(slot)
+	if slot.wild then
+		-- RW2: a taken random spawn leaves the clock; its tier waits its respawn time.
+		wildEntries[slot.spawnId] = nil
+		SpawnClock.claim(spawnClock, slot.spawnId, workspace:GetServerTimeNow())
+		return
+	end
 	nestState[slot.id] = "wait"
 	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
 	local generation = nestGen[slot.id]
@@ -901,6 +916,43 @@ local function returnToNest(island, from, kind)
 		end
 	end)
 	tween:Play()
+end
+
+-- RW2: a random spawn as an encounter slot on its graph point (a bough's egg sits `height` above the ground).
+local function wildSlot(spawn)
+	local point = spawn.point
+	return { id = "W:" .. point.id, spawnId = spawn.id, wild = true, kind = spawn.kind, tier = spawn.slotTier,
+		rewardTier = spawn.rewardTier, rarity = spawn.tier, species = spawn.species or "Lumipol", x = point.x,
+		z = point.z, height = point.height, leash = 3, special = spawn.special }
+end
+local function applySpawnActions(actions)
+	for _, action in ipairs(actions) do
+		if action.op == "expire" then
+			local id = wildEntries[action.spawn.id]
+			wildEntries[action.spawn.id] = nil
+			local entry = id and entries[id]
+			if entry then removeEntry(entry) end
+		else
+			spawnEncounter(wildSlot(action.spawn))
+		end
+	end
+	local live = 0
+	for _ in pairs(wildEntries) do live += 1 end
+	telemetry:SetAttribute("WildSpawns", live)
+end
+-- A random spawn someone is capturing stays past its lifetime.
+local function spawnHeld(now)
+	local held = {}
+	for spawnId, id in pairs(wildEntries) do
+		if capture:encounterState(id, now) ~= "Free" then held[spawnId] = true end
+	end
+	return held
+end
+local nextSpawnStep = 0
+local function stepSpawnClock(now)
+	if now < nextSpawnStep then return end
+	nextSpawnStep = now + 1
+	applySpawnActions(SpawnClock.step(spawnClock, now, rng, spawnHeld(now)))
 end
 
 -- What every live player looks like to the islands this step, read here only.
@@ -1201,7 +1253,7 @@ handleEnding = function(out)
 		local firstSteal = before ~= nil and #before.registered == 0 and before.carrying == nil
 		local ok, reason = state:completeCapture(out.playerKey, out.encounterId, alive,
 			slot and (slot.rewardTier or slot.tier) or "Fog",
-			slot and slot.island and { species = slot.species, island = slot.island } or nil)
+			slot and (slot.island or slot.wild) and { species = slot.species, island = slot.island } or nil)
 		granted = ok
 		if ok then
 			counters.completed += 1
@@ -1266,8 +1318,8 @@ spawnEncounter = function(slot)
 	serial += 1
 	local id = slot.kind .. ":" .. serial
 	if not state:registerEncounter(id, slot.kind) then return end
-	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z), slot.z), slot.species,
-		slot.island and slot.kind == "Creature" and Species.CRIA_SCALE or nil)
+	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z) + (slot.height or 0), slot.z),
+		slot.species, (slot.island or slot.wild) and slot.kind == "Creature" and Species.CRIA_SCALE or nil)
 	model:SetAttribute("EncounterId", id)
 	model:SetAttribute("Slot", slot.id)
 	local isEgg = slot.kind == "Egg"
@@ -1276,6 +1328,24 @@ spawnEncounter = function(slot)
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
 	-- I3: the take prompts; an island egg has a 1 s hold and no ring.
 	local speciesName = Text.CARD.species[slot.species or "Lumipol"] or slot.species or Text.PROMPTS.lumipol
+	-- RW2: the rarity tier (a random spawn's own, an island nest's from its species) on the prompt and over the glow.
+	local rarity = slot.rarity or Species.look(slot.species).rarity
+	local rarityLabel = rarity and Text.RARITY[rarity]
+	if rarityLabel then
+		speciesName = speciesName .. " · " .. rarityLabel
+		model:SetAttribute("Rarity", rarity)
+		local tag = Instance.new("BillboardGui")
+		tag.Name, tag.Size, tag.StudsOffset = "RarityTag", UDim2.fromOffset(110, 26), Vector3.new(0, 3, 0)
+		tag.MaxDistance, tag.LightInfluence, tag.AlwaysOnTop = 45, 0, false
+		local label = Instance.new("TextLabel")
+		label.Size, label.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+		label.Text, label.TextScaled, label.Font = rarityLabel, true, Enum.Font.GothamBold
+		label.TextColor3, label.TextStrokeTransparency = RARITY_GLOW[rarity] or Color3.new(1, 1, 1), 0.3
+		label.Parent = tag
+		tag.Parent = body
+		local light = body:FindFirstChildOfClass("PointLight")
+		if light and slot.wild then light.Color = RARITY_GLOW[rarity] or light.Color end
+	end
 	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10, isEgg and 1 or 0)
 	if not isEgg then
 		local cover = table.clone(coverCandidates)
@@ -1290,7 +1360,7 @@ spawnEncounter = function(slot)
 	model:SetAttribute("Island", slot.island)
 	model:SetAttribute("Species", slot.species)
 	entries[id] = entry
-	nestState[slot.id] = id
+	if slot.wild then wildEntries[slot.spawnId] = id else nestState[slot.id] = id end
 	entry.connection = entry.prompt.Triggered:Connect(function(player)
 		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
 		if isEgg then
@@ -1301,7 +1371,7 @@ spawnEncounter = function(slot)
 				return
 			end
 			local alive, distance = context(player, body)
-			local ok, reason = state:pickup(player.UserId, id, alive, distance, slot.island and
+			local ok, reason = state:pickup(player.UserId, id, alive, distance, (slot.island or slot.wild) and
 				{ species = slot.species, tier = slot.rewardTier, island = slot.island } or nil)
 			if ok then
 				analytics:gain(player.UserId, "pickup")
@@ -1806,6 +1876,7 @@ RunService.Heartbeat:Connect(function(dt)
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
 	stepIslands(now, stepSeconds)
+	stepSpawnClock(now)
 	updateCarryMoods(now)
 	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
 	local campX, campZ = campCenter.Position.X, campCenter.Position.Z

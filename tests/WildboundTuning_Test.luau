@@ -2,7 +2,7 @@
 -- Island = require(freshIslandClone), Brain = require(freshBrainClone), Rules = require(freshRulesClone),
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
 -- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone),
--- Moves = require(freshSiluetaMovesClone) }).
+-- Moves = require(freshSiluetaMovesClone), SpawnClock = require(freshSpawnClockClone) }).
 -- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
@@ -93,7 +93,10 @@ return function(Schema, modules)
 			"Silueta.GLARE_HOLD", "Silueta.SCREAM_ON", "Silueta.SCREAM_REACH",
 			-- Fix pass (FP5): the parents' moves.
 			"Islands.POUNCE_ON", "Islands.POUNCE_RANGE", "Islands.EGG_RECOVERY_ON", "Islands.DEEP_SLEEP_ON", "Islands.DEEP_SCALE",
-			"Islands.BREATH_SECONDS" }) do
+			"Islands.BREATH_SECONDS",
+			-- Random world (RW2): the spawn clock.
+			"World.LIFETIME", "World.RESPAWN_COMUN", "World.RESPAWN_LEGENDARIA", "World.MAX_COMUN", "World.MAX_LEGENDARIA",
+			"World.EGG_SHARE" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

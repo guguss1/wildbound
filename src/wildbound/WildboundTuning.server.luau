@@ -22,7 +22,9 @@ end
 local modules = {}
 -- Fix pass (FP4): La Silueta's moves (WildboundSiluetaMoves) are tuned here too.
 for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland", Brain = "WildboundGuardianBrain",
-	Rules = "WildboundWorldRules", Hide = "WildboundHide", Moves = "WildboundSiluetaMoves" }) do
+	Rules = "WildboundWorldRules", Hide = "WildboundHide", Moves = "WildboundSiluetaMoves",
+	-- Random world (RW2): the spawn clock.
+	SpawnClock = "WildboundSpawnClock" }) do
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

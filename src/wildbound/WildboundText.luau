@@ -142,6 +142,13 @@ return freeze({
 		firstBonus = "+%d de Esencia por tu primera cría",
 		next = "Próxima isla: %s. Allí duermen los %s.",
 	},
+	-- Random world (plan Part 3, RW2): the rarity of a spawn, shown on its glow and its prompt.
+	RARITY = {
+		Comun = "Común",
+		Rara = "Rara",
+		Epica = "Épica",
+		Legendaria = "Legendaria",
+	},
 	-- Expedition islands (I8, docs/mechanics/wildbound-expedition-islands.md section 6). Names at most 28 bytes,
 	-- prompts 24, notices 72.
 	ISLAND = {
