@@ -35,20 +35,20 @@ Kit frame to plan frame: local x = -Blender x, local z = Blender y, height = Ble
 
 ## 2. Placement around the hub
 
-`tools/plan_open_world_layout.py` writes `assets/maps/open-world/biome-placement-v1.json` for the hub in `src/wildbound/WildboundWorldRules.luau` (`Rules.HUB_X, HUB_Z, HUB_RADIUS`). This copy was made for the hub at **(0, 600), radius 90**.
+`tools/plan_open_world_layout.py` writes `assets/maps/open-world/biome-placement-v1.json` for the hub in `src/wildbound/WildboundWorldRules.luau` (`Rules.HUB_X, HUB_Z, HUB_RADIUS`). This copy was made for the hub at **(282, -3), radius 90** (since HF-T3; it was made for the preview hub at (0, 600) before).
 
 Rules: the west and east squares keep a 40-stud transition from the hub rim (at the original radius 60 they land on the `layout-v1.json` offsets, -300 and +300). North and south clear the west and east squares by a 40-stud gap; each diagonal clears its two neighbours by 40. Every square is axis-aligned and turned by a quarter turn so that its entry gate (the first node of its own route) faces the hub. Pantano and Cementerio, the next biomes (`docs/design/wildbound-combined-plan.md` sections 4 and 6), take the north and south slots, next to the hub.
 
 | Biome | Name (neutral Spanish, proposal) | Slot | World centre | Yaw | Size | Entry gate (world) | Road from the rim | Root model | Builder |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `forest` | Bosque de la Silueta | W | (-330, 600) | 0 | 400 | (-130, 620) | 42 | `WildboundP0` | existing P0 builder and dress; moved by the Studio writer's shift |
-| `pradera` | Pradera Arcoíris | E | (330, 600) | 0 | 400 | (135, 600) | 45 | `WildboundPradera` | existing `tools/build-wildbound-pradera-map.luau` |
-| `living-forest` | Pantano | N | (0, 160) | 90 | 400 | (70, 345) | 176 | `WildboundLivingForest` | `tools/build-wildbound-living-forest-map.luau` |
-| `cryptic-ruins` | Cementerio | S | (0, 990) | 180 | 300 | (120, 850) | 196 | `WildboundCrypticRuins` | `tools/build-wildbound-cryptic-ruins-map.luau` |
-| `demon-abyss` | Abismo | NW | (-390, 210) | 90 | 300 | (-265, 350) | 341 | `WildboundDemonAbyss` | `tools/build-wildbound-demon-abyss-map.luau` |
-| `frozen-mountains` | Montañas Heladas | NE | (490, 110) | 0 | 500 | (265, 300) | 391 | `WildboundFrozenMountains` | `tools/build-wildbound-frozen-mountains-map.luau` |
-| `volcanic-lands` | Tierras Volcánicas | SW | (-390, 1040) | 180 | 400 | (-200, 910) | 336 | `WildboundVolcanicLands` | `tools/build-wildbound-volcanic-lands-map.luau` |
-| `rock-caves` | Cuevas de Roca | SE | (340, 990) | 270 | 300 | (240, 850) | 316 | `WildboundRockCaves` | `tools/build-wildbound-rock-caves-map.luau` |
+| `forest` | Bosque de la Silueta | W | (-48, -3) | 0 | 400 | (152, 17) | 42 | `WildboundP0` | existing P0 builder and dress; the forest stays at its kit position, centre (-18, -3), 30 studs east of this slot (the hub moved instead, HF-T3, decision HB1's 10-stud transition) |
+| `pradera` | Pradera Arcoíris | E | (612, -3) | 0 | 400 | (417, -3) | 45 | `WildboundPradera` | existing `tools/build-wildbound-pradera-map.luau` |
+| `living-forest` | Pantano | N | (282, -443) | 90 | 400 | (352, -258) | 176 | `WildboundLivingForest` | `tools/build-wildbound-living-forest-map.luau` |
+| `cryptic-ruins` | Cementerio | S | (282, 387) | 180 | 300 | (402, 247) | 196 | `WildboundCrypticRuins` | `tools/build-wildbound-cryptic-ruins-map.luau` |
+| `demon-abyss` | Abismo | NW | (-108, -393) | 90 | 300 | (17, -253) | 341 | `WildboundDemonAbyss` | `tools/build-wildbound-demon-abyss-map.luau` |
+| `frozen-mountains` | Montañas Heladas | NE | (772, -493) | 0 | 500 | (547, -303) | 391 | `WildboundFrozenMountains` | `tools/build-wildbound-frozen-mountains-map.luau` |
+| `volcanic-lands` | Tierras Volcánicas | SW | (-108, 437) | 180 | 400 | (82, 307) | 336 | `WildboundVolcanicLands` | `tools/build-wildbound-volcanic-lands-map.luau` |
+| `rock-caves` | Cuevas de Roca | SE | (622, 387) | 270 | 300 | (522, 247) | 316 | `WildboundRockCaves` | `tools/build-wildbound-rock-caves-map.luau` |
 
 Roads (14 studs wide, `tools/build-wildbound-open-world-roads.luau`, root `WildboundOpenWorldRoads`) run from the hub rim through the corridors between squares to each gate. A diagonal road leaves the hub between the west and east squares and turns at the corner where its two corridors meet. Where a north or south road and a diagonal road come within a road width, they share a node (a junction). Tests check that no road enters another biome or the hub disc, and that roads meet only at shared junctions.
 
@@ -93,7 +93,7 @@ The Pradera builder predates the placement: its default origin is its old hub-fr
 ```lua
 local old = workspace:FindFirstChild('WildboundPradera')
 if old and old:GetAttribute('Biome') == 'PraderaArcoiris' then old:Destroy() end
-require(game.ServerStorage.WildboundPraderaBuilder).build(workspace, CFrame.new(330, 0, 600))
+require(game.ServerStorage.WildboundPraderaBuilder).build(workspace, CFrame.new(612, 0, -3))
 ```
 
 (`WildboundPraderaBuilder` is a suggested name: use wherever `tools/build-wildbound-pradera-map.luau` is deployed.)
@@ -110,7 +110,7 @@ python tools/biome_map_builder.py
 python -I -B -m unittest discover -s tools -p "test_*.py"
 ```
 
-`test_plan_open_world_placement` fails until the placement is regenerated, and every builder's `run()` refuses a mismatched hub. `--hub X Z R` previews another hub without touching the rules. At radius 100 the forest centre moves to (-340, 600) and the Pradera to (340, 600).
+`test_plan_open_world_placement` fails until the placement is regenerated, and every builder's `run()` refuses a mismatched hub. `--hub X Z R` previews another hub without touching the rules. At radius 100 the forest slot's centre moves to (-58, -3) and the Pradera to (622, -3).
 
 ## 6. What is unverified
 

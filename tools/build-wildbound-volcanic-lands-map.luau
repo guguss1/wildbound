@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'VolcanicLandsKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261110
-Builder.PLACEMENT = table.freeze({ worldX = -390.0, worldZ = 1040.0, yawDeg = 180.0, mapSize = 400.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = -108.0, worldZ = 437.0, yawDeg = 180.0, mapSize = 400.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Tierras Volcánicas', x = -190.0, z = 140.0, yaw = 90.0 }
 

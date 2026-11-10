@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'LivingForestKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261108
-Builder.PLACEMENT = table.freeze({ worldX = 0.0, worldZ = 160.0, yawDeg = 90.0, mapSize = 400.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = 282.0, worldZ = -443.0, yawDeg = 90.0, mapSize = 400.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Pantano', x = -179.453, z = 78.321, yaw = 123.69 }
 

@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'FrozenMountainsKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261109
-Builder.PLACEMENT = table.freeze({ worldX = 490.0, worldZ = 110.0, yawDeg = 0.0, mapSize = 500.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = 772.0, worldZ = -493.0, yawDeg = 0.0, mapSize = 500.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Montañas Heladas', x = -219.233, z = 198.17, yaw = 125.218 }
 

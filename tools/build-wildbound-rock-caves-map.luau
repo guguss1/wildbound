@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'RockCavesKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261113
-Builder.PLACEMENT = table.freeze({ worldX = 340.0, worldZ = 990.0, yawDeg = 270.0, mapSize = 300.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = 622.0, worldZ = 387.0, yawDeg = 270.0, mapSize = 300.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Cuevas de Roca', x = -140.0, z = 110.0, yaw = 90.0 }
 

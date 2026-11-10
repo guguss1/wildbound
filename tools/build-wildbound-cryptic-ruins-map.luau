@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'CrypticRuinsKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261112
-Builder.PLACEMENT = table.freeze({ worldX = 0.0, worldZ = 990.0, yawDeg = 180.0, mapSize = 300.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = 282.0, worldZ = 387.0, yawDeg = 180.0, mapSize = 300.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Cementerio', x = -110.0, z = 140.0, yaw = 180.0 }
 

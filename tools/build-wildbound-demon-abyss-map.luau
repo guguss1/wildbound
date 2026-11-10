@@ -170,7 +170,7 @@ Builder.TEMPLATE_FOLDER = 'DemonAbyssKit'
 Builder.GENERATED_BY = 'tools/biome_map_builder.py'
 Builder.PLACEMENT_NAME = 'biome-placement-v1'
 Builder.SEED = 20261111
-Builder.PLACEMENT = table.freeze({ worldX = -390.0, worldZ = 210.0, yawDeg = 90.0, mapSize = 300.0, hubX = 0.0, hubZ = 600.0, hubRadius = 90.0 })
+Builder.PLACEMENT = table.freeze({ worldX = -108.0, worldZ = -393.0, yawDeg = 90.0, mapSize = 300.0, hubX = 282.0, hubZ = -3.0, hubRadius = 90.0 })
 
 local SIGN = { text = 'Abismo', x = -140.0, z = 135.0, yaw = 90.0 }
 
