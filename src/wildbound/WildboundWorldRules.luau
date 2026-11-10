@@ -153,8 +153,10 @@ end
 
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
+	-- HB-T6: the hub disc is safe like the camp (no PvP, no beasts, no strikes, chases end).
 	local safe = Rules.distance(x, z, Rules.CAMP_X, Rules.CAMP_Z) <= Rules.CAMP_RADIUS
 		or Rules.distance(x, z, 105, 125) <= 22 or Rules.refugeAt(x, z) ~= nil
+		or Rules.distance(x, z, Rules.HUB_X, Rules.HUB_Z) <= Rules.HUB_RADIUS
 	local fog = x >= -45 and x <= 165 and z >= -165 and z <= 35
 	return fog, safe
 end

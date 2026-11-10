@@ -95,6 +95,36 @@ return function(Rules, islandLayout)
 		equal(select(2, Rules.zone(127, 125)), true)
 		equal(select(2, Rules.zone(127.01, 125)), false)
 	end)
+	-- Nest Heist hub (HB-T6): the hub disc is a safe zone (no PvP, no beasts, no strikes, chases end), like the camp.
+	-- Every consumer of Rules.zone covers it: the bat, the beast director, La Silueta's strikes and chases, the parents.
+	case("HB-T6: the hub disc (Rules.HUB_X, HUB_Z, radius 90) is safe and never fog", function()
+		equal(Rules.HUB_RADIUS, 90, "decision HB1")
+		local fog, safe = Rules.zone(Rules.HUB_X, Rules.HUB_Z)
+		equal(fog, false); equal(safe, true, "the campfire")
+		for step = 0, 15 do
+			local angle = step * math.pi / 8
+			local x, z = Rules.HUB_X + math.cos(angle), Rules.HUB_Z + math.sin(angle)
+			equal(select(2, Rules.zone(Rules.HUB_X + 89.99 * math.cos(angle), Rules.HUB_Z + 89.99 * math.sin(angle))), true,
+				"on the edge at " .. step)
+			equal(select(2, Rules.zone(Rules.HUB_X + 90.5 * math.cos(angle), Rules.HUB_Z + 90.5 * math.sin(angle))), false,
+				"just outside at " .. step)
+			equal(Rules.inTerritory(x, z), false, "never La Silueta's territory")
+		end
+	end)
+	case("HB-T6: every corner of every base pad of the hub plan is safe", function()
+		-- assets/maps/hub-layout/hub-bases-v1.json: pads 26 x 22 centred at radius 68, bearings 22.5 + 45k, yaw 90 - bearing
+		-- (each faces the lobby); local +X = (cos r, -sin r), local +Z = (sin r, cos r).
+		for slot = 0, 7 do
+			local bearing = math.rad(22.5 + 45 * slot)
+			local yaw = math.rad((90 - math.deg(bearing)) % 360)
+			local cx, cz = Rules.HUB_X + 68 * math.cos(bearing), Rules.HUB_Z + 68 * math.sin(bearing)
+			for _, corner in ipairs({ { 13.6, 11.6 }, { -13.6, 11.6 }, { 13.6, -11.6 }, { -13.6, -11.6 } }) do
+				local x = cx + corner[1] * math.cos(yaw) + corner[2] * math.sin(yaw)
+				local z = cz - corner[1] * math.sin(yaw) + corner[2] * math.cos(yaw)
+				equal(select(2, Rules.zone(x, z)), true, "base " .. (slot + 1) .. " corner")
+			end
+		end
+	end)
 	case("fog rectangle boundaries are inclusive and reject invalid coordinates", function()
 		equal(Rules.zone(-45, -165), true)
 		equal(Rules.zone(165, 35), true)
