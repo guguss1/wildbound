@@ -234,6 +234,9 @@ return function(Text, source, sources)
 	end
 	local ENGLISH = {
 		inventory = { "Collect. Return", "Connecting to", "Inventory (", "=Inventory", "Session only", "Server unavailable", "Pending bag",
+			-- Random world (RW2 to RW7): the board, the banner, the Refugios and the rarity tiers.
+			"Wave ", "Leaderboard", "Special egg", "Biome event", "=Refuge", "=Common", "=Rare", "=Epic", "=Legendary",
+			"world changes", "took the special",
 			"Protected", "No pending", "Banked eggs", "Registered creatures", "Equipped", "Finish calming", "No response",
 			"Your stock", "Craft and carry", "Dropped nearby", "[ Bag ]", "=Bag", "=Camp", "=Close", "=Menu",
 			" egg" },

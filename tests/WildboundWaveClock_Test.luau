@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshWaveClockClone), freshWaveClockClone.Source,
 -- { server = WildboundServer.Source, client = WildboundClient.Source, text = require(freshTextClone),
 -- rules = require(freshRulesClone), stamina = require(freshStaminaClone), world = WildboundWorld.Source,
--- worldClient = WildboundWorldClient.Source, atmosphere = require(freshAtmosphereClone) }).
+-- worldClient = WildboundWorldClient.Source, atmosphere = require(freshAtmosphereClone),
+-- view = require(freshHudViewClone) }).
 -- Random world (plan Parts 3 and 6, RW3 to RW6): the server's wave clock, the wave board, the WorldEvent messages, the
 -- random Refugios, the biome event and the biome variant rotation. Pure rules plus source contracts for the wiring.
 return function(WaveClock, source, sources)
@@ -316,6 +317,50 @@ return function(WaveClock, source, sources)
 		equal(Text.VARIANT.Floracion, "Floración")
 		equal(Text.VARIANT.Escarcha, "Escarcha")
 		assert(#Text.VARIANT.changed:format("Floración") <= 72, "a notice")
+	end)
+
+	case("RW7: the wave board shows the wave, its countdown and the top 3 within the chip budgets", function()
+		local View, Text = sources.view, sources.text
+		assert(type(View) == "table" and type(View.waveBoard) == "function", "View.waveBoard missing")
+		local C = View.CONSTANTS
+		local board = { { name = "Ana", amount = 25 }, { name = "Beto", amount = 10 } }
+		local out = View.waveBoard({ wave = 3, endsAt = 400, now = 160, board = board, words = Text.WAVE })
+		equal(out.title, "Oleada 3 · 4:00")
+		equal(#out.lines, 2)
+		equal(out.lines[1], "1. Ana · 25"); equal(out.lines[2], "2. Beto · 10")
+		local long = { { name = string.rep("Nombrelargo", 2), amount = 12345 } }
+		for _, compact in ipairs({ false, true }) do
+			local budget = compact and C.COMPACT_BOARD_CHARS or C.BOARD_CHARS
+			local view = View.waveBoard({ wave = 12, endsAt = 9999, now = 0, board = long, words = Text.WAVE, compact = compact })
+			assert(utf8.len(view.title) <= budget, "title fits: " .. view.title)
+			for _, line in ipairs(view.lines) do assert(utf8.len(line) <= budget, "row fits: " .. line) end
+		end
+		local empty = View.waveBoard({ wave = 1, endsAt = 10, now = 20, board = {}, words = Text.WAVE })
+		equal(empty.title, "Oleada 1 · 0:00", "a past end reads zero")
+		equal(empty.lines[1], Text.WAVE.empty)
+		equal(View.waveBoard(nil), nil)
+		equal(View.waveBoard({ wave = 0 / 0, words = Text.WAVE }), nil)
+	end)
+
+	case("RW7: the event banner fits the chip's width on a desktop and on a phone", function()
+		local View, Text = sources.view, sources.text
+		assert(type(View.eventBanner) == "function", "View.eventBanner missing")
+		local C = View.CONSTANTS
+		local wide = View.eventBanner({ species = "Tizoncillo", endsAt = 299, now = 0, words = Text.EVENT })
+		equal(wide, "Huevo especial: Tizoncillo · 4:59")
+		assert(utf8.len(wide) <= C.BANNER_CHARS, "desktop budget")
+		local narrow = View.eventBanner({ species = "Tizoncillo", endsAt = 299, now = 0, words = Text.EVENT, compact = true })
+		assert(utf8.len(narrow) <= C.COMPACT_BANNER_CHARS, "phone budget: " .. narrow)
+		assert(narrow:find("4:59", 1, true), "the countdown stays on a phone")
+		equal(View.eventBanner(nil), nil)
+	end)
+
+	case("RW7: the inventory client draws the board and the banner from the pure views", function()
+		local client = sources.client
+		has(client, "View.waveBoard(")
+		has(client, "View.eventBanner(")
+		has(client, '"WaveBoard"')
+		has(client, "COMPACT_BOARD_CHARS", "a phone gets the compact board")
 	end)
 
 	return result

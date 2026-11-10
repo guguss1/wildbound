@@ -44,6 +44,12 @@ View.CONSTANTS = table.freeze({
 	BREATH_AMPLITUDE = 0.15,
 	BREATH_SECONDS = 3,
 	BREATH_DEEP_SECONDS = 4.5,
+	-- RW7, the random world: the wave board's line budget (bytes, like the chip's) and the event banner's, as wide
+	-- as the chip, on a desktop and on a phone. (Its own words avoid the purity scan's tokens.)
+	BOARD_CHARS = 22,
+	COMPACT_BOARD_CHARS = 18,
+	BANNER_CHARS = 36,
+	COMPACT_BANNER_CHARS = 24,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a
@@ -532,6 +538,43 @@ local GRIN_POP = table.freeze({ fromScale = 0.35, fromAlpha = 1, seconds = 0.22,
 local GRIN_FADE = table.freeze({ fromScale = 1, fromAlpha = 1, seconds = 0.5, style = "Sine" })
 function View.grinPop(reduced)
 	return table.clone(reduced == true and GRIN_FADE or GRIN_POP)
+end
+
+-- RW7, the random world: a countdown as m:ss, never below zero.
+local function countdown(seconds)
+	seconds = finite(seconds) and math.max(0, math.ceil(seconds - 1e-9)) or 0
+	return ("%d:%02d"):format(seconds // 60, seconds % 60)
+end
+
+-- The wave board: input = { wave, endsAt, now, board = { { name, amount } }, words = WildboundText.WAVE, compact }.
+-- Returns { title, lines } where every line fits the board budget; a long name is cut so the amount stays.
+function View.waveBoard(input)
+	if type(input) ~= "table" or not finite(input.wave) or type(input.words) ~= "table" then return nil end
+	local words = input.words
+	local budget = input.compact == true and View.CONSTANTS.COMPACT_BOARD_CHARS or View.CONSTANTS.BOARD_CHARS
+	local left = finite(input.endsAt) and finite(input.now) and input.endsAt - input.now or 0
+	local out = { title = View.fit(words.board:format(math.floor(input.wave), countdown(left)), budget), lines = {} }
+	for index, row in ipairs(type(input.board) == "table" and input.board or {}) do
+		if index > 3 then break end
+		if type(row) == "table" and type(row.name) == "string" and finite(row.amount) then
+			local amount = tostring(math.max(0, math.floor(row.amount + 0.5)))
+			local room = budget - #words.row:format(index, "", amount)
+			local name = #row.name > room and View.fit(row.name, math.max(1, room)) or row.name
+			table.insert(out.lines, View.fit(words.row:format(index, name, amount), budget))
+		end
+	end
+	if #out.lines == 0 then table.insert(out.lines, View.fit(words.empty, budget)) end
+	return out
+end
+
+-- The biome event banner: input = { species (the shown word), endsAt, now, words = WildboundText.EVENT, compact }.
+-- A phone gets the short form; the countdown always stays.
+function View.eventBanner(input)
+	if type(input) ~= "table" or type(input.words) ~= "table" or type(input.species) ~= "string" then return nil end
+	local left = finite(input.endsAt) and finite(input.now) and input.endsAt - input.now or 0
+	local compact = input.compact == true
+	local text = (compact and input.words.bannerShort or input.words.banner):format(input.species, countdown(left))
+	return View.fit(text, compact and View.CONSTANTS.COMPACT_BANNER_CHARS or View.CONSTANTS.BANNER_CHARS)
 end
 
 return View

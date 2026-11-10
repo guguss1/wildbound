@@ -145,6 +145,10 @@ return freeze({
 	-- Random world (plan Part 6, RW3): the wave clock's player words. Notices at most 72 bytes.
 	WAVE = {
 		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
+		-- RW7: the wave board (WildboundHudView.waveBoard): its title, a row and the empty line.
+		board = "Oleada %d · %s",
+		row = "%d. %s · %s",
+		empty = "Aún sin Esencia",
 	},
 	-- Random world (RW6): the biome variant's names and the notice when it changes.
 	VARIANT = {
@@ -158,6 +162,7 @@ return freeze({
 	EVENT = {
 		title = "Huevo especial del bioma",
 		banner = "Huevo especial: %s · %s",
+		bannerShort = "%s · %s",
 		start = "¡Huevo especial del bioma: %s! Cerca de La Silueta.",
 		claimed = "%s se llevó el huevo especial.",
 		ended = "El huevo especial desapareció.",

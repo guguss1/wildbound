@@ -627,12 +627,58 @@ local function refreshBanner()
 			return
 		end
 		eventBanner.Text = eventState.line
-	else
-		local left = math.max(0, math.ceil(eventState.endsAt - now))
-		eventBanner.Text = Text.EVENT.banner:format(speciesWord(eventState.species), ("%d:%02d"):format(left // 60, left % 60))
+	elseif View then
+		-- RW7: the pure view words it within the chip's budget (the short form on a phone).
+		eventBanner.Text = View.eventBanner({ species = speciesWord(eventState.species), endsAt = eventState.endsAt,
+			now = now, words = Text.EVENT, compact = compact }) or ""
 	end
 	eventBanner.Visible = true
 end
+
+-- Random world (RW7): the wave board, top 3 of this wave's banked Esencia and the wave's countdown, under the
+-- Mochila button (above it when the button sits low on a phone). Lines come from View.waveBoard, which fits them to
+-- the board budget (COMPACT_BOARD_CHARS on a phone).
+local waveBoard = make("Frame", { Name = "WaveBoard", BackgroundColor3 = dark, BackgroundTransparency = 0.2,
+	BorderSizePixel = 0, Size = UDim2.fromOffset(190, 92), Visible = false }, gui)
+make("UICorner", { CornerRadius = UDim.new(0, 8) }, waveBoard)
+local boardLabels = {}
+for index = 1, 4 do
+	boardLabels[index] = make("TextLabel", { BackgroundTransparency = 1, Font = index == 1 and Enum.Font.GothamBold
+		or Enum.Font.Gotham, TextColor3 = index == 1 and amber or ink, TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = true, Position = UDim2.new(0, 8, 0, 4 + (index - 1) * 21), Size = UDim2.new(1, -16, 0, 19),
+		Text = "" }, waveBoard)
+	make("UITextSizeConstraint", { MaxTextSize = 16 }, boardLabels[index])
+end
+local boardState = nil
+local function placeBoard()
+	local width, height = compact and 150 or 190, 92
+	local x, y = gui.AbsoluteSize.X - width - 12, 62
+	if open and open.Parent then
+		local at, size = open.AbsolutePosition, open.AbsoluteSize
+		x = at.X + size.X - width
+		y = at.Y > gui.AbsoluteSize.Y / 2 and at.Y - height - 6 or at.Y + size.Y + 6
+	end
+	waveBoard.Position, waveBoard.Size = UDim2.fromOffset(math.max(8, x), math.max(8, y)), UDim2.fromOffset(width, height)
+end
+local function refreshBoard()
+	if not boardState or not View or not Text or not Text.WAVE or not View.waveBoard then
+		waveBoard.Visible = false
+		return
+	end
+	local view = View.waveBoard({ wave = boardState.wave, endsAt = boardState.endsAt, now = workspace:GetServerTimeNow(),
+		board = boardState.board, words = Text.WAVE, compact = compact and View.CONSTANTS.COMPACT_BOARD_CHARS ~= nil })
+	if not view then return end
+	placeBoard()
+	boardLabels[1].Text = view.title
+	for index = 2, 4 do boardLabels[index].Text = view.lines[index - 1] or "" end
+	waveBoard.Visible = true
+end
+task.spawn(function()
+	while gui.Parent do
+		refreshBoard()
+		task.wait(0.5)
+	end
+end)
 task.spawn(function()
 	while gui.Parent do
 		refreshBanner()
@@ -653,6 +699,11 @@ local function onWorldEvent(message)
 			end
 		end
 		lastWaveSeen = message.wave
+		boardState = { wave = message.wave, endsAt = message.endsAt, board = message.board }
+		refreshBoard()
+	elseif message.kind == "board" then
+		if boardState then boardState.board = message.board end
+		refreshBoard()
 	elseif message.kind == "event" and Text and Text.EVENT then
 		local now = workspace:GetServerTimeNow()
 		if message.phase == "start" and message.endsAt then
