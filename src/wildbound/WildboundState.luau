@@ -743,8 +743,48 @@ local function described(entry)
 	return { uid = entry.uid, kind = entry.kind, species = entry.species, quantity = entry.quantity }
 end
 
+-- Nest Heist (NH5): the egg held in the arms, taken out of the bag. A loose egg belongs to nobody (the server's
+-- EggCarry keeps it for anyone to pick up), so it never goes to `dropped`; a ward never holds it (wards answer defeat).
+local function looseEgg(player)
+	for index, entry in ipairs(player.pending) do
+		if entry.inArms then
+			table.remove(player.pending, index)
+			entry.protected, entry.wardSource = false, nil
+			return entry
+		end
+	end
+	return nil
+end
+
+-- NH5: a death, a parent's hit or leaving knocks the egg out of the arms. Returns true and a detached copy.
+function State:dropEgg(key)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local entry = looseEgg(player)
+	if not entry then return false, "NotCarrying" end
+	return true, table.clone(entry)
+end
+
+-- NH5: anyone alive within 10 studs, with bag and collection room and no egg in the arms, takes a loose egg into the
+-- arms. It is not a new catch: it never takes an armed seal.
+function State:takeEgg(key, entry, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 10) then return false, "InvalidContext" end
+	if type(entry) ~= "table" or entry.kind ~= "Egg" or not validId(entry.uid) then return false, "InvalidEncounter" end
+	for _, held in ipairs(player.pending) do
+		if held.inArms then return false, "AlreadyCarrying" end
+	end
+	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
+	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
+	table.insert(player.pending, { uid = entry.uid, kind = "Egg", species = entry.species, protected = false,
+		riskTier = entry.riskTier, island = entry.island, inArms = true })
+	return true, entry.uid
+end
+
 -- The first real strike (D6): the newest unprotected pending item leaves the bag and lies on the ground.
 -- Idempotent per attack id. Returns true and a copy of the dropped entry, or true and nil for mark only.
+-- NH5: an egg in the arms is knocked loose first, for anyone (the copy has inArms; it never goes to `dropped`).
 function State:dropForStrike(key, attackId)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -755,6 +795,8 @@ function State:dropForStrike(key, attackId)
 	if #player.strikeOrder > STRIKE_HISTORY then
 		player.strikeDrops[table.remove(player.strikeOrder, 1)] = nil
 	end
+	local egg = looseEgg(player)
+	if egg then return true, table.clone(egg) end
 	for index = #player.pending, 1, -1 do
 		local entry = player.pending[index]
 		if not entry.protected then

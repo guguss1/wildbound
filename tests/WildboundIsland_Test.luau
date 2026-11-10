@@ -414,6 +414,19 @@ return function(Island, layout)
 		assert(event == "ChargeMissed", "stopped by the leash: " .. tostring(event))
 	end)
 
+	-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only when it can perceive them.
+	case("NH5: a chasing adult perceives a player within 24 studs of it, never while walking home", function()
+		Island.tune(nil)
+		near(Island.CONSTANTS.PERCEIVE_RANGE, 24, 1e-9, "the default")
+		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+		Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+		assert(Island.perceives(chase, 0, 23.9) == true, "inside")
+		assert(Island.perceives(chase, 0, 24.1) == false, "beyond")
+		assert(Island.perceives(chase, 0 / 0, 1) == false, "unreadable")
+		chase.mode = "Return"
+		assert(Island.perceives(chase, 0, 1) == false, "walking home it has given up")
+	end)
+
 	case("FP5c: egg recovery: the nearest dropped egg inside the leash is fetched and carried home at return speed", function()
 		Island.tune(nil)
 		local spec = { id = "I3", x = 0, z = 0 }

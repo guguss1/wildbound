@@ -81,6 +81,8 @@ Island.CONSTANTS = table.freeze({
 	EXPOSED_SECONDS = 1,
 	-- Nest Heist (NH3): stealing an egg wakes the island at once (1), with no meter to fill; 0 restores the grab noise.
 	STEAL_WAKE = 1,
+	-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only if that player is within PERCEIVE_RANGE of it.
+	PERCEIVE_RANGE = 24,
 	-- (c) Egg recovery: an egg dropped inside the leash is fetched and carried to the nest at RETURN_SPEED.
 	EGG_RECOVERY_ON = 1,
 	-- (d) Sleep cycle: from DEEP_FROM to DEEP_TO o'clock of the day cycle every wake input is scaled by DEEP_SCALE.
@@ -391,6 +393,14 @@ function Island.chaseStep(chase, dt, targetX, targetZ)
 		return "GaveUp"
 	end
 	return event
+end
+
+-- Nest Heist (NH5): whether a chasing adult can perceive a player at (x, z) (no omniscience): it is chasing, not walking
+-- home, and the player is within PERCEIVE_RANGE of it.
+function Island.perceives(chase, x, z)
+	if type(chase) ~= "table" or not finite(x) or not finite(z) then return false end
+	if chase.mode == "Return" or chase.mode == "Home" then return false end
+	return distanceTo(chase, x, z) <= C.PERCEIVE_RANGE
 end
 
 -- Fix pass (FP5c): which dropped egg an island goes to fetch. drops = list of { key, kind, x, z }: the nearest "Egg"

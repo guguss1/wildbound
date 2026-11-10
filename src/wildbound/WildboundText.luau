@@ -211,6 +211,12 @@ return freeze({
 	EGG = {
 		stolen = "¡Tienes el huevo! Llévalo al cofre del campamento.",
 		already = "Ya llevas un huevo en brazos.",
+		-- NH5: drop and pickup.
+		pickUp = "Recoger huevo",
+		knocked = "¡Te golpearon! Se te cayó el huevo.",
+		picked = "¡Tienes un huevo! Llévalo al cofre del campamento.",
+		taken = "Otro jugador recogió tu huevo.",
+		gone = "Tu huevo se perdió en el bosque.",
 	},
 	-- Expedition islands (I7): the starter upgrade on the board.
 	UPGRADE = {

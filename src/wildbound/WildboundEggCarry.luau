@@ -8,8 +8,21 @@ local EggCarry = {}
 EggCarry.CONSTANTS = table.freeze({
 	STEAL_HOLD = 0.8, -- seconds, the master prompt's 0.6 to 1 s
 	RARE_HOLD = 1, -- the hold every egg had before (I3)
+	-- NH5 drop and pickup: a dropped egg can be picked up by anyone after PICKUP_DELAY, with a PICKUP_HOLD hold within
+	-- PICKUP_RANGE studs; left alone for DROP_SECONDS it fades for DESPAWN_SECONDS and is gone. A drop lands on the
+	-- first ground found within LAND_DEPTH studs under the player, else on the relief.
+	PICKUP_DELAY = 0.4,
+	PICKUP_HOLD = 0.4,
+	PICKUP_RANGE = 10,
+	DROP_SECONDS = 30,
+	DESPAWN_SECONDS = 1,
+	LAND_DEPTH = 40,
 })
 EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.6, 1
+EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.3, 0.5
+-- Why an egg leaves the arms. Inside a safe zone (camp, a Refugio) only a death or leaving the server drops it.
+EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true })
+local SAFE_DROPS = table.freeze({ Death = true, Leave = true })
 local RARE = table.freeze({ Epica = true, Legendaria = true })
 
 local function finite(value)
@@ -34,6 +47,8 @@ function EggCarry.tune(overrides)
 	end
 	C.STEAL_HOLD = math.clamp(C.STEAL_HOLD, EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX)
 	C.RARE_HOLD = math.max(C.RARE_HOLD, C.STEAL_HOLD)
+	C.PICKUP_HOLD = math.clamp(C.PICKUP_HOLD, EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX)
+	C.PICKUP_DELAY = math.max(C.PICKUP_DELAY, 0)
 end
 EggCarry.tune(nil)
 
@@ -112,6 +127,80 @@ function EggCarry.retire(registry, id)
 	if not egg or egg.state ~= "InNest" then return false end
 	registry.eggs[id] = nil
 	return true
+end
+
+-- NH5: the one way an egg leaves the arms undelivered. opts = { safe = the carrier stands in a safe zone }. Returns
+-- true and the egg (now Dropped, nobody's), or false and a reason ("NotCarrying", "BadReason", "SafeZone").
+function EggCarry.drop(registry, key, reason, now, opts)
+	if not EggCarry.DROP_REASONS[reason] then return false, "BadReason" end
+	if not finite(now) then return false, "BadClock" end
+	local egg = EggCarry.carriedBy(registry, key)
+	if not egg then return false, "NotCarrying" end
+	if type(opts) == "table" and opts.safe == true and not SAFE_DROPS[reason] then return false, "SafeZone" end
+	registry.carriers[key] = nil
+	egg.state, egg.carrier, egg.uid, egg.lastCarrier, egg.reason = "Dropped", nil, nil, key, reason
+	egg.droppedAt, egg.pickableAt, egg.expireAt = now, now + C.PICKUP_DELAY, now + C.DROP_SECONDS
+	egg.open = false
+	return true, egg
+end
+
+-- Whether this player may pick this dropped egg up now. Anyone may, the last carrier included, with no priority.
+function EggCarry.canPickup(registry, id, key, now)
+	if not validKey(key) then return false, "InvalidPlayer" end
+	local egg = EggCarry.get(registry, id)
+	if not egg then return false, "NoEgg" end
+	if egg.state ~= "Dropped" then return false, "NotDropped" end
+	if not finite(now) or now < egg.pickableAt then return false, "TooSoon" end
+	if EggCarry.carriedBy(registry, key) then return false, "AlreadyCarrying" end
+	return true
+end
+
+-- Dropped to Carried. The first valid request wins: the next one finds the egg Carried and gets "NotDropped".
+function EggCarry.pickup(registry, id, key, now, uid)
+	local ok, reason = EggCarry.canPickup(registry, id, key, now)
+	if not ok then return false, reason end
+	local egg = registry.eggs[id]
+	egg.state, egg.carrier, egg.uid, egg.open = "Carried", key, uid, false
+	registry.carriers[key] = id
+	return true, egg
+end
+
+-- An adult carried a dropped egg home (FP5c): it leaves the registry.
+function EggCarry.recover(registry, id)
+	local egg = EggCarry.get(registry, id)
+	if not egg or (egg.state ~= "Dropped" and egg.state ~= "Despawning") then return false end
+	registry.eggs[id] = nil
+	return true, egg
+end
+
+-- The clock of dropped eggs. Returns a list of { op, egg }: "open" (pickable from now), "despawn" (abandoned too
+-- long: Despawning, fading) and "remove" (gone; it left the registry).
+function EggCarry.step(registry, now)
+	local actions = {}
+	if type(registry) ~= "table" or not finite(now) then return actions end
+	for id, egg in pairs(registry.eggs) do
+		if egg.state == "Dropped" then
+			if now >= egg.expireAt then
+				egg.state, egg.despawnAt = "Despawning", now + C.DESPAWN_SECONDS
+				table.insert(actions, { op = "despawn", egg = egg })
+			elseif not egg.open and now >= egg.pickableAt then
+				egg.open = true
+				table.insert(actions, { op = "open", egg = egg })
+			end
+		elseif egg.state == "Despawning" and now >= egg.despawnAt then
+			registry.eggs[id] = nil
+			table.insert(actions, { op = "remove", egg = egg })
+		end
+	end
+	return actions
+end
+
+-- Where a dropped egg rests: the ground a downward ray found (hitY), if it lies between just above the drop height and
+-- LAND_DEPTH below it; otherwise the relief's height (fallbackY); never below the fall depth, never in the air.
+function EggCarry.landingY(fromY, hitY, fallbackY)
+	if finite(fromY) and finite(hitY) and hitY <= fromY + 1 and hitY >= fromY - C.LAND_DEPTH then return hitY end
+	if finite(fallbackY) then return fallbackY end
+	return finite(fromY) and fromY - 3 or 0
 end
 
 function EggCarry.count(registry, state)

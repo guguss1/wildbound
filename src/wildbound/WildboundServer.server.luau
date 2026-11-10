@@ -79,6 +79,8 @@ local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
 -- Nest Heist (NH1 to NH8): the stolen egg's rules (fast steal, the carry in the arms, drop and pickup).
 local EggCarry = require(script.Parent:WaitForChild("WildboundEggCarry"))
 local eggs = EggCarry.new()
+-- The Nest Heist helpers share one table: this script is close to Luau's 200-local limit (a Play finding).
+local Heist = {}
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -969,8 +971,8 @@ local RARITY_GLOW = { Comun = Color3.fromRGB(205, 235, 215), Rara = Color3.fromR
 	Epica = Color3.fromRGB(190, 120, 255), Legendaria = Color3.fromRGB(255, 205, 80) }
 -- Nest Heist (NH2): the stolen egg rides in the arms, in front of the chest: welded to the root, massless, never
 -- colliding, touched or hit by a ray, so walking, sprinting and jumping are unchanged. One per living character.
-local EGG_ARMS = "WildboundEggCarried"
-local function syncEggArms(player)
+function Heist.syncEggArms(player)
+	local EGG_ARMS = "WildboundEggCarried"
 	local record, character = records[player], player.Character
 	local egg = EggCarry.carriedBy(eggs, player.UserId)
 	local existing = character and character:FindFirstChild(EGG_ARMS)
@@ -1396,6 +1398,8 @@ local function adultHit(island, player)
 		dropped = true
 		returnToNest(island, root and root.Position or Vector3.new(island.spec.x, 3, island.spec.z), "Creature")
 	end
+	-- NH5: a landed hit knocks an egg out of the arms, whoever's nest it came from (anyone may pick it up).
+	local eggDropped = Heist.dropEgg(player, "Hit") ~= nil
 	if effect.damage > 0 then
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
@@ -1403,7 +1407,7 @@ local function adultHit(island, player)
 		islandHitDamage += effect.damage
 		telemetry:SetAttribute("IslandHitDamage", islandHitDamage)
 	end
-	send(player, "IslandCaught", false, dropped and Text.ISLAND.caught or Text.ISLAND.hit)
+	send(player, "IslandCaught", false, dropped and Text.ISLAND.caught or eggDropped and Text.EGG.knocked or Text.ISLAND.hit)
 end
 
 -- Fix pass (FP5c): the dropped items live further down (D6); the islands read them to recover eggs.
@@ -1514,6 +1518,12 @@ local function stepIslands(now, dt)
 					table.insert(eggDrops, { key = uid, kind = "Egg", x = at.X, z = at.Z })
 				end
 			end
+			-- NH5: an egg knocked out of the arms lies in EggCarry (keyed "egg:<id>"); the parents fetch those too.
+			for id, egg in pairs(eggs.eggs) do
+				if egg.state == "Dropped" and not egg.fetching and egg.body and egg.body.Parent then
+					table.insert(eggDrops, { key = "egg:" .. id, kind = "Egg", x = egg.body.Position.X, z = egg.body.Position.Z })
+				end
+			end
 			local target = Island.recoverTarget(spec, eggDrops)
 			if target then
 				local best, bestD
@@ -1522,7 +1532,8 @@ local function stepIslands(now, dt)
 					if not bestD or d < bestD then best, bestD = adult, d end
 				end
 				if best then
-					drops[target.key].claimed = true
+					local loose = target.key:sub(1, 4) == "egg:" and EggCarry.get(eggs, target.key:sub(5)) or nil
+					if loose then loose.fetching = true else drops[target.key].claimed = true end
 					island.carry = { state = Island.newCarry(spec, best.point, target), adult = best, uid = target.key }
 					islandLog("eggFetch", spec.id, 0)
 				end
@@ -1533,7 +1544,16 @@ local function stepIslands(now, dt)
 			local event = Island.carryStep(island.carry.state, dt)
 			local c = carry.state
 			poseAdult(carry.adult, true, c.x, c.z, c.fx, c.fz)
-			if event == "Picked" then
+			local loose = carry.uid:sub(1, 4) == "egg:" and EggCarry.get(eggs, carry.uid:sub(5)) or nil
+			if event == "Picked" and loose then
+				-- NH5: someone may have picked it up on the way; then the adult walks home empty-handed.
+				if loose.state == "Dropped" and EggCarry.recover(eggs, loose.id) then
+					Heist.clearDroppedEgg(loose)
+					carry.has = true
+					local owner = playersByUserId[loose.lastCarrier]
+					if owner then send(owner, "DropLost", false, Text.ISLAND.eggRecovered) end
+				end
+			elseif event == "Picked" then
 				local drop = drops[carry.uid]
 				if drop then
 					local owner = drop.owner
@@ -1737,7 +1757,8 @@ spawnEncounter = function(slot)
 			special = slot.special == true })
 	end
 	if slot.wild then wildEntries[slot.spawnId] = id else nestState[slot.id] = id end
-	entry.connection = entry.prompt.Triggered:Connect(function(player)
+	-- NH5: one path for the prompt and the Studio-only HeistProbe.
+	entry.trigger = function(player)
 		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
 		if isEgg then
 			if not allowed(player, "Pickup") then return end
@@ -1757,7 +1778,7 @@ spawnEncounter = function(slot)
 				tier = slot.rewardTier or "Territory", island = slot.island, arms = true })
 			if ok then
 				EggCarry.steal(eggs, id, player.UserId, reason)
-				syncEggArms(player)
+				Heist.syncEggArms(player)
 				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
 				scheduleRespawn(slot)
@@ -1771,7 +1792,8 @@ spawnEncounter = function(slot)
 			if not allowed(player, "CaptureStart") then return end
 			startCapture(player, entry)
 		end
-	end)
+	end
+	entry.connection = entry.prompt.Triggered:Connect(entry.trigger)
 end
 
 -- Silueta's resolved strike ends the target's capture, whether or not damage is on (the world script fires it).
@@ -1856,11 +1878,136 @@ strikeEffect.OnInvoke = function(player, attackId, towardX, towardZ)
 		or not Rules.finite(towardX) or not Rules.finite(towardZ) then return nil end
 	local ok, entry = state:dropForStrike(player.UserId, attackId)
 	if not ok then return nil end
-	if entry then spawnDrop(player, entry, towardX, towardZ) end
+	-- NH5: an egg in the arms is knocked loose for anyone; any other item lies for its owner (D6).
+	if entry and entry.inArms then Heist.dropEgg(player, "Strike", entry)
+	elseif entry then spawnDrop(player, entry, towardX, towardZ) end
 	send(player, "Strike", true, "")
 	return entry and { kind = entry.kind, species = entry.species } or nil
 end
 strikeEffect.Parent = network
+
+-- Nest Heist (NH5): drop and pickup. A dropped egg lands on the ground under its carrier (a downward ray that ignores
+-- characters and runtime visuals, else the relief), anchored and never colliding, so it neither falls through nor flies
+-- off. After PICKUP_DELAY anyone may pick it up with a PICKUP_HOLD hold: the first valid request wins (EggCarry and
+-- the state change with no yield in between) and nobody has priority. Abandoned for DROP_SECONDS it fades and is gone.
+Heist.landParams = RaycastParams.new()
+Heist.landParams.FilterType = Enum.RaycastFilterType.Exclude
+function Heist.landingAt(x, y, z)
+	local exclude = { runtime }
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then table.insert(exclude, other.Character) end
+	end
+	Heist.landParams.FilterDescendantsInstances = exclude
+	local hit = workspace:Raycast(Vector3.new(x, y + 1, z), Vector3.new(0, -(EggCarry.live.LAND_DEPTH + 1), 0), Heist.landParams)
+	return EggCarry.landingY(y, hit and hit.Position.Y, relief:heightAt(x, z))
+end
+function Heist.clearDroppedEgg(egg)
+	if egg.connection then egg.connection:Disconnect() end
+	if egg.model then egg.model:Destroy() end
+	egg.model, egg.body, egg.prompt, egg.connection = nil, nil, nil, nil
+end
+function Heist.pickupEgg(player, egg)
+	if not allowed(player, "EggPickup") or not egg.body then return end
+	local now = workspace:GetServerTimeNow()
+	local free, why = EggCarry.canPickup(eggs, egg.id, player.UserId, now)
+	if not free then
+		if why == "AlreadyCarrying" then send(player, "EggPickup", false, Text.EGG.already) end
+		return
+	end
+	local alive, distance = context(player, egg.body)
+	if distance > EggCarry.live.PICKUP_RANGE then return end
+	local ok, reason = state:takeEgg(player.UserId, egg.entry, alive, distance)
+	if not ok then
+		reply(player, "EggPickup", false, reason)
+		return
+	end
+	local previous = egg.lastCarrier
+	EggCarry.pickup(eggs, egg.id, player.UserId, now, reason)
+	Heist.clearDroppedEgg(egg)
+	Heist.syncEggArms(player)
+	reply(player, "EggPickup", true, nil, Text.EGG.picked)
+	local before = playersByUserId[previous]
+	if before and before ~= player then send(before, "EggTaken", false, Text.EGG.taken) end
+	-- The egg's parents turn on the new carrier only if the chasing adult can perceive them.
+	local island = egg.meta.island and islands[egg.meta.island]
+	local chase = island and island.chase
+	local root = rootOf(player)
+	if chase and root and chase.target ~= player and Island.perceives(chase.state, root.Position.X, root.Position.Z) then
+		chase.target = player
+		islandLog("retarget", island.spec.id, player.UserId)
+		send(player, "IslandChase", false, Text.ISLAND.chased)
+	end
+end
+-- reason: "Death", "Hit", "Strike", "Leave" (later "Bat"). loose: the state entry when the state already let it go (a
+-- strike). Returns the egg, or nil when nothing was carried or a safe zone keeps it in the arms.
+function Heist.dropEgg(player, reason, loose)
+	local egg = EggCarry.carriedBy(eggs, player.UserId)
+	if not egg then return nil end
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local now = workspace:GetServerTimeNow()
+	if not root or not root:IsA("BasePart") then
+		-- No body left to drop it from: the egg is lost at once (it fades on the next step).
+		if EggCarry.drop(eggs, player.UserId, reason, now) then
+			egg.expireAt = now
+			if not loose then state:dropEgg(player.UserId) end
+		end
+		return nil
+	end
+	local at = root.Position
+	local _, safe = Rules.zone(at.X, at.Z)
+	if not EggCarry.drop(eggs, player.UserId, reason, now, { safe = safe }) then
+		-- A safe zone keeps the egg in the arms; a strike's state change is undone.
+		if loose then state:takeEgg(player.UserId, loose, true, 0) end
+		return nil
+	end
+	local entry = loose
+	if not entry then
+		local ok, detached = state:dropEgg(player.UserId)
+		entry = ok and detached or nil
+	end
+	egg.entry = entry or { uid = "loose:" .. egg.id, kind = "Egg", species = egg.meta.species or "Lumipol",
+		riskTier = egg.meta.tier or "Territory", island = egg.meta.island }
+	-- A little behind the carrier, so a fleeing thief leaves it in their wake.
+	local look = root.CFrame.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	flat = flat.Magnitude > 1e-3 and flat.Unit or Vector3.new(0, 0, 1)
+	local x, z = at.X - flat.X * 2, at.Z - flat.Z * 2
+	local y = Heist.landingAt(x, at.Y, z)
+	-- visual() lifts an egg 2 studs over its point and the egg is 2.8 tall: its bottom rests on the ground.
+	local model, body = visual("Egg", Vector3.new(x, y - 0.6, z), egg.meta.species)
+	model.Name = "WildboundDroppedEgg"
+	model:SetAttribute("EggId", egg.id)
+	local speciesName = Text.CARD.species[egg.meta.species or "Lumipol"] or egg.meta.species or Text.PROMPTS.lumipol
+	local pick = prompt(body, Text.EGG.pickUp, speciesName, EggCarry.live.PICKUP_RANGE, EggCarry.live.PICKUP_HOLD)
+	pick.Enabled = false
+	egg.model, egg.body, egg.prompt = model, body, pick
+	egg.connection = pick.Triggered:Connect(function(who)
+		if EggCarry.get(eggs, egg.id) ~= egg or egg.prompt ~= pick or not validPrompt(pick, body) then return end
+		Heist.pickupEgg(who, egg)
+	end)
+	islandLog("eggDropped", egg.meta.island or "-", player.UserId)
+	Heist.syncEggArms(player)
+	applyCarry(player)
+	return egg
+end
+function Heist.stepEggs(now)
+	for _, action in ipairs(EggCarry.step(eggs, now)) do
+		local egg = action.egg
+		if action.op == "open" and egg.prompt then
+			egg.prompt.Enabled = true
+		elseif action.op == "despawn" then
+			if egg.prompt then egg.prompt.Enabled = false end
+			if egg.body then egg.body.Transparency = 0.6 end
+			local owner = playersByUserId[egg.lastCarrier]
+			if owner then send(owner, "EggGone", false, Text.EGG.gone) end
+		elseif action.op == "remove" then
+			Heist.clearDroppedEgg(egg)
+		end
+	end
+	telemetry:SetAttribute("EggsCarried", EggCarry.count(eggs, "Carried"))
+	telemetry:SetAttribute("EggsDropped", EggCarry.count(eggs, "Dropped"))
+end
 
 -- Gather seam (M5.3 builds the world nodes in part 2). The node script spawns, claims and retires nodes
 -- through these server-only bindables; this script owns state, the seeded spawn generator and replies.
@@ -2090,6 +2237,60 @@ if RunService:IsStudio() then
 		return false, "UnknownOp"
 	end
 	gearProbe.Parent = telemetry
+	-- Nest Heist (NH5): the Play check's egg ops, through the real paths. Studio only, ServerStorage only. "steal" takes
+	-- the nearest egg in a nest for a real player (its UserId) through the prompt's own handler; "drop" knocks the
+	-- carried egg loose; "pickup" picks up the nearest dropped egg; "read" lists the eggs.
+	local heistProbe = Instance.new("BindableFunction")
+	heistProbe.Name = "HeistProbe"
+	heistProbe.OnInvoke = function(op, userId, value)
+		if op == "read" then
+			local out = {}
+			for id, egg in pairs(eggs.eggs) do
+				out[id] = { state = egg.state, carrier = egg.carrier, last = egg.lastCarrier, island = egg.meta.island,
+					y = egg.body and math.floor(egg.body.Position.Y * 100) / 100 or nil,
+					open = egg.prompt and egg.prompt.Enabled or nil }
+			end
+			return out
+		end
+		local player = type(userId) == "number" and playersByUserId[userId] or nil
+		local root = player and rootOf(player)
+		if not root then return false, "UnknownPlayer" end
+		if op == "steal" then
+			local best, bestDistance
+			for id, entry in pairs(entries) do
+				local egg = EggCarry.get(eggs, id)
+				local wanted = value == nil or entry.slot.island == value
+				if egg and egg.state == "InNest" and wanted and entry.body.Parent then
+					local distance = (entry.body.Position - root.Position).Magnitude
+					if not bestDistance or distance < bestDistance then best, bestDistance = entry, distance end
+				end
+			end
+			if not best then return false, "NoEgg" end
+			root.CFrame = CFrame.new(best.body.Position + Vector3.new(3, 1, 0))
+			best.trigger(player)
+			local egg = EggCarry.get(eggs, best.id)
+			return egg ~= nil and egg.state == "Carried", best.id
+		end
+		if op == "drop" then
+			local egg = Heist.dropEgg(player, type(value) == "string" and value or "Hit")
+			return egg ~= nil, egg and egg.id
+		end
+		if op == "pickup" then
+			local best, bestDistance
+			for _, egg in pairs(eggs.eggs) do
+				if egg.state == "Dropped" and egg.body then
+					local distance = (egg.body.Position - root.Position).Magnitude
+					if not bestDistance or distance < bestDistance then best, bestDistance = egg, distance end
+				end
+			end
+			if not best then return false, "NoDroppedEgg" end
+			root.CFrame = CFrame.new(best.body.Position + Vector3.new(2, 1, 0))
+			Heist.pickupEgg(player, best)
+			return best.state == "Carried" and best.carrier == userId, best.id
+		end
+		return false, "UnknownOp"
+	end
+	heistProbe.Parent = telemetry
 end
 
 -- I6: a sprint (DP1) or a rustle (D6) near an island disturbs its sleepers; one player's noise wakes it for everyone.
@@ -2301,6 +2502,7 @@ RunService.Heartbeat:Connect(function(dt)
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
 	stepIslands(now, stepSeconds)
+	Heist.stepEggs(now)
 	stepWaves(now)
 	stepSpawnClock(now)
 	updateCarryMoods(now)
@@ -2433,7 +2635,7 @@ end)
 -- The speed goes through applyCarry (WalkSpeed, so the player's own move direction steers it); no invulnerability.
 -- The puff is made here, so every player sees it; every audio client plays the scuff when WildboundBurstReady changes
 -- (this server makes no sounds, delivery B).
-local function burst(player, record, now)
+function Heist.burst(player, record, now)
 	local root = rootOf(player)
 	local capturing = false
 	for _, session in ipairs(capture:activeSessions()) do
@@ -2469,7 +2671,7 @@ stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
 	if record.stanceCalls > STANCE_RATE then return end
 	-- NH4: "burst" shares this remote and its rate limit; the rule refuses it during its cooldown.
 	if intent == "burst" then
-		burst(player, record, now)
+		Heist.burst(player, record, now)
 		return
 	end
 	Stamina.intent(record.stamina, intent, now)
@@ -2541,6 +2743,8 @@ Players.PlayerRemoving:Connect(function(player)
 	if out then handleEnding(out) end
 	-- D10 hold is not built: a disconnected owner's drops go with the profile.
 	removeDropsOf(player)
+	-- NH5: an egg in the arms stays in the world for anyone.
+	Heist.dropEgg(player, "Leave")
 	-- B4: the display spot frees for the next player; B5: the companion goes with its owner.
 	clearDisplay(player)
 	removeCompanion(player)

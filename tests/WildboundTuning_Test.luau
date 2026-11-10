@@ -115,7 +115,9 @@ return function(Schema, modules)
 			-- Nest Heist (NH3): the parents' charge and the immediate wake on an egg steal.
 			"Islands.CHARGE_SPEED", "Islands.CHARGE_HIT", "Islands.EXPOSED_SECONDS", "Islands.STEAL_WAKE",
 			-- Nest Heist (NH4): the Burst.
-			"Sprint.BURST_SECONDS", "Sprint.BURST_MULTIPLIER", "Sprint.BURST_COOLDOWN", "Sprint.BURST_CAP" }) do
+			"Sprint.BURST_SECONDS", "Sprint.BURST_MULTIPLIER", "Sprint.BURST_COOLDOWN", "Sprint.BURST_CAP",
+			-- Nest Heist (NH5): drop and pickup.
+			"Eggs.PICKUP_DELAY", "Eggs.PICKUP_HOLD", "Eggs.PICKUP_RANGE", "Eggs.DROP_SECONDS", "Islands.PERCEIVE_RANGE" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

@@ -151,6 +151,8 @@ Schema.SYSTEMS = table.freeze({
 		value("CHARGE_HIT", "Embestida: acierta a (studs)", "Island", "CHARGE_HIT", 3, 1, 8, 0.5),
 		value("EXPOSED_SECONDS", "Tras fallar: expuesto (s)", "Island", "EXPOSED_SECONDS", 1, 0, 5, 0.1),
 		value("STEAL_WAKE", "Robar un huevo los despierta (1 sí, 0 no)", "Island", "STEAL_WAKE", 1, 0, 1, 1),
+		-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only within this distance of it.
+		value("PERCEIVE_RANGE", "El adulto ve al nuevo portador a (studs)", "Island", "PERCEIVE_RANGE", 24, 5, 80, 1),
 		value("EGG_RECOVERY_ON", "Recuperan huevos caídos (1 sí, 0 no)", "Island", "EGG_RECOVERY_ON", 1, 0, 1, 1),
 		value("DEEP_SLEEP_ON", "Sueño profundo al mediodía (1 sí, 0 no)", "Island", "DEEP_SLEEP_ON", 1, 0, 1, 1),
 		value("DEEP_SCALE", "Sueño profundo: ruido x", "Island", "DEEP_SCALE", 0.7, 0.1, 1, 0.05),
@@ -230,6 +232,11 @@ Schema.SYSTEMS = table.freeze({
 	table.freeze({ id = "Eggs", label = "Robo de huevos", entries = table.freeze({
 		value("STEAL_HOLD", "Robar un huevo normal: mantener (s)", "EggCarry", "STEAL_HOLD", 0.8, 0.6, 1, 0.05),
 		value("RARE_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARE_HOLD", 1, 0.6, 3, 0.05),
+		-- NH5: drop and pickup.
+		value("PICKUP_DELAY", "Huevo caído: se puede recoger tras (s)", "EggCarry", "PICKUP_DELAY", 0.4, 0, 2, 0.05),
+		value("PICKUP_HOLD", "Recoger un huevo: mantener (s)", "EggCarry", "PICKUP_HOLD", 0.4, 0.3, 0.5, 0.05),
+		value("PICKUP_RANGE", "Recoger un huevo: alcance (studs)", "EggCarry", "PICKUP_RANGE", 10, 4, 20, 1),
+		value("DROP_SECONDS", "Huevo abandonado: desaparece tras (s)", "EggCarry", "DROP_SECONDS", 30, 5, 300, 5),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({
