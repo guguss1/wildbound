@@ -36,6 +36,9 @@ Schema.MODULES = table.freeze({
 	EggCarry = table.freeze({ name = "WildboundEggCarry",
 		file = "src/wildbound/WildboundEggCarry.luau (EggCarry.CONSTANTS)" }),
 	Bat = table.freeze({ name = "WildboundBat", file = "src/wildbound/WildboundBat.luau (Bat.CONSTANTS)" }),
+	-- Nest Heist Phase 3 (NS5): the camp treadmill.
+	Training = table.freeze({ name = "WildboundTraining",
+		file = "src/wildbound/WildboundTraining.luau (Training.CONSTANTS)" }),
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	Refuge = table.freeze({ name = "WildboundRefuge", file = "src/wildbound/WildboundRefuge.luau (Refuge.LIGHT)" }),
 })
@@ -216,6 +219,15 @@ Schema.SYSTEMS = table.freeze({
 		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
 		-- RW6: the biome variant rotates every this many waves (never by nights).
 		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
+	}) }),
+	-- Nest Heist Phase 3 (NS5): the treadmill. The walk cap stays at most 18 so a trained player never runs away from
+	-- La Silueta's slowest hunt by walking alone; the sprint and the Burst keep the stamina caps (24 and 28).
+	table.freeze({ id = "Training", label = "Entrenamiento", entries = table.freeze({
+		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 0.25, 0, 1, 0.05),
+		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 4, 0, 10, 1),
+		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 17.5, 16, 18, 0.5),
+		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 30, 0, 500, 5),
+		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.6, 1, 3, 0.1),
 	}) }),
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	table.freeze({ id = "Companion", label = "Compañero", entries = table.freeze({

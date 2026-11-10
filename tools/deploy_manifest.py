@@ -248,6 +248,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundSave.luau", "ServerScriptService.WildboundSave"),
     ("src/wildbound/WildboundStoreRoblox.luau", "ServerScriptService.WildboundStoreRoblox"),
     ("tests/WildboundSave_Test.luau", "ServerStorage.WildboundSave_Test"),
+    # Nest Heist Phase 3 (NS5): the treadmill rule, shared with the clients, and its suite
+    ("src/wildbound/WildboundTraining.luau", "ReplicatedStorage.WildboundTraining"),
+    ("tests/WildboundTraining_Test.luau", "ServerStorage.WildboundTraining_Test"),
 ]
 
 

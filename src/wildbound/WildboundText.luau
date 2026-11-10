@@ -498,6 +498,17 @@ return freeze({
 		tooNew = "Hay una versión nueva del juego. Vuelve a entrar para cargar tu progreso. Juegas sin guardar.",
 		memory = "Prueba en Studio: el progreso se guarda solo mientras dure esta prueba.",
 	},
+	-- Nest Heist Phase 3 (NS5): the camp treadmill. Speeds use a decimal comma.
+	TRAINING = {
+		prompt = "Entrenar",
+		object = "Entrenamiento",
+		sign = "Entrenamiento",
+		trained = "Entrenamiento: nivel %d de %d. Caminas a %s studs/s.",
+		nextLevel = " Siguiente nivel: %d de Esencia.",
+		maxed = "Ya entrenaste al máximo (nivel %d de %d).",
+		cannot = "Te faltan %d de Esencia para el nivel %d.",
+		farAway = "Acércate a la cinta de entrenamiento.",
+	},
 	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
 	INCUBATOR = {
 		prompt = "Incubar huevo",

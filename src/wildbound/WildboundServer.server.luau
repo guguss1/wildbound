@@ -186,6 +186,8 @@ end
 -- joins the State profile to one session-locked record per player; WildboundStoreRoblox is the only module that names
 -- the data store. WildboundFlags.persistenceMode: "datastore" (default), "memory" or "off".
 Heist.Save = require(script.Parent:WaitForChild("WildboundSave"))
+-- Nest Heist Phase 3 (NS5): the treadmill's rule (shared, so the camp screen can word it).
+Heist.Training = require(ReplicatedStorage:WaitForChild("WildboundTraining"))
 Heist.joining = {}
 Heist.saves = Heist.Save.start({
 	state = state, record = require(script.Parent:WaitForChild("WildboundRecord")),
@@ -359,6 +361,8 @@ local function applyCarry(player)
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
 	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
+	-- NS5: trained walk levels, only while unencumbered and never over Training.WALK_CAP (sprint and Burst keep theirs).
+	speed = Heist.Training.walkSpeed(speed, EconomyConfig.carry.baseSpeed, snapshot.training)
 	record.baseSpeed = speed
 	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
 	-- NH4: a running burst pushes the speed for its 0.8 s (capped, never stacked on the sprint).
@@ -2972,6 +2976,92 @@ local function bindCharacter(player, character)
 	applyCarry(player)
 	send(player, "Respawn", true, notices.respawn)
 end
+-- NS5: the "Entrenamiento" treadmill, built from parts beside the camp (no asset), with its own prompt. One hold buys
+-- the next walk level with Esencia; the price, the step and the cap are the shared rule's, never the client's.
+function Heist.speedText(value)
+	return (string.gsub(string.format("%.2f", value), "%.", ","))
+end
+function Heist.buildTreadmill()
+	local model = Instance.new("Model")
+	model.Name = "WildboundTreadmill"
+	-- Inside the camp circle (20 studs), east of the centre, clear of the chest, altar and protection stone.
+	local center = campCenter.Position + Vector3.new(13, 0, 0)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = { runtime }
+	local hit = workspace:Raycast(center + Vector3.new(0, 30, 0), Vector3.new(0, -80, 0), params)
+	local floor = hit and hit.Position.Y or (campCenter.Position.Y - campCenter.Size.Y / 2)
+	local base = CFrame.new(center.X, floor, center.Z) * CFrame.Angles(0, math.rad(90), 0)
+	local function part(name, size, offset, color, material, shape)
+		local value = Instance.new("Part")
+		value.Name, value.Size, value.CFrame = name, size, base * offset
+		value.Anchored, value.CanTouch, value.CanQuery = true, false, false
+		value.CanCollide = name == "Deck"
+		value.Color, value.Material = color, material or Enum.Material.SmoothPlastic
+		if shape then value.Shape = shape end
+		value.Parent = model
+		return value
+	end
+	local dark, steel, rubber = Color3.fromRGB(58, 62, 66), Color3.fromRGB(150, 156, 160), Color3.fromRGB(28, 28, 30)
+	part("Deck", Vector3.new(4.2, 0.6, 8), CFrame.new(0, 0.3, 0), dark, Enum.Material.Metal)
+	part("Belt", Vector3.new(3.4, 0.08, 7.4), CFrame.new(0, 0.64, 0), rubber, Enum.Material.Fabric)
+	for _, z in ipairs({ -3.7, 3.7 }) do
+		part("Roller", Vector3.new(3.6, 0.7, 0.7), CFrame.new(0, 0.45, z), steel, Enum.Material.Metal, Enum.PartType.Cylinder)
+	end
+	for _, x in ipairs({ -1.9, 1.9 }) do
+		part("Post", Vector3.new(0.25, 3.6, 0.25), CFrame.new(x, 2.4, -3.6), steel, Enum.Material.Metal)
+		part("Rail", Vector3.new(0.2, 0.2, 3.2), CFrame.new(x, 3.4, -2.1), steel, Enum.Material.Metal)
+	end
+	local console = part("Console", Vector3.new(3.8, 0.9, 0.6), CFrame.new(0, 4.1, -3.6) * CFrame.Angles(math.rad(-25), 0, 0),
+		Color3.fromRGB(46, 96, 72), Enum.Material.SmoothPlastic)
+	local light = Instance.new("PointLight")
+	light.Color, light.Brightness, light.Range, light.Parent = Color3.fromRGB(120, 255, 180), 0.6, 8, console
+	local sign = Instance.new("BillboardGui")
+	sign.Size, sign.StudsOffset, sign.MaxDistance = UDim2.fromOffset(170, 34), Vector3.new(0, 1.6, 0), 60
+	sign.LightInfluence = 0
+	local label = Instance.new("TextLabel")
+	label.Size, label.BackgroundTransparency, label.Text = UDim2.fromScale(1, 1), 1, Text.TRAINING.sign
+	label.TextColor3, label.TextStrokeTransparency, label.Font = Color3.fromRGB(235, 255, 240), 0.3, Enum.Font.GothamBold
+	label.TextScaled = true
+	label.Parent = sign
+	sign.Parent = console
+	model.PrimaryPart = console
+	model.Parent = runtime
+	local trainPrompt = prompt(console, Text.TRAINING.prompt, Text.TRAINING.object, Heist.Training.CONSTANTS.RANGE, 1,
+		Keys.CAMP.train)
+	trainPrompt.Triggered:Connect(function(player) Heist.train(player, console) end)
+	Heist.treadmill = console
+	return model
+end
+function Heist.train(player, console)
+	if not records[player] or not allowed(player, "Train") then return end
+	local alive, distance = context(player, campCenter)
+	local root = rootOf(player)
+	if not alive or not root or (root.Position - console.Position).Magnitude > Heist.Training.CONSTANTS.RANGE + 4 then
+		send(player, "Train", false, Text.TRAINING.farAway)
+		return
+	end
+	local snapshot = state:snapshot(player.UserId)
+	local T, C = Text.TRAINING, Heist.Training.live
+	local level = Heist.Training.level(snapshot and snapshot.training, "walk")
+	local price = Heist.Training.cost(level)
+	local ok, result = state:train(player.UserId, "walk", alive, distance, price, C.MAX_LEVEL)
+	if ok then
+		local after = state:snapshot(player.UserId)
+		local walk = Heist.Training.walkSpeed(EconomyConfig.carry.baseSpeed, EconomyConfig.carry.baseSpeed, after.training)
+		local nextPrice = Heist.Training.cost(result)
+		local text = T.trained:format(result, C.MAX_LEVEL, Heist.speedText(walk))
+		if nextPrice then text ..= T.nextLevel:format(nextPrice) end
+		send(player, "Train", true, text)
+	elseif result == "AtLimit" then
+		send(player, "Train", false, T.maxed:format(level, C.MAX_LEVEL))
+	elseif result == "CannotAfford" then
+		send(player, "Train", false, T.cannot:format(math.max(0, price - (snapshot and snapshot.ember or 0)), level + 1))
+	else
+		reply(player, "Train", false, result)
+	end
+end
+Heist.buildTreadmill()
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
 -- attributes a loaded save needs (the Equip action sets them otherwise).
 function Heist.saveNotice(userId)

@@ -647,6 +647,23 @@ function State:upgrade(key, name, alive, distance)
 	return true, name
 end
 
+-- Nest Heist Phase 3 (NS5): one training level at the camp treadmill. The price and the cap come from the shared
+-- WildboundTraining rule (the server passes them); the level table is made on first use and saved (record schema 2).
+function State:train(key, kind, alive, distance, cost, maxLevel)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if kind ~= "walk" then return false, "UnknownTraining" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	local levels = player.training or {}
+	local level = levels[kind] or 0
+	if type(maxLevel) ~= "number" or level >= maxLevel or type(cost) ~= "number" then return false, "AtLimit" end
+	if not purchase(self, player, { ember = cost }) then return false, "CannotAfford" end
+	levels[kind] = level + 1
+	player.training = levels
+	return true, level + 1
+end
+
 -- Items and totem (plan Part 4, IT1): equipment owned this session ({ [id] = true }) and the expedition the vest's
 -- one save was spent on (vestUsedOn, "camp" when spent outside one). Never saved, so a profile (new or loaded from a
 -- saved record) gets its gear table on first use and stays equal to what the record makes.
@@ -961,7 +978,7 @@ function State:snapshot(key)
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
 		gear = table.clone(gearOf(player)), vestReady = vestReady(player), luckTotems = player.luckTotems or 0,
-		skills = table.clone(player.skills), bond = bondCopy(player),
+		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,
 			maxDistanceFromCamp = expedition.maxDistanceFromCamp, newUnits = expedition.newUnits,

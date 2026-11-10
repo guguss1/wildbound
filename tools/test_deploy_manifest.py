@@ -394,6 +394,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundSave.luau": "ServerScriptService.WildboundSave",
         "src/wildbound/WildboundStoreRoblox.luau": "ServerScriptService.WildboundStoreRoblox",
         "tests/WildboundSave_Test.luau": "ServerStorage.WildboundSave_Test",
+        # NS5: the treadmill rule (shared) and its suite
+        "src/wildbound/WildboundTraining.luau": "ReplicatedStorage.WildboundTraining",
+        "tests/WildboundTraining_Test.luau": "ServerStorage.WildboundTraining_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

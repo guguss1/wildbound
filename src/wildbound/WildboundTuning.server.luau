@@ -38,7 +38,9 @@ for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSe
 	-- Items and totem (plan Part 4): the gear rules.
 	Gear = "WildboundGear",
 	-- Nest Heist Phase 3 (NS4): the companion's light.
-	Refuge = "WildboundRefuge" }) do
+	Refuge = "WildboundRefuge",
+	-- Nest Heist Phase 3 (NS5): the treadmill.
+	Training = "WildboundTraining" }) do
 	local module = ReplicatedStorage:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

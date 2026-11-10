@@ -782,6 +782,33 @@ class EconomyTargets(unittest.TestCase):
         state["bag"].append({"kind": "creature", "tier": "Fog"})
         self.assertEqual(eco.leg_speed(t, state, {"sprint": True}), eco.carry_speed(t, state))
 
+    def test_training_walk_bonus_is_read_from_the_training_module(self):
+        # Nest Heist Phase 3 (NS5): the treadmill's walk levels, read from src/wildbound/WildboundTraining.luau.
+        self.assertGreater(eco.TRAINING_WALK_STEP, 0)
+        self.assertGreaterEqual(eco.TRAINING_MAX_LEVEL, 1)
+        t = tuning()
+        state = eco.new_state(t)
+        walk = eco.carry_speed(t, state)
+        state["trainingWalk"] = eco.TRAINING_WALK_STEP * eco.TRAINING_MAX_LEVEL
+        trained = eco.walk_speed(t, state)
+        self.assertAlmostEqual(trained, min(walk + state["trainingWalk"], eco.TRAINING_WALK_CAP))
+        self.assertLessEqual(trained, eco.TRAINING_WALK_CAP)
+        self.assertEqual(eco.leg_speed(t, state, {}), trained)
+        # An egg in the arms gets no bonus: the parents' chase balance stays as it was.
+        state["bag"].append({"kind": "egg", "tier": "Fog"})
+        self.assertEqual(eco.walk_speed(t, state), eco.carry_speed(t, state))
+
+    def test_fully_trained_players_keep_the_180_second_floor(self):
+        # NS5: every archetype at the training cap, with and without sprint, keeps the expedition floor.
+        t, ctx = tuning(), context()
+        low, _ = t["cycle"]["targetExpeditionSeconds"]
+        for sprint in (False, True):
+            policies = {name: dict(copy.deepcopy(p), trained=True, sprint=sprint)
+                        for name, p in t["simulatorInputs"]["archetypes"].items()}
+            summary = eco.analyse_policies(t, ctx, runs=30, trips=90, seed=2026, policies=policies)
+            for name, row in summary.items():
+                self.assertGreaterEqual(row["seconds_median"], low, (name, sprint))
+
     def test_sprint_with_its_costs_keeps_the_invariants(self):
         # D-D5: the user chose to make sprint cost something instead of moving the 180 s target. The target stays the
         # no-sprint baseline above; with sprint and its costs counted (noise that draws Silueta, walking while a
