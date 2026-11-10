@@ -404,6 +404,17 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundBases.luau": "ServerScriptService.WildboundBases",
         "src/wildbound/WildboundHubStations.luau": "ServerScriptService.WildboundHubStations",
         "tests/WildboundHub_Test.luau": "ServerStorage.WildboundHub_Test",
+        # New mechanics (docs/mechanics/wildbound-new-mechanics.md): planned Explorer paths for the offline rules
+        "src/wildbound/WildboundArrullo.luau": "ReplicatedStorage.WildboundArrullo",
+        "tests/WildboundArrullo_Test.luau": "ServerStorage.WildboundArrullo_Test",
+        "src/wildbound/WildboundDodge.luau": "ReplicatedStorage.WildboundDodge",
+        "tests/WildboundDodge_Test.luau": "ServerStorage.WildboundDodge_Test",
+        "src/wildbound/WildboundBatKnock.luau": "ServerScriptService.WildboundBatKnock",
+        "tests/WildboundBatKnock_Test.luau": "ServerStorage.WildboundBatKnock_Test",
+        "src/wildbound/WildboundTotemRecord.luau": "ServerScriptService.WildboundTotemRecord",
+        "tests/WildboundTotemRecord_Test.luau": "ServerStorage.WildboundTotemRecord_Test",
+        "src/wildbound/WildboundDusk.luau": "ReplicatedStorage.WildboundDusk",
+        "tests/WildboundDusk_Test.luau": "ServerStorage.WildboundDusk_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

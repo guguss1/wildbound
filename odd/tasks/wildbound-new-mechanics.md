@@ -24,4 +24,10 @@ Route for every task: direct inline (one new module and its suite; mechanical ma
 - Python: `python -I -B -m unittest discover -s tools -p "test_*.py"` (baseline 1150 run, one known failure `test_lumipol_v2.test_v1_files_are_unchanged`).
 - Luau suites: pending Studio (no offline runtime).
 
-Progress and commits: see `git log` on `codex/wildbound-first-playable` (one commit per task, `feat(wildbound): ...`).
+## Evidence
+
+- Commits: T1 `ffd43bb`, T2 `9f35d43`, T3 `af3d28b`, T4 `d63d866`, T5 `9f114a2`, T6 the commit that adds this line.
+- Python after T6: 1153 run, 1 failure (`test_lumipol_v2.test_v1_files_are_unchanged`, the known one), the same as before T1 (the brief's 1150 grew by 3 tests from parallel work).
+- Luau suites: not run (no runtime). RED/GREEN pending Studio.
+
+Next step: the Studio writer follows the wiring list in `docs/mechanics/wildbound-new-mechanics.md`.
