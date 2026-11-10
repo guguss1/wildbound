@@ -17,12 +17,18 @@ zone and leash, La Abeja Reina's event ground at La Colmena, the gate, the cream
 the sun circles and the prop footprints are never drafted twice (user decision 2026-11-10).
 
 Spec: docs/design/wildbound-open-world-hub.md.
+
+It also writes biome-placement-v1.json: one world placement per biome layout (forest west, Pradera east,
+Pantano north, Cementerio south, the others on the diagonals) and one road per biome from the hub rim,
+for the hub in src/wildbound/WildboundWorldRules.luau (Rules.HUB_X, HUB_Z, HUB_RADIUS) or --hub X Z R.
+See docs/maps/wildbound-open-world-biomes.md.
 """
 
 import argparse
 import json
 import math
 import random
+import re
 import sys
 from pathlib import Path
 
@@ -982,11 +988,280 @@ def summary(layout):
     return "\n".join(lines)
 
 
+# ---- Biome placement around the hub (Rules.HUB_X, HUB_Z, HUB_RADIUS) ----------------------------------
+# Every biome layout gets one world placement: La Silueta's forest west, the Pradera Arcoiris east, Pantano
+# (living forest) north and Cementerio (cryptic ruins) south as the next biomes, and the four others on the
+# diagonals. Squares are axis-aligned (yaw is a quarter turn); the west and east squares keep
+# PLACEMENT_TRANSITION studs from the hub disc, so at the original hub (radius 60) the forest and the Pradera
+# land on FOREST_OFFSET and PRADERA_OFFSET. Roads run from the hub rim to each biome's entry gate (its route's
+# first node) through the PLACEMENT_GAP corridors between squares. The diagonal assignment is a proposal.
+PLACEMENT_NAME = "biome-placement-v1"
+RULES_SOURCE = REPO / "src" / "wildbound" / "WildboundWorldRules.luau"
+PLACEMENT_TRANSITION = 40.0            # hub rim to the west and east squares, like the 40-stud transitions
+PLACEMENT_GAP = 40.0                   # square to square: a 14-stud road in the corridor keeps 13 studs a side
+MAPS = REPO / "assets" / "maps"
+# key, slot, layout file, root model name, builder, player-facing name (neutral Spanish, proposal)
+BIOME_SLOTS = (
+    ("forest", "W", "forest-layout/forest-layout-v1.json", "WildboundP0", "tools/build-wildbound-p0-map.luau",
+     "Bosque de la Silueta"),
+    ("pradera", "E", "pradera-layout/pradera-layout-v1.json", "WildboundPradera", "tools/build-wildbound-pradera-map.luau",
+     "Pradera Arcoíris"),
+    ("living-forest", "N", "living-forest-layout/living-forest-layout-v1.json", "WildboundLivingForest",
+     "tools/build-wildbound-living-forest-map.luau", "Pantano"),
+    ("cryptic-ruins", "S", "cryptic-ruins-layout/cryptic-ruins-layout-v1.json", "WildboundCrypticRuins",
+     "tools/build-wildbound-cryptic-ruins-map.luau", "Cementerio"),
+    ("demon-abyss", "NW", "demon-abyss-layout/demon-abyss-layout-v1.json", "WildboundDemonAbyss",
+     "tools/build-wildbound-demon-abyss-map.luau", "Abismo"),
+    ("frozen-mountains", "NE", "frozen-mountains-layout/frozen-mountains-layout-v1.json", "WildboundFrozenMountains",
+     "tools/build-wildbound-frozen-mountains-map.luau", "Montañas Heladas"),
+    ("volcanic-lands", "SW", "volcanic-lands-layout/volcanic-lands-layout-v1.json", "WildboundVolcanicLands",
+     "tools/build-wildbound-volcanic-lands-map.luau", "Tierras Volcánicas"),
+    ("rock-caves", "SE", "rock-caves-layout/rock-caves-layout-v1.json", "WildboundRockCaves",
+     "tools/build-wildbound-rock-caves-map.luau", "Cuevas de Roca"),
+)
+# The forest's east entry: where the hub's west threshold road (umbral_oeste) meets the square, local frame.
+FOREST_GATE_LOCAL = (200.0, 20.0)
+SIDE_NORMALS = {"E": (1.0, 0.0), "W": (-1.0, 0.0), "S": (0.0, 1.0), "N": (0.0, -1.0)}
+_HUB_RE = re.compile(r"Rules\.HUB_X,\s*Rules\.HUB_Z,\s*Rules\.HUB_RADIUS\s*=\s*([-+\d.eE]+),\s*([-+\d.eE]+),\s*([-+\d.eE]+)")
+
+
+def read_rules_hub(text=None):
+    """(x, z, radius) of the hub from the world rules source (or from `text`)."""
+    if text is None:
+        text = RULES_SOURCE.read_text(encoding="utf-8")
+    m = _HUB_RE.search(text)
+    if not m:
+        raise ValueError("no 'Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = x, z, r' line")
+    return float(m.group(1)), float(m.group(2)), float(m.group(3))
+
+
+def rotate_yaw(x, z, deg):
+    """Local (x, z) rotated as CFrame.Angles(0, math.rad(deg), 0) rotates it."""
+    r = math.radians(deg)
+    c, s = math.cos(r), math.sin(r)
+    if deg % 90.0 == 0.0:                # exact quarter turns: no 1e-17 noise in the JSON
+        c, s = float(round(c)), float(round(s))
+    return (x * c + z * s + 0.0, -x * s + z * c + 0.0)
+
+
+def biome_inputs():
+    """Size and local entry gate of every biome, read from its own layout file."""
+    out = {}
+    for key, slot, rel, root, builder, display in BIOME_SLOTS:
+        layout = load_json(MAPS / rel)
+        if key == "forest":
+            size, gate = float(layout["inputs"]["map_size"][0]), FOREST_GATE_LOCAL
+        else:
+            size, gate = float(layout["map_size"]), tuple(layout["route"]["nodes"][0])
+        out[key] = {"slot": slot, "layout": "assets/maps/" + rel, "root": root, "builder": builder,
+                    "display": display, "size": size, "gate": (float(gate[0]), float(gate[1]))}
+    return out
+
+
+def gate_side(gate, half):
+    """The square side nearest the local gate point."""
+    x, z = gate
+    distances = {"E": half - x, "W": half + x, "S": half - z, "N": half + z}
+    return min(("E", "W", "S", "N"), key=lambda side: (distances[side], "EWSN".index(side)))
+
+
+def _square(centre, half):
+    return (centre[0] - half, centre[0] + half, centre[1] - half, centre[1] + half)
+
+
+def place_squares(inputs, radius):
+    """Local (hub frame) centre of every square, slot by slot."""
+    half = {k: v["size"] / 2 for k, v in inputs.items()}
+    by_slot = {v["slot"]: k for k, v in inputs.items()}
+    centres = {}
+    rim = radius + PLACEMENT_TRANSITION
+    centres[by_slot["W"]] = (-(rim + half[by_slot["W"]]), 0.0)
+    centres[by_slot["E"]] = (rim + half[by_slot["E"]], 0.0)
+    band = max(half[by_slot["W"]], half[by_slot["E"]], rim)
+    centres[by_slot["N"]] = (0.0, -(band + PLACEMENT_GAP + half[by_slot["N"]]))
+    centres[by_slot["S"]] = (0.0, band + PLACEMENT_GAP + half[by_slot["S"]])
+    sq = {k: _square(c, half[k]) for k, c in centres.items()}
+    w, e, n, s = (sq[by_slot[k]] for k in ("W", "E", "N", "S"))
+    for slot, sx, sz in (("NW", -1, -1), ("NE", 1, -1), ("SW", -1, 1), ("SE", 1, 1)):
+        key = by_slot[slot]
+        h = half[key]
+        ns = n if sz < 0 else s
+        we = w if sx < 0 else e
+        x = ns[0] - PLACEMENT_GAP - h if sx < 0 else ns[1] + PLACEMENT_GAP + h
+        z = we[2] - PLACEMENT_GAP - h if sz < 0 else we[3] + PLACEMENT_GAP + h
+        centres[key] = (x, z)
+    return centres
+
+
+def hub_facing_yaws(spec, centre, fixed=None):
+    """Quarter turns whose gate side faces the hub (the local origin), with the side's world normal."""
+    nx, nz = SIDE_NORMALS[gate_side(spec["gate"], spec["size"] / 2)]
+    out = []
+    for yaw in ((fixed,) if fixed is not None else (0.0, 90.0, 180.0, 270.0)):
+        wx, wz = rotate_yaw(nx, nz, yaw)
+        if -(wx * centre[0] + wz * centre[1]) > 1e-9:
+            out.append((yaw, (wx, wz)))
+    return out
+
+
+def corridor_junction(slot, squares, by_slot):
+    """The corner where a diagonal square's two corridors meet, hub frame."""
+    sx = -1 if "W" in slot else 1
+    sz = -1 if "N" in slot else 1
+    ns = squares[by_slot["N" if sz < 0 else "S"]]
+    we = squares[by_slot["W" if sx < 0 else "E"]]
+    x = ns[0] - PLACEMENT_GAP / 2 if sx < 0 else ns[1] + PLACEMENT_GAP / 2
+    z = we[2] - PLACEMENT_GAP / 2 if sz < 0 else we[3] + PLACEMENT_GAP / 2
+    return (x, z)
+
+
+def _split_at(nodes, points):
+    """Insert every point that lies inside a leg of the polyline (collinear, strictly between the ends)."""
+    out = [nodes[0]]
+    for a, b in zip(nodes, nodes[1:]):
+        L = math.dist(a, b)
+        inner = []
+        for p in points:
+            cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+            t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / (L * L) if L else 0.0
+            if abs(cross) < 1e-6 * max(L, 1.0) and 1e-6 < t < 1 - 1e-6:
+                inner.append((t, p))
+        out.extend(p for _, p in sorted(inner))
+        out.append(b)
+    return _dedupe(out)
+
+
+def _dedupe(nodes):
+    out = []
+    for p in nodes:
+        if not out or math.dist(out[-1], p) > 1e-6:
+            out.append(p)
+    return out
+
+
+def generate_placement(hub=None):
+    """World placement of every biome and one road per biome for a hub (x, z, radius); default: the rules."""
+    hx, hz, radius = hub if hub is not None else read_rules_hub()
+    hx, hz, radius = float(hx), float(hz), float(radius)
+    inputs = biome_inputs()
+    centres = place_squares(inputs, radius)
+    by_slot = {v["slot"]: k for k, v in inputs.items()}
+    squares = {k: _square(c, inputs[k]["size"] / 2) for k, c in centres.items()}
+    w_sq, e_sq = squares[by_slot["W"]], squares[by_slot["E"]]
+    lane = (w_sq[1] + PLACEMENT_GAP / 2, e_sq[0] - PLACEMENT_GAP / 2)   # x range between the west and east squares
+
+    def road_for(slot, spec, centre, yaw, normal):
+        half = spec["size"] / 2
+        gx, gz = rotate_yaw(spec["gate"][0], spec["gate"][1], yaw)
+        gate = (centre[0] + gx, centre[1] + gz)
+        depth = half - (gx * normal[0] + gz * normal[1])
+        edge = (gate[0] + normal[0] * depth, gate[1] + normal[1] * depth)
+        outside = (edge[0] + normal[0] * PLACEMENT_GAP / 2, edge[1] + normal[1] * PLACEMENT_GAP / 2)
+        if len(slot) == 2:          # leave between the west and east squares, then turn at the corridor junction
+            junction = corridor_junction(slot, squares, by_slot)
+            turn = (min(max(junction[0], lane[0]), lane[1]), junction[1])
+            # Share a north or south road's corridor node when it is this close: one junction, not two parallel roads.
+            near = [node for node in shared
+                    if abs(node[1] - turn[1]) < 1e-6 and abs(node[0] - turn[0]) < 2 * ROAD_WIDTH]
+            if near:
+                turn = min(near, key=lambda node: abs(node[0] - turn[0]))
+            via = [turn, junction]
+        elif slot in ("N", "S"):     # leave the hub between the west and east squares, then follow the corridor
+            via = [(min(max(outside[0], lane[0]), lane[1]), outside[1])]
+        else:
+            via = []
+        first = via[0] if via else outside
+        d = math.hypot(*first)
+        start = (radius * first[0] / d, radius * first[1] / d)
+        nodes = _dedupe([start] + via + [outside, gate])
+        if len(slot) == 2:        # split a leg wherever a north or south road's node lies on it
+            nodes = _split_at(nodes, shared)
+        return gate, nodes, sum(math.dist(a, b) for a, b in zip(nodes, nodes[1:]))
+
+    biomes, roads, shared = {}, {}, []
+    for key, slot, *_ in BIOME_SLOTS:
+        spec, centre = inputs[key], centres[key]
+        half = spec["size"] / 2
+        options = []
+        for yaw, normal in hub_facing_yaws(spec, centre, fixed=0.0 if slot in ("W", "E") else None):
+            gate, local_nodes, length = road_for(slot, spec, centre, yaw, normal)
+            options.append((round(length, 6), yaw, normal, gate, local_nodes))
+        if not options:
+            raise ValueError("no quarter turn makes the %s gate face the hub" % key)
+        _, yaw, normal, gate, local_nodes = min(options, key=lambda o: (o[0], o[1]))
+        if slot in ("N", "S"):
+            shared.extend(local_nodes[1:-1])
+        world_nodes = [[r3(hx + p[0]), r3(hz + p[1])] for p in local_nodes]
+        biomes[key] = {
+            "display_name": spec["display"], "slot": slot, "layout": spec["layout"], "map_size": spec["size"],
+            "root_name": spec["root"], "builder": spec["builder"],
+            "local_centre": [r3(centre[0]), r3(centre[1])],
+            "world_centre": [r3(hx + centre[0]), r3(hz + centre[1])],
+            "yaw_deg": yaw,
+            "bounds_world": {"x": [r3(hx + squares[key][0]), r3(hx + squares[key][1])],
+                             "z": [r3(hz + squares[key][2]), r3(hz + squares[key][3])]},
+            "gate_local": [spec["gate"][0], spec["gate"][1]],
+            "gate_side_local": gate_side(spec["gate"], half),
+            "gate_normal": [normal[0], normal[1]],
+            "gate_world": [r3(hx + gate[0]), r3(hz + gate[1])],
+        }
+        roads[key] = {"from": "hub rim", "to": key + " entry gate", "nodes_world": world_nodes, "width": ROAD_WIDTH,
+                      "length": r3(sum(math.dist(a, b) for a, b in zip(world_nodes, world_nodes[1:])))}
+    return {
+        "name": PLACEMENT_NAME,
+        "status": "design, unvalidated: never built in Studio, played or measured on a device",
+        "generator": "tools/plan_open_world_layout.py",
+        "conventions": {
+            "units": "studs; world x east, z south; y up, biome floors top at 0.5",
+            "hub_frame": "local_centre is relative to the hub centre; world = hub centre + local",
+            "biome_frame": "root:PivotTo(CFrame.new(world_centre.x, 0, world_centre.z) * CFrame.Angles(0, math.rad(yaw_deg), 0)); "
+                           "a layout point (x, z) lands at world_centre + (x cos r + z sin r, -x sin r + z cos r)",
+            "squares": "axis-aligned, yaw a quarter turn; bounds_world is the rotated square",
+        },
+        "hub": {"centre": [hx, hz], "radius": radius,
+                "source": "src/wildbound/WildboundWorldRules.luau (Rules.HUB_X, HUB_Z, HUB_RADIUS)"},
+        "params": {"transition": PLACEMENT_TRANSITION, "gap": PLACEMENT_GAP, "road_width": ROAD_WIDTH},
+        "biomes": biomes,
+        "roads": roads,
+        "notes": [
+            "West and east keep the transition from the hub rim; north and south clear the west and east squares by the "
+            "gap; each diagonal clears its two neighbours by the gap. The diagonal assignment is a proposal.",
+            "The forest entry is the threshold road's crossing of the forest's east edge, local (200, 20). The forest is "
+            "built and moved by its own builder and the Studio writer's shift (step S1), not by this placement.",
+            "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road "
+            "is not part of this placement.",
+        ],
+    }
+
+
+def placement_json(placement):
+    return json.dumps(placement, indent=2, ensure_ascii=False) + "\n"
+
+
+def write_placement(placement, out_dir):
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / (PLACEMENT_NAME + ".json")
+    path.write_bytes(placement_json(placement).encode("utf-8"))
+    return path
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED)
     parser.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
+    parser.add_argument("--placement-only", action="store_true",
+                        help="write only biome-placement-v1.json (the biome squares and roads around the hub)")
+    parser.add_argument("--hub", type=float, nargs=3, metavar=("X", "Z", "RADIUS"),
+                        help="hub centre and radius for the placement (default: Rules.HUB_X, HUB_Z, HUB_RADIUS)")
     args = parser.parse_args(argv)
+    placement = generate_placement(tuple(args.hub) if args.hub else None)
+    print("wrote", write_placement(placement, args.out_dir))
+    for key, biome in placement["biomes"].items():
+        print("  %-16s %-2s centre %s yaw %3.0f gate %s road %.0f" % (key, biome["slot"], biome["world_centre"],
+              biome["yaw_deg"], biome["gate_world"], placement["roads"][key]["length"]))
+    if args.placement_only:
+        return 0
     layout = generate(args.seed)
     for path in write_outputs(layout, args.out_dir):
         print("wrote", path)

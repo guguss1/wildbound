@@ -1,0 +1,553 @@
+{
+  "name": "biome-placement-v1",
+  "status": "design, unvalidated: never built in Studio, played or measured on a device",
+  "generator": "tools/plan_open_world_layout.py",
+  "conventions": {
+    "units": "studs; world x east, z south; y up, biome floors top at 0.5",
+    "hub_frame": "local_centre is relative to the hub centre; world = hub centre + local",
+    "biome_frame": "root:PivotTo(CFrame.new(world_centre.x, 0, world_centre.z) * CFrame.Angles(0, math.rad(yaw_deg), 0)); a layout point (x, z) lands at world_centre + (x cos r + z sin r, -x sin r + z cos r)",
+    "squares": "axis-aligned, yaw a quarter turn; bounds_world is the rotated square"
+  },
+  "hub": {
+    "centre": [
+      0.0,
+      600.0
+    ],
+    "radius": 90.0,
+    "source": "src/wildbound/WildboundWorldRules.luau (Rules.HUB_X, HUB_Z, HUB_RADIUS)"
+  },
+  "params": {
+    "transition": 40.0,
+    "gap": 40.0,
+    "road_width": 14.0
+  },
+  "biomes": {
+    "forest": {
+      "display_name": "Bosque de la Silueta",
+      "slot": "W",
+      "layout": "assets/maps/forest-layout/forest-layout-v1.json",
+      "map_size": 400.0,
+      "root_name": "WildboundP0",
+      "builder": "tools/build-wildbound-p0-map.luau",
+      "local_centre": [
+        -330.0,
+        0.0
+      ],
+      "world_centre": [
+        -330.0,
+        600.0
+      ],
+      "yaw_deg": 0.0,
+      "bounds_world": {
+        "x": [
+          -530.0,
+          -130.0
+        ],
+        "z": [
+          400.0,
+          800.0
+        ]
+      },
+      "gate_local": [
+        200.0,
+        20.0
+      ],
+      "gate_side_local": "E",
+      "gate_normal": [
+        1.0,
+        0.0
+      ],
+      "gate_world": [
+        -130.0,
+        620.0
+      ]
+    },
+    "pradera": {
+      "display_name": "Pradera Arcoíris",
+      "slot": "E",
+      "layout": "assets/maps/pradera-layout/pradera-layout-v1.json",
+      "map_size": 400.0,
+      "root_name": "WildboundPradera",
+      "builder": "tools/build-wildbound-pradera-map.luau",
+      "local_centre": [
+        330.0,
+        0.0
+      ],
+      "world_centre": [
+        330.0,
+        600.0
+      ],
+      "yaw_deg": 0.0,
+      "bounds_world": {
+        "x": [
+          130.0,
+          530.0
+        ],
+        "z": [
+          400.0,
+          800.0
+        ]
+      },
+      "gate_local": [
+        -195.0,
+        0.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        -1.0,
+        0.0
+      ],
+      "gate_world": [
+        135.0,
+        600.0
+      ]
+    },
+    "living-forest": {
+      "display_name": "Pantano",
+      "slot": "N",
+      "layout": "assets/maps/living-forest-layout/living-forest-layout-v1.json",
+      "map_size": 400.0,
+      "root_name": "WildboundLivingForest",
+      "builder": "tools/build-wildbound-living-forest-map.luau",
+      "local_centre": [
+        0.0,
+        -440.0
+      ],
+      "world_centre": [
+        0.0,
+        160.0
+      ],
+      "yaw_deg": 90.0,
+      "bounds_world": {
+        "x": [
+          -200.0,
+          200.0
+        ],
+        "z": [
+          -40.0,
+          360.0
+        ]
+      },
+      "gate_local": [
+        -185.0,
+        70.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        0.0,
+        1.0
+      ],
+      "gate_world": [
+        70.0,
+        345.0
+      ]
+    },
+    "cryptic-ruins": {
+      "display_name": "Cementerio",
+      "slot": "S",
+      "layout": "assets/maps/cryptic-ruins-layout/cryptic-ruins-layout-v1.json",
+      "map_size": 300.0,
+      "root_name": "WildboundCrypticRuins",
+      "builder": "tools/build-wildbound-cryptic-ruins-map.luau",
+      "local_centre": [
+        0.0,
+        390.0
+      ],
+      "world_centre": [
+        0.0,
+        990.0
+      ],
+      "yaw_deg": 180.0,
+      "bounds_world": {
+        "x": [
+          -150.0,
+          150.0
+        ],
+        "z": [
+          840.0,
+          1140.0
+        ]
+      },
+      "gate_local": [
+        -120.0,
+        140.0
+      ],
+      "gate_side_local": "S",
+      "gate_normal": [
+        0.0,
+        -1.0
+      ],
+      "gate_world": [
+        120.0,
+        850.0
+      ]
+    },
+    "demon-abyss": {
+      "display_name": "Abismo",
+      "slot": "NW",
+      "layout": "assets/maps/demon-abyss-layout/demon-abyss-layout-v1.json",
+      "map_size": 300.0,
+      "root_name": "WildboundDemonAbyss",
+      "builder": "tools/build-wildbound-demon-abyss-map.luau",
+      "local_centre": [
+        -390.0,
+        -390.0
+      ],
+      "world_centre": [
+        -390.0,
+        210.0
+      ],
+      "yaw_deg": 90.0,
+      "bounds_world": {
+        "x": [
+          -540.0,
+          -240.0
+        ],
+        "z": [
+          60.0,
+          360.0
+        ]
+      },
+      "gate_local": [
+        -140.0,
+        125.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        0.0,
+        1.0
+      ],
+      "gate_world": [
+        -265.0,
+        350.0
+      ]
+    },
+    "frozen-mountains": {
+      "display_name": "Montañas Heladas",
+      "slot": "NE",
+      "layout": "assets/maps/frozen-mountains-layout/frozen-mountains-layout-v1.json",
+      "map_size": 500.0,
+      "root_name": "WildboundFrozenMountains",
+      "builder": "tools/build-wildbound-frozen-mountains-map.luau",
+      "local_centre": [
+        490.0,
+        -490.0
+      ],
+      "world_centre": [
+        490.0,
+        110.0
+      ],
+      "yaw_deg": 0.0,
+      "bounds_world": {
+        "x": [
+          240.0,
+          740.0
+        ],
+        "z": [
+          -140.0,
+          360.0
+        ]
+      },
+      "gate_local": [
+        -225.0,
+        190.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        -1.0,
+        0.0
+      ],
+      "gate_world": [
+        265.0,
+        300.0
+      ]
+    },
+    "volcanic-lands": {
+      "display_name": "Tierras Volcánicas",
+      "slot": "SW",
+      "layout": "assets/maps/volcanic-lands-layout/volcanic-lands-layout-v1.json",
+      "map_size": 400.0,
+      "root_name": "WildboundVolcanicLands",
+      "builder": "tools/build-wildbound-volcanic-lands-map.luau",
+      "local_centre": [
+        -390.0,
+        440.0
+      ],
+      "world_centre": [
+        -390.0,
+        1040.0
+      ],
+      "yaw_deg": 180.0,
+      "bounds_world": {
+        "x": [
+          -590.0,
+          -190.0
+        ],
+        "z": [
+          840.0,
+          1240.0
+        ]
+      },
+      "gate_local": [
+        -190.0,
+        130.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        1.0,
+        0.0
+      ],
+      "gate_world": [
+        -200.0,
+        910.0
+      ]
+    },
+    "rock-caves": {
+      "display_name": "Cuevas de Roca",
+      "slot": "SE",
+      "layout": "assets/maps/rock-caves-layout/rock-caves-layout-v1.json",
+      "map_size": 300.0,
+      "root_name": "WildboundRockCaves",
+      "builder": "tools/build-wildbound-rock-caves-map.luau",
+      "local_centre": [
+        340.0,
+        390.0
+      ],
+      "world_centre": [
+        340.0,
+        990.0
+      ],
+      "yaw_deg": 270.0,
+      "bounds_world": {
+        "x": [
+          190.0,
+          490.0
+        ],
+        "z": [
+          840.0,
+          1140.0
+        ]
+      },
+      "gate_local": [
+        -140.0,
+        100.0
+      ],
+      "gate_side_local": "W",
+      "gate_normal": [
+        0.0,
+        -1.0
+      ],
+      "gate_world": [
+        240.0,
+        850.0
+      ]
+    }
+  },
+  "roads": {
+    "forest": {
+      "from": "hub rim",
+      "to": "forest entry gate",
+      "nodes_world": [
+        [
+          -88.548,
+          616.1
+        ],
+        [
+          -110.0,
+          620.0
+        ],
+        [
+          -130.0,
+          620.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 41.804
+    },
+    "pradera": {
+      "from": "hub rim",
+      "to": "pradera entry gate",
+      "nodes_world": [
+        [
+          90.0,
+          600.0
+        ],
+        [
+          110.0,
+          600.0
+        ],
+        [
+          135.0,
+          600.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 45.0
+    },
+    "living-forest": {
+      "from": "hub rim",
+      "to": "living-forest entry gate",
+      "nodes_world": [
+        [
+          27.288,
+          514.237
+        ],
+        [
+          70.0,
+          380.0
+        ],
+        [
+          70.0,
+          345.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 175.868
+    },
+    "cryptic-ruins": {
+      "from": "hub rim",
+      "to": "cryptic-ruins entry gate",
+      "nodes_world": [
+        [
+          40.249,
+          680.498
+        ],
+        [
+          110.0,
+          820.0
+        ],
+        [
+          120.0,
+          820.0
+        ],
+        [
+          120.0,
+          850.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 195.968
+    },
+    "demon-abyss": {
+      "from": "hub rim",
+      "to": "demon-abyss entry gate",
+      "nodes_world": [
+        [
+          -40.249,
+          519.502
+        ],
+        [
+          -110.0,
+          380.0
+        ],
+        [
+          -220.0,
+          380.0
+        ],
+        [
+          -265.0,
+          380.0
+        ],
+        [
+          -265.0,
+          350.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 340.968
+    },
+    "frozen-mountains": {
+      "from": "hub rim",
+      "to": "frozen-mountains entry gate",
+      "nodes_world": [
+        [
+          40.249,
+          519.502
+        ],
+        [
+          110.0,
+          380.0
+        ],
+        [
+          220.0,
+          380.0
+        ],
+        [
+          220.0,
+          300.0
+        ],
+        [
+          265.0,
+          300.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 390.968
+    },
+    "volcanic-lands": {
+      "from": "hub rim",
+      "to": "volcanic-lands entry gate",
+      "nodes_world": [
+        [
+          -40.249,
+          680.498
+        ],
+        [
+          -110.0,
+          820.0
+        ],
+        [
+          -170.0,
+          820.0
+        ],
+        [
+          -170.0,
+          910.0
+        ],
+        [
+          -200.0,
+          910.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 335.968
+    },
+    "rock-caves": {
+      "from": "hub rim",
+      "to": "rock-caves entry gate",
+      "nodes_world": [
+        [
+          40.249,
+          680.498
+        ],
+        [
+          110.0,
+          820.0
+        ],
+        [
+          120.0,
+          820.0
+        ],
+        [
+          170.0,
+          820.0
+        ],
+        [
+          240.0,
+          820.0
+        ],
+        [
+          240.0,
+          850.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 315.968
+    }
+  },
+  "notes": [
+    "West and east keep the transition from the hub rim; north and south clear the west and east squares by the gap; each diagonal clears its two neighbours by the gap. The diagonal assignment is a proposal.",
+    "The forest entry is the threshold road's crossing of the forest's east edge, local (200, 20). The forest is built and moved by its own builder and the Studio writer's shift (step S1), not by this placement.",
+    "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road is not part of this placement."
+  ]
+}
