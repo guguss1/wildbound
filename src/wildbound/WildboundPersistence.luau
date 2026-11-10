@@ -256,8 +256,13 @@ end
 function Persistence:tick(provider)
 	local now = self.clock()
 	local saved = {}
-	for key, entry in pairs(self.entries) do
-		if entry.session and not entry.revoked and now >= entry.nextAutosave
+	-- HB-T7 (verifier finding): a save yields on the store, and a join or a leave meanwhile changes self.entries. Like
+	-- closeAll, take the keys first, then read each entry afresh and skip one that is gone.
+	local keys = {}
+	for key in pairs(self.entries) do table.insert(keys, key) end
+	for _, key in ipairs(keys) do
+		local entry = self.entries[key]
+		if entry and entry.session and not entry.revoked and now >= entry.nextAutosave
 			and not entry.busy and entry.saveStatus ~= "Unknown" then
 			entry.nextAutosave += Persistence.AUTOSAVE
 			if entry.nextAutosave <= now then entry.nextAutosave = now + Persistence.AUTOSAVE end

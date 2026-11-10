@@ -358,6 +358,43 @@ return function(Persistence, Record, Fake, Economy, Config, sources)
 		assert(Persistence.AUTOSAVE < Persistence.LOCK_EXPIRY, "autosave more often than the expiry")
 	end)
 
+	-- Nest Heist hub (HB-T7, verifier finding): a save yields on the store, and a join or a leave meanwhile changed the
+	-- entry table under tick's pairs. Like closeAll, tick now takes its keys first and skips an entry gone meanwhile.
+	case("PS-30: tick snapshots its keys before saving; entries added or removed during a save are safe", function()
+		local store, clock, server = setup()
+		local a = server("A")
+		local keys, profiles = { KEY, "Player_2", "Player_3" }, {}
+		for _, key in ipairs(keys) do
+			local _, profile = a:load(key, 0)
+			profiles[key] = profile
+			a:markDirty(key)
+		end
+		clock.t += Persistence.AUTOSAVE
+		local calls, mutated = {}, false
+		local ok, err = pcall(function()
+			a:tick(function(key)
+				table.insert(calls, key)
+				if not mutated then
+					mutated = true
+					-- Two leaves and forty joins while this first save is in flight; the new entries are due and dirty.
+					for _, other in ipairs(keys) do
+						if other ~= key then a.entries[other] = nil end
+					end
+					for index = 1, 40 do a.entries["Late_" .. index] = table.clone(a.entries[key]) end
+				end
+				return profiles[key] or profiles[KEY], {}
+			end)
+		end)
+		assert(ok, "tick raised: " .. tostring(err))
+		equal(#calls, 1, "only an entry that existed when tick began, and still exists, was saved: "
+			.. table.concat(calls, ","))
+		local body = sources.persistence:match("function Persistence:tick%(provider%)(.-)\nend\n")
+		assert(body, "tick's body")
+		local listed = body:find("table.insert(keys, key)", 1, true)
+		local first = body:find("save(", 1, true)
+		assert(listed and first and listed < first, "the keys are listed before the first save")
+	end)
+
 	-- NS2 (user rule): a carried egg is never saved, not even at a leave. Deliberately changed pins in PS-18 and PS-19.
 	case("PS-18: leaving writes a final record and releases the lock; a bag egg is not saved", function()
 		local store, clock, server = setup()
