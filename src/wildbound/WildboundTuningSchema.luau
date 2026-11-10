@@ -235,7 +235,8 @@ Schema.SYSTEMS = table.freeze({
 		-- NH5: drop and pickup.
 		value("PICKUP_DELAY", "Huevo caído: se puede recoger tras (s)", "EggCarry", "PICKUP_DELAY", 0.4, 0, 2, 0.05),
 		value("PICKUP_HOLD", "Recoger un huevo: mantener (s)", "EggCarry", "PICKUP_HOLD", 0.4, 0.3, 0.5, 0.05),
-		value("PICKUP_RANGE", "Recoger un huevo: alcance (studs)", "EggCarry", "PICKUP_RANGE", 10, 4, 20, 1),
+		-- At most 10 (NP1): State:takeEgg refuses a pickup beyond 10 studs.
+		value("PICKUP_RANGE", "Recoger un huevo: alcance (studs)", "EggCarry", "PICKUP_RANGE", 10, 4, 10, 1),
 		value("DROP_SECONDS", "Huevo abandonado: desaparece tras (s)", "EggCarry", "DROP_SECONDS", 30, 5, 300, 5),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.

@@ -2,7 +2,7 @@
 -- WildboundServer.Source, worldClient = WildboundWorldClient.Source, text = require(freshTextClone),
 -- state = require(freshStateClone), economy = require(freshEconomyClone), config = require(freshConfigClone),
 -- keys = require(freshKeysClone), stamina = require(freshStaminaClone), island = require(freshIslandClone),
--- audio = WildboundAudioClient.Source }).
+-- audio = WildboundAudioClient.Source, schema = require(freshSchemaClone) }).
 -- Nest Heist, phase 1 (docs/design/wildbound-combined-plan.md, tasks NH1 to NH8 in the feature document): the pure
 -- egg-carry rules and the source contracts for how the inventory server wires them.
 return function(EggCarry, source, sources)
@@ -425,6 +425,29 @@ return function(EggCarry, source, sources)
 		has(respawn, "if island and island.chase then", "a nest never changes during its parents' chase")
 		has(server, "SpawnClock.step(spawnClock, now, rng, spawnHeld(now))", "the lifetime move respects it")
 		has(server, "SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now))", "the wave reroll respects it")
+	end)
+
+	-- Nest Heist phase 2 (NP1, a Phase 1 verifier finding): State:takeEgg refuses beyond 10 studs, so the tunable reach
+	-- may never promise more. The schema's ceiling is 10 and the rule clamps an override to it.
+	case("NP1: the pickup reach never exceeds the state's 10-stud limit", function()
+		equal(EggCarry.PICKUP_RANGE_MAX, 10, "the rule's ceiling")
+		EggCarry.tune({ PICKUP_RANGE = 20 })
+		equal(EggCarry.live.PICKUP_RANGE, 10, "an override is clamped")
+		EggCarry.tune({ PICKUP_RANGE = 6 })
+		equal(EggCarry.live.PICKUP_RANGE, 6, "a shorter reach applies")
+		EggCarry.tune(nil)
+		equal(EggCarry.live.PICKUP_RANGE, 10)
+		local Schema = sources.schema
+		assert(type(Schema) == "table", "the tuning schema")
+		equal(Schema.find("Eggs", "PICKUP_RANGE").max, EggCarry.PICKUP_RANGE_MAX, "the panel never offers more")
+		local State, Economy, Config = sources.state, sources.economy, sources.config
+		local s = State.new(Economy, Config)
+		s:addPlayer(1); s:addPlayer(2)
+		assert(s:registerEncounter("Egg:1", "Egg"))
+		assert(s:pickup(1, "Egg:1", true, 0, { species = "Lumipol", tier = "Fog", arms = true }))
+		local _, entry = s:dropEgg(1)
+		equal(select(2, s:takeEgg(2, entry, true, 10.5)), "InvalidContext", "beyond the ceiling")
+		assert(s:takeEgg(2, entry, true, EggCarry.PICKUP_RANGE_MAX), "at the ceiling")
 	end)
 
 	case("NH5: a Studio-only probe drives the real steal, drop and pickup paths for the Play check", function()

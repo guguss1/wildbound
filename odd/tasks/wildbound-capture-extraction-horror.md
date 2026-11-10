@@ -849,3 +849,14 @@ Writer decisions, for user review:
 Open product questions: give rare eggs a capture ring (NH-W1)? the swing's wind-up under the 0.8 s fair-strike lead (NH-W2)? Z for the Burst (NH-W4)?
 
 End state: commits `30b2655` (NH1), `3cfe804` (NH2), `0f59c5b` (NH3), `c5d1f32` (NH4), `78881a2` (NH5), `6f39868` (NH6), `54c5a4e` (NH7), `b7eada2` (NH8) and this document's commit. Studio left in Edit; the temporary runner, hash and patch helpers removed; the place is not saved by this session (every change is committed, so the place can be rebuilt from git). The place's Edit-mode `WildboundTuning` folder has no `Eggs` system yet (the bridge adds it at Play start). Next step: the user saves the place, reviews NH-W1 to NH-W13, and tries a steal, a drop, a pickup race and the Impulso button with two players and on a phone.
+
+## Nest Heist Phase 2 (2026-11-10, combined plan Phase 2 "Multiplayer chaos")
+
+Source: the user's master prompt for Phase 2 (bat for everyone, stumble, drop, pickup race, carrier change and parent re-targeting, safe-zone protection, anti-chain immunity) and two Phase 1 verifier findings. Route: delegated, one Studio and repo writer (Opus), no nested delegation, background only. Instance `cd4f53c7-...`, PlaceId 122652861404212, Edit; 130 of 130 mapped Wildbound sources matched HEAD (`f1a9fcc`) by Adler-32 and length before the first edit. Mode: strict TDD (global); runners: a temporary Studio fresh-clone runner (`ServerStorage.WildboundFreshRunnerTmp`, removed at the end) and `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 61 Studio suites through the runner, 1249 passed, 0 failed (the two `ServerStorage.WildboundTests` contract copies are not run by this runner); Python 1027 run, the 1 known failure, 28 skipped; economy greedy median 183 s. Constraint carried from Phase 1 (NH-W13): no new top-level locals in `WildboundServer.server.luau`.
+
+- [x] NP1 Pickup range. `State:takeEgg` refused beyond 10 studs while the `Eggs.PICKUP_RANGE` schema allowed 4 to 20, so a tuned 15 would show a prompt that always failed. Chosen: the state's 10 stays the authoritative ceiling (a longer reach makes snatching a dropped egg from afar easier, against the pickup race): the schema range is now 4 to 10 and `EggCarry.tune` clamps `PICKUP_RANGE` to `EggCarry.PICKUP_RANGE_MAX` 10. TDD: EggCarry 28/1 (the rule had no ceiling), GREEN 29/0; Tuning 14/0, TuningWiring 8/0. Route: inline.
+- [ ] NP2 Deploy manifest: map `WildboundEggCarry` and its test.
+- [ ] NP3 Bat rule (`WildboundBat`, pure, server only) and the `PvP` tuning system.
+- [ ] NP4 Server wiring: the bat in every hand, the swing over the existing Stance remote, the server hitbox (reach, angle, height, line of sight), stumble, drop, immunity, safe zones.
+- [ ] NP5 Client: click, tap ("Bate") and gamepad input, the swing animation, the hit and swing sounds.
+- [ ] NP6 Play check and close.

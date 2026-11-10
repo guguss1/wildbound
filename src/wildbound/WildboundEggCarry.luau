@@ -20,6 +20,8 @@ EggCarry.CONSTANTS = table.freeze({
 })
 EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.6, 1
 EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.3, 0.5
+-- Nest Heist phase 2 (NP1): State:takeEgg refuses a pickup beyond 10 studs, so the tunable reach never exceeds it.
+EggCarry.PICKUP_RANGE_MAX = 10
 -- Why an egg leaves the arms. Inside a safe zone (camp, a Refugio) only a death or leaving the server drops it.
 EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true })
 local SAFE_DROPS = table.freeze({ Death = true, Leave = true })
@@ -49,6 +51,7 @@ function EggCarry.tune(overrides)
 	C.RARE_HOLD = math.max(C.RARE_HOLD, C.STEAL_HOLD)
 	C.PICKUP_HOLD = math.clamp(C.PICKUP_HOLD, EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX)
 	C.PICKUP_DELAY = math.max(C.PICKUP_DELAY, 0)
+	C.PICKUP_RANGE = math.clamp(C.PICKUP_RANGE, 1, EggCarry.PICKUP_RANGE_MAX)
 end
 EggCarry.tune(nil)
 
