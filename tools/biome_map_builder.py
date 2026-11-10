@@ -5,7 +5,7 @@
 
 For each layout in assets/maps/<biome>-layout/ that has no builder yet (cryptic ruins, demon abyss, frozen
 mountains, living forest, rock caves, volcanic lands) this writes tools/build-wildbound-<biome>-map.luau, and it
-writes tools/build-wildbound-open-world-roads.luau for the eight roads from the hub rim. World placement comes
+writes tools/build-wildbound-open-world-roads.luau for the placement's roads from the hub rim. World placement comes
 from assets/maps/open-world/biome-placement-v1.json (tools/plan_open_world_layout.py), so a builder drops its
 biome where the placement says, for the hub the placement was made for.
 

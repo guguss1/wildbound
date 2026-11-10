@@ -32,6 +32,12 @@ SIZES = {"forest": 400.0, "pradera": 400.0, "living-forest": 400.0, "cryptic-rui
 SLOT_DIRECTION = {"W": (-1, 0), "E": (1, 0), "N": (0, -1), "S": (0, 1),
                   "NW": (-1, -1), "NE": (1, -1), "SW": (-1, 1), "SE": (1, 1)}
 HUBS = ((0.0, 0.0, 60.0), (0.0, 600.0, 90.0), (250.0, -40.0, 150.0))
+PLACE_HUB = (282.0, -3.0, 90.0)
+# Measured in the Studio place: WildboundP0's Floor part centred at (-18, -3), 400 x 400.
+MEASURED = (-18.0, -3.0, 400.0)
+REAL_FOREST = (-218.0, 182.0, -203.0, 197.0)   # xmin, xmax, zmin, zmax
+STRIP_MARGIN = 2.0                              # beyond a road's half width
+HUB_FLOOR_MARGIN = 2.0                          # hub floor radius 92 = safe radius 90 + 2 (hub-bases v1, v2-r90)
 
 
 def rules_hub():
@@ -240,10 +246,94 @@ def trimmed(nodes, skip):
     return [(a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)] + [tuple(n) for n in nodes[1:]]
 
 
+class MeasuredForest(unittest.TestCase):
+    """The forest map WildboundP0 as measured in the Studio place: its Floor part is centred at (-18, -3), 400 x 400,
+    so the real forest square is x -218..182, z -203..197, not the placement's west slot (centre (-48, -3))."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.slot = plan.generate_placement(PLACE_HUB)
+        cls.placement = plan.generate_placement(PLACE_HUB, forest=MEASURED)
+
+    def test_the_planner_records_the_measured_forest(self):
+        self.assertEqual(tuple(plan.MEASURED_FOREST[:3]), MEASURED)
+        self.assertIn("Studio", plan.MEASURED_FOREST_SOURCE)
+        forest = self.placement["biomes"]["forest"]
+        self.assertEqual(forest["world_centre"], [-18.0, -3.0])
+        self.assertEqual(forest["bounds_world"], {"x": [-218.0, 182.0], "z": [-203.0, 197.0]})
+        self.assertEqual(forest["slot_world_centre"], [-48.0, -3.0])
+        self.assertEqual(forest["gate_world"], [182.0, 17.0], "the threshold road's crossing of the real east edge")
+        self.assertIn("Studio", forest["measured"]["source"])
+
+    def test_every_other_biome_square_stays_and_clears_the_real_forest_by_the_gap(self):
+        for key, biome in self.placement["biomes"].items():
+            if key == "forest":
+                continue
+            self.assertEqual(biome, self.slot["biomes"][key], key)
+            ra, rb = rect_of(biome), REAL_FOREST
+            gap = max(rb[0] - ra[1], ra[0] - rb[1], rb[2] - ra[3], ra[2] - rb[3])
+            self.assertGreaterEqual(gap, GAP - 1e-6, key)
+
+    def test_refuses_a_measured_forest_that_crowds_a_biome_square(self):
+        with self.assertRaises(ValueError):
+            plan.generate_placement(PLACE_HUB, forest=(-18.0, 20.0, 400.0))
+
+    def test_no_road_strip_touches_the_real_forest(self):
+        for key, road in self.placement["roads"].items():
+            nodes = road["nodes_world"]
+            for a, b in zip(nodes, nodes[1:]):
+                self.assertGreaterEqual(segment_rect_distance(a, b, REAL_FOREST), ROAD_W / 2 + STRIP_MARGIN - 1e-6,
+                                        (key, a, b))
+
+    def test_the_forest_join_is_the_hub_w_trail_so_no_open_world_road_runs_there(self):
+        self.assertNotIn("forest", self.placement["roads"])
+        self.assertIn("W gate trail", self.placement["biomes"]["forest"]["entry_road"])
+        hx, hz = PLACE_HUB[:2]
+        gate = self.placement["biomes"]["forest"]["gate_world"]
+        for name in ("hub-bases-v1.json", "hub-bases-v2-r90.json"):
+            hub = json.loads((REPO / "assets/maps/hub-layout" / name).read_text(encoding="utf-8"))
+            trail = next(e["trail"] for e in hub["entrances"] if e["id"] == "W")
+            self.assertEqual([hx + trail["to"][0], hz + trail["to"][1]], gate, name)
+            self.assertLessEqual(math.hypot(*trail["from"]), PLACE_HUB[2], name)   # it leaves from the W gate itself
+
+    def test_no_road_strip_overlaps_another_biome_square(self):
+        for key, road in self.placement["roads"].items():
+            nodes = road["nodes_world"]
+            for a, b in zip(nodes, nodes[1:]):
+                for other, biome in self.placement["biomes"].items():
+                    if other != key:
+                        self.assertGreaterEqual(segment_rect_distance(a, b, rect_of(biome)),
+                                                ROAD_W / 2 + STRIP_MARGIN - 1e-6, (key, other, a, b))
+            own = rect_of(self.placement["biomes"][key])
+            for a, b in zip(nodes[:-2], nodes[1:-1]):
+                self.assertGreaterEqual(segment_rect_distance(a, b, own), ROAD_W / 2 + STRIP_MARGIN - 1e-6, key)
+
+    def test_roads_stay_off_the_hub_floor_past_their_rim_node(self):
+        for (hx, hz, radius), placement in [(PLACE_HUB, self.placement)] + [(h, plan.generate_placement(h)) for h in HUBS]:
+            floor = radius + HUB_FLOOR_MARGIN
+            for key, road in placement["roads"].items():
+                nodes = road["nodes_world"]
+                self.assertAlmostEqual(math.hypot(nodes[0][0] - hx, nodes[0][1] - hz), radius, places=2, msg=key)
+                # The first leg runs straight out: its nearest point to the hub is its rim node.
+                self.assertAlmostEqual(point_segment_distance((hx, hz), nodes[0], nodes[1]), radius, places=2, msg=key)
+                for a, b in zip(nodes[1:], nodes[2:]):
+                    self.assertGreaterEqual(point_segment_distance((hx, hz), a, b), floor + ROAD_W / 2, (key, a, b))
+                self.assertGreaterEqual(math.hypot(nodes[1][0] - hx, nodes[1][1] - hz), floor + ROAD_W / 2, key)
+
+    def test_the_cli_defaults_to_the_measured_forest(self):
+        import contextlib
+        import io
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmp, contextlib.redirect_stdout(io.StringIO()):
+            plan.main(["--placement-only", "--hub", "282", "-3", "90", "--out-dir", tmp])
+            written = json.loads((Path(tmp) / "biome-placement-v1.json").read_text(encoding="utf-8"))
+        self.assertEqual(written, json.loads(plan.placement_json(self.placement)))
+
+
 class Committed(unittest.TestCase):
     def test_committed_json_is_fresh_for_the_rules_hub(self):
         committed = json.loads(COMMITTED.read_text(encoding="utf-8"))
-        self.assertEqual(committed, json.loads(plan.placement_json(plan.generate_placement(rules_hub()))))
+        self.assertEqual(committed, json.loads(plan.placement_json(plan.generate_placement(rules_hub(), forest=MEASURED))))
 
     def test_committed_json_records_the_hub_it_was_made_for(self):
         committed = json.loads(COMMITTED.read_text(encoding="utf-8"))

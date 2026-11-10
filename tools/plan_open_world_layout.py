@@ -1021,6 +1021,16 @@ BIOME_SLOTS = (
 )
 # The forest's east entry: where the hub's west threshold road (umbral_oeste) meets the square, local frame.
 FOREST_GATE_LOCAL = (200.0, 20.0)
+# The forest map WildboundP0 as measured in the Studio place (not where the west slot puts it): its Floor part is
+# centred at world (-18, -3) and is 400 x 400, so the real forest square is x -218..182, z -203..197 (props reach
+# x 189.3 at most). (world x, world z, size); `--forest` overrides it and `--slot-forest` ignores it.
+MEASURED_FOREST = (-18.0, -3.0, 400.0)
+MEASURED_FOREST_SOURCE = ("measured in the Studio place: WildboundP0.Floor centred at (-18, -3), size 400 x 400 "
+                          "(props reach x 189.3 at most)")
+ROAD_STRIP_MARGIN = 2.0                # a road strip (half width 7) keeps this from every square but its own entry
+# With the measured forest this close to the hub, the hub's own W gate trail (tools/plan_hub_bases.py, entrance W,
+# join hub-local (-100, 20)) already runs from the W gate to the forest's east edge: no open-world road is added.
+FOREST_ENTRY_ROAD = "hub W gate trail (hub-bases v1 and v2-r90 entrance W, from the W gate to the forest's east edge)"
 SIDE_NORMALS = {"E": (1.0, 0.0), "W": (-1.0, 0.0), "S": (0.0, 1.0), "N": (0.0, -1.0)}
 _HUB_RE = re.compile(r"Rules\.HUB_X,\s*Rules\.HUB_Z,\s*Rules\.HUB_RADIUS\s*=\s*([-+\d.eE]+),\s*([-+\d.eE]+),\s*([-+\d.eE]+)")
 
@@ -1139,8 +1149,45 @@ def _dedupe(nodes):
     return out
 
 
-def generate_placement(hub=None):
-    """World placement of every biome and one road per biome for a hub (x, z, radius); default: the rules."""
+def _rect_gap(a, b):
+    """Axis gap between two (xmin, xmax, zmin, zmax) rectangles; negative when they overlap."""
+    return max(b[0] - a[1], a[0] - b[1], b[2] - a[3], a[2] - b[3])
+
+
+def _point_rect(p, r):
+    return math.hypot(max(r[0] - p[0], 0.0, p[0] - r[1]), max(r[2] - p[1], 0.0, p[1] - r[3]))
+
+
+def _point_segment(p, a, b):
+    ax, az = b[0] - a[0], b[1] - a[1]
+    L = ax * ax + az * az
+    t = 0.0 if L == 0 else max(0.0, min(1.0, ((p[0] - a[0]) * ax + (p[1] - a[1]) * az) / L))
+    return math.hypot(p[0] - a[0] - t * ax, p[1] - a[1] - t * az)
+
+
+def _segment_rect(a, b, r):
+    """Exact distance from segment ab to an axis-aligned rectangle (0 when they meet)."""
+    def inside(p):
+        return r[0] <= p[0] <= r[1] and r[2] <= p[1] <= r[3]
+
+    def side(u, v, w):
+        return (v[0] - u[0]) * (w[1] - u[1]) - (v[1] - u[1]) * (w[0] - u[0])
+
+    if inside(a) or inside(b):
+        return 0.0
+    corners = ((r[0], r[2]), (r[1], r[2]), (r[1], r[3]), (r[0], r[3]))
+    for c, d in zip(corners, corners[1:] + corners[:1]):
+        if side(a, b, c) * side(a, b, d) < 0 and side(c, d, a) * side(c, d, b) < 0:
+            return 0.0
+    return min([_point_segment(c, a, b) for c in corners] + [_point_rect(a, r), _point_rect(b, r)])
+
+
+def generate_placement(hub=None, forest=None):
+    """World placement of every biome and one road per biome for a hub (x, z, radius); default: the rules.
+
+    `forest` is the forest square as it really stands in the place, (world x, world z, size), e.g. MEASURED_FOREST.
+    The other squares keep their slots (refused if one would come within the gap of it), the forest entry records
+    it, and the roads route around it."""
     hx, hz, radius = hub if hub is not None else read_rules_hub()
     hx, hz, radius = float(hx), float(hz), float(radius)
     inputs = biome_inputs()
@@ -1149,6 +1196,15 @@ def generate_placement(hub=None):
     squares = {k: _square(c, inputs[k]["size"] / 2) for k, c in centres.items()}
     w_sq, e_sq = squares[by_slot["W"]], squares[by_slot["E"]]
     lane = (w_sq[1] + PLACEMENT_GAP / 2, e_sq[0] - PLACEMENT_GAP / 2)   # x range between the west and east squares
+    real = None
+    if forest is not None:
+        fx, fz, fsize = (float(v) for v in forest)
+        real = _square((fx - hx, fz - hz), fsize / 2)                      # hub frame
+        for key, sq in squares.items():
+            if key != "forest" and _rect_gap(sq, real) < PLACEMENT_GAP - 1e-6:
+                raise ValueError("the measured forest comes within the %g-stud gap of the %s square" % (PLACEMENT_GAP, key))
+        # Diagonal roads may not slip between the hub and the real forest: they turn east of its strip clearance.
+        lane = (max(lane[0], real[1] + ROAD_HALF + ROAD_STRIP_MARGIN), lane[1])
 
     def road_for(slot, spec, centre, yaw, normal):
         half = spec["size"] / 2
@@ -1182,6 +1238,10 @@ def generate_placement(hub=None):
     for key, slot, *_ in BIOME_SLOTS:
         spec, centre = inputs[key], centres[key]
         half = spec["size"] / 2
+        if key == "forest" and real is not None:
+            slot_centre = centre
+            centre = ((real[0] + real[1]) / 2, (real[2] + real[3]) / 2)
+            squares[key] = real
         options = []
         for yaw, normal in hub_facing_yaws(spec, centre, fixed=0.0 if slot in ("W", "E") else None):
             gate, local_nodes, length = road_for(slot, spec, centre, yaw, normal)
@@ -1205,8 +1265,20 @@ def generate_placement(hub=None):
             "gate_normal": [normal[0], normal[1]],
             "gate_world": [r3(hx + gate[0]), r3(hz + gate[1])],
         }
+        if key == "forest" and real is not None:
+            biomes[key]["slot_world_centre"] = [r3(hx + slot_centre[0]), r3(hz + slot_centre[1])]
+            biomes[key]["measured"] = {"world_centre": biomes[key]["world_centre"], "size": real[1] - real[0],
+                                       "source": MEASURED_FOREST_SOURCE}
+            biomes[key]["entry_road"] = FOREST_ENTRY_ROAD
+            continue                  # the hub's W gate trail is the forest's road: no open-world road on top of it
         roads[key] = {"from": "hub rim", "to": key + " entry gate", "nodes_world": world_nodes, "width": ROAD_WIDTH,
                       "length": r3(sum(math.dist(a, b) for a, b in zip(world_nodes, world_nodes[1:])))}
+    if real is not None:
+        for key, road in roads.items():
+            nodes = [(p[0] - hx, p[1] - hz) for p in road["nodes_world"]]
+            for a, b in zip(nodes, nodes[1:]):
+                if _segment_rect(a, b, real) < ROAD_HALF + ROAD_STRIP_MARGIN - 1e-6:
+                    raise ValueError("the %s road comes within its strip clearance of the measured forest" % key)
     return {
         "name": PLACEMENT_NAME,
         "status": "design, unvalidated: never built in Studio, played or measured on a device",
@@ -1220,7 +1292,8 @@ def generate_placement(hub=None):
         },
         "hub": {"centre": [hx, hz], "radius": radius,
                 "source": "src/wildbound/WildboundWorldRules.luau (Rules.HUB_X, HUB_Z, HUB_RADIUS)"},
-        "params": {"transition": PLACEMENT_TRANSITION, "gap": PLACEMENT_GAP, "road_width": ROAD_WIDTH},
+        "params": {"transition": PLACEMENT_TRANSITION, "gap": PLACEMENT_GAP, "road_width": ROAD_WIDTH,
+                   **({"road_strip_margin": ROAD_STRIP_MARGIN} if real is not None else {})},
         "biomes": biomes,
         "roads": roads,
         "notes": [
@@ -1228,6 +1301,13 @@ def generate_placement(hub=None):
             "gap; each diagonal clears its two neighbours by the gap. The diagonal assignment is a proposal.",
             "The forest entry is the threshold road's crossing of the forest's east edge, local (200, 20). The forest is "
             "built and moved by its own builder and the Studio writer's shift (step S1), not by this placement.",
+        ] + ([
+            "The forest square is the one measured in Studio (%s); slot_world_centre keeps the west slot the other "
+            "squares were placed from. Every other square keeps its slot and clears the real forest by the gap. The "
+            "hub's W gate trail already joins the forest at its east edge, so there is no open-world forest road, and "
+            "the north-west and south-west roads leave the hub east of the forest's corners (strip half width plus "
+            "%g studs)." % (MEASURED_FOREST_SOURCE, ROAD_STRIP_MARGIN),
+        ] if real is not None else []) + [
             "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road "
             "is not part of this placement.",
         ],
@@ -1254,12 +1334,18 @@ def main(argv=None):
                         help="write only biome-placement-v1.json (the biome squares and roads around the hub)")
     parser.add_argument("--hub", type=float, nargs=3, metavar=("X", "Z", "RADIUS"),
                         help="hub centre and radius for the placement (default: Rules.HUB_X, HUB_Z, HUB_RADIUS)")
+    parser.add_argument("--forest", type=float, nargs=3, metavar=("X", "Z", "SIZE"), default=MEASURED_FOREST,
+                        help="the forest square as it stands in the place (default: measured in Studio, -18 -3 400)")
+    parser.add_argument("--slot-forest", action="store_true",
+                        help="ignore the measured forest: place and route as if the forest stood in its west slot")
     args = parser.parse_args(argv)
-    placement = generate_placement(tuple(args.hub) if args.hub else None)
+    placement = generate_placement(tuple(args.hub) if args.hub else None,
+                                   forest=None if args.slot_forest else tuple(args.forest))
     print("wrote", write_placement(placement, args.out_dir))
     for key, biome in placement["biomes"].items():
-        print("  %-16s %-2s centre %s yaw %3.0f gate %s road %.0f" % (key, biome["slot"], biome["world_centre"],
-              biome["yaw_deg"], biome["gate_world"], placement["roads"][key]["length"]))
+        road = placement["roads"].get(key)
+        print("  %-16s %-2s centre %s yaw %3.0f gate %s road %s" % (key, biome["slot"], biome["world_centre"],
+              biome["yaw_deg"], biome["gate_world"], "%.0f" % road["length"] if road else biome.get("entry_road")))
     if args.placement_only:
         return 0
     layout = generate(args.seed)

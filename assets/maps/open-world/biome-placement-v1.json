@@ -19,7 +19,8 @@
   "params": {
     "transition": 40.0,
     "gap": 40.0,
-    "road_width": 14.0
+    "road_width": 14.0,
+    "road_strip_margin": 2.0
   },
   "biomes": {
     "forest": {
@@ -30,18 +31,18 @@
       "root_name": "WildboundP0",
       "builder": "tools/build-wildbound-p0-map.luau",
       "local_centre": [
-        -330.0,
+        -300.0,
         0.0
       ],
       "world_centre": [
-        -48.0,
+        -18.0,
         -3.0
       ],
       "yaw_deg": 0.0,
       "bounds_world": {
         "x": [
-          -248.0,
-          152.0
+          -218.0,
+          182.0
         ],
         "z": [
           -203.0,
@@ -58,9 +59,22 @@
         0.0
       ],
       "gate_world": [
-        152.0,
+        182.0,
         17.0
-      ]
+      ],
+      "slot_world_centre": [
+        -48.0,
+        -3.0
+      ],
+      "measured": {
+        "world_centre": [
+          -18.0,
+          -3.0
+        ],
+        "size": 400.0,
+        "source": "measured in the Studio place: WildboundP0.Floor centred at (-18, -3), size 400 x 400 (props reach x 189.3 at most)"
+      },
+      "entry_road": "hub W gate trail (hub-bases v1 and v2-r90 entrance W, from the W gate to the forest's east edge)"
     },
     "pradera": {
       "display_name": "Pradera Arcoíris",
@@ -344,26 +358,6 @@
     }
   },
   "roads": {
-    "forest": {
-      "from": "hub rim",
-      "to": "forest entry gate",
-      "nodes_world": [
-        [
-          193.452,
-          13.1
-        ],
-        [
-          172.0,
-          17.0
-        ],
-        [
-          152.0,
-          17.0
-        ]
-      ],
-      "width": 14.0,
-      "length": 41.804
-    },
     "pradera": {
       "from": "hub rim",
       "to": "pradera entry gate",
@@ -433,11 +427,11 @@
       "to": "demon-abyss entry gate",
       "nodes_world": [
         [
-          241.751,
-          -83.498
+          247.599,
+          -86.166
         ],
         [
-          172.0,
+          191.0,
           -223.0
         ],
         [
@@ -454,7 +448,7 @@
         ]
       ],
       "width": 14.0,
-      "length": 340.968
+      "length": 352.078
     },
     "frozen-mountains": {
       "from": "hub rim",
@@ -489,11 +483,11 @@
       "to": "volcanic-lands entry gate",
       "nodes_world": [
         [
-          241.751,
-          77.498
+          247.599,
+          80.166
         ],
         [
-          172.0,
+          191.0,
           217.0
         ],
         [
@@ -510,7 +504,7 @@
         ]
       ],
       "width": 14.0,
-      "length": 335.968
+      "length": 347.078
     },
     "rock-caves": {
       "from": "hub rim",
@@ -548,6 +542,7 @@
   "notes": [
     "West and east keep the transition from the hub rim; north and south clear the west and east squares by the gap; each diagonal clears its two neighbours by the gap. The diagonal assignment is a proposal.",
     "The forest entry is the threshold road's crossing of the forest's east edge, local (200, 20). The forest is built and moved by its own builder and the Studio writer's shift (step S1), not by this placement.",
+    "The forest square is the one measured in Studio (measured in the Studio place: WildboundP0.Floor centred at (-18, -3), size 400 x 400 (props reach x 189.3 at most)); slot_world_centre keeps the west slot the other squares were placed from. Every other square keeps its slot and clears the real forest by the gap. The hub's W gate trail already joins the forest at its east edge, so there is no open-world forest road, and the north-west and south-west roads leave the hub east of the forest's corners (strip half width plus 2 studs).",
     "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road is not part of this placement."
   ]
 }

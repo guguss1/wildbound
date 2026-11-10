@@ -41,16 +41,18 @@ Rules: the west and east squares keep a 40-stud transition from the hub rim (at 
 
 | Biome | Name (neutral Spanish, proposal) | Slot | World centre | Yaw | Size | Entry gate (world) | Road from the rim | Root model | Builder |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| `forest` | Bosque de la Silueta | W | (-48, -3) | 0 | 400 | (152, 17) | 42 | `WildboundP0` | existing P0 builder and dress; the forest stays at its kit position, centre (-18, -3), 30 studs east of this slot (the hub moved instead, HF-T3, decision HB1's 10-stud transition) |
+| `forest` | Bosque de la Silueta | W | (-18, -3) | 0 | 400 | (182, 17) | none: the hub's W gate trail | `WildboundP0` | existing P0 builder and dress; measured square (west slot (-48, -3) kept as `slot_world_centre`) |
 | `pradera` | Pradera Arcoíris | E | (612, -3) | 0 | 400 | (417, -3) | 45 | `WildboundPradera` | existing `tools/build-wildbound-pradera-map.luau` |
 | `living-forest` | Pantano | N | (282, -443) | 90 | 400 | (352, -258) | 176 | `WildboundLivingForest` | `tools/build-wildbound-living-forest-map.luau` |
 | `cryptic-ruins` | Cementerio | S | (282, 387) | 180 | 300 | (402, 247) | 196 | `WildboundCrypticRuins` | `tools/build-wildbound-cryptic-ruins-map.luau` |
-| `demon-abyss` | Abismo | NW | (-108, -393) | 90 | 300 | (17, -253) | 341 | `WildboundDemonAbyss` | `tools/build-wildbound-demon-abyss-map.luau` |
+| `demon-abyss` | Abismo | NW | (-108, -393) | 90 | 300 | (17, -253) | 352 | `WildboundDemonAbyss` | `tools/build-wildbound-demon-abyss-map.luau` |
 | `frozen-mountains` | Montañas Heladas | NE | (772, -493) | 0 | 500 | (547, -303) | 391 | `WildboundFrozenMountains` | `tools/build-wildbound-frozen-mountains-map.luau` |
-| `volcanic-lands` | Tierras Volcánicas | SW | (-108, 437) | 180 | 400 | (82, 307) | 336 | `WildboundVolcanicLands` | `tools/build-wildbound-volcanic-lands-map.luau` |
+| `volcanic-lands` | Tierras Volcánicas | SW | (-108, 437) | 180 | 400 | (82, 307) | 347 | `WildboundVolcanicLands` | `tools/build-wildbound-volcanic-lands-map.luau` |
 | `rock-caves` | Cuevas de Roca | SE | (622, 387) | 270 | 300 | (522, 247) | 316 | `WildboundRockCaves` | `tools/build-wildbound-rock-caves-map.luau` |
 
 Roads (14 studs wide, `tools/build-wildbound-open-world-roads.luau`, root `WildboundOpenWorldRoads`) run from the hub rim through the corridors between squares to each gate. A diagonal road leaves the hub between the west and east squares and turns at the corner where its two corridors meet. Where a north or south road and a diagonal road come within a road width, they share a node (a junction). Tests check that no road enters another biome or the hub disc, and that roads meet only at shared junctions.
+
+**The real forest square (measured in Studio).** `WildboundP0`'s Floor part is centred at (-18, -3), 400 x 400, so the forest really covers x -218..182, z -203..197 (props reach x 189.3), 30 studs east of the west slot. The planner takes it as `MEASURED_FOREST` (CLI `--forest X Z SIZE`, default the measured square; `--slot-forest` ignores it). Why: the old forest road ran its last 30 studs on the forest floor (double floor), and the north-west and south-west roads passed the forest's corners (182, -203) and (182, 197) with zero clearance. Now: every other square keeps its slot (each still clears the real forest by the 40-stud gap; the planner refuses otherwise); there is no open-world forest road, because the hub's own W gate trail already runs from the W gate to the forest's east edge at (182, 17) and a second 14-stud road beside it would start at the hedge, not a gate; the north-west and south-west roads turn into their corridors at x 191 (forest edge + half width 7 + 2), so no road strip comes within 2 studs of the real forest or of any square but its own entry, and past its rim node no road strip touches the hub floor (radius 92). 7 roads, 24 slabs.
 
 A layout point (x, z) lands at `world_centre + (x cos r + z sin r, -x sin r + z cos r)`, which is what `root:PivotTo(CFrame.new(x, 0.5, z) * CFrame.Angles(0, math.rad(yaw), 0))` does; every floor top is at 0.5.
 
@@ -67,7 +69,7 @@ A layout point (x, z) lands at `world_centre + (x cos r + z sin r, -x sin r + z 
 
 Tags: root `WildboundBiome`; zones `WildboundBiomeZone` and, for hazards, `WildboundBiomeHazard`; the gate marker `WildboundBiomeGate`; roads `WildboundOpenWorldRoad`. Attributes on the root: `Biome`, `BuilderKey`, `DisplayName`, `GeneratedBy`, `Placement`, `Seed`, `PartCount`. **No game code reads these tags yet**: today the game decides zones with `Rules.zone` (the forest's fog rectangle, the camp, the shelter, the hub disc). They are hooks for the region work (gaps document, step S1 and M6). No builder adds a script, a sound, a light or a beast.
 
-Estimated part counts: cryptic ruins about 220, demon abyss about 360, volcanic lands about 440, frozen mountains about 550, living forest about 610, rock caves about 1,110 (the 26 tunnel modules carry most of it), roads 22 slabs.
+Estimated part counts: cryptic ruins about 220, demon abyss about 360, volcanic lands about 440, frozen mountains about 550, living forest about 610, rock caves about 1,110 (the 26 tunnel modules carry most of it), roads 24 slabs and 8 gate markers.
 
 ## 4. How to run (Edit mode, one script each)
 
@@ -128,6 +130,6 @@ python -I -B -m unittest discover -s tools -p "test_*.py"
 | --- | --- | --- |
 | P1 | The diagonal assignment (demon abyss NW, frozen mountains NE, volcanic lands SW, rock caves SE) | Keep: the harsher biomes stay on the forest side, the milder ones near the Pradera |
 | P2 | The Spanish names (Pantano, Cementerio, Abismo, Montañas Heladas, Tierras Volcánicas, Cuevas de Roca) | Keep for now; no trademark search was done |
-| P3 | The forest's world position: this placement puts it at (-330, 600) for radius 90. The Studio writer's shift decides the real one; if it differs, the placement's west slot should be fixed to it | Shift the forest to the placement, or tell the planner the shift |
+| P3 | The forest's world position: resolved by measurement, the forest stays at (-18, -3) and the planner routes around it (`MEASURED_FOREST`) | Re-measure and pass `--forest X Z SIZE` if the forest is ever moved |
 | P4 | Optional upload of the six kits' FBX files (the forest kit's route) for mesh art instead of the fallback | Only with explicit approval; the builders pick templates up without a code change once they sit in `ServerStorage.WildboundAssets.<Kit>` |
 | P5 | `layout-v1.json`'s ring road (z +-212, hub radius 60 frame) crosses the north and south biomes at today's hub; it is not part of this placement | Retire it in favour of the per-biome roads |
