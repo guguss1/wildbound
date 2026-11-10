@@ -1,7 +1,7 @@
 -- Invoke with require(freshTestClone)(require(freshBasesClone), freshBasesClone.Source, { hub = WildboundHub.Source,
 -- stations = WildboundHubStations.Source, server = WildboundServer.Source, client = WildboundClient.Source,
 -- rules = require(freshRulesClone), builder = require(freshHubBuilderClone), text = require(freshTextClone),
--- keys = require(freshKeysClone) }).
+-- keys = require(freshKeysClone), builderSource = freshHubBuilderClone.Source }).
 -- Nest Heist hub (the feature document's "Nest Heist hub", HB-T1 to HB-T5): where the hub is built, the walkable link
 -- from the camp, the base slots, and the per-base delivery, incubator, display, glove and training stations. Pure
 -- rules plus source contracts for the hub script, the stations module and the inventory server.
@@ -51,15 +51,47 @@ return function(Bases, source, sources)
 		assert(hub:find('workspace:FindFirstChild("WildboundHub")', 1, true) < hub:find("Builder.build(workspace, ", 1, true),
 			"the reuse check comes before the build")
 	end)
-	case("HB-T1: the builder is the generated one: 390 parts and 19 lights", function()
-		equal(Builder.EXPECTED_PARTS, 390)
-		equal(Builder.EXPECTED_LIGHTS, 19)
+	case("EV-W1: the builder is the generated v2-r90 one: 470 parts, 35 lights, the v2 features at radius 90", function()
+		equal(Builder.EXPECTED_PARTS, 470)
+		equal(Builder.EXPECTED_LIGHTS, 35)
+		assert(type(Builder.DATA_ADLER32) == "number", "the data checksum is the hub's version")
+		local counts = {}
+		for _, row in ipairs(Builder.DATA.parts) do
+			for _, tag in ipairs(row.tags or {}) do counts[tag] = (counts[tag] or 0) + 1 end
+		end
+		equal(counts.WildboundShopSpot, 4, "shop circles")
+		equal(counts.WildboundChestStation, 8, "chest zones")
+		equal(counts.WildboundShowcase, 8, "showcases")
+		equal(counts.WildboundBaseZone, 8, "bank zones")
+		has(sources.builderSource, "root:SetAttribute('Plan', 'hub-bases-v2-r90')", "the plan name")
+		has(sources.builderSource, "root:SetAttribute('SafeRadius', 90.0)", "the radius Rules.zone uses")
+		equal(Rules.HUB_RADIUS, 90, "the safe disc is unchanged")
 		local nw
 		for _, row in ipairs(Builder.DATA.parts) do
 			if row.n == "EntranceZone" and row.a and row.a.EntranceId == "NW" then nw = row end
 		end
 		assert(nw, "the NW entrance zone")
 		equal(nw.a.Bearing, 225, "the NW gate looks towards the camp")
+	end)
+	case("EV-W1: a hub built in Edit is reused when it is current and rebuilt when it is outdated", function()
+		-- The plan data's Adler-32 is the version: the builder writes it on the root (DataAdler32).
+		local function hub(adler)
+			local model = Instance.new("Model")
+			model:SetAttribute("DataAdler32", adler)
+			return model
+		end
+		local current = hub(Builder.DATA_ADLER32)
+		equal(Bases.hubCurrent(current, Builder), true, "same data")
+		equal(Bases.hubCurrent(hub(1698523508), Builder), false, "the v1 hub (data Adler-32 1698523508) is outdated")
+		equal(Bases.hubCurrent(hub(1), Builder), false, "other data")
+		equal(Bases.hubCurrent(Instance.new("Model"), Builder), false, "no version")
+		equal(Bases.hubCurrent(nil, Builder), false, "no hub")
+		equal(Bases.hubCurrent(current, nil), true, "no builder: keep what is there")
+		local code = sources.hub
+		has(code, "Bases.hubCurrent(hub, Builder)", "the script asks before reusing")
+		has(code, "hub:Destroy()", "an outdated hub is replaced")
+		assert(code:find("Bases.hubCurrent(hub, Builder)", 1, true) < code:find("Builder.build(workspace, ", 1, true),
+			"the version check comes before the build")
 	end)
 	case("HF-T3 (S1): with the hub beside the forest there is no camp link; a leftover link is removed", function()
 		local hub = sources.hub

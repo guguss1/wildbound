@@ -319,5 +319,34 @@ class WrittenFilesV2(WrittenFiles):
     REQUIRED = REQUIRED_TAGS + tuple(V2_TAGS)
 
 
+class RenderingV2R90(RenderingV2):
+    """Every v2 rendering contract on v2-r90, the expansion packed inside v1's radius-90 disc."""
+    VARIANT = "v2-r90"
+
+    def test_root_names_its_plan_and_radius_90(self):
+        self.assertIn("root:SetAttribute('Plan', 'hub-bases-v2-r90')", self.module)
+        self.assertIn("root:SetAttribute('SafeRadius', 90.0)", self.module)
+
+    def test_outputs_sit_beside_v1_and_v2_under_their_own_suffix(self):
+        self.assertEqual(kit.module_path("hub-bases-v2-r90"), TOOLS / "build-wildbound-hub-map-v2-r90.luau")
+        self.assertEqual(kit.report_path("hub-bases-v2-r90"),
+                         REPO / "assets" / "maps" / "hub-layout" / "hub-kit-report-v2-r90.json")
+        self.assertEqual(kit.module_path("hub-bases-v2"), TOOLS / "build-wildbound-hub-map-v2.luau")
+        self.assertEqual(kit.report_path("hub-bases-v2"), REPO / "assets" / "maps" / "hub-layout" / "hub-kit-report-v2.json")
+        self.assertEqual(kit.module_path("hub-bases-v1"), kit.MODULE)
+        self.assertEqual(kit.report_path("hub-bases-v1"), kit.REPORT)
+
+
+class WrittenFilesV2R90(WrittenFiles):
+    PLAN = REPO / "assets" / "maps" / "hub-layout" / "hub-bases-v2-r90.json"
+    MODULE = TOOLS / "build-wildbound-hub-map-v2-r90.luau"
+    REPORT = REPO / "assets" / "maps" / "hub-layout" / "hub-kit-report-v2-r90.json"
+    REQUIRED = REQUIRED_TAGS + tuple(V2_TAGS)
+
+    def test_files_are_written(self):
+        for path in (self.PLAN, self.MODULE, self.REPORT):
+            self.assertTrue(path.exists(), path)
+
+
 if __name__ == "__main__":
     unittest.main()

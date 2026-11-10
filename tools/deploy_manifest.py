@@ -252,8 +252,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundTraining.luau", "ReplicatedStorage.WildboundTraining"),
     ("tests/WildboundTraining_Test.luau", "ServerStorage.WildboundTraining_Test"),
     # Nest Heist hub (HB-T1 to HB-T5): the generated hub builder, the hub script, the base rule, the stations and their
-    # suite; the Explorer paths were created in Studio by this unit
-    ("tools/build-wildbound-hub-map.luau", "ServerStorage.WildboundHubBuilder"),
+    # suite; the Explorer paths were created in Studio by this unit. The builder is the v2-r90 expansion: every v2
+    # feature inside the radius-90 disc that fits the place at (282, -3) (radius 100 overlaps the forest floor)
+    ("tools/build-wildbound-hub-map-v2-r90.luau", "ServerStorage.WildboundHubBuilder"),
     ("src/wildbound/WildboundHub.server.luau", "ServerScriptService.WildboundHub"),
     ("src/wildbound/WildboundBases.luau", "ServerScriptService.WildboundBases"),
     ("src/wildbound/WildboundHubStations.luau", "ServerScriptService.WildboundHubStations"),

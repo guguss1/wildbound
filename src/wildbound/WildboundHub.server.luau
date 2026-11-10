@@ -2,7 +2,7 @@
 -- of the forest (HF-T3). The hub is built from ServerStorage.WildboundHubBuilder (generated, parts only) at the
 -- origin in WildboundWorldRules (Rules.HUB_X, Rules.HUB_Z), in workspace and never inside WildboundP0, so no marker the
 -- inventory server looks up can be shadowed. Building at start means the place file never needs saving for the hub; a
--- hub already in the place (built in Edit) is reused as it is. The forest is not moved (the hub is placed beside it,
+-- hub already in the place (built in Edit) is reused while current (EV-W1). The forest is not moved (the hub is placed beside it,
 -- Rules.HUB_X); new characters start on the hub's spawn pads (the inventory server, HB6). The stations are bound by
 -- tag in WildboundHubStations (required by the inventory server).
 local Players = game:GetService("Players")
@@ -14,22 +14,38 @@ local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Bases = require(script.Parent:WaitForChild("WildboundBases"))
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
 
+-- EV-W1: the hub can be built in Edit (the same builder, so the map is visible and editable) and saved with the
+-- place; it is reused while it is the builder's current plan (Bases.hubCurrent) and rebuilt once when it is missing
+-- or outdated, never duplicated.
 local hub = workspace:FindFirstChild("WildboundHub")
-if not hub then
+do
 	local builderModule = ServerStorage:FindFirstChild("WildboundHubBuilder")
-	if not (builderModule and builderModule:IsA("ModuleScript")) then
-		warn("Wildbound hub: ServerStorage.WildboundHubBuilder is missing; no hub this session.")
-		return
+	local loaded, Builder = false, nil
+	if builderModule and builderModule:IsA("ModuleScript") then
+		loaded, Builder = pcall(require, builderModule)
+		if not loaded then
+			warn("Wildbound hub: the builder failed to load: " .. tostring(Builder))
+			Builder = nil
+		end
 	end
-	local ok, result = pcall(function()
-		local Builder = require(builderModule)
-		return Builder.build(workspace, CFrame.new(Rules.HUB_X, 0, Rules.HUB_Z))
-	end)
-	if not ok then
-		warn("Wildbound hub: the build failed: " .. tostring(result))
-		return
+	if hub and not Bases.hubCurrent(hub, Builder) then
+		hub:Destroy()
+		hub = nil
 	end
-	hub = result
+	if not hub then
+		if not Builder then
+			warn("Wildbound hub: ServerStorage.WildboundHubBuilder is missing; no hub this session.")
+			return
+		end
+		local ok, result = pcall(function()
+			return Builder.build(workspace, CFrame.new(Rules.HUB_X, 0, Rules.HUB_Z))
+		end)
+		if not ok then
+			warn("Wildbound hub: the build failed: " .. tostring(result))
+			return
+		end
+		hub = result
+	end
 end
 
 -- HF-T3 (S1): the hub stands beside the forest, so the temporary camp link of HB-T1 is gone; one saved in the place is

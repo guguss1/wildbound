@@ -12,6 +12,7 @@ standard library only.
 
     python -I -B tools/plan_hub_bases.py                   # writes the v1 JSON (what Studio builds today)
     python -I -B tools/plan_hub_bases.py --variant v2      # writes the hub expansion JSON
+    python -I -B tools/plan_hub_bases.py --variant v2-r90  # writes the expansion packed inside the radius-90 disc
     python -I -B tools/plan_hub_bases.py --check           # exit 1 when the written JSON is stale
 
 Frame: the open-world hub frame of `assets/maps/open-world/layout-v1.json` (studs, origin at the hub centre, x east,
@@ -28,6 +29,12 @@ v2 (docs/design/wildbound-hub-expansion.md): radius 100, the most layout-v1's re
 a chest zone and an incubator for two eggs; a showcase in front of each base; four shop circles on the lawn ring;
 more and brighter warm lamps and a hub ambience block for the client. Every number is a variant parameter below
 (`VARIANTS`), so the Studio writer applies one variant as a whole.
+
+v2-r90: radius 100 does not fit where the place puts the hub (centre (282, -3)): the forest floor ends at x 182 and the
+radius-102 floor would reach x 180, and biome-placement-v1.json gives the hub radius 90. v2-r90 keeps v1's outer
+geometry (safe radius 90, hedge 88, floor 92, the same gates, trails, join points and removed forest props) and packs
+every v2 feature inside it: 29 x 23 bases on a ring of 72 (v1: 26 x 22 on 68), the chest zone, the showcase in front of
+each base, four shop circles, bank zones, two-egg incubators, v2 lamps and the hub ambience block.
 """
 
 import argparse
@@ -174,6 +181,7 @@ def _variant(**over):
         "plaza_lanterns": (PLAZA_LANTERN_RADIUS, BENCH_BEARINGS), "flowers": True,
         "planters": (PLANTER_RADIUS, PLANTER_BEARINGS), "rules_sign": RULES_SIGN, "lights": LIGHTS,
         "budget": (PARTS_CAP, LIGHTS_CAP, None), "expansion": False,
+        "shop": SHOP_V2, "chest": CHEST_V2, "showcase": SHOWCASE_V2, "why": None,
     }
     base.update(over)
     return base
@@ -194,8 +202,30 @@ VARIANTS = {
         budget=(480, 36, "the hub is always loaded (ModelStreamingMode Persistent); 480 parts and 36 shadowless "
                          "PointLights raise layout-v1's cap of 400 parts on purpose and are unmeasured: record frame "
                          "time on a phone with 8 players before accepting"),
-        expansion=True),
+        expansion=True,
+        why=("the hub expansion (docs/design/wildbound-hub-expansion.md): a 100 disc is the most layout-v1's region "
+             "squares (x -100 and 100) allow; bases grow to 29 x 24 for a chest zone, a showcase stands in front of "
+             "each base, four shop circles sit on the lawn ring",
+             "the transitions vanish: the hub disc meets both region squares; the fog and every beast stay beyond "
+             "x -135 and x 340")),
 }
+# v2-r90: v1's disc, hedge, floor, gates and trails with every v2 feature inside. The promenade and plaza stay v1's;
+# the bases grow to 29 x 23 and move out to ring 72 so the showcase fits between the promenade and each base; the chest
+# moves 0.5 toward the lobby and its box 0.5 with it (the pad is 1 stud shallower than v2's); the shop circles shrink
+# their ring to 39 and the stalls to 44.5 to stay inside the promenade.
+VARIANTS["v2-r90"] = dict(
+    VARIANTS["v2"], name="hub-bases-v2-r90", safe_radius=HUB_SAFE_RADIUS, wall_radius=WALL_RADIUS,
+    floor_radius=FLOOR_RADIUS, plaza_radius=PLAZA_RADIUS, promenade=(PROMENADE_RADIUS, PROMENADE_WIDTH, 16),
+    base_ring=72.0, base_size=(29.0, 23.0), sign_lx=-9.0, lantern_local=(-12.5, 9.5), entrances=ENTRANCES,
+    plaza_lanterns=(PLAZA_LANTERN_RADIUS, tuple(22.5 + 45.0 * k for k in range(8))),
+    planters=(PLANTER_RADIUS, PLANTER_BEARINGS), rules_sign=RULES_SIGN,
+    shop=dict(SHOP_V2, ring_radius=39.0, stall_radius=44.5),
+    chest=dict(CHEST_V2, local=(0.0, 7.0), prop_local=(0.0, 9.8)),
+    why=("the hub expansion packed inside v1's radius-90 disc: radius 100 does not fit the place at (282, -3), where "
+         "the forest floor ends at x 182 and biome-placement-v1.json gives the hub radius 90; bases grow to 29 x 23 "
+         "on a ring of 72 for a chest zone, a showcase stands in front of each base, four shop circles sit on the "
+         "lawn ring",
+         "the 40-stud transitions shrink to x -100..-90 and 90..100"))
 
 
 def out_path(variant):
@@ -297,18 +327,18 @@ def make_base(slot, bearing, colour, v=None):
         "treadmill_belt": TREADMILL_BELT,
     }
     if v["expansion"]:
-        add_expansion_to_base(base, centre, yaw, hx, hz)
+        add_expansion_to_base(base, centre, yaw, hx, hz, v)
     return base
 
 
-def add_expansion_to_base(base, centre, yaw, hx, hz):
-    c = CHEST_V2
+def add_expansion_to_base(base, centre, yaw, hx, hz, v):
+    c = v["chest"]
     base["chest"] = {"kind": "chest", "tag": "WildboundChestStation", "label": c["label"], "local": list(c["local"]),
                      "world": list(to_world(centre, yaw, c["local"])), "yaw": yaw, "trigger_radius": c["trigger"],
                      "close_radius": c["close"], "server_range": c["server_range"],
                      "prop": {"local": list(c["prop_local"]), "world": list(to_world(centre, yaw, c["prop_local"])),
                               "half": list(c["prop_half"]), "yaw": yaw}}
-    s = SHOWCASE_V2
+    s = v["showcase"]
     local = (s["lx"], -(hz + RIM + s["gap"] + s["r"]))
     base["showcase"] = {"tag": "WildboundShowcase", "local": [s["lx"], r3(local[1])],
                         "world": list(to_world(centre, yaw, local)), "yaw": yaw, "r": s["r"], "slots": s["slots"],
@@ -443,8 +473,8 @@ def light_list(bases, v=None):
 
 
 # ---- v2 pieces -------------------------------------------------------------------------------------------------
-def make_shops():
-    s = SHOP_V2
+def make_shops(v):
+    s = v["shop"]
     out = []
     for ident, label, bearing, colour, sells in SHOPS_V2:
         yaw = outward_yaw(bearing)
@@ -543,11 +573,7 @@ def generate(open_world=None, variant="v1"):
         "transitions": "the 40-stud transitions shrink to x -100..-90 and 90..100",
     }
     if v["expansion"]:
-        supersedes["why"] = ("the hub expansion (docs/design/wildbound-hub-expansion.md): a 100 disc is the most "
-                             "layout-v1's region squares (x -100 and 100) allow; bases grow to 29 x 24 for a chest zone, "
-                             "a showcase stands in front of each base, four shop circles sit on the lawn ring")
-        supersedes["transitions"] = ("the transitions vanish: the hub disc meets both region squares; the fog and "
-                                     "every beast stay beyond x -135 and x 340")
+        supersedes["why"], supersedes["transitions"] = v["why"]
         supersedes["hub_bases_v1_radius"] = HUB_SAFE_RADIUS
     parts_cap, lights_cap, why = v["budget"]
     budget = {"parts_cap": parts_cap, "lights_cap": lights_cap}
@@ -589,7 +615,7 @@ def generate(open_world=None, variant="v1"):
                   "beast_margin": BEAST_MARGIN, "forest_clear": FOREST_CLEAR, "hook_clear": HOOK_CLEAR},
     }
     if v["expansion"]:
-        layout["shops"] = make_shops()
+        layout["shops"] = make_shops(v)
         layout["lighting"] = dict(LIGHTING_V2, inside_radius=safe_radius)
         layout["walk_times"] = walk_times(v)
         layout["open_world_changes"] = open_world_changes(open_world, safe_radius, entrances, removed)

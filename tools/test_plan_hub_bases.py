@@ -13,6 +13,9 @@ beast's reach. Nothing here was built in Studio, played or measured on a device.
 Two variants share these contracts: v1 (radius 90, what Studio builds today) and v2, the hub expansion of
 docs/design/wildbound-hub-expansion.md (radius 100, shop circles in the lawn ring, a chest zone in every base, a
 showcase in front of every base, more and brighter warm lamps). The v2-only contracts are in `ExpansionV2`.
+
+A third variant, v2-r90, keeps v1's outer geometry (safe radius 90, the same gates, trails and join points) and packs
+every v2 feature inside it, because radius 100 does not fit where the place puts the hub (`PlacementFit`).
 """
 
 import json
@@ -33,6 +36,8 @@ FOREST_JSON = REPO / "assets/maps/forest-layout/forest-layout-v1.json"
 PRADERA_JSON = REPO / "assets/maps/pradera-layout/pradera-layout-v1.json"
 COMMITTED_V1 = REPO / "assets/maps/hub-layout/hub-bases-v1.json"
 COMMITTED_V2 = REPO / "assets/maps/hub-layout/hub-bases-v2.json"
+COMMITTED_V2R90 = REPO / "assets/maps/hub-layout/hub-bases-v2-r90.json"
+PLACEMENT = REPO / "assets/maps/open-world/biome-placement-v1.json"
 
 # ---- Spec, restated -----------------------------------------------------------------------------------------------
 SLOTS = 8
@@ -40,6 +45,8 @@ V1 = {"safe_r": 90.0, "wall_r": 88.0, "wall_thick": 2.0, "floor_r": 92.0, "plaza
       "lights_cap": 20}
 V2 = {"safe_r": 100.0, "wall_r": 98.0, "wall_thick": 2.0, "floor_r": 102.0, "plaza_r": 34.0, "promenade": (50.0, 58.0),
       "lights_cap": 36}
+V2R90 = {"safe_r": 90.0, "wall_r": 88.0, "wall_thick": 2.0, "floor_r": 92.0, "plaza_r": 30.0, "promenade": (46.0, 54.0),
+         "lights_cap": 36}
 GATE_W, PATH_W = 16.0, 12.0
 MIN_ENTRANCES, MIN_FOREST_ENTRANCES, MIN_GATE_SPACING = 3, 3, 40.0
 STATION_KINDS = {"delivery": "WildboundDeliveryStation", "incubator": "WildboundIncubatorStation",
@@ -67,6 +74,11 @@ EXTRA_TAGS = {"shop": "WildboundShopSpot", "chest": "WildboundChestStation", "sh
               "bank": "WildboundBaseZone"}
 INCUBATOR_SLOTS = 2            # eggs that incubate at once in one base (v2)
 FOREST_NIGHT_AMBIENT = (22, 28, 46)  # WildboundAtmosphere LIGHT.Night.ambient
+
+# The place, measured in Studio: WildboundP0.Floor sits at (-18, -3) with size 400, so the real forest floor spans
+# x -218..182 (z -203..197). The hub floor disc must stay PLACE_CLEAR studs clear of its east edge.
+FOREST_FLOOR_EAST_X = 182.0
+PLACE_CLEAR = 2.0
 
 
 def circle_at(centre, r):
@@ -470,14 +482,21 @@ class PlanV2(Plan):
     S = V2
 
 
+class PlanV2R90(Plan):
+    """Every v1 contract on the expansion packed inside v1's radius-90 disc (the hub at (282, -3) in the place)."""
+    VARIANT, NAME, COMMITTED = "v2-r90", "hub-bases-v2-r90", COMMITTED_V2R90
+    S = V2R90
+
+
 class ExpansionV2(unittest.TestCase):
     """Contracts only the expansion has: larger and brighter, shop circles, chest zones, showcases, ambience."""
+    VARIANT, S, PLAN_CASE = "v2", V2, PlanV2
 
     @classmethod
     def setUpClass(cls):
         cls.ow = json.loads(OPEN_WORLD.read_text(encoding="utf-8"))
         cls.v1 = json.loads(plan.to_json(plan.generate(cls.ow, variant="v1")))
-        cls.layout = json.loads(plan.to_json(plan.generate(cls.ow, variant="v2")))
+        cls.layout = json.loads(plan.to_json(plan.generate(cls.ow, variant=cls.VARIANT)))
         cls.bases = cls.layout["bases"]
         cls.paths = [seg_poly(e["path"]) for e in cls.layout["entrances"]]
         cls.tuning = p0.load_tuning()
@@ -493,11 +512,20 @@ class ExpansionV2(unittest.TestCase):
             self.assertNotIn("showcase", b)
 
     def test_the_hub_is_larger_and_still_inside_the_band(self):
-        self.assertGreater(self.layout["hub"]["safe_radius"], self.v1["hub"]["safe_radius"])
-        self.assertGreater(self.layout["lobby"]["plaza_radius"], self.v1["lobby"]["plaza_radius"])
+        if self.VARIANT == "v2":
+            self.assertGreater(self.layout["hub"]["safe_radius"], self.v1["hub"]["safe_radius"])
+            self.assertGreater(self.layout["lobby"]["plaza_radius"], self.v1["lobby"]["plaza_radius"])
+        else:   # v2-r90 keeps v1's disc, gates, trails and removed props; only what lies inside the hedge changes
+            self.assertEqual(self.layout["hub"]["safe_radius"], self.v1["hub"]["safe_radius"])
+            self.assertEqual(self.layout["hub"]["floor_radius"], self.v1["hub"]["floor_radius"])
+            self.assertEqual(self.layout["hub"]["wall"], self.v1["hub"]["wall"])
+            self.assertEqual(self.layout["entrances"], self.v1["entrances"])
+            self.assertEqual(self.layout["removed_forest_props"], self.v1["removed_forest_props"])
         self.assertLessEqual(self.layout["hub"]["safe_radius"], REGION_EDGE_X)
         v1_pad = self.v1["bases"][0]["pad"]["half"]
         v2_pad = self.bases[0]["pad"]["half"]
+        self.assertGreaterEqual(v2_pad[0], v1_pad[0], "pads at least as wide as v1's")
+        self.assertGreaterEqual(v2_pad[1], v1_pad[1], "pads at least as deep as v1's")
         self.assertGreater(v2_pad[0] * v2_pad[1], v1_pad[0] * v1_pad[1], "bases grow to fit the chest zone")
         walk = self.layout["walk_times"]
         self.assertEqual(walk["speed"], 16.0)
@@ -596,7 +624,7 @@ class ExpansionV2(unittest.TestCase):
             self.assertGreater((front[0] * -sc["world"][0] + front[1] * -sc["world"][1]) / n, 0.9, b["id"])
 
     def test_every_shop_and_chest_zone_can_be_stood_on(self):
-        grid = PlanV2("test_every_base_station_and_entrance_is_reachable_on_foot")
+        grid = self.PLAN_CASE("test_every_base_station_and_entrance_is_reachable_on_foot")
         grid.layout, grid.ow, grid.bases = self.layout, self.ow, self.bases
         seen, cell, point = grid.walk_grid()
         spots = [(s["id"], s["centre"], s["trigger_radius"]) for s in self.layout["shops"]]
@@ -647,7 +675,11 @@ class ExpansionV2(unittest.TestCase):
                    if math.hypot(c["x"], c["z"]) - rules["radius"] - r < rules["safe_margin"]}
         changes = self.layout["open_world_changes"]
         self.assertEqual({c["id"] for c in changes if c["kind"] == "refugio_candidate"}, crowded)
-        self.assertIn("FA2", crowded)
+        if self.VARIANT == "v2":
+            self.assertIn("FA2", crowded)
+        else:   # at radius 90 no Refugio candidate is crowded, so the open world stays as it is
+            self.assertEqual(crowded, set())
+            self.assertEqual(changes, [])
         for k, v in REFUGIO_CHECK.items():
             self.assertEqual(rules[k], v, k)
         beasts = self.ow["zone_rules"]["strike_zones"]
@@ -723,8 +755,56 @@ class ExpansionV2(unittest.TestCase):
         budget = self.layout["budget"]
         self.assertGreater(budget["parts_cap"], self.v1["budget"]["parts_cap"])
         self.assertLessEqual(budget["parts_cap"], 480)
-        self.assertEqual(budget["lights_cap"], V2["lights_cap"])
+        self.assertEqual(budget["lights_cap"], self.S["lights_cap"])
         self.assertIn("phone", budget["why"])
+
+
+class ExpansionV2R90(ExpansionV2):
+    """Every expansion contract on v2-r90; the radius-100-only ones branch on VARIANT above."""
+    VARIANT, S, PLAN_CASE = "v2-r90", V2R90, PlanV2R90
+
+
+class PlacementFit(unittest.TestCase):
+    """The hub floor disc in the place frame (biome-placement-v1.json hub.centre) against the real forest floor and the
+    other biome squares. The forest's own placement slot is skipped: it is not where the real forest stands."""
+
+    @classmethod
+    def setUpClass(cls):
+        cls.ow = json.loads(OPEN_WORLD.read_text(encoding="utf-8"))
+        cls.placement = json.loads(PLACEMENT.read_text(encoding="utf-8"))
+        cls.centre = tuple(cls.placement["hub"]["centre"])
+
+    def misfits(self, variant):
+        layout = plan.generate(self.ow, variant=variant)
+        cx, cz = self.centre
+        r = layout["hub"]["floor_radius"]
+        out = []
+        if cx - r < FOREST_FLOOR_EAST_X + PLACE_CLEAR:
+            out.append("forest floor")
+        for key, biome in self.placement["biomes"].items():
+            if key == "forest":
+                continue
+            (x0, x1), (z0, z1) = biome["bounds_world"]["x"], biome["bounds_world"]["z"]
+            gap = math.hypot(max(x0 - cx, 0.0, cx - x1), max(z0 - cz, 0.0, cz - z1)) - r
+            if gap < PLACE_CLEAR:
+                out.append(key)
+        if layout["hub"]["safe_radius"] > self.placement["hub"]["radius"]:
+            out.append("safe radius")
+        return out
+
+    def test_the_place_puts_the_hub_at_282_minus_3_with_radius_90(self):
+        self.assertEqual(self.centre, (282.0, -3.0))
+        self.assertEqual(self.placement["hub"]["radius"], 90.0)
+        self.assertIn("forest", self.placement["biomes"])
+
+    def test_v1_and_v2_r90_fit_the_place(self):
+        for variant in ("v1", "v2-r90"):
+            self.assertEqual(self.misfits(variant), [], variant)
+
+    def test_v2_radius_100_does_not_fit_the_place(self):
+        misfits = self.misfits("v2")
+        self.assertIn("forest floor", misfits, "the radius-102 floor reaches x 180, over the forest floor")
+        self.assertIn("safe radius", misfits, "safe radius 100 exceeds the placement's hub radius 90")
 
 
 if __name__ == "__main__":

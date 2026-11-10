@@ -11,6 +11,8 @@ Studio; a later Studio writer deploys and runs the module (docs/maps/wildbound-h
     python -I -B tools/build-hub-map.py            # writes the module and the kit report
     python -I -B tools/build-hub-map.py --check    # exit 1 when the written module is stale
     python -I -B tools/build-hub-map.py --stdout   # prints the module instead of writing it
+    python -I -B tools/build-hub-map.py --plan assets/maps/hub-layout/hub-bases-v2-r90.json
+                                                   # writes build-wildbound-hub-map-v2-r90.luau and its report
 
 Everything is anchored. Only floors (ground, paving, pads, the treadmill deck and belt) and walls (hedge, gate posts,
 base fences) collide and answer queries; every other part has CanCollide, CanQuery and CanTouch off. Every value is a
@@ -62,17 +64,25 @@ def ground(plan, key):
     return BRIGHT_GROUND.get(key, key) if expanded(plan) else key
 
 
+def plan_suffix(plan_name):
+    """The variant part of a plan name: "hub-bases-v2" -> "v2", "hub-bases-v2-r90" -> "v2-r90"."""
+    prefix = "hub-bases-"
+    if not plan_name.startswith(prefix) or len(plan_name) == len(prefix):
+        raise ValueError("unexpected plan name " + plan_name)
+    return plan_name[len(prefix):]
+
+
 def module_path(plan_name):
-    """v1 keeps the module Studio deploys today; any other plan renders beside it under its own suffix."""
+    """v1 keeps the original module path; any other plan renders beside it under its own suffix."""
     if plan_name == "hub-bases-v1":
         return MODULE
-    return TOOLS / ("build-wildbound-hub-map-%s.luau" % plan_name.rsplit("-", 1)[-1])
+    return TOOLS / ("build-wildbound-hub-map-%s.luau" % plan_suffix(plan_name))
 
 
 def report_path(plan_name):
     if plan_name == "hub-bases-v1":
         return REPORT
-    return REPORT.with_name("hub-kit-report-%s.json" % plan_name.rsplit("-", 1)[-1])
+    return REPORT.with_name("hub-kit-report-%s.json" % plan_suffix(plan_name))
 
 
 def hex_to_rgb(value):

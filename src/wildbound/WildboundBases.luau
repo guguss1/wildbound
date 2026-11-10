@@ -1,5 +1,5 @@
 -- Nest Heist hub (docs/maps/wildbound-hub.md): pure rules for the hub's personal bases, its spawn pads and the forest
--- props its trails replace. No services, no instances, no clock: numbers and tables in, answers out. The hub script and
+-- props its trails replace. No services and no clock: numbers, tables and attributes in, answers out. The hub script and
 -- the stations module apply them on the server.
 local Bases = {}
 
@@ -97,6 +97,15 @@ function Bases.displayPicks(snapshot, count)
 	end
 	while #picks > limit do table.remove(picks) end
 	return picks
+end
+
+-- EV-W1: a hub built in Edit (and saved with the place) is reused at server start only while it is the builder's
+-- current plan: the builder writes its plan data's Adler-32 on the root (DataAdler32), so an older hub (v1, or any
+-- regenerated plan) is replaced. Without a builder module there is nothing to compare, so what is there is kept.
+function Bases.hubCurrent(hub, Builder)
+	if hub == nil then return false end
+	if type(Builder) ~= "table" or Builder.DATA_ADLER32 == nil then return true end
+	return hub:GetAttribute("DataAdler32") == Builder.DATA_ADLER32
 end
 
 return Bases

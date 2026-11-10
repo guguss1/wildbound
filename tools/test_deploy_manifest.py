@@ -398,8 +398,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundTraining.luau": "ReplicatedStorage.WildboundTraining",
         "tests/WildboundTraining_Test.luau": "ServerStorage.WildboundTraining_Test",
         # Nest Heist hub (HB-T1 to HB-T5): the generated hub builder, the hub script, the base rule, the stations and
-        # their suite, at the Explorer paths created in Studio by this unit
-        "tools/build-wildbound-hub-map.luau": "ServerStorage.WildboundHubBuilder",
+        # their suite, at the Explorer paths created in Studio by this unit. The builder is the v2-r90 expansion (every
+        # v2 feature inside the radius-90 disc that fits the place at (282, -3)), no longer v1.
+        "tools/build-wildbound-hub-map-v2-r90.luau": "ServerStorage.WildboundHubBuilder",
         "src/wildbound/WildboundHub.server.luau": "ServerScriptService.WildboundHub",
         "src/wildbound/WildboundBases.luau": "ServerScriptService.WildboundBases",
         "src/wildbound/WildboundHubStations.luau": "ServerScriptService.WildboundHubStations",
@@ -436,6 +437,10 @@ class DefaultMappingTests(unittest.TestCase):
             "tools/build-map.luau",
         ):
             self.assertNotIn(local, locals_)
+
+    def test_hub_builder_is_the_v2_r90_module_only(self):
+        sources = [local for local, remote in dm.DEFAULT_MAPPINGS if remote == "ServerStorage.WildboundHubBuilder"]
+        self.assertEqual(sources, ["tools/build-wildbound-hub-map-v2-r90.luau"])
 
     def test_real_repo_manifest_is_stable_and_reports_forest_dress_if_absent(self):
         manifest = dm.build_manifest(REPO)
