@@ -64,6 +64,12 @@ function Rules.toHub(x, z)
 	if not (Rules.finite(x) and Rules.finite(z)) then return nil end
 	return x - Rules.HUB_X, z - Rules.HUB_Z
 end
+-- HF-T5: whether a point is farther than `far` studs from both bases, the camp's safe circle centre and the hub's
+-- centre (the beast director's "far from base"). False for a bad point or reach.
+function Rules.farFromBase(x, z, far)
+	if not (Rules.finite(x) and Rules.finite(z) and Rules.finite(far)) then return false end
+	return Rules.distance(x, z, Rules.CAMP_X, Rules.CAMP_Z) > far and Rules.distance(x, z, Rules.HUB_X, Rules.HUB_Z) > far
+end
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning
 -- bridge may override these five at runtime; the territory (HOME_LEASH) and the strike range never change, so a

@@ -14,7 +14,7 @@ Config.DIRECTOR = table.freeze({
 	MAX_MULTIPLIER = 4, -- product cap of the condition multipliers
 	GLOBAL_COOLDOWN = 15, -- seconds after any encounter of that player ends
 	RESPAWN_GRACE = 10, -- no spawn this long after a respawn
-	FAR_FROM_BASE = 150, -- studs from the camp centre that count as far from base
+	FAR_FROM_BASE = 150, -- studs from both the camp's and the hub's centre that count as far from base (HF-T5)
 	LONG_EXPEDITION = 180, -- seconds continuously outside a safe zone that count as a long expedition
 	MULTIPLIERS = table.freeze({ night = 2, farFromBase = 1.2, dangerousZone = 1.5, longExpedition = 1.3, storm = 1 }),
 })

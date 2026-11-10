@@ -268,5 +268,11 @@ return function(sources, Proxies)
 		has(client, "if view.model then view.model:Destroy() end")
 	end)
 
+	case("HF-T5: far from base is measured from the camp and the hub through the world rules", function()
+		local beasts = sources.beasts
+		has(beasts, "farFromBase = Rules.farFromBase(p.X, p.Z, D.FAR_FROM_BASE)", "the shared rule")
+		hasNot(beasts, "CAMP_X", "no camp-only centre")
+	end)
+
 	return result
 end

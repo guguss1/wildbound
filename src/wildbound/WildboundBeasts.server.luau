@@ -41,7 +41,6 @@ end
 
 local D = Config.DIRECTOR
 local STEP, SNAPSHOT = 1 / 20, 0.1
-local CAMP_X, CAMP_Z = -140, 140
 local rng = Random.new()
 local director = Director.new({ random = function() return rng:NextNumber() end })
 local players = {} -- [Player] = { respawnedAt, outsideSince, character }
@@ -167,7 +166,7 @@ local function contextFor(player, at)
 	local fog, safe = Rules.zone(p.X, p.Z)
 	if safe then record.outsideSince = nil else record.outsideSince = record.outsideSince or at end
 	return { alive = true, safe = safe, night = isNight(at),
-		farFromBase = Rules.distance(p.X, p.Z, CAMP_X, CAMP_Z) > D.FAR_FROM_BASE,
+		farFromBase = Rules.farFromBase(p.X, p.Z, D.FAR_FROM_BASE),
 		dangerousZone = fog or Rules.inTerritory(p.X, p.Z),
 		longExpedition = record.outsideSince ~= nil and at - record.outsideSince >= D.LONG_EXPEDITION,
 		storm = false, -- no weather system yet

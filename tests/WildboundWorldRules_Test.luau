@@ -459,5 +459,15 @@ return function(Rules, islandLayout)
 		local plain = obs(); plain.safe, plain.homeDistance = nil, nil
 		equal(Rules.pursuit(plain), true, "the old observation shape still works")
 	end)
+	-- Hub follow-up (HF-T5): the beast director's "far from base" counts the hub as a base, like the camp.
+	case("HF-T5: Rules.farFromBase is far only from both the camp and the hub", function()
+		equal(Rules.farFromBase(Rules.CAMP_X, Rules.CAMP_Z, 150), false, "the camp")
+		equal(Rules.farFromBase(Rules.HUB_X, Rules.HUB_Z, 150), false, "the hub")
+		equal(Rules.farFromBase(Rules.HUB_X + 149, Rules.HUB_Z, 150), false, "just inside the hub's reach")
+		equal(Rules.farFromBase(Rules.HUB_X + 151, Rules.HUB_Z, 150), true, "past both")
+		equal(Rules.farFromBase(Rules.CAMP_X, Rules.CAMP_Z - 151, 150), true)
+		equal(Rules.farFromBase(0 / 0, 0, 150), false, "a bad point is never far")
+		equal(Rules.farFromBase(0, 0, 0 / 0), false, "a bad reach is never far")
+	end)
 	return result
 end
