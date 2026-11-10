@@ -239,6 +239,15 @@ local function stepPouncer(events, e, now, target, world, dt)
 		elseif distance < C.attackMin then walk(e, target, C.huntSpeed, -1, dt, world) end
 		distance = flat(e.pos.x, e.pos.z, target.x, target.z)
 		local ready = not e.retryAt or now >= e.retryAt
+		if not ready then
+			-- A refused try (a trunk on the arc, no ground): sidestep around the target before the next one.
+			local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
+			if dx then
+				e.pos.x += -dz * C.huntSpeed * 0.5 * dt
+				e.pos.z += dx * C.huntSpeed * 0.5 * dt
+				e.pos.y = groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+			end
+		end
 		if ready and distance >= C.attackMin and distance <= C.attackMax then
 			pouncerChoose(events, e, now, target, world, C)
 		elseif now - e.phaseAt >= C.huntSeconds then

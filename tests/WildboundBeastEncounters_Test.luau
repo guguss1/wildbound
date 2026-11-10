@@ -289,6 +289,16 @@ return function(Enc, source, Config, configSource)
 		equal(count(by2, "Hit"), 0)
 	end)
 
+	case("NB7 Pouncer: a trunk in the way of the arc: it sidesteps between tries until the arc is clear", function()
+		local world = { arcClear = function(ax) return math.abs(ax) >= 4 end }
+		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
+		local _, by = run(e, 0, 4, standing(0, 0), world)
+		assert(count(by, "Cancel") >= 1, "the first try is refused")
+		equal(count(by, "Telegraph"), 1, "then a clear arc")
+		assert(math.abs(by.Leap[1].from.x) >= 4, "it leapt from beside the trunk")
+		equal(count(by, "Disengage"), 0)
+	end)
+
 	case("NB3 Pouncer: two jumps, a recovery between them, then it leaves", function()
 		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
 		local events, by = run(e, 0, 15, standing(0, 0))
