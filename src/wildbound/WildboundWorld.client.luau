@@ -429,7 +429,19 @@ local function animateCompanions(now, root)
 					local offset = Refuge.companionOffset(now, age)
 					anchor.Position = Vector3.new(offset.x, offset.y, offset.z)
 				end
-				if camera then body.Transparency = View.companionTransparency((camera.CFrame.Position - body.Position).Magnitude) end
+				if camera then
+					local fade = View.companionTransparency((camera.CFrame.Position - body.Position).Magnitude)
+					if model:GetAttribute("LumipolArt") == true then
+						-- MeshGen1 pass: the ball stays hidden; the user's model fades, on this client only.
+						for _, part in ipairs(model:GetChildren()) do
+							if part:IsA("BasePart") and part:GetAttribute("LumipolArt") == true then
+								part.LocalTransparencyModifier = fade
+							end
+						end
+					else
+						body.Transparency = fade
+					end
+				end
 			end
 		end
 	end

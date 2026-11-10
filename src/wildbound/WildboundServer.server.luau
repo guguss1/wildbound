@@ -5,6 +5,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local ServerStorage = game:GetService("ServerStorage")
 local TweenService = game:GetService("TweenService")
+local AssetService = game:GetService("AssetService")
 local State = require(script.Parent:WaitForChild("WildboundState"))
 local Wild = require(script.Parent:WaitForChild("WildboundLumipolWild"))
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
@@ -29,6 +30,45 @@ local Island = require(script.Parent:WaitForChild("WildboundIsland"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local CollectionService = game:GetService("CollectionService")
 local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
+-- MeshGen1 pass (user, 2026-11-10): every Lumipol wears the user's model, ServerStorage.WildboundAssets.LumipolMeshGen.
+-- Without a valid template every Lumipol keeps its primitive look.
+local Art = require(script.Parent:WaitForChild("WildboundLumipolArt"))
+local lumipolAssets = ServerStorage:FindFirstChild("WildboundAssets")
+local lumipolTemplate = lumipolAssets and lumipolAssets:FindFirstChild(Art.CONFIG.TEMPLATE)
+if not Art.valid(lumipolTemplate) then
+	lumipolTemplate = nil
+	warn("Wildbound: the Lumipol model template is missing or invalid; Lumipol keep the primitive look.")
+else
+	-- Play finding: a session can be refused the generated meshes ("Requester does not have permission"), and a mesh
+	-- that never loads draws nothing, so a dressed Lumipol would be invisible. Each mesh is loaded once here, all at
+	-- once, for at most VERIFY_SECONDS (a one-shot wake-up, no waiting loop); unless every one loads, the template is
+	-- dropped.
+	local ids, loaded, waiting = Art.meshIds(lumipolTemplate), {}, 0
+	local thread, yielded, resumed = coroutine.running(), false, false
+	local function wake()
+		if yielded and not resumed then
+			resumed = true
+			task.spawn(thread)
+		end
+	end
+	for _, id in ipairs(ids) do
+		waiting += 1
+		task.spawn(function()
+			loaded[id] = pcall(function() AssetService:CreateMeshPartAsync(id):Destroy() end)
+			waiting -= 1
+			if waiting == 0 then wake() end
+		end)
+	end
+	if waiting > 0 then
+		yielded = true
+		task.delay(Art.CONFIG.VERIFY_SECONDS, wake)
+		coroutine.yield()
+	end
+	if not Art.verified(ids, loaded) then
+		lumipolTemplate = nil
+		warn("Wildbound: the Lumipol model's meshes did not load in this session; Lumipol keep the primitive look.")
+	end
+end
 -- Random world (plan Part 3, RW2): the spawn clock over the spawn graph (eggs and crias that live 300 s and move).
 local SpawnClock = require(script.Parent:WaitForChild("WildboundSpawnClock"))
 local spawnGraph = require(script.Parent:WaitForChild("WildboundSpawnGraph"))
@@ -237,8 +277,19 @@ local function buildCapsule(character, carried)
 	local creature = capsulePart(model, "Creature", Vector3.new(1.15, 0.85, 1), Enum.PartType.Ball,
 		Color3.fromRGB(look.body[1], look.body[2], look.body[3]), Enum.Material.SmoothPlastic)
 	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
+	-- MeshGen1 pass: a Lumipol rides as the user's model, its feet on the base ring, welded to the seat ball (the
+	-- clients animate the seat joint) and hiding it; other species and a missing template keep the primitive.
+	local art = Art.uses(look) and lumipolTemplate and Art.dress(model, lumipolTemplate,
+		creature.CFrame * CFrame.new(0, -creature.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0), Art.CONFIG.CARRIED_HEIGHT)
+	if art then
+		creature.Transparency = 1
+		for _, part in ipairs(art) do
+			part.Anchored = false
+			weld("ArtJoint", creature, part, creature.CFrame:ToObjectSpace(part.CFrame))
+		end
+	end
 	-- It faces away from the carrier's back, so whoever follows sees its face.
-	for _, x in ipairs({ -0.25, 0.25 }) do
+	for _, x in ipairs(art and {} or { -0.25, 0.25 }) do
 		local eye = capsulePart(model, "Eye", Vector3.new(0.14, 0.16, 0.1), Enum.PartType.Block,
 			Color3.fromRGB(look.eye[1], look.eye[2], look.eye[3]), Enum.Material.SmoothPlastic)
 		weld("EyeJoint", creature, eye, CFrame.new(x, 0.12, 0.47))
@@ -472,8 +523,16 @@ local function visual(kind, position, species, scale)
 	local lift = kind == "Creature" and size.Y / 2 + 1 or 2
 	local body = block(model, "Body", size, CFrame.new(position + Vector3.new(0, lift, 0)), color, Enum.PartType.Ball)
 	if kind == "Creature" then
+		-- MeshGen1 pass: a Lumipol wears the user's model, its feet on the ground under the ball. The ball stays the
+		-- gameplay body (prompt, light, tags, every move) and is hidden; without the template it keeps its eyes and ears.
+		local dressed = Art.uses(look) and lumipolTemplate ~= nil
+			and Art.dress(model, lumipolTemplate, CFrame.new(position), Art.CONFIG.HEIGHT * scale) ~= nil
+		if dressed then
+			body.Transparency = 1
+			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
+		end
 		local glowing = look.name ~= "Lumipol"
-		for _, side in ipairs({ -1, 1 }) do
+		for _, side in ipairs(if not dressed then { -1, 1 } else {}) do
 			local eye = block(model, "Eye", Vector3.new(0.35, 0.4, 0.25) * scale,
 				body.CFrame * CFrame.new(side * size.X * 0.22, size.Y * 0.15, -size.Z / 2 + 0.05), rgb(look.eye))
 			if glowing then eye.Material = Enum.Material.Neon end
@@ -531,7 +590,8 @@ refreshDisplay = function(player)
 	local model = visual("Creature", spot.Position, choice.species)
 	model.Name = "DisplayLumipol"
 	model:ScaleTo(0.6)
-	local at = spot.Position + Vector3.new(0, 0.75, 0)
+	-- MeshGen1 pass: the art's feet (1.2 under the scaled ball's centre) stand on the pedestal, 0.4 over the spot.
+	local at = spot.Position + Vector3.new(0, model:GetAttribute(Art.CONFIG.ATTRIBUTE) == true and 1.6 or 0.75, 0)
 	local base = CFrame.lookAt(at, Vector3.new(campCenter.Position.X, at.Y, campCenter.Position.Z))
 	model:PivotTo(base)
 	model:SetAttribute("OwnerUserId", player.UserId)

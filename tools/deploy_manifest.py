@@ -207,6 +207,9 @@ DEFAULT_MAPPINGS = [
     # Items and totem (plan Part 4): the pure gear rules (shared, the fear client softens with them) and their suite
     ("src/wildbound/WildboundGear.luau", "ReplicatedStorage.WildboundGear"),
     ("tests/WildboundGear_Test.luau", "ServerStorage.WildboundGear_Test"),
+    # MeshGen1 pass: dresses every Lumipol with the user's model (server only) and its suite
+    ("src/wildbound/WildboundLumipolArt.luau", "ServerScriptService.WildboundLumipolArt"),
+    ("tests/WildboundLumipolArt_Test.luau", "ServerStorage.WildboundLumipolArt_Test"),
 ]
 
 
