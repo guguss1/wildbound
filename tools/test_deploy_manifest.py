@@ -366,6 +366,20 @@ class DefaultMappingTests(unittest.TestCase):
         # Nest Heist phase 2 (NP3): the bat rule (server only) and its suite
         "src/wildbound/WildboundBat.luau": "ServerScriptService.WildboundBat",
         "tests/WildboundBat_Test.luau": "ServerStorage.WildboundBat_Test",
+        # Nest Heist phase 4a (NB1): the earlier unmapped sources, at the Explorer paths observed in Studio
+        "src/wildbound/WildboundOwnership.luau": "ServerScriptService.WildboundOwnership",
+        "tests/WildboundOwnership_Test.luau": "ServerStorage.WildboundOwnership_Test",
+        "src/wildbound/WildboundWorldGuard.server.luau": "ServerScriptService.WildboundWorldGuard",
+        "src/wildbound/WildboundPromptKeys.luau": "ServerScriptService.WildboundPromptKeys",
+        "tests/WildboundPromptKeys_Test.luau": "ServerStorage.WildboundPromptKeys_Test",
+        "src/wildbound/WildboundSettings.luau": "ReplicatedStorage.WildboundSettings",
+        "tests/WildboundSettings_Test.luau": "ServerStorage.WildboundSettings_Test",
+        "src/wildbound/WildboundStart.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundStartClient",
+        "tests/WildboundStartWiring_Test.luau": "ServerStorage.WildboundStartWiring_Test",
+        "src/wildbound/WildboundStartView.luau": "ReplicatedStorage.WildboundStartView",
+        "tests/WildboundStartView_Test.luau": "ServerStorage.WildboundStartView_Test",
+        "src/wildbound/WildboundTutorial.luau": "ReplicatedStorage.WildboundTutorial",
+        "tests/WildboundTutorial_Test.luau": "ServerStorage.WildboundTutorial_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
