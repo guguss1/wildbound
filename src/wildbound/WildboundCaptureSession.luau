@@ -185,11 +185,23 @@ local function validStart(input)
 	return length(input.x - input.lumipolX, input.z - input.lumipolZ) <= C.START_RANGE + EPSILON
 end
 
+-- Items IT1: the gloves' calm rate (1 or more; anything else is 1) and the ring's radius with their bonus, kept
+-- 0.05 studs under ORBIT_MIN so no fixed spot can stay inside for the whole orbit.
+local function calmRate(rate)
+	return finite(rate) and rate > 1 and rate or 1
+end
+local function ringRadius(bonus)
+	local extra = finite(bonus) and bonus > 0 and bonus or 0
+	return math.min(C.RING_RADIUS_SERVER + extra, math.max(C.RING_RADIUS_SERVER, C.ORBIT_MIN - 0.05))
+end
+
 -- Checks run in the order of the capture document, with no yield before the reservation.
 -- input = { playerKey, encounterId, dir, lumipolX, lumipolZ, now, alive, life, distance, x, y, z,
 --           encounterStatus = "Open" | "Claimed" | other, slotRefusal?, bagRoom, collectionRoom,
 --           wary?, tier?, sealRoll? (0 to 1, a server roll for the band's place),
---           calmRequired?, retryCooldown? (H2: the starting player's own skills, clamped here) }
+--           calmRequired?, retryCooldown? (H2: the starting player's own skills, clamped here),
+--           calmRate?, ringBonus? (items IT1: the Guantes de captura; the meter never needs under CALM_MIN seconds and
+--           the ring stays narrower than its orbit, so standing still never fills it by chance) }
 -- Returns true, view or false, reason.
 function CaptureSession:begin(input)
 	if type(input) ~= "table" then return false, "InvalidContext" end
@@ -227,7 +239,9 @@ function CaptureSession:begin(input)
 		hardDeadline = now + C.TIME_LIMIT + C.MAX_STALL_EXTENSION, lastSample = now,
 		lastX = input.x, lastZ = input.z, pathTotal = 0, trail = { { t = now, c = 0 } }, calm = 0, outsideFor = 0, inside = true, moving = false,
 		struck = false, badSamples = 0, stage = "Calm", tier = input.tier, sealRoll = input.sealRoll, seal = nil,
-		required = bounded(input.calmRequired, C.CALM_MIN, C.CALM_REQUIRED),
+		required = math.max(C.CALM_MIN,
+			bounded(input.calmRequired, C.CALM_MIN, C.CALM_REQUIRED) / calmRate(input.calmRate)),
+		ringRadius = ringRadius(input.ringBonus),
 		retrySpan = bounded(input.retryCooldown, C.RETRY_MIN, C.RETRY_COOLDOWN),
 	}
 	self.sessions[token] = session
@@ -239,7 +253,7 @@ end
 local function activeView(session)
 	return { token = session.token, phase = "Active", calm = session.calm, inside = session.inside,
 		moving = session.moving, outsideFor = session.outsideFor, deadline = session.deadline, stage = session.stage,
-		seal = session.seal, required = session.required }
+		seal = session.seal, required = session.required, ringRadius = session.ringRadius }
 end
 
 -- H1: the band for this session. A missing or unusable roll places it in the middle of its range.
@@ -379,7 +393,7 @@ function CaptureSession:sample(token, obs)
 	session.badSamples = 0
 	local elapsed = math.min(dt, C.MAX_ELAPSED)
 	local cx, cz = CaptureSession.ringCenter(session.ring, now - session.startedAt)
-	local inside = length(obs.x - cx, obs.z - cz) <= C.RING_RADIUS_SERVER + EPSILON
+	local inside = length(obs.x - cx, obs.z - cz) <= (session.ringRadius or C.RING_RADIUS_SERVER) + EPSILON
 	local moving = displacement / paced > C.STILL_SPEED + EPSILON
 		or windowedRate(session, now, displacement) > C.STILL_PATH_RATE + EPSILON
 	session.lastSample, session.lastX, session.lastZ = now, obs.x, obs.z

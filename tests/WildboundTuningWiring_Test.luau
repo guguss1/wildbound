@@ -33,7 +33,9 @@ return function(sources)
 			-- Random world (RW2): the spawn clock.
 			"WildboundSpawnClock",
 			-- Random world (RW3): the wave clock.
-			"WildboundWaveClock" }) do
+			"WildboundWaveClock",
+			-- Items and totem (plan Part 4): the gear rules.
+			"WildboundGear" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")
@@ -73,9 +75,11 @@ return function(sources)
 	end)
 
 	case("DT4: the panel applies client values for everyone but is built only for a developer", function()
-		has(panel, 'Schema.apply({ View = View }, read, "client")')
+		-- Items and totem (IT1): the amulet's fear softening (Gear) is a client value too. Deliberately changed from
+		-- { View = View }.
+		has(panel, 'Schema.apply({ View = View, Gear = Gear }, read, "client")')
 		has(panel, "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
-		before(panel, 'Schema.apply({ View = View }, read, "client")', "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
+		before(panel, 'Schema.apply({ View = View, Gear = Gear }, read, "client")', "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
 		before(panel, "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true", 'Instance.new("ScreenGui")',
 			"no interface before the developer check")
 	end)

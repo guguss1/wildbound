@@ -34,6 +34,8 @@ local SpawnClock = require(script.Parent:WaitForChild("WildboundSpawnClock"))
 local spawnGraph = require(script.Parent:WaitForChild("WildboundSpawnGraph"))
 -- Random world (plan Part 6, RW3): the wave clock, the wave board and the WorldEvent messages (shared with clients).
 local WaveClock = require(ReplicatedStorage:WaitForChild("WildboundWaveClock"))
+-- Items and totem (plan Part 4, IT1): the equipment's pure rules (shared with the world script and the fear client).
+local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -92,6 +94,12 @@ strikeEvent.Name, strikeEvent.Parent = "CaptureStrike", network
 -- M5.5: server-only totem holders for the world script, which applies the totem's downside.
 local totemEvent = Instance.new("BindableEvent")
 totemEvent.Name, totemEvent.Parent = "TotemChanged", network
+-- Items IT1: the world script reports a defeating hit the owner's Chaleco kept as a mark. Server only.
+local gearUsed = Instance.new("BindableEvent")
+gearUsed.Name, gearUsed.Parent = "GearUsed", network
+-- Items IT1: the owned gear and the Chaleco's charge for the world script (memory, the saved hit). Server only.
+local gearChanged = Instance.new("BindableEvent")
+gearChanged.Name, gearChanged.Parent = "GearChanged", network
 -- M5.6 reverse event: the world script reports a pulse that revealed Silueta to a player in the fog.
 local pulseHit = Instance.new("BindableEvent")
 pulseHit.Name, pulseHit.Parent = "PulseHit", network
@@ -284,6 +292,26 @@ end
 local refreshDisplay, syncCompanion
 -- RW3: set with the wave clock below; Esencia a player gains reaches the wave board.
 local bankEsencia
+-- Items IT1: on change only, the owned gear and the Chaleco's charge go to the world script (a server-only event, as
+-- the totem does), and ownership goes to the owner's client as attributes only this server writes (the Amuleto's
+-- fear softening is presentation there).
+local function syncGear(player, snapshot)
+	local record = records[player]
+	if not snapshot or not record then return end
+	local owned = type(snapshot.gear) == "table" and snapshot.gear or {}
+	local parts = {}
+	for _, id in ipairs(Gear.ITEMS) do
+		local name, value = Gear.attribute(id), owned[id] == true
+		if player:GetAttribute(name) ~= value then player:SetAttribute(name, value) end
+		if value then table.insert(parts, id) end
+	end
+	local ready = snapshot.vestReady == true
+	local key = table.concat(parts, ",") .. (ready and "|vest" or "")
+	if record.gearKey ~= key then
+		record.gearKey = key
+		gearChanged:Fire(player, table.clone(owned), ready)
+	end
+end
 -- card: a registration receipt for the presentation card (B3); the client words it with WildboundRefuge.card.
 local function send(player, action, ok, notice, lossSummary, card)
 	local record = records[player]
@@ -299,6 +327,7 @@ local function send(player, action, ok, notice, lossSummary, card)
 		if record.ember ~= nil and ember > record.ember and bankEsencia then bankEsencia(player, ember - record.ember) end
 		record.ember = ember
 	end
+	syncGear(player, snapshot)
 	if snapshot and record.totem ~= snapshot.totemActive then
 		record.totem = snapshot.totemActive
 		totemEvent:Fire(player, snapshot.totemActive)
@@ -1366,6 +1395,8 @@ local function startCapture(player, entry)
 		wary = Wild.wary(entry.brain), tier = entry.slot.tier, sealRoll = rng:NextNumber(),
 		-- H2: this player's own capture skills; the rule clamps them.
 		calmRequired = skills.calmRequired, retryCooldown = skills.retryCooldown,
+		-- Items IT1: the Guantes de captura; the rule floors the meter and keeps the ring under its orbit.
+		calmRate = Gear.calmRate(snapshot.gear), ringBonus = Gear.ringBonus(snapshot.gear),
 	})
 	if not ok then
 		counters.rejected += 1
@@ -1961,6 +1992,8 @@ local function updateStamina(now, dt)
 				blocked = capturing or hidden,
 				carrying = snapshot ~= nil and snapshot.carrying ~= nil, inCamp = safe,
 				regenScale = Rules.refugeAt(x, z) and WaveClock.live.REFUGE_REGEN or 1,
+				-- Items IT1: the Botas drain the sprint slower.
+				drainScale = Gear.drainScale(snapshot and snapshot.gear),
 			}, now)
 			-- Dev tuning: a changed sprint value re-applies WalkSpeed at once, not only on the next stance change.
 			if out.changed or record.tuned ~= Stamina.version then
@@ -2039,6 +2072,8 @@ RunService.Heartbeat:Connect(function(dt)
 			local _, safe = Rules.zone(x, z)
 			local inCamp = safe and fromCamp < Rules.distance(x, z, SHELTER_X, SHELTER_Z)
 			state:observeExpedition(player.UserId, fromCamp, not inCamp, now)
+			-- Items IT1: a new expedition gives the Chaleco its one save back.
+			syncGear(player, state:snapshot(player.UserId))
 			analytics:observeCamp(player.UserId, not inCamp)
 		end
 	end
@@ -2046,10 +2081,18 @@ end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
-	DisarmTotem = true, UseCapsule = true }
+	DisarmTotem = true, UseCapsule = true, CraftGear = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
-	if action == "Craft" or action == "Upgrade" then
+	if action == "CraftGear" then
+		-- Items IT1: one piece of equipment; the id is looked up in the server's config, never trusted.
+		local spec = type(EconomyConfig.gear) == "table" and EconomyConfig.gear[argument] or nil
+		if not spec or spec.kind ~= "equipment" then return end
+		local alive, distance = context(player, campCenter)
+		local ok, result = state:craftGear(key, argument, alive, distance)
+		if ok then analytics:spent(key, "craft") end -- the analytics schema has no "gear" kind; crafting it is
+		reply(player, action, ok, result, Text.GEAR.crafted:format(Text.GEAR[argument] or argument))
+	elseif action == "Craft" or action == "Upgrade" then
 		local known = action == "Craft" and EconomyConfig.recipes or EconomyConfig.upgrades
 		if not known[argument] then return end
 		local alive, distance = context(player, campCenter)
@@ -2087,6 +2130,13 @@ local function economyAction(player, action, argument)
 		reply(player, action, ok, result, ok and notices.capsule:format(result.ember) or nil)
 	end
 end
+
+-- Items IT1: a defeating hit the Chaleco kept as a mark. Only the world script fires this server-only event.
+gearUsed.Event:Connect(function(player, id)
+	if typeof(player) ~= "Instance" or not player:IsA("Player") or id ~= "chaleco" or not records[player] then return end
+	state:useVest(player.UserId)
+	send(player, "Vest", true, "")
+end)
 
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end

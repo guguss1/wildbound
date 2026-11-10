@@ -230,6 +230,17 @@ return freeze({
 		dodge = "¡Esquiva! Aléjate de La Silueta.",
 		rested = "Descansaste. La marca desapareció.",
 		restedShort = "Marca quitada.",
+		-- Items IT1: the Chaleco kept a defeating hit as a mark.
+		vest = "El chaleco aguantó el golpe. Sigues marcado: el próximo te derrota.",
+		vestShort = "El chaleco te salvó. Sigues marcado.",
+	},
+	-- Items and totem (plan Part 4, IT1): the equipment's names. WildboundCampView repeats them; a test keeps them equal.
+	GEAR = {
+		guantes = "Guantes de captura",
+		botas = "Botas",
+		chaleco = "Chaleco",
+		amuleto = "Amuleto",
+		crafted = "%s: fabricado. Dura esta sesión.",
 	},
 	-- Delivery C (D-C5): the full-screen defeat summary (WildboundHudView.lossSummary) and the defeat notice.
 	DEFEAT = {
@@ -325,8 +336,8 @@ return freeze({
 		equipped = " · Equipada",
 		equip = "Equipar",
 		calmFirst = "Primero termina de calmar al Lumipol.",
-		sections = { Stock = "Tus reservas", Craft = "Fabricar y llevar", Upgrade = "Mejoras", Skills = "Habilidades",
-			Bond = "Compañero" },
+		sections = { Stock = "Tus reservas", Craft = "Fabricar y llevar", Gear = "Equipo", Upgrade = "Mejoras",
+			Skills = "Habilidades", Bond = "Compañero" },
 	},
 	-- Next batch NB3: the world client's panel and ability buttons (WildboundWorldClient). NB5: every button line fits a
 	-- 110-pixel button on a phone (9 characters held upright; tests/WildboundHudLayout_Test.luau).
@@ -389,6 +400,9 @@ return freeze({
 		CannotAfford = "No tienes suficientes materiales guardados ni Esencia.",
 		AtLimit = "No puedes llevar más de eso.",
 		AlreadyOwned = "Ya lo tienes.",
+		UnknownGear = "Ese objeto no existe.",
+		NoVest = "No tienes chaleco.",
+		VestUsed = "El chaleco ya te salvó en esta salida.",
 		NoTotem = "No tienes tótem.",
 		AlreadyLeft = "El tótem queda puesto una vez que sales del campamento.",
 		NotAtShelter = "Usa una cápsula en el refugio.",

@@ -165,6 +165,24 @@ return freeze({
 		maxActive = 1,
 		consumedWhen = "expedition_ends_after_leaving_camp",
 	},
+	gear = {
+		guantes = {
+			kind = "equipment",
+			cost = { fogbark = 14, glowmoss = 8, ember = 30 },
+		},
+		botas = {
+			kind = "equipment",
+			cost = { fogbark = 16, glowmoss = 6, ember = 30 },
+		},
+		chaleco = {
+			kind = "equipment",
+			cost = { fogbark = 20, glowmoss = 10, nightbloom = 1, ember = 45 },
+		},
+		amuleto = {
+			kind = "equipment",
+			cost = { glowmoss = 12, nightbloom = 2, ember = 40 },
+		},
+	},
 	capsule = { site = "shelter", x = 105, z = 125, range = 12, itemsSecured = 1 },
 	sinks = { campRange = 20 },
 	skills = {

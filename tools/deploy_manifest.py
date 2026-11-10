@@ -204,6 +204,9 @@ DEFAULT_MAPPINGS = [
     # Random world RW3 to RW6: the pure wave clock (shared, the client reads WorldEvent through it) and its suite
     ("src/wildbound/WildboundWaveClock.luau", "ReplicatedStorage.WildboundWaveClock"),
     ("tests/WildboundWaveClock_Test.luau", "ServerStorage.WildboundWaveClock_Test"),
+    # Items and totem (plan Part 4): the pure gear rules (shared, the fear client softens with them) and their suite
+    ("src/wildbound/WildboundGear.luau", "ReplicatedStorage.WildboundGear"),
+    ("tests/WildboundGear_Test.luau", "ServerStorage.WildboundGear_Test"),
 ]
 
 

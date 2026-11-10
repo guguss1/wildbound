@@ -249,7 +249,7 @@ local actionRemote
 local receivedSnapshot = false
 local lastRequest = 0
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
-	ArmTotem = true, DisarmTotem = true }
+	ArmTotem = true, DisarmTotem = true, CraftGear = true }
 local function request(action, uid)
 	if not actionRemote then
 		showSticky(H.serverDown)

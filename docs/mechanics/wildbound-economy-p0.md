@@ -369,6 +369,19 @@ Spend-only-if-it-saves stays, per the existing contract. A warded item cannot dr
 
 Used within 12 studs of a new `ShelterMarker` at (105, 125). Choose one bag item; it moves to banked eggs, registered or banked Nightbloom, and pays its Ember now. No hatching. **Changes existing behavior:** the shelter gains one banking use (`docs/mechanics/wildbound-world.md:17`). Calculated distance: nest to shelter 235 studs, nest to camp 296.
 
+### Equipment (plan Part 4, IT1, 2026-11-10)
+
+The `gear` rows: four items crafted at camp (within `campRange`) with Ember (Esencia on screen) and banked materials, one of each, owned for the session only. They are not consumables and are not in the saved record (`WildboundRecord` copies `consumables`, never `gear`). Effects and their numbers live in `WildboundGear.CONSTANTS` and the dev tuning system `Gear`.
+
+| Item | Cost | Effect |
+| --- | --- | --- |
+| Guantes de captura | 30 Ember, 14 Fogbark, 8 Glowmoss | Calm meter x1.3 (never under `CALM_MIN` 4 s), the server ring 0.4 studs wider (kept under `ORBIT_MIN`) |
+| Botas | 30 Ember, 16 Fogbark, 6 Glowmoss | Sprint drain x0.7 |
+| Chaleco | 45 Ember, 20 Fogbark, 10 Glowmoss, 1 Nightbloom | Once per expedition a defeating second mark is kept as a mark |
+| Amuleto | 40 Ember, 12 Glowmoss, 2 Nightbloom | La Silueta's memory 1 s shorter (at least 0.5 s); heartbeat, red edge and shake x0.6 on the owner's screen |
+
+`tools/simulate_economy.py` does not buy or model equipment; its medians are unchanged by these rows.
+
 ## Skill tree
 
 Four branches, two nodes each. Cost: tier 1 is 40 Ember, 20 Fogbark and 10 Glowmoss. Tier 2 is 100 Ember, 30 Fogbark, 20 Glowmoss and 3 Nightbloom, and needs tier 1. No respec in P0.
@@ -610,6 +623,12 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "ambushAnchorRadius": 60,
     "maxActive": 1,
     "consumedWhen": "expedition_ends_after_leaving_camp"
+  },
+  "gear": {
+    "guantes": { "kind": "equipment", "cost": { "fogbark": 14, "glowmoss": 8, "ember": 30 } },
+    "botas": { "kind": "equipment", "cost": { "fogbark": 16, "glowmoss": 6, "ember": 30 } },
+    "chaleco": { "kind": "equipment", "cost": { "fogbark": 20, "glowmoss": 10, "nightbloom": 1, "ember": 45 } },
+    "amuleto": { "kind": "equipment", "cost": { "glowmoss": 12, "nightbloom": 2, "ember": 40 } }
   },
   "capsule": { "site": "shelter", "x": 105, "z": 125, "range": 12, "itemsSecured": 1 },
   "sinks": { "campRange": 20 },

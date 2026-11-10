@@ -8,6 +8,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Schema = require(ReplicatedStorage:WaitForChild("WildboundTuningSchema"))
 local View = require(ReplicatedStorage:WaitForChild("WildboundHudView"))
+-- Items and totem (IT1): the Amuleto's fear softening is a client value.
+local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
 local player = Players.LocalPlayer
 
 local folder = ReplicatedStorage:WaitForChild(Schema.FOLDER, 30)
@@ -16,7 +18,7 @@ local read = Schema.reader(folder)
 
 local listeners = {}
 local function changed()
-	Schema.apply({ View = View }, read, "client")
+	Schema.apply({ View = View, Gear = Gear }, read, "client")
 	for _, listener in ipairs(listeners) do task.spawn(listener) end
 end
 local function watch(child)

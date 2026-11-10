@@ -43,7 +43,10 @@ return function(sources)
 		local stepBody = body(world, "local function step(h, now, dt)")
 		has(stepBody, "targetContext(h, player, detectionFor(player, parameters.detectionRange))", "acquisition asks about the owner")
 		hasNot(stepBody, "for player in pairs(records)", "no scan over every player")
-		has(stepBody, "Hunt.step(h.huntState, now, current, {}, profile.memorySeconds)", "no challenger ever switches the hunt")
+		-- Items IT1: the memory now passes through the owner's Amuleto (Gear.memory). Deliberately changed from
+		-- profile.memorySeconds; the empty challenger list is what this case pins.
+		has(stepBody, "Hunt.step(h.huntState, now, current, {}, Gear.memory(profile.memorySeconds, gearOf(target)))",
+			"no challenger ever switches the hunt")
 	end)
 
 	case("FP2: strikes, marks, warnings, acknowledgements and notices go through the owner's own hunter", function()

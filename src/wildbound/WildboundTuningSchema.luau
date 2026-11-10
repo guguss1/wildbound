@@ -32,6 +32,7 @@ Schema.MODULES = table.freeze({
 		file = "src/wildbound/WildboundSpawnClock.luau (SpawnClock.CONSTANTS)" }),
 	WaveClock = table.freeze({ name = "WildboundWaveClock",
 		file = "src/wildbound/WildboundWaveClock.luau (WaveClock.CONSTANTS)" }),
+	Gear = table.freeze({ name = "WildboundGear", file = "src/wildbound/WildboundGear.luau (Gear.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -196,6 +197,14 @@ Schema.SYSTEMS = table.freeze({
 		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
 		-- RW6: the biome variant rotates every this many waves (never by nights).
 		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
+	}) }),
+	-- Items and totem (plan Part 4): the equipment's effects. The Amuleto's fear softening is read on the client.
+	table.freeze({ id = "Gear", label = "Equipo y tótem", entries = table.freeze({
+		value("GLOVES_CALM", "Guantes: calma más rápida (x)", "Gear", "GLOVES_CALM", 1.3, 1, 2, 0.05),
+		value("GLOVES_RING", "Guantes: círculo más ancho (studs)", "Gear", "GLOVES_RING", 0.4, 0, 1, 0.05),
+		value("BOOTS_DRAIN", "Botas: gasto de aliento (x)", "Gear", "BOOTS_DRAIN", 0.7, 0.3, 1, 0.05),
+		value("AMULET_MEMORY", "Amuleto: memoria de La Silueta (-s)", "Gear", "AMULET_MEMORY", 1, 0, 4, 0.5),
+		value("AMULET_FEAR", "Amuleto: latido y miedo (x)", "Gear", "AMULET_FEAR", 0.6, 0, 1, 0.05, "client"),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

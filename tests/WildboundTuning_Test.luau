@@ -105,13 +105,18 @@ return function(Schema, modules)
 			-- Random world (RW5): the biome event.
 			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS",
 			-- Random world (RW6): the biome variant rotation.
-			"World.VARIANT_EVERY_WAVES" }) do
+			"World.VARIANT_EVERY_WAVES",
+			-- Items and totem (plan Part 4, IT1): the equipment's effects.
+			"Gear.GLOVES_CALM", "Gear.GLOVES_RING", "Gear.BOOTS_DRAIN", "Gear.AMULET_MEMORY", "Gear.AMULET_FEAR" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
 		equal(Schema.find("Camera", "SPRINT_FOV_KICK").side, "client", "the camera kick is read on the client")
 		equal(Schema.find("Camera", "OTHER_SILUETA_FADE").side, "client", "the fade of another player's Silueta is a client value")
 		equal(Schema.find("Silueta", "MAX_HUNTERS").min, 1, "at least one Silueta")
+		-- IT1: the amulet's fear softening is presentation on the owner's client; the rest is server gameplay.
+		equal(Schema.find("Gear", "AMULET_FEAR").side, "client", "the amulet's fear softening is read on the client")
+		equal(Schema.find("Gear", "BOOTS_DRAIN").side, "server", "the boots' drain is applied by the server")
 		-- Fix pass (FP4): a toggle is 0 (off) or 1 (on), on by default; the lunge tell keeps the readable floor.
 		for _, key in ipairs({ "LUNGE_ON", "FAKE_ON", "GLARE_ON", "SCREAM_ON" }) do
 			local toggle = Schema.find("Silueta", key)

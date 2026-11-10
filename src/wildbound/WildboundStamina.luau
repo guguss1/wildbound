@@ -81,7 +81,8 @@ function Stamina.speed(base, stance)
 end
 
 -- One step. input = { speed = horizontal studs/s, blocked = capture, hidden or dead, carrying = a creature is
--- carried, inCamp = inside the safe circle }. Returns { noise, warn, slip, changed } as booleans.
+-- carried, inCamp = inside the safe circle, regenScale? (a Refugio), drainScale? (the Botas) }. Returns { noise,
+-- warn, slip, changed } as booleans.
 function Stamina.step(state, dt, input, now)
 	local out = { noise = false, warn = false, slip = false, changed = false }
 	if type(state) ~= "table" or type(input) ~= "table" or not finite(dt) or dt < 0 or not finite(now) then return out end
@@ -94,7 +95,9 @@ function Stamina.step(state, dt, input, now)
 	local threshold = before == "sprint" and EPSILON or C.START - EPSILON
 	if wants and moving and not state.exhausted and state.stamina >= threshold then
 		state.stance = "sprint"
-		state.stamina -= C.DRAIN * dt
+		-- Items and totem (IT1): the Botas pass drainScale under 1; anything not in (0, 1] is 1, so it never costs more.
+		local drain = finite(input.drainScale) and input.drainScale > 0 and input.drainScale <= 1 and input.drainScale or 1
+		state.stamina -= C.DRAIN * drain * dt
 		state.lastDrainAt = now
 		if state.stamina <= EPSILON then
 			state.stamina, state.exhausted, state.stance = 0, true, "exhausted"

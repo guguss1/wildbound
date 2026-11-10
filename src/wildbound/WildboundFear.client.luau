@@ -29,6 +29,9 @@ if playerGui:FindFirstChild("WildboundFearUI") then
 end
 local View, Text = require(viewModule), require(textModule)
 local WORDS = Text.FEAR or {}
+-- Items and totem (IT1): the owner's Amuleto softens the heartbeat, red edge and shake (presentation only). Optional.
+local gearModule = ReplicatedStorage:WaitForChild("WildboundGear", 10)
+local Gear = gearModule and require(gearModule) or nil
 
 local connections = {}
 local function listen(signal, callback)
@@ -233,6 +236,7 @@ local function feel()
 		if adultDistance then nearest = math.min(nearest, adultDistance) end
 	end
 	local f = View.fear(cues, now, View.threat(nearest), reduced)
+	if Gear then f = Gear.softenFear(f, Gear.ownedFrom(function(name) return player:GetAttribute(name) end)) end
 	-- The red edge beats with the heart; black wins when La Silueta has just seen you.
 	local strength = math.max(f.red * (0.8 + 0.2 * math.sin(now * math.pi * 2 * (1 + f.heart))), f.dark)
 	edges.Visible = strength > 0.01

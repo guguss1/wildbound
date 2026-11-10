@@ -30,7 +30,9 @@ for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland
 end
 for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSession", Incubator = "WildboundIncubator",
 	-- Random world (RW3): the wave clock.
-	WaveClock = "WildboundWaveClock" }) do
+	WaveClock = "WildboundWaveClock",
+	-- Items and totem (plan Part 4): the gear rules.
+	Gear = "WildboundGear" }) do
 	local module = ReplicatedStorage:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

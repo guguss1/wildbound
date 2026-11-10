@@ -28,6 +28,13 @@ local RECIPES = table.freeze({
 	{ id = "totem", title = "Tótem", effect = "protege un objeto más; La Silueta te nota antes" },
 	{ id = "capsule", title = "Cápsula", effect = "guarda un objeto en el refugio" },
 })
+-- Items and totem (plan Part 4, IT1): the equipment, in order. Names equal WildboundText.GEAR (a test checks).
+local GEAR = table.freeze({
+	{ id = "guantes", title = "Guantes de captura", owned = "equipados", effect = "calmas más rápido y el círculo es más ancho" },
+	{ id = "botas", title = "Botas", owned = "equipadas", effect = "correr gasta menos aliento" },
+	{ id = "chaleco", title = "Chaleco", owned = "equipado", effect = "aguanta un golpe que te derrotaría, una vez por salida" },
+	{ id = "amuleto", title = "Amuleto", owned = "equipado", effect = "La Silueta te olvida antes y el miedo pesa menos" },
+})
 local SKILLS = table.freeze({
 	{ id = "explorer_1", title = "Rastro", effect = "puntos de recolección a %d studs", key = "nodeHintRange" },
 	{ id = "explorer_2", title = "Olfato", effect = "Nightbloom a %d studs de noche", key = "nightbloomHintRange" },
@@ -153,6 +160,24 @@ function View.campRows(config, economy, snapshot, ctx)
 		local why = ctx.atCamp == false and "Ve al campamento" or nil
 		table.insert(rows, row("totem:on", "Craft", "Pon el tótem: protege un objeto más, pero La Silueta te percibe antes.",
 			"ArmTotem", "totem", "Poner", why == nil and not ctx.busy, why))
+	end
+	-- IT1: the equipment, one of each, crafted at camp and kept for the session.
+	local gear = type(snapshot.gear) == "table" and snapshot.gear or {}
+	local gearSpecs = type(config.gear) == "table" and config.gear or {}
+	for _, item in ipairs(GEAR) do
+		local spec = gearSpecs[item.id]
+		if spec then
+			if gear[item.id] == true then
+				table.insert(rows, row("gear:" .. item.id, "Gear", ("%s: %s. %s."):format(item.title, item.owned, item.effect),
+					nil, nil, nil, false))
+			else
+				local why = reason(ctx, snapshot, spec.cost)
+				local made = row("gear:" .. item.id, "Gear", line(item.title, item.effect, spec.cost, why), "CraftGear", item.id,
+					"Fabricar", why == nil, why)
+				made.short = shortLine(item.title, spec.cost, why)
+				table.insert(rows, made)
+			end
+		end
 	end
 	local upgrades = type(snapshot.upgrades) == "table" and snapshot.upgrades or {}
 	local names = {}
