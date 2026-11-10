@@ -99,7 +99,9 @@ return function(Schema, modules)
 			"World.LIFETIME", "World.RESPAWN_COMUN", "World.RESPAWN_LEGENDARIA", "World.MAX_COMUN", "World.MAX_LEGENDARIA",
 			"World.EGG_SHARE",
 			-- Random world (RW3): the wave length.
-			"World.WAVE_SECONDS" }) do
+			"World.WAVE_SECONDS",
+			-- Random world (RW3, RW4): the first egg near camp and the Refugios.
+			"World.FIRST_EGG_RADIUS", "World.REFUGE_MIN", "World.REFUGE_MAX", "World.REFUGE_RADIUS", "World.REFUGE_REGEN" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

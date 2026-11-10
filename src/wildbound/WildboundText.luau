@@ -146,6 +146,10 @@ return freeze({
 	WAVE = {
 		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
 	},
+	-- Random world (RW4): the moving safe circles. The sign is one word.
+	REFUGE = {
+		sign = "Refugio",
+	},
 	-- Random world (plan Part 3, RW2): the rarity of a spawn, shown on its glow and its prompt.
 	RARITY = {
 		Comun = "Común",

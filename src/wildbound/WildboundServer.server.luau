@@ -975,6 +975,50 @@ worldEvent.OnServerEvent:Connect(function()
 	telemetry:SetAttribute("WorldEventRejected", (telemetry:GetAttribute("WorldEventRejected") or 0) + 1)
 end)
 local currentWave = nil
+-- Random world (RW4): 2 or 3 Refugios each wave, from the graph's candidates (never inside the territory): a glowing
+-- circle with a totem pole and a "Refugio" sign. Rules.zone reports them safe, so La Silueta's chase ends there and
+-- no strike lands; parents never chase into one; stamina comes back twice as fast. Camp and shelter stay.
+local refugeFolder = Instance.new("Folder")
+refugeFolder.Name, refugeFolder.Parent = "Refuges", runtime
+local REFUGE_GLOW = Color3.fromRGB(120, 235, 205)
+local TOTEM_COLORS = { Color3.fromRGB(122, 84, 52), Color3.fromRGB(196, 120, 64), Color3.fromRGB(88, 128, 96),
+	Color3.fromRGB(150, 70, 60) }
+local function buildRefuge(refuge)
+	local model = Instance.new("Model")
+	model.Name = "Refugio_" .. refuge.id
+	model:SetAttribute("RefugeId", refuge.id)
+	local ground = relief:heightAt(refuge.x, refuge.z)
+	local circle = block(model, "Circle", Vector3.new(0.3, refuge.r * 2, refuge.r * 2),
+		CFrame.new(refuge.x, ground + 0.15, refuge.z) * CFrame.Angles(0, 0, math.rad(90)), REFUGE_GLOW, Enum.PartType.Cylinder)
+	circle.Material, circle.Transparency = Enum.Material.Neon, 0.65
+	local top
+	for index, color in ipairs(TOTEM_COLORS) do
+		top = block(model, "Totem", Vector3.new(1.8, 1.7, 1.8), CFrame.new(refuge.x, ground + 0.9 + (index - 1) * 1.75, refuge.z)
+			* CFrame.Angles(0, index * 0.55, 0), color)
+	end
+	local crown = block(model, "TotemCrown", Vector3.new(1.2, 1.2, 1.2), top.CFrame * CFrame.new(0, 1.5, 0), REFUGE_GLOW,
+		Enum.PartType.Ball)
+	crown.Material = Enum.Material.Neon
+	local light = Instance.new("PointLight")
+	light.Color, light.Range, light.Brightness, light.Parent = REFUGE_GLOW, refuge.r + 6, 1.4, crown
+	local sign = Instance.new("BillboardGui")
+	sign.Name, sign.Size, sign.StudsOffset = "Sign", UDim2.fromOffset(150, 36), Vector3.new(0, 2.5, 0)
+	sign.MaxDistance, sign.LightInfluence, sign.AlwaysOnTop = 140, 0, false
+	local label = Instance.new("TextLabel")
+	label.Size, label.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+	label.Text, label.TextScaled, label.Font = Text.REFUGE.sign, true, Enum.Font.GothamBold
+	label.TextColor3, label.TextStrokeTransparency = REFUGE_GLOW, 0.2
+	label.Parent = sign
+	sign.Parent = crown
+	model.Parent = refugeFolder
+end
+local function placeRefuges()
+	local picked = WaveClock.pickRefuges(spawnGraph.refugeCandidates, rng, Rules.refuges())
+	refugeFolder:ClearAllChildren()
+	Rules.setRefuges(picked, WaveClock.live.REFUGE_RADIUS)
+	for _, refuge in ipairs(Rules.refuges()) do buildRefuge(refuge) end
+	telemetry:SetAttribute("Refuges", #Rules.refuges())
+end
 local function broadcast(kind, data)
 	local message = WaveClock.message(kind, data)
 	if message then worldEvent:FireAllClients(message) end
@@ -993,6 +1037,7 @@ local function startWave(event, now)
 	else
 		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
 	end
+	placeRefuges()
 	currentWave = { wave = event.wave, endsAt = event.endsAt }
 	telemetry:SetAttribute("Wave", event.wave)
 	broadcast("wave", waveData())
@@ -1047,7 +1092,10 @@ local function wakeIsland(island, now)
 		local distance = math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2)
 		if reading.carrying == spec.id then reading.record.criaWokeAt = now end
 		if distance <= radius + 20 then send(reading.player, "IslandWoke", false, Text.ISLAND.woke) end
-		table.insert(candidates, { key = reading.player, x = reading.x, z = reading.z, carrying = reading.carrying })
+		-- RW4: a thief standing in a Refugio is never chased.
+		if not Rules.refugeAt(reading.x, reading.z) then
+			table.insert(candidates, { key = reading.player, x = reading.x, z = reading.z, carrying = reading.carrying })
+		end
 	end
 	-- EI-2: one adult, the nearest to the thief, gives a short chase inside the island.
 	local target = Island.chaseTarget(spec, candidates)
@@ -1175,7 +1223,10 @@ local function stepIslands(now, dt)
 		if chase then
 			local target = chase.target
 			local root = target.Parent == Players and rootOf(target) or nil
-			local live = root ~= nil and context(target) == true
+			-- RW4: a thief who reaches a Refugio is out of reach; the adult gives up at once and walks home.
+			local sheltered = root ~= nil and Rules.refugeAt(root.Position.X, root.Position.Z) ~= nil
+			if sheltered and chase.state.mode ~= "Return" and chase.state.mode ~= "Home" then chase.state.left = 0 end
+			local live = root ~= nil and context(target) == true and not sheltered
 			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
 			local c = chase.state
 			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike" or c.mode == "Pounce")
@@ -1869,6 +1920,7 @@ local function updateStamina(now, dt)
 				speed = Vector3.new(velocity.X, 0, velocity.Z).Magnitude,
 				blocked = capturing or hidden,
 				carrying = snapshot ~= nil and snapshot.carrying ~= nil, inCamp = safe,
+				regenScale = Rules.refugeAt(x, z) and WaveClock.live.REFUGE_REGEN or 1,
 			}, now)
 			-- Dev tuning: a changed sprint value re-applies WalkSpeed at once, not only on the next stance change.
 			if out.changed or record.tuned ~= Stamina.version then

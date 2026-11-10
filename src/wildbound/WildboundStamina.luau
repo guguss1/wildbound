@@ -103,7 +103,9 @@ function Stamina.step(state, dt, input, now)
 		state.stance = state.exhausted and "exhausted" or "walk"
 		if now - state.lastDrainAt >= C.REGEN_DELAY - EPSILON then
 			local rate = moving and C.REGEN_WALK or C.REGEN_STILL
-			state.stamina = math.min(C.POOL, state.stamina + rate * dt)
+			-- Random world (RW4): a Refugio passes regenScale 2; anything that is not a positive number is 1.
+			local scale = finite(input.regenScale) and input.regenScale > 0 and input.regenScale or 1
+			state.stamina = math.min(C.POOL, state.stamina + rate * scale * dt)
 		end
 		if state.exhausted and state.stamina >= C.RECOVER - EPSILON then
 			state.exhausted, state.stance = false, "walk"

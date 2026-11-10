@@ -117,9 +117,36 @@ function Rules.startOffset(roll)
 	return 0
 end
 
+-- Random world (RW4): the wave clock's Refugios, safe circles that move each wave. The inventory server sets them and
+-- every script that asks Rules.zone sees them (one module instance per server). A circle that would reach the
+-- territory is refused, so a Refugio never takes away a place La Silueta may strike. Camp and shelter stay permanent.
+local refugeList = {}
+function Rules.setRefuges(list, radius)
+	table.clear(refugeList)
+	if type(list) ~= "table" then return end
+	radius = Rules.finite(radius) and radius > 0 and radius or 12
+	for _, refuge in ipairs(list) do
+		if type(refuge) == "table" and type(refuge.id) == "string" and Rules.finite(refuge.x) and Rules.finite(refuge.z)
+			and Rules.distance(refuge.x, refuge.z, Rules.HOME_X, Rules.HOME_Z) - radius > Rules.HOME_LEASH then
+			table.insert(refugeList, table.freeze({ id = refuge.id, x = refuge.x, z = refuge.z, r = radius }))
+		end
+	end
+end
+function Rules.refuges()
+	return table.clone(refugeList)
+end
+function Rules.refugeAt(x, z)
+	if not Rules.finite(x) or not Rules.finite(z) then return nil end
+	for _, refuge in ipairs(refugeList) do
+		if Rules.distance(x, z, refuge.x, refuge.z) <= refuge.r then return refuge.id end
+	end
+	return nil
+end
+
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
 	local safe = Rules.distance(x, z, -140, 140) <= 35 or Rules.distance(x, z, 105, 125) <= 22
+		or Rules.refugeAt(x, z) ~= nil
 	local fog = x >= -45 and x <= 165 and z >= -165 and z <= 35
 	return fog, safe
 end

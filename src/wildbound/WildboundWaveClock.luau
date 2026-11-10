@@ -24,12 +24,14 @@ WaveClock.CONSTANTS = freeze({
 	BOARD_SIZE = 3,
 	FIRST_EGG_RADIUS = 70,
 	NAME_BYTES = 20,
+	-- RW4: Refugios per wave, their radius in studs and the stamina regeneration inside.
+	REFUGE_MIN = 2, REFUGE_MAX = 3, REFUGE_RADIUS = 12, REFUGE_REGEN = 2,
 })
 WaveClock.REMOTE = "WorldEvent"
 WaveClock.KINDS = freeze({ wave = true, board = true, event = true })
 
-local TUNABLE = { "WAVE_SECONDS" }
-local FLOORS = { WAVE_SECONDS = 10 }
+local TUNABLE = { "WAVE_SECONDS", "FIRST_EGG_RADIUS", "REFUGE_MIN", "REFUGE_MAX", "REFUGE_RADIUS", "REFUGE_REGEN" }
+local FLOORS = { WAVE_SECONDS = 10, FIRST_EGG_RADIUS = 20, REFUGE_RADIUS = 4, REFUGE_REGEN = 1 }
 WaveClock.live = {}
 
 function WaveClock.tunable()
@@ -153,6 +155,42 @@ function WaveClock.message(kind, data)
 		if data.endsAt ~= nil and not finite(data.endsAt) then return nil end
 		return { kind = "event", phase = data.phase, species = data.species, endsAt = data.endsAt }
 	end
+end
+
+local function roll(rand)
+	if type(rand) == "table" or typeof(rand) == "Random" then
+		local ok, value = pcall(function() return rand:NextNumber() end)
+		if ok and finite(value) then return math.clamp(value, 0, 0.999999) end
+	end
+	return 0
+end
+
+-- RW4: this wave's Refugios: REFUGE_MIN to REFUGE_MAX distinct candidates (WildboundSpawnGraph.refugeCandidates), new
+-- ones first, so the set moves every wave when it can.
+function WaveClock.pickRefuges(candidates, rand, previous)
+	local out = {}
+	if type(candidates) ~= "table" then return out end
+	local old = {}
+	for _, refuge in ipairs(type(previous) == "table" and previous or {}) do
+		if type(refuge) == "table" and refuge.id ~= nil then old[refuge.id] = true end
+	end
+	local fresh, used = {}, {}
+	for _, candidate in ipairs(candidates) do
+		if type(candidate) == "table" and type(candidate.id) == "string" and finite(candidate.x) and finite(candidate.z) then
+			table.insert(old[candidate.id] and used or fresh, candidate)
+		end
+	end
+	local low = math.max(0, math.floor(WaveClock.live.REFUGE_MIN + 0.5))
+	local high = math.max(low, math.floor(WaveClock.live.REFUGE_MAX + 0.5))
+	local count = math.min(low + math.floor(roll(rand) * (high - low + 1)), #fresh + #used)
+	for _, pool in ipairs({ fresh, used }) do
+		while #out < count and #pool > 0 do
+			local index = math.floor(roll(rand) * #pool) + 1
+			local candidate = table.remove(pool, index)
+			table.insert(out, { id = candidate.id, x = candidate.x, z = candidate.z, ground = candidate.ground })
+		end
+	end
+	return out
 end
 
 -- The client's check: a message is read only when it rebuilds to itself through WaveClock.message.

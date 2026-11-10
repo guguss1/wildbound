@@ -112,5 +112,72 @@ return function(WaveClock, source, sources)
 		has(client, "WaveClock.read(", "the client reads only well-formed messages")
 	end)
 
+	local CANDIDATES = {
+		{ id = "K007", x = -17.5, z = 70 }, { id = "P001", x = -120.08, z = 95.41 }, { id = "P002", x = -75.01, z = 58.96 },
+		{ id = "P004", x = -50.5, z = 17.69 }, { id = "P012", x = 97.51, z = -25.59 }, { id = "P014", x = 103.86, z = 38.09 },
+		{ id = "P016", x = 99.52, z = 85.89 },
+	}
+
+	case("RW4: two or three Refugios each wave from the candidates, a new set each wave", function()
+		local C = WaveClock.CONSTANTS
+		equal(C.REFUGE_MIN, 2); equal(C.REFUGE_MAX, 3); equal(C.REFUGE_REGEN, 2)
+		assert(C.REFUGE_RADIUS >= 8 and C.REFUGE_RADIUS <= 15, "a circle a few players fit in")
+		local previous = nil
+		for seed = 1, 20 do
+			local picked = WaveClock.pickRefuges(CANDIDATES, Random.new(seed), previous)
+			assert(#picked >= C.REFUGE_MIN and #picked <= C.REFUGE_MAX, "count " .. #picked)
+			local seen = {}
+			for _, refuge in ipairs(picked) do
+				assert(not seen[refuge.id], "distinct")
+				seen[refuge.id] = true
+				for _, old in ipairs(previous or {}) do assert(old.id ~= refuge.id, "a new set each wave") end
+			end
+			previous = picked
+		end
+		equal(#WaveClock.pickRefuges({}, Random.new(1)), 0, "no candidates, no Refugio")
+	end)
+
+	case("RW4: Rules.zone reports a Refugio as safe; a Refugio never reaches the territory", function()
+		local Rules = sources.rules
+		assert(type(Rules) == "table" and type(Rules.setRefuges) == "function", "Rules.setRefuges missing")
+		Rules.setRefuges({ { id = "P004", x = -50.5, z = 17.69 }, { id = "BAD", x = 0, z = -40 } }, 12)
+		local _, safe = Rules.zone(-50.5, 17.69)
+		equal(safe, true, "inside")
+		equal(Rules.refugeAt(-50.5 + 11, 17.69), "P004")
+		equal(Rules.refugeAt(-50.5 + 13, 17.69), nil)
+		equal(Rules.refugeAt(0, -40), nil, "a circle inside the territory is refused")
+		equal(#Rules.refuges(), 1)
+		equal(Rules.inTerritory(-50.5, 17.69), false, "no strike inside")
+		Rules.setRefuges(nil)
+		local _, after = Rules.zone(-50.5, 17.69)
+		equal(after, false, "cleared")
+		equal(select(2, Rules.zone(-140, 140)), true, "camp stays permanent")
+	end)
+
+	case("RW4: stamina comes back twice as fast in a Refugio", function()
+		local Stamina = sources.stamina
+		local a, b = Stamina.new(0), Stamina.new(0)
+		a.stamina, b.stamina = 20, 20
+		a.lastDrainAt, b.lastDrainAt = -10, -10
+		Stamina.step(a, 1, { speed = 0 }, 0)
+		Stamina.step(b, 1, { speed = 0, regenScale = 2 }, 0)
+		equal(b.stamina - 20, 2 * (a.stamina - 20))
+		local c = Stamina.new(0)
+		c.stamina, c.lastDrainAt = 20, -10
+		Stamina.step(c, 1, { speed = 0, regenScale = 0 / 0 }, 0)
+		equal(c.stamina, a.stamina, "a bad scale is ignored")
+	end)
+
+	case("RW4: the server places the Refugios each wave; inside: no strike, no parent chase, regen x2", function()
+		local server = sources.server
+		has(server, "WaveClock.pickRefuges(spawnGraph.refugeCandidates,")
+		has(server, "Rules.setRefuges(")
+		has(server, "regenScale = Rules.refugeAt(x, z) and WaveClock.live.REFUGE_REGEN or 1", "stamina x2")
+		has(server, "not Rules.refugeAt(", "a parent never chases into a Refugio")
+		has(server, "Text.REFUGE.sign", "the sign reads Refugio")
+		has(sources.world or "", "Rules.zone(position.X, position.Z)", "the chase ends on the same zone rule")
+		equal(sources.text.REFUGE.sign, "Refugio")
+	end)
+
 	return result
 end
