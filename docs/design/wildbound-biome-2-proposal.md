@@ -2,6 +2,8 @@
 
 Status: **design proposed, awaiting user decisions. Nothing here is built, inserted or approved.** Written 2026-11-09 for Part 5 of the approved plan (PH "Noches y oleadas"): a second biome that is bright, colorful and cute for kids, reachable from camp like the forest, with its own beast. Every number is a hypothesis. No asset ID below is invented: all come from a `search_asset` run on 2026-11-09 against the Studio instance for place `122652861404212` (read-only; nothing was inserted and Play was not started).
 
+**User decision, 2026-11-10 (supersedes the recommendation in section 7):** the east biome is **Pradera Arcoíris** and its permanent beast is **La Nube Gruñona**, as designed in `docs/design/wildbound-biome-pradera.md`. **La Abeja Reina** becomes the beast of the 20-minute biome event: she wakes when the event egg appears, guards it at La Colmena for its 5-minute window, then goes back to sleep. Two beasts never hunt the same player at once: her ground is laid out outside la Nube's strike zone, so even during the event a player is inside at most one strike zone. Both stay per-player hunters and fair (telegraph at least 0.8 s, no defeat screens). The rest of this document is kept as the record of how the options were compared; where it disagrees with the Pradera design, the Pradera design wins.
+
 Spanish appears only in player-facing names and text. Names have had no trademark search (see decision X5 in `docs/design/wildbound-expansion-bible.md`).
 
 ## Quick path
@@ -153,14 +155,16 @@ Why five and not more: the forest registry already has Lumipol plus four rig spe
 
 ## 7. Recommendation and open decisions
 
-**Recommendation: Pradera Luminosa with La Abeja Reina as the beast, and La Nube Tormenta kept as the biome event ("la tormenta") rather than a second beast.** Reasons: the meadow shares the forest's build vocabulary so the world reads as one game and the free toolbox supply is good; the bee is the clearest "cute but careful" shape for kids, its hunting reuses the noise and Investigate systems already built and tested, and "quiet players are safe" is a rule a six-year-old can state. The storm cloud is the most original of the four and the simplest to make fair, but a cloud that never leaves you can read as stress; as a 5-minute event over the special egg it is a highlight instead of a constant. El Mimo is the best second idea and fits the game's own verb; propose it later as the Legendaria guard. El Camaleón needs the most new code for the least cuteness.
+**Superseded by the user's decision of 2026-11-10 (see the top of this document): Pradera Arcoíris with La Nube Gruñona as the beast and La Abeja Reina as the event beast.** The original recommendation is kept below for the record.
+
+**Recommendation (2026-11-09): Pradera Luminosa with La Abeja Reina as the beast, and La Nube Tormenta kept as the biome event ("la tormenta") rather than a second beast.** Reasons: the meadow shares the forest's build vocabulary so the world reads as one game and the free toolbox supply is good; the bee is the clearest "cute but careful" shape for kids, its hunting reuses the noise and Investigate systems already built and tested, and "quiet players are safe" is a rule a six-year-old can state. The storm cloud is the most original of the four and the simplest to make fair, but a cloud that never leaves you can read as stress; as a 5-minute event over the special egg it is a highlight instead of a constant. El Mimo is the best second idea and fits the game's own verb; propose it later as the Legendaria guard. El Camaleón needs the most new code for the least cuteness.
 
 Open decisions for the user, one at a time:
 
 | # | Decision | Default if nothing is said |
 | --- | --- | --- |
-| B1 | Pradera Luminosa or Bosque Caramelo | Pradera Luminosa |
-| B2 | Beast: Abeja Reina, Mimo, Camaleón or Nube Tormenta | Abeja Reina, with Nube Tormenta as the event |
+| B1 | Pradera Luminosa or Bosque Caramelo | **Decided 2026-11-10: Pradera Arcoíris** (the Pradera design's name) |
+| B2 | Beast: Abeja Reina, Mimo, Camaleón or Nube Tormenta | **Decided 2026-11-10: La Nube Gruñona as the beast, La Abeja Reina as the event beast** (the reverse of this proposal's default) |
 | B3 | Keep the staged strike (mark then defeat) in biome 2, or mark only | Keep, same rules game-wide |
 | B4 | Do other players see your beast faint, or not at all | Faint (same as the forest decision) |
 | B5 | Does biome 2 rotate variants on the wave clock (for example Rocío, Polen, Arcoíris, Luciérnagas), or stay fixed | Fixed for the first build |

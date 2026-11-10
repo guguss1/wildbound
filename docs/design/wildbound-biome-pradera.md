@@ -2,6 +2,8 @@
 
 **Status: design synthesis plus an offline kit. Nothing here is approved as a game rule, placed in Studio, played or measured on a device.** Written 2026-11-09 from the user's direction of that day (one open world: La Silueta's forest to the west, a permanent safe social hub in the centre, a bright biome for kids to the east, joined side by side, creatures that earn Esencia in a corral, a free path that always exists and Robux offers that shorten it) and from the three concept documents in `docs/design/kids-biome-concepts/` (`bee.md`, `mimo.md`, `storm.md`) after two independent judgments. Every number is a hypothesis for the tuning panel and the simulator. Design and code are English; in-game names and player strings are neutral Spanish. No monetization is implemented or authorized by this document.
 
+**User decision, 2026-11-10:** the east biome is Pradera Arcoíris and its permanent beast is La Nube Gruñona, as below. **La Abeja Reina** (from `kids-biome-concepts/bee.md`) is the beast of the 20-minute biome event only: she wakes when the event egg appears, guards it at La Colmena for its 5-minute window, then sleeps again (section 6). Her ground never touches la Nube's, so one player is never hunted by two beasts at once. The open-world plan now reads this document's kit (`docs/design/wildbound-open-world-hub.md`).
+
 **Originality:** every name below (biome, beast, creatures, places, items, chips) was invented for Wildbound and checked against the three concepts for collisions. The word Pompón, which named a creature in two concepts and the biome in the third, is not used anywhere.
 
 ## Quick path
@@ -53,7 +55,7 @@ Grafts, in the order both judgments asked for them:
 | Contrast with the forest | The forest hides distance with mist; the Pradera shows the far edge at every hour and hides only the strike timing. La Silueta is tall, silent and worst at Night; la Nube is wide, low, loud (grumbles, a tuba-like hum, a sneeze) and asleep at Night |
 | Core verbs for a child | Walk, look up, step out of the circle, stand under a mushroom, collect, bring home |
 | What never happens here | No darkness, no fog wall, no blood, no scream, no jump scare, no defeat screen, no stack loss, no damage even with the private damage mode on |
-| Sector | 400 x 400 studs centred at world (+300, 0); the hub centre is the origin; the forest sector is its mirror at (-300, 0) |
+| Sector | 400 x 400 studs centred at world (+300, 0); the hub centre is the origin (safe circle of radius 60); the forest sector is its mirror at (-300, 0) |
 | Mood by zone | **Prado** (open hills, most of the sector): no threat. **Tormenta** (within 110 studs of her pond): her shadow drifts here, the rarer creatures live here. **Sol** (sun circles): no strikes, no acquisition, stamina regen x2; the gate and the Plaza del Molino are permanent ones |
 
 ## 2. Palette and atmosphere
@@ -125,11 +127,11 @@ Storm weather is local: she carries her own drizzle emitter and shadow disc. The
 | `PA_HillBoulder` | 6 x 5 x 4 | 1 | Smooth lavender boulder; half of them perch on the hills | Collides; a creature perch |
 | `PA_RainbowGate` | 30 x 13 x 3 | 23 | Two wood posts 17.9 studs apart with a three-band coral, sky and butter arch 11.9 studs clear | The **Portón del Arcoíris**; `clear` 16 x 11 is met |
 | `PA_Pinwheel` | 2 x 4 x 2 | 6 | Pinwheel on a stick along the path; also the shape of the **Molinillo** distraction item | `tiny` 4; attribute `Distraction = Molinillo` |
-| `PA_SetaTrueno` | 26 x 26 x 26 | 17 | The tallest mushroom, in the pond's shallows 15 studs from her home, with a spiral of eight small caps up the stem (in open sky) and a glowing pedestal on top for the event egg | Collides; `Roof` under the cap; `EventEggMarker` at the top |
+| `PA_SetaTrueno` | 26 x 26 x 26 | 17 | The tallest mushroom, in the pond's shallows 15 studs from her home, with a spiral of eight small caps up the stem (in open sky) and a butter-yellow crown on top: a lookout a child can climb. It is no longer the event pedestal (the event egg is at La Colmena, section 6) | Collides; `Roof` under the cap; `LookoutMarker` at the top |
 
 **Planned mix (seed 20261109, written by the planner):** 48 giant mushrooms (16 per cap colour), 30 puff trees, 12 mushroom rings, 40 puff flowers in 8 patches, 32 sunflower posts (8 circles x 4), 20 boulders, 1 gate, 16 pinwheels, 1 Seta Trueno: **200 instances**, **1,259 primitive parts** with the nests, circles, hills, path, signs, beast placeholder and markers. The forest plan is 207 instances and 512 MeshParts; this is more parts and far fewer triangles, and **neither has been measured on a device**.
 
-**Rules the planner enforces (and `tools/test_plan_pradera_layout.py` re-derives):** every point of the Tormenta zone outside the pond has a roof edge within 25 studs (1,065 grid points, 0 uncovered); at least four caps lean over the path so cover is taught on the way in; mushrooms in the Tormenta zone are larger than in the Prado (mean 1.17 against 0.98); no sun-circle candidate within 60 studs of her home or on the pond rim; nothing but the Seta Trueno in the pond; nests on flat ground with 10 studs of clearance; the first nest within 80 studs of the gate; hills clear of the path, the circles and the nests; every instance's `y` equals the hill formula under it.
+**Rules the planner enforces (and `tools/test_plan_pradera_layout.py` re-derives):** every point of the Tormenta zone outside the pond has a roof edge within 25 studs (1,065 grid points, 0 uncovered); at least four caps lean over the path so cover is taught on the way in; mushrooms in the Tormenta zone are larger than in the Prado (mean 1.17 against 0.98); no sun-circle candidate within 60 studs of her home or on the pond rim; nothing but the Seta Trueno in the pond; nests on flat ground with 10 studs of clearance (the event nest at La Colmena included); the first nest within 80 studs of the gate; La Colmena's 45-stud leash disc at least 15 studs outside the Tormenta zone, 5 studs outside every sun circle and 3 studs from the path's edge, and no sun-circle candidate placed closer than that; hills clear of the path, the circles and the nests; every instance's `y` equals the hill formula under it.
 
 **Materials of the biome (two):**
 
@@ -148,7 +150,7 @@ All at Lumipol scale (`WildboundSpecies.LOOKS.Lumipol.size` 3 x 2 x 2.4; a cría
 | **Musgón** | Común | N2 (-30, -70), 2 adults | Mint moss dome on four stubby feet (`A8E6B0`, `6FBF8A`, `2B3A30`, `C9F5D0`) | Dozes under caps and waddles to the nearest roof when it drizzles, teaching cover by example | 0.5 |
 | **Esponjín** | Rara | N3 (60, 50), 3 adults, 103 studs from her home | White cloud-fleece puff floating a hand above the grass (`FFFFFF`, `D9C8F0`, `4A3F6B`, `F2ECFF`) | Drifts downwind of her and settles in sun circles, so following one often leads a child to safety | 1.0 |
 | **Hongolín** | Épica | N4 (100, -45), 3 adults, 67 studs from her home, on the pond side | Walking coral cap with glowing spots and tiny legs (`F28B9B`, `FFF4E0`, `3A2E22`, `FFD7DE`) | Stays near the pond rim and spreads its cap when startled | 2.0 |
-| **Relampino** | Legendaria | N5 on the Seta Trueno cap (136, -6, y 26), no parents: event only | Small lilac storm-puff with a sunny round face and harmless sparks (`B4A8D2`, `FFD23F`, `2B2440`, `FFF1A8`) | Hatches only from the Huevo de Tormenta, circles its owner crackling | 4.0 |
+| **Relampino** | Legendaria | N5 at La Colmena, sector (-75, 75), world (225, 75), on flat ground, no parents: event only | Small lilac storm-puff with a sunny round face and harmless sparks (`B4A8D2`, `FFD23F`, `2B2440`, `FFF1A8`) | Hatches only from the Huevo Real that La Abeja Reina guards (section 6), circles its owner crackling | 4.0 |
 
 **Abilities (each needs code; none exists). Every one has a downside, and none solves the beast:**
 
@@ -170,7 +172,7 @@ A wide, low cumulus about 14 studs across and 8 tall, floating with her belly 10
 
 ### 5.2 Senses
 
-She is weather: she sees anyone standing **under open sky** within her detection range. The server casts one ray straight up from the player's head against `CanQuery` parts tagged `WildboundRoof`; a hit means covered. Range 40 studs by day, dusk and dawn. She does not hear footsteps, does not care about flashlights, and never reads the camera. A crackling event egg in the bag adds 10 studs to her range on that carrier. Cost: one upward ray per player per 5 Hz tick, about 40 rays a second for eight players.
+She is weather: she sees anyone standing **under open sky** within her detection range. The server casts one ray straight up from the player's head against `CanQuery` parts tagged `WildboundRoof`; a hit means covered. Range 40 studs by day, dusk and dawn. She does not hear footsteps, does not care about flashlights, and never reads the camera. The event egg in a bag does not change her senses (the event is La Abeja Reina's, section 6). Cost: one upward ray per player per 5 Hz tick, about 40 rays a second for eight players.
 
 ### 5.3 Where and when
 
@@ -235,35 +237,123 @@ NubeGrunona = table.freeze({
 
 Tunables for the dev panel: `NUBE_TELEGRAPH_SECONDS` 1.0 (floor 0.8), `NUBE_RING_RADIUS` 6, `NUBE_CHASE_SPEED` 14 (ceiling 15.5), `NUBE_MEMORY_SECONDS` 2, `NUBE_MAX_CHASE_SECONDS` 12, `NUBE_GIVE_UP_DISTANCE` 60, `NUBE_LEASH` 90, `NUBE_DETECTION` 40 / 20 asleep, `NUBE_NAP_SECONDS` 60, `NUBE_CANSARLA_COUNT` 3, `NUBE_VISUAL_SCALE` 1.0.
 
-## 6. Biome event: Huevo de Tormenta
+## 6. Evento: la Abeja Reina
+
+User decision, 2026-11-10. La Nube Gruñona is the biome's only permanent beast. **La Abeja Reina** (adapted from `kids-biome-concepts/bee.md`) is the beast of the 20-minute biome event: she sleeps inside her hive at all other times, wakes when the event egg appears, guards it for the 5-minute window, then goes back to sleep. The numbers below are generated by `tools/plan_pradera_layout.py` into the `abeja_event` block of `pradera-layout-v1.json` and re-derived by `check_abeja_event` in `tools/test_plan_pradera_layout.py`; every one of them is a hypothesis for the tuning panel and a playtest.
+
+### 6.1 Where: La Colmena
 
 | Item | Decision |
 | --- | --- |
-| Clock | Every 20 minutes, first at minute 5, offset 10 minutes from the forest event so the two never overlap (W3) |
-| Announcement | Banner "¡Huevo de Tormenta en la Pradera Arcoíris!" to every player, plus a distant comic thunderclap. A **rainbow** rises from the gate and arcs to the Seta Trueno, visible from the hub plaza: the navigation is a picture |
-| Where | On the glowing pedestal atop the **Seta Trueno** (26 studs, in the shallows 15 studs from her home, a Legendaria point). The spiral of small caps up the stem is the way up, in open sky |
-| **The puzzle (from mimo)** | **Two eggs sit on the pedestal.** The Huevo de Tormenta is lilac with a yellow zigzag, rocks gently and casts a shadow. The **Huevo Nublado** is a puff of her cloud shaped like an egg: matte grey, perfectly still, and it casts no shadow. Taking the wrong one pops it into a mini-storm: an immediate ring telegraph at your feet (1.0 s, every gate applies). Tells are shape, motion and shadow, so they work muted and colour-blind; the chip "Algo no cuadra…" appears at 6 studs for readers |
-| Window | 5 minutes, then the egg vanishes with a soft pop and the rainbow fades |
-| Claimant | One per server per event; the first "Tomar el huevo" hold (3 s) takes it |
-| While active | She is **Enfurruñada**: chase 15 (still under 16), telegraph 0.9 (still above 0.8), detection 44, and she patrols around the Seta Trueno instead of the pond loop. At Night she wakes for the climb only. The egg crackles in the bag: +10 detection on its carrier until banked |
-| Payoff | Banked at the hub incubator, hatch time 300 s, hatches **Relampino**, the biome's Legendaria and its only source; Esencia at extraction: the Heart egg row (14) |
-| Fairness | While the event runs, Épica spawns in the Tormenta zone double, so a child who is not first still profits from the trip |
+| Hive and egg point | **La Colmena**, sector (-75, 75), world **(225, 75)**: a flat glade south of the cream path whose nearest solid prop is 45 studs away (the planner keeps at least 10, the wild-nest rule). The event nest N5 (Relampino) stands in its centre on a wax pedestal. The hive itself (stacked wax tiers in the `PA_` palette) is a kit follow-up: the generated module places only the nest and its `EventNestMarker` |
+| Distances | 237 studs from la Nube's pond, 134 from the gate, 70 from the Plaza del Molino, 181 from the hub's east gate, 137 from the open-world ring road |
+| Announcement | Banner "¡Huevo Real en La Colmena!" to every player, a distant cheerful trumpet-buzz, and a **rainbow** that rises from the gate and arcs to La Colmena, visible from the hub plaza: the navigation is a picture. The Plaza del Molino bulletin shows the countdown |
+| The egg | The **Huevo Real**: lilac with a yellow zigzag and a honey-gold band, rocking gently and casting a shadow. It hatches **Relampino**, the biome's Legendaria and its only source. "Tomar el huevo" is a 3 s hold; the first player to finish it claims it (one claimant per server per event) |
+| The two-egg puzzle (from mimo) | A **Huevo de Cera** sits beside it: matte wax, perfectly still, no shadow. Taking it melts it into honey: Pegajoso (below) for 6 s, no sting, nothing dropped. Tells are shape, motion and shadow, so they work muted and colour-blind; the chip "Algo no cuadra…" appears at 6 studs for readers |
+
+### 6.2 When: tied to the event clock
+
+| Moment | What she does |
+| --- | --- |
+| Event clock | The egg appears at 300 s and every 1,200 s after, and stays 300 s (`first_seconds`, `period_seconds`, `window_seconds`). The offset against the forest event is still open (gaps document, section 2.5) |
+| Outside the window | **Asleep inside the hive.** No Abeja exists for anybody; the glade is ordinary meadow and spawns nothing (the open-world seeds keep 48 studs clear of the egg) |
+| Egg appears | **Despierta**: a 3 s wake-up (yawn, stretch, crown glints, "¡Bzz!"). She cannot notice or strike while waking, so nobody is caught by the alarm |
+| Window open | **Guardia**: she loops the egg at radius 18 at 7 studs/s and hunts by sound (6.4) |
+| Egg claimed and carried past her leash, or window ends | **Vuelve a dormir**: a 4 s yawn and "Zzz" back into the hive. A telegraph in progress at that instant is cancelled, never resolved |
+| Night | The event still runs. She wakes, but her hearing is halved (`ABEJA_NIGHT_HEARING_SCALE` 0.5) and the glade is lantern-lit, matching the Pradera's "Night is the safe time east" |
+
+### 6.3 Her ground, and why it never meets anything safe or la Nube's
+
+| Radius around the egg | Studs | Rule |
+| --- | ---: | --- |
+| Patrol | 18 | Her guard loop |
+| **Guard (strike zone, "colmenar")** | **35** | She acquires, telegraphs and stings only players inside it |
+| Leash | 45 | She never flies farther from the egg; walking out of it ends every hunt |
+| Wake | 70 | Your own Abeja exists only while you are this close during the window |
+
+Checked by the planner and its tests on every seed: her 45-stud leash disc stays **82 studs outside la Nube's 110-stud strike zone** (at least 15 required), **13 studs outside the nearest sun circle** (the Plaza del Molino; at least 5 required for every sun circle, the gate's 25-stud circle and every rerolled candidate included, and no candidate is ever placed closer), **12 studs from the cream path's edge** (at least 3 required) and inside the sector. In the open-world plan she is a third strike zone: no world road and no Refugio candidate lies inside her guard radius or her leash (`check_no_road_or_refugio_inside_any_strike_zone`), and no two strike zones overlap (`check_strike_zones_never_overlap`).
+
+### 6.4 Senses and hunt (from the bee concept)
+
+She **hears**, never sees: the server derives a noise radius from what each player did at 5 Hz, never from a client report. Walking 30 studs, sprinting 55, a jump landing 70, a failed capture 55; **standing still is silent (0)**, and so is the 3 s "Tomar el huevo" hold. She ignores roofs, flashlights and the camera. So the event teaches the one trick la Nube does not: la Nube is "look up and stand under a cap", the Abeja is "freeze when she turns". A child who sneaks in while she is on the far side of her loop and freezes when she comes round wins without a sting.
+
+| State | Chip (Spanish) | Rule | Tell |
+| --- | --- | --- | --- |
+| Guardia | none | Loop at radius 18, 7 studs/s | Yellow and brown stripes, half-closed smiling eyes, a low hum |
+| Te oyó | "Te oyó" (ear icon) | A player inside her guard radius made noise within her hearing: she stops for 1.0 s, no movement | Antennae snap toward the sound, a "?" puff, stripes flash orange once, the hum stops |
+| Te busca | "Te busca" (eyes icon) | Flies to the last heard point at **10 studs/s** (under walk 16), memory 3 s, never past her leash | Orange stripes, a buzz that rises in pitch (never volume) as she nears |
+| ¡Zum! (telegraph) | "¡Zum! Sal de la línea" | Within 9 studs of a heard target: she hovers, rises 3 studs and a **6-stud lane is drawn on the grass to the target**. Telegraph **1.2 s** (floor 0.8, a contract). Target-only warning with attack id and acknowledgement, every fair-strike gate of the forest | Stripes pulse orange, the lane and a honey ring glow, the buzz climbs to a whistle |
+| Picotazo (sting) | "¡Plof!" | She dives along the lane at most 12 studs and cannot turn; only a target still in the lane at impact is stung | A soft "plof" and a honey splat |
+| Después | none | 2.5 s cooldown, dizzy stars | Hovers, wide open |
+| Te perdió | "Te perdió" (check icon) | 3 s with nothing heard, or the target left her leash: a shrug, then back to her loop | "¿?" puff, stripes fade to yellow |
+| Duerme | "La Reina duerme" (moon icon) | Section 6.2 | Closed eyes, "Zzz", pale stripes |
+
+**Why it stays fair (arithmetic, not measured).** Her search speed 10 is under walk 16, so walking away always works, and 10 studs past her guard rim she must stop. Leaving the 3-stud half-lane takes 0.19 s at walk speed and 0.33 s at the honey speed 9, against a 1.2 s telegraph. Standing still is always silent. She never strikes outside her guard radius, never enters a sun circle (none is within reach), never comes near the gate, the path or the hub, and is asleep for 15 of every 20 minutes.
+
+### 6.5 The sting: honey, never damage
+
+The Pradera's kids rule (section 5.5) applies; damage stays off even in private damage mode.
+
+| Sting | Consequence | Recovery |
+| --- | --- | --- |
+| First (Pegajoso) | Honey: walk speed **9 for 6 s** (kept above 8 so the shared `carrySpeed > 8` contract holds), yellow drips at the screen edge (never red), and **one unwarded bag item is parked next to you** for 120 s, owner-only, with an arrow. Pouch materials are never touched. **If you carry the Huevo Real, it drops at your feet** and waits 120 s, still claimable by anyone: the event stays winnable | A sun circle or the hub washes the honey off on entry; it also wears off |
+| Second while Pegajoso (Vuelo de vuelta) | She scoops you up, giggling, and flies you **3 s to the Plaza del Molino** (the nearest permanent sun circle, 70 studs). Carried bag items drop where the sting happened and wait 120 s. **No defeat screen, no stack loss, no "lost" summary**: the summary says where your things are. The server-side move passes the same stall-cancel gates as la Nube's Ráfaga | Walk back; the honey is gone on arrival |
+
+Nothing is ever destroyed by the Abeja. The cost is time and a short walk.
+
+### 6.6 How a child reads it
+
+Four cues, each enough alone: (1) a giant smiling bee, the only striped thing in the biome, appears only while the rainbow is up; (2) her stripes are her mood: yellow is calm, orange means she heard you; (3) a glowing lane on the grass means step sideways, and the lane never moves; (4) a big icon chip in big words. The banner's second line teaches the rule once: "Si no te mueves, no te oye." Sound is comic (hum, "¡hm!", buzz, "¡plof!", giggle), never a scream; the event works muted. `WildboundFear.client.luau` effects stay off in the Pradera.
+
+### 6.7 Per-player rule
+
+| Rule | Decision |
+| --- | --- |
+| One Abeja per player | Like la Nube and La Silueta (F2): your Abeja hears and targets only you; others see it faint (S4). It exists only while the event runs **and** you are within 70 studs of the egg; it flies back into the hive when you leave or the window ends |
+| Never two beasts on one player | La Colmena's whole leash disc lies outside la Nube's strike zone, so a player inside the Abeja's guard radius is always outside la Nube's: at any instant at most one beast can target a player, in normal play and during the event. La Nube keeps hunting her own ground as usual during the event |
+| `MAX_HUNTERS` | A player's Nube and Abeja never hunt at once, but both may exist; whether the idle one despawns is the open hunter-lifecycle question (gaps document, M5). Eight players at the egg mean eight Abejas over one glade: pathing cost and readability are to be measured |
+| Claimant | One per server per event, as before; a sting drops the egg where it was carried, so the event is never lost to a sting |
+| Payoff | Banked at the hub incubator; hatches **Relampino**; Esencia at extraction: the Heart egg row (14). Per-egg hatch time against the incubator's single `HATCH_SECONDS` is still open (gaps document, section 2.5) |
+| Fairness for the rest | While the event runs, Épica spawns in the Tormenta zone double, so a child who is not first still profits from the trip, with la Nube as the only beast there |
+
+### 6.8 Tunables (dev tuning schema, proposal)
+
+| Key | Value | Range to expose | Note |
+| --- | ---: | --- | --- |
+| `ABEJA_GUARD_RADIUS` | 35 | 25 to 40 | Must keep the planner's clearances; regenerate the plan after a change |
+| `ABEJA_LEASH` | 45 | guard + 5 to 50 | Same |
+| `ABEJA_PATROL_RADIUS` | 18 | 10 to 25 | |
+| `ABEJA_WAKE_RADIUS` | 70 | 55 to 90 | Per-player spawn distance |
+| `ABEJA_WAKE_SECONDS` / `ABEJA_SLEEP_SECONDS` | 3 / 4 | 2 to 5 | No notice or strike while waking |
+| `ABEJA_PATROL_SPEED` / `ABEJA_CHASE_SPEED` | 7 / 10 | chase ceiling 15.5 | Chase stays under walk 16 |
+| `ABEJA_HEAR_WALK` / `ABEJA_HEAR_SPRINT` / `ABEJA_HEAR_STILL` | 30 / 55 / 0 | still is always 0 | Jump landing 70, failed capture 55 |
+| `ABEJA_NIGHT_HEARING_SCALE` | 0.5 | 0.4 to 1.0 | |
+| `ABEJA_NOTICE_SECONDS` / `ABEJA_MEMORY_SECONDS` | 1.0 / 3 | | |
+| `ABEJA_TELEGRAPH_SECONDS` | 1.2 | 0.8 to 1.5 | 0.8 s floor is the fair-strike contract |
+| `ABEJA_LANE_WIDTH` / `ABEJA_DIVE_LENGTH` | 6 / 12 | | |
+| `ABEJA_COOLDOWN_SECONDS` | 2.5 | | Reuses `ATTACK_COOLDOWN` |
+| `ABEJA_STICKY_SPEED` / `ABEJA_STICKY_SECONDS` | 9 / 6 | speed above 8 | `carrySpeed > 8` contract |
+| `ABEJA_PARK_SECONDS` | 120 | | Parked item and dropped egg |
+| Event clock | 300 / 1200 / 300 s | | First, period, window |
 
 ## 7. Loop in this biome, and how a child reads it
 
-Enter through the Portón del Arcoíris; the first 25 studs are a sun circle and the pictogram sign stands beside it. Chispín's nest is 68 studs in and visible from the arch, so the first catch happens in about 15 s (the K1 to K4 hook). Follow the cream path under four leaning caps to the Plaza del Molino (permanent sun circle, a bench for Molinillos, a bulletin for the event clock). Go on toward the pond for Esponjín and Hongolín under her shadow, learning roofs, rings and the walk-away. Return to the hub to bank, incubate, put creatures in the corral and spend. Every 20 minutes a rainbow invites you up the Seta Trueno.
+Enter through the Portón del Arcoíris; the first 25 studs are a sun circle and the pictogram sign stands beside it. Chispín's nest is 68 studs in and visible from the arch, so the first catch happens in about 15 s (the K1 to K4 hook). Follow the cream path under four leaning caps to the Plaza del Molino (permanent sun circle, a bench for Molinillos, a bulletin for the event clock). Go on toward the pond for Esponjín and Hongolín under her shadow, learning roofs, rings and the walk-away. Return to the hub to bank, incubate, put creatures in the corral and spend. Every 20 minutes a rainbow points to La Colmena, where La Abeja Reina wakes to guard the Huevo Real for five minutes.
 
 Four cues, each enough alone: (1) the only grey thing in a pastel world is coming; (2) the only dark patch on the ground is her shadow, and you are in it; (3) a yellow ring under your feet means step out, and the ring never chases; (4) a big icon chip in big words. Sound is comic (grumble, tuba hum, sneeze, zip), never a scream, and the game works muted. The gate sign shows three pictograms and three short lines: grey cloud, arrow to a mushroom; yellow ring, arrow out; sunflowers, a smile. `WildboundFear.client.luau` effects are off inside the Pradera: no camera shake, no screen darkening, no heartbeat.
 
 ## 8. How the biome joins the hub
 
+Rewritten 2026-11-10 to match the open-world plan (`docs/design/wildbound-open-world-hub.md`, generated by `tools/plan_open_world_layout.py`, which now reads this biome's layout JSON).
+
 | Element | Decision |
 | --- | --- |
-| Frame | One world frame with the hub centre at (0, 0). The forest sector is centred at (-300, 0), the Pradera at (+300, 0), each 400 x 400. The hub is a 200-stud disc between them. The existing forest moves as one `PivotTo` of its root; its local coordinates, zones and tests keep working with one offset |
-| East gate | `PA_RainbowGate` at sector (-186, 0), world (114, 0), on the hub's east rim over the 14-stud cream path. A permanent sun circle (radius 25) is centred on it, so the hub's safe zone and the biome's first circle overlap and there is never a strip where neither rule applies |
-| West gate | The forest's mirror: a dead-tree arch at world (-100, 0) and the camp's safe circle. A child sees "dark door left, rainbow door right" from the plaza |
-| Join without a seam | Terrain blends over the 30-stud gate path: the hub's warm sand becomes `PA_Path` cream; mushrooms start small at the gate and grow toward the pond; the atmosphere blends `hub` to `prado` over the same 30 studs; the audio bed crossfades from the hub's murmur to birdsong and wind chimes |
-| Rules at the join | Zone resolver: `hub` (safe, no hunters), then `sol` at the gate, then `prado`, then `tormenta` (within 110 of world (450, 0)). Her leash (90) ends 246 studs short of the gate |
+| Frame | One world frame with the hub centre at (0, 0). The hub is a safe circle of **radius 60**. The forest sector is centred at (-300, 0), the Pradera at (+300, 0), each 400 x 400; a 40-stud transition band lies between the hub circle and each sector (east: x 60 to 100). The existing forest moves as one `PivotTo` of its root |
+| East gate | `PA_RainbowGate` at sector (-186, 0), **world (114, 0)**, over the cream path. The path starts at world (105, 0), and a 45-stud connector joins it to the hub's east gate at (60, 0). A permanent sun circle of radius 25 is centred on the gate, covering world x 89 to 139. It does **not** touch the hub's safe circle: the 29 studs from x 60 to 89 are transition ground that is neither safe nor hunted, which is harmless because la Nube's strike zone starts at x 340 and La Colmena's centre lies 64 studs south of the path |
+| West gate | The forest's mirror is the hub's west gate (-60, 0); the "Umbral del Bosque" road leads to the forest shelter at (-195, 125). A child still sees "dark door left, rainbow door right" from the plaza |
+| Join without a seam | Terrain blends over the transition and the first studs of the path: the hub's warm sand becomes `PA_Path` cream; mushrooms start small at the gate and grow toward the pond; the atmosphere blends `hub` to `prado`; the audio bed crossfades from the hub's murmur to birdsong and wind chimes |
+| Rules at the join | Zone resolver: `hub` (safe), the transition (no rule), then `sol` at the gate and the plaza, then `prado`, then `tormenta` (within 110 of world (450, 0)); `colmena` (within 35 of world (225, 75)) only while the event runs. Her leash (90) ends 246 studs short of the gate |
+| Ring road | The open world's beast-free ring passes the Pradera at z ±212 and, on the east, at x 590: 140 studs from her pond, outside her 110-stud strike zone and her 90-stud leash. The Pradera has no ring spoke of its own; its players reach the ring through the hub's north and south spokes |
 | What the hub shows | The corral and the trophy display face east, so Pradera creatures are shown toward their biome; the event rainbow is visible from the plaza |
 
 ## 9. The corral and Esencia
@@ -303,7 +393,7 @@ How the incentive grows: the Esencia ladder roughly doubles per step (60, 150, 3
 | File | What it is |
 | --- | --- |
 | `tools/plan_pradera_layout.py` | The seeded planner: terrain (hills, pond, path), the 200 prop instances, five nests with sleeping parents, eight sun circles, her home and waypoints, the hub frame. Writes JSON, SVG and PNG under `assets/maps/pradera-layout/` |
-| `tools/test_plan_pradera_layout.py` | 23 contracts (section 3), on the default seed and two others |
+| `tools/test_plan_pradera_layout.py` | 24 contracts (section 3 and La Colmena's clearances of section 6), on the default seed and two others |
 | `assets/maps/pradera-layout/pradera-layout-v1.json` | The single source of truth; `.svg` and `.png` are the readable plan |
 | `tools/build-pradera-kit.py` | Renders the JSON into the Luau builder and writes `assets/maps/pradera-layout/pradera-kit-report.json` (exact part counts, palette, sign copy, module Adler-32). `--check` exits 1 when the module is stale |
 | `tools/test_build_pradera_kit.py` | 13 contracts: every instance is a row once, the data block equals the plan, Spanish signs present, palette equals section 2, colliders and query parts only where section 3 allows, Luau blocks balance, parts under the cap, the written module and report are fresh |
@@ -349,7 +439,9 @@ Searched and dropped (no image kept): the "cute low poly pet creature round" and
 | Species data and abilities | `WildboundSpecies.luau` gains five looks with a `rarity` field (W2 adds the field); abilities need `Rules.tryAbility` to accept new actions | Section 4 |
 | Sun circles as Refugios | The W4 Refugio system reads `WildboundSunCircle` models | Section 5.6 |
 | Every number in the dev tuning schema | `WildboundTuningSchema.luau` | Project rule for all new constants |
-| `MAX_HUNTERS` across both biomes | F2 | Two per-player beasts must share one cap |
+| `MAX_HUNTERS` across both biomes | F2 | Three per-player beast kinds (Silueta, Nube, Abeja) must share one cap |
+| La Abeja Reina as the event beast | A hearing module (`WildboundNoise.luau`, server samples at 5 Hz) feeding `Hunt.step`; an event clock that wakes and sleeps her; per-player spawn inside the wake radius; the lane telegraph and dive through `WildboundFairStrike.luau`; Pegajoso and the dropped event egg in `WildboundState.luau`; every `ABEJA_*` value in the tuning schema | Section 6 |
+| La Colmena hive model | `tools/build-pradera-kit.py` (a `PA_Colmena` landmark beside the event nest) | Section 6.1; the generated module places only the nest today |
 
 ## 14. Open questions for the user (one at a time, later)
 
@@ -360,8 +452,9 @@ Searched and dropped (no image kept): the "cute low poly pet creature round" and
 | S3 | Does la Nube nap at Night (Night safe east, worst west), or stay awake all cycle? | Naps |
 | S4 | Do other players see your Nube faint, or not at all? | Faint |
 | S5 | May the storm egg's 300 s hatch be shortened for Robux (reopening `wildbound-incubator.md`)? | No, until the user says otherwise |
-| S6 | Is the name Pradera Arcoíris, or another? | Pradera Arcoíris |
+| S6 | Is the name Pradera Arcoíris, or another? | **Answered 2026-11-10: Pradera Arcoíris, with La Nube Gruñona as the beast and La Abeja Reina as the event beast** |
+| S7 | Is the event egg the "Huevo Real" hatching Relampino, or should the event Legendaria become a bee-themed creature? | Huevo Real, Relampino |
 
 ## 15. What is not verified
 
-Nothing in this document has been measured: no instance or part budget on a device, no telegraph timing with a child, no readability of the strike ring or of the two-egg tells on a phone in sunlight, no corral rate or price against the simulator, no phone taps, and no Studio run of the generated module. The claim that a fixed 6-stud ring plus a 1.0 s telegraph is always escapable is arithmetic at walk speed 16 on flat ground; slopes, lag and a thumb on a phone are the tests that would falsify it. The thumbnail descriptions are of 420-pixel images, not of the models inside.
+Nothing in this document has been measured: no instance or part budget on a device, no telegraph timing with a child, no readability of the strike ring, of the Abeja's lane or of the two-egg tells on a phone in sunlight, no test of whether a child reads "freeze when she turns", no corral rate or price against the simulator, no phone taps, and no Studio run of the generated module. The claim that a fixed 6-stud ring plus a 1.0 s telegraph is always escapable is arithmetic at walk speed 16 on flat ground; slopes, lag and a thumb on a phone are the tests that would falsify it. The thumbnail descriptions are of 420-pixel images, not of the models inside.
