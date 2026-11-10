@@ -1046,11 +1046,17 @@ local function scheduleRespawn(slot)
 	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
 	local generation = nestGen[slot.id]
 	local island = islands[slot.island]
-	task.delay(island and Island.respawnSeconds(island.spec, slot.kind, #Players:GetPlayers()) or 45, function()
+	local function refill()
 		if nestGen[slot.id] ~= generation then return end
+		-- Nest Heist (NH8): a nest never changes while its parents are chasing; it refills once the chase is over.
+		if island and island.chase then
+			task.delay(1, refill)
+			return
+		end
 		nestState[slot.id] = nil
 		ensureNests()
-	end)
+	end
+	task.delay(island and Island.respawnSeconds(island.spec, slot.kind, #Players:GetPlayers()) or 45, refill)
 end
 
 -- EI-2: a caught thief's cria runs home. The nest takes it back at once (a scheduled respawn is cancelled).
@@ -1110,7 +1116,11 @@ end
 local function spawnHeld(now)
 	local held = {}
 	for spawnId, id in pairs(wildEntries) do
-		if capture:encounterState(id, now) ~= "Free" then held[spawnId] = true end
+		local entry = entries[id]
+		-- Nest Heist (NH8): a spawn someone is capturing or holding the prompt of never moves mid-interaction.
+		if capture:encounterState(id, now) ~= "Free" or (entry and EggCarry.holding(entry.holders, now)) then
+			held[spawnId] = true
+		end
 	end
 	return held
 end
@@ -1767,6 +1777,14 @@ spawnEncounter = function(slot)
 	end
 	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10,
 		isEgg and EggCarry.holdFor(rarity, slot.special) or 0)
+	-- NH8: who is holding this prompt right now (the spawn clock holds the spawn meanwhile). Gone with the model.
+	entry.holders = {}
+	entry.prompt.PromptButtonHoldBegan:Connect(function(player)
+		entry.holders[player] = workspace:GetServerTimeNow()
+	end)
+	entry.prompt.PromptButtonHoldEnded:Connect(function(player)
+		entry.holders[player] = nil
+	end)
 	if not isEgg then
 		local cover = table.clone(coverCandidates)
 		local island = slot.island and islands[slot.island]

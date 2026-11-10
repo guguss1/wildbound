@@ -217,6 +217,17 @@ function EggCarry.landingY(fromY, hitY, fallbackY)
 	return finite(fromY) and fromY - 3 or 0
 end
 
+-- NH8: whether a spawn's prompt is being held. holders = { [player] = when the hold began }; a hold counts for at most
+-- HOLD_GRACE seconds (every hold is 1 s or shorter), so a release that never arrived cannot pin a spawn.
+EggCarry.HOLD_GRACE = 3
+function EggCarry.holding(holders, now)
+	if type(holders) ~= "table" or not finite(now) then return false end
+	for _, at in pairs(holders) do
+		if finite(at) and at <= now and now - at <= EggCarry.HOLD_GRACE then return true end
+	end
+	return false
+end
+
 function EggCarry.count(registry, state)
 	local total = 0
 	if type(registry) ~= "table" then return 0 end
