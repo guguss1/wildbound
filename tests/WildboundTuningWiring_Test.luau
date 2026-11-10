@@ -31,7 +31,9 @@ return function(sources)
 			-- Fix pass (FP4): La Silueta's moves.
 			"WildboundSiluetaMoves",
 			-- Random world (RW2): the spawn clock.
-			"WildboundSpawnClock" }) do
+			"WildboundSpawnClock",
+			-- Random world (RW3): the wave clock.
+			"WildboundWaveClock" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")

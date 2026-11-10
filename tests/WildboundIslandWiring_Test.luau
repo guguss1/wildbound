@@ -42,7 +42,10 @@ return function(serverSource, worldSource, clientSource)
 		local stance = block(serverSource, "stanceRemote.OnServerEvent:Connect", "\nend)")
 		hasNot(stance, "meter")
 		local _, remotes = serverSource:gsub('Instance.new%("RemoteEvent"%)', "")
-		assert(remotes == 4, "no new remote, got " .. remotes .. " RemoteEvent constructors")
+		-- Random world (RW3), deliberately changed from 4: the fifth is WorldEvent, server to client only; its handler
+		-- only counts a refusal and never reads the meter.
+		assert(remotes == 5, "no new remote, got " .. remotes .. " RemoteEvent constructors")
+		hasNot(block(serverSource, "worldEvent.OnServerEvent:Connect", "\nend)"), "meter")
 	end)
 
 	case("I6: one player's noise wakes the island for everyone", function()

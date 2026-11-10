@@ -2,7 +2,8 @@
 -- Island = require(freshIslandClone), Brain = require(freshBrainClone), Rules = require(freshRulesClone),
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
 -- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone),
--- Moves = require(freshSiluetaMovesClone), SpawnClock = require(freshSpawnClockClone) }).
+-- Moves = require(freshSiluetaMovesClone), SpawnClock = require(freshSpawnClockClone),
+-- WaveClock = require(freshWaveClockClone) }).
 -- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
@@ -96,7 +97,9 @@ return function(Schema, modules)
 			"Islands.BREATH_SECONDS",
 			-- Random world (RW2): the spawn clock.
 			"World.LIFETIME", "World.RESPAWN_COMUN", "World.RESPAWN_LEGENDARIA", "World.MAX_COMUN", "World.MAX_LEGENDARIA",
-			"World.EGG_SHARE" }) do
+			"World.EGG_SHARE",
+			-- Random world (RW3): the wave length.
+			"World.WAVE_SECONDS" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

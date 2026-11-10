@@ -32,6 +32,8 @@ local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
 -- Random world (plan Part 3, RW2): the spawn clock over the spawn graph (eggs and crias that live 300 s and move).
 local SpawnClock = require(script.Parent:WaitForChild("WildboundSpawnClock"))
 local spawnGraph = require(script.Parent:WaitForChild("WildboundSpawnGraph"))
+-- Random world (plan Part 6, RW3): the wave clock, the wave board and the WorldEvent messages (shared with clients).
+local WaveClock = require(ReplicatedStorage:WaitForChild("WildboundWaveClock"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -280,6 +282,8 @@ local function applyCarry(player)
 end
 -- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
 local refreshDisplay, syncCompanion
+-- RW3: set with the wave clock below; Esencia a player gains reaches the wave board.
+local bankEsencia
 -- card: a registration receipt for the presentation card (B3); the client words it with WildboundRefuge.card.
 local function send(player, action, ok, notice, lossSummary, card)
 	local record = records[player]
@@ -289,6 +293,12 @@ local function send(player, action, ok, notice, lossSummary, card)
 	if refreshDisplay then refreshDisplay(player) end
 	if syncCompanion then syncCompanion(player) end
 	local snapshot = state:snapshot(player.UserId)
+	-- RW3: Esencia gained since the last snapshot counts for this wave's board (spending never does).
+	if snapshot then
+		local ember = snapshot.ember or 0
+		if record.ember ~= nil and ember > record.ember and bankEsencia then bankEsencia(player, ember - record.ember) end
+		record.ember = ember
+	end
 	if snapshot and record.totem ~= snapshot.totemActive then
 		record.totem = snapshot.totemActive
 		totemEvent:Fire(player, snapshot.totemActive)
@@ -953,6 +963,54 @@ local function stepSpawnClock(now)
 	if now < nextSpawnStep then return end
 	nextSpawnStep = now + 1
 	applySpawnActions(SpawnClock.step(spawnClock, now, rng, spawnHeld(now)))
+end
+
+-- Random world (plan Part 6, RW3): the wave clock. The first wave starts when the server opens, with one common egg
+-- near camp (the island first-steal hook is unchanged); every later wave rerolls the random spawns. WorldEvent is
+-- server-to-client only: the server broadcasts what WaveClock.message builds, and a client message is refused.
+local waveClock = WaveClock.new(workspace:GetServerTimeNow())
+local worldEvent = Instance.new("RemoteEvent")
+worldEvent.Name, worldEvent.Parent = WaveClock.REMOTE, network
+worldEvent.OnServerEvent:Connect(function()
+	telemetry:SetAttribute("WorldEventRejected", (telemetry:GetAttribute("WorldEventRejected") or 0) + 1)
+end)
+local currentWave = nil
+local function broadcast(kind, data)
+	local message = WaveClock.message(kind, data)
+	if message then worldEvent:FireAllClients(message) end
+	return message
+end
+local function waveData()
+	if not currentWave then return nil end
+	return { wave = currentWave.wave, endsAt = WaveClock.endsAt(waveClock) or currentWave.endsAt,
+		variant = currentWave.variant, variantChanged = currentWave.variantChanged, board = WaveClock.top(waveClock) }
+end
+local function startWave(event, now)
+	if event.wave == 1 then
+		local egg = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Egg", x = campCenter.Position.X,
+			z = campCenter.Position.Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
+		if egg then applySpawnActions({ { op = "spawn", spawn = egg } }) end
+	else
+		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
+	end
+	currentWave = { wave = event.wave, endsAt = event.endsAt }
+	telemetry:SetAttribute("Wave", event.wave)
+	broadcast("wave", waveData())
+end
+local function stepWaves(now)
+	for _, event in ipairs(WaveClock.step(waveClock, now)) do
+		if event.type == "waveStarted" then startWave(event, now) end
+	end
+end
+bankEsencia = function(player, amount)
+	if WaveClock.bank(waveClock, player.UserId, player.DisplayName, amount) then
+		broadcast("board", { board = WaveClock.top(waveClock) })
+	end
+end
+-- A joining player gets the wave in progress.
+local function sendWave(player)
+	local message = currentWave and WaveClock.message("wave", waveData())
+	if message then worldEvent:FireClient(player, message) end
 end
 
 -- What every live player looks like to the islands this step, read here only.
@@ -1876,6 +1934,7 @@ RunService.Heartbeat:Connect(function(dt)
 	for _, out in ipairs(capture:sweep(now)) do handleEnding(out) end
 	stepWildlife(now)
 	stepIslands(now, stepSeconds)
+	stepWaves(now)
 	stepSpawnClock(now)
 	updateCarryMoods(now)
 	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
@@ -2048,6 +2107,7 @@ local function addPlayer(player)
 	record.characterConnection = player.CharacterAdded:Connect(function(character) bindCharacter(player, character) end)
 	if player.Character then task.spawn(bindCharacter, player, player.Character) end
 	ensureNests()
+	sendWave(player)
 end
 Players.PlayerAdded:Connect(addPlayer)
 Players.PlayerRemoving:Connect(function(player)

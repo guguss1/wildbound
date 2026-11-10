@@ -28,7 +28,9 @@ for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end
-for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSession", Incubator = "WildboundIncubator" }) do
+for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSession", Incubator = "WildboundIncubator",
+	-- Random world (RW3): the wave clock.
+	WaveClock = "WildboundWaveClock" }) do
 	local module = ReplicatedStorage:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

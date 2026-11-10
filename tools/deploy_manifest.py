@@ -201,6 +201,9 @@ DEFAULT_MAPPINGS = [
     # Random world RW2: the pure spawn clock (server only) and its suite
     ("src/wildbound/WildboundSpawnClock.luau", "ServerScriptService.WildboundSpawnClock"),
     ("tests/WildboundSpawnClock_Test.luau", "ServerStorage.WildboundSpawnClock_Test"),
+    # Random world RW3 to RW6: the pure wave clock (shared, the client reads WorldEvent through it) and its suite
+    ("src/wildbound/WildboundWaveClock.luau", "ReplicatedStorage.WildboundWaveClock"),
+    ("tests/WildboundWaveClock_Test.luau", "ServerStorage.WildboundWaveClock_Test"),
 ]
 
 

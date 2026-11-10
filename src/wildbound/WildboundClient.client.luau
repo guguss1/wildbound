@@ -578,6 +578,15 @@ local function showCard(view)
 end
 listen(gui.Destroying, closeCard)
 
+-- Random world (RW3): what the WorldEvent broadcast changes on this HUD. A new wave after the first says so.
+local lastWaveSeen = nil
+local function onWorldEvent(message)
+	if message.kind == "wave" and Text and Text.WAVE then
+		if lastWaveSeen ~= nil and message.wave > lastWaveSeen then showNotice(Text.WAVE.started:format(message.wave)) end
+		lastWaveSeen = message.wave
+	end
+end
+
 task.spawn(function()
 	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
 	local action = folder and folder:WaitForChild("Action", 10)
@@ -605,6 +614,18 @@ task.spawn(function()
 			panel.Visible = false
 			toggle("camp")
 		end
+	end)
+	-- Random world (RW3): the WorldEvent broadcast (the wave, its board, the biome events), read only through
+	-- WaveClock.read; this client never sends on it.
+	task.spawn(function()
+		local remote = folder:WaitForChild("WorldEvent", 10)
+		local waveModule = ReplicatedStorage:FindFirstChild("WildboundWaveClock")
+		local WaveClock = waveModule and waveModule:IsA("ModuleScript") and require(waveModule)
+		if not (gui.Parent and remote and remote:IsA("RemoteEvent") and WaveClock) then return end
+		listen(remote.OnClientEvent, function(payload)
+			local message = WaveClock.read(payload)
+			if message then onWorldEvent(message) end
+		end)
 	end)
 	request("RequestSnapshot")
 	task.wait(3)

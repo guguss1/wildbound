@@ -30,6 +30,8 @@ Schema.MODULES = table.freeze({
 		file = "src/wildbound/WildboundSiluetaMoves.luau (Moves.CONSTANTS)" }),
 	SpawnClock = table.freeze({ name = "WildboundSpawnClock",
 		file = "src/wildbound/WildboundSpawnClock.luau (SpawnClock.CONSTANTS)" }),
+	WaveClock = table.freeze({ name = "WildboundWaveClock",
+		file = "src/wildbound/WildboundWaveClock.luau (WaveClock.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -179,6 +181,8 @@ Schema.SYSTEMS = table.freeze({
 		value("MAX_EPICA", "Épicas a la vez", "SpawnClock", "MAX_EPICA", 2, 0, 12, 1),
 		value("MAX_LEGENDARIA", "Legendarias a la vez", "SpawnClock", "MAX_LEGENDARIA", 1, 0, 12, 1),
 		value("EGG_SHARE", "Parte que son huevos (0 a 1)", "SpawnClock", "EGG_SHARE", 0.4, 0, 1, 0.05),
+		-- RW3: the wave clock.
+		value("WAVE_SECONDS", "Duración de una oleada (s)", "WaveClock", "WAVE_SECONDS", 300, 10, 1800, 10),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

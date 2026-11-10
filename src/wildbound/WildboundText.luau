@@ -142,6 +142,10 @@ return freeze({
 		firstBonus = "+%d de Esencia por tu primera cría",
 		next = "Próxima isla: %s. Allí duermen los %s.",
 	},
+	-- Random world (plan Part 6, RW3): the wave clock's player words. Notices at most 72 bytes.
+	WAVE = {
+		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
+	},
 	-- Random world (plan Part 3, RW2): the rarity of a spawn, shown on its glow and its prompt.
 	RARITY = {
 		Comun = "Común",
