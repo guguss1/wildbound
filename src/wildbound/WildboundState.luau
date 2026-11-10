@@ -529,7 +529,10 @@ function State:hatchReady(key, now)
 			local isNew = player.discovered[entry.species] ~= true
 			table.insert(player.registered, { uid = petUid, species = entry.species })
 			player.discovered[entry.species] = true
-			table.insert(hatched, { uid = petUid, species = entry.species, egg = entry.uid, isNew = isNew })
+			-- NS3: with no companion out, the newborn becomes the companion at once.
+			local equipped = player.equippedUid == nil
+			if equipped then player.equippedUid = petUid end
+			table.insert(hatched, { uid = petUid, species = entry.species, egg = entry.uid, isNew = isNew, equipped = equipped })
 		else
 			index += 1
 		end

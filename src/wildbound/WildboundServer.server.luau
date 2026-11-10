@@ -534,7 +534,13 @@ local function stepIncubators(now)
 	nextHatchAt = now + 1
 	for player in pairs(records) do
 		for _, born in ipairs(state:hatchReady(player.UserId, now)) do
-			send(player, "Hatched", true, Text.INCUBATOR.hatched:format(Text.CARD.species[born.species] or born.species), nil,
+			-- NS3: a newborn with no companion out follows at once (send rebuilds the companion from the snapshot).
+			if born.equipped then
+				player:SetAttribute("WildboundEquippedUid", born.uid)
+				player:SetAttribute("WildboundHasLumipol", true)
+			end
+			local words = born.equipped and Text.INCUBATOR.hatchedEquipped or Text.INCUBATOR.hatched
+			send(player, "Hatched", true, words:format(Text.CARD.species[born.species] or born.species), nil,
 				{ uid = born.uid, species = born.species, ember = 0, isNew = born.isNew, repeated = false })
 		end
 	end

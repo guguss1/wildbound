@@ -95,5 +95,16 @@ return function(Incubator, source, sources)
 		assert(client:find("snapshot.incubating", 1, true), "it reads the server snapshot")
 	end)
 
+	-- Nest Heist Phase 3 (NS3): the newborn is shown on the card, joins the collection and, with no companion out,
+	-- follows the player at once; an egg whose time passed while the player was away hatches on the next step.
+	case("NS3: the hatch card names the companion and the server shows it at once", function()
+		local server, text = sources.server, sources.text
+		assert(type(text.INCUBATOR.hatchedEquipped) == "string" and text.INCUBATOR.hatchedEquipped:find("%s", 1, true),
+			"a notice for a newborn companion")
+		assert(server:find("born.equipped", 1, true), "the server reads the hatch's equip")
+		assert(server:find('player:SetAttribute("WildboundEquippedUid", born.uid)', 1, true), "and sets the companion")
+		assert(server:find("Text.INCUBATOR.hatchedEquipped", 1, true), "with its notice")
+	end)
+
 	return result
 end

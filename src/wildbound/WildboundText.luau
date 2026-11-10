@@ -483,7 +483,6 @@ return freeze({
 		gather = "Recolectar",
 		wilts = " · se marchita al amanecer",
 	},
-	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
 	-- Nest Heist Phase 3 (NS1): saved progress. A failed or locked load never overwrites anything; the player is told.
 	SAVE = {
 		saving = "Tu progreso se guarda automáticamente.",
@@ -495,6 +494,7 @@ return freeze({
 		tooNew = "Hay una versión nueva del juego. Vuelve a entrar para cargar tu progreso. Juegas sin guardar.",
 		memory = "Prueba en Studio: el progreso se guarda solo mientras dure esta prueba.",
 	},
+	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
 	INCUBATOR = {
 		prompt = "Incubar huevo",
 		object = "Incubadora",
@@ -503,6 +503,8 @@ return freeze({
 		full = "La incubadora ya tiene tu huevo. Espera a que eclosione.",
 		noEgg = "No tienes huevos guardados. Guarda uno en el cofre.",
 		hatched = "¡Tu huevo eclosionó! %s se unió a tu colección.",
+		-- NS3: with no companion out, the newborn follows the player at once.
+		hatchedEquipped = "¡Tu huevo eclosionó! %s se unió a tu colección y ahora te acompaña.",
 		row = "Incubando: %s · %s",
 		left = "quedan %d s",
 		hatching = "eclosionando",
