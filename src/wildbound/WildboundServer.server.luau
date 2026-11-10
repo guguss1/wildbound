@@ -1938,6 +1938,43 @@ if RunService:IsStudio() then
 		return false, "UnknownOp"
 	end
 	islandProbe.Parent = telemetry
+	-- Items and totem (plan Part 4): the Play check's gear ops. Studio only, ServerStorage only. "fund" banks Esencia
+	-- and materials for a real player (its UserId) so every item can be crafted; "capture" starts a real capture for that
+	-- player on the nearest free creature, through the same path as the prompt (so the Guantes' wiring is what runs).
+	local gearProbe = Instance.new("BindableFunction")
+	gearProbe.Name = "GearProbe"
+	gearProbe.OnInvoke = function(op, userId)
+		local player = type(userId) == "number" and playersByUserId[userId] or nil
+		if not player then return false, "UnknownPlayer" end
+		if op == "fund" then
+			local profile = state.players["n:" .. tostring(userId)]
+			if not profile then return false, "NoProfile" end
+			profile.ember += 500
+			profile.banked.fogbark += 200
+			profile.banked.glowmoss += 200
+			profile.banked.nightbloom += 20
+			send(player, "Probe", true, "")
+			return true, profile.ember
+		end
+		if op == "capture" then
+			local root = rootOf(player)
+			if not root then return false, "NoRoot" end
+			local best, bestId, bestDistance
+			for id, entry in pairs(entries) do
+				if entry.brain and entry.body and entry.body.Parent then
+					local distance = (entry.body.Position - root.Position).Magnitude
+					if not bestDistance or distance < bestDistance then best, bestId, bestDistance = entry, id, distance end
+				end
+			end
+			if not best then return false, "NoCreature" end
+			root.CFrame = CFrame.new(best.body.Position + Vector3.new(4, 2, 0))
+			task.wait(0.3)
+			startCapture(player, best)
+			return true, bestId
+		end
+		return false, "UnknownOp"
+	end
+	gearProbe.Parent = telemetry
 end
 
 -- I6: a sprint (DP1) or a rustle (D6) near an island disturbs its sleepers; one player's noise wakes it for everyone.

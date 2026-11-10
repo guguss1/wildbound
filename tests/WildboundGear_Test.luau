@@ -406,5 +406,13 @@ return function(Gear, source, sources)
 		end
 	end)
 
+	case("IT3: the Play-check probe is Studio only and grants only on probe ops", function()
+		local server = sources.server
+		local studio = server:find("if RunService:IsStudio() then", 1, true)
+		local probe = server:find('gearProbe.Name = "GearProbe"', 1, true)
+		assert(studio and probe and studio < probe, "the GearProbe is built inside the Studio-only block")
+		has(server, "gearProbe.Parent = telemetry", "it lives in ServerStorage, out of every client's reach")
+	end)
+
 	return result
 end
