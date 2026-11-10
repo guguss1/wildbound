@@ -1,6 +1,6 @@
 # Wildbound hub with personal bases: integration note
 
-**Status (2026-11-10, the feature document's "Nest Heist hub", HB-T1 to HB-T7): built in Studio at server start at the preview origin (0, 0, 600), with base assignment, per-owner delivery, incubator, collection display, glove and training stations, the safe disc and a walkable link from the camp, all checked in a solo Studio Play session; not measured on a device, not tried with two or more real players, the forest is not shifted yet (S1).** Written 2026-11-10 for the master prompt's lobby (`docs/design/wildbound-combined-plan.md` sections 1 and 2): a safe central lobby, a personal base for each of up to 8 players around it, physical exits to the forest, and no PvP and no beasts inside. Every number is a hypothesis for playtests.
+**Update (2026-11-10, HF-T3): the forest shift S1 placed the hub at (282, 0, -3), east of the forest kit; new characters start on its spawn pads facing east (HB6); the camp link is gone and `FK_Evergreen_095` and `FK_Evergreen_101` are removed at start (HB7). Sections 2 and 5 describe the preview state before it.** **Status (2026-11-10, the feature document's "Nest Heist hub", HB-T1 to HB-T7): built in Studio at server start at the preview origin (0, 0, 600), with base assignment, per-owner delivery, incubator, collection display, glove and training stations, the safe disc and a walkable link from the camp, all checked in a solo Studio Play session; not measured on a device, not tried with two or more real players, the forest is not shifted yet (S1).** Written 2026-11-10 for the master prompt's lobby (`docs/design/wildbound-combined-plan.md` sections 1 and 2): a safe central lobby, a personal base for each of up to 8 players around it, physical exits to the forest, and no PvP and no beasts inside. Every number is a hypothesis for playtests.
 
 ## Quick path
 
@@ -106,8 +106,8 @@ Done: rows 1 (without `MaxPlayers`: a Game Settings value, still 60; a ninth pla
 | HB3 | Tag name: `WildboundIncubatorStation` (this builder, per base) or `WildboundIncubator` with `Site` (hub-systems spec) | **Parent: `WildboundIncubatorStation`**; the hub-systems spec section 5 is marked superseded. The camp keeps its `IncubatorMarker` |
 | HB4 | Sign text before a player owns the base: the literal "Base de <jugador>" or "Base libre" | **Parent: "Base libre"**, "Base de {DisplayName}" when assigned (`Text.HUB.freeSign`, `ownedSign`) |
 | HB5 | Per-base collection display replaces the shared Corral parcels (decision HS1)? | **Parent: yes, for now.** The corral parcels were never built in code; the camp's single display is unchanged |
-| HB6 | Campfire on the origin moves the spawn off the old 9-stud spawn pad | Moot until S1: the spawn stays at the camp. After S1, spawn on the four pads facing east |
-| HB7 | Accept removing `FK_Evergreen_095` and `FK_Evergreen_101` for the NW and SW forest trails | Yes; two trees |
+| HB6 | Campfire on the origin moves the spawn off the old 9-stud spawn pad | **Done (HF-T3)**: a new character starts on the spawn pad of its base slot, facing east; the camp is the fallback |
+| HB7 | Accept removing `FK_Evergreen_095` and `FK_Evergreen_101` for the NW and SW forest trails | **Done (HF-T3)**: the hub script removes both at server start |
 
 ## 7. What is verified and what is not
 

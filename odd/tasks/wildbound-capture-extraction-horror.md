@@ -1039,3 +1039,90 @@ Writer decisions, for user review:
 Open questions: set the place's `MaxPlayers` to 8 (HB-W8)? should the glove bench show a glove-only screen instead of the whole camp screen (HB-W5)? should the base pedestal accept a delivery without an egg in the arms (bank the bag) like the chest (HB-W4)? HB2 and HB7 remain for the later pass with the forest shift (S1).
 
 End state: commits `f29e18a` (HB-T1), `1e50490` (HB-T2), `196482b` (HB-T3), `2e56f1e` (HB-T4), `a96d930` (HB-T5), `31ac885` (HB-T6), `941031b` and `2c3e413` (HB-T7), `f4c86d3` (the simulators' literal camp circle) and this document's commit. Studio left in Edit; the temporary runner (`ServerStorage.WildboundFreshRunnerTmp`) and patch helper (`ServerStorage.WildboundPatchTmp`) removed; the place is not saved by this session (every change is committed). Next step: the user reviews HB-W1 to HB-W8, decides `MaxPlayers`, and runs a two-player Studio test (another player's base refusing for real); then the forest shift (S1) changes `Rules.HUB_X, HUB_Z` to the open-world origin and removes the link.
+
+## Hub follow-up and forest shift (2026-11-10, HF-T1 to HF-T5)
+
+Source: the parent's brief after the Nest Heist hub: T1 stalk keep-out, T2 steal-hold latency, T3 the forest shift S1 with HB6 and HB7, T4 the user's tuning (Q1, Q9), and T5 far-from-base for beasts. Instance `cd4f53c7-...`, PlaceId 122652861404212, verified in Edit. Before the first edit, 151 of 151 deployed mapped sources matched HEAD (`c09f845`) by Adler-32 and length. The five new mechanics modules in the manifest are not deployed yet and were treated as such.
+
+Mode: strict TDD (global). Runners:
+- A temporary fresh-clone runner, `ServerStorage.WildboundFreshRunnerTmp`, rewritten this pass. It runs 70 suites, including the two `ServerStorage.WildboundTests` copies.
+- `python -I -B -m unittest discover -s tools -p "test_*.py"`.
+
+Baseline: 70 suites, 1433 passed, 0 failed. Route: one writer, inline; one offline subagent drafted the runner source. Each deploy was a hunk edit, followed by an Adler-32 and length check of every changed source.
+
+- [x] **HF-T1 Stalk sightings keep out of the hub.**
+  - `View.HUB_CIRCLE` repeats `Rules.HUB_*`, because clients cannot load the server rules; a test keeps the two equal.
+  - `STALK_KEEP_OUT` gains the hub disc plus 10 studs, the same margin as the camp.
+  - New `View.inHub`, and `View.farFromHome` (150 studs from both the camp and the hub).
+  - The fear client stages no sighting while the player is in the hub (skip reason `Hub`) and paces sightings with `farFromHome`.
+  - TDD: RED HudView 56/1, FearWiring 9/1. The first GREEN run tripped the module's purity contract twice, on the words "require" and "wait" in new comments; both were reworded. GREEN: 70 suites, 1434 passed.
+  - Commit `e85f9e3`.
+- [x] **HF-T2 Steal-hold latency.**
+  - `EggCarry.CONSTANTS.HOLD_ALLOWANCE` is now 0.35 s (it was a fixed 0.2), clamped to 0.05–0.5. At the 0.6 s glove floor, at least 0.1 s of hold is still needed.
+  - The allowance is in the dev tuning schema (Eggs, "Robar: margen de latencia del mantener (s)").
+  - A refused steal now answers `Text.EGG.holdLonger`, "Mantén presionado un poco más."
+  - TDD: RED EggCarry 30/3, Tuning 13/1. GREEN: 70 suites, 1436 passed.
+  - Commit `8532bf0`.
+- [x] **HF-T4 The user's tuning (combined plan Q1, Q9).**
+  - The parents' close swing, `Island.STRIKE_WINDUP`, goes from 0.45 s to 0.8 s. The schema default and minimum are both 0.8, the fair-strike floor.
+  - `Training.WALK_CAP` goes from 17.5 to 16. The schema range is 16 to 16.5, always under La Silueta's night hunt speed of 17.
+  - **Consequence:** walk levels and the glove's move stat now add nothing on foot. This is left as is on the parent's instruction; the product question is pending.
+  - TDD: RED Island 2, Training 3, Tuning 1 failing. GREEN: 70 suites, 1438 passed.
+  - `tools/simulate_economy.py`: median cautious 208 s, balanced 201 s, greedy 183 s (floor 180).
+  - Commit `6f6d476`.
+- [x] **HF-T3 Forest shift (gaps S1, decision D2) with HB6 and HB7.**
+  - Reconciliation (accepted by the parent): the plans' hub frame puts the forest layout's (0, 0) at (-300, 0). The place builds the forest kit at its layout plus (-18, -3), measured on the Floor centre, `CampCenter` (-158, 137) and four FK trees.
+  - So the forest stays where it was tested, along with every forest rule, island, seed and marker. The hub moves instead: `Rules.HUB_X, HUB_Z = 282, -3`, radius 90.
+  - Clearances: the disc spans x 192 to 372. The forest floor ends at x 182 and the fog at 165. The nearest spawn seed is 108 studs from the hub centre, and La Silueta's home is 294 studs away. The Pradera sector lands east, at place x 382 to 782.
+  - `Rules.toWorld` and `Rules.toHub` map the hub frame to the place and back.
+  - The camp link is gone; a link saved in the place is destroyed at start.
+  - HB7: `FK_Evergreen_095` and `FK_Evergreen_101` are destroyed at hub start (`Bases.REMOVED_FOREST_PROPS`).
+  - HB6: a new character starts on the hub spawn pad of its base slot, facing east (`Bases.spawnIndex`, `Stations:spawnFrame`). The camp is the fallback.
+  - HB2 (shared stations on the lawn ring) is not done. The camp stations are built by server code at the camp markers, so they cannot simply be moved.
+  - TDD: RED Hub 17/4, WorldRules 41/1. GREEN: 70 suites, 1440 passed.
+  - Commit `4226e3d`.
+- [x] **HF-T5 Far from base counts the hub.**
+  - New `Rules.farFromBase(x, z, far)`: true when a point is farther than `far` from both the camp circle's centre and the hub's.
+  - The beast director's context now uses it (`FAR_FROM_BASE` 150); the camp-only local is gone.
+  - TDD: RED WorldRules 42/1, BeastWiring 19/1. GREEN: 70 suites, 1442 passed, 0 failed.
+  - Commit `0de7e7a`.
+- [x] **Biome placement for the new hub.**
+  - `plan_open_world_layout.py --placement-only --hub 282 -3 90` and `biome_map_builder.py` regenerated `biome-placement-v1.json` and the seven builders. Nothing was built in Studio.
+  - The biomes doc states the new hub and centres.
+  - The placement centres the forest slot at (-48, -3), with its 40-stud transition. The real forest stays at (-18, -3), 30 studs east of that slot, which matches decision HB1's 10-stud transition.
+  - Commit `37e54a0`.
+
+**Counts.**
+- Studio: 70 suites, 1442 passed, 0 failed on fresh clones. Against the 1433 baseline: HudView +1, EggCarry +2, Island +1, Tuning +1, Hub +1 net, WorldRules +2, BeastWiring +1; the other changes were in existing cases.
+- Python: 1153 run, only the known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped.
+- Every changed source matched the repo by Adler-32 and length after its deploy, and all 24 were re-checked at the end.
+
+**Play check** (Studio Play solo, background, probes through `execute_luau`):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Hub built beside the forest | PASS | Pivot (282, 0, -3), 390 parts, 19 lights; no `WildboundHubLink`; `FK_Evergreen_095` and `_101` gone |
+| Spawn on a hub pad facing east | PASS | Root at (298, 3.9, -3), on pad 1, 16 studs east of the centre; look (1, 0, 0); base slot 1; `Rules.zone` safe |
+| Walk speed | PASS | `WalkSpeed` 16 |
+| Walk from hub to forest | PASS | Client `MoveTo`: across the plaza, NW gate (220, -65) at 7.4 s, NW trail end (170, -93) at 10.9 s, forest floor (151, -93) at 12.2 s |
+| Console | PASS | No script errors; only the known MeshGen asset permission lines and the Studio DataStore fallback notice |
+| Stalk sightings, the hold notice on screen, the 0.8 s swing in play, two players, phones | NOT VERIFIED | Covered by rules and source contracts only |
+
+**Writer decisions, for user review:**
+
+| ID | Decision |
+| --- | --- |
+| HF-W1 | S1 moves the hub, not the forest: `Rules.HUB_X, HUB_Z = 282, -3` (accepted by the parent). The gaps document's literal "PivotTo the forest by (-300, 0, 0)" is not done |
+| HF-W2 | The hub keep-out for sightings is the safe disc plus 10 (radius 100), like the camp's 35 plus 10 |
+| HF-W3 | Every refused steal trigger gets the notice, including a client that never held |
+| HF-W4 | The spawn pad follows the base slot (slot modulo the 4 pads); a ninth player, or one without a slot, uses pad 1 |
+
+**Open questions:**
+1. Under `WALK_CAP` 16, the walk training levels and the glove's move stat give no walk speed. Should the treadmill be retargeted, or removed?
+2. HB2: where should the shared camp stations go?
+3. The HUD still says "Roba y vuelve al campamento." although players now start at the hub (seen in the Play capture). Should it change?
+
+**End state.**
+- Commits: `e85f9e3`, `8532bf0`, `6f6d476`, `4226e3d`, `0de7e7a`, `37e54a0`, and this document's commit.
+- Studio is left in Edit, with the temporary runner and check helper removed.
+- This session did not save the place. Nothing needs saving: the hub, the tree removal and the spawn all happen at server start.
