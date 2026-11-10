@@ -182,6 +182,8 @@ Other players' trophies are social through two surfaces only: a short server not
 
 ## 5. Incubator at the hub
 
+**Superseded by the per-base incubators (2026-11-10, decision HB3, the feature document's "Nest Heist hub" HB-T4).** The one incubator tag is the hub builder's `WildboundIncubatorStation` (on each base's `IncubatorBase`, with `SlotIndex`), not `WildboundIncubator` with `Site`, and there is no shared hub dome. `src/wildbound/WildboundHubStations.luau` gives each tagged base incubator one prompt (`Keys.HUB.incubator`) that answers only that base's owner within its `Range`; the camp keeps its `IncubatorMarker` and prompt unchanged, and the Bag's `Hatch` measures the nearer of the camp incubator and the own base's one. The table below is the earlier shared-dome plan, kept for reference.
+
 Behaviour is `docs/mechanics/wildbound-incubator.md` unchanged: `State:incubate`, `State:hatchReady`, the 1 Hz hatch step, `HATCH_SECONDS` 90, `SLOTS` 1, `RANGE` 12. What changes is **where**, and that needs a server rewrite, listed here in full:
 
 | Change | Rule |

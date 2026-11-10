@@ -1,12 +1,12 @@
 # Wildbound hub with personal bases: integration note
 
-**Status: offline plan and generated builder only. Nothing here was built in Studio, played or measured on a device.** Written 2026-11-10 for the master prompt's lobby (`docs/design/wildbound-combined-plan.md` sections 1 and 2): a safe central lobby, a personal base for each of up to 8 players around it, physical exits to the forest, and no PvP and no beasts inside. Every number is a hypothesis for playtests.
+**Status (2026-11-10, the feature document's "Nest Heist hub", HB-T1 to HB-T7): built in Studio at server start at the preview origin (0, 0, 600), with base assignment, per-owner delivery, incubator, collection display, glove and training stations, the safe disc and a walkable link from the camp, all checked in a solo Studio Play session; not measured on a device, not tried with two or more real players, the forest is not shifted yet (S1).** Written 2026-11-10 for the master prompt's lobby (`docs/design/wildbound-combined-plan.md` sections 1 and 2): a safe central lobby, a personal base for each of up to 8 players around it, physical exits to the forest, and no PvP and no beasts inside. Every number is a hypothesis for playtests.
 
 ## Quick path
 
 | You are | Read |
 | --- | --- |
-| The Studio writer | Sections 2 (deploy and run), 3 (tags), 5 (code changes) |
+| The Studio writer | Sections 2 (deploy and run), 3 (tags), 5 (code changes and what is done) |
 | The user | Section 6 (decisions) and the picture in section 1 |
 | A reviewer | Section 7 (what is verified) |
 
@@ -38,6 +38,8 @@ The hub grew from layout-v1's radius 60 to **90**: eight bases and a lobby need 
 Budget: **390 parts** (32 per base x 8 = 256, gates 36, hedge 26, lobby 59, paths 12, safe zone 1) under the open-world cap of 400 for the hub, and **19 PointLights** (campfire 1, plaza 4, gates 6, bases 8), all shadowless, range at most 30. Roles: 74 floor and 78 wall parts collide and answer queries; 231 decoration and 7 invisible zone parts have `CanCollide`, `CanQuery` and `CanTouch` off. Nothing is touchable. No MeshParts, uploads, toolbox ids, scripts or `SpawnLocation`.
 
 ## 2. Deploy and run (Studio writer)
+
+**As built (HB-T1).** The hub is built at server start, so the place file never needs saving for it: the Script `ServerScriptService.WildboundHub` (`src/wildbound/WildboundHub.server.luau`) requires `ServerStorage.WildboundHubBuilder` (this module, mapped in `tools/deploy_manifest.py`) and calls `Builder.build(workspace, CFrame.new(Rules.HUB_X, 0, Rules.HUB_Z))`; a hub already in the place (built in Edit) is reused. **The origin is one config value**: `Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 0, 600, 90` in `src/wildbound/WildboundWorldRules.luau`; the forest shift (S1) changes only those numbers (the build, the link and `Rules.zone` follow). Until S1 the same script builds `workspace.WildboundHubLink`, a straight 12-stud path (351 studs) from inside the camp's safe circle (`Rules.CAMP_X, CAMP_Z` = -140, 140) to the NW trail's outer end, with three lanterns and the sign "Plaza central y bases"; remove it after S1. The spawn stays at the camp until S1 (HB6). The manual steps below remain valid for a one-off preview in Edit.
 
 1. Verify the Studio instance and place and get the user's confirmation of that target (`AGENTS.md`).
 2. Create a ModuleScript `ServerStorage.WildboundHubBuilder` whose Source is the whole of `tools/build-wildbound-hub-map.luau`.
@@ -78,9 +80,11 @@ Gate and rules signs carry `SignKey` (`gateE`, `gateW`, ..., `hubRules`) like th
 
 ## 4. How it relates to the current camp
 
-Keep the camp working until the hub replaces it. The hub is inert on its own: no scripts, no SpawnLocation, no marker names the server reads, and no current code binds its tags, so players still spawn, bank, incubate and register at the camp exactly as today. While previewed at an offset it is not a safe zone in code (`Rules.zone` does not know it) and nothing points players there. Retire the camp stations only after the code changes below pass their tests and a Play check, and the user agrees (decision OW2 suggests keeping the camp as a deep-west outpost).
+Keep the camp working until the hub replaces it. The builder's model is inert on its own (no scripts, no SpawnLocation, no marker names the server reads); since HB-T1 to HB-T6 the game code binds its tags (section 5), the disc is safe in `Rules.zone`, and the link path leads there from the camp. Players still spawn at the camp, and the camp's chest, incubator, refuge, board, treadmill and display all still work; the shared stations of HB2 (registration, chest, skill tree, trophies) stay at the camp. Retire the camp stations only after the code changes below pass their tests and a Play check, and the user agrees (decision OW2 suggests keeping the camp as a deep-west outpost).
 
-## 5. Code changes needed (not made here; RED tests first, one Studio writer)
+## 5. Code changes (done 2026-11-10 unless marked; RED tests first, one Studio writer)
+
+Done: rows 1 (without `MaxPlayers`: a Game Settings value, still 60; a ninth player simply gets no base), 2, 3, 4, 6 (the display, gloves and the hold-to-buy treadmill; time on the belt is not counted), 7, and 8 as `tests/WildboundHub_Test.luau` (rules and source contracts; the part count and lights are checked in Play, not by a Studio suite over the built model). Not done: row 5 (spawn, waits for S1). Where they live: `src/wildbound/WildboundBases.luau` (pure: slots, signs, the owner and range check, the display choice, the link geometry), `src/wildbound/WildboundHub.server.luau` (build, link, assignment), `src/wildbound/WildboundHubStations.luau` (one prompt per tagged station, owner and range checked on the server, the display), and one `do` block in `WildboundServer.server.luau` (`Heist.hub`, the handlers that reuse the camp's rules). Each client hides the station prompts of every base that is not its own.
 
 | # | Change | Where |
 | --- | --- | --- |
@@ -97,16 +101,16 @@ Keep the camp working until the hub replaces it. The hub is inert on its own: no
 
 | ID | Question | Recommendation |
 | --- | --- | --- |
-| HB1 | Grow the hub from radius 60 (layout-v1) to 90, shrinking the 40-stud transitions to 10 studs | Yes; regenerate layout-v1's hub block from this plan in a later pass |
-| HB2 | Where the shared stations of layout-v1 go (Refugio registration, Cofre, Puesto, Tablero, Árbol, trophies): the lawn between plaza and promenade, or inside each base | The lawn ring r 30 to 46; not placed yet |
-| HB3 | Tag name: `WildboundIncubatorStation` (this builder, per base) or `WildboundIncubator` with `Site` (hub-systems spec) | One tag for every incubator, with `Site` = `base` or `camp` and `SlotIndex`; rename here when decided |
-| HB4 | Sign text before a player owns the base: the literal "Base de <jugador>" or "Base libre" | "Base libre", with "Base de {nombre}" when assigned |
-| HB5 | Per-base collection display replaces the shared Corral parcels (decision HS1)? | Yes for the master prompt; the corral economy then reads the display |
-| HB6 | Campfire on the origin moves the spawn off the old 9-stud spawn pad | Spawn on the four pads facing east |
+| HB1 | Grow the hub from radius 60 (layout-v1) to 90, shrinking the 40-stud transitions to 10 studs | **Accepted by the parent (2026-11-10)**: `Rules.HUB_RADIUS` 90. Regenerate layout-v1's hub block from this plan in a later pass |
+| HB2 | Where the shared stations of layout-v1 go (Refugio registration, Cofre, Puesto, Tablero, Árbol, trophies): the lawn between plaza and promenade, or inside each base | **Parent: they stay at the current camp until a later pass** (recommendation unchanged: the lawn ring r 30 to 46) |
+| HB3 | Tag name: `WildboundIncubatorStation` (this builder, per base) or `WildboundIncubator` with `Site` (hub-systems spec) | **Parent: `WildboundIncubatorStation`**; the hub-systems spec section 5 is marked superseded. The camp keeps its `IncubatorMarker` |
+| HB4 | Sign text before a player owns the base: the literal "Base de <jugador>" or "Base libre" | **Parent: "Base libre"**, "Base de {DisplayName}" when assigned (`Text.HUB.freeSign`, `ownedSign`) |
+| HB5 | Per-base collection display replaces the shared Corral parcels (decision HS1)? | **Parent: yes, for now.** The corral parcels were never built in code; the camp's single display is unchanged |
+| HB6 | Campfire on the origin moves the spawn off the old 9-stud spawn pad | Moot until S1: the spawn stays at the camp. After S1, spawn on the four pads facing east |
 | HB7 | Accept removing `FK_Evergreen_095` and `FK_Evergreen_101` for the NW and SW forest trails | Yes; two trees |
 
 ## 7. What is verified and what is not
 
 Verified offline by `tools/test_plan_hub_bases.py` (18 tests) and `tools/test_build_hub_map.py` (15 tests): schema and frame match layout-v1; eight bases with distinct colours, each facing the lobby; no overlap between bases (gap at least 2), lobby, promenade, gate paths and hedge; stations at least 2 apart and inside their pad with a 1-stud margin; decorations off bases, paths, pads and the campfire; a walking grid search (0.5-stud cells, 0.8-stud body clearance) reaches every station, every entrance trail end and every spawn pad from spawn pad 1; at least 3 entrances to the forest, gates 40+ studs apart, hedge closed between gates and open across each gate; trails join the layout-v1 connectors they name or reach the forest floor outside the fog and 20+ studs from both hooks; the removed forest props are exactly those under the new trails; the safe disc covers every base, station and pad; nothing lies within any beast's reach plus 10 studs; the bigger hub keeps layout-v1's Refugio, hook, seed and Pradera kit clearances; light budget; only floors and walls collide or query; one tag of each station kind per base at the planned spot; part and light budgets; ball and cylinder shapes Roblox accepts; no marker-name collision with the current code; parent-first model order; Spanish copy; block balance; determinism and freshness of every written file.
 
-Not verified: the module has never run in Luau or Studio (no Luau toolchain offline), so syntax is checked only by the block-balance heuristic and the build-time part-count assert; sign readability on a phone; frame time with 19 lights; how the 4-stud hedge and 2.5-stud fences feel (both are jumpable); whether eight bases read as "mine" for kids.
+Verified in Studio (solo Play, 2026-11-10, HB-T1 to HB-T7): the module builds 390 parts and 19 PointLights at pivot (0, 0, 600) in `Workspace`; a walk from the camp spawn along the link reaches the NW gate and the campfire (33 s); the Studio player gets base 1 and its sign; delivery and incubation at the own base, refusals at another owner's (simulated) and a free base; the display, glove bench and treadmill; the safe disc refuses the bat and forced beasts. Not verified: sign readability on a phone; frame time with 19 lights (plus the link's 3); how the 4-stud hedge and 2.5-stud fences feel (both are jumpable); whether eight bases read as "mine" for kids; two or more real players at once; the MeshGen art on the display (its meshes could not be fetched in that session, so the primitive look showed).
