@@ -27,7 +27,11 @@ if network:FindFirstChild("BeastEvent") then
 	warn("Wildbound beasts: duplicate startup refused.")
 	return
 end
-Proxies.ensure(ReplicatedStorage)
+-- EV-W3: the uploaded Viper and Pouncer models (ServerStorage.WildboundAssets.Beasts) replace the proxies when present.
+do
+	local assets = ServerStorage:FindFirstChild("WildboundAssets")
+	Proxies.ensure(ReplicatedStorage, assets and assets:FindFirstChild("Beasts"))
+end
 -- Server to the target client only. No server handler is connected: whatever a client fires on it reaches nothing.
 local beastEvent = Instance.new("RemoteEvent")
 beastEvent.Name = "BeastEvent"

@@ -53,6 +53,9 @@ end
 -- these). Both at start, so the place file never needs saving.
 local leftover = workspace:FindFirstChild("WildboundHubLink")
 if leftover then leftover:Destroy() end
+-- EV-W3: the editor's preview gallery of the uploaded beast models (built in Edit) is never part of a session.
+local gallery = workspace:FindFirstChild("WildboundBeastGallery")
+if gallery then gallery:Destroy() end
 local forest = workspace:FindFirstChild("WildboundP0")
 if forest then
 	for _, name in ipairs(Bases.REMOVED_FOREST_PROPS) do

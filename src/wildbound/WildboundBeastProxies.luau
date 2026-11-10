@@ -1,6 +1,6 @@
 -- Nest Heist phase 4a (NB4): stylized Part proxies for the two global beasts, built by the server into
 -- ReplicatedStorage.WildboundBeasts.Models so each target client can clone its own visual. They are placeholders, not the
--- final meshes: the faceted Blender models in assets/models/beasts/ need an upload or the user's Studio 3D import first.
+-- final meshes: the uploaded models (EV-W3, Proxies.adopt) replace them when their templates are in ServerStorage.
 -- A model named exactly "Viper" or "Pouncer" in that folder (the user's import) always wins over "ViperProxy" and
 -- "PouncerProxy", and Proxies.ensure never replaces it. Behaviour never reads the model: hitboxes and timing live in
 -- WildboundBeastEncounters, and the red lane and circle are gameplay effects drawn by the client, never part of a model.
@@ -147,8 +147,33 @@ function Proxies.modelFor(models, beast)
 	return proxy and proxy:IsA("Model") and proxy or nil
 end
 
--- Builds ReplicatedStorage.WildboundBeasts.Models and the missing proxies. Never touches an existing model.
-function Proxies.ensure(replicated)
+-- EV-W3: the uploaded rigged models live as templates in ServerStorage.WildboundAssets.Beasts (the ids are recorded in
+-- assets/models/beasts/uploaded-assets.json). A template is adopted only when it has a "Root" part on the ground with
+-- the head along its LookVector (the proxies' convention); the copy is an inert visual: every part anchored, never
+-- colliding, queried or touched. The template itself is never changed. Animations are not uploaded yet, so the model
+-- moves in its rest pose.
+function Proxies.adopt(template, beast)
+	if typeof(template) ~= "Instance" or not template:IsA("Model") or type(beast) ~= "string" then return nil end
+	local root = template:FindFirstChild("Root")
+	if not (root and root:IsA("BasePart")) then return nil end
+	local model = template:Clone()
+	model.Name = beast
+	model.PrimaryPart = model:FindFirstChild("Root")
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.Anchored, d.CanCollide, d.CanQuery, d.CanTouch, d.Massless = true, false, false, false, true
+		elseif d:IsA("PackageLink") then
+			d:Destroy()
+		end
+	end
+	model:SetAttribute("Beast", beast)
+	model:SetAttribute("Proxy", false)
+	return model
+end
+
+-- Builds ReplicatedStorage.WildboundBeasts.Models and the missing proxies (always kept as the fallback), and adopts the
+-- Viper and Pouncer templates when given. Never touches an existing model.
+function Proxies.ensure(replicated, templates)
 	local root = replicated:FindFirstChild("WildboundBeasts")
 	if not root then
 		root = Instance.new("Folder")
@@ -163,6 +188,10 @@ function Proxies.ensure(replicated)
 	end
 	for beast, build in pairs(Proxies.BUILDERS) do
 		if not models:FindFirstChild(beast .. "Proxy") then build().Parent = models end
+		if typeof(templates) == "Instance" and not models:FindFirstChild(beast) then
+			local real = Proxies.adopt(templates:FindFirstChild(beast), beast)
+			if real then real.Parent = models end
+		end
 	end
 	return models
 end

@@ -93,6 +93,10 @@ return function(Bases, source, sources)
 		assert(code:find("Bases.hubCurrent(hub, Builder)", 1, true) < code:find("Builder.build(workspace, ", 1, true),
 			"the version check comes before the build")
 	end)
+	case("EV-W3: the editor's beast preview gallery never reaches a session", function()
+		has(sources.hub, 'workspace:FindFirstChild("WildboundBeastGallery")', "the gallery by name")
+		has(sources.hub, "gallery:Destroy()", "is removed at server start")
+	end)
 	case("HF-T3 (S1): with the hub beside the forest there is no camp link; a leftover link is removed", function()
 		local hub = sources.hub
 		equal(Bases.link, nil, "the link rule is gone")

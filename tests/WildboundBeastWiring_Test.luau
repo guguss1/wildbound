@@ -130,6 +130,65 @@ return function(sources, Proxies)
 		equal(Proxies.modelFor(models, "Mire"), nil)
 	end)
 
+	-- EV-W3 the uploaded models. ServerStorage.WildboundAssets.Beasts holds the four uploaded rigged models as templates
+	-- (Root on the ground, head along its LookVector); the server adopts Viper and Pouncer into the replicated folder.
+	local function template(beast, withRoot)
+		local model = keep(Instance.new("Model"))
+		model.Name = beast
+		local body = Instance.new("Part")
+		body.Name = beast .. "_Body"
+		body.Anchored, body.CanCollide, body.CanQuery, body.CanTouch = false, true, true, true
+		body.Parent = model
+		if withRoot then
+			local root = Instance.new("Part")
+			root.Name = "Root"
+			root.Parent = model
+			model.PrimaryPart = root
+		end
+		local link = Instance.new("Configuration")
+		link.Name = "PackageLinkStandIn"
+		link.Parent = model
+		return model
+	end
+	case("EV-W3: adopt clones a template with a ground Root into an inert visual named after the beast", function()
+		assert(type(Proxies.adopt) == "function", "Proxies.adopt")
+		local source = template("Viper", true)
+		local model = keep(Proxies.adopt(source, "Viper"))
+		assert(model and model ~= source, "a clone")
+		equal(model.Name, "Viper")
+		equal(model.PrimaryPart and model.PrimaryPart.Name, "Root", "pivot on the ground")
+		equal(model:GetAttribute("Beast"), "Viper")
+		equal(model:GetAttribute("Proxy"), false, "not a placeholder")
+		for _, p in ipairs(parts(model)) do
+			assert(p.Anchored and not p.CanCollide and not p.CanQuery and not p.CanTouch, p.Name .. " is inert")
+		end
+		equal(source:FindFirstChild(source.Name .. "_Body").CanCollide, true, "the template itself is untouched")
+		equal(Proxies.adopt(template("Viper", false), "Viper"), nil, "no Root: no adoption, the proxy stays")
+		equal(Proxies.adopt(nil, "Viper"), nil)
+	end)
+	case("EV-W3: ensure adopts the Viper and Pouncer templates, keeps the proxies as fallback, never Gargoyle or Mire", function()
+		local fake = keep(Instance.new("Folder"))
+		local templates = keep(Instance.new("Folder"))
+		for _, beast in ipairs({ "Viper", "Pouncer", "Gargoyle", "Mire" }) do template(beast, true).Parent = templates end
+		local models = Proxies.ensure(fake, templates)
+		assert(models:FindFirstChild("ViperProxy") and models:FindFirstChild("PouncerProxy"), "the proxies stay as fallback")
+		equal(Proxies.modelFor(models, "Viper"), models:FindFirstChild("Viper"), "the real Viper wins")
+		equal(Proxies.modelFor(models, "Pouncer"), models:FindFirstChild("Pouncer"), "the real Pouncer wins")
+		equal(models:FindFirstChild("Gargoyle"), nil, "Gargoyle: template only")
+		equal(models:FindFirstChild("Mire"), nil, "Mire: template only")
+		Proxies.ensure(fake, templates)
+		equal(#models:GetChildren(), 4, "no duplicate on a second call")
+		local empty = keep(Instance.new("Folder"))
+		local only = Proxies.ensure(empty, nil)
+		equal(Proxies.modelFor(only, "Viper"), only.ViperProxy, "no templates: the proxy")
+	end)
+	case("EV-W3: the beast script passes the uploaded templates; hit checks stay server-side and model-free", function()
+		has(sources.beasts, 'Proxies.ensure(ReplicatedStorage, ', "templates passed")
+		has(sources.beasts, 'FindFirstChild("Beasts")', "ServerStorage.WildboundAssets.Beasts")
+		hasNot(sources.proxies, "rbxassetid", "proxies"); hasNot(sources.proxies, "InsertService", "proxies")
+		hasNot(sources.proxies, "Touched", "proxies")
+	end)
+
 	-- NB5 the server wiring.
 	case("NB5: one scheduler: only the beast script rolls, through the director, on its 10 s tick", function()
 		local beasts = sources.beasts
