@@ -76,6 +76,8 @@ local spawnGraph = require(script.Parent:WaitForChild("WildboundSpawnGraph"))
 local WaveClock = require(ReplicatedStorage:WaitForChild("WildboundWaveClock"))
 -- Items and totem (plan Part 4, IT1): the equipment's pure rules (shared with the world script and the fear client).
 local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
+-- Nest Heist (NH1 to NH8): the stolen egg's rules (fast steal, the carry in the arms, drop and pickup).
+local EggCarry = require(script.Parent:WaitForChild("WildboundEggCarry"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -1654,7 +1656,7 @@ spawnEncounter = function(slot)
 	-- A wandering creature keeps this lift over whatever ground it walks onto.
 	local entry = { id = id, slot = slot, model = model, body = body, lift = body.Position.Y - relief:heightAt(slot.x, slot.z) }
 	-- A creature is calmed with a tap, so its prompt has no hold. Eggs keep the short hold.
-	-- I3: the take prompts; an island egg has a 1 s hold and no ring.
+	-- I3: the take prompts; an egg has a hold and no ring. NH1: a normal egg's hold is the short steal hold.
 	local speciesName = Text.CARD.species[slot.species or "Lumipol"] or slot.species or Text.PROMPTS.lumipol
 	-- RW2: the rarity tier (a random spawn's own, an island nest's from its species) on the prompt and over the glow.
 	local rarity = slot.rarity or Species.look(slot.species).rarity
@@ -1674,7 +1676,8 @@ spawnEncounter = function(slot)
 		local light = body:FindFirstChildOfClass("PointLight")
 		if light and slot.wild then light.Color = RARITY_GLOW[rarity] or light.Color end
 	end
-	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10, isEgg and 1 or 0)
+	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10,
+		isEgg and EggCarry.holdFor(rarity, slot.special) or 0)
 	if not isEgg then
 		local cover = table.clone(coverCandidates)
 		local island = slot.island and islands[slot.island]

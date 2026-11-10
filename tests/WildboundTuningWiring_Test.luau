@@ -35,7 +35,9 @@ return function(sources)
 			-- Random world (RW3): the wave clock.
 			"WildboundWaveClock",
 			-- Items and totem (plan Part 4): the gear rules.
-			"WildboundGear" }) do
+			"WildboundGear",
+			-- Nest Heist (NH1): the stolen egg's rules.
+			"WildboundEggCarry" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")

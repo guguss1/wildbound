@@ -33,6 +33,8 @@ Schema.MODULES = table.freeze({
 	WaveClock = table.freeze({ name = "WildboundWaveClock",
 		file = "src/wildbound/WildboundWaveClock.luau (WaveClock.CONSTANTS)" }),
 	Gear = table.freeze({ name = "WildboundGear", file = "src/wildbound/WildboundGear.luau (Gear.CONSTANTS)" }),
+	EggCarry = table.freeze({ name = "WildboundEggCarry",
+		file = "src/wildbound/WildboundEggCarry.luau (EggCarry.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -211,6 +213,11 @@ Schema.SYSTEMS = table.freeze({
 		value("LUCK_NOISE_EVERY", "Tótem de la suerte: ruido cada (s)", "Gear", "LUCK_NOISE_EVERY", 10, 2, 60, 1),
 		value("LUCK_LURE", "Tótem de la suerte atrae un hallazgo (1 sí, 0 no)", "Gear", "LUCK_LURE", 1, 0, 1, 1),
 		value("LUCK_CAMP", "Tótem de la suerte: lejos del campamento (studs)", "Gear", "LUCK_CAMP", 30, 0, 120, 5),
+	}) }),
+	-- Nest Heist (NH1 to NH8): stealing, carrying, dropping and picking up an egg.
+	table.freeze({ id = "Eggs", label = "Robo de huevos", entries = table.freeze({
+		value("STEAL_HOLD", "Robar un huevo normal: mantener (s)", "EggCarry", "STEAL_HOLD", 0.8, 0.6, 1, 0.05),
+		value("RARE_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARE_HOLD", 1, 0.6, 3, 0.05),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

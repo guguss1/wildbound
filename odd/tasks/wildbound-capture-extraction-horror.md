@@ -794,3 +794,18 @@ Writer decisions, for user review:
 | MG-W4 | The art is dropped unless all meshes load at server start, so a Lumipol is never invisible; a Lumipol built before a later fix keeps the primitive until it respawns |
 
 End state: Studio left in Edit, the temporary runner removed, `Workspace.MeshGen1` unchanged, `ServerStorage.WildboundAssets.LumipolMeshGen` added; the place is not saved by this session. Next step (user): make the generated meshes loadable for this place (they are refused today; saving or publishing the place, or checking the assets' permissions in the Creator Hub, are hypotheses, not verified), save the place, then rerun Play: the server output should no longer warn, and every Lumipol should wear the model; then take the `lumipol-meshgen-*` captures and confirm the facing (MG-W1).
+
+## Nest Heist Phase 1 (2026-11-10, combined plan Phase 1 "Core")
+
+Source: the user's master prompt (Nest Heist, 2026-11-10) and `docs/design/wildbound-combined-plan.md` sections 1, 2 and 4. Phase 1 items 1 to 8, tasks NH1 to NH8, each committed before the next.
+
+Route: delegated, one Studio and repo writer (Opus), no nested delegation, background only (no computer use). Instance `cd4f53c7-...`, PlaceId 122652861404212, Edit; 128 of 128 mapped Wildbound sources matched the repo by Adler-32 and length before the first edit. Mode: strict TDD (global); runners: Studio fresh clones (temporary `ServerStorage.WildboundFreshRunnerTmp`, rebuilt from each suite's documented invocation, plus temporary hash and exact-once patch helpers, all removed at the end), `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 62 suites, 1264 passed, 0 failed; Python 1027 run, the 1 known failure, 28 skipped; economy greedy median 183 s. Route per task: inline in the one writer. New suite `tests/WildboundEggCarry_Test.luau` (`ServerStorage.WildboundEggCarry_Test`) for the pure rules and the wiring contracts; new server-only module `src/wildbound/WildboundEggCarry.luau` (`ServerScriptService.WildboundEggCarry`); new tuning system `Eggs` ("Robo de huevos").
+
+- [x] NH1 Fast steal. A normal egg (Común, Rara) is taken with a `STEAL_HOLD` 0.8 s hold (clamped 0.6 to 1); an Épica or Legendaria egg and the biome event's egg keep the 1 s hold every egg had (`RARE_HOLD`, never shorter than the steal hold). Finding: eggs never had the ring; only crías use it, and they keep it (the ring is the creature capture; a cría is a creature, not an object to grab). `EggCarry.holdFor` sets each egg prompt's hold at spawn. TDD: EggCarry 0/3 against an empty stub, Tuning 13/1, TuningWiring 7/1; GREEN 3/0, 14/0, 8/0; full run 63 suites, 1267 passed, 0 failed.
+- [ ] NH2 Egg carried in the arms with server `EggCarry` states and unique ids.
+- [ ] NH3 Parent reaction on a steal: immediate wake, roar, chase, telegraphed charge, exposure on a miss.
+- [ ] NH4 Burst.
+- [ ] NH5 Drop and pickup.
+- [ ] NH6 Delivery to the camp chest.
+- [ ] NH7 Death while carrying.
+- [ ] NH8 No nest relocation during an interaction or chase.
