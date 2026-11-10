@@ -77,3 +77,5 @@ Cap: at most three agents at once and one Studio writer, per `AGENTS.md`.
 | Q2b | Rare-egg minigame | "Arrullo": keep the egg inside a moving zone on a bar by holding and releasing (fishing-bar style, original art and naming); replaces the ring for rare eggs |
 | Q3b | Burst replacement | "Esquiva perfecta": press during a beast or parent attack telegraph to dodge and gain a short speed boost; replaces Burst |
 | U1 | Beast uploads | User authorized uploading the beast FBX models as private assets to their account (no publishing) |
+| H3 | Hub size and light | Clearly larger, and well lit even at night |
+| H4 | Auto incubation | Walking into your base with an egg places it in a free incubator slot automatically; it hatches on a timer; the first eggs are very fast, later and rarer ones slower |
