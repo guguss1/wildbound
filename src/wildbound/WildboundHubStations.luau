@@ -161,7 +161,7 @@ function Stations:refreshAll()
 end
 
 -- HF-T3 (HB6): where a new character starts: just above the hub spawn pad of the player's base slot
--- (Bases.spawnIndex), facing east (+X, the Pradera), or nil when the hub has no pads (the camp is the fallback).
+-- (Bases.spawnIndex), facing west (-X, toward the forest gate, EV-W5), or nil when the hub has no pads (the camp is the fallback).
 function Stations:spawnFrame(player)
 	local pads = {}
 	for _, pad in ipairs(CollectionService:GetTagged("WildboundHubSpawnPad")) do
@@ -171,7 +171,7 @@ function Stations:spawnFrame(player)
 	local pad = pads[self.deps.Bases.spawnIndex(player:GetAttribute("WildboundBaseSlot"), #pads) or 0]
 	if not pad then return nil end
 	local at = pad.Position + Vector3.new(0, pad.Size.Y / 2 + 3, 0)
-	return CFrame.lookAt(at, at + Vector3.xAxis)
+	return CFrame.lookAt(at, at - Vector3.xAxis)
 end
 
 function Stations:start()

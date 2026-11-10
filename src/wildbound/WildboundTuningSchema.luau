@@ -206,7 +206,7 @@ Schema.SYSTEMS = table.freeze({
 		value("EGG_SHARE", "Parte que son huevos (0 a 1)", "SpawnClock", "EGG_SHARE", 0.4, 0, 1, 0.05),
 		-- RW3: the wave clock.
 		value("WAVE_SECONDS", "Duración de una oleada (s)", "WaveClock", "WAVE_SECONDS", 300, 10, 1800, 10),
-		value("FIRST_EGG_RADIUS", "Primer huevo cerca del campamento (studs)", "WaveClock", "FIRST_EGG_RADIUS", 70, 20, 200, 5),
+		value("FIRST_EGG_RADIUS", "Primer huevo cerca de la entrada del bosque (studs)", "WaveClock", "FIRST_EGG_RADIUS", 70, 20, 200, 5),
 		-- RW4: the Refugios (never inside the territory: Rules.setRefuges refuses a circle that reaches it).
 		value("REFUGE_MIN", "Refugios por oleada: mínimo", "WaveClock", "REFUGE_MIN", 2, 0, 6, 1),
 		value("REFUGE_MAX", "Refugios por oleada: máximo", "WaveClock", "REFUGE_MAX", 3, 0, 6, 1),

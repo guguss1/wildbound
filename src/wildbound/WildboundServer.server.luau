@@ -1328,8 +1328,8 @@ local function startWave(event, now)
 	SpawnClock.setWeights(spawnClock, WaveClock.VARIANT_WEIGHTS[variant])
 	network:SetAttribute("BiomeVariant", variant)
 	if event.wave == 1 then
-		local egg = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Egg", x = campCenter.Position.X,
-			z = campCenter.Position.Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
+		local egg = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Egg",
+			x = Rules.FIRST_EGG_X, z = Rules.FIRST_EGG_Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
 		if egg then applySpawnActions({ { op = "spawn", spawn = egg } }) end
 	else
 		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))

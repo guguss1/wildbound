@@ -49,6 +49,10 @@ Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 282, -3, 90
 -- The camp's safe circle, as Rules.zone writes it (its centre is not the CampCenter marker, which sits 18 studs west of
 -- it in this place); the hub link starts inside it.
 Rules.CAMP_X, Rules.CAMP_Z, Rules.CAMP_RADIUS = -140, 140, 35
+-- EV-W5: the first wave's guaranteed common egg is placed within WaveClock FIRST_EGG_RADIUS of this point: where the
+-- hub's W trail meets the forest (assets/maps/hub-layout/hub-bases-v2-r90.json), outside the hub disc, so a player
+-- starting at the hub reaches it in a few seconds from the W gate (it used to be the camp, about 400 studs away).
+Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z = 182, 17
 
 function Rules.finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge

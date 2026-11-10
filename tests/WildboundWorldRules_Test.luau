@@ -469,5 +469,17 @@ return function(Rules, islandLayout)
 		equal(Rules.farFromBase(0 / 0, 0, 150), false, "a bad point is never far")
 		equal(Rules.farFromBase(0, 0, 0 / 0), false, "a bad reach is never far")
 	end)
+	case("EV-W5: the first wave's guaranteed egg is centred where the hub's W trail meets the forest", function()
+		assert(Rules.FIRST_EGG_X == 182 and Rules.FIRST_EGG_Z == 17, "the hub W trail's forest end (182, 17)")
+		local fromHub = Rules.distance(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z, Rules.HUB_X, Rules.HUB_Z)
+		assert(fromHub > Rules.HUB_RADIUS, "outside the hub's safe disc: " .. fromHub)
+		local _, safe = Rules.zone(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z)
+		assert(not safe, "not in a safe zone")
+		-- The W gate sits on the hedge (radius 88) due west of the hub centre; the walk is 16 studs/s, and the egg may be
+		-- anywhere within the default FIRST_EGG_RADIUS (70) of the centre: still within about 15 s of the gate.
+		local gate = Rules.distance(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z, Rules.HUB_X - 88, Rules.HUB_Z)
+		assert((gate + 70) / 16 <= 15, "reachable in about 15 s: " .. (gate + 70) / 16)
+	end)
+
 	return result
 end

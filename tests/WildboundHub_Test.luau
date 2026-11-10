@@ -114,14 +114,14 @@ return function(Bases, source, sources)
 		has(hub, 'workspace:FindFirstChild("WildboundP0")', "from the forest map")
 		has(hub, "prop:Destroy()")
 	end)
-	case("HF-T3 (HB6): a new character starts on a hub spawn pad facing east, else at the camp", function()
+	case("HF-T3 (HB6), EV-W5: a new character starts on a hub spawn pad facing west to the forest, else at the camp", function()
 		equal(Bases.spawnIndex(1, 4), 1); equal(Bases.spawnIndex(4, 4), 4); equal(Bases.spawnIndex(5, 4), 1)
 		equal(Bases.spawnIndex(8, 4), 4); equal(Bases.spawnIndex(nil, 4), 1); equal(Bases.spawnIndex(0 / 0, 4), 1)
 		equal(Bases.spawnIndex(2, 0), nil, "no pad, no index")
 		local stations = sources.stations
 		has(stations, 'CollectionService:GetTagged("WildboundHubSpawnPad")', "the hub's tagged pads")
 		has(stations, 'player:GetAttribute("WildboundBaseSlot")', "the player's own slot picks the pad")
-		has(stations, "CFrame.lookAt(at, at + Vector3.xAxis)", "facing east (+X)")
+		has(stations, "CFrame.lookAt(at, at - Vector3.xAxis)", "facing west (-X), toward the forest gate")
 		local server = sources.server
 		has(server, "local start = Heist.hub and Heist.hub:spawnFrame(player)", "the hub pad first")
 		has(server, "character:PivotTo(start or CFrame.new(campCenter.Position + Vector3.new(0, 4, 10)))",
