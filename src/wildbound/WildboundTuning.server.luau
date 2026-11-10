@@ -20,8 +20,9 @@ end
 
 -- The same module instances the gameplay scripts require, so a tune reaches them. A missing module is skipped.
 local modules = {}
+-- Fix pass (FP4): La Silueta's moves (WildboundSiluetaMoves) are tuned here too.
 for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland", Brain = "WildboundGuardianBrain",
-	Rules = "WildboundWorldRules", Hide = "WildboundHide" }) do
+	Rules = "WildboundWorldRules", Hide = "WildboundHide", Moves = "WildboundSiluetaMoves" }) do
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

@@ -27,7 +27,9 @@ return function(sources)
 		has(bridge, 'Schema.apply(modules, read, "server")')
 		has(bridge, ".AttributeChanged:Connect(")
 		for _, name in ipairs({ "WildboundStamina", "WildboundIsland", "WildboundGuardianBrain", "WildboundWorldRules",
-			"WildboundHide", "WildboundCarry", "WildboundCaptureSession" }) do
+			"WildboundHide", "WildboundCarry", "WildboundCaptureSession",
+			-- Fix pass (FP4): La Silueta's moves.
+			"WildboundSiluetaMoves" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")

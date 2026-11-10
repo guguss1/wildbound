@@ -26,6 +26,8 @@ Schema.MODULES = table.freeze({
 	View = table.freeze({ name = "WildboundHudView", file = "src/wildbound/WildboundHudView.luau (View.CONSTANTS)" }),
 	Incubator = table.freeze({ name = "WildboundIncubator",
 		file = "src/wildbound/WildboundIncubator.luau (Incubator.CONSTANTS)" }),
+	Moves = table.freeze({ name = "WildboundSiluetaMoves",
+		file = "src/wildbound/WildboundSiluetaMoves.luau (Moves.CONSTANTS)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -63,6 +65,23 @@ Schema.SYSTEMS = table.freeze({
 			0.1),
 		-- Fix pass (FP2): one Silueta per player, capped per server.
 		value("MAX_HUNTERS", "Siluetas a la vez (una por jugador)", "Rules", "MAX_HUNTERS", 8, 1, 16, 1),
+		-- Fix pass (FP4): her moves. A toggle is 1 (on) or 0 (off).
+		value("LUNGE_ON", "Embestida (1 sí, 0 no)", "Moves", "LUNGE_ON", 1, 0, 1, 1),
+		value("LUNGE_AFTER", "Embestida: tras cazar (s)", "Moves", "LUNGE_AFTER", 3, 0.5, 20, 0.5),
+		value("LUNGE_TELL", "Embestida: aviso (s)", "Moves", "LUNGE_TELL", 0.5, 0.35, 2, 0.05),
+		value("LUNGE_SECONDS", "Embestida: dura (s)", "Moves", "LUNGE_SECONDS", 0.8, 0.2, 3, 0.1),
+		value("LUNGE_SPEED", "Embestida: velocidad (studs/s)", "Moves", "LUNGE_SPEED", 22, 10, 30, 0.5),
+		value("LUNGE_COOLDOWN", "Embestida: espera (s)", "Moves", "LUNGE_COOLDOWN", 8, 1, 60, 1),
+		value("FAKE_ON", "Falsa retirada (1 sí, 0 no)", "Moves", "FAKE_ON", 1, 0, 1, 1),
+		value("FAKE_CHANCE", "Falsa retirada: probabilidad", "Moves", "FAKE_CHANCE", 0.25, 0, 1, 0.05),
+		value("FAKE_SECONDS", "Falsa retirada: se aleja (s)", "Moves", "FAKE_SECONDS", 4, 1, 15, 0.5),
+		value("GLARE_ON", "La luz la frena (1 sí, 0 no)", "Moves", "GLARE_ON", 1, 0, 1, 1),
+		value("GLARE_RANGE", "Luz: alcance (studs)", "Moves", "GLARE_RANGE", 12, 4, 40, 1),
+		value("GLARE_DOT", "Luz: cono (producto escalar)", "Moves", "GLARE_DOT", 0.85, 0.5, 0.99, 0.01),
+		value("GLARE_HOLD", "Luz: sostener (s)", "Moves", "GLARE_HOLD", 1.5, 0.2, 5, 0.1),
+		value("GLARE_STAGGER", "Luz: la frena (s)", "Moves", "GLARE_STAGGER", 1, 0.2, 5, 0.1),
+		value("SCREAM_ON", "Grito que despierta nidos (1 sí, 0 no)", "Moves", "SCREAM_ON", 1, 0, 1, 1),
+		value("SCREAM_REACH", "Grito: alcance (studs)", "Moves", "SCREAM_REACH", 70, 0, 200, 5),
 	}) }),
 	table.freeze({ id = "Sprint", label = "Correr y aliento", entries = table.freeze({
 		value("SPRINT_MULTIPLIER", "Multiplicador al correr", "Stamina", "SPRINT_MULTIPLIER", 1.45, 1, 2, 0.05),

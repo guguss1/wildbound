@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshSchemaClone), { Stamina = require(freshStaminaClone),
 -- Island = require(freshIslandClone), Brain = require(freshBrainClone), Rules = require(freshRulesClone),
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
--- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone) }).
+-- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone),
+-- Moves = require(freshSiluetaMovesClone) }).
 -- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
@@ -86,13 +87,22 @@ return function(Schema, modules)
 			-- Fix pass (FP2): one Silueta per player, the cap and how faint another player's is drawn.
 			"Silueta.MAX_HUNTERS", "Camera.OTHER_SILUETA_FADE",
 			-- Fix pass (FP3): the chase limit per phase.
-			"Silueta.CHASE_DAY", "Silueta.CHASE_TWILIGHT", "Silueta.CHASE_NIGHT" }) do
+			"Silueta.CHASE_DAY", "Silueta.CHASE_TWILIGHT", "Silueta.CHASE_NIGHT",
+			-- Fix pass (FP4): La Silueta's moves, each with a toggle.
+			"Silueta.LUNGE_ON", "Silueta.LUNGE_SPEED", "Silueta.FAKE_ON", "Silueta.FAKE_CHANCE", "Silueta.GLARE_ON",
+			"Silueta.GLARE_HOLD", "Silueta.SCREAM_ON", "Silueta.SCREAM_REACH" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
 		equal(Schema.find("Camera", "SPRINT_FOV_KICK").side, "client", "the camera kick is read on the client")
 		equal(Schema.find("Camera", "OTHER_SILUETA_FADE").side, "client", "the fade of another player's Silueta is a client value")
 		equal(Schema.find("Silueta", "MAX_HUNTERS").min, 1, "at least one Silueta")
+		-- Fix pass (FP4): a toggle is 0 (off) or 1 (on), on by default; the lunge tell keeps the readable floor.
+		for _, key in ipairs({ "LUNGE_ON", "FAKE_ON", "GLARE_ON", "SCREAM_ON" }) do
+			local toggle = Schema.find("Silueta", key)
+			equal(toggle.min, 0, key); equal(toggle.max, 1, key); equal(toggle.step, 1, key); equal(toggle.default, 1, key)
+		end
+		assert(Schema.find("Silueta", "LUNGE_TELL").min >= 0.35, "the lunge tell never drops under 0.35 s")
 		equal(Schema.find("Sprint", "SPRINT_MULTIPLIER").side, "server", "sprint is read on the server")
 		equal(Schema.find("Nope", "X"), nil)
 	end)

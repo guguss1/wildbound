@@ -28,6 +28,8 @@ local Threat = require(script.Parent:WaitForChild("WildboundThreatLevel"))
 local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 -- Fix pass (FP2): the pure roster of hunters (one per player, the cap, the stagger, owner-only quarry).
 local Hunters = require(script.Parent:WaitForChild("WildboundHunters"))
+-- Fix pass (FP4): the lunge, the fake retreat, the flashlight glare and the chase-start scream (pure, each toggleable).
+local Moves = require(script.Parent:WaitForChild("WildboundSiluetaMoves"))
 -- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
 -- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
 local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
@@ -189,6 +191,8 @@ local patrol = {
 local patrolOffsets = {}
 for index, point in ipairs(patrol) do patrolOffsets[index] = point - home end
 local COMBAT = { Alert = true, Hunt = true, Telegraph = true }
+-- Fix pass (FP4a): the lunge tell turns the readable outline a hot red; otherwise it keeps its pale colour.
+local OUTLINE_COLOR, TELL_COLOR = Color3.fromRGB(178, 202, 190), Color3.fromRGB(255, 70, 50)
 
 local records, connections = {}, {}
 local hunters = {} -- player -> hunter
@@ -347,7 +351,7 @@ local function clearTarget(h, now, completedPresentation, reason)
 	end
 	cancelOpenAttack(h, reason)
 	GuardianPath.clear(h.nav)
-	h.target, h.targetLife, h.huntState, h.telegraphEndsAt = nil, nil, nil, 0
+	h.target, h.targetLife, h.huntState, h.telegraphEndsAt, h.fake = nil, nil, nil, 0, nil
 	h.guardian:SetAttribute("TelegraphEndsAt", 0)
 	h.recoveryEndsAt = now + Brain.CONSTANTS.RECOVERY_SECONDS
 	setMode(h, "Retreat")
@@ -651,6 +655,8 @@ local function loseTarget(h, now, phase)
 	if last and alive then
 		Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)
 		setMode(h, "Search")
+		-- Fix pass (FP4b): now and then the search opens with a fake retreat: away for a while, then back at hunt speed.
+		if Moves.fakeRetreat(h.rng:NextNumber()) then h.fake = Moves.newFake(now, last.X, last.Z) end
 	end
 end
 
@@ -661,6 +667,9 @@ local function step(h, now, dt)
 	-- Delivery C1: day and night profiles come from the brain. Day is the calmest phase, Night the most active.
 	local profile = Brain.profile(phase)
 	local parameters = { speed = profile.hunt, detectionRange = profile.detection }
+	-- Fix pass (FP4a): after 3 s of hunting, a short readable tell, then a burst; never inside a telegraph.
+	local lunge = Moves.lungeStep(h.lunge, now, h.mode)
+	if lunge.started then h.guardian:SetAttribute("LungeAt", now) end
 	if not COMBAT[h.mode] then
 		local nearest, nearestDistance, nearestLife
 		if now >= h.acquireBlockedUntil and Brain.canDetect(brain, now, h.recoveryEndsAt) then
@@ -671,6 +680,8 @@ local function step(h, now, dt)
 		if nearest then
 			h.target, h.targetLife, h.chaseStartedAt = nearest, nearestLife, now
 			h.alertEndsAt = now + Brain.engage(brain, now, phase)
+			h.fake = nil
+			Moves.resetGlare(h.glare) -- one glare stagger per chase
 			GuardianPath.clear(h.nav)
 			setMode(h, "Alert")
 		elseif h.mode == "Patrol" then
@@ -681,6 +692,15 @@ local function step(h, now, dt)
 			end
 			navigate(h, patrol[patrolIndex], profile.patrol, dt, now)
 			tryAmbush(h, now, phase)
+		elseif h.mode == "Search" and h.fake then
+			-- Fix pass (FP4b): the fake retreat's two legs; detection above still runs, so turning back can catch you.
+			local out = Moves.fakeStep(h.fake, now, body.Position.X, body.Position.Z)
+			if out.done or not out.destination then
+				h.fake = nil
+			else
+				local speed = out.speed == "hunt" and profile.hunt or profile.search
+				navigate(h, bodyAt(out.destination.x, out.destination.z), speed, dt, now)
+			end
 		elseif h.mode == "Retreat" then
 			navigate(h, h.center, profile.retreat, dt, now)
 			if now >= h.recoveryEndsAt and flatDistance(body.Position, h.center) < 2 then setMode(h, "Patrol") end
@@ -717,8 +737,16 @@ local function step(h, now, dt)
 			if now >= h.alertEndsAt then
 				h.huntState = Hunt.new({ id = target.UserId, life = h.targetLife, position = candidate.root.Position }, now)
 				setMode(h, "Hunt")
+				-- Fix pass (FP4d): the chase-start scream goes out through the guardian noise path; the inventory server wakes
+				-- the islands it reaches (the reach rides in the tier slot). The world's own hearing ignores this kind.
+				local reach = Moves.screamReach()
+				if reach > 0 and noiseEvent then noiseEvent:Fire("siluetaScream", reach, body.Position.X, body.Position.Z) end
 			end
+		elseif h.mode == "Hunt" and now < h.staggerUntil then
+			-- Fix pass (FP4c): staggered by the owner's light: no movement and no strike, only facing the light.
+			if candidate.visible then face(h, { x = candidate.root.Position.X, z = candidate.root.Position.Z }) end
 		elseif h.mode == "Hunt" then
+			if lunge.speed then parameters.speed = lunge.speed end
 			local current = { id = target.UserId, life = h.targetLife, valid = true, visible = candidate.visible }
 			if candidate.visible then current.position, current.distance = candidate.root.Position, candidate.distance end
 			-- Fix pass (FP2): no other player is ever a challenger, so the hunt never switches quarry.
@@ -772,11 +800,28 @@ local function step(h, now, dt)
 		end
 		h.visual:setQuarry(quarryRoot and quarryRoot.Position or nil)
 	end
+	-- Fix pass (FP4c): the owner's light on her (the server's own forward vector, like the island light test).
+	if COMBAT[h.mode] and h.target == player then
+		local _, _, root = characterContext(player)
+		if root then
+			local toward = Vector3.new(body.Position.X - root.Position.X, 0, body.Position.Z - root.Position.Z)
+			local look = root.CFrame.LookVector
+			local flatLook = Vector3.new(look.X, 0, look.Z)
+			local dot = (toward.Magnitude < 0.1 or flatLook.Magnitude < 1e-3) and 1 or flatLook.Unit:Dot(toward.Unit)
+			local out = Moves.glareStep(h.glare, dt, { phase = phase, distance = toward.Magnitude, dot = dot, mode = h.mode })
+			if out.stagger then
+				h.staggerUntil = now + out.seconds
+				h.guardian:SetAttribute("StaggerUntil", h.staggerUntil)
+				snapshot(player, "Glare", true, abilityWords.glare or "", abilityWords.glareShort or abilityWords.glare or "")
+			end
+		end
+	end
 	local revealed = now < h.revealedUntil
 	if h.visual then h.visual:setRevealed(revealed) else
 		body.Transparency, h.head.Transparency = revealed and 0.3 or 0.86, revealed and 0.25 or 0.82
 	end
-	h.outline.OutlineTransparency = revealed and 0.05 or 0.55
+	h.outline.OutlineColor = lunge.phase == "tell" and TELL_COLOR or OUTLINE_COLOR
+	h.outline.OutlineTransparency = (revealed or lunge.phase == "tell") and 0.05 or 0.55
 end
 
 -- Runs once per fixed step, right after the hunter's step, with the same clock. Pushes a snapshot to the owner when
@@ -932,6 +977,8 @@ local function stepHiding(now)
 					releaseHide(player, "found", now)
 					if not COMBAT[h.mode] then
 						h.target, h.targetLife, h.chaseStartedAt = player, player.Character, now
+						h.fake = nil
+						Moves.resetGlare(h.glare)
 						h.alertEndsAt = now + Brain.engage(brain, now, phase)
 						GuardianPath.clear(h.nav)
 						setMode(h, "Alert")
@@ -1029,7 +1076,7 @@ local function addHunter(player)
 	local outline = Instance.new("Highlight")
 	outline.Name, outline.Adornee = "ReadableOutline", guardian
 	outline.FillTransparency, outline.OutlineTransparency = 1, 0.55
-	outline.OutlineColor, outline.DepthMode = Color3.fromRGB(178, 202, 190), Enum.HighlightDepthMode.Occluded
+	outline.OutlineColor, outline.DepthMode = OUTLINE_COLOR, Enum.HighlightDepthMode.Occluded
 	outline.Parent = guardian
 	-- Layer A (M4.2): the guardian should exist on every client and never stream out. Set before parenting.
 	guardian.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
@@ -1046,7 +1093,7 @@ local function addHunter(player)
 		alertEndsAt = 0, telegraphEndsAt = 0, recoveryEndsAt = now + 3, chaseStartedAt = 0,
 		lastAttackAt = -Rules.ATTACK_COOLDOWN, revealedUntil = 0, patrolIndex = stagger.patrolIndex, patrol = patrol,
 		center = home, awareness = Awareness.new(), awarenessResults = {}, rng = Random.new(), lastHuntAt = -math.huge,
-		acquireBlockedUntil = 0, discSeen = nil }
+		acquireBlockedUntil = 0, discSeen = nil, lunge = Moves.newLunge(), glare = Moves.newGlare(), fake = nil, staggerUntil = 0 }
 	if flagMisconfigured then FairStrike.count(h.ledger, "flagMisconfigured") end
 	h.ambushNextAt = now + Ambush.nextDelay(cycleAt(now).phase, h.rng:NextNumber())
 	-- Look pass: artScale is the art scale in use; a tuned Silueta.VISUAL_SCALE rescales the art live (art only).

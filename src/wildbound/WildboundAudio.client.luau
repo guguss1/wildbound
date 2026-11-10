@@ -247,6 +247,17 @@ local function update(dt)
 			playOnce("steps", body, targets.steps, 0.08, Mix.stepPitch(level))
 		end
 	end
+	-- Fix pass (FP4a): the lunge tell is heard: a sharp groan from her body when this player's own hunter starts it.
+	local model = body and body.Parent
+	local lungeAt = model and model:GetAttribute("LungeAt")
+	if lungeAt ~= nil and lungeAt ~= state.lungeAt then
+		state.lungeAt = lungeAt
+		if Mix.fresh(lungeAt, workspace:GetServerTimeNow()) and not state.defeated then
+			local shot = Mix.oneShot("groan", reduced)
+			playOnce(shot.slot, body, shot.volume, shot.fadeIn, 1.35)
+			master:SetAttribute("LastLungeTell", lungeAt)
+		end
+	end
 	-- Chase start: the signature once, then on its schedule (once per chase with Reduced).
 	if level == "Chase" and state.level ~= "Chase" then
 		state.chaseStartedAt, state.signatures = now, 0

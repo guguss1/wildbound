@@ -118,3 +118,15 @@ User: it chases more, does not lose you until you are very far, is scarier, walk
 ## Fix pass FP3: the chase is sized to the sprint (2026-11-09)
 
 The sprint pool (100, drained at 25 per second) lasts about 4 s at 24 studs/s, and a chase used to last 30, 40 or 50 s, so every chase ended in a walk the hunt could not lose. The chase limit is now 12, 15 and 18 s (Day, Dusk and Dawn, Night; tunable `Silueta.CHASE_DAY`, `CHASE_TWILIGHT`, `CHASE_NIGHT`, 4 to 60 s); hunt speed (13, 15, 17), memory (4, 5, 6 s) and the 0.9 s telegraph are unchanged. The chase also ends at once when the owner stands in a safe zone (`Rules.zone`: camp or a shelter), hides unseen, or is more than `CHASE_LEASH` (100) from home (`Rules.pursuit`); before, the far side of the leash only read as out of sight and the memory ran. Economy floor: `tools/simulate_economy.py` greedy median 183 s before and after (the simulator models holds and strikes at objectives, not chase length), so Day patrol and detection stay as CP-R1 left them.
+
+## Fix pass FP4: four more moves, each toggleable (2026-11-09)
+
+Pure rules in `src/wildbound/WildboundSiluetaMoves.luau` (server), wired in the world server; every number and an on/off toggle (1 on, 0 off, all on by default) are in the dev tuning panel under La Silueta.
+
+| Move | Rule | Fairness |
+| --- | --- | --- |
+| Lunge (`LUNGE_*`) | After 3 s of continuous Hunt: a 0.5 s tell (the readable outline turns hot red; the owner hears a sharp groan from her body), then 0.8 s at 22 studs/s, then 8 s of cooldown. A telegraph cancels it; it restarts the 3 s count | The tell never drops under 0.35 s (clamped); 22 is below a rested sprint (23.2); the lunge never strikes, only the 0.9 s telegraph does |
+| Fake retreat (`FAKE_*`) | A quarter of the searches open by walking away from the last known spot (search speed) for 4 s, then turning back to it at hunt speed | Detection keeps running, so turning back can catch a player who came out too early |
+| Flashlight glare (`GLARE_*`) | The owner facing her (the server's own forward vector, like the island light test: within 12 studs, a 0.85 cone, Dusk or Night) for 1.5 s while she is in Alert or Hunt staggers her 1 s: no movement, no strike. Once per chase; a telegraph pauses the hold. Notice "La luz la frena" | Only helps the player |
+| Scream (`SCREAM_*`) | When a chase starts (Alert to Hunt) her scream goes out on the guardian noise path as `siluetaScream` with its reach (70); the inventory server wakes every island whose nest is within it (`Island.PENALTY.SiluetaScream` 100; island 1 halves it, so it only stirs). The world's own hearing ignores the kind, so hunters never chase each other's screams | The adults' own wake-up and strike tells are unchanged |
+

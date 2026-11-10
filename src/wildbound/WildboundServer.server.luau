@@ -1514,8 +1514,11 @@ if RunService:IsStudio() then
 end
 
 -- I6: a sprint (DP1) or a rustle (D6) near an island disturbs its sleepers; one player's noise wakes it for everyone.
-noiseEvent.Event:Connect(function(kind, _, x, z)
-	if (kind ~= "sprint" and kind ~= "rustle") or not Rules.finite(x) or not Rules.finite(z) then return end
+-- Fix pass (FP4d): La Silueta's chase-start scream ("siluetaScream", its reach in the tier slot) wakes every island
+-- whose nest is within that reach.
+noiseEvent.Event:Connect(function(kind, tier, x, z)
+	if kind ~= "sprint" and kind ~= "rustle" and kind ~= "siluetaScream" then return end
+	if not Rules.finite(x) or not Rules.finite(z) then return end
 	local now = workspace:GetServerTimeNow()
 	local phase = islandPhase()
 	for _, island in ipairs(islandList) do
@@ -1526,6 +1529,8 @@ noiseEvent.Event:Connect(function(kind, _, x, z)
 			result = Island.event(island.meter, "SprintNoise")
 		elseif kind == "rustle" and distance <= Island.wakeRadius(spec, phase) then
 			result = Island.event(island.meter, "Rustle")
+		elseif kind == "siluetaScream" and Rules.finite(tier) and distance <= tier then
+			result = Island.event(island.meter, "SiluetaScream")
 		end
 		if result and result.woke then wakeIsland(island, now) end
 	end

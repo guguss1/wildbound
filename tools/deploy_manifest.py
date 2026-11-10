@@ -192,6 +192,10 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundHunters.luau", "ServerScriptService.WildboundHunters"),
     ("tests/WildboundHunters_Test.luau", "ServerStorage.WildboundHunters_Test"),
     ("tests/WildboundHunterWiring_Test.luau", "ServerStorage.WildboundHunterWiring_Test"),
+    # Fix pass FP4: La Silueta's moves (lunge, fake retreat, glare, scream), pure and server only, and their suites
+    ("src/wildbound/WildboundSiluetaMoves.luau", "ServerScriptService.WildboundSiluetaMoves"),
+    ("tests/WildboundSiluetaMoves_Test.luau", "ServerStorage.WildboundSiluetaMoves_Test"),
+    ("tests/WildboundSiluetaMovesWiring_Test.luau", "ServerStorage.WildboundSiluetaMovesWiring_Test"),
 ]
 
 

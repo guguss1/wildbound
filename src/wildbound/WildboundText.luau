@@ -325,6 +325,9 @@ return freeze({
 		connected = "Conectado al reloj del mundo.",
 		unavailable = "Habilidad no disponible.",
 		unavailableShort = "No disponible.",
+		-- Fix pass (FP4c): the owner's flashlight held on La Silueta staggers her once per chase.
+		glare = "La luz la frena",
+		glareShort = "La luz la frena",
 	},
 	-- Next batch NB3: the inventory server's refusals and replies (WildboundServer) and the gather prompt.
 	NOTICES = {

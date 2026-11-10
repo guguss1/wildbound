@@ -20,7 +20,9 @@ Island.CONSTANTS = table.freeze({
 	LIGHT_DOT = 0.85,
 	LULL = 3,
 	-- Once, from the capture session, the hide spot and the sprint noise.
-	PENALTY = table.freeze({ LeftRing = 25, Failed = 25, SealMissed = 35, Rustle = 10, SprintNoise = 25 }),
+	-- Fix pass (FP4d): La Silueta's chase-start scream wakes a sleeping island at once (island 1 halves it: it stirs).
+	PENALTY = table.freeze({ LeftRing = 25, Failed = 25, SealMissed = 35, Rustle = 10, SprintNoise = 25,
+		SiluetaScream = 100 }),
 	-- Fear pass (FA2, user: "stealing must be an adrenaline rush"): the grab itself is loud. A granted cria capture
 	-- ("CriaTaken") or an egg pickup ("EggTaken", was 30) adds GRAB once: a careful thief on a calm island keeps it
 	-- asleep (63 after 3 s by an adult), a sloppy one wakes the parents the moment the cria is lifted.
