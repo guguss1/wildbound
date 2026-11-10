@@ -4,8 +4,10 @@
 -- inventory server looks up can be shadowed. Building at start means the place file never needs saving for the hub; a
 -- hub already in the place (built in Edit) is reused as it is. The forest is not moved here (open-world gaps S1) and the
 -- spawn stays at the camp. The stations are bound by tag in WildboundHubStations (required by the inventory server).
+local Players = game:GetService("Players")
 local ServerStorage = game:GetService("ServerStorage")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
 
 local Rules = require(script.Parent:WaitForChild("WildboundWorldRules"))
 local Bases = require(script.Parent:WaitForChild("WildboundBases"))
@@ -84,3 +86,44 @@ local function buildLink()
 end
 
 if not workspace:FindFirstChild("WildboundHubLink") then buildLink() end
+
+-- HB-T2: base assignment. The server alone writes OwnerUserId and OwnerName on the base model (WildboundBaseSlot) and
+-- the sign's text; the stations module and the clients read them. A player beyond the eight slots uses the camp.
+local registry = Bases.new(Bases.SLOTS)
+local baseModels, signLabels = {}, {}
+for _, model in ipairs(CollectionService:GetTagged("WildboundBaseSlot")) do
+	local slot = model:GetAttribute("SlotIndex")
+	if model:IsDescendantOf(hub) and type(slot) == "number" then baseModels[slot] = model end
+end
+for _, board in ipairs(CollectionService:GetTagged("WildboundBaseSign")) do
+	local slot, label = board:GetAttribute("SlotIndex"), board:FindFirstChild("Label", true)
+	if board:IsDescendantOf(hub) and type(slot) == "number" and label and label:IsA("TextLabel") then
+		signLabels[slot] = label
+	end
+end
+local function paint(slot, player)
+	local model, label = baseModels[slot], signLabels[slot]
+	if model then
+		model:SetAttribute("OwnerUserId", player and player.UserId or 0)
+		model:SetAttribute("OwnerName", player and player.DisplayName or "")
+	end
+	if label then label.Text = Bases.signText(Text, player and player.DisplayName or nil) end
+end
+for slot in pairs(baseModels) do paint(slot, nil) end
+local function join(player)
+	local slot = Bases.assign(registry, player.UserId)
+	if not slot then return end
+	paint(slot, player)
+	local model = baseModels[slot]
+	player:SetAttribute("WildboundBaseSlot", slot)
+	player:SetAttribute("WildboundBaseColour", model and model:GetAttribute("ColourName") or nil)
+end
+Players.PlayerAdded:Connect(join)
+Players.PlayerRemoving:Connect(function(player)
+	local slot = Bases.release(registry, player.UserId)
+	if not slot then return end
+	paint(slot, nil)
+	player:SetAttribute("WildboundBaseSlot", nil)
+	player:SetAttribute("WildboundBaseColour", nil)
+end)
+for _, player in ipairs(Players:GetPlayers()) do task.spawn(join, player) end

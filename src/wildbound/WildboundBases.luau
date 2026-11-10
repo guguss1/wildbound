@@ -30,4 +30,47 @@ function Bases.link(campX, campZ, hubX, hubZ)
 		centreX = (fromX + toX) / 2, centreZ = (fromZ + toZ) / 2, dirX = ux, dirZ = uz }
 end
 
+-- HB-T2: base slots. Each player gets the lowest free slot when they join and keeps it while present (a respawn or a
+-- repeated join keeps it); it is released when they leave. A player beyond SLOTS gets no base and uses the camp.
+Bases.SLOTS = 8
+local function validUser(userId)
+	return finite(userId) and userId == math.floor(userId) and userId ~= 0
+end
+function Bases.new(count)
+	local slots = finite(count) and math.max(1, math.floor(count)) or Bases.SLOTS
+	return { count = slots, owners = {}, byUser = {} }
+end
+function Bases.assign(registry, userId)
+	if type(registry) ~= "table" or not validUser(userId) then return nil end
+	local held = registry.byUser[userId]
+	if held then return held end
+	for slot = 1, registry.count do
+		if registry.owners[slot] == nil then
+			registry.owners[slot], registry.byUser[userId] = userId, slot
+			return slot
+		end
+	end
+	return nil
+end
+function Bases.release(registry, userId)
+	if type(registry) ~= "table" or not validUser(userId) then return nil end
+	local slot = registry.byUser[userId]
+	if not slot then return nil end
+	registry.byUser[userId], registry.owners[slot] = nil, nil
+	return slot
+end
+function Bases.slotOf(registry, userId)
+	if type(registry) ~= "table" or not validUser(userId) then return nil end
+	return registry.byUser[userId]
+end
+function Bases.ownerOf(registry, slot)
+	if type(registry) ~= "table" then return nil end
+	return registry.owners[slot]
+end
+-- The name sign: "Base libre" while nobody owns it (decision HB4), "Base de <name>" with the owner's display name.
+function Bases.signText(Text, name)
+	if type(name) ~= "string" or name == "" then return Text.HUB.freeSign end
+	return Text.HUB.ownedSign:format(name)
+end
+
 return Bases

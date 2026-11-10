@@ -545,5 +545,7 @@ return freeze({
 	-- Nest Heist hub (docs/maps/wildbound-hub.md): the hub's personal bases, their stations and the path from the camp.
 	HUB = {
 		linkSign = "Plaza central y bases",
+		freeSign = "Base libre",
+		ownedSign = "Base de %s",
 	},
 })
