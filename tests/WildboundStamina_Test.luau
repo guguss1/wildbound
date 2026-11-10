@@ -191,5 +191,42 @@ return function(Stamina)
 		assert(distance / walked > 1.0, "sprint still helps")
 	end)
 
+	-- Nest Heist (NH4): the Burst.
+	case("NH4: a burst lasts 0.8 s at x1.7 of the walk, capped at 28, and waits 6 s from its start", function()
+		local C = Stamina.CONSTANTS
+		equal(C.BURST_SECONDS, 0.8); equal(C.BURST_MULTIPLIER, 1.7); equal(C.BURST_COOLDOWN, 6); equal(C.BURST_CAP, 28)
+		local state = Stamina.new(0)
+		equal(Stamina.burst(state, 10, {}), true)
+		equal(Stamina.bursting(state, 10.5), true)
+		equal(Stamina.bursting(state, 10.81), false, "over after 0.8 s")
+		local ok, reason = Stamina.burst(state, 13, {})
+		equal(ok, false); equal(reason, "Cooldown")
+		equal(Stamina.burst(state, 16.01, {}), true, "ready 6 s after the last start")
+	end)
+
+	case("NH4: the burst speed never stacks on the sprint and respects its cap", function()
+		near(Stamina.speed(16, "walk", true), 27.2, "a walker")
+		near(Stamina.speed(16, "sprint", true), 27.2, "a sprinter gets the same push, not x1.45 x1.7")
+		near(Stamina.speed(11, "walk", true), 18.7, "an egg carrier")
+		equal(Stamina.speed(20, "walk", true), 28, "the cap")
+		near(Stamina.speed(16, "sprint", false), 23.2, "no burst, as before")
+		equal(Stamina.speed(16, "walk"), 16)
+	end)
+
+	case("NH4: a capture, a hiding spot or death blocks a burst and ends one; the edges are reported", function()
+		local state = Stamina.new(0)
+		local ok, reason = Stamina.burst(state, 0, { blocked = true })
+		equal(ok, false); equal(reason, "Blocked")
+		assert(Stamina.burst(state, 1, {}))
+		local out = Stamina.step(state, 0.1, { speed = 16 }, 1.1)
+		equal(out.changed, false, "no edge while it runs")
+		out = Stamina.step(state, 0.1, { speed = 16 }, 1.85)
+		equal(out.changed, true, "the end re-applies the speed")
+		state = Stamina.new(0)
+		assert(Stamina.burst(state, 1, {}))
+		out = Stamina.step(state, 0.1, { speed = 16, blocked = true }, 1.2)
+		equal(out.changed, true); equal(Stamina.bursting(state, 1.3), false, "blocked ends it")
+	end)
+
 	return result
 end

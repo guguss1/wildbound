@@ -340,6 +340,10 @@ local function applyCarry(player)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
 	record.baseSpeed = speed
 	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
+	-- NH4: a running burst pushes the speed for its 0.8 s (capped, never stacked on the sprint).
+	if record.stamina and Stamina.bursting(record.stamina, workspace:GetServerTimeNow()) then
+		speed = math.max(speed, Stamina.speed(record.baseSpeed, record.stamina.stance, true))
+	end
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
 -- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
@@ -2425,6 +2429,34 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	end
 end)
 
+-- Nest Heist (NH4): the Burst. The rule owns the cooldown; nothing burst-related is read from the client but the word.
+-- The speed goes through applyCarry (WalkSpeed, so the player's own move direction steers it); no invulnerability.
+-- The puff is made here, so every player sees it; every audio client plays the scuff when WildboundBurstReady changes
+-- (this server makes no sounds, delivery B).
+local function burst(player, record, now)
+	local root = rootOf(player)
+	local capturing = false
+	for _, session in ipairs(capture:activeSessions()) do
+		if session.playerKey == player.UserId then capturing = true end
+	end
+	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
+	local ok = Stamina.burst(record.stamina, now, { blocked = root == nil or context(player) ~= true or capturing or hidden })
+	if not ok or not root then return end
+	applyCarry(player)
+	player:SetAttribute("WildboundBurstReady", record.stamina.burstReadyAt)
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "WildboundBurst"
+	local emitter = Instance.new("ParticleEmitter")
+	emitter.Rate, emitter.Lifetime, emitter.Speed = 0, NumberRange.new(0.3, 0.6), NumberRange.new(6, 10)
+	emitter.SpreadAngle, emitter.LightEmission = Vector2.new(180, 30), 0.5
+	emitter.Size = NumberSequence.new(0.7, 0)
+	emitter.Color = ColorSequence.new(Color3.fromRGB(225, 235, 210))
+	emitter.Parent = attachment
+	attachment.Parent = root
+	emitter:Emit(16)
+	task.delay(2, function() attachment:Destroy() end)
+end
+
 -- Dread pass (D3): one known word per call, at most STANCE_RATE a second; an intent not refreshed within 1.2 s
 -- lapses to walk inside the rule, so a lost release never leaves anyone sprinting.
 stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
@@ -2435,6 +2467,11 @@ stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
 	if now - (record.stanceWindowAt or -math.huge) >= 1 then record.stanceWindowAt, record.stanceCalls = now, 0 end
 	record.stanceCalls = (record.stanceCalls or 0) + 1
 	if record.stanceCalls > STANCE_RATE then return end
+	-- NH4: "burst" shares this remote and its rate limit; the rule refuses it during its cooldown.
+	if intent == "burst" then
+		burst(player, record, now)
+		return
+	end
 	Stamina.intent(record.stamina, intent, now)
 end)
 

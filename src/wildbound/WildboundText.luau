@@ -303,6 +303,9 @@ return freeze({
 		-- Chase pass (CP1): the always-on sprint hint by input (touch has the "Correr" button).
 		hintKeyboard = "Shift: Correr",
 		hintGamepad = "L3: Correr",
+		-- Nest Heist (NH4): the Burst button (touch) and its keyboard label.
+		burst = "Impulso",
+		burstKey = "Impulso (Z)",
 	},
 	-- Fear pass (FA3): the short shouts of the adrenaline burst (big, centred, a second or two).
 	FEAR = {

@@ -171,6 +171,7 @@ local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
 local CollectionService = game:GetService("CollectionService")
 local swinging, awakened = {}, {}
+local bursts = setmetatable({}, { __mode = "k" }) -- Nest Heist (NH4): the last burst seen per player
 
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
@@ -293,6 +294,19 @@ local function update(dt)
 		end
 		swinging[adult] = swing or nil
 		awakened[adult] = awake or nil
+	end
+	-- Nest Heist (NH4): a burst is heard as a scuff (the dirt slot, an existing id) on whoever burst, when the server
+	-- moves their WildboundBurstReady on. A value already there when first seen is not replayed.
+	for _, other in ipairs(Players:GetPlayers()) do
+		local readyAt = other:GetAttribute("WildboundBurstReady")
+		local last = bursts[other]
+		if readyAt ~= last then
+			local burstRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if last ~= nil and type(readyAt) == "number" and burstRoot then
+				playOnce("dirt", burstRoot, reduced and 0.35 or 0.7, 0.02, 1.4)
+			end
+			bursts[other] = readyAt or false
+		end
 	end
 	if level ~= state.level then state.nextAt = {} end
 	state.level = level

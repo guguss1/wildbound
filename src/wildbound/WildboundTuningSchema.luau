@@ -101,6 +101,11 @@ Schema.SYSTEMS = table.freeze({
 		value("REGEN_STILL", "Recuperación quieto (por s)", "Stamina", "REGEN_STILL", 15, 0, 50, 1),
 		value("NOISE_INTERVAL", "Un ruido de carrera cada (s)", "Stamina", "NOISE_INTERVAL", 1.2, 0.3, 5, 0.1),
 		value("SPRINT_NOISE", "Alcance del ruido al correr (studs)", "Brain", "NOISE.sprint", 30, 0, 80, 1),
+		-- Nest Heist (NH4): the Burst.
+		value("BURST_SECONDS", "Impulso: dura (s)", "Stamina", "BURST_SECONDS", 0.8, 0.2, 2, 0.05),
+		value("BURST_MULTIPLIER", "Impulso: velocidad (x la marcha)", "Stamina", "BURST_MULTIPLIER", 1.7, 1, 2.5, 0.05),
+		value("BURST_COOLDOWN", "Impulso: espera (s)", "Stamina", "BURST_COOLDOWN", 6, 1, 30, 0.5),
+		value("BURST_CAP", "Impulso: velocidad máxima (studs/s)", "Stamina", "BURST_CAP", 28, 16, 40, 1),
 	}) }),
 	table.freeze({ id = "Carry", label = "Cargar una criatura", entries = table.freeze({
 		value("FEAR_RISE", "Miedo por segundo al correr", "Stamina", "FEAR_RISE", 30, 0, 100, 1),

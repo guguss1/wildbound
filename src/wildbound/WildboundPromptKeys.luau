@@ -20,6 +20,13 @@ Keys.GATHER = table.freeze({ key = "G", pad = "ButtonY", offset = table.freeze({
 -- Delivery D6: hiding spots sit off the routes, near gather nodes and Lumipols but never in camp.
 Keys.HIDE = table.freeze({ key = "H", pad = "DPadUp", offset = table.freeze({ 0, 0 }) })
 
+-- Nest Heist (NH4): the Burst is an action, not a prompt. Its key and pad are used by no prompt and by no other
+-- control (E is every field prompt's, R the camp hatch prompt's; F flashlight, Q pulse, H hide, X capture seal, C and I
+-- the inventory, M the menu, LeftShift and L3 sprint, R2 the seal on a gamepad, A jump).
+Keys.BURST = table.freeze({ key = "Z", pad = "ButtonR3" })
+local CONTROLS = table.freeze({ keys = table.freeze({ "F", "Q", "H", "X", "C", "I", "M", "LeftShift", "F8" }),
+	pads = table.freeze({ "ButtonL3", "ButtonR2", "ButtonA" }) })
+
 -- Every pair of prompts that can be in reach at once must differ on both inputs.
 function Keys.conflicts()
 	local groups = {
@@ -42,6 +49,19 @@ function Keys.conflicts()
 	-- A hiding spot can be in reach of a Lumipol, which keeps E (never at camp, so not in the groups above).
 	if Keys.HIDE.key == Keys.LUMIPOL.key or Keys.HIDE.pad == Keys.LUMIPOL.pad then
 		table.insert(found, "hide and lumipol share an input")
+	end
+	-- NH4: the Burst against every prompt and every other control.
+	table.insert(groups, { "lumipol", Keys.LUMIPOL })
+	for _, group in ipairs(groups) do
+		if group[2].key == Keys.BURST.key or group[2].pad == Keys.BURST.pad then
+			table.insert(found, "burst and " .. group[1] .. " share an input")
+		end
+	end
+	for _, key in ipairs(CONTROLS.keys) do
+		if key == Keys.BURST.key then table.insert(found, "burst and another control share " .. key) end
+	end
+	for _, pad in ipairs(CONTROLS.pads) do
+		if pad == Keys.BURST.pad then table.insert(found, "burst and another control share " .. pad) end
 	end
 	return found
 end

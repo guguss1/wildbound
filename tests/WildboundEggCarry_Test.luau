@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshEggCarryClone), freshEggCarryClone.Source, { server =
 -- WildboundServer.Source, worldClient = WildboundWorldClient.Source, text = require(freshTextClone),
 -- state = require(freshStateClone), economy = require(freshEconomyClone), config = require(freshConfigClone),
--- keys = require(freshKeysClone), stamina = require(freshStaminaClone), island = require(freshIslandClone) }).
+-- keys = require(freshKeysClone), stamina = require(freshStaminaClone), island = require(freshIslandClone),
+-- audio = WildboundAudioClient.Source }).
 -- Nest Heist, phase 1 (docs/design/wildbound-combined-plan.md, tasks NH1 to NH8 in the feature document): the pure
 -- egg-carry rules and the source contracts for how the inventory server wires them.
 return function(EggCarry, source, sources)
@@ -160,6 +161,38 @@ return function(EggCarry, source, sources)
 		has(wake, "not select(2, Rules.zone(reading.x, reading.z))", "nobody in the camp is chased")
 		local Island = sources.island
 		assert(Island.CONSTANTS.POUNCE_TELL >= 0.8, "the charge's tell keeps the fair-strike 0.8 s")
+	end)
+
+	-- NH4 the Burst (its numbers are in WildboundStamina_Test).
+	case("NH4: the server owns the burst: the word over the stance remote, the rule's cooldown, the speed and the effects", function()
+		local stance = block(server, "stanceRemote.OnServerEvent:Connect(function(player, intent, ...)", "\nend)")
+		has(stance, 'if intent == "burst" then', "a burst is one known word")
+		assert(stance:find("STANCE_RATE", 1, true) < stance:find('intent == "burst"', 1, true), "after the rate limit")
+		local fn = block(server, "local function burst(player, record, now)", "\nend\n")
+		-- Play finding: the handler first called a burst defined below it (a nil global at run time).
+		assert(server:find("local function burst(player, record, now)", 1, true)
+			< server:find("stanceRemote.OnServerEvent:Connect", 1, true), "burst is defined before the handler that calls it")
+		has(fn, "Stamina.burst(record.stamina, now,", "the rule's cooldown")
+		has(fn, "capturing or hidden", "blocked during a capture or hidden")
+		has(fn, "applyCarry(player)"); has(fn, "WildboundBurstReady"); has(fn, "emitter:Emit(")
+		hasNot(fn, 'Instance.new("Sound")', "the inventory server makes no sounds")
+		local audio = sources.audio or ""
+		has(audio, 'other:GetAttribute("WildboundBurstReady")', "every client hears a burst")
+		has(audio, 'playOnce("dirt", burstRoot', "a catalogued slot, never a new id")
+		has(block(server, "local function applyCarry(player)", "\nend\n"), "Stamina.bursting(record.stamina,")
+		local _, remotes = server:gsub('Instance.new%("RemoteEvent"%)', "")
+		equal(remotes, 5, "no new remote")
+	end)
+
+	case("NH4: Z, R3 and the Impulso button ask for a burst; the button counts the cooldown down", function()
+		local client = sources.worldClient or ""
+		has(client, '"WildboundBurst"'); has(client, "Enum.KeyCode.Z, Enum.KeyCode.ButtonR3")
+		has(client, 'stanceRemote:FireServer("burst")'); has(client, "WildboundBurstReady")
+		has(client, "staminaWords.burst"); has(client, 'UnbindAction("WildboundBurst")')
+		local Keys = sources.keys
+		equal(Keys.BURST.key, "Z"); equal(Keys.BURST.pad, "ButtonR3")
+		equal(#Keys.conflicts(), 0, table.concat(Keys.conflicts(), "; "))
+		equal(sources.text.STAMINA.burst, "Impulso")
 	end)
 
 	return result

@@ -303,6 +303,30 @@ listen(RunService.Heartbeat, function()
 	staminaBar.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 66 or 14)
 	staminaBar.Size = UDim2.new(pulse.Size.X.Scale, pulse.Size.X.Offset, 0, 8)
 end)
+-- Nest Heist (NH4): the Burst. Z on a keyboard, R3 on a gamepad and the "Impulso" button (touch, and the ready
+-- indicator everywhere: it counts down while the burst cools). The server owns the cooldown and the speed; this asks.
+local burstButton = button(gui, staminaWords.burst or "Impulso", UDim2.new(), UDim2.fromOffset(110, 44))
+burstButton.Name = "BurstButton"
+local function askBurst()
+	if stanceRemote then stanceRemote:FireServer("burst") end
+end
+ContextActionService:BindActionAtPriority("WildboundBurst", function(_, inputState)
+	if inputState == Enum.UserInputState.Begin then askBurst() end
+	return Enum.ContextActionResult.Sink
+end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.Z, Enum.KeyCode.ButtonR3)
+listen(burstButton.Activated, askBurst)
+listen(RunService.Heartbeat, function()
+	local readyAt = player:GetAttribute("WildboundBurstReady")
+	local left = type(readyAt) == "number" and readyAt - workspace:GetServerTimeNow() or 0
+	local word = staminaWords.burst or "Impulso"
+	burstButton.Text = left > 0.05 and ("%s %d"):format(word, math.ceil(left))
+		or (touchPrimary() and word or (staminaWords.burstKey or "Impulso (Z)"))
+	burstButton.BackgroundColor3 = left > 0.05 and Color3.fromRGB(70, 74, 72) or Color3.fromRGB(77, 115, 88)
+	burstButton.AutoButtonColor = left <= 0.05
+	burstButton.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 120 or 70)
+	burstButton.Size = pulse.Size
+	burstButton.Visible = not isHidden()
+end)
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)
@@ -793,6 +817,7 @@ listen(gui.Destroying, function()
 	pcall(function() RunService:UnbindFromRenderStep("WildboundChaseFeel") end)
 	if fov.base and workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = fov.base end
 	pcall(function() ContextActionService:UnbindAction("WildboundSprint") end)
+	pcall(function() ContextActionService:UnbindAction("WildboundBurst") end)
 	local beam = player.Character and player.Character:FindFirstChild("WildboundFlashlight", true)
 	if beam then beam:Destroy() end
 	for key, value in pairs(original) do Lighting[key] = value end
