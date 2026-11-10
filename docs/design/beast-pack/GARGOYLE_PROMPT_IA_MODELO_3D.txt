@@ -1,0 +1,15 @@
+WILDBOUND / GARGOYLE — READY-TO-PASTE 3D MODEL PROMPT
+
+ATTACH: 03_REFERENCIAS_VISUALES/GARGOYLE_ficha_modelo_ROBLOX.png and GARGOYLE_render_principal_ROBLOX.png.
+
+STYLE LOCK / ABSOLUTE VISUAL PRIORITY: Stylized Roblox 3D dark-fantasy creature, high-quality faceted low-poly, bold chunky angular masses, hand-painted/flat-color material zones, readable silhouette from a third-person camera, toy-like geometry with sinister character, NOT photorealistic. The attached Wildbound concept sheet is the primary source for shape and colors. Do not replicate an existing Roblox IP creature.
+
+PRODUCTION CONSTRAINTS: game-ready for Roblox Studio; mesh is separate from VFX and telegraphs; simple materials, minimal transparency, no tiny surface details, no photo textures, no cinematic lighting baked into albedo. Create an actual editable 3D asset, not a rendered image if your tool supports 3D. If you only generate concept art, explicitly state that it is not a mesh. Target approximately 2k-8k triangles for ordinary NPCs, higher only with documented need; this is an art budget target, not a Roblox engine limit. Export Blender source and FBX or GLB if supported, with clean topology, correct normals, centered pivot at ground level, appropriate scale in studs, collision proxy and a simple rig. Deliver front/side/three-quarter preview.
+
+NEGATIVE PROMPT: hyperrealism, cinematic creature skin, slimy photographic surface, micro scales, detailed hair, realistic wet flesh, high-frequency textures, millions of polygons, overly complex PBR, photobash, heavy postprocessing, humanoid Roblox avatar costume, copied copyrighted game creature, 2D illustration only, overly cute baby pet, unriggable single mesh, blurry silhouette, baked terrain.
+
+MODEL: Gargoyle — animated cemetery statue in premium stylized Roblox low-poly. Massive crouched gargoyle made of broad lavender-gray stone facets, chipped horned head, broad powerful claws, stone bat wings with thick readable membrane plates, short heavy tail, subtle moss on shoulders and wing edges, two bright turquoise/cyan eyes. The creature must convincingly look like a stone sculpture when frozen on a pedestal, then unfold into a flying monster. Avoid fleshy dragon scales and realistic skin. About 6-8 studs tall, 11-15 studs wing span.
+RIG/ANIMATION: statue freeze, crack-and-awaken, wing unfurl, takeoff, hover, wingbeats, cast tornado, recoil, land and petrify. Wings need limited but expressive joints and clean folding geometry. Tornado is separate Roblox VFX, never part of the static mesh.
+
+
+DELIVERABLES: actual editable low-poly model if supported; rigged version; basic animations; FBX/GLB export and .blend source when supported; a short implementation note for Roblox Studio. If you cannot produce any of these, clearly list missing deliverables rather than claiming completion.
