@@ -757,3 +757,40 @@ Writer decisions, for user review:
 | IT-W6 | The equipment is session only, like every craft today; it is not saved, so a rejoin starts without it |
 
 End state: commits `af73483`, `5be5a2b`, `0d7e5cb`, `7e1ce7e`, `0084dc3` and this document's commit. Studio left in Edit, the temporary runner, hash and patch helpers removed; every changed Studio source matches the repo by Adler-32 and length; the place is not saved and no file backup was made (it needs clicks: pending). The place's Edit-mode `WildboundTuning` folder has no `Gear` system yet (the bridge adds it at Play start; `ensureFolder` in Edit would add it). Next step: the user saves the place, reviews IT-W1 and IT-W3, and tries the items on a phone.
+
+## Lumipol MeshGen1 model (2026-11-10)
+
+User request: "agrega el MeshGen1 como lumipol ya que es su modelo". `Workspace.MeshGen1` (a Model of four sub-models, head, body, legs and ears, one AI-generated MeshPart each, no scripts, joints or humanoid; 3.45 x 3.0 x 2.28 studs) is the Lumipol's model, so every Lumipol the game shows should wear it.
+
+Route: delegated, one Studio and repo writer (Opus), no nested delegation, background only (no computer use). Instance `cd4f53c7-...`, PlaceId 122652861404212, Edit; 113 of 113 mapped Wildbound sources matched the repo by Adler-32 and length before the first edit. Mode: strict TDD (global); runners: Studio fresh clones (temporary `ServerStorage.WildboundFreshRunnerTmp`, removed at the end), `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 61 suites, 1253 passed, 0 failed; Python 1027 run, the 1 known failure. Route per task: inline in the one writer.
+
+- [x] MG1 Template. `ServerStorage.WildboundAssets.LumipolMeshGen`: a clone of `Workspace.MeshGen1` turned axis-aligned, its pivot at its feet (bottom centre of the bounds) at the origin, every part anchored with CanCollide, CanTouch and CanQuery off; attributes `Source` and `Forward` (-Z). `Workspace.MeshGen1` itself is untouched. The template is not in git: its portable record (mesh and texture ids, sizes, positions, colours) is `assets/exports/lumipol-meshgen1-spec.json`. A `.rbxm` export needs clicks: pending.
+- [x] MG2 Dressing. New server-only `WildboundLumipolArt` (ServerScriptService): `uses(look)` (only the Lumipol look), `valid(template)` (a model of parts, no script or humanoid), `meshIds`, `verified`, and `dress(model, template, feet, height)`, which clones the template, fits it to `height`, stands its feet on `feet` (facing the frame's look), and moves its parts into the model as anchored, massless, shadowless art with no collision, touch or query, each marked `LumipolArt`. A bad template, frame or height dresses nothing. The server's one creature builder (`visual`) dresses every Lumipol with feet on the ground under the hidden gameplay ball (prompt, light, rarity tag, brain and every move unchanged) and builds the primitive eyes and ears only when not dressed; the carry capsule welds a 1.1-stud copy to the seat ball (the clients' seat animation carries it), facing away from the carrier; the camp display lifts a dressed model 0.85 studs so its feet stand on the pedestal; the world client fades a companion's art (local transparency) instead of the hidden ball.
+  - Contexts and heights (`Art.CONFIG`): tutorial and island adults 2.6 studs (`HEIGHT`); wild random spawns and island nest crias 1.43 (`HEIGHT` x `Species.CRIA_SCALE` 0.55); carried 1.1 (`CARRIED_HEIGHT`, inside the 1.8-stud shell); camp display x0.6, companion x0.5, deposit arc x0.4 and the nest return arc, through the same builder. The incubator hatch card draws no 3D model, so it is unchanged. Not added to the tuning schema: the art is built once per creature on the server, so a live value would not reach existing models.
+  - TDD: RED 0/10 against an empty stub; first GREEN run 9/1, a test bug (world bounds from `Size` on a turned part), fixed in the test; GREEN 10/0.
+- [x] MG3 Play finding and fallback. In Play the four meshes and textures failed to load ("Requester does not have permission for Asset", `ContentProvider:PreloadAsync` Failure for `Workspace.MeshGen1` too; `AssetService:CreateMeshPartAsync` fails in Edit and in Play), so a dressed Lumipol drew nothing over its hidden ball. The server now loads each template mesh once at start (all at once, at most `VERIFY_SECONDS` 5, a one-shot wake-up rather than a waiting loop, which `Economy_Test` forbids) and drops the template unless every mesh loaded; then every Lumipol keeps the primitive look and the output says why. RED 9/2, then an Economy pin (no `task.wait(` in the server) failed the first version, GREEN.
+
+Counts: Studio 62 suites, 1264 passed, 0 failed on fresh clones (new LumipolArt 11). Python: 1027 run, the 1 known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped. Every changed Studio source matches the repo by Adler-32 and length (`WildboundServer`, `WildboundWorldClient`, `WildboundLumipolArt`, `WildboundLumipolArt_Test`).
+
+Play check (Studio Play solo; probes through `execute_luau`; the start screen left up):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Wild/nest cria dressed (before MG3) | PASS | Island I1 nest cria: hidden ball 1.65 x 1.1 x 1.32, four art parts, art 1.43 tall, feet 0.05 over the ground (2.05, ball centre 3.55, lift 1.55) |
+| Island adults dressed (before MG3) | PASS | Both I1 adults: four art parts, ball hidden, posed asleep with the art |
+| Carried (before MG3) | PASS | A real capture through `GearProbe capture` (client kept in the ring and sealed mid-band): capsule species Lumipol, seat ball hidden, four art parts unanchored, massless, no collision or query, welded; head 0.07 studs toward the far side of the shell, ears' top 0.83 under the 0.9 shell radius, feet on the base ring; walk speed 14 |
+| Other species | PASS | Cortezon, Cestillo, Polvilla, Tizoncillo and every egg keep the primitive look |
+| Meshes render | FAIL (asset access) | The meshes and textures are refused to this session (see MG3) |
+| Fallback (after MG3) | PASS | Output "the Lumipol model's meshes did not load in this session"; the nest cria and both adults have no art, eyes built, ball visible |
+| Display, companion, deposit in Play; phones; screenshots `lumipol-meshgen-*.jpg` | NOT VERIFIED | Registering needs the refuge prompt; the meshes do not render anywhere yet, so captures would show only the fallback (one capture showed only the start screen) |
+
+Writer decisions, for user review:
+
+| ID | Decision |
+| --- | --- |
+| MG-W1 | Front is -Z (the head and ears sit 0.2 studs toward -Z of the body); not confirmed visually because the meshes do not render |
+| MG-W2 | Adult height 2.6 studs (the old ball was 2 tall, the model is taller than wide); crias 1.43; carried 1.1 |
+| MG-W3 | Feet on the ground under the ball (the ball floats 1 stud over it, as before); in the nest return arc the art can dip into the ground at the end, as the ball did |
+| MG-W4 | The art is dropped unless all meshes load at server start, so a Lumipol is never invisible; a Lumipol built before a later fix keeps the primitive until it respawns |
+
+End state: Studio left in Edit, the temporary runner removed, `Workspace.MeshGen1` unchanged, `ServerStorage.WildboundAssets.LumipolMeshGen` added; the place is not saved by this session. Next step (user): make the generated meshes loadable for this place (they are refused today; saving or publishing the place, or checking the assets' permissions in the Creator Hub, are hypotheses, not verified), save the place, then rerun Play: the server output should no longer warn, and every Lumipol should wear the model; then take the `lumipol-meshgen-*` captures and confirm the facing (MG-W1).
