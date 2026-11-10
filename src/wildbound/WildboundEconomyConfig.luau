@@ -182,6 +182,11 @@ return freeze({
 			kind = "equipment",
 			cost = { glowmoss = 12, nightbloom = 2, ember = 40 },
 		},
+		totemSuerte = {
+			kind = "luckTotem",
+			cap = 1,
+			cost = { fogbark = 6, glowmoss = 6, ember = 15 },
+		},
 	},
 	capsule = { site = "shelter", x = 105, z = 125, range = 12, itemsSecured = 1 },
 	sinks = { campRange = 20 },

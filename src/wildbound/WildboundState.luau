@@ -632,9 +632,17 @@ function State:craftGear(key, id, alive, distance)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	local spec = type(id) == "string" and type(self.config.gear) == "table" and self.config.gear[id] or nil
-	if not spec or spec.kind ~= "equipment" then return false, "UnknownGear" end
+	if not spec or (spec.kind ~= "equipment" and spec.kind ~= "luckTotem") then return false, "UnknownGear" end
 	local ok, reason = atCamp(self, alive, distance)
 	if not ok then return false, reason end
+	-- IT2: the Tótem de la suerte is held up to its cap and spent when placed.
+	if spec.kind == "luckTotem" then
+		local held = player.luckTotems or 0
+		if held >= (spec.cap or 1) then return false, "AtLimit" end
+		if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+		player.luckTotems = held + 1
+		return true, id
+	end
 	if gearOf(player)[id] then return false, "AlreadyOwned" end
 	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
 	gearOf(player)[id] = true
@@ -652,6 +660,16 @@ function State:useVest(key)
 	if gearOf(player).chaleco ~= true then return false, "NoVest" end
 	if not vestReady(player) then return false, "VestUsed" end
 	player.vestUsedOn = player.expedition or "camp"
+	return true
+end
+
+-- Items IT2: one held Tótem de la suerte is spent when placed. Where (away from camp) is the adapter's check.
+function State:placeLuckTotem(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if (player.luckTotems or 0) < 1 then return false, "NoLuckTotem" end
+	player.luckTotems -= 1
 	return true
 end
 
@@ -871,7 +889,7 @@ function State:snapshot(key)
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
-		gear = table.clone(gearOf(player)), vestReady = vestReady(player),
+		gear = table.clone(gearOf(player)), vestReady = vestReady(player), luckTotems = player.luckTotems or 0,
 		skills = table.clone(player.skills), bond = bondCopy(player),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,

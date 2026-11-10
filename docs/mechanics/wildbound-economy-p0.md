@@ -380,7 +380,9 @@ The `gear` rows: four items crafted at camp (within `campRange`) with Ember (Ese
 | Chaleco | 45 Ember, 20 Fogbark, 10 Glowmoss, 1 Nightbloom | Once per expedition a defeating second mark is kept as a mark |
 | Amuleto | 40 Ember, 12 Glowmoss, 2 Nightbloom | La Silueta's memory 1 s shorter (at least 0.5 s); heartbeat, red edge and shake x0.6 on the owner's screen |
 
-`tools/simulate_economy.py` does not buy or model equipment; its medians are unchanged by these rows.
+The `totemSuerte` row (IT2) is the Tótem de la suerte: 15 Ember, 6 Fogbark, 6 Glowmoss, one held at a time (`cap`), placed at least 30 studs from the camp centre for 60 s. The next random spawn within 40 studs rolls one tier up (Comun to Rara, Rara to Epica, Epica to Legendaria; a Legendaria point stays) and pays by the raised tier; it is loud like a capture ring. Not saved, separate from the ward `totem` above.
+
+`tools/simulate_economy.py` does not buy or model equipment or the luck totem; its medians are unchanged by these rows.
 
 ## Skill tree
 
@@ -628,7 +630,8 @@ Stable schema for `tools/simulate_economy.py`, and later `WildboundEconomyConfig
     "guantes": { "kind": "equipment", "cost": { "fogbark": 14, "glowmoss": 8, "ember": 30 } },
     "botas": { "kind": "equipment", "cost": { "fogbark": 16, "glowmoss": 6, "ember": 30 } },
     "chaleco": { "kind": "equipment", "cost": { "fogbark": 20, "glowmoss": 10, "nightbloom": 1, "ember": 45 } },
-    "amuleto": { "kind": "equipment", "cost": { "glowmoss": 12, "nightbloom": 2, "ember": 40 } }
+    "amuleto": { "kind": "equipment", "cost": { "glowmoss": 12, "nightbloom": 2, "ember": 40 } },
+    "totemSuerte": { "kind": "luckTotem", "cap": 1, "cost": { "fogbark": 6, "glowmoss": 6, "ember": 15 } }
   },
   "capsule": { "site": "shelter", "x": 105, "z": 125, "range": 12, "itemsSecured": 1 },
   "sinks": { "campRange": 20 },

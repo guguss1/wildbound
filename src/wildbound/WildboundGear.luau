@@ -7,6 +7,10 @@
 --   chaleco (Chaleco): once per expedition a defeating second mark is kept as a mark (fair strike);
 --   amuleto (Amuleto): La Silueta remembers you AMULET_MEMORY s less, and the heartbeat, red edge and shake on your
 --     own screen are AMULET_FEAR as strong (client only).
+-- Items IT2: the Tótem de la suerte (Gear.LUCK, a "luckTotem" recipe, one held at a time) is placed at least LUCK_CAMP
+-- studs from the camp centre and stands LUCK_SECONDS. The next random spawn inside LUCK_RADIUS rolls one tier up (the
+-- spawn clock prefers a free point there); with LUCK_LURE 1 it draws one spawn in at once. It makes a ring-level noise
+-- when placed and every LUCK_NOISE_EVERY seconds, so La Silueta can hear it.
 -- The inventory server tells the world script through a server-only event and publishes ownership to the owner's
 -- client as player attributes (Gear.attribute) that only it can write.
 local Gear = {}
@@ -14,6 +18,7 @@ local Gear = {}
 Gear.ITEMS = table.freeze({ "guantes", "botas", "chaleco", "amuleto" })
 local KNOWN = table.freeze({ guantes = true, botas = true, chaleco = true, amuleto = true })
 Gear.MIN_MEMORY = 0.5
+Gear.LUCK = "totemSuerte"
 
 Gear.CONSTANTS = table.freeze({
 	GLOVES_CALM = 1.3,
@@ -21,6 +26,11 @@ Gear.CONSTANTS = table.freeze({
 	BOOTS_DRAIN = 0.7,
 	AMULET_MEMORY = 1,
 	AMULET_FEAR = 0.6,
+	LUCK_SECONDS = 60,
+	LUCK_RADIUS = 40,
+	LUCK_NOISE_EVERY = 10,
+	LUCK_LURE = 1,
+	LUCK_CAMP = 30,
 })
 
 local function finite(value)

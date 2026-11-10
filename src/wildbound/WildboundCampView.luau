@@ -179,6 +179,25 @@ function View.campRows(config, economy, snapshot, ctx)
 			end
 		end
 	end
+	-- IT2: the Tótem de la suerte, held up to its cap and placed away from camp.
+	local luck = gearSpecs.totemSuerte
+	if luck then
+		local held, cap = amount(snapshot.luckTotems), luck.cap or 1
+		local title = "Tótem de la suerte"
+		local why = reason(ctx, snapshot, luck.cost, held >= cap and ("Ya tienes el máximo (%d)"):format(cap) or nil)
+		local made = row("gear:totemSuerte", "Gear", line(("%s (tienes %d de %d)"):format(title, held, cap),
+			"un hallazgo cercano sale más raro; hace ruido", luck.cost, why), "CraftGear", "totemSuerte",
+			"Fabricar", why == nil, why)
+		made.short = shortLine(("%s %d/%d"):format(title, held, cap), luck.cost, why)
+		table.insert(rows, made)
+		if held > 0 then
+			local placeWhy = ctx.busy == true and "Espera un momento"
+				or ctx.atCamp ~= false and "Sal del campamento para ponerlo" or nil
+			table.insert(rows, row("luck:place", "Gear", placeWhy and ("Pon el tótem de la suerte lejos del campamento. %s.")
+				:format(placeWhy) or "Pon el tótem de la suerte aquí: el próximo hallazgo cercano sale más raro.",
+				"PlaceLuck", "totemSuerte", "Poner", placeWhy == nil, placeWhy))
+		end
+	end
 	local upgrades = type(snapshot.upgrades) == "table" and snapshot.upgrades or {}
 	local names = {}
 	for name in pairs(config.upgrades) do table.insert(names, name) end

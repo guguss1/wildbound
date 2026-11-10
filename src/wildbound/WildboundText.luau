@@ -241,6 +241,11 @@ return freeze({
 		chaleco = "Chaleco",
 		amuleto = "Amuleto",
 		crafted = "%s: fabricado. Dura esta sesión.",
+		-- IT2: the Tótem de la suerte.
+		totemSuerte = "Tótem de la suerte",
+		luckPlaced = "Tótem de la suerte puesto: el próximo hallazgo cercano sale más raro. Hace ruido.",
+		luckRaised = "El tótem de la suerte mejoró un hallazgo cercano: %s.",
+		luckGone = "El tótem de la suerte se apagó.",
 	},
 	-- Delivery C (D-C5): the full-screen defeat summary (WildboundHudView.lossSummary) and the defeat notice.
 	DEFEAT = {
@@ -403,6 +408,9 @@ return freeze({
 		UnknownGear = "Ese objeto no existe.",
 		NoVest = "No tienes chaleco.",
 		VestUsed = "El chaleco ya te salvó en esta salida.",
+		NoLuckTotem = "No tienes tótem de la suerte. Fabrícalo en el campamento.",
+		NearCamp = "Sal del campamento para poner el tótem de la suerte.",
+		LuckActive = "Ya tienes un tótem de la suerte puesto.",
 		NoTotem = "No tienes tótem.",
 		AlreadyLeft = "El tótem queda puesto una vez que sales del campamento.",
 		NotAtShelter = "Usa una cápsula en el refugio.",

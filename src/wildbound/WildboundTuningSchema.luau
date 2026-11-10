@@ -205,6 +205,12 @@ Schema.SYSTEMS = table.freeze({
 		value("BOOTS_DRAIN", "Botas: gasto de aliento (x)", "Gear", "BOOTS_DRAIN", 0.7, 0.3, 1, 0.05),
 		value("AMULET_MEMORY", "Amuleto: memoria de La Silueta (-s)", "Gear", "AMULET_MEMORY", 1, 0, 4, 0.5),
 		value("AMULET_FEAR", "Amuleto: latido y miedo (x)", "Gear", "AMULET_FEAR", 0.6, 0, 1, 0.05, "client"),
+		-- IT2: the Tótem de la suerte.
+		value("LUCK_SECONDS", "Tótem de la suerte: dura (s)", "Gear", "LUCK_SECONDS", 60, 10, 600, 5),
+		value("LUCK_RADIUS", "Tótem de la suerte: radio (studs)", "Gear", "LUCK_RADIUS", 40, 10, 120, 5),
+		value("LUCK_NOISE_EVERY", "Tótem de la suerte: ruido cada (s)", "Gear", "LUCK_NOISE_EVERY", 10, 2, 60, 1),
+		value("LUCK_LURE", "Tótem de la suerte atrae un hallazgo (1 sí, 0 no)", "Gear", "LUCK_LURE", 1, 0, 1, 1),
+		value("LUCK_CAMP", "Tótem de la suerte: lejos del campamento (studs)", "Gear", "LUCK_CAMP", 30, 0, 120, 5),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

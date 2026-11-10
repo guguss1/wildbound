@@ -964,8 +964,11 @@ local function wildSlot(spawn)
 		rewardTier = spawn.rewardTier, rarity = spawn.tier, species = spawn.species or "Lumipol", x = point.x,
 		z = point.z, height = point.height, leash = 3, special = spawn.special }
 end
+-- Items IT2: set below with the Tótem de la suerte.
+local stepLuck, onLuckSpawn
 local function applySpawnActions(actions)
 	for _, action in ipairs(actions) do
+		if action.op == "spawn" and action.spawn.luck and onLuckSpawn then onLuckSpawn(action.spawn) end
 		if action.op == "expire" then
 			local id = wildEntries[action.spawn.id]
 			wildEntries[action.spawn.id] = nil
@@ -992,6 +995,7 @@ local function stepSpawnClock(now)
 	if now < nextSpawnStep then return end
 	nextSpawnStep = now + 1
 	applySpawnActions(SpawnClock.step(spawnClock, now, rng, spawnHeld(now)))
+	if stepLuck then stepLuck(now) end
 end
 
 -- Random world (plan Part 6, RW3): the wave clock. The first wave starts when the server opens, with one common egg
@@ -1047,6 +1051,92 @@ local function placeRefuges()
 	Rules.setRefuges(picked, WaveClock.live.REFUGE_RADIUS)
 	for _, refuge in ipairs(Rules.refuges()) do buildRefuge(refuge) end
 	telemetry:SetAttribute("Refuges", #Rules.refuges())
+end
+-- Items and totem (plan Part 4, IT2): the Tótem de la suerte. One standing per player, placed at the player's own
+-- feet (never a client position) at least LUCK_CAMP studs from the camp centre, for LUCK_SECONDS. The spawn clock
+-- raises the next spawn inside LUCK_RADIUS one tier; with LUCK_LURE it draws one in at once. It is heard like a
+-- capture ring when placed and every LUCK_NOISE_EVERY seconds. Session only.
+local LUCK_GLOW = Color3.fromRGB(255, 210, 90)
+local luckFolder = Instance.new("Folder")
+luckFolder.Name, luckFolder.Parent = "LuckTotems", runtime
+local luckTotems, luckSerial = {}, 0
+local function buildLuck(zone)
+	local model = Instance.new("Model")
+	model.Name = "TotemSuerte_" .. zone.id
+	model:SetAttribute("LuckId", zone.id)
+	local ground = relief:heightAt(zone.x, zone.z)
+	local ring = block(model, "Reach", Vector3.new(0.2, zone.radius * 2, zone.radius * 2),
+		CFrame.new(zone.x, ground + 0.12, zone.z) * CFrame.Angles(0, 0, math.rad(90)), LUCK_GLOW, Enum.PartType.Cylinder)
+	ring.Material, ring.Transparency = Enum.Material.Neon, 0.88
+	block(model, "Pole", Vector3.new(0.8, 4, 0.8), CFrame.new(zone.x, ground + 2, zone.z), Color3.fromRGB(110, 78, 50))
+	local crown = block(model, "Crown", Vector3.new(1.4, 1.4, 1.4), CFrame.new(zone.x, ground + 4.6, zone.z), LUCK_GLOW,
+		Enum.PartType.Ball)
+	crown.Material = Enum.Material.Neon
+	local light = Instance.new("PointLight")
+	light.Color, light.Range, light.Brightness, light.Parent = LUCK_GLOW, 14, 1.6, crown
+	local sign = Instance.new("BillboardGui")
+	sign.Name, sign.Size, sign.StudsOffset = "Sign", UDim2.fromOffset(170, 34), Vector3.new(0, 2.2, 0)
+	sign.MaxDistance, sign.LightInfluence, sign.AlwaysOnTop = 120, 0, false
+	local label = Instance.new("TextLabel")
+	label.Size, label.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+	label.Text, label.TextScaled, label.Font = Text.GEAR.totemSuerte, true, Enum.Font.GothamBold
+	label.TextColor3, label.TextStrokeTransparency = LUCK_GLOW, 0.2
+	label.Parent = sign
+	sign.Parent = crown
+	model.Parent = luckFolder
+	return model
+end
+local function removeLuck(player, notice)
+	local zone = luckTotems[player]
+	if not zone then return end
+	luckTotems[player] = nil
+	if zone.model then zone.model:Destroy() end
+	if notice and player.Parent == Players then send(player, "Luck", true, notice) end
+end
+stepLuck = function(now)
+	for player, zone in pairs(luckTotems) do
+		if player.Parent ~= Players then
+			removeLuck(player)
+		elseif not SpawnClock.luckActive(spawnClock, zone.id, now) then
+			-- Used (the owner was told which spawn rose) or out of time.
+			removeLuck(player, not zone.raised and Text.GEAR.luckGone or nil)
+		elseif now >= zone.nextNoiseAt then
+			zone.nextNoiseAt = now + Gear.live.LUCK_NOISE_EVERY
+			noiseEvent:Fire("ring", "Fog", zone.x, zone.z)
+		end
+	end
+	telemetry:SetAttribute("LuckTotems", #luckFolder:GetChildren())
+end
+onLuckSpawn = function(spawn)
+	for player, zone in pairs(luckTotems) do
+		if zone.id == spawn.luck then
+			zone.raised = true
+			telemetry:SetAttribute("LuckRaised", (telemetry:GetAttribute("LuckRaised") or 0) + 1)
+			telemetry:SetAttribute("LuckLast", ("%s %s->%s"):format(spawn.point.id, tostring(spawn.pool), spawn.tier))
+			send(player, "Luck", true, Text.GEAR.luckRaised:format(Text.RARITY[spawn.tier] or spawn.tier))
+		end
+	end
+end
+local function placeLuck(player)
+	local root, alive = rootOf(player), context(player)
+	if not root or alive ~= true then return reply(player, "PlaceLuck", false, "InvalidContext") end
+	if luckTotems[player] then return reply(player, "PlaceLuck", false, "LuckActive") end
+	local x, z = root.Position.X, root.Position.Z
+	if Rules.distance(x, z, campCenter.Position.X, campCenter.Position.Z) < Gear.live.LUCK_CAMP then
+		return reply(player, "PlaceLuck", false, "NearCamp")
+	end
+	local ok, reason = state:placeLuckTotem(player.UserId, alive)
+	if not ok then return reply(player, "PlaceLuck", false, reason) end
+	luckSerial += 1
+	local now = workspace:GetServerTimeNow()
+	local zone = { id = "luck:" .. luckSerial, x = x, z = z, radius = Gear.live.LUCK_RADIUS,
+		untilAt = now + Gear.live.LUCK_SECONDS, nextNoiseAt = now }
+	SpawnClock.addLuck(spawnClock, zone)
+	zone.model = buildLuck(zone)
+	luckTotems[player] = zone
+	reply(player, "PlaceLuck", true, nil, Text.GEAR.luckPlaced)
+	if Gear.live.LUCK_LURE >= 1 then applySpawnActions(SpawnClock.lure(spawnClock, now, rng, zone.id, spawnHeld(now))) end
+	stepLuck(now)
 end
 local function broadcast(kind, data)
 	local message = WaveClock.message(kind, data)
@@ -2081,17 +2171,21 @@ end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
-	DisarmTotem = true, UseCapsule = true, CraftGear = true }
+	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
 	if action == "CraftGear" then
 		-- Items IT1: one piece of equipment; the id is looked up in the server's config, never trusted.
 		local spec = type(EconomyConfig.gear) == "table" and EconomyConfig.gear[argument] or nil
-		if not spec or spec.kind ~= "equipment" then return end
+		if not spec or (spec.kind ~= "equipment" and spec.kind ~= "luckTotem") then return end
 		local alive, distance = context(player, campCenter)
 		local ok, result = state:craftGear(key, argument, alive, distance)
 		if ok then analytics:spent(key, "craft") end -- the analytics schema has no "gear" kind; crafting it is
 		reply(player, action, ok, result, Text.GEAR.crafted:format(Text.GEAR[argument] or argument))
+	elseif action == "PlaceLuck" then
+		-- Items IT2: the Tótem de la suerte goes at the player's own feet; the argument names it and nothing else.
+		if argument ~= Gear.LUCK then return end
+		placeLuck(player)
 	elseif action == "Craft" or action == "Upgrade" then
 		local known = action == "Craft" and EconomyConfig.recipes or EconomyConfig.upgrades
 		if not known[argument] then return end

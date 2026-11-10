@@ -252,5 +252,159 @@ return function(Gear, source, sources)
 		has(sources.fear, "Gear.softenFear(", "fear client")
 	end)
 
+	-- IT2: the Tótem de la suerte. Crafted at camp (one held at a time), placed away from camp for LUCK_SECONDS; the next
+	-- random spawn inside LUCK_RADIUS rolls one tier up (the spawn clock prefers a free point there, and with LUCK_LURE
+	-- the totem draws one spawn in at once). It makes ring-level noise, so La Silueta can hear it.
+	case("IT2: the luck totem's defaults and recipe", function()
+		local C = Gear.CONSTANTS
+		equal(Gear.LUCK, "totemSuerte")
+		equal(C.LUCK_SECONDS, 60); equal(C.LUCK_RADIUS, 40); equal(C.LUCK_NOISE_EVERY, 10); equal(C.LUCK_LURE, 1)
+		equal(C.LUCK_CAMP, 30, "placed at least this far from the camp centre")
+		local spec = sources.config.gear.totemSuerte
+		assert(type(spec) == "table", "recipe totemSuerte")
+		equal(spec.kind, "luckTotem"); equal(spec.cap, 1)
+		assert((spec.cost.ember or 0) > 0, "costs Esencia")
+		equal(sources.config.recipes.totem ~= nil, true, "the older ward totem stays")
+	end)
+
+	case("IT2: crafted at camp up to one held, placed once, session only", function()
+		local state = newState()
+		stocked(state, "Ana")
+		equal(state:snapshot("Ana").luckTotems, 0)
+		local ok, id = state:craftGear("Ana", "totemSuerte", true, 5)
+		equal(ok, true); equal(id, "totemSuerte")
+		equal(state:snapshot("Ana").luckTotems, 1)
+		local again, reason = state:craftGear("Ana", "totemSuerte", true, 5)
+		equal(again, false); equal(reason, "AtLimit")
+		local dead, deadReason = state:placeLuckTotem("Ana", false)
+		equal(dead, false); equal(deadReason, "InvalidContext")
+		equal(state:placeLuckTotem("Ana", true), true)
+		equal(state:snapshot("Ana").luckTotems, 0)
+		local none, noneReason = state:placeLuckTotem("Ana", true)
+		equal(none, false); equal(noneReason, "NoLuckTotem")
+		equal(state:snapshot("Ana").consumables.totemSuerte, nil, "not a saved consumable")
+	end)
+
+	local function luckClock(points)
+		local SpawnClock = sources.spawnClock
+		SpawnClock.tune({ MAX_COMUN = 1, MAX_RARA = 0, MAX_EPICA = 0, MAX_LEGENDARIA = 1, RESPAWN_COMUN = 0,
+			RESPAWN_LEGENDARIA = 0 })
+		return SpawnClock, SpawnClock.new({ points = points }, nil)
+	end
+	local ZERO = { NextNumber = function() return 0 end }
+	local function spawnsOf(actions)
+		local list = {}
+		for _, action in ipairs(actions) do
+			if action.op == "spawn" then table.insert(list, action.spawn) end
+		end
+		return list
+	end
+
+	case("IT2: the next spawn inside the radius rolls one tier up, once, and keeps its pool's count", function()
+		local SpawnClock, clock = luckClock({
+			{ id = "FAR", x = 300, z = 0, tier = "Comun", kind = "trail" },
+			{ id = "NEAR", x = 10, z = 0, tier = "Comun", kind = "trail" },
+		})
+		local ok, message = pcall(function()
+			SpawnClock.addLuck(clock, { id = "L1", x = 0, z = 0, radius = 40, untilAt = 60 })
+			local first = spawnsOf(SpawnClock.step(clock, 1, ZERO))
+			equal(#first, 1, "one spawn: the raised one still counts as a Comun slot")
+			equal(first[1].point.id, "NEAR", "the clock prefers a free point inside the radius")
+			equal(first[1].tier, "Rara"); equal(first[1].pool, "Comun"); equal(first[1].luck, "L1")
+			equal(first[1].rewardTier, SpawnClock.REWARD.Rara)
+			SpawnClock.claim(clock, first[1].id, 2)
+			local second = spawnsOf(SpawnClock.step(clock, 3, ZERO))
+			equal(#second, 1)
+			equal(second[1].tier, "Comun", "the totem works once")
+			equal(second[1].luck, nil)
+		end)
+		SpawnClock.tune(nil)
+		assert(ok, message)
+	end)
+
+	case("IT2: an expired totem raises nothing; a Legendaria point cannot go higher and keeps the totem", function()
+		local SpawnClock, clock = luckClock({ { id = "HEART", x = 0, z = 0, tier = "Legendaria", kind = "rock" } })
+		local ok, message = pcall(function()
+			SpawnClock.addLuck(clock, { id = "L1", x = 0, z = 0, radius = 40, untilAt = 60 })
+			local first = spawnsOf(SpawnClock.step(clock, 1, ZERO))
+			equal(first[1].tier, "Legendaria"); equal(first[1].luck, nil)
+			equal(SpawnClock.luckActive(clock, "L1", 1), true, "still waiting for a spawn it can raise")
+			equal(SpawnClock.luckActive(clock, "L1", 61), false, "gone after its time")
+			local _, late = luckClock({ { id = "NEAR", x = 5, z = 0, tier = "Comun", kind = "trail" } })
+			SpawnClock.addLuck(late, { id = "L2", x = 0, z = 0, radius = 40, untilAt = 5 })
+			local raised = spawnsOf(SpawnClock.step(late, 10, ZERO))
+			equal(raised[1].tier, "Comun", "an expired totem raises nothing")
+		end)
+		SpawnClock.tune(nil)
+		assert(ok, message)
+	end)
+
+	case("IT2: with the lure the totem draws one spawn into its radius at once, one tier up", function()
+		local SpawnClock, clock = luckClock({
+			{ id = "FAR", x = 300, z = 0, tier = "Comun", kind = "trail" },
+			{ id = "NEAR", x = 10, z = 0, tier = "Comun", kind = "trail" },
+		})
+		local ok, message = pcall(function()
+			local placed = spawnsOf(SpawnClock.step(clock, 0, ZERO))
+			equal(placed[1].point.id, "FAR")
+			SpawnClock.addLuck(clock, { id = "L1", x = 0, z = 0, radius = 40, untilAt = 60 })
+			local actions = SpawnClock.lure(clock, 1, ZERO, "L1", {})
+			equal(#actions, 2, "the far spawn leaves, a raised one appears inside")
+			equal(actions[1].op, "expire"); equal(actions[1].reason, "Lure"); equal(actions[1].spawn.point.id, "FAR")
+			equal(actions[2].op, "spawn"); equal(actions[2].spawn.point.id, "NEAR"); equal(actions[2].spawn.tier, "Rara")
+			equal(SpawnClock.luckActive(clock, "L1", 1), false, "used")
+			equal(#SpawnClock.lure(clock, 2, ZERO, "L1", {}), 0, "a used totem draws nothing")
+			-- A spawn someone is capturing never moves.
+			local _, heldClock = luckClock({
+				{ id = "FAR", x = 300, z = 0, tier = "Comun", kind = "trail" },
+				{ id = "NEAR", x = 10, z = 0, tier = "Comun", kind = "trail" },
+			})
+			local held = spawnsOf(SpawnClock.step(heldClock, 0, ZERO))[1]
+			SpawnClock.addLuck(heldClock, { id = "L2", x = 0, z = 0, radius = 40, untilAt = 60 })
+			equal(#SpawnClock.lure(heldClock, 1, ZERO, "L2", { [held.id] = true }), 0, "held spawns stay")
+		end)
+		SpawnClock.tune(nil)
+		assert(ok, message)
+	end)
+
+	case("IT2: the camp lists the totem's craft and a place row usable only away from camp", function()
+		local View, config, economy = sources.campView, sources.config, sources.economy
+		local function byId(snapshot, ctx)
+			local map = {}
+			for _, row in ipairs(View.campRows(config, economy, snapshot, ctx)) do map[row.id] = row end
+			return map
+		end
+		local rows = byId({ ember = 999, banked = { fogbark = 999, glowmoss = 999, nightbloom = 99 }, luckTotems = 0 },
+			{ atCamp = true })
+		local craft = rows["gear:totemSuerte"]
+		assert(craft, "craft row"); equal(craft.action, "CraftGear"); equal(craft.argument, "totemSuerte")
+		has(craft.text, sources.text.GEAR.totemSuerte)
+		equal(rows["luck:place"], nil, "nothing to place")
+		local held = byId({ ember = 0, banked = {}, luckTotems = 1 }, { atCamp = true })
+		equal(held["gear:totemSuerte"].enabled, false, "one held at most")
+		equal(held["luck:place"].action, "PlaceLuck"); equal(held["luck:place"].enabled, false, "not at camp")
+		has(held["luck:place"].why, "Sal del campamento")
+		local away = byId({ ember = 0, banked = {}, luckTotems = 1 }, { atCamp = false })
+		equal(away["luck:place"].enabled, true); equal(away["luck:place"].label, "Poner")
+	end)
+
+	case("IT2 wiring: the server places the totem, raises a spawn, makes noise and tells the owner", function()
+		local server, text = sources.server, sources.text
+		has(server, "PlaceLuck = true", "server economy actions")
+		has(server, "state:placeLuckTotem(", "server")
+		has(server, "SpawnClock.addLuck(", "server")
+		has(server, "SpawnClock.lure(", "server")
+		has(server, 'noiseEvent:Fire("ring", "Fog", zone.x, zone.z)', "the totem is heard like a capture ring")
+		has(server, "Gear.live.LUCK_SECONDS", "server")
+		has(server, "spawn.luck", "the owner hears which spawn was raised")
+		has(sources.client, "PlaceLuck = true", "the client waits for the server's reply")
+		for _, key in ipairs({ "totemSuerte", "luckPlaced", "luckRaised", "luckGone" }) do
+			equal(type(text.GEAR[key]), "string", "Text.GEAR." .. key)
+		end
+		for _, key in ipairs({ "NoLuckTotem", "NearCamp", "LuckActive" }) do
+			equal(type(text.NOTICES[key]), "string", "Text.NOTICES." .. key)
+		end
+	end)
+
 	return result
 end

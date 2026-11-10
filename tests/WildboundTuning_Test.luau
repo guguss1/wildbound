@@ -107,7 +107,9 @@ return function(Schema, modules)
 			-- Random world (RW6): the biome variant rotation.
 			"World.VARIANT_EVERY_WAVES",
 			-- Items and totem (plan Part 4, IT1): the equipment's effects.
-			"Gear.GLOVES_CALM", "Gear.GLOVES_RING", "Gear.BOOTS_DRAIN", "Gear.AMULET_MEMORY", "Gear.AMULET_FEAR" }) do
+			"Gear.GLOVES_CALM", "Gear.GLOVES_RING", "Gear.BOOTS_DRAIN", "Gear.AMULET_MEMORY", "Gear.AMULET_FEAR",
+			-- Items and totem (IT2): the luck totem.
+			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
