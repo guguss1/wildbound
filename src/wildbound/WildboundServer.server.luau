@@ -1968,11 +1968,12 @@ function Heist.pickupEgg(player, egg)
 	end
 end
 -- reason: "Death", "Hit", "Strike", "Leave" (later "Bat"). loose: the state entry when the state already let it go (a
--- strike). Returns the egg, or nil when nothing was carried or a safe zone keeps it in the arms.
-function Heist.dropEgg(player, reason, loose)
+-- strike). from: the character it falls from when it is no longer player.Character (NH7, a replaced character).
+-- Returns the egg, or nil when nothing was carried or a safe zone keeps it in the arms.
+function Heist.dropEgg(player, reason, loose, from)
 	local egg = EggCarry.carriedBy(eggs, player.UserId)
 	if not egg then return nil end
-	local character = player.Character
+	local character = from or player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local now = workspace:GetServerTimeNow()
 	if not root or not root:IsA("BasePart") then
@@ -2711,6 +2712,8 @@ local function bindCharacter(player, character)
 	if not record or record.character == character then return end
 	-- Character replacement/reset is also a defeat boundary, even if Died was missed.
 	if record.character and not record.defeated then
+		-- NH7: the egg in the arms falls where the old character was, before the defeat.
+		Heist.dropEgg(player, "Death", nil, record.character)
 		state:defeat(player.UserId, "life:" .. record.generation)
 		removeDropsOf(player)
 		analytics:death(player.UserId)
@@ -2728,6 +2731,9 @@ local function bindCharacter(player, character)
 		if records[player] ~= record or record.generation ~= generation or record.defeated
 			or record.character ~= character or player.Character ~= character then return end
 		record.defeated = true
+		-- NH7: a death drops the egg in the arms where the player fell, for anyone, for a limited time (DROP_SECONDS);
+		-- banked eggs, creatures and upgrades are never touched.
+		Heist.dropEgg(player, "Death")
 		local _, _, lossSummary = state:defeat(player.UserId, "life:" .. generation)
 		removeDropsOf(player)
 		analytics:death(player.UserId)
