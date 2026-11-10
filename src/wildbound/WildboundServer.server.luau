@@ -78,6 +78,7 @@ local WaveClock = require(ReplicatedStorage:WaitForChild("WildboundWaveClock"))
 local Gear = require(ReplicatedStorage:WaitForChild("WildboundGear"))
 -- Nest Heist (NH1 to NH8): the stolen egg's rules (fast steal, the carry in the arms, drop and pickup).
 local EggCarry = require(script.Parent:WaitForChild("WildboundEggCarry"))
+local eggs = EggCarry.new()
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -834,6 +835,7 @@ local function removeEntry(entry, now)
 	if entry.connection then entry.connection:Disconnect() end
 	entry.model:Destroy()
 	state:retireEncounter(entry.id)
+	EggCarry.retire(eggs, entry.id)
 	local out = capture:retire(entry.id, now or workspace:GetServerTimeNow())
 	if out then handleEnding(out) end
 end
@@ -961,6 +963,31 @@ local spawnClock = SpawnClock.new(spawnGraph, Species)
 local wildEntries = {}
 local RARITY_GLOW = { Comun = Color3.fromRGB(205, 235, 215), Rara = Color3.fromRGB(110, 175, 255),
 	Epica = Color3.fromRGB(190, 120, 255), Legendaria = Color3.fromRGB(255, 205, 80) }
+-- Nest Heist (NH2): the stolen egg rides in the arms, in front of the chest: welded to the root, massless, never
+-- colliding, touched or hit by a ray, so walking, sprinting and jumping are unchanged. One per living character.
+local EGG_ARMS = "WildboundEggCarried"
+local function syncEggArms(player)
+	local record, character = records[player], player.Character
+	local egg = EggCarry.carriedBy(eggs, player.UserId)
+	local existing = character and character:FindFirstChild(EGG_ARMS)
+	if not egg or not record or record.character ~= character or record.defeated then
+		if existing then existing:Destroy() end
+		return
+	end
+	if existing and existing:GetAttribute("EggId") == egg.id then return end
+	if existing then existing:Destroy() end
+	local root = character:FindFirstChild("HumanoidRootPart")
+	if not root or not root:IsA("BasePart") then return end
+	local model = Instance.new("Model")
+	model.Name = EGG_ARMS
+	model:SetAttribute("EggId", egg.id)
+	local shell = capsulePart(model, "Egg", Vector3.new(1.2, 1.6, 1.2), Enum.PartType.Ball,
+		RARITY_GLOW[egg.meta.rarity] or rgb(Species.NEST_GLOW.egg), Enum.Material.SmoothPlastic)
+	local light = Instance.new("PointLight")
+	light.Color, light.Brightness, light.Range, light.Parent = shell.Color, 0.6, 8, shell
+	weld("EggHold", root, shell, CFrame.new(0, -0.3, -1.4))
+	model.PrimaryPart, model.Parent = shell, character
+end
 local function ensureNests()
 	local count = math.max(1, #Players:GetPlayers())
 	local phase = islandPhase()
@@ -1691,6 +1718,11 @@ spawnEncounter = function(slot)
 	model:SetAttribute("Island", slot.island)
 	model:SetAttribute("Species", slot.species)
 	entries[id] = entry
+	-- NH2: every egg has an EggCarry record from the moment it lies in its nest (InNest), keyed by its encounter id.
+	if isEgg then
+		EggCarry.add(eggs, id, { species = slot.species, rarity = rarity, island = slot.island, tier = slot.rewardTier,
+			special = slot.special == true })
+	end
 	if slot.wild then wildEntries[slot.spawnId] = id else nestState[slot.id] = id end
 	entry.connection = entry.prompt.Triggered:Connect(function(player)
 		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
@@ -1701,10 +1733,18 @@ spawnEncounter = function(slot)
 				send(player, "Pickup", false, Text.ISLAND.guarded)
 				return
 			end
+			-- NH2: one egg in the arms at a time, and only an egg still in its nest.
+			local free, why = EggCarry.canSteal(eggs, id, player.UserId)
+			if not free then
+				if why == "AlreadyCarrying" then send(player, "Pickup", false, Text.EGG.already) end
+				return
+			end
 			local alive, distance = context(player, body)
-			local ok, reason = state:pickup(player.UserId, id, alive, distance, (slot.island or slot.wild) and
-				{ species = slot.species, tier = slot.rewardTier, island = slot.island } or nil)
+			local ok, reason = state:pickup(player.UserId, id, alive, distance, { species = slot.species or "Lumipol",
+				tier = slot.rewardTier or "Territory", island = slot.island, arms = true })
 			if ok then
+				EggCarry.steal(eggs, id, player.UserId, reason)
+				syncEggArms(player)
 				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
 				scheduleRespawn(slot)
@@ -1713,7 +1753,7 @@ spawnEncounter = function(slot)
 				-- I2: rolling an egg out of the nest is noisy.
 				if island and Island.event(island.meter, "EggTaken").woke then wakeIsland(island, workspace:GetServerTimeNow()) end
 			end
-			reply(player, "Pickup", ok, reason, "Huevo guardado en tu bolsa. Llévalo al cofre del campamento.")
+			reply(player, "Pickup", ok, reason, Text.EGG.stolen)
 		else
 			if not allowed(player, "CaptureStart") then return end
 			startCapture(player, entry)

@@ -192,11 +192,13 @@ function State:pickup(key, id, alive, distance, meta)
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	-- A creature is granted only by a finished capture session (completeCapture), never by a prompt.
 	if encounter.kind == "Creature" then return false, "CaptureRequired" end
-	local species, tier, island = "Lumipol", "Territory", nil
+	local species, tier, island, arms = "Lumipol", "Territory", nil, false
 	if meta ~= nil then
 		if type(meta) ~= "table" or not validSpecies(meta.species) then return false, "InvalidSpecies" end
 		if type(meta.tier) ~= "string" or not TIERS[meta.tier] then return false, "InvalidTier" end
 		species, tier, island = meta.species, meta.tier, type(meta.island) == "string" and meta.island or nil
+		-- Nest Heist (NH2): an egg stolen into the arms (the server's EggCarry tracks it); it can be knocked loose.
+		arms = meta.arms == true
 	end
 	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
@@ -206,6 +208,7 @@ function State:pickup(key, id, alive, distance, meta)
 	-- An egg pays by the tier of the nest it came from (I7); the old nest sat in the territory.
 	addToBag(self, player, {
 		uid = uid, kind = encounter.kind, species = species, protected = false, riskTier = tier, island = island,
+		inArms = arms or nil,
 	})
 	return true, uid
 end

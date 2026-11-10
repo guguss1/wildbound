@@ -205,6 +205,11 @@ return freeze({
 		pounce = "¡Va a saltarte encima! Esquívalo.",
 		eggRecovered = "Un adulto devolvió tu huevo a su nido.",
 	},
+	-- Nest Heist (NH1 to NH8): the egg in the arms. Notices at most 64 bytes.
+	EGG = {
+		stolen = "¡Tienes el huevo! Llévalo al cofre del campamento.",
+		already = "Ya llevas un huevo en brazos.",
+	},
 	-- Expedition islands (I7): the starter upgrade on the board.
 	UPGRADE = {
 		farolTapado = {
