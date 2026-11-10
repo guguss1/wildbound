@@ -20,7 +20,10 @@
     "transition": 40.0,
     "gap": 40.0,
     "road_width": 14.0,
-    "road_strip_margin": 2.0
+    "road_strip_margin": 2.0,
+    "hub_plan": "assets/maps/hub-layout/hub-bases-v2-r90.json",
+    "trail_lead": 14.0,
+    "junction_area": 196.0
   },
   "biomes": {
     "forest": {
@@ -359,15 +362,11 @@
   },
   "roads": {
     "pradera": {
-      "from": "hub rim",
+      "from": "hub gate E trail end",
       "to": "pradera entry gate",
       "nodes_world": [
         [
-          372.0,
-          -3.0
-        ],
-        [
-          392.0,
+          387.0,
           -3.0
         ],
         [
@@ -376,15 +375,26 @@
         ]
       ],
       "width": 14.0,
-      "length": 45.0
+      "length": 30.0,
+      "from_trail": {
+        "gate": "E",
+        "trail_end": [
+          387.0,
+          -3.0
+        ]
+      }
     },
     "living-forest": {
-      "from": "hub rim",
+      "from": "hub gate N trail end",
       "to": "living-forest entry gate",
       "nodes_world": [
         [
-          309.288,
-          -88.763
+          282.0,
+          -103.0
+        ],
+        [
+          282.0,
+          -117.0
         ],
         [
           352.0,
@@ -396,19 +406,26 @@
         ]
       ],
       "width": 14.0,
-      "length": 175.868
+      "length": 176.028,
+      "from_trail": {
+        "gate": "N",
+        "trail_end": [
+          282.0,
+          -103.0
+        ]
+      }
     },
     "cryptic-ruins": {
-      "from": "hub rim",
+      "from": "hub gate S trail end",
       "to": "cryptic-ruins entry gate",
       "nodes_world": [
         [
-          322.249,
-          77.498
+          282.0,
+          97.0
         ],
         [
-          392.0,
-          217.0
+          282.0,
+          111.0
         ],
         [
           402.0,
@@ -420,22 +437,29 @@
         ]
       ],
       "width": 14.0,
-      "length": 195.968
+      "length": 204.112,
+      "from_trail": {
+        "gate": "S",
+        "trail_end": [
+          282.0,
+          97.0
+        ]
+      }
     },
     "demon-abyss": {
-      "from": "hub rim",
+      "from": "hub gate N trail end",
       "to": "demon-abyss entry gate",
       "nodes_world": [
         [
-          247.599,
-          -86.166
+          282.0,
+          -103.0
+        ],
+        [
+          282.0,
+          -117.0
         ],
         [
           191.0,
-          -223.0
-        ],
-        [
-          62.0,
           -223.0
         ],
         [
@@ -448,18 +472,29 @@
         ]
       ],
       "width": 14.0,
-      "length": 352.078
+      "length": 357.703,
+      "from_trail": {
+        "gate": "N",
+        "trail_end": [
+          282.0,
+          -103.0
+        ]
+      }
     },
     "frozen-mountains": {
-      "from": "hub rim",
+      "from": "hub gate N trail end",
       "to": "frozen-mountains entry gate",
       "nodes_world": [
         [
-          322.249,
-          -83.498
+          282.0,
+          -103.0
         ],
         [
-          392.0,
+          282.0,
+          -117.0
+        ],
+        [
+          352.0,
           -223.0
         ],
         [
@@ -476,15 +511,26 @@
         ]
       ],
       "width": 14.0,
-      "length": 390.968
+      "length": 416.028,
+      "from_trail": {
+        "gate": "N",
+        "trail_end": [
+          282.0,
+          -103.0
+        ]
+      }
     },
     "volcanic-lands": {
-      "from": "hub rim",
+      "from": "hub gate S trail end",
       "to": "volcanic-lands entry gate",
       "nodes_world": [
         [
-          247.599,
-          80.166
+          282.0,
+          97.0
+        ],
+        [
+          282.0,
+          111.0
         ],
         [
           191.0,
@@ -504,26 +550,29 @@
         ]
       ],
       "width": 14.0,
-      "length": 347.078
+      "length": 352.703,
+      "from_trail": {
+        "gate": "S",
+        "trail_end": [
+          282.0,
+          97.0
+        ]
+      }
     },
     "rock-caves": {
-      "from": "hub rim",
+      "from": "hub gate S trail end",
       "to": "rock-caves entry gate",
       "nodes_world": [
         [
-          322.249,
-          77.498
+          282.0,
+          97.0
         ],
         [
-          392.0,
-          217.0
+          282.0,
+          111.0
         ],
         [
           402.0,
-          217.0
-        ],
-        [
-          452.0,
           217.0
         ],
         [
@@ -536,13 +585,21 @@
         ]
       ],
       "width": 14.0,
-      "length": 315.968
+      "length": 324.112,
+      "from_trail": {
+        "gate": "S",
+        "trail_end": [
+          282.0,
+          97.0
+        ]
+      }
     }
   },
   "notes": [
     "West and east keep the transition from the hub rim; north and south clear the west and east squares by the gap; each diagonal clears its two neighbours by the gap. The diagonal assignment is a proposal.",
     "The forest entry is the threshold road's crossing of the forest's east edge, local (200, 20). The forest is built and moved by its own builder and the Studio writer's shift (step S1), not by this placement.",
-    "The forest square is the one measured in Studio (measured in the Studio place: WildboundP0.Floor centred at (-18, -3), size 400 x 400 (props reach x 189.3 at most)); slot_world_centre keeps the west slot the other squares were placed from. Every other square keeps its slot and clears the real forest by the gap. The hub's W gate trail already joins the forest at its east edge, so there is no open-world forest road, and the north-west and south-west roads leave the hub east of the forest's corners (strip half width plus 2 studs).",
+    "The forest square is the one measured in Studio (measured in the Studio place: WildboundP0.Floor centred at (-18, -3), size 400 x 400 (props reach x 189.3 at most)); slot_world_centre keeps the west slot the other squares were placed from. Every other square keeps its slot and clears the real forest by the gap. The hub's W gate trail already joins the forest at its east edge, so there is no open-world forest road, and every road keeps the strip half width plus 2 studs from the forest's edges.",
+    "Every road starts where a gate trail of the built hub plan (assets/maps/hub-layout/hub-bases-v2-r90.json) ends, runs straight on for 14 studs, then takes the shortest leg chain that keeps every clearance: the gate is the one with the shortest such road (the W, SW and NW trails end on the forest, so the roads leave by E, N and S). Roads that share a leg share it exactly (a trunk, built once) and branch at a junction node; two slabs overlap by at most a 14-stud junction square, and no slab touches a hub trail (the first one starts flush with the trail end).",
     "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road is not part of this placement."
   ]
 }

@@ -56,6 +56,74 @@ def luau_block_balance(text):
     return opens, closes
 
 
+def slab_poly(x, z, sx, sz, yaw):
+    r = math.radians(yaw)
+    ux, uz = math.cos(r), -math.sin(r)          # local +X
+    vx, vz = math.sin(r), math.cos(r)           # local +Z
+    return [(x + ux * sx / 2 * i + vx * sz / 2 * j, z + uz * sx / 2 * i + vz * sz / 2 * j)
+            for i, j in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+
+
+def strip(a, b, width, cap):
+    L = math.dist(a, b)
+    dx, dz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    nx, nz = -dz * width / 2, dx * width / 2
+    a2, b2 = (a[0] - dx * cap, a[1] - dz * cap), (b[0] + dx * cap, b[1] + dz * cap)
+    return [(a2[0] + nx, a2[1] + nz), (b2[0] + nx, b2[1] + nz), (b2[0] - nx, b2[1] - nz), (a2[0] - nx, a2[1] - nz)]
+
+
+def road_slabs(text):
+    out = []
+    for row in block(text, "BOXES"):
+        f = row.split("|")
+        out.append((f[0], slab_poly(float(f[2]), float(f[4]), float(f[5]), float(f[7]), float(f[8]))))
+    return out
+
+
+def _area(poly):
+    return sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(poly, poly[1:] + poly[:1])) / 2
+
+
+def overlap_area(p, q):
+    """Area of the intersection of two convex polygons (Sutherland-Hodgman)."""
+    out = p if _area(p) > 0 else p[::-1]
+    clip = q if _area(q) > 0 else q[::-1]
+    for c, d in zip(clip, clip[1:] + clip[:1]):
+        def keep(v):
+            return (d[0] - c[0]) * (v[1] - c[1]) - (d[1] - c[1]) * (v[0] - c[0]) >= 0
+        src, out = out, []
+        for v, w in zip(src, src[1:] + src[:1]):
+            if keep(w):
+                if not keep(v):
+                    out.append(_cut(v, w, c, d))
+                out.append(w)
+            elif keep(v):
+                out.append(_cut(v, w, c, d))
+        if not out:
+            return 0.0
+    return abs(_area(out))
+
+
+def _cut(v, w, c, d):
+    ex, ez = d[0] - c[0], d[1] - c[1]
+    fv = ex * (v[1] - c[1]) - ez * (v[0] - c[0])
+    fw = ex * (w[1] - c[1]) - ez * (w[0] - c[0])
+    t = fv / (fv - fw)
+    return (v[0] + (w[0] - v[0]) * t, v[1] + (w[1] - v[1]) * t)
+
+
+def inside(p, poly):
+    return overlap_area(poly, [(p[0] - 0.01, p[1] - 0.01), (p[0] + 0.01, p[1] - 0.01), (p[0] + 0.01, p[1] + 0.01),
+                               (p[0] - 0.01, p[1] + 0.01)]) > 3.9e-4 - 1e-9
+
+
+def on_segment(p, a, b):
+    L = math.dist(a, b)
+    cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / (L * L)
+    return abs(cross) / L < 0.01 and -1e-6 <= t <= 1 + 1e-6
+
+
 class AssetRoute(unittest.TestCase):
     def test_only_the_forest_kit_was_uploaded(self):
         manifest = json.loads((REPO / "assets/exports/forest-kit/forest-kit-upload-manifest.json").read_text(encoding="utf-8"))
@@ -252,17 +320,49 @@ class Written(unittest.TestCase):
         hub = self.placement["hub"]
         self.assertEqual(tuple(float(v) for v in HUB_RE.search(text).groups()),
                          (float(hub["centre"][0]), float(hub["centre"][1]), float(hub["radius"])))
-        rows = block(text, "BOXES")
+        slabs = road_slabs(text)
+        width = {road["width"] for road in self.placement["roads"].values()}
+        self.assertEqual(width, {14.0})
+        # Every stretch of every road's centreline is paved by some slab ...
         for key, road in self.placement["roads"].items():
-            mine = [r.split("|") for r in rows if r.split("|")[0] == key]
             nodes = road["nodes_world"]
-            self.assertEqual(len(mine), len(nodes) - 1, key)
-            for fields, (a, b) in zip(mine, zip(nodes, nodes[1:])):
-                self.assertAlmostEqual(float(fields[2]), (a[0] + b[0]) / 2, places=2)
-                self.assertAlmostEqual(float(fields[4]), (a[1] + b[1]) / 2, places=2)
-                self.assertAlmostEqual(float(fields[7]), math.dist(a, b) + road["width"], places=2)
+            for a, b in zip(nodes, nodes[1:]):
+                n = max(2, int(math.dist(a, b)))
+                for k in range(n):         # leg interiors: a road's first slab starts flush with its trail end
+                    t = (k + 0.5) / n
+                    p = (a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t)
+                    self.assertTrue(any(inside(p, poly) for _, poly in slabs), (key, p))
+        # ... every slab runs along a leg of the road it is filed under, and no leg is paved twice.
+        legs = {key: list(zip(road["nodes_world"], road["nodes_world"][1:])) for key, road in self.placement["roads"].items()}
+        for (folder, poly), row in zip(slabs, block(text, "BOXES")):
+            f = row.split("|")
+            centre = (float(f[2]), float(f[4]))
+            self.assertTrue(any(on_segment(centre, a, b) for a, b in legs[folder]), row)
+        rows = [tuple(r.split("|")[2:9]) for r in block(text, "BOXES")]
+        self.assertEqual(len(rows), len(set(rows)))
+        self.assertLess(len(rows), sum(len(v) for v in legs.values()), "shared stretches are emitted once")
         gates = block(text, "MARKERS")
         self.assertEqual(len(gates), len(self.placement["biomes"]))
+
+    def test_no_two_road_slabs_overlap_by_more_than_a_junction_square(self):
+        text = (TOOLS / "build-wildbound-open-world-roads.luau").read_bytes().decode("utf-8")
+        slabs = road_slabs(text)
+        junction = 14.0 * 14.0
+        for i, (fa, pa) in enumerate(slabs):
+            for fb, pb in slabs[i + 1:]:
+                self.assertLessEqual(overlap_area(pa, pb), junction + 1e-3, (fa, fb, pa, pb))
+
+    def test_no_road_slab_overlaps_a_hub_trail(self):
+        text = (TOOLS / "build-wildbound-open-world-roads.luau").read_bytes().decode("utf-8")
+        hub = json.loads((REPO / "assets/maps/hub-layout/hub-bases-v2-r90.json").read_text(encoding="utf-8"))
+        hx, hz = self.placement["hub"]["centre"]
+        for e in hub["entrances"]:
+            t = e["trail"]
+            a = (hx + t["from"][0], hz + t["from"][1])
+            b = (hx + t["to"][0], hz + t["to"][1])
+            trail = strip(a, b, t["width"], 0.0)
+            for folder, poly in road_slabs(text):
+                self.assertLess(overlap_area(trail, poly), 1e-3, (e["id"], folder))
 
     def test_every_planned_prop_is_a_row_once_with_a_recipe(self):
         for key in BIOMES:

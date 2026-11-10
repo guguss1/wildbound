@@ -1031,6 +1031,13 @@ ROAD_STRIP_MARGIN = 2.0                # a road strip (half width 7) keeps this 
 # With the measured forest this close to the hub, the hub's own W gate trail (tools/plan_hub_bases.py, entrance W,
 # join hub-local (-100, 20)) already runs from the W gate to the forest's east edge: no open-world road is added.
 FOREST_ENTRY_ROAD = "hub W gate trail (hub-bases v1 and v2-r90 entrance W, from the W gate to the forest's east edge)"
+# The hub actually built in the place (tools/plan_hub_bases.py, plan v2-r90; hub frame, centre (0, 0)). With the
+# measured forest and a hub of the plan's safe radius, every road starts where a gate trail ends (entrances[].trail.to)
+# instead of on the bare rim: a player leaves by a gate and finds the road straight on.
+HUB_PLAN = MAPS / "hub-layout" / "hub-bases-v2-r90.json"
+HUB_PLAN_REL = "assets/maps/hub-layout/hub-bases-v2-r90.json"
+TRAIL_LEAD = ROAD_WIDTH                # a road runs straight on from its trail end this far before it may turn
+JUNCTION_AREA = ROAD_WIDTH * ROAD_WIDTH  # two road slabs meeting at a node overlap by at most one junction square
 SIDE_NORMALS = {"E": (1.0, 0.0), "W": (-1.0, 0.0), "S": (0.0, 1.0), "N": (0.0, -1.0)}
 _HUB_RE = re.compile(r"Rules\.HUB_X,\s*Rules\.HUB_Z,\s*Rules\.HUB_RADIUS\s*=\s*([-+\d.eE]+),\s*([-+\d.eE]+),\s*([-+\d.eE]+)")
 
@@ -1182,12 +1189,192 @@ def _segment_rect(a, b, r):
     return min([_point_segment(c, a, b) for c in corners] + [_point_rect(a, r), _point_rect(b, r)])
 
 
-def generate_placement(hub=None, forest=None):
+def _strip(a, b, width, cap_a=True, cap_b=True):
+    """Corners of the slab a road leg a-b paves: width wide, a half width past each capped end."""
+    L = math.dist(a, b)
+    dx, dz = (b[0] - a[0]) / L, (b[1] - a[1]) / L
+    h = width / 2
+    a2 = (a[0] - dx * h, a[1] - dz * h) if cap_a else a
+    b2 = (b[0] + dx * h, b[1] + dz * h) if cap_b else b
+    nx, nz = -dz * h, dx * h
+    return [(a2[0] + nx, a2[1] + nz), (b2[0] + nx, b2[1] + nz), (b2[0] - nx, b2[1] - nz), (a2[0] - nx, a2[1] - nz)]
+
+
+def _poly_area(poly):
+    return sum(p[0] * q[1] - q[0] * p[1] for p, q in zip(poly, poly[1:] + poly[:1])) / 2
+
+
+def _overlap_area(p, q):
+    """Area shared by two convex polygons (Sutherland-Hodgman clipping)."""
+    out = p if _poly_area(p) > 0 else p[::-1]
+    clip = q if _poly_area(q) > 0 else q[::-1]
+    for c, d in zip(clip, clip[1:] + clip[:1]):
+        def side(v):
+            return (d[0] - c[0]) * (v[1] - c[1]) - (d[1] - c[1]) * (v[0] - c[0])
+        src, out = out, []
+        for v, w in zip(src, src[1:] + src[:1]):
+            sv, sw = side(v), side(w)
+            if sw >= 0:
+                if sv < 0:
+                    t = sv / (sv - sw)
+                    out.append((v[0] + (w[0] - v[0]) * t, v[1] + (w[1] - v[1]) * t))
+                out.append(w)
+            elif sv >= 0:
+                t = sv / (sv - sw)
+                out.append((v[0] + (w[0] - v[0]) * t, v[1] + (w[1] - v[1]) * t))
+        if len(out) < 3:
+            return 0.0
+    return abs(_poly_area(out))
+
+
+def _on_leg(p, a, b):
+    """p lies on leg a-b strictly between its ends."""
+    L = math.dist(a, b)
+    if L == 0:
+        return False
+    cross = (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+    t = ((p[0] - a[0]) * (b[0] - a[0]) + (p[1] - a[1]) * (b[1] - a[1])) / (L * L)
+    return abs(cross) < 1e-6 * max(L, 1.0) and 1e-6 < t < 1 - 1e-6
+
+
+def hub_gate_trails(path=HUB_PLAN):
+    """The built hub plan's gate trails (id, inner and outer end, outward unit direction; hub frame) and radii."""
+    hub_plan = load_json(path)
+    out = []
+    for e in hub_plan["entrances"]:
+        a, b = e["trail"]["from"], e["trail"]["to"]
+        L = math.dist(a, b)
+        out.append({"id": e["id"], "from": (float(a[0]), float(a[1])), "end": (float(b[0]), float(b[1])),
+                    "dir": ((b[0] - a[0]) / L, (b[1] - a[1]) / L), "width": float(e["trail"]["width"])})
+    return out, float(hub_plan["hub"]["floor_radius"]), float(hub_plan["hub"]["safe_radius"])
+
+
+class TrailRoadNetwork:
+    """Roads from the hub gate trail ends, routed one by one over a small node graph, sharing legs as trunks.
+
+    A road may start at any gate trail end; its first leg runs straight on for TRAIL_LEAD (so a turn's corner never
+    lies on the trail), then straight legs between candidate nodes to its biome's fixed approach. A leg is allowed
+    only when its strip keeps ROAD_STRIP_MARGIN from every biome square (the last approach leg excepted for its own
+    square), stays off the hub floor, shares no area with a hub trail, and meets every road already routed either as
+    the very same leg (a shared trunk) or at a common node, overlapping it by at most a junction square. The shortest
+    allowed route wins, which also picks the gate."""
+
+    def __init__(self, trails, floor_radius, squares):
+        self.floor, self.squares = floor_radius, squares
+        self.ends = {t["end"] for t in trails}
+        self.trail_polys = [_strip(t["from"], t["end"], t["width"], False, False) for t in trails]
+        self.legs = []                          # (a, b, owner) of every road routed so far
+        self.leads = {}
+        for t in trails:
+            lead = (t["end"][0] + t["dir"][0] * TRAIL_LEAD, t["end"][1] + t["dir"][1] * TRAIL_LEAD)
+            if self.allowed(t["end"], lead):
+                self.leads[t["id"]] = (t["end"], lead)
+
+    def slab(self, a, b):
+        """A leg's slab: capped at both ends except at a trail end, where it starts flush."""
+        return _strip(a, b, ROAD_WIDTH, a not in self.ends, b not in self.ends)
+
+    def shared(self, a, b):
+        return any({a, b} == {c, d} for c, d, _ in self.legs)
+
+    def allowed(self, a, b, own=None):
+        if self.shared(a, b):
+            return True
+        if any(_segment_rect(a, b, sq) < ROAD_HALF + ROAD_STRIP_MARGIN - 1e-6 for sq in self.squares if sq != own):
+            return False
+        if _point_segment((0.0, 0.0), a, b) < self.floor + ROAD_HALF - 1e-6:
+            return False
+        slab = self.slab(a, b)
+        if any(_overlap_area(slab, t) >= 1e-6 for t in self.trail_polys):
+            return False
+        for c, d, _ in self.legs:
+            limit = JUNCTION_AREA + 1e-6 if {a, b} & {c, d} else 1e-6
+            if _overlap_area(slab, self.slab(c, d)) > limit:
+                return False
+        return True
+
+    def route(self, tail, waypoints, own):
+        """Shortest (length, gate id, nodes) from any gate trail end through the fixed tail to the gate, or None."""
+        tail_len = [sum(math.dist(p, q) for p, q in zip(tail[i:], tail[i + 1:])) for i in range(len(tail))]
+
+        def finish(x):
+            for i in range(len(tail) - 1):
+                if math.dist(x, tail[i]) < 1e-9:
+                    rest, extra = tail[i:], tail_len[i]
+                elif _on_leg(x, tail[i], tail[i + 1]):
+                    rest, extra = [x] + tail[i + 1:], math.dist(x, tail[i + 1]) + tail_len[i + 1]
+                else:
+                    continue
+                last = len(rest) - 2                   # only the last leg enters the road's own square
+                if all(self.allowed(p, q, own if k == last else None) for k, (p, q) in enumerate(zip(rest, rest[1:]))):
+                    return rest, extra
+                return None
+            return None
+
+        nodes = []
+        for p in [lead for _, lead in self.leads.values()] + list(waypoints) + [n for c, d, _ in self.legs for n in (c, d)]:
+            if p not in nodes and p not in self.ends:
+                nodes.append(p)
+        best, frontier = {}, []
+        for gid, (end, lead) in sorted(self.leads.items()):
+            if self.allowed(end, lead):
+                best[lead] = (TRAIL_LEAD, gid, [end, lead])
+                frontier.append(lead)
+        done, result = set(), None
+        while frontier:
+            frontier.sort(key=lambda n: (best[n][0], best[n][1], n))
+            x = frontier.pop(0)
+            if x in done:
+                continue
+            done.add(x)
+            cost, gid, path = best[x]
+            if result is not None and cost >= result[0]:
+                break
+            end = finish(x)
+            if end is not None and (result is None or cost + end[1] < result[0] - 1e-9):
+                result = (cost + end[1], gid, path + end[0][1:])
+            for y in nodes:
+                if y in done:
+                    continue
+                c = cost + math.dist(x, y)
+                if y in best and best[y][0] <= c + 1e-9:
+                    continue
+                if self.allowed(x, y):
+                    best[y] = (c, gid, path + [y])
+                    frontier.append(y)
+        return result
+
+    def add(self, nodes, owner):
+        for a, b in zip(nodes, nodes[1:]):
+            if not self.shared(a, b):
+                self.legs.append((a, b, owner))
+
+
+def _simplify(roads):
+    """Drop interior nodes a road runs straight through when no other road has them."""
+    users = {}
+    for key, nodes in roads.items():
+        for n in nodes:
+            users.setdefault(n, set()).add(key)
+    out = {}
+    for key, nodes in roads.items():
+        keep = [nodes[0]]
+        for prev, n, nxt in zip(nodes, nodes[1:], nodes[2:]):
+            straight = abs((n[0] - prev[0]) * (nxt[1] - n[1]) - (n[1] - prev[1]) * (nxt[0] - n[0])) < 1e-6
+            if not (straight and users[n] == {key}):
+                keep.append(n)
+        keep.append(nodes[-1])
+        out[key] = keep
+    return out
+
+
+def generate_placement(hub=None, forest=None, trails="auto"):
     """World placement of every biome and one road per biome for a hub (x, z, radius); default: the rules.
 
     `forest` is the forest square as it really stands in the place, (world x, world z, size), e.g. MEASURED_FOREST.
     The other squares keep their slots (refused if one would come within the gap of it), the forest entry records
-    it, and the roads route around it."""
+    it, and the roads route around it. `trails` is the built hub plan's gate trails (hub_gate_trails()); "auto" uses
+    them for the measured forest when the hub radius is the plan's safe radius, None keeps the rim roads."""
     hx, hz, radius = hub if hub is not None else read_rules_hub()
     hx, hz, radius = float(hx), float(hz), float(radius)
     inputs = biome_inputs()
@@ -1205,6 +1392,25 @@ def generate_placement(hub=None, forest=None):
                 raise ValueError("the measured forest comes within the %g-stud gap of the %s square" % (PLACEMENT_GAP, key))
         # Diagonal roads may not slip between the hub and the real forest: they turn east of its strip clearance.
         lane = (max(lane[0], real[1] + ROAD_HALF + ROAD_STRIP_MARGIN), lane[1])
+
+    if trails == "auto":
+        plan_trails = hub_gate_trails()
+        trails = plan_trails if real is not None and abs(plan_trails[2] - radius) < 1e-9 else None
+    network = None
+
+    def tail_for(slot, spec, centre, yaw, normal):
+        """The gate, the fixed approach (first node on a corridor, then outside the gate, then the gate) and turns."""
+        half = spec["size"] / 2
+        gx, gz = rotate_yaw(spec["gate"][0], spec["gate"][1], yaw)
+        gate = (centre[0] + gx, centre[1] + gz)
+        depth = half - (gx * normal[0] + gz * normal[1])
+        outside = (gate[0] + normal[0] * (depth + PLACEMENT_GAP / 2), gate[1] + normal[1] * (depth + PLACEMENT_GAP / 2))
+        if len(slot) == 2:
+            junction = corridor_junction(slot, squares, by_slot)
+            return gate, _dedupe([junction, outside, gate]), [(min(max(junction[0], lane[0]), lane[1]), junction[1])]
+        if slot in ("N", "S"):
+            return gate, [outside, gate], [(min(max(outside[0], lane[0]), lane[1]), outside[1])]
+        return gate, [outside, gate], []
 
     def road_for(slot, spec, centre, yaw, normal):
         half = spec["size"] / 2
@@ -1234,7 +1440,7 @@ def generate_placement(hub=None, forest=None):
             nodes = _split_at(nodes, shared)
         return gate, nodes, sum(math.dist(a, b) for a, b in zip(nodes, nodes[1:]))
 
-    biomes, roads, shared = {}, {}, []
+    biomes, roads, shared, trail_gates = {}, {}, [], {}
     for key, slot, *_ in BIOME_SLOTS:
         spec, centre = inputs[key], centres[key]
         half = spec["size"] / 2
@@ -1243,12 +1449,23 @@ def generate_placement(hub=None, forest=None):
             centre = ((real[0] + real[1]) / 2, (real[2] + real[3]) / 2)
             squares[key] = real
         options = []
+        if trails is not None and network is None and key != "forest":
+            network = TrailRoadNetwork(trails[0], trails[1], list(squares.values()))
         for yaw, normal in hub_facing_yaws(spec, centre, fixed=0.0 if slot in ("W", "E") else None):
+            if network is not None:
+                gate, tail, turns = tail_for(slot, spec, centre, yaw, normal)
+                found = network.route(tail, turns + tail, squares[key])
+                if found is not None:
+                    options.append((round(found[0], 6), yaw, normal, gate, found[2], found[1]))
+                continue
             gate, local_nodes, length = road_for(slot, spec, centre, yaw, normal)
-            options.append((round(length, 6), yaw, normal, gate, local_nodes))
+            options.append((round(length, 6), yaw, normal, gate, local_nodes, None))
         if not options:
-            raise ValueError("no quarter turn makes the %s gate face the hub" % key)
-        _, yaw, normal, gate, local_nodes = min(options, key=lambda o: (o[0], o[1]))
+            raise ValueError("no quarter turn makes the %s gate face the hub, or no road reaches it" % key)
+        _, yaw, normal, gate, local_nodes, trail_gate = min(options, key=lambda o: (o[0], o[1]))
+        if network is not None:
+            network.add(local_nodes, key)
+            trail_gates[key] = trail_gate
         if slot in ("N", "S"):
             shared.extend(local_nodes[1:-1])
         world_nodes = [[r3(hx + p[0]), r3(hz + p[1])] for p in local_nodes]
@@ -1273,6 +1490,15 @@ def generate_placement(hub=None, forest=None):
             continue                  # the hub's W gate trail is the forest's road: no open-world road on top of it
         roads[key] = {"from": "hub rim", "to": key + " entry gate", "nodes_world": world_nodes, "width": ROAD_WIDTH,
                       "length": r3(sum(math.dist(a, b) for a, b in zip(world_nodes, world_nodes[1:])))}
+    if network is not None:
+        # Straight-through nodes no other road uses are dropped; shared legs stay identical (one trunk, built once).
+        local = _simplify({k: [(p[0] - hx, p[1] - hz) for p in r["nodes_world"]] for k, r in roads.items()})
+        for key, road in roads.items():
+            nodes = [[r3(hx + p[0]), r3(hz + p[1])] for p in local[key]]
+            gid = trail_gates[key]
+            road.update({"from": "hub gate %s trail end" % gid, "from_trail": {"gate": gid, "trail_end": nodes[0]},
+                         "nodes_world": nodes,
+                         "length": r3(sum(math.dist(a, b) for a, b in zip(nodes, nodes[1:])))})
     if real is not None:
         for key, road in roads.items():
             nodes = [(p[0] - hx, p[1] - hz) for p in road["nodes_world"]]
@@ -1293,7 +1519,9 @@ def generate_placement(hub=None, forest=None):
         "hub": {"centre": [hx, hz], "radius": radius,
                 "source": "src/wildbound/WildboundWorldRules.luau (Rules.HUB_X, HUB_Z, HUB_RADIUS)"},
         "params": {"transition": PLACEMENT_TRANSITION, "gap": PLACEMENT_GAP, "road_width": ROAD_WIDTH,
-                   **({"road_strip_margin": ROAD_STRIP_MARGIN} if real is not None else {})},
+                   **({"road_strip_margin": ROAD_STRIP_MARGIN} if real is not None else {}),
+                   **({"hub_plan": HUB_PLAN_REL, "trail_lead": TRAIL_LEAD, "junction_area": JUNCTION_AREA}
+                      if network is not None else {})},
         "biomes": biomes,
         "roads": roads,
         "notes": [
@@ -1305,9 +1533,16 @@ def generate_placement(hub=None, forest=None):
             "The forest square is the one measured in Studio (%s); slot_world_centre keeps the west slot the other "
             "squares were placed from. Every other square keeps its slot and clears the real forest by the gap. The "
             "hub's W gate trail already joins the forest at its east edge, so there is no open-world forest road, and "
-            "the north-west and south-west roads leave the hub east of the forest's corners (strip half width plus "
-            "%g studs)." % (MEASURED_FOREST_SOURCE, ROAD_STRIP_MARGIN),
-        ] if real is not None else []) + [
+            "every road keeps the strip half width plus %g studs from the forest's edges." % (MEASURED_FOREST_SOURCE,
+                                                                                            ROAD_STRIP_MARGIN),
+        ] if real is not None else []) + ([
+            "Every road starts where a gate trail of the built hub plan (%s) ends, runs straight on for %g studs, then "
+            "takes the shortest leg chain that keeps every clearance: the gate is the one with the shortest such road "
+            "(the W, SW and NW trails end on the forest, so the roads leave by E, N and S). Roads that share a leg share "
+            "it exactly (a trunk, built once) and branch at a junction node; two slabs overlap by at most a %g-stud "
+            "junction square, and no slab touches a hub trail (the first one starts flush with the trail end)."
+            % (HUB_PLAN_REL, TRAIL_LEAD, ROAD_WIDTH),
+        ] if network is not None else []) + [
             "layout-v1.json keeps the earlier hub-60 frame (ring road at z +-212, north and south spokes); that ring road "
             "is not part of this placement.",
         ],

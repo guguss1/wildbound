@@ -22,6 +22,7 @@ import plan_open_world_layout as plan
 REPO = Path(__file__).resolve().parent.parent
 RULES = REPO / "src/wildbound/WildboundWorldRules.luau"
 COMMITTED = REPO / "assets/maps/open-world/biome-placement-v1.json"
+HUB_PLAN = json.loads((REPO / "assets/maps/hub-layout/hub-bases-v2-r90.json").read_text(encoding="utf-8"))
 
 # ---- Spec, restated independently of the module under test ------------------------------------
 TRANSITION, GAP, ROAD_W = 40.0, 40.0, 14.0
@@ -309,7 +310,7 @@ class MeasuredForest(unittest.TestCase):
                 self.assertGreaterEqual(segment_rect_distance(a, b, own), ROAD_W / 2 + STRIP_MARGIN - 1e-6, key)
 
     def test_roads_stay_off_the_hub_floor_past_their_rim_node(self):
-        for (hx, hz, radius), placement in [(PLACE_HUB, self.placement)] + [(h, plan.generate_placement(h)) for h in HUBS]:
+        for (hx, hz, radius), placement in [(h, plan.generate_placement(h)) for h in HUBS]:
             floor = radius + HUB_FLOOR_MARGIN
             for key, road in placement["roads"].items():
                 nodes = road["nodes_world"]
@@ -319,6 +320,54 @@ class MeasuredForest(unittest.TestCase):
                 for a, b in zip(nodes[1:], nodes[2:]):
                     self.assertGreaterEqual(point_segment_distance((hx, hz), a, b), floor + ROAD_W / 2, (key, a, b))
                 self.assertGreaterEqual(math.hypot(nodes[1][0] - hx, nodes[1][1] - hz), floor + ROAD_W / 2, key)
+
+    def test_each_road_starts_where_a_hub_gate_trail_ends(self):
+        hx, hz = PLACE_HUB[:2]
+        ends = {e["id"]: [hx + e["trail"]["to"][0], hz + e["trail"]["to"][1]] for e in HUB_PLAN["entrances"]}
+        for key, road in self.placement["roads"].items():
+            gate = road["from_trail"]["gate"]
+            self.assertIn(gate, ends, key)
+            self.assertEqual(road["nodes_world"][0], ends[gate], key)
+            self.assertEqual(road["from_trail"]["trail_end"], ends[gate], key)
+
+    def test_each_road_leaves_its_trail_straight_on_for_a_road_width(self):
+        # Turning at the trail end would push the road's corner back over the hub trail: the first leg continues
+        # the trail's own direction for at least a road width, so any turn's corner stays off the trail.
+        hx, hz = PLACE_HUB[:2]
+        trails = {e["id"]: e["trail"] for e in HUB_PLAN["entrances"]}
+        for key, road in self.placement["roads"].items():
+            t = trails[road["from_trail"]["gate"]]
+            d = (t["to"][0] - t["from"][0], t["to"][1] - t["from"][1])
+            a, b = road["nodes_world"][0], road["nodes_world"][1]
+            leg = (b[0] - a[0], b[1] - a[1])
+            cross = d[0] * leg[1] - d[1] * leg[0]
+            self.assertAlmostEqual(cross / math.hypot(*d) / math.hypot(*leg), 0.0, places=6, msg=key)
+            self.assertGreater(d[0] * leg[0] + d[1] * leg[1], 0.0, key)
+            self.assertGreaterEqual(math.hypot(*leg), ROAD_W - 1e-6, key)
+
+    def test_trail_roads_stay_off_the_hub_floor(self):
+        hx, hz, _ = PLACE_HUB
+        floor = HUB_PLAN["hub"]["floor_radius"]
+        for key, road in self.placement["roads"].items():
+            nodes = road["nodes_world"]
+            for a, b in zip(nodes, nodes[1:]):
+                self.assertGreaterEqual(point_segment_distance((hx, hz), a, b), floor + ROAD_W / 2 - 1e-6, (key, a, b))
+
+    def test_roads_share_stretches_only_along_identical_legs(self):
+        # Two roads closer than a road width must share a node there (a junction) or run along the same leg.
+        items = list(self.placement["roads"].items())
+        for i, (ka, ra) in enumerate(items):
+            for kb, rb in items[i + 1:]:
+                shared = {tuple(n) for n in ra["nodes_world"]} & {tuple(n) for n in rb["nodes_world"]}
+                for a, b in zip(ra["nodes_world"], ra["nodes_world"][1:]):
+                    for c, d in zip(rb["nodes_world"], rb["nodes_world"][1:]):
+                        if segment_segment_distance(a, b, c, d) >= ROAD_W:
+                            continue
+                        if {tuple(a), tuple(b)} == {tuple(c), tuple(d)}:
+                            continue
+                        near = [n for n in shared if point_segment_distance(n, a, b) < ROAD_W
+                                and point_segment_distance(n, c, d) < ROAD_W]
+                        self.assertTrue(near, (ka, kb, a, b, c, d))
 
     def test_the_cli_defaults_to_the_measured_forest(self):
         import contextlib
