@@ -253,7 +253,9 @@ return function(Text, source, sources)
 			"Choose protected", "Earned protection", "Choose a bag item", "Lumipol egg", "Pick up", "Dropped ",
 			"Picked up", "was lost", "belongs to another", "Gathered %d", "Bond +", "Crafted.", "Upgrade bought",
 			"Seal armed", "Newest item", "Totem:", "Totem put away", "Skill learned", "Banked at the shelter",
-			"Session only", "Return temporary loot", "Nightbloom bundle" },
+			"Session only", "Return temporary loot", "Nightbloom bundle",
+			-- Items and totem (plan Part 4, IT3): the equipment and the luck totem.
+			"Gloves", "Boots", "=Amulet", "Luck totem", "Gear crafted", "Totem placed", "Leave camp" },
 		gather = { "=Gather", "wilts at Dawn" },
 		hudView = { "sees you", "ATTACK", "No hunt", "is searching", "Searching", "hunts a friend", "Friend hunted",
 			"Waiting for server", "No signal", "Attack incoming", "Threat nearby", "Silueta revealed", "Dusk:",
@@ -263,7 +265,9 @@ return function(Text, source, sources)
 			"Needs ", "Effect not built", "Companion bond", "No seal", "Nothing to ward", "Seal the newest", "Nothing at risk",
 			"If defeated", "Lose", "Nearest node", "Walk to camp", "At camp", "Session only", "Trail Sense", "Night Nose",
 			"Steady Hands", "Soft Approach", "Light Load", "Quick Rest", "Read the Signs", "Long Reveal", "Explorer",
-			"Capturer", "Survivor", "Occultist", "Last Breath", "Extraction Capsule", "Short ", "already sealed" },
+			"Capturer", "Survivor", "Occultist", "Last Breath", "Extraction Capsule", "Short ", "already sealed",
+			-- Items and totem (plan Part 4, IT3): the equipment rows and the luck totem's rows.
+			"Gloves", "Boots", "=Vest", "=Amulet", "Equipped", "equipped", "Luck totem", "Place the", "Leave camp", "rarer" },
 	}
 	case("NB3: no known English player string is left in the HUD, prompts, notices or panels", function()
 		local left = {}
