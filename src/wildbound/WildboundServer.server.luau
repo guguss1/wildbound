@@ -1030,6 +1030,12 @@ local function waveData()
 		variant = currentWave.variant, variantChanged = currentWave.variantChanged, board = WaveClock.top(waveClock) }
 end
 local function startWave(event, now)
+	-- RW6: the wave's biome variant (every VARIANT_EVERY_WAVES waves, never by nights): its spawn weights apply before
+	-- the reroll; the world clients read the attribute for the fog, the tint and the ambience.
+	local variant = WaveClock.variantFor(event.wave)
+	local variantChanged = currentWave ~= nil and currentWave.variant ~= variant
+	SpawnClock.setWeights(spawnClock, WaveClock.VARIANT_WEIGHTS[variant])
+	network:SetAttribute("BiomeVariant", variant)
 	if event.wave == 1 then
 		local egg = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Egg", x = campCenter.Position.X,
 			z = campCenter.Position.Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
@@ -1038,7 +1044,7 @@ local function startWave(event, now)
 		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
 	end
 	placeRefuges()
-	currentWave = { wave = event.wave, endsAt = event.endsAt }
+	currentWave = { wave = event.wave, endsAt = event.endsAt, variant = variant, variantChanged = variantChanged }
 	telemetry:SetAttribute("Wave", event.wave)
 	broadcast("wave", waveData())
 end

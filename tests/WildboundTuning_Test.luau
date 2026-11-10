@@ -103,7 +103,9 @@ return function(Schema, modules)
 			-- Random world (RW3, RW4): the first egg near camp and the Refugios.
 			"World.FIRST_EGG_RADIUS", "World.REFUGE_MIN", "World.REFUGE_MAX", "World.REFUGE_RADIUS", "World.REFUGE_REGEN",
 			-- Random world (RW5): the biome event.
-			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS" }) do
+			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS",
+			-- Random world (RW6): the biome variant rotation.
+			"World.VARIANT_EVERY_WAVES" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

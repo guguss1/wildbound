@@ -242,5 +242,81 @@ return function(WaveClock, source, sources)
 		has(client, "UISizeConstraint", "sized for phones")
 	end)
 
+	local VARIANTS = { "Niebla", "Escarcha", "Ceniza", "Floracion" }
+
+	case("RW6: the biome variant rotates on the wave clock, every VARIANT_EVERY_WAVES waves", function()
+		equal(WaveClock.CONSTANTS.VARIANT_EVERY_WAVES, 1)
+		for index, name in ipairs(VARIANTS) do equal(WaveClock.VARIANTS[index], name) end
+		equal(WaveClock.variantFor(1), "Niebla"); equal(WaveClock.variantFor(2), "Escarcha")
+		equal(WaveClock.variantFor(3), "Ceniza"); equal(WaveClock.variantFor(4), "Floracion")
+		equal(WaveClock.variantFor(5), "Niebla")
+		WaveClock.tune({ VARIANT_EVERY_WAVES = 2 })
+		equal(WaveClock.variantFor(2), "Niebla"); equal(WaveClock.variantFor(3), "Escarcha")
+		WaveClock.tune(nil)
+		equal(WaveClock.variantFor(0 / 0), "Niebla"); equal(WaveClock.variantFor(-3), "Niebla")
+	end)
+
+	case("RW6: each variant weights the spawn kinds, never to nothing", function()
+		local kinds = { treeBase = true, canopy = true, root = true, log = true, rock = true, trail = true }
+		for _, name in ipairs(VARIANTS) do
+			local weights = WaveClock.VARIANT_WEIGHTS[name]
+			assert(type(weights) == "table", name)
+			local any = false
+			for kind, weight in pairs(weights) do
+				assert(kinds[kind], name .. " kind " .. tostring(kind))
+				assert(type(weight) == "number" and weight > 0 and weight <= 3, name .. " weight " .. tostring(weight))
+				any = true
+			end
+			assert(any or name == "Niebla", name .. " weights something")
+		end
+	end)
+
+	case("RW6: a variant tints fog and palette but keeps night's darkness and the playable floors", function()
+		local Atmosphere = sources.atmosphere
+		assert(type(Atmosphere.variant) == "function", "Atmosphere.variant missing")
+		for _, name in ipairs(VARIANTS) do
+			local look = Atmosphere.VARIANTS[name]
+			assert(type(look) == "table", name)
+			assert(({ wind = true, birds = true, insectsDusk = true, insectsNight = true })[look.ambient],
+				name .. " ambient from an existing catalog slot")
+			for _, clock in ipairs({ 12, 19, 23 }) do
+				for _, zone in ipairs({ "open", "fog", "camp" }) do
+					local base = Atmosphere.at(clock, zone, false)
+					local out = Atmosphere.variant(base, name)
+					for _, key in ipairs({ "brightness", "exposure", "ambientWeight" }) do
+						equal(out[key], base[key], name .. " keeps " .. key)
+					end
+					equal(out.ambient.r, base.ambient.r, name .. " keeps the ambient")
+					assert(out.fogStart >= Atmosphere.FLOORS.fogStart - 1e-9, "fog start floor")
+					assert(out.fogEnd >= Atmosphere.FLOORS.fogEnd - 1e-9, "fog end floor")
+					assert(out.density <= Atmosphere.FLOORS.density + 1e-9, "density ceiling")
+					assert(out.haze <= Atmosphere.FLOORS.haze + 1e-9, "haze ceiling")
+					assert(math.abs(out.fogEnd - base.fogEnd) <= base.fogEnd * 0.2 + 1e-9, name .. " a tint, not a new map")
+					assert(type(out.tint) == "table", "a palette tint")
+				end
+			end
+		end
+		local same = Atmosphere.variant(Atmosphere.at(12, "open", false), "Nope")
+		equal(same.tint.r, 255, "an unknown variant changes nothing")
+	end)
+
+	case("RW6: the server rotates the variant, the clients tint, play its ambience and say so in Spanish", function()
+		local server = sources.server
+		has(server, "WaveClock.variantFor(event.wave)")
+		has(server, "SpawnClock.setWeights(spawnClock, WaveClock.VARIANT_WEIGHTS[")
+		has(server, 'network:SetAttribute("BiomeVariant",')
+		assert(not server:find("nightsSurvived", 1, true) and not server:find("NightsSurvived", 1, true),
+			"no mechanic is gated by nights survived")
+		local worldClient = sources.worldClient
+		has(worldClient, "Atmos.variant(")
+		has(worldClient, '"BiomeVariant"')
+		has(worldClient, "ColorCorrectionEffect")
+		has(sources.client, "Text.VARIANT.changed")
+		local Text = sources.text
+		equal(Text.VARIANT.Floracion, "Floración")
+		equal(Text.VARIANT.Escarcha, "Escarcha")
+		assert(#Text.VARIANT.changed:format("Floración") <= 72, "a notice")
+	end)
+
 	return result
 end

@@ -146,6 +146,14 @@ return freeze({
 	WAVE = {
 		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
 	},
+	-- Random world (RW6): the biome variant's names and the notice when it changes.
+	VARIANT = {
+		Niebla = "Niebla",
+		Escarcha = "Escarcha",
+		Ceniza = "Ceniza",
+		Floracion = "Floración",
+		changed = "El bosque cambia: %s.",
+	},
 	-- Random world (RW5): the biome event. The banner fits a phone (48 bytes with a species and m:ss); notices 72.
 	EVENT = {
 		title = "Huevo especial del bioma",

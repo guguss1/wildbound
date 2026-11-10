@@ -194,6 +194,8 @@ Schema.SYSTEMS = table.freeze({
 		value("EVENT_EVERY", "Huevo especial cada (s)", "WaveClock", "EVENT_EVERY", 1200, 30, 7200, 30),
 		value("EVENT_SECONDS", "Huevo especial visible (s)", "WaveClock", "EVENT_SECONDS", 300, 10, 1800, 10),
 		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
+		-- RW6: the biome variant rotates every this many waves (never by nights).
+		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

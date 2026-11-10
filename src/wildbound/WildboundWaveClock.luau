@@ -29,14 +29,24 @@ WaveClock.CONSTANTS = freeze({
 	-- RW5: the biome event: the first at minute 5, then every 20 minutes, visible 5 minutes, at a Legendaria point
 	-- within EVENT_RADIUS of La Silueta's home.
 	EVENT_FIRST = 300, EVENT_EVERY = 1200, EVENT_SECONDS = 300, EVENT_RADIUS = 45,
+	-- RW6: the biome variant changes every this many waves (not by nights: no mechanic is gated by nights survived).
+	VARIANT_EVERY_WAVES = 1,
+})
+-- RW6: the variants in rotation order, and how each weights the spawn points' kinds (WildboundSpawnClock.setWeights).
+WaveClock.VARIANTS = freeze({ "Niebla", "Escarcha", "Ceniza", "Floracion" })
+WaveClock.VARIANT_WEIGHTS = freeze({
+	Niebla = {},
+	Escarcha = { canopy = 0.5, rock = 1.5, log = 1.5 },
+	Ceniza = { rock = 2, log = 2, root = 2, canopy = 0.5 },
+	Floracion = { canopy = 2, treeBase = 1.5, trail = 1.5 },
 })
 WaveClock.REMOTE = "WorldEvent"
 WaveClock.KINDS = freeze({ wave = true, board = true, event = true })
 
 local TUNABLE = { "WAVE_SECONDS", "FIRST_EGG_RADIUS", "REFUGE_MIN", "REFUGE_MAX", "REFUGE_RADIUS", "REFUGE_REGEN",
-	"EVENT_FIRST", "EVENT_EVERY", "EVENT_SECONDS", "EVENT_RADIUS" }
+	"EVENT_FIRST", "EVENT_EVERY", "EVENT_SECONDS", "EVENT_RADIUS", "VARIANT_EVERY_WAVES" }
 local FLOORS = { WAVE_SECONDS = 10, FIRST_EGG_RADIUS = 20, REFUGE_RADIUS = 4, REFUGE_REGEN = 1, EVENT_EVERY = 30,
-	EVENT_SECONDS = 10, EVENT_RADIUS = 10 }
+	EVENT_SECONDS = 10, EVENT_RADIUS = 10, VARIANT_EVERY_WAVES = 1 }
 WaveClock.live = {}
 
 function WaveClock.tunable()
@@ -97,6 +107,14 @@ function WaveClock.step(state, now)
 		table.insert(events, { type = "eventStarted", index = state.eventIndex, endsAt = state.event.endsAt })
 	end
 	return events
+end
+
+-- RW6: the biome variant of a wave (1 = the first). Anything that is not a wave number reads as the first.
+function WaveClock.variantFor(wave)
+	if not finite(wave) or wave < 1 then wave = 1 end
+	local every = math.max(1, math.floor(WaveClock.live.VARIANT_EVERY_WAVES + 0.5))
+	local index = math.floor((math.floor(wave) - 1) / every) % #WaveClock.VARIANTS + 1
+	return WaveClock.VARIANTS[index]
 end
 
 -- RW5: the event egg's one claimant. Returns true for the first claim of a live event only.

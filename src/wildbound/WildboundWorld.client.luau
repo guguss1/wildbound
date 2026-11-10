@@ -338,6 +338,30 @@ local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Col
 -- Delivery D1: whole-map fog by zone and time of day comes from a pure module; this script only applies it.
 local atmosphereModule = ReplicatedStorage:WaitForChild("WildboundAtmosphere", 10)
 local Atmos = atmosphereModule and require(atmosphereModule)
+-- Random world (RW6): the biome variant the server publishes on the network folder ("BiomeVariant"). It tints the fog
+-- and the palette (a local ColorCorrectionEffect, removed on cleanup) and plays a quiet bed from an existing catalog
+-- slot; night keeps its own fog and darkness (Atmos.variant never touches brightness, exposure or ambient).
+local variantTint = make("ColorCorrectionEffect", {Name = "WildboundVariantTint", TintColor = Color3.new(1, 1, 1)}, Lighting)
+local audioCatalogModule = ReplicatedStorage:FindFirstChild("WildboundAudioCatalog")
+local AudioCatalog = audioCatalogModule and audioCatalogModule:IsA("ModuleScript") and require(audioCatalogModule)
+local variantBed, variantBedSlot = nil, nil
+local function biomeVariant()
+	local folder = ReplicatedStorage:FindFirstChild("WildboundNetwork")
+	local value = folder and folder:GetAttribute("BiomeVariant")
+	return type(value) == "string" and value or nil
+end
+local function playVariantBed(name)
+	local look = Atmos and Atmos.VARIANTS and Atmos.VARIANTS[name]
+	local slot = look and look.ambient
+	if slot == variantBedSlot then return end
+	variantBedSlot = slot
+	if variantBed then variantBed:Destroy() variantBed = nil end
+	local entry = slot and AudioCatalog and AudioCatalog.SOUNDS[slot]
+	if not entry then return end
+	variantBed = make("Sound", {Name = "WildboundVariantBed", SoundId = "rbxassetid://" .. entry.ids[1], Looped = true,
+		Volume = 0.1, PlaybackSpeed = name == "Escarcha" and 0.8 or 1}, game:GetService("SoundService"))
+	variantBed:Play()
+end
 -- Dread pass: the player's own flashlight, rebuilt on each new character's head.
 local function ownFlashlight()
 	local head = player.Character and player.Character:FindFirstChild("Head")
@@ -717,7 +741,10 @@ listen(RunService.Heartbeat, function(dt)
 	local alpha = 1 - math.exp(-step * 0.5)
 	if Atmos then
 		local zone = state.isSafe == true and "camp" or (state.isFog == true and "fog" or "open")
-		local target = Atmos.at(state.clockTime, zone, reduced)
+		local variant = biomeVariant()
+		local target = Atmos.variant(Atmos.at(state.clockTime, zone, reduced), variant)
+		variantTint.TintColor = variantTint.TintColor:Lerp(rgb(target.tint), alpha)
+		playVariantBed(variant)
 		local ambient = original.Ambient:Lerp(rgb(target.ambient), target.ambientWeight)
 		local outdoor = original.OutdoorAmbient:Lerp(rgb(target.outdoorAmbient), target.ambientWeight)
 		Lighting.Ambient = Lighting.Ambient:Lerp(ambient, alpha)
@@ -757,6 +784,8 @@ listen(gui.Destroying, function()
 	local beam = player.Character and player.Character:FindFirstChild("WildboundFlashlight", true)
 	if beam then beam:Destroy() end
 	for key, value in pairs(original) do Lighting[key] = value end
+	variantTint:Destroy()
+	if variantBed then variantBed:Destroy() end
 	if ownsAtmosphere then
 		atmosphere:Destroy()
 	elseif atmosphere.Parent then

@@ -644,7 +644,14 @@ end)
 local lastWaveSeen = nil
 local function onWorldEvent(message)
 	if message.kind == "wave" and Text and Text.WAVE then
-		if lastWaveSeen ~= nil and message.wave > lastWaveSeen then showNotice(Text.WAVE.started:format(message.wave)) end
+		if lastWaveSeen ~= nil and message.wave > lastWaveSeen then
+			-- RW6: a changed biome variant says so; otherwise the wave notice.
+			if message.variantChanged and message.variant and Text.VARIANT then
+				showNotice(Text.VARIANT.changed:format(Text.VARIANT[message.variant] or message.variant))
+			else
+				showNotice(Text.WAVE.started:format(message.wave))
+			end
+		end
 		lastWaveSeen = message.wave
 	elseif message.kind == "event" and Text and Text.EVENT then
 		local now = workspace:GetServerTimeNow()
