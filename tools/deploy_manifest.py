@@ -210,6 +210,9 @@ DEFAULT_MAPPINGS = [
     # MeshGen1 pass: dresses every Lumipol with the user's model (server only) and its suite
     ("src/wildbound/WildboundLumipolArt.luau", "ServerScriptService.WildboundLumipolArt"),
     ("tests/WildboundLumipolArt_Test.luau", "ServerStorage.WildboundLumipolArt_Test"),
+    # Nest Heist phase 1 (NH1 to NH8): the egg-carry rule (server only) and its suite
+    ("src/wildbound/WildboundEggCarry.luau", "ServerScriptService.WildboundEggCarry"),
+    ("tests/WildboundEggCarry_Test.luau", "ServerStorage.WildboundEggCarry_Test"),
 ]
 
 

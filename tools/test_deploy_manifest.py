@@ -360,6 +360,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundTuningWiring_Test.luau": "ServerStorage.WildboundTuningWiring_Test",
         "src/wildbound/WildboundFear.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundFearClient",
         "tests/WildboundFearWiring_Test.luau": "ServerStorage.WildboundFearWiring_Test",
+        # Nest Heist phase 1 (NH1 to NH8): the egg-carry rule (server only) and its suite
+        "src/wildbound/WildboundEggCarry.luau": "ServerScriptService.WildboundEggCarry",
+        "tests/WildboundEggCarry_Test.luau": "ServerStorage.WildboundEggCarry_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
