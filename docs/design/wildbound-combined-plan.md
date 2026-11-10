@@ -52,3 +52,28 @@ Beast art runs in parallel offline: stylized low-poly models of the four beasts 
 | Asset and licence researcher | Sonnet 5.5 high | Link and licence collection (Quaternius, Kenney, Poly Pizza, Creator Store) | After a modeler finishes (3-agent cap) |
 
 Cap: at most three agents at once and one Studio writer, per `AGENTS.md`.
+
+## 6. User decisions and open items (2026-11-10, second round)
+
+| # | Topic | Decision or status |
+| --- | --- | --- |
+| Q1 | Parents' close swing telegraph | Raise 0.45 s to 0.8 s (fair-strike rule). Assigned to the current Studio writer |
+| Q2 | Rare-egg minigame | Open: the user wants a new, more fun minigame proposal instead of the ring |
+| Q3 | Burst | Open: the user is not convinced; alternatives proposed (timed dodge/parry, vault, slide, decoy) |
+| Q4 | Bat | Faster cooldown (Steal-an-Egg feel) and a ragdoll knockback that sends the target flying away from the attacker. Proposal: cooldown 5 s, short ragdoll about 1.2 s, egg drops, immunity 4 s against chain stuns, no PvP in the hub |
+| Q5 | MaxPlayers | 8 for now |
+| Q6 | Gloves screen | An inventory panel. Plus a chest zone at the base: pay local currency (Esencia), roulette animation reveals the reward, odds shown, prices in the economy config. Esencia only, no Robux |
+| Q7 | Pedestal and bag | Open: the user asked what the bag is (the uncommitted expedition materials and items that a defeat partly loses) |
+| Q8 | Unwanted gloves | Recycle for a small amount of Esencia |
+| Q9 | Walk speed | Lower walk 17.5 to 16 (La Silueta 17): escapes need sprint, dodge or other skills. Assigned to the current Studio writer |
+| Q10 | Luck totem | Persisted when bought or earned; single use |
+| Q11 | Dusk | A pre-night stage that warns players and gives beasts a small buff |
+| V1 | Visibility | The hub, bases, Pradera and beast spawn markers must be visible in Edit mode; runtime builders reuse what exists. Next Studio writer after the current one |
+| Q4b | Bat immunity | 3 s instead of 4 s |
+| H1 | Hub | Brighter and larger: it is the place to show off creatures |
+| H2 | Shops | Small shop spots marked with a circle on the ground; standing on one opens the shop UI |
+| P1 | Priority | Finish adding the existing maps (Pradera and the offline layouts: frozen mountains, volcanic lands, rock caves, cryptic ruins, living forest, demon abyss) and the global beasts before new features |
+| Q7b | Banking | Entering your own base banks everything (carried egg and bag) and shows a large "Estás a salvo" message |
+| Q2b | Rare-egg minigame | "Arrullo": keep the egg inside a moving zone on a bar by holding and releasing (fishing-bar style, original art and naming); replaces the ring for rare eggs |
+| Q3b | Burst replacement | "Esquiva perfecta": press during a beast or parent attack telegraph to dodge and gain a short speed boost; replaces Burst |
+| U1 | Beast uploads | User authorized uploading the beast FBX models as private assets to their account (no publishing) |
