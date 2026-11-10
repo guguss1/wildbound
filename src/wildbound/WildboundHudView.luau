@@ -178,7 +178,7 @@ function View.hint(info)
 	if info.phase == "Dusk" then return "Atardecer: llega la noche." end
 	if info.isFog == true then return "Bosque de niebla: mantente alerta." end
 	if info.phase == "Night" then return "Noche: florece el Nightbloom." end
-	return "Explora o vuelve al campamento."
+	return "Explora o vuelve a tu base."
 end
 
 function View.newNotice()

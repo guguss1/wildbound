@@ -310,6 +310,15 @@ return function(Text, source, sources)
 		end
 		assert(Text.NOTICES.capsule:find("Esencia", 1, true) and Text.CAMP.stored:find("Esencia", 1, true), "pay lines")
 	end)
+	case("EV-W4: players start at the hub, so the objective, the egg notices and the defeat line point to the base", function()
+		for _, line in ipairs({ Text.HUD.objective, Text.EGG.stolen, Text.EGG.picked, Text.HUD.eggsHeader }) do
+			assert(line:find("tu base", 1, true), line)
+			assert(not line:find("campamento", 1, true), line)
+		end
+		assert(not Text.DEFEAT.title:find("campamento", 1, true), Text.DEFEAT.title)
+		assert(#Text.EGG.stolen <= 64 and #Text.EGG.picked <= 64, "egg notices fit 64 bytes")
+		assert(#Text.HUD.objective <= 42, "the objective fits the HUD line")
+	end)
 
 	return result
 end

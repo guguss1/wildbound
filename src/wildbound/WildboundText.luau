@@ -211,14 +211,14 @@ return freeze({
 	},
 	-- Nest Heist (NH1 to NH8): the egg in the arms. Notices at most 64 bytes.
 	EGG = {
-		stolen = "¡Tienes el huevo! Llévalo al cofre del campamento.",
+		stolen = "¡Tienes el huevo! Llévalo a tu base.",
 		already = "Ya llevas un huevo en brazos.",
 		-- Hub follow-up (HF-T2): the server measured a hold shorter than the steal needs.
 		holdLonger = "Mantén presionado un poco más.",
 		-- NH5: drop and pickup.
 		pickUp = "Recoger huevo",
 		knocked = "¡Te golpearon! Se te cayó el huevo.",
-		picked = "¡Tienes un huevo! Llévalo al cofre del campamento.",
+		picked = "¡Tienes un huevo! Llévalo a tu base.",
 		taken = "Otro jugador recogió tu huevo.",
 		gone = "Tu huevo se perdió en el bosque.",
 	},
@@ -269,7 +269,7 @@ return freeze({
 	},
 	-- Delivery C (D-C5): the full-screen defeat summary (WildboundHudView.lossSummary) and the defeat notice.
 	DEFEAT = {
-		title = "Derrotado. Volverás al campamento.",
+		title = "Derrotado. Volverás a la plaza.",
 		nothing = "No perdiste nada.",
 		lost = "Perdiste %s: %s%s.",
 		more = " y %d más",
@@ -347,7 +347,7 @@ return freeze({
 	},
 	-- Next batch NB3: the inventory client's HUD line, tabs and Bag rows (WildboundClient). Tab words fit 84 pixels.
 	HUD = {
-		objective = "Roba y vuelve al campamento.",
+		objective = "Roba un huevo y llévalo a tu base.",
 		sessionOnly = "Solo esta sesión.",
 		-- Nest Heist Phase 3 (NS1): the HUD line while the progress is being saved.
 		saved = "Progreso guardado.",
@@ -374,7 +374,7 @@ return freeze({
 		item = "%s de %s",
 		kinds = { Egg = "Huevo", Creature = "Criatura", Nightbloom = "Ramo" },
 		dropped = "Soltado cerca: %s · recógelo antes de 30 s",
-		eggsHeader = "Huevos guardados · Incúbalos en el campamento",
+		eggsHeader = "Huevos guardados · Incúbalos en tu base",
 		noEggs = "No tienes huevos guardados.",
 		egg = "Huevo de %s",
 		hatch = "Incubar",

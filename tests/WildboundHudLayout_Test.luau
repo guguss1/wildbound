@@ -224,7 +224,7 @@ return function(Layout, View, source, Text)
 	case("every phone hint and chip text fits the room the layout gives it", function()
 		-- Deliberately changed in NB3: the Spanish hints and short notices.
 		local hints = { "¡Ataque en camino! Apártate.", "Peligro cerca: ve a un refugio.", "La Silueta se ve. ¡Muévete!",
-			"Atardecer: llega la noche.", "Bosque de niebla: mantente alerta.", "Explora o vuelve al campamento.",
+			"Atardecer: llega la noche.", "Bosque de niebla: mantente alerta.", "Explora o vuelve a tu base.",
 			"Noche: florece el Nightbloom." }
 		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[5], DEVICES[6] }) do
 			local layout = layoutOf(device)
