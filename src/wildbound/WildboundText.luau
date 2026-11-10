@@ -448,6 +448,9 @@ return freeze({
 		AlreadyGathered = "Ya recolectaste aquí en esta salida.",
 		InvalidYield = "Este punto ya no está disponible.",
 		NotAtCamp = "Hazlo en el campamento.",
+		-- Nest Heist hub (HB-T3): another player's base station, or too far from one's own.
+		NotYourBase = "Esta no es tu base.",
+		FarAway = "Acércate más a la estación de tu base.",
 		CannotAfford = "No tienes suficientes materiales guardados ni Esencia.",
 		AtLimit = "No puedes llevar más de eso.",
 		AlreadyOwned = "Ya lo tienes.",
@@ -547,5 +550,8 @@ return freeze({
 		linkSign = "Plaza central y bases",
 		freeSign = "Base libre",
 		ownedSign = "Base de %s",
+		deliveryPrompt = "Entregar huevo",
+		noEgg = "No llevas un huevo. Roba uno y tráelo a tu base.",
+		delivered = "¡Huevo a salvo en tu base!",
 	},
 })

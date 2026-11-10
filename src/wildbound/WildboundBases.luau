@@ -73,4 +73,15 @@ function Bases.signText(Text, name)
 	return Text.HUB.ownedSign:format(name)
 end
 
+-- HB-T3: a station answers only its base's owner, measured by the server within the station's Range plus a small
+-- latency allowance. A free base (owner 0) is nobody's, so it refuses everyone.
+Bases.ALLOWANCE = 2
+function Bases.mayUse(ownerUserId, userId, distance, range)
+	if not validUser(userId) or ownerUserId ~= userId then return false, "NotYourBase" end
+	if not finite(distance) or distance < 0 or not finite(range) or distance > range + Bases.ALLOWANCE then
+		return false, "FarAway"
+	end
+	return true
+end
+
 return Bases

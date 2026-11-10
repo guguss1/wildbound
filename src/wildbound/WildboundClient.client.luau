@@ -784,3 +784,28 @@ do
 		end)
 	end
 end
+-- Nest Heist hub (HB-T3): each client shows only its own base's station prompts. The server marks them
+-- (WildboundHubStation) and still checks the owner and the range on every trigger; this only hides the prompts of
+-- another player's (or a free) base, so a neighbour's station never takes this player's key. Once a second.
+do
+	local CollectionService = game:GetService("CollectionService")
+	local function ownerOf(prompt)
+		local model = prompt:FindFirstAncestorWhichIsA("Model")
+		while model and not CollectionService:HasTag(model, "WildboundBaseSlot") do
+			model = model:FindFirstAncestorWhichIsA("Model")
+		end
+		return model and model:GetAttribute("OwnerUserId") or 0
+	end
+	task.spawn(function()
+		while gui.Parent do
+			local hub = workspace:FindFirstChild("WildboundHub")
+			for _, item in ipairs(hub and hub:GetDescendants() or {}) do
+				if item:IsA("ProximityPrompt") and item:GetAttribute("WildboundHubStation") ~= nil then
+					local mine = ownerOf(item) == Players.LocalPlayer.UserId
+					if item.Enabled ~= mine then item.Enabled = mine end
+				end
+			end
+			task.wait(1)
+		end
+	end)
+end

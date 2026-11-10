@@ -129,5 +129,88 @@ return function(Bases, source, sources)
 		has(hub, 'player:SetAttribute("WildboundBaseSlot", ', "the client can tell which base is its own")
 	end)
 
+	-- HB-T3 delivery per base owner -------------------------------------------------------------------------------
+	local function between(text, from, to)
+		assert(type(text) == "string", "source")
+		local start = text:find(from, 1, true)
+		assert(start, "missing block start: " .. from)
+		local stop = text:find(to, start + #from, true)
+		return text:sub(start, stop or #text)
+	end
+	case("HB-T3: only the owner, standing at the station, may use it; a free base refuses everyone", function()
+		equal((Bases.mayUse(7, 7, 3, 8)), true, "the owner at 3 studs")
+		equal((Bases.mayUse(7, 7, 8 + Bases.ALLOWANCE, 8)), true, "on the edge plus the latency allowance")
+		local ok, why = Bases.mayUse(7, 8, 3, 8)
+		equal(ok, false); equal(why, "NotYourBase", "another player's station")
+		ok, why = Bases.mayUse(0, 8, 3, 8)
+		equal(ok, false); equal(why, "NotYourBase", "a free base is nobody's")
+		ok, why = Bases.mayUse(7, 7, 8 + Bases.ALLOWANCE + 0.01, 8)
+		equal(ok, false); equal(why, "FarAway")
+		for _, bad in ipairs({ 0 / 0, math.huge, -1, "3" }) do
+			equal((Bases.mayUse(7, 7, bad, 8)), false, "distance " .. tostring(bad))
+		end
+		assert(Bases.ALLOWANCE > 0 and Bases.ALLOWANCE <= 2, "a small allowance")
+	end)
+	case("HB-T3: the hub prompts have their own inputs, distinct from each other, the Burst and the bat", function()
+		local Keys = sources.keys
+		assert(type(Keys.HUB) == "table", "Keys.HUB")
+		local names = { "delivery", "incubator", "glove", "train" }
+		for first = 1, #names do
+			local a = Keys.HUB[names[first]]
+			assert(a and a.key and a.pad and a.offset, names[first])
+			assert(a.key ~= Keys.BURST.key and a.pad ~= Keys.BURST.pad and a.pad ~= Keys.BAT.pad, names[first] .. " vs actions")
+			for second = first + 1, #names do
+				local b = Keys.HUB[names[second]]
+				assert(a.key ~= b.key and a.pad ~= b.pad, names[first] .. " and " .. names[second] .. " share an input")
+				assert(a.offset[1] ~= b.offset[1] or a.offset[2] ~= b.offset[2], "offsets " .. names[first])
+			end
+		end
+		equal(#Keys.conflicts(), 0, table.concat(Keys.conflicts(), "; "))
+	end)
+	case("HB-T3: the stations module binds every station by tag and measures the player on the server", function()
+		local stations = sources.stations
+		has(stations, "CollectionService:GetTagged(tag)", "the tagged stations at start")
+		has(stations, "CollectionService:GetInstanceAddedSignal(tag)", "and any built later")
+		has(stations, '"WildboundDeliveryStation"')
+		has(stations, 'FindFirstAncestorWhichIsA("Model")', "the station's base model")
+		has(stations, 'GetAttribute("OwnerUserId")', "the owner the server wrote")
+		has(stations, "Bases.mayUse(", "the pure check")
+		has(stations, "deps.rootOf(player)", "the server's own position of the player")
+		has(stations, "deps.allowed(player, ", "the rate limit")
+		has(stations, "Keys.HUB[", "the hub keys")
+		lacks(stations, "OnServerEvent", "no remote: prompts only")
+	end)
+	case("HB-T3: the owner's pedestal banks and secures the egg in the arms; the camp chest still works", function()
+		local server = sources.server
+		has(server, 'require(script.Parent:WaitForChild("WildboundHubStations"))')
+		local delivery = between(server, "delivery = function(player, distance)", "\n\t\t\tend,")
+		local carried = delivery:find("EggCarry.carriedBy(eggs, player.UserId)", 1, true)
+		local banked = delivery:find("state:extract(player.UserId, ", 1, true)
+		local secured = delivery:find("Heist.secure(player)", 1, true)
+		assert(carried and banked and secured and carried < banked and banked < secured,
+			"carried by this player, then banked, then secured")
+		has(delivery, "Text.HUB.noEgg", "no egg in the arms: told so")
+		local chest = between(server, "extractPrompt.Triggered:Connect(function(player)", "\nend)")
+		has(chest, "Heist.secure(player)", "the camp chest is unchanged")
+		local Text = sources.text
+		equal(Text.NOTICES.NotYourBase, "Esta no es tu base.")
+		assert(type(Text.NOTICES.FarAway) == "string" and type(Text.HUB.noEgg) == "string"
+			and type(Text.HUB.delivered) == "string" and type(Text.HUB.deliveryPrompt) == "string", "Spanish words")
+	end)
+	case("HB-T3: a Studio-only probe runs a station's real prompt path for the Play check", function()
+		local server = sources.server
+		local probe = between(server, "if RunService:IsStudio() then\n\t\tlocal hubProbe", "hubProbe.Parent = telemetry")
+		has(probe, 'hubProbe.Name = "HubProbe"')
+		has(probe, "Heist.hub:trigger(player, station)", "the same path as the prompt")
+		has(sources.stations, "function Stations:find(kind, slot)")
+	end)
+	case("HB-T3: each client shows only its own base's station prompts", function()
+		local client = sources.client
+		has(client, 'GetAttribute("WildboundHubStation")', "the hub prompts are marked")
+		has(client, 'GetAttribute("OwnerUserId")', "the base's owner")
+		has(client, "Players.LocalPlayer.UserId")
+		has(sources.stations, 'SetAttribute("WildboundHubStation", ', "the server marks them")
+	end)
+
 	return result
 end

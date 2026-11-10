@@ -15,6 +15,15 @@ Keys.CAMP = table.freeze({
 	-- Nest Heist Phase 3 (NS5): the "Entrenamiento" treadmill.
 	train = table.freeze({ key = "N", pad = "DPadLeft", offset = table.freeze({ 0, -168 }) }),
 })
+-- Nest Heist hub (HB-T3 to HB-T5): a personal base's station prompts are in reach together, never with the camp's, so
+-- they reuse the camp's inputs for the same kind of job (deliver like the chest, incubate like the incubator, the
+-- glove bench opens the camp screen like the board, train like the treadmill).
+Keys.HUB = table.freeze({
+	delivery = Keys.CAMP.extract,
+	incubator = Keys.CAMP.hatch,
+	glove = Keys.CAMP.board,
+	train = Keys.CAMP.train,
+})
 -- Lumipols and dropped items keep E: they are never inside the camp's prompt range together (a contract
 -- checks the spawn slots against the camp markers elsewhere in the world rules).
 Keys.LUMIPOL = table.freeze({ key = "E", pad = "ButtonX", offset = table.freeze({ 0, 0 }) })
@@ -49,6 +58,20 @@ function Keys.conflicts()
 			elseif a[2].offset[1] == b[2].offset[1] and a[2].offset[2] == b[2].offset[2] and a[1] ~= "gather" and b[1] ~= "gather"
 				and a[1] ~= "hide" and b[1] ~= "hide" then
 				table.insert(found, a[1] .. " and " .. b[1] .. " share a screen offset")
+			end
+		end
+	end
+	-- HB-T3: the four station prompts of one base, against each other, the Burst and the bat.
+	local hub = { "delivery", "incubator", "glove", "train" }
+	for first = 1, #hub do
+		local a = Keys.HUB[hub[first]]
+		if a.key == Keys.BURST.key or a.pad == Keys.BURST.pad or a.pad == Keys.BAT.pad then
+			table.insert(found, "hub " .. hub[first] .. " and an action share an input")
+		end
+		for second = first + 1, #hub do
+			local b = Keys.HUB[hub[second]]
+			if a.key == b.key or a.pad == b.pad then
+				table.insert(found, "hub " .. hub[first] .. " and " .. hub[second] .. " share an input")
 			end
 		end
 	end

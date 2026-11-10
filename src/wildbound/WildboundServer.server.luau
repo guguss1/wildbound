@@ -3061,6 +3061,53 @@ function Heist.train(player, console)
 	end
 end
 Heist.buildTreadmill()
+-- Nest Heist hub (HB-T3 to HB-T5): the personal bases' stations, bound by tag in WildboundHubStations. A prompt answers
+-- only its base's owner within the station's range (measured on the server); the handlers reuse the camp's rules.
+-- Everything lives in Heist.hub: this script is at Luau's local limit (NH-W13).
+do
+	local Stations = require(script.Parent:WaitForChild("WildboundHubStations"))
+	Heist.hub = Stations.new({
+		Bases = require(script.Parent:WaitForChild("WildboundBases")), Text = Text, Keys = Keys,
+		prompt = prompt, rootOf = rootOf, allowed = allowed,
+		alive = function(player) return (context(player)) end,
+		refuse = function(player, action, reason) reply(player, action, false, reason) end,
+		handlers = {
+			-- HB-T3: the owner's pedestal delivers the egg in the arms like the camp chest (NH6): only an egg this player
+			-- carries, banked with the bag, then Secured once by its carrier. Without an egg nothing is banked here.
+			delivery = function(player, distance)
+				if not EggCarry.carriedBy(eggs, player.UserId) then
+					send(player, "Extract", false, Text.HUB.noEgg)
+					return
+				end
+				local ok, count, receipt = state:extract(player.UserId, (context(player)), distance,
+					workspace:GetServerTimeNow())
+				if not ok then
+					reply(player, "Extract", false, count)
+					return
+				end
+				analytics:extracted(player.UserId)
+				Heist.secure(player)
+				send(player, "Extract", true, Text.HUB.delivered .. " " .. extractNotice(count, receipt))
+			end,
+		},
+	})
+	Heist.hub:start()
+	-- Studio only (ServerStorage, never replicated): "trigger" runs a base station's prompt path for a real player (its
+	-- UserId), a kind and a base slot; the Play check uses it for another owner's station.
+	if RunService:IsStudio() then
+		local hubProbe = Instance.new("BindableFunction")
+		hubProbe.Name = "HubProbe"
+		hubProbe.OnInvoke = function(op, userId, kind, slot)
+			local player = type(userId) == "number" and playersByUserId[userId] or nil
+			if op ~= "trigger" or not player then return false, "UnknownOp" end
+			local station = Heist.hub:find(kind, slot)
+			if not station then return false, "NoStation" end
+			Heist.hub:trigger(player, station)
+			return true
+		end
+		hubProbe.Parent = telemetry
+	end
+end
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
 -- attributes a loaded save needs (the Equip action sets them otherwise).
 function Heist.saveNotice(userId)
