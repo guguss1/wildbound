@@ -66,6 +66,10 @@ end
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Exclude
 params.RespectCanCollide = true
+-- Walls for the dash and the leap: the same, plus the relief, which is ground the beasts run and land on (R5).
+local wallParams = RaycastParams.new()
+wallParams.FilterType = Enum.RaycastFilterType.Exclude
+wallParams.RespectCanCollide = true
 local overlap = OverlapParams.new()
 overlap.FilterType = Enum.RaycastFilterType.Exclude
 overlap.RespectCanCollide = true
@@ -80,6 +84,9 @@ local function refreshFilter()
 	end
 	params.FilterDescendantsInstances = exclude
 	overlap.FilterDescendantsInstances = exclude
+	local walls = table.clone(exclude)
+	if map:FindFirstChild("Relief") then table.insert(walls, map.Relief) end
+	wallParams.FilterDescendantsInstances = walls
 end
 
 local function groundAt(x, z, refY)
@@ -93,9 +100,10 @@ end
 
 local world = {}
 function world.ground(x, z, refY) return groundAt(x, z, refY) end
--- The first solid thing along the lane, 2.5 studs over the ground (low walls, trunks and rocks cut the dash).
+-- The first solid thing along the lane, 2.5 studs over the ground (low walls, trunks and rocks cut the dash; the relief
+-- does not: the dash runs along it).
 function world.castLane(ox, oy, oz, dx, dz, length)
-	local hit = workspace:Raycast(Vector3.new(ox, oy + 2.5, oz), Vector3.new(dx * length, 0, dz * length), params)
+	local hit = workspace:Raycast(Vector3.new(ox, oy + 2.5, oz), Vector3.new(dx * length, 0, dz * length), wallParams)
 	return hit and hit.Distance or nil
 end
 -- A landing needs ground under it (no void), no safe zone and no solid part where the beast lands.
@@ -112,7 +120,7 @@ function world.arcClear(ax, ay, az, bx, by, bz, height)
 	for i = 1, 4 do
 		local x, y, z = Config.arc(ax, ay, az, bx, by, bz, height, i / 4)
 		local point = Vector3.new(x, y + 2, z)
-		if workspace:Raycast(previous, point - previous, params) then return false end
+		if workspace:Raycast(previous, point - previous, wallParams) then return false end
 		previous = point
 	end
 	return true

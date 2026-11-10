@@ -321,7 +321,10 @@ local function placeOf(view, at)
 		local d = view.dash
 		local L = view.laneSpec
 		local travelled = math.clamp((at - d.at) * d.speed, 0, d.length)
-		return L.ox + d.dx * travelled, L.oy, L.oz + d.dz * travelled, d.dx, d.dz
+		-- Height: the server runs the head along the ground; its latest snapshot of this dash carries that height.
+		local last = view.snaps[#view.snaps]
+		local y = last and last.at >= d.at and last.y or L.oy
+		return L.ox + d.dx * travelled, y, L.oz + d.dz * travelled, d.dx, d.dz
 	end
 	if view.mode == "leap" and view.leap then
 		local l = view.leap

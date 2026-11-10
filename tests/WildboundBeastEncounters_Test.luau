@@ -174,6 +174,15 @@ return function(Enc, source, Config, configSource)
 		assert(d >= V.attackMin and d <= V.attackMax, "still in range: " .. d)
 	end)
 
+	case("NB7 Viper: the dash follows the ground, and the height check is against the ground under its head", function()
+		-- A target 10 studs up a slope (a relief ridge): its root stands 3 studs over that ground.
+		local world = { ground = function(_, z) return z < 12 and 10 or 0 end }
+		local e = Enc.new("Viper", "beast:1", 1, 0, { x = 0, y = 0, z = 25 })
+		local _, by = run(e, 0, 3, function() return { x = 0, y = 13, z = 0, vx = 0, vz = 0, alive = true, safe = false } end, world)
+		equal(count(by, "Hit"), 1, "hit on the ridge")
+		near(e.pos.y, 10, "the head climbed onto the ridge")
+	end)
+
 	case("NB3 Viper: at most 3 attacks, then it disengages and ends", function()
 		local e = viperInRange()
 		local events, by = run(e, 0, 20, standing(0, 0))

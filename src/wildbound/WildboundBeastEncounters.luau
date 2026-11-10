@@ -163,14 +163,16 @@ local function stepViper(events, e, now, target, world, dt)
 	end
 	if e.phase == "Dash" then
 		local travelled = math.min(e.length, (now - e.dashAt) * C.dashSpeed)
+		-- The head runs along the ground (a relief ridge is ground, not a wall); the height check is against it.
+		e.pos.x, e.pos.z = e.origin.x + e.dx * travelled, e.origin.z + e.dz * travelled
+		e.pos.y = groundAt(world, e.pos.x, e.pos.z, e.pos.y)
 		-- Swept hitbox: the part of the lane the head crossed since the last step, with the drawn width.
-		if not e.hitThisDash and travelled > e.swept - 1e-9 and math.abs(target.y - e.origin.y) <= C.hitHeight
+		if not e.hitThisDash and travelled > e.swept - 1e-9 and math.abs(target.y - e.pos.y) <= C.hitHeight
 			and Config.inLane(target.x, target.z, e.origin.x, e.origin.z, e.dx, e.dz, e.swept, travelled, C.laneWidth) then
 			e.hitThisDash = true
 			emit(events, e, "Hit", now, { damage = C.damage, attack = e.attacks + 1 })
 		end
 		e.swept = travelled
-		e.pos.x, e.pos.z = e.origin.x + e.dx * travelled, e.origin.z + e.dz * travelled
 		if travelled >= e.length - 1e-9 then
 			local endAt = e.dashAt + e.length / C.dashSpeed
 			e.attacks += 1
