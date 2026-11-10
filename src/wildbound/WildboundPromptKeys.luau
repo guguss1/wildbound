@@ -24,6 +24,9 @@ Keys.HIDE = table.freeze({ key = "H", pad = "DPadUp", offset = table.freeze({ 0,
 -- control (E is every field prompt's, R the camp hatch prompt's; F flashlight, Q pulse, H hide, X capture seal, C and I
 -- the inventory, M the menu, LeftShift and L3 sprint, R2 the seal on a gamepad, A jump).
 Keys.BURST = table.freeze({ key = "Z", pad = "ButtonR3" })
+-- Nest Heist phase 2 (NP5): the bat is an action too: a left click on a mouse (an interface click never swings), the
+-- "Bate" button on touch and DPadRight on a gamepad, which no prompt and no other control uses.
+Keys.BAT = table.freeze({ mouse = "MouseButton1", pad = "DPadRight" })
 local CONTROLS = table.freeze({ keys = table.freeze({ "F", "Q", "H", "X", "C", "I", "M", "LeftShift", "F8" }),
 	pads = table.freeze({ "ButtonL3", "ButtonR2", "ButtonA" }) })
 
@@ -62,7 +65,13 @@ function Keys.conflicts()
 	end
 	for _, pad in ipairs(CONTROLS.pads) do
 		if pad == Keys.BURST.pad then table.insert(found, "burst and another control share " .. pad) end
+		if pad == Keys.BAT.pad then table.insert(found, "bat and another control share " .. pad) end
 	end
+	-- NP5: the bat's pad against every prompt and the burst.
+	for _, group in ipairs(groups) do
+		if group[2].pad == Keys.BAT.pad then table.insert(found, "bat and " .. group[1] .. " share an input") end
+	end
+	if Keys.BAT.pad == Keys.BURST.pad then table.insert(found, "bat and burst share an input") end
 	return found
 end
 

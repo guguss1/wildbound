@@ -327,6 +327,62 @@ listen(RunService.Heartbeat, function()
 	burstButton.Size = pulse.Size
 	burstButton.Visible = not isHidden()
 end)
+-- Nest Heist phase 2 (NP5): the bat. A left click (never one on the interface), DPadRight or the "Bate" button (touch,
+-- and the ready indicator everywhere: it counts down while the bat cools) asks the server to swing; the server owns
+-- the cooldown, the target and every effect. Every client turns every player's bat grip for the swing it sees.
+do
+	local batWords = {}
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	local ok, value = false, nil
+	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
+	if ok and type(value) == "table" and type(value.BAT) == "table" then batWords = value.BAT end
+	local BAT_SWING_SECONDS = 0.3 -- WildboundBat.CONSTANTS.SWING_SECONDS (a server-only module)
+	local batButton = button(gui, batWords.button or "Bate", UDim2.new(), UDim2.fromOffset(110, 44))
+	batButton.Name = "BatButton"
+	local lastAsk = 0
+	local function askBat()
+		local now = os.clock()
+		if not stanceRemote or now - lastAsk < 0.25 then return end
+		lastAsk = now
+		stanceRemote:FireServer("bat")
+	end
+	listen(batButton.Activated, askBat)
+	listen(UserInputService.InputBegan, function(input, processed)
+		if processed or UserInputService:GetFocusedTextBox() then return end
+		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.DPadRight then askBat() end
+	end)
+	local rest = setmetatable({}, { __mode = "k" })
+	listen(RunService.Heartbeat, function()
+		local now = workspace:GetServerTimeNow()
+		local readyAt = player:GetAttribute("WildboundBatReady")
+		local left = type(readyAt) == "number" and readyAt - now or 0
+		local word = batWords.button or "Bate"
+		batButton.Text = left > 0.05 and ("%s %d"):format(word, math.ceil(left))
+			or (touchPrimary() and word or (batWords.buttonKey or "Bate (clic)"))
+		batButton.BackgroundColor3 = left > 0.05 and Color3.fromRGB(70, 74, 72) or Color3.fromRGB(120, 86, 58)
+		batButton.AutoButtonColor = left <= 0.05
+		batButton.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 172 or 122)
+		batButton.Size = pulse.Size
+		batButton.Visible = not isHidden()
+		for _, other in ipairs(Players:GetPlayers()) do
+			local model = other.Character and other.Character:FindFirstChild("WildboundBat")
+			local handle = model and model:FindFirstChild("Handle")
+			local grip = handle and handle:FindFirstChild("BatGrip")
+			if grip and grip:IsA("Weld") then
+				rest[grip] = rest[grip] or grip.C0
+				local at = other:GetAttribute("WildboundBatSwing")
+				local t = type(at) == "number" and (now - at) / BAT_SWING_SECONDS or 2
+				if t >= 0 and t < 1 then
+					-- A flat sweep across the front, from the right to the left, easing out.
+					local yaw = math.rad(80 - 160 * (1 - (1 - t) ^ 2))
+					grip.C0 = CFrame.new(rest[grip].Position) * CFrame.Angles(0, yaw, 0) * CFrame.Angles(math.rad(-90), 0, 0)
+				elseif grip.C0 ~= rest[grip] then
+					grip.C0 = rest[grip]
+				end
+			end
+		end
+	end)
+end
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)

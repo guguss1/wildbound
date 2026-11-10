@@ -238,5 +238,38 @@ return function(Bat, source, sources)
 		equal(B.button, "Bate")
 	end)
 
+	-- NP5 the clients.
+	case("NP5: a click, DPadRight or the Bate button asks for a swing; the button counts the cooldown down", function()
+		local Keys = sources.keys
+		equal(Keys.BAT and Keys.BAT.mouse, "MouseButton1"); equal(Keys.BAT.pad, "DPadRight")
+		equal(#Keys.conflicts(), 0, table.concat(Keys.conflicts(), "; "))
+		local client = sources.worldClient or ""
+		local bat = block(client, "-- Nest Heist phase 2 (NP5): the bat.", "\nend\n")
+		has(bat, '"BatButton"'); has(bat, 'stanceRemote:FireServer("bat")', "only the word")
+		has(bat, "Enum.UserInputType.MouseButton1"); has(bat, "Enum.KeyCode.DPadRight")
+		has(bat, "if processed or UserInputService:GetFocusedTextBox() then return end", "a click on the interface is not a swing")
+		has(bat, "WildboundBatReady"); has(bat, "batWords.buttonKey"); has(bat, "batWords.button")
+		hasNot(client, "\nlocal batButton", "the world client keeps its locals inside the block")
+		equal(sources.text.BAT.buttonKey, "Bate (clic)")
+	end)
+
+	case("NP5: every client swings every bat on WildboundBatSwing and hears the swing and the hit", function()
+		local client = sources.worldClient or ""
+		local bat = block(client, "-- Nest Heist phase 2 (NP5): the bat.", "\nend\n")
+		has(bat, "WildboundBatSwing"); has(bat, '"BatGrip"'); has(bat, "grip.C0 =", "the grip turns on each client")
+		has(bat, "BAT_SWING_SECONDS = 0.3", "the rule's SWING_SECONDS, repeated for the client")
+		equal(Bat.CONSTANTS.SWING_SECONDS, 0.3)
+		local audio = sources.audio or ""
+		has(audio, '{ "WildboundBatSwing", "WildboundBatHit" }')
+		has(audio, 'playOnce("dirt", otherRoot', "the swing: a catalogued slot"); has(audio, 'playOnce("crack", otherRoot', "the hit")
+	end)
+
+	-- NP6 the Play check's probe (Studio only, ServerStorage only), through the real paths.
+	case("NP6: the Studio-only Heist probe swings the real bat and asks the real line-of-sight ray", function()
+		local studio = block(server, "if RunService:IsStudio() then\n\tlocal probe", "\nend\n")
+		has(studio, 'op == "bat"'); has(studio, "Heist.swingBat(player, records[player]")
+		has(studio, 'op == "batClear"'); has(studio, "Heist.batClear(root, mark)")
+	end)
+
 	return result
 end

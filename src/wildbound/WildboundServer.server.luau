@@ -2341,6 +2341,21 @@ if RunService:IsStudio() then
 			Heist.pickupEgg(player, best)
 			return best.state == "Carried" and best.carrier == userId, best.id
 		end
+		-- Nest Heist phase 2 (NP6): "bat" swings through the real path; "batClear" asks the real line-of-sight ray from
+		-- the player's root to a point (value = { x, y, z }) through a temporary marker that blocks nothing itself.
+		if op == "bat" then
+			Heist.swingBat(player, records[player], workspace:GetServerTimeNow())
+			return player:GetAttribute("WildboundBatSwing"), player:GetAttribute("WildboundBatReady")
+		end
+		if op == "batClear" and type(value) == "table" then
+			local mark = Instance.new("Part")
+			mark.Anchored, mark.CanCollide, mark.CanQuery, mark.Transparency, mark.Size = true, false, false, 1, Vector3.one
+			mark.Position = Vector3.new(value[1], value[2], value[3])
+			mark.Parent = runtime
+			local clear = Heist.batClear(root, mark)
+			mark:Destroy()
+			return clear
+		end
 		return false, "UnknownOp"
 	end
 	heistProbe.Parent = telemetry

@@ -172,6 +172,7 @@ local duckUntil = 0
 local CollectionService = game:GetService("CollectionService")
 local swinging, awakened = {}, {}
 local bursts = setmetatable({}, { __mode = "k" }) -- Nest Heist (NH4): the last burst seen per player
+local batSeen = setmetatable({}, { __mode = "k" }) -- Nest Heist phase 2 (NP5): the last swing and hit seen per player
 
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
@@ -306,6 +307,27 @@ local function update(dt)
 				playOnce("dirt", burstRoot, reduced and 0.35 or 0.7, 0.02, 1.4)
 			end
 			bursts[other] = readyAt or false
+		end
+	end
+	-- Nest Heist phase 2 (NP5): the bat. A swing is a quick whoosh (the dirt slot, pitched up) on the swinger and a landed
+	-- hit a wooden crack (the crack slot) on whoever was hit, when the server moves WildboundBatSwing or WildboundBatHit
+	-- on. Existing catalogue ids only; a value already there when first seen is not replayed.
+	for _, other in ipairs(Players:GetPlayers()) do
+		local seen = batSeen[other] or {}
+		batSeen[other] = seen
+		local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		for _, kind in ipairs({ "WildboundBatSwing", "WildboundBatHit" }) do
+			local at = other:GetAttribute(kind)
+			if at ~= seen[kind] then
+				if seen[kind] ~= nil and type(at) == "number" and otherRoot then
+					if kind == "WildboundBatSwing" then
+						playOnce("dirt", otherRoot, reduced and 0.3 or 0.6, 0.02, 2.2)
+					else
+						playOnce("crack", otherRoot, reduced and 0.4 or 0.8, 0.02, 1.1)
+					end
+				end
+				seen[kind] = at or false
+			end
 		end
 	end
 	if level ~= state.level then state.nextAt = {} end
