@@ -213,7 +213,7 @@ return function(Gear, source, sources)
 			has(row.text, names[id], id .. " name")
 		end
 		equal(byId["gear:guantes"].action, nil, "owned: no button")
-		has(byId["gear:guantes"].text, "equipad")
+		has(byId["gear:guantes"].text, "Guantes de captura (equipados): calmas")
 		local boots = byId["gear:botas"]
 		equal(boots.action, "CraftGear"); equal(boots.argument, "botas"); equal(boots.label, "Fabricar")
 		equal(boots.enabled, false, "cannot afford"); has(boots.why, "Faltan")
@@ -397,6 +397,7 @@ return function(Gear, source, sources)
 		has(server, 'noiseEvent:Fire("ring", "Fog", zone.x, zone.z)', "the totem is heard like a capture ring")
 		has(server, "Gear.live.LUCK_SECONDS", "server")
 		has(server, "spawn.luck", "the owner hears which spawn was raised")
+		has(server, "now >= zone.untilAt", "the totem stands (and is heard) its full time, raised or not")
 		has(sources.client, "PlaceLuck = true", "the client waits for the server's reply")
 		for _, key in ipairs({ "totemSuerte", "luckPlaced", "luckRaised", "luckGone" }) do
 			equal(type(text.GEAR[key]), "string", "Text.GEAR." .. key)

@@ -168,7 +168,7 @@ function View.campRows(config, economy, snapshot, ctx)
 		local spec = gearSpecs[item.id]
 		if spec then
 			if gear[item.id] == true then
-				table.insert(rows, row("gear:" .. item.id, "Gear", ("%s: %s. %s."):format(item.title, item.owned, item.effect),
+				table.insert(rows, row("gear:" .. item.id, "Gear", ("%s (%s): %s."):format(item.title, item.owned, item.effect),
 					nil, nil, nil, false))
 			else
 				local why = reason(ctx, snapshot, spec.cost)

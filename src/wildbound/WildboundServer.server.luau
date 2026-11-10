@@ -1097,8 +1097,8 @@ stepLuck = function(now)
 	for player, zone in pairs(luckTotems) do
 		if player.Parent ~= Players then
 			removeLuck(player)
-		elseif not SpawnClock.luckActive(spawnClock, zone.id, now) then
-			-- Used (the owner was told which spawn rose) or out of time.
+		elseif now >= zone.untilAt then
+			-- It stands, and is heard, its full time whether or not it already raised a spawn (the owner was told).
 			removeLuck(player, not zone.raised and Text.GEAR.luckGone or nil)
 		elseif now >= zone.nextNoiseAt then
 			zone.nextNoiseAt = now + Gear.live.LUCK_NOISE_EVERY
@@ -1968,7 +1968,6 @@ if RunService:IsStudio() then
 			end
 			if not best then return false, "NoCreature" end
 			root.CFrame = CFrame.new(best.body.Position + Vector3.new(4, 2, 0))
-			task.wait(0.3)
 			startCapture(player, best)
 			return true, bestId
 		end
