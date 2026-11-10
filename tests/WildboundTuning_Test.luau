@@ -101,7 +101,9 @@ return function(Schema, modules)
 			-- Random world (RW3): the wave length.
 			"World.WAVE_SECONDS",
 			-- Random world (RW3, RW4): the first egg near camp and the Refugios.
-			"World.FIRST_EGG_RADIUS", "World.REFUGE_MIN", "World.REFUGE_MAX", "World.REFUGE_RADIUS", "World.REFUGE_REGEN" }) do
+			"World.FIRST_EGG_RADIUS", "World.REFUGE_MIN", "World.REFUGE_MAX", "World.REFUGE_RADIUS", "World.REFUGE_REGEN",
+			-- Random world (RW5): the biome event.
+			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

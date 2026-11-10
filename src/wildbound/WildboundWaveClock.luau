@@ -26,12 +26,17 @@ WaveClock.CONSTANTS = freeze({
 	NAME_BYTES = 20,
 	-- RW4: Refugios per wave, their radius in studs and the stamina regeneration inside.
 	REFUGE_MIN = 2, REFUGE_MAX = 3, REFUGE_RADIUS = 12, REFUGE_REGEN = 2,
+	-- RW5: the biome event: the first at minute 5, then every 20 minutes, visible 5 minutes, at a Legendaria point
+	-- within EVENT_RADIUS of La Silueta's home.
+	EVENT_FIRST = 300, EVENT_EVERY = 1200, EVENT_SECONDS = 300, EVENT_RADIUS = 45,
 })
 WaveClock.REMOTE = "WorldEvent"
 WaveClock.KINDS = freeze({ wave = true, board = true, event = true })
 
-local TUNABLE = { "WAVE_SECONDS", "FIRST_EGG_RADIUS", "REFUGE_MIN", "REFUGE_MAX", "REFUGE_RADIUS", "REFUGE_REGEN" }
-local FLOORS = { WAVE_SECONDS = 10, FIRST_EGG_RADIUS = 20, REFUGE_RADIUS = 4, REFUGE_REGEN = 1 }
+local TUNABLE = { "WAVE_SECONDS", "FIRST_EGG_RADIUS", "REFUGE_MIN", "REFUGE_MAX", "REFUGE_RADIUS", "REFUGE_REGEN",
+	"EVENT_FIRST", "EVENT_EVERY", "EVENT_SECONDS", "EVENT_RADIUS" }
+local FLOORS = { WAVE_SECONDS = 10, FIRST_EGG_RADIUS = 20, REFUGE_RADIUS = 4, REFUGE_REGEN = 1, EVENT_EVERY = 30,
+	EVENT_SECONDS = 10, EVENT_RADIUS = 10 }
 WaveClock.live = {}
 
 function WaveClock.tunable()
@@ -53,7 +58,9 @@ end
 WaveClock.tune(nil)
 
 function WaveClock.new(startedAt)
-	return { startedAt = finite(startedAt) and startedAt or 0, wave = 0, waveStartedAt = nil, board = {}, order = 0 }
+	startedAt = finite(startedAt) and startedAt or 0
+	return { startedAt = startedAt, wave = 0, waveStartedAt = nil, board = {}, order = 0,
+		nextEventAt = startedAt + WaveClock.live.EVENT_FIRST, eventIndex = 0, event = nil }
 end
 
 -- The wave a clock is in at `now` (1 from the start). A tuned length counts from the current wave's own start, so a
@@ -76,7 +83,28 @@ function WaveClock.step(state, now)
 		table.insert(events, { type = "waveStarted", wave = state.wave, startedAt = now,
 			endsAt = now + WaveClock.live.WAVE_SECONDS })
 	end
+	-- RW5: one biome event at a time; it ends after EVENT_SECONDS, claimed or not.
+	if state.event and now >= state.event.endsAt then
+		table.insert(events, { type = "eventEnded", index = state.event.index, claimed = state.event.claimant ~= nil })
+		state.event = nil
+	end
+	-- The first event counts from the server's start with the live EVENT_FIRST, so a tuned value reaches it.
+	local dueAt = state.eventIndex == 0 and state.startedAt + WaveClock.live.EVENT_FIRST or state.nextEventAt
+	if not state.event and now >= dueAt then
+		state.eventIndex += 1
+		state.nextEventAt = now + WaveClock.live.EVENT_EVERY
+		state.event = { index = state.eventIndex, startedAt = now, endsAt = now + WaveClock.live.EVENT_SECONDS }
+		table.insert(events, { type = "eventStarted", index = state.eventIndex, endsAt = state.event.endsAt })
+	end
 	return events
+end
+
+-- RW5: the event egg's one claimant. Returns true for the first claim of a live event only.
+function WaveClock.claimEvent(state, key)
+	local event = type(state) == "table" and state.event or nil
+	if not event or event.claimant ~= nil or key == nil then return false end
+	event.claimant = key
+	return true
 end
 
 function WaveClock.endsAt(state)
@@ -153,7 +181,9 @@ function WaveClock.message(kind, data)
 	else
 		if not PHASES[data.phase] or type(data.species) ~= "string" or #data.species > 32 then return nil end
 		if data.endsAt ~= nil and not finite(data.endsAt) then return nil end
-		return { kind = "event", phase = data.phase, species = data.species, endsAt = data.endsAt }
+		if data.by ~= nil and type(data.by) ~= "string" then return nil end
+		return { kind = "event", phase = data.phase, species = data.species, endsAt = data.endsAt,
+			by = data.by ~= nil and cleanName(data.by) or nil }
 	end
 end
 

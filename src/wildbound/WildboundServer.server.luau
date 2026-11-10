@@ -1042,9 +1042,38 @@ local function startWave(event, now)
 	telemetry:SetAttribute("Wave", event.wave)
 	broadcast("wave", waveData())
 end
+-- Random world (RW5): the biome event. One special egg of a Legendaria species at a Legendaria point within
+-- EVENT_RADIUS of La Silueta's home, for EVENT_SECONDS, one claimant; every client gets a banner and a distant call.
+local currentEvent, eventSpawn = nil, nil
+local function startEvent(event, now)
+	local spawn = SpawnClock.force(spawnClock, now, rng, { tier = "Legendaria", kind = "Egg", x = Rules.HOME_X,
+		z = Rules.HOME_Z, radius = WaveClock.live.EVENT_RADIUS, lifetime = WaveClock.live.EVENT_SECONDS, special = true })
+	if not spawn then return end
+	eventSpawn = spawn
+	applySpawnActions({ { op = "spawn", spawn = spawn } })
+	currentEvent = { species = spawn.species or "Tizoncillo", endsAt = event.endsAt }
+	telemetry:SetAttribute("BiomeEvent", event.index)
+	broadcast("event", { phase = "start", species = currentEvent.species, endsAt = event.endsAt })
+end
+local function endEvent(event, now)
+	if eventSpawn and SpawnClock.get(spawnClock, eventSpawn.id) then
+		SpawnClock.claim(spawnClock, eventSpawn.id, now)
+		applySpawnActions({ { op = "expire", spawn = eventSpawn } })
+	end
+	if currentEvent and not event.claimed then broadcast("event", { phase = "end", species = currentEvent.species }) end
+	currentEvent, eventSpawn = nil, nil
+	telemetry:SetAttribute("BiomeEvent", 0)
+end
+local function claimBiomeEvent(player)
+	if currentEvent and WaveClock.claimEvent(waveClock, player.UserId) then
+		broadcast("event", { phase = "claimed", species = currentEvent.species, by = player.DisplayName })
+	end
+end
 local function stepWaves(now)
 	for _, event in ipairs(WaveClock.step(waveClock, now)) do
 		if event.type == "waveStarted" then startWave(event, now) end
+		if event.type == "eventEnded" then endEvent(event, now) end
+		if event.type == "eventStarted" then startEvent(event, now) end
 	end
 end
 bankEsencia = function(player, amount)
@@ -1056,6 +1085,9 @@ end
 local function sendWave(player)
 	local message = currentWave and WaveClock.message("wave", waveData())
 	if message then worldEvent:FireClient(player, message) end
+	local event = currentEvent and WaveClock.message("event", { phase = "start", species = currentEvent.species,
+		endsAt = currentEvent.endsAt })
+	if event then worldEvent:FireClient(player, event) end
 end
 
 -- What every live player looks like to the islands this step, read here only.
@@ -1441,7 +1473,7 @@ spawnEncounter = function(slot)
 	local rarity = slot.rarity or Species.look(slot.species).rarity
 	local rarityLabel = rarity and Text.RARITY[rarity]
 	if rarityLabel then
-		speciesName = speciesName .. " · " .. rarityLabel
+		speciesName = (slot.special and Text.EVENT.prompt .. ": " or "") .. speciesName .. " · " .. rarityLabel
 		model:SetAttribute("Rarity", rarity)
 		local tag = Instance.new("BillboardGui")
 		tag.Name, tag.Size, tag.StudsOffset = "RarityTag", UDim2.fromOffset(110, 26), Vector3.new(0, 3, 0)
@@ -1486,6 +1518,8 @@ spawnEncounter = function(slot)
 				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
 				scheduleRespawn(slot)
+				-- RW5: the biome event egg has one claimant.
+				if slot.special then claimBiomeEvent(player) end
 				-- I2: rolling an egg out of the nest is noisy.
 				if island and Island.event(island.meter, "EggTaken").woke then wakeIsland(island, workspace:GetServerTimeNow()) end
 			end

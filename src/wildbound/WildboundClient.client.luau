@@ -578,12 +578,86 @@ local function showCard(view)
 end
 listen(gui.Destroying, closeCard)
 
+-- Random world (RW5): the biome event banner, top centre under the threat chip, sized for phones; a distant call
+-- (the catalog's existing "call" id) when the event starts.
+local catalogModule = ReplicatedStorage:FindFirstChild("WildboundAudioCatalog")
+local Catalog = catalogModule and catalogModule:IsA("ModuleScript") and require(catalogModule)
+local eventBanner = make("TextLabel", { Name = "EventBanner", AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 150), Size = UDim2.new(0.92, 0, 0, 40), BackgroundColor3 = dark,
+	BackgroundTransparency = 0.15, TextColor3 = amber, Font = Enum.Font.GothamBold, TextScaled = true, Visible = false,
+	Text = "" }, gui)
+make("UISizeConstraint", { MaxSize = Vector2.new(520, 40) }, eventBanner)
+make("UITextSizeConstraint", { MaxTextSize = 22 }, eventBanner)
+make("UICorner", { CornerRadius = UDim.new(0, 8) }, eventBanner)
+local eventState = nil
+-- Under the threat chip (the world client's AwarenessChip), as wide as it, so the banner never covers the left panels
+-- or the Mochila button on any screen; the fallback above is used until the chip exists.
+local function anchorUnderChip(frame, gap, height)
+	local worldUI = playerGui:FindFirstChild("WildboundWorldUI")
+	local chip = worldUI and worldUI:FindFirstChild("AwarenessChip")
+	if chip and chip:IsA("GuiObject") and chip.Visible then
+		frame.Position = UDim2.fromOffset(chip.AbsolutePosition.X + chip.AbsoluteSize.X / 2,
+			chip.AbsolutePosition.Y + chip.AbsoluteSize.Y + gap)
+		frame.Size = UDim2.fromOffset(math.max(chip.AbsoluteSize.X, 240), height)
+	end
+end
+local function speciesWord(name)
+	return Text and Text.CARD and Text.CARD.species and Text.CARD.species[name] or name
+end
+local function playCall()
+	local entry = Catalog and Catalog.SOUNDS and Catalog.SOUNDS.call
+	if not entry then return end
+	local sound = Instance.new("Sound")
+	sound.Name, sound.SoundId = "BiomeEventCall", "rbxassetid://" .. entry.ids[1]
+	sound.Volume, sound.PlaybackSpeed = 0.6, 0.6
+	sound.Parent = game:GetService("SoundService")
+	sound:Play()
+	task.delay(12, function() sound:Destroy() end)
+end
+local function refreshBanner()
+	if not eventState or not Text or not Text.EVENT then
+		eventBanner.Visible = false
+		return
+	end
+	anchorUnderChip(eventBanner, 6, 34)
+	local now = workspace:GetServerTimeNow()
+	if eventState.line then
+		if now > eventState.lineUntil then
+			eventState, eventBanner.Visible = nil, false
+			return
+		end
+		eventBanner.Text = eventState.line
+	else
+		local left = math.max(0, math.ceil(eventState.endsAt - now))
+		eventBanner.Text = Text.EVENT.banner:format(speciesWord(eventState.species), ("%d:%02d"):format(left // 60, left % 60))
+	end
+	eventBanner.Visible = true
+end
+task.spawn(function()
+	while gui.Parent do
+		refreshBanner()
+		task.wait(0.5)
+	end
+end)
+
 -- Random world (RW3): what the WorldEvent broadcast changes on this HUD. A new wave after the first says so.
 local lastWaveSeen = nil
 local function onWorldEvent(message)
 	if message.kind == "wave" and Text and Text.WAVE then
 		if lastWaveSeen ~= nil and message.wave > lastWaveSeen then showNotice(Text.WAVE.started:format(message.wave)) end
 		lastWaveSeen = message.wave
+	elseif message.kind == "event" and Text and Text.EVENT then
+		local now = workspace:GetServerTimeNow()
+		if message.phase == "start" and message.endsAt then
+			eventState = { species = message.species, endsAt = message.endsAt }
+			showNotice(Text.EVENT.start:format(speciesWord(message.species)))
+			playCall()
+		elseif message.phase == "claimed" then
+			eventState = { line = Text.EVENT.claimed:format(message.by or "?"), lineUntil = now + 6 }
+		else
+			eventState = { line = Text.EVENT.ended, lineUntil = now + 5 }
+		end
+		refreshBanner()
 	end
 end
 

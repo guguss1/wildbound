@@ -50,7 +50,11 @@ return function(WaveClock, source, sources)
 		local second = WaveClock.step(clock, 1300)
 		equal(second[1].wave, 2)
 		equal(WaveClock.endsAt(clock), 1600)
-		local late = WaveClock.step(clock, 2500)
+		-- RW5 deliberately changed this count: the biome event's own events share the step, so only waves count here.
+		local late = {}
+		for _, event in ipairs(WaveClock.step(clock, 2500)) do
+			if event.type == "waveStarted" then table.insert(late, event) end
+		end
 		equal(#late, 1, "a long gap starts one wave, not a backlog")
 		equal(late[1].wave, 3)
 	end)
@@ -177,6 +181,65 @@ return function(WaveClock, source, sources)
 		has(server, "Text.REFUGE.sign", "the sign reads Refugio")
 		has(sources.world or "", "Rules.zone(position.X, position.Z)", "the chase ends on the same zone rule")
 		equal(sources.text.REFUGE.sign, "Refugio")
+	end)
+
+	case("RW5: the biome event comes every 20 minutes, the first at minute 5, and lasts 5 minutes", function()
+		local C = WaveClock.CONSTANTS
+		equal(C.EVENT_FIRST, 300); equal(C.EVENT_EVERY, 1200); equal(C.EVENT_SECONDS, 300)
+		local clock = WaveClock.new(0)
+		equal(types(WaveClock.step(clock, 0)), "waveStarted")
+		equal(types(WaveClock.step(clock, 299)), "")
+		local at5 = WaveClock.step(clock, 300)
+		equal(types(at5), "waveStarted,eventStarted", "wave 2 and the first event together")
+		equal(at5[2].index, 1); equal(at5[2].endsAt, 600)
+		equal(types(WaveClock.step(clock, 450)), "")
+		local ended = WaveClock.step(clock, 600)
+		equal(types(ended), "waveStarted,eventEnded")
+		equal(ended[2].claimed, false)
+		equal(types(WaveClock.step(clock, 1499)), "waveStarted", "one wave for the gap, no event yet")
+		local second = WaveClock.step(clock, 1500)
+		equal(second[#second].type, "eventStarted")
+		equal(second[#second].index, 2, "the next at minute 25")
+	end)
+
+	case("RW5: a tuned first event time reaches a clock already running (the Play check shortens it)", function()
+		local clock = WaveClock.new(0)
+		WaveClock.step(clock, 0)
+		WaveClock.tune({ EVENT_FIRST = 20, EVENT_EVERY = 60 })
+		local events = WaveClock.step(clock, 20)
+		WaveClock.tune(nil)
+		equal(events[#events] and events[#events].type, "eventStarted")
+	end)
+
+	case("RW5: one event at a time, one claimant", function()
+		local clock = WaveClock.new(0)
+		WaveClock.step(clock, 0)
+		equal(WaveClock.claimEvent(clock, 7), false, "nothing to claim before the event")
+		WaveClock.step(clock, 300)
+		equal(WaveClock.claimEvent(clock, 7), true)
+		equal(WaveClock.claimEvent(clock, 8), false, "one claimant")
+		local ended = WaveClock.step(clock, 600)
+		equal(ended[#ended].claimed, true)
+		equal(WaveClock.claimEvent(clock, 9), false, "gone after it ends")
+		local named = WaveClock.message("event", { phase = "claimed", species = "Tizoncillo", by = "Ana" })
+		equal(named.by, "Ana")
+		equal(WaveClock.read({ kind = "event", phase = "claimed", species = "X", by = string.rep("n", 40) }).by:len(), 20)
+	end)
+
+	case("RW5: the server places the event egg near La Silueta's home and the HUD shows a Spanish banner", function()
+		local server = sources.server
+		has(server, 'event.type == "eventStarted"')
+		has(server, 'tier = "Legendaria", kind = "Egg"', "a Legendaria point")
+		has(server, "special = true")
+		has(server, "WaveClock.claimEvent(waveClock,", "one claimant")
+		has(server, 'broadcast("event",')
+		local Text = sources.text
+		equal(Text.EVENT.title, "Huevo especial del bioma")
+		assert(#Text.EVENT.banner:format("Tizoncillo", "4:59") <= 48, "the banner fits a phone")
+		local client = sources.client
+		has(client, "EventBanner", "the banner")
+		has(client, "Catalog.SOUNDS.call", "a distant call from an existing id")
+		has(client, "UISizeConstraint", "sized for phones")
 	end)
 
 	return result

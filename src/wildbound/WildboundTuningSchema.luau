@@ -189,6 +189,11 @@ Schema.SYSTEMS = table.freeze({
 		value("REFUGE_MAX", "Refugios por oleada: máximo", "WaveClock", "REFUGE_MAX", 3, 0, 6, 1),
 		value("REFUGE_RADIUS", "Radio de un Refugio (studs)", "WaveClock", "REFUGE_RADIUS", 12, 4, 15, 1),
 		value("REFUGE_REGEN", "Aliento en un Refugio (x)", "WaveClock", "REFUGE_REGEN", 2, 1, 4, 0.5),
+		-- RW5: the biome event (one per server, one claimant).
+		value("EVENT_FIRST", "Primer huevo especial a los (s)", "WaveClock", "EVENT_FIRST", 300, 0, 3600, 10),
+		value("EVENT_EVERY", "Huevo especial cada (s)", "WaveClock", "EVENT_EVERY", 1200, 30, 7200, 30),
+		value("EVENT_SECONDS", "Huevo especial visible (s)", "WaveClock", "EVENT_SECONDS", 300, 10, 1800, 10),
+		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({

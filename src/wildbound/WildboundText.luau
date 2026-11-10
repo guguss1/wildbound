@@ -146,6 +146,15 @@ return freeze({
 	WAVE = {
 		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
 	},
+	-- Random world (RW5): the biome event. The banner fits a phone (48 bytes with a species and m:ss); notices 72.
+	EVENT = {
+		title = "Huevo especial del bioma",
+		banner = "Huevo especial: %s · %s",
+		start = "¡Huevo especial del bioma: %s! Cerca de La Silueta.",
+		claimed = "%s se llevó el huevo especial.",
+		ended = "El huevo especial desapareció.",
+		prompt = "Huevo especial",
+	},
 	-- Random world (RW4): the moving safe circles. The sign is one word.
 	REFUGE = {
 		sign = "Refugio",
