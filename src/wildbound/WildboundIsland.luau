@@ -230,6 +230,7 @@ end
 function Island.rollContent(island, phase, rand)
 	if type(island) ~= "table" or type(rand) ~= "function" then return nil end
 	if island.id == FIRST then return "Creature" end
+	if island.content == "Egg" then return "Egg" end
 	if island.rewardTier == HEART and not dark(phase) then return "Egg" end
 	local roll = rand()
 	if not finite(roll) then return nil end
@@ -247,6 +248,7 @@ end
 -- Islands 3 to 5 hold a second nest with three or more players.
 function Island.nestCount(island, players)
 	if type(island) ~= "table" then return 0 end
+	if finite(island.nests) and island.nests >= 1 then return math.floor(island.nests) end
 	local deep = island.id == "I3" or island.id == "I4" or island.id == "I5"
 	return deep and finite(players) and players >= 3 and 2 or 1
 end
@@ -448,6 +450,38 @@ function Island.hitEffect(input)
 	if type(input) ~= "table" then return { drop = false, damage = 0 } end
 	local hurts = input.damageMode == "private" and input.lethal == true
 	return { drop = input.carrying == true, damage = hurts and C.DAMAGE or 0 }
+end
+
+-- Lumipol generated model pass (user, 2026-11-10): the trail nest, one guarded Lumipol egg nest on the forest floor by
+-- the hub's W trail (WildboundWorldRules FIRST_EGG (182, 17), 27.7 studs away), so the egg steal can be tried at once.
+-- It is not in the generated layout (tools/plan_islands.py): the server appends it with withTrailNest. Two eggs (nests),
+-- always eggs (content), one guardian on the 6-stud ring between the nest and the forest, island 1's nest bed (nestFrom).
+-- Its floor (radius 12) keeps 14 studs off the hub disc (282, -3, radius 90) and clear of FK_Evergreen_086 (162, 46).
+Island.TRAIL_NEST = table.freeze({
+	id = "T1", key = "sendero", x = 176, z = 44,
+	floorRadius = 12, zone = "outside", tier = "Safe",
+	rewardTier = "Safe", species = "Lumipol", adults = 1,
+	wakeDay = 12, wakeNight = 15,
+	hideSpot = nil,
+	adultPoints = table.freeze({ table.freeze({ x = 176, z = 50, faceX = 0, faceZ = 1 }) }),
+	content = "Egg", nests = 2, nestFrom = "I1",
+})
+
+-- A copy of `layout` with the trail nest appended once; the layout given is never changed. No layout: the nest alone.
+function Island.withTrailNest(layout)
+	local merged = {}
+	if type(layout) == "table" then
+		for key, value in pairs(layout) do merged[key] = value end
+	end
+	local list = {}
+	local present = false
+	for _, entry in ipairs(type(merged.islands) == "table" and merged.islands or {}) do
+		table.insert(list, entry)
+		if type(entry) == "table" and entry.id == Island.TRAIL_NEST.id then present = true end
+	end
+	if not present then table.insert(list, Island.TRAIL_NEST) end
+	merged.islands = list
+	return merged
 end
 
 return Island

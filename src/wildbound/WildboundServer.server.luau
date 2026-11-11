@@ -30,20 +30,22 @@ local Island = require(script.Parent:WaitForChild("WildboundIsland"))
 local FairStrike = require(script.Parent:WaitForChild("WildboundFairStrike"))
 local CollectionService = game:GetService("CollectionService")
 local Species = require(ReplicatedStorage:WaitForChild("WildboundSpecies"))
--- MeshGen1 pass (user, 2026-11-10): every Lumipol wears the user's model, ServerStorage.WildboundAssets.LumipolMeshGen.
--- Without a valid template every Lumipol keeps its primitive look.
+-- MeshGen1 pass, then the Lumipol generated model pass (user, 2026-11-10): every Lumipol wears the generated parent and
+-- every Lumipol egg the generated egg, ServerStorage.WildboundAssets.Lumipol (Parent, Egg). Without a valid, loadable
+-- template that part keeps its primitive look.
 local Art = require(script.Parent:WaitForChild("WildboundLumipolArt"))
-local lumipolAssets = ServerStorage:FindFirstChild("WildboundAssets")
-local lumipolTemplate = lumipolAssets and lumipolAssets:FindFirstChild(Art.CONFIG.TEMPLATE)
-if not Art.valid(lumipolTemplate) then
-	lumipolTemplate = nil
-	warn("Wildbound: the Lumipol model template is missing or invalid; Lumipol keep the primitive look.")
-else
-	-- Play finding: a session can be refused the generated meshes ("Requester does not have permission"), and a mesh
-	-- that never loads draws nothing, so a dressed Lumipol would be invisible. Each mesh is loaded once here, all at
-	-- once, for at most VERIFY_SECONDS (a one-shot wake-up, no waiting loop); unless every one loads, the template is
-	-- dropped.
-	local ids, loaded, waiting = Art.meshIds(lumipolTemplate), {}, 0
+local lumipolArt = Art.templates(ServerStorage:FindFirstChild("WildboundAssets"))
+if not lumipolArt.Parent or not lumipolArt.Egg then
+	warn("Wildbound: a Lumipol model template is missing or invalid; that part keeps the primitive look.")
+end
+do
+	-- Play finding: a session can be refused generated meshes ("Requester does not have permission"), and a mesh that
+	-- never loads draws nothing, so a dressed Lumipol would be invisible. Each mesh is loaded once here, all at once,
+	-- for at most VERIFY_SECONDS (a one-shot wake-up, no waiting loop); a template is dropped unless all of its loaded.
+	local ids, loaded, waiting = {}, {}, 0
+	for _, template in pairs(lumipolArt) do
+		for _, id in ipairs(Art.meshIds(template)) do table.insert(ids, id) end
+	end
 	local thread, yielded, resumed = coroutine.running(), false, false
 	local function wake()
 		if yielded and not resumed then
@@ -64,9 +66,11 @@ else
 		task.delay(Art.CONFIG.VERIFY_SECONDS, wake)
 		coroutine.yield()
 	end
-	if not Art.verified(ids, loaded) then
-		lumipolTemplate = nil
-		warn("Wildbound: the Lumipol model's meshes did not load in this session; Lumipol keep the primitive look.")
+	for name, template in pairs(lumipolArt) do
+		if not Art.verified(Art.meshIds(template), loaded) then
+			lumipolArt[name] = nil
+			warn("Wildbound: the Lumipol " .. name .. " meshes did not load in this session; it keeps the primitive look.")
+		end
 	end
 end
 -- Random world (plan Part 3, RW2): the spawn clock over the spawn graph (eggs and crias that live 300 s and move).
@@ -120,6 +124,8 @@ if not islandsLoaded or type(islandLayout) ~= "table" or type(islandLayout.islan
 	warn("Wildbound: WildboundIslandLayout is missing; no island nests this session.")
 	islandLayout = { islands = {} }
 end
+-- Lumipol generated model pass: the trail nest, a guarded Lumipol egg nest by the hub's W trail (WildboundIsland).
+islandLayout = Island.withTrailNest(islandLayout)
 -- Never overwrite an unowned or already-running root on duplicate startup.
 if map:FindFirstChild("WildboundRuntime") or ReplicatedStorage:FindFirstChild("WildboundNetwork") then
 	warn("Wildbound: runtime/network already exists; duplicate startup refused.")
@@ -299,7 +305,7 @@ local function buildCapsule(character, carried)
 	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
 	-- MeshGen1 pass: a Lumipol rides as the user's model, its feet on the base ring, welded to the seat ball (the
 	-- clients animate the seat joint) and hiding it; other species and a missing template keep the primitive.
-	local art = Art.uses(look) and lumipolTemplate and Art.dress(model, lumipolTemplate,
+	local art = Art.uses(look) and lumipolArt.Parent and Art.dress(model, lumipolArt.Parent,
 		creature.CFrame * CFrame.new(0, -creature.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0), Art.CONFIG.CARRIED_HEIGHT)
 	if art then
 		creature.Transparency = 1
@@ -559,7 +565,21 @@ end
 -- I8 (decision EI-4): a creature is its species' primitive stand-in (WildboundSpecies), `scale` times an adult; a
 -- Lumipol at scale 1 is the old provisional model. An island egg is pale gold; the old Lumipol egg stays green.
 local function rgb(value) return Color3.fromRGB(value[1], value[2], value[3]) end
-local function visual(kind, position, species, scale)
+-- Lumipol generated model pass: the height of the first ground (the map, a nest bed) under (x, y, z) within depth
+-- studs, ignoring every character, or nil. The relief model can sit a stud off the built floor (the trail nest).
+function Heist.groundBelow(x, y, z, depth)
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local skip = {}
+	for _, other in ipairs(Players:GetPlayers()) do
+		if other.Character then table.insert(skip, other.Character) end
+	end
+	params.FilterDescendantsInstances = skip
+	local hit = workspace:Raycast(Vector3.new(x, y, z), Vector3.new(0, -depth, 0), params)
+	return hit and hit.Position.Y or nil
+end
+-- Lumipol generated model pass: height (optional) overrides the dressed art's height (an island's guardian adult).
+local function visual(kind, position, species, scale, height)
 	local model = Instance.new("Model")
 	local bloom = kind == "Nightbloom"
 	local look = Species.look(species)
@@ -574,8 +594,8 @@ local function visual(kind, position, species, scale)
 	if kind == "Creature" then
 		-- MeshGen1 pass: a Lumipol wears the user's model, its feet on the ground under the ball. The ball stays the
 		-- gameplay body (prompt, light, tags, every move) and is hidden; without the template it keeps its eyes and ears.
-		local dressed = Art.uses(look) and lumipolTemplate ~= nil
-			and Art.dress(model, lumipolTemplate, CFrame.new(position), Art.CONFIG.HEIGHT * scale) ~= nil
+		local dressed = Art.uses(look) and lumipolArt.Parent ~= nil
+			and Art.dress(model, lumipolArt.Parent, CFrame.new(position), height or Art.CONFIG.HEIGHT * scale) ~= nil
 		if dressed then
 			body.Transparency = 1
 			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
@@ -588,6 +608,15 @@ local function visual(kind, position, species, scale)
 			block(model, "Ear", Vector3.new(0.6, 1.3, 0.7) * scale,
 				body.CFrame * CFrame.new(side * size.X * 0.22, size.Y * 0.55, 0) * CFrame.Angles(0, 0, side * 0.195),
 				rgb(look.accent))
+		end
+	elseif kind == "Egg" and Art.uses(look) and lumipolArt.Egg then
+		-- Lumipol generated model pass: a Lumipol egg wears the generated egg, standing where the ball's bottom was;
+		-- the ball stays the gameplay body (prompt, light, rarity tag) and is hidden.
+		local rest = Heist.groundBelow(position.X, position.Y + lift, position.Z, lift + 4)
+		if Art.dress(model, lumipolArt.Egg, CFrame.new(position.X, rest or position.Y + lift - size.Y / 2, position.Z),
+			Art.CONFIG.EGG_HEIGHT) then
+			body.Transparency = 1
+			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
 		end
 	end
 	local light = Instance.new("PointLight")
@@ -961,6 +990,9 @@ local function poseAdult(adult, awake, x, z, fx, fz, rearing)
 			end
 		end
 		adult.model:SetAttribute("Swing", adult.rearing)
+		-- Lumipol generated model pass: a dressed guardian has no eyes to redden; its red outline is the tell.
+		local tell = adult.model:FindFirstChild("SwingTell")
+		if tell then tell.Enabled = adult.rearing end
 	end
 	if adult.awake ~= awake then
 		adult.awake = awake
@@ -999,9 +1031,35 @@ for _, spec in ipairs(islandLayout.islands) do
 		table.insert(island.pips, pip)
 	end
 	holder.Parent = runtime
+	-- Lumipol generated model pass: a nest the map has no bed for (the trail nest) gets a copy of another island's bed.
+	local bedFrom = spec.nestFrom and islandFolder and islandFolder:FindFirstChild("Island_" .. spec.nestFrom)
+	local bedPart = bedFrom and bedFrom:FindFirstChild("NestBed")
+	if bedPart and bedPart:IsA("BasePart") and not islandFolder:FindFirstChild("Island_" .. spec.id) then
+		local bed = bedFrom:Clone()
+		bed.Name = "NestBed_" .. spec.id
+		local marker = bed:FindFirstChild("NestMarker")
+		if marker then marker:Destroy() end
+		-- The map's bed ignores rays; this copy answers them so its eggs rest on the straw (Heist.groundBelow).
+		for _, part in ipairs({ bed:FindFirstChild("NestBed"), bed:FindFirstChild("NestStraw") }) do
+			if part:IsA("BasePart") then part.CanQuery = true end
+		end
+		local floor = Heist.groundBelow(spec.x, relief:heightAt(spec.x, spec.z) + 6, spec.z, 12)
+		bed:PivotTo(bed:GetPivot() + Vector3.new(spec.x, (floor or relief:heightAt(spec.x, spec.z)) + bedPart.Size.X / 2 - 0.1,
+			spec.z) - bedPart.Position)
+		bed.Parent = holder
+	end
 	for index, point in ipairs(spec.adultPoints) do
-		local model = visual("Creature", Vector3.new(point.x, relief:heightAt(point.x, point.z) + MARKER_LIFT, point.z),
-			spec.species, 1)
+		-- A Lumipol guardian stands on the floor the map really has (the relief model can sit a stud off it).
+		local stand = Art.uses(Species.look(spec.species)) and lumipolArt.Parent
+			and Heist.groundBelow(point.x, relief:heightAt(point.x, point.z) + 6, point.z, 12)
+		local model = visual("Creature", Vector3.new(point.x, stand or relief:heightAt(point.x, point.z) + MARKER_LIFT,
+			point.z), spec.species, 1, Art.CONFIG.PARENT_HEIGHT)
+		if model:GetAttribute(Art.CONFIG.ATTRIBUTE) == true then
+			local tell = Instance.new("Highlight")
+			tell.Name, tell.Enabled, tell.FillTransparency = "SwingTell", false, 0.75
+			tell.FillColor, tell.OutlineColor = ADULT_EYES_SWING, ADULT_EYES_SWING
+			tell.Parent = model
+		end
 		model.Name = "IslandAdult"
 		model:SetAttribute("Island", spec.id)
 		model:SetAttribute("Adult", index)
@@ -1059,6 +1117,16 @@ function Heist.syncEggArms(player)
 	local light = Instance.new("PointLight")
 	light.Color, light.Brightness, light.Range, light.Parent = shell.Color, 0.6, 8, shell
 	weld("EggHold", root, shell, CFrame.new(0, -0.3, -1.4))
+	-- Lumipol generated model pass: a Lumipol egg rides as the generated egg, welded to the shell it hides.
+	local art = Art.uses(Species.look(egg.meta.species)) and lumipolArt.Egg and Art.dress(model, lumipolArt.Egg,
+		shell.CFrame * CFrame.new(0, -shell.Size.Y / 2, 0), Art.CONFIG.ARMS_EGG_HEIGHT)
+	if art then
+		shell.Transparency = 1
+		for _, part in ipairs(art) do
+			part.Anchored = false
+			weld("ArtJoint", shell, part, shell.CFrame:ToObjectSpace(part.CFrame))
+		end
+	end
 	model.PrimaryPart, model.Parent = shell, character
 end
 local function ensureNests()

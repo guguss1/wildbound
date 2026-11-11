@@ -5,16 +5,27 @@
 -- its feet on a frame, and moves its parts in as anchored, massless art that never collides, touches or blocks a ray.
 -- The gameplay body is the caller's and is never changed here. A missing or bad template, frame or height dresses
 -- nothing, so the caller keeps its primitive look. The template is never changed. Reads no service.
+-- Lumipol generated model pass (user, 2026-11-10): MeshGen1's meshes are refused to the place, so the templates are now
+-- the generated parent and egg in ServerStorage.WildboundAssets.Lumipol (Parent, Egg; record
+-- assets/exports/lumipol-generated-assets.json). The guardian adults wear the parent at PARENT_HEIGHT; every Lumipol egg
+-- wears the egg (EGG_HEIGHT in a nest or on the ground, ARMS_EGG_HEIGHT in the arms).
 local Art = {}
 
 Art.CONFIG = table.freeze({
-	-- The template's name inside ServerStorage.WildboundAssets.
-	TEMPLATE = "LumipolMeshGen",
+	-- The templates: ServerStorage.WildboundAssets[FOLDER][PARENT] and [EGG].
+	FOLDER = "Lumipol",
+	PARENT = "Parent",
+	EGG = "Egg",
 	-- Set true on every art part, so clients can tell the art from the gameplay ball.
 	ATTRIBUTE = "LumipolArt",
 	-- Studs tall at scale 1 (a tutorial or island adult); a wild or nest cria is Species.CRIA_SCALE of it, and the
 	-- camp display, the companion and the deposit scale the whole model as before.
 	HEIGHT = 2.6,
+	-- Studs tall for an island's guardian adult (the user's 4 to 5 studs).
+	PARENT_HEIGHT = 4.5,
+	-- Studs tall for an egg in a nest or on the ground, and for the egg carried in the arms.
+	EGG_HEIGHT = 1.8,
+	ARMS_EGG_HEIGHT = 1.5,
 	-- Studs tall inside the carry capsule (a 1.8-stud glass shell).
 	CARRIED_HEIGHT = 1.1,
 	-- The feet sit this far over the frame, so they never flicker into the ground.
@@ -43,6 +54,18 @@ function Art.valid(template)
 		if item:IsA("BasePart") then parts += 1 end
 	end
 	return parts > 0
+end
+
+-- assets: the WildboundAssets folder. Returns { Parent = model or nil, Egg = model or nil }, each only when valid.
+function Art.templates(assets)
+	local found = {}
+	local folder = typeof(assets) == "Instance" and assets:FindFirstChild(C.FOLDER) or nil
+	if not folder then return found end
+	for _, name in ipairs({ C.PARENT, C.EGG }) do
+		local template = folder:FindFirstChild(name)
+		if Art.valid(template) then found[name] = template end
+	end
+	return found
 end
 
 -- The template's mesh ids, each once, sorted. The server loads each before it trusts the template (Play finding: a

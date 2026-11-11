@@ -1,10 +1,13 @@
 -- Invoke with require(freshTestClone)(require(freshArtClone), freshArtClone.Source, { server = WildboundServer.Source,
 -- worldClient = WildboundWorldClient.Source, species = require(freshSpeciesClone),
--- template = ServerStorage.WildboundAssets.LumipolMeshGen }) in Studio Edit.
+-- assets = ServerStorage.WildboundAssets }) in Studio Edit.
 -- MeshGen1 pass (user, 2026-11-10: "agrega el MeshGen1 como lumipol ya que es su modelo"): every Lumipol the game
 -- shows wears the user's model, cloned from ServerStorage.WildboundAssets.LumipolMeshGen, fitted to a height per
 -- context, feet on the given frame, art only (no collision, touch or query); the gameplay body is unchanged and a
 -- missing or bad template keeps the primitive look.
+-- Lumipol generated model pass (user, 2026-11-10): the templates are now the generated parent and egg in
+-- ServerStorage.WildboundAssets.Lumipol (Parent, Egg; record assets/exports/lumipol-generated-assets.json); the guardian
+-- adults wear the parent at PARENT_HEIGHT, every Lumipol egg (nest, dropped, in the arms) wears the egg.
 return function(Art, source, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -77,8 +80,15 @@ return function(Art, source, sources)
 
 	case("MG1: the config is frozen and names the template, the attribute and the heights", function()
 		assert(type(Art) == "table" and type(C) == "table" and table.isfrozen(C), "frozen CONFIG")
-		equal(C.TEMPLATE, "LumipolMeshGen")
+		equal(C.TEMPLATE, nil, "the MeshGen1 template is no longer used")
+		equal(C.FOLDER, "Lumipol"); equal(C.PARENT, "Parent"); equal(C.EGG, "Egg")
 		equal(C.ATTRIBUTE, "LumipolArt")
+		assert(type(C.PARENT_HEIGHT) == "number" and C.PARENT_HEIGHT >= 4 and C.PARENT_HEIGHT <= 5,
+			"a guardian adult is 4 to 5 studs tall: " .. tostring(C.PARENT_HEIGHT))
+		assert(type(C.EGG_HEIGHT) == "number" and C.EGG_HEIGHT >= 1.5 and C.EGG_HEIGHT <= 2,
+			"an egg is 1.5 to 2 studs tall: " .. tostring(C.EGG_HEIGHT))
+		assert(type(C.ARMS_EGG_HEIGHT) == "number" and C.ARMS_EGG_HEIGHT >= 1 and C.ARMS_EGG_HEIGHT <= C.EGG_HEIGHT,
+			"the egg in the arms: " .. tostring(C.ARMS_EGG_HEIGHT))
 		assert(type(C.HEIGHT) == "number" and C.HEIGHT >= 2 and C.HEIGHT <= 4, "adult height " .. tostring(C.HEIGHT))
 		assert(type(C.CARRIED_HEIGHT) == "number" and C.CARRIED_HEIGHT > 0.5 and C.CARRIED_HEIGHT < 1.8,
 			"the carried art fits the 1.8-stud capsule: " .. tostring(C.CARRIED_HEIGHT))
@@ -169,16 +179,57 @@ return function(Art, source, sources)
 		equal(Art.dress(nil, template(), CFrame.new(), 2.6), nil, "no model")
 	end)
 
+	case("LG: the templates are the folder's valid Parent and Egg; anything else is missing", function()
+		local function folder(parent, egg)
+			local assets = Instance.new("Folder")
+			local lumipol = Instance.new("Folder")
+			lumipol.Name, lumipol.Parent = "Lumipol", assets
+			if parent then parent.Name, parent.Parent = "Parent", lumipol end
+			if egg then egg.Name, egg.Parent = "Egg", lumipol end
+			return assets
+		end
+		local both = Art.templates(folder(template(), template()))
+		assert(typeof(both.Parent) == "Instance" and both.Parent.Name == "Parent", "the parent")
+		assert(typeof(both.Egg) == "Instance" and both.Egg.Name == "Egg", "the egg")
+		local scripted = template()
+		Instance.new("Script").Parent = scripted
+		local one = Art.templates(folder(scripted, template()))
+		equal(one.Parent, nil, "a scripted parent is dropped"); assert(one.Egg ~= nil, "the egg stays")
+		local none = Art.templates(folder(nil, nil))
+		equal(none.Parent, nil); equal(none.Egg, nil)
+		local empty = Art.templates(nil)
+		assert(type(empty) == "table" and empty.Parent == nil and empty.Egg == nil, "no assets folder")
+		equal(Art.templates(Instance.new("Folder")).Parent, nil, "no Lumipol folder")
+	end)
+
 	case("MG1: the template's meshes are listed once each, and the art counts only when every one loaded", function()
 		equal(#Art.meshIds(template()), 0, "parts without meshes")
-		local real = sources.template
-		assert(typeof(real) == "Instance", "the place's LumipolMeshGen template is missing")
-		local ids = Art.meshIds(real)
-		equal(#ids, 4, "head, body, legs and ears")
-		for index, id in ipairs(ids) do
-			assert(type(id) == "string" and id:find("^rbxassetid://%d+$"), "mesh id " .. tostring(id))
-			if index > 1 then assert(ids[index - 1] < id, "sorted, no repeats") end
+		local real = Art.templates(sources.assets)
+		assert(typeof(real.Parent) == "Instance" and typeof(real.Egg) == "Instance",
+			"the place's ServerStorage.WildboundAssets.Lumipol Parent and Egg are missing")
+		for _, name in ipairs({ "Parent", "Egg" }) do
+			local ids = Art.meshIds(real[name])
+			equal(#ids, 1, name .. ": one generated mesh")
+			for _, id in ipairs(ids) do
+				assert(type(id) == "string" and id:find("^rbxassetid://%d+$"), "mesh id " .. tostring(id))
+			end
+			for _, part in ipairs(real[name]:GetDescendants()) do
+				if part:IsA("BasePart") then
+					equal(part.Anchored, true, name); equal(part.CanCollide, false, name)
+					equal(part.CanTouch, false, name); equal(part.CanQuery, false, name)
+				end
+			end
+			local _, size = real[name]:GetBoundingBox()
+			near(real[name]:GetPivot().Position.Y, real[name]:GetBoundingBox().Position.Y - size.Y / 2, 1e-2,
+				name .. ": the pivot at its feet")
 		end
+		local multi = template()
+		for index, group in ipairs(multi:GetChildren()) do
+			local mesh = Instance.new("MeshPart")
+			mesh.Name = "m" .. index
+			mesh.Parent = group
+		end
+		equal(#Art.meshIds(multi), 0, "MeshParts without ids are skipped")
 		equal(Art.verified({ "a", "b" }, { a = true, b = true }), true)
 		equal(Art.verified({ "a", "b" }, { a = true, b = false }), false, "one failed")
 		equal(Art.verified({ "a", "b" }, { a = true }), false, "one never answered")
@@ -192,7 +243,9 @@ return function(Art, source, sources)
 		local server = sources.server
 		assert(type(server) == "string" and #server > 1000, "server source missing")
 		assert(server:find("WildboundLumipolArt", 1, true), "the server requires the art module")
-		assert(server:find("Art.CONFIG.TEMPLATE", 1, true), "the template is looked up by its configured name")
+		assert(server:find("Art.templates(", 1, true), "the templates are looked up through the module")
+		assert(not server:find("LumipolMeshGen", 1, true) and not server:find("Art.CONFIG.TEMPLATE", 1, true),
+			"the MeshGen1 template is no longer used")
 		assert(server:find("Art.uses(look)", 1, true), "only the Lumipol look is dressed")
 		-- Play finding: meshes the session may not load would leave an invisible Lumipol, so the server loads each one
 		-- first and drops the template unless all of them loaded.
@@ -204,6 +257,16 @@ return function(Art, source, sources)
 		assert(visualBody:find("Art.CONFIG.HEIGHT * scale", 1, true), "visual() fits the art to its scale")
 		assert(visualBody:find("Transparency = 1", 1, true), "a dressed creature hides its gameplay ball")
 		assert(visualBody:find("if not dressed", 1, true), "the primitive eyes and ears are the fallback")
+		assert(visualBody:find("Art.CONFIG.EGG_HEIGHT", 1, true), "a Lumipol egg wears the generated egg")
+		assert(visualBody:find("lumipolArt.Egg", 1, true), "only when the egg template loaded")
+		assert(visualBody:find("Heist.groundBelow(", 1, true), "a dressed egg rests on the ground or nest under it")
+		local arms = server:match("function Heist.syncEggArms%(player%).-\nend\n")
+		assert(arms, "syncEggArms() not found")
+		assert(arms:find("Art.CONFIG.ARMS_EGG_HEIGHT", 1, true), "the egg in the arms wears the generated egg")
+		assert(arms:find("ArtJoint", 1, true), "welded to the shell it hides")
+		assert(arms:find("Art.uses(", 1, true), "only a Lumipol egg")
+		local pose = server:match("local function poseAdult%(.-\nend\n")
+		assert(pose and pose:find("SwingTell", 1, true), "a dressed guardian shows the swing tell")
 		local capsule = server:match("local function buildCapsule%(.-\nend\n")
 		assert(capsule, "buildCapsule() not found")
 		assert(capsule:find("Art.CONFIG.CARRIED_HEIGHT", 1, true), "the carried cria wears the art too")

@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshIslandClone), require(freshIslandLayoutClone)).
 -- Task I2 (docs/mechanics/wildbound-expedition-islands.md section 2, decisions EI-2 and EI-5): the pure island rule.
 -- One sleep meter ("inquietud") per island, its stir and wake, the Alerta window, the nest content roll, respawn,
--- island 1's first-steal cap, and the woken adult's short, leashed, non-lethal chase (EI-2).
+-- island 1's first-steal cap, and the woken adult's short, leashed, non-lethal chase (EI-2). Lumipol generated model
+-- pass: the trail nest (Island.TRAIL_NEST), a guarded Lumipol egg nest by the hub's W trail.
 return function(Island, layout)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -477,6 +478,48 @@ return function(Island, layout)
 		Island.tune({ DEEP_SLEEP_ON = 0 })
 		assert(Island.sleepScale(12) == 1, "toggle off")
 		Island.tune(nil)
+	end)
+
+	-- Lumipol generated model pass (user, 2026-11-10): one Lumipol egg nest, guarded by one adult, by the hub's W trail
+	-- (WildboundWorldRules FIRST_EGG (182, 17), hub (282, -3) radius 90), so the egg steal can be tried at once.
+	case("LG: the trail nest is a guarded Lumipol egg nest on the forest floor by the hub's W trail", function()
+		local trail = Island.TRAIL_NEST
+		assert(type(trail) == "table" and table.isfrozen(trail), "a frozen spec")
+		assert(trail.id == "T1" and trail.species == "Lumipol" and trail.content == "Egg", "a Lumipol egg nest")
+		assert(trail.tier == "Safe" and trail.rewardTier == "Safe" and trail.zone == "outside", "a safe-tier nest")
+		assert(trail.nests == 2 and #trail.adultPoints == 1 and trail.adults == 1, "two eggs, one guardian")
+		assert(trail.x <= 182 - 4 and trail.z > 35, "on the forest floor (x <= 182) and out of the fog box (z > 35)")
+		assert(math.sqrt((trail.x - 182) ^ 2 + (trail.z - 17) ^ 2) <= 40, "within 40 studs of the W trail's forest end")
+		assert(math.sqrt((trail.x - 282) ^ 2 + (trail.z + 3) ^ 2) > 90 + trail.floorRadius, "its floor stays off the hub")
+		local point = trail.adultPoints[1]
+		near(math.sqrt((point.x - trail.x) ^ 2 + (point.z - trail.z) ^ 2), 6, 1e-6, "the guardian on the 6-stud ring")
+		assert(trail.wakeDay > 0 and trail.wakeNight >= trail.wakeDay and trail.floorRadius >= 10, "numbers")
+		assert(trail.nestFrom == "I1", "it reuses island 1's nest bed")
+		for _, entry in ipairs(layout.islands) do assert(entry.id ~= trail.id, "a new id") end
+	end)
+
+	case("LG: the trail nest always holds eggs, two of them, and respawns like any egg nest", function()
+		local trail = Island.TRAIL_NEST
+		for _, phase in ipairs({ "Day", "Dawn", "Dusk", "Night" }) do
+			assert(Island.rollContent(trail, phase, function() return 0 end) == "Egg", phase)
+		end
+		assert(Island.nestCount(trail, 1) == 2 and Island.nestCount(trail, 6) == 2, "two eggs")
+		assert(Island.nestCount(island("I1"), 1) == 1, "island 1 unchanged")
+		assert(Island.rollContent(island("I1"), "Day", function() return 0.99 end) == "Creature", "island 1 unchanged")
+		assert(Island.respawnSeconds(trail, "Egg", 1) == C.RESPAWN_EGG, "egg respawn")
+		local meter = Island.newMeter(trail)
+		assert(meter.first == false and meter.island == "T1", "a full guardian, not island 1's shoo")
+	end)
+
+	case("LG: withTrailNest appends the trail nest once and never changes the layout it is given", function()
+		local merged = Island.withTrailNest(layout)
+		assert(#layout.islands == 5, "the layout is unchanged")
+		assert(#merged.islands == 6 and merged.islands[6] == Island.TRAIL_NEST, "appended last")
+		for index = 1, 5 do assert(merged.islands[index] == layout.islands[index], "same order") end
+		assert(merged.showCrest == layout.showCrest and merged.removedTrees == layout.removedTrees, "the rest is kept")
+		assert(#Island.withTrailNest(merged).islands == 6, "never twice")
+		local bare = Island.withTrailNest(nil)
+		assert(type(bare) == "table" and #bare.islands == 1, "no layout: the trail nest alone")
 	end)
 
 	return result

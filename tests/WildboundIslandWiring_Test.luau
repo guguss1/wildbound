@@ -2,7 +2,8 @@
 -- Expedition islands, task I6 (docs/mechanics/wildbound-expedition-islands.md section 2, decisions EI-2 and EI-5):
 -- source contracts for how the inventory server runs the island nests, the shared sleep meter, the scream, the
 -- woken adult's chase and the cria's cry, and how the world server hears them. The rule's numbers are in
--- WildboundIsland_Test; behavior is checked in Play with the Studio-only IslandProbe.
+-- WildboundIsland_Test; behavior is checked in Play with the Studio-only IslandProbe. Lumipol generated model pass:
+-- the trail nest joins the list and its guardian wears the generated parent.
 return function(serverSource, worldSource, clientSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -150,6 +151,17 @@ return function(serverSource, worldSource, clientSource)
 		has(steps, "state:loseDropped(", "the thief loses the egg it dropped")
 		has(serverSource, "returnToNest(island, ", "the nest takes the egg back")
 		has(serverSource, 'op == "eggDrop"', "the Studio-only probe drops an egg for the Play check")
+	end)
+
+	case("LG: the server adds the trail nest and gives it island 1's nest bed", function()
+		has(serverSource, "islandLayout = Island.withTrailNest(islandLayout)", "the trail nest joins the island list")
+		local loop = block(serverSource, "for _, spec in ipairs(islandLayout.islands) do", "\nend\n")
+		has(loop, "spec.nestFrom", "a nest without a map bed copies one")
+		has(loop, ":Clone()", "a copy of the map's bed")
+		has(loop, "CanQuery = true", "its eggs rest on the copied bed, not under it")
+		has(loop, "Art.CONFIG.PARENT_HEIGHT", "the guardian wears the parent model at its height")
+		has(loop, "SwingTell", "a dressed guardian keeps a red swing tell")
+		has(loop, "Heist.groundBelow(", "a Lumipol guardian stands on the ground the map really has")
 	end)
 
 	return result
