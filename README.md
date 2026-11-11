@@ -266,7 +266,7 @@ Each file is one feature: objective, scope, a checklist with task IDs, evidence 
 | `tests/` | Luau suites run in Studio (`*_Test.luau`), plus legacy rescue tests |
 | `tools/` | Python planners, Blender kit and rig builders, economy and Silueta simulators, deploy manifest, Luau map and biome builders, and their Python tests (`test_*.py`) |
 | `assets/blender/` | Blender sources for kits, guardians, species, La Silueta and Lumipol |
-| `assets/exports/` | FBX and rbxmx exports, upload records, Play captures, and local `.rbxl` backups |
+| `assets/exports/` | FBX and rbxmx exports, upload records and Play captures (local `.rbxl` backups are git-ignored) |
 | `assets/maps/` | Generated layout data for the forest, hub, open world and each biome |
 | `assets/models/beasts/` | Viper, Pouncer, Gargoyle and Mire models, clips and upload record |
 | `assets/concepts/` | Concept images |
@@ -275,7 +275,11 @@ Each file is one feature: objective, scope, a checklist with task IDs, evidence 
 | `evidence/` | Recorded Studio baseline |
 | `.agents/skills/` | Project skills for agents |
 | `resources/skill-packs/` | Original skill packs, local only (git-ignored) |
-| `*.rbxl` (root) | Local place backups of the prototypes and early Wildbound states |
+| `models/places/` | Studio place snapshots (`.rbxl`, Git LFS), one per pass; `wildbound-completo.rbxl` is the newest full place |
+| `models/blender/` | Lumipol Blender working copies and the reference match model (Git LFS) |
+| `assets-captures/` | Archived Play captures of the forest kit passes |
+| `knowledge-library/` | YouTube knowledge library and its ingest tooling (see its own README) |
+| `skill-packs/` | Original Roblox and Wildbound skill packs |
 
 ## Working with Studio and testing
 
