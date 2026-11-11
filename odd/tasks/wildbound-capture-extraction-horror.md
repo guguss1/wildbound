@@ -1160,3 +1160,72 @@ Goal (user): everything that appears in Play is also visible, and editable, in E
 Captures in `assets/exports/forest-kit/captures/`: `edit-overview-top-down-hub-biomes-roads.jpg`, `edit-overview-oblique-from-south-biomes.jpg`, `edit-hub-v2-r90-oblique-from-south.jpg`, `edit-beast-gallery-uploaded-models.jpg`. The first two were taken before the road rework (EV-W2's second commit), so they show the old road routes.
 
 **End state.** Edit builds persist only if the user saves the place (Ctrl+S / Archivo > Guardar); this session did not save it. The temporary runner, builder modules and paste folders are removed; Studio is left in Edit.
+
+## Lumipol generated model (2026-11-10)
+
+User request: generate the reference Lumipol (a chunky low-poly blue-teal creature with a mint mushroom cap, antenna orbs, lavender gill fins, big octagonal eyes and a chest crystal) and a matching egg with Roblox mesh generation, and implement only the egg grab for this Lumipol in the forest. The user explicitly authorized the generation. Route: delegated, one Studio and repo writer, no nested delegation, background only (no computer use). Instance `cd4f53c7-...`, PlaceId 122652861404212, Edit verified before the first edit. Every source this pass changes matched HEAD by Adler-32 and length before the first edit. Mode: strict TDD (global). Runners: a rebuilt temporary fresh-clone runner (`ServerStorage.WildboundFreshRunnerTmp`, removed at the end; the LumipolArt suite now receives `ServerStorage.WildboundAssets`), and `python -I -B -m unittest discover -s tools -p "test_*.py"`. Baseline: 70 suites, 1449 passed, 0 failed; Python 1223 run, the known failure only.
+
+- [x] **LG1 Generation.** The Studio MCP `generate_mesh` takes a text prompt only (no image input), so each prompt was written from the reference. Five parent attempts: one plain prompt (a mushroom on a stalk over a penguin-like body, rejected), one 8-part explicit segmentation (failed moderation, nothing produced), and three more; the best is kept. Two egg attempts; the spotted one with crystal shards is kept. Kept: parent asset `137040246364655` (mesh `76476363381612`, texture `112247029314885`), egg asset `73132483845687` (mesh `71926238864543`, texture `74459775885963`). Both meshes load (`CreateMeshPartAsync` in Edit, and no load warning in Play), unlike MeshGen1's. Record, prompts and rejected ids: `assets/exports/lumipol-generated-assets.json`.
+- [x] **LG2 Templates.** `ServerStorage.WildboundAssets.Lumipol.Parent` (4.5 tall) and `.Egg` (1.53 tall): axis-aligned, pivot at the bottom centre of the bounds at the origin, front -Z, every part Anchored with CanCollide, CanTouch and CanQuery off, `AssetId` attribute. The rejected generations and the preview floor were removed from Workspace. `Workspace.MeshGen1` and the old `LumipolMeshGen` template are untouched; the code no longer uses them.
+- [x] **LG3 Dressing.** `WildboundLumipolArt`: `CONFIG.TEMPLATE` is replaced by `FOLDER`/`PARENT`/`EGG`. New heights: `PARENT_HEIGHT` 4.5, `EGG_HEIGHT` 1.8, `ARMS_EGG_HEIGHT` 1.5. New `Art.templates(assets)` returns each valid template or nil. The server loads every template mesh at start (the same one-shot, bounded wait) and drops only the template whose meshes fail, so a missing or refused template keeps that part's primitive look.
+  - Every Lumipol creature (crias, the carried capsule, the display) wears the parent. The island guardians wear it at 4.5 studs and stand on the raycast floor.
+  - Every Lumipol egg (in a nest, dropped, or returning) wears the egg; the ball stays the hidden gameplay body.
+  - The egg in the arms is a 1.5-stud copy welded to the hidden shell.
+  - A dressed guardian has no eyes to redden, so a red `Highlight` (`SwingTell`) turns on during the swing and charge tell. The 0.8 s timing is unchanged.
+  - Other species and other biomes are unchanged.
+  - TDD: RED LumipolArt 8/4, then GREEN.
+- [x] **LG4 Trail nest.** Island 1 holds crias only and sits about 290 studs from the hub, so `Island.TRAIL_NEST` (`T1`, "sendero") was added: a Safe-tier Lumipol nest at (176, 44), 27.7 studs from the W trail's forest end (182, 17). It always holds eggs (`content`), two of them (`nests`), with one guardian at (176, 50).
+  - It is outside the fog box and 14 studs off the hub disc.
+  - The server appends it with `Island.withTrailNest` (the generated layout and `plan_islands.py` are unchanged) and gives it a copy of island 1's nest bed, made ray-queryable so its eggs rest on the straw.
+  - New `Heist.groundBelow` is a table field, not a top-level local; the server keeps 205 top-level `local` lines, one fewer than before.
+  - TDD: RED Island 29/3 and IslandWiring 12/1, GREEN; then a placement follow-up (eggs and the guardian floated a stud over the floor because the relief model sits 0.5 studs under the built floor here): RED IslandWiring 12/1 and LumipolArt 11/1, GREEN.
+
+**Counts.**
+- Studio: 70 suites, 1454 passed, 0 failed on fresh clones (Island +3, IslandWiring +1, LumipolArt +1; the 5 new-mechanics suites skipped).
+- Python: 1223 run, only the known failure `test_lumipol_v2.test_v1_files_are_unchanged`, 28 skipped.
+- Every changed Studio source matches the working tree by Adler-32 and length: `WildboundServer` 169574/2896160409, `WildboundIsland` 22398/3784572407, `WildboundLumipolArt` 5672/2405915208, `WildboundLumipolArt_Test` 15325/1993353948, `WildboundIsland_Test` 28946/1082674604, `WildboundIslandWiring_Test` 9441/1093489852.
+
+**Play check** (Studio Play solo, background, probes through `execute_luau`, `HeistProbe` and `IslandProbe`):
+
+| Check | Result | Evidence |
+| --- | --- | --- |
+| Templates load | PASS | No mesh warning in the output; console shows only the Studio DataStore notice |
+| Guardian wears the parent | PASS | `T1` and both `I1` adults: one art part each, 4.5 tall, `SwingTell` present; other species' adults have no art |
+| Nest with eggs | PASS | `NestBed_T1` at (176, 1.3, 44); `T1:1` and `T1:2` eggs dressed, hidden ball, art bottom 1.05 (floor 1.0) before the bed became queryable |
+| Steal | PASS | `HeistProbe steal T1` returned true through the real prompt handler and the server-side hold check |
+| Egg in the arms | PASS | `WildboundEggCarried`: shell transparent, one art part unanchored, no collision or query, welded |
+| Parent wakes and charges | PASS | Meter Alert, chase Chase; HUD "¡Va a embestir! Sal de su línea.", red outline, "¡GOLPE!"; the hit dropped the egg (Dropped, then the adult returned) |
+| Delivery to base with the new egg, drop pickup by hand, phones, two players | NOT VERIFIED | Unchanged code paths; not exercised this pass |
+
+Captures in `assets/exports/forest-kit/captures/`:
+- `lumipol-nest-eggs-parent-asleep-night-desktop.jpg`: taken before the bed was made queryable, so the eggs sit sunk in the straw; the later captures show an egg resting on the bed
+- `lumipol-parent-guarding-night-desktop.jpg`
+- `lumipol-parent-charge-tell-golpe-desktop.jpg`: start screen visible
+- `lumipol-parent-charging-thief-desktop.jpg`
+- `lumipol-egg-in-arms-night-desktop.jpg`: the player stands behind the hub hedge, egg in front
+
+All captures are at night: the day clock was not shifted.
+
+**Writer decisions, for user review:**
+
+| ID | Decision |
+| --- | --- |
+| LG-W1 | Text prompts only (the tool has no image input); the closest of three usable parents was kept |
+| LG-W2 | The parent replaces MeshGen1 for every Lumipol (crias, capsule, display), as the brief asked, not only guardians |
+| LG-W3 | A new trail nest instead of moving island 1: moving it would ripple through the generated layout, relief, spawn graph and many pinned tests |
+| LG-W4 | One guardian and two eggs at the trail nest; Safe tier rewards, like island 1 |
+| LG-W5 | The swing tell for a dressed guardian is a red Highlight, because the model has no separate eyes |
+| LG-W6 | Eggs and the guardian are placed on the raycast floor, not the relief height, at nests the dressing touches |
+
+**Honest likeness.**
+- Matches the reference: the mint mushroom cap with pale spots, two blue antennae with cyan orbs, big dark-blue eyes, a pink open mouth, cheek freckles, a mint belly with a cyan chest crystal, and mint toes.
+- Differs from the reference:
+  - It stands on two legs, not four.
+  - The lavender fins are small nubs, not three large petals per side.
+  - The shading is smooth, not faceted.
+  - The cap is a wide dome over the head rather than a helmet.
+
+**End state.**
+- Commits: `2e176d5` (code, tests, asset record) and `fa0b5b4` (captures), plus this document's commit.
+- Studio is left in Edit, with the temporary runner removed.
+- The templates in ServerStorage persist only if the user saves the place (Ctrl+S). Until then, the next session loses them and every Lumipol falls back to the primitive look.
