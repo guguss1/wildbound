@@ -2,3 +2,8 @@
 *.rbxl.lock
 /resources/skill-packs/
 /.atl/
+*.blend1
+__pycache__/
+/*.rbxl
+/assets/exports/*.rbxl
+/assets/blender/lumipol-reference-match/
