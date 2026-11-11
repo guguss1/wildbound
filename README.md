@@ -125,6 +125,7 @@ Read in this order: overview, then the roadmap for gates and history, then the O
 | --- | --- |
 | [wildbound-combined-plan.md](docs/design/wildbound-combined-plan.md) | Current direction: Nest Heist core, beast pack, phases, user decisions (section 6). Sections 1 to 5 **outdated** where section 6 decides |
 | [wildbound-expansion-bible.md](docs/design/wildbound-expansion-bible.md) | Expansion proposal: biomes, species, guardians, Blender specs |
+| [wildbound-beast-spawn.md](docs/design/wildbound-beast-spawn.md) | Beast spawn by Risk and threat budget as a tune of the existing director; guardian / biome / global taxonomy, beast cards and owner decisions (approved 2026-11-11) |
 | [wildbound-biome-pradera.md](docs/design/wildbound-biome-pradera.md) | Pradera Arcoíris, the kids' east biome, with La Nube Gruñona (chosen 2026-11-10) |
 | [wildbound-biome-2-proposal.md](docs/design/wildbound-biome-2-proposal.md) | Earlier second-biome proposal; its recommendation was replaced by the Pradera decision |
 | [wildbound-open-world-hub.md](docs/design/wildbound-open-world-hub.md) | One open world: hub in the centre, forest west, Pradera east |
