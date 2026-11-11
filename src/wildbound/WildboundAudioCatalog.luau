@@ -47,6 +47,8 @@ Catalog.SOUNDS = table.freeze({
 	heartbeat = slot("Threat", { 9043365842 }, { loop = true }),
 	roar = slot("Impact", { 9113973128 }, { spatial = true, pitch = 0.8 }),
 	call = slot("Threat", { 9114628321 }, { spatial = true, pitch = 0.55 }),
+	-- Next batch NB2: the sharp sting in the player's head the moment La Silueta sees them (APM, dread shortlist 1.8).
+	chaseSting = slot("Impact", { 1846887425, 1842083006 }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.

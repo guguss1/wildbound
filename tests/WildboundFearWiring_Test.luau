@@ -73,6 +73,9 @@ return function(sources)
 		has(fear, "View.stalkSpot(")
 		has(fear, "View.stalkVanish(")
 		has(fear, "View.STALK_KEEP_OUT")
+		has(fear, "View.farFromHome(root.Position.X, root.Position.Z)", "HV-H1: the hub counts as home")
+		has(fear, "View.inHub(root.Position.X, root.Position.Z)", "HV-H1: no sighting is staged inside the hub")
+		assert(not fear:find("FAR_FROM_CAMP", 1, true), "HV-H1: the camp-only distance is gone")
 		has(fear, '"FK_TrunkCore"')
 		has(fear, "CanCollide = false")
 		has(fear, "CanQuery = false")
@@ -91,5 +94,24 @@ return function(sources)
 		has(audio, 'kind == "stalk"')
 	end)
 
+	-- Look pass: the server shows La Silueta's HorrorGrin when she hunts; this client only animates its arrival.
+	case("Look pass: the fear client pops the horror grin from the pure rule and Efectos suaves", function()
+		has(fear, '"HorrorGrin"')
+		has(fear, 'GetPropertyChangedSignal("Enabled")')
+		has(fear, "View.grinPop(")
+		has(fear, "GroupTransparency")
+		has(fear, '"Pop"')
+	end)
+	case("Look pass: a stalk sighting never copies the grin", function()
+		has(fear, 'item.Name == "HorrorGrin"')
+	end)
+
+	-- Fix pass (FP5d): sleeping parents breathe on every client (slower in the deep noon sleep); presentation only.
+	case("FP5d: the world client makes sleeping adults breathe through the pure rule", function()
+		local world = sources.world or ""
+		assert(world:find("View.breath(", 1, true), "the pure breathing rule")
+		assert(world:find('GetAttribute("Awake") ~= true', 1, true), "only a sleeping adult breathes")
+		assert(world:find('GetAttribute("Deep") == true', 1, true), "deep sleep breathes slower")
+	end)
 	return result
 end

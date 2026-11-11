@@ -24,6 +24,23 @@ Schema.MODULES = table.freeze({
 	Capture = table.freeze({ name = "WildboundCaptureSession",
 		file = "src/wildbound/WildboundCaptureSession.luau (CaptureSession.CONSTANTS)" }),
 	View = table.freeze({ name = "WildboundHudView", file = "src/wildbound/WildboundHudView.luau (View.CONSTANTS)" }),
+	Incubator = table.freeze({ name = "WildboundIncubator",
+		file = "src/wildbound/WildboundIncubator.luau (Incubator.CONSTANTS)" }),
+	Moves = table.freeze({ name = "WildboundSiluetaMoves",
+		file = "src/wildbound/WildboundSiluetaMoves.luau (Moves.CONSTANTS)" }),
+	SpawnClock = table.freeze({ name = "WildboundSpawnClock",
+		file = "src/wildbound/WildboundSpawnClock.luau (SpawnClock.CONSTANTS)" }),
+	WaveClock = table.freeze({ name = "WildboundWaveClock",
+		file = "src/wildbound/WildboundWaveClock.luau (WaveClock.CONSTANTS)" }),
+	Gear = table.freeze({ name = "WildboundGear", file = "src/wildbound/WildboundGear.luau (Gear.CONSTANTS)" }),
+	EggCarry = table.freeze({ name = "WildboundEggCarry",
+		file = "src/wildbound/WildboundEggCarry.luau (EggCarry.CONSTANTS)" }),
+	Bat = table.freeze({ name = "WildboundBat", file = "src/wildbound/WildboundBat.luau (Bat.CONSTANTS)" }),
+	-- Nest Heist Phase 3 (NS5): the camp treadmill.
+	Training = table.freeze({ name = "WildboundTraining",
+		file = "src/wildbound/WildboundTraining.luau (Training.CONSTANTS)" }),
+	-- Nest Heist Phase 3 (NS4): the companion's light.
+	Refuge = table.freeze({ name = "WildboundRefuge", file = "src/wildbound/WildboundRefuge.luau (Refuge.LIGHT)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -46,12 +63,38 @@ Schema.SYSTEMS = table.freeze({
 		value("MEMORY_DAY", "Memoria tras perderte de día (s)", "Brain", "Day.memorySeconds", 4, 0.5, 20, 0.5),
 		value("MEMORY_TWILIGHT", "Memoria al atardecer y al alba (s)", "Brain", "Twilight.memorySeconds", 5, 0.5, 20, 0.5),
 		value("MEMORY_NIGHT", "Memoria de noche (s)", "Brain", "Night.memorySeconds", 6, 0.5, 20, 0.5),
+		-- Fix pass (FP3): how long a chase may last, sized to the sprint (about 4 s of sprint at 24).
+		value("CHASE_DAY", "Persecución máxima de día (s)", "Brain", "Day.chaseSeconds", 12, 4, 60, 1),
+		value("CHASE_TWILIGHT", "Persecución máxima al atardecer y al alba (s)", "Brain", "Twilight.chaseSeconds", 15, 4, 60, 1),
+		value("CHASE_NIGHT", "Persecución máxima de noche (s)", "Brain", "Night.chaseSeconds", 18, 4, 60, 1),
 		value("GIVE_UP_DISTANCE", "Se rinde a esta distancia (studs)", "Rules", "GIVE_UP_DISTANCE", 100, 30, 200, 5),
 		-- At least the territory (80): a strike still needs the target inside it, so a longer leash adds no strike place.
 		value("CHASE_LEASH", "Correa de persecución desde su casa (studs)", "Rules", "CHASE_LEASH", 100, 80, 200, 5),
 		-- At least the fair-strike warning lead (0.8 s), so a warning always fits before the hit.
 		value("TELEGRAPH_SECONDS", "Aviso antes del golpe (s)", "Rules", "TELEGRAPH_SECONDS", 0.9, 0.8, 3, 0.05),
 		value("ATTACK_COOLDOWN", "Pausa entre golpes (s)", "Rules", "ATTACK_COOLDOWN", 2.5, 1, 10, 0.1),
+		-- Look pass: art only (never the body, sight or hit range). Applied live: the world server rescales the art.
+		value("VISUAL_SCALE", "Altura de la figura (escala; 3,8 = 33 studs)", "Rules", "SILUETA_VISUAL_SCALE", 3.8, 2, 4.5,
+			0.1),
+		-- Fix pass (FP2): one Silueta per player, capped per server.
+		value("MAX_HUNTERS", "Siluetas a la vez (una por jugador)", "Rules", "MAX_HUNTERS", 8, 1, 16, 1),
+		-- Fix pass (FP4): her moves. A toggle is 1 (on) or 0 (off).
+		value("LUNGE_ON", "Embestida (1 sí, 0 no)", "Moves", "LUNGE_ON", 1, 0, 1, 1),
+		value("LUNGE_AFTER", "Embestida: tras cazar (s)", "Moves", "LUNGE_AFTER", 3, 0.5, 20, 0.5),
+		value("LUNGE_TELL", "Embestida: aviso (s)", "Moves", "LUNGE_TELL", 0.5, 0.35, 2, 0.05),
+		value("LUNGE_SECONDS", "Embestida: dura (s)", "Moves", "LUNGE_SECONDS", 0.8, 0.2, 3, 0.1),
+		value("LUNGE_SPEED", "Embestida: velocidad (studs/s)", "Moves", "LUNGE_SPEED", 22, 10, 30, 0.5),
+		value("LUNGE_COOLDOWN", "Embestida: espera (s)", "Moves", "LUNGE_COOLDOWN", 8, 1, 60, 1),
+		value("FAKE_ON", "Falsa retirada (1 sí, 0 no)", "Moves", "FAKE_ON", 1, 0, 1, 1),
+		value("FAKE_CHANCE", "Falsa retirada: probabilidad", "Moves", "FAKE_CHANCE", 0.25, 0, 1, 0.05),
+		value("FAKE_SECONDS", "Falsa retirada: se aleja (s)", "Moves", "FAKE_SECONDS", 4, 1, 15, 0.5),
+		value("GLARE_ON", "La luz la frena (1 sí, 0 no)", "Moves", "GLARE_ON", 1, 0, 1, 1),
+		value("GLARE_RANGE", "Luz: alcance (studs)", "Moves", "GLARE_RANGE", 12, 4, 40, 1),
+		value("GLARE_DOT", "Luz: cono (producto escalar)", "Moves", "GLARE_DOT", 0.85, 0.5, 0.99, 0.01),
+		value("GLARE_HOLD", "Luz: sostener (s)", "Moves", "GLARE_HOLD", 1.5, 0.2, 5, 0.1),
+		value("GLARE_STAGGER", "Luz: la frena (s)", "Moves", "GLARE_STAGGER", 1, 0.2, 5, 0.1),
+		value("SCREAM_ON", "Grito que despierta nidos (1 sí, 0 no)", "Moves", "SCREAM_ON", 1, 0, 1, 1),
+		value("SCREAM_REACH", "Grito: alcance (studs)", "Moves", "SCREAM_REACH", 70, 0, 200, 5),
 	}) }),
 	table.freeze({ id = "Sprint", label = "Correr y aliento", entries = table.freeze({
 		value("SPRINT_MULTIPLIER", "Multiplicador al correr", "Stamina", "SPRINT_MULTIPLIER", 1.45, 1, 2, 0.05),
@@ -64,6 +107,11 @@ Schema.SYSTEMS = table.freeze({
 		value("REGEN_STILL", "Recuperación quieto (por s)", "Stamina", "REGEN_STILL", 15, 0, 50, 1),
 		value("NOISE_INTERVAL", "Un ruido de carrera cada (s)", "Stamina", "NOISE_INTERVAL", 1.2, 0.3, 5, 0.1),
 		value("SPRINT_NOISE", "Alcance del ruido al correr (studs)", "Brain", "NOISE.sprint", 30, 0, 80, 1),
+		-- Nest Heist (NH4): the Burst.
+		value("BURST_SECONDS", "Impulso: dura (s)", "Stamina", "BURST_SECONDS", 0.8, 0.2, 2, 0.05),
+		value("BURST_MULTIPLIER", "Impulso: velocidad (x la marcha)", "Stamina", "BURST_MULTIPLIER", 1.7, 1, 2.5, 0.05),
+		value("BURST_COOLDOWN", "Impulso: espera (s)", "Stamina", "BURST_COOLDOWN", 6, 1, 30, 0.5),
+		value("BURST_CAP", "Impulso: velocidad máxima (studs/s)", "Stamina", "BURST_CAP", 28, 16, 40, 1),
 	}) }),
 	table.freeze({ id = "Carry", label = "Cargar una criatura", entries = table.freeze({
 		value("FEAR_RISE", "Miedo por segundo al correr", "Stamina", "FEAR_RISE", 30, 0, 100, 1),
@@ -90,11 +138,36 @@ Schema.SYSTEMS = table.freeze({
 		value("CHASE_SECONDS", "Persigue durante (s)", "Island", "CHASE_SECONDS", 14, 1, 60, 1),
 		value("CHASE_LEASH", "Correa desde el nido (studs)", "Island", "CHASE_LEASH", 35, 10, 80, 1),
 		value("STRIKE_REACH", "Empieza el golpe a (studs)", "Island", "STRIKE_REACH", 3.5, 1, 10, 0.5),
-		-- At least 0.35 s: the floor of a readable tell (CP-D1).
-		value("STRIKE_WINDUP", "Aviso del golpe (s)", "Island", "STRIKE_WINDUP", 0.45, 0.35, 2, 0.05),
+		-- At least 0.8 s: the fair-strike floor (HF-T4, user decision Q1; was 0.45 with a 0.35 floor, CP-D1).
+		value("STRIKE_WINDUP", "Aviso del golpe (s)", "Island", "STRIKE_WINDUP", 0.8, 0.8, 2, 0.05),
 		value("HIT_RANGE", "El golpe acierta a (studs)", "Island", "HIT_RANGE", 5, 1, 12, 0.5),
 		value("STRIKE_COOLDOWN", "Pausa entre golpes (s)", "Island", "STRIKE_COOLDOWN", 1.2, 0.3, 5, 0.1),
 		value("DAMAGE", "Daño por golpe (100 = muerte)", "Island", "DAMAGE", 35, 0, 100, 1),
+		-- Fix pass (FP5): the parents' pounce, egg recovery and noon sleep (a toggle is 1 on, 0 off).
+		value("PACK_CALL_SECONDS", "Llamada de la manada: tarda (s)", "Island", "PACK_CALL_SECONDS", 0, 0, 10, 0.5),
+		-- Nest Heist (NH3): the pounce became the charge (keys kept); its tell never drops under 0.8 s (fair strike).
+		value("POUNCE_ON", "Embestida del adulto (1 sí, 0 no)", "Island", "POUNCE_ON", 1, 0, 1, 1),
+		value("POUNCE_RANGE", "Embestida: desde (studs)", "Island", "POUNCE_RANGE", 12, 4, 20, 0.5),
+		value("POUNCE_AFTER", "Embestida: tras perseguir (s)", "Island", "POUNCE_AFTER", 1, 0, 10, 0.5),
+		value("POUNCE_TELL", "Embestida: aviso (s)", "Island", "POUNCE_TELL", 0.8, 0.8, 2, 0.05),
+		value("POUNCE_COOLDOWN", "Embestida: espera (s)", "Island", "POUNCE_COOLDOWN", 6, 1, 30, 0.5),
+		value("CHARGE_SPEED", "Embestida: velocidad (studs/s)", "Island", "CHARGE_SPEED", 40, 10, 80, 1),
+		value("CHARGE_OVERSHOOT", "Embestida: se pasa (studs)", "Island", "CHARGE_OVERSHOOT", 4, 0, 12, 0.5),
+		value("CHARGE_MAX", "Embestida: largo máximo (studs)", "Island", "CHARGE_MAX", 18, 4, 40, 1),
+		value("CHARGE_HIT", "Embestida: acierta a (studs)", "Island", "CHARGE_HIT", 3, 1, 8, 0.5),
+		value("EXPOSED_SECONDS", "Tras fallar: expuesto (s)", "Island", "EXPOSED_SECONDS", 1, 0, 5, 0.1),
+		value("STEAL_WAKE", "Robar un huevo los despierta (1 sí, 0 no)", "Island", "STEAL_WAKE", 1, 0, 1, 1),
+		-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only within this distance of it.
+		value("PERCEIVE_RANGE", "El adulto ve al nuevo portador a (studs)", "Island", "PERCEIVE_RANGE", 24, 5, 80, 1),
+		value("EGG_RECOVERY_ON", "Recuperan huevos caídos (1 sí, 0 no)", "Island", "EGG_RECOVERY_ON", 1, 0, 1, 1),
+		value("DEEP_SLEEP_ON", "Sueño profundo al mediodía (1 sí, 0 no)", "Island", "DEEP_SLEEP_ON", 1, 0, 1, 1),
+		value("DEEP_SCALE", "Sueño profundo: ruido x", "Island", "DEEP_SCALE", 0.7, 0.1, 1, 0.05),
+		value("DEEP_FROM", "Sueño profundo: desde (hora)", "Island", "DEEP_FROM", 11, 0, 24, 0.5),
+		value("DEEP_TO", "Sueño profundo: hasta (hora)", "Island", "DEEP_TO", 13, 0, 24, 0.5),
+		value("BREATH_AMPLITUDE", "Respiración: altura (studs)", "View", "BREATH_AMPLITUDE", 0.15, 0, 0.5, 0.01, "client"),
+		value("BREATH_SECONDS", "Respiración: ritmo (s)", "View", "BREATH_SECONDS", 3, 1, 10, 0.5, "client"),
+		value("BREATH_DEEP_SECONDS", "Respiración profunda: ritmo (s)", "View", "BREATH_DEEP_SECONDS", 4.5, 1, 12, 0.5,
+			"client"),
 	}) }),
 	table.freeze({ id = "Capture", label = "Captura", entries = table.freeze({
 		-- At least CALM_MIN (4): the per-player skill floor.
@@ -119,6 +192,97 @@ Schema.SYSTEMS = table.freeze({
 		value("MAX_STAY", "Tiempo máximo escondido (s)", "Hide", "MAX_STAY", 45, 5, 300, 5),
 		value("COOLDOWN", "Espera para volver a esconderse (s)", "Hide", "COOLDOWN", 8, 0, 60, 1),
 	}) }),
+	-- Random world (plan Part 3): the spawn clock (RW2).
+	table.freeze({ id = "World", label = "Mundo aleatorio", entries = table.freeze({
+		value("LIFETIME", "Un huevo o cría se muda tras (s)", "SpawnClock", "LIFETIME", 300, 10, 1800, 10),
+		value("RESPAWN_COMUN", "Reaparece Común tras (s)", "SpawnClock", "RESPAWN_COMUN", 90, 0, 1800, 10),
+		value("RESPAWN_RARA", "Reaparece Rara tras (s)", "SpawnClock", "RESPAWN_RARA", 150, 0, 1800, 10),
+		value("RESPAWN_EPICA", "Reaparece Épica tras (s)", "SpawnClock", "RESPAWN_EPICA", 240, 0, 1800, 10),
+		value("RESPAWN_LEGENDARIA", "Reaparece Legendaria tras (s)", "SpawnClock", "RESPAWN_LEGENDARIA", 360, 0, 1800, 10),
+		value("MAX_COMUN", "Comunes a la vez", "SpawnClock", "MAX_COMUN", 4, 0, 12, 1),
+		value("MAX_RARA", "Raras a la vez", "SpawnClock", "MAX_RARA", 3, 0, 12, 1),
+		value("MAX_EPICA", "Épicas a la vez", "SpawnClock", "MAX_EPICA", 2, 0, 12, 1),
+		value("MAX_LEGENDARIA", "Legendarias a la vez", "SpawnClock", "MAX_LEGENDARIA", 1, 0, 12, 1),
+		value("EGG_SHARE", "Parte que son huevos (0 a 1)", "SpawnClock", "EGG_SHARE", 0.4, 0, 1, 0.05),
+		-- RW3: the wave clock.
+		value("WAVE_SECONDS", "Duración de una oleada (s)", "WaveClock", "WAVE_SECONDS", 300, 10, 1800, 10),
+		value("FIRST_EGG_RADIUS", "Primer huevo cerca de la entrada del bosque (studs)", "WaveClock", "FIRST_EGG_RADIUS", 70, 20, 200, 5),
+		-- RW4: the Refugios (never inside the territory: Rules.setRefuges refuses a circle that reaches it).
+		value("REFUGE_MIN", "Refugios por oleada: mínimo", "WaveClock", "REFUGE_MIN", 2, 0, 6, 1),
+		value("REFUGE_MAX", "Refugios por oleada: máximo", "WaveClock", "REFUGE_MAX", 3, 0, 6, 1),
+		value("REFUGE_RADIUS", "Radio de un Refugio (studs)", "WaveClock", "REFUGE_RADIUS", 12, 4, 15, 1),
+		value("REFUGE_REGEN", "Aliento en un Refugio (x)", "WaveClock", "REFUGE_REGEN", 2, 1, 4, 0.5),
+		-- RW5: the biome event (one per server, one claimant).
+		value("EVENT_FIRST", "Primer huevo especial a los (s)", "WaveClock", "EVENT_FIRST", 300, 0, 3600, 10),
+		value("EVENT_EVERY", "Huevo especial cada (s)", "WaveClock", "EVENT_EVERY", 1200, 30, 7200, 30),
+		value("EVENT_SECONDS", "Huevo especial visible (s)", "WaveClock", "EVENT_SECONDS", 300, 10, 1800, 10),
+		value("EVENT_RADIUS", "Huevo especial a menos de (studs de su casa)", "WaveClock", "EVENT_RADIUS", 45, 10, 80, 5),
+		-- RW6: the biome variant rotates every this many waves (never by nights).
+		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
+	}) }),
+	-- Nest Heist Phase 3 (NS5): the treadmill. HF-T4 (user decision Q9): the walk cap is 16 and stays under 17, so no
+	-- walk reaches La Silueta's night hunt (17); the sprint and the Burst keep the stamina caps (24 and 28).
+	table.freeze({ id = "Training", label = "Entrenamiento", entries = table.freeze({
+		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 0.25, 0, 1, 0.05),
+		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 4, 0, 10, 1),
+		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 16, 16, 16.5, 0.5),
+		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 30, 0, 500, 5),
+		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.6, 1, 3, 0.1),
+	}) }),
+	-- Nest Heist Phase 3 (NS4): the companion's light.
+	table.freeze({ id = "Companion", label = "Compañero", entries = table.freeze({
+		value("LIGHT_BRIGHTNESS", "Luz del compañero: brillo", "Refuge", "LIGHT_BRIGHTNESS", 1.2, 0, 5, 0.1),
+		value("LIGHT_RANGE", "Luz del compañero: alcance (studs)", "Refuge", "LIGHT_RANGE", 12, 0, 30, 1),
+	}) }),
+	-- NS7: the gloves' caps (percent; WildboundGear.HARD_CAPS bounds them again) and the rarity weights, then IT2's
+	-- luck totem.
+	table.freeze({ id = "Gear", label = "Guantes y tótem", entries = table.freeze({
+		value("MOVE_CAP", "Guantes: tope de Velocidad (%)", "Gear", "MOVE_CAP", 3, 0, 3, 0.5),
+		value("STEAL_CAP", "Guantes: tope de Robo rápido (%)", "Gear", "STEAL_CAP", 15, 0, 25, 1),
+		value("BURST_CAP", "Guantes: tope de Recarga de impulso (%)", "Gear", "BURST_CAP", 20, 0, 30, 1),
+		value("DRAIN_CAP", "Guantes: tope de Aliento al correr (%)", "Gear", "DRAIN_CAP", 30, 0, 40, 1),
+		value("CALM_CAP", "Guantes: tope de Calma (%)", "Gear", "CALM_CAP", 30, 0, 40, 1),
+		value("WEIGHT_COMUN", "Guantes: peso de Común", "Gear", "WEIGHT_COMUN", 60, 0, 100, 1),
+		value("WEIGHT_RARA", "Guantes: peso de Rara", "Gear", "WEIGHT_RARA", 28, 0, 100, 1),
+		value("WEIGHT_EPICA", "Guantes: peso de Épica", "Gear", "WEIGHT_EPICA", 10, 0, 100, 1),
+		value("WEIGHT_LEGENDARIA", "Guantes: peso de Legendaria", "Gear", "WEIGHT_LEGENDARIA", 2, 0, 100, 1),
+		-- IT2: the Tótem de la suerte.
+		value("LUCK_SECONDS", "Tótem de la suerte: dura (s)", "Gear", "LUCK_SECONDS", 60, 10, 600, 5),
+		value("LUCK_RADIUS", "Tótem de la suerte: radio (studs)", "Gear", "LUCK_RADIUS", 40, 10, 120, 5),
+		value("LUCK_NOISE_EVERY", "Tótem de la suerte: ruido cada (s)", "Gear", "LUCK_NOISE_EVERY", 10, 2, 60, 1),
+		value("LUCK_LURE", "Tótem de la suerte atrae un hallazgo (1 sí, 0 no)", "Gear", "LUCK_LURE", 1, 0, 1, 1),
+		value("LUCK_CAMP", "Tótem de la suerte: lejos del campamento (studs)", "Gear", "LUCK_CAMP", 30, 0, 120, 5),
+	}) }),
+	-- Nest Heist (NH1 to NH8): stealing, carrying, dropping and picking up an egg.
+	table.freeze({ id = "Eggs", label = "Robo de huevos", entries = table.freeze({
+		value("STEAL_HOLD", "Robar un huevo normal: mantener (s)", "EggCarry", "STEAL_HOLD", 0.8, 0.6, 1, 0.05),
+		value("RARE_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARE_HOLD", 1, 0.6, 3, 0.05),
+		-- Hub follow-up (HF-T2): the server accepts a steal this much shorter than the hold (latency).
+		value("HOLD_ALLOWANCE", "Robar: margen de latencia del mantener (s)", "EggCarry", "HOLD_ALLOWANCE", 0.35, 0.05, 0.5,
+			0.05),
+		-- NH5: drop and pickup.
+		value("PICKUP_DELAY", "Huevo caído: se puede recoger tras (s)", "EggCarry", "PICKUP_DELAY", 0.4, 0, 2, 0.05),
+		value("PICKUP_HOLD", "Recoger un huevo: mantener (s)", "EggCarry", "PICKUP_HOLD", 0.4, 0.3, 0.5, 0.05),
+		-- At most 10 (NP1): State:takeEgg refuses a pickup beyond 10 studs.
+		value("PICKUP_RANGE", "Recoger un huevo: alcance (studs)", "EggCarry", "PICKUP_RANGE", 10, 4, 10, 1),
+		value("DROP_SECONDS", "Huevo abandonado: desaparece tras (s)", "EggCarry", "DROP_SECONDS", 30, 5, 300, 5),
+	}) }),
+	-- Nest Heist phase 2 (NP3): the bat every player carries. The rule keeps its floors whatever is tuned: a cooldown of
+	-- at least 3 s, a reach of 3 to 8 studs, a tap never longer than the stumble, an immunity that outlasts the stumble.
+	table.freeze({ id = "PvP", label = "Bate entre jugadores", entries = table.freeze({
+		value("COOLDOWN", "Bate: espera entre golpes (s)", "Bat", "COOLDOWN", 12, 3, 60, 0.5),
+		value("REACH", "Bate: alcance (studs)", "Bat", "REACH", 6, 3, 8, 0.5),
+		value("HALF_ANGLE", "Bate: ángulo a cada lado (grados)", "Bat", "HALF_ANGLE", 60, 15, 90, 5),
+		value("HEIGHT", "Bate: diferencia de altura (studs)", "Bat", "HEIGHT", 4, 1, 8, 0.5),
+		value("STUMBLE_SECONDS", "Tropiezo con huevo (s)", "Bat", "STUMBLE_SECONDS", 0.45, 0.1, 1, 0.05),
+		value("TAP_SECONDS", "Tropiezo sin huevo (s)", "Bat", "TAP_SECONDS", 0.2, 0, 1, 0.05),
+		value("STUMBLE_SPEED", "Velocidad al tropezar (studs/s)", "Bat", "STUMBLE_SPEED", 2, 0, 16, 0.5),
+		value("IMMUNITY", "Inmunidad tras un golpe (s)", "Bat", "IMMUNITY", 6, 1, 30, 0.5),
+	}) }),
+	-- Next batch NB4 (delivery E): how long an egg incubates.
+	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({
+		value("HATCH_SECONDS", "Tiempo hasta que eclosiona (s)", "Incubator", "HATCH_SECONDS", 90, 10, 900, 5),
+	}) }),
 	table.freeze({ id = "Camera", label = "Cámara y sensaciones (cliente)", entries = table.freeze({
 		value("SPRINT_FOV_KICK", "Apertura de cámara al correr (grados)", "View", "SPRINT_FOV_KICK", 10, 0, 30, 1, "client"),
 		value("DREAD_RANGE", "Temblor y viñeta desde (studs)", "View", "DREAD_RANGE", 35, 1, 100, 1, "client"),
@@ -139,6 +303,9 @@ Schema.SYSTEMS = table.freeze({
 		value("STALK_MAX", "Aparición: distancia máxima (studs)", "View", "STALK_MAX", 36, 20, 120, 1, "client"),
 		value("STALK_SECONDS", "Aparición: dura (s)", "View", "STALK_SECONDS", 4, 0.5, 10, 0.5, "client"),
 		value("STALK_NEAR", "Aparición: se esfuma si te acercas a (studs)", "View", "STALK_NEAR", 12, 5, 40, 1, "client"),
+		-- Fix pass (FP2): how faint another player's Silueta is drawn on this client (1 = invisible).
+		value("OTHER_SILUETA_FADE", "Silueta ajena: transparencia (0 a 1)", "View", "OTHER_SILUETA_FADE", 0.75, 0, 1, 0.05,
+			"client"),
 	}) }),
 })
 

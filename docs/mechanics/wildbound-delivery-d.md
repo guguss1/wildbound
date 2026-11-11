@@ -285,3 +285,12 @@ User: in a chase you hear its steps getting closer but can barely see it. Ids fr
 Steps now start at Distant (within 120 studs): steps 0.25, giant steps 0.18, approach 0.12; Near 0.40, 0.30, 0.10; Chase 0.45, 0.35, 0. Their roll-off is 12 to 150 studs (approach 20 to 180), every other spatial cue keeps 8 to 60. The night fog hides the guardian from about 48 studs, the day fog from about 110 to 140.
 
 Play (Studio Play solo, desktop, night at 23:00 by the clock shift): every catalog id loaded in the Play client (`FailedIds` empty). At 107.6 studs (Distant) the body carried `giantSteps` (0.18, gait 0.72), `approach` (0.12) and `steps` (0.25, pitch 0.85), all playing, `IsLoaded` true, roll-off 12 to 150; the capture from 113 studs shows nothing of it. At 40 studs only its two lit eyes and a faint shape show; at 20 studs it fills the frame. In the chase: giant steps 0.35 at gait 1.30 while hunting (0.70 standing to strike), steps 0.45 at pitch 1.2, the groan at 0.7 played. Nobody has listened: loudness, overlap of the loop with the stride one-shots and the 4.6 s clip's own rhythm are NOT VERIFIED by ear.
+
+## 14. Next batch: a readable chase start (2026-11-09)
+
+When La Silueta sees you (threat level Chase), the audio client now plays, before the signature and the roar:
+
+- `chaseSting`, a 2D one-shot in the player's head (Impact group): APM "Evil Mind 9" 1846887425, fallback "Island Chase (sting)" 1842083006, both free APMOfficial assets from `docs/audio/wildbound-dread-assets-shortlist.md` 1.8. Volume 0.45 with a 0.02 s attack; "Efectos suaves" 0.18 eased in over 0.25 s (and the 0.6 master). At most once per 8 s (`Mix.CHASE_STING_COOLDOWN`), so a quick re-sighting is not hit twice.
+- The chase music and pulse cut in over 0.2 s (was 1.5 s); "Efectos suaves" keeps the 2 s rise. Every other layer is unchanged.
+
+Measured in Studio Play (desktop, by properties; nobody has listened): the sting started 0.07 to 0.12 s after the level turned Chase (the controller's 0.25 s step), peak `PlaybackLoudness` 348 (the defeat hit reads 290 and the chase music 204; the reading does not follow `Volume`), "Efectos suaves" played it at 0.18 with master 0.6 and the chase music at 0.20. On the very first chase of a session the sound was not yet loaded when it started (`IsLoaded` false on the first frame), so the first sting may come late or be cut. Audio volume is presentation, not a gameplay constant, so it is not in the dev tuning schema.

@@ -107,7 +107,7 @@ return freeze({
 		chestObject = "Cofre del campamento",
 		board = "Ver mejoras",
 		boardObject = "Tablón de mejoras",
-		incubator = "Próximamente",
+		incubator = "Deja tu huevo",
 		incubatorObject = "Incubadora",
 		display = "Tus criaturas",
 		registered = "%s registrado. Ahora es tuyo para siempre.",
@@ -115,17 +115,19 @@ return freeze({
 		nothingCarried = "No llevas ninguna criatura. Captura una en la niebla.",
 		chestCreature = "Las criaturas se registran en el refugio, no en el cofre.",
 		chestEmpty = "No llevas nada para guardar.",
-		stored = "Guardado: %d objeto(s) y %d material(es). +%d Ember.",
+		stored = "Guardado: %d objeto(s) y %d material(es). +%d de Esencia.",
 		boardOpen = "Mejoras y habilidades del campamento.",
 		incubatorSoon = "La incubadora llegará pronto.",
 		equipped = "%s te acompaña.",
+		-- NS4: the companion is stored.
+		companionStored = "%s vuelve a tu colección.",
 	},
 	-- The presentation card after a registration (WildboundRefuge.card).
 	CARD = {
 		title = "¡Nueva criatura!",
 		titleAgain = "Criatura registrada",
 		entry = "Entrada de colección desbloqueada",
-		ember = "+%d Ember",
+		ember = "+%d de Esencia",
 		equip = "Equipar",
 		close = "Cerrar",
 		species = { Lumipol = "Lumipol", Cortezon = "Cortezón", Cestillo = "Cestillo", Polvilla = "Polvilla",
@@ -139,8 +141,45 @@ return freeze({
 		},
 		-- Expedition islands (K2): the card's first line for a later species, the one-off bonus and the tease.
 		newSpecies = "¡Nueva especie!",
-		firstBonus = "+%d Ember por tu primera cría",
+		firstBonus = "+%d de Esencia por tu primera cría",
 		next = "Próxima isla: %s. Allí duermen los %s.",
+	},
+	-- Random world (plan Part 6, RW3): the wave clock's player words. Notices at most 72 bytes.
+	WAVE = {
+		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
+		-- RW7: the wave board (WildboundHudView.waveBoard): its title, a row and the empty line.
+		board = "Oleada %d · %s",
+		row = "%d. %s · %s",
+		empty = "Aún sin Esencia",
+	},
+	-- Random world (RW6): the biome variant's names and the notice when it changes.
+	VARIANT = {
+		Niebla = "Niebla",
+		Escarcha = "Escarcha",
+		Ceniza = "Ceniza",
+		Floracion = "Floración",
+		changed = "El bosque cambia: %s.",
+	},
+	-- Random world (RW5): the biome event. The banner fits a phone (48 bytes with a species and m:ss); notices 72.
+	EVENT = {
+		title = "Huevo especial del bioma",
+		banner = "Huevo especial: %s · %s",
+		bannerShort = "%s · %s",
+		start = "¡Huevo especial del bioma: %s! Cerca de La Silueta.",
+		claimed = "%s se llevó el huevo especial.",
+		ended = "El huevo especial desapareció.",
+		prompt = "Huevo especial",
+	},
+	-- Random world (RW4): the moving safe circles. The sign is one word.
+	REFUGE = {
+		sign = "Refugio",
+	},
+	-- Random world (plan Part 3, RW2): the rarity of a spawn, shown on its glow and its prompt.
+	RARITY = {
+		Comun = "Común",
+		Rara = "Rara",
+		Epica = "Épica",
+		Legendaria = "Legendaria",
 	},
 	-- Expedition islands (I8, docs/mechanics/wildbound-expedition-islands.md section 6). Names at most 28 bytes,
 	-- prompts 24, notices 72.
@@ -164,6 +203,24 @@ return freeze({
 		strike = "¡Va a golpearte! Apártate.",
 		hit = "¡Otro golpe! Aléjate del nido.",
 		screamHeard = "Un grito lejano... algo se acerca.",
+		-- Fix pass (FP5): the adult's pounce tell, and an egg an adult carried back to its nest.
+		-- Nest Heist (NH3): the pounce became a charge; a miss leaves the adult exposed.
+		pounce = "¡Va a embestir! Sal de su línea.",
+		exposed = "¡Falló! Aprovecha y huye.",
+		eggRecovered = "Un adulto devolvió tu huevo a su nido.",
+	},
+	-- Nest Heist (NH1 to NH8): the egg in the arms. Notices at most 64 bytes.
+	EGG = {
+		stolen = "¡Tienes el huevo! Llévalo a tu base.",
+		already = "Ya llevas un huevo en brazos.",
+		-- Hub follow-up (HF-T2): the server measured a hold shorter than the steal needs.
+		holdLonger = "Mantén presionado un poco más.",
+		-- NH5: drop and pickup.
+		pickUp = "Recoger huevo",
+		knocked = "¡Te golpearon! Se te cayó el huevo.",
+		picked = "¡Tienes un huevo! Llévalo a tu base.",
+		taken = "Otro jugador recogió tu huevo.",
+		gone = "Tu huevo se perdió en el bosque.",
 	},
 	-- Expedition islands (I7): the starter upgrade on the board.
 	UPGRADE = {
@@ -190,10 +247,29 @@ return freeze({
 		dodge = "¡Esquiva! Aléjate de La Silueta.",
 		rested = "Descansaste. La marca desapareció.",
 		restedShort = "Marca quitada.",
+		-- Items IT1: the Chaleco kept a defeating hit as a mark.
+		vest = "El chaleco aguantó el golpe. Sigues marcado: el próximo te derrota.",
+		vestShort = "El chaleco te salvó. Sigues marcado.",
+	},
+	-- NS7: gloves with rolled stats replaced the four IT1 pieces. WildboundCampView repeats the stat and rarity words;
+	-- a test keeps them equal.
+	GEAR = {
+		guantes = "Guantes",
+		crafted = "%s: fabricado.",
+		glovesCrafted = "Guantes %s: %s. Se guardan contigo.",
+		gloveWorn = "Te pusiste los guantes %s: %s.",
+		stats = { move = "Velocidad", steal = "Robo rápido", burst = "Recarga de impulso", drain = "Aliento al correr",
+			calm = "Calma" },
+		rarity = { Comun = "comunes", Rara = "raros", Epica = "épicos", Legendaria = "legendarios" },
+		-- IT2: the Tótem de la suerte.
+		totemSuerte = "Tótem de la suerte",
+		luckPlaced = "Tótem de la suerte puesto: el próximo hallazgo cercano sale más raro. Hace ruido.",
+		luckRaised = "El tótem de la suerte mejoró un hallazgo cercano: %s.",
+		luckGone = "El tótem de la suerte se apagó.",
 	},
 	-- Delivery C (D-C5): the full-screen defeat summary (WildboundHudView.lossSummary) and the defeat notice.
 	DEFEAT = {
-		title = "Derrotado. Volverás al campamento.",
+		title = "Derrotado. Volverás a la plaza.",
 		nothing = "No perdiste nada.",
 		lost = "Perdiste %s: %s%s.",
 		more = " y %d más",
@@ -206,7 +282,7 @@ return freeze({
 		kept = "Conservas: %d criatura(s) registrada(s), %s.",
 		egg = "huevo guardado",
 		eggs = "huevos guardados",
-		safe = "A salvo: %d Ember, %s.",
+		safe = "A salvo: %d de Esencia, %s.",
 		material = "material guardado",
 		materialsWord = "materiales guardados",
 		close = "Toca para cerrar.",
@@ -240,6 +316,25 @@ return freeze({
 		-- Chase pass (CP1): the always-on sprint hint by input (touch has the "Correr" button).
 		hintKeyboard = "Shift: Correr",
 		hintGamepad = "L3: Correr",
+		-- Nest Heist (NH4): the Burst button (touch) and its keyboard label.
+		burst = "Impulso",
+		burstKey = "Impulso (Z)",
+	},
+	-- Nest Heist phase 2 (NP4, NP5): the bat. Notices at most 64 bytes.
+	BAT = {
+		button = "Bate",
+		buttonKey = "Bate (clic)",
+		safe = "Aquí no se usa el bate.",
+		immune = "Está protegido un momento.",
+		hit = "¡Te golpearon con un bate!",
+		knocked = "¡Te golpearon! Se te cayó el huevo.",
+		loose = "¡Se le cayó el huevo! Cualquiera puede tomarlo.",
+	},
+	-- Nest Heist phase 4a (NB5, NB6): the beasts' warnings (shown with the red lane or circle) and their hits.
+	BEAST = {
+		hit = "¡Una bestia te golpeó!",
+		Viper = { warn = "¡Una víbora va a embestir! Sal de la línea roja.", hit = "¡La víbora te embistió!" },
+		Pouncer = { warn = "¡Una araña va a saltar! Sal del círculo rojo.", hit = "¡La araña te cayó encima!" },
 	},
 	-- Fear pass (FA3): the short shouts of the adrenaline burst (big, centred, a second or two).
 	FEAR = {
@@ -249,6 +344,197 @@ return freeze({
 		hit = "¡GOLPE!",
 		damage = "-%d",
 		seen = "TE VIO",
+	},
+	-- Next batch NB3: the inventory client's HUD line, tabs and Bag rows (WildboundClient). Tab words fit 84 pixels.
+	HUD = {
+		objective = "Roba un huevo y llévalo a tu base.",
+		sessionOnly = "Solo esta sesión.",
+		-- Nest Heist Phase 3 (NS1): the HUD line while the progress is being saved.
+		saved = "Progreso guardado.",
+		connecting = "Conectando con el servidor...",
+		-- NB5: "Mochila" (not "Inventario") fits the inventory button on a phone held upright.
+		inventory = "Mochila",
+		inventoryKey = "Mochila (I)",
+		bag = "Bolsa",
+		camp = "Taller",
+		close = "Cerrar",
+		menu = "Menú",
+		-- NS1: banked eggs, creatures and Esencia are saved; what the player carries is not.
+		sessionNote = "Se guarda tu colección; lo que llevas se pierde al morir.",
+		serverDown = "Sin conexión con el servidor. Vuelve a entrar.",
+		noResponse = "Sin respuesta. Abre la mochila para reintentar.",
+		pendingBag = "Bolsa: %d/%d | Sellos: %d%s",
+		sealArmed = " | Sello preparado",
+		protect = "Proteger",
+		protected = " · Protegido",
+		unprotected = " · Sin proteger",
+		pendingRule = "Lo que llevas sin proteger se pierde si te derrotan. Un sello sirve en cualquier lugar.",
+		noPending = "No llevas objetos.",
+		bundle = "Ramo de Nightbloom (%d)",
+		item = "%s de %s",
+		kinds = { Egg = "Huevo", Creature = "Criatura", Nightbloom = "Ramo" },
+		dropped = "Soltado cerca: %s · recógelo antes de 30 s",
+		eggsHeader = "Huevos guardados · Incúbalos en tu base",
+		noEggs = "No tienes huevos guardados.",
+		egg = "Huevo de %s",
+		hatch = "Incubar",
+		registeredHeader = "Criaturas registradas",
+		noRegistered = "Aún no tienes criaturas registradas.",
+		equipped = " · Equipada",
+		equip = "Equipar",
+		-- NS4: put the companion back in the collection.
+		store = "Guardar",
+		calmFirst = "Primero termina de calmar al Lumipol.",
+		sections = { Stock = "Tus reservas", Craft = "Fabricar y llevar", Gear = "Equipo", Upgrade = "Mejoras",
+			Skills = "Habilidades", Bond = "Compañero" },
+	},
+	-- Next batch NB3: the world client's panel and ability buttons (WildboundWorldClient). NB5: every button line fits a
+	-- 110-pixel button on a phone (9 characters held upright; tests/WildboundHudLayout_Test.luau).
+	WORLD = {
+		connecting = "Conectando con el mundo...",
+		flashlight = "Linterna",
+		flashlightKey = "Linterna (F)",
+		pulse = "Pulso",
+		pulseKey = "Pulso (Q)",
+		ready = "Lista",
+		flashlightOff = "Linterna\nsin señal",
+		pulseOff = "Pulso\nsin señal",
+		stateOff = "Estado del mundo no disponible",
+		waiting = "Esperando datos del servidor.",
+		marked = " · MARCADO",
+		equipLumipol = "Equípalo",
+		serverDown = "Sin conexión con el mundo. Vuelve a entrar.",
+		phases = { Day = "Día", Dusk = "Atardecer", Night = "Noche", Dawn = "Amanecer" },
+	},
+	-- Next batch NB3: the flashlight and pulse replies (WildboundWorld). Short forms fit the phone notice line.
+	ABILITY = {
+		notices = {
+			InvalidContext = "Usa las habilidades con vida y con tu personaje actual.",
+			NotEquipped = "Registra y equipa un Lumipol. La linterna siempre es gratis.",
+			Cooldown = "La habilidad se está recargando.",
+			Miss = "No la revelaste. Acércate a 55 studs y mírala con la linterna.",
+			Revealed = "La Silueta queda revelada 4 s. Sigue moviéndote: no está vencida.",
+		},
+		short = {
+			InvalidContext = "No disponible ahora.",
+			NotEquipped = "Equipa un Lumipol.",
+			Cooldown = "Recargando.",
+			Miss = "Fallaste. Acércate y mírala.",
+			Revealed = "Revelada 4 s. ¡Muévete!",
+		},
+		connected = "Conectado al reloj del mundo.",
+		unavailable = "Habilidad no disponible.",
+		unavailableShort = "No disponible.",
+		-- Fix pass (FP4c): the owner's flashlight held on La Silueta staggers her once per chase.
+		glare = "La luz la frena",
+		glareShort = "La luz la frena",
+	},
+	-- Next batch NB3: the inventory server's refusals and replies (WildboundServer) and the gather prompt.
+	NOTICES = {
+		InvalidContext = "Acércate con vida e inténtalo de nuevo.",
+		Empty = "Tu bolsa está vacía.",
+		BackpackFull = "Bolsa llena. Vuelve al campamento a guardar.",
+		AlreadyClaimed = "Alguien ya recogió esto.",
+		CollectionFull = "Llegaste al límite de la colección de esta sesión (100).",
+		NotOwnedEgg = "Elige uno de tus huevos guardados.",
+		NotOwnedPet = "Solo puedes equipar tus criaturas registradas.",
+		-- NS7: gloves.
+		GlovesFull = "Ya tienes el máximo de guantes.",
+		NotOwnedGlove = "Solo puedes ponerte tus propios guantes.",
+		InvalidRoll = "No se pudieron fabricar los guantes. Inténtalo de nuevo.",
+		NotOwnedPending = "Elige un objeto de tu bolsa.",
+		NoSeal = "No tienes sellos. Fabrica uno en el campamento; tu primera extracción también te da uno.",
+		AlreadyProtected = "Ya hay un objeto protegido.",
+		InvalidEncounter = "Este encuentro ya no está disponible.",
+		PouchFull = "Zurrón lleno. Guarda los materiales en el campamento.",
+		AlreadyGathered = "Ya recolectaste aquí en esta salida.",
+		InvalidYield = "Este punto ya no está disponible.",
+		NotAtCamp = "Hazlo en el campamento.",
+		-- Nest Heist hub (HB-T3): another player's base station, or too far from one's own.
+		NotYourBase = "Esta no es tu base.",
+		FarAway = "Acércate más a la estación de tu base.",
+		CannotAfford = "No tienes suficientes materiales guardados ni Esencia.",
+		AtLimit = "No puedes llevar más de eso.",
+		AlreadyOwned = "Ya lo tienes.",
+		UnknownGear = "Ese objeto no existe.",
+		NoVest = "No tienes chaleco.",
+		VestUsed = "El chaleco ya te salvó en esta salida.",
+		NoLuckTotem = "No tienes tótem de la suerte. Fabrícalo en el campamento.",
+		NearCamp = "Sal del campamento para poner el tótem de la suerte.",
+		LuckActive = "Ya tienes un tótem de la suerte puesto.",
+		NoTotem = "No tienes tótem.",
+		AlreadyLeft = "El tótem queda puesto una vez que sales del campamento.",
+		NotAtShelter = "Usa una cápsula en el refugio.",
+		NoCapsule = "No tienes cápsulas.",
+		MovedAway = "Te moviste. Quédate quieto mientras recolectas.",
+		NeedsPrerequisite = "Primero aprende la primera habilidad de esta rama.",
+		EffectPending = "El efecto de esta habilidad aún no está en el juego; no se puede comprar.",
+		IncubatorFull = "La incubadora ya tiene tu huevo. Espera a que eclosione.",
+		fallback = "Esa acción no está disponible.",
+		warded = "Objeto protegido para una derrota. El sello solo se gasta si lo salva.",
+		protectPrompt = "Elegir objeto protegido",
+		protectObject = "Protección ganada",
+		protectHint = "Elige un objeto de la bolsa y pulsa Proteger, en cualquier lugar. O prepara un sello antes de salir.",
+		bond = "Vínculo +%d pendiente. Extrae en el campamento para guardarlo.",
+		pickUp = "Recoger",
+		droppedObject = "%s soltado",
+		notYours = "Esto es de otro jugador.",
+		reclaimed = "Recogiste: %s.",
+		dropLost = "Se perdió lo que soltaste: %s.",
+		itemEgg = "huevo de Lumipol",
+		itemBundle = "ramo de Nightbloom",
+		itemCreature = "Lumipol",
+		gathered = "Recolectaste %d %s.",
+		gatheredFull = "Recolectaste %d %s. Zurrón lleno: quedaron %d.",
+		crafted = "Fabricado. Ahora tienes %s.",
+		upgraded = "Mejora comprada. Dura esta sesión.",
+		sealArmed = "Sello preparado: tu próximo objeto nuevo queda protegido.",
+		sealNewest = "Objeto más nuevo protegido. El sello solo se gasta si lo salva.",
+		totemSet = "Tótem: La Silueta te percibe desde más lejos.",
+		totemAway = "Tótem guardado y devuelto.",
+		learned = "Habilidad aprendida. Dura esta sesión.",
+		capsule = "Guardado en el refugio. Ganaste %d de Esencia.",
+		sessionOnly = "Solo esta sesión: la colección se reinicia al salir del servidor.",
+		respawn = "Lleva el botín al campamento. La colección solo dura esta sesión.",
+		gather = "Recolectar",
+		wilts = " · se marchita al amanecer",
+	},
+	-- Nest Heist Phase 3 (NS1): saved progress. A failed or locked load never overwrites anything; the player is told.
+	SAVE = {
+		saving = "Tu progreso se guarda automáticamente.",
+		new = "Bienvenido. Tu progreso se guardará automáticamente.",
+		loaded = "Progreso cargado. Se guarda automáticamente.",
+		unavailable = "No pudimos cargar tu progreso. Tus datos están a salvo. Juegas sin guardar: vuelve a entrar más tarde.",
+		locked = "Tu última partida aún se está guardando. Juegas sin guardar: vuelve a entrar en un momento.",
+		unreadable = "No pudimos leer tu progreso. Tus datos están a salvo. Juegas sin guardar.",
+		tooNew = "Hay una versión nueva del juego. Vuelve a entrar para cargar tu progreso. Juegas sin guardar.",
+		memory = "Prueba en Studio: el progreso se guarda solo mientras dure esta prueba.",
+	},
+	-- Nest Heist Phase 3 (NS5): the camp treadmill. Speeds use a decimal comma.
+	TRAINING = {
+		prompt = "Entrenar",
+		object = "Entrenamiento",
+		sign = "Entrenamiento",
+		trained = "Entrenamiento: nivel %d de %d. Caminas a %s studs/s.",
+		nextLevel = " Siguiente nivel: %d de Esencia.",
+		maxed = "Ya entrenaste al máximo (nivel %d de %d).",
+		cannot = "Te faltan %d de Esencia para el nivel %d.",
+		farAway = "Acércate a la cinta de entrenamiento.",
+	},
+	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
+	INCUBATOR = {
+		prompt = "Incubar huevo",
+		object = "Incubadora",
+		sign = "Deja tu huevo",
+		started = "Huevo en la incubadora. Eclosiona en %d s.",
+		full = "La incubadora ya tiene tu huevo. Espera a que eclosione.",
+		noEgg = "No tienes huevos guardados. Guarda uno en el cofre.",
+		hatched = "¡Tu huevo eclosionó! %s se unió a tu colección.",
+		-- NS3: with no companion out, the newborn follows the player at once.
+		hatchedEquipped = "¡Tu huevo eclosionó! %s se unió a tu colección y ahora te acompaña.",
+		row = "Incubando: %s · %s",
+		left = "quedan %d s",
+		hatching = "eclosionando",
 	},
 	-- Delivery D12: the comfort switch and the settings panel. WildboundSettings repeats these; a test keeps them equal.
 	SETTINGS = {
@@ -260,5 +546,18 @@ return freeze({
 		off = "No",
 		shortOn = "Suave: Sí",
 		shortOff = "Suave: No",
+	},
+	-- Nest Heist hub (docs/maps/wildbound-hub.md): the hub's personal bases, their stations and the path from the camp.
+	HUB = {
+		linkSign = "Plaza central y bases",
+		freeSign = "Base libre",
+		ownedSign = "Base de %s",
+		deliveryPrompt = "Entregar huevo",
+		noEgg = "No llevas un huevo. Roba uno y tráelo a tu base.",
+		delivered = "¡Huevo a salvo en tu base!",
+		incubatorPrompt = "Incubar huevo",
+		glovePrompt = "Ver guantes",
+		gloves = "Tus guantes: fabrícalos o póntelos aquí.",
+		trainPrompt = "Entrenar",
 	},
 })

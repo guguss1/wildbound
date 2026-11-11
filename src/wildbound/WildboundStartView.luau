@@ -12,7 +12,8 @@ View.TEXT = table.freeze({
 	title = "Wildbound",
 	-- K1: player-facing words in neutral Spanish (they were English).
 	tagline = "Roba crías dormidas. Vuelve sin que te vean.",
-	note = "El progreso no se guarda.",
+	-- NS1: the collection is saved now; carried things are not.
+	note = "Tu colección se guarda.",
 	settingsTitle = "Ajustes",
 	howtoTitle = "Cómo jugar",
 	howto = table.freeze({

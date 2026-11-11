@@ -95,6 +95,71 @@ return function(Rules, islandLayout)
 		equal(select(2, Rules.zone(127, 125)), true)
 		equal(select(2, Rules.zone(127.01, 125)), false)
 	end)
+	-- Nest Heist hub (HB-T6): the hub disc is a safe zone (no PvP, no beasts, no strikes, chases end), like the camp.
+	-- Every consumer of Rules.zone covers it: the bat, the beast director, La Silueta's strikes and chases, the parents.
+	case("HB-T6: the hub disc (Rules.HUB_X, HUB_Z, radius 90) is safe and never fog", function()
+		equal(Rules.HUB_RADIUS, 90, "decision HB1")
+		local fog, safe = Rules.zone(Rules.HUB_X, Rules.HUB_Z)
+		equal(fog, false); equal(safe, true, "the campfire")
+		for step = 0, 15 do
+			local angle = step * math.pi / 8
+			local x, z = Rules.HUB_X + math.cos(angle), Rules.HUB_Z + math.sin(angle)
+			equal(select(2, Rules.zone(Rules.HUB_X + 89.99 * math.cos(angle), Rules.HUB_Z + 89.99 * math.sin(angle))), true,
+				"on the edge at " .. step)
+			equal(select(2, Rules.zone(Rules.HUB_X + 90.5 * math.cos(angle), Rules.HUB_Z + 90.5 * math.sin(angle))), false,
+				"just outside at " .. step)
+			equal(Rules.inTerritory(x, z), false, "never La Silueta's territory")
+		end
+	end)
+	-- Hub follow-up (HF-T3, open-world gaps S1 and decision D2): the hub sits east of the forest. The open-world and hub
+	-- plans use a hub frame (origin at the hub's centre, the forest layout's (0, 0) at (-300, 0)); Rules.toWorld turns
+	-- a hub-frame point into this place. The forest kit is built 18 studs west and 3 north of its layout here.
+	case("HF-T3: Rules.toWorld maps the hub frame into the place, and the hub is clear of the forest's dangers", function()
+		local x, z = Rules.toWorld(0, 0)
+		equal(x, Rules.HUB_X); equal(z, Rules.HUB_Z)
+		-- The camp marker of the forest kit: layout (-140, 140) is the hub frame's (-440, 140).
+		x, z = Rules.toWorld(-440, 140)
+		equal(x, -158); equal(z, 137)
+		-- A forest edge tree the NW trail clears (layout (177.784, -84.133) is FK_Evergreen_101 at (159.784, -87.133)).
+		x, z = Rules.toWorld(177.784 - 300, -84.133)
+		assert(math.abs(x - 159.784) < 1e-6 and math.abs(z + 87.133) < 1e-6, "the kit's offset")
+		local hx, hz = Rules.toHub(Rules.HUB_X + 5, Rules.HUB_Z - 7)
+		equal(hx, 5); equal(hz, -7)
+		equal((Rules.toWorld(0 / 0, 0)), nil)
+		-- Nothing of the forest's danger reaches the disc: fog, La Silueta's chase leash plus reach, any island floor.
+		local r = Rules.HUB_RADIUS
+		assert(Rules.HUB_X - r > 165, "east of the fog rectangle")
+		assert(Rules.distance(Rules.HUB_X, Rules.HUB_Z, Rules.HOME_X, Rules.HOME_Z) - r > Rules.CHASE_LEASH + 30,
+			"beyond La Silueta's chase leash")
+		for _, island in ipairs(islandLayout and islandLayout.islands or {}) do
+			assert(Rules.distance(Rules.HUB_X, Rules.HUB_Z, island.x, island.z) - r > island.floorRadius + 20,
+				"island " .. tostring(island.id))
+		end
+		assert(islandLayout and #islandLayout.islands > 0, "the island layout is passed in")
+		-- The Pradera Arcoíris sector (hub frame x 100 to 500) lies east of the hub, past its disc.
+		local west = Rules.toWorld(100, 0)
+		assert(west > Rules.HUB_X + r, "the Pradera starts east of the hub")
+	end)
+	case("HB-T1: Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the zone's literal camp circle", function()
+		equal(select(2, Rules.zone(Rules.CAMP_X, Rules.CAMP_Z)), true)
+		equal(select(2, Rules.zone(Rules.CAMP_X + Rules.CAMP_RADIUS - 0.01, Rules.CAMP_Z)), true)
+		equal(select(2, Rules.zone(Rules.CAMP_X + Rules.CAMP_RADIUS + 0.01, Rules.CAMP_Z)), false)
+		equal(select(2, Rules.zone(Rules.CAMP_X, Rules.CAMP_Z - Rules.CAMP_RADIUS - 0.01)), false)
+	end)
+	case("HB-T6: every corner of every base pad of the hub plan is safe", function()
+		-- assets/maps/hub-layout/hub-bases-v1.json: pads 26 x 22 centred at radius 68, bearings 22.5 + 45k, yaw 90 - bearing
+		-- (each faces the lobby); local +X = (cos r, -sin r), local +Z = (sin r, cos r).
+		for slot = 0, 7 do
+			local bearing = math.rad(22.5 + 45 * slot)
+			local yaw = math.rad((90 - math.deg(bearing)) % 360)
+			local cx, cz = Rules.HUB_X + 68 * math.cos(bearing), Rules.HUB_Z + 68 * math.sin(bearing)
+			for _, corner in ipairs({ { 13.6, 11.6 }, { -13.6, 11.6 }, { 13.6, -11.6 }, { -13.6, -11.6 } }) do
+				local x = cx + corner[1] * math.cos(yaw) + corner[2] * math.sin(yaw)
+				local z = cz - corner[1] * math.sin(yaw) + corner[2] * math.cos(yaw)
+				equal(select(2, Rules.zone(x, z)), true, "base " .. (slot + 1) .. " corner")
+			end
+		end
+	end)
 	case("fog rectangle boundaries are inclusive and reject invalid coordinates", function()
 		equal(Rules.zone(-45, -165), true)
 		equal(Rules.zone(165, 35), true)
@@ -135,7 +200,7 @@ return function(Rules, islandLayout)
 			local profile = Rules.resolveCreatureProfile("Silueta", sample[1], sample[2])
 			equal(profile.name, "Silueta"); equal(profile.specialBehaviorId, "Silueta")
 			equal(profile.speed, sample[3]); equal(profile.detectionRange, sample[4])
-			equal(profile.visualScale, 2.6)
+			equal(profile.visualScale, 3.8) -- look pass: deliberately changed from 2.6
 		end
 	end)
 	-- Dread pass (user: much taller, about three times the player): the SiluetaV3 art is 8.57 studs at scale 1
@@ -145,10 +210,25 @@ return function(Rules, islandLayout)
 	-- studs, four avatars tall. Art only: the gameplay body, ATTACK_RANGE 7 and the pathing agent are unchanged, and
 	-- the art's arms (half span about 9 studs at 2.6) reach past the 7-stud strike, so no hit lands from beyond what
 	-- the player sees.
-	case("Silueta stands about four times a player's height", function()
+	-- Deliberately changed again in the look pass (user: "¿Qué pasó con que tenía que ser mucho más alto y
+	-- tenebroso?"): 2.6 (22.3 studs) to 3.8, about 32.6 studs, six avatars tall, as tall as the dead trees and past
+	-- the evergreens' lowest boughs. Still art only, and live-tunable (Silueta.VISUAL_SCALE, 2 to 4.5).
+	case("Silueta stands about six times a player's height", function()
 		local height = 8.571428571428571 * Rules.resolveCreatureProfile("Silueta", "Night", true).visualScale
-		assert(height >= 21 and height <= 24, "Silueta height " .. height)
-		assert(height / 5.3 >= 4, "at least four avatars tall")
+		assert(height >= 30 and height <= 35, "Silueta height " .. height)
+		assert(height / 5.3 >= 6, "at least six avatars tall")
+	end)
+	case("look pass: the art scale is tunable, resolved live and restored by a reset", function()
+		equal(Rules.tunable().SILUETA_VISUAL_SCALE, 3.8)
+		Rules.tune({ SILUETA_VISUAL_SCALE = 3 })
+		equal(Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3)
+		Rules.tune(nil)
+		equal(Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3.8)
+		local speed = Rules.resolveCreatureProfile("Silueta", "Night", true).speed
+		Rules.tune({ SILUETA_VISUAL_SCALE = 4.5 })
+		equal(Rules.resolveCreatureProfile("Silueta", "Night", true).speed, speed, "art only")
+		equal(Rules.ATTACK_RANGE, 7, "the hit range never follows the art")
+		Rules.tune(nil)
 	end)
 	case("unknown creature profiles fail closed", function()
 		equal(Rules.resolveCreatureProfile("Unknown", "Night", true), nil)
@@ -162,8 +242,8 @@ return function(Rules, islandLayout)
 		local second = Rules.resolveCreatureProfile("Silueta", "Night", true)
 		local base = Rules.resolveCreatureProfile("Silueta", "Day", true)
 		equal(second.name, "Silueta"); equal(second.specialBehaviorId, "Silueta")
-		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 2.6)
-		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 2.6)
+		equal(second.speed, 8); equal(second.detectionRange, 38); equal(second.visualScale, 3.8)
+		equal(base.speed, 6); equal(base.detectionRange, 28); equal(base.visualScale, 3.8)
 	end)
 	case("guardian compatibility agrees with creature resolver", function()
 		for _, sample in ipairs({ { "Day", true }, { "Night", true }, { "Night", false } }) do
@@ -340,5 +420,66 @@ return function(Rules, islandLayout)
 		end
 		equal(struck, 0, "strikeable floor points")
 	end)
+	case("memory fix: a quarry out of legal sight is kept for the memory; only gone, hid or far ends the chase", function()
+		-- Found in Play (2026-11-09): a sprinter crossing the spawn pad, the fog edge or the pursuit leash ended the hunt at
+		-- once (Search 0.1 s later) instead of after the night memory. Those places now only read as out of sight.
+		assert(type(Rules.pursuit) == "function", "Rules.pursuit missing")
+		local function obs(overrides)
+			local value = { alive = true, hidden = false, visible = true, distance = 24 }
+			for key, item in pairs(overrides or {}) do value[key] = item end
+			return value
+		end
+		equal(Rules.pursuit(obs()), true)
+		equal(Rules.pursuit(obs({ visible = false })), true)
+		equal(Rules.pursuit(obs({ visible = false, distance = Rules.GIVE_UP_DISTANCE })), true)
+		equal(Rules.pursuit(obs({ alive = false })), false)
+		equal(Rules.pursuit(obs({ hidden = true, visible = false })), false)
+		-- A hidden player still in sight (seen while entering) is not lost by hiding.
+		equal(Rules.pursuit(obs({ hidden = true, visible = true })), true)
+		equal(Rules.pursuit(obs({ distance = Rules.GIVE_UP_DISTANCE + 0.5 })), false)
+		equal(Rules.pursuit(obs({ visible = false, distance = Rules.GIVE_UP_DISTANCE + 0.5 })), false)
+		for _, bad in ipairs({ 0 / 0, math.huge, -1, "24" }) do equal(Rules.pursuit(obs({ distance = bad })), false) end
+		equal(Rules.pursuit(nil), false)
+	end)
+	-- Fix pass (FP3, chase sized to the sprint): the chase also ends at once when the owner reaches a safe zone (camp or a
+	-- shelter) or runs past the pursuit leash from home. Deliberately changes the memory fix's "the pursuit leash only reads
+	-- as out of sight": a quarry beyond the leash is now lost, as the plan asks. No homeDistance reads as inside.
+	case("FP3: a quarry in a safe zone or past the leash is lost at once", function()
+		local function obs(overrides)
+			local value = { alive = true, hidden = false, visible = true, distance = 24, safe = false, homeDistance = 60 }
+			for key, item in pairs(overrides or {}) do value[key] = item end
+			return value
+		end
+		equal(Rules.pursuit(obs()), true)
+		equal(Rules.pursuit(obs({ safe = true })), false, "camp or a shelter ends the chase")
+		equal(Rules.pursuit(obs({ safe = true, visible = false })), false)
+		equal(Rules.pursuit(obs({ homeDistance = Rules.CHASE_LEASH })), true, "on the leash still counts")
+		equal(Rules.pursuit(obs({ homeDistance = Rules.CHASE_LEASH + 0.5 })), false, "past the leash ends the chase")
+		equal(Rules.pursuit(obs({ homeDistance = 0 / 0 })), true, "an unknown home distance reads as inside")
+		local plain = obs(); plain.safe, plain.homeDistance = nil, nil
+		equal(Rules.pursuit(plain), true, "the old observation shape still works")
+	end)
+	-- Hub follow-up (HF-T5): the beast director's "far from base" counts the hub as a base, like the camp.
+	case("HF-T5: Rules.farFromBase is far only from both the camp and the hub", function()
+		equal(Rules.farFromBase(Rules.CAMP_X, Rules.CAMP_Z, 150), false, "the camp")
+		equal(Rules.farFromBase(Rules.HUB_X, Rules.HUB_Z, 150), false, "the hub")
+		equal(Rules.farFromBase(Rules.HUB_X + 149, Rules.HUB_Z, 150), false, "just inside the hub's reach")
+		equal(Rules.farFromBase(Rules.HUB_X + 151, Rules.HUB_Z, 150), true, "past both")
+		equal(Rules.farFromBase(Rules.CAMP_X, Rules.CAMP_Z - 151, 150), true)
+		equal(Rules.farFromBase(0 / 0, 0, 150), false, "a bad point is never far")
+		equal(Rules.farFromBase(0, 0, 0 / 0), false, "a bad reach is never far")
+	end)
+	case("EV-W5: the first wave's guaranteed egg is centred where the hub's W trail meets the forest", function()
+		assert(Rules.FIRST_EGG_X == 182 and Rules.FIRST_EGG_Z == 17, "the hub W trail's forest end (182, 17)")
+		local fromHub = Rules.distance(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z, Rules.HUB_X, Rules.HUB_Z)
+		assert(fromHub > Rules.HUB_RADIUS, "outside the hub's safe disc: " .. fromHub)
+		local _, safe = Rules.zone(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z)
+		assert(not safe, "not in a safe zone")
+		-- The W gate sits on the hedge (radius 88) due west of the hub centre; the walk is 16 studs/s, and the egg may be
+		-- anywhere within the default FIRST_EGG_RADIUS (70) of the centre: still within about 15 s of the gate.
+		local gate = Rules.distance(Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z, Rules.HUB_X - 88, Rules.HUB_Z)
+		assert((gate + 70) / 16 <= 15, "reachable in about 15 s: " .. (gate + 70) / 16)
+	end)
+
 	return result
 end

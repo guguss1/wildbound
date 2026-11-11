@@ -37,6 +37,13 @@ local function find(entries, uid)
 	return nil
 end
 
+-- NB4: the incubator list, made on first use. Neither a new profile nor one rebuilt from a saved record (WildboundRecord,
+-- schema 1) carries it: an incubating egg is session only, and the record contract pins the profile's shape.
+local function incubating(player)
+	player.incubating = player.incubating or {}
+	return player.incubating
+end
+
 local function copy(entries)
 	local detached = {}
 	for index, entry in ipairs(entries) do detached[index] = table.clone(entry) end
@@ -82,6 +89,19 @@ function State:addPlayer(key)
 	return true
 end
 
+-- Nest Heist Phase 3 (NS1): a profile rebuilt from the saved record (WildboundRecord.toProfile) replaces the
+-- session's. Only the saved-progress glue (WildboundSave) calls it, right after a successful claim.
+function State:loadPlayer(key, loaded)
+	local normalized = playerKey(key)
+	if not normalized then return false, "InvalidPlayer" end
+	if type(loaded) ~= "table" or type(loaded.registered) ~= "table" or type(loaded.bankedEggs) ~= "table"
+		or type(loaded.banked) ~= "table" or type(loaded.consumables) ~= "table" or not finite(loaded.ember) then
+		return false, "InvalidProfile"
+	end
+	self.players[normalized] = loaded
+	return true
+end
+
 function State:removePlayer(key)
 	local normalized = playerKey(key)
 	if not normalized then return false, "InvalidPlayer" end
@@ -110,10 +130,11 @@ local function bagCapacity(self, player)
 	return self.economy.bagCapacity(self.config, player.upgrades)
 end
 
--- Companions toward the collection limit: the carried creature, bag eggs, banked eggs and registered pets.
+-- Companions toward the collection limit: the carried creature, bag eggs, banked eggs, incubating eggs (NB4) and
+-- registered pets.
 -- A Nightbloom bundle banks as a material, so it never counts.
 local function collectionSize(player)
-	local total = #player.bankedEggs + #player.registered + (player.carrying and 1 or 0)
+	local total = #player.bankedEggs + #player.registered + #incubating(player) + (player.carrying and 1 or 0)
 	for _, entry in ipairs(player.pending) do
 		if entry.kind ~= "Nightbloom" then total += 1 end
 	end
@@ -184,11 +205,13 @@ function State:pickup(key, id, alive, distance, meta)
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	-- A creature is granted only by a finished capture session (completeCapture), never by a prompt.
 	if encounter.kind == "Creature" then return false, "CaptureRequired" end
-	local species, tier, island = "Lumipol", "Territory", nil
+	local species, tier, island, arms = "Lumipol", "Territory", nil, false
 	if meta ~= nil then
 		if type(meta) ~= "table" or not validSpecies(meta.species) then return false, "InvalidSpecies" end
 		if type(meta.tier) ~= "string" or not TIERS[meta.tier] then return false, "InvalidTier" end
 		species, tier, island = meta.species, meta.tier, type(meta.island) == "string" and meta.island or nil
+		-- Nest Heist (NH2): an egg stolen into the arms (the server's EggCarry tracks it); it can be knocked loose.
+		arms = meta.arms == true
 	end
 	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
@@ -198,6 +221,7 @@ function State:pickup(key, id, alive, distance, meta)
 	-- An egg pays by the tier of the nest it came from (I7); the old nest sat in the territory.
 	addToBag(self, player, {
 		uid = uid, kind = encounter.kind, species = species, protected = false, riskTier = tier, island = island,
+		inArms = arms or nil,
 	})
 	return true, uid
 end
@@ -470,6 +494,62 @@ function State:hatch(key, uid, alive, distance)
 	return true, petUid
 end
 
+-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): an owned banked egg goes into the incubator.
+-- now is the server clock, seconds the live hatch time, slots how many eggs one player may incubate at once. The
+-- incubator stands in camp, so the egg is safe from defeat while it incubates. Session only, like the rest.
+function State:incubate(key, uid, alive, distance, now, seconds, slots)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 12) then return false, "InvalidContext" end
+	local clockOk = type(now) == "number" and now == now and math.abs(now) < math.huge
+	if not clockOk or type(seconds) ~= "number" or seconds ~= seconds or seconds <= 0 or seconds == math.huge then
+		return false, "InvalidContext"
+	end
+	local index, egg = find(player.bankedEggs, uid)
+	if not index then return false, "NotOwnedEgg" end
+	if #incubating(player) >= math.max(1, math.floor(tonumber(slots) or 1)) then return false, "IncubatorFull" end
+	table.remove(player.bankedEggs, index)
+	local entry = { uid = egg.uid, species = egg.species, startedAt = now, readyAt = now + seconds }
+	table.insert(incubating(player), entry)
+	return true, table.clone(entry)
+end
+
+-- NB4: every incubating egg whose time has come hatches into a registered creature of its species, exactly once (it
+-- leaves the incubator before it is registered). Returns a list of { uid, species, egg, isNew }; hatching pays nothing.
+function State:hatchReady(key, now)
+	local player = profile(self, key)
+	local hatched = {}
+	if not player or type(now) ~= "number" or now ~= now then return hatched end
+	local list, index = incubating(player), 1
+	while index <= #list do
+		local entry = list[index]
+		if now >= entry.readyAt then
+			table.remove(list, index)
+			local petUid = newUid(self)
+			local isNew = player.discovered[entry.species] ~= true
+			table.insert(player.registered, { uid = petUid, species = entry.species })
+			player.discovered[entry.species] = true
+			-- NS3: with no companion out, the newborn becomes the companion at once.
+			local equipped = player.equippedUid == nil
+			if equipped then player.equippedUid = petUid end
+			table.insert(hatched, { uid = petUid, species = entry.species, egg = entry.uid, isNew = isNew, equipped = equipped })
+		else
+			index += 1
+		end
+	end
+	return hatched
+end
+
+-- Nest Heist Phase 3 (NS4): the companion goes back to the collection (it stays registered and saved).
+function State:unequip(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if player.equippedUid == nil then return false, "NotEquipped" end
+	player.equippedUid = nil
+	return true
+end
+
 function State:equip(key, uid, alive)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -567,6 +647,108 @@ function State:upgrade(key, name, alive, distance)
 	return true, name
 end
 
+-- Nest Heist Phase 3 (NS5): one training level at the camp treadmill. The price and the cap come from the shared
+-- WildboundTraining rule (the server passes them); the level table is made on first use and saved (record schema 2).
+function State:train(key, kind, alive, distance, cost, maxLevel)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if kind ~= "walk" then return false, "UnknownTraining" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	local levels = player.training or {}
+	local level = levels[kind] or 0
+	if type(maxLevel) ~= "number" or level >= maxLevel or type(cost) ~= "number" then return false, "AtLimit" end
+	if not purchase(self, player, { ember = cost }) then return false, "CannotAfford" end
+	levels[kind] = level + 1
+	player.training = levels
+	return true, level + 1
+end
+
+-- Nest Heist Phase 3 (NS7, user decision 2026-11-10): gloves with rolled stats replace the four IT1 pieces. A
+-- profile's gloves are { list = { { uid, rarity, stats } }, equipped = uid or nil }, made on first use (a blank profile
+-- must equal what the saved record makes) and saved (record schema 3). The server rolls the stats (WildboundGear.roll)
+-- and passes them in; State only checks the shape, pays and stores.
+local function glovesOf(player)
+	if type(player.gloves) ~= "table" then player.gloves = { list = {} } end
+	return player.gloves
+end
+
+local function gloveShape(roll)
+	if type(roll) ~= "table" or type(roll.rarity) ~= "string" or type(roll.stats) ~= "table" then return false end
+	local count = 0
+	for stat, value in pairs(roll.stats) do
+		if type(stat) ~= "string" or not finite(value) or value <= 0 or value > 100 then return false end
+		count += 1
+	end
+	return count >= 1 and count <= 5
+end
+
+local function gloveCopy(glove)
+	return { uid = glove.uid, rarity = glove.rarity, stats = table.clone(glove.stats) }
+end
+
+local function glovesCopy(player)
+	local out = {}
+	for index, glove in ipairs(player.gloves and player.gloves.list or {}) do out[index] = gloveCopy(glove) end
+	return out
+end
+
+-- Crafting at camp with banked materials and Ember: a glove (kind "gloves", up to its cap; the first one is equipped)
+-- or the Tótem de la suerte (IT2, kind "luckTotem"). roll = { rarity, stats } from the server, for a glove only.
+function State:craftGear(key, id, alive, distance, roll)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local spec = type(id) == "string" and type(self.config.gear) == "table" and self.config.gear[id] or nil
+	if not spec or (spec.kind ~= "gloves" and spec.kind ~= "luckTotem") then return false, "UnknownGear" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	-- IT2: the Tótem de la suerte is held up to its cap and spent when placed.
+	if spec.kind == "luckTotem" then
+		local held = player.luckTotems or 0
+		if held >= (spec.cap or 1) then return false, "AtLimit" end
+		if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+		player.luckTotems = held + 1
+		return true, id
+	end
+	if not gloveShape(roll) then return false, "InvalidRoll" end
+	local gloves = player.gloves
+	if gloves and #gloves.list >= (spec.cap or 12) then return false, "GlovesFull" end
+	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
+	gloves = glovesOf(player)
+	local glove = { uid = newUid(self), rarity = roll.rarity, stats = table.clone(roll.stats) }
+	table.insert(gloves.list, glove)
+	if gloves.equipped == nil then gloves.equipped = glove.uid end
+	return true, gloveCopy(glove)
+end
+
+-- NS7: one glove is worn at a time.
+function State:equipGlove(key, uid, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	local gloves = player.gloves
+	if not gloves or not find(gloves.list, uid) then return false, "NotOwnedGlove" end
+	gloves.equipped = uid
+	return true, uid
+end
+
+local function equippedGlove(player)
+	local gloves = player.gloves
+	if not gloves or gloves.equipped == nil then return nil end
+	local _, glove = find(gloves.list, gloves.equipped)
+	return glove and gloveCopy(glove) or nil
+end
+
+-- Items IT2: one held Tótem de la suerte is spent when placed. Where (away from camp) is the adapter's check.
+function State:placeLuckTotem(key, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if (player.luckTotems or 0) < 1 then return false, "NoLuckTotem" end
+	player.luckTotems -= 1
+	return true
+end
+
 -- The totem is armed at camp before leaving. Its downside (detection and ambush weight) is applied by
 -- the world adapter while it is active. Disarming before leaving refunds it.
 function State:armTotem(key, alive, distance)
@@ -634,8 +816,48 @@ local function described(entry)
 	return { uid = entry.uid, kind = entry.kind, species = entry.species, quantity = entry.quantity }
 end
 
+-- Nest Heist (NH5): the egg held in the arms, taken out of the bag. A loose egg belongs to nobody (the server's
+-- EggCarry keeps it for anyone to pick up), so it never goes to `dropped`; a ward never holds it (wards answer defeat).
+local function looseEgg(player)
+	for index, entry in ipairs(player.pending) do
+		if entry.inArms then
+			table.remove(player.pending, index)
+			entry.protected, entry.wardSource = false, nil
+			return entry
+		end
+	end
+	return nil
+end
+
+-- NH5: a death, a parent's hit or leaving knocks the egg out of the arms. Returns true and a detached copy.
+function State:dropEgg(key)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local entry = looseEgg(player)
+	if not entry then return false, "NotCarrying" end
+	return true, table.clone(entry)
+end
+
+-- NH5: anyone alive within 10 studs, with bag and collection room and no egg in the arms, takes a loose egg into the
+-- arms. It is not a new catch: it never takes an armed seal.
+function State:takeEgg(key, entry, alive, distance)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not context(alive, distance, 10) then return false, "InvalidContext" end
+	if type(entry) ~= "table" or entry.kind ~= "Egg" or not validId(entry.uid) then return false, "InvalidEncounter" end
+	for _, held in ipairs(player.pending) do
+		if held.inArms then return false, "AlreadyCarrying" end
+	end
+	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
+	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
+	table.insert(player.pending, { uid = entry.uid, kind = "Egg", species = entry.species, protected = false,
+		riskTier = entry.riskTier, island = entry.island, inArms = true })
+	return true, entry.uid
+end
+
 -- The first real strike (D6): the newest unprotected pending item leaves the bag and lies on the ground.
 -- Idempotent per attack id. Returns true and a copy of the dropped entry, or true and nil for mark only.
+-- NH5: an egg in the arms is knocked loose first, for anyone (the copy has inArms; it never goes to `dropped`).
 function State:dropForStrike(key, attackId)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -646,6 +868,8 @@ function State:dropForStrike(key, attackId)
 	if #player.strikeOrder > STRIKE_HISTORY then
 		player.strikeDrops[table.remove(player.strikeOrder, 1)] = nil
 	end
+	local egg = looseEgg(player)
+	if egg then return true, table.clone(egg) end
 	for index = #player.pending, 1, -1 do
 		local entry = player.pending[index]
 		if not entry.protected then
@@ -775,7 +999,7 @@ function State:snapshot(key)
 	local expedition = player.expedition
 	return {
 		sessionOnly = true, capacity = bagCapacity(self, player), collectionLimit = self.config.capacity.collectionLimit,
-		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs),
+		pending = copy(player.pending), bankedEggs = copy(player.bankedEggs), incubating = copy(incubating(player)),
 		registered = copy(player.registered), dropped = copy(player.dropped), equippedUid = player.equippedUid,
 		carrying = player.carrying and table.clone(player.carrying) or nil, discovered = table.clone(player.discovered),
 		sealCharges = player.consumables.seal,
@@ -783,7 +1007,10 @@ function State:snapshot(key)
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
-		skills = table.clone(player.skills), bond = bondCopy(player),
+		-- NS7: every glove (detached), the worn one's uid and a copy of it for the effects.
+		gloves = glovesCopy(player), equippedGlove = player.gloves and player.gloves.equipped,
+		glove = equippedGlove(player), luckTotems = player.luckTotems or 0,
+		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,
 			maxDistanceFromCamp = expedition.maxDistanceFromCamp, newUnits = expedition.newUnits,

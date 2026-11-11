@@ -1,0 +1,34 @@
+{
+  "about": "Lumipol parent and egg generated with Roblox mesh generation (Studio MCP generate_mesh, text prompt only: the tool takes no image) from the user's reference image description, 2026-11-10. Templates live in ServerStorage.WildboundAssets.Lumipol as Parent and Egg: one MeshPart each (inside a 'body' sub-model), axis-aligned, pivot at the bottom centre of the bounds at the origin, every part Anchored with CanCollide, CanTouch and CanQuery off, front toward -Z. Asset ids are exactly as returned by the tool (publishedAssetId); mesh and texture ids were read from the inserted MeshParts.",
+  "templates": {
+    "Parent": {
+      "path": "ServerStorage.WildboundAssets.Lumipol.Parent",
+      "publishedAssetId": "137040246364655",
+      "generationId": "c10500b3-41ea-4eee-a715-247f84e53496",
+      "meshId": "rbxassetid://76476363381612",
+      "textureId": "rbxassetid://112247029314885",
+      "boundingSize": [3.72665, 4.499946, 3.295175],
+      "maxTriangles": 8000,
+      "requestedSize": [5, 4.5, 4],
+      "prompt": "Cute chibi four-legged creature on all fours like a puppy, faceted low-poly style. Oversized wide head with enormous dark blue octagon eyes with white square shine, small pink open mouth, cyan pixel freckles on cheeks. A mint-green mushroom cap with light hexagon spots covers the top of the head like a hat. Two blue antennae with glowing cyan octagonal orb tips. Three big purple translucent leaf-shaped gills fanning out on each side of the head like an axolotl. Short stout blue-teal quadruped body with mint-green chest and a glowing cyan crystal gem on the chest, four short thick legs with mint-green toes, glowing cyan spots on the back. Front view, symmetric."
+    },
+    "Egg": {
+      "path": "ServerStorage.WildboundAssets.Lumipol.Egg",
+      "publishedAssetId": "73132483845687",
+      "generationId": "bd6a36d6-cdec-4b91-abda-32dc3b370b69",
+      "meshId": "rbxassetid://71926238864543",
+      "textureId": "rbxassetid://74459775885963",
+      "boundingSize": [1.299977, 1.529708, 1.291832],
+      "maxTriangles": 2000,
+      "requestedSize": [1.3, 1.8, 1.3],
+      "prompt": "Faceted low-poly fantasy creature egg standing upright, mint-green to teal gradient shell with pale mint hexagon-shaped spots, three small glowing cyan crystal shards growing from the lower shell, subtle cyan glow, chunky flat-shaded facets, cute stylized game asset"
+    }
+  },
+  "rejected": [
+    { "kind": "Parent", "publishedAssetId": "76350943921586", "generationId": "e1cca1dd-b7e7-4892-a529-dc2f75a91ea3", "meshId": "rbxassetid://138350961089950", "why": "a mushroom on a stalk over a penguin-like body; no face, no legs to speak of" },
+    { "kind": "Parent", "publishedAssetId": "116304764675489", "generationId": "397b8c46-abb5-43c7-a444-8dd422882c2d", "meshId": "rbxassetid://86099306562546", "why": "close second (big eyes, cap, antennae orbs) but no chest gem, belly or freckles" },
+    { "kind": "Parent", "publishedAssetId": null, "generationId": null, "why": "an 8-part explicit segmentation request failed moderation; nothing was produced" },
+    { "kind": "Egg", "publishedAssetId": "133415706277598", "generationId": "73445be7-2af0-474f-a2ec-8ad2e2743cc3", "meshId": "rbxassetid://71746908948617", "why": "plain cyan shell, no hexagon spots or crystals" }
+  ],
+  "loads": "CreateMeshPartAsync succeeded in Edit for the new parent and egg meshes (the old MeshGen1 head mesh still fails with 'Failed to load mesh asset')."
+}

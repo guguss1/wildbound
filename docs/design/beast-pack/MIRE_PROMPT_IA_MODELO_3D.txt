@@ -1,0 +1,15 @@
+WILDBOUND / MIRE — READY-TO-PASTE 3D MODEL PROMPT
+
+ATTACH: 03_REFERENCIAS_VISUALES/MIRE_ficha_modelo_ROBLOX.png and MIRE_render_principal_ROBLOX.png.
+
+STYLE LOCK / ABSOLUTE VISUAL PRIORITY: Stylized Roblox 3D dark-fantasy creature, high-quality faceted low-poly, bold chunky angular masses, hand-painted/flat-color material zones, readable silhouette from a third-person camera, toy-like geometry with sinister character, NOT photorealistic. The attached Wildbound concept sheet is the primary source for shape and colors. Do not replicate an existing Roblox IP creature.
+
+PRODUCTION CONSTRAINTS: game-ready for Roblox Studio; mesh is separate from VFX and telegraphs; simple materials, minimal transparency, no tiny surface details, no photo textures, no cinematic lighting baked into albedo. Create an actual editable 3D asset, not a rendered image if your tool supports 3D. If you only generate concept art, explicitly state that it is not a mesh. Target approximately 2k-8k triangles for ordinary NPCs, higher only with documented need; this is an art budget target, not a Roblox engine limit. Export Blender source and FBX or GLB if supported, with clean topology, correct normals, centered pivot at ground level, appropriate scale in studs, collision proxy and a simple rig. Deliver front/side/three-quarter preview.
+
+NEGATIVE PROMPT: hyperrealism, cinematic creature skin, slimy photographic surface, micro scales, detailed hair, realistic wet flesh, high-frequency textures, millions of polygons, overly complex PBR, photobash, heavy postprocessing, humanoid Roblox avatar costume, copied copyrighted game creature, 2D illustration only, overly cute baby pet, unriggable single mesh, blurry silhouette, baked terrain.
+
+MODEL: Mire — original swamp ambush creature, low broad quadrupedal/arthropod-like crawler with long heavy angular root-like forelimbs, large low central shell formed from faceted mossy rocks, hanging algae ribbons made of chunky polygon clumps, muted forest green/olive/gray stone, and two intense warm amber eyes hidden below a ragged moss brow. Head is a wedge-like mud mass. Distinguish from spider Pouncer by its low stance, front-dominant limbs, rock-and-root anatomy and moss-covered back. Approximately 5-7 studs central body.
+RIG/ANIMATION: partially submerged eye-only silhouette, low underwater glide, ripple stalking, body lift/emergence, heavy short claw swipe, recover, sink. Geometry below water can be simplified; ripples and bubbles must be separate VFX. No realistic crocodile.
+
+
+DELIVERABLES: actual editable low-poly model if supported; rigged version; basic animations; FBX/GLB export and .blend source when supported; a short implementation note for Roblox Studio. If you cannot produce any of these, clearly list missing deliverables rather than claiming completion.

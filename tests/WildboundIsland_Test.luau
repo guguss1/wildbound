@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshIslandClone), require(freshIslandLayoutClone)).
 -- Task I2 (docs/mechanics/wildbound-expedition-islands.md section 2, decisions EI-2 and EI-5): the pure island rule.
 -- One sleep meter ("inquietud") per island, its stir and wake, the Alerta window, the nest content roll, respawn,
--- island 1's first-steal cap, and the woken adult's short, leashed, non-lethal chase (EI-2).
+-- island 1's first-steal cap, and the woken adult's short, leashed, non-lethal chase (EI-2). Lumipol generated model
+-- pass: the trail nest (Island.TRAIL_NEST), a guarded Lumipol egg nest by the hub's W trail.
 return function(Island, layout)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -112,9 +113,17 @@ return function(Island, layout)
 		Island.event(stirred, "LeftRing")
 		Island.event(stirred, "LeftRing")
 		assert(Island.event(stirred, "CriaTaken").woke, "a grab after mistakes wakes the parents")
+		-- Deliberately changed in Nest Heist (NH3): an egg steal wakes the parents at once (STEAL_WAKE 1), even on a calm
+		-- island and in the deep noon sleep; with STEAL_WAKE 0 it is the old grab.
 		local egg = Island.newMeter(island("I4"))
-		Island.event(egg, "EggTaken")
-		near(egg.value, C.GRAB, 1e-9, "an egg is the same grab")
+		egg.sleepScale = 0.7
+		local stolen = Island.event(egg, "EggTaken")
+		assert(stolen.woke and egg.state == "Alert", "an egg steal wakes the island at once")
+		Island.tune({ STEAL_WAKE = 0 })
+		local grab = Island.newMeter(island("I4"))
+		Island.event(grab, "EggTaken")
+		near(grab.value, C.GRAB, 1e-9, "with the toggle off an egg is the same grab")
+		Island.tune(nil)
 		local first = Island.newMeter(island("I1"))
 		first.value = 90
 		local out = Island.event(first, "CriaTaken", { firstSteal = true })
@@ -252,7 +261,7 @@ return function(Island, layout)
 	-- hurts". Now a reach starts a readable strike (it stands still for the wind-up, never under the 0.35 s floor); it
 	-- lands only if the thief is still within the hit range, and the chase goes on after a cooldown.
 	case("CP4: a reach starts a readable strike that lands only if the thief stays close", function()
-		assert(C.STRIKE_WINDUP >= 0.35, "a readable tell")
+		assert(C.STRIKE_WINDUP >= 0.8, "a readable tell: the fair-strike floor 0.8 s (HF-T4, user decision Q1)")
 		assert(C.HIT_RANGE > C.STRIKE_REACH, "a little slack for the swing")
 		local entry = island("I2")
 		local start = entry.adultPoints[1]
@@ -270,6 +279,10 @@ return function(Island, layout)
 		assert(Island.chaseStep(chase, C.STRIKE_COOLDOWN, chase.x + 1, chase.z) == "WindUp", "then it swings again")
 		Island.chaseStep(chase, C.STRIKE_WINDUP - 0.01, chase.x + 1, chase.z)
 		assert(Island.chaseStep(chase, 0.01, chase.x + C.HIT_RANGE + 2, chase.z) == "Missed", "a dodge makes it miss")
+	end)
+
+	case("HF-T4: the parents' close swing telegraph is 0.8 s (was 0.45 s), the fair-strike floor", function()
+		assert(Island.CONSTANTS.STRIKE_WINDUP == 0.8, "STRIKE_WINDUP " .. tostring(Island.CONSTANTS.STRIKE_WINDUP))
 	end)
 
 	case("CP4: three hits kill a lethal player; first-timers and other places only drop the cria", function()
@@ -314,6 +327,199 @@ return function(Island, layout)
 		local chase = Island.newChase(island("I2"), island("I2").adultPoints[1])
 		local x = chase.x
 		assert(Island.chaseStep(chase, 0 / 0, 0, 0) == nil and chase.x == x, "bad dt")
+	end)
+
+	-- Fix pass (FP5): the parents' new behaviours, each behind a toggle (1 on, 0 off; default on).
+	case("FP5a: pack call: when the island wakes, every adult of it is awake at once (well inside 10 s)", function()
+		-- One shared meter per island (I2): a wake is one event for every adult, so the pack answers in 0 s.
+		local meter = Island.newMeter(island("I2"))
+		local out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		out = Island.event(meter, "SprintNoise")
+		assert(out.woke == true and meter.state == "Alert", "the island woke")
+		assert(Island.CONSTANTS.PACK_CALL_SECONDS <= 10, "the pack answers within 10 s")
+	end)
+
+	-- Deliberately changed in Nest Heist (NH3): the FP5b pounce (0.5 s tell, a leap that never hit) became the charge.
+	case("NH3: the charge: a 0.8 s tell, a straight dash that hits on contact, a miss leaves the adult exposed 1 s", function()
+		Island.tune(nil)
+		local C = Island.CONSTANTS
+		assert(C.POUNCE_ON == 1 and C.POUNCE_RANGE == 12 and C.POUNCE_AFTER == 1 and C.POUNCE_TELL == 0.8
+			and C.POUNCE_COOLDOWN == 6, "the charge's trigger and tell")
+		assert(C.CHARGE_SPEED == 40 and C.CHARGE_OVERSHOOT == 4 and C.CHARGE_MAX == 18 and C.CHARGE_HIT == 3
+			and C.EXPOSED_SECONDS == 1, "the dash and the opening")
+		Island.tune({ POUNCE_TELL = 0.2 })
+		near(Island.live.POUNCE_TELL, 0.8, 1e-9, "the tell never drops under the fair-strike 0.8 s")
+		Island.tune(nil)
+		local function start()
+			local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+			Island.chaseStep(chase, C.WAKE_WINDUP + 0.01, 0, 0) -- stands up
+			for _ = 1, 4 do
+				local early = Island.chaseStep(chase, 0.2, chase.x, chase.z + 14)
+				assert(early ~= "PounceWindUp" and early ~= "WindUp", "no charge beyond 12 studs and no swing yet")
+			end
+			local event = Island.chaseStep(chase, 0.2, chase.x, chase.z + 10)
+			assert(event == "PounceWindUp" and chase.mode == "Pounce", "the tell starts: " .. tostring(event))
+			local x, z = chase.x, chase.z
+			event = Island.chaseStep(chase, 0.79, x, z + 10)
+			assert(event == nil and chase.mode == "Pounce" and chase.x == x and chase.z == z, "still for the whole tell")
+			event = Island.chaseStep(chase, 0.02, x, z + 10)
+			assert(event == "Charge" and chase.mode == "Charge", "the dash starts after 0.8 s: " .. tostring(event))
+			near(chase.charge, 14, 1e-6, "the gap plus the overshoot")
+			return chase, x, z
+		end
+		-- A thief who stays on the line is hit by the dash itself, even between two steps.
+		local chase, x, z = start()
+		local event = Island.chaseStep(chase, 0.3, x, z + 10)
+		assert(event == "Hit" and chase.mode == "Chase", "contact lands: " .. tostring(event))
+		-- A thief who steps aside is missed; the adult stands exposed for 1 s, then chases again.
+		chase, x, z = start()
+		event = Island.chaseStep(chase, 0.2, x + 6, z + 10)
+		assert(event == nil and chase.mode == "Charge", "still dashing")
+		event = Island.chaseStep(chase, 0.2, x + 6, z + 10)
+		assert(event == "ChargeMissed" and chase.mode == "Exposed", "the miss: " .. tostring(event))
+		near(chase.z, z + 14, 1e-6, "it ran 4 studs past the point")
+		local ex, ez = chase.x, chase.z
+		event = Island.chaseStep(chase, 0.9, x + 6, z + 10)
+		assert(event == nil and chase.mode == "Exposed" and chase.x == ex and chase.z == ez, "exposed: still, no strike")
+		Island.chaseStep(chase, 0.15, x + 6, z + 10)
+		assert(chase.mode == "Chase", "then it chases again")
+		assert(chase.pounceCooldown > 4, "no second charge at once")
+	end)
+
+	-- Deliberately changed in Nest Heist (NH3): the range is 12 studs and the leash holds through the dash.
+	case("NH3: no charge beyond 12 studs, inside the strike reach, during the cooldown, past the leash or when off", function()
+		Island.tune(nil)
+		local function pounces(distance, overrides, leash)
+			Island.tune(overrides)
+			local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+			Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+			chase.chased = 2
+			local event = Island.chaseStep(chase, 0.01, chase.x, chase.z + distance)
+			Island.tune(nil)
+			return event == "PounceWindUp"
+		end
+		assert(pounces(11.5) == true, "11.5 studs")
+		assert(pounces(12.5) == false, "beyond 12")
+		assert(pounces(3) == false, "inside the strike reach the swing comes first")
+		assert(pounces(7.5, { POUNCE_ON = 0 }) == false, "toggle off")
+		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+		Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+		chase.chased, chase.pounceCooldown = 2, 3
+		assert(Island.chaseStep(chase, 0.01, chase.x, chase.z + 7.5) ~= "PounceWindUp", "cooldown")
+		-- The dash never carries the adult past its leash; stopped there, it is a miss.
+		local far = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 30 })
+		Island.chaseStep(far, Island.live.WAKE_WINDUP + 0.01, 0, 30)
+		far.chased = 2
+		Island.chaseStep(far, 0.01, 0, 41)
+		Island.chaseStep(far, 0.8, 0, 41)
+		local event = Island.chaseStep(far, 0.6, 0, 41)
+		assert(math.sqrt(far.x ^ 2 + far.z ^ 2) <= Island.live.CHASE_LEASH + 1e-6, "inside the leash")
+		assert(event == "ChargeMissed", "stopped by the leash: " .. tostring(event))
+	end)
+
+	-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only when it can perceive them.
+	case("NH5: a chasing adult perceives a player within 24 studs of it, never while walking home", function()
+		Island.tune(nil)
+		near(Island.CONSTANTS.PERCEIVE_RANGE, 24, 1e-9, "the default")
+		local chase = Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
+		Island.chaseStep(chase, Island.live.WAKE_WINDUP + 0.01, 0, 0)
+		assert(Island.perceives(chase, 0, 23.9) == true, "inside")
+		assert(Island.perceives(chase, 0, 24.1) == false, "beyond")
+		assert(Island.perceives(chase, 0 / 0, 1) == false, "unreadable")
+		chase.mode = "Return"
+		assert(Island.perceives(chase, 0, 1) == false, "walking home it has given up")
+	end)
+
+	case("FP5c: egg recovery: the nearest dropped egg inside the leash is fetched and carried home at return speed", function()
+		Island.tune(nil)
+		local spec = { id = "I3", x = 0, z = 0 }
+		local drops = { { key = "a", kind = "Creature", x = 2, z = 0 }, { key = "b", kind = "Egg", x = 30, z = 0 },
+			{ key = "c", kind = "Egg", x = 10, z = 0 }, { key = "d", kind = "Egg", x = 36, z = 0 } }
+		local target = Island.recoverTarget(spec, drops)
+		assert(target and target.key == "c", "the nearest egg inside the leash, never a creature")
+		assert(Island.recoverTarget(spec, { { key = "d", kind = "Egg", x = 36, z = 0 } }) == nil, "outside the leash")
+		Island.tune({ EGG_RECOVERY_ON = 0 })
+		assert(Island.recoverTarget(spec, drops) == nil, "toggle off")
+		Island.tune(nil)
+		local carry = Island.newCarry(spec, { x = 0, z = 5 }, target)
+		local event = Island.carryStep(carry, 0.5)
+		near(carry.x, 0 + 0.5 * Island.live.RETURN_SPEED * 10 / math.sqrt(125), 1e-6, "walks at return speed")
+		local picked, home
+		for _ = 1, 40 do
+			event = Island.carryStep(carry, 0.25)
+			if event == "Picked" then picked = true end
+			if event == "Home" then home = true break end
+		end
+		assert(picked and home, "picked the egg up, then home")
+		assert(carry.x == 0 and carry.z == 0, "at the nest")
+	end)
+
+	case("FP5d: deeper sleep at noon: every wake input x0.7 from 11:00 to 13:00 of the day cycle", function()
+		Island.tune(nil)
+		assert(Island.CONSTANTS.DEEP_SCALE == 0.7 and Island.CONSTANTS.DEEP_FROM == 11 and Island.CONSTANTS.DEEP_TO == 13)
+		assert(Island.sleepScale(12) == 0.7 and Island.sleepScale(11) == 0.7, "noon")
+		assert(Island.sleepScale(13) == 1 and Island.sleepScale(10.9) == 1 and Island.sleepScale(0) == 1, "otherwise")
+		assert(Island.sleepScale(0 / 0) == 1, "unknown time reads as normal sleep")
+		local deep, light = Island.newMeter(island("I2")), Island.newMeter(island("I2"))
+		Island.setSleep(deep, 12)
+		Island.setSleep(light, 9)
+		Island.event(deep, "SprintNoise")
+		Island.event(light, "SprintNoise")
+		near(deep.value, light.value * 0.7, 1e-6, "an event")
+		local input = { inside = true, sprint = true, phase = "Day" }
+		local a, b = Island.newMeter(island("I2")), Island.newMeter(island("I2"))
+		Island.setSleep(a, 12)
+		Island.step(a, 0.2, input)
+		Island.step(b, 0.2, input)
+		near(a.value, b.value * 0.7, 1e-6, "a step")
+		assert(a.deep == true and b.deep ~= true, "the meter says whether it sleeps deeply (the breathing slows)")
+		Island.tune({ DEEP_SLEEP_ON = 0 })
+		assert(Island.sleepScale(12) == 1, "toggle off")
+		Island.tune(nil)
+	end)
+
+	-- Lumipol generated model pass (user, 2026-11-10): one Lumipol egg nest, guarded by one adult, by the hub's W trail
+	-- (WildboundWorldRules FIRST_EGG (182, 17), hub (282, -3) radius 90), so the egg steal can be tried at once.
+	case("LG: the trail nest is a guarded Lumipol egg nest on the forest floor by the hub's W trail", function()
+		local trail = Island.TRAIL_NEST
+		assert(type(trail) == "table" and table.isfrozen(trail), "a frozen spec")
+		assert(trail.id == "T1" and trail.species == "Lumipol" and trail.content == "Egg", "a Lumipol egg nest")
+		assert(trail.tier == "Safe" and trail.rewardTier == "Safe" and trail.zone == "outside", "a safe-tier nest")
+		assert(trail.nests == 2 and #trail.adultPoints == 1 and trail.adults == 1, "two eggs, one guardian")
+		assert(trail.x <= 182 - 4 and trail.z > 35, "on the forest floor (x <= 182) and out of the fog box (z > 35)")
+		assert(math.sqrt((trail.x - 182) ^ 2 + (trail.z - 17) ^ 2) <= 40, "within 40 studs of the W trail's forest end")
+		assert(math.sqrt((trail.x - 282) ^ 2 + (trail.z + 3) ^ 2) > 90 + trail.floorRadius, "its floor stays off the hub")
+		local point = trail.adultPoints[1]
+		near(math.sqrt((point.x - trail.x) ^ 2 + (point.z - trail.z) ^ 2), 6, 1e-6, "the guardian on the 6-stud ring")
+		assert(trail.wakeDay > 0 and trail.wakeNight >= trail.wakeDay and trail.floorRadius >= 10, "numbers")
+		assert(trail.nestFrom == "I1", "it reuses island 1's nest bed")
+		for _, entry in ipairs(layout.islands) do assert(entry.id ~= trail.id, "a new id") end
+	end)
+
+	case("LG: the trail nest always holds eggs, two of them, and respawns like any egg nest", function()
+		local trail = Island.TRAIL_NEST
+		for _, phase in ipairs({ "Day", "Dawn", "Dusk", "Night" }) do
+			assert(Island.rollContent(trail, phase, function() return 0 end) == "Egg", phase)
+		end
+		assert(Island.nestCount(trail, 1) == 2 and Island.nestCount(trail, 6) == 2, "two eggs")
+		assert(Island.nestCount(island("I1"), 1) == 1, "island 1 unchanged")
+		assert(Island.rollContent(island("I1"), "Day", function() return 0.99 end) == "Creature", "island 1 unchanged")
+		assert(Island.respawnSeconds(trail, "Egg", 1) == C.RESPAWN_EGG, "egg respawn")
+		local meter = Island.newMeter(trail)
+		assert(meter.first == false and meter.island == "T1", "a full guardian, not island 1's shoo")
+	end)
+
+	case("LG: withTrailNest appends the trail nest once and never changes the layout it is given", function()
+		local merged = Island.withTrailNest(layout)
+		assert(#layout.islands == 5, "the layout is unchanged")
+		assert(#merged.islands == 6 and merged.islands[6] == Island.TRAIL_NEST, "appended last")
+		for index = 1, 5 do assert(merged.islands[index] == layout.islands[index], "same order") end
+		assert(merged.showCrest == layout.showCrest and merged.removedTrees == layout.removedTrees, "the rest is kept")
+		assert(#Island.withTrailNest(merged).islands == 6, "never twice")
+		local bare = Island.withTrailNest(nil)
+		assert(type(bare) == "table" and #bare.islands == 1, "no layout: the trail nest alone")
 	end)
 
 	return result

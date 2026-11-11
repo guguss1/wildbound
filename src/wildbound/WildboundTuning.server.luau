@@ -20,12 +20,27 @@ end
 
 -- The same module instances the gameplay scripts require, so a tune reaches them. A missing module is skipped.
 local modules = {}
+-- Fix pass (FP4): La Silueta's moves (WildboundSiluetaMoves) are tuned here too.
 for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland", Brain = "WildboundGuardianBrain",
-	Rules = "WildboundWorldRules", Hide = "WildboundHide" }) do
+	Rules = "WildboundWorldRules", Hide = "WildboundHide", Moves = "WildboundSiluetaMoves",
+	-- Random world (RW2): the spawn clock.
+	SpawnClock = "WildboundSpawnClock",
+	-- Nest Heist (NH1 to NH8): the stolen egg's rules.
+	EggCarry = "WildboundEggCarry",
+	-- Nest Heist phase 2 (NP3): the bat.
+	Bat = "WildboundBat" }) do
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end
-for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSession" }) do
+for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSession", Incubator = "WildboundIncubator",
+	-- Random world (RW3): the wave clock.
+	WaveClock = "WildboundWaveClock",
+	-- Items and totem (plan Part 4): the gear rules.
+	Gear = "WildboundGear",
+	-- Nest Heist Phase 3 (NS4): the companion's light.
+	Refuge = "WildboundRefuge",
+	-- Nest Heist Phase 3 (NS5): the treadmill.
+	Training = "WildboundTraining" }) do
 	local module = ReplicatedStorage:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

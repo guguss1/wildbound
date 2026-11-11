@@ -1,0 +1,15 @@
+WILDBOUND / POUNCER — READY-TO-PASTE 3D MODEL PROMPT
+
+ATTACH: 03_REFERENCIAS_VISUALES/POUNCER_ficha_modelo_ROBLOX.png and POUNCER_render_principal_ROBLOX.png.
+
+STYLE LOCK / ABSOLUTE VISUAL PRIORITY: Stylized Roblox 3D dark-fantasy creature, high-quality faceted low-poly, bold chunky angular masses, hand-painted/flat-color material zones, readable silhouette from a third-person camera, toy-like geometry with sinister character, NOT photorealistic. The attached Wildbound concept sheet is the primary source for shape and colors. Do not replicate an existing Roblox IP creature.
+
+PRODUCTION CONSTRAINTS: game-ready for Roblox Studio; mesh is separate from VFX and telegraphs; simple materials, minimal transparency, no tiny surface details, no photo textures, no cinematic lighting baked into albedo. Create an actual editable 3D asset, not a rendered image if your tool supports 3D. If you only generate concept art, explicitly state that it is not a mesh. Target approximately 2k-8k triangles for ordinary NPCs, higher only with documented need; this is an art budget target, not a Roblox engine limit. Export Blender source and FBX or GLB if supported, with clean topology, correct normals, centered pivot at ground level, appropriate scale in studs, collision proxy and a simple rig. Deliver front/side/three-quarter preview.
+
+NEGATIVE PROMPT: hyperrealism, cinematic creature skin, slimy photographic surface, micro scales, detailed hair, realistic wet flesh, high-frequency textures, millions of polygons, overly complex PBR, photobash, heavy postprocessing, humanoid Roblox avatar costume, copied copyrighted game creature, 2D illustration only, overly cute baby pet, unriggable single mesh, blurry silhouette, baked terrain.
+
+MODEL: Pouncer — original giant hunting spider with very broad low polygon body, bulky purple-black abdomen, 8 high bent segmented legs forming a wide angular silhouette, armored triangular face, several large magenta glowing eyes and four oversized ivory mandible fangs. Legs should have readable elbow joints and sharp tips, not fine realistic hairs. Colors: dark plum, violet, dusty lavender, ivory, controlled pink-magenta eyes. Approximately 5-7 studs long, 4-6 studs wide leg span depending rig.
+RIG/ANIMATION: idle twitching, short lateral stalk, all legs compress before jump, airborne tucked pose, landing splay, recovery. Build simple hinges and a body root; avoid excessive bones. Red landing circle is a Roblox gameplay VFX, not a texture in the creature.
+
+
+DELIVERABLES: actual editable low-poly model if supported; rigged version; basic animations; FBX/GLB export and .blend source when supported; a short implementation note for Roblox Studio. If you cannot produce any of these, clearly list missing deliverables rather than claiming completion.

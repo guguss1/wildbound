@@ -360,6 +360,62 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundTuningWiring_Test.luau": "ServerStorage.WildboundTuningWiring_Test",
         "src/wildbound/WildboundFear.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundFearClient",
         "tests/WildboundFearWiring_Test.luau": "ServerStorage.WildboundFearWiring_Test",
+        # Nest Heist phase 1 (NH1 to NH8): the egg-carry rule (server only) and its suite
+        "src/wildbound/WildboundEggCarry.luau": "ServerScriptService.WildboundEggCarry",
+        "tests/WildboundEggCarry_Test.luau": "ServerStorage.WildboundEggCarry_Test",
+        # Nest Heist phase 2 (NP3): the bat rule (server only) and its suite
+        "src/wildbound/WildboundBat.luau": "ServerScriptService.WildboundBat",
+        "tests/WildboundBat_Test.luau": "ServerStorage.WildboundBat_Test",
+        # Nest Heist phase 4a (NB1): the earlier unmapped sources, at the Explorer paths observed in Studio
+        "src/wildbound/WildboundOwnership.luau": "ServerScriptService.WildboundOwnership",
+        "tests/WildboundOwnership_Test.luau": "ServerStorage.WildboundOwnership_Test",
+        "src/wildbound/WildboundWorldGuard.server.luau": "ServerScriptService.WildboundWorldGuard",
+        "src/wildbound/WildboundPromptKeys.luau": "ServerScriptService.WildboundPromptKeys",
+        "tests/WildboundPromptKeys_Test.luau": "ServerStorage.WildboundPromptKeys_Test",
+        "src/wildbound/WildboundSettings.luau": "ReplicatedStorage.WildboundSettings",
+        "tests/WildboundSettings_Test.luau": "ServerStorage.WildboundSettings_Test",
+        "src/wildbound/WildboundStart.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundStartClient",
+        "tests/WildboundStartWiring_Test.luau": "ServerStorage.WildboundStartWiring_Test",
+        "src/wildbound/WildboundStartView.luau": "ReplicatedStorage.WildboundStartView",
+        "tests/WildboundStartView_Test.luau": "ServerStorage.WildboundStartView_Test",
+        "src/wildbound/WildboundTutorial.luau": "ReplicatedStorage.WildboundTutorial",
+        "tests/WildboundTutorial_Test.luau": "ServerStorage.WildboundTutorial_Test",
+        # Nest Heist phase 4a (NB2 to NB6): the beast pack
+        "src/wildbound/WildboundBeastConfig.luau": "ReplicatedStorage.WildboundBeastConfig",
+        "src/wildbound/WildboundBeastDirector.luau": "ServerScriptService.WildboundBeastDirector",
+        "src/wildbound/WildboundBeastEncounters.luau": "ServerScriptService.WildboundBeastEncounters",
+        "src/wildbound/WildboundBeastProxies.luau": "ServerScriptService.WildboundBeastProxies",
+        "src/wildbound/WildboundBeasts.server.luau": "ServerScriptService.WildboundBeasts",
+        "tests/WildboundBeastDirector_Test.luau": "ServerStorage.WildboundBeastDirector_Test",
+        "tests/WildboundBeastEncounters_Test.luau": "ServerStorage.WildboundBeastEncounters_Test",
+        "tests/WildboundBeastWiring_Test.luau": "ServerStorage.WildboundBeastWiring_Test",
+        "src/wildbound/WildboundBeasts.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundBeastsClient",
+        # Nest Heist Phase 3 (NS1): saved progress, at the Explorer paths created in Studio
+        "src/wildbound/WildboundSave.luau": "ServerScriptService.WildboundSave",
+        "src/wildbound/WildboundStoreRoblox.luau": "ServerScriptService.WildboundStoreRoblox",
+        "tests/WildboundSave_Test.luau": "ServerStorage.WildboundSave_Test",
+        # NS5: the treadmill rule (shared) and its suite
+        "src/wildbound/WildboundTraining.luau": "ReplicatedStorage.WildboundTraining",
+        "tests/WildboundTraining_Test.luau": "ServerStorage.WildboundTraining_Test",
+        # Nest Heist hub (HB-T1 to HB-T5): the generated hub builder, the hub script, the base rule, the stations and
+        # their suite, at the Explorer paths created in Studio by this unit. The builder is the v2-r90 expansion (every
+        # v2 feature inside the radius-90 disc that fits the place at (282, -3)), no longer v1.
+        "tools/build-wildbound-hub-map-v2-r90.luau": "ServerStorage.WildboundHubBuilder",
+        "src/wildbound/WildboundHub.server.luau": "ServerScriptService.WildboundHub",
+        "src/wildbound/WildboundBases.luau": "ServerScriptService.WildboundBases",
+        "src/wildbound/WildboundHubStations.luau": "ServerScriptService.WildboundHubStations",
+        "tests/WildboundHub_Test.luau": "ServerStorage.WildboundHub_Test",
+        # New mechanics (docs/mechanics/wildbound-new-mechanics.md): planned Explorer paths for the offline rules
+        "src/wildbound/WildboundArrullo.luau": "ReplicatedStorage.WildboundArrullo",
+        "tests/WildboundArrullo_Test.luau": "ServerStorage.WildboundArrullo_Test",
+        "src/wildbound/WildboundDodge.luau": "ReplicatedStorage.WildboundDodge",
+        "tests/WildboundDodge_Test.luau": "ServerStorage.WildboundDodge_Test",
+        "src/wildbound/WildboundBatKnock.luau": "ServerScriptService.WildboundBatKnock",
+        "tests/WildboundBatKnock_Test.luau": "ServerStorage.WildboundBatKnock_Test",
+        "src/wildbound/WildboundTotemRecord.luau": "ServerScriptService.WildboundTotemRecord",
+        "tests/WildboundTotemRecord_Test.luau": "ServerStorage.WildboundTotemRecord_Test",
+        "src/wildbound/WildboundDusk.luau": "ReplicatedStorage.WildboundDusk",
+        "tests/WildboundDusk_Test.luau": "ServerStorage.WildboundDusk_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
@@ -381,6 +437,10 @@ class DefaultMappingTests(unittest.TestCase):
             "tools/build-map.luau",
         ):
             self.assertNotIn(local, locals_)
+
+    def test_hub_builder_is_the_v2_r90_module_only(self):
+        sources = [local for local, remote in dm.DEFAULT_MAPPINGS if remote == "ServerStorage.WildboundHubBuilder"]
+        self.assertEqual(sources, ["tools/build-wildbound-hub-map-v2-r90.luau"])
 
     def test_real_repo_manifest_is_stable_and_reports_forest_dress_if_absent(self):
         manifest = dm.build_manifest(REPO)

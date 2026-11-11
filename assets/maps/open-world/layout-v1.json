@@ -1,0 +1,2177 @@
+{
+  "name": "layout-v1",
+  "status": "design, unvalidated: never built in Studio, played or measured on a device",
+  "seed": 20261109,
+  "conventions": {
+    "units": "studs, origin at the hub centre; x east, z south; rotation_y_deg as CFrame.Angles(0, rad, 0)",
+    "forest_frame": "forest_world = forest_local + forest.offset; forest-layout-v1.json, islands-v1.json, relief-v1.json and hide-spots-v1.json stay in the forest local frame",
+    "sources": {
+      "forest_layout": "assets/maps/forest-layout/forest-layout-v1.json",
+      "islands": "assets/maps/forest-layout/islands-v1.json",
+      "relief": "assets/maps/forest-layout/relief-v1.json",
+      "hide_spots": "assets/maps/forest-layout/hide-spots-v1.json",
+      "pradera_layout": "assets/maps/pradera-layout/pradera-layout-v1.json"
+    }
+  },
+  "world": {
+    "size": [
+      1120.0,
+      450.0
+    ],
+    "bounds": {
+      "x": [
+        -520.0,
+        600.0
+      ],
+      "z": [
+        -225.0,
+        225.0
+      ]
+    },
+    "walk_speed": 16.0,
+    "hub_to_forest_camp": 404.969,
+    "hub_gate_to_plaza_molino_walk": 200.646
+  },
+  "hub": {
+    "centre": [
+      0.0,
+      0.0
+    ],
+    "safe_radius": 60.0,
+    "wall_radius": 58.0,
+    "gate_width": 16.0,
+    "gates": {
+      "W": [
+        -60.0,
+        0.0
+      ],
+      "E": [
+        60.0,
+        0.0
+      ],
+      "N": [
+        0.0,
+        -60.0
+      ],
+      "S": [
+        0.0,
+        60.0
+      ]
+    },
+    "plaza_ring": {
+      "inner": 25.0,
+      "outer": 35.0
+    },
+    "spokes": {
+      "W": {
+        "from": [
+          -35.0,
+          0.0
+        ],
+        "to": [
+          -60.0,
+          0.0
+        ]
+      },
+      "E": {
+        "from": [
+          35.0,
+          0.0
+        ],
+        "to": [
+          60.0,
+          0.0
+        ]
+      },
+      "N": {
+        "from": [
+          0.0,
+          -35.0
+        ],
+        "to": [
+          0.0,
+          -60.0
+        ]
+      },
+      "S": {
+        "from": [
+          0.0,
+          35.0
+        ],
+        "to": [
+          0.0,
+          60.0
+        ]
+      }
+    },
+    "road_width": 14.0,
+    "spawn": {
+      "default_spawn_location": {
+        "centre": [
+          0.0,
+          0.0
+        ],
+        "radius": 9.0
+      },
+      "pads": [
+        {
+          "centre": [
+            16.0,
+            0.0
+          ],
+          "faces": "east"
+        },
+        {
+          "centre": [
+            0.0,
+            16.0
+          ],
+          "faces": "east"
+        },
+        {
+          "centre": [
+            -16.0,
+            0.0
+          ],
+          "faces": "east"
+        },
+        {
+          "centre": [
+            0.0,
+            -16.0
+          ],
+          "faces": "east"
+        }
+      ]
+    },
+    "stations": [
+      {
+        "id": "incubadora",
+        "name": "Incubadora",
+        "centre": [
+          -32.527,
+          -32.527
+        ],
+        "footprint": {
+          "kind": "circle",
+          "r": 6.0
+        },
+        "holds": "3 visible egg slots (WildboundIncubator), prompt 'Incubar huevo'",
+        "slots": 3
+      },
+      {
+        "id": "corral",
+        "name": "Corral",
+        "centre": [
+          36.643,
+          -28.628
+        ],
+        "footprint": {
+          "kind": "rect",
+          "half": [
+            11.0,
+            6.5
+          ],
+          "yaw": 128.0
+        },
+        "holds": "8 pens where registered creatures idle and hover; prompt 'Ver corral'",
+        "slots": 8
+      },
+      {
+        "id": "refugio",
+        "name": "Refugio",
+        "centre": [
+          16.417,
+          -45.105
+        ],
+        "footprint": {
+          "kind": "circle",
+          "r": 5.0
+        },
+        "holds": "registration hut: 'Registrar criatura', card, equip (the forest camp's refuge, duplicated)"
+      },
+      {
+        "id": "cofre",
+        "name": "Cofre",
+        "centre": [
+          -15.733,
+          -43.226
+        ],
+        "footprint": {
+          "kind": "circle",
+          "r": 3.0
+        },
+        "holds": "storage chest: 'Guardar en el cofre' (extraction and banking)"
+      },
+      {
+        "id": "puesto",
+        "name": "Puesto",
+        "centre": [
+          -43.226,
+          -15.733
+        ],
+        "footprint": {
+          "kind": "circle",
+          "r": 4.0
+        },
+        "holds": "reserved stall marker for the convenience-offer design; no purchase flow is built"
+      },
+      {
+        "id": "tablero",
+        "name": "Tablero de Esencia",
+        "centre": [
+          -23.0,
+          39.837
+        ],
+        "footprint": {
+          "kind": "rect",
+          "half": [
+            4.0,
+            1.5
+          ],
+          "yaw": 30.0
+        },
+        "holds": "Esencia board: balance, what each corral creature earned, wave board top 3"
+      },
+      {
+        "id": "habilidades",
+        "name": "Árbol de habilidades",
+        "centre": [
+          -39.837,
+          23.0
+        ],
+        "footprint": {
+          "kind": "circle",
+          "r": 4.5
+        },
+        "holds": "skill tree kiosk (Learn action) and upgrades (Upgrade action)"
+      }
+    ],
+    "trophies": [
+      {
+        "id": "trofeo-1",
+        "centre": [
+          48.296,
+          12.941
+        ],
+        "r": 2.0
+      },
+      {
+        "id": "trofeo-2",
+        "centre": [
+          43.301,
+          25.0
+        ],
+        "r": 2.0
+      },
+      {
+        "id": "trofeo-3",
+        "centre": [
+          35.355,
+          35.355
+        ],
+        "r": 2.0
+      },
+      {
+        "id": "trofeo-4",
+        "centre": [
+          25.0,
+          43.301
+        ],
+        "r": 2.0
+      },
+      {
+        "id": "trofeo-5",
+        "centre": [
+          12.941,
+          48.296
+        ],
+        "r": 2.0
+      }
+    ],
+    "rules": {
+      "station_band": [
+        36.0,
+        56.0
+      ],
+      "spoke_clear": 10.0,
+      "station_gap": 8.0
+    }
+  },
+  "regions": {
+    "forest": {
+      "key": "forest",
+      "offset": [
+        -300.0,
+        0.0
+      ],
+      "bounds": {
+        "x": [
+          -500.0,
+          -100.0
+        ],
+        "z": [
+          -200.0,
+          200.0
+        ]
+      },
+      "beast": {
+        "name": "La Silueta",
+        "home": [
+          -300.0,
+          -85.0
+        ],
+        "leash": 80.0,
+        "chase_leash": 100.0,
+        "strike_radius": 80.0,
+        "rect": {
+          "x": [
+            -345.0,
+            -135.0
+          ],
+          "z": [
+            -165.0,
+            35.0
+          ]
+        },
+        "reach_toward_hub": {
+          "territory_x": -220.0,
+          "chase_x": -200.0,
+          "rect_x": -135.0
+        }
+      },
+      "safe_circles": {
+        "camp": {
+          "centre": [
+            -440.0,
+            140.0
+          ],
+          "r": 35.0
+        },
+        "shelter": {
+          "centre": [
+            -195.0,
+            125.0
+          ],
+          "r": 22.0
+        }
+      },
+      "route": {
+        "names": [
+          "camp",
+          "clearing",
+          "ruin",
+          "nest",
+          "marsh",
+          "shelter"
+        ],
+        "nodes": [
+          [
+            -440.0,
+            140.0
+          ],
+          [
+            -395.0,
+            75.0
+          ],
+          [
+            -300.0,
+            -85.0
+          ],
+          [
+            -265.0,
+            -99.0
+          ],
+          [
+            -185.0,
+            15.0
+          ],
+          [
+            -195.0,
+            125.0
+          ]
+        ],
+        "closed": true,
+        "loop_length": 798.013,
+        "walk_seconds": 49.876
+      }
+    },
+    "pradera": {
+      "key": "pradera",
+      "offset": [
+        300.0,
+        0.0
+      ],
+      "bounds": {
+        "x": [
+          100.0,
+          500.0
+        ],
+        "z": [
+          -200.0,
+          200.0
+        ]
+      },
+      "source": "assets/maps/pradera-layout/pradera-layout-v1.json",
+      "biome": "Pradera Arcoíris",
+      "beast": {
+        "name": "La Nube Gruñona",
+        "home": [
+          450.0,
+          0.0
+        ],
+        "strike_radius": 110.0,
+        "leash": 90.0,
+        "seta_trueno": [
+          436.0,
+          -6.0
+        ],
+        "reach_toward_hub": {
+          "strike_x": 340.0,
+          "leash_x": 360.0
+        }
+      },
+      "event_beast": {
+        "name": "La Abeja Reina",
+        "hive": [
+          225.0,
+          75.0
+        ],
+        "guard_radius": 35.0,
+        "leash": 45.0,
+        "wake_radius": 70.0,
+        "egg_nest": "N5",
+        "clock": {
+          "first_seconds": 300.0,
+          "period_seconds": 1200.0,
+          "window_seconds": 300.0,
+          "awake": "only while the event egg is up"
+        },
+        "active": "event"
+      },
+      "gate": [
+        114.0,
+        0.0
+      ],
+      "safe_circles": {
+        "porton": {
+          "centre": [
+            114.0,
+            0.0
+          ],
+          "r": 25.0
+        },
+        "plaza_molino": {
+          "centre": [
+            260.0,
+            14.0
+          ],
+          "r": 12.0
+        }
+      },
+      "sun_circle_candidates": [
+        {
+          "id": "sun-01",
+          "centre": [
+            469.442,
+            67.074
+          ],
+          "r": 12.0
+        },
+        {
+          "id": "sun-02",
+          "centre": [
+            392.751,
+            -80.437
+          ],
+          "r": 12.0
+        },
+        {
+          "id": "sun-03",
+          "centre": [
+            328.263,
+            -28.927
+          ],
+          "r": 12.0
+        },
+        {
+          "id": "sun-04",
+          "centre": [
+            293.505,
+            -50.265
+          ],
+          "r": 12.0
+        },
+        {
+          "id": "sun-05",
+          "centre": [
+            300.554,
+            37.979
+          ],
+          "r": 12.0
+        },
+        {
+          "id": "sun-06",
+          "centre": [
+            425.232,
+            -59.746
+          ],
+          "r": 12.0
+        }
+      ],
+      "nests": [
+        {
+          "id": "N1",
+          "species": "Chispin",
+          "rarity": "Comun",
+          "x": 175.0,
+          "z": -30.0,
+          "eventOnly": false
+        },
+        {
+          "id": "N2",
+          "species": "Musgon",
+          "rarity": "Comun",
+          "x": 270.0,
+          "z": -70.0,
+          "eventOnly": false
+        },
+        {
+          "id": "N3",
+          "species": "Esponjin",
+          "rarity": "Rara",
+          "x": 360.0,
+          "z": 50.0,
+          "eventOnly": false
+        },
+        {
+          "id": "N4",
+          "species": "Hongolin",
+          "rarity": "Epica",
+          "x": 400.0,
+          "z": -45.0,
+          "eventOnly": false
+        },
+        {
+          "id": "N5",
+          "species": "Relampino",
+          "rarity": "Legendaria",
+          "x": 225.0,
+          "z": 75.0,
+          "eventOnly": true
+        }
+      ],
+      "route": {
+        "names": [
+          "gate",
+          "meadow",
+          "plaza",
+          "rise",
+          "pond_rim"
+        ],
+        "nodes": [
+          [
+            105.0,
+            0.0
+          ],
+          [
+            160.0,
+            6.0
+          ],
+          [
+            260.0,
+            14.0
+          ],
+          [
+            345.0,
+            4.0
+          ],
+          [
+            418.0,
+            -4.0
+          ]
+        ],
+        "closed": false,
+        "length": 314.669,
+        "walk_seconds": 19.667
+      }
+    }
+  },
+  "transitions": {
+    "west": {
+      "x": [
+        -100.0,
+        -60.0
+      ],
+      "z": [
+        -45.0,
+        45.0
+      ],
+      "dressing": "evergreens thin to grass over 40 studs; fog density ramps from 0 at the hub wall to the forest value at the fog edge (x -135)"
+    },
+    "east": {
+      "x": [
+        60.0,
+        100.0
+      ],
+      "z": [
+        -45.0,
+        45.0
+      ],
+      "dressing": "hub paving breaks into flower clumps and pale grass over 40 studs; warm light ramps up"
+    }
+  },
+  "ring_road": {
+    "nodes": [
+      [
+        -498.0,
+        -212.0
+      ],
+      [
+        578.0,
+        -212.0
+      ],
+      [
+        590.0,
+        -200.0
+      ],
+      [
+        590.0,
+        200.0
+      ],
+      [
+        578.0,
+        212.0
+      ],
+      [
+        -498.0,
+        212.0
+      ],
+      [
+        -510.0,
+        200.0
+      ],
+      [
+        -510.0,
+        -200.0
+      ]
+    ],
+    "closed": true,
+    "width": 14.0,
+    "length": 3019.882,
+    "walk_seconds": 188.743,
+    "beast_free": true
+  },
+  "connectors": {
+    "umbral_oeste": {
+      "from": "hub gate W",
+      "to": "forest shelter",
+      "nodes": [
+        [
+          -60.0,
+          0.0
+        ],
+        [
+          -100.0,
+          20.0
+        ],
+        [
+          -195.0,
+          125.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 186.319,
+      "region": "forest"
+    },
+    "umbral_este": {
+      "from": "hub gate E",
+      "to": "pradera gate",
+      "nodes": [
+        [
+          60.0,
+          0.0
+        ],
+        [
+          105.0,
+          0.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 45.0,
+      "region": "pradera"
+    },
+    "espolon_norte": {
+      "from": "hub gate N",
+      "to": "ring road",
+      "nodes": [
+        [
+          0.0,
+          -60.0
+        ],
+        [
+          0.0,
+          -212.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 152.0,
+      "region": "hub"
+    },
+    "espolon_sur": {
+      "from": "hub gate S",
+      "to": "ring road",
+      "nodes": [
+        [
+          0.0,
+          60.0
+        ],
+        [
+          0.0,
+          212.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 152.0,
+      "region": "hub"
+    },
+    "espolon_campamento": {
+      "from": "forest camp",
+      "to": "ring road",
+      "nodes": [
+        [
+          -440.0,
+          140.0
+        ],
+        [
+          -440.0,
+          212.0
+        ]
+      ],
+      "width": 14.0,
+      "length": 72.0,
+      "region": "forest"
+    }
+  },
+  "zone_rules": {
+    "hub": {
+      "centre": [
+        0.0,
+        0.0
+      ],
+      "safe_radius": 60.0,
+      "spawn_pad": {
+        "x": 0.0,
+        "z": 0.0,
+        "radius": 9.0
+      }
+    },
+    "forest": {
+      "offset": [
+        -300.0,
+        0.0
+      ],
+      "home": [
+        -300.0,
+        -85.0
+      ],
+      "leash": 80.0,
+      "chase_leash": 100.0,
+      "fog": {
+        "x": [
+          -345.0,
+          -135.0
+        ],
+        "z": [
+          -165.0,
+          35.0
+        ]
+      },
+      "safe": {
+        "camp": {
+          "centre": [
+            -440.0,
+            140.0
+          ],
+          "r": 35.0
+        },
+        "shelter": {
+          "centre": [
+            -195.0,
+            125.0
+          ],
+          "r": 22.0
+        }
+      }
+    },
+    "pradera": {
+      "offset": [
+        300.0,
+        0.0
+      ],
+      "source": "assets/maps/pradera-layout/pradera-layout-v1.json",
+      "home": [
+        450.0,
+        0.0
+      ],
+      "strike_radius": 110.0,
+      "leash": 90.0,
+      "beast": "La Nube Gruñona",
+      "event_beast": {
+        "name": "La Abeja Reina",
+        "hive": [
+          225.0,
+          75.0
+        ],
+        "guard_radius": 35.0,
+        "leash": 45.0,
+        "wake_radius": 70.0,
+        "active": "event"
+      },
+      "safe": {
+        "porton": {
+          "centre": [
+            114.0,
+            0.0
+          ],
+          "r": 25.0
+        },
+        "plaza_molino": {
+          "centre": [
+            260.0,
+            14.0
+          ],
+          "r": 12.0
+        }
+      }
+    },
+    "strike_zones": [
+      {
+        "beast": "La Silueta",
+        "key": "silueta",
+        "home": [
+          -300.0,
+          -85.0
+        ],
+        "strike_radius": 80.0,
+        "reach": 100.0,
+        "active": "always"
+      },
+      {
+        "beast": "La Nube Gruñona",
+        "key": "nube",
+        "home": [
+          450.0,
+          0.0
+        ],
+        "strike_radius": 110.0,
+        "reach": 110.0,
+        "active": "always"
+      },
+      {
+        "beast": "La Abeja Reina",
+        "key": "abeja",
+        "home": [
+          225.0,
+          75.0
+        ],
+        "strike_radius": 35.0,
+        "reach": 45.0,
+        "active": "event"
+      }
+    ],
+    "beast_free_band": {
+      "x": [
+        -200.0,
+        340.0
+      ],
+      "note": "no always-on beast can hunt here: the hub, both transitions, the Pradera's west half and the whole ring road. Only while the Pradera event egg is up, La Abeja Reina guards La Colmena inside this band; her ground touches no road, gate or safe circle"
+    },
+    "one_beast_per_player": "the strike zones never overlap (no point is inside two), so one player is never the target of two beasts at once",
+    "region_of": "x < -100: forest; -100..-60 and 60..100: transitions; |x| <= 60 inside the hub circle: hub; x > 100: pradera; |z| > 200 or x > 500: ring road"
+  },
+  "forest_block": {
+    "instances_total": 207,
+    "instances_kept": 201,
+    "removed_props": [
+      {
+        "id": "FK_Evergreen_086",
+        "by": [
+          "umbral_oeste"
+        ]
+      },
+      {
+        "id": "FK_Evergreen_092",
+        "by": [
+          "espolon_campamento"
+        ]
+      },
+      {
+        "id": "FK_Evergreen_093",
+        "by": [
+          "umbral_oeste"
+        ]
+      },
+      {
+        "id": "FK_Evergreen_119",
+        "by": [
+          "umbral_oeste"
+        ]
+      },
+      {
+        "id": "FK_FallenLog_017",
+        "by": [
+          "umbral_oeste"
+        ]
+      },
+      {
+        "id": "FK_LanternMarker_006",
+        "by": [
+          "umbral_oeste"
+        ]
+      }
+    ],
+    "islands": [
+      {
+        "id": "I1",
+        "key": "claro",
+        "centre": [
+          -395.0,
+          75.0
+        ],
+        "floorRadius": 14.0,
+        "zone": "outside",
+        "tier": "Safe",
+        "rewardTier": "Safe",
+        "species": "Lumipol",
+        "adults": 2,
+        "adultPoints": [
+          {
+            "x": -395.0,
+            "z": 81.0,
+            "faceX": 0.0,
+            "faceZ": 1.0
+          },
+          {
+            "x": -395.0,
+            "z": 69.0,
+            "faceX": -0.0,
+            "faceZ": -1.0
+          }
+        ]
+      },
+      {
+        "id": "I2",
+        "key": "hondonada",
+        "centre": [
+          -320.0,
+          15.0
+        ],
+        "floorRadius": 14.0,
+        "zone": "fog",
+        "tier": "Fog",
+        "rewardTier": "Fog",
+        "species": "Cortezon",
+        "adults": 2,
+        "adultPoints": [
+          {
+            "x": -320.0,
+            "z": 21.0,
+            "faceX": 0.0,
+            "faceZ": 1.0
+          },
+          {
+            "x": -320.0,
+            "z": 9.0,
+            "faceX": -0.0,
+            "faceZ": -1.0
+          }
+        ]
+      },
+      {
+        "id": "I3",
+        "key": "pantano",
+        "centre": [
+          -185.0,
+          15.0
+        ],
+        "floorRadius": 16.0,
+        "zone": "fog",
+        "tier": "Fog",
+        "rewardTier": "FogFar",
+        "species": "Cestillo",
+        "adults": 3,
+        "adultPoints": [
+          {
+            "x": -185.0,
+            "z": 21.0,
+            "faceX": 0.0,
+            "faceZ": 1.0
+          },
+          {
+            "x": -190.196,
+            "z": 12.0,
+            "faceX": -0.866,
+            "faceZ": -0.5
+          },
+          {
+            "x": -179.804,
+            "z": 12.0,
+            "faceX": 0.866,
+            "faceZ": -0.5
+          }
+        ]
+      },
+      {
+        "id": "I4",
+        "key": "ruinas",
+        "centre": [
+          -265.0,
+          -99.0
+        ],
+        "floorRadius": 15.6,
+        "zone": "territory",
+        "tier": "Territory",
+        "rewardTier": "Territory",
+        "species": "Polvilla",
+        "adults": 3,
+        "adultPoints": [
+          {
+            "x": -265.0,
+            "z": -93.0,
+            "faceX": 0.0,
+            "faceZ": 1.0
+          },
+          {
+            "x": -270.196,
+            "z": -102.0,
+            "faceX": -0.866,
+            "faceZ": -0.5
+          },
+          {
+            "x": -259.804,
+            "z": -102.0,
+            "faceX": 0.866,
+            "faceZ": -0.5
+          }
+        ]
+      },
+      {
+        "id": "I5",
+        "key": "corazon",
+        "centre": [
+          -240.0,
+          -135.0
+        ],
+        "floorRadius": 14.0,
+        "zone": "territory",
+        "tier": "Territory",
+        "rewardTier": "Heart",
+        "species": "Tizoncillo",
+        "adults": 4,
+        "adultPoints": [
+          {
+            "x": -240.0,
+            "z": -129.0,
+            "faceX": 0.0,
+            "faceZ": 1.0
+          },
+          {
+            "x": -246.0,
+            "z": -135.0,
+            "faceX": -1.0,
+            "faceZ": 0.0
+          },
+          {
+            "x": -240.0,
+            "z": -141.0,
+            "faceX": -0.0,
+            "faceZ": -1.0
+          },
+          {
+            "x": -234.0,
+            "z": -135.0,
+            "faceX": 1.0,
+            "faceZ": -0.0
+          }
+        ]
+      }
+    ],
+    "relief_segments": [
+      {
+        "id": "R01",
+        "feature": "rim-claro",
+        "a": [
+          -364.258,
+          65.682
+        ],
+        "b": [
+          -364.258,
+          84.318
+        ],
+        "height": 3.0
+      },
+      {
+        "id": "R02",
+        "feature": "rim-claro",
+        "a": [
+          -370.478,
+          86.723
+        ],
+        "b": [
+          -387.713,
+          101.185
+        ],
+        "height": 3.0
+      },
+      {
+        "id": "R03",
+        "feature": "rim-claro",
+        "a": [
+          -418.441,
+          53.035
+        ],
+        "b": [
+          -402.301,
+          43.717
+        ],
+        "height": 3.0
+      },
+      {
+        "id": "R04",
+        "feature": "loma-larga",
+        "a": [
+          -325.0,
+          70.0
+        ],
+        "b": [
+          -295.0,
+          70.0
+        ],
+        "height": 10.0
+      },
+      {
+        "id": "R05",
+        "feature": "cresta-vigia",
+        "a": [
+          -298.612,
+          -39.702
+        ],
+        "b": [
+          -282.702,
+          -55.612
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R06",
+        "feature": "rim-hondonada",
+        "a": [
+          -293.643,
+          33.835
+        ],
+        "b": [
+          -316.867,
+          47.243
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R07",
+        "feature": "rim-hondonada",
+        "a": [
+          -304.975,
+          53.687
+        ],
+        "b": [
+          -347.351,
+          46.215
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R08",
+        "feature": "rim-ruinas",
+        "a": [
+          -224.51,
+          -107.805
+        ],
+        "b": [
+          -224.51,
+          -90.195
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R09",
+        "feature": "rim-ruinas",
+        "a": [
+          -263.35,
+          -57.338
+        ],
+        "b": [
+          -280.8,
+          -60.415
+        ],
+        "height": 3.0
+      },
+      {
+        "id": "R10",
+        "feature": "rim-corazon",
+        "a": [
+          -210.51,
+          -152.877
+        ],
+        "b": [
+          -210.51,
+          -117.123
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R11",
+        "feature": "rim-corazon",
+        "a": [
+          -214.197,
+          -118.155
+        ],
+        "b": [
+          -227.892,
+          -106.664
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R12",
+        "feature": "rim-corazon",
+        "a": [
+          -269.468,
+          -168.631
+        ],
+        "b": [
+          -223.812,
+          -176.682
+        ],
+        "height": 5.0
+      },
+      {
+        "id": "R13",
+        "feature": "rim-corazon",
+        "a": [
+          -231.691,
+          -170.6
+        ],
+        "b": [
+          -213.324,
+          -159.996
+        ],
+        "height": 6.0
+      },
+      {
+        "id": "R14",
+        "feature": "saddle-west",
+        "a": [
+          -370.125,
+          -10.855
+        ],
+        "b": [
+          -361.875,
+          -25.145
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R15",
+        "feature": "saddle-east",
+        "a": [
+          -306.75,
+          -27.237
+        ],
+        "b": [
+          -301.25,
+          -36.763
+        ],
+        "height": 4.0
+      },
+      {
+        "id": "R16",
+        "feature": "hummock-marsh",
+        "a": [
+          -166.761,
+          -13.812
+        ],
+        "b": [
+          -153.239,
+          -10.188
+        ],
+        "height": 3.0
+      },
+      {
+        "id": "R17",
+        "feature": "hummock-marsh",
+        "a": [
+          -211.359,
+          40.071
+        ],
+        "b": [
+          -208.641,
+          29.929
+        ],
+        "height": 2.5
+      },
+      {
+        "id": "R18",
+        "feature": "hummock-marsh",
+        "a": [
+          -171.165,
+          49.347
+        ],
+        "b": [
+          -168.835,
+          40.653
+        ],
+        "height": 2.0
+      }
+    ],
+    "hide_spots": [
+      {
+        "id": "H01",
+        "kind": "bush",
+        "x": -266.0,
+        "z": -77.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H02",
+        "kind": "bush",
+        "x": -345.0,
+        "z": -36.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H03",
+        "kind": "bush",
+        "x": -218.0,
+        "z": -8.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H04",
+        "kind": "bush",
+        "x": -175.0,
+        "z": 6.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H05",
+        "kind": "bush",
+        "x": -199.0,
+        "z": 47.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H06",
+        "kind": "bush",
+        "x": -416.0,
+        "z": 83.0,
+        "yaw": 0.0
+      },
+      {
+        "id": "H07",
+        "kind": "log",
+        "x": -273.965,
+        "z": -127.646,
+        "yaw": 69.307
+      },
+      {
+        "id": "H08",
+        "kind": "log",
+        "x": -193.813,
+        "z": -38.363,
+        "yaw": 201.296
+      },
+      {
+        "id": "H09",
+        "kind": "log",
+        "x": -243.95,
+        "z": -37.936,
+        "yaw": 344.359
+      },
+      {
+        "id": "H10",
+        "kind": "log",
+        "x": -343.753,
+        "z": 24.663,
+        "yaw": 318.678
+      }
+    ],
+    "triangles": 74996
+  },
+  "hooks": {
+    "west": {
+      "id": "umbral",
+      "name": "Claro del Umbral",
+      "side": "west",
+      "x": -115.0,
+      "z": -60.0,
+      "gate": [
+        -100.0,
+        20.0
+      ],
+      "distance_from_gate": 81.394,
+      "walk_seconds_from_gate": 5.087,
+      "prop_clearance": 16.885,
+      "zone": "outside",
+      "distance_home": 186.682,
+      "tier": "Safe",
+      "species": "Lumipol",
+      "note": "new Safe-tier nest near the forest threshold; island 1 keeps its data"
+    },
+    "east": {
+      "id": "chispin",
+      "name": "Nido de Chispín",
+      "side": "east",
+      "x": 175.0,
+      "z": -30.0,
+      "gate": [
+        114.0,
+        0.0
+      ],
+      "distance_from_gate": 67.978,
+      "walk_seconds_from_gate": 4.249,
+      "prop_clearance": 11.304,
+      "zone": "outside",
+      "distance_home": 276.632,
+      "tier": "Safe",
+      "species": "Chispin",
+      "nest": "N1",
+      "note": "the Pradera kit's first nest (N1, Comun), visible from the rainbow gate; replaces the draft Prado de los Brotes"
+    }
+  },
+  "refugio_rules": {
+    "radius": 8.0,
+    "sets_per_side": 3,
+    "per_set": 3,
+    "min_spacing": 60.0,
+    "beast_margin": 10.0,
+    "safe_margin": 20.0,
+    "road_clear": 15.0,
+    "prop_clear": 9.0,
+    "beast_rule": "centre at least reach + beast_margin from every beast's home (Silueta 100, Nube 110, Abeja 45), so the whole disc stays outside every strike zone"
+  },
+  "refugio_sets": {
+    "west": [
+      {
+        "id": "F-A",
+        "candidates": [
+          {
+            "id": "FA1",
+            "x": -460.0,
+            "z": -10.0,
+            "zone": "outside",
+            "distance_home": 176.706
+          },
+          {
+            "id": "FA2",
+            "x": -120.0,
+            "z": -20.0,
+            "zone": "outside",
+            "distance_home": 191.377
+          },
+          {
+            "id": "FA3",
+            "x": -260.0,
+            "z": 180.0,
+            "zone": "outside",
+            "distance_home": 268.002
+          }
+        ]
+      },
+      {
+        "id": "F-B",
+        "candidates": [
+          {
+            "id": "FB1",
+            "x": -430.0,
+            "z": -160.0,
+            "zone": "outside",
+            "distance_home": 150.083
+          },
+          {
+            "id": "FB2",
+            "x": -120.0,
+            "z": 150.0,
+            "zone": "outside",
+            "distance_home": 296.015
+          },
+          {
+            "id": "FB3",
+            "x": -380.0,
+            "z": 120.0,
+            "zone": "outside",
+            "distance_home": 220.057
+          }
+        ]
+      },
+      {
+        "id": "F-C",
+        "candidates": [
+          {
+            "id": "FC1",
+            "x": -140.0,
+            "z": -180.0,
+            "zone": "outside",
+            "distance_home": 186.078
+          },
+          {
+            "id": "FC2",
+            "x": -240.0,
+            "z": 60.0,
+            "zone": "outside",
+            "distance_home": 156.924
+          },
+          {
+            "id": "FC3",
+            "x": -370.0,
+            "z": 0.0,
+            "zone": "outside",
+            "distance_home": 110.114
+          }
+        ]
+      }
+    ],
+    "east": [
+      {
+        "id": "P-A",
+        "candidates": [
+          {
+            "id": "PA1",
+            "x": 140.0,
+            "z": -120.0,
+            "zone": "outside",
+            "distance_home": 332.415
+          },
+          {
+            "id": "PA2",
+            "x": 480.0,
+            "z": -180.0,
+            "zone": "outside",
+            "distance_home": 182.483
+          },
+          {
+            "id": "PA3",
+            "x": 320.0,
+            "z": 180.0,
+            "zone": "outside",
+            "distance_home": 222.036
+          }
+        ]
+      },
+      {
+        "id": "P-B",
+        "candidates": [
+          {
+            "id": "PB1",
+            "x": 240.0,
+            "z": -60.0,
+            "zone": "outside",
+            "distance_home": 218.403
+          },
+          {
+            "id": "PB2",
+            "x": 480.0,
+            "z": 180.0,
+            "zone": "outside",
+            "distance_home": 182.483
+          },
+          {
+            "id": "PB3",
+            "x": 170.0,
+            "z": 180.0,
+            "zone": "outside",
+            "distance_home": 332.866
+          }
+        ]
+      },
+      {
+        "id": "P-C",
+        "candidates": [
+          {
+            "id": "PC1",
+            "x": 310.0,
+            "z": -150.0,
+            "zone": "outside",
+            "distance_home": 205.183
+          },
+          {
+            "id": "PC2",
+            "x": 320.0,
+            "z": 30.0,
+            "zone": "outside",
+            "distance_home": 133.417
+          },
+          {
+            "id": "PC3",
+            "x": 150.0,
+            "z": 30.0,
+            "zone": "outside",
+            "distance_home": 301.496
+          }
+        ]
+      }
+    ]
+  },
+  "tier_bands": [
+    {
+      "tier": "Legendaria",
+      "min": 0.0,
+      "max": 45.0
+    },
+    {
+      "tier": "Épica",
+      "min": 45.0,
+      "max": 80.0
+    },
+    {
+      "tier": "Rara",
+      "min": 80.0,
+      "max": 120.0
+    },
+    {
+      "tier": "Común",
+      "min": 120.0,
+      "max": null
+    }
+  ],
+  "spawn_seed_summary": {
+    "west": {
+      "count": 348,
+      "by_tier": {
+        "Común": 198,
+        "Legendaria": 27,
+        "Rara": 68,
+        "Épica": 55
+      },
+      "by_kind": {
+        "canopy": 126,
+        "log": 16,
+        "nest": 5,
+        "trail_edge": 33,
+        "tree_base": 168
+      },
+      "by_zone": {
+        "fog": 126,
+        "outside": 142,
+        "territory": 80
+      }
+    },
+    "east": {
+      "count": 119,
+      "by_tier": {
+        "Común": 94,
+        "Rara": 14,
+        "Épica": 11
+      },
+      "by_kind": {
+        "meadow": 115,
+        "nest": 4
+      },
+      "by_zone": {
+        "outside": 99,
+        "territory": 20
+      }
+    }
+  },
+  "spawn_seeds": {
+    "west": [
+      {"kind": "tree_base", "x": -279.537, "z": -108.209, "height": 0.0, "zone": "territory", "distance_home": 30.942, "tier": "Legendaria", "source": "FK_Evergreen_001"},
+      {"kind": "canopy", "x": -281.023, "z": -111.923, "height": 17.172, "zone": "territory", "distance_home": 32.939, "tier": "Legendaria", "source": "FK_Evergreen_001"},
+      {"kind": "tree_base", "x": -263.028, "z": -114.191, "height": 0.0, "zone": "territory", "distance_home": 47.107, "tier": "Épica", "source": "FK_Evergreen_002"},
+      {"kind": "canopy", "x": -262.513, "z": -118.158, "height": 16.668, "zone": "territory", "distance_home": 50.047, "tier": "Épica", "source": "FK_Evergreen_002"},
+      {"kind": "tree_base", "x": -164.13, "z": -119.872, "height": 0.0, "zone": "fog", "distance_home": 140.274, "tier": "Común", "source": "FK_Evergreen_003"},
+      {"kind": "canopy", "x": -160.856, "z": -122.17, "height": 17.64, "zone": "fog", "distance_home": 144.023, "tier": "Común", "source": "FK_Evergreen_003"},
+      {"kind": "tree_base", "x": -162.75, "z": -135.701, "height": 0.0, "zone": "fog", "distance_home": 146.315, "tier": "Común", "source": "FK_Evergreen_004"},
+      {"kind": "canopy", "x": -159.476, "z": -137.999, "height": 18.108, "zone": "fog", "distance_home": 150.186, "tier": "Común", "source": "FK_Evergreen_004"},
+      {"kind": "tree_base", "x": -148.585, "z": -92.384, "height": 0.0, "zone": "fog", "distance_home": 151.595, "tier": "Común", "source": "FK_Evergreen_005"},
+      {"kind": "canopy", "x": -145.311, "z": -94.682, "height": 16.83, "zone": "fog", "distance_home": 154.992, "tier": "Común", "source": "FK_Evergreen_005"},
+      {"kind": "tree_base", "x": -295.589, "z": -39.626, "height": 0.0, "zone": "territory", "distance_home": 45.588, "tier": "Épica", "source": "FK_Evergreen_006"},
+      {"kind": "canopy", "x": -292.15, "z": -37.584, "height": 19.44, "zone": "territory", "distance_home": 48.061, "tier": "Épica", "source": "FK_Evergreen_006"},
+      {"kind": "tree_base", "x": -328.028, "z": -112.609, "height": 0.0, "zone": "territory", "distance_home": 39.343, "tier": "Legendaria", "source": "FK_Evergreen_007"},
+      {"kind": "canopy", "x": -330.878, "z": -115.416, "height": 16.308, "zone": "territory", "distance_home": 43.343, "tier": "Legendaria", "source": "FK_Evergreen_007"},
+      {"kind": "tree_base", "x": -245.81, "z": -160.846, "height": 0.0, "zone": "fog", "distance_home": 93.215, "tier": "Rara", "source": "FK_Evergreen_008"},
+      {"kind": "canopy", "x": -244.625, "z": -164.666, "height": 16.902, "zone": "fog", "distance_home": 97.021, "tier": "Rara", "source": "FK_Evergreen_008"},
+      {"kind": "tree_base", "x": -207.539, "z": -145.787, "height": 0.0, "zone": "fog", "distance_home": 110.653, "tier": "Rara", "source": "FK_Evergreen_009"},
+      {"kind": "canopy", "x": -204.437, "z": -148.313, "height": 16.542, "zone": "fog", "distance_home": 114.633, "tier": "Rara", "source": "FK_Evergreen_009"},
+      {"kind": "tree_base", "x": -139.748, "z": -9.156, "height": 0.0, "zone": "fog", "distance_home": 177.294, "tier": "Común", "source": "FK_Evergreen_010"},
+      {"kind": "canopy", "x": -136.219, "z": -11.04, "height": 18.054, "zone": "fog", "distance_home": 179.706, "tier": "Común", "source": "FK_Evergreen_010"},
+      {"kind": "tree_base", "x": -253.388, "z": -49.627, "height": 0.0, "zone": "territory", "distance_home": 58.515, "tier": "Épica", "source": "FK_Evergreen_011"},
+      {"kind": "canopy", "x": -256.662, "z": -47.329, "height": 19.386, "zone": "territory", "distance_home": 57.422, "tier": "Épica", "source": "FK_Evergreen_011"},
+      {"kind": "tree_base", "x": -249.714, "z": 29.134, "height": 0.0, "zone": "fog", "distance_home": 124.721, "tier": "Común", "source": "FK_Evergreen_012"},
+      {"kind": "canopy", "x": -252.988, "z": 31.432, "height": 18.18, "zone": "fog", "distance_home": 125.565, "tier": "Común", "source": "FK_Evergreen_012"},
+      {"kind": "tree_base", "x": -322.335, "z": -87.922, "height": 0.0, "zone": "territory", "distance_home": 22.525, "tier": "Legendaria", "source": "FK_Evergreen_013"},
+      {"kind": "canopy", "x": -325.774, "z": -89.964, "height": 18.72, "zone": "territory", "distance_home": 26.248, "tier": "Legendaria", "source": "FK_Evergreen_013"},
+      {"kind": "tree_base", "x": -281.837, "z": -0.423, "height": 0.0, "zone": "fog", "distance_home": 86.505, "tier": "Rara", "source": "FK_Evergreen_014"},
+      {"kind": "canopy", "x": -278.398, "z": 1.619, "height": 18.882, "zone": "fog", "distance_home": 89.272, "tier": "Rara", "source": "FK_Evergreen_014"},
+      {"kind": "tree_base", "x": -196.111, "z": -131.921, "height": 0.0, "zone": "fog", "distance_home": 113.993, "tier": "Rara", "source": "FK_Evergreen_015"},
+      {"kind": "canopy", "x": -192.837, "z": -134.219, "height": 18.036, "zone": "fog", "distance_home": 117.925, "tier": "Rara", "source": "FK_Evergreen_015"},
+      {"kind": "tree_base", "x": -230.465, "z": -127.371, "height": 0.0, "zone": "fog", "distance_home": 81.428, "tier": "Rara", "source": "FK_Evergreen_016"},
+      {"kind": "canopy", "x": -227.374, "z": -129.91, "height": 18.972, "zone": "fog", "distance_home": 85.39, "tier": "Rara", "source": "FK_Evergreen_016"},
+      {"kind": "tree_base", "x": -204.279, "z": -159.367, "height": 0.0, "zone": "fog", "distance_home": 121.215, "tier": "Común", "source": "FK_Evergreen_017"},
+      {"kind": "canopy", "x": -201.442, "z": -162.187, "height": 20.106, "zone": "fog", "distance_home": 125.186, "tier": "Común", "source": "FK_Evergreen_017"},
+      {"kind": "tree_base", "x": -293.041, "z": -64.889, "height": 0.0, "zone": "territory", "distance_home": 21.281, "tier": "Legendaria", "source": "FK_Evergreen_018"},
+      {"kind": "canopy", "x": -289.602, "z": -62.847, "height": 17.244, "zone": "territory", "distance_home": 24.472, "tier": "Legendaria", "source": "FK_Evergreen_018"},
+      {"kind": "tree_base", "x": -305.988, "z": 12.845, "height": 0.0, "zone": "fog", "distance_home": 98.028, "tier": "Rara", "source": "FK_Evergreen_019"},
+      {"kind": "canopy", "x": -302.549, "z": 14.887, "height": 18.324, "zone": "fog", "distance_home": 99.92, "tier": "Rara", "source": "FK_Evergreen_019"},
+      {"kind": "tree_base", "x": -309.183, "z": -27.073, "height": 0.0, "zone": "territory", "distance_home": 58.65, "tier": "Épica", "source": "FK_Evergreen_020"},
+      {"kind": "canopy", "x": -305.744, "z": -25.031, "height": 16.794, "zone": "territory", "distance_home": 60.243, "tier": "Épica", "source": "FK_Evergreen_020"},
+      {"kind": "tree_base", "x": -342.319, "z": -158.878, "height": 0.0, "zone": "fog", "distance_home": 85.14, "tier": "Rara", "source": "FK_Evergreen_021"},
+      {"kind": "canopy", "x": -344.307, "z": -162.349, "height": 17.118, "zone": "fog", "distance_home": 89.14, "tier": "Rara", "source": "FK_Evergreen_021"},
+      {"kind": "tree_base", "x": -168.278, "z": -85.365, "height": 0.0, "zone": "fog", "distance_home": 131.722, "tier": "Común", "source": "FK_Evergreen_022"},
+      {"kind": "canopy", "x": -165.004, "z": -87.663, "height": 17.712, "zone": "fog", "distance_home": 135.022, "tier": "Común", "source": "FK_Evergreen_022"},
+      {"kind": "tree_base", "x": -179.393, "z": -58.152, "height": 0.0, "zone": "fog", "distance_home": 123.559, "tier": "Común", "source": "FK_Evergreen_023"},
+      {"kind": "canopy", "x": -176.119, "z": -60.45, "height": 18.306, "zone": "fog", "distance_home": 126.29, "tier": "Común", "source": "FK_Evergreen_023"},
+      {"kind": "tree_base", "x": -224.224, "z": -88.118, "height": 0.0, "zone": "territory", "distance_home": 75.84, "tier": "Épica", "source": "FK_Evergreen_024"},
+      {"kind": "canopy", "x": -220.95, "z": -90.416, "height": 20.664, "zone": "territory", "distance_home": 79.235, "tier": "Épica", "source": "FK_Evergreen_024"},
+      {"kind": "tree_base", "x": -323.125, "z": -129.064, "height": 0.0, "zone": "territory", "distance_home": 49.764, "tier": "Épica", "source": "FK_Evergreen_025"},
+      {"kind": "canopy", "x": -324.984, "z": -132.606, "height": 16.704, "zone": "territory", "distance_home": 53.764, "tier": "Épica", "source": "FK_Evergreen_025"},
+      {"kind": "tree_base", "x": -293.294, "z": -156.479, "height": 0.0, "zone": "territory", "distance_home": 71.793, "tier": "Épica", "source": "FK_Evergreen_026"},
+      {"kind": "canopy", "x": -294.78, "z": -160.193, "height": 19.548, "zone": "territory", "distance_home": 75.374, "tier": "Épica", "source": "FK_Evergreen_026"},
+      {"kind": "tree_base", "x": -291.791, "z": -131.114, "height": 0.0, "zone": "territory", "distance_home": 46.839, "tier": "Épica", "source": "FK_Evergreen_027"},
+      {"kind": "canopy", "x": -293.277, "z": -134.828, "height": 16.956, "zone": "territory", "distance_home": 50.28, "tier": "Épica", "source": "FK_Evergreen_027"},
+      {"kind": "tree_base", "x": -232.419, "z": -109.198, "height": 0.0, "zone": "territory", "distance_home": 71.782, "tier": "Épica", "source": "FK_Evergreen_028"},
+      {"kind": "canopy", "x": -229.145, "z": -111.496, "height": 18.756, "zone": "territory", "distance_home": 75.647, "tier": "Épica", "source": "FK_Evergreen_028"},
+      {"kind": "tree_base", "x": -331.901, "z": 32.087, "height": 0.0, "zone": "fog", "distance_home": 121.355, "tier": "Común", "source": "FK_Evergreen_029"},
+      {"kind": "canopy", "x": -328.462, "z": 34.129, "height": 19.044, "zone": "fog", "distance_home": 122.482, "tier": "Común", "source": "FK_Evergreen_029"},
+      {"kind": "tree_base", "x": -244.812, "z": -5.288, "height": 0.0, "zone": "fog", "distance_home": 96.953, "tier": "Rara", "source": "FK_Evergreen_030"},
+      {"kind": "canopy", "x": -248.086, "z": -2.99, "height": 20.178, "zone": "fog", "distance_home": 97.06, "tier": "Rara", "source": "FK_Evergreen_030"},
+      {"kind": "tree_base", "x": -173.835, "z": -71.956, "height": 0.0, "zone": "fog", "distance_home": 126.837, "tier": "Común", "source": "FK_Evergreen_031"},
+      {"kind": "canopy", "x": -170.561, "z": -74.254, "height": 18.108, "zone": "fog", "distance_home": 129.884, "tier": "Común", "source": "FK_Evergreen_031"},
+      {"kind": "tree_base", "x": -200.118, "z": -111.276, "height": 0.0, "zone": "fog", "distance_home": 103.28, "tier": "Rara", "source": "FK_Evergreen_032"},
+      {"kind": "canopy", "x": -196.844, "z": -113.574, "height": 16.758, "zone": "fog", "distance_home": 107.04, "tier": "Rara", "source": "FK_Evergreen_032"},
+      {"kind": "tree_base", "x": -155.508, "z": -147.259, "height": 0.0, "zone": "fog", "distance_home": 157.334, "tier": "Común", "source": "FK_Evergreen_033"},
+      {"kind": "canopy", "x": -152.234, "z": -149.557, "height": 19.188, "zone": "fog", "distance_home": 161.253, "tier": "Común", "source": "FK_Evergreen_033"},
+      {"kind": "tree_base", "x": -186.716, "z": -24.075, "height": 0.0, "zone": "fog", "distance_home": 128.627, "tier": "Común", "source": "FK_Evergreen_034"},
+      {"kind": "canopy", "x": -183.442, "z": -26.373, "height": 18.342, "zone": "fog", "distance_home": 130.472, "tier": "Común", "source": "FK_Evergreen_034"},
+      {"kind": "tree_base", "x": -159.482, "z": -23.903, "height": 0.0, "zone": "fog", "distance_home": 153.225, "tier": "Común", "source": "FK_Evergreen_035"},
+      {"kind": "canopy", "x": -156.208, "z": -26.201, "height": 17.172, "zone": "fog", "distance_home": 155.349, "tier": "Común", "source": "FK_Evergreen_035"},
+      {"kind": "tree_base", "x": -212.78, "z": 31.632, "height": 0.0, "zone": "fog", "distance_home": 145.638, "tier": "Común", "source": "FK_Evergreen_036"},
+      {"kind": "canopy", "x": -216.764, "z": 31.27, "height": 16.956, "zone": "fog", "distance_home": 142.993, "tier": "Común", "source": "FK_Evergreen_036"},
+      {"kind": "tree_base", "x": -323.187, "z": -154.647, "height": 0.0, "zone": "territory", "distance_home": 73.406, "tier": "Épica", "source": "FK_Evergreen_037"},
+      {"kind": "canopy", "x": -324.673, "z": -158.361, "height": 18.414, "zone": "territory", "distance_home": 77.399, "tier": "Épica", "source": "FK_Evergreen_037"},
+      {"kind": "tree_base", "x": -306.765, "z": 32.235, "height": 0.0, "zone": "fog", "distance_home": 117.43, "tier": "Rara", "source": "FK_Evergreen_038"},
+      {"kind": "canopy", "x": -303.326, "z": 34.277, "height": 17.226, "zone": "fog", "distance_home": 119.323, "tier": "Rara", "source": "FK_Evergreen_038"},
+      {"kind": "tree_base", "x": -155.592, "z": -6.735, "height": 0.0, "zone": "fog", "distance_home": 164.253, "tier": "Común", "source": "FK_Evergreen_039"},
+      {"kind": "canopy", "x": -152.318, "z": -9.033, "height": 20.178, "zone": "fog", "distance_home": 166.075, "tier": "Común", "source": "FK_Evergreen_039"},
+      {"kind": "tree_base", "x": -300.442, "z": -53.689, "height": 0.0, "zone": "territory", "distance_home": 31.314, "tier": "Legendaria", "source": "FK_Evergreen_040"},
+      {"kind": "canopy", "x": -297.003, "z": -51.647, "height": 19.638, "zone": "territory", "distance_home": 33.487, "tier": "Legendaria", "source": "FK_Evergreen_040"},
+      {"kind": "tree_base", "x": -139.289, "z": -153.77, "height": 0.0, "zone": "fog", "distance_home": 174.806, "tier": "Común", "source": "FK_Evergreen_041"},
+      {"kind": "canopy", "x": -136.015, "z": -156.068, "height": 20.142, "zone": "fog", "distance_home": 178.723, "tier": "Común", "source": "FK_Evergreen_041"},
+      {"kind": "tree_base", "x": -236.591, "z": -25.493, "height": 0.0, "zone": "fog", "distance_home": 86.959, "tier": "Rara", "source": "FK_Evergreen_042"},
+      {"kind": "canopy", "x": -239.865, "z": -23.195, "height": 16.38, "zone": "fog", "distance_home": 86.233, "tier": "Rara", "source": "FK_Evergreen_042"},
+      {"kind": "tree_base", "x": -337.665, "z": -102.88, "height": 0.0, "zone": "territory", "distance_home": 41.693, "tier": "Legendaria", "source": "FK_Evergreen_043"},
+      {"kind": "canopy", "x": -341.104, "z": -104.922, "height": 20.394, "zone": "territory", "distance_home": 45.677, "tier": "Épica", "source": "FK_Evergreen_043"},
+      {"kind": "tree_base", "x": -239.55, "z": 13.023, "height": 0.0, "zone": "fog", "distance_home": 115.164, "tier": "Rara", "source": "FK_Evergreen_044"},
+      {"kind": "canopy", "x": -242.824, "z": 15.321, "height": 19.314, "zone": "fog", "distance_home": 115.47, "tier": "Rara", "source": "FK_Evergreen_044"},
+      {"kind": "tree_base", "x": -259.941, "z": -7.186, "height": 0.0, "zone": "fog", "distance_home": 87.52, "tier": "Rara", "source": "FK_Evergreen_045"},
+      {"kind": "canopy", "x": -263.215, "z": -4.888, "height": 16.884, "zone": "fog", "distance_home": 88.154, "tier": "Rara", "source": "FK_Evergreen_045"},
+      {"kind": "tree_base", "x": -280.136, "z": 31.053, "height": 0.0, "zone": "fog", "distance_home": 117.74, "tier": "Rara", "source": "FK_Evergreen_046"},
+      {"kind": "canopy", "x": -276.697, "z": 33.095, "height": 17.838, "zone": "fog", "distance_home": 120.372, "tier": "Común", "source": "FK_Evergreen_046"},
+      {"kind": "tree_base", "x": -186.656, "z": -162.228, "height": 0.0, "zone": "fog", "distance_home": 137.153, "tier": "Común", "source": "FK_Evergreen_047"},
+      {"kind": "canopy", "x": -183.543, "z": -164.74, "height": 19.71, "zone": "fog", "distance_home": 141.141, "tier": "Común", "source": "FK_Evergreen_047"},
+      {"kind": "tree_base", "x": -330.428, "z": -70.93, "height": 0.0, "zone": "territory", "distance_home": 33.523, "tier": "Legendaria", "source": "FK_Evergreen_048"},
+      {"kind": "canopy", "x": -333.867, "z": -72.972, "height": 18.36, "zone": "territory", "distance_home": 35.939, "tier": "Legendaria", "source": "FK_Evergreen_048"},
+      {"kind": "tree_base", "x": -194.898, "z": -66.482, "height": 0.0, "zone": "fog", "distance_home": 106.721, "tier": "Rara", "source": "FK_Evergreen_049"},
+      {"kind": "canopy", "x": -191.624, "z": -68.78, "height": 16.38, "zone": "fog", "distance_home": 109.583, "tier": "Rara", "source": "FK_Evergreen_049"},
+      {"kind": "tree_base", "x": -270.429, "z": -65.047, "height": 0.0, "zone": "territory", "distance_home": 35.673, "tier": "Legendaria", "source": "FK_Evergreen_050"},
+      {"kind": "canopy", "x": -273.703, "z": -62.749, "height": 18.972, "zone": "territory", "distance_home": 34.448, "tier": "Legendaria", "source": "FK_Evergreen_050"},
+      {"kind": "tree_base", "x": -270.05, "z": -16.012, "height": 0.0, "zone": "territory", "distance_home": 75.209, "tier": "Épica", "source": "FK_Evergreen_051"},
+      {"kind": "canopy", "x": -273.324, "z": -13.714, "height": 17.712, "zone": "territory", "distance_home": 76.114, "tier": "Épica", "source": "FK_Evergreen_051"},
+      {"kind": "tree_base", "x": -289.338, "z": 12.227, "height": 0.0, "zone": "fog", "distance_home": 97.81, "tier": "Rara", "source": "FK_Evergreen_052"},
+      {"kind": "canopy", "x": -285.899, "z": 14.269, "height": 20.682, "zone": "fog", "distance_home": 100.266, "tier": "Rara", "source": "FK_Evergreen_052"},
+      {"kind": "tree_base", "x": -260.98, "z": -160.6, "height": 0.0, "zone": "fog", "distance_home": 85.077, "tier": "Rara", "source": "FK_Evergreen_053"},
+      {"kind": "canopy", "x": -260.719, "z": -164.592, "height": 17.136, "zone": "fog", "distance_home": 88.757, "tier": "Rara", "source": "FK_Evergreen_053"},
+      {"kind": "tree_base", "x": -148.346, "z": -125.851, "height": 0.0, "zone": "fog", "distance_home": 157.06, "tier": "Común", "source": "FK_Evergreen_054"},
+      {"kind": "canopy", "x": -145.072, "z": -128.149, "height": 20.106, "zone": "fog", "distance_home": 160.825, "tier": "Común", "source": "FK_Evergreen_054"},
+      {"kind": "tree_base", "x": -285.855, "z": -143.525, "height": 0.0, "zone": "territory", "distance_home": 60.21, "tier": "Épica", "source": "FK_Evergreen_055"},
+      {"kind": "canopy", "x": -287.341, "z": -147.239, "height": 17.262, "zone": "territory", "distance_home": 63.513, "tier": "Épica", "source": "FK_Evergreen_055"},
+      {"kind": "tree_base", "x": -200.642, "z": 20.78, "height": 0.0, "zone": "fog", "distance_home": 145.125, "tier": "Común", "source": "FK_Evergreen_056"},
+      {"kind": "canopy", "x": -204.626, "z": 20.418, "height": 19.008, "zone": "fog", "distance_home": 142.159, "tier": "Común", "source": "FK_Evergreen_056"},
+      {"kind": "tree_base", "x": -225.559, "z": -140.87, "height": 0.0, "zone": "fog", "distance_home": 93.075, "tier": "Rara", "source": "FK_Evergreen_057"},
+      {"kind": "canopy", "x": -222.816, "z": -143.782, "height": 19.494, "zone": "fog", "distance_home": 97.019, "tier": "Rara", "source": "FK_Evergreen_057"},
+      {"kind": "tree_base", "x": -300.9, "z": -9.034, "height": 0.0, "zone": "territory", "distance_home": 75.971, "tier": "Épica", "source": "FK_Evergreen_058"},
+      {"kind": "canopy", "x": -297.461, "z": -6.992, "height": 16.29, "zone": "territory", "distance_home": 78.049, "tier": "Épica", "source": "FK_Evergreen_058"},
+      {"kind": "tree_base", "x": -297.163, "z": -103.542, "height": 0.0, "zone": "territory", "distance_home": 18.758, "tier": "Legendaria", "source": "FK_Evergreen_059"},
+      {"kind": "canopy", "x": -298.649, "z": -107.256, "height": 17.01, "zone": "territory", "distance_home": 22.297, "tier": "Legendaria", "source": "FK_Evergreen_059"},
+      {"kind": "tree_base", "x": -262.746, "z": -129.22, "height": 0.0, "zone": "territory", "distance_home": 57.821, "tier": "Épica", "source": "FK_Evergreen_060"},
+      {"kind": "canopy", "x": -262.449, "z": -133.209, "height": 16.902, "zone": "territory", "distance_home": 61.108, "tier": "Épica", "source": "FK_Evergreen_060"},
+      {"kind": "tree_base", "x": -183.191, "z": -91.776, "height": 0.0, "zone": "fog", "distance_home": 117.005, "tier": "Rara", "source": "FK_Evergreen_061"},
+      {"kind": "canopy", "x": -179.917, "z": -94.074, "height": 18.594, "zone": "fog", "distance_home": 120.425, "tier": "Común", "source": "FK_Evergreen_061"},
+      {"kind": "tree_base", "x": -191.27, "z": -50.03, "height": 0.0, "zone": "fog", "distance_home": 114.215, "tier": "Rara", "source": "FK_Evergreen_062"},
+      {"kind": "canopy", "x": -187.996, "z": -52.328, "height": 20.322, "zone": "fog", "distance_home": 116.672, "tier": "Rara", "source": "FK_Evergreen_062"},
+      {"kind": "tree_base", "x": -254.066, "z": -35.859, "height": 0.0, "zone": "territory", "distance_home": 67.267, "tier": "Épica", "source": "FK_Evergreen_063"},
+      {"kind": "canopy", "x": -257.34, "z": -33.561, "height": 16.2, "zone": "territory", "distance_home": 66.827, "tier": "Épica", "source": "FK_Evergreen_063"},
+      {"kind": "tree_base", "x": -340.145, "z": -115.159, "height": 0.0, "zone": "territory", "distance_home": 50.212, "tier": "Épica", "source": "FK_Evergreen_064"},
+      {"kind": "canopy", "x": -343.343, "z": -117.562, "height": 18.72, "zone": "territory", "distance_home": 54.212, "tier": "Épica", "source": "FK_Evergreen_064"},
+      {"kind": "tree_base", "x": -292.5, "z": -118.56, "height": 0.0, "zone": "territory", "distance_home": 34.388, "tier": "Legendaria", "source": "FK_Evergreen_065"},
+      {"kind": "canopy", "x": -293.986, "z": -122.274, "height": 18.18, "zone": "territory", "distance_home": 37.756, "tier": "Legendaria", "source": "FK_Evergreen_065"},
+      {"kind": "tree_base", "x": -202.4, "z": -79.307, "height": 0.0, "zone": "fog", "distance_home": 97.766, "tier": "Rara", "source": "FK_Evergreen_066"},
+      {"kind": "canopy", "x": -199.126, "z": -81.605, "height": 20.052, "zone": "fog", "distance_home": 100.931, "tier": "Rara", "source": "FK_Evergreen_066"},
+      {"kind": "tree_base", "x": -156.394, "z": -78.452, "height": 0.0, "zone": "fog", "distance_home": 143.755, "tier": "Común", "source": "FK_Evergreen_067"},
+      {"kind": "canopy", "x": -153.12, "z": -80.75, "height": 18.324, "zone": "fog", "distance_home": 146.941, "tier": "Común", "source": "FK_Evergreen_067"},
+      {"kind": "tree_base", "x": -180.9, "z": -150.004, "height": 0.0, "zone": "fog", "distance_home": 135.685, "tier": "Común", "source": "FK_Evergreen_068"},
+      {"kind": "canopy", "x": -177.626, "z": -152.302, "height": 17.244, "zone": "fog", "distance_home": 139.66, "tier": "Común", "source": "FK_Evergreen_068"},
+      {"kind": "tree_base", "x": -475.615, "z": -117.794, "height": 0.0, "zone": "outside", "distance_home": 178.65, "tier": "Común", "source": "FK_Evergreen_069"},
+      {"kind": "canopy", "x": -479.054, "z": -119.836, "height": 17.856, "zone": "outside", "distance_home": 182.411, "tier": "Común", "source": "FK_Evergreen_069"},
+      {"kind": "tree_base", "x": -133.579, "z": 170.835, "height": 0.0, "zone": "outside", "distance_home": 305.201, "tier": "Común", "source": "FK_Evergreen_070"},
+      {"kind": "canopy", "x": -130.373, "z": 173.227, "height": 17.604, "zone": "outside", "distance_home": 308.957, "tier": "Común", "source": "FK_Evergreen_070"},
+      {"kind": "tree_base", "x": -278.463, "z": 174.258, "height": 0.0, "zone": "outside", "distance_home": 260.151, "tier": "Común", "source": "FK_Evergreen_071"},
+      {"kind": "canopy", "x": -278.219, "z": 178.251, "height": 18.072, "zone": "outside", "distance_home": 264.151, "tier": "Común", "source": "FK_Evergreen_071"},
+      {"kind": "tree_base", "x": -471.289, "z": 60.157, "height": 0.0, "zone": "outside", "distance_home": 224.523, "tier": "Común", "source": "FK_Evergreen_072"},
+      {"kind": "canopy", "x": -474.578, "z": 57.88, "height": 20.052, "zone": "outside", "distance_home": 225.593, "tier": "Común", "source": "FK_Evergreen_072"},
+      {"kind": "tree_base", "x": -467.469, "z": 176.146, "height": 0.0, "zone": "outside", "distance_home": 310.231, "tier": "Común", "source": "FK_Evergreen_073"},
+      {"kind": "canopy", "x": -469.889, "z": 179.331, "height": 19.386, "zone": "outside", "distance_home": 314.218, "tier": "Común", "source": "FK_Evergreen_073"},
+      {"kind": "tree_base", "x": -335.116, "z": 170.94, "height": 0.0, "zone": "outside", "distance_home": 258.338, "tier": "Común", "source": "FK_Evergreen_074"},
+      {"kind": "canopy", "x": -334.872, "z": 174.933, "height": 17.604, "zone": "outside", "distance_home": 262.262, "tier": "Común", "source": "FK_Evergreen_074"},
+      {"kind": "tree_base", "x": -134.856, "z": 99.683, "height": 0.0, "zone": "outside", "distance_home": 247.751, "tier": "Común", "source": "FK_Evergreen_075"},
+      {"kind": "canopy", "x": -130.872, "z": 100.045, "height": 19.278, "zone": "outside", "distance_home": 250.691, "tier": "Común", "source": "FK_Evergreen_075"},
+      {"kind": "tree_base", "x": -131.032, "z": 133.422, "height": 0.0, "zone": "outside", "distance_home": 276.149, "tier": "Común", "source": "FK_Evergreen_076"},
+      {"kind": "canopy", "x": -127.066, "z": 133.944, "height": 18.126, "zone": "outside", "distance_home": 279.003, "tier": "Común", "source": "FK_Evergreen_076"},
+      {"kind": "tree_base", "x": -471.303, "z": -37.693, "height": 0.0, "zone": "outside", "distance_home": 177.715, "tier": "Común", "source": "FK_Evergreen_077"},
+      {"kind": "canopy", "x": -474.742, "z": -39.735, "height": 16.956, "zone": "outside", "distance_home": 180.51, "tier": "Común", "source": "FK_Evergreen_077"},
+      {"kind": "tree_base", "x": -399.281, "z": 175.892, "height": 0.0, "zone": "outside", "distance_home": 279.145, "tier": "Común", "source": "FK_Evergreen_078"},
+      {"kind": "canopy", "x": -399.037, "z": 179.885, "height": 17.496, "zone": "outside", "distance_home": 282.794, "tier": "Común", "source": "FK_Evergreen_078"},
+      {"kind": "tree_base", "x": -439.348, "z": -170.881, "height": 0.0, "zone": "outside", "distance_home": 163.687, "tier": "Común", "source": "FK_Evergreen_079"},
+      {"kind": "canopy", "x": -442.753, "z": -172.98, "height": 17.514, "zone": "outside", "distance_home": 167.687, "tier": "Común", "source": "FK_Evergreen_079"},
+      {"kind": "tree_base", "x": -119.355, "z": -181.163, "height": 0.0, "zone": "outside", "distance_home": 204.646, "tier": "Común", "source": "FK_Evergreen_080"},
+      {"kind": "canopy", "x": -116.081, "z": -183.461, "height": 19.188, "zone": "outside", "distance_home": 208.616, "tier": "Común", "source": "FK_Evergreen_080"},
+      {"kind": "tree_base", "x": -478.826, "z": -77.741, "height": 0.0, "zone": "outside", "distance_home": 178.973, "tier": "Común", "source": "FK_Evergreen_081"},
+      {"kind": "canopy", "x": -482.265, "z": -79.783, "height": 16.578, "zone": "outside", "distance_home": 182.34, "tier": "Común", "source": "FK_Evergreen_081"},
+      {"kind": "tree_base", "x": -214.453, "z": 179.965, "height": 0.0, "zone": "outside", "distance_home": 278.433, "tier": "Común", "source": "FK_Evergreen_082"},
+      {"kind": "canopy", "x": -214.209, "z": 183.958, "height": 18.036, "zone": "outside", "distance_home": 282.309, "tier": "Común", "source": "FK_Evergreen_082"},
+      {"kind": "tree_base", "x": -406.46, "z": -177.709, "height": 0.0, "zone": "outside", "distance_home": 141.169, "tier": "Común", "source": "FK_Evergreen_083"},
+      {"kind": "canopy", "x": -409.477, "z": -180.336, "height": 19.854, "zone": "outside", "distance_home": 145.169, "tier": "Común", "source": "FK_Evergreen_083"},
+      {"kind": "tree_base", "x": -481.609, "z": -11.269, "height": 0.0, "zone": "outside", "distance_home": 196.005, "tier": "Común", "source": "FK_Evergreen_084"},
+      {"kind": "canopy", "x": -485.048, "z": -13.311, "height": 18.846, "zone": "outside", "distance_home": 198.449, "tier": "Común", "source": "FK_Evergreen_084"},
+      {"kind": "tree_base", "x": -480.656, "z": -150.289, "height": 0.0, "zone": "outside", "distance_home": 192.091, "tier": "Común", "source": "FK_Evergreen_085"},
+      {"kind": "canopy", "x": -484.095, "z": -152.331, "height": 18.936, "zone": "outside", "distance_home": 196.022, "tier": "Común", "source": "FK_Evergreen_085"},
+      {"kind": "tree_base", "x": -358.06, "z": 170.525, "height": 0.0, "zone": "outside", "distance_home": 262.039, "tier": "Común", "source": "FK_Evergreen_087"},
+      {"kind": "canopy", "x": -357.816, "z": 174.518, "height": 18.018, "zone": "outside", "distance_home": 265.88, "tier": "Común", "source": "FK_Evergreen_087"},
+      {"kind": "tree_base", "x": -186.174, "z": 173.754, "height": 0.0, "zone": "outside", "distance_home": 282.684, "tier": "Común", "source": "FK_Evergreen_088"},
+      {"kind": "canopy", "x": -185.461, "z": 177.69, "height": 18.612, "zone": "outside", "distance_home": 286.575, "tier": "Común", "source": "FK_Evergreen_088"},
+      {"kind": "tree_base", "x": -479.235, "z": 85.041, "height": 0.0, "zone": "outside", "distance_home": 247.061, "tier": "Común", "source": "FK_Evergreen_089"},
+      {"kind": "canopy", "x": -482.524, "z": 82.764, "height": 16.668, "zone": "outside", "distance_home": 247.911, "tier": "Común", "source": "FK_Evergreen_089"},
+      {"kind": "tree_base", "x": -155.57, "z": 173.85, "height": 0.0, "zone": "outside", "distance_home": 296.418, "tier": "Común", "source": "FK_Evergreen_090"},
+      {"kind": "canopy", "x": -153.058, "z": 176.963, "height": 19.35, "zone": "outside", "distance_home": 300.361, "tier": "Común", "source": "FK_Evergreen_090"},
+      {"kind": "tree_base", "x": -474.961, "z": 31.94, "height": 0.0, "zone": "outside", "distance_home": 210.443, "tier": "Común", "source": "FK_Evergreen_091"},
+      {"kind": "canopy", "x": -478.25, "z": 29.663, "height": 18.054, "zone": "outside", "distance_home": 211.945, "tier": "Común", "source": "FK_Evergreen_091"},
+      {"kind": "tree_base", "x": -474.355, "z": -184.244, "height": 0.0, "zone": "outside", "distance_home": 200.621, "tier": "Común", "source": "FK_Evergreen_094"},
+      {"kind": "canopy", "x": -477.794, "z": -186.286, "height": 18.81, "zone": "outside", "distance_home": 204.621, "tier": "Común", "source": "FK_Evergreen_094"},
+      {"kind": "tree_base", "x": -118.366, "z": 73.76, "height": 0.0, "zone": "outside", "distance_home": 241.238, "tier": "Común", "source": "FK_Evergreen_095"},
+      {"kind": "canopy", "x": -114.382, "z": 74.122, "height": 18.0, "zone": "outside", "distance_home": 244.487, "tier": "Común", "source": "FK_Evergreen_095"},
+      {"kind": "tree_base", "x": -386.381, "z": -166.551, "height": 0.0, "zone": "outside", "distance_home": 118.795, "tier": "Rara", "source": "FK_Evergreen_096"},
+      {"kind": "canopy", "x": -389.29, "z": -169.297, "height": 19.818, "zone": "outside", "distance_home": 122.795, "tier": "Común", "source": "FK_Evergreen_096"},
+      {"kind": "tree_base", "x": -468.074, "z": 17.168, "height": 0.0, "zone": "outside", "distance_home": 196.69, "tier": "Común", "source": "FK_Evergreen_097"},
+      {"kind": "canopy", "x": -471.513, "z": 15.126, "height": 18.054, "zone": "outside", "distance_home": 198.6, "tier": "Común", "source": "FK_Evergreen_097"},
+      {"kind": "tree_base", "x": -466.867, "z": 110.133, "height": 0.0, "zone": "outside", "distance_home": 256.752, "tier": "Común", "source": "FK_Evergreen_098"},
+      {"kind": "canopy", "x": -470.156, "z": 107.856, "height": 16.686, "zone": "outside", "distance_home": 257.19, "tier": "Común", "source": "FK_Evergreen_098"},
+      {"kind": "tree_base", "x": -476.474, "z": 156.413, "height": 0.0, "zone": "outside", "distance_home": 299.037, "tier": "Común", "source": "FK_Evergreen_099"},
+      {"kind": "canopy", "x": -480.122, "z": 158.054, "height": 16.794, "zone": "outside", "distance_home": 302.521, "tier": "Común", "source": "FK_Evergreen_099"},
+      {"kind": "tree_base", "x": -314.455, "z": 175.912, "height": 0.0, "zone": "outside", "distance_home": 261.313, "tier": "Común", "source": "FK_Evergreen_100"},
+      {"kind": "canopy", "x": -314.211, "z": 179.905, "height": 19.08, "zone": "outside", "distance_home": 265.286, "tier": "Común", "source": "FK_Evergreen_100"},
+      {"kind": "tree_base", "x": -125.49, "z": -81.835, "height": 0.0, "zone": "outside", "distance_home": 174.538, "tier": "Común", "source": "FK_Evergreen_101"},
+      {"kind": "canopy", "x": -122.216, "z": -84.133, "height": 18.684, "zone": "outside", "distance_home": 177.786, "tier": "Común", "source": "FK_Evergreen_101"},
+      {"kind": "tree_base", "x": -234.073, "z": 177.165, "height": 0.0, "zone": "outside", "distance_home": 270.328, "tier": "Común", "source": "FK_Evergreen_102"},
+      {"kind": "canopy", "x": -233.829, "z": 181.158, "height": 17.514, "zone": "outside", "distance_home": 274.26, "tier": "Común", "source": "FK_Evergreen_102"},
+      {"kind": "tree_base", "x": -215.336, "z": 72.269, "height": 0.0, "zone": "outside", "distance_home": 178.61, "tier": "Común", "source": "FK_Evergreen_103"},
+      {"kind": "canopy", "x": -219.32, "z": 71.907, "height": 17.208, "zone": "outside", "distance_home": 176.434, "tier": "Común", "source": "FK_Evergreen_103"},
+      {"kind": "tree_base", "x": -354.152, "z": 110.957, "height": 0.0, "zone": "outside", "distance_home": 203.301, "tier": "Común", "source": "FK_Evergreen_104"},
+      {"kind": "canopy", "x": -354.396, "z": 106.964, "height": 19.89, "zone": "outside", "distance_home": 199.522, "tier": "Común", "source": "FK_Evergreen_104"},
+      {"kind": "tree_base", "x": -398.752, "z": -17.65, "height": 0.0, "zone": "outside", "distance_home": 119.532, "tier": "Rara", "source": "FK_Evergreen_105"},
+      {"kind": "canopy", "x": -402.191, "z": -19.692, "height": 20.628, "zone": "outside", "distance_home": 121.277, "tier": "Común", "source": "FK_Evergreen_105"},
+      {"kind": "tree_base", "x": -429.956, "z": -128.501, "height": 0.0, "zone": "outside", "distance_home": 137.043, "tier": "Común", "source": "FK_Evergreen_106"},
+      {"kind": "canopy", "x": -433.395, "z": -130.543, "height": 18.162, "zone": "outside", "distance_home": 140.955, "tier": "Común", "source": "FK_Evergreen_106"},
+      {"kind": "tree_base", "x": -264.668, "z": 107.529, "height": 0.0, "zone": "outside", "distance_home": 195.744, "tier": "Común", "source": "FK_Evergreen_107"},
+      {"kind": "canopy", "x": -264.912, "z": 103.536, "height": 16.29, "zone": "outside", "distance_home": 191.773, "tier": "Común", "source": "FK_Evergreen_107"},
+      {"kind": "tree_base", "x": -162.986, "z": 123.324, "height": 0.0, "zone": "outside", "distance_home": 249.343, "tier": "Común", "source": "FK_Evergreen_108"},
+      {"kind": "canopy", "x": -159.002, "z": 123.686, "height": 18.144, "zone": "outside", "distance_home": 251.854, "tier": "Común", "source": "FK_Evergreen_108"},
+      {"kind": "tree_base", "x": -419.857, "z": 72.182, "height": 0.0, "zone": "outside", "distance_home": 197.666, "tier": "Común", "source": "FK_Evergreen_109"},
+      {"kind": "canopy", "x": -423.146, "z": 69.905, "height": 18.81, "zone": "outside", "distance_home": 197.89, "tier": "Común", "source": "FK_Evergreen_109"},
+      {"kind": "tree_base", "x": -393.292, "z": 26.585, "height": 0.0, "zone": "outside", "distance_home": 145.446, "tier": "Común", "source": "FK_Evergreen_110"},
+      {"kind": "canopy", "x": -396.731, "z": 24.543, "height": 17.514, "zone": "outside", "distance_home": 146.139, "tier": "Común", "source": "FK_Evergreen_110"},
+      {"kind": "tree_base", "x": -252.63, "z": 152.156, "height": 0.0, "zone": "outside", "distance_home": 241.841, "tier": "Común", "source": "FK_Evergreen_111"},
+      {"kind": "canopy", "x": -252.386, "z": 156.149, "height": 18.216, "zone": "outside", "distance_home": 245.805, "tier": "Común", "source": "FK_Evergreen_111"},
+      {"kind": "tree_base", "x": -302.93, "z": 147.332, "height": 0.0, "zone": "outside", "distance_home": 232.351, "tier": "Común", "source": "FK_Evergreen_112"},
+      {"kind": "canopy", "x": -302.686, "z": 151.325, "height": 17.694, "zone": "outside", "distance_home": 236.34, "tier": "Común", "source": "FK_Evergreen_112"},
+      {"kind": "tree_base", "x": -399.748, "z": -68.036, "height": 0.0, "zone": "outside", "distance_home": 101.18, "tier": "Rara", "source": "FK_Evergreen_113"},
+      {"kind": "canopy", "x": -403.187, "z": -70.078, "height": 17.532, "zone": "outside", "distance_home": 104.26, "tier": "Rara", "source": "FK_Evergreen_113"},
+      {"kind": "tree_base", "x": -423.918, "z": -94.41, "height": 0.0, "zone": "outside", "distance_home": 124.274, "tier": "Común", "source": "FK_Evergreen_114"},
+      {"kind": "canopy", "x": -427.357, "z": -96.452, "height": 19.62, "zone": "outside", "distance_home": 127.871, "tier": "Común", "source": "FK_Evergreen_114"},
+      {"kind": "tree_base", "x": -377.466, "z": -125.937, "height": 0.0, "zone": "outside", "distance_home": 87.617, "tier": "Rara", "source": "FK_Evergreen_115"},
+      {"kind": "canopy", "x": -380.905, "z": -127.979, "height": 18.162, "zone": "outside", "distance_home": 91.612, "tier": "Rara", "source": "FK_Evergreen_115"},
+      {"kind": "tree_base", "x": -301.343, "z": 67.187, "height": 0.0, "zone": "outside", "distance_home": 152.192, "tier": "Común", "source": "FK_Evergreen_116"},
+      {"kind": "canopy", "x": -301.587, "z": 63.194, "height": 16.308, "zone": "outside", "distance_home": 148.202, "tier": "Común", "source": "FK_Evergreen_116"},
+      {"kind": "tree_base", "x": -426.476, "z": -3.571, "height": 0.0, "zone": "outside", "distance_home": 150.422, "tier": "Común", "source": "FK_Evergreen_117"},
+      {"kind": "canopy", "x": -429.915, "z": -5.613, "height": 17.064, "zone": "outside", "distance_home": 152.25, "tier": "Común", "source": "FK_Evergreen_117"},
+      {"kind": "tree_base", "x": -351.372, "z": 50.306, "height": 0.0, "zone": "outside", "distance_home": 144.73, "tier": "Común", "source": "FK_Evergreen_118"},
+      {"kind": "canopy", "x": -347.933, "z": 52.348, "height": 17.424, "zone": "outside", "distance_home": 145.472, "tier": "Común", "source": "FK_Evergreen_118"},
+      {"kind": "tree_base", "x": -421.354, "z": 41.454, "height": 0.0, "zone": "outside", "distance_home": 175.264, "tier": "Común", "source": "FK_Evergreen_120"},
+      {"kind": "canopy", "x": -424.793, "z": 39.412, "height": 17.01, "zone": "outside", "distance_home": 176.215, "tier": "Común", "source": "FK_Evergreen_120"},
+      {"kind": "tree_base", "x": -363.626, "z": -21.48, "height": 0.0, "zone": "outside", "distance_home": 89.906, "tier": "Rara", "source": "FK_Evergreen_121"},
+      {"kind": "canopy", "x": -367.065, "z": -23.522, "height": 17.712, "zone": "outside", "distance_home": 90.979, "tier": "Rara", "source": "FK_Evergreen_121"},
+      {"kind": "tree_base", "x": -215.736, "z": 149.202, "height": 0.0, "zone": "outside", "distance_home": 248.9, "tier": "Común", "source": "FK_Evergreen_122"},
+      {"kind": "canopy", "x": -215.492, "z": 153.195, "height": 16.578, "zone": "outside", "distance_home": 252.742, "tier": "Común", "source": "FK_Evergreen_122"},
+      {"kind": "tree_base", "x": -352.809, "z": -42.489, "height": 0.0, "zone": "outside", "distance_home": 67.793, "tier": "Épica", "source": "FK_Evergreen_123"},
+      {"kind": "canopy", "x": -356.248, "z": -44.531, "height": 19.926, "zone": "outside", "distance_home": 69.293, "tier": "Épica", "source": "FK_Evergreen_123"},
+      {"kind": "tree_base", "x": -396.838, "z": 47.985, "height": 0.0, "zone": "outside", "distance_home": 164.507, "tier": "Común", "source": "FK_Evergreen_124"},
+      {"kind": "canopy", "x": -400.277, "z": 45.943, "height": 17.568, "zone": "outside", "distance_home": 164.929, "tier": "Común", "source": "FK_Evergreen_124"},
+      {"kind": "tree_base", "x": -420.967, "z": -40.659, "height": 0.0, "zone": "outside", "distance_home": 128.837, "tier": "Común", "source": "FK_Evergreen_125"},
+      {"kind": "canopy", "x": -424.406, "z": -42.701, "height": 17.298, "zone": "outside", "distance_home": 131.4, "tier": "Común", "source": "FK_Evergreen_125"},
+      {"kind": "tree_base", "x": -449.617, "z": -67.859, "height": 0.0, "zone": "outside", "distance_home": 150.595, "tier": "Común", "source": "FK_Evergreen_126"},
+      {"kind": "canopy", "x": -453.056, "z": -69.901, "height": 17.712, "zone": "outside", "distance_home": 153.799, "tier": "Común", "source": "FK_Evergreen_126"},
+      {"kind": "tree_base", "x": -360.365, "z": 79.495, "height": 0.0, "zone": "outside", "distance_home": 175.221, "tier": "Común", "source": "FK_Evergreen_127"},
+      {"kind": "canopy", "x": -356.926, "z": 81.537, "height": 17.676, "zone": "outside", "distance_home": 175.998, "tier": "Común", "source": "FK_Evergreen_127"},
+      {"kind": "tree_base", "x": -440.849, "z": -114.654, "height": 0.0, "zone": "outside", "distance_home": 143.936, "tier": "Común", "source": "FK_Evergreen_128"},
+      {"kind": "canopy", "x": -444.288, "z": -116.696, "height": 16.362, "zone": "outside", "distance_home": 147.728, "tier": "Común", "source": "FK_Evergreen_128"},
+      {"kind": "tree_base", "x": -313.807, "z": 101.822, "height": 0.0, "zone": "outside", "distance_home": 187.331, "tier": "Común", "source": "FK_Evergreen_129"},
+      {"kind": "canopy", "x": -314.051, "z": 97.829, "height": 19.854, "zone": "outside", "distance_home": 183.368, "tier": "Común", "source": "FK_Evergreen_129"},
+      {"kind": "tree_base", "x": -290.544, "z": 91.645, "height": 0.0, "zone": "outside", "distance_home": 176.897, "tier": "Común", "source": "FK_Evergreen_130"},
+      {"kind": "canopy", "x": -290.788, "z": 87.652, "height": 20.556, "zone": "outside", "distance_home": 172.898, "tier": "Común", "source": "FK_Evergreen_130"},
+      {"kind": "tree_base", "x": -245.883, "z": -104.49, "height": 0.0, "zone": "territory", "distance_home": 57.52, "tier": "Épica", "source": "FK_DeadTree_001"},
+      {"kind": "tree_base", "x": -252.114, "z": -114.959, "height": 0.0, "zone": "territory", "distance_home": 56.486, "tier": "Épica", "source": "FK_DeadTree_002"},
+      {"kind": "tree_base", "x": -217.656, "z": 6.289, "height": 0.0, "zone": "fog", "distance_home": 122.94, "tier": "Común", "source": "FK_DeadTree_003"},
+      {"kind": "tree_base", "x": -141.702, "z": -26.622, "height": 0.0, "zone": "fog", "distance_home": 168.719, "tier": "Común", "source": "FK_DeadTree_004"},
+      {"kind": "tree_base", "x": -316.202, "z": -6.855, "height": 0.0, "zone": "territory", "distance_home": 79.807, "tier": "Épica", "source": "FK_DeadTree_005"},
+      {"kind": "tree_base", "x": -146.921, "z": 26.784, "height": 0.0, "zone": "fog", "distance_home": 189.549, "tier": "Común", "source": "FK_DeadTree_006"},
+      {"kind": "tree_base", "x": -141.814, "z": -113.586, "height": 0.0, "zone": "fog", "distance_home": 160.748, "tier": "Común", "source": "FK_DeadTree_007"},
+      {"kind": "tree_base", "x": -211.578, "z": -52.481, "height": 0.0, "zone": "fog", "distance_home": 94.212, "tier": "Rara", "source": "FK_DeadTree_008"},
+      {"kind": "tree_base", "x": -198.827, "z": -92.679, "height": 0.0, "zone": "fog", "distance_home": 101.464, "tier": "Rara", "source": "FK_DeadTree_009"},
+      {"kind": "tree_base", "x": -335.141, "z": -130.185, "height": 0.0, "zone": "territory", "distance_home": 57.242, "tier": "Épica", "source": "FK_DeadTree_010"},
+      {"kind": "tree_base", "x": -306.467, "z": -147.0, "height": 0.0, "zone": "territory", "distance_home": 62.337, "tier": "Épica", "source": "FK_DeadTree_011"},
+      {"kind": "tree_base", "x": -223.248, "z": -154.744, "height": 0.0, "zone": "fog", "distance_home": 103.707, "tier": "Rara", "source": "FK_DeadTree_012"},
+      {"kind": "tree_base", "x": -273.416, "z": -151.341, "height": 0.0, "zone": "territory", "distance_home": 71.469, "tier": "Épica", "source": "FK_DeadTree_013"},
+      {"kind": "tree_base", "x": -151.845, "z": -161.088, "height": 0.0, "zone": "fog", "distance_home": 166.551, "tier": "Común", "source": "FK_DeadTree_014"},
+      {"kind": "tree_base", "x": -319.764, "z": 26.342, "height": 0.0, "zone": "fog", "distance_home": 113.082, "tier": "Rara", "source": "FK_DeadTree_015"},
+      {"kind": "tree_base", "x": -340.693, "z": -59.164, "height": 0.0, "zone": "territory", "distance_home": 48.202, "tier": "Épica", "source": "FK_DeadTree_016"},
+      {"kind": "tree_base", "x": -141.918, "z": -72.4, "height": 0.0, "zone": "fog", "distance_home": 158.583, "tier": "Común", "source": "FK_DeadTree_017"},
+      {"kind": "tree_base", "x": -295.258, "z": 25.215, "height": 0.0, "zone": "fog", "distance_home": 110.317, "tier": "Rara", "source": "FK_DeadTree_018"},
+      {"kind": "tree_base", "x": -282.143, "z": -51.143, "height": 0.0, "zone": "territory", "distance_home": 38.277, "tier": "Legendaria", "source": "FK_DeadTree_019"},
+      {"kind": "tree_base", "x": -177.007, "z": -38.398, "height": 0.0, "zone": "fog", "distance_home": 131.525, "tier": "Común", "source": "FK_DeadTree_020"},
+      {"kind": "tree_base", "x": -255.754, "z": -22.059, "height": 0.0, "zone": "territory", "distance_home": 76.937, "tier": "Épica", "source": "FK_DeadTree_021"},
+      {"kind": "tree_base", "x": -215.347, "z": -73.861, "height": 0.0, "zone": "fog", "distance_home": 85.382, "tier": "Rara", "source": "FK_DeadTree_022"},
+      {"kind": "tree_base", "x": -173.386, "z": -9.242, "height": 0.0, "zone": "fog", "distance_home": 147.548, "tier": "Común", "source": "FK_DeadTree_023"},
+      {"kind": "tree_base", "x": -339.513, "z": -88.975, "height": 0.0, "zone": "territory", "distance_home": 39.712, "tier": "Legendaria", "source": "FK_DeadTree_024"},
+      {"kind": "tree_base", "x": -257.233, "z": 8.183, "height": 0.0, "zone": "fog", "distance_home": 102.529, "tier": "Rara", "source": "FK_DeadTree_025"},
+      {"kind": "tree_base", "x": -180.049, "z": -132.613, "height": 0.0, "zone": "fog", "distance_home": 129.055, "tier": "Común", "source": "FK_DeadTree_026"},
+      {"kind": "tree_base", "x": -242.151, "z": -138.758, "height": 0.0, "zone": "territory", "distance_home": 78.971, "tier": "Épica", "source": "FK_DeadTree_027"},
+      {"kind": "tree_base", "x": -232.022, "z": 26.071, "height": 0.0, "zone": "fog", "distance_home": 130.222, "tier": "Común", "source": "FK_DeadTree_028"},
+      {"kind": "tree_base", "x": -163.286, "z": -61.837, "height": 0.0, "zone": "fog", "distance_home": 138.662, "tier": "Común", "source": "FK_DeadTree_029"},
+      {"kind": "tree_base", "x": -314.253, "z": -101.509, "height": 0.0, "zone": "territory", "distance_home": 21.811, "tier": "Legendaria", "source": "FK_DeadTree_030"},
+      {"kind": "tree_base", "x": -214.473, "z": -124.22, "height": 0.0, "zone": "fog", "distance_home": 94.091, "tier": "Rara", "source": "FK_DeadTree_031"},
+      {"kind": "tree_base", "x": -166.874, "z": -102.953, "height": 0.0, "zone": "fog", "distance_home": 134.331, "tier": "Común", "source": "FK_DeadTree_032"},
+      {"kind": "tree_base", "x": -172.623, "z": -159.086, "height": 0.0, "zone": "fog", "distance_home": 147.355, "tier": "Común", "source": "FK_DeadTree_033"},
+      {"kind": "tree_base", "x": -290.873, "z": -18.495, "height": 0.0, "zone": "territory", "distance_home": 67.128, "tier": "Épica", "source": "FK_DeadTree_034"},
+      {"kind": "tree_base", "x": -218.25, "z": -102.027, "height": 0.0, "zone": "fog", "distance_home": 83.504, "tier": "Rara", "source": "FK_DeadTree_035"},
+      {"kind": "tree_base", "x": -327.957, "z": 6.666, "height": 0.0, "zone": "fog", "distance_home": 95.834, "tier": "Rara", "source": "FK_DeadTree_036"},
+      {"kind": "tree_base", "x": -149.891, "z": -44.766, "height": 0.0, "zone": "fog", "distance_home": 155.407, "tier": "Común", "source": "FK_DeadTree_037"},
+      {"kind": "tree_base", "x": -186.888, "z": -76.457, "height": 0.0, "zone": "fog", "distance_home": 113.434, "tier": "Rara", "source": "FK_DeadTree_038"},
+      {"kind": "tree_base", "x": -381.785, "z": 97.109, "height": 0.0, "zone": "outside", "distance_home": 199.631, "tier": "Común", "source": "FK_DeadTree_039"},
+      {"kind": "tree_base", "x": -212.722, "z": 96.385, "height": 0.0, "zone": "outside", "distance_home": 201.291, "tier": "Común", "source": "FK_DeadTree_040"},
+      {"kind": "tree_base", "x": -258.456, "z": 65.917, "height": 0.0, "zone": "outside", "distance_home": 156.53, "tier": "Común", "source": "FK_DeadTree_041"},
+      {"kind": "tree_base", "x": -255.941, "z": 83.402, "height": 0.0, "zone": "outside", "distance_home": 174.07, "tier": "Común", "source": "FK_DeadTree_042"},
+      {"kind": "log", "x": -243.95, "z": -37.936, "height": 3.777, "zone": "territory", "distance_home": 73.189, "tier": "Épica", "source": "FK_FallenLog_001"},
+      {"kind": "log", "x": -189.294, "z": -150.304, "height": 3.808, "zone": "fog", "distance_home": 128.532, "tier": "Común", "source": "FK_FallenLog_002"},
+      {"kind": "log", "x": -180.598, "z": -110.508, "height": 4.256, "zone": "fog", "distance_home": 122.096, "tier": "Común", "source": "FK_FallenLog_003"},
+      {"kind": "log", "x": -230.679, "z": -9.94, "height": 4.362, "zone": "fog", "distance_home": 102.173, "tier": "Rara", "source": "FK_FallenLog_004"},
+      {"kind": "log", "x": -193.813, "z": -38.363, "height": 3.523, "zone": "fog", "distance_home": 115.977, "tier": "Rara", "source": "FK_FallenLog_005"},
+      {"kind": "log", "x": -273.119, "z": -32.085, "height": 4.207, "zone": "territory", "distance_home": 59.351, "tier": "Épica", "source": "FK_FallenLog_006"},
+      {"kind": "log", "x": -142.091, "z": 9.686, "height": 3.667, "zone": "fog", "distance_home": 184.121, "tier": "Común", "source": "FK_FallenLog_007"},
+      {"kind": "log", "x": -136.077, "z": -141.906, "height": 3.925, "zone": "fog", "distance_home": 173.52, "tier": "Común", "source": "FK_FallenLog_008"},
+      {"kind": "log", "x": -337.828, "z": -149.349, "height": 3.287, "zone": "territory", "distance_home": 74.644, "tier": "Épica", "source": "FK_FallenLog_009"},
+      {"kind": "log", "x": -274.078, "z": 20.791, "height": 3.8, "zone": "fog", "distance_home": 108.921, "tier": "Rara", "source": "FK_FallenLog_010"},
+      {"kind": "log", "x": -343.753, "z": 24.663, "height": 3.462, "zone": "fog", "distance_home": 118.069, "tier": "Rara", "source": "FK_FallenLog_011"},
+      {"kind": "log", "x": -306.64, "z": -122.203, "height": 3.526, "zone": "territory", "distance_home": 37.791, "tier": "Legendaria", "source": "FK_FallenLog_012"},
+      {"kind": "log", "x": -258.415, "z": -145.359, "height": 3.743, "zone": "territory", "distance_home": 73.297, "tier": "Épica", "source": "FK_FallenLog_013"},
+      {"kind": "log", "x": -273.965, "z": -127.646, "height": 3.887, "zone": "territory", "distance_home": 49.965, "tier": "Épica", "source": "FK_FallenLog_014"},
+      {"kind": "log", "x": -159.594, "z": 152.489, "height": 3.348, "zone": "outside", "distance_home": 275.889, "tier": "Común", "source": "FK_FallenLog_015"},
+      {"kind": "log", "x": -460.127, "z": -151.064, "height": 3.895, "zone": "outside", "distance_home": 173.22, "tier": "Común", "source": "FK_FallenLog_016"},
+      {"kind": "nest", "x": -395.0, "z": 75.0, "height": 0.5, "zone": "outside", "distance_home": 186.078, "tier": "Común", "source": "I1"},
+      {"kind": "nest", "x": -320.0, "z": 15.0, "height": 0.5, "zone": "fog", "distance_home": 101.98, "tier": "Rara", "source": "I2"},
+      {"kind": "nest", "x": -185.0, "z": 15.0, "height": 0.5, "zone": "fog", "distance_home": 152.398, "tier": "Común", "source": "I3"},
+      {"kind": "nest", "x": -265.0, "z": -99.0, "height": 0.5, "zone": "territory", "distance_home": 37.696, "tier": "Legendaria", "source": "I4"},
+      {"kind": "nest", "x": -240.0, "z": -135.0, "height": 0.5, "zone": "territory", "distance_home": 78.102, "tier": "Épica", "source": "I5"},
+      {"kind": "trail_edge", "x": -414.069, "z": 84.976, "height": 0.0, "zone": "outside", "distance_home": 204.704, "tier": "Común", "source": "route@60"},
+      {"kind": "trail_edge", "x": -397.625, "z": 96.361, "height": 0.0, "zone": "outside", "distance_home": 205.967, "tier": "Común", "source": "route@60"},
+      {"kind": "trail_edge", "x": -392.906, "z": 51.887, "height": 0.0, "zone": "outside", "distance_home": 165.437, "tier": "Común", "source": "route@100"},
+      {"kind": "trail_edge", "x": -375.709, "z": 62.097, "height": 0.0, "zone": "outside", "distance_home": 165.437, "tier": "Común", "source": "route@100"},
+      {"kind": "trail_edge", "x": -372.485, "z": 17.492, "height": 0.0, "zone": "outside", "distance_home": 125.534, "tier": "Común", "source": "route@140"},
+      {"kind": "trail_edge", "x": -355.288, "z": 27.703, "height": 0.0, "zone": "outside", "distance_home": 125.534, "tier": "Común", "source": "route@140"},
+      {"kind": "trail_edge", "x": -352.063, "z": -16.902, "height": 0.0, "zone": "outside", "distance_home": 85.72, "tier": "Rara", "source": "route@180"},
+      {"kind": "trail_edge", "x": -334.866, "z": -6.691, "height": 0.0, "zone": "fog", "distance_home": 85.72, "tier": "Rara", "source": "route@180"},
+      {"kind": "trail_edge", "x": -331.642, "z": -51.296, "height": 0.0, "zone": "territory", "distance_home": 46.229, "tier": "Épica", "source": "route@220"},
+      {"kind": "trail_edge", "x": -314.445, "z": -41.085, "height": 0.0, "zone": "territory", "distance_home": 46.229, "tier": "Épica", "source": "route@220"},
+      {"kind": "trail_edge", "x": -311.22, "z": -85.69, "height": 0.0, "zone": "territory", "distance_home": 11.241, "tier": "Legendaria", "source": "route@260"},
+      {"kind": "trail_edge", "x": -294.023, "z": -75.479, "height": 0.0, "zone": "territory", "distance_home": 11.241, "tier": "Legendaria", "source": "route@260"},
+      {"kind": "trail_edge", "x": -271.342, "z": -107.233, "height": 0.0, "zone": "territory", "distance_home": 36.271, "tier": "Legendaria", "source": "route@300"},
+      {"kind": "trail_edge", "x": -235.464, "z": -74.319, "height": 0.0, "zone": "territory", "distance_home": 65.414, "tier": "Épica", "source": "route@340"},
+      {"kind": "trail_edge", "x": -251.835, "z": -62.831, "height": 0.0, "zone": "territory", "distance_home": 53.022, "tier": "Épica", "source": "route@340"},
+      {"kind": "trail_edge", "x": -212.487, "z": -41.577, "height": 0.0, "zone": "fog", "distance_home": 97.694, "tier": "Rara", "source": "route@380"},
+      {"kind": "trail_edge", "x": -228.858, "z": -30.089, "height": 0.0, "zone": "fog", "distance_home": 89.869, "tier": "Rara", "source": "route@380"},
+      {"kind": "trail_edge", "x": -189.51, "z": -8.835, "height": 0.0, "zone": "fog", "distance_home": 134.199, "tier": "Común", "source": "route@420"},
+      {"kind": "trail_edge", "x": -205.881, "z": 2.654, "height": 0.0, "zone": "fog", "distance_home": 128.614, "tier": "Común", "source": "route@420"},
+      {"kind": "trail_edge", "x": -176.662, "z": 33.731, "height": 0.0, "zone": "fog", "distance_home": 171.2, "tier": "Común", "source": "route@460"},
+      {"kind": "trail_edge", "x": -196.579, "z": 31.921, "height": 0.0, "zone": "fog", "distance_home": 156.097, "tier": "Común", "source": "route@460"},
+      {"kind": "trail_edge", "x": -180.283, "z": 73.567, "height": 0.0, "zone": "outside", "distance_home": 198.685, "tier": "Común", "source": "route@500"},
+      {"kind": "trail_edge", "x": -200.201, "z": 71.756, "height": 0.0, "zone": "outside", "distance_home": 185.829, "tier": "Común", "source": "route@500"},
+      {"kind": "trail_edge", "x": -221.783, "z": 136.659, "height": 0.0, "zone": "outside", "distance_home": 235.054, "tier": "Común", "source": "route@580"},
+      {"kind": "trail_edge", "x": -223.006, "z": 116.696, "height": 0.0, "zone": "outside", "distance_home": 215.892, "tier": "Común", "source": "route@580"},
+      {"kind": "trail_edge", "x": -261.709, "z": 139.103, "height": 0.0, "zone": "outside", "distance_home": 227.351, "tier": "Común", "source": "route@620"},
+      {"kind": "trail_edge", "x": -262.931, "z": 119.14, "height": 0.0, "zone": "outside", "distance_home": 207.479, "tier": "Común", "source": "route@620"},
+      {"kind": "trail_edge", "x": -301.634, "z": 141.547, "height": 0.0, "zone": "outside", "distance_home": 226.553, "tier": "Común", "source": "route@660"},
+      {"kind": "trail_edge", "x": -302.856, "z": 121.585, "height": 0.0, "zone": "outside", "distance_home": 206.604, "tier": "Común", "source": "route@660"},
+      {"kind": "trail_edge", "x": -341.559, "z": 143.992, "height": 0.0, "zone": "outside", "distance_home": 232.732, "tier": "Común", "source": "route@700"},
+      {"kind": "trail_edge", "x": -342.781, "z": 124.029, "height": 0.0, "zone": "outside", "distance_home": 213.362, "tier": "Común", "source": "route@700"},
+      {"kind": "trail_edge", "x": -381.484, "z": 146.436, "height": 0.0, "zone": "outside", "distance_home": 245.362, "tier": "Común", "source": "route@740"},
+      {"kind": "trail_edge", "x": -382.707, "z": 126.474, "height": 0.0, "zone": "outside", "distance_home": 227.071, "tier": "Común", "source": "route@740"}
+    ],
+    "east": [
+      {"kind": "meadow", "x": 129.837, "z": -168.094, "height": 0.0, "zone": "outside", "distance_home": 361.608, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 128.786, "z": -145.082, "height": 0.0, "zone": "outside", "distance_home": 352.459, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 135.926, "z": -103.97, "height": 0.0, "zone": "outside", "distance_home": 330.836, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 137.9, "z": -84.718, "height": 0.0, "zone": "outside", "distance_home": 323.394, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 125.421, "z": -42.391, "height": 0.0, "zone": "outside", "distance_home": 327.336, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 136.711, "z": 37.929, "height": 0.0, "zone": "outside", "distance_home": 315.577, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 128.4, "z": 71.263, "height": 0.0, "zone": "outside", "distance_home": 329.401, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 128.707, "z": 103.209, "height": 0.0, "zone": "outside", "distance_home": 337.463, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 137.539, "z": 125.002, "height": 0.0, "zone": "outside", "distance_home": 336.538, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 133.156, "z": 154.543, "height": 0.0, "zone": "outside", "distance_home": 352.525, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 165.529, "z": -175.871, "height": 0.0, "zone": "outside", "distance_home": 334.447, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 157.064, "z": -137.867, "height": 0.0, "zone": "outside", "distance_home": 323.758, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 164.26, "z": -110.623, "height": 0.0, "zone": "outside", "distance_home": 306.406, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 160.837, "z": -84.992, "height": 0.0, "zone": "outside", "distance_home": 301.395, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 167.305, "z": -56.722, "height": 0.0, "zone": "outside", "distance_home": 288.33, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 154.316, "z": -18.201, "height": 0.0, "zone": "outside", "distance_home": 296.243, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 156.121, "z": 45.136, "height": 0.0, "zone": "outside", "distance_home": 297.325, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 165.962, "z": 77.267, "height": 0.0, "zone": "outside", "distance_home": 294.36, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 161.851, "z": 102.492, "height": 0.0, "zone": "outside", "distance_home": 305.834, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 162.94, "z": 133.069, "height": 0.0, "zone": "outside", "distance_home": 316.403, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 163.721, "z": 164.125, "height": 0.0, "zone": "outside", "distance_home": 329.989, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 189.866, "z": -163.462, "height": 0.0, "zone": "outside", "distance_home": 307.229, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 189.193, "z": -145.052, "height": 0.0, "zone": "outside", "distance_home": 298.43, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 182.724, "z": -72.637, "height": 0.0, "zone": "outside", "distance_home": 276.97, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 183.871, "z": -51.553, "height": 0.0, "zone": "outside", "distance_home": 271.076, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 183.087, "z": -26.235, "height": 0.0, "zone": "outside", "distance_home": 268.2, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 195.892, "z": 126.029, "height": 0.0, "zone": "outside", "distance_home": 283.645, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 186.275, "z": 160.025, "height": 0.0, "zone": "outside", "distance_home": 308.479, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 221.697, "z": -162.711, "height": 0.0, "zone": "outside", "distance_home": 280.352, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 214.595, "z": -134.403, "height": 0.0, "zone": "outside", "distance_home": 271.071, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 217.33, "z": -117.459, "height": 0.0, "zone": "outside", "distance_home": 260.638, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 222.954, "z": -76.081, "height": 0.0, "zone": "outside", "distance_home": 239.454, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 224.878, "z": -53.382, "height": 0.0, "zone": "outside", "distance_home": 231.364, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 217.907, "z": -17.627, "height": 0.0, "zone": "outside", "distance_home": 232.762, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 212.863, "z": 129.586, "height": 0.0, "zone": "outside", "distance_home": 270.234, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 227.446, "z": 152.296, "height": 0.0, "zone": "outside", "distance_home": 269.674, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 255.689, "z": -176.891, "height": 0.0, "zone": "outside", "distance_home": 262.768, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 250.856, "z": -132.978, "height": 0.0, "zone": "outside", "distance_home": 239.461, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 254.605, "z": -102.908, "height": 0.0, "zone": "outside", "distance_home": 220.837, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 251.149, "z": -85.368, "height": 0.0, "zone": "outside", "distance_home": 216.401, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 257.03, "z": -51.807, "height": 0.0, "zone": "outside", "distance_home": 199.803, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 257.355, "z": -22.396, "height": 0.0, "zone": "outside", "distance_home": 193.942, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 257.874, "z": 35.798, "height": 0.0, "zone": "outside", "distance_home": 195.433, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 246.0, "z": 129.883, "height": 0.0, "zone": "outside", "distance_home": 241.838, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 254.054, "z": 167.783, "height": 0.0, "zone": "outside", "distance_home": 257.965, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 280.136, "z": -169.169, "height": 0.0, "zone": "outside", "distance_home": 239.733, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 279.144, "z": -138.197, "height": 0.0, "zone": "outside", "distance_home": 219.75, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 277.116, "z": -109.233, "height": 0.0, "zone": "outside", "distance_home": 204.502, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 285.66, "z": -47.907, "height": 0.0, "zone": "outside", "distance_home": 171.181, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 283.258, "z": -14.059, "height": 0.0, "zone": "outside", "distance_home": 167.333, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 282.679, "z": 37.094, "height": 0.0, "zone": "outside", "distance_home": 171.383, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 275.356, "z": 76.79, "height": 0.0, "zone": "outside", "distance_home": 190.781, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 274.035, "z": 105.837, "height": 0.0, "zone": "outside", "distance_home": 205.342, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 281.227, "z": 128.384, "height": 0.0, "zone": "outside", "distance_home": 212.054, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 282.911, "z": 161.613, "height": 0.0, "zone": "outside", "distance_home": 232.459, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 307.598, "z": -173.296, "height": 0.0, "zone": "outside", "distance_home": 224.298, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 315.651, "z": -134.726, "height": 0.0, "zone": "outside", "distance_home": 190.265, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 308.985, "z": -111.149, "height": 0.0, "zone": "outside", "distance_home": 179.553, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 307.485, "z": -80.259, "height": 0.0, "zone": "outside", "distance_home": 163.561, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 315.187, "z": -43.624, "height": 0.0, "zone": "outside", "distance_home": 141.696, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 314.96, "z": -25.554, "height": 0.0, "zone": "outside", "distance_home": 137.437, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 310.508, "z": 47.987, "height": 0.0, "zone": "outside", "distance_home": 147.515, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 307.544, "z": 67.292, "height": 0.0, "zone": "outside", "distance_home": 157.55, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 309.108, "z": 130.37, "height": 0.0, "zone": "outside", "distance_home": 191.956, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 304.47, "z": 152.231, "height": 0.0, "zone": "outside", "distance_home": 210.602, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 333.913, "z": -163.541, "height": 0.0, "zone": "outside", "distance_home": 200.554, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 344.714, "z": -146.223, "height": 0.0, "zone": "outside", "distance_home": 180.184, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 335.479, "z": -116.669, "height": 0.0, "zone": "outside", "distance_home": 163.483, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 346.752, "z": -85.804, "height": 0.0, "zone": "outside", "distance_home": 134.248, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 340.372, "z": -50.144, "height": 0.0, "zone": "outside", "distance_home": 120.552, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 344.729, "z": -25.64, "height": 0.0, "zone": "territory", "distance_home": 108.349, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 338.26, "z": 39.057, "height": 0.0, "zone": "outside", "distance_home": 118.369, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 346.888, "z": 77.674, "height": 0.0, "zone": "outside", "distance_home": 129.094, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 346.597, "z": 96.072, "height": 0.0, "zone": "outside", "distance_home": 141.145, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 332.534, "z": 124.874, "height": 0.0, "zone": "outside", "distance_home": 171.44, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 340.036, "z": 155.47, "height": 0.0, "zone": "outside", "distance_home": 190.429, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 363.687, "z": -175.277, "height": 0.0, "zone": "outside", "distance_home": 195.377, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 369.813, "z": -147.66, "height": 0.0, "zone": "outside", "distance_home": 168.028, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 368.429, "z": -104.087, "height": 0.0, "zone": "outside", "distance_home": 132.242, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 371.02, "z": -84.441, "height": 0.0, "zone": "outside", "distance_home": 115.621, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 375.118, "z": -42.436, "height": 0.0, "zone": "territory", "distance_home": 86.07, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 376.397, "z": -12.807, "height": 0.0, "zone": "territory", "distance_home": 74.709, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 368.721, "z": 41.885, "height": 0.0, "zone": "territory", "distance_home": 91.436, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 370.538, "z": 68.665, "height": 0.0, "zone": "territory", "distance_home": 105.02, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 362.089, "z": 101.979, "height": 0.0, "zone": "outside", "distance_home": 134.64, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 367.089, "z": 133.835, "height": 0.0, "zone": "outside", "distance_home": 157.436, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 372.355, "z": 166.079, "height": 0.0, "zone": "outside", "distance_home": 183.333, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 399.144, "z": -175.045, "height": 0.0, "zone": "outside", "distance_home": 182.283, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 404.876, "z": -141.544, "height": 0.0, "zone": "outside", "distance_home": 148.563, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 402.817, "z": -114.414, "height": 0.0, "zone": "outside", "distance_home": 123.761, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 406.079, "z": -84.889, "height": 0.0, "zone": "territory", "distance_home": 95.578, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 394.247, "z": -47.941, "height": 0.0, "zone": "territory", "distance_home": 73.53, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 407.546, "z": -25.988, "height": 0.0, "zone": "territory", "distance_home": 49.777, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 403.079, "z": 43.696, "height": 0.0, "zone": "territory", "distance_home": 64.117, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 407.02, "z": 70.187, "height": 0.0, "zone": "territory", "distance_home": 82.301, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 405.804, "z": 101.455, "height": 0.0, "zone": "outside", "distance_home": 110.663, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 405.479, "z": 127.998, "height": 0.0, "zone": "outside", "distance_home": 135.52, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 407.395, "z": 165.333, "height": 0.0, "zone": "outside", "distance_home": 170.734, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 427.263, "z": -142.24, "height": 0.0, "zone": "outside", "distance_home": 144.045, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 427.877, "z": -115.904, "height": 0.0, "zone": "outside", "distance_home": 117.996, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 427.531, "z": -87.744, "height": 0.0, "zone": "territory", "distance_home": 90.576, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 427.138, "z": -54.518, "height": 0.0, "zone": "territory", "distance_home": 59.117, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 427.703, "z": 41.401, "height": 0.0, "zone": "territory", "distance_home": 47.023, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 427.904, "z": 69.084, "height": 0.0, "zone": "territory", "distance_home": 72.531, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 422.561, "z": 128.163, "height": 0.0, "zone": "outside", "distance_home": 131.067, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 422.353, "z": 155.471, "height": 0.0, "zone": "outside", "distance_home": 157.91, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 464.172, "z": -171.004, "height": 0.0, "zone": "outside", "distance_home": 171.59, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 456.979, "z": -134.327, "height": 0.0, "zone": "outside", "distance_home": 134.508, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 457.471, "z": -110.86, "height": 0.0, "zone": "outside", "distance_home": 111.111, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 462.187, "z": -75.328, "height": 0.0, "zone": "territory", "distance_home": 76.307, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 454.055, "z": -49.386, "height": 0.0, "zone": "territory", "distance_home": 49.552, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 460.788, "z": 71.381, "height": 0.0, "zone": "territory", "distance_home": 72.192, "tier": "Épica", "source": "grid"},
+      {"kind": "meadow", "x": 463.045, "z": 95.207, "height": 0.0, "zone": "territory", "distance_home": 96.096, "tier": "Rara", "source": "grid"},
+      {"kind": "meadow", "x": 464.015, "z": 134.41, "height": 0.0, "zone": "outside", "distance_home": 135.139, "tier": "Común", "source": "grid"},
+      {"kind": "meadow", "x": 463.756, "z": 159.041, "height": 0.0, "zone": "outside", "distance_home": 159.635, "tier": "Común", "source": "grid"},
+      {"kind": "nest", "x": 175.0, "z": -30.0, "height": 0.5, "zone": "outside", "distance_home": 276.632, "tier": "Común", "source": "N1"},
+      {"kind": "nest", "x": 270.0, "z": -70.0, "height": 0.5, "zone": "outside", "distance_home": 193.132, "tier": "Común", "source": "N2"},
+      {"kind": "nest", "x": 360.0, "z": 50.0, "height": 0.5, "zone": "territory", "distance_home": 102.956, "tier": "Rara", "source": "N3"},
+      {"kind": "nest", "x": 400.0, "z": -45.0, "height": 0.5, "zone": "territory", "distance_home": 67.268, "tier": "Épica", "source": "N4"}
+    ]
+  },
+  "streaming": {
+    "streaming_enabled": true,
+    "min_radius": 64,
+    "target_radius_recommended": 420,
+    "stream_out": "Opportunistic",
+    "persistent_models": [
+      "La Silueta",
+      "La Nube Gruñona",
+      "La Abeja Reina (while the event runs)",
+      "hub stations"
+    ],
+    "triangles": {
+      "forest_plan": 74996,
+      "pradera_cap": 40000,
+      "hub_cap": 12000,
+      "ring_and_connectors_cap": 6000
+    },
+    "note": "with a 420 target radius a player at the hub streams the hub, both transitions and about a third of each region (La Silueta's home is inside it, la Nube's is not); measure on a phone before trusting any number"
+  }
+}

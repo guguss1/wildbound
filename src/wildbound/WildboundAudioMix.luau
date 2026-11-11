@@ -23,6 +23,9 @@ local ONE_SHOTS = {
 	-- Fear pass (FA3): a woken or swinging parent roars; La Silueta calls from far away while it is around.
 	roar = { slot = "roar", volume = 0.6, reduced = 0.3, fadeIn = 0.02 },
 	call = { slot = "call", volume = 0.45, reduced = 0.25, fadeIn = 0.3 },
+	-- Next batch NB2: La Silueta sees you. A sharp hit in your head (eased in and quiet with Efectos suaves). Its peak
+	-- PlaybackLoudness reads 348 (the hit 290, the chase music 204), so its Volume stays at 0.45, under the roar.
+	chaseSting = { slot = "chaseSting", volume = 0.45, fadeIn = 0.02, reduced = 0.18, reducedFadeIn = 0.25 },
 }
 local SCHEDULE = {
 	snap = { Distant = { 8, 20 }, Near = { 6, 14 } }, dirt = { Near = { 6, 14 } },
@@ -131,8 +134,12 @@ function Mix.nextDelay(kind, level, reduced, roll)
 end
 
 -- Fade length: rises take 1.5 s (2 s with Reduced); chase layers leave over 3 s, threat layers 2 s, beds 4 s.
+-- Next batch NB2: the chase music and pulse cut in over 0.2 s with the sting, so a chase start reads at once.
 function Mix.fadeSeconds(slot, rising, reduced)
-	if rising then return reduced == true and 2 or 1.5 end
+	if rising then
+		if reduced == true then return 2 end
+		return CHASE[slot] and 0.2 or 1.5
+	end
 	if CHASE[slot] then return 3 end
 	if BEDS[slot] then return 4 end
 	return 2
@@ -174,6 +181,21 @@ end
 
 function Mix.markJumpscare(state, now, life)
 	state.lastAt, state.life = now, life
+end
+
+-- Next batch NB2: the chase-start sting plays at most once per cooldown, so a chase that drops and restarts at once
+-- (a quick re-sighting) is not hit twice.
+Mix.CHASE_STING_COOLDOWN = 8
+function Mix.newChaseSting()
+	return { lastAt = -math.huge }
+end
+
+function Mix.chaseStingAllowed(state, now)
+	return type(state) == "table" and finite(now) and now - state.lastAt >= Mix.CHASE_STING_COOLDOWN
+end
+
+function Mix.markChaseSting(state, now)
+	state.lastAt = now
 end
 
 return Mix

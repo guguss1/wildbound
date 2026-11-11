@@ -117,7 +117,7 @@ return function(Refuge, source, Text, sources)
 			words(C[key], key, 72)
 		end
 		equal(C.register, "Registrar criatura")
-		equal(C.incubator, "Próximamente")
+		equal(C.incubator, "Deja tu huevo") -- deliberately changed in NB4: the incubator works now
 		words(D.title, "card title", 28); words(D.titleAgain, "card again", 28); words(D.entry, "card entry", 40)
 		words(D.equip, "equip", 12); words(D.close, "close", 12); words(D.blurb.Lumipol, "blurb", 80)
 		assert(D.ember:find("%d", 1, true), "ember is a format")
@@ -212,6 +212,33 @@ return function(Refuge, source, Text, sources)
 		equal(Refuge.displayChoice(snapshot).uid, "a")
 		snapshot.equippedUid = "b"
 		equal(Refuge.displayChoice(snapshot).uid, "b")
+	end)
+
+	-- Nest Heist Phase 3 (NS4): the companion's light is tunable, and the companion can be stored and swapped.
+	case("NS4: the companion's light has tunable defaults with safe clamps", function()
+		assert(type(Refuge.tunable) == "function" and type(Refuge.tune) == "function", "tunable and tune")
+		local defaults = Refuge.tunable()
+		equal(defaults.LIGHT_BRIGHTNESS, 1.2); equal(defaults.LIGHT_RANGE, 12)
+		Refuge.tune({ LIGHT_BRIGHTNESS = 3, LIGHT_RANGE = -4, HOVER_SIDE = 99 })
+		equal(Refuge.live.LIGHT_BRIGHTNESS, 3); equal(Refuge.live.LIGHT_RANGE, 0, "a range never goes below 0")
+		equal(Refuge.live.HOVER_SIDE, nil, "only the light is live")
+		Refuge.tune(nil)
+		equal(Refuge.live.LIGHT_BRIGHTNESS, 1.2)
+	end)
+
+	case("NS4: the server lights the companion from the live values and wires storing it", function()
+		local server, client = sources.server, sources.client
+		assert(server:find("Refuge.live.LIGHT_BRIGHTNESS", 1, true) and server:find("Refuge.live.LIGHT_RANGE", 1, true),
+			"the companion light reads the live values")
+		assert(server:find('action ~= "Unequip"', 1, true), "the action list takes Unequip")
+		assert(server:find("state:unequip(player.UserId", 1, true), "the server stores it through State")
+		assert(client:find('"Unequip"', 1, true), "the Bag row offers to store the companion")
+		assert(type(Text.HUD.store) == "string" and type(Text.CAMP.companionStored) == "string", "Spanish words")
+		-- Play finding: the owner's client restores its own resting brightness after a pulse; it must be the server's.
+		assert(server:find('light:SetAttribute("WildboundBaseBrightness", Refuge.live.LIGHT_BRIGHTNESS)', 1, true),
+			"the server publishes the tuned brightness on the light")
+		assert(sources.world:find('light:GetAttribute("WildboundBaseBrightness")', 1, true),
+			"the owner's client rests at the server's brightness, not a fixed 0.7")
 	end)
 
 	return result

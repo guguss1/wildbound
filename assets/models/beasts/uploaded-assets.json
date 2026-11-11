@@ -1,0 +1,9 @@
+{
+  "note": "Rigged beast FBX models uploaded as Model assets to the owner's account (creator userId of the place owner) on 2026-11-10 with the user's explicit approval. Moderation: Approved. Animations are not uploaded yet.",
+  "models": {
+    "viper": { "assetId": 77139866631513, "source": "assets/models/beasts/viper.fbx" },
+    "pouncer": { "assetId": 87204464156490, "source": "assets/models/beasts/pouncer.fbx" },
+    "gargoyle": { "assetId": 113241144174504, "source": "assets/models/beasts/gargoyle.fbx" },
+    "mire": { "assetId": 105993486058377, "source": "assets/models/beasts/mire.fbx" }
+  }
+}

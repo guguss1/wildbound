@@ -1,0 +1,183 @@
+{
+ "name": "hub-kit-report",
+ "source": "tools/build-hub-map.py",
+ "plan": "hub-bases-v2-r90",
+ "seed": 20261110,
+ "status": "unvalidated: the module was never run in Studio by this tool",
+ "module": "build-wildbound-hub-map-v2-r90.luau",
+ "module_adler32": 3982479080,
+ "data_adler32": 2951828672,
+ "parts": {
+  "total": 470,
+  "by_group": {
+   "Bases": 312,
+   "Gates": 36,
+   "Hedge": 26,
+   "Lobby": 59,
+   "Paths": 12,
+   "SafeZones": 1,
+   "Shops": 24
+  },
+  "by_role": {
+   "floor": 74,
+   "deco": 303,
+   "wall": 78,
+   "zone": 15
+  },
+  "per_base": 39,
+  "lights": 35
+ },
+ "budget": {
+  "parts_cap": 480,
+  "lights_cap": 36,
+  "why": "the hub is always loaded (ModelStreamingMode Persistent); 480 parts and 36 shadowless PointLights raise layout-v1's cap of 400 parts on purpose and are unmeasured: record frame time on a phone with 8 players before accepting"
+ },
+ "tags": {
+  "WildboundHub": 0,
+  "WildboundBaseSlot": 8,
+  "WildboundDeliveryStation": 8,
+  "WildboundIncubatorStation": 8,
+  "WildboundCollectionDisplay": 8,
+  "WildboundGloveStation": 8,
+  "WildboundTrainingStation": 8,
+  "WildboundHubSafeZone": 1,
+  "WildboundHubEntrance": 6,
+  "WildboundHubSpawnPad": 4,
+  "WildboundBaseSign": 8,
+  "WildboundHubCampfire": 1,
+  "WildboundShopSpot": 4,
+  "WildboundChestStation": 8,
+  "WildboundShowcase": 8,
+  "WildboundBaseZone": 8
+ },
+ "palette": {
+  "grass": "7FA65A",
+  "plaza": "C9B79C",
+  "path": "D9C7A3",
+  "hedge": "3B5A44",
+  "bush": "556B3A",
+  "wood": "8B5E3C",
+  "paleWood": "BE9C70",
+  "charcoal": "55585D",
+  "pad": "E8DCC0",
+  "straw": "F5E6C8",
+  "glass": "BFE6F2",
+  "rubber": "2C2D30",
+  "metal": "9AA3AD",
+  "ink": "3A2E22",
+  "flame": "F08C2E",
+  "flameTip": "FFD27A",
+  "lamp": "FFD9A0",
+  "zone": "FFFFFF"
+ },
+ "signs": [
+  {
+   "key": "hubRules",
+   "text": "Plaza segura\nSin peleas ni bestias"
+  },
+  {
+   "key": "gateE",
+   "text": "Pradera Arcoíris"
+  },
+  {
+   "key": "gateS",
+   "text": "Camino del anillo"
+  },
+  {
+   "key": "gateSW",
+   "text": "Al bosque: sendero sur"
+  },
+  {
+   "key": "gateW",
+   "text": "Bosque de la Silueta"
+  },
+  {
+   "key": "gateNW",
+   "text": "Al bosque: sendero norte"
+  },
+  {
+   "key": "gateN",
+   "text": "Camino del anillo"
+  },
+  {
+   "key": "base1",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase1",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base2",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase2",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base3",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase3",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base4",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase4",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base5",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase5",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base6",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase6",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base7",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase7",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "base8",
+   "text": "Base de <jugador>"
+  },
+  {
+   "key": "showcase8",
+   "text": "Vitrina de <jugador>"
+  },
+  {
+   "key": "shop_taller",
+   "text": "Taller de guantes"
+  },
+  {
+   "key": "shop_mejoras",
+   "text": "Mejoras"
+  },
+  {
+   "key": "shop_suministros",
+   "text": "Suministros"
+  },
+  {
+   "key": "shop_arbol",
+   "text": "Árbol de habilidades"
+  }
+ ]
+}

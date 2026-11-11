@@ -292,6 +292,16 @@ function FairStrike.resolve(state, attack, gates, now, mode)
 	return { outcome = "strike", unacked = unacked, effect = record.marks >= 2 and "Defeated" or "Marked" }
 end
 
+-- Items and totem (IT1): the Chaleco. A strike that just defeated (a second mark on this life) is kept as one mark:
+-- the player stays marked and pinned, and the next hit defeats. The adapter asks only when the owner's vest is ready
+-- and spends it when this returns true.
+function FairStrike.absorb(state, userId, life)
+	local record = type(state) == "table" and state.lives[userId] or nil
+	if not record or record.life ~= life or record.marks < 2 then return false end
+	record.marks = 1
+	return true
+end
+
 -- One gameplay step for a marked player. "pin" holds health at MARKED_HEALTH; five continuous seconds
 -- in a safe zone clear the mark. Unmarked players are untouched ("none").
 function FairStrike.restStep(state, userId, life, safe, now)
@@ -327,6 +337,7 @@ end
 function FairStrike.strikeNotice(effect, dropped, words)
 	if type(words) == "table" then
 		if effect == "Defeated" then return words.defeated, words.defeated end
+		if effect == "Vest" then return words.vest, words.vestShort end
 		local name = type(dropped) == "table" and (dropped.kind == "Egg" and words.egg or words.creature) or nil
 		local full = words.marked .. (name and words.dropped:format(name) or "") .. words.rest
 		return full, name and words.shortDropped:format(name) or words.shortMarked

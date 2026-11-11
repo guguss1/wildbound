@@ -32,15 +32,17 @@ local C = Brain.CONSTANTS
 -- the sight radius for a new target, deliberately shorter than before (Day 26, Dusk 32, Night 38): it notices you a
 -- little later in the mist, and that keeps the economy simulator's greedy median at its floor (CP-R1); the Day patrol
 -- is 5 (not more) for the same reason: the simulator's exposure grows fastest with the Day patrol speed. memorySeconds:
--- how long a hunt keeps walking to where it last saw its quarry before it searches.
+-- how long a hunt keeps walking to where it last saw its quarry before it searches. Fix pass (FP3, chase sized to the
+-- sprint): chaseSeconds was 30 / 40 / 50; the sprint pool (100 at 25/s) lasts about 4 s at 24, so a chase is now a
+-- short burst of 12 / 15 / 18 s (Day / Dusk and Dawn / Night) that a sprint, a hiding spot or a safe zone can end.
 local DAY = { patrol = 5, investigate = 9, hunt = 13, search = 8, retreat = 8, hearing = 0.8,
-	searchSeconds = 12, chaseSeconds = 30, alertSeconds = 0.8, detection = 21, memorySeconds = 4 }
+	searchSeconds = 12, chaseSeconds = 12, alertSeconds = 0.8, detection = 21, memorySeconds = 4 }
 local TWILIGHT = { patrol = 6, investigate = 10, hunt = 15, search = 9, retreat = 8.5, hearing = 1.0,
-	searchSeconds = 16, chaseSeconds = 40, alertSeconds = 0.65, detection = 26, memorySeconds = 5 }
+	searchSeconds = 16, chaseSeconds = 15, alertSeconds = 0.65, detection = 26, memorySeconds = 5 }
 Brain.PROFILES = freeze({
 	Day = DAY, Dusk = TWILIGHT, Dawn = table.clone(TWILIGHT),
 	Night = { patrol = 7, investigate = 11, hunt = 17, search = 10, retreat = 9, hearing = 1.3,
-		searchSeconds = 20, chaseSeconds = 50, alertSeconds = 0.5, detection = 30, memorySeconds = 6 },
+		searchSeconds = 20, chaseSeconds = 18, alertSeconds = 0.5, detection = 30, memorySeconds = 6 },
 })
 
 -- Capture noise (C1): base hearing radius in studs per capture step, scaled by the slot's tier and the phase.

@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)({ bridge = WildboundTuning.Source, panel = WildboundTuningClient.Source,
--- server = WildboundServer.Source }). Dev tuning (docs/testing/wildbound-tuning.md): source contracts for the server
--- bridge (the folder, the live apply, the remote's server checks and its log) and the developer panel (built only
--- for a developer, the toggles, reset and export). The behaviour is in WildboundTuning_Test and the Play check.
+-- server = WildboundServer.Source, world = WildboundWorld.Source }). Dev tuning (docs/testing/wildbound-tuning.md):
+-- source contracts for the server bridge (the folder, the live apply, the remote's server checks and its log), the
+-- developer panel (built only for a developer, the toggles, reset and export) and the world server's live art scale.
+-- The behaviour is in WildboundTuning_Test and the Play check.
 return function(sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -26,7 +27,19 @@ return function(sources)
 		has(bridge, 'Schema.apply(modules, read, "server")')
 		has(bridge, ".AttributeChanged:Connect(")
 		for _, name in ipairs({ "WildboundStamina", "WildboundIsland", "WildboundGuardianBrain", "WildboundWorldRules",
-			"WildboundHide", "WildboundCarry", "WildboundCaptureSession" }) do
+			"WildboundHide", "WildboundCarry", "WildboundCaptureSession",
+			-- Fix pass (FP4): La Silueta's moves.
+			"WildboundSiluetaMoves",
+			-- Random world (RW2): the spawn clock.
+			"WildboundSpawnClock",
+			-- Random world (RW3): the wave clock.
+			"WildboundWaveClock",
+			-- Items and totem (plan Part 4): the gear rules.
+			"WildboundGear",
+			-- Nest Heist (NH1): the stolen egg's rules.
+			"WildboundEggCarry",
+			-- Nest Heist phase 2 (NP3): the bat.
+			"WildboundBat" }) do
 			has(bridge, '"' .. name .. '"', "server module")
 		end
 		has(bridge, "Schema.changed(read)", "values that differ from the defaults are logged at start")
@@ -66,9 +79,11 @@ return function(sources)
 	end)
 
 	case("DT4: the panel applies client values for everyone but is built only for a developer", function()
-		has(panel, 'Schema.apply({ View = View }, read, "client")')
+		-- Items and totem (IT1): the amulet's fear softening (Gear) is a client value too. Deliberately changed from
+		-- { View = View }.
+		has(panel, 'Schema.apply({ View = View, Gear = Gear }, read, "client")')
 		has(panel, "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
-		before(panel, 'Schema.apply({ View = View }, read, "client")', "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
+		before(panel, 'Schema.apply({ View = View, Gear = Gear }, read, "client")', "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true")
 		before(panel, "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true", 'Instance.new("ScreenGui")',
 			"no interface before the developer check")
 	end)
@@ -82,6 +97,14 @@ return function(sources)
 		has(panel, '"ScrollingFrame"')
 		has(panel, "remote:InvokeServer(")
 		has(panel, "Los cambios en Play se pierden al parar", "the persistence note")
+	end)
+
+	-- Look pass: Silueta.VISUAL_SCALE is read when the art is built and again whenever the tuned value changes.
+	case("Look pass: the world server rescales La Silueta's art live from the tuned scale", function()
+		local world = sources.world
+		has(world, "Rules.resolveCreatureProfile(\"Silueta\", \"Day\", false)")
+		has(world, "Rules.SILUETA_VISUAL_SCALE ~= artScale")
+		has(world, "visual:setScale(Rules.SILUETA_VISUAL_SCALE)")
 	end)
 
 	return result

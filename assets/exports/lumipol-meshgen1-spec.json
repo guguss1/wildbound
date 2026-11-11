@@ -1,0 +1,116 @@
+{
+  "about": "Portable record of the user's Lumipol model (Workspace.MeshGen1, 2026-11-10) as stored in ServerStorage.WildboundAssets.LumipolMeshGen. Rebuild: a Model named LumipolMeshGen with one sub-model per group holding one MeshPart (the mesh and texture ids below, Size, Color, Material, axis-aligned at Position, Anchored, CanCollide/CanTouch/CanQuery false), WorldPivot at the origin. Meshes are the place's existing AI-generated assets; nothing was uploaded.",
+  "name": "LumipolMeshGen",
+  "source": "Workspace.MeshGen1",
+  "pivot": "feet, bottom centre of the bounding box, world origin, no rotation",
+  "forward": "-Z (assumed from the head and ears sitting toward -Z)",
+  "boundingSize": [
+    3.453066,
+    3,
+    2.279022
+  ],
+  "sourceAttributes": {
+    "RBX_AI_GENERATED": true,
+    "RBX_AI_GENERATION_TYPE": "GenerateMesh",
+    "RBX_AI_GENERATION_ID": "65f4b170-1804-4004-b3f1-8ba4730d311b",
+    "RBX_AI_MODEL_FLOW": "mesh"
+  },
+  "parts": [
+    {
+      "group": "head",
+      "name": "head_geom",
+      "meshId": "rbxassetid://98017397735505",
+      "textureId": "rbxassetid://107858305345875",
+      "size": [
+        3.453066,
+        1.599936,
+        1.878733
+      ],
+      "position": [
+        -4e-06,
+        1.830777,
+        -0.200142
+      ],
+      "color": [
+        163,
+        162,
+        165
+      ],
+      "material": "Plastic",
+      "renderFidelity": "Automatic",
+      "doubleSided": false
+    },
+    {
+      "group": "body",
+      "name": "body_geom",
+      "meshId": "rbxassetid://120273267520380",
+      "textureId": "rbxassetid://125158632590920",
+      "size": [
+        1.509512,
+        1.045135,
+        1.9232
+      ],
+      "position": [
+        0.006042,
+        0.598853,
+        0.177914
+      ],
+      "color": [
+        163,
+        162,
+        165
+      ],
+      "material": "Plastic",
+      "renderFidelity": "Automatic",
+      "doubleSided": false
+    },
+    {
+      "group": "legs",
+      "name": "legs_geom",
+      "meshId": "rbxassetid://103649105059727",
+      "textureId": "rbxassetid://108337958287685",
+      "size": [
+        1.684904,
+        0.96757,
+        1.520188
+      ],
+      "position": [
+        0.006954,
+        0.483785,
+        -0.055344
+      ],
+      "color": [
+        163,
+        162,
+        165
+      ],
+      "material": "Plastic",
+      "renderFidelity": "Automatic",
+      "doubleSided": false
+    },
+    {
+      "group": "ears",
+      "name": "ears_geom",
+      "meshId": "rbxassetid://138494020812647",
+      "textureId": "rbxassetid://113371910338758",
+      "size": [
+        2.394508,
+        0.580572,
+        0.361128
+      ],
+      "position": [
+        0.007309,
+        2.709714,
+        -0.228006
+      ],
+      "color": [
+        163,
+        162,
+        165
+      ],
+      "material": "Plastic",
+      "renderFidelity": "Automatic",
+      "doubleSided": false
+    }
+  ]
+}

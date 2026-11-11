@@ -1,0 +1,81 @@
+{
+ "name": "pradera-kit-report",
+ "source": "tools/build-pradera-kit.py",
+ "plan": "pradera-layout-v1",
+ "seed": 20261109,
+ "status": "unvalidated: the module was never run in Studio by this tool",
+ "module": "build-wildbound-pradera-map.luau",
+ "module_adler32": 1194628216,
+ "parts": {
+  "props": 1122,
+  "nests": 70,
+  "sun_circles": 16,
+  "hills": 14,
+  "path": 4,
+  "signs": 8,
+  "beast": 18,
+  "fixed": 7,
+  "total": 1259,
+  "by_prop": {
+   "PA_GiantMushroom": 48,
+   "PA_PuffTree": 30,
+   "PA_MushroomRing": 12,
+   "PA_PuffFlower": 40,
+   "PA_SunflowerPost": 32,
+   "PA_HillBoulder": 20,
+   "PA_RainbowGate": 1,
+   "PA_Pinwheel": 16,
+   "PA_SetaTrueno": 1
+  }
+ },
+ "parts_per_prop": {
+  "PA_GiantMushroom": 8,
+  "PA_PuffTree": 5,
+  "PA_MushroomRing": 12,
+  "PA_PuffFlower": 4,
+  "PA_SunflowerPost": 4,
+  "PA_HillBoulder": 1,
+  "PA_RainbowGate": 23,
+  "PA_Pinwheel": 6,
+  "PA_SetaTrueno": 17
+ },
+ "palette": {
+  "grass": "A8E6B0",
+  "lavender": "D9C8F0",
+  "path": "F5E6C8",
+  "stem": "FFF4E0",
+  "capCoral": "F28B9B",
+  "capSky": "8FD3F4",
+  "capButter": "F9E27A",
+  "spot": "FFFFFF",
+  "pond": "B9B3CF",
+  "wood": "C98F5A",
+  "neonSun": "FFD23F",
+  "cloudGrey": "B4A8D2",
+  "cloudBelly": "8C7FB0",
+  "shadow": "6B5E94",
+  "face": "5A4634",
+  "ink": "3A2E22",
+  "bed": "C98F5A",
+  "straw": "F5E6C8",
+  "marker": "66D2CA"
+ },
+ "signs": [
+  {
+   "key": "praderaGate",
+   "text": "Pradera Arcoíris"
+  },
+  {
+   "key": "praderaRules",
+   "text": "Nube gris: bajo una seta\n¡Anillo amarillo: sal del círculo!\nGirasoles: a salvo"
+  },
+  {
+   "key": "praderaPlaza",
+   "text": "Plaza del Molino"
+  },
+  {
+   "key": "praderaPond",
+   "text": "Charca de la Nube Gruñona"
+  }
+ ]
+}

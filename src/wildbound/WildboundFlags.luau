@@ -12,4 +12,8 @@ return table.freeze({
 	-- W16 analytics seam: "off" builds a no-op. "record" keeps events in server memory for tests and Play checks.
 	-- There is no live sink; no mode calls any Roblox analytics service (docs/testing/wildbound-analytics.md).
 	analyticsMode = "off", -- "off" | "record"
+	-- Nest Heist Phase 3 (NS1, user approval 2026-11-10): saved progress. "datastore" uses the real data store (in
+	-- Studio without API access it falls back to memory and says so); "memory" keeps saves for one server only;
+	-- "off" is the old session-only game. WildboundSave and WildboundStoreRoblox read it.
+	persistenceMode = "datastore", -- "datastore" | "memory" | "off"
 })

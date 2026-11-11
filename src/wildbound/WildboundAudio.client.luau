@@ -115,12 +115,19 @@ local function playOnce(slot, parent, volume, fadeIn, pitch)
 	return sound
 end
 
+-- Fix pass (FP2, one Silueta per player): this player's own hunter (its Owner is this player), so the footsteps, the
+-- call and the chase music follow the one that hunts this player.
 local function guardianBody()
 	local map = workspace:FindFirstChild("WildboundP0")
 	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
-	local guardian = runtime and runtime:FindFirstChild("Silueta")
-	local body = guardian and guardian.PrimaryPart
-	return body and body:IsA("BasePart") and body or nil
+	if not runtime then return nil end
+	for _, guardian in ipairs(runtime:GetChildren()) do
+		if guardian.Name == "Silueta" and guardian:IsA("Model") and guardian:GetAttribute("Owner") == player.UserId then
+			local body = guardian.PrimaryPart
+			return body and body:IsA("BasePart") and body or nil
+		end
+	end
+	return nil
 end
 
 -- Looping layers are made when they are wanted and removed once faded out.
@@ -158,11 +165,14 @@ end
 
 local state = { level = "Safe", nextAt = {}, lastStep = 0, chaseStartedAt = nil, signatures = 0, defeated = false, hidden = false }
 local jumpscare = Mix.newJumpscare()
+local chaseSting = Mix.newChaseSting()
 local rng = Random.new()
 local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
 local CollectionService = game:GetService("CollectionService")
 local swinging, awakened = {}, {}
+local bursts = setmetatable({}, { __mode = "k" }) -- Nest Heist (NH4): the last burst seen per player
+local batSeen = setmetatable({}, { __mode = "k" }) -- Nest Heist phase 2 (NP5): the last swing and hit seen per player
 
 local function cue(kind, level, reduced, body, root)
 	local shot = Mix.oneShot(kind, reduced)
@@ -239,9 +249,27 @@ local function update(dt)
 			playOnce("steps", body, targets.steps, 0.08, Mix.stepPitch(level))
 		end
 	end
+	-- Fix pass (FP4a): the lunge tell is heard: a sharp groan from her body when this player's own hunter starts it.
+	local model = body and body.Parent
+	local lungeAt = model and model:GetAttribute("LungeAt")
+	if lungeAt ~= nil and lungeAt ~= state.lungeAt then
+		state.lungeAt = lungeAt
+		if Mix.fresh(lungeAt, workspace:GetServerTimeNow()) and not state.defeated then
+			local shot = Mix.oneShot("groan", reduced)
+			playOnce(shot.slot, body, shot.volume, shot.fadeIn, 1.35)
+			master:SetAttribute("LastLungeTell", lungeAt)
+		end
+	end
 	-- Chase start: the signature once, then on its schedule (once per chase with Reduced).
 	if level == "Chase" and state.level ~= "Chase" then
 		state.chaseStartedAt, state.signatures = now, 0
+		-- Next batch NB2: a sharp sting in the player's head the moment it sees them, once per cooldown.
+		if Mix.chaseStingAllowed(chaseSting, now) then
+			Mix.markChaseSting(chaseSting, now)
+			local sting = Mix.oneShot("chaseSting", reduced)
+			playOnce(sting.slot, nil, sting.volume, sting.fadeIn)
+			master:SetAttribute("LastChaseSting", now)
+		end
 		if body then cue("signature", level, reduced, body, root) state.signatures = 1 end
 		-- Chase pass (CP3): the chase opens with a roar from its body (the groan, existing id; quieter with Reduced).
 		if body then cue("groan", level, reduced, body, root) end
@@ -267,6 +295,40 @@ local function update(dt)
 		end
 		swinging[adult] = swing or nil
 		awakened[adult] = awake or nil
+	end
+	-- Nest Heist (NH4): a burst is heard as a scuff (the dirt slot, an existing id) on whoever burst, when the server
+	-- moves their WildboundBurstReady on. A value already there when first seen is not replayed.
+	for _, other in ipairs(Players:GetPlayers()) do
+		local readyAt = other:GetAttribute("WildboundBurstReady")
+		local last = bursts[other]
+		if readyAt ~= last then
+			local burstRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+			if last ~= nil and type(readyAt) == "number" and burstRoot then
+				playOnce("dirt", burstRoot, reduced and 0.35 or 0.7, 0.02, 1.4)
+			end
+			bursts[other] = readyAt or false
+		end
+	end
+	-- Nest Heist phase 2 (NP5): the bat. A swing is a quick whoosh (the dirt slot, pitched up) on the swinger and a landed
+	-- hit a wooden crack (the crack slot) on whoever was hit, when the server moves WildboundBatSwing or WildboundBatHit
+	-- on. Existing catalogue ids only; a value already there when first seen is not replayed.
+	for _, other in ipairs(Players:GetPlayers()) do
+		local seen = batSeen[other] or {}
+		batSeen[other] = seen
+		local otherRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
+		for _, kind in ipairs({ "WildboundBatSwing", "WildboundBatHit" }) do
+			local at = other:GetAttribute(kind)
+			if at ~= seen[kind] then
+				if seen[kind] ~= nil and type(at) == "number" and otherRoot then
+					if kind == "WildboundBatSwing" then
+						playOnce("dirt", otherRoot, reduced and 0.3 or 0.6, 0.02, 2.2)
+					else
+						playOnce("crack", otherRoot, reduced and 0.4 or 0.8, 0.02, 1.1)
+					end
+				end
+				seen[kind] = at or false
+			end
+		end
 	end
 	if level ~= state.level then state.nextAt = {} end
 	state.level = level

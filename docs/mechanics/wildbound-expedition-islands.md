@@ -298,7 +298,7 @@ User: "you can steal from the parents and they chase you and can kill you". This
 | --- | --- |
 | Wake | The island screams as before; the nearest adult stands up for 0.6 s (`WAKE_WINDUP`) before it moves |
 | Chase | 17 studs/s (was 16): faster than a walker (16) and a carrier (14), slower than a carrying sprinter (20.3); 10 s (was 7), leashed 35 studs from the nest |
-| Swing | Within 3.5 studs it stops and rears for 0.45 s (`STRIKE_WINDUP`): it rises and leans back, its eyes turn red, a crack sounds on it (catalog `crack`, played by the audio client from the adult's `Swing` attribute) and the thief reads "¡Va a golpearte! Apártate." |
+| Swing | Within 3.5 studs it stops and rears for 0.8 s (`STRIKE_WINDUP`, 0.45 s until HF-T4): it rises and leans back, its eyes turn red, a crack sounds on it (catalog `crack`, played by the audio client from the adult's `Swing` attribute) and the thief reads "¡Va a golpearte! Apártate." |
 | Hit | Lands only if the thief is still within 5 studs; then 1.2 s before the next swing, and the chase goes on |
 | Effect | The cria drops and runs back to its nest ("¡Te alcanzó! La cría volvió a su nido."); 35 damage, so three hits kill; later hits read "¡Otro golpe! Aléjate del nido." |
 | Gates | Damage only where La Silueta's strikes are real: `damageMode = "private"` on place 122652861404212 (`FairStrike.effectiveMode`) and a player past the first paid trip (`FairStrike.lethal`). Anywhere else, or before the first paid trip, a hit only drops the cria |
@@ -317,4 +317,15 @@ User: "scarier, faster; capturing must be an adrenaline rush; the parents chase 
 | Swing, hit, leash, damage | 0.45 s tell, 5-stud hit, 35 studs, 35 damage | Unchanged (fairness floor 0.35 s) |
 
 What a player now sees and hears is in the feature document (FA3): the shouts, the red edge, the hit's push and flash, the heartbeat and the roar.
+
+## Fix pass FP5: the parents (2026-11-09)
+
+Pure rules in `src/wildbound/WildboundIsland.luau`, wired in the inventory server; each has a tuning toggle (1 on, 0 off, all on by default) under Islas y adultos. Damage (35) and the leash (35) are unchanged.
+
+| Behaviour | Rule |
+| --- | --- |
+| Pack call | The adults of an island share one sleep meter, so when one wakes the whole pack wakes at the same instant (`PACK_CALL_SECONDS` 0; the plan allows up to 10 s). Whether the pack should also join the chase is an open question for the user |
+| Pounce | A thief within 8 studs (and outside the 3.5-stud strike reach) after 1 s of chase: the adult rears for 0.5 s (the swing's pose, eye colour and crack, plus "¡Va a saltarte encima! Esquívalo."), then leaps to the strike reach, never past the leash; the ordinary 0.45 s strike wind-up follows, so the leap itself never hits. Cooldown 6 s |
+| Egg recovery | An egg dropped inside the leash (a first strike drops the newest bag item) is fetched by the nearest adult at return speed (8) and carried to the nest; when the adult picks it up the thief loses it ("Un adulto devolvió tu huevo a su nido."), and the nest takes it back if its slot is free. Never during a chase |
+| Sleep cycle | Sleeping adults breathe on every client (0.15 studs, once per 3 s; 4.5 s in deep sleep). From 11:00 to 13:00 of the day cycle every wake input is x0.7 (the server marks the adults `Deep`) |
 

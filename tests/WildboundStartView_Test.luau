@@ -168,7 +168,8 @@ return function(View, Layout, Settings, Tutorial, source)
 			for _, bad in ipairs({ "TODO", "P0", "debug", "nil", "TBD" }) do assert(not text:find(bad, 1, true), text) end
 			assert(utf8.len(text) ~= nil, "valid UTF-8: " .. text)
 		end
-		assert(View.TEXT.note:find("no se guarda", 1, true), "session-only must be said")
+		-- NS1: deliberately changed pin; progress is saved now, so the note says what is saved and what is not.
+		assert(View.TEXT.note:find("se guarda", 1, true), "what is saved must be said")
 		equal(View.TEXT.howtoTitle, "Cómo jugar")
 	end)
 

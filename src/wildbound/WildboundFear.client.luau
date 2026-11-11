@@ -29,6 +29,8 @@ if playerGui:FindFirstChild("WildboundFearUI") then
 end
 local View, Text = require(viewModule), require(textModule)
 local WORDS = Text.FEAR or {}
+-- NS7 (user decision 2026-11-10): the Amuleto is gone. Its fear relief belongs to the free Efectos suaves setting, which
+-- removes the shake and halves the heartbeat, the red edge and the darkness (more than the Amuleto's x0.6 did).
 
 local connections = {}
 local function listen(signal, callback)
@@ -192,12 +194,18 @@ listen(player.CharacterAdded, function(character)
 	task.spawn(watchHealth, character)
 end)
 
+-- Fix pass (FP2, one Silueta per player): this player's own hunter, the model whose Owner is this player; never
+-- anyone else's, so another player's chase never shouts, shakes or darkens this screen.
 local function guardian()
 	local map = workspace:FindFirstChild("WildboundP0")
 	local runtime = map and map:FindFirstChild("WildboundWorldRuntime")
-	local model = runtime and runtime:FindFirstChild("Silueta")
-	local body = model and model:FindFirstChild("Body")
-	if model and body and body:IsA("BasePart") then return model, body end
+	if not runtime then return nil end
+	for _, model in ipairs(runtime:GetChildren()) do
+		if model.Name == "Silueta" and model:IsA("Model") and model:GetAttribute("Owner") == player.UserId then
+			local body = model:FindFirstChild("Body")
+			if body and body:IsA("BasePart") then return model, body end
+		end
+	end
 	return nil
 end
 local THREAT_STATES = { Alert = true, Hunt = true, Telegraph = true }
@@ -263,10 +271,10 @@ end)
 -- standing still just behind a trunk, off to the side; it tilts its head and is gone when looked at, approached, or
 -- after a few seconds. A client-only copy of its art: no collision, no queries, no touch, nothing sent to the server,
 -- so it can never hit, be heard by the guardian or change the game. Never while the real one is after this player,
--- near or in view; never in camp, on the spawn pad or on an island floor (View.STALK_KEEP_OUT). The rules and the
+-- near or in view; never in camp, the hub, on the spawn pad or on an island floor (View.STALK_KEEP_OUT), and never
+-- staged while the player stands in the hub (View.inHub). The rules and the
 -- numbers are in WildboundHudView (stalk*); "Efectos suaves": at most one per evening, twice as rare, no whisper.
 local STALK_FIRST_WAIT = 20
-local CAMP_X, CAMP_Z, FAR_FROM_CAMP = -140, 140, 150
 local stalk = { nextAt = os.clock() + STALK_FIRST_WAIT, count = 0, phase = nil, shown = nil }
 local coreCache
 local function trunkCores()
@@ -303,7 +311,11 @@ local function silhouette()
 		copy.PrimaryPart = body
 	end
 	for _, item in ipairs(copy:GetDescendants()) do
-		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator") then item:Destroy() end
+		-- Look pass: a sighting never copies the real one's horror grin (fix pass: nor the jaw part it sits on).
+		if item:IsA("Script") or item:IsA("LocalScript") or item:IsA("Sound") or item:IsA("Animator")
+			or item.Name == "HorrorGrin" or item.Name == "HorrorJaw" then
+			item:Destroy()
+		end
 	end
 	local parts = {}
 	for _, part in ipairs(copy:GetDescendants()) do
@@ -432,6 +444,7 @@ local function stalkStep()
 	if now < stalk.nextAt then return end
 	local ok, reason = View.stalkAllowed({ phase = phase, count = stalk.count, reduced = reduced,
 		guardianState = guardianState, guardianDistance = guardianDistance })
+	if ok and View.inHub(root.Position.X, root.Position.Z) then ok, reason = false, "Hub" end
 	-- Never while the real one is in view, even far away.
 	if ok and body and guardianDistance < 160 then
 		local toward = body.Position - camera.CFrame.Position
@@ -454,7 +467,7 @@ local function stalkStep()
 	gui:SetAttribute("StalkDistance", math.floor(Vector3.new(x - root.Position.X, 0, z - root.Position.Z).Magnitude * 10 + 0.5) / 10)
 	local character = player.Character
 	local carrying = character ~= nil and character:FindFirstChild("WildboundCarryCapsule") ~= nil
-	local far = Vector3.new(root.Position.X - CAMP_X, 0, root.Position.Z - CAMP_Z).Magnitude > FAR_FROM_CAMP
+	local far = View.farFromHome(root.Position.X, root.Position.Z)
 	local delaySeconds = View.stalkInterval(carrying, far, reduced, rng:NextNumber())
 	gui:SetAttribute("StalkNextIn", math.floor(delaySeconds * 10 + 0.5) / 10)
 	stalk.nextAt = now + delaySeconds
@@ -468,6 +481,38 @@ listen(RunService.Heartbeat, function(dt)
 	if not ok then gui:SetAttribute("StalkError", tostring(message)) end
 end)
 listen(player.CharacterAdded, function() vanish("Respawn") end)
+
+-- Look pass: the server shows La Silueta's HorrorGrin while she hunts, warns and strikes (and hides it after); this
+-- client only animates its arrival from the pure rule: a short pop, or with "Efectos suaves" a gentle fade, no pop.
+local grinWatched
+local function popGrin(grin)
+	local face = grin:FindFirstChild("Face")
+	local pop = face and face:FindFirstChild("Pop")
+	if not (face and face:IsA("CanvasGroup") and pop and pop:IsA("UIScale")) then return end
+	local shape = View.grinPop(worldGui:GetAttribute("Reduced") == true)
+	local info = TweenInfo.new(shape.seconds, Enum.EasingStyle[shape.style], Enum.EasingDirection.Out)
+	face.GroupTransparency, pop.Scale = shape.fromAlpha, shape.fromScale
+	TweenService:Create(face, info, { GroupTransparency = 0 }):Play()
+	if shape.fromScale ~= 1 then TweenService:Create(pop, info, { Scale = 1 }):Play() end
+end
+local function watchGrin()
+	local model = guardian()
+	local grin = model and model:FindFirstChild("HorrorGrin", true)
+	-- Fix pass (FP1): the grin is a SurfaceGui on the HorrorJaw part fitted to her face (was a BillboardGui).
+	if not grin or grin == grinWatched or not grin:IsA("SurfaceGui") then return end
+	grinWatched = grin
+	listen(grin:GetPropertyChangedSignal("Enabled"), function()
+		if grin.Enabled then popGrin(grin) end
+	end)
+end
+local grinClock = 1
+listen(RunService.Heartbeat, function(dt)
+	grinClock += dt
+	if grinClock < 1 then return end
+	grinClock = 0
+	local ok, message = pcall(watchGrin)
+	if not ok then gui:SetAttribute("GrinError", tostring(message)) end
+end)
 
 local function cleanup()
 	for _, connection in ipairs(connections) do connection:Disconnect() end

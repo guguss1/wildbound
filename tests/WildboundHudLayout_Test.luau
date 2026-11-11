@@ -1,6 +1,6 @@
--- Invoke with require(freshTestClone)(require(freshLayoutClone), require(freshViewClone), freshLayoutClone.Source).
--- Pure geometry: viewport size in, rectangles out. No instance is read or written here.
-return function(Layout, View, source)
+-- Invoke with require(freshTestClone)(require(freshLayoutClone), require(freshViewClone), freshLayoutClone.Source,
+-- require(freshTextClone)). Pure geometry: viewport size in, rectangles out. No instance is read or written here.
+return function(Layout, View, source, Text)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -222,8 +222,10 @@ return function(Layout, View, source)
 	end)
 
 	case("every phone hint and chip text fits the room the layout gives it", function()
-		local hints = { "Attack incoming: move away!", "Threat nearby: move toward shelter.", "Silueta revealed. Keep moving.",
-			"Dusk: night is approaching.", "Fog forest: stay alert.", "Explore or return to camp." }
+		-- Deliberately changed in NB3: the Spanish hints and short notices.
+		local hints = { "¡Ataque en camino! Apártate.", "Peligro cerca: ve a un refugio.", "La Silueta se ve. ¡Muévete!",
+			"Atardecer: llega la noche.", "Bosque de niebla: mantente alerta.", "Explora o vuelve a tu base.",
+			"Noche: florece el Nightbloom." }
 		for _, device in ipairs({ DEVICES[1], DEVICES[2], DEVICES[3], DEVICES[4], DEVICES[5], DEVICES[6] }) do
 			local layout = layoutOf(device)
 			local twoLines = Layout.charBudget(layout.rects.panel.w - 16, 13, 2)
@@ -232,7 +234,7 @@ return function(Layout, View, source)
 			end
 			local chipRoom = Layout.charBudget(layout.rects.chip.w - Layout.CHIP_TEXT_INSET, 14, 1)
 			assert(chipRoom >= View.CONSTANTS.COMPACT_CHIP_CHARS, device.name .. ": chip room " .. chipRoom)
-			for _, text in ipairs({ "Revealed 4 s. Keep moving.", "Missed. Move closer, face it.", "Not available right now." }) do
+			for _, text in ipairs({ "Revelada 4 s. ¡Muévete!", "Fallaste. Acércate y mírala.", "No disponible ahora." }) do
 				assert(#text <= twoLines, device.name .. ": notice '" .. text .. "'")
 			end
 		end
@@ -266,6 +268,44 @@ return function(Layout, View, source)
 			"wait", "os", "time", "GetService", "Players", "UserInputService", "Vector2", "UDim2",
 			"DateTime", "math%.random", "Random" }) do
 			assert(not string.find(source, "%f[%w_]" .. token .. "%f[^%w_]"), "impure token: " .. token)
+		end
+	end)
+
+	-- Next batch NB5 (phone polish): the Spanish words on the ability, comfort and inventory buttons fit their buttons on
+	-- every device, each line on one line, at the client's text sizes (13 compact, 14 desktop; inventory 14 and 16). A
+	-- third wrapped line spilled out of the 44-pixel button ("Equipa un / Lumipol" under "Pulso (Q)").
+	case("NB5: every button line fits its button on every device", function()
+		assert(type(Text) == "table" and type(Text.WORLD) == "table" and type(Text.HUD) == "table", "Text passed")
+		local W, S = Text.WORLD, Text.SETTINGS
+		local function lines(text)
+			local out = {}
+			for line in (text .. "\n"):gmatch("([^\n]*)\n") do table.insert(out, line) end
+			return out
+		end
+		-- Like the inventory button, the ability buttons show their key only with a keyboard (WildboundWorldClient).
+		local shared = { W.ready, W.equipLumipol, "88s", W.flashlightOff, W.pulseOff }
+		for _, device in ipairs(DEVICES) do
+			local layout = layoutOf(device)
+			local compact = layout.mode == "compact"
+			local function fits(name, words, size)
+				local room = Layout.charBudget(layout.rects[name].w - 8, size, 1)
+				for _, text in ipairs(words) do
+					local parts = lines(text)
+					assert(#parts <= 2, name .. " text has more than two lines: " .. text)
+					for _, line in ipairs(parts) do
+						assert(utf8.len(line) <= room,
+							("%s: %s '%s' needs %d, room %d"):format(device.name, name, line, utf8.len(line), room))
+					end
+				end
+			end
+			local ability = table.clone(shared)
+			table.insert(ability, device.touch and W.flashlight or W.flashlightKey)
+			table.insert(ability, device.touch and W.pulse or W.pulseKey)
+			fits("flashlight", ability, compact and 13 or 14)
+			fits("pulse", ability, compact and 13 or 14)
+			fits("effects", { S.shortOn, S.shortOff }, compact and 13 or 14)
+			-- The client shows the key only with a keyboard (WildboundClient: KeyboardEnabled), so a phone gets the bare word.
+			fits("inventory", { device.touch and Text.HUD.inventory or Text.HUD.inventoryKey }, compact and 14 or 16)
 		end
 	end)
 

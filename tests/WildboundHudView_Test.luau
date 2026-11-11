@@ -1,7 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshViewClone), freshViewClone.Source,
--- require(freshIslandLayoutClone)) in Studio. Pure view-models for the Wildbound HUD: chip, hint, notice expiry, text
--- fitting. Time is injected. The island layout (stalk sightings) is optional; without it that case fails.
-return function(View, source, islandLayout)
+-- require(freshIslandLayoutClone), require(freshRulesClone)) in Studio. Pure view-models for the Wildbound HUD: chip,
+-- hint, notice expiry, text fitting. Time is injected. The island layout (stalk sightings) and the world rules (the
+-- hub circle) are optional; without them those cases fail.
+return function(View, source, islandLayout, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -45,12 +46,13 @@ return function(View, source, islandLayout)
 		equal(ally.state, "ally"); equal(none.state, "none")
 	end)
 
+	-- Deliberately changed in NB3: the chip and the hint are neutral Spanish.
 	case("the words say what to do, not who is who in code terms", function()
-		assert(chip(SEEN).text:find("sees you"), "seen must say it sees you")
-		assert(chip(ALLY).text:lower():find("friend"), "ally must name a friend")
-		assert(chip(SEARCH).text:lower():find("searching"), "searching must say searching")
-		assert(chip(NONE).text:lower():find("no hunt"), "none must say there is no hunt")
-		assert(chip(ATTACK).text:find("ATTACK"), "attack must say attack")
+		assert(chip(SEEN).text:find("te ve"), "seen must say it sees you")
+		assert(chip(ALLY).text:lower():find("amigo"), "ally must name a friend")
+		assert(chip(SEARCH).text:lower():find("busca"), "searching must say searching")
+		assert(chip(NONE).text:lower():find("sin caza"), "none must say there is no hunt")
+		assert(chip(ATTACK).text:find("ATAQUE"), "attack must say attack")
 	end)
 
 	-- W6 audit: the server resolves the strike up to one 0.2 s step after the deadline, so a chip that
@@ -91,7 +93,7 @@ return function(View, source, islandLayout)
 	case("a stale or missing world state shows the waiting chip, never an old warning", function()
 		local stale = View.chip(ATTACK, false, 100, false)
 		equal(stale.state, "unknown"); equal(stale.attack, false)
-		assert(stale.text:find("Waiting"), stale.text)
+		assert(stale.text:find("Esperando"), stale.text) -- Spanish since NB3
 		equal(View.chip(nil, true, 100, false).state, "none")
 		equal(View.chip(ATTACK, true, nil, false).state, "unknown")
 		equal(View.chip(ATTACK, true, NAN, false).state, "unknown")
@@ -119,9 +121,9 @@ return function(View, source, islandLayout)
 
 	case("compact wording is shorter or equal, never a different meaning", function()
 		equal(chip(ALLY, true).state, "ally"); equal(chip(SEARCH, true).state, "searching")
-		assert(chip(ATTACK, true).text:find("ATTACK"), "compact attack keeps its word")
+		assert(chip(ATTACK, true).text:find("ATAQUE"), "compact attack keeps its word")
 		assert(chip(SEARCH, true).text:find("1%.5s"), "compact search keeps its countdown")
-		assert(chip(ALLY, true).text:lower():find("friend"), "compact ally keeps its word")
+		assert(chip(ALLY, true).text:lower():find("amigo"), "compact ally keeps its word")
 	end)
 
 	-- Colour is a redundant cue only, but it must still be readable.
@@ -199,12 +201,12 @@ return function(View, source, islandLayout)
 	end
 
 	case("the hint follows the old priority: attack, threat, revealed, dusk, fog, calm", function()
-		equal(hint({ attack = true, threat = true, revealed = true }), "Attack incoming: move away!")
-		equal(hint({ threat = true, revealed = true }), "Threat nearby: move toward shelter.")
-		equal(hint({ revealed = true, phase = "Dusk", isFog = true }), "Silueta revealed. Keep moving.")
-		equal(hint({ phase = "Dusk", isFog = true }), "Dusk: night is approaching.")
-		equal(hint({ isFog = true }), "Fog forest: stay alert.")
-		equal(hint({}), "Explore or return to camp.")
+		equal(hint({ attack = true, threat = true, revealed = true }), "¡Ataque en camino! Apártate.")
+		equal(hint({ threat = true, revealed = true }), "Peligro cerca: ve a un refugio.")
+		equal(hint({ revealed = true, phase = "Dusk", isFog = true }), "La Silueta se ve. ¡Muévete!")
+		equal(hint({ phase = "Dusk", isFog = true }), "Atardecer: llega la noche.")
+		equal(hint({ isFog = true }), "Bosque de niebla: mantente alerta.")
+		equal(hint({}), "Explora o vuelve a tu base.")
 	end)
 
 	case("every hint fits a two line phone budget of 50 characters", function()
@@ -215,16 +217,16 @@ return function(View, source, islandLayout)
 	end)
 
 	case("a garbage hint input never errors and gives the calm line", function()
-		equal(View.hint(nil), "Explore or return to camp.")
-		equal(View.hint("x"), "Explore or return to camp.")
-		equal(View.hint({ attack = "yes", threat = 1, revealed = {} }), "Explore or return to camp.")
+		equal(View.hint(nil), "Explora o vuelve a tu base.")
+		equal(View.hint("x"), "Explora o vuelve a tu base.")
+		equal(View.hint({ attack = "yes", threat = 1, revealed = {} }), "Explora o vuelve a tu base.")
 	end)
 
 	case("M5.3 Night outside the fog says why to go there, and danger lines still come first", function()
-		equal(hint({ phase = "Night" }), "Night: Nightbloom blooms in the fog.")
-		equal(hint({ phase = "Night", isFog = true }), "Fog forest: stay alert.")
-		equal(hint({ phase = "Night", threat = true }), "Threat nearby: move toward shelter.")
-		equal(hint({ phase = "Night", attack = true }), "Attack incoming: move away!")
+		equal(hint({ phase = "Night" }), "Noche: florece el Nightbloom.")
+		equal(hint({ phase = "Night", isFog = true }), "Bosque de niebla: mantente alerta.")
+		equal(hint({ phase = "Night", threat = true }), "Peligro cerca: ve a un refugio.")
+		equal(hint({ phase = "Night", attack = true }), "¡Ataque en camino! Apártate.")
 		assert(#hint({ phase = "Night" }) <= 50, "fits the two line phone budget")
 	end)
 
@@ -341,6 +343,21 @@ return function(View, source, islandLayout)
 		for _, bad in ipairs({ NAN, INF, -INF, "3", false }) do equal(View.companionTransparency(bad), base) end
 		equal(View.companionTransparency(nil), base)
 		equal(View.companionTransparency(-5), View.companionTransparency(0))
+	end)
+
+	-- Fix pass (FP2, one Silueta per player): this client draws its own hunter in full and anyone else's faint.
+	case("FP2: another player's Silueta is drawn faint, your own in full, tunable", function()
+		equal(View.hunterFade(101, 101), 0, "your own hunter")
+		equal(View.hunterFade(202, 101), CONST.OTHER_SILUETA_FADE, "someone else's")
+		assert(CONST.OTHER_SILUETA_FADE >= 0.5 and CONST.OTHER_SILUETA_FADE < 1, "faint, not gone: " .. CONST.OTHER_SILUETA_FADE)
+		for _, bad in ipairs({ nil, NAN, "101" }) do equal(View.hunterFade(bad, 101), CONST.OTHER_SILUETA_FADE, "no owner reads as foreign") end
+		View.tune({ OTHER_SILUETA_FADE = 1 })
+		equal(View.hunterFade(202, 101), 1, "1 hides them")
+		equal(View.hunterFade(101, 101), 0, "never your own")
+		View.tune({ OTHER_SILUETA_FADE = 7 })
+		equal(View.hunterFade(202, 101), 1, "clamped")
+		View.tune(nil)
+		equal(View.hunterFade(202, 101), CONST.OTHER_SILUETA_FADE)
 	end)
 
 	-- M4.6 defeat flow: a full-screen summary before respawn, in plain words.
@@ -617,6 +634,49 @@ return function(View, source, islandLayout)
 		equal(View.stalkSpot(zone.x, zone.z - 25, 0, 1, inCamp, View.STALK_KEEP_OUT), nil)
 	end)
 
+	case("HV-H1: no stalk sighting can land inside the hub disc, and the hub counts as home", function()
+		assert(Rules and Rules.HUB_X, "the world rules are passed in")
+		local hub = View.HUB_CIRCLE
+		assert(type(hub) == "table", "View.HUB_CIRCLE")
+		equal(hub.x, Rules.HUB_X); equal(hub.z, Rules.HUB_Z); equal(hub.r, Rules.HUB_RADIUS)
+		local zone
+		for _, candidate in ipairs(View.STALK_KEEP_OUT) do
+			if candidate.x == hub.x and candidate.z == hub.z then zone = candidate end
+		end
+		assert(zone and zone.r >= hub.r + 10, "a keep-out circle covers the hub disc with a margin")
+		-- A ring of trunk cores all around the hub, seen from many spots and looks: every spot found is outside the disc.
+		local cores = {}
+		for i = 0, 71 do
+			local a = i / 72 * 2 * math.pi
+			for _, d in ipairs({ 20, 45, 70, 85, 95, 110 }) do
+				table.insert(cores, { x = hub.x + d * math.cos(a), z = hub.z + d * math.sin(a), r = 1.5 })
+			end
+		end
+		local found = 0
+		for i = 0, 23 do
+			local a = i / 24 * 2 * math.pi
+			for _, d in ipairs({ 0, 40, 80, 100, 120, 140 }) do
+				local px, pz = hub.x + d * math.cos(a), hub.z + d * math.sin(a)
+				for j = 0, 7 do
+					local b = j / 8 * 2 * math.pi
+					local x, z = View.stalkSpot(px, pz, math.cos(b), math.sin(b), cores, View.STALK_KEEP_OUT)
+					if x then
+						found += 1
+						assert(math.sqrt((x - hub.x) ^ 2 + (z - hub.z) ^ 2) > hub.r, "a sighting inside the hub")
+					end
+				end
+			end
+		end
+		assert(found > 0, "spots outside the hub are still found")
+		equal(View.inHub(hub.x, hub.z), true); equal(View.inHub(hub.x + hub.r - 0.01, hub.z), true)
+		equal(View.inHub(hub.x + hub.r + 0.01, hub.z), false); equal(View.inHub(NAN, 0), false)
+		equal(View.farFromHome(hub.x, hub.z), false, "the hub is home")
+		equal(View.farFromHome(hub.x + 120, hub.z), false)
+		equal(View.farFromHome(Rules.CAMP_X, Rules.CAMP_Z), false, "the camp is home")
+		equal(View.farFromHome(Rules.CAMP_X, Rules.CAMP_Z - View.FAR_FROM_HOME - 1), true)
+		equal(View.farFromHome(NAN, 0), false)
+	end)
+
 	case("Stalk: it vanishes when looked at, approached, after its seconds, or when the real one hunts", function()
 		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.7, guardianState = "Patrol" }), nil)
 		equal(View.stalkVanish({ age = CONST.STALK_SECONDS, distance = 40, lookDot = 0.7 }), "Time")
@@ -625,6 +685,34 @@ return function(View, source, islandLayout)
 		equal(View.stalkVanish({ age = 0.2, distance = 40, lookDot = 0.995 }), nil) -- a glimpse first
 		equal(View.stalkVanish({ age = 1, distance = 40, lookDot = 0.7, guardianState = "Hunt" }), "Real")
 		equal(View.stalkVanish(nil), "Time")
+	end)
+	-- Look pass: La Silueta's horror grin pops in when she starts the chase; "Efectos suaves" fades it in, no pop.
+	case("Look pass: the grin pops in briefly, and only fades with Efectos suaves", function()
+		local full, soft = View.grinPop(false), View.grinPop(true)
+		assert(full.fromScale > 0 and full.fromScale < 1, "a pop grows from smaller")
+		assert(full.seconds > 0 and full.seconds <= 0.3, "short")
+		equal(full.style, "Back", "a snap past full size")
+		equal(soft.fromScale, 1, "no pop with Efectos suaves")
+		assert(soft.seconds >= full.seconds and soft.seconds <= 0.8, "a gentler fade")
+		equal(soft.style, "Sine")
+		equal(full.fromAlpha, 1); equal(soft.fromAlpha, 1)
+		equal(View.grinPop("yes").fromScale, full.fromScale, "anything but true is the full pop")
+	end)
+	-- Fix pass (FP5d): a sleeping adult's breathing: a slow rise and fall, slower and deeper at noon.
+	case("FP5d: breathing pulse", function()
+		local amp = CONST.BREATH_AMPLITUDE
+		assert(amp > 0 and amp <= 0.5, "a small rise")
+		equal(View.breath(0, false), 0, "starts at rest")
+		local peak = View.breath(CONST.BREATH_SECONDS / 2, false)
+		assert(math.abs(peak - amp) < 1e-6, "peak at half a breath: " .. tostring(peak))
+		local deepPeak = View.breath(CONST.BREATH_DEEP_SECONDS / 2, true)
+		assert(math.abs(deepPeak - amp) < 1e-6, "deep peak")
+		assert(CONST.BREATH_DEEP_SECONDS > CONST.BREATH_SECONDS, "deep sleep breathes slower")
+		equal(View.breath(0 / 0, false), 0)
+		for t = 0, 6, 0.25 do
+			local v = View.breath(t, t > 3)
+			assert(v >= -1e-9 and v <= amp + 1e-9, "inside the range")
+		end
 	end)
 	return result
 end

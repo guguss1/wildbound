@@ -116,6 +116,17 @@ Found with Studio `search_asset` (Creator Store, Audio, free only), not uploaded
 | --- | --- | --- | --- | --- | --- |
 | 9043365842 | HEARTBEAT 02 96BPM | APMOfficial | 60 s | A steady 96 BPM heartbeat bed from the APM "Horror Tools" album, the same official library as the music beds. Loops for the threat heartbeat; faster `PlaybackSpeed` when close. | Free on the Creator Store; licence by Roblox's APM deal, like the other APM ids. Audition the loop seam. Sibling 9043365993 (HEARTBEAT 03). Verified via search_asset. |
 
+### 1.8 Next batch: chase-start sting (2026-11-09)
+
+Found with Studio `search_asset` (Creator Store, Audio, free only, APMOfficial), not uploaded. Both loaded in Studio
+Edit (`ContentProvider` Success, `IsLoaded`). Nobody has listened to them.
+
+| Id | Title | Creator | Length | Why it fits | Caution |
+| --- | --- | --- | --- | --- | --- |
+| 1846887425 | Evil Mind 9 | APMOfficial | 5.1 s | Listed as an "orchestral hit" from Sonoton's "Dramatic Workshop 26 - Moodsetters, Link & Stings": a short, sharp hit for the moment La Silueta sees you. Primary. | Licence by Roblox's APM deal. Not heard; audition the tail. |
+| 1842083006 | Island Chase (sting) | APMOfficial | 5.7 s | A chase sting from the APM library. Fallback when the primary fails to load. | Not heard. |
+| 1837950656 | Brute Force Sting 3 | APMOfficial | 6.5 s | Alternative sting, loaded in Studio. Not used. | Not heard. |
+
 ## 2. Models: tall low-poly trees
 
 Target: pine and conifer plus dead bare trees, ideally 40 to 80 studs tall or scalable, close to the existing

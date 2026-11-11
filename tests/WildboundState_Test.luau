@@ -1453,5 +1453,128 @@ return function(State, Economy, Config)
 		equal(snap(other).ember, 10, "a creature with no island pays no bonus")
 	end)
 
+	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): a banked egg goes into the incubator and hatches
+	-- on the server's clock into a registered creature, exactly once.
+	local function banked(state, id)
+		local egg = collect(state, id or "egg", "Egg")
+		accepted(state:extract("Alice", true, 0))
+		return egg
+	end
+	case("NB4: incubate needs an owned banked egg, life, the incubator in reach and a free slot", function()
+		local state = setup()
+		assert(type(state.incubate) == "function", "State:incubate missing")
+		local egg = collect(state, "egg", "Egg")
+		rejected(state:incubate("Alice", egg, true, 0, 100, 90, 1)) -- still in the bag
+		accepted(state:extract("Alice", true, 0))
+		rejected(state:incubate("Bob", egg, true, 0, 100, 90, 1))
+		rejected(state:incubate("Alice", egg, false, 0, 100, 90, 1))
+		for _, distance in ipairs({ -1, 12.01, math.huge, 0 / 0, "0" }) do
+			rejected(state:incubate("Alice", egg, true, distance, 100, 90, 1))
+		end
+		for _, bad in ipairs({ { 0 / 0, 90 }, { 100, 0 }, { 100, -5 }, { 100, 0 / 0 }, { "100", 90 } }) do
+			rejected(state:incubate("Alice", egg, true, 0, bad[1], bad[2], 1))
+		end
+		local entry = accepted(state:incubate("Alice", egg, true, 12, 100, 90, 1))
+		equal(entry.uid, egg); equal(entry.species, "Lumipol"); equal(entry.readyAt, 190); equal(entry.startedAt, 100)
+		local snapshot = state:snapshot("Alice")
+		equal(#snapshot.bankedEggs, 0, "the egg left the banked list")
+		equal(#snapshot.incubating, 1, "and sits in the incubator")
+		equal(snapshot.incubating[1].readyAt, 190)
+		local second = banked(state, "egg2")
+		local ok, reason = state:incubate("Alice", second, true, 0, 101, 90, 1)
+		equal(ok, false); equal(reason, "IncubatorFull")
+		equal(#state:snapshot("Alice").bankedEggs, 1, "a refused egg stays banked")
+	end)
+	case("NB4: a ready egg hatches once into a registered creature of its species; early or twice does nothing", function()
+		local state = setup()
+		local egg = banked(state)
+		accepted(state:incubate("Alice", egg, true, 0, 100, 90, 1))
+		local emberBefore = state:snapshot("Alice").ember
+		equal(#state:hatchReady("Alice", 189.9), 0, "not before its time")
+		equal(#state:snapshot("Alice").registered, 0)
+		local hatched = state:hatchReady("Alice", 190)
+		equal(#hatched, 1)
+		equal(hatched[1].species, "Lumipol"); equal(hatched[1].egg, egg)
+		assert(type(hatched[1].uid) == "string" and hatched[1].uid ~= egg, "a new creature uid")
+		equal(#state:hatchReady("Alice", 500), 0, "exactly once")
+		local snapshot = state:snapshot("Alice")
+		equal(#snapshot.incubating, 0); equal(#snapshot.registered, 1); equal(snapshot.registered[1].uid, hatched[1].uid)
+		equal(snapshot.discovered.Lumipol, true)
+		equal(snapshot.ember, emberBefore, "hatching pays nothing (the chest paid the egg's Ember)")
+		equal(#state:hatchReady("Nobody", 500), 0, "an unknown player hatches nothing")
+		equal(#state:hatchReady("Alice", 0 / 0), 0, "a bad clock hatches nothing")
+	end)
+	-- Nest Heist Phase 3 (NS3): a hatch with no companion out makes the newborn the companion; one already out stays.
+	case("NS3: a hatch equips the newborn only when no companion is equipped", function()
+		local state = setup()
+		local first = banked(state, "egg-a")
+		accepted(state:incubate("Alice", first, true, 0, 100, 90, 1))
+		local born = state:hatchReady("Alice", 190)
+		equal(born[1].equipped, true, "the first hatch becomes the companion")
+		equal(state:snapshot("Alice").equippedUid, born[1].uid)
+		local second = banked(state, "egg-b")
+		accepted(state:incubate("Alice", second, true, 0, 200, 90, 1))
+		local later = state:hatchReady("Alice", 290)
+		equal(later[1].equipped, false, "a companion already out stays")
+		equal(state:snapshot("Alice").equippedUid, born[1].uid)
+	end)
+
+	case("NS4: the companion can be stored and another one equipped", function()
+		local state = setup()
+		rejected(state:unequip("Alice", true))
+		local first = banked(state, "egg-c")
+		accepted(state:incubate("Alice", first, true, 0, 100, 90, 1))
+		local born = state:hatchReady("Alice", 190)
+		rejected(state:unequip("Alice", false))
+		accepted(state:unequip("Alice", true))
+		equal(state:snapshot("Alice").equippedUid, nil, "stored")
+		equal(#state:snapshot("Alice").registered, 1, "still in the collection")
+		accepted(state:equip("Alice", born[1].uid, true))
+		equal(state:snapshot("Alice").equippedUid, born[1].uid, "out again")
+	end)
+
+	-- Nest Heist Phase 3 (NS6): Esencia (Ember inside) is the only currency. A delivery pays each egg by its tier plus
+	-- the trip's base, as the economy document says; incubating and hatching pay nothing; nothing else is a currency.
+	case("NS6: a delivery pays the egg's tier and the trip base; a hatch pays nothing; Ember is the only currency", function()
+		local state = setup()
+		accepted(state:registerEncounter("egg-fog", "Egg"))
+		accepted(state:pickup("Alice", "egg-fog", true, 5, { species = "Lumipol", tier = "Fog", arms = true }))
+		local before = state:snapshot("Alice").ember
+		local ok, count, receipt = state:extract("Alice", true, 0, 0)
+		equal(ok, true); equal(count, 1)
+		equal(receipt.ember, Config.earn.eggEmberByTier.Fog + receipt.baseEmber, "tier pay plus the base")
+		equal(state:snapshot("Alice").ember - before, receipt.ember, "exactly what the receipt says")
+		local egg = state:snapshot("Alice").bankedEggs[1].uid
+		local banked = state:snapshot("Alice").ember
+		accepted(state:incubate("Alice", egg, true, 0, 100, 90, 1))
+		state:hatchReady("Alice", 200)
+		equal(state:snapshot("Alice").ember, banked, "incubating and hatching are free and pay nothing")
+		local snapshot = state:snapshot("Alice")
+		for _, name in ipairs({ "coins", "gems", "robux", "tokens", "money" }) do
+			equal(snapshot[name], nil, "no second currency: " .. name)
+			equal(Config[name], nil, "no second currency in the tuning: " .. name)
+		end
+	end)
+
+	case("NB4: an incubating egg survives a defeat and counts toward the collection limit", function()
+		local state = setup()
+		local egg = banked(state)
+		accepted(state:incubate("Alice", egg, true, 0, 100, 90, 1))
+		state:defeat("Alice", "op-1")
+		equal(#state:snapshot("Alice").incubating, 1, "camp is safe")
+		local before = 0
+		for _ = 1, Config.capacity.collectionLimit do
+			local ok = state:registerEncounter("fill:" .. before, "Egg")
+			if not ok then break end
+			local picked = state:pickup("Alice", "fill:" .. before, true, 10)
+			before += 1
+			if not picked then break end
+			state:extract("Alice", true, 0)
+		end
+		local snapshot = state:snapshot("Alice")
+		equal(#snapshot.bankedEggs + #snapshot.incubating + #snapshot.registered, Config.capacity.collectionLimit,
+			"the incubating egg takes one place in the limit")
+	end)
+
 	return result
 end

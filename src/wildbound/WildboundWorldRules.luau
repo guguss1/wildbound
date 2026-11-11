@@ -30,16 +30,56 @@ Rules.CHASE_LEASH = 100
 -- (8.49) rounded up is never a strike or acquisition point (CP-D3).
 Rules.SPAWN_PAD_X, Rules.SPAWN_PAD_Z, Rules.SPAWN_PAD_RADIUS = 0, 0, 9
 Rules.MAX_CHASE_SECONDS = 10
+-- Look pass (user: "mucho más alto y tenebroso"): La Silueta's art scale, about 32.6 studs over the 8.57-stud
+-- SiluetaV3 art (was 2.6, 22.3 studs). Art only: the gameplay body, sight, ATTACK_RANGE and the pathing agent never
+-- read it. Tunable live (Silueta.VISUAL_SCALE); WildboundSiluetaVisual accepts 0.5 to 4.5.
+Rules.SILUETA_VISUAL_SCALE = 3.8
+-- Fix pass (FP2): one Silueta per player, at most this many on a server (the first eight players get one at once; a
+-- later player takes a freed slot). Tunable live (Silueta.MAX_HUNTERS, 1 to 16).
+Rules.MAX_HUNTERS = 8
 Rules.DAMAGE = 20
+-- Nest Heist hub (HB-T1): where the hub's centre is in this world, and the radius of its safe disc: the hub script
+-- builds there and Rules.zone reads it. A translation only (the hub plan assumes no rotation).
+-- Forest shift (HF-T3, open-world gaps S1, decision D2): the open-world and hub plans put the forest layout's (0, 0) at
+-- (-300, 0) of a hub frame centred on the hub, the forest west and the Pradera Arcoiris east. This place keeps the
+-- forest where it is (its rules, islands, spawn seeds and markers stay in the coordinates they were tested in) and
+-- puts the hub where the plan wants it relative to the forest kit, which the place builds 18 studs west and 3 north of
+-- its layout (Floor, CampCenter and every FK tree agree): the layout's (300, 0) moved by (-18, -3).
+Rules.HUB_X, Rules.HUB_Z, Rules.HUB_RADIUS = 282, -3, 90
+-- The camp's safe circle, as Rules.zone writes it (its centre is not the CampCenter marker, which sits 18 studs west of
+-- it in this place); the hub link starts inside it.
+Rules.CAMP_X, Rules.CAMP_Z, Rules.CAMP_RADIUS = -140, 140, 35
+-- EV-W5: the first wave's guaranteed common egg is placed within WaveClock FIRST_EGG_RADIUS of this point: where the
+-- hub's W trail meets the forest (assets/maps/hub-layout/hub-bases-v2-r90.json), outside the hub disc, so a player
+-- starting at the hub reaches it in a few seconds from the W gate (it used to be the camp, about 400 studs away).
+Rules.FIRST_EGG_X, Rules.FIRST_EGG_Z = 182, 17
 
 function Rules.finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
+-- HF-T3: a point of the hub frame (assets/maps/open-world/layout-v1.json, assets/maps/hub-layout/hub-bases-v1.json:
+-- origin at the hub's centre, x east, z south) in this place, and back. nil for a bad point.
+function Rules.toWorld(x, z)
+	if not (Rules.finite(x) and Rules.finite(z)) then return nil end
+	return x + Rules.HUB_X, z + Rules.HUB_Z
+end
+function Rules.toHub(x, z)
+	if not (Rules.finite(x) and Rules.finite(z)) then return nil end
+	return x - Rules.HUB_X, z - Rules.HUB_Z
+end
+-- HF-T5: whether a point is farther than `far` studs from both bases, the camp's safe circle centre and the hub's
+-- centre (the beast director's "far from base"). False for a bad point or reach.
+function Rules.farFromBase(x, z, far)
+	if not (Rules.finite(x) and Rules.finite(z) and Rules.finite(far)) then return false end
+	return Rules.distance(x, z, Rules.CAMP_X, Rules.CAMP_Z) > far and Rules.distance(x, z, Rules.HUB_X, Rules.HUB_Z) > far
+end
+
 -- Dev tuning (docs/testing/wildbound-tuning.md): the values above are the defaults the tests pin. The server's tuning
--- bridge may override these four at runtime; the territory (HOME_LEASH) and the strike range never change, so a
--- tuned chase never adds a place to be struck. No override, no change.
-local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH" }
+-- bridge may override these five at runtime; the territory (HOME_LEASH) and the strike range never change, so a
+-- tuned chase never adds a place to be struck. No override, no change. The look pass adds the art scale (art only).
+local TUNABLE = { "TELEGRAPH_SECONDS", "ATTACK_COOLDOWN", "GIVE_UP_DISTANCE", "CHASE_LEASH", "SILUETA_VISUAL_SCALE",
+	"MAX_HUNTERS" }
 local DEFAULTS = {}
 for _, key in ipairs(TUNABLE) do DEFAULTS[key] = Rules[key] end
 table.freeze(DEFAULTS)
@@ -57,6 +97,7 @@ function Rules.tune(overrides)
 		if DEFAULTS[key] ~= nil and Rules.finite(value) then Rules[key] = value end
 	end
 	Rules.CHASE_LEASH = math.max(Rules.CHASE_LEASH, Rules.HOME_LEASH)
+	Rules.MAX_HUNTERS = math.max(1, math.floor(Rules.MAX_HUNTERS + 0.5))
 end
 
 function Rules.distance(x1, z1, x2, z2)
@@ -108,9 +149,40 @@ function Rules.startOffset(roll)
 	return 0
 end
 
+-- Random world (RW4): the wave clock's Refugios, safe circles that move each wave. The inventory server sets them and
+-- every script that asks Rules.zone sees them (one module instance per server). A circle that would reach the
+-- territory is refused, so a Refugio never takes away a place La Silueta may strike. Camp and shelter stay permanent.
+local refugeList = {}
+function Rules.setRefuges(list, radius)
+	table.clear(refugeList)
+	if type(list) ~= "table" then return end
+	radius = Rules.finite(radius) and radius > 0 and radius or 12
+	for _, refuge in ipairs(list) do
+		if type(refuge) == "table" and type(refuge.id) == "string" and Rules.finite(refuge.x) and Rules.finite(refuge.z)
+			and Rules.distance(refuge.x, refuge.z, Rules.HOME_X, Rules.HOME_Z) - radius > Rules.HOME_LEASH then
+			table.insert(refugeList, table.freeze({ id = refuge.id, x = refuge.x, z = refuge.z, r = radius }))
+		end
+	end
+end
+function Rules.refuges()
+	return table.clone(refugeList)
+end
+function Rules.refugeAt(x, z)
+	if not Rules.finite(x) or not Rules.finite(z) then return nil end
+	for _, refuge in ipairs(refugeList) do
+		if Rules.distance(x, z, refuge.x, refuge.z) <= refuge.r then return refuge.id end
+	end
+	return nil
+end
+
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
+	-- HB-T6: the hub disc is safe like the camp (no PvP, no beasts, no strikes, chases end).
+	-- The camp and shelter circles stay literal: tools/simulate_economy.py and simulate_silueta_pressure.py read them from
+	-- this source (Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the camp's; a test keeps them equal).
 	local safe = Rules.distance(x, z, -140, 140) <= 35 or Rules.distance(x, z, 105, 125) <= 22
+		or Rules.refugeAt(x, z) ~= nil
+		or Rules.distance(x, z, Rules.HUB_X, Rules.HUB_Z) <= Rules.HUB_RADIUS
 	local fog = x >= -45 and x <= 165 and z >= -165 and z <= 35
 	return fog, safe
 end
@@ -144,8 +216,8 @@ local CREATURE_PROFILES = table.freeze({
 	Silueta = table.freeze({
 		-- Dread pass: 2.0 (was 1.30) makes the 8.57-stud SiluetaV3 art about 17 studs, three avatars tall. Art only:
 		-- the gameplay body, sight, reach and pathing agent are unchanged, so the fair-strike rules hold as they were.
-		-- Chase pass (CP-D4): 2.6, about 22.3 studs. Still art only (the clamp in WildboundSiluetaVisual allows up to 3).
-		name = "Silueta", specialBehaviorId = "Silueta", visualScale = 2.6,
+		-- Chase pass (CP-D4): 2.6, about 22.3 studs. Look pass: the scale is Rules.SILUETA_VISUAL_SCALE (3.8), tunable.
+		name = "Silueta", specialBehaviorId = "Silueta", visualScaleKey = "SILUETA_VISUAL_SCALE",
 		base = table.freeze({ speed = 6, detectionRange = 28 }),
 		night = table.freeze({ scope = "Fog", speed = 8, detectionRange = 38 }),
 	}),
@@ -160,7 +232,7 @@ function Rules.resolveCreatureProfile(name, phase, inFog)
 	local stats = applies and night or profile.base
 	return {
 		name = profile.name, specialBehaviorId = profile.specialBehaviorId,
-		visualScale = profile.visualScale, speed = stats.speed, detectionRange = stats.detectionRange,
+		visualScale = Rules[profile.visualScaleKey], speed = stats.speed, detectionRange = stats.detectionRange,
 	}
 end
 
@@ -176,6 +248,23 @@ function Rules.validTarget(alive, x, z, guardianX, guardianZ, range, leash)
 		and Rules.distance(x, z, Rules.SPAWN_PAD_X, Rules.SPAWN_PAD_Z) > Rules.SPAWN_PAD_RADIUS
 		and Rules.finite(range) and range >= 0
 		and Rules.distance(x, z, guardianX, guardianZ) <= range
+end
+
+-- Memory fix (2026-11-09): whether a hunt keeps its quarry this step. observation = { alive, hidden, visible, distance }
+-- where visible is legal sight (validTarget, same floor, nothing between) and distance is flat studs to the guardian.
+-- Only a gone quarry, one that hid unseen, or one beyond the give-up distance ends the chase; anything else that is not
+-- legal sight (cover, the spawn pad, the fog edge, the pursuit leash, another floor) only reads as out of sight, so the
+-- phase's memory runs before the search. Fix pass (FP3): the chase also ends at once when the quarry stands in a safe
+-- zone (observation.safe, camp or a shelter) or past the pursuit leash from home (observation.homeDistance beyond
+-- CHASE_LEASH; a missing or unreadable homeDistance reads as inside).
+function Rules.pursuit(observation)
+	if type(observation) ~= "table" or observation.alive ~= true then return false end
+	if observation.safe == true then return false end
+	local home = observation.homeDistance
+	if Rules.finite(home) and home > Rules.CHASE_LEASH then return false end
+	if observation.hidden == true and observation.visible ~= true then return false end
+	local distance = observation.distance
+	return Rules.finite(distance) and distance >= 0 and distance <= Rules.GIVE_UP_DISTANCE
 end
 
 function Rules.canStrike(now, telegraphEndsAt, lastAttackAt, distance, alive, safe, visible)

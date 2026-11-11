@@ -1,0 +1,87 @@
+{
+  "_nota": "Valores de partida para trasladar a Luau; este JSON no se carga directamente como script Roblox.",
+  "director": {
+    "tickSeconds": 10,
+    "maxThreatPointsPerPlayer": 3,
+    "maxConcurrentBeastsPerPlayer": 2,
+    "maxCombinedSpawnMultiplier": 4.0,
+    "maxEffectiveChancePerTick": 0.2,
+    "globalCooldownAfterEncounterSeconds": 15,
+    "respawnGraceSeconds": 10,
+    "enableOnlyTargetClientVfx": true,
+    "multipliers": {
+      "day": 1.0,
+      "night": 2.0,
+      "storm": 1.5,
+      "farFromBase": 1.2,
+      "dangerousZone": 1.5,
+      "longExpedition": 1.3
+    },
+    "safeZonesBlockSpawnAndDamage": true,
+    "targetIsolation": "server-authoritative simulation + FireClient(owner) local visual",
+    "onThreatBudgetExceeded": "discard_roll_without_queue"
+  },
+  "beasts": {
+    "Viper": {
+      "type": "Global",
+      "biome": null,
+      "threatPoints": 1,
+      "baseChanceNumerator": 1,
+      "baseChanceDenominator": 45,
+      "speciesCooldownSeconds": 35,
+      "damage": 35,
+      "warningSeconds": 1.15,
+      "dashLengthStuds": 32,
+      "dashWidthStuds": 4.5,
+      "dashSpeedStudsPerSec": 60,
+      "maxAttacks": 3,
+      "maxEncounterSeconds": 32
+    },
+    "Pouncer": {
+      "type": "Global",
+      "biome": null,
+      "threatPoints": 1,
+      "baseChanceNumerator": 1,
+      "baseChanceDenominator": 55,
+      "speciesCooldownSeconds": 40,
+      "damage": 40,
+      "warningSeconds": 1.3,
+      "impactRadiusStuds": 6.5,
+      "jumpFlightSeconds": 0.75,
+      "jumpArcHeightStuds": 10,
+      "maxAttacks": 2,
+      "maxEncounterSeconds": 33
+    },
+    "Gargoyle": {
+      "type": "Biome",
+      "biome": "Cemetery",
+      "threatPoints": 2,
+      "baseChanceNumerator": 1,
+      "baseChanceDenominator": 100,
+      "speciesCooldownSeconds": 60,
+      "damage": 25,
+      "warningSeconds": 1.65,
+      "tornadoRadiusStuds": 4.5,
+      "tornadoSpeedStudsPerSec": 16,
+      "tornadoLifetimeSeconds": 3.0,
+      "maxAttacks": 2,
+      "maxEncounterSeconds": 42
+    },
+    "Mire": {
+      "type": "Biome",
+      "biome": "Swamp",
+      "threatPoints": 2,
+      "baseChanceNumerator": 1,
+      "baseChanceDenominator": 80,
+      "speciesCooldownSeconds": 50,
+      "damage": 40,
+      "warningSeconds": 1.5,
+      "waterProximityMaxStuds": 22,
+      "underwaterSpeedStudsPerSec": 11,
+      "attackReachStuds": 7,
+      "attackWidthStuds": 5,
+      "maxAttacks": 2,
+      "maxEncounterSeconds": 38
+    }
+  }
+}

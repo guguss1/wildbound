@@ -29,6 +29,11 @@ local Text = textModule and require(textModule)
 -- B3: the presentation card after a registration.
 local refugeModule = ReplicatedStorage:WaitForChild("WildboundRefuge", 10)
 local Refuge = refugeModule and require(refugeModule)
+-- Next batch NB4: the incubator's Bag row (delivery E).
+local incubatorModule = ReplicatedStorage:WaitForChild("WildboundIncubator", 10)
+local Incubator = incubatorModule and require(incubatorModule)
+-- Next batch NB3: every word on this HUD and its panel comes from WildboundText.HUD.
+local H = Text.HUD
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
@@ -77,13 +82,13 @@ local hud = make("Frame", {BackgroundColor3 = dark, BackgroundTransparency = 0.1
 	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82)}, gui)
 make("UISizeConstraint", {MaxSize = Vector2.new(430, 82)}, hud)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, hud)
-local objective = label(hud, "Collect. Return to camp.\nSession only.", 15)
+local objective = label(hud, H.objective .. "\n" .. H.sessionOnly, 15)
 objective.Position = UDim2.fromOffset(10, 5)
 objective.Size = UDim2.new(1, -20, 0, 42)
-local status = label(hud, "Connecting to server...", 14)
+local status = label(hud, H.connecting, 14)
 status.Position = UDim2.fromOffset(10, 49)
 status.Size = UDim2.new(1, -20, 0, 28)
-local open = button(gui, "Inventory (I)")
+local open = button(gui, H.inventoryKey)
 open.AnchorPoint = Vector2.new(1, 0)
 open.Position = UDim2.new(1, -12, 0, 12)
 open.Size = UDim2.fromOffset(132, 44)
@@ -93,20 +98,20 @@ local panel = make("Frame", {Name = "InventoryPanel", Visible = false, Backgroun
 	Size = UDim2.fromScale(0.88, 0.75)}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
 -- Header: two tabs and Close, each at least 44 pixels (the rectangles come from the camp view module).
-local bagTab = button(panel, "Bag")
+local bagTab = button(panel, H.bag)
 bagTab.Name = "BagTab"
-local campTab = button(panel, "Camp")
+local campTab = button(panel, H.camp)
 campTab.Name = "CampTab"
-local close = button(panel, "Close")
+local close = button(panel, H.close)
 close.Name = "CloseButton"
 -- W9: opens the Settings screen (WildboundStartUI) from the inventory header.
-local menuTab = button(panel, "Menu")
+local menuTab = button(panel, H.menu)
 menuTab.Name = "MenuTab"
 for _, tab in ipairs({ bagTab, campTab }) do
 	tab.TextSize = 16
 	make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
 end
-local warning = label(panel, "Session only: progress is lost when you leave or the server stops.", 14)
+local warning = label(panel, H.sessionNote, 14)
 warning.Name = "TabNote"
 local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
@@ -118,7 +123,7 @@ menuTab.Visible = campReady
 
 -- Status line: a server notice shows for a few seconds and then goes; a local error stays until replaced.
 local compact, statusBudget = false, 40
-local stickyStatus = "Connecting to server..."
+local stickyStatus = H.connecting
 local noticeState = View and View.newNotice()
 local hudWidth = 430
 local lastSnapshot, compassText = nil, nil
@@ -173,9 +178,11 @@ local function updateObjective()
 	local risky = (loss ~= nil and loss.atRisk) or (carryLine ~= nil and carryLine.tone == "risk")
 	local second = carryLine and carryLine.text or risky and loss.text or compassText
 	if compact then
-		objective.Text = second and (View and View.fit(second, budget) or second) or "Collect. Return to camp."
+		objective.Text = second and (View and View.fit(second, budget) or second) or H.objective
 	else
-		objective.Text = "Collect. Return to camp.\n" .. (second and (View and View.fit(second, budget) or second) or "Session only.")
+		-- NS1: "Progreso guardado." while the server saves this player's progress, else "Solo esta sesión."
+		local saveLine = lastSnapshot and lastSnapshot.sessionOnly == false and H.saved or H.sessionOnly
+		objective.Text = H.objective .. "\n" .. (second and (View and View.fit(second, budget) or second) or saveLine)
 	end
 	objective.TextColor3 = risky and amber or ink
 end
@@ -192,7 +199,7 @@ local function applyLayout()
 	open.AnchorPoint = Vector2.new(0, 0)
 	open.Position = UDim2.fromOffset(rects.inventory.x, rects.inventory.y)
 	open.Size = UDim2.fromOffset(rects.inventory.w, rects.inventory.h)
-	open.Text = UserInputService.KeyboardEnabled and "Inventory (I)" or "Inventory"
+	open.Text = UserInputService.KeyboardEnabled and H.inventoryKey or H.inventory
 	open.TextSize = compact and 14 or 16
 	rowText = compact and 13 or 15
 	local noteHeight = compact and 20 or 24
@@ -244,10 +251,10 @@ local actionRemote
 local receivedSnapshot = false
 local lastRequest = 0
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
-	ArmTotem = true, DisarmTotem = true }
+	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true }
 local function request(action, uid)
 	if not actionRemote then
-		showSticky("Server unavailable. Please rejoin.")
+		showSticky(H.serverDown)
 		return
 	end
 	local now = os.clock()
@@ -309,8 +316,7 @@ local function bagRows(snapshot)
 	local eggs = snapshot.bankedEggs or {}
 	local registered = snapshot.registered or {}
 	local seals = snapshot.consumables and snapshot.consumables.seal or snapshot.sealCharges or 0
-	addRow({ text = ("Pending bag: %d/%d | Seals: %d%s"):format(#pending, snapshot.capacity or 3, seals,
-		snapshot.sealArmed and " | Seal armed" or "") })
+	addRow({ text = H.pendingBag:format(#pending, snapshot.capacity or 3, seals, snapshot.sealArmed and H.sealArmed or "") })
 	if campReady then
 		for _, spec in ipairs(Camp.quickRows(snapshot, { busy = busy })) do addRow(spec) end
 	end
@@ -319,29 +325,36 @@ local function bagRows(snapshot)
 	if carried and Text then
 		local words = Text.CARRY
 		addRow({ text = ("%s: %s · %s. %s"):format(words.label, carried.species, carried.protected and words.warded
-			or words.unwarded, words.registerHint), label = not carried.protected and "Protect" or nil,
+			or words.unwarded, words.registerHint), label = not carried.protected and H.protect or nil,
 			action = "Protect", argument = carried.uid })
 	end
-	addRow({ text = "Pending items are lost on defeat unless warded. A seal works anywhere." })
-	if #pending == 0 then addRow({ text = "No pending items." }) end
+	addRow({ text = H.pendingRule })
+	if #pending == 0 then addRow({ text = H.noPending }) end
 	for index, item in ipairs(pending) do
-		local name = item.kind == "Nightbloom" and ("Nightbloom bundle (%d)"):format(item.quantity or 1) or item.species .. " " .. item.kind
-		addRow({ text = ("#%d "):format(index) .. name .. (item.protected and " · Protected" or " · Unprotected"),
-			label = not item.protected and "Protect" or nil, action = "Protect", argument = item.uid })
+		local name = item.kind == "Nightbloom" and H.bundle:format(item.quantity or 1)
+			or H.item:format(H.kinds[item.kind] or tostring(item.kind), tostring(item.species))
+		addRow({ text = ("#%d "):format(index) .. name .. (item.protected and H.protected or H.unprotected),
+			label = not item.protected and H.protect or nil, action = "Protect", argument = item.uid })
 	end
 	-- A first strike drops one item near you for 30 s (M4.6). Only you can pick it up.
 	for _, item in ipairs(snapshot.dropped or {}) do
-		addRow({ text = "Dropped nearby: " .. item.species .. " " .. item.kind .. " · pick it up within 30 s" })
+		addRow({ text = H.dropped:format(H.item:format(H.kinds[item.kind] or tostring(item.kind), tostring(item.species))) })
 	end
-	addRow({ text = "Banked eggs · Hatch at camp" })
-	if #eggs == 0 then addRow({ text = "No banked eggs." }) end
-	for _, egg in ipairs(eggs) do addRow({ text = egg.species .. " egg", label = "Hatch", action = "Hatch", argument = egg.uid }) end
-	addRow({ text = "Registered creatures" })
-	if #registered == 0 then addRow({ text = "No registered creatures." }) end
+	addRow({ text = H.eggsHeader })
+	if #eggs == 0 then addRow({ text = H.noEggs }) end
+	for _, egg in ipairs(eggs) do addRow({ text = H.egg:format(egg.species), label = H.hatch, action = "Hatch", argument = egg.uid }) end
+	-- NB4: what incubates, from the server snapshot and the server clock; the client never sends a time.
+	for _, entry in ipairs(snapshot.incubating or {}) do
+		local line = Incubator and Incubator.row(entry, workspace:GetServerTimeNow(), Text)
+		if line then addRow({ text = line }) end
+	end
+	addRow({ text = H.registeredHeader })
+	if #registered == 0 then addRow({ text = H.noRegistered }) end
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
-		addRow({ text = creature.species .. (equipped and " · Equipped" or ""), label = not equipped and "Equip" or nil,
-			action = "Equip", argument = creature.uid })
+		-- NS4: the companion's row stores it; every other row equips (swaps) its creature.
+		addRow({ text = creature.species .. (equipped and H.equipped or ""), label = equipped and H.store or H.equip,
+			action = equipped and "Unequip" or "Equip", argument = creature.uid })
 	end
 end
 
@@ -350,8 +363,9 @@ local function campRows(snapshot)
 	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways })) do
 		if spec.section ~= previous then
 			previous = spec.section
-			if Camp.showSectionHeaders(sideways) then addRow({ header = true, text = spec.section == "Stock" and "Your stock" or spec.section == "Craft" and "Craft and carry"
-				or spec.section == "Upgrade" and "Upgrade" or spec.section == "Skills" and "Skills" or "Companion" }) end
+			if Camp.showSectionHeaders(sideways) then
+				addRow({ header = true, text = H.sections[spec.section] or H.sections.Bond })
+			end
 		end
 		addRow(spec)
 	end
@@ -365,7 +379,8 @@ local function paintTabs()
 		-- The chosen tab also wears an outline, so it is not told apart by colour alone.
 		local stroke = item:FindFirstChildOfClass("UIStroke")
 		if stroke then stroke.Thickness = selected and 3 or 0 end
-		item.Text = selected and (name == "bag" and "[ Bag ]" or "[ Camp ]") or (name == "bag" and "Bag" or "Camp")
+		local word = name == "bag" and H.bag or H.camp
+		item.Text = selected and ("[" .. word .. "]") or word
 	end
 end
 -- The tutorial reads which tab is open ("bag", "camp" or "closed").
@@ -396,7 +411,7 @@ listen(UserInputService:GetPropertyChangedSignal("KeyboardEnabled"), applyLayout
 local function toggle(wanted)
 	-- Opening the inventory is blocked during a capture session (M3.4). Closing it is always allowed.
 	if not panel.Visible and Players.LocalPlayer:GetAttribute("WildboundCapturing") == true then
-		showNotice("Finish calming the Lumipol first.")
+		showNotice(H.calmFirst)
 		return
 	end
 	if wanted == "camp" and not campReady then wanted = "bag" end
@@ -471,6 +486,16 @@ task.spawn(function()
 				now = (Vector3.new(root.Position.X, 0, root.Position.Z) - Vector3.new(marker.Position.X, 0, marker.Position.Z)).Magnitude
 					<= Config.sinks.campRange
 			end
+			-- HB-T5: the own base's glove bench opens this screen too; the server allows only glove crafting there.
+			if root and not now then
+				for _, bench in ipairs(game:GetService("CollectionService"):GetTagged("WildboundGloveStation")) do
+					local base = bench:FindFirstAncestorWhichIsA("Model")
+					if base and base:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId
+						and (root.Position - bench.Position).Magnitude <= (bench:GetAttribute("Range") or 8) + 2 then
+						now = true
+					end
+				end
+			end
 			local changed = now ~= atCamp
 			atCamp = now
 			local effects = lastSnapshot and Economy.skillEffects(Config, lastSnapshot.skills) or {}
@@ -486,6 +511,8 @@ task.spawn(function()
 				updateObjective()
 			end
 			if changed and panel.Visible and tab == "camp" then rebuild() end
+			-- NB4: the incubating egg's countdown refreshes while the Bag tab is open.
+			if panel.Visible and tab == "bag" and lastSnapshot and #(lastSnapshot.incubating or {}) > 0 then rebuild() end
 		end
 		task.wait(0.5)
 	end
@@ -504,7 +531,7 @@ local function showLossSummary(summary, fallback)
 		BackgroundTransparency = 0.05, AutoButtonColor = false, Modal = true, TextColor3 = ink, Font = Enum.Font.GothamBold,
 		TextScaled = true, TextWrapped = true,
 		Text = View and View.lossSummary(summary, Text and Text.DEFEAT) or (fallback .. "\n"
-			.. (Text and Text.DEFEAT.close or "Tap to close."))}, summaryGui)
+			.. Text.DEFEAT.close)}, summaryGui)
 	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
 	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
 		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)
@@ -564,13 +591,154 @@ local function showCard(view)
 end
 listen(gui.Destroying, closeCard)
 
+-- Random world (RW5): the biome event banner, top centre under the threat chip, sized for phones; a distant call
+-- (the catalog's existing "call" id) when the event starts.
+local catalogModule = ReplicatedStorage:FindFirstChild("WildboundAudioCatalog")
+local Catalog = catalogModule and catalogModule:IsA("ModuleScript") and require(catalogModule)
+local eventBanner = make("TextLabel", { Name = "EventBanner", AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 150), Size = UDim2.new(0.92, 0, 0, 40), BackgroundColor3 = dark,
+	BackgroundTransparency = 0.15, TextColor3 = amber, Font = Enum.Font.GothamBold, TextScaled = true, Visible = false,
+	Text = "" }, gui)
+make("UISizeConstraint", { MaxSize = Vector2.new(520, 40) }, eventBanner)
+make("UITextSizeConstraint", { MaxTextSize = 22 }, eventBanner)
+make("UICorner", { CornerRadius = UDim.new(0, 8) }, eventBanner)
+local eventState = nil
+-- Under the threat chip (the world client's AwarenessChip), as wide as it, so the banner never covers the left panels
+-- or the Mochila button on any screen; the fallback above is used until the chip exists.
+local function anchorUnderChip(frame, gap, height)
+	local worldUI = playerGui:FindFirstChild("WildboundWorldUI")
+	local chip = worldUI and worldUI:FindFirstChild("AwarenessChip")
+	if chip and chip:IsA("GuiObject") and chip.Visible then
+		frame.Position = UDim2.fromOffset(chip.AbsolutePosition.X + chip.AbsoluteSize.X / 2,
+			chip.AbsolutePosition.Y + chip.AbsoluteSize.Y + gap)
+		frame.Size = UDim2.fromOffset(math.max(chip.AbsoluteSize.X, 240), height)
+	end
+end
+local function speciesWord(name)
+	return Text and Text.CARD and Text.CARD.species and Text.CARD.species[name] or name
+end
+local function playCall()
+	local entry = Catalog and Catalog.SOUNDS and Catalog.SOUNDS.call
+	if not entry then return end
+	local sound = Instance.new("Sound")
+	sound.Name, sound.SoundId = "BiomeEventCall", "rbxassetid://" .. entry.ids[1]
+	sound.Volume, sound.PlaybackSpeed = 0.6, 0.6
+	sound.Parent = game:GetService("SoundService")
+	sound:Play()
+	task.delay(12, function() sound:Destroy() end)
+end
+local function refreshBanner()
+	if not eventState or not Text or not Text.EVENT then
+		eventBanner.Visible = false
+		return
+	end
+	anchorUnderChip(eventBanner, 6, 34)
+	local now = workspace:GetServerTimeNow()
+	if eventState.line then
+		if now > eventState.lineUntil then
+			eventState, eventBanner.Visible = nil, false
+			return
+		end
+		eventBanner.Text = eventState.line
+	elseif View then
+		-- RW7: the pure view words it within the chip's budget (the short form on a phone).
+		eventBanner.Text = View.eventBanner({ species = speciesWord(eventState.species), endsAt = eventState.endsAt,
+			now = now, words = Text.EVENT, compact = compact }) or ""
+	end
+	eventBanner.Visible = true
+end
+
+-- Random world (RW7): the wave board, top 3 of this wave's banked Esencia and the wave's countdown, under the
+-- Mochila button (above it when the button sits low on a phone). Lines come from View.waveBoard, which fits them to
+-- the board budget (COMPACT_BOARD_CHARS on a phone).
+local waveBoard = make("Frame", { Name = "WaveBoard", BackgroundColor3 = dark, BackgroundTransparency = 0.2,
+	BorderSizePixel = 0, Size = UDim2.fromOffset(190, 92), Visible = false }, gui)
+make("UICorner", { CornerRadius = UDim.new(0, 8) }, waveBoard)
+local boardLabels = {}
+for index = 1, 4 do
+	boardLabels[index] = make("TextLabel", { BackgroundTransparency = 1, Font = index == 1 and Enum.Font.GothamBold
+		or Enum.Font.Gotham, TextColor3 = index == 1 and amber or ink, TextXAlignment = Enum.TextXAlignment.Left,
+		TextScaled = true, Position = UDim2.new(0, 8, 0, 4 + (index - 1) * 21), Size = UDim2.new(1, -16, 0, 19),
+		Text = "" }, waveBoard)
+	make("UITextSizeConstraint", { MaxTextSize = 16 }, boardLabels[index])
+end
+local boardState = nil
+local function placeBoard()
+	local width, height = compact and 150 or 190, 92
+	local x, y = gui.AbsoluteSize.X - width - 12, 62
+	if open and open.Parent then
+		local at, size = open.AbsolutePosition, open.AbsoluteSize
+		x = at.X + size.X - width
+		y = at.Y > gui.AbsoluteSize.Y / 2 and at.Y - height - 6 or at.Y + size.Y + 6
+	end
+	waveBoard.Position, waveBoard.Size = UDim2.fromOffset(math.max(8, x), math.max(8, y)), UDim2.fromOffset(width, height)
+end
+local function refreshBoard()
+	if not boardState or not View or not Text or not Text.WAVE or not View.waveBoard then
+		waveBoard.Visible = false
+		return
+	end
+	local view = View.waveBoard({ wave = boardState.wave, endsAt = boardState.endsAt, now = workspace:GetServerTimeNow(),
+		board = boardState.board, words = Text.WAVE, compact = compact and View.CONSTANTS.COMPACT_BOARD_CHARS ~= nil })
+	if not view then return end
+	placeBoard()
+	boardLabels[1].Text = view.title
+	for index = 2, 4 do boardLabels[index].Text = view.lines[index - 1] or "" end
+	waveBoard.Visible = true
+end
+task.spawn(function()
+	while gui.Parent do
+		refreshBoard()
+		task.wait(0.5)
+	end
+end)
+task.spawn(function()
+	while gui.Parent do
+		refreshBanner()
+		task.wait(0.5)
+	end
+end)
+
+-- Random world (RW3): what the WorldEvent broadcast changes on this HUD. A new wave after the first says so.
+local lastWaveSeen = nil
+local function onWorldEvent(message)
+	if message.kind == "wave" and Text and Text.WAVE then
+		if lastWaveSeen ~= nil and message.wave > lastWaveSeen then
+			-- RW6: a changed biome variant says so; otherwise the wave notice.
+			if message.variantChanged and message.variant and Text.VARIANT then
+				showNotice(Text.VARIANT.changed:format(Text.VARIANT[message.variant] or message.variant))
+			else
+				showNotice(Text.WAVE.started:format(message.wave))
+			end
+		end
+		lastWaveSeen = message.wave
+		boardState = { wave = message.wave, endsAt = message.endsAt, board = message.board }
+		refreshBoard()
+	elseif message.kind == "board" then
+		if boardState then boardState.board = message.board end
+		refreshBoard()
+	elseif message.kind == "event" and Text and Text.EVENT then
+		local now = workspace:GetServerTimeNow()
+		if message.phase == "start" and message.endsAt then
+			eventState = { species = message.species, endsAt = message.endsAt }
+			showNotice(Text.EVENT.start:format(speciesWord(message.species)))
+			playCall()
+		elseif message.phase == "claimed" then
+			eventState = { line = Text.EVENT.claimed:format(message.by or "?"), lineUntil = now + 6 }
+		else
+			eventState = { line = Text.EVENT.ended, lineUntil = now + 5 }
+		end
+		refreshBanner()
+	end
+end
+
 task.spawn(function()
 	local folder = ReplicatedStorage:WaitForChild("WildboundNetwork", 10)
 	local action = folder and folder:WaitForChild("Action", 10)
 	local state = folder and folder:WaitForChild("State", 10)
 	if not gui.Parent then return end
 	if not (action and action:IsA("RemoteEvent") and state and state:IsA("RemoteEvent")) then
-		showSticky("Server unavailable. Please rejoin.")
+		showSticky(H.serverDown)
 		return
 	end
 	actionRemote = action
@@ -578,7 +746,7 @@ task.spawn(function()
 		if type(payload) ~= "table" then return end
 		if type(payload.snapshot) == "table" then
 			receivedSnapshot = true
-			if stickyStatus == "Connecting to server..." then showSticky("") end
+			if stickyStatus == H.connecting then showSticky("") end
 			render(payload.snapshot)
 		end
 		if type(payload.notice) == "string" and payload.notice ~= "" then showNotice(payload.notice) end
@@ -592,9 +760,62 @@ task.spawn(function()
 			toggle("camp")
 		end
 	end)
+	-- Random world (RW3): the WorldEvent broadcast (the wave, its board, the biome events), read only through
+	-- WaveClock.read; this client never sends on it.
+	task.spawn(function()
+		local remote = folder:WaitForChild("WorldEvent", 10)
+		local waveModule = ReplicatedStorage:FindFirstChild("WildboundWaveClock")
+		local WaveClock = waveModule and waveModule:IsA("ModuleScript") and require(waveModule)
+		if not (gui.Parent and remote and remote:IsA("RemoteEvent") and WaveClock) then return end
+		listen(remote.OnClientEvent, function(payload)
+			local message = WaveClock.read(payload)
+			if message then onWorldEvent(message) end
+		end)
+	end)
 	request("RequestSnapshot")
 	task.wait(3)
 	if gui.Parent and not receivedSnapshot then request("RequestSnapshot") end
 	task.wait(3)
-	if gui.Parent and not receivedSnapshot then showSticky("No response. Open inventory to retry.") end
+	if gui.Parent and not receivedSnapshot then showSticky(H.noResponse) end
 end)
+-- NS7: the worn glove's "Robo rápido" shortens this player's own egg prompts' hold. The server sets the base hold
+-- (WildboundStealHold) and the bonus (WildboundGloveSteal); Gear keeps the floor. Only this client's copy changes.
+do
+	local ProximityPromptService = game:GetService("ProximityPromptService")
+	local gearModule = ReplicatedStorage:WaitForChild("WildboundGear", 10)
+	local Gear = gearModule and require(gearModule) or nil
+	if Gear then
+		ProximityPromptService.PromptShown:Connect(function(shown)
+			local base = shown:GetAttribute("WildboundStealHold")
+			if type(base) ~= "number" then return end
+			local pct = Players.LocalPlayer:GetAttribute("WildboundGloveSteal")
+			local glove = { stats = { steal = type(pct) == "number" and pct or 0 } }
+			shown.HoldDuration = Gear.stealHold(base, glove, Gear.CONSTANTS.STEAL_FLOOR)
+		end)
+	end
+end
+-- Nest Heist hub (HB-T3): each client shows only its own base's station prompts. The server marks them
+-- (WildboundHubStation) and still checks the owner and the range on every trigger; this only hides the prompts of
+-- another player's (or a free) base, so a neighbour's station never takes this player's key. Once a second.
+do
+	local CollectionService = game:GetService("CollectionService")
+	local function ownerOf(prompt)
+		local model = prompt:FindFirstAncestorWhichIsA("Model")
+		while model and not CollectionService:HasTag(model, "WildboundBaseSlot") do
+			model = model:FindFirstAncestorWhichIsA("Model")
+		end
+		return model and model:GetAttribute("OwnerUserId") or 0
+	end
+	task.spawn(function()
+		while gui.Parent do
+			local hub = workspace:FindFirstChild("WildboundHub")
+			for _, item in ipairs(hub and hub:GetDescendants() or {}) do
+				if item:IsA("ProximityPrompt") and item:GetAttribute("WildboundHubStation") ~= nil then
+					local mine = ownerOf(item) == Players.LocalPlayer.UserId
+					if item.Enabled ~= mine then item.Enabled = mine end
+				end
+			end
+			task.wait(1)
+		end
+	end)
+end

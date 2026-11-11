@@ -1,7 +1,10 @@
 -- Invoke with require(freshTestClone)(require(freshSchemaClone), { Stamina = require(freshStaminaClone),
 -- Island = require(freshIslandClone), Brain = require(freshBrainClone), Rules = require(freshRulesClone),
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
--- View = require(freshHudViewClone) }). Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
+-- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone),
+-- Moves = require(freshSiluetaMovesClone), SpawnClock = require(freshSpawnClockClone),
+-- WaveClock = require(freshWaveClockClone) }).
+-- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
 return function(Schema, modules)
@@ -77,11 +80,65 @@ return function(Schema, modules)
 			"Sprint.DRAIN", "Carry.FEAR_SLIP", "Islands.WAKE", "Islands.CHASE_SPEED", "Islands.DAMAGE",
 			"Islands.STRIKE_WINDUP", "Capture.CALM_REQUIRED", "Hide.NIGHT_RADIUS", "Camera.SPRINT_FOV_KICK",
 			-- Fear pass (FA2): the grab's noise is tunable.
-			"Islands.GRAB" }) do
+			"Islands.GRAB",
+			-- Next batch NB4 (delivery E): the incubation time.
+			"Incubator.HATCH_SECONDS",
+			-- Look pass: La Silueta's height (art only).
+			"Silueta.VISUAL_SCALE",
+			-- Fix pass (FP2): one Silueta per player, the cap and how faint another player's is drawn.
+			"Silueta.MAX_HUNTERS", "Camera.OTHER_SILUETA_FADE",
+			-- Fix pass (FP3): the chase limit per phase.
+			"Silueta.CHASE_DAY", "Silueta.CHASE_TWILIGHT", "Silueta.CHASE_NIGHT",
+			-- Fix pass (FP4): La Silueta's moves, each with a toggle.
+			"Silueta.LUNGE_ON", "Silueta.LUNGE_SPEED", "Silueta.FAKE_ON", "Silueta.FAKE_CHANCE", "Silueta.GLARE_ON",
+			"Silueta.GLARE_HOLD", "Silueta.SCREAM_ON", "Silueta.SCREAM_REACH",
+			-- Fix pass (FP5): the parents' moves.
+			"Islands.POUNCE_ON", "Islands.POUNCE_RANGE", "Islands.EGG_RECOVERY_ON", "Islands.DEEP_SLEEP_ON", "Islands.DEEP_SCALE",
+			"Islands.BREATH_SECONDS",
+			-- Random world (RW2): the spawn clock.
+			"World.LIFETIME", "World.RESPAWN_COMUN", "World.RESPAWN_LEGENDARIA", "World.MAX_COMUN", "World.MAX_LEGENDARIA",
+			"World.EGG_SHARE",
+			-- Random world (RW3): the wave length.
+			"World.WAVE_SECONDS",
+			-- Random world (RW3, RW4): the first egg near camp and the Refugios.
+			"World.FIRST_EGG_RADIUS", "World.REFUGE_MIN", "World.REFUGE_MAX", "World.REFUGE_RADIUS", "World.REFUGE_REGEN",
+			-- Random world (RW5): the biome event.
+			"World.EVENT_FIRST", "World.EVENT_EVERY", "World.EVENT_SECONDS", "World.EVENT_RADIUS",
+			-- Random world (RW6): the biome variant rotation.
+			"World.VARIANT_EVERY_WAVES",
+			-- NS7: the gloves' caps and rarity weights (deliberately changed from the IT1 equipment's effects).
+			"Gear.MOVE_CAP", "Gear.STEAL_CAP", "Gear.BURST_CAP", "Gear.DRAIN_CAP", "Gear.CALM_CAP",
+			"Gear.WEIGHT_COMUN", "Gear.WEIGHT_RARA", "Gear.WEIGHT_EPICA", "Gear.WEIGHT_LEGENDARIA",
+			-- Items and totem (IT2): the luck totem.
+			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP",
+			-- Nest Heist (NH1): the steal holds.
+			"Eggs.STEAL_HOLD", "Eggs.RARE_HOLD",
+			-- Hub follow-up (HF-T2): the server's steal-hold latency allowance.
+			"Eggs.HOLD_ALLOWANCE",
+			-- Nest Heist (NH3): the parents' charge and the immediate wake on an egg steal.
+			"Islands.CHARGE_SPEED", "Islands.CHARGE_HIT", "Islands.EXPOSED_SECONDS", "Islands.STEAL_WAKE",
+			-- Nest Heist (NH4): the Burst.
+			"Sprint.BURST_SECONDS", "Sprint.BURST_MULTIPLIER", "Sprint.BURST_COOLDOWN", "Sprint.BURST_CAP",
+			-- Nest Heist (NH5): drop and pickup.
+			"Eggs.PICKUP_DELAY", "Eggs.PICKUP_HOLD", "Eggs.PICKUP_RANGE", "Eggs.DROP_SECONDS", "Islands.PERCEIVE_RANGE",
+			-- Nest Heist phase 2 (NP3): the bat.
+			"PvP.COOLDOWN", "PvP.REACH", "PvP.HALF_ANGLE", "PvP.HEIGHT", "PvP.STUMBLE_SECONDS", "PvP.TAP_SECONDS",
+			"PvP.STUMBLE_SPEED", "PvP.IMMUNITY" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end
 		equal(Schema.find("Camera", "SPRINT_FOV_KICK").side, "client", "the camera kick is read on the client")
+		equal(Schema.find("Camera", "OTHER_SILUETA_FADE").side, "client", "the fade of another player's Silueta is a client value")
+		equal(Schema.find("Silueta", "MAX_HUNTERS").min, 1, "at least one Silueta")
+		-- NS7: the glove caps are server gameplay; the tuning can never push a cap past its hard cap.
+		equal(Schema.find("Gear", "DRAIN_CAP").side, "server", "the glove caps are applied by the server")
+		equal(Schema.find("Gear", "MOVE_CAP").max, 3, "the walk stat's cap tops out at 3 %")
+		-- Fix pass (FP4): a toggle is 0 (off) or 1 (on), on by default; the lunge tell keeps the readable floor.
+		for _, key in ipairs({ "LUNGE_ON", "FAKE_ON", "GLARE_ON", "SCREAM_ON" }) do
+			local toggle = Schema.find("Silueta", key)
+			equal(toggle.min, 0, key); equal(toggle.max, 1, key); equal(toggle.step, 1, key); equal(toggle.default, 1, key)
+		end
+		assert(Schema.find("Silueta", "LUNGE_TELL").min >= 0.35, "the lunge tell never drops under 0.35 s")
 		equal(Schema.find("Sprint", "SPRINT_MULTIPLIER").side, "server", "sprint is read on the server")
 		equal(Schema.find("Nope", "X"), nil)
 	end)
@@ -204,7 +261,8 @@ return function(Schema, modules)
 	end)
 
 	case("DT2: a live override changes the behaviour value, and clearing it restores the default", function()
-		applyServer({ Sprint = { SPRINT_MULTIPLIER = 1.2 }, Silueta = { HUNT_TWILIGHT = 20, TELEGRAPH_SECONDS = 1.5 },
+		applyServer({ Sprint = { SPRINT_MULTIPLIER = 1.2 },
+			Silueta = { HUNT_TWILIGHT = 20, TELEGRAPH_SECONDS = 1.5, VISUAL_SCALE = 3 },
 			Islands = { CHASE_SPEED = 10, DAMAGE = 50 }, Hide = { NIGHT_RADIUS = 9 }, Carry = { FEAR_RADIUS = 10 },
 			Capture = { CALM_REQUIRED = 6 } })
 		near(modules.Stamina.speed(16, "sprint"), 19.2, "sprint x1.2")
@@ -212,6 +270,7 @@ return function(Schema, modules)
 		equal(modules.Brain.speed("Hunt", "Dawn"), 20, "and dawn")
 		equal(modules.Brain.profile("Dusk").hunt, 20)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 1.5)
+		equal(modules.Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3, "look pass: the art scale")
 		local chase = modules.Island.newChase({ id = "I2", x = 0, z = 0 }, { x = 0, z = 0 })
 		modules.Island.chaseStep(chase, 1, 0, 0) -- the wake wind-up
 		modules.Island.chaseStep(chase, 0.1, 0, 30)
@@ -234,6 +293,7 @@ return function(Schema, modules)
 		near(modules.Stamina.speed(16, "sprint"), 23.2, "back to the default")
 		equal(modules.Brain.speed("Hunt", "Dawn"), 15)
 		equal(modules.Rules.TELEGRAPH_SECONDS, 0.9)
+		equal(modules.Rules.resolveCreatureProfile("Silueta", "Day", false).visualScale, 3.8)
 		equal(modules.Island.live.CHASE_SPEED, 19)
 		equal(modules.View.sprintFov(70, "sprint", false), 80)
 	end)
@@ -257,6 +317,14 @@ return function(Schema, modules)
 		modules.Stamina.tune({ SPRINT_MULTIPLIER = 1.3 })
 		assert(modules.Stamina.version > before, "bumped")
 		modules.Stamina.tune(nil)
+	end)
+
+	case("HF-T4: the parents' swing tell defaults to 0.8 s and can never be tuned under it", function()
+		local windup = Schema.find("Islands", "STRIKE_WINDUP")
+		equal(windup.default, 0.8); equal(windup.min, 0.8)
+		local cap = Schema.find("Training", "WALK_CAP")
+		equal(cap.default, 16, "user decision Q9: walk 16, under La Silueta's 17")
+		assert(cap.max < 17, "the tuning can never let a walk reach La Silueta's night hunt (17)")
 	end)
 
 	return result

@@ -191,7 +191,8 @@ return function(Text, source, sources)
 		equal(Text.CARRY.cry, "La cría llora. ¡Algo la escucha!")
 		equal(Text.CARD.newSpecies, "¡Nueva especie!")
 		equal(Text.CARD.next, "Próxima isla: %s. Allí duermen los %s.")
-		equal(Text.CARD.firstBonus, "+%d Ember por tu primera cría")
+		-- Deliberately changed in NB5: the currency's player name is Esencia (the user's choice; Ember stays in code).
+		equal(Text.CARD.firstBonus, "+%d de Esencia por tu primera cría")
 		equal(Text.UPGRADE.farolTapado.name, "Farol tapado")
 		equal(Text.UPGRADE.farolTapado.description, "Tu linterna molesta menos a las criaturas dormidas.")
 		for _, species in ipairs({ "Lumipol", "Cortezon", "Cestillo", "Polvilla", "Tizoncillo" }) do
@@ -214,6 +215,109 @@ return function(Text, source, sources)
 		for _, key in ipairs({ "run", "awake", "strike", "hit", "seen" }) do text(Text.FEAR[key], "FEAR." .. key, 24) end
 		equal(Text.FEAR.run, "¡CORRE!", "neutral Spanish, not voseo")
 		assert(Text.FEAR.damage:find("%d", 1, true), "the damage line takes the number")
+	end)
+
+	-- Next batch NB3: the remaining English player strings (HUD, prompts, notices, the inventory and camp panels) are
+	-- neutral Spanish. Only string literals are scanned, so comments may stay English. The developer tuning panel is
+	-- out of scope. sources also carries inventory (WildboundClient), world (WildboundWorldClient), worldServer,
+	-- gather, hudView and campView. A phrase starting with "=" must equal the whole literal ("=Ready"), so internal
+	-- action and remote names that contain English words are not read as player text.
+	local function literals(code)
+		local found = {}
+		for line in (code .. "\n"):gmatch("([^\n]*)\n") do
+			local trimmed = line:match("^%s*(.-)$")
+			if trimmed:sub(1, 2) ~= "--" then
+				for literal in line:gmatch('"([^"]*)"') do table.insert(found, literal) end
+			end
+		end
+		return found
+	end
+	local ENGLISH = {
+		inventory = { "Collect. Return", "Connecting to", "Inventory (", "=Inventory", "Session only", "Server unavailable", "Pending bag",
+			-- Random world (RW2 to RW7): the board, the banner, the Refugios and the rarity tiers.
+			"Wave ", "Leaderboard", "Special egg", "Biome event", "=Refuge", "=Common", "=Rare", "=Epic", "=Legendary",
+			"world changes", "took the special",
+			"Protected", "No pending", "Banked eggs", "Registered creatures", "Equipped", "Finish calming", "No response",
+			"Your stock", "Craft and carry", "Dropped nearby", "[ Bag ]", "=Bag", "=Camp", "=Close", "=Menu",
+			" egg" },
+		world = { "Connecting to world", "Flashlight (", "Flashlight\\", "Pulse (", "Pulse\\", "=Ready", "Flashlight unavailable",
+			"Pulse unavailable", "World state unavailable", "World server unavailable", "Waiting for server", "MARKED", "Equip Lumipol" },
+		worldServer = { "Use abilities", "Extract and equip", "cooling down", "Cooling down", "No Silueta revealed",
+			"Silueta revealed for", "Not available", "Missed. Move", "Revealed 4 s", "Connected to the shared",
+			"Ability not available", "Dodge!", "cannot hurt you", "You rested", "Mark cleared" },
+		server = { "Move closer while", "Your bag is empty", "Bag full", "Someone collected", "Session collection",
+			"Select one of", "Only your registered", "Select an item", "No seal.", "already protected", "no longer available",
+			"Pouch full", "You already gathered", "Do this at camp", "Not enough banked", "You cannot hold", "Already owned",
+			"You have no", "The totem stays", "Use a capsule", "You moved", "Learn the first", "not in the build",
+			"That action is not", "hatched and registered", "Item warded", "Hatch first egg", "Free hatch",
+			"Choose protected", "Earned protection", "Choose a bag item", "Lumipol egg", "Pick up", "Dropped ",
+			"Picked up", "was lost", "belongs to another", "Gathered %d", "Bond +", "Crafted.", "Upgrade bought",
+			"Seal armed", "Newest item", "Totem:", "Totem put away", "Skill learned", "Banked at the shelter",
+			"Session only", "Return temporary loot", "Nightbloom bundle",
+			-- Items and totem (plan Part 4, IT3): the equipment and the luck totem.
+			"Gloves", "Boots", "=Amulet", "Luck totem", "Gear crafted", "Totem placed", "Leave camp" },
+		gather = { "=Gather", "wilts at Dawn" },
+		hudView = { "sees you", "ATTACK", "No hunt", "is searching", "Searching", "hunts a friend", "Friend hunted",
+			"Waiting for server", "No signal", "Attack incoming", "Threat nearby", "Silueta revealed", "Dusk:",
+			"Fog forest", "Night:", "Explore or return" },
+		campView = { "Ward Seal", "=Free", "Need ", "Wait a moment", "Go to camp", "owned", "Reinforced Pack", "Cost:",
+			"Banked:", "You hold the most", "Seal armed", "Arm a seal", "Totem set", "Set the totem", "Put away", "learned",
+			"Needs ", "Effect not built", "Companion bond", "No seal", "Nothing to ward", "Seal the newest", "Nothing at risk",
+			"If defeated", "Lose", "Nearest node", "Walk to camp", "At camp", "Session only", "Trail Sense", "Night Nose",
+			"Steady Hands", "Soft Approach", "Light Load", "Quick Rest", "Read the Signs", "Long Reveal", "Explorer",
+			"Capturer", "Survivor", "Occultist", "Last Breath", "Extraction Capsule", "Short ", "already sealed",
+			-- Items and totem (plan Part 4, IT3): the equipment rows and the luck totem's rows.
+			"Gloves", "Boots", "=Vest", "=Amulet", "Equipped", "equipped", "Luck totem", "Place the", "Leave camp", "rarer" },
+	}
+	case("NB3: no known English player string is left in the HUD, prompts, notices or panels", function()
+		local left = {}
+		for key, phrases in pairs(ENGLISH) do
+			local code = sources[key]
+			assert(type(code) == "string" and #code > 0, "source " .. key .. " missing")
+			for _, literal in ipairs(literals(code)) do
+				for _, phrase in ipairs(phrases) do
+					local exact = phrase:sub(1, 1) == "="
+					if (exact and literal == phrase:sub(2)) or (not exact and literal:find(phrase, 1, true)) then
+						table.insert(left, key .. ": \"" .. literal .. "\"")
+						break
+					end
+				end
+			end
+		end
+		table.sort(left)
+		assert(#left == 0, #left .. " English strings left: " .. table.concat(left, " | ", 1, math.min(#left, 12)))
+	end)
+
+	-- Next batch NB5 (user, 2026-11-09: "Otro nombre"): players call the currency Esencia. Code, the saved record and the
+	-- economy keep the internal name Ember; only player words change.
+	case("NB5: every player word names the currency Esencia, never Ember", function()
+		local found = {}
+		local function walk(value, path)
+			if type(value) == "string" then
+				if value:find("Ember", 1, true) then table.insert(found, path .. " = " .. value) end
+			elseif type(value) == "table" then
+				for key, child in pairs(value) do walk(child, path .. "." .. tostring(key)) end
+			end
+		end
+		walk(Text, "Text")
+		for _, literal in ipairs(literals(sources.campView or "")) do
+			if literal:find("Ember", 1, true) then table.insert(found, "campView: " .. literal) end
+		end
+		table.sort(found)
+		assert(#found == 0, #found .. " player words say Ember: " .. table.concat(found, " | ", 1, math.min(#found, 8)))
+		for _, key in ipairs({ "ember", "firstBonus" }) do
+			assert(Text.CARD[key]:find("Esencia", 1, true), "CARD." .. key .. " names Esencia")
+		end
+		assert(Text.NOTICES.capsule:find("Esencia", 1, true) and Text.CAMP.stored:find("Esencia", 1, true), "pay lines")
+	end)
+	case("EV-W4: players start at the hub, so the objective, the egg notices and the defeat line point to the base", function()
+		for _, line in ipairs({ Text.HUD.objective, Text.EGG.stolen, Text.EGG.picked, Text.HUD.eggsHeader }) do
+			assert(line:find("tu base", 1, true), line)
+			assert(not line:find("campamento", 1, true), line)
+		end
+		assert(not Text.DEFEAT.title:find("campamento", 1, true), Text.DEFEAT.title)
+		assert(#Text.EGG.stolen <= 64 and #Text.EGG.picked <= 64, "egg notices fit 64 bytes")
+		assert(#Text.HUD.objective <= 42, "the objective fits the HUD line")
 	end)
 
 	return result

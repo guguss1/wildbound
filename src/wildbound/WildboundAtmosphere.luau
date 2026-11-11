@@ -59,6 +59,43 @@ local function blend(a, b, t)
 	return out
 end
 
+-- Random world (RW6): the biome variant that rotates on the wave clock. A variant scales the fog a little and tints the
+-- fog, the haze and the palette (a local ColorCorrection tint); it never touches brightness, exposure or the ambient,
+-- so night keeps its own fog and darkness, and the playable floors still hold. ambient names an existing audio
+-- catalog slot for the variant's quiet bed.
+Atmosphere.VARIANTS = table.freeze({
+	Niebla = table.freeze({ density = 1.06, fogEnd = 0.88, haze = 1.15, fog = { 205, 212, 220 }, tint = { 236, 240, 246 },
+		ambient = "wind" }),
+	Escarcha = table.freeze({ density = 1, fogEnd = 1, haze = 0.9, fog = { 196, 214, 240 }, tint = { 222, 236, 255 },
+		ambient = "wind" }),
+	Ceniza = table.freeze({ density = 1.04, fogEnd = 0.92, haze = 1.25, fog = { 214, 176, 150 }, tint = { 255, 226, 206 },
+		ambient = "insectsNight" }),
+	Floracion = table.freeze({ density = 0.96, fogEnd = 1.1, haze = 0.85, fog = { 226, 206, 232 }, tint = { 255, 236, 246 },
+		ambient = "birds" }),
+})
+
+-- variant(target, name) -> a copy of an `at` target with the variant applied, plus `tint` (white for none).
+function Atmosphere.variant(target, name)
+	local out = table.clone(target)
+	local look = type(name) == "string" and Atmosphere.VARIANTS[name] or nil
+	if not look then
+		out.tint = { r = 255, g = 255, b = 255 }
+		return out
+	end
+	local F = Atmosphere.FLOORS
+	out.density = math.min(F.density, target.density * look.density)
+	out.haze = math.min(F.haze, target.haze * look.haze)
+	out.fogEnd = math.max(F.fogEnd, target.fogEnd * look.fogEnd)
+	out.fogStart = math.max(F.fogStart, math.min(target.fogStart, out.fogEnd - F.ramp))
+	local function shade(colour)
+		return { r = colour.r * look.fog[1] / 255, g = colour.g * look.fog[2] / 255, b = colour.b * look.fog[3] / 255 }
+	end
+	out.fogColor = shade(target.fogColor)
+	out.atmosphereColor = shade(target.atmosphereColor)
+	out.tint = { r = look.tint[1], g = look.tint[2], b = look.tint[3] }
+	return out
+end
+
 -- at(clockTime, zone, reduced) -> targets. Bad input falls back to the Day open row; reduced must be true.
 function Atmosphere.at(clockTime, zone, reduced)
 	if not ROWS[zone] then zone = "open" end

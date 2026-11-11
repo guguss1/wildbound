@@ -2,7 +2,8 @@
 -- Expedition islands, task I6 (docs/mechanics/wildbound-expedition-islands.md section 2, decisions EI-2 and EI-5):
 -- source contracts for how the inventory server runs the island nests, the shared sleep meter, the scream, the
 -- woken adult's chase and the cria's cry, and how the world server hears them. The rule's numbers are in
--- WildboundIsland_Test; behavior is checked in Play with the Studio-only IslandProbe.
+-- WildboundIsland_Test; behavior is checked in Play with the Studio-only IslandProbe. Lumipol generated model pass:
+-- the trail nest joins the list and its guardian wears the generated parent.
 return function(serverSource, worldSource, clientSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -42,7 +43,10 @@ return function(serverSource, worldSource, clientSource)
 		local stance = block(serverSource, "stanceRemote.OnServerEvent:Connect", "\nend)")
 		hasNot(stance, "meter")
 		local _, remotes = serverSource:gsub('Instance.new%("RemoteEvent"%)', "")
-		assert(remotes == 4, "no new remote, got " .. remotes .. " RemoteEvent constructors")
+		-- Random world (RW3), deliberately changed from 4: the fifth is WorldEvent, server to client only; its handler
+		-- only counts a refusal and never reads the meter.
+		assert(remotes == 5, "no new remote, got " .. remotes .. " RemoteEvent constructors")
+		hasNot(block(serverSource, "worldEvent.OnServerEvent:Connect", "\nend)"), "meter")
 	end)
 
 	case("I6: one player's noise wakes the island for everyone", function()
@@ -75,9 +79,14 @@ return function(serverSource, worldSource, clientSource)
 		has(serverSource, "FairStrike.effectiveMode(")
 		has(serverSource, "FairStrike.lethal(")
 		has(serverSource, "Island.hitEffect(")
+		-- Deliberately changed in Nest Heist phase 4a (NB5): a second TakeDamage, for a beast's landed hit, lives in the
+		-- BeastHit block behind the same gates (private damage mode and a paid trip).
 		local count = 0
 		for _ in serverSource:gmatch("TakeDamage") do count += 1 end
-		assert(count == 1, "one TakeDamage, found " .. count)
+		assert(count == 2, "two TakeDamage (adult and beast), found " .. count)
+		local beastBlock = block(serverSource, 'beastHit.Name = "BeastHit"', "beastHit.Parent = network")
+		has(beastBlock, 'if damageMode == "private" and lethalPlayer(player) then', "the beast hit is behind the same gates")
+		has(beastBlock, "TakeDamage", "the second one lives in the beast hit")
 		local strike = block(serverSource, "local function adultHit(", "\nend\n")
 		has(strike, "TakeDamage", "the damage lives in adultHit")
 		has(strike, "if effect.damage > 0 then", "behind the gate")
@@ -128,6 +137,31 @@ return function(serverSource, worldSource, clientSource)
 		local probe = serverSource:find('"IslandProbe"', 1, true)
 		assert(studio and probe and probe > studio, "IslandProbe lives inside the Studio-only block")
 		has(serverSource, "islandProbe.Parent = telemetry")
+	end)
+
+	-- Fix pass (FP5): how the server runs the parents' pounce, egg recovery and noon sleep.
+	case("FP5: the server tells a pounce, recovers dropped eggs and sets the noon sleep", function()
+		local steps = block(serverSource, "local function stepIslands(now, dt)", "\nend\n")
+		has(steps, "Island.setSleep(meter, clock)", "noon sleep from the day cycle")
+		has(steps, 'adult.model:SetAttribute("Deep", meter.deep == true)', "the clients slow the breathing")
+		has(steps, 'event == "PounceWindUp"', "the pounce tell")
+		has(steps, "Text.ISLAND.pounce", "a Spanish warning")
+		has(steps, "Island.recoverTarget(spec, eggDrops)", "a dropped egg inside the leash")
+		has(steps, "Island.carryStep(island.carry.state, dt)", "carried home at return speed")
+		has(steps, "state:loseDropped(", "the thief loses the egg it dropped")
+		has(serverSource, "returnToNest(island, ", "the nest takes the egg back")
+		has(serverSource, 'op == "eggDrop"', "the Studio-only probe drops an egg for the Play check")
+	end)
+
+	case("LG: the server adds the trail nest and gives it island 1's nest bed", function()
+		has(serverSource, "islandLayout = Island.withTrailNest(islandLayout)", "the trail nest joins the island list")
+		local loop = block(serverSource, "for _, spec in ipairs(islandLayout.islands) do", "\nend\n")
+		has(loop, "spec.nestFrom", "a nest without a map bed copies one")
+		has(loop, ":Clone()", "a copy of the map's bed")
+		has(loop, "CanQuery = true", "its eggs rest on the copied bed, not under it")
+		has(loop, "Art.CONFIG.PARENT_HEIGHT", "the guardian wears the parent model at its height")
+		has(loop, "SwingTell", "a dressed guardian keeps a red swing tell")
+		has(loop, "Heist.groundBelow(", "a Lumipol guardian stands on the ground the map really has")
 	end)
 
 	return result

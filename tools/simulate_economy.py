@@ -81,6 +81,42 @@ def _sprint_multiplier(repo=REPO):
 
 
 SPRINT_MULTIPLIER = _sprint_multiplier()
+# Nest Heist Phase 3 (NS5): the treadmill's walk levels (src/wildbound/WildboundTraining.luau). A trained player's
+# unencumbered walk gains WALK_STEP per level up to MAX_LEVEL, never above WALK_CAP; a policy with "trained" plays
+# every expedition at the cap, the worst case for the expedition floor.
+TRAINING_PATH = "src/wildbound/WildboundTraining.luau"
+
+
+def _training_constant(name, repo=REPO):
+    text = (repo / TRAINING_PATH).read_text(encoding="utf-8")
+    found = re.search(name + r" = ([0-9.]+)", text)
+    if not found:
+        raise RuntimeError(f"{TRAINING_PATH}: {name} not found")
+    return float(found.group(1))
+
+
+TRAINING_WALK_STEP = _training_constant("WALK_STEP")
+TRAINING_MAX_LEVEL = int(_training_constant("MAX_LEVEL"))
+TRAINING_WALK_CAP = _training_constant("WALK_CAP")
+# NS7: the best glove's walk stat (percent of the base walk, src/wildbound/WildboundGear.luau MOVE_CAP) rides on the same
+# cap; a fully trained policy wears it too.
+GEAR_PATH = "src/wildbound/WildboundGear.luau"
+
+
+def _gear_constant(name, repo=REPO):
+    text = (repo / GEAR_PATH).read_text(encoding="utf-8")
+    found = re.search(r"^\s*" + name + r" = ([0-9.]+)", text, re.M)
+    if not found:
+        raise RuntimeError(f"{GEAR_PATH}: {name} not found")
+    return float(found.group(1))
+
+
+GLOVE_MOVE_CAP = _gear_constant("MOVE_CAP")
+
+
+def full_walk_bonus(base=WALK_SPEED):
+    """NS5 and NS7: the most a trained player in the best glove gains walking, under the training walk cap."""
+    return min(TRAINING_WALK_STEP * TRAINING_MAX_LEVEL + base * GLOVE_MOVE_CAP / 100.0, TRAINING_WALK_CAP - base)
 SPRINT_DUTY = 10.0 / 35.0
 SPRINT_BOOST = 1.0 + SPRINT_DUTY * (SPRINT_MULTIPLIER - 1.0)
 # Chase pass (CP-D2): a rested sprint must outrun La Silueta's fastest hunt by this much (studs per second).
@@ -362,9 +398,18 @@ def loss_basis_points(tuning, state):
 def leg_speed(tuning, state, policy):
     """Walk speed for one leg. A sprinting policy (dread pass, D-D5) gains the stamina bound, but never while a
     creature is carried: sprinting frightens it until it slips free, so a sprinter walks it home."""
-    speed = carry_speed(tuning, state)
+    speed = walk_speed(tuning, state)
     if policy.get("sprint") and not any(item["kind"] == "creature" for item in state["bag"]):
         return speed * SPRINT_BOOST
+    return speed
+
+
+def walk_speed(tuning, state):
+    """NS5: the carry speed plus the training walk bonus, only while unencumbered and never above the cap."""
+    speed = carry_speed(tuning, state)
+    bonus = state.get("trainingWalk", 0.0)
+    if bonus > 0 and speed >= float(tuning["carry"]["baseSpeed"]):
+        return max(speed, min(speed + bonus, TRAINING_WALK_CAP))
     return speed
 
 
@@ -624,7 +669,7 @@ def run_expedition(tuning, ctx, state, policy, rng, players=1, start_clock=0.0):
         times["walk"] += seconds
         position = to
         max_distance = max(max_distance, math.dist(camp, to))
-        if speed is None and leg > carry_speed(tuning, state):
+        if speed is None and leg > walk_speed(tuning, state):
             # The sprint was heard: a warning at the end of the leg costs an evade (never a strike: a sprinter outruns).
             noise = round(seconds * SPRINT_DUTY * SPRINT_NOISE_REACH, 1)
             warned = hold_exposure(tuning, ctx, {"x": to[0], "z": to[1], "zone": "territory"}, now_phase(), noise)[0] \
@@ -847,6 +892,8 @@ def _cost_of(tuning, name):
 def simulate_policy(tuning, ctx, name, policy, seed, trips, players=1):
     rng = random.Random(seed)
     state = new_state(tuning)
+    if policy.get("trained"):
+        state["trainingWalk"] = full_walk_bonus(float(tuning["carry"]["baseSpeed"]))
     log, purchases = [], []
     lifetime = {key: 0 for key in list(tuning["materials"]) + ["ember"]}
     standalone = {key: None for key in list(tuning["upgrades"]) + list(tuning["skills"])}

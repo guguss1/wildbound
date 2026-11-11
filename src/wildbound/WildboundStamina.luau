@@ -23,6 +23,13 @@ Stamina.CONSTANTS = table.freeze({
 	FEAR_FALL = 12, -- per second otherwise
 	FEAR_WARN = 45, -- the warning cue (1.5 s into a sprint)
 	FEAR_SLIP = 100, -- it slips free (3.4 s into a sprint, before a full pool runs out)
+	-- Nest Heist (NH4): the Burst. For BURST_SECONDS the speed is the walk speed times BURST_MULTIPLIER (never slower
+	-- than the current stance, never over BURST_CAP: it does not stack on the sprint), then BURST_COOLDOWN before the
+	-- next. It steers with the player's own move direction (it is WalkSpeed) and gives no invulnerability.
+	BURST_SECONDS = 0.8,
+	BURST_MULTIPLIER = 1.7,
+	BURST_COOLDOWN = 6,
+	BURST_CAP = 28,
 })
 local EPSILON = 1e-6
 local INTENTS = { sprint = true, walk = true }
@@ -63,6 +70,7 @@ function Stamina.new(now)
 	return {
 		stamina = C.POOL, stance = "walk", exhausted = false, fear = 0, warned = false,
 		intent = "walk", intentAt = finite(now) and now or 0, lastDrainAt = -math.huge, lastNoiseAt = -math.huge,
+		burstUntil = -math.huge, burstReadyAt = -math.huge, bursting = false,
 	}
 end
 
@@ -74,14 +82,34 @@ function Stamina.intent(state, value, now)
 end
 
 -- Sprint is the walk speed times 1.45, capped at 24 and never slower than the walk. Other stances keep the walk.
-function Stamina.speed(base, stance)
+-- NH4: bursting, the walk speed times BURST_MULTIPLIER, capped at BURST_CAP and never slower than the stance's speed.
+function Stamina.speed(base, stance, bursting)
 	if not finite(base) or base < 0 then return 0 end
-	if stance ~= "sprint" then return base end
-	return math.max(base, math.min(base * C.SPRINT_MULTIPLIER, C.SPEED_CAP))
+	local speed = base
+	if stance == "sprint" then speed = math.max(base, math.min(base * C.SPRINT_MULTIPLIER, C.SPEED_CAP)) end
+	if bursting == true then speed = math.max(speed, math.min(base * C.BURST_MULTIPLIER, C.BURST_CAP)) end
+	return speed
+end
+
+-- NH4: the client's burst request. input = { blocked = a capture, a hiding spot, no live character }. Returns true, or
+-- false and "Blocked" or "Cooldown". The cooldown runs from the start of the burst.
+function Stamina.burst(state, now, input)
+	if type(state) ~= "table" or not finite(now) then return false, "Invalid" end
+	if type(input) == "table" and input.blocked == true then return false, "Blocked" end
+	if now < (state.burstReadyAt or -math.huge) - EPSILON then return false, "Cooldown" end
+	-- NS7: a glove's Burst recovery shortens the cooldown, never below half of it.
+	local scale = type(input) == "table" and finite(input.cooldownScale) and math.clamp(input.cooldownScale, 0.5, 1) or 1
+	state.burstUntil, state.burstReadyAt, state.bursting = now + C.BURST_SECONDS, now + C.BURST_COOLDOWN * scale, true
+	return true
+end
+
+function Stamina.bursting(state, now)
+	return type(state) == "table" and finite(now) and now < (state.burstUntil or -math.huge) - EPSILON
 end
 
 -- One step. input = { speed = horizontal studs/s, blocked = capture, hidden or dead, carrying = a creature is
--- carried, inCamp = inside the safe circle }. Returns { noise, warn, slip, changed } as booleans.
+-- carried, inCamp = inside the safe circle, regenScale? (a Refugio), drainScale? (the Botas) }. Returns { noise,
+-- warn, slip, changed } as booleans.
 function Stamina.step(state, dt, input, now)
 	local out = { noise = false, warn = false, slip = false, changed = false }
 	if type(state) ~= "table" or type(input) ~= "table" or not finite(dt) or dt < 0 or not finite(now) then return out end
@@ -91,10 +119,17 @@ function Stamina.step(state, dt, input, now)
 	local fresh = now - state.intentAt <= C.INTENT_SECONDS + EPSILON
 	local wants = state.intent == "sprint" and fresh and input.blocked ~= true
 	if state.exhausted and state.stamina >= C.RECOVER - EPSILON then state.exhausted = false end
+	-- NH4: a burst ends at its time or the moment something blocks the player; the edge re-applies the speed.
+	if input.blocked == true and (state.burstUntil or -math.huge) > now then state.burstUntil = now end
+	local bursting = Stamina.bursting(state, now)
+	local burstChanged = bursting ~= (state.bursting == true)
+	state.bursting = bursting
 	local threshold = before == "sprint" and EPSILON or C.START - EPSILON
 	if wants and moving and not state.exhausted and state.stamina >= threshold then
 		state.stance = "sprint"
-		state.stamina -= C.DRAIN * dt
+		-- Items and totem (IT1): the Botas pass drainScale under 1; anything not in (0, 1] is 1, so it never costs more.
+		local drain = finite(input.drainScale) and input.drainScale > 0 and input.drainScale <= 1 and input.drainScale or 1
+		state.stamina -= C.DRAIN * drain * dt
 		state.lastDrainAt = now
 		if state.stamina <= EPSILON then
 			state.stamina, state.exhausted, state.stance = 0, true, "exhausted"
@@ -103,7 +138,9 @@ function Stamina.step(state, dt, input, now)
 		state.stance = state.exhausted and "exhausted" or "walk"
 		if now - state.lastDrainAt >= C.REGEN_DELAY - EPSILON then
 			local rate = moving and C.REGEN_WALK or C.REGEN_STILL
-			state.stamina = math.min(C.POOL, state.stamina + rate * dt)
+			-- Random world (RW4): a Refugio passes regenScale 2; anything that is not a positive number is 1.
+			local scale = finite(input.regenScale) and input.regenScale > 0 and input.regenScale or 1
+			state.stamina = math.min(C.POOL, state.stamina + rate * scale * dt)
 		end
 		if state.exhausted and state.stamina >= C.RECOVER - EPSILON then
 			state.exhausted, state.stance = false, "walk"
@@ -130,7 +167,7 @@ function Stamina.step(state, dt, input, now)
 	else
 		state.fear, state.warned = 0, false
 	end
-	out.changed = state.stance ~= before
+	out.changed = state.stance ~= before or burstChanged
 	return out
 end
 

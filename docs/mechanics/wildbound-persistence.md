@@ -2,7 +2,7 @@
 
 Units M6.1 (schema) and M6.2 (fake-store contract list), wave W10. Implements B17 and D10, and defines the durable case that `docs/mechanics/wildbound-economy-p0.md:167` left open.
 
-**Status: proposal, written 2026-11-07. W10 built the pure record, the session logic and the fake store; see Implementation status. Nothing is wired into the running game.** No DataStore was called, no API access was enabled, no experience was created. All numbers are hypotheses. No code on the Roblox page was copied, and none may be used untested (`docs/wildbound-roadmap.md:341`). Real tests wait for D8, which the user has not taken (`odd/tasks/wildbound-waves.md:20`, `:40`).
+**Status (2026-11-10): live.** The user approved permanent saving of player progress ("Sí, aprobalo", 2026-11-10), which lifts the earlier "no DataStore" rule for this save only. Nest Heist Phase 3 (NS1, NS2, NS7) wired the W10 modules into the running game; see **Live saving** at the end. Sections 1 to 11 are the W10 proposal and stay as written; where Live saving differs (nothing at risk is saved, D10 is not built), Live saving wins. Real data store behaviour is unverified until Studio API access is on (Live saving, "Unverified").
 
 **Labels.** Verified = read in this repository, with file and line. Roblox = read on a Roblox page, section 11. Proposal = decided here for your review. Unverified = neither read nor tested.
 
@@ -540,3 +540,51 @@ Test defect fixed: RT-4 banned the text "defeats", which `stats.defeats` (a desi
 ## Next step
 
 Your review of the choices above, and D8 when you are ready. M6.2 code follows W7, because the reducers need the economy state.
+
+## Live saving (Nest Heist Phase 3, 2026-11-10)
+
+User approval 2026-11-10 ("Sí, aprobalo"): permanent saving of player progress, built safely. Modules: `src/wildbound/WildboundRecord.luau` (the saved value), `src/wildbound/WildboundPersistence.luau` (lock, load guard, autosave, leave, close; unchanged from W10 except where noted), `src/wildbound/WildboundSave.luau` (new: joins `WildboundState` to Persistence), `src/wildbound/WildboundStoreRoblox.luau` (new: the only module that names `DataStoreService`). `WildboundServer.server.luau` calls `Heist.Save.start`, `join` on `PlayerAdded`, `leave` on `PlayerRemoving` and `closeAll` in `BindToClose`. Flag `WildboundFlags.persistenceMode`: `"datastore"` (default), `"memory"` or `"off"` (the old session-only game).
+
+### Saved schema (version 3)
+
+One record per player under the key `Player_<UserId>` in the data store `WildboundPlayers_v1`, written whole with `UpdateAsync` (never `SetAsync`), tagged with the player's UserId.
+
+| Field | Content |
+| --- | --- |
+| `schema`, `revision`, `lastWriteId`, `lastCommitId`, `nextUid`, `nextOp`, `nextTrip`, `ledger` | Bookkeeping from W10 (`nextUid` is the durable ID counter) |
+| `collection.registered`, `collection.bankedEggs` | Registered creatures and banked (secured) eggs, `{ uid, species }` |
+| `equippedUid` | The companion |
+| `ember` | Esencia (Ember internally) |
+| `banked`, `consumables`, `upgrades`, `skills`, `bondXp`, `firstSealGranted`, `settings`, `stats` | As W10 |
+| `incubating` | `{ uid, species, startedAtUnix, readyAtUnix }`: server Unix time (`GetServerTimeNow`), so an egg keeps hatching while the player is away and hatches on the first 1 s step after the next join |
+| `training` | `{ walk = level }` (NS5) |
+| `gloves` | `{ owned = { { uid, rarity, stats } }, equippedUid }` (NS7), at most 12, every stat checked against its hard cap |
+
+Never saved: the bag, the pouch, an egg in the arms, a carried or dropped creature, the trip, an armed seal or totem (schema 1's `atRisk` is dropped by the 1 to 2 migration and never written, `meta.saveAtRisk` is never set). A death or a leave loses them, as before. Migrations: 0 (unversioned) to 1 fills missing fields; 1 to 2 drops `atRisk` and adds `incubating` and `training`; 2 to 3 adds `gloves` and turns a legacy `gear` map (never saved in practice) into Común gloves (Guantes de captura: calm 9 %, Botas: drain 9 %) or refunds Esencia (Chaleco 45, Amuleto 40). A failed or missing step quarantines, never guesses.
+
+State makes session IDs (`wb:N`). `WildboundSave` gives each one a durable ID (`uN`, from `nextUid`) the first time it is saved and keeps it for the session, so the next session loads the same IDs; the companion, the bond and the worn glove follow the same map.
+
+### Lock, load guard, retry and budget
+
+| Rule | Value |
+| --- | --- |
+| Lock | `LockId` (the server's JobId; in Studio `studio:<GUID>`) in the key's metadata, taken in the same `UpdateAsync` that reads and migrates |
+| Lock age | The store's `UpdatedTime` (milliseconds, converted to seconds; read on the engine reference) against the server's `os.time()` |
+| Stale lock | Taken over after `LOCK_EXPIRY` 300 s without an update; every autosave refreshes it (a clean profile writes again after 150 s) |
+| Load attempts | 3, backoff 1, 2, 4 s (cap 8) plus up to 1 s jitter; a fresh foreign lock is retried the same way |
+| Failed or locked load | No saving session: the player plays a fresh session profile that is never written and is told in Spanish (`Text.SAVE.unavailable`, `.locked`, `.unreadable`, `.tooNew`); the HUD line reads "Solo esta sesión." |
+| Autosave | `WildboundSave:run` checks every 5 s; Persistence writes a player about every 60 s (random first offset) and only when the digest of the saved fields changed, or the lock needs a refresh |
+| Budget | Autosaves wait while `GetRequestBudgetForRequestType(UpdateAsync)` is under 4; leave and close always try |
+| Leave | The saved view is taken at once; the final write plus lock release runs on its own thread (3 attempts) |
+| Close | `BindToClose` waits for leaves still writing, then writes and releases every remaining player within 25 s |
+| Errors | An access error ("Studio access to API services") is `NoAccess`; throttles and timeouts are retried by Persistence |
+
+Studio: when the data store refuses Studio (no API access), `WildboundStoreRoblox.open` falls back to an in-memory store and the output says "Wildbound saves: memory - Studio has no data store access ...". It never changes a game setting. Studio-only probe `ServerStorage.WildboundTelemetry.SaveProbe` (ops `info`, `rejoin`, `failLoad`, `holdLock`, `clearLock`) drives the Play checks.
+
+### Not built (follow-ups)
+
+Write-first commits (`Persistence:commit` with the ledger) are not used: every change reaches the store through the dirty-tracked checkpoint, so a server crash can lose up to about a minute of progress, never duplicate it (the lock and the revision check stop a second writer). D10 (resuming a trip after a disconnect) is not built: what is carried is lost, as the user asked.
+
+### Unverified
+
+Real `DataStoreService` behaviour: this place's Studio has no API access (output 2026-11-10: `StudioAccessToApisNotAllowed`), so every Play check ran on the memory store. To verify real persistence, the user enables **Game Settings > Security > Enable Studio Access to API Services** for this experience, then plays, stops, plays again. Two real servers racing the same key, `UpdatedTime` units on a live server, budgets under load and a server crash are untested.
