@@ -117,7 +117,7 @@ Deploy: add `src/wildbound/WildboundBeastScuttler.luau -> ServerScriptService.Wi
 
 ## 6. Tunable parameters (PROPUESTA)
 
-Scale: a Roblox avatar is about 5.5 studs for 1.7 m, so 1 stud is about 0.31 m and the pack's 5-6 m is 16-19 studs tall. The plan starts at **14 studs tall, about 16 studs wide**, so it still fits between forest trunks (open question Q1).
+Scale: a Roblox avatar is about 5.5 studs for 1.7 m, so 1 stud is about 0.31 m and the pack's 5-6 m is 16-19 studs tall. The plan starts at **14 studs tall, about 16 studs wide**, so it still fits between forest trunks (Q1 decided: 12-14 studs tall).
 
 | Key | Value | Why |
 | --- | --- | --- |
@@ -240,7 +240,7 @@ Also add the new scripts to `tools/deploy_manifest.py` and `tools/test_deploy_ma
 
 ## 15. Open product questions for the user
 
-- **Q1 Scale**: true pack scale (about 16-19 studs tall) or a smaller 12-14 studs so it moves well between trees?
+- **Q1 Scale**: DECIDED 2026-11-14 by the user: smaller, 12-14 studs tall (not the pack's 16-19), so it moves well between trees.
 - **Q2 Egg and the pulse**: may the pulse make the player drop the egg (proposed: only on a second pulse within 8 s), or should the pulse never touch the egg?
 - **Q3 Rarity**: is "about 1/60 per 10 s roll, 75 s species cooldown, only when no other beast is active" the right rarity for a threat-3 beast?
 - **Q4 Other players**: should nearby players see (and be hit by the pulse of) someone else's Scuttler? Today every beast is visible only to its target; changing that is a wider beast-system change.
