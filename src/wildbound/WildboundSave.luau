@@ -9,7 +9,7 @@
 --   never overwrite the real record.
 -- * What is saved: banked eggs, registered creatures, the equipped companion, Ember (Esencia), materials banked at
 --   camp, consumables, upgrades, skills, bond, the incubator (server Unix times), the training levels and the gloves
---   with the worn one (NS7). What is out
+--   with the worn one (NS7), and the luck totems held (Q10, schema 4). What is out
 --   in the world (the bag, the pouch, a carried or dropped egg, the trip) is never saved.
 -- * State makes session IDs (wb:N). Each one gets a durable ID (uN) from the saved counter the first time it is saved,
 --   and keeps it for the rest of the session, so the next session loads the same IDs.
@@ -117,6 +117,8 @@ local function digestOf(self, view)
 		consumables = view.consumables, upgrades = view.upgrades, skills = view.skills, bond = bondXp,
 		training = view.training or {}, seal = view.earnedSeal == true,
 		gloves = view.gloves and { list = view.gloves.list, equipped = view.gloves.equipped or "" } or {},
+		-- Q10 (schema 4): a crafted or placed luck totem marks the profile dirty.
+		totems = type(view.luckTotems) == "number" and view.luckTotems or 0,
 	})
 end
 

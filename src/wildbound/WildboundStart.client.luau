@@ -26,10 +26,14 @@ if not (Settings and Tutorial and View and Layout) then
 	return
 end
 
+-- UI colorida: the shared look. Without the module every call is a no-op and the plain look stays.
+local Style = module("WildboundUiStyle") or setmetatable({}, { __index = function() return function() end end })
+
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundStartUI"
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 30
+Style.screen(gui)
 gui.Parent = playerGui
 local connections = {}
 local function listen(signal, callback)
@@ -41,12 +45,14 @@ listen(gui.Destroying, function()
 	for _, connection in ipairs(connections) do connection:Disconnect() end
 end)
 
-local ink = Color3.fromRGB(240, 244, 231)
-local amber = Color3.fromRGB(255, 214, 120)
-local dark = Color3.fromRGB(25, 34, 31)
-local accent = Color3.fromRGB(77, 115, 88)
-local accentOn = Color3.fromRGB(110, 150, 120)
-local muted = Color3.fromRGB(190, 198, 190)
+-- UI colorida palette: white ink, gold, slate-navy panel, blue neutral buttons, lime green for "on" and Play.
+local ink = Color3.fromRGB(255, 255, 255)
+local amber = Color3.fromRGB(255, 214, 64)
+local dark = Color3.fromRGB(40, 50, 70)
+local accent = Color3.fromRGB(58, 148, 245)
+local accentOn = Color3.fromRGB(92, 214, 64)
+local muted = Color3.fromRGB(200, 210, 232)
+local offTone = Color3.fromRGB(84, 92, 112)
 
 local function make(className, properties, parent)
 	local instance = Instance.new(className)
@@ -63,6 +69,7 @@ local function label(parent, rect, text, size, bold, color, center)
 		TextXAlignment = center and Enum.TextXAlignment.Center or Enum.TextXAlignment.Left,
 		TextYAlignment = Enum.TextYAlignment.Center }, parent)
 	place(item, rect)
+	if bold then Style.title(item, color or ink) else Style.body(item) end
 	return item
 end
 local function button(parent, rect, text, name, color, size)
@@ -70,6 +77,9 @@ local function button(parent, rect, text, name, color, size)
 		TextSize = size or 16, Font = Enum.Font.GothamBold, AutoButtonColor = true, TextWrapped = true }, parent)
 	make("UICorner", { CornerRadius = UDim.new(0, 7) }, item)
 	place(item, rect)
+	-- UI colorida: chunky outlined button; the colour passed in (or the neutral blue) stays.
+	Style.button(item)
+	item.BackgroundColor3 = color or accent
 	return item
 end
 
@@ -84,6 +94,11 @@ local backdrop = make("Frame", { Name = "Backdrop", Size = UDim2.fromScale(1, 1)
 local panel = make("Frame", { Name = "Panel", BackgroundColor3 = dark, BorderSizePixel = 0 }, backdrop)
 make("UICorner", { CornerRadius = UDim.new(0, 10) }, panel)
 make("UIStroke", { Color = amber, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, panel)
+Style.panel(panel)
+-- UI colorida: the saturated header strip behind a screen's title rectangle (rebuilt with the screen).
+local function header(rect, tone)
+	Style.header(panel, rect.y + rect.h + 6, tone)
+end
 
 local function currentLayout()
 	local size = gui.AbsoluteSize
@@ -135,7 +150,8 @@ build = function()
 	if screen == "start" then
 		local v = View.start(layout)
 		place(panel, v.panel)
-		label(panel, v.title, View.TEXT.title, 24, true, amber, true)
+		header(v.title, "red")
+		label(panel, v.title, View.TEXT.title, 24, true, ink, true)
 		label(panel, v.tagline, View.TEXT.tagline, View.TEXT_SIZE, false, ink, true)
 		button(panel, v.play, "Jugar", "PlayButton", accentOn, 18).Activated:Connect(actions.play)
 		button(panel, v.settings, "Ajustes", "SettingsButton").Activated:Connect(actions.openSettings)
@@ -149,12 +165,13 @@ build = function()
 		end
 		local v = View.settings(layout, descriptions)
 		place(panel, v.panel)
-		label(panel, v.title, View.TEXT.settingsTitle, 22, true, amber, true)
+		header(v.title, "purple")
+		label(panel, v.title, View.TEXT.settingsTitle, 22, true, ink, true)
 		for index, key in ipairs(Settings.ORDER) do
 			local row = v.rows[index]
 			label(panel, row.text, descriptions[index], View.TEXT_SIZE)
 			local on = Settings.get(settings, key)
-			button(panel, row.toggle, Settings.stateText(on), "Toggle_" .. key, on and accentOn or Color3.fromRGB(58, 68, 62)).Activated:Connect(
+			button(panel, row.toggle, Settings.stateText(on), "Toggle_" .. key, on and accentOn or offTone).Activated:Connect(
 				key == "reducedEffects" and actions.toggleReduced or actions.toggleHints)
 		end
 		button(panel, v.replay, "Repetir tutorial", "ReplayButton").Activated:Connect(actions.replay)
@@ -162,7 +179,8 @@ build = function()
 	elseif screen == "howto" then
 		local v = View.howto(layout)
 		place(panel, v.panel)
-		label(panel, v.title, View.TEXT.howtoTitle, 22, true, amber, true)
+		header(v.title, "magenta")
+		label(panel, v.title, View.TEXT.howtoTitle, 22, true, ink, true)
 		for index, text in ipairs(View.TEXT.howto) do label(panel, v.lines[index], text, View.TEXT_SIZE) end
 		button(panel, v.back, "Volver", "BackButton").Activated:Connect(actions.back)
 	end
@@ -220,9 +238,13 @@ local card = make("Frame", { Name = "TutorialCard", BackgroundColor3 = dark, Bac
 	BorderSizePixel = 0 }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, card)
 make("UIStroke", { Color = amber, Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }, card)
+-- UI colorida: the tutorial card is a slate panel with a gold outline (the next step stands out from the HUD).
+Style.panel(card)
+Style.outline(card, 3, amber)
 local cardText = make("TextLabel", { Name = "CardText", BackgroundTransparency = 1, TextColor3 = ink, Font = Enum.Font.Gotham,
 	TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Center, Text = "" }, card)
-local skip = button(card, { x = 0, y = 0, w = 64, h = 44 }, "Saltar", "SkipButton", Color3.fromRGB(58, 68, 62), 15)
+Style.body(cardText, true)
+local skip = button(card, { x = 0, y = 0, w = 64, h = 44 }, "Saltar", "SkipButton", Color3.fromRGB(236, 64, 72), 15)
 local cardMode, cardKey = nil, nil
 local function layoutCard()
 	local geometry = View.card(currentLayout())
@@ -252,27 +274,18 @@ local function updateTutorial()
 	local worldReady = playerGui:FindFirstChild("WildboundUI")
 	local inventory = worldReady and worldReady:FindFirstChild("InventoryPanel")
 	local tab = worldReady and worldReady:GetAttribute("PanelTab")
-	if Tutorial.state(tutorial) == "running" then
-		-- K1: the first step reads where the character stands (the clearing), the others the state snapshot.
+	-- Egg loop guide: nothing is observed or shown before the first state snapshot, so a returning player is
+	-- recognised as a veteran (no card, no closing line) instead of flashing step 1.
+	local snapshot = snapshotNow()
+	if Tutorial.state(tutorial) == "running" and snapshot then
 		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 		local at = root and root:IsA("BasePart") and { x = root.Position.X, z = root.Position.Z } or nil
-		Tutorial.observe(tutorial, Tutorial.factsFrom(snapshotNow(), tab == "camp", at))
+		Tutorial.observe(tutorial, Tutorial.factsFrom(snapshot, tab == "camp", at))
 		if Tutorial.state(tutorial) == "done" then doneUntil = os.clock() + 5 end
 	end
 	local step = Tutorial.step(tutorial)
 	gui:SetAttribute("TutorialState", step and step.id or Tutorial.state(tutorial))
-	local hints = Settings.get(settings, "hints")
-	local blocked = screen ~= "closed" or player:GetAttribute("WildboundCapturing") == true
-		or (inventory and inventory.Visible == true)
-	local finishing = Tutorial.state(tutorial) == "done" and os.clock() < doneUntil
-	if (step or finishing) and hints and not blocked then
-		if cardKey ~= tostring(gui.AbsoluteSize) or cardMode == nil then layoutCard() end
-		cardText.Text = step and Tutorial.cardText(step, compactNow()) or Tutorial.DONE_TEXT
-		skip.Visible = step ~= nil
-		card.Visible = true
-	else
-		card.Visible = false
-	end
+	card.Visible = false
 end
 listen(gui:GetPropertyChangedSignal("AbsoluteSize"), function() cardKey = nil end)
 
@@ -294,4 +307,5 @@ end)
 
 gui:SetAttribute("ReducedEffects", Settings.get(settings, "reducedEffects"))
 gui:SetAttribute("Hints", Settings.get(settings, "hints"))
-show("start")
+playPressed = true
+show("closed")

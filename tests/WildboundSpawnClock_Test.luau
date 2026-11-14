@@ -99,7 +99,13 @@ return function(SpawnClock, graph, Species, source, sources)
 			equal(spawn.point.tier, spawn.tier, spawn.id)
 			assert(not used[spawn.point.id], "two spawns on one point")
 			used[spawn.point.id] = true
-			equal(Species.LOOKS[spawn.species].rarity, spawn.tier, "species follows the tier")
+			-- Deliberately changed (user, 2026-11-11, Species.ONLY = "Lumipol"): for now every spawn is a Lumipol, whatever
+			-- its tier; with ONLY unset the species follows the tier.
+			if Species.ONLY then
+				equal(spawn.species, Species.ONLY, "every spawn is the ONLY species")
+			else
+				equal(Species.LOOKS[spawn.species].rarity, spawn.tier, "species follows the tier")
+			end
 			equal(spawn.rewardTier, SpawnClock.REWARD[spawn.tier])
 			if spawn.point.kind == "canopy" then equal(spawn.kind, "Egg", "a bough holds an egg only") end
 			assert(spawn.kind == "Egg" or spawn.kind == "Creature", spawn.kind)

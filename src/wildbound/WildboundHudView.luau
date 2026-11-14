@@ -50,6 +50,13 @@ View.CONSTANTS = table.freeze({
 	COMPACT_BOARD_CHARS = 18,
 	BANNER_CHARS = 36,
 	COMPACT_BANNER_CHARS = 24,
+	-- Dev lighting (user, 2026-11-11: "opcion de iluminacion para poder aumentarla y testear"). Client only, applied on
+	-- top of the atmosphere: exposure added (EV), brightness multiplied, ambient lifted toward white (0 to 1), fog pushed
+	-- back (x). The defaults change nothing.
+	LIGHT_EXPOSURE = 0,
+	LIGHT_BRIGHTNESS = 1,
+	LIGHT_AMBIENT = 0,
+	LIGHT_FOG = 1,
 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stay the defaults the tests pin; the view reads `live`, a

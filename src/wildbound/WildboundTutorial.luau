@@ -1,23 +1,24 @@
--- First-run tutorial, pure state. Expedition islands (K1, docs/mechanics/wildbound-expedition-islands.md section 3):
--- the first minute is follow the lit lanterns to the clearing, take the sleeping cria, carry it to the refuge and
--- register it. The controller feeds it facts read from the player's own state snapshot and the character's position;
--- it never decides anything for the server. Player-facing words are neutral Spanish.
+-- First-run guide, pure state. Egg loop (docs/design/wildbound-egg-loop.md section 3): the first steps are steal an
+-- egg, carry it home, see it go into the incubator, wait for it to hatch, one card at a time. (It was the K1 cria
+-- tutorial: lanterns, cria, refuge.) The controller feeds it facts read from the player's own state snapshot; it never
+-- decides anything for the server. A player whose first facts already finish every step (a returning player with a
+-- hatched creature) is a "veteran": done at once, with no card and no closing line. Player-facing words are Spanish.
 local Tutorial = {}
 
 Tutorial.STEPS = table.freeze({
-	table.freeze({ id = "claro", full = "1/3 Sigue los faroles encendidos hasta el claro de los Lumipol.",
-		short = "1/3 Sigue los faroles hasta el claro." }),
-	table.freeze({ id = "cria", full = "2/3 Acércate sin correr y toma la cría sin despertar a sus padres.",
-		short = "2/3 Acércate sin correr y toma la cría." }),
-	table.freeze({ id = "refugio", full = "3/3 Llévala al refugio del campamento y regístrala.",
-		short = "3/3 Llévala al refugio y regístrala." }),
+	table.freeze({ id = "robar", full = "1/4 Busca un nido en el bosque y mantén E para robar el huevo.",
+		short = "1/4 Busca un nido y mantén E." }),
+	table.freeze({ id = "llevar", full = "2/4 Corre a tu base: sigue la flecha y la luz azul.",
+		short = "2/4 Lleva el huevo a tu base." }),
+	table.freeze({ id = "incubar", full = "3/4 Tu huevo entra solo en la incubadora. Mira el tiempo encima.",
+		short = "3/4 Tu huevo va a la incubadora." }),
+	table.freeze({ id = "nacer", full = "4/4 Espera a que nazca. Mientras, vuelve al bosque por otro.",
+		short = "4/4 Espera a que nazca." }),
 })
-Tutorial.DONE_TEXT = "¡Es tuya! Más adentro duermen criaturas más raras."
--- Island 1, Claro de los Lumipol (assets/maps/forest-layout/islands-v1.json): within this radius counts as arrived.
-Tutorial.CLARO = table.freeze({ x = -95, z = 75, radius = 22 })
+Tutorial.DONE_TEXT = "¡Nuevo compañero! Roba más huevos para tu colección."
 
 function Tutorial.new()
-	return { index = 1, status = "running" }
+	return { index = 1, status = "running", observed = false }
 end
 
 function Tutorial.state(t)
@@ -37,20 +38,28 @@ function Tutorial.cardText(step, compact)
 	return compact and step.short or step.full
 end
 
+-- A later fact completes the earlier steps too (an egg already stored means it was stolen and carried).
 local function met(id, f)
-	if id == "claro" then return f.reachedClaro == true or f.carrying == true or (f.registered or 0) > 0 end
-	if id == "cria" then return f.carrying == true or (f.registered or 0) > 0 end
-	return (f.registered or 0) > 0
+	local hatched = (f.registered or 0) > 0
+	local incubating = (f.incubating or 0) > 0 or hatched
+	local stored = (f.stored or 0) > 0 or incubating
+	if id == "robar" then return f.carryingEgg == true or stored end
+	if id == "llevar" then return stored end
+	if id == "incubar" then return incubating end
+	return hatched
 end
 
--- Advances as far as the facts allow, in order. Returns whether anything changed.
+-- Advances as far as the facts allow, in order. Returns whether anything changed. The first observation that finishes
+-- every step marks a veteran.
 function Tutorial.observe(t, f)
 	if t.status ~= "running" or type(f) ~= "table" then return false end
+	local first = t.observed ~= true
+	t.observed = true
 	local changed = false
 	while t.status == "running" and met(Tutorial.STEPS[t.index].id, f) do
 		changed = true
 		if t.index >= #Tutorial.STEPS then
-			t.status = "done"
+			t.status = first and "veteran" or "done"
 		else
 			t.index += 1
 		end
@@ -62,27 +71,25 @@ function Tutorial.skip(t)
 	if t.status == "running" then t.status = "skipped" end
 end
 
+-- "Repetir tutorial": from the first step again, and shown even to a veteran (the next facts move it on).
 function Tutorial.restart(t)
-	t.index, t.status = 1, "running"
+	t.index, t.status, t.observed = 1, "running", true
 end
 
-local function finite(value)
-	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
+local function count(value)
+	return type(value) == "table" and #value or 0
 end
 
--- Facts from a state snapshot (WildboundState:snapshot) and the character's position { x, z }, tolerating any
--- missing or odd field. campOpen is kept for the caller's signature; no step needs it any more.
+-- Facts from a state snapshot (WildboundState:snapshot), tolerating any missing or odd field. campOpen and position
+-- are kept for the caller's signature; no step needs them any more.
 function Tutorial.factsFrom(snapshot, campOpen, position)
 	snapshot = type(snapshot) == "table" and snapshot or {}
-	local carrying = type(snapshot.carrying) == "table"
-	local registered = type(snapshot.registered) == "table" and #snapshot.registered or 0
-	local near = false
-	if type(position) == "table" and finite(position.x) and finite(position.z) then
-		local dx, dz = position.x - Tutorial.CLARO.x, position.z - Tutorial.CLARO.z
-		near = math.sqrt(dx * dx + dz * dz) <= Tutorial.CLARO.radius
+	local carrying = false
+	for _, entry in ipairs(type(snapshot.pending) == "table" and snapshot.pending or {}) do
+		if type(entry) == "table" and entry.kind == "Egg" and entry.inArms == true then carrying = true end
 	end
-	return { reachedClaro = near or carrying or registered > 0, carrying = carrying, registered = registered,
-		campOpen = campOpen == true }
+	return { carryingEgg = carrying, stored = count(snapshot.bankedEggs), incubating = count(snapshot.incubating),
+		registered = count(snapshot.registered), campOpen = campOpen == true }
 end
 
 return Tutorial

@@ -32,6 +32,68 @@ return function(Island, layout)
 		return events
 	end
 	local C = Island.CONSTANTS
+	-- Deliberately changed (user, 2026-11-11, Studio sync df278fd): the parents sleep until an egg is taken
+	-- (SLEEP_UNTIL_STEAL 1) and each nest holds EGGS_PER_NEST eggs (3, eggs only) under PARENTS_PER_NEST sleeping
+	-- adults (1). The sleep meter, the cria roll and the old nest count stay in the module behind those toggles (0
+	-- restores them), so the cases that pin them now run with the toggles off; the new defaults have their own cases.
+	local LEGACY = { SLEEP_UNTIL_STEAL = 0, EGGS_PER_NEST = 0, PARENTS_PER_NEST = 0 }
+	local function tuneLegacy(overrides)
+		local merged = table.clone(LEGACY)
+		for key, value in pairs(overrides or {}) do merged[key] = value end
+		Island.tune(merged)
+	end
+	local function legacy(name, run)
+		case(name .. " (toggles off)", function()
+			tuneLegacy(nil)
+			local ok, message = pcall(run)
+			Island.tune(nil)
+			if not ok then error(message, 0) end
+		end)
+	end
+
+	case("SN1: by default the parents sleep until a steal: walking, sprinting, light and noises add nothing", function()
+		Island.tune(nil)
+		assert(C.SLEEP_UNTIL_STEAL == 1, "SLEEP_UNTIL_STEAL " .. tostring(C.SLEEP_UNTIL_STEAL))
+		local meter = Island.newMeter(island("I3"))
+		local events = run(meter, 10, { inside = true, linger = true, sprint = true, light = true, phase = "Night" })
+		assert(not events.stirred and not events.woke, "no stir, no wake")
+		near(meter.value, 0, 1e-9, "the meter stays at 0")
+		for _, kind in ipairs({ "LeftRing", "SealMissed", "Rustle", "SprintNoise" }) do
+			local out = Island.event(meter, kind)
+			assert(not out.stirred and not out.woke, kind)
+		end
+		assert(meter.state == "Asleep" and Island.nestOpen(meter), "still asleep, nest open")
+		local stolen = Island.event(meter, "EggTaken")
+		assert(stolen.woke and meter.state == "Alert", "an egg steal wakes them at once")
+		local grab = Island.newMeter(island("I2"))
+		Island.event(grab, "CriaTaken")
+		near(grab.value, C.GRAB, 1e-9, "a cria grab still counts")
+	end)
+
+	case("SN2: by default each nest holds three eggs (only eggs) under one sleeping parent, laid in a ring", function()
+		Island.tune(nil)
+		assert(C.EGGS_PER_NEST == 3 and C.PARENTS_PER_NEST == 1, "the defaults")
+		for _, entry in ipairs(Island.withTrailNest(layout).islands) do
+			assert(Island.nestCount(entry, 1) == 3 and Island.nestCount(entry, 6) == 3, entry.id .. " three eggs")
+			for _, phase in ipairs({ "Day", "Dawn", "Dusk", "Night" }) do
+				assert(Island.rollContent(entry, phase, function() return 0 end) == "Egg", entry.id .. " " .. phase)
+			end
+			assert(Island.parentCount(entry) == math.min(1, #entry.adultPoints), entry.id .. " one parent")
+		end
+		local seen = {}
+		for index = 1, 3 do
+			local x, z = Island.eggOffset(index, 3)
+			near(math.sqrt(x * x + z * z), 1.7, 1e-6, "on the ring")
+			local key = string.format("%.3f,%.3f", x, z)
+			assert(not seen[key], "never on top of each other")
+			seen[key] = true
+		end
+		local x, z = Island.eggOffset(1, 1)
+		assert(x == 0 and z == 0, "a single egg sits in the middle")
+		Island.tune({ PARENTS_PER_NEST = 0 })
+		assert(Island.parentCount(island("I3")) == #island("I3").adultPoints, "0 restores every adult point")
+		Island.tune(nil)
+	end)
 
 	case("I2: the layout's five islands load with their rule numbers", function()
 		assert(#layout.islands == 5, "five islands")
@@ -47,21 +109,21 @@ return function(Island, layout)
 		assert(meter.state == "Asleep", meter.state)
 	end)
 
-	case("I2: lingering by an adult adds 6 per second", function()
+	legacy("I2: lingering by an adult adds 6 per second", function()
 		local meter = Island.newMeter(island("I2"))
 		run(meter, 2, { inside = true, linger = true, phase = "Day" })
 		near(meter.value, 12, 1e-6)
 		near(C.LINGER, 6, 1e-9, "constant")
 	end)
 
-	case("I2: sprinting inside the radius wakes within 2.5 s", function()
+	legacy("I2: sprinting inside the radius wakes within 2.5 s", function()
 		local meter = Island.newMeter(island("I3"))
 		local events = run(meter, 2.4, { inside = true, sprint = true, phase = "Day" })
 		assert(events.woke == 1, "woke once")
 		assert(meter.state == "Alert", meter.state)
 	end)
 
-	case("I2: light on a face counts only at Dusk and Night and is halved with the upgrade", function()
+	legacy("I2: light on a face counts only at Dusk and Night and is halved with the upgrade", function()
 		local day = Island.newMeter(island("I4"))
 		run(day, 1, { inside = true, light = true, phase = "Day" })
 		near(day.value, 0, 1e-9, "day")
@@ -73,7 +135,7 @@ return function(Island, layout)
 		near(covered.value, 5, 1e-6, "farol tapado")
 	end)
 
-	case("I2: a clean lull stays asleep", function()
+	legacy("I2: a clean lull stays asleep", function()
 		local meter = Island.newMeter(island("I2"))
 		run(meter, 3, { inside = true, linger = true, phase = "Day" })
 		run(meter, 5, { inside = true, lulling = true, phase = "Day" })
@@ -81,7 +143,7 @@ return function(Island, layout)
 		assert(meter.state == "Asleep", meter.state)
 	end)
 
-	case("I2: two mistakes wake it", function()
+	legacy("I2: two mistakes wake it", function()
 		local meter = Island.newMeter(island("I2"))
 		run(meter, 3, { inside = true, linger = true, phase = "Day" })
 		run(meter, 5, { inside = true, lulling = true, phase = "Day" })
@@ -103,7 +165,7 @@ return function(Island, layout)
 	-- Fear pass (FA2, user: "stealing must be an adrenaline rush"): the grab itself is loud. Taking a cria (a granted
 	-- capture) or an egg adds GRAB to the meter, so a careful thief on a calm island keeps it asleep, while a sloppy one
 	-- (a mistake, lingering) wakes the parents the moment the cria is lifted. Island 1's first steal stays capped.
-	case("FA2: a grab is loud enough to wake a stirred island, and island 1's first steal stays safe", function()
+	legacy("FA2: a grab is loud enough to wake a stirred island, and island 1's first steal stays safe", function()
 		local calm = Island.newMeter(island("I2"))
 		run(calm, 3, { inside = true, linger = true, phase = "Day" })
 		local quiet = Island.event(calm, "CriaTaken")
@@ -119,18 +181,18 @@ return function(Island, layout)
 		egg.sleepScale = 0.7
 		local stolen = Island.event(egg, "EggTaken")
 		assert(stolen.woke and egg.state == "Alert", "an egg steal wakes the island at once")
-		Island.tune({ STEAL_WAKE = 0 })
+		tuneLegacy({ STEAL_WAKE = 0 })
 		local grab = Island.newMeter(island("I4"))
 		Island.event(grab, "EggTaken")
 		near(grab.value, C.GRAB, 1e-9, "with the toggle off an egg is the same grab")
-		Island.tune(nil)
+		tuneLegacy(nil)
 		local first = Island.newMeter(island("I1"))
 		first.value = 90
 		local out = Island.event(first, "CriaTaken", { firstSteal = true })
 		assert(not out.woke and first.value <= C.FIRST_CAP + 1e-9, "the first steal never wakes island 1")
 	end)
 
-	case("I2: decay starts after 2 s", function()
+	legacy("I2: decay starts after 2 s", function()
 		local meter = Island.newMeter(island("I2"))
 		run(meter, 3, { inside = true, linger = true, phase = "Day" })
 		run(meter, 2, { inside = true, phase = "Day" })
@@ -141,7 +203,7 @@ return function(Island, layout)
 		near(meter.value, 0, 1e-6, "20 per second with nobody inside, floored at 0")
 	end)
 
-	case("I2: stir at 40 and wake at 100, once", function()
+	legacy("I2: stir at 40 and wake at 100, once", function()
 		local meter = Island.newMeter(island("I4"))
 		local events = run(meter, 7, { inside = true, linger = true, phase = "Day" })
 		assert(events.stirred == 1, "stirred once, got " .. tostring(events.stirred))
@@ -151,7 +213,7 @@ return function(Island, layout)
 		assert(not events.stirred, "no second stir")
 	end)
 
-	case("I2: Alerta closes the nest for 30 s and resets to 30", function()
+	legacy("I2: Alerta closes the nest for 30 s and resets to 30", function()
 		local meter = Island.newMeter(island("I2"))
 		Island.event(meter, "SealMissed")
 		Island.event(meter, "SealMissed")
@@ -170,7 +232,7 @@ return function(Island, layout)
 		assert(first.state == "Asleep", "island 1 reopens after 8 s")
 	end)
 
-	case("I2: island 1 never passes 95 for a first steal without sprint", function()
+	legacy("I2: island 1 never passes 95 for a first steal without sprint", function()
 		local meter = Island.newMeter(island("I1"))
 		run(meter, 60, { inside = true, linger = true, lulling = true, light = true, phase = "Night", firstSteal = true })
 		for _ = 1, 10 do Island.event(meter, "SealMissed", { firstSteal = true }) end
@@ -183,7 +245,7 @@ return function(Island, layout)
 		assert(meter.state == "Alert", "a sprint still wakes it")
 	end)
 
-	case("I2: nest roll is 70 cria and 30 egg over 10,000 seeded rolls within 1 %", function()
+	legacy("I2: nest roll is 70 cria and 30 egg over 10,000 seeded rolls within 1 %", function()
 		local rng = Random.new(2026)
 		local creatures = 0
 		for _ = 1, 10000 do
@@ -194,13 +256,13 @@ return function(Island, layout)
 		near(creatures / 10000, 0.7, 0.01, "creature share")
 	end)
 
-	case("I2: island 1 always holds a cria", function()
+	legacy("I2: island 1 always holds a cria", function()
 		for _, value in ipairs({ 0, 0.5, 0.99 }) do
 			assert(Island.rollContent(island("I1"), "Night", function() return value end) == "Creature", "roll " .. value)
 		end
 	end)
 
-	case("I2: island 5 cria only at Dusk and Night", function()
+	legacy("I2: island 5 cria only at Dusk and Night", function()
 		local low = function() return 0 end
 		assert(Island.rollContent(island("I5"), "Day", low) == "Egg", "egg by day")
 		assert(Island.rollContent(island("I5"), "Dawn", low) == "Egg", "egg at dawn")
@@ -208,7 +270,7 @@ return function(Island, layout)
 		assert(Island.rollContent(island("I5"), "Night", low) == "Creature", "cria at night")
 	end)
 
-	case("I2: respawn and nest count scale with players", function()
+	legacy("I2: respawn and nest count scale with players", function()
 		near(Island.respawnSeconds(island("I2"), "Creature", 1), 45, 1e-9)
 		near(Island.respawnSeconds(island("I2"), "Creature", 5), 30, 1e-9)
 		near(Island.respawnSeconds(island("I4"), "Egg", 1), 60, 1e-9)
@@ -330,7 +392,7 @@ return function(Island, layout)
 	end)
 
 	-- Fix pass (FP5): the parents' new behaviours, each behind a toggle (1 on, 0 off; default on).
-	case("FP5a: pack call: when the island wakes, every adult of it is awake at once (well inside 10 s)", function()
+	legacy("FP5a: pack call: when the island wakes, every adult of it is awake at once (well inside 10 s)", function()
 		-- One shared meter per island (I2): a wake is one event for every adult, so the pack answers in 0 s.
 		local meter = Island.newMeter(island("I2"))
 		local out = Island.event(meter, "SprintNoise")
@@ -456,8 +518,8 @@ return function(Island, layout)
 		assert(carry.x == 0 and carry.z == 0, "at the nest")
 	end)
 
-	case("FP5d: deeper sleep at noon: every wake input x0.7 from 11:00 to 13:00 of the day cycle", function()
-		Island.tune(nil)
+	legacy("FP5d: deeper sleep at noon: every wake input x0.7 from 11:00 to 13:00 of the day cycle", function()
+		tuneLegacy(nil)
 		assert(Island.CONSTANTS.DEEP_SCALE == 0.7 and Island.CONSTANTS.DEEP_FROM == 11 and Island.CONSTANTS.DEEP_TO == 13)
 		assert(Island.sleepScale(12) == 0.7 and Island.sleepScale(11) == 0.7, "noon")
 		assert(Island.sleepScale(13) == 1 and Island.sleepScale(10.9) == 1 and Island.sleepScale(0) == 1, "otherwise")
@@ -475,9 +537,9 @@ return function(Island, layout)
 		Island.step(b, 0.2, input)
 		near(a.value, b.value * 0.7, 1e-6, "a step")
 		assert(a.deep == true and b.deep ~= true, "the meter says whether it sleeps deeply (the breathing slows)")
-		Island.tune({ DEEP_SLEEP_ON = 0 })
+		tuneLegacy({ DEEP_SLEEP_ON = 0 })
 		assert(Island.sleepScale(12) == 1, "toggle off")
-		Island.tune(nil)
+		tuneLegacy(nil)
 	end)
 
 	-- Lumipol generated model pass (user, 2026-11-10): one Lumipol egg nest, guarded by one adult, by the hub's W trail
@@ -498,7 +560,7 @@ return function(Island, layout)
 		for _, entry in ipairs(layout.islands) do assert(entry.id ~= trail.id, "a new id") end
 	end)
 
-	case("LG: the trail nest always holds eggs, two of them, and respawns like any egg nest", function()
+	legacy("LG: the trail nest always holds eggs, two of them, and respawns like any egg nest", function()
 		local trail = Island.TRAIL_NEST
 		for _, phase in ipairs({ "Day", "Dawn", "Dusk", "Night" }) do
 			assert(Island.rollContent(trail, phase, function() return 0 end) == "Egg", phase)

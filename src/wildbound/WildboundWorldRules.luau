@@ -4,10 +4,10 @@ local Rules = {}
 -- M5.7, D5: a 12-minute cycle with the old proportions (Day 50%, Dusk 10%, Night 30%, Dawn 10%). The
 -- numbers match the "cycle" block of docs/mechanics/wildbound-economy-p0.md; a contract compares them.
 local PHASES = table.freeze({
-	table.freeze({ name = "Day", seconds = 360, clockStart = 6, clockEnd = 18 }),
-	table.freeze({ name = "Dusk", seconds = 72, clockStart = 18, clockEnd = 20 }),
-	table.freeze({ name = "Night", seconds = 216, clockStart = 20, clockEnd = 29 }),
-	table.freeze({ name = "Dawn", seconds = 72, clockStart = 5, clockEnd = 6 }),
+	table.freeze({ name = "Day", seconds = 300, clockStart = 6, clockEnd = 18 }),
+	table.freeze({ name = "Dusk", seconds = 60, clockStart = 18, clockEnd = 20 }),
+	table.freeze({ name = "Night", seconds = 300, clockStart = 20, clockEnd = 29 }),
+	table.freeze({ name = "Dawn", seconds = 60, clockStart = 5, clockEnd = 6 }),
 })
 Rules.CYCLE_SECONDS = 720
 Rules.REVEAL_SECONDS = 4
@@ -37,6 +37,11 @@ Rules.SILUETA_VISUAL_SCALE = 3.8
 -- Fix pass (FP2): one Silueta per player, at most this many on a server (the first eight players get one at once; a
 -- later player takes a freed slot). Tunable live (Silueta.MAX_HUNTERS, 1 to 16).
 Rules.MAX_HUNTERS = 8
+-- AI rework (user, 2026-11-13, "Todo el bosque de niebla"): how far from home La Silueta herself sees, walks and
+-- strikes. It covers every corner of the fog rectangle (the farthest, (165, 35), is 204 studs from home), so her
+-- reach is the whole forest less the safe zones and the spawn pad. Only the world server passes it, as the optional
+-- leash; HOME_LEASH stays the 80-stud territory that noise tiers, capture tiers, Refugios and beasts read.
+Rules.SILUETA_REACH = 210
 Rules.DAMAGE = 20
 -- Nest Heist hub (HB-T1): where the hub's centre is in this world, and the radius of its safe disc: the hub script
 -- builds there and Rules.zone reads it. A translation only (the hub plan assumes no rotation).
@@ -261,7 +266,9 @@ function Rules.pursuit(observation)
 	if type(observation) ~= "table" or observation.alive ~= true then return false end
 	if observation.safe == true then return false end
 	local home = observation.homeDistance
-	if Rules.finite(home) and home > Rules.CHASE_LEASH then return false end
+	-- observation.leash: optional, the pursuit leash to use instead of CHASE_LEASH (the world server passes her reach).
+	local leash = Rules.finite(observation.leash) and observation.leash > 0 and observation.leash or Rules.CHASE_LEASH
+	if Rules.finite(home) and home > leash then return false end
 	if observation.hidden == true and observation.visible ~= true then return false end
 	local distance = observation.distance
 	return Rules.finite(distance) and distance >= 0 and distance <= Rules.GIVE_UP_DISTANCE

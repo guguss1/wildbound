@@ -171,7 +171,7 @@ local lastBody, lastBodyPosition, guardianSpeed = nil, nil, 0
 local duckUntil = 0
 local CollectionService = game:GetService("CollectionService")
 local swinging, awakened = {}, {}
-local bursts = setmetatable({}, { __mode = "k" }) -- Nest Heist (NH4): the last burst seen per player
+local bursts = setmetatable({}, { __mode = "k" }) -- Q3b: the last dodge boost seen per player (was the NH4 burst)
 local batSeen = setmetatable({}, { __mode = "k" }) -- Nest Heist phase 2 (NP5): the last swing and hit seen per player
 
 local function cue(kind, level, reduced, body, root)
@@ -296,12 +296,13 @@ local function update(dt)
 		swinging[adult] = swing or nil
 		awakened[adult] = awake or nil
 	end
-	-- Nest Heist (NH4): a burst is heard as a scuff (the dirt slot, an existing id) on whoever burst, when the server
-	-- moves their WildboundBurstReady on. A value already there when first seen is not replayed.
+	-- Q3b (was the NH4 Burst's scuff): a perfect dodge is heard as a scuff (the dirt slot, an existing id) on whoever
+	-- dodged, when the server moves their WildboundDodgeBoost on. A value already there when first seen is not replayed.
 	for _, other in ipairs(Players:GetPlayers()) do
-		local readyAt = other:GetAttribute("WildboundBurstReady")
+		-- The attribute only appears on the first perfect dodge, so "never set" is stored as false and that first one plays.
+		local readyAt = other:GetAttribute("WildboundDodgeBoost")
 		local last = bursts[other]
-		if readyAt ~= last then
+		if (readyAt or false) ~= last then
 			local burstRoot = other.Character and other.Character:FindFirstChild("HumanoidRootPart")
 			if last ~= nil and type(readyAt) == "number" and burstRoot then
 				playOnce("dirt", burstRoot, reduced and 0.35 or 0.7, 0.02, 1.4)

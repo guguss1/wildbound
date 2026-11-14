@@ -1,5 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshRecordClone), require(freshEconomyClone), require(freshConfigClone),
--- require(freshStateClone), freshRecordClone.Source). Saved-progress record, schema 1 (W10, M6.1): blank record,
+-- require(freshStateClone), freshRecordClone.Source). Q10 (schema 4): the Record clone requires its sibling
+-- WildboundTotemRecord, so put a TotemRecord clone in the same parent. Saved-progress record, schema 1 (W10, M6.1): blank record,
 -- serializer to and from the State profile, validation, migration ladder, durable IDs, ledger and size.
 -- F numbers refer to docs/mechanics/wildbound-persistence.md section 8. No data store is touched here.
 return function(Record, Economy, Config, State, source)
@@ -75,9 +76,11 @@ return function(Record, Economy, Config, State, source)
 	case("RT-1: a blank record is schema 2, valid, starts every counter at 1 and holds nothing at risk", function()
 		local record = Record.blank()
 		-- NS7: schema 3 adds the gloves (deliberately changed pin: 2 -> 3).
-		equal(Record.SCHEMA, 3)
-		equal(record.schema, 3)
+		-- Q10: schema 4 adds the luck totems (deliberately changed pin: 3 -> 4).
+		equal(Record.SCHEMA, 4)
+		equal(record.schema, 4)
 		deepEqual(record.incubating, {}); deepEqual(record.training, {}); deepEqual(record.gloves, { owned = {} })
+		deepEqual(record.totems, {})
 		equal(record.revision, 0)
 		equal(record.nextUid, 1); equal(record.nextTrip, 1); equal(record.nextOp, 1)
 		equal(record.firstSealGranted, false)
@@ -293,6 +296,8 @@ return function(Record, Economy, Config, State, source)
 		valid(migrated, "golden v1 migrated")
 		local expected = Record.copy(golden)
 		expected.schema = Record.SCHEMA; expected.incubating = {}; expected.training = {}; expected.gloves = { owned = {} }
+		-- Q10: the 3 -> 4 step adds the empty totem map (deliberately changed expected shape).
+		expected.totems = {}
 		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), expected)
 	end)
 
@@ -425,6 +430,46 @@ return function(Record, Economy, Config, State, source)
 		local plain = Record.blank(); plain.schema = 2; plain.gloves = nil
 		local _, none = Record.migrate(plain)
 		deepEqual(none.gloves, { owned = {} })
+	end)
+
+	-- Q10 (docs/mechanics/wildbound-new-mechanics.md section 4): schema 4 saves the luck totems a player holds.
+	case("RT-24: migration 3 -> 4 adds an empty totem map, invents nothing and keeps what is there for validation", function()
+		local old = fixture()
+		old.schema = 3; old.totems = nil
+		local status, migrated = Record.migrate(old)
+		equal(status, "Migrated"); equal(migrated.schema, 4)
+		deepEqual(migrated.totems, {}, "no totem is invented")
+		equal(old.totems, nil, "the input is never changed")
+		valid(migrated, "a schema 3 save migrates and validates")
+		equal(migrated.ember, old.ember); equal(migrated.nextUid, old.nextUid)
+		deepEqual(migrated.collection, old.collection, "everything else is kept")
+		-- A malformed section is never repaired: validation fails, so Persistence quarantines it and writes nothing.
+		for label, bad in pairs({ text = "x", unknownKind = { totemEco = 1 }, negative = { totemSuerte = -1 },
+			fraction = { totemSuerte = 1.5 }, overCap = { totemSuerte = 6 } }) do
+			local broken = fixture(); broken.schema = 3; broken.totems = bad
+			local brokenStatus, brokenMigrated = Record.migrate(broken)
+			equal(brokenStatus, "Migrated", label)
+			invalid(brokenMigrated, "malformed totems (" .. label .. ")")
+		end
+		local missing = fixture(); missing.totems = nil
+		invalid(missing, "a schema 4 record without the totem map")
+	end)
+
+	case("RT-25: luck totems survive profile -> record -> profile, capped at 5; none means no field", function()
+		local profile = stateProfile()
+		profile.luckTotems = 1
+		local record = assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config))
+		valid(record, "with a totem")
+		equal(record.totems.totemSuerte, 1)
+		equal(Record.toProfile(record, Economy, Config, 0).luckTotems, 1, "the totem is back after a rejoin")
+		profile.luckTotems = 9
+		equal(assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config)).totems.totemSuerte, 5,
+			"never over the cap")
+		profile.luckTotems = 0
+		deepEqual(assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config)).totems, {})
+		equal(Record.toProfile(Record.blank(), Economy, Config, 0).luckTotems, nil, "a blank record sets no totem field")
+		local _, roundTrip = Record.migrate(HttpService:JSONDecode(HttpService:JSONEncode(record)))
+		equal(roundTrip.totems.totemSuerte, 1, "a JSON round trip keeps it")
 	end)
 
 	return result

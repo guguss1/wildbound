@@ -41,6 +41,12 @@ Schema.MODULES = table.freeze({
 		file = "src/wildbound/WildboundTraining.luau (Training.CONSTANTS)" }),
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	Refuge = table.freeze({ name = "WildboundRefuge", file = "src/wildbound/WildboundRefuge.luau (Refuge.LIGHT)" }),
+	-- New mechanics (docs/mechanics/wildbound-new-mechanics.md, "Tunable rows").
+	Dusk = table.freeze({ name = "WildboundDusk", file = "src/wildbound/WildboundDusk.luau (Dusk.CONSTANTS)" }),
+	Knock = table.freeze({ name = "WildboundBatKnock", file = "src/wildbound/WildboundBatKnock.luau (Knock.CONSTANTS)" }),
+	Dodge = table.freeze({ name = "WildboundDodge", file = "src/wildbound/WildboundDodge.luau (Dodge.CONSTANTS)" }),
+	Arrullo = table.freeze({ name = "WildboundArrullo",
+		file = "src/wildbound/WildboundArrullo.luau (Arrullo.CONSTANTS, Arrullo.RARITIES)" }),
 })
 
 -- key, label, module, target (the module's own name for it), default, min, max, step. side: where it is read.
@@ -50,6 +56,13 @@ local function value(key, label, module, target, default, min, max, step, side)
 end
 
 Schema.SYSTEMS = table.freeze({
+	-- Dev lighting (user, 2026-11-11): raise the light to test; client only, on top of the day and night atmosphere.
+	table.freeze({ id = "Lighting", label = "Iluminación (cliente)", entries = table.freeze({
+		value("LIGHT_EXPOSURE", "Exposición extra (EV)", "View", "LIGHT_EXPOSURE", 0, -1, 3, 0.1, "client"),
+		value("LIGHT_BRIGHTNESS", "Brillo (x)", "View", "LIGHT_BRIGHTNESS", 1, 0.5, 5, 0.1, "client"),
+		value("LIGHT_AMBIENT", "Luz ambiente (0 a 1)", "View", "LIGHT_AMBIENT", 0, 0, 1, 0.05, "client"),
+		value("LIGHT_FOG", "Alejar la niebla (x)", "View", "LIGHT_FOG", 1, 1, 5, 0.1, "client"),
+	}) }),
 	table.freeze({ id = "Silueta", label = "La Silueta", entries = table.freeze({
 		value("PATROL_DAY", "Patrulla de día (studs/s)", "Brain", "Day.patrol", 5, 1, 20, 0.5),
 		value("PATROL_TWILIGHT", "Patrulla al atardecer y al alba (studs/s)", "Brain", "Twilight.patrol", 6, 1, 20, 0.5),
@@ -107,11 +120,11 @@ Schema.SYSTEMS = table.freeze({
 		value("REGEN_STILL", "Recuperación quieto (por s)", "Stamina", "REGEN_STILL", 15, 0, 50, 1),
 		value("NOISE_INTERVAL", "Un ruido de carrera cada (s)", "Stamina", "NOISE_INTERVAL", 1.2, 0.3, 5, 0.1),
 		value("SPRINT_NOISE", "Alcance del ruido al correr (studs)", "Brain", "NOISE.sprint", 30, 0, 80, 1),
-		-- Nest Heist (NH4): the Burst.
-		value("BURST_SECONDS", "Impulso: dura (s)", "Stamina", "BURST_SECONDS", 0.8, 0.2, 2, 0.05),
-		value("BURST_MULTIPLIER", "Impulso: velocidad (x la marcha)", "Stamina", "BURST_MULTIPLIER", 1.7, 1, 2.5, 0.05),
-		value("BURST_COOLDOWN", "Impulso: espera (s)", "Stamina", "BURST_COOLDOWN", 6, 1, 30, 0.5),
-		value("BURST_CAP", "Impulso: velocidad máxima (studs/s)", "Stamina", "BURST_CAP", 28, 16, 40, 1),
+		-- Nest Heist (NH4): the Burst. Retired by Esquiva perfecta (Q3b): the rows stay for the rule's suite, unused.
+		value("BURST_SECONDS", "Impulso (retirado): dura (s)", "Stamina", "BURST_SECONDS", 0.8, 0.2, 2, 0.05),
+		value("BURST_MULTIPLIER", "Impulso (retirado): velocidad (x)", "Stamina", "BURST_MULTIPLIER", 1.7, 1, 2.5, 0.05),
+		value("BURST_COOLDOWN", "Impulso (retirado): espera (s)", "Stamina", "BURST_COOLDOWN", 6, 1, 30, 0.5),
+		value("BURST_CAP", "Impulso (retirado): velocidad máxima (studs/s)", "Stamina", "BURST_CAP", 28, 16, 40, 1),
 	}) }),
 	table.freeze({ id = "Carry", label = "Cargar una criatura", entries = table.freeze({
 		value("FEAR_RISE", "Miedo por segundo al correr", "Stamina", "FEAR_RISE", 30, 0, 100, 1),
@@ -157,6 +170,9 @@ Schema.SYSTEMS = table.freeze({
 		value("CHARGE_HIT", "Embestida: acierta a (studs)", "Island", "CHARGE_HIT", 3, 1, 8, 0.5),
 		value("EXPOSED_SECONDS", "Tras fallar: expuesto (s)", "Island", "EXPOSED_SECONDS", 1, 0, 5, 0.1),
 		value("STEAL_WAKE", "Robar un huevo los despierta (1 sí, 0 no)", "Island", "STEAL_WAKE", 1, 0, 1, 1),
+		-- User, 2026-11-11: the parents sleep until an egg is taken (no meter from walking, running, light or noise).
+		value("SLEEP_UNTIL_STEAL", "Duermen hasta que robas (1 sí, 0 no)", "Island", "SLEEP_UNTIL_STEAL", 1, 0, 1, 1),
+		value("EGGS_PER_NEST", "Huevos por nido (0 = reglas viejas)", "Island", "EGGS_PER_NEST", 3, 0, 6, 1),
 		-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only within this distance of it.
 		value("PERCEIVE_RANGE", "El adulto ve al nuevo portador a (studs)", "Island", "PERCEIVE_RANGE", 24, 5, 80, 1),
 		value("EGG_RECOVERY_ON", "Recuperan huevos caídos (1 sí, 0 no)", "Island", "EGG_RECOVERY_ON", 1, 0, 1, 1),
@@ -269,19 +285,77 @@ Schema.SYSTEMS = table.freeze({
 	}) }),
 	-- Nest Heist phase 2 (NP3): the bat every player carries. The rule keeps its floors whatever is tuned: a cooldown of
 	-- at least 3 s, a reach of 3 to 8 studs, a tap never longer than the stumble, an immunity that outlasts the stumble.
+	-- Q4 wiring: the live swing reads the hitbox here (REACH, HALF_ANGLE, HEIGHT); the cooldown, stumble and immunity
+	-- rows below stay for the old rule's suite but no longer act (the "Bate: empujón" system does).
 	table.freeze({ id = "PvP", label = "Bate entre jugadores", entries = table.freeze({
-		value("COOLDOWN", "Bate: espera entre golpes (s)", "Bat", "COOLDOWN", 12, 3, 60, 0.5),
+		value("COOLDOWN", "Bate (sin uso, ver empujón): espera (s)", "Bat", "COOLDOWN", 12, 3, 60, 0.5),
 		value("REACH", "Bate: alcance (studs)", "Bat", "REACH", 6, 3, 8, 0.5),
 		value("HALF_ANGLE", "Bate: ángulo a cada lado (grados)", "Bat", "HALF_ANGLE", 60, 15, 90, 5),
 		value("HEIGHT", "Bate: diferencia de altura (studs)", "Bat", "HEIGHT", 4, 1, 8, 0.5),
-		value("STUMBLE_SECONDS", "Tropiezo con huevo (s)", "Bat", "STUMBLE_SECONDS", 0.45, 0.1, 1, 0.05),
-		value("TAP_SECONDS", "Tropiezo sin huevo (s)", "Bat", "TAP_SECONDS", 0.2, 0, 1, 0.05),
-		value("STUMBLE_SPEED", "Velocidad al tropezar (studs/s)", "Bat", "STUMBLE_SPEED", 2, 0, 16, 0.5),
-		value("IMMUNITY", "Inmunidad tras un golpe (s)", "Bat", "IMMUNITY", 6, 1, 30, 0.5),
+		value("STUMBLE_SECONDS", "Tropiezo con huevo (sin uso) (s)", "Bat", "STUMBLE_SECONDS", 0.45, 0.1, 1, 0.05),
+		value("TAP_SECONDS", "Tropiezo sin huevo (sin uso) (s)", "Bat", "TAP_SECONDS", 0.2, 0, 1, 0.05),
+		value("STUMBLE_SPEED", "Velocidad al tropezar (sin uso) (studs/s)", "Bat", "STUMBLE_SPEED", 2, 0, 16, 0.5),
+		value("IMMUNITY", "Inmunidad (sin uso, ver empujón) (s)", "Bat", "IMMUNITY", 6, 1, 30, 0.5),
+	}) }),
+	-- Q4, Q4b (docs/mechanics/wildbound-new-mechanics.md section 3): the live bat's cooldown, ragdoll, push and
+	-- immunity. The module clamps again: cooldown at least 3 s, immunity at least the ragdoll plus 1 s, flight 24 studs.
+	table.freeze({ id = "BatKnock", label = "Bate: empujón", entries = table.freeze({
+		value("COOLDOWN", "Bate: espera entre golpes (s)", "Knock", "COOLDOWN", 5, 3, 30, 0.5),
+		value("RAGDOLL_SECONDS", "Bate: caído tras un golpe (s)", "Knock", "RAGDOLL_SECONDS", 1.2, 0.5, 2, 0.1),
+		value("IMMUNITY", "Bate: inmunidad tras un golpe (s)", "Knock", "IMMUNITY", 3, 1.5, 15, 0.5),
+		value("IMPULSE", "Bate: empujón (studs/s)", "Knock", "IMPULSE", 45, 10, 60, 5),
+		value("LIFT", "Bate: elevación del empujón (studs/s)", "Knock", "LIFT", 20, 0, 35, 1),
+	}) }),
+	-- Q2b (docs/mechanics/wildbound-new-mechanics.md section 1): the Arrullo, per rarity (Rara, Epica, Legendaria; which
+	-- eggs open it is D10, pending: WildboundArrulloService.EGGS). The module clamps every value again.
+	table.freeze({ id = "Arrullo", label = "Arrullo (huevos raros)", entries = table.freeze({
+		value("TIMEOUT", "Arrullo: tiempo límite (s)", "Arrullo", "TIMEOUT", 18, 8, 60, 1),
+		value("START", "Arrullo: calma inicial", "Arrullo", "START", 35, 5, 95, 5),
+		value("LIFT", "Arrullo: subida al mantener", "Arrullo", "LIFT", 2.4, 0.5, 8, 0.1),
+		value("GRAVITY", "Arrullo: caída al soltar", "Arrullo", "GRAVITY", 2, 0.5, 8, 0.1),
+		value("MAX_SPEED", "Arrullo: velocidad máxima de la marca", "Arrullo", "MAX_SPEED", 0.9, 0.2, 3, 0.1),
+		value("ZONE_Rara", "Arrullo Rara: tamaño de la zona", "Arrullo", "ZONE_Rara", 0.3, 0.1, 0.6, 0.02),
+		value("ZONE_Epica", "Arrullo Épica: tamaño de la zona", "Arrullo", "ZONE_Epica", 0.24, 0.1, 0.6, 0.02),
+		value("ZONE_Legendaria", "Arrullo Legendaria: tamaño de la zona", "Arrullo", "ZONE_Legendaria", 0.18, 0.1, 0.6, 0.02),
+		value("SEGMENT_Rara", "Arrullo Rara: la zona se mueve cada (s)", "Arrullo", "SEGMENT_Rara", 1.6, 0.4, 4, 0.1),
+		value("SEGMENT_Epica", "Arrullo Épica: la zona se mueve cada (s)", "Arrullo", "SEGMENT_Epica", 1.2, 0.4, 4, 0.1),
+		value("SEGMENT_Legendaria", "Arrullo Legendaria: la zona se mueve cada (s)", "Arrullo", "SEGMENT_Legendaria", 0.9,
+			0.4, 4, 0.1),
+		value("FILL_Rara", "Arrullo Rara: calma dentro (por s)", "Arrullo", "FILL_Rara", 22, 5, 60, 1),
+		value("FILL_Epica", "Arrullo Épica: calma dentro (por s)", "Arrullo", "FILL_Epica", 20, 5, 60, 1),
+		value("FILL_Legendaria", "Arrullo Legendaria: calma dentro (por s)", "Arrullo", "FILL_Legendaria", 18, 5, 60, 1),
+		value("DRAIN_Rara", "Arrullo Rara: calma perdida fuera (por s)", "Arrullo", "DRAIN_Rara", 12, 2, 60, 1),
+		value("DRAIN_Epica", "Arrullo Épica: calma perdida fuera (por s)", "Arrullo", "DRAIN_Epica", 14, 2, 60, 1),
+		value("DRAIN_Legendaria", "Arrullo Legendaria: calma perdida fuera (por s)", "Arrullo", "DRAIN_Legendaria", 16, 2, 60,
+			1),
+	}) }),
+	-- Q3b (docs/mechanics/wildbound-new-mechanics.md section 2): Esquiva perfecta. The module clamps again: the shortest
+	-- telegraph never under 0.8 s, the window never over half of it.
+	table.freeze({ id = "Dodge", label = "Esquiva perfecta", entries = table.freeze({
+		value("WINDOW", "Esquiva: ventana antes del golpe (s)", "Dodge", "WINDOW", 0.35, 0.1, 0.4, 0.05),
+		value("MIN_TELEGRAPH", "Esquiva: aviso mínimo esquivable (s)", "Dodge", "MIN_TELEGRAPH", 0.8, 0.8, 3, 0.05),
+		value("BOOST_SECONDS", "Esquiva: impulso dura (s)", "Dodge", "BOOST_SECONDS", 1, 0.3, 2, 0.1),
+		value("BOOST_MULTIPLIER", "Esquiva: impulso (x la velocidad)", "Dodge", "BOOST_MULTIPLIER", 1.35, 1, 1.6, 0.05),
+		value("BOOST_CAP", "Esquiva: velocidad máxima (studs/s)", "Dodge", "BOOST_CAP", 26, 16, 28, 1),
+		value("SUCCESS_COOLDOWN", "Esquiva: espera tras acertar (s)", "Dodge", "SUCCESS_COOLDOWN", 0.6, 0.2, 5, 0.1),
+		value("MISS_COOLDOWN", "Esquiva: espera tras fallar (s)", "Dodge", "MISS_COOLDOWN", 1.2, 0.5, 5, 0.1),
+		value("SPAM_LIMIT", "Esquiva: pulsaciones permitidas", "Dodge", "SPAM_LIMIT", 4, 2, 10, 1),
+		value("SPAM_SECONDS", "Esquiva: en este tiempo (s)", "Dodge", "SPAM_SECONDS", 1, 0.5, 3, 0.1),
+		value("SPAM_LOCKOUT", "Esquiva: bloqueo por abuso (s)", "Dodge", "SPAM_LOCKOUT", 2, 0.5, 5, 0.5),
+		value("LATE_MEMORY", "Esquiva: cuenta como tarde durante (s)", "Dodge", "LATE_MEMORY", 0.6, 0.1, 2, 0.1),
+	}) }),
+	-- Q11 (docs/mechanics/wildbound-new-mechanics.md section 5): the dusk. The warnings read NIGHT_SOON; the beast buff
+	-- values are read by the beast script through Dusk.buff. The module clamps each again (never a slowdown).
+	table.freeze({ id = "Dusk", label = "Atardecer", entries = table.freeze({
+		value("SPEED_MULTIPLIER", "Atardecer: velocidad de las bestias (x)", "Dusk", "SPEED_MULTIPLIER", 1.08, 1, 1.15, 0.01),
+		value("ROLL_MULTIPLIER", "Atardecer: probabilidad de bestias (x)", "Dusk", "ROLL_MULTIPLIER", 1.25, 1, 1.5, 0.05),
+		value("DETECTION_MULTIPLIER", "Atardecer: detección de las bestias (x)", "Dusk", "DETECTION_MULTIPLIER", 1.1, 1, 1.25,
+			0.05),
+		value("NIGHT_SOON", "Atardecer: aviso antes de la noche (s)", "Dusk", "NIGHT_SOON", 20, 5, 60, 1),
 	}) }),
 	-- Next batch NB4 (delivery E): how long an egg incubates.
 	table.freeze({ id = "Incubator", label = "Incubadora", entries = table.freeze({
-		value("HATCH_SECONDS", "Tiempo hasta que eclosiona (s)", "Incubator", "HATCH_SECONDS", 90, 10, 900, 5),
+		value("HATCH_SECONDS", "Tiempo hasta que eclosiona (s)", "Incubator", "HATCH_SECONDS", 5, 1, 900, 1),
 	}) }),
 	table.freeze({ id = "Camera", label = "Cámara y sensaciones (cliente)", entries = table.freeze({
 		value("SPRINT_FOV_KICK", "Apertura de cámara al correr (grados)", "View", "SPRINT_FOV_KICK", 10, 0, 30, 1, "client"),

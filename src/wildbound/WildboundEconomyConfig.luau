@@ -18,7 +18,7 @@ return freeze({
 	monetization = "none",
 	cycle = {
 		seconds = 720,
-		phases = { Day = 360, Dusk = 72, Night = 216, Dawn = 72 },
+		phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 },
 		phaseOrder = { "Day", "Dusk", "Night", "Dawn" },
 		startRule = "uniform_over_non_night",
 		targetExpeditionSeconds = { 180, 480 },
@@ -30,9 +30,9 @@ return freeze({
 	},
 	currency = { id = "ember", lostOnDefeat = false, purchasable = false },
 	capacity = {
-		bagItems = 3,
+		bagItems = 12,
 		pouchUnits = 30,
-		collectionLimit = 100,
+		collectionLimit = 500,
 		consumableCaps = { seal = 3, capsule = 1, totem = 1 },
 	},
 	carry = {
@@ -130,8 +130,8 @@ return freeze({
 	earn = {
 		extractBaseEmber = 4,
 		baseRequires = { minExpeditionSeconds = 45, minDistanceFromCamp = 60, minNewUnitsOrItems = 1 },
-		creatureEmberByTier = { Safe = 6, Fog = 10, FogFar = 12, Territory = 14, Heart = 22 },
-		eggEmberByTier = { Fog = 8, FogFar = 10, Territory = 11, Heart = 14 },
+		creatureEmberByTier = { Safe = 8, Fog = 14, FogFar = 20, Territory = 28, Heart = 42 },
+		eggEmberByTier = { Safe = 4, Fog = 10, FogFar = 16, Territory = 24, Heart = 36 },
 		firstStealBonus = 4,
 		firstExtractionSeal = 1,
 	},
@@ -154,7 +154,23 @@ return freeze({
 		},
 		reinforcedPack = {
 			cost = { fogbark = 60, glowmoss = 30, ember = 120 },
-			effects = { bagItems = 4, pouchUnits = 45, lossBasisPoints = 1000 },
+			effects = { bagItems = 16, pouchUnits = 45, lossBasisPoints = 1000 },
+		},
+		incubatorSlot2 = {
+			cost = { fogbark = 40, glowmoss = 25, ember = 90 },
+			effects = { incubatorSlots = 2 },
+		},
+		fastIncubator = {
+			cost = { glowmoss = 40, nightbloom = 3, ember = 160 },
+			effects = { hatchSpeedScale = 0.75 },
+		},
+		incubatorSlot3 = {
+			cost = { fogbark = 80, glowmoss = 50, nightbloom = 4, ember = 220 },
+			effects = { incubatorSlots = 3 },
+		},
+		expeditionPack = {
+			cost = { fogbark = 100, glowmoss = 60, nightbloom = 6, ember = 300 },
+			effects = { bagItems = 24, pouchUnits = 65, lossBasisPoints = 500 },
 		},
 	},
 	totem = {

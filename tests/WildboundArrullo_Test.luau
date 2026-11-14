@@ -58,15 +58,22 @@ return function(Arrullo, source)
 
 	case("A3: holding raises the marker, releasing lets it fall; it never leaves the bar", function()
 		local state = Arrullo.new("Rara", constant(0.5))
-		for _ = 1, 20 do Arrullo.step(state, 0.05, true, constant(0.5)) end
+		-- Studio run 2026-11-11: holding at the top drains the meter, so the round ended (lost) before the release and a
+		-- finished round no longer moves the marker. Keep the round running: this case pins the marker only.
+		local function step(holding)
+			state.progress, state.elapsed = 50, 0
+			Arrullo.step(state, 0.05, holding, constant(0.5))
+		end
+		for _ = 1, 20 do step(true) end
 		assert(state.marker > 0.2, "holding for 1 s lifts the marker")
-		for _ = 1, 200 do Arrullo.step(state, 0.05, true, constant(0.5)) end
+		for _ = 1, 200 do step(true) end
 		assert(state.marker <= 1, "the top is a wall")
 		local top = state.marker
-		Arrullo.step(state, 0.05, false, constant(0.5))
-		Arrullo.step(state, 0.05, false, constant(0.5))
+		step(false)
+		step(false)
+		assert(state.status == "running", "still running")
 		assert(state.marker < top, "releasing lets it fall")
-		for _ = 1, 200 do Arrullo.step(state, 0.05, false, constant(0.5)) end
+		for _ = 1, 200 do step(false) end
 		assert(state.marker >= 0, "the bottom is a floor")
 	end)
 

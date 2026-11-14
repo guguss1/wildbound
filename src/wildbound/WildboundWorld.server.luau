@@ -30,9 +30,14 @@ local Keys = require(script.Parent:WaitForChild("WildboundPromptKeys"))
 local Hunters = require(script.Parent:WaitForChild("WildboundHunters"))
 -- Fix pass (FP4): the lunge, the fake retreat, the flashlight glare and the chase-start scream (pure, each toggleable).
 local Moves = require(script.Parent:WaitForChild("WildboundSiluetaMoves"))
+-- AI rework (S1 "Te ronda"): the pure stalking rule; on patrol she circles her owner at a distance, then commits.
+local Stalk = require(script.Parent:WaitForChild("WildboundSiluetaStalk"))
 -- Cleanup cannot run inside this script once it is destroyed (its connections die with it), so what it owns is
 -- tagged here and WildboundWorldGuard sweeps by tag. docs/ui/wildbound-start-and-settings.md, A3.
 local Ownership = require(script.Parent:WaitForChild("WildboundOwnership"))
+-- Esquiva perfecta (decision Q3b, docs/mechanics/wildbound-new-mechanics.md section 2): her strike's telegraph is
+-- dodgeable. The per-player dodge states live in this shared module (the inventory server takes the presses).
+local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
 local map = workspace:WaitForChild("WildboundP0", 15)
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 if not map or not network or not network:IsA("Folder") then
@@ -237,6 +242,7 @@ end
 -- D-C3: whether this player has made a paid trip home yet. The inventory script reports progress counts only;
 -- FairStrike.lethal decides. Any failure reads as not yet lethal, so the gate fails toward sparing.
 local function isLethal(player)
+	if RunService:IsStudio() then return true end
 	if not player or eligibility.Parent ~= network then return false end
 	local ok, progress = pcall(function() return eligibility:Invoke(player, "Progress") end)
 	return ok and FairStrike.lethal(progress)
@@ -266,14 +272,47 @@ local function visible(character, from, destination, ignoreBodies)
 	return workspace:Raycast(from, direction, params) == nil
 end
 
--- leash: optional; a hunt passes Rules.CHASE_LEASH (chase pass), every acquisition and strike check uses the territory.
+-- AI rework (user, 2026-11-13, S3 "Todo el bosque de niebla"): every leash she reads is at least her reach, so she
+-- sees, walks, chases and strikes in the whole fog forest. Safe zones (hub, camp, shelter, Refugios) and the spawn pad
+-- stay out of it through Rules.zone and Rules.validTarget, as before.
+local function herReach(leash)
+	return math.max(leash or 0, Rules.SILUETA_REACH)
+end
+local function clampReach(x, z)
+	return Rules.clampTerritory(x, z, herReach())
+end
+-- AI rework (S4 "Revisa escondites cercanos"): where the hide spots are (filled as they are bound), and the ones near
+-- a point, nearest first. A search walks to them and stands SPOT_SECONDS within SPOT_STAND studs of each: longer than
+-- the dwell that finds a hidden player and inside its radius (WildboundHide), so someone hidden there is found by the
+-- existing rule. A spot farther than SPOT_RADIUS from where she lost her quarry is not checked: hiding far still works.
+local SPOT_RADIUS = 20
+local SPOT_STAND = 3
+local SPOT_SECONDS = 2.4
+local SPOT_BUDGET = 6 -- seconds a search gains for each spot it has to check
+local SPOT_MAX = 2
+local hideSpotPoints = {}
+local function hideSpotsNear(x, z)
+	local list = {}
+	for id, point in pairs(hideSpotPoints) do
+		local away = Rules.distance(x, z, point.x, point.z)
+		if away <= SPOT_RADIUS then table.insert(list, { id = id, x = point.x, z = point.z, away = away }) end
+	end
+	table.sort(list, function(a, b)
+		if a.away ~= b.away then return a.away < b.away end
+		return a.id < b.id
+	end)
+	while #list > SPOT_MAX do table.remove(list) end
+	return list
+end
+
+-- leash: optional; a hunt passes Rules.CHASE_LEASH (chase pass); since the rework every check reads at least her reach.
 -- Fix pass (FP2): h is the hunter looking; it only ever asks about its owner (Hunters.quarry), never another player.
 local function targetContext(h, player, range, allowHidden, leash)
 	if not player or not Hunters.owns(h.roster, player.UserId) then return nil end
 	local character, humanoid, root = characterContext(player)
 	if not root then return nil end
 	local position, guardianPosition = root.Position, h.body.Position
-	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range, leash) then return nil end
+	if not Rules.validTarget(true, position.X, position.Z, guardianPosition.X, guardianPosition.Z, range, herReach(leash)) then return nil end
 	-- Do not acquire through cover or on a different floor; recheck these at strike time.
 	if math.abs(position.Y - guardianPosition.Y) > 8 then return nil end
 	-- Delivery D6: a hidden player is never in sight, so never acquired, and hunts and strikes read them as lost.
@@ -298,7 +337,8 @@ local function quarryContext(h, player)
 	-- Fix pass (FP3): a safe zone or the far side of the pursuit leash ends the chase at once.
 	local _, safe = Rules.zone(position.X, position.Z)
 	if not Rules.pursuit({ alive = true, hidden = hidden, visible = seen ~= nil, distance = flat, safe = safe,
-		homeDistance = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z) }) then return nil end
+		homeDistance = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z),
+		leash = herReach(Rules.CHASE_LEASH) }) then return nil end
 	return { player = player, character = character, humanoid = humanoid, root = root,
 		distance = (position - guardianPosition).Magnitude, visible = seen ~= nil, hidden = hidden }
 end
@@ -332,6 +372,12 @@ end
 local function cancelOpenAttack(h, reason)
 	local closed = FairStrike.cancelEarly(h.ledger, reason)
 	if closed then
+		-- Q3b: a telegraph that ends without its strike can no longer be dodged (no free boost, no stale cue).
+		local target = playerByUserId(closed.userId)
+		if target then
+			DodgeService.cancel(target, closed.attackId)
+			target:SetAttribute("WildboundDodgeStrike", nil)
+		end
 		tellResolved(closed, "Missed", "")
 		publish()
 	end
@@ -352,6 +398,11 @@ local function clearTarget(h, now, completedPresentation, reason)
 	cancelOpenAttack(h, reason)
 	GuardianPath.clear(h.nav)
 	h.target, h.targetLife, h.huntState, h.telegraphEndsAt, h.fake = nil, nil, nil, 0, nil
+	h.lastKnown = nil
+	h.checkSpots = nil
+	-- AI rework (S1): quiet after pressure; she stalks again once it is over.
+	h.stalkQuietUntil = now + Stalk.CONSTANTS.QUIET
+	Stalk.reset(h.stalk)
 	h.guardian:SetAttribute("TelegraphEndsAt", 0)
 	h.recoveryEndsAt = now + Brain.CONSTANTS.RECOVERY_SECONDS
 	setMode(h, "Retreat")
@@ -366,9 +417,9 @@ local SLIDE_ANGLES = { 0, math.rad(35), -math.rad(35), math.rad(70), -math.rad(7
 -- Chase pass (CP-D2): a hunt may follow its quarry out to the chase leash. Any other mode outside the territory may only
 -- walk back in (the leash is where it stands, never more), so leaving a chase never teleports it to the edge.
 local function stepLeash(h, position)
-	if h.mode == "Hunt" then return Rules.CHASE_LEASH end
+	if h.mode == "Hunt" then return herReach(Rules.CHASE_LEASH) end
 	local away = Rules.distance(position.X, position.Z, Rules.HOME_X, Rules.HOME_Z)
-	return math.clamp(away, Rules.HOME_LEASH, Rules.CHASE_LEASH)
+	return herReach(math.clamp(away, Rules.HOME_LEASH, Rules.CHASE_LEASH))
 end
 local function stepToward(h, destination, speed, dt)
 	local body = h.body
@@ -411,6 +462,45 @@ local function flatDistance(a, b)
 	return Vector3.new(a.X - b.X, 0, a.Z - b.Z).Magnitude
 end
 
+-- Patrol fix (found in Play, 2026-11-12): five of the thirty patrol points (the six anchors' centres and diamond
+-- corners) lay inside a solid trunk core. She pushed against the tree until her next relocation, and one was an
+-- anchor's own centre, where a relocation put her inside the trunk. A patrol point now moves to the nearest spot
+-- with POINT_CLEARANCE studs (the pathing agent's radius) free of anything that collides, still inside the territory.
+local POINT_CLEARANCE = 2
+-- leash as in Rules.clampTerritory: the territory by default, the chase leash for a hunt's goal.
+local function standable(x, z, leash)
+	local cx, cz = Rules.clampTerritory(x, z, herReach(leash))
+	if math.abs(cx - x) > 0.01 or math.abs(cz - z) > 0.01 then return false end
+	local params = OverlapParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	local excluded = { runtime }
+	for _, player in ipairs(Players:GetPlayers()) do
+		if player.Character then table.insert(excluded, player.Character) end
+	end
+	if reliefFolder then table.insert(excluded, reliefFolder) end
+	params.FilterDescendantsInstances = excluded
+	params.RespectCanCollide = true
+	params.MaxParts = 1
+	return #workspace:GetPartBoundsInRadius(bodyAt(x, z), POINT_CLEARANCE, params) == 0
+end
+local function patrolPoint(x, z)
+	local px, pz = GuardianPath.freePoint(x, z, standable)
+	return bodyAt(px or x, pz or z)
+end
+-- Tree fix (user, 2026-11-12: "los árboles lo bloquean todavía"; measured in Play past ten trunks: three failed
+-- plans in one chase and 51 blocked steps in the search after it). A quarry beside a trunk, or a search point inside
+-- one, is a goal no route reaches and no step enters, so every goal she plans or walks to is moved to the nearest
+-- free spot first. It moves a few studs at most, well inside her reach (ATTACK_RANGE).
+local function freeGoal(x, z, leash)
+	local fx, fz = GuardianPath.freePoint(x, z, function(cx, cz) return standable(cx, cz, leash) end)
+	return fx or x, fz or z
+end
+-- The brain's clamp for the points of a search: inside the territory, then off any trunk.
+local function searchPoint(x, z)
+	local cx, cz = clampReach(x, z)
+	return freeGoal(cx, cz)
+end
+
 -- Asks PathfindingService for a route without blocking the gameplay step. Only the latest request is followed.
 local function requestPlan(h, goal, now)
 	local nav, body = h.nav, h.body
@@ -440,15 +530,28 @@ end
 -- enter geometry. The goal is clamped to the territory first, so no route ever leads into camp. Fix pass (FP2): each
 -- slot's planDelay lengthens its gap between plans, so eight hunters never ask the planner in the same step.
 local function navigate(h, goal, speed, dt, now)
-	local gx, gz = Rules.clampTerritory(goal.X, goal.Z, h.mode == "Hunt" and Rules.CHASE_LEASH or nil)
+	local leash = herReach(h.mode == "Hunt" and Rules.CHASE_LEASH or nil)
+	local gx, gz = Rules.clampTerritory(goal.X, goal.Z, leash)
+	gx, gz = freeGoal(gx, gz, leash)
 	goal = bodyAt(gx, gz)
 	if GuardianPath.needsPlan(h.nav, gx, gz, now - h.planDelay) then requestPlan(h, goal, now) end
-	local x, z = GuardianPath.steer(h.nav, h.body.Position.X, h.body.Position.Z, now)
-	if x then
-		stepToward(h, bodyAt(x, z), speed, dt)
-	else
-		h.navStats.directSteps += 1
-		stepToward(h, goal, speed, dt)
+	if speed <= 0 then return end
+	-- Speed fix (measured in Play, 2026-11-12: a hunt set to 13 studs/s moved at about 10, and set to 17 at about 12).
+	-- A step used to stop at each route waypoint and throw the rest of its length away; with waypoints 4 studs apart
+	-- that held her near 10 studs/s whatever the tuning said. What a step has left after a waypoint now goes on toward
+	-- the next one, so she covers speed x dt each step and still never more.
+	local left = speed * dt
+	for _ = 1, 4 do
+		local from = h.body.Position
+		local x, z = GuardianPath.steer(h.nav, from.X, from.Z, now)
+		if not x then
+			h.navStats.directSteps += 1
+			stepToward(h, goal, speed, left / speed)
+			break
+		end
+		if not stepToward(h, bodyAt(x, z), speed, left / speed) then break end
+		left -= flatDistance(h.body.Position, from)
+		if left < 0.05 then break end
 	end
 end
 
@@ -532,6 +635,8 @@ local function issueAttack(h, now)
 	attackWarning:FireClient(target, { attackId = attack.attackId, issuedAt = now, endsAt = h.telegraphEndsAt,
 		notice = strikeWords and strikeWords.dodge or "" })
 	FairStrike.warned(ledger, attack.attackId, now)
+	-- Q3b: the telegraph (TELEGRAPH_SECONDS, never under 0.8 s) is dodgeable; a perfect press in its last 0.35 s cancels it.
+	DodgeService.telegraph(target, attack.attackId, "Silueta", now, h.telegraphEndsAt)
 	-- Diagnostic for MT-6 and the dwell gate: seconds near at issue, or -1 for not near or another life.
 	local life = ledger.lives[target.UserId]
 	telemetry:SetAttribute("FSx_lastDwellSeconds", life and life.life == h.targetLife and life.nearSince
@@ -551,7 +656,11 @@ local function resolveImpact(h, now)
 	local character = characterContext(target)
 	local binding = attack ~= nil and character ~= nil and character == attack.life and character == h.targetLife
 	local latest = binding and targetContext(h, target, Rules.ATTACK_RANGE) or nil
-	local geometry = latest ~= nil and Rules.canStrike(now, h.telegraphEndsAt, h.lastAttackAt, latest.distance, true, false, true)
+	-- Q3b: a perfect dodge cancels this strike. It resolves as a geometry miss, so the fair-strike ledger stays whole
+	-- (no mark, no damage, no capture ending) and the hunt goes on as after any miss.
+	local dodged = attack ~= nil and (DodgeService.resolve(target, attack.attackId, now) == "Dodged" or DodgeService.invulnerable(target, now))
+	local geometry = not dodged and latest ~= nil
+		and Rules.canStrike(now, h.telegraphEndsAt, h.lastAttackAt, latest.distance, true, false, true)
 	if attack then
 		-- D-C3: before the first paid trip home a strike resolves as shadow: no mark, no damage.
 		local strikeMode = FairStrike.strikeMode(damageMode, isLethal(target))
@@ -581,6 +690,7 @@ end
 -- M4.6 regeneration rule: a marked player is pinned at MARKED_HEALTH until five seconds of rest.
 local function stepMarks(now)
 	for player, h in pairs(hunters) do
+		player:SetAttribute("WildboundMarked", isMarked(player))
 		local character, humanoid, root = characterContext(player)
 		if root then
 			local _, safe = Rules.zone(root.Position.X, root.Position.Z)
@@ -605,12 +715,13 @@ local function stepDwell(h, now)
 end
 
 local function setCenter(h, x, z)
-	h.center = bodyAt(x, z)
+	h.center = patrolPoint(x, z)
 	h.patrol = {}
 	for _, offset in ipairs(patrolOffsets) do
 		-- Clamped like every step, so a corner outside the leash can still be reached.
-		local px, pz = Rules.clampTerritory(h.center.X + offset.X, h.center.Z + offset.Z)
-		table.insert(h.patrol, bodyAt(px, pz))
+		-- The diamond keeps its place around the anchor itself, even when the centre had to move off a trunk.
+		local px, pz = clampReach(x + offset.X, z + offset.Z)
+		table.insert(h.patrol, patrolPoint(px, pz))
 	end
 	h.patrolIndex = 1
 end
@@ -630,8 +741,9 @@ local function tryAmbush(h, now, phase)
 		players = positions, anchors = anchors, guardianX = h.body.Position.X, guardianZ = h.body.Position.Z,
 		lastHuntAt = h.lastHuntAt, anyPlayerInFog = anyFog })
 	if out.move then
-		h.guardian:PivotTo(CFrame.new(bodyAt(out.x, out.z)))
+		-- Patrol fix: she arrives at the anchor's free centre, never inside a trunk.
 		setCenter(h, out.x, out.z)
+		h.guardian:PivotTo(CFrame.new(h.center))
 		h.acquireBlockedUntil = now + 3
 		FairStrike.clearDwell(h.ledger)
 		FairStrike.count(h.ledger, "ambush.moved")
@@ -648,17 +760,47 @@ end
 -- The quarry got away but is still alive: search where it was last seen (clamped to the territory). A dead or
 -- departed quarry, or a finished attack, sends the guardian home instead.
 local function loseTarget(h, now, phase)
-	local brain = h.brain
-	local last = h.huntState and h.huntState.lastPosition
 	local target = h.target
 	local alive = target ~= nil and target.Character == h.targetLife and characterContext(target) ~= nil
 	clearTarget(h, now)
-	if last and alive then
-		Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)
-		setMode(h, "Search")
-		-- Fix pass (FP4b): now and then the search opens with a fake retreat: away for a while, then back at hunt speed.
-		if Moves.fakeRetreat(h.rng:NextNumber()) then h.fake = Moves.newFake(now, last.X, last.Z) end
+	if alive then
+		-- When she loses sight completely or the quarry hides, she immediately resumes patrolling.
+		setMode(h, "Patrol")
 	end
+end
+
+-- Patrol fix: the safety net under the free points. A patrol corner or the way home that she gets no closer to for
+-- GuardianPath's GIVE_UP_SECONDS (a tree moved later, a route that cannot reach it) counts as reached, so she walks on.
+local function gaveUp(h, point, now)
+	local position = h.body.Position
+	if not GuardianPath.gaveUp(h.progress, point.X, point.Z, position.X, position.Z, now) then return false end
+	h.navStats.gaveUp += 1
+	GuardianPath.clear(h.nav)
+	return true
+end
+
+-- AI rework (S2): the point half her reach short of a quarry, on her side of it. Walking there instead of at the
+-- quarry itself, no step can end inside a player (measured in Play: standing still, she came to 1.3 studs).
+local function shortOf(h, position)
+	local toHer = Vector3.new(h.body.Position.X - position.X, 0, h.body.Position.Z - position.Z)
+	if toHer.Magnitude < 0.05 then return position end
+	return position + toHer.Unit * (Rules.ATTACK_RANGE * 0.5)
+end
+
+-- AI rework (S1 "Te ronda"): where the stalking rule sends her this step, or nil when she does not stalk (no owner in
+-- the forest she can reach, or the quiet after a chase). Only her owner, like every other rule of hers.
+local function stalkStep(h, now, phase)
+	local player = h.player
+	local _, _, root = characterContext(player)
+	local present = false
+	if root then
+		local fog, safe = Rules.zone(root.Position.X, root.Position.Z)
+		present = fog and not safe and Rules.inTerritory(root.Position.X, root.Position.Z, herReach())
+	end
+	local record = records[player]
+	return Stalk.step(h.stalk, { now = now, phase = phase, roll = h.rng:NextNumber(),
+		gx = h.body.Position.X, gz = h.body.Position.Z, px = root and root.Position.X, pz = root and root.Position.Z,
+		present = present, hidden = record ~= nil and record.hide ~= nil, quietUntil = h.stalkQuietUntil })
 end
 
 local function step(h, now, dt)
@@ -673,10 +815,17 @@ local function step(h, now, dt)
 	if lunge.started then h.guardian:SetAttribute("LungeAt", now) end
 	if not COMBAT[h.mode] then
 		local nearest, nearestDistance, nearestLife
-		if now >= h.acquireBlockedUntil and Brain.canDetect(brain, now, h.recoveryEndsAt) then
+		-- AI rework (S1): on patrol she stalks; while the rule holds her she watches and does not attack.
+		local stalk
+		if h.mode == "Patrol" then stalk = stalkStep(h, now, phase) end
+		if now >= h.acquireBlockedUntil and Brain.canDetect(brain, now, h.recoveryEndsAt)
+			and not (stalk and stalk.hold) then
 			-- Fix pass (FP2): the only candidate a hunter ever weighs is its owner.
 			local candidate = targetContext(h, player, detectionFor(player, parameters.detectionRange))
-			if candidate then nearest, nearestDistance, nearestLife = player, candidate.distance, candidate.character end
+			if candidate then
+				nearest, nearestDistance, nearestLife = player, candidate.distance, candidate.character
+				h.lastKnown = candidate.root.Position
+			end
 		end
 		if nearest then
 			h.target, h.targetLife, h.chaseStartedAt = nearest, nearestLife, now
@@ -685,18 +834,33 @@ local function step(h, now, dt)
 			Moves.resetGlare(h.glare) -- one glare stagger per chase
 			GuardianPath.clear(h.nav)
 			setMode(h, "Alert")
+		elseif h.mode == "Patrol" and stalk then
+			navigate(h, bodyAt(stalk.x, stalk.z), stalk.pace == "hunt" and profile.hunt or profile.investigate, dt, now)
 		elseif h.mode == "Patrol" then
 			local patrol, patrolIndex = h.patrol, h.patrolIndex
-			if flatDistance(body.Position, patrol[patrolIndex]) < 2 then
+			if flatDistance(body.Position, patrol[patrolIndex]) < 2 or gaveUp(h, patrol[patrolIndex], now) then
 				h.patrolIndex = patrolIndex % #patrol + 1
 				patrolIndex = h.patrolIndex
 			end
 			navigate(h, patrol[patrolIndex], profile.patrol, dt, now)
 			tryAmbush(h, now, phase)
+		elseif h.mode == "Search" and h.checkSpots and h.checkSpots[1] and now < brain.untilAt then
+			-- AI rework (S4): walk to the nearest unchecked hide spot, stand by it, then go on to the next. Detection above
+			-- still runs, and WildboundHide's dwell rule finds anyone hidden there while she stands.
+			local spot = h.checkSpots[1]
+			local point = bodyAt(spot.x, spot.z)
+			if not spot.since and flatDistance(body.Position, point) > SPOT_STAND and not gaveUp(h, point, now) then
+				navigate(h, point, profile.search, dt, now)
+			else
+				spot.since = spot.since or now
+				face(h, spot)
+				if now - spot.since >= SPOT_SECONDS then table.remove(h.checkSpots, 1) end
+			end
 		elseif h.mode == "Search" and h.fake then
 			-- Fix pass (FP4b): the fake retreat's two legs; detection above still runs, so turning back can catch you.
 			local out = Moves.fakeStep(h.fake, now, body.Position.X, body.Position.Z)
-			if out.done or not out.destination then
+			-- The search's own time limit ends a fake retreat too, so Search always ends (found in Play, 2026-11-12).
+			if out.done or not out.destination or now >= brain.untilAt then
 				h.fake = nil
 			else
 				local speed = out.speed == "hunt" and profile.hunt or profile.search
@@ -704,10 +868,13 @@ local function step(h, now, dt)
 			end
 		elseif h.mode == "Retreat" then
 			navigate(h, h.center, profile.retreat, dt, now)
-			if now >= h.recoveryEndsAt and flatDistance(body.Position, h.center) < 2 then setMode(h, "Patrol") end
+			if now >= h.recoveryEndsAt and (flatDistance(body.Position, h.center) < 2 or gaveUp(h, h.center, now)
+				or now >= h.stalkQuietUntil) then
+				setMode(h, "Patrol")
+			end
 		else
 			-- Suspicious, Investigate and Search.
-			local out = Brain.step(brain, now, body.Position.X, body.Position.Z, phase, Rules.clampTerritory)
+			local out = Brain.step(brain, now, body.Position.X, body.Position.Z, phase, searchPoint)
 			if out.mode ~= h.mode then
 				GuardianPath.clear(h.nav)
 				setMode(h, out.mode)
@@ -720,17 +887,28 @@ local function step(h, now, dt)
 		end
 	else
 		local target, chaseStartedAt = h.target, h.chaseStartedAt
-		-- Alert still needs its quarry in sight; Hunt and Telegraph keep an unseen quarry for the memory (memory fix).
-		local candidate
-		if h.mode == "Alert" then
-			candidate = targetContext(h, target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)
-		else
-			candidate = quarryContext(h, target)
+		-- Alert, Hunt and Telegraph all keep an unseen quarry for the memory (memory fix). An Alert used to need its
+		-- quarry in sight on every step: recorded in the user's Play (2026-11-12), she noticed the player at 49 studs, a
+		-- ruin pillar crossed her sight line on the next step, and she walked home with the player in the open.
+		local candidate = quarryContext(h, target)
+		-- Aggro fix (user, 2026-11-12: "pierde muy rápido el agro"). Where the quarry stands is remembered every combat
+		-- step, in sight or on memory, so losing it always starts a search there (an Alert that lost sight for one step
+		-- used to walk home). And the chase clock only runs while the quarry is out of sight or beyond her detection
+		-- radius: a chase is never cut by time with its quarry in front of her.
+		if candidate and candidate.character == h.targetLife then
+			h.lastKnown = candidate.root.Position
+			-- Only where a strike can land: between the territory and the chase leash she follows but never strikes, so a
+			-- quarry standing there lets the clock run out as before.
+			if candidate.visible and candidate.distance <= detectionFor(target, parameters.detectionRange)
+				and Rules.inTerritory(candidate.root.Position.X, candidate.root.Position.Z, herReach()) then
+				h.chaseStartedAt, chaseStartedAt = now, now
+			end
 		end
 		if not candidate or candidate.character ~= h.targetLife then
 			loseTarget(h, now, phase)
 		elseif candidate.hidden and not candidate.visible then
-			-- Chase pass (CP-D2): a quarry who hides unseen breaks the chase at once; the search starts where it was seen.
+			-- Chase pass (CP-D2): a quarry who hides unseen breaks the chase at once; the search starts where it was last
+			-- known (aggro fix: its position one step before it hid, no longer only where it was last seen).
 			loseTarget(h, now, phase)
 		elseif Brain.chaseExpired(chaseStartedAt, now, phase) then
 			clearTarget(h, now)
@@ -759,7 +937,7 @@ local function step(h, now, dt)
 				-- Chase pass (CP-D3): a telegraph only starts on a quarry inside the territory, where a strike can land.
 				if decision.canAttack and candidate and candidate.character == h.targetLife
 					and candidate.distance <= Rules.ATTACK_RANGE and now - h.lastAttackAt >= Rules.ATTACK_COOLDOWN
-					and Rules.inTerritory(candidate.root.Position.X, candidate.root.Position.Z) then
+					and Rules.inTerritory(candidate.root.Position.X, candidate.root.Position.Z, herReach()) then
 					h.telegraphEndsAt = now + Rules.TELEGRAPH_SECONDS
 					h.guardian:SetAttribute("TelegraphEndsAt", h.telegraphEndsAt)
 					setMode(h, "Telegraph")
@@ -770,12 +948,30 @@ local function step(h, now, dt)
 					if candidate and candidate.visible and candidate.distance <= Rules.ATTACK_RANGE * 0.5 then
 						face(h, { x = candidate.root.Position.X, z = candidate.root.Position.Z })
 					else
+						-- Aggro fix: a trunk between them no longer sends her to the spot she last saw it (measured: 17 to 43
+						-- studs behind a 12 studs/s runner in 5 s). Within her memory she follows the quarry itself.
+						if not candidate.visible then decision.destination = candidate.root.Position end
+						if candidate.visible then decision.destination = shortOf(h, candidate.root.Position) end
 						navigate(h, decision.destination, parameters.speed, dt, now)
 					end
 				end
 			end
+		elseif h.mode == "Telegraph" and now < h.telegraphEndsAt then
+			-- AI rework (user, 2026-11-13, S2 "Avanza durante el aviso"; measured before: 3 of 3 strikes missed a runner at
+			-- 14.4 studs/s because she stood still for the whole warning). Through the warning she keeps walking at a quarry
+			-- she sees, at hunt speed and never closer than half her reach. The warning keeps its full length and the
+			-- impact gates are unchanged: a sprint, a dodge or cover between them still makes it miss.
+			-- She aims at the point half her reach short of the quarry, so no step ends inside a player who stands still.
+			local quarryAt = candidate.root.Position
+			local toHer = Vector3.new(body.Position.X - quarryAt.X, 0, body.Position.Z - quarryAt.Z)
+			if candidate.visible and toHer.Magnitude > Rules.ATTACK_RANGE * 0.5 + 0.05 then
+				local stand = candidate.root.Position + toHer.Unit * (Rules.ATTACK_RANGE * 0.5)
+				navigate(h, stand, profile.hunt, dt, now)
+			elseif candidate.visible then
+				face(h, { x = candidate.root.Position.X, z = candidate.root.Position.Z })
+			end
 		elseif h.mode == "Telegraph" and now >= h.telegraphEndsAt then
-			-- Never lunge/teleport into a hit. Stationary wind-up; the gates validate the current character again.
+			-- No teleport into a hit: every move is still speed times the step. The gates validate the current character again.
 			local completedPresentation = resolveImpact(h, now)
 			h.lastAttackAt = now
 			-- Chase pass (CP-D1): a quarry still alive and in reach of the hunt is chased again at once; the cooldown spaces
@@ -865,8 +1061,9 @@ local function hearNoise(kind, tier, x, z)
 	for _, h in ipairs(hunterList) do
 		if not COMBAT[h.mode] and now >= h.recoveryEndsAt then
 			local position = h.body.Position
-			if Brain.hear(h.brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, Rules.clampTerritory) then
+			if Brain.hear(h.brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, clampReach) then
 				extra.noisesHeard += 1
+				h.checkSpots = nil -- a search that starts from a noise has no spots to check
 				GuardianPath.clear(h.nav)
 				setMode(h, h.brain.mode)
 				telemetry:SetAttribute("FSx_lastNoise", ("%s,%s,%.0f,%.0f,%s"):format(kind, tier, x, z, h.brain.mode))
@@ -1019,6 +1216,9 @@ local function bindHideSpot(spot)
 	local zone = spot:FindFirstChild("HideZone")
 	local prompt = zone and zone:FindFirstChildOfClass("ProximityPrompt")
 	if not prompt then return end
+	-- AI rework (S4): a search checks the spots near where she lost her quarry.
+	local id = spot.Name:match("^HideSpot_(H%d+)$")
+	if id then hideSpotPoints[id] = { x = zone.Position.X, z = zone.Position.Z } end
 	prompt.ActionText = hideWords.prompt or "Esconderse"
 	local kinds = hideWords.kind
 	prompt.ObjectText = type(kinds) == "table" and kinds[spot:FindFirstChild("Hollow") and "log" or "bush"] or ""
@@ -1089,13 +1289,14 @@ local function addHunter(player)
 	guardian.PrimaryPart, guardian.Parent = body, runtime
 	local h = { player = player, slot = bound.slot, roster = bound, guardian = guardian, body = body, head = head,
 		groundCue = groundCue, outline = outline, generation = 1, planDelay = stagger.planDelay,
-		brain = Brain.new(now), nav = GuardianPath.new(),
-		navStats = { lastPlanMs = 0, maxPlanMs = 0, directSteps = 0, blockedSteps = 0, slideSteps = 0 },
+		brain = Brain.new(now), nav = GuardianPath.new(), progress = GuardianPath.newProgress(),
+		navStats = { lastPlanMs = 0, maxPlanMs = 0, directSteps = 0, blockedSteps = 0, slideSteps = 0, gaveUp = 0 },
 		ledger = FairStrike.new(), mode = "Retreat", target = nil, targetLife = nil, huntState = nil,
 		alertEndsAt = 0, telegraphEndsAt = 0, recoveryEndsAt = now + 3, chaseStartedAt = 0,
 		lastAttackAt = -Rules.ATTACK_COOLDOWN, revealedUntil = 0, patrolIndex = stagger.patrolIndex, patrol = patrol,
 		center = home, awareness = Awareness.new(), awarenessResults = {}, rng = Random.new(), lastHuntAt = -math.huge,
-		acquireBlockedUntil = 0, discSeen = nil, lunge = Moves.newLunge(), glare = Moves.newGlare(), fake = nil, staggerUntil = 0 }
+		acquireBlockedUntil = 0, discSeen = nil, lunge = Moves.newLunge(), glare = Moves.newGlare(), fake = nil, staggerUntil = 0,
+		stalk = Stalk.new(), stalkQuietUntil = 0 }
 	if flagMisconfigured then FairStrike.count(h.ledger, "flagMisconfigured") end
 	h.ambushNextAt = now + Ambush.nextDelay(cycleAt(now).phase, h.rng:NextNumber())
 	-- Look pass: artScale is the art scale in use; a tuned Silueta.VISUAL_SCALE rescales the art live (art only).
@@ -1298,7 +1499,8 @@ table.insert(connections, RunService.Heartbeat:Connect(function(dt)
 		stepHiding(now)
 		stepThreat(now)
 		if damageMode == "private" then stepMarks(now) end
-		accumulator = 0
+		-- Speed fix: keep what is left over, or each step lasts a little over 0.2 s and she runs 4 to 8% slow.
+		accumulator -= 0.2
 	end
 	-- Higher-frequency art scheduling does not change the existing 0.2-second gameplay step.
 	for _, h in ipairs(hunterList) do

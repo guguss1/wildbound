@@ -10,6 +10,19 @@ local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):Get
 local Enc = {}
 
 local finite, flat, unit = Config.finite, Config.flat, Config.unit
+
+-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): Streamer, Root, Gaze and Lurker live in their own modules and plug in
+-- here. A behaviour is { init = function(e, now) (optional), step = function(events, e, now, target, world, dt) }; the
+-- beast script registers them at start. Viper and Pouncer below are unchanged.
+local behaviours = {}
+function Enc.register(name, behaviour)
+	assert(Config.WAVE2[name], "not a wave 2 beast: " .. tostring(name))
+	assert(type(behaviour) == "table" and type(behaviour.step) == "function", "a behaviour needs step")
+	behaviours[name] = behaviour
+end
+function Enc.registered(name)
+	return name == "Viper" or name == "Pouncer" or behaviours[name] ~= nil
+end
 local MAX_DT = 0.25
 
 local function copy(p) return { x = p.x, y = p.y, z = p.z } end
@@ -26,9 +39,12 @@ local function setPhase(e, phase, at)
 end
 
 function Enc.new(beast, id, userId, now, pos)
-	assert(Config.BEASTS[beast] and Config.PLAYABLE[beast], "no behaviour for " .. tostring(beast))
-	return { beast = beast, id = id, userId = userId, startedAt = now, lastStep = now, phase = "Spawn", phaseAt = now,
-		pos = copy(pos), dx = 0, dz = 1, attacks = 0, jumps = 0, skips = 0, done = false, farSince = nil }
+	assert(Config.BEASTS[beast] and Config.PLAYABLE[beast] and Enc.registered(beast), "no behaviour for " .. tostring(beast))
+	local e = { beast = beast, id = id, userId = userId, startedAt = now, lastStep = now, phase = "Spawn", phaseAt = now,
+		pos = copy(pos), dx = 0, dz = 1, attacks = 0, jumps = 0, skips = 0, done = false, farSince = nil, open = {} }
+	local behaviour = behaviours[beast]
+	if behaviour and behaviour.init then behaviour.init(e, now) end
+	return e
 end
 
 -- Ends the encounter at once (death, safe zone, leave, error, or the end of the retreat). Returns the End event the
@@ -315,7 +331,16 @@ function Enc.step(e, now, target, world)
 	world = type(world) == "table" and world or {}
 	local dt = math.clamp(now - e.lastStep, 0, MAX_DT)
 	e.lastStep = now
-	if e.beast == "Viper" then stepViper(events, e, now, target, world, dt) else stepPouncer(events, e, now, target, world, dt) end
+	local behaviour = behaviours[e.beast]
+	if behaviour then
+		behaviour.step(events, e, now, target, world, dt)
+	elseif e.beast == "Viper" then
+		stepViper(events, e, now, target, world, dt)
+	elseif e.beast == "Pouncer" then
+		stepPouncer(events, e, now, target, world, dt)
+	else
+		table.insert(events, Enc.finish(e, "NoBehaviour", now))
+	end
 	return events
 end
 

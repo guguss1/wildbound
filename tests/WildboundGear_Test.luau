@@ -183,7 +183,9 @@ return function(Gear, source, sources)
 		has(server, "EquipGlove = true", "server economy actions")
 		has(server, "calmRate = Gear.calmRate(snapshot.glove), ringBonus = 0", "capture calm")
 		has(server, "drainScale = Gear.drainScale(snapshot and snapshot.glove)", "sprint drain")
-		has(server, "cooldownScale = Gear.burstScale(glove)", "Burst recovery")
+		-- Deliberately changed (Q3b): the Burst is retired, so the glove's "Recarga de impulso" has no live effect; what it
+		-- should feed instead is an open owner decision (odd/tasks/wildbound-new-mechanics.md).
+		assert(not server:find("Gear.burstScale(", 1, true), "the retired Burst's recovery is not applied")
 		has(server, "Gear.moveBonus(snapshot.glove, EconomyConfig.carry.baseSpeed)", "walk speed through the training cap")
 		has(server, 'entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration)', "steal hold base")
 		has(server, 'player:SetAttribute("WildboundGloveSteal", steal)', "steal bonus for the owner's client")

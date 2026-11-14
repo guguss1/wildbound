@@ -21,10 +21,15 @@ Dodge.CONSTANTS = table.freeze({
 	SPAM_SECONDS = 1,
 	SPAM_LOCKOUT = 2, -- seconds locked out after a flood
 	LATE_MEMORY = 0.6, -- seconds after a strike in which a press still reads as Late (not Whiff)
+	DASH_DURATION = 0.22, -- seconds the directional dash burst lasts
+	DASH_SPEED = 52, -- studs per second horizontal dash burst
+	DASH_IFRAMES = 0.28, -- seconds of invulnerability during a dash
 })
 -- The fair-strike floor (docs/mechanics/wildbound-fair-strike.md, WARNING_LEAD 0.8): no tune goes below it.
 Dodge.MIN_TELEGRAPH = 0.8
-Dodge.SOURCES = table.freeze({ Parent = true, Viper = true, Pouncer = true, Silueta = true })
+-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): Streamer's rush, Root's trap and whip, Gaze's zone, Lurker's leap.
+Dodge.SOURCES = table.freeze({ Parent = true, Viper = true, Pouncer = true, Silueta = true,
+	Streamer = true, Root = true, Gaze = true, Lurker = true })
 local EPSILON = 1e-6
 
 -- Neutral Spanish player strings (the Studio writer may move them into WildboundText).
@@ -70,6 +75,9 @@ function Dodge.tune(overrides)
 	C.SPAM_SECONDS = math.clamp(C.SPAM_SECONDS, 0.5, 3)
 	C.SPAM_LOCKOUT = math.clamp(C.SPAM_LOCKOUT, 0.5, 5)
 	C.LATE_MEMORY = math.clamp(C.LATE_MEMORY, 0.1, 2)
+	C.DASH_DURATION = math.clamp(C.DASH_DURATION, 0.1, 0.5)
+	C.DASH_SPEED = math.clamp(C.DASH_SPEED, 20, 80)
+	C.DASH_IFRAMES = math.clamp(C.DASH_IFRAMES, 0.1, 0.6)
 end
 Dodge.tune(nil)
 
@@ -77,7 +85,7 @@ Dodge.tune(nil)
 function Dodge.new()
 	return {
 		attacks = {}, cooldownUntil = -math.huge, lockedUntil = -math.huge, boostUntil = -math.huge,
-		presses = {}, lastStrikeAt = -math.huge,
+		presses = {}, lastStrikeAt = -math.huge, dashInvulnUntil = -math.huge,
 	}
 end
 
@@ -141,9 +149,11 @@ function Dodge.press(state, now, ctx)
 		for _, id in ipairs(dodged) do state.attacks[id].dodged = true end
 		state.boostUntil = now + C.BOOST_SECONDS
 		state.cooldownUntil = now + C.SUCCESS_COOLDOWN
+		state.dashInvulnUntil = now + C.DASH_IFRAMES
 		return "Perfect", { dodged = dodged, boostUntil = state.boostUntil }
 	end
 	state.cooldownUntil = now + C.MISS_COOLDOWN
+	state.dashInvulnUntil = now + C.DASH_IFRAMES
 	if early then return "Early" end
 	if late then return "Late" end
 	return "Whiff"
@@ -176,6 +186,10 @@ end
 
 function Dodge.boosting(state, now)
 	return type(state) == "table" and finite(now) and now < state.boostUntil - EPSILON
+end
+
+function Dodge.invulnerable(state, now)
+	return type(state) == "table" and finite(now) and now < (state.dashInvulnUntil or -math.huge) - EPSILON
 end
 
 -- The speed while boosted: the given speed times BOOST_MULTIPLIER, capped at BOOST_CAP and never slower.

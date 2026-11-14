@@ -116,8 +116,20 @@ local UPGRADE_WORDS = table.freeze({
 		effect = "tu linterna molesta menos a las criaturas dormidas",
 		owned = "Farol tapado: comprado. Tu linterna molesta menos a las criaturas dormidas." }),
 	reinforcedPack = table.freeze({ order = 2, title = "Mochila reforzada",
-		effect = "bolsa 4, zurrón 45, una derrota quita un décimo",
-		owned = "Mochila reforzada: comprada. Bolsa 4, zurrón 45, una derrota quita un décimo." }),
+		effect = "bolsa 16, zurrón 45, una derrota quita un décimo",
+		owned = "Mochila reforzada: comprada. Bolsa 16, zurrón 45, una derrota quita un décimo." }),
+	incubatorSlot2 = table.freeze({ order = 3, title = "Segunda incubadora",
+		effect = "permite incubar 2 huevos a la vez",
+		owned = "Segunda incubadora: comprada. Puedes incubar 2 huevos a la vez." }),
+	fastIncubator = table.freeze({ order = 4, title = "Nido cálido",
+		effect = "los huevos eclosionan un 25% más rápido",
+		owned = "Nido cálido: comprado. Los huevos eclosionan un 25% más rápido." }),
+	incubatorSlot3 = table.freeze({ order = 5, title = "Tercera incubadora",
+		effect = "permite incubar 3 huevos a la vez",
+		owned = "Tercera incubadora: comprada. Puedes incubar 3 huevos a la vez." }),
+	expeditionPack = table.freeze({ order = 6, title = "Mochila de expedición",
+		effect = "bolsa 24, zurrón 65, una derrota quita solo el 5%",
+		owned = "Mochila de expedición: comprada. Bolsa 24, zurrón 65, pérdida mínima." }),
 })
 
 local function line(title, effect, cost, why)
@@ -425,8 +437,25 @@ function View.header(panelWidth)
 	}
 end
 
+function View.headerWithEggs(panelWidth)
+	local gap, y = 5, 4
+	local tabW = math.clamp(math.floor((panelWidth - 16 - 4 * gap) / 5), 44, 84)
+	return {
+		bag = { x = 8, y = y, w = tabW, h = View.HEADER_H },
+		eggs = { x = 8 + tabW + gap, y = y, w = tabW, h = View.HEADER_H },
+		camp = { x = 8 + 2 * (tabW + gap), y = y, w = tabW, h = View.HEADER_H },
+		menu = { x = 8 + 3 * (tabW + gap), y = y, w = tabW, h = View.HEADER_H },
+		close = { x = panelWidth - 8 - tabW, y = y, w = tabW, h = View.HEADER_H },
+		tabWidth = tabW,
+		bottom = y + View.HEADER_H,
+	}
+end
+
 -- The short line under the header for each tab.
 function View.note(tab, atCamp, compact)
+	if tab == "eggs" then
+		return compact and "Tus huevos guardados e incubadora." or "Tus huevos guardados: elige cuál incubar o se incuban solos en tu base."
+	end
 	if tab == "camp" then
 		if atCamp == false then
 			return compact and "Ve al campamento a fabricar." or "Ve al campamento, a 20 studs, para fabricar, comprar y aprender."

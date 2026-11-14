@@ -21,9 +21,28 @@ return function(Species, layout, source)
 		end
 	end
 
+	-- Deliberately changed (user, 2026-11-11, Studio sync df278fd: "por ahora las criaturas son las Lumipol"): while
+	-- Species.ONLY names a species, look() and byRarity() answer with it. The per-species data stays in LOOKS for the
+	-- later swap, so the I8 data cases read LOOKS directly; the new default has its own case (SP1).
+	local function data(name) return Species.LOOKS[name] end
+
+	case("SP1: for now every creature is a Lumipol, and the eggs glow blue", function()
+		equal(Species.ONLY, "Lumipol", "ONLY")
+		for _, name in ipairs({ "Cortezon", "Cestillo", "Polvilla", "Tizoncillo", "Mothling" }) do
+			equal(Species.look(name).name, "Lumipol", name)
+		end
+		for _, tier in ipairs({ "Comun", "Rara", "Epica", "Legendaria" }) do
+			local names = Species.byRarity(tier)
+			assert(#names == 1 and names[1] == "Lumipol", tier)
+		end
+		local egg = Species.NEST_GLOW.egg
+		equal(Species.hex(egg), "4696FF", "blue eggs (was pale gold F5E196)")
+		assert(egg[3] > egg[1] and egg[3] > egg[2], "blue dominates")
+	end)
+
 	case("I8: every island species has a stand-in look", function()
 		for _, island in ipairs(layout.islands) do
-			local look = Species.look(island.species)
+			local look = data(island.species)
 			assert(look and look.name == island.species, island.species)
 			assert(#look.size == 3 and look.size[1] > 0 and look.size[2] > 0 and look.size[3] > 0, "size")
 			rgb(look.body, island.species .. " body"); rgb(look.accent, island.species .. " accent")
@@ -33,10 +52,10 @@ return function(Species, layout, source)
 	end)
 
 	case("I8: the looks follow each species' rig colours (tools/build-species-rigs.py)", function()
-		equal(Species.hex(Species.look("Cortezon").body), "5B4630", "Cortezon shell")
-		equal(Species.hex(Species.look("Cestillo").body), "B98E55", "Cestillo basket")
-		equal(Species.hex(Species.look("Polvilla").accent), "B9AE98", "Polvilla wings")
-		equal(Species.hex(Species.look("Tizoncillo").glow), "C8481A", "Tizoncillo ember")
+		equal(Species.hex(data("Cortezon").body), "5B4630", "Cortezon shell")
+		equal(Species.hex(data("Cestillo").body), "B98E55", "Cestillo basket")
+		equal(Species.hex(data("Polvilla").accent), "B9AE98", "Polvilla wings")
+		equal(Species.hex(data("Tizoncillo").glow), "C8481A", "Tizoncillo ember")
 	end)
 
 	case("I8: a cria is smaller than an adult, and an unknown name falls back to Lumipol", function()
@@ -47,7 +66,7 @@ return function(Species, layout, source)
 
 	case("I8: model references are centralized for a later swap", function()
 		for _, name in ipairs({ "Cortezon", "Cestillo", "Polvilla", "Tizoncillo" }) do
-			local look = Species.look(name)
+			local look = data(name)
 			equal(look.asset, nil, "no uploaded asset yet (EI-4)")
 			equal(look.rig, "assets/exports/species/SP_" .. name, "the exported rig to swap in")
 		end

@@ -14,6 +14,7 @@ Keys.CAMP = table.freeze({
 	board = table.freeze({ key = "B", pad = "ButtonL2", offset = table.freeze({ 0, 112 }) }),
 	-- Nest Heist Phase 3 (NS5): the "Entrenamiento" treadmill.
 	train = table.freeze({ key = "N", pad = "DPadLeft", offset = table.freeze({ 0, -168 }) }),
+	treadmill = table.freeze({ key = "K", pad = "DPadDown", offset = table.freeze({ 0, -224 }) }),
 })
 -- Nest Heist hub (HB-T3 to HB-T5): a personal base's station prompts are in reach together, never with the camp's, so
 -- they reuse the camp's inputs for the same kind of job (deliver like the chest, incubate like the incubator, the
@@ -23,6 +24,8 @@ Keys.HUB = table.freeze({
 	incubator = Keys.CAMP.hatch,
 	glove = Keys.CAMP.board,
 	train = Keys.CAMP.train,
+	treadmill = Keys.CAMP.treadmill,
+	chest = Keys.CAMP.extract,
 })
 -- Lumipols and dropped items keep E: they are never inside the camp's prompt range together (a contract
 -- checks the spawn slots against the camp markers elsewhere in the world rules).

@@ -11,16 +11,18 @@ View.TEXT_SIZE = 13
 View.TEXT = table.freeze({
 	title = "Wildbound",
 	-- K1: player-facing words in neutral Spanish (they were English).
-	tagline = "Roba crías dormidas. Vuelve sin que te vean.",
+	-- Egg loop (docs/design/wildbound-egg-loop.md): the tagline and the four lines tell the egg loop (they told the
+	-- old cria tutorial).
+	tagline = "Roba un huevo y vuelve sin que te vean.",
 	-- NS1: the collection is saved now; carried things are not.
 	note = "Tu colección se guarda.",
 	settingsTitle = "Ajustes",
 	howtoTitle = "Cómo jugar",
 	howto = table.freeze({
-		"Sigue los faroles hasta las islas de criaturas dormidas.",
-		"Acércate sin correr, calma a la cría y séllala.",
-		"Llévala al refugio del campamento y regístrala.",
-		"Si La Silueta te ve, escóndete. Correr hace ruido.",
+		"Busca un nido y mantén E para robar el huevo.",
+		"Llévalo a tu base sin que te lo quiten.",
+		"En tu base se guarda y va a la incubadora.",
+		"Al nacer tienes un compañero nuevo. ¡Ve por otro!",
 	}),
 })
 

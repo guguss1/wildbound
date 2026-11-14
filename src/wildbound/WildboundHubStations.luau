@@ -15,6 +15,7 @@ Stations.TAGS = table.freeze({
 	["WildboundIncubatorStation"] = "incubator",
 	["WildboundGloveStation"] = "glove",
 	["WildboundTrainingStation"] = "train",
+	["WildboundChestStation"] = "chest",
 })
 -- text: the prompt's action (Text.HUB key); action: the reply that carries a refusal; hold: seconds (nil = default).
 local PROMPTS = table.freeze({
@@ -22,6 +23,7 @@ local PROMPTS = table.freeze({
 	incubator = table.freeze({ text = "incubatorPrompt", action = "Hatch" }),
 	glove = table.freeze({ text = "glovePrompt", action = "OpenBoard" }),
 	train = table.freeze({ text = "trainPrompt", action = "Train", hold = 1 }),
+	chest = table.freeze({ text = "chestPrompt", action = "OpenChest" }),
 })
 
 -- HB-T5: the collection display's three slots, and how far over a slot's top a Lumipol hovers (the world client adds
@@ -89,6 +91,61 @@ function Stations:trigger(player, station)
 	self.deps.handlers[entry.kind](player, distance, station)
 end
 
+local function dressChest(station)
+	local base = station.Parent
+	local box = base and base:FindFirstChild("ChestBox")
+	local lid = base and base:FindFirstChild("ChestLid")
+	if not (box and box:IsA("BasePart") and lid and lid:IsA("BasePart")) then return end
+	if box:GetAttribute("WildboundChestDressed") then return end
+	box:SetAttribute("WildboundChestDressed", true)
+	local gold = Color3.fromRGB(224, 178, 66)
+	local dark = Color3.fromRGB(58, 42, 28)
+	local function addPart(name, size, cf, color, material)
+		local existing = base:FindFirstChild(name)
+		if existing then return existing end
+		local p = Instance.new("Part")
+		p.Name, p.Size, p.CFrame = name, size, cf
+		p.Anchored, p.CanCollide, p.CanQuery, p.CanTouch = true, false, false, false
+		p.Color, p.Material = color, material or Enum.Material.Metal
+		p.Parent = base
+		return p
+	end
+	for _, x in ipairs({ -0.85, 0.85 }) do
+		addPart("ChestBand_" .. (x < 0 and "L" or "R"), Vector3.new(0.22, 1.98, 1.66),
+			box.CFrame * CFrame.new(x, 0.24, 0), gold, Enum.Material.Metal)
+	end
+	addPart("ChestLock", Vector3.new(0.45, 0.55, 0.16), box.CFrame * CFrame.new(0, 0.35, -0.76), gold, Enum.Material.Metal)
+	addPart("ChestKeyhole", Vector3.new(0.14, 0.24, 0.18), box.CFrame * CFrame.new(0, 0.35, -0.78), dark, Enum.Material.SmoothPlastic)
+	if not box:FindFirstChildOfClass("PointLight") then
+		local light = Instance.new("PointLight")
+		light.Color, light.Brightness, light.Range = Color3.fromRGB(255, 214, 120), 0.7, 10
+		light.Parent = box
+	end
+	if not lid:FindFirstChild("ChestBillboard") then
+		local gui = Instance.new("BillboardGui")
+		gui.Name = "ChestBillboard"
+		gui.Size = UDim2.fromOffset(220, 40)
+		gui.StudsOffset = Vector3.new(0, 2.2, 0)
+		gui.MaxDistance = 48
+		gui.LightInfluence = 0
+		local lbl = Instance.new("TextLabel")
+		lbl.Name = "Label"
+		lbl.Size = UDim2.fromScale(1, 1)
+		lbl.BackgroundColor3 = Color3.fromRGB(28, 34, 48)
+		lbl.BackgroundTransparency = 0.25
+		lbl.Text = "Cofre de huevos · 0 guardados"
+		lbl.TextColor3 = Color3.fromRGB(255, 226, 130)
+		lbl.TextStrokeTransparency = 0.2
+		lbl.Font = Enum.Font.GothamBold
+		lbl.TextScaled = true
+		lbl.Parent = gui
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0, 8)
+		corner.Parent = lbl
+		gui.Parent = lid
+	end
+end
+
 function Stations:bind(station, tag)
 	local kind = Stations.TAGS[tag]
 	if self.bound[station] or not kind or not self.deps.handlers[kind] then return end
@@ -98,6 +155,9 @@ function Stations:bind(station, tag)
 		station:GetAttribute("Range") or 8, spec.hold, self.deps.Keys.HUB[kind])
 	-- Each client shows only its own base's prompts (WildboundClient); the server still checks every trigger.
 	prompt:SetAttribute("WildboundHubStation", kind)
+	if kind == "chest" or kind == "delivery" or kind == "incubator" or kind == "glove" then
+		prompt.Enabled = false
+	end
 	self.bound[station] = { kind = kind, tag = tag, prompt = prompt }
 	prompt.Triggered:Connect(function(player) self:trigger(player, station) end)
 	station.AncestryChanged:Connect(function()
@@ -125,36 +185,7 @@ local function topOf(part)
 	return part.Position.Y + 0.5 * (math.abs(up.X) * size.X + math.abs(up.Y) * size.Y + math.abs(up.Z) * size.Z)
 end
 function Stations:refreshDisplay(player)
-	local deps = self.deps
-	local platform = self:platformOf(player.UserId)
-	local picks = platform and deps.Bases.displayPicks(deps.snapshot(player.UserId), Stations.DISPLAY_SLOTS) or {}
-	local parts = { platform and platform:GetFullName() or "" }
-	for _, pick in ipairs(picks) do table.insert(parts, pick.uid .. ":" .. pick.species) end
-	local key = table.concat(parts, "|")
-	local shown = self.displays[player.UserId]
-	if shown and shown.key == key then return end
 	self:clearDisplay(player.UserId)
-	if not platform or #picks == 0 then return end
-	local hub = platform:FindFirstAncestor("WildboundHub")
-	local centre = hub and hub:GetPivot().Position or platform.Position
-	local models = {}
-	for index, pick in ipairs(picks) do
-		local slot = platform.Parent:FindFirstChild("DisplaySlot" .. index)
-		if slot and slot:IsA("BasePart") then
-			local model, dressed = deps.visual(pick.species, slot.Position)
-			model.Name = "DisplayLumipol"
-			model:ScaleTo(0.6)
-			local at = Vector3.new(slot.Position.X, topOf(slot) + (dressed and 1.2 or 0.75) + Stations.HOVER, slot.Position.Z)
-			local frame = CFrame.lookAt(at, Vector3.new(centre.X, at.Y, centre.Z))
-			model:PivotTo(frame)
-			model:SetAttribute("OwnerUserId", player.UserId)
-			model:SetAttribute("Uid", pick.uid)
-			model:SetAttribute("Spot", 10 * (platform:GetAttribute("SlotIndex") or 0) + index)
-			model:SetAttribute("Base", frame)
-			table.insert(models, model)
-		end
-	end
-	self.displays[player.UserId] = { key = key, models = models }
 end
 function Stations:refreshAll()
 	for _, player in ipairs(Players:GetPlayers()) do self:refreshDisplay(player) end

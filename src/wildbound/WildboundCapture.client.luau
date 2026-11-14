@@ -74,6 +74,26 @@ local hint = make("TextLabel", { Name = "ReactionHint", Visible = false, Backgro
 	BackgroundColor3 = Color3.fromRGB(20, 24, 28), TextColor3 = Color3.fromRGB(255, 236, 170), Font = Enum.Font.GothamBold,
 	TextSize = 14, TextWrapped = true, Text = "" }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, hint)
+-- UI colorida: the capture panel keeps its tone colours (WildboundCaptureView) and gains the shading, a rounder corner and
+-- stroked display words; Stop is a red chunky button, Seal a blue one, the hint a dark outlined pill. Without the
+-- shared style module every call is a no-op.
+do
+	local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = styleModule and require(styleModule)
+	if Style then
+		Style.screen(gui)
+		Style.corner(panel, 12)
+		Style.shade(panel, 0.82)
+		Style.title(badge)
+		Style.title(headline)
+		Style.body(detail, true)
+		Style.outline(track, 2)
+		Style.button(stop, "red")
+		Style.button(sealButton, "blue")
+		Style.pill(hint, 0.1)
+		Style.title(hint, Style.COLORS.gold)
+	end
+end
 
 local connections = {}
 local function listen(signal, callback)
@@ -243,7 +263,7 @@ listen(RunService.RenderStepped, function(dt)
 	stop.Visible = view.visible and View.stopToken(held) ~= nil and not sealing
 	sealButton.Visible = sealing
 	local hintText = not view.visible and reactionHint(root) or nil
-	hint.Visible = hintText ~= nil
+	hint.Visible = false
 	if hintText and hint.Text ~= hintText then hint.Text = hintText end
 	if not view.visible then
 		hideRing()

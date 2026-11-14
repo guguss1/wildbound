@@ -177,5 +177,98 @@ return function(Path, source)
 		assert(Path.groundStep(0 / 0, 0, 1, 0, 1, ground, 3.2) == nil, "a bad start is refused")
 	end)
 
+	-- Patrol fix (found in Play, 2026-11-12): La Silueta pushed against FK_DeadTree_001 for minutes. The NestSide
+	-- diamond's corner (40, -109) lies inside that trunk core (centre 39.4, -109.8, about 5.13 studs to its faces),
+	-- and five of the thirty patrol points lay inside a trunk. Two rules: a point inside something solid moves to the
+	-- nearest free ring point (the world script says what is free), and a walk to one point that gets no closer for
+	-- GIVE_UP_SECONDS is given up, so no point, however placed, can hold her.
+	local function outsideTrunk(x, z)
+		return math.sqrt((x - 39.4) ^ 2 + (z + 109.8) ^ 2) > 5.13 + 2
+	end
+
+	case("patrol fix: the give-up waits longer than a route stall, and the rings stay near the point", function()
+		assert(C.GIVE_UP_SECONDS > C.STALL_SECONDS, "a stalled route gets its new plan first")
+		assert(C.GIVE_UP_GAP > 0.2 and C.GIVE_UP_GAP < C.GIVE_UP_SECONDS, "a gap is longer than a step, shorter than the wait")
+		assert(C.CLEAR_STEP > 0 and C.CLEAR_RINGS >= 1 and C.CLEAR_DIRECTIONS >= 4)
+		assert(C.CLEAR_STEP * C.CLEAR_RINGS <= 16, "never farther than a patrol diamond's arm")
+	end)
+
+	case("patrol fix: a free point stays where it is", function()
+		local x, z, moved = Path.freePoint(16, -85, outsideTrunk)
+		equal(x, 16); equal(z, -85); equal(moved, false)
+	end)
+
+	case("patrol fix: a point inside a trunk moves to the nearest free ring point", function()
+		local x, z, moved = Path.freePoint(40, -109, outsideTrunk)
+		equal(moved, true)
+		assert(outsideTrunk(x, z), "the new point is free")
+		local shift = math.sqrt((x - 40) ^ 2 + (z + 109) ^ 2)
+		assert(shift <= C.CLEAR_STEP * C.CLEAR_RINGS + 1e-9, "within the last ring: " .. tostring(shift))
+		-- Nearest: every candidate on a closer ring is still inside the trunk.
+		for ring = 1, math.floor(shift / C.CLEAR_STEP + 0.5) - 1 do
+			for index = 0, C.CLEAR_DIRECTIONS - 1 do
+				local angle = index * 2 * math.pi / C.CLEAR_DIRECTIONS
+				assert(not outsideTrunk(40 + math.cos(angle) * ring * C.CLEAR_STEP, -109 + math.sin(angle) * ring * C.CLEAR_STEP),
+					"a closer ring had a free point")
+			end
+		end
+		local againX, againZ = Path.freePoint(40, -109, outsideTrunk)
+		equal(againX, x, "same inputs, same point"); equal(againZ, z)
+	end)
+
+	case("patrol fix: with nothing free nearby, or no way to ask, the point is kept", function()
+		local x, z, moved = Path.freePoint(40, -109, function() return false end)
+		equal(x, 40); equal(z, -109); equal(moved, false)
+		x, z, moved = Path.freePoint(40, -109, nil)
+		equal(x, 40); equal(z, -109); equal(moved, false)
+		equal(Path.freePoint(0 / 0, 1, outsideTrunk), nil, "a bad point is refused")
+	end)
+
+	-- Stands at (42.3, -104.1), where she was measured, asked every 0.2 s step. Returns when the walk was given up.
+	local function hold(progress, goalX, goalZ, from, seconds)
+		for step = 1, math.floor(seconds / 0.2 + 0.5) do
+			local now = from + step * 0.2
+			if Path.gaveUp(progress, goalX, goalZ, 42.3, -104.1, now) then return now end
+		end
+		return nil
+	end
+
+	case("patrol fix: a walk that gets no closer for the give-up time is given up, then counts again", function()
+		local progress = Path.newProgress()
+		equal(Path.gaveUp(progress, 40, -109, 42.3, -104.1, 0), false, "the first step only starts the count")
+		local at = hold(progress, 40, -109, 0, 20)
+		assert(at ~= nil and math.abs(at - C.GIVE_UP_SECONDS) < 1e-6, "given up at the give-up time: " .. tostring(at))
+		local again = hold(progress, 40, -109, at, 20)
+		assert(again ~= nil and math.abs(again - at - C.GIVE_UP_SECONDS) < 0.2 + 1e-6,
+			"the same point is given up again only after another full wait: " .. tostring(again))
+	end)
+
+	case("patrol fix: a walk that keeps getting closer is never given up", function()
+		local progress = Path.newProgress()
+		for step = 0, 19 do
+			equal(Path.gaveUp(progress, 0, 0, 20 - step, 0, step * 0.2), false, "walking at 5 studs/s, step " .. step)
+		end
+	end)
+
+	case("patrol fix: a new goal or an interrupted walk restarts the count", function()
+		local progress = Path.newProgress()
+		Path.gaveUp(progress, 40, -109, 42.3, -104.1, 0)
+		equal(hold(progress, 40, -109, 0, C.GIVE_UP_SECONDS - 0.4), nil, "not yet")
+		local changed = C.GIVE_UP_SECONDS - 0.4
+		equal(hold(progress, 24, -125, changed, C.GIVE_UP_SECONDS - 0.4), nil, "another corner starts its own count")
+		-- A chase interrupts the walk; back on the same corner later, the old count is gone.
+		local later = changed + C.GIVE_UP_SECONDS - 0.4 + 30
+		equal(Path.gaveUp(progress, 24, -125, 42.3, -104.1, later), false, "the first step back")
+		local at = hold(progress, 24, -125, later, 20)
+		assert(at ~= nil and math.abs(at - later - C.GIVE_UP_SECONDS) < 1e-6, "a full wait after the pause: " .. tostring(at))
+	end)
+
+	case("patrol fix: bad numbers never give up", function()
+		local progress = Path.newProgress()
+		equal(Path.gaveUp(progress, 0 / 0, 0, 1, 1, 0), false)
+		equal(Path.gaveUp(progress, 0, 0, 1, 1, math.huge), false)
+		equal(Path.gaveUp(nil, 0, 0, 1, 1, 0), false)
+	end)
+
 	return result
 end

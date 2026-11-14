@@ -1,5 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshTotemRecordClone), require(freshRecordClone),
--- freshTotemRecordClone.Source).
+-- freshTotemRecordClone.Source). Wired (Q10): WildboundRecord requires its sibling WildboundTotemRecord, so the fresh
+-- Record clone must sit beside a TotemRecord (for example both in one Folder).
 -- Luck totem persistence (decision Q10, docs/mechanics/wildbound-new-mechanics.md section 4): the record step 3 -> 4
 -- that stores the single-use totems a player owns (bought or earned), its validation, the profile seam and the pure
 -- grant and consume rules. No data store is touched: everything here works on plain tables.
@@ -24,16 +25,19 @@ return function(TotemRecord, Record, source)
 		assert(ok == false, (label or "record") .. ": expected validation to fail")
 		assert(type(problems) == "table" and #problems > 0, (label or "record") .. ": expected problems listed")
 	end
+	-- Wired (Q10): Record is schema 4 now, so a schema 3 record is a blank one without the totem map.
 	local function schema3()
 		local record = Record.blank()
 		record.schema = 3
+		record.totems = nil
 		record.ember = 12
 		return record
 	end
 
 	case("TR1: the step goes from schema 3 to 4 and the only totem kind is the luck totem", function()
 		equal(TotemRecord.FROM, 3); equal(TotemRecord.SCHEMA, 4)
-		equal(TotemRecord.FROM, Record.SCHEMA, "the step starts where the deployed record ends")
+		-- Deliberately changed pin (wiring): the record now ends where this step ends.
+		equal(Record.SCHEMA, TotemRecord.SCHEMA, "the wired record is schema 4")
 		equal(TotemRecord.KINDS.totemSuerte, true)
 		equal(TotemRecord.CAP, 5)
 	end)
@@ -48,12 +52,13 @@ return function(TotemRecord, Record, source)
 		equal(before.totems, nil, "the input copy given to the ladder is the only one changed")
 	end)
 
+	-- Deliberately changed (wiring): the record's own ladder now ends with this step.
 	case("TR3: the whole ladder from an unversioned record through the deployed steps and this one", function()
 		local status, migrated = Record.migrate({ ember = 3 })
-		equal(status, "Migrated"); equal(migrated.schema, 3)
-		local stepped = TotemRecord.step(migrated)
-		stepped.schema = TotemRecord.SCHEMA
-		valid(stepped, "v0 through every step")
+		equal(status, "Migrated"); equal(migrated.schema, TotemRecord.SCHEMA)
+		valid(migrated, "v0 through every step")
+		equal(type(Record.MIGRATIONS[TotemRecord.FROM]), "function", "the record's ladder carries the 3 -> 4 step")
+		equal(Record.TotemRecord.SCHEMA, TotemRecord.SCHEMA, "the record reads its sibling step")
 		local ladder = TotemRecord.ladder(Record.MIGRATIONS)
 		for version = 0, TotemRecord.FROM - 1 do
 			equal(ladder[version], Record.MIGRATIONS[version], "step " .. version .. " is reused as is")

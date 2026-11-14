@@ -61,6 +61,16 @@ function Economy.lossBasisPoints(config, upgrades)
 	return #values > 0 and math.min(table.unpack(values)) or config.loss.rateBasisPoints
 end
 
+function Economy.incubatorSlots(config, upgrades)
+	local values = owned(config, upgrades, "incubatorSlots")
+	return #values > 0 and math.max(1, math.floor(math.max(table.unpack(values)))) or 1
+end
+
+function Economy.hatchSpeedScale(config, upgrades)
+	local values = owned(config, upgrades, "hatchSpeedScale")
+	return #values > 0 and math.min(table.unpack(values)) or 1
+end
+
 -- Walk speed for a pouch load. Steps apply from their share upward.
 function Economy.pouchSpeed(config, units, capacity)
 	local speed = config.carry.baseSpeed

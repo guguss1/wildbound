@@ -136,7 +136,135 @@ function Proxies.pouncer()
 	return finish(model, "Pouncer", root)
 end
 
-Proxies.BUILDERS = table.freeze({ Viper = Proxies.viper, Pouncer = Proxies.pouncer })
+-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): Part blockouts of the four new beasts after the pack's sheets
+-- (03_IMAGENES/<X>/<X>_00_FICHA_COMPLETA.png): purple-grey bodies, one danger colour each. Placeholders only: a model
+-- named exactly "Streamer", "Root", "Gaze" or "Lurker" in ReplicatedStorage.WildboundBeasts.Models replaces them.
+local W = table.freeze({
+	plum = Color3.fromHex("4A3858"), plumLight = Color3.fromHex("6E5482"), bone = Color3.fromHex("D9C6D6"),
+	moss = Color3.fromHex("8C9A3C"), bark = Color3.fromHex("5A4436"), barkDark = Color3.fromHex("3E2F26"),
+	magenta = Color3.fromHex("FF2E9A"), shadow = Color3.fromHex("1E1726"), violet = Color3.fromHex("A050FF"),
+	fuchsia = Color3.fromHex("FF46C8"), green = Color3.fromHex("82EB5A"),
+})
+Proxies.WAVE2_PALETTE = W
+
+-- Streamer: a hunched semi-humanoid about 9 studs tall, very long arms reaching the ground, spring legs, a cavernous
+-- mouth with a magenta Neon core, bone spikes and moss tufts on the back.
+function Proxies.streamer()
+	local model = Instance.new("Model")
+	model.Name = "StreamerProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), W.plum)
+	root.Transparency = 1
+	part(model, "Pelvis", Vector3.new(2.6, 1.6, 2), CFrame.new(0, 4.2, 0.6), W.plum)
+	part(model, "Chest", Vector3.new(3.6, 2.6, 2.8), CFrame.new(0, 6, -0.6) * CFrame.Angles(math.rad(-25), 0, 0), W.plumLight)
+	local head = CFrame.new(0, 7.2, -2.6)
+	part(model, "Head", Vector3.new(2.4, 1.8, 2.4), head, W.plum)
+	part(model, "Jaw", Vector3.new(2.2, 0.7, 2.2), head * CFrame.new(0, -1.4, -0.3) * CFrame.Angles(math.rad(25), 0, 0), W.bone)
+	eye(model, "MouthCore", Vector3.new(1.3, 1, 0.4), head * CFrame.new(0, -0.6, -1.2), W.magenta)
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		eye(model, "Eye" .. tag, Vector3.new(0.35, 0.35, 0.35), head * CFrame.new(side * 0.6, 0.5, -1.2), W.magenta, Enum.PartType.Ball)
+		segment(model, "UpperArm" .. tag, Vector3.new(side * 2, 6.6, -1.2), Vector3.new(side * 3.4, 4, -2.6), 0.8, W.plumLight)
+		segment(model, "Forearm" .. tag, Vector3.new(side * 3.4, 4, -2.6), Vector3.new(side * 3, 0.6, -4), 0.7, W.plum)
+		part(model, "Claw" .. tag, Vector3.new(1.4, 0.4, 1.6), CFrame.new(side * 3, 0.3, -4.4), W.bone, "WedgePart")
+		segment(model, "Thigh" .. tag, Vector3.new(side * 1, 4, 0.8), Vector3.new(side * 1.6, 2.4, -0.6), 0.8, W.plum)
+		segment(model, "Shin" .. tag, Vector3.new(side * 1.6, 2.4, -0.6), Vector3.new(side * 1.4, 0.3, 1), 0.6, W.plumLight)
+		part(model, "Moss" .. tag, Vector3.new(0.8, 0.5, 1.4), CFrame.new(side * 1.2, 7.2, 0.2), W.moss)
+	end
+	for i = 1, 4 do
+		part(model, "Spike" .. i, Vector3.new(0.4, 1.2, 0.8), CFrame.new(0, 7.4 - i * 0.5, -1 + i * 0.7), W.bone, "WedgePart")
+	end
+	return finish(model, "Streamer", root)
+end
+
+-- Root: a broad tree-like body of bark about 10 studs tall, branched horns with moss, two long whip arms and root feet
+-- spread on the ground, with green glowing knots.
+function Proxies.root()
+	local model = Instance.new("Model")
+	model.Name = "RootProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), W.bark)
+	root.Transparency = 1
+	part(model, "Trunk", Vector3.new(4.4, 5, 3.4), CFrame.new(0, 3.6, 0), W.bark)
+	part(model, "Shoulders", Vector3.new(5.6, 1.8, 3.2), CFrame.new(0, 6.6, -0.2), W.barkDark)
+	local head = CFrame.new(0, 7.9, -1)
+	part(model, "Head", Vector3.new(2.4, 1.8, 2), head, W.bark)
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		eye(model, "Eye" .. tag, Vector3.new(0.4, 0.3, 0.3), head * CFrame.new(side * 0.6, 0.2, -1.05), W.green)
+		segment(model, "Horn" .. tag, Vector3.new(side * 0.8, 8.6, -1), Vector3.new(side * 2.2, 10.4, -0.6), 0.45, W.barkDark)
+		segment(model, "HornTip" .. tag, Vector3.new(side * 2.2, 10.4, -0.6), Vector3.new(side * 3.2, 10.6, -1.4), 0.3, W.barkDark)
+		part(model, "HornMoss" .. tag, Vector3.new(0.8, 0.4, 0.8), CFrame.new(side * 2.2, 10.5, -0.6), W.moss)
+		segment(model, "WhipUpper" .. tag, Vector3.new(side * 2.8, 6.6, -0.4), Vector3.new(side * 4.6, 4.2, -1.6), 0.8, W.bark)
+		segment(model, "WhipLower" .. tag, Vector3.new(side * 4.6, 4.2, -1.6), Vector3.new(side * 5.2, 0.6, -3.4), 0.5, W.barkDark)
+		for i, z in ipairs({ -1.6, 0, 1.6 }) do
+			segment(model, "Foot" .. tag .. i, Vector3.new(side * 1.6, 1.4, z), Vector3.new(side * 3.4, 0.2, z * 1.6), 0.6, W.barkDark)
+		end
+	end
+	for i = 1, 3 do
+		eye(model, "Knot" .. i, Vector3.new(0.5, 0.5, 0.2), CFrame.new(-1 + i * 0.6, 2.4 + i * 1.1, -1.75), W.green)
+	end
+	part(model, "BackMoss", Vector3.new(3.6, 0.6, 2.6), CFrame.new(0, 7.6, 0.6), W.moss)
+	return finish(model, "Root", root)
+end
+
+-- Gaze: a thin, almost weightless dark silhouette about 11 studs tall with two giant magenta Neon eyes, long fingers
+-- framing the face and a frayed lower body that does not touch the ground.
+function Proxies.gaze()
+	local model = Instance.new("Model")
+	model.Name = "GazeProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), W.shadow)
+	root.Transparency = 1
+	part(model, "Body", Vector3.new(1.6, 5, 1.2), CFrame.new(0, 6, 0), W.shadow)
+	for i = 1, 4 do
+		part(model, "Tatter" .. i, Vector3.new(0.4, 2.4, 0.4), CFrame.new(-0.9 + i * 0.4, 2.6, (i % 2) * 0.3)
+			* CFrame.Angles(0, 0, math.rad((i - 2.5) * 8)), W.plum)
+	end
+	local head = CFrame.new(0, 10, -0.2)
+	part(model, "Head", Vector3.new(2.6, 2.4, 1.6), head, W.shadow)
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		eye(model, "Eye" .. tag, Vector3.new(0.95, 0.95, 0.95), head * CFrame.new(side * 0.62, 0.1, -0.7), W.magenta, Enum.PartType.Ball)
+		segment(model, "Arm" .. tag, Vector3.new(side * 0.9, 8.2, 0), Vector3.new(side * 1.8, 9.4, -1.2), 0.35, W.plum)
+		for f = 1, 3 do
+			segment(model, "Finger" .. tag .. f, Vector3.new(side * 1.8, 9.4, -1.2),
+				Vector3.new(side * (1.2 + f * 0.15), 9.6 + f * 0.5, -1.4), 0.18, W.plumLight)
+		end
+	end
+	return finish(model, "Gaze", root)
+end
+
+-- Lurker: a low, long-limbed predator about 9 studs long and 3.5 tall on four angular legs, a ridge of spines and
+-- fuchsia Neon eyes.
+function Proxies.lurker()
+	local model = Instance.new("Model")
+	model.Name = "LurkerProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), W.plum)
+	root.Transparency = 1
+	part(model, "Body", Vector3.new(2.4, 1.5, 5), CFrame.new(0, 2.4, 0.4), W.plum)
+	local head = CFrame.new(0, 2.5, -2.8)
+	part(model, "Head", Vector3.new(1.8, 1.1, 1.8), head, W.plumLight)
+	part(model, "Snout", Vector3.new(1.4, 0.6, 1), head * CFrame.new(0, -0.2, -1.3) * CFrame.Angles(0, math.pi, 0), W.plum, "WedgePart")
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		eye(model, "Eye" .. tag, Vector3.new(0.35, 0.25, 0.3), head * CFrame.new(side * 0.5, 0.25, -0.9), W.fuchsia)
+		for i, z in ipairs({ -1.6, 2.2 }) do
+			local leg = tag .. i
+			local hip = Vector3.new(side * 1.1, 2.4, z)
+			local knee = Vector3.new(side * 2.4, 3.4, z - 0.6)
+			local foot = Vector3.new(side * 2.6, 0.15, z - 1.2)
+			segment(model, "Thigh" .. leg, hip, knee, 0.5, W.plum)
+			segment(model, "Shin" .. leg, knee, foot, 0.35, W.plumLight)
+			part(model, "Claw" .. leg, Vector3.new(0.6, 0.3, 0.8), CFrame.new(foot.X, 0.15, foot.Z - 0.3), W.bone, "WedgePart")
+		end
+	end
+	for i = 1, 6 do
+		part(model, "Spine" .. i, Vector3.new(0.25, 0.9 + (i % 2) * 0.3, 0.6), CFrame.new(0, 3.5, -1.6 + i * 0.7), W.bone, "WedgePart")
+	end
+	segment(model, "Tail", Vector3.new(0, 2.4, 2.9), Vector3.new(0, 1.6, 5.4), 0.35, W.plum)
+	return finish(model, "Lurker", root)
+end
+
+Proxies.BUILDERS = table.freeze({ Viper = Proxies.viper, Pouncer = Proxies.pouncer, Streamer = Proxies.streamer,
+	Root = Proxies.root, Gaze = Proxies.gaze, Lurker = Proxies.lurker })
 
 -- The visual a client clones: the user's imported model when present, else the proxy.
 function Proxies.modelFor(models, beast)

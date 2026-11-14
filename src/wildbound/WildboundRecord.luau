@@ -5,9 +5,17 @@
 -- Schema 2 (NS1, NS2): the incubator list (server timestamps) and the training levels are saved; what is out in the
 -- world (the bag, the pouch, a dropped or carried item, the trip) is never saved, so a death or a leave still loses it.
 -- Schema 3 (NS7): the gloves with their rolled stats and the worn one.
+-- Schema 4 (Q10, docs/mechanics/wildbound-new-mechanics.md section 4): the luck totems a player owns, `totems =
+-- { totemSuerte = count }` (cap 5). The step, its validation and the profile seam live in the sibling
+-- WildboundTotemRecord, which must sit beside this module (ServerScriptService): without it this module fails to load,
+-- the save glue never starts and nothing is written (a failed load never overwrites real data).
+local totemModule = script.Parent and script.Parent:FindFirstChild("WildboundTotemRecord")
+assert(totemModule and totemModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundTotemRecord (schema 4)")
+local TotemRecord = require(totemModule)
+
 local Record = {}
 
-Record.SCHEMA = 3
+Record.SCHEMA = TotemRecord.SCHEMA
 Record.LEDGER_CAP = 64
 Record.MAX_CHARS = 4194304
 
@@ -19,7 +27,10 @@ local KNOWN = table.freeze({
 	nextOp = true, firstSealGranted = true, collection = true, equippedUid = true, banked = true, ember = true,
 	consumables = true, upgrades = true, skills = true, bondXp = true, settings = true, stats = true, atRisk = true,
 	ledger = true, incubating = true, training = true, gloves = true,
+	-- Q10: schema 4.
+	totems = true,
 })
+Record.TotemRecord = TotemRecord
 local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlayedDay" })
 -- NS7: a glove's stats and their hard caps in percent. Must equal WildboundGear.HARD_CAPS (the Save suite checks).
 Record.GLOVE_CAPS = table.freeze({ move = 3, steal = 25, burst = 30, drain = 40, calm = 40 })
@@ -59,7 +70,7 @@ function Record.blank()
 		schema = Record.SCHEMA, revision = 0, nextUid = 1, nextTrip = 1, nextOp = 1, firstSealGranted = false,
 		collection = { registered = {}, bankedEggs = {} },
 		banked = {}, ember = 0, consumables = {}, upgrades = {}, skills = {}, bondXp = {}, settings = {},
-		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} },
+		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} }, totems = {},
 	}
 end
 
@@ -180,6 +191,8 @@ function Record.fromProfile(profile, base, meta, economy, config)
 	if profile.gloves and profile.gloves.equipped ~= nil and not uidNumber(profile.gloves.equipped) then
 		return nil, "SessionId"
 	end
+	-- Q10 (schema 4): the luck totems the player holds (State's `luckTotems`), capped by the step's own rule.
+	record.totems = TotemRecord.fromProfile(profile, base)
 
 	-- NS2: nothing at risk is saved. Schema 1's atRisk writer is kept behind meta.saveAtRisk, which no caller sets, so
 	-- the legacy shape stays readable by the validator; toProfile never restores it.
@@ -269,6 +282,8 @@ function Record.toProfile(record, economy, config, sessionNow)
 			table.insert(profile.gloves.list, { uid = glove.uid, rarity = glove.rarity, stats = copy(glove.stats) })
 		end
 	end
+	-- Q10 (schema 4): the saved luck totems, made only when there is one (the blank profile must equal State:addPlayer's).
+	TotemRecord.toProfile(record, profile)
 	-- NS2: a legacy atRisk section is never restored, so carried things never come back after a leave.
 	return profile
 end
@@ -382,6 +397,12 @@ function Record.validate(record, economy, config)
 		if gloves.equippedUid ~= nil and not owned[gloves.equippedUid] then fail("the worn glove is not owned") end
 	end
 
+	-- Q10 (schema 4): the totem map; any problem quarantines the load and refuses the write.
+	local totemsOk, totemProblems = TotemRecord.validate(record)
+	if not totemsOk then
+		for _, problem in ipairs(totemProblems or {}) do fail(problem) end
+	end
+
 	if record.equippedUid ~= nil and not registeredSet[record.equippedUid] then fail("equippedUid is not registered") end
 	if map(record.bondXp, "bondXp") then
 		for uid, xp in pairs(record.bondXp) do
@@ -472,7 +493,9 @@ end
 -- The ladder: MIGRATIONS[n] turns version n into n + 1. Version 0 is the unversioned shape: a table with no
 -- schema field. No store ever held one (nothing was saved before W10), so this step exists to prove the ladder
 -- and to read hand-made exports; it only fills missing fields and never invents items.
-Record.MIGRATIONS = table.freeze({
+-- Q10: TotemRecord.ladder keeps every deployed step unchanged and adds MIGRATIONS[3] (schema 3 -> 4), which only adds
+-- an empty totem map when there is none and never repairs a malformed one (validation then quarantines it).
+Record.MIGRATIONS = TotemRecord.ladder({
 	[0] = function(data)
 		local blank = Record.blank()
 		for k, v in pairs(blank) do

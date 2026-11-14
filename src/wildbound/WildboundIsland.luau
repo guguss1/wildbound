@@ -42,8 +42,8 @@ Island.CONSTANTS = table.freeze({
 	-- tell, 0.8 s); the swing lands if the thief is still within HIT_RANGE. DAMAGE 35: three hits kill (100, 65, 30, 0).
 	-- Fear pass (FA2, user: "faster"): up in 0.4 s (was 0.6), 19 studs/s (was 17), for 14 s (was 10). A walking
 	-- carrier (14) or walker (16) is caught; only a sprint (which scares a carried cria) outruns it, by 1.3 studs/s.
-	WAKE_WINDUP = 0.4,
-	CHASE_SPEED = 19,
+	WAKE_WINDUP = 0.35,
+	CHASE_SPEED = 23,
 	CHASE_SECONDS = 14,
 	CHASE_LEASH = 35,
 	STRIKE_REACH = 3.5,
@@ -81,6 +81,14 @@ Island.CONSTANTS = table.freeze({
 	EXPOSED_SECONDS = 1,
 	-- Nest Heist (NH3): stealing an egg wakes the island at once (1), with no meter to fill; 0 restores the grab noise.
 	STEAL_WAKE = 1,
+	-- User, 2026-11-11: the parents sleep until an egg is taken. While on (1), walking, running, light and noises never
+	-- raise the meter; only a steal (EggTaken) or a grab (CriaTaken) does. 0 restores the sleep meter.
+	SLEEP_UNTIL_STEAL = 1,
+	-- User, 2026-11-11: "en cada nido un solo padre durmiendo y el resto que sean los huevos". Each nest holds
+	-- EGGS_PER_NEST eggs (only eggs, no cria) guarded by PARENTS_PER_NEST sleeping adults (the first of its points).
+	-- 0 restores the old rules (nestCount / rollContent, every adult point).
+	EGGS_PER_NEST = 3,
+	PARENTS_PER_NEST = 1,
 	-- Nest Heist (NH5): a chasing adult turns on a new egg carrier only if that player is within PERCEIVE_RANGE of it.
 	PERCEIVE_RANGE = 24,
 	-- (c) Egg recovery: an egg dropped inside the leash is fetched and carried to the nest at RETURN_SPEED.
@@ -166,6 +174,7 @@ local GRABS = { CriaTaken = true, EggTaken = true }
 function Island.event(meter, kind, options)
 	local amount = type(meter) == "table" and type(kind) == "string" and (GRABS[kind] and C.GRAB or C.PENALTY[kind]) or nil
 	if not amount then return { stirred = false, woke = false, settled = false } end
+	if C.SLEEP_UNTIL_STEAL >= 0.5 and not GRABS[kind] then return { stirred = false, woke = false, settled = false } end
 	meter.quiet = 0
 	-- Nest Heist (NH3): an egg steal is seen at once; the parents wake with no meter to fill (never island 1's cria).
 	if kind == "EggTaken" and C.STEAL_WAKE >= 0.5 and meter.state == "Asleep" then
@@ -192,7 +201,7 @@ function Island.step(meter, dt, input)
 		return out
 	end
 	local rate = 0
-	if input.inside == true then
+	if input.inside == true and C.SLEEP_UNTIL_STEAL < 0.5 then
 		if input.linger == true then rate += C.LINGER end
 		if input.sprint == true then rate += C.SPRINT end
 		if input.light == true and dark(input.phase) then rate += input.farol == true and C.LIGHT_FAROL or C.LIGHT end
@@ -229,6 +238,7 @@ end
 -- The nest's next content: island 1 always a cria; island 5 a cria only at Dusk and Night; otherwise 70 % cria.
 function Island.rollContent(island, phase, rand)
 	if type(island) ~= "table" or type(rand) ~= "function" then return nil end
+	if C.EGGS_PER_NEST >= 1 then return "Egg" end
 	if island.id == FIRST then return "Creature" end
 	if island.content == "Egg" then return "Egg" end
 	if island.rewardTier == HEART and not dark(phase) then return "Egg" end
@@ -248,6 +258,7 @@ end
 -- Islands 3 to 5 hold a second nest with three or more players.
 function Island.nestCount(island, players)
 	if type(island) ~= "table" then return 0 end
+	if C.EGGS_PER_NEST >= 1 then return math.floor(C.EGGS_PER_NEST) end
 	if finite(island.nests) and island.nests >= 1 then return math.floor(island.nests) end
 	local deep = island.id == "I3" or island.id == "I4" or island.id == "I5"
 	return deep and finite(players) and players >= 3 and 2 or 1
@@ -255,6 +266,20 @@ end
 
 -- EI-2: who the woken adult chases. candidates = list of { key, x, z, carrying = island id of a carried cria }.
 -- A thief carrying this island's cria comes first; otherwise the nearest intruder. Only inside the leash.
+-- How many of an island's adult points get a sleeping parent (all of them when PARENTS_PER_NEST is 0).
+function Island.parentCount(island)
+	local points = type(island) == "table" and type(island.adultPoints) == "table" and #island.adultPoints or 0
+	if C.PARENTS_PER_NEST >= 1 then return math.min(points, math.floor(C.PARENTS_PER_NEST)) end
+	return points
+end
+
+-- Where egg `index` of `count` lies around the nest centre: a small ring (one egg sits in the middle).
+function Island.eggOffset(index, count)
+	if not finite(index) or not finite(count) or count <= 1 then return 0, 0 end
+	local angle = (index - 1) / count * math.pi * 2
+	return math.cos(angle) * 1.7, math.sin(angle) * 1.7
+end
+
 function Island.chaseTarget(island, candidates)
 	if type(island) ~= "table" or type(candidates) ~= "table" then return nil end
 	local thief, thiefD, nearest, nearestD = nil, math.huge, nil, math.huge

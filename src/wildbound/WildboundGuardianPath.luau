@@ -11,8 +11,14 @@ Path.CONSTANTS = table.freeze({
 	REACH = 2, -- a waypoint this close counts as reached
 	STALL_SECONDS = 1.5, -- no progress toward the current waypoint for this long is a stall
 	PROGRESS = 0.5, -- studs of progress that count
+	GIVE_UP_SECONDS = 3, -- a walk to one point that gets no closer for this long is given up (twice a stall)
+	GIVE_UP_GAP = 1, -- nobody asked about the walk for this long: it was interrupted, so the count restarts
+	CLEAR_STEP = 2, -- a point inside something solid moves outward in rings this far apart
+	CLEAR_RINGS = 6, -- at most this many rings (12 studs)
+	CLEAR_DIRECTIONS = 8, -- candidates per ring, from +X turning toward +Z
 })
 local C = Path.CONSTANTS
+local EPSILON = 1e-6
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -100,6 +106,51 @@ function Path.steer(state, gx, gz, now)
 		return nil
 	end
 	return point.x, point.z
+end
+
+-- Patrol fix (found in Play, 2026-11-12): five of the thirty patrol points lay inside a solid trunk core, and she
+-- pushed against the tree until her next relocation. A point that is not free moves to the nearest free candidate:
+-- rings of CLEAR_DIRECTIONS points, CLEAR_STEP apart, nearest ring first. isFree is a function (x, z) -> boolean the
+-- world script supplies (its own overlap test, inside the territory). Returns x, z and whether the point moved; a
+-- point with nothing free nearby, or with no way to ask, is kept (the give-up rule below still moves her on). nil for
+-- a bad point.
+function Path.freePoint(x, z, isFree)
+	if not finite(x) or not finite(z) then return nil end
+	if type(isFree) ~= "function" or isFree(x, z) == true then return x, z, false end
+	for ring = 1, C.CLEAR_RINGS do
+		local radius = ring * C.CLEAR_STEP
+		for index = 0, C.CLEAR_DIRECTIONS - 1 do
+			local angle = index * 2 * math.pi / C.CLEAR_DIRECTIONS
+			local cx, cz = x + math.cos(angle) * radius, z + math.sin(angle) * radius
+			if isFree(cx, cz) == true then return cx, cz, true end
+		end
+	end
+	return x, z, false
+end
+
+-- Patrol fix: the safety net under the free points. Progress of one walk toward one point, asked every step.
+function Path.newProgress()
+	return { x = nil, z = nil, best = math.huge, at = 0, askedAt = -math.huge }
+end
+
+-- Whether the walk to (goalX, goalZ) is given up this step: the body at (gx, gz) came no PROGRESS studs closer for
+-- GIVE_UP_SECONDS. Giving up starts a new count, so the caller hears it once per wait. Another goal, a clock that
+-- stepped back, or a pause of more than GIVE_UP_GAP between two questions (a chase, a search) restarts the count.
+function Path.gaveUp(progress, goalX, goalZ, gx, gz, now)
+	if type(progress) ~= "table" or not finite(goalX) or not finite(goalZ) or not finite(gx) or not finite(gz)
+		or not finite(now) then return false end
+	local away = distance(gx, gz, goalX, goalZ)
+	if progress.x ~= goalX or progress.z ~= goalZ or now < progress.askedAt or now - progress.askedAt > C.GIVE_UP_GAP then
+		progress.x, progress.z, progress.best, progress.at = goalX, goalZ, away, now
+	end
+	progress.askedAt = now
+	if away < progress.best - C.PROGRESS then
+		progress.best, progress.at = away, now
+	elseif now - progress.at >= C.GIVE_UP_SECONDS - EPSILON then
+		progress.at = now
+		return true
+	end
+	return false
 end
 
 -- Expedition relief (R5): the body's height over the ground at (x, z). `ground` is a function (x, z) -> Y, usually

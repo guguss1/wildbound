@@ -44,8 +44,9 @@ return function(serverSource, worldSource, clientSource)
 		hasNot(stance, "meter")
 		local _, remotes = serverSource:gsub('Instance.new%("RemoteEvent"%)', "")
 		-- Random world (RW3), deliberately changed from 4: the fifth is WorldEvent, server to client only; its handler
-		-- only counts a refusal and never reads the meter.
-		assert(remotes == 5, "no new remote, got " .. remotes .. " RemoteEvent constructors")
+		-- only counts a refusal and never reads the meter. Deliberately changed again (Q4, bat knockback, commit 231ad78):
+		-- the sixth is BatKnock, server to the hit player's client only; it never carries the meter either.
+		assert(remotes == 6, "no new remote, got " .. remotes .. " RemoteEvent constructors")
 		hasNot(block(serverSource, "worldEvent.OnServerEvent:Connect", "\nend)"), "meter")
 	end)
 

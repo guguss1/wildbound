@@ -15,9 +15,10 @@ local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
--- HATCH_SECONDS: from the egg going in to the creature hatching. SLOTS: eggs one player may incubate at once.
--- RANGE: studs from the incubator for the prompt and the Bag tab's button.
-Incubator.CONSTANTS = freeze({ HATCH_SECONDS = 90, SLOTS = 1, RANGE = 12 })
+-- HATCH_SECONDS: base seconds from the egg going in to the creature hatching (15 s common, scaled by rarity).
+-- SLOTS: base eggs one player may incubate at once. RANGE: studs from the incubator for the prompt and the Bag tab's button.
+Incubator.CONSTANTS = freeze({ HATCH_SECONDS = 15, SLOTS = 1, RANGE = 12 })
+Incubator.RARITY_MULTIPLIER = freeze({ Comun = 1, Rara = 3, Epica = 4, Legendaria = 5 })
 
 -- Dev tuning (docs/testing/wildbound-tuning.md): CONSTANTS stays the default the tests pin; the server's tuning bridge
 -- may override HATCH_SECONDS at runtime. No override, no change. An egg already incubating keeps its time.
@@ -42,6 +43,13 @@ function Incubator.tune(overrides)
 	end
 end
 Incubator.tune(nil)
+
+function Incubator.hatchSeconds(rarity, baseSeconds, speedScale)
+	local base = finite(baseSeconds) and baseSeconds > 0 and baseSeconds or Incubator.live.HATCH_SECONDS
+	local mult = Incubator.RARITY_MULTIPLIER[rarity] or 1
+	local scale = finite(speedScale) and speedScale > 0 and speedScale or 1
+	return math.max(1, math.ceil(base * mult * scale))
+end
 
 -- entry = { startedAt, readyAt } from the server snapshot; now = the server clock.
 -- Returns { fraction 0..1, remaining whole seconds (rounded up), ready } or nil for anything malformed.

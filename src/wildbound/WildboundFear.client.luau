@@ -65,13 +65,13 @@ local flash = make("Frame", { Name = "HitFlash", Size = UDim2.fromScale(1, 1), B
 	BackgroundTransparency = 1, BorderSizePixel = 0, Active = false }, gui)
 local shout = make("TextLabel", { Name = "FearShout", AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.3), Size = UDim2.new(0.9, 0, 0, 64), BackgroundTransparency = 1,
-	Font = Enum.Font.GothamBlack, TextScaled = true, Text = "", TextColor3 = Color3.fromRGB(255, 60, 50),
-	TextStrokeColor3 = Color3.fromRGB(0, 0, 0), TextStrokeTransparency = 0.2, Visible = false }, gui)
+	Font = Enum.Font.FredokaOne, TextScaled = true, Text = "", TextColor3 = Color3.fromRGB(255, 60, 50),
+	TextStrokeColor3 = Color3.fromRGB(16, 18, 34), TextStrokeTransparency = 0, Visible = false }, gui)
 make("UITextSizeConstraint", { MaxTextSize = 56, MinTextSize = 22 }, shout)
 local shoutScale = make("UIScale", { Scale = 1 }, shout)
 local damage = make("TextLabel", { Name = "FearDamage", AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.42), Size = UDim2.fromOffset(200, 48), BackgroundTransparency = 1,
-	Font = Enum.Font.GothamBlack, TextSize = 40, Text = "", TextColor3 = Color3.fromRGB(255, 235, 235),
+	Font = Enum.Font.FredokaOne, TextSize = 40, Text = "", TextColor3 = Color3.fromRGB(255, 235, 235),
 	TextStrokeColor3 = Color3.fromRGB(120, 0, 0), TextStrokeTransparency = 0, Visible = false }, gui)
 
 local cues = {}
@@ -171,6 +171,11 @@ task.spawn(function()
 			trigger("strike", WORDS.strike, 0.8)
 		elseif action == "IslandCaught" then
 			adultHit()
+		elseif action == "BeastHit" then
+			lastHitAt = os.clock()
+			trigger("hit", type(payload.notice) == "string" and payload.notice ~= "" and payload.notice or WORDS.hit, 1)
+			worldGui:SetAttribute("LastHitSound", "hit")
+			worldGui:SetAttribute("LastHitAt", workspace:GetServerTimeNow())
 		end
 	end)
 end)

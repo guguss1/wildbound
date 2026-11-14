@@ -32,13 +32,31 @@ local Refuge = refugeModule and require(refugeModule)
 -- Next batch NB4: the incubator's Bag row (delivery E).
 local incubatorModule = ReplicatedStorage:WaitForChild("WildboundIncubator", 10)
 local Incubator = incubatorModule and require(incubatorModule)
+-- Egg loop (docs/design/wildbound-egg-loop.md): the objective line says the next action from the snapshot, and the
+-- stored egg rows name the rarity (species looks from WildboundSpecies).
+local eggLoopModule = ReplicatedStorage:WaitForChild("WildboundEggLoop", 10)
+local EggLoop = eggLoopModule and require(eggLoopModule)
+local speciesModule = ReplicatedStorage:WaitForChild("WildboundSpecies", 10)
+local speciesLooks = speciesModule and require(speciesModule).LOOKS or nil
 -- Next batch NB3: every word on this HUD and its panel comes from WildboundText.HUD.
 local H = Text.HUD
+-- UI colorida: the shared look (palette, outlines, shading, press squash). Without the module every call is a no-op
+-- and the plain look stays.
+local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+local Style = styleModule and require(styleModule) or setmetatable({}, { __index = function() return function() end end })
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
 gui.ResetOnSpawn = false
+Style.screen(gui)
 gui.Parent = playerGui
+task.spawn(function()
+	local StarterGui = game:GetService("StarterGui")
+	for _ = 1, 10 do
+		if pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) end) then break end
+		task.wait(0.2)
+	end
+end)
 local connections = {}
 local function listen(signal, callback)
 	local connection = signal:Connect(callback)
@@ -55,23 +73,27 @@ local function make(className, properties, parent)
 	instance.Parent = parent
 	return instance
 end
-local ink = Color3.fromRGB(240, 244, 231)
-local amber = Color3.fromRGB(255, 214, 120)
-local dark = Color3.fromRGB(25, 34, 31)
-local accent = Color3.fromRGB(77, 115, 88)
-local accentOff = Color3.fromRGB(58, 68, 62)
+-- UI colorida palette: white ink, gold highlights, slate-navy panels, lime green actions, a dim slate for "off".
+local ink = Color3.fromRGB(255, 255, 255)
+local amber = Color3.fromRGB(255, 214, 64)
+local dark = Color3.fromRGB(40, 50, 70)
+local accent = Color3.fromRGB(92, 214, 64)
+local accentOff = Color3.fromRGB(84, 92, 112)
 local function label(parent, text, size)
-	return make("TextLabel", {BackgroundTransparency = 1, Text = text, TextColor3 = ink,
+	local item = make("TextLabel", {BackgroundTransparency = 1, Text = text, TextColor3 = ink,
 		TextSize = size, Font = Enum.Font.Gotham, TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left}, parent)
+	Style.body(item)
+	return item
 end
-local function button(parent, text)
+local function button(parent, text, tone)
 	local b = make("TextButton", {Text = text, BackgroundColor3 = accent, TextColor3 = ink,
 		TextSize = 16, Font = Enum.Font.GothamBold, AutoButtonColor = true}, parent)
 	make("UICorner", {CornerRadius = UDim.new(0, 7)}, b)
 	local scale = make("UIScale", {Scale = 1}, b)
 	b.MouseEnter:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1.02}):Play() end)
 	b.MouseLeave:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1}):Play() end)
+	Style.button(b, tone or "green")
 	return b
 end
 local function place(item, rect)
@@ -79,45 +101,59 @@ local function place(item, rect)
 end
 
 local hud = make("Frame", {BackgroundColor3 = dark, BackgroundTransparency = 0.15,
-	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82)}, gui)
+	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82), Visible = false}, gui)
 make("UISizeConstraint", {MaxSize = Vector2.new(430, 82)}, hud)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, hud)
+Style.panel(hud, 0.12)
 local objective = label(hud, H.objective .. "\n" .. H.sessionOnly, 15)
+Style.body(objective, true)
 objective.Position = UDim2.fromOffset(10, 5)
 objective.Size = UDim2.new(1, -20, 0, 42)
 local status = label(hud, H.connecting, 14)
 status.Position = UDim2.fromOffset(10, 49)
 status.Size = UDim2.new(1, -20, 0, 28)
-local open = button(gui, H.inventoryKey)
+local open = button(gui, H.inventoryKey, "orange")
 open.AnchorPoint = Vector2.new(1, 0)
 open.Position = UDim2.new(1, -12, 0, 12)
 open.Size = UDim2.fromOffset(132, 44)
+open.Visible = false
 
 local panel = make("Frame", {Name = "InventoryPanel", Visible = false, BackgroundColor3 = dark,
 	AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.52),
 	Size = UDim2.fromScale(0.88, 0.75)}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
+-- UI colorida: an outlined slate panel under a magenta header strip (moved with the header in applyLayout).
+Style.panel(panel)
+Style.header(panel, 52, "magenta")
 -- Header: two tabs and Close, each at least 44 pixels (the rectangles come from the camp view module).
-local bagTab = button(panel, H.bag)
+local bagTab = button(panel, H.bag, "sky")
 bagTab.Name = "BagTab"
-local campTab = button(panel, H.camp)
+local eggsTab = button(panel, H.eggsTab or "Huevos", "sky")
+eggsTab.Name = "EggsTab"
+local campTab = button(panel, H.camp, "sky")
 campTab.Name = "CampTab"
-local close = button(panel, H.close)
+local close = button(panel, H.close, "red")
 close.Name = "CloseButton"
 -- W9: opens the Settings screen (WildboundStartUI) from the inventory header.
-local menuTab = button(panel, H.menu)
+local menuTab = button(panel, H.menu, "purple")
 menuTab.Name = "MenuTab"
-for _, tab in ipairs({ bagTab, campTab }) do
+for _, tab in ipairs({ bagTab, eggsTab, campTab }) do
 	tab.TextSize = 16
-	make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
+	-- The outline the style gave the tab (or a new one without the style module); paintTabs turns it gold when chosen.
+	if not tab:FindFirstChildOfClass("UIStroke") then
+		make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
+	end
 end
 local warning = label(panel, H.sessionNote, 14)
 warning.Name = "TabNote"
+warning.TextColor3 = Color3.fromRGB(214, 224, 245)
 local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
 	BorderSizePixel = 0, ScrollBarThickness = 6, CanvasSize = UDim2.new(),
 	AutomaticCanvasSize = Enum.AutomaticSize.Y}, panel)
 local listLayout = make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
+-- Room for the rows' outlines inside the scrolling clip.
+make("UIPadding", {PaddingLeft = UDim.new(0, 3), PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3)}, scroll)
 campTab.Visible = campReady
 menuTab.Visible = campReady
 
@@ -177,12 +213,23 @@ local function updateObjective()
 	local loss = campReady and lastSnapshot and Camp.lossLine(lastSnapshot, budget) or nil
 	local risky = (loss ~= nil and loss.atRisk) or (carryLine ~= nil and carryLine.tone == "risk")
 	local second = carryLine and carryLine.text or risky and loss.text or compassText
+	-- Egg loop: the first line always names the next action ("Roba un huevo...", "Llévalo a tu base...", "Ve a tu
+	-- base: tu incubadora está libre.", "Busca otro huevo. El tuyo nace en 1:30.").
+	local slots = (lastSnapshot and lastSnapshot.incubatorSlots) or (Incubator and Incubator.live and Incubator.live.SLOTS) or 1
+	local loopLine, loopId = nil, nil
+	if EggLoop and lastSnapshot then
+		loopLine, loopId = EggLoop.objectiveText(EggLoop.facts(lastSnapshot, slots), workspace:GetServerTimeNow(), Text)
+	end
+	local first = loopLine or H.objective
 	if compact then
-		objective.Text = second and (View and View.fit(second, budget) or second) or H.objective
+		-- One line on phones: a carried creature or a risk warning first, then the next action (the explorer compass
+		-- only while the next action is "steal one").
+		local pick = (carryLine or risky) and second or (loopId == "steal" and compassText) or first
+		objective.Text = View and View.fit(pick, budget) or pick
 	else
 		-- NS1: "Progreso guardado." while the server saves this player's progress, else "Solo esta sesión."
 		local saveLine = lastSnapshot and lastSnapshot.sessionOnly == false and H.saved or H.sessionOnly
-		objective.Text = H.objective .. "\n" .. (second and (View and View.fit(second, budget) or second) or saveLine)
+		objective.Text = first .. "\n" .. (second and (View and View.fit(second, budget) or second) or saveLine)
 	end
 	objective.TextColor3 = risky and amber or ink
 end
@@ -201,6 +248,8 @@ local function applyLayout()
 	open.Size = UDim2.fromOffset(rects.inventory.w, rects.inventory.h)
 	open.Text = UserInputService.KeyboardEnabled and H.inventoryKey or H.inventory
 	open.TextSize = compact and 14 or 16
+	open.Visible = false
+	hud.Visible = false
 	rowText = compact and 13 or 15
 	local noteHeight = compact and 20 or 24
 	if campReady then
@@ -208,10 +257,12 @@ local function applyLayout()
 		local rect = Camp.panel(size.X, size.Y, rects.chip)
 		panel.AnchorPoint = Vector2.new(0, 0)
 		place(panel, rect)
-		local header = Camp.header(rect.w)
+		local header = Camp.headerWithEggs and Camp.headerWithEggs(rect.w) or Camp.header(rect.w)
 		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close); place(menuTab, header.menu)
-		-- A narrow panel shrinks the four header buttons, so their words shrink with them.
-		for _, item in ipairs({ bagTab, campTab, menuTab, close }) do item.TextSize = header.tabWidth < 80 and 13 or 16 end
+		if header.eggs then eggsTab.Visible = true; place(eggsTab, header.eggs) else eggsTab.Visible = false end
+		Style.header(panel, header.bottom + 4, "magenta")
+		-- A narrow panel shrinks the header buttons, so their words shrink with them.
+		for _, item in ipairs({ bagTab, eggsTab, campTab, menuTab, close }) do item.TextSize = header.tabWidth < 80 and 13 or 16 end
 		sideways = Camp.sideways(size.X, size.Y)
 		local area = Camp.listArea(rect, sideways)
 		warning.Visible = area.showNote
@@ -224,6 +275,7 @@ local function applyLayout()
 		panel.Size = UDim2.fromScale(0.88, 0.75)
 		bagTab.Position, bagTab.Size = UDim2.fromOffset(8, 4), UDim2.fromOffset(84, 44)
 		close.Position, close.Size = UDim2.new(1, -86, 0, 4), UDim2.fromOffset(78, 44)
+		Style.header(panel, 52, "magenta")
 		warning.Position, warning.Size = UDim2.fromOffset(12, 52), UDim2.new(1, -24, 0, noteHeight)
 		scroll.Position, scroll.Size = UDim2.fromOffset(12, 78), UDim2.new(1, -24, 1, -90)
 		rowWidth = 330
@@ -282,15 +334,19 @@ local function addRow(spec)
 		local title = label(scroll, spec.text, rowText)
 		title.Font = Enum.Font.GothamBold
 		title.TextColor3 = amber
+		Style.title(title, amber)
 		title.Size = UDim2.new(1, -8, 0, 24)
 		title.LayoutOrder = order
 		return
 	end
 	local hasButton = spec.label ~= nil
 	local height = campReady and Camp.rowHeight(spec, rowWidth, rowText, sideways) or 56
-	local item = make("Frame", {BackgroundColor3 = Color3.fromRGB(42, 53, 47), LayoutOrder = order,
+	local item = make("Frame", {BackgroundColor3 = Color3.fromRGB(54, 66, 94), LayoutOrder = order,
 		Size = UDim2.new(1, -8, 0, height)}, scroll)
 	make("UICorner", {CornerRadius = UDim.new(0, 6)}, item)
+	-- UI colorida: each row is an outlined tile (2 px, so the list keeps its row height).
+	Style.card(item, "row")
+	Style.outline(item, 2)
 	local description = label(item, spec.text, rowText)
 	description.Position = UDim2.fromOffset(8, 2)
 	description.Size = UDim2.new(1, hasButton and -(112 + 6) or -16, 1, -4)
@@ -304,7 +360,7 @@ local function addRow(spec)
 		if spec.enabled == false then
 			-- Off is shown by dim colour and by the reason written in the row, never by colour alone.
 			b.Active, b.AutoButtonColor = false, false
-			b.BackgroundColor3, b.TextColor3 = accentOff, Color3.fromRGB(190, 198, 190)
+			b.BackgroundColor3, b.TextColor3 = accentOff, Color3.fromRGB(200, 206, 220)
 		else
 			b.Activated:Connect(function() request(spec.action, spec.argument) end)
 		end
@@ -340,9 +396,14 @@ local function bagRows(snapshot)
 	for _, item in ipairs(snapshot.dropped or {}) do
 		addRow({ text = H.dropped:format(H.item:format(H.kinds[item.kind] or tostring(item.kind), tostring(item.species))) })
 	end
-	addRow({ text = H.eggsHeader })
+	-- Egg loop: the header counts the stored eggs and says they go into the cradle on their own; each row names the
+	-- rarity. "Incubar" stays as the manual way in (the server checks the cradle's range).
+	addRow({ text = EggLoop and Text.LOOP and Text.LOOP.eggsHeader:format(#eggs) or H.eggsHeader })
 	if #eggs == 0 then addRow({ text = H.noEggs }) end
-	for _, egg in ipairs(eggs) do addRow({ text = H.egg:format(egg.species), label = H.hatch, action = "Hatch", argument = egg.uid }) end
+	for _, egg in ipairs(eggs) do
+		local line = EggLoop and EggLoop.eggRow(egg, speciesLooks, Text) or H.egg:format(egg.species)
+		addRow({ text = line, label = H.hatch, action = "Hatch", argument = egg.uid })
+	end
 	-- NB4: what incubates, from the server snapshot and the server clock; the client never sends a time.
 	for _, entry in ipairs(snapshot.incubating or {}) do
 		local line = Incubator and Incubator.row(entry, workspace:GetServerTimeNow(), Text)
@@ -352,9 +413,74 @@ local function bagRows(snapshot)
 	if #registered == 0 then addRow({ text = H.noRegistered }) end
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
+		local creatureName = Text.CARD and Text.CARD.species and Text.CARD.species[creature.species] or creature.species
 		-- NS4: the companion's row stores it; every other row equips (swaps) its creature.
-		addRow({ text = creature.species .. (equipped and H.equipped or ""), label = equipped and H.store or H.equip,
+		addRow({ text = creatureName .. (equipped and H.equipped or ""), label = equipped and H.store or H.equip,
 			action = equipped and "Unequip" or "Equip", argument = creature.uid })
+	end
+end
+
+local function eggsRows(snapshot)
+	local eggs = snapshot.bankedEggs or {}
+	local inc = snapshot.incubating or {}
+	local slots = snapshot.incubatorSlots or (Incubator and Incubator.live and Incubator.live.SLOTS) or 1
+	local speedScale = snapshot.hatchSpeedScale or 1
+	addRow({ header = true, text = (H.eggsInventoryHeader or "Cofre de huevos (%d) · Incubadora: %d/%d"):format(#eggs, #inc, slots) })
+	local pendingEggs = 0
+	for _, entry in ipairs(snapshot.pending or {}) do
+		if entry.kind == "Egg" then pendingEggs += 1 end
+	end
+	if pendingEggs > 0 then
+		addRow({
+			text = (H.depositAllRow or "Llevas %d huevo(s) en la bolsa. Guárdalos en el cofre."):format(pendingEggs),
+			label = H.depositAll or "Depositar",
+			action = "DepositEggs",
+			argument = "all",
+			enabled = not busy,
+		})
+	end
+	local freeSlots = math.max(0, slots - #inc)
+	if #eggs > 0 and freeSlots > 0 then
+		addRow({
+			text = (H.hatchAllRow or "Ranuras libres: %d. Llena las incubadoras."):format(freeSlots),
+			label = H.hatchAll or "Incubar todo",
+			action = "HatchAll",
+			argument = "all",
+			enabled = not busy,
+		})
+	end
+	local seenSpecies, dupCount = {}, 0
+	for _, egg in ipairs(eggs) do
+		if seenSpecies[egg.species] then dupCount += 1 else seenSpecies[egg.species] = true end
+	end
+	if dupCount > 0 then
+		addRow({
+			text = (H.sellDuplicatesRow or "Huevos repetidos: %d. Canjéalos por Esencia."):format(dupCount),
+			label = H.sellDuplicates or "Canjear rep.",
+			action = "SellDuplicateEggs",
+			argument = "all",
+			enabled = not busy,
+		})
+	end
+	if #inc > 0 then
+		for _, entry in ipairs(inc) do
+			local line = Incubator and Incubator.row(entry, workspace:GetServerTimeNow(), Text)
+			if line then addRow({ text = line }) end
+		end
+	end
+	if #eggs == 0 then
+		addRow({ text = H.noEggs })
+	else
+		for _, egg in ipairs(eggs) do
+			local rarity = EggLoop and EggLoop.rarityOf(egg, speciesLooks) or "Comun"
+			local rarityLabel = Text.RARITY and Text.RARITY[rarity] or rarity
+			local speciesName = Text.CARD and Text.CARD.species and Text.CARD.species[egg.species] or egg.species
+			local hatchSec = Incubator and Incubator.hatchSeconds and Incubator.hatchSeconds(rarity, Incubator.live.HATCH_SECONDS, speedScale) or 15
+			local line = H.eggRowTime and H.eggRowTime:format(speciesName, rarityLabel, hatchSec)
+				or (EggLoop and EggLoop.eggRow(egg, speciesLooks, Text)) or H.egg:format(speciesName)
+			local canHatch = #inc < slots
+			addRow({ text = line, label = H.hatch, action = "Hatch", argument = egg.uid, enabled = canHatch })
+		end
 	end
 end
 
@@ -372,14 +498,17 @@ local function campRows(snapshot)
 end
 
 local function paintTabs()
-	for name, item in pairs({ bag = bagTab, camp = campTab }) do
+	for name, item in pairs({ bag = bagTab, eggs = eggsTab, camp = campTab }) do
 		local selected = tab == name
-		item.BackgroundColor3 = selected and Color3.fromRGB(110, 150, 120) or accentOff
-		item.Font = selected and Enum.Font.GothamBold or Enum.Font.Gotham
-		-- The chosen tab also wears an outline, so it is not told apart by colour alone.
+		item.BackgroundColor3 = selected and Color3.fromRGB(72, 200, 250) or accentOff
+		item.Font = Enum.Font.FredokaOne
+		-- The chosen tab also wears a gold outline (the others a dark one), so it is not told apart by colour alone.
 		local stroke = item:FindFirstChildOfClass("UIStroke")
-		if stroke then stroke.Thickness = selected and 3 or 0 end
-		local word = name == "bag" and H.bag or H.camp
+		if stroke then
+			stroke.Color = selected and amber or Color3.fromRGB(16, 18, 34)
+			stroke.Thickness = selected and 3 or 2
+		end
+		local word = name == "bag" and H.bag or name == "eggs" and (H.eggsTab or "Huevos") or H.camp
 		item.Text = selected and ("[" .. word .. "]") or word
 	end
 end
@@ -396,13 +525,29 @@ rebuild = function()
 		if child:IsA("Frame") or child:IsA("TextLabel") then child:Destroy() end
 	end
 	order = 0
-	if tab == "camp" and campReady then campRows(lastSnapshot) else bagRows(lastSnapshot) end
+	if tab == "camp" and campReady then campRows(lastSnapshot)
+	elseif tab == "eggs" then eggsRows(lastSnapshot)
+	else bagRows(lastSnapshot) end
 end
 local function render(snapshot)
 	lastSnapshot = snapshot
 	busy = false
 	rebuild()
 	updateObjective()
+	local hub = workspace:FindFirstChild("WildboundHub")
+	local bases = hub and hub:FindFirstChild("Bases")
+	if bases then
+		for _, base in ipairs(bases:GetChildren()) do
+			if base:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId then
+				local lid = base:FindFirstChild("ChestLid")
+				local bb = lid and lid:FindFirstChild("ChestBillboard")
+				local lbl = bb and bb:FindFirstChild("Label")
+				if lbl and lbl:IsA("TextLabel") then
+					lbl.Text = ("Cofre de huevos · %d guardados"):format(#(snapshot.bankedEggs or {}))
+				end
+			end
+		end
+	end
 end
 applyLayout()
 listen(gui:GetPropertyChangedSignal("AbsoluteSize"), applyLayout)
@@ -435,7 +580,7 @@ listen(gui:GetAttributeChangedSignal("OpenTab"), function()
 	local wanted = gui:GetAttribute("OpenTab")
 	if wanted == "closed" then
 		panel.Visible = false
-	elseif wanted == "bag" or wanted == "camp" then
+	elseif wanted == "bag" or wanted == "camp" or wanted == "eggs" then
 		panel.Visible = false
 		toggle(wanted)
 	end
@@ -449,6 +594,7 @@ listen(menuTab.Activated, function()
 	if startGui then startGui:SetAttribute("Screen", "settings") end
 end)
 listen(bagTab.Activated, function() tab = "bag"; rebuild() end)
+listen(eggsTab.Activated, function() tab = "eggs"; rebuild() end)
 listen(campTab.Activated, function() tab = "camp"; rebuild() end)
 listen(UserInputService.InputBegan, function(input, processed)
 	if processed then return end
@@ -509,10 +655,13 @@ task.spawn(function()
 			if text ~= compassText or mood ~= carryMood then
 				compassText, carryMood = text, mood
 				updateObjective()
+			elseif lastSnapshot and #(lastSnapshot.incubating or {}) > 0 then
+				-- Egg loop: the objective line's hatch countdown ("El tuyo nace en 1:30").
+				updateObjective()
 			end
 			if changed and panel.Visible and tab == "camp" then rebuild() end
-			-- NB4: the incubating egg's countdown refreshes while the Bag tab is open.
-			if panel.Visible and tab == "bag" and lastSnapshot and #(lastSnapshot.incubating or {}) > 0 then rebuild() end
+			-- NB4: the incubating egg's countdown refreshes while the Bag or Eggs tab is open.
+			if panel.Visible and (tab == "bag" or tab == "eggs") and lastSnapshot and #(lastSnapshot.incubating or {}) > 0 then rebuild() end
 		end
 		task.wait(0.5)
 	end
@@ -533,6 +682,8 @@ local function showLossSummary(summary, fallback)
 		Text = View and View.lossSummary(summary, Text and Text.DEFEAT) or (fallback .. "\n"
 			.. Text.DEFEAT.close)}, summaryGui)
 	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
+	Style.title(sheet)
+	Style.shade(sheet, 0.7)
 	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
 		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)
 	sheet.Activated:Connect(closeLossSummary)
@@ -545,49 +696,9 @@ local cardGui
 local function closeCard()
 	if cardGui then cardGui:Destroy(); cardGui = nil end
 end
-local function showCard(view)
-	if not view then return end
+local function showCard(_view)
+	-- Blocking center modal card is suppressed; WildboundBaseGuideClient displays a non-blocking top hatch banner.
 	closeCard()
-	cardGui = make("ScreenGui", {Name = "WildboundCard", ResetOnSpawn = false, DisplayOrder = 40, IgnoreGuiInset = true}, playerGui)
-	local size = gui.AbsoluteSize
-	local width = math.min(380, math.max(260, size.X - 32))
-	local sheet = make("Frame", {Name = "Card", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45),
-		Size = UDim2.fromOffset(width, (view.bonus or view.next) and 288 or 236), BackgroundColor3 = dark,
-		BackgroundTransparency = 0.05}, cardGui)
-	make("UICorner", {CornerRadius = UDim.new(0, 12)}, sheet)
-	make("UIStroke", {Thickness = 2, Color = amber}, sheet)
-	local scale = make("UIScale", {Scale = 0.6}, sheet)
-	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Scale = 1}):Play()
-	local title = label(sheet, view.title, 22)
-	title.Font, title.TextColor3 = Enum.Font.GothamBold, amber
-	title.TextXAlignment = Enum.TextXAlignment.Center
-	title.Position, title.Size = UDim2.fromOffset(12, 10), UDim2.new(1, -24, 0, 28)
-	local name = label(sheet, view.name, 20)
-	name.Font, name.TextXAlignment = Enum.Font.GothamBold, Enum.TextXAlignment.Center
-	name.Position, name.Size = UDim2.fromOffset(12, 40), UDim2.new(1, -24, 0, 24)
-	local lines = {}
-	if view.blurb then table.insert(lines, view.blurb) end
-	if view.entry then table.insert(lines, view.entry) end
-	if view.ember then table.insert(lines, view.ember) end
-	-- Expedition islands (K2): the one-off first-steal bonus and the next island's tease.
-	if view.bonus then table.insert(lines, view.bonus) end
-	if view.next then table.insert(lines, view.next) end
-	local body = label(sheet, table.concat(lines, "\n"), 15)
-	body.TextXAlignment = Enum.TextXAlignment.Center
-	body.TextWrapped = true
-	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, (view.bonus or view.next) and 152 or 100)
-	local equip = button(sheet, view.equip)
-	equip.Name = "CardEquip"
-	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -56), UDim2.fromOffset(120, 44)
-	local closer = button(sheet, view.close)
-	closer.Name = "CardClose"
-	closer.BackgroundColor3 = accentOff
-	closer.Position, closer.Size = UDim2.new(0.5, 8, 1, -56), UDim2.fromOffset(120, 44)
-	local uid = view.uid
-	equip.Activated:Connect(function() request("Equip", uid); closeCard() end)
-	closer.Activated:Connect(closeCard)
-	local shown = cardGui
-	task.delay(12, function() if cardGui == shown then closeCard() end end)
 end
 listen(gui.Destroying, closeCard)
 
@@ -602,6 +713,11 @@ local eventBanner = make("TextLabel", { Name = "EventBanner", AnchorPoint = Vect
 make("UISizeConstraint", { MaxSize = Vector2.new(520, 40) }, eventBanner)
 make("UITextSizeConstraint", { MaxTextSize = 22 }, eventBanner)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, eventBanner)
+-- UI colorida: the top-centre banner is a bold outlined purple pill with gold stroked words.
+Style.pill(eventBanner, 0)
+Style.shade(eventBanner, 0.75)
+Style.title(eventBanner, amber)
+eventBanner.BackgroundColor3 = Color3.fromRGB(150, 86, 232)
 local eventState = nil
 -- Under the threat chip (the world client's AwarenessChip), as wide as it, so the banner never covers the left panels
 -- or the Mochila button on any screen; the fallback above is used until the chip exists.
@@ -628,24 +744,7 @@ local function playCall()
 	task.delay(12, function() sound:Destroy() end)
 end
 local function refreshBanner()
-	if not eventState or not Text or not Text.EVENT then
-		eventBanner.Visible = false
-		return
-	end
-	anchorUnderChip(eventBanner, 6, 34)
-	local now = workspace:GetServerTimeNow()
-	if eventState.line then
-		if now > eventState.lineUntil then
-			eventState, eventBanner.Visible = nil, false
-			return
-		end
-		eventBanner.Text = eventState.line
-	elseif View then
-		-- RW7: the pure view words it within the chip's budget (the short form on a phone).
-		eventBanner.Text = View.eventBanner({ species = speciesWord(eventState.species), endsAt = eventState.endsAt,
-			now = now, words = Text.EVENT, compact = compact }) or ""
-	end
-	eventBanner.Visible = true
+	eventBanner.Visible = false
 end
 
 -- Random world (RW7): the wave board, top 3 of this wave's banked Esencia and the wave's countdown, under the
@@ -654,6 +753,7 @@ end
 local waveBoard = make("Frame", { Name = "WaveBoard", BackgroundColor3 = dark, BackgroundTransparency = 0.2,
 	BorderSizePixel = 0, Size = UDim2.fromOffset(190, 92), Visible = false }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, waveBoard)
+Style.pill(waveBoard, 0.1)
 local boardLabels = {}
 for index = 1, 4 do
 	boardLabels[index] = make("TextLabel", { BackgroundTransparency = 1, Font = index == 1 and Enum.Font.GothamBold
@@ -661,6 +761,7 @@ for index = 1, 4 do
 		TextScaled = true, Position = UDim2.new(0, 8, 0, 4 + (index - 1) * 21), Size = UDim2.new(1, -16, 0, 19),
 		Text = "" }, waveBoard)
 	make("UITextSizeConstraint", { MaxTextSize = 16 }, boardLabels[index])
+	if index == 1 then Style.title(boardLabels[index], amber) else Style.body(boardLabels[index], true) end
 end
 local boardState = nil
 local function placeBoard()
@@ -674,17 +775,7 @@ local function placeBoard()
 	waveBoard.Position, waveBoard.Size = UDim2.fromOffset(math.max(8, x), math.max(8, y)), UDim2.fromOffset(width, height)
 end
 local function refreshBoard()
-	if not boardState or not View or not Text or not Text.WAVE or not View.waveBoard then
-		waveBoard.Visible = false
-		return
-	end
-	local view = View.waveBoard({ wave = boardState.wave, endsAt = boardState.endsAt, now = workspace:GetServerTimeNow(),
-		board = boardState.board, words = Text.WAVE, compact = compact and View.CONSTANTS.COMPACT_BOARD_CHARS ~= nil })
-	if not view then return end
-	placeBoard()
-	boardLabels[1].Text = view.title
-	for index = 2, 4 do boardLabels[index].Text = view.lines[index - 1] or "" end
-	waveBoard.Visible = true
+	waveBoard.Visible = false
 end
 task.spawn(function()
 	while gui.Parent do
@@ -758,6 +849,33 @@ task.spawn(function()
 		if payload.action == "OpenBoard" and payload.ok == true then
 			panel.Visible = false
 			toggle("camp")
+		elseif payload.action == "OpenChest" and payload.ok == true then
+			panel.Visible = false
+			toggle("eggs")
+			local hub = workspace:FindFirstChild("WildboundHub")
+			local bases = hub and hub:FindFirstChild("Bases")
+			if bases then
+				for _, base in ipairs(bases:GetChildren()) do
+					if base:GetAttribute("OwnerUserId") == Players.LocalPlayer.UserId then
+						local lid = base:FindFirstChild("ChestLid")
+						if lid and lid:IsA("BasePart") and not lid:GetAttribute("WildboundAnimating") then
+							lid:SetAttribute("WildboundAnimating", true)
+							local restCF = lid.CFrame
+							local openTween = TweenService:Create(lid, TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+								{ CFrame = restCF * CFrame.new(0, 0.35, 0.35) * CFrame.Angles(math.rad(-35), 0, 0) })
+							openTween:Play()
+							task.delay(0.45, function()
+								if lid.Parent then
+									local closeTween = TweenService:Create(lid, TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.InOut),
+										{ CFrame = restCF })
+									closeTween.Completed:Once(function() lid:SetAttribute("WildboundAnimating", nil) end)
+									closeTween:Play()
+								end
+							end)
+						end
+					end
+				end
+			end
 		end
 	end)
 	-- Random world (RW3): the WorldEvent broadcast (the wave, its board, the biome events), read only through

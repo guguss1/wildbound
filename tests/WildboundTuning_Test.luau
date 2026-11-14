@@ -3,7 +3,10 @@
 -- Hide = require(freshHideClone), Carry = require(freshCarryClone), Capture = require(freshCaptureClone),
 -- View = require(freshHudViewClone), Incubator = require(freshIncubatorClone),
 -- Moves = require(freshSiluetaMovesClone), SpawnClock = require(freshSpawnClockClone),
--- WaveClock = require(freshWaveClockClone) }).
+-- WaveClock = require(freshWaveClockClone), Dusk = require(freshDuskClone), Knock = require(freshBatKnockClone),
+-- Dodge = require(freshDodgeClone), Arrullo = require(freshArrulloClone) }) and
+-- every other module the schema names
+-- (Schema.MODULES: Gear, EggCarry, Bat, Training, Refuge too), since the parity case reads each one's tunable().
 -- Dev tuning (docs/testing/wildbound-tuning.md): the schema of every tunable
 -- value, its parity with the module defaults, clamping, the developer gate, the request checks, the rate limit, the
 -- export snippet, and the modules' live overrides. Module defaults stay the source of truth: no override, no change.
@@ -123,7 +126,19 @@ return function(Schema, modules)
 			"Eggs.PICKUP_DELAY", "Eggs.PICKUP_HOLD", "Eggs.PICKUP_RANGE", "Eggs.DROP_SECONDS", "Islands.PERCEIVE_RANGE",
 			-- Nest Heist phase 2 (NP3): the bat.
 			"PvP.COOLDOWN", "PvP.REACH", "PvP.HALF_ANGLE", "PvP.HEIGHT", "PvP.STUMBLE_SECONDS", "PvP.TAP_SECONDS",
-			"PvP.STUMBLE_SPEED", "PvP.IMMUNITY" }) do
+			"PvP.STUMBLE_SPEED", "PvP.IMMUNITY",
+			-- New mechanics (Q11): the dusk.
+			"Dusk.SPEED_MULTIPLIER", "Dusk.ROLL_MULTIPLIER", "Dusk.DETECTION_MULTIPLIER", "Dusk.NIGHT_SOON",
+			-- New mechanics (Q4, Q4b): the bat's knockback.
+			"BatKnock.COOLDOWN", "BatKnock.RAGDOLL_SECONDS", "BatKnock.IMMUNITY", "BatKnock.IMPULSE", "BatKnock.LIFT",
+			-- New mechanics (Q3b): Esquiva perfecta.
+			"Dodge.WINDOW", "Dodge.MIN_TELEGRAPH", "Dodge.BOOST_SECONDS", "Dodge.BOOST_MULTIPLIER", "Dodge.BOOST_CAP",
+			"Dodge.SUCCESS_COOLDOWN", "Dodge.MISS_COOLDOWN", "Dodge.SPAM_LIMIT", "Dodge.SPAM_SECONDS", "Dodge.SPAM_LOCKOUT",
+			"Dodge.LATE_MEMORY",
+			-- New mechanics (Q2b): the Arrullo.
+			"Arrullo.TIMEOUT", "Arrullo.START", "Arrullo.LIFT", "Arrullo.GRAVITY", "Arrullo.MAX_SPEED", "Arrullo.ZONE_Rara",
+			"Arrullo.ZONE_Epica", "Arrullo.ZONE_Legendaria", "Arrullo.SEGMENT_Epica", "Arrullo.FILL_Legendaria",
+			"Arrullo.DRAIN_Legendaria" }) do
 			local system, key = id:match("^(%w+)%.([%w_]+)$")
 			assert(Schema.find(system, key), "missing " .. id)
 		end

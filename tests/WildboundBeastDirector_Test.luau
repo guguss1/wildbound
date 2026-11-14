@@ -1,9 +1,11 @@
 -- Invoke with require(freshTestClone)(require(freshBeastDirectorClone), freshBeastDirectorClone.Source,
 -- require(freshBeastConfigClone)).
 -- Nest Heist phase 4a (NB2, docs/design/beast-pack/00_INTEGRACION_DE_BESTIAS.md and CONFIG_INICIAL.json): the one beast
--- director. Every 10 s each living player outside a safe zone gets an independent roll per eligible beast; a won roll
--- becomes an encounter only if the per-player threat budget (3 points, 2 encounters) and every cooldown allow it, and
--- the reservation is released exactly once. Fake players and an injected random source; no world is touched.
+-- director. Each living player outside a safe zone gets an independent roll per eligible beast; a won roll becomes an
+-- encounter only if the per-player threat budget (3 points, 2 encounters) and every cooldown allow it, and the
+-- reservation is released exactly once. Wave 2 (odd/tasks/wildbound-beasts-wave2.md): the rolls run on a 20 s calendar,
+-- 1 s apart per beast (Director.tick = Director.due + Director.roll); the NB2 cases below call Director.roll directly,
+-- with the two original beasts where the case is about them. Fake players and an injected random source; no world.
 return function(Director, source, Config)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -37,19 +39,172 @@ return function(Director, source, Config)
 		return value
 	end
 	local BOTH = { Cemetery = true, Swamp = true }
+	-- The two original global beasts, for the NB2 cases written before wave 2.
+	local OLD = { "Viper", "Pouncer" }
+	-- p20 = 1 - (1 - p10)^2: a 10 s base chance carried to the 20 s roll.
+	local function p20(p10) return 1 - (1 - p10) ^ 2 end
 
 	case("NB2 config: the pack's numbers (director, Viper, Pouncer, Gargoyle and Mire)", function()
 		local D = Config.DIRECTOR
-		equal(D.TICK_SECONDS, 10); equal(D.MAX_POINTS, 3); equal(D.MAX_ACTIVE, 2)
-		near(D.MAX_CHANCE, 0.20); equal(D.MAX_MULTIPLIER, 4); equal(D.GLOBAL_COOLDOWN, 15); equal(D.RESPAWN_GRACE, 10)
+		equal(D.TICK_SECONDS, 20, "wave 2: 20 s"); equal(D.BEAST_OFFSET, 1); equal(D.MAX_POINTS, 3); equal(D.MAX_ACTIVE, 2)
+		equal(D.INITIAL_RISK, 1)
+		near(D.MAX_CHANCE, p20(0.20), "0.20 per 10 s carried to 20 s"); equal(D.MAX_MULTIPLIER, 4)
+		equal(D.GLOBAL_COOLDOWN, 15); equal(D.RESPAWN_GRACE, 10)
 		local M = D.MULTIPLIERS
 		equal(M.night, 2); near(M.farFromBase, 1.2); near(M.dangerousZone, 1.5); near(M.longExpedition, 1.3)
 		equal(M.storm, 1, "no weather system yet: storm stays x1")
+		near(M.egg, 1.2, "the egg step (a hypothesis to tune)")
+		equal(D.CONDITIONS.egg, "carryingEgg")
 		local V, P, G, Mi = Config.BEASTS.Viper, Config.BEASTS.Pouncer, Config.BEASTS.Gargoyle, Config.BEASTS.Mire
-		equal(V.points, 1); near(V.chance, 1 / 45); equal(V.cooldown, 35); equal(V.biome, nil)
-		equal(P.points, 1); near(P.chance, 1 / 55); equal(P.cooldown, 40); equal(P.biome, nil)
+		equal(V.points, 1); near(V.chance10, 1 / 45); near(V.chance, p20(1 / 45)); equal(V.cooldown, 35); equal(V.biome, nil)
+		equal(P.points, 1); near(P.chance10, 1 / 55); near(P.chance, p20(1 / 55)); equal(P.cooldown, 40); equal(P.biome, nil)
 		equal(G.points, 2); equal(G.biome, "Cemetery"); equal(Mi.points, 2); equal(Mi.biome, "Swamp")
-		equal(Config.ORDER[1], "Viper"); equal(Config.ORDER[2], "Pouncer"); equal(#Config.ORDER, 4)
+		near(G.chance, p20(1 / 100)); near(Mi.chance, p20(1 / 80))
+		equal(Config.ORDER[1], "Viper"); equal(Config.ORDER[2], "Pouncer"); equal(#Config.ORDER, 8)
+	end)
+
+	-- Wave 2 config (pack 04_CONFIG_BALANCE_PROPUESTA.json, owner decision 2026-11-11).
+	case("BW2 config: the four new beasts, 2 points each, Root only in the Pantano, Viper's base chance", function()
+		for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
+			local B = Config.BEASTS[name]
+			assert(B, name)
+			equal(B.points, 2, name .. " points"); equal(B.riskModifier, 1, name)
+			near(B.chance10, 1 / 45, name .. " uses Viper's base chance (PROPUESTA)")
+			near(B.chance, 89 / 2025, name .. ": 1 - (44/45)^2")
+			equal(B.cooldown, 35, name .. " uses Viper's cooldown (PROPUESTA)")
+			equal(Config.PLAYABLE[name], true, name .. " is playable"); equal(Config.WAVE2[name], true)
+			assert(type(B.tuning) == "table" and table.isfrozen(B.tuning), name .. " tuning frozen")
+		end
+		equal(Config.BEASTS.Root.category, "Biome"); equal(Config.BEASTS.Root.biome, "Swamp")
+		for _, name in ipairs({ "Streamer", "Gaze", "Lurker" }) do
+			equal(Config.BEASTS[name].category, "Global", name); equal(Config.BEASTS[name].biome, nil, name)
+		end
+		equal(Config.PLAYABLE.Gargoyle, nil, "no behaviour"); equal(Config.PLAYABLE.Mire, nil, "no behaviour")
+		local S, R, Gz, L = Config.BEASTS.Streamer.tuning, Config.BEASTS.Root.tuning, Config.BEASTS.Gaze.tuning,
+			Config.BEASTS.Lurker.tuning
+		equal(S.RushTelegraphSeconds, 0.9); equal(S.RushSpeedStudsPerSecond, 52); equal(S.RushDamage, 28)
+		equal(R.TrapTelegraphSeconds, 1.15); equal(R.SafeGapMinimumStuds, 9); equal(R.MaxActiveRootSegments, 12)
+		equal(Gz.SightConeDegrees, 17); equal(Gz.ExposureToAttackSeconds, 3.5); equal(Gz.ZoneRadiusStuds, 7)
+		equal(L.LeapTelegraphSeconds, 0.8); equal(L.LeapTravelSeconds, 0.55); equal(L.LeapOverrunDistanceStuds, 7)
+		equal(Config.BEASTS.Root.trapLanes * Config.BEASTS.Root.trapSegments, R.MaxActiveRootSegments)
+	end)
+
+	case("BW2 config: every dodgeable tell is at least the 0.8 s fair-strike lead", function()
+		local S, R, Gz, L = Config.BEASTS.Streamer.tuning, Config.BEASTS.Root.tuning, Config.BEASTS.Gaze.tuning,
+			Config.BEASTS.Lurker.tuning
+		for label, seconds in pairs({ rush = S.RushTelegraphSeconds, trap = R.TrapTelegraphSeconds,
+			whip = R.WhipTelegraphSeconds, zone = Gz.ZoneTelegraphSeconds, leap = L.LeapTelegraphSeconds + L.LeapTravelSeconds,
+			scream = S.WarningSeconds + S.ScreamWindupSeconds }) do
+			assert(seconds >= Config.MIN_TELL - 1e-9, label .. " tell " .. seconds)
+		end
+	end)
+
+	-- Wave 2 calendar (pack 01_SISTEMA_COMPARTIDO section 2).
+	case("BW2 calendar: anchor, first slot one interval later, beasts 1 s apart, every 20 s", function()
+		local dir = Director.new({ random = always(0.999) })
+		local function dueAt(t)
+			local list = Director.due(dir, 5, t)
+			table.sort(list)
+			return table.concat(list, ",")
+		end
+		equal(dueAt(100), "", "the first call only anchors")
+		equal(dueAt(119.99), "", "nothing before anchor + 20")
+		equal(dueAt(120), "Viper", "Viper at anchor + 20")
+		equal(dueAt(120.5), "", "consumed")
+		equal(dueAt(121), "Pouncer", "Pouncer 1 s later")
+		equal(dueAt(122), "Gargoyle"); equal(dueAt(123), "Mire"); equal(dueAt(124), "Streamer")
+		equal(dueAt(125), "Root"); equal(dueAt(126), "Gaze"); equal(dueAt(127), "Lurker")
+		equal(dueAt(139.9), ""); equal(dueAt(140), "Viper", "every 20 s")
+		equal(Director.nextSlot(dir, 5, "Viper", 140.1), 160)
+		equal(Director.nextSlot(dir, 5, "Lurker", 140.1), 147)
+	end)
+
+	case("BW2 calendar: a stall never accumulates rolls; only the newest slot counts", function()
+		local calls = 0
+		local dir = Director.new({ random = function() calls += 1; return 0.999 end })
+		Director.tick(dir, 5, ctx(), 0)
+		-- 100 s with no poll: five Viper slots passed; one roll at most.
+		local due = Director.due(dir, 5, 100.5)
+		local viper = 0
+		for _, name in ipairs(due) do if name == "Viper" then viper += 1 end end
+		equal(viper, 1, "one Viper roll, not five")
+		equal(#Director.due(dir, 5, 100.6), 0, "and nothing pending afterwards")
+		-- Just before 120 the other beasts' slots (101 to 107) are due, never Viper's next one.
+		for _, name in ipairs(Director.due(dir, 5, 119.9)) do assert(name ~= "Viper", "Viper before its slot") end
+		equal(Director.due(dir, 5, 120)[1], "Viper", "the calendar keeps its phase (anchor + k x 20)")
+	end)
+
+	case("BW2 calendar: a dead or safe player consumes the slot with no roll and nothing waits", function()
+		local calls = 0
+		local dir = Director.new({ random = function() calls += 1; return 0 end })
+		Director.tick(dir, 5, ctx(), 0)
+		equal(#Director.tick(dir, 5, ctx({ safe = true }), 20), 0)
+		equal(#Director.tick(dir, 5, ctx({ alive = false }), 21), 0)
+		for t = 22, 27 do Director.tick(dir, 5, ctx({ alive = false }), t) end
+		equal(calls, 0, "no roll spent")
+		equal(#Director.tick(dir, 5, ctx(), 27.5), 0, "the missed slots are not made up")
+		local started = Director.tick(dir, 5, ctx(), 40)
+		equal(#started, 1, "Viper's next slot rolls"); equal(started[1].beast, "Viper")
+	end)
+
+	case("BW2: no roll while that beast already chases the player, or without capacity; never kept for later", function()
+		local calls = 0
+		local dir = Director.new({ random = function() calls += 1; return 0 end })
+		assert(Director.reserve(dir, 1, "Streamer", ctx(), 0), "Streamer chasing")
+		local started, refused = Director.roll(dir, 1, ctx(), 0, { "Streamer" })
+		equal(#started, 0); equal(refused[1].reason, "AlreadyActive"); equal(refused[1].rolled, false)
+		equal(calls, 0, "no roll spent on the chasing beast")
+		-- 2 points used: another 2-point beast does not fit (2 + 2 > 3) and does not roll.
+		started, refused = Director.roll(dir, 1, ctx(), 0, { "Gaze" })
+		equal(#started, 0); equal(refused[1].reason, "Budget"); equal(calls, 0)
+		-- A 1-point beast fits (2 + 1 = 3): it rolls and starts.
+		started = Director.roll(dir, 1, ctx(), 0, { "Viper" })
+		equal(#started, 1); equal(Director.budget(dir, 1), 3)
+		equal(dir.counts.skipped, 2)
+	end)
+
+	case("BW2: release refunds the 2 points at once, exactly once; the beast can roll again after its cooldown", function()
+		local dir = Director.new({ random = always(0) })
+		local ok, enc = Director.reserve(dir, 1, "Lurker", ctx(), 0)
+		assert(ok)
+		equal(Director.budget(dir, 1), 2)
+		equal(Director.release(dir, enc.id, "Done", 10), true)
+		equal(Director.budget(dir, 1), 0, "refunded at once")
+		equal(Director.release(dir, enc.id, "Done", 10), false, "exactly once")
+		equal(select(2, Director.reserve(dir, 1, "Lurker", ctx(), 44.9)), "SpeciesCooldown")
+		assert(Director.reserve(dir, 1, "Lurker", ctx(), 45), "35 s later")
+	end)
+
+	case("BW2 matrix: allowed and blocked pairs under capacity 3", function()
+		for _, pair in ipairs({ { "Streamer", "Viper", true }, { "Gaze", "Viper", true }, { "Lurker", "Pouncer", true },
+			{ "Streamer", "Gaze", false }, { "Gaze", "Lurker", false } }) do
+			local dir = Director.new({ random = always(0) })
+			assert(Director.reserve(dir, 1, pair[1], ctx(), 0, { force = true }), pair[1])
+			local ok, why = Director.reserve(dir, 1, pair[2], ctx(), 0, { force = true })
+			equal(ok, pair[3], pair[1] .. " + " .. pair[2])
+			if not pair[3] then equal(why, "Budget") end
+		end
+		local dir = Director.new({ random = always(0) })
+		assert(Director.reserve(dir, 1, "Root", ctx({ biomes = { Swamp = true } }), 0, { force = true }))
+		equal(select(2, Director.reserve(dir, 1, "Streamer", ctx({ biomes = { Swamp = true } }), 0, { force = true })), "Budget",
+			"Streamer + Root = 4")
+		assert(Director.reserve(dir, 1, "Pouncer", ctx({ biomes = { Swamp = true } }), 0, { force = true }), "Root + Pouncer = 3")
+	end)
+
+	case("BW2 biome: Root only with the Swamp tag; the globals anywhere except Pradera", function()
+		equal(Director.placeBlock("Root", ctx()), "Biome")
+		equal(Director.placeBlock("Root", ctx({ biomes = { Cemetery = true } })), "Biome")
+		equal(Director.placeBlock("Root", ctx({ biomes = { Swamp = true } })), nil)
+		for _, name in ipairs({ "Streamer", "Gaze", "Lurker" }) do
+			equal(Director.placeBlock(name, ctx()), nil, name .. " in the open")
+			equal(Director.placeBlock(name, ctx({ biomes = { Swamp = true } })), nil, name .. " in the Pantano")
+			equal(Director.placeBlock(name, ctx({ biomes = { Cemetery = true } })), nil, name .. " in the Cementerio")
+			equal(Director.placeBlock(name, ctx({ biomes = { Meadow = true } })), "NoGlobalZone", name .. " never in Pradera")
+		end
+		local dir = Director.new({ random = always(0) })
+		local started = Director.roll(dir, 1, ctx({ biomes = { Swamp = true } }), 0, { "Root" })
+		equal(#started, 1); equal(started[1].beast, "Root")
+		equal(#Director.roll(dir, 2, ctx(), 0, { "Root" }), 0, "no Root outside the Pantano")
 	end)
 
 	case("NB2: multipliers multiply, only for real conditions, capped at x4", function()
@@ -64,20 +219,21 @@ return function(Director, source, Config)
 		near(Director.multiplier(nil), 1)
 	end)
 
-	case("NB2: pEff = clamp(pBase x product, 0, 0.20), per 10 s roll, never a percentage by mistake", function()
-		near(Director.chance("Viper", ctx()), 1 / 45)
-		near(Director.chance("Viper", ctx({ night = true })), 2 / 45)
-		near(Director.chance("Pouncer", ctx({ night = true, farFromBase = true, dangerousZone = true, longExpedition = true })), 4 / 55)
+	case("NB2: pEff = clamp(pBase x product, 0, MAX_CHANCE), per 20 s roll, never a percentage by mistake", function()
+		near(Director.chance("Viper", ctx()), p20(1 / 45))
+		near(Director.chance("Viper", ctx({ night = true })), 2 * p20(1 / 45))
+		near(Director.chance("Pouncer", ctx({ night = true, farFromBase = true, dangerousZone = true, longExpedition = true })),
+			4 * p20(1 / 55))
 		equal(Director.chance("Nobody", ctx()), 0)
-		-- The 0.20 cap, through a hypothetical tuned base chance.
+		-- The cap (0.20 per 10 s carried to 0.36 per 20 s), through a hypothetical tuned base chance.
 		near(Director.chance("Viper", ctx({ night = true, farFromBase = true, dangerousZone = true, longExpedition = true }),
-			{ chance = 0.08 }), 0.20, "0.32 is clamped to 0.20")
+			{ chance = 0.12 }), p20(0.20), "0.48 is clamped to 0.36")
 		equal(Director.chance("Viper", ctx(), { chance = -1 }), 0, "never negative")
 	end)
 
 	case("NB2: a won roll reserves the beast atomically; budget and concurrency are server counters", function()
 		local dir = Director.new({ random = always(0) })
-		local started, rejects = Director.tick(dir, 7, ctx(), 100)
+		local started, rejects = Director.roll(dir, 7, ctx(), 100, OLD)
 		equal(#started, 2, "both global beasts win at roll 0 and fit (1 + 1)")
 		equal(#rejects, 0)
 		local points, count = Director.budget(dir, 7)
@@ -91,7 +247,7 @@ return function(Director, source, Config)
 
 	case("NB2: a lost roll starts nothing", function()
 		local dir = Director.new({ random = always(0.999) })
-		local started = Director.tick(dir, 7, ctx(), 100)
+		local started = Director.roll(dir, 7, ctx(), 100, OLD)
 		equal(#started, 0)
 		equal(select(2, Director.budget(dir, 7)), 0)
 	end)
@@ -99,19 +255,19 @@ return function(Director, source, Config)
 	case("NB2: dead or safe players are not rolled at all", function()
 		local calls = 0
 		local dir = Director.new({ random = function() calls += 1; return 0 end })
-		equal(#Director.tick(dir, 1, ctx({ alive = false }), 100), 0)
-		equal(#Director.tick(dir, 1, ctx({ safe = true }), 100), 0)
+		equal(#Director.roll(dir, 1, ctx({ alive = false }), 100), 0)
+		equal(#Director.roll(dir, 1, ctx({ safe = true }), 100), 0)
 		equal(calls, 0, "no roll is spent")
 	end)
 
 	case("NB2: no spawn within 10 s of a respawn, no beast while that player's Silueta hunts or telegraphs", function()
 		local dir = Director.new({ random = always(0) })
-		local started, rejects = Director.tick(dir, 1, ctx({ respawnedAt = 95 }), 100)
+		local started, rejects = Director.roll(dir, 1, ctx({ respawnedAt = 95 }), 100, OLD)
 		equal(#started, 0); equal(rejects[1].reason, "RespawnGrace")
-		started = Director.tick(dir, 1, ctx({ respawnedAt = 90 }), 100)
+		started = Director.roll(dir, 1, ctx({ respawnedAt = 90 }), 100, OLD)
 		equal(#started, 2, "exactly 10 s later is allowed")
 		local other = Director.new({ random = always(0) })
-		started, rejects = Director.tick(other, 2, ctx({ siluetaActive = true }), 100)
+		started, rejects = Director.roll(other, 2, ctx({ siluetaActive = true }), 100, OLD)
 		equal(#started, 0); equal(rejects[1].reason, "SiluetaActive")
 	end)
 
@@ -145,7 +301,7 @@ return function(Director, source, Config)
 
 	case("NB2: a player leaving releases every encounter once", function()
 		local dir = Director.new({ random = always(0) })
-		Director.tick(dir, 9, ctx(), 0)
+		Director.roll(dir, 9, ctx(), 0, OLD)
 		local ids = Director.forget(dir, 9, 5)
 		equal(#ids, 2)
 		equal(Director.budget(dir, 9), 0)
@@ -157,7 +313,7 @@ return function(Director, source, Config)
 		local dir = Director.new({ random = always(0) })
 		assert(Director.reserve(dir, 1, "Viper", ctx(), 0))
 		equal(select(2, Director.reserve(dir, 1, "Viper", ctx(), 0, { force = true })), "AlreadyActive")
-		local started = Director.tick(dir, 2, ctx(), 0)
+		local started = Director.roll(dir, 2, ctx(), 0, OLD)
 		equal(#started, 2, "player 2 has their own budget")
 		for _, enc in ipairs(started) do equal(enc.userId, 2) end
 		equal(Director.budget(dir, 1), 1, "player 1 unchanged")
@@ -190,35 +346,35 @@ return function(Director, source, Config)
 		equal(Director.budget(dir, 1), 2)
 	end)
 
-	case("NB2: biome beasts never leave their biome (no Cementerio or Pantano exists yet)", function()
+	case("NB2: biome beasts never leave their biome", function()
 		local dir = Director.new({ random = always(0) })
 		equal(select(2, Director.reserve(dir, 1, "Gargoyle", ctx(), 0, { force = true })), "Biome", "even forced")
 		equal(select(2, Director.reserve(dir, 1, "Mire", ctx({ biomes = { Cemetery = true } }), 0, { force = true })), "Biome")
-		local started = Director.tick(dir, 1, ctx(), 0)
-		for _, enc in ipairs(started) do assert(enc.beast == "Viper" or enc.beast == "Pouncer", enc.beast) end
+		local started = Director.roll(dir, 1, ctx(), 0)
+		for _, enc in ipairs(started) do assert(Config.BEASTS[enc.beast].category == "Global", enc.beast) end
 	end)
 
 	case("NB2: no queue of won rolls: a win without budget is discarded and logged, never retried", function()
 		local dir = Director.new({ random = always(0) })
 		Director.reserve(dir, 1, "Gargoyle", ctx({ biomes = BOTH }), 0, { force = true })
-		-- Two points used: one more global beast fits, the second won roll is discarded.
-		local started, rejects = Director.tick(dir, 1, ctx({ biomes = BOTH }), 10)
+		-- Two points used: one more 1-point beast fits, then the other one finds no room: it is not rolled, nothing waits.
+		local started, rejects = Director.roll(dir, 1, ctx({ biomes = BOTH }), 10, { "Viper", "Pouncer", "Root" })
 		equal(#started, 1)
 		local reasons = {}
 		for _, r in ipairs(rejects) do reasons[r.beast] = r.reason end
-		assert(reasons.Mire == "Budget" or reasons.Mire == "MaxActive", "Mire refused: " .. tostring(reasons.Mire))
+		assert(reasons.Root == "Budget" or reasons.Root == "MaxActive", "Root refused: " .. tostring(reasons.Root))
 		equal(#(dir.pending or {}), 0, "nothing waits for later")
 		-- Next tick at a losing roll: nothing starts from the old win.
 		dir.random = always(0.999)
 		Director.release(dir, started[1].id, "Escape", 11)
-		equal(#Director.tick(dir, 1, ctx({ biomes = BOTH }), 40), 0)
+		equal(#Director.roll(dir, 1, ctx({ biomes = BOTH }), 40, OLD), 0)
 	end)
 
 	case("NB2: two won rolls in one tick are assigned in a stable random order", function()
 		-- First value shuffles, the rest roll. A seeded source gives the same order twice.
 		local function run()
 			local dir = Director.new({ random = sequence({ 0.9, 0.0, 0.0, 0.0, 0.0 }) })
-			local started = Director.tick(dir, 1, ctx(), 0)
+			local started = Director.roll(dir, 1, ctx(), 0, OLD)
 			local names = {}
 			for _, enc in ipairs(started) do table.insert(names, enc.beast) end
 			return table.concat(names, ",")
@@ -226,7 +382,7 @@ return function(Director, source, Config)
 		equal(run(), run(), "deterministic under the same seed")
 		local dirA = Director.new({ random = sequence({ 0.0, 0.0, 0.0 }) })
 		local dirB = Director.new({ random = sequence({ 0.99, 0.0, 0.0 }) })
-		local a, b = Director.tick(dirA, 1, ctx(), 0), Director.tick(dirB, 1, ctx(), 0)
+		local a, b = Director.roll(dirA, 1, ctx(), 0, OLD), Director.roll(dirB, 1, ctx(), 0, OLD)
 		assert(a[1].beast ~= b[1].beast, "the shuffle roll changes who is assigned first")
 	end)
 
@@ -236,7 +392,7 @@ return function(Director, source, Config)
 			local dir = Director.new({ random = function() return rng:NextNumber() end })
 			local wins = 0
 			for i = 1, 1000 do
-				local started = Director.tick(dir, 1, ctx({ night = night }), i * 1000)
+				local started = Director.roll(dir, 1, ctx({ night = night }), i * 1000, OLD)
 				for _, enc in ipairs(started) do
 					if enc.beast == "Viper" then wins += 1 end
 					Director.release(dir, enc.id, "Done", i * 1000)
@@ -245,11 +401,97 @@ return function(Director, source, Config)
 			return wins
 		end
 		local day, night = count(false, 4242), count(true, 4242)
-		-- Expected 22.2 by day (sd 4.7) and 44.4 by night (sd 6.5); 4 sd either side.
-		assert(day >= 4 and day <= 41, "day wins " .. day)
-		assert(night >= 18 and night <= 71, "night wins " .. night)
+		-- Per 20 s roll: expected 44.0 by day (sd 6.5) and 87.9 by night (sd 9.0); 4 sd either side.
+		assert(day >= 18 and day <= 70, "day wins " .. day)
+		assert(night >= 52 and night <= 124, "night wins " .. night)
 		assert(night > day, ("night %d should beat day %d"):format(night, day))
 		result.messages.S05 = ("Viper wins in 1000 ticks: day %d, night %d"):format(day, night)
+	end)
+
+	-- Beast spawn P0 (docs/design/wildbound-beast-spawn.md sections 2, 5 and 6).
+	case("BS-P0 config: every beast has a category from the taxonomy and a neutral risk modifier", function()
+		equal(Config.BEASTS.Viper.category, "Global"); equal(Config.BEASTS.Pouncer.category, "Global")
+		equal(Config.BEASTS.Gargoyle.category, "Biome"); equal(Config.BEASTS.Mire.category, "Biome")
+		for _, name in ipairs(Config.ORDER) do
+			local beast = Config.BEASTS[name]
+			assert(Config.CATEGORIES[beast.category], name .. " category")
+			equal(beast.riskModifier, 1, name .. " riskModifier")
+			equal(beast.category == "Biome", beast.biome ~= nil, name .. ": a biome beast has a biome, a global one none")
+		end
+		equal(Config.NO_GLOBAL_BIOMES.Meadow, true, "Pradera")
+		near(Director.chance("Viper", ctx()), p20(1 / 45), "riskModifier 1 changes nothing")
+		near(Director.chance("Viper", ctx(), { chance = 0.01, riskModifier = 2 }), 0.02, "a tuned modifier scales the base")
+	end)
+
+	case("BS-P0: carrying an egg raises the chance by the egg step and never past MAX_MULTIPLIER or MAX_CHANCE", function()
+		local D = Config.DIRECTOR
+		near(Director.multiplier(ctx({ carryingEgg = true })), 1.2)
+		near(Director.chance("Viper", ctx({ carryingEgg = true })), 1.2 * p20(1 / 45))
+		near(Director.chance("Pouncer", ctx({ carryingEgg = true, night = true })), 2.4 * p20(1 / 55))
+		near(Director.multiplier(ctx({ carryingEgg = "yes" })), 1, "only true counts")
+		near(Director.multiplier(ctx({ egg = true })), 1, "the context field is carryingEgg")
+		local all = ctx({ carryingEgg = true, night = true, farFromBase = true, dangerousZone = true, longExpedition = true })
+		near(Director.multiplier(all), D.MAX_MULTIPLIER, "capped at x4 with the egg")
+		near(Director.multiplier(ctx({ carryingEgg = true, night = true, farFromBase = true, dangerousZone = true })), 4,
+			"2 x 1.2 x 1.5 x 1.2 = 4.32, capped at 4")
+		near(Director.chance("Viper", all, { chance = 0.12 }), D.MAX_CHANCE, "0.48 clamps to 0.36 with the egg")
+		near(Director.chance("Viper", ctx({ carryingEgg = true }), { chance = 0.34 }), D.MAX_CHANCE, "0.408 clamps to 0.36")
+		local dir = Director.new({ random = always(1.15 * p20(1 / 45)) })
+		equal(#Director.roll(dir, 1, ctx(), 0, OLD), 0, "without the egg a roll just over the base loses")
+		local started = Director.roll(dir, 2, ctx({ carryingEgg = true }), 0, OLD)
+		local viper = false
+		for _, enc in ipairs(started) do viper = viper or enc.beast == "Viper" end
+		assert(viper, "with the egg the same roll wins Viper")
+	end)
+
+	case("BS-P0: the dusk roll buff multiplies inside the cap, clamped to WildboundDusk's 1 to 1.5", function()
+		near(Director.multiplier(ctx({ duskRoll = 1.25 })), 1.25)
+		near(Director.chance("Viper", ctx({ duskRoll = 1.25 })), 1.25 * p20(1 / 45))
+		near(Director.multiplier(ctx({ duskRoll = 1 })), 1, "x1 outside Dusk")
+		near(Director.multiplier(ctx({ duskRoll = 0.5 })), 1, "never a slowdown")
+		near(Director.multiplier(ctx({ duskRoll = 9 })), 1.5, "never a big buff")
+		near(Director.multiplier(ctx({ duskRoll = 0 / 0 })), 1, "NaN is ignored")
+		near(Director.multiplier(ctx({ duskRoll = "1.25" })), 1, "only a number counts")
+		near(Director.multiplier(ctx({ duskRoll = 1.25, carryingEgg = true, farFromBase = true, dangerousZone = true,
+			longExpedition = true })), 3.51, "1.25 x 1.2 x 1.2 x 1.5 x 1.3")
+		near(Director.multiplier(ctx({ duskRoll = 1.5, carryingEgg = true, farFromBase = true, dangerousZone = true,
+			longExpedition = true })), 4, "capped at x4")
+	end)
+
+	case("BS-P0: no global beast rolls in Pradera or a safe zone; biome beasts are unaffected by the Pradera tag", function()
+		local calls = 0
+		local dir = Director.new({ random = function() calls += 1; return 0 end })
+		local started = Director.roll(dir, 1, ctx({ biomes = { Meadow = true } }), 0)
+		equal(#started, 0, "no global beast rolls in Pradera")
+		equal(calls, 0, "no roll is spent on a barred beast")
+		equal(select(2, Director.reserve(dir, 1, "Viper", ctx({ biomes = { Meadow = true } }), 0, { force = true })),
+			"NoGlobalZone", "even forced")
+		equal(select(2, Director.reserve(dir, 1, "Pouncer", ctx({ biomes = { Meadow = true } }), 0)), "NoGlobalZone")
+		equal(#Director.roll(dir, 1, ctx({ safe = true }), 0), 0, "safe zone: nothing rolls")
+		equal(select(2, Director.reserve(dir, 1, "Viper", ctx({ safe = true }), 0, { force = true })), "SafeZone")
+		equal(Director.placeBlock("Gargoyle", ctx({ biomes = { Meadow = true, Cemetery = true } })), nil,
+			"a biome beast only needs its own tag")
+		equal(Director.placeBlock("Viper", ctx({ biomes = { Meadow = false } })), nil, "only a true tag bars")
+		equal(Director.placeBlock("Viper", ctx()), nil, "the open forest is fine")
+		equal(Director.budget(dir, 1), 0, "nothing was reserved")
+	end)
+
+	case("BS-P0: a biome beast never rolls without its biome tag in ctx.biomes", function()
+		for _, biomes in ipairs({ {}, { Meadow = true }, { Cemetery = "yes" }, { Swamp = false } }) do
+			local seen = {}
+			local dir = Director.new({ random = always(0) })
+			local started, refused = Director.roll(dir, 1, ctx({ biomes = biomes }), 0)
+			for _, enc in ipairs(started) do seen[enc.beast] = true end
+			for _, r in ipairs(refused) do seen[r.beast] = true end
+			assert(not seen.Gargoyle and not seen.Mire, "a biome beast rolled without its tag")
+		end
+		local dir = Director.new({ random = always(0) })
+		local started = Director.roll(dir, 1, ctx({ biomes = { Swamp = true } }), 0, { "Mire", "Root" })
+		local root, mire = false, false
+		for _, enc in ipairs(started) do root = root or enc.beast == "Root"; mire = mire or enc.beast == "Mire" end
+		assert(root, "with its tag Root rolls")
+		assert(not mire, "Mire has no behaviour yet: never rolled, even in the Pantano")
+		equal(select(2, Director.reserve(dir, 2, "Mire", ctx({ biomes = { Cemetery = true } }), 0, { force = true })), "Biome")
 	end)
 
 	case("NB2: the director is pure: no world, no clock, no global random", function()

@@ -1,5 +1,9 @@
 -- Nest Heist phase 4a (NB2): the one beast director (server only, pure). The beast script calls Director.tick for each
--- player every Config.DIRECTOR.TICK_SECONDS; nothing else rolls for beasts (no second scheduler, no per-beast RNG).
+-- player every Config.DIRECTOR.POLL_SECONDS; nothing else rolls for beasts (no second scheduler, no per-beast RNG).
+-- Wave 2 (pack, owner decision 2026-11-11): each beast rolls on a calendar, anchor + (i - 1) x BEAST_OFFSET +
+-- k x TICK_SECONDS (20 s, 1 s apart), and a missed slot is never made up. A beast that cannot start (its own chase is
+-- running, the budget or the concurrency cap is full, a cooldown, the respawn grace, La Silueta) does not roll at all:
+-- the slot passes with no roll and nothing waits. Only Config.PLAYABLE beasts roll.
 -- Each roll is independent: pEff = clamp(pBase * product(multipliers), 0, MAX_CHANCE), the product capped at
 -- MAX_MULTIPLIER. A won roll becomes an encounter only through Director.reserve, which checks and books the threat
 -- budget in one call with no yield, so two wins in one tick can never overspend; a refused win is logged and dropped
@@ -18,23 +22,48 @@ local function finite(value)
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
 end
 
--- The product of the multipliers whose condition is really true, capped at MAX_MULTIPLIER.
+-- The dusk roll buff the beast script passes (WildboundDusk.buff(phase).roll): x1 outside Dusk. Clamped to the range
+-- WildboundDusk.tune allows, so a bad value never turns into a slowdown or a big buff.
+local DUSK_MIN, DUSK_MAX = 1, 1.5
+
+-- The product of the multipliers whose condition is really true (each read from ctx[CONDITIONS[key] or key]), times the
+-- dusk roll buff, capped at MAX_MULTIPLIER. Night and Dusk are different phases, so the dusk buff never stacks on night.
 function Director.multiplier(ctx)
 	local product = 1
 	if type(ctx) ~= "table" then return product end
 	for key, value in pairs(D.MULTIPLIERS) do
-		if ctx[key] == true then product *= value end
+		if ctx[D.CONDITIONS[key] or key] == true then product *= value end
 	end
+	if finite(ctx.duskRoll) then product *= math.clamp(ctx.duskRoll, DUSK_MIN, DUSK_MAX) end
 	return math.min(product, D.MAX_MULTIPLIER)
 end
 
--- The effective chance of one roll (per tick, 0 to 1). `override` is a tuned beast table (tests and tuning only).
+-- The effective chance of one roll (per tick, 0 to 1): base x riskModifier x conditions, capped at MAX_CHANCE.
+-- `override` is a tuned beast table (tests and tuning only).
 function Director.chance(name, ctx, override)
 	local beast = Config.BEASTS[name]
 	if not beast then return 0 end
 	local base = override and override.chance or beast.chance
 	if not finite(base) then return 0 end
-	return math.clamp(base * Director.multiplier(ctx), 0, D.MAX_CHANCE)
+	local risk = override and override.riskModifier or beast.riskModifier
+	if not finite(risk) or risk < 0 then risk = 1 end
+	return math.clamp(base * risk * Director.multiplier(ctx), 0, D.MAX_CHANCE)
+end
+
+-- Eligibility by place (beast spawn design, owner decision 3): a Biome beast needs its biome tag in ctx.biomes; a Global
+-- beast is barred from every biome in Config.NO_GLOBAL_BIOMES (Pradera). Safe zones bar every beast before this.
+-- Returns nil when eligible, else the refusal reason.
+function Director.placeBlock(name, ctx)
+	local beast = Config.BEASTS[name]
+	if not beast then return "UnknownBeast" end
+	local biomes = type(ctx) == "table" and type(ctx.biomes) == "table" and ctx.biomes or {}
+	if beast.biome and biomes[beast.biome] ~= true then return "Biome" end
+	if beast.category == "Global" then
+		for tag in pairs(Config.NO_GLOBAL_BIOMES) do
+			if biomes[tag] == true then return "NoGlobalZone" end
+		end
+	end
+	return nil
 end
 
 function Director.new(options)
@@ -42,13 +71,13 @@ function Director.new(options)
 	-- No random source means no roll ever wins: a beast never starts by accident.
 	local random = type(options.random) == "function" and options.random or function() return 1 end
 	return { random = random, players = {}, encounters = {}, nextId = 0, log = {},
-		counts = { rolled = 0, won = 0, started = 0, refused = 0, released = 0 } }
+		counts = { rolled = 0, won = 0, started = 0, refused = 0, released = 0, skipped = 0 } }
 end
 
 local function record(dir, userId)
 	local value = dir.players[userId]
 	if not value then
-		value = { points = 0, active = {}, speciesReadyAt = {}, globalReadyAt = -math.huge }
+		value = { points = 0, active = {}, speciesReadyAt = {}, globalReadyAt = -math.huge, anchor = nil, slots = {} }
 		dir.players[userId] = value
 	end
 	return value
@@ -75,34 +104,44 @@ end
 
 -- Checks every rule and books the encounter in the same call. opts.force (the Studio-only ForceSpawnBeast) skips the
 -- roll's timers (respawn grace, global and species cooldowns) but never the budget, concurrency, a duplicate, the
--- biome, a safe zone, death or an active Silueta.
+-- biome, Pradera for a global beast, a safe zone, death or an active Silueta.
+-- Every rule reserve applies, without booking or logging anything. Returns nil when the beast may start now, else the
+-- refusal reason. Shared by reserve (which books in the same call) and by the roll (which then does not roll at all).
+local function check(dir, userId, name, ctx, now, force)
+	local beast = Config.BEASTS[name]
+	if type(userId) ~= "number" then return "InvalidPlayer" end
+	if not beast then return "UnknownBeast" end
+	if not finite(now) then return "BadClock" end
+	ctx = type(ctx) == "table" and ctx or {}
+	if ctx.alive ~= true then return "Dead" end
+	if ctx.safe == true then return "SafeZone" end
+	local blocked = Director.placeBlock(name, ctx)
+	if blocked then return blocked end
+	if ctx.siluetaActive == true then return "SiluetaActive" end
+	local player = record(dir, userId)
+	if not force then
+		if finite(ctx.respawnedAt) and now - ctx.respawnedAt < D.RESPAWN_GRACE then return "RespawnGrace" end
+		if now < player.globalReadyAt then return "GlobalCooldown" end
+		if now < (player.speciesReadyAt[name] or -math.huge) then return "SpeciesCooldown" end
+	end
+	for _, id in pairs(player.active) do
+		if dir.encounters[id] and dir.encounters[id].beast == name then return "AlreadyActive" end
+	end
+	local _, count = Director.budget(dir, userId)
+	if count >= D.MAX_ACTIVE then return "MaxActive" end
+	if player.points + beast.points > D.MAX_POINTS then return "Budget" end
+	return nil
+end
+Director.blocked = function(dir, userId, name, ctx, now, force)
+	return check(dir, userId, name, ctx, now, force == true)
+end
+
 function Director.reserve(dir, userId, name, ctx, now, opts)
 	local beast = Config.BEASTS[name]
 	local force = type(opts) == "table" and opts.force == true
-	if type(userId) ~= "number" then return refuse(dir, userId, name, "InvalidPlayer", now) end
-	if not beast then return refuse(dir, userId, name, "UnknownBeast", now) end
-	if not finite(now) then return refuse(dir, userId, name, "BadClock", now) end
-	ctx = type(ctx) == "table" and ctx or {}
-	if ctx.alive ~= true then return refuse(dir, userId, name, "Dead", now) end
-	if ctx.safe == true then return refuse(dir, userId, name, "SafeZone", now) end
-	if beast.biome and not (type(ctx.biomes) == "table" and ctx.biomes[beast.biome] == true) then
-		return refuse(dir, userId, name, "Biome", now)
-	end
-	if ctx.siluetaActive == true then return refuse(dir, userId, name, "SiluetaActive", now) end
+	local why = check(dir, userId, name, ctx, now, force)
+	if why then return refuse(dir, userId, name, why, now) end
 	local player = record(dir, userId)
-	if not force then
-		if finite(ctx.respawnedAt) and now - ctx.respawnedAt < D.RESPAWN_GRACE then
-			return refuse(dir, userId, name, "RespawnGrace", now)
-		end
-		if now < player.globalReadyAt then return refuse(dir, userId, name, "GlobalCooldown", now) end
-		if now < (player.speciesReadyAt[name] or -math.huge) then return refuse(dir, userId, name, "SpeciesCooldown", now) end
-	end
-	for _, id in pairs(player.active) do
-		if dir.encounters[id] and dir.encounters[id].beast == name then return refuse(dir, userId, name, "AlreadyActive", now) end
-	end
-	local _, count = Director.budget(dir, userId)
-	if count >= D.MAX_ACTIVE then return refuse(dir, userId, name, "MaxActive", now) end
-	if player.points + beast.points > D.MAX_POINTS then return refuse(dir, userId, name, "Budget", now) end
 	dir.nextId += 1
 	local encounter = { id = "beast:" .. dir.nextId, beast = name, userId = userId, points = beast.points,
 		startedAt = now, released = false }
@@ -134,30 +173,82 @@ function Director.release(dir, id, reason, now)
 	return true
 end
 
--- One player's tick: every playable beast whose biome holds rolls once, in an order shuffled by the injected source;
--- each win tries to reserve. Returns the started encounters and the refused wins.
-function Director.tick(dir, userId, ctx, now)
+-- Wave 2: the calendar. The first call for a player sets their anchor; beast i of Config.ORDER has its slots at
+-- anchor + (i - 1) x BEAST_OFFSET + k x TICK_SECONDS, k >= 1 (the first roll comes one interval after the anchor).
+-- Returns the beasts whose newest slot has passed and was not consumed yet, and consumes it. Only the newest slot
+-- counts: slots missed while the server stalled are dropped, so a beast never rolls twice to catch up.
+function Director.due(dir, userId, now)
+	local due = {}
+	if type(userId) ~= "number" or not finite(now) then return due end
+	local player = record(dir, userId)
+	player.anchor = player.anchor or now
+	for i, name in ipairs(Config.ORDER) do
+		local phase = player.anchor + (i - 1) * D.BEAST_OFFSET
+		local slot = math.floor((now - phase) / D.TICK_SECONDS + 1e-9)
+		if slot >= 1 and slot > (player.slots[name] or 0) then
+			player.slots[name] = slot
+			table.insert(due, name)
+		end
+	end
+	return due
+end
+
+-- The next slot time of one beast for one player (nil before the anchor exists). Read-only, for the Studio probe.
+function Director.nextSlot(dir, userId, name, now)
+	local player = dir.players[userId]
+	if not player or not player.anchor or not finite(now) then return nil end
+	for i, other in ipairs(Config.ORDER) do
+		if other == name then
+			local phase = player.anchor + (i - 1) * D.BEAST_OFFSET
+			local slot = math.max(1, math.floor((now - phase) / D.TICK_SECONDS + 1e-9) + 1)
+			return phase + slot * D.TICK_SECONDS
+		end
+	end
+	return nil
+end
+
+-- Rolls the given beasts (default: every beast) once for one player: a playable beast whose place holds and that could
+-- start right now rolls; any other is skipped with no roll spent (returned in `refused` with rolled = false). Two
+-- beasts due together are taken in an order shuffled by the injected source; each win reserves atomically.
+-- Returns the started encounters and the refusals.
+function Director.roll(dir, userId, ctx, now, names)
 	local started, refused = {}, {}
 	if type(ctx) ~= "table" or ctx.alive ~= true or ctx.safe == true then return started, refused end
-	local names = {}
-	for _, name in ipairs(Config.ORDER) do
-		local biome = Config.BEASTS[name].biome
-		-- A biome beast is rolled only inside its biome; the beast script ends one with no behaviour yet at once.
-		if biome == nil or (type(ctx.biomes) == "table" and ctx.biomes[biome] == true) then table.insert(names, name) end
+	local list = {}
+	for _, name in ipairs(type(names) == "table" and names or Config.ORDER) do
+		-- A biome beast is rolled only inside its biome, a global beast never in Pradera, a beast with no behaviour
+		-- never (no roll is spent on any of them).
+		if Config.PLAYABLE[name] and Director.placeBlock(name, ctx) == nil then table.insert(list, name) end
 	end
-	for i = #names, 2, -1 do
+	for i = #list, 2, -1 do
 		local j = math.clamp(math.floor(dir.random() * i) + 1, 1, i)
-		names[i], names[j] = names[j], names[i]
+		list[i], list[j] = list[j], list[i]
 	end
-	for _, name in ipairs(names) do
-		dir.counts.rolled += 1
-		if dir.random() < Director.chance(name, ctx) then
-			dir.counts.won += 1
-			local ok, value = Director.reserve(dir, userId, name, ctx, now)
-			if ok then table.insert(started, value) else table.insert(refused, { beast = name, reason = value }) end
+	for _, name in ipairs(list) do
+		local why = check(dir, userId, name, ctx, now, false)
+		if why then
+			-- Pack: already chasing, no capacity (and every other rule): no roll and nothing kept for later.
+			dir.counts.skipped += 1
+			table.insert(refused, { beast = name, reason = why, rolled = false })
+		else
+			dir.counts.rolled += 1
+			if dir.random() < Director.chance(name, ctx) then
+				dir.counts.won += 1
+				local ok, value = Director.reserve(dir, userId, name, ctx, now)
+				if ok then table.insert(started, value)
+				else table.insert(refused, { beast = name, reason = value, rolled = true }) end
+			end
 		end
 	end
 	return started, refused
+end
+
+-- One player's poll: the beasts whose calendar slot is due roll (Director.roll). A dead player or one in a safe zone
+-- still consumes the slots, so nothing accumulates while they wait.
+function Director.tick(dir, userId, ctx, now)
+	local due = Director.due(dir, userId, now)
+	if #due == 0 then return {}, {} end
+	return Director.roll(dir, userId, ctx, now, due)
 end
 
 -- A player leaves: every encounter is released once and nothing about the user is kept.

@@ -99,8 +99,11 @@ return function(Art, source, sources)
 		assert(type(Species) == "table", "species module missing")
 		equal(Art.uses(Species.look(nil)), true, "no species is the Lumipol")
 		equal(Art.uses(Species.look("Lumipol")), true)
+		-- Deliberately changed (user, 2026-11-11, Studio sync df278fd): while Species.ONLY is "Lumipol" every look is the
+		-- Lumipol, so every creature wears the art; the other species' own data still never does.
 		for _, name in ipairs({ "Cortezon", "Cestillo", "Polvilla", "Tizoncillo" }) do
-			equal(Art.uses(Species.look(name)), false, name)
+			equal(Art.uses(Species.look(name)), Species.ONLY == "Lumipol", name .. " through look()")
+			equal(Art.uses(Species.LOOKS[name]), false, name .. " data")
 		end
 		equal(Art.uses(nil), false)
 	end)
@@ -219,9 +222,16 @@ return function(Art, source, sources)
 					equal(part.CanTouch, false, name); equal(part.CanQuery, false, name)
 				end
 			end
-			local _, size = real[name]:GetBoundingBox()
-			near(real[name]:GetPivot().Position.Y, real[name]:GetBoundingBox().Position.Y - size.Y / 2, 1e-2,
-				name .. ": the pivot at its feet")
+			-- Deliberately changed (user, 2026-11-11): the blue egg template the user placed keeps its pivot at the mesh
+			-- centre. Art.dress measures the bounds and sets the pivot at the feet itself, so pin that instead.
+			local holderModel = Instance.new("Model")
+			local feet = CFrame.new(0, 50, 0)
+			local dressed = Art.dress(holderModel, real[name], feet, 2)
+			assert(type(dressed) == "table" and #dressed > 0, name .. ": dressed")
+			local low = math.huge
+			for _, part in ipairs(dressed) do low = math.min(low, part.Position.Y - part.Size.Y / 2) end
+			if not Art.rigged(dressed) then near(low, 50 + C.FOOT_LIFT, 0.05, name .. ": its feet on the frame") end
+			holderModel:Destroy()
 		end
 		local multi = template()
 		for index, group in ipairs(multi:GetChildren()) do

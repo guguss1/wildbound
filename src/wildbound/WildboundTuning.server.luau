@@ -28,7 +28,9 @@ for key, name in pairs({ Stamina = "WildboundStamina", Island = "WildboundIsland
 	-- Nest Heist (NH1 to NH8): the stolen egg's rules.
 	EggCarry = "WildboundEggCarry",
 	-- Nest Heist phase 2 (NP3): the bat.
-	Bat = "WildboundBat" }) do
+	Bat = "WildboundBat",
+	-- New mechanics (Q4, Q4b): the bat's knockback.
+	Knock = "WildboundBatKnock" }) do
 	local module = ServerScriptService:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end
@@ -40,7 +42,13 @@ for key, name in pairs({ Carry = "WildboundCarry", Capture = "WildboundCaptureSe
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	Refuge = "WildboundRefuge",
 	-- Nest Heist Phase 3 (NS5): the treadmill.
-	Training = "WildboundTraining" }) do
+	Training = "WildboundTraining",
+	-- New mechanics (Q11): the dusk.
+	Dusk = "WildboundDusk",
+	-- New mechanics (Q3b): Esquiva perfecta.
+	Dodge = "WildboundDodge",
+	-- New mechanics (Q2b): the Arrullo.
+	Arrullo = "WildboundArrullo" }) do
 	local module = ReplicatedStorage:WaitForChild(name, 10)
 	if module and module:IsA("ModuleScript") then modules[key] = require(module) end
 end

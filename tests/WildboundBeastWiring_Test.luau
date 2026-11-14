@@ -118,8 +118,11 @@ return function(sources, Proxies)
 		local models = Proxies.ensure(fake)
 		equal(models.Parent.Name, "WildboundBeasts"); equal(models.Name, "Models")
 		assert(models:FindFirstChild("ViperProxy") and models:FindFirstChild("PouncerProxy"), "both proxies")
+		for _, beast in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
+			assert(models:FindFirstChild(beast .. "Proxy"), "wave 2 proxy " .. beast)
+		end
 		Proxies.ensure(fake)
-		equal(#models:GetChildren(), 2, "no duplicate on a second call")
+		equal(#models:GetChildren(), 6, "no duplicate on a second call")
 		equal(Proxies.modelFor(models, "Viper"), models.ViperProxy, "the proxy while there is no import")
 		local imported = Instance.new("Model")
 		imported.Name = "Viper"
@@ -177,7 +180,7 @@ return function(sources, Proxies)
 		equal(models:FindFirstChild("Gargoyle"), nil, "Gargoyle: template only")
 		equal(models:FindFirstChild("Mire"), nil, "Mire: template only")
 		Proxies.ensure(fake, templates)
-		equal(#models:GetChildren(), 4, "no duplicate on a second call")
+		equal(#models:GetChildren(), 8, "no duplicate on a second call (6 proxies, 2 adopted)")
 		local empty = keep(Instance.new("Folder"))
 		local only = Proxies.ensure(empty, nil)
 		equal(Proxies.modelFor(only, "Viper"), only.ViperProxy, "no templates: the proxy")
@@ -190,12 +193,14 @@ return function(sources, Proxies)
 	end)
 
 	-- NB5 the server wiring.
-	case("NB5: one scheduler: only the beast script rolls, through the director, on its 10 s tick", function()
+	case("NB5: one scheduler: only the beast script rolls, through the director's 20 s calendar", function()
 		local beasts = sources.beasts
 		has(beasts, 'require(script.Parent:WaitForChild("WildboundBeastDirector"))')
 		has(beasts, 'require(script.Parent:WaitForChild("WildboundBeastEncounters"))')
-		has(beasts, "Director.tick(director, player.UserId, contextFor(player, at), at)")
-		has(beasts, "tickClock >= D.TICK_SECONDS")
+		has(beasts, "local due = Director.due(director, player.UserId, at)")
+		has(beasts, "Director.roll(director, player.UserId, contextFor(player, at), at, due)")
+		has(beasts, "pollClock >= D.POLL_SECONDS")
+		hasNot(beasts, "TICK_SECONDS", "the script never times a roll itself")
 		has(beasts, "Director.new({ random = function() return rng:NextNumber() end })")
 		for key, text in pairs({ server = sources.server }) do hasNot(text, "WildboundBeastDirector", key) end
 		hasNot(beasts, "math.random", "beasts")
@@ -204,9 +209,15 @@ return function(sources, Proxies)
 	case("NB5: target-only and server-authoritative: FireClient to the owner, no client handler, no contact events", function()
 		local beasts = sources.beasts
 		has(beasts, "beastEvent:FireClient(player, payload)")
-		for _, bad in ipairs({ "OnServerEvent", "FireAllClients", "OnServerInvoke", "Touched", "SetNetworkOwner" }) do
+		for _, bad in ipairs({ "FireAllClients", "OnServerInvoke", "Touched", "SetNetworkOwner" }) do
 			hasNot(beasts, bad, "beasts")
 		end
+		-- Wave 2: the one client-to-server path is the observation, stored through the validator and nothing else.
+		local _, handlers = beasts:gsub("OnServerEvent", "")
+		equal(handlers, 1, "only BeastObserve has a server handler")
+		has(beasts, "observeEvent.OnServerEvent:Connect(function(player, payload)")
+		has(beasts, "if not Sight.accept(state, now(), payload) then count(\"observeDropped\") end")
+		hasNot(beasts, "beastEvent.OnServerEvent", "BeastEvent stays server to client")
 		has(beasts, 'beastEvent.Name = "BeastEvent"')
 		has(beasts, 'if network:FindFirstChild("BeastEvent") then', "the duplicate-start guard")
 		has(beasts, "character ~= entry.character", "a respawned body is a new life")
@@ -215,10 +226,11 @@ return function(sources, Proxies)
 	case("NB5: the context reads real server state; storm stays x1 and no biome exists yet", function()
 		local beasts = sources.beasts
 		has(beasts, "local fog, safe = Rules.zone(p.X, p.Z)")
-		has(beasts, "Rules.cycle(at - origin + shift).phase == \"Night\"")
+		has(beasts, "return Rules.cycle(at - origin + shift).phase")
+		has(beasts, 'night = phase == "Night"')
 		has(beasts, "dangerousZone = fog or Rules.inTerritory(p.X, p.Z)")
 		has(beasts, "storm = false")
-		has(beasts, "biomes = {}")
+		has(beasts, "biomes = Biomes.at(p.X, p.Z)", "wave 2: the biome tags")
 		has(beasts, 'if state == "Hunt" or state == "Telegraph" then return true end', "La Silueta hunting or telegraphing")
 	end)
 
@@ -281,7 +293,12 @@ return function(sources, Proxies)
 	case("NB6: the client only listens: no request, no hit or dodge report, its own local folder", function()
 		local client = sources.client
 		has(client, "beastEvent.OnClientEvent:Connect(")
-		for _, bad in ipairs({ "FireServer", "InvokeServer", "Touched" }) do hasNot(client, bad, "client") end
+		for _, bad in ipairs({ "InvokeServer", "Touched", "beastEvent:FireServer" }) do hasNot(client, bad, "client") end
+		-- Wave 2: the one message the client sends is the camera look vector, throttled.
+		local _, fires = client:gsub("FireServer%(", "")
+		equal(fires, 1, "one FireServer")
+		has(client, "observeEvent:FireServer({ x = v.X, y = v.Y, z = v.Z })")
+		has(client, "os.clock() - lastObserve >= Sight.SEND_INTERVAL")
 		has(client, 'folder.Name = "WildboundBeastsLocal"')
 		has(client, "folder.Parent = workspace", "client-made, so it exists on this client only")
 	end)
@@ -327,10 +344,126 @@ return function(sources, Proxies)
 		has(client, "if view.model then view.model:Destroy() end")
 	end)
 
+	-- Beast spawn P0 (docs/design/wildbound-beast-spawn.md section 5).
+	case("BS-P0: the context carries the egg from the server's backpack and the dusk roll buff from WildboundDusk", function()
+		local beasts = sources.beasts
+		has(beasts, 'carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil', "the egg step's condition")
+		has(sources.server, 'local EGG_ARMS = "WildboundEggCarried"', "the inventory server still names the backpack so")
+		has(beasts, 'ReplicatedStorage:WaitForChild("WildboundDusk", 10)', "a missing module never stalls the beasts")
+		has(beasts, "duskRoll = Dusk and Dusk.buff(phase).roll or 1")
+		-- The script's comment names EggCarry; what must never appear is a require or a call into it.
+		hasNot(beasts, "WildboundEggCarry", "read-only: the beast script never requires the egg registry")
+		hasNot(beasts, "EggCarry.", "read-only: the beast script never calls the egg registry")
+		hasNot(beasts, "Dusk.step(", "the dusk warnings stay with the server's cycle loop")
+		equal(sources.config.DIRECTOR.TICK_SECONDS, 20, "wave 2 owner decision: 20 s")
+	end)
+
+	-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md).
+	case("BW2: the four proxies are labelled, inert placeholders with a ground pivot and their danger colour", function()
+		local W = Proxies.WAVE2_PALETTE
+		local eyes = { Streamer = W.magenta, Root = W.green, Gaze = W.magenta, Lurker = W.fuchsia }
+		for beast, color in pairs(eyes) do
+			local build = Proxies.BUILDERS[beast]
+			assert(type(build) == "function", beast .. " builder")
+			local model = keep(build())
+			equal(model.Name, beast .. "Proxy"); equal(model:GetAttribute("Beast"), beast); equal(model:GetAttribute("Proxy"), true)
+			assert(model.PrimaryPart and model.PrimaryPart.Name == "Root", beast .. " pivot")
+			assert(math.abs(model.PrimaryPart.Position.Y - 0.1) < 1e-3, beast .. " on the ground")
+			local list = parts(model)
+			assert(#list >= 15, beast .. " has " .. #list .. " parts")
+			local neon = 0
+			for _, p in ipairs(list) do
+				assert(p.Anchored and not p.CanCollide and not p.CanQuery and not p.CanTouch, p:GetFullName())
+				for _, bad in ipairs({ "Lane", "Circle", "Telegraph", "Ring", "Wall" }) do assert(not p.Name:find(bad, 1, true), p.Name) end
+				if p.Material == Enum.Material.Neon and p.Color == color then neon += 1 end
+			end
+			assert(neon >= 2, beast .. " shows its danger colour")
+			local head = model:FindFirstChild("Head")
+			assert(head and head.Position.Z < 0, beast .. " faces -Z")
+		end
+	end)
+
+	case("BW2: the server registers the four behaviours, rolls them through the director and ends them cleanly", function()
+		local beasts = sources.beasts
+		has(beasts, 'Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))')
+		has(beasts, 'for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do')
+		has(beasts, "if not Config.PLAYABLE[reservation.beast] or not Enc.registered(reservation.beast) then")
+		has(beasts, "world = worldFor(player)")
+		has(beasts, "Attack.closeAll(entry.e, entry.world)", "close cancels every open attack")
+		has(beasts, "Attack.closeAll(entry.e, nil)", "a leave too")
+		has(beasts, "sights[player] = nil"); has(beasts, "claims[player] = nil")
+		has(beasts, "Enc.step(entry.e, at, targetOf(entry), entry.world or world)")
+	end)
+
+	case("BW2: dodgeable attacks go through WildboundDodgeService; the client never claims one", function()
+		local beasts = sources.beasts
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundDodgeService"))')
+		has(beasts, "DodgeService.telegraph(player, id, beast, startAt, strikeAt)")
+		has(beasts, "DodgeService.resolve(player, id, at)")
+		has(beasts, "DodgeService.cancel(player, id)")
+		hasNot(beasts, "DodgeService.press", "only the inventory server takes the press")
+	end)
+
+	case("BW2: biome tags, Root's spawn in the Pantano, Lurker behind, Gaze in sight", function()
+		local beasts = sources.beasts
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundBiomes"))')
+		has(beasts, "(not spec.biome or Biomes.has(x, z, spec.biome))")
+		has(beasts, "return { min = d, max = d, visible = false, behind = true }")
+		has(beasts, 'visible = beast == "Gaze"')
+		has(beasts, "target.biomes = Biomes.at(p.X, p.Z)")
+	end)
+
+	case("BW2: the observation is server-checked: head origin, server raycast, validated look; never damage", function()
+		local beasts = sources.beasts
+		has(beasts, "local head = p + Vector3.new(0, 1.5, 0)")
+		has(beasts, "los = sightClear(head, Vector3.new(point.x, point.y, point.z))")
+		has(beasts, "Sight.observes(sights[entry.player], now(),")
+		local i = beasts:find("local function landHit", 1, true)
+		local j = beasts:find("local function stepEncounter", 1, true)
+		assert(i and j, "landHit")
+		hasNot(beasts:sub(i, j), "sights", "a hit never reads the observation")
+	end)
+
+	case("BW2: Root's slow never stacks and is put back only when unchanged; Streamer's push is clamped", function()
+		local beasts, client = sources.beasts, sources.client
+		has(beasts, "if type(untilAt) == \"number\" and untilAt > now() then return end")
+		has(beasts, "math.abs(humanoid.WalkSpeed - slowed) < 1e-3")
+		has(client, "local speed = math.clamp(knock.speed, 0, cap)")
+		hasNot(client, "HumanoidStateType.Physics", "the push is never a ragdoll")
+	end)
+
+	case("BW2: the client names its visual after the beast, draws the server's shapes and keeps walls local", function()
+		local client = sources.client
+		has(client, "view.model.Name = ev.beast")
+		has(client, "drawShape(item.model, ev.shape, TELL_COLOR[view.beast] or RED, false)")
+		has(client, "Config.lane(shape.ox, shape.oz, shape.dx, shape.dz, shape.length, shape.width)")
+		has(client, "part.CanCollide = not overlapping", "a wall never closes on the player")
+		has(client, "blur.Size = wantBlur and math.min(GAZE.MaxScreenBlurSize")
+		has(client, "edge.BackgroundTransparency = 1 - 0.55 * exposure", "a vignette, never a blackout")
+		local T = sources.text.BEAST
+		for _, beast in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
+			assert(T[beast] and T[beast].warn and T[beast].hit and T[beast].phases, beast .. " strings")
+		end
+		assert(T.Gaze.meter and T.Gaze.broken, "Gaze meter and break lines")
+	end)
+
 	case("HF-T5: far from base is measured from the camp and the hub through the world rules", function()
 		local beasts = sources.beasts
 		has(beasts, "farFromBase = Rules.farFromBase(p.X, p.Z, D.FAR_FROM_BASE)", "the shared rule")
 		hasNot(beasts, "CAMP_X", "no camp-only centre")
+	end)
+
+	-- Esquiva perfecta (Q3b, odd/tasks/wildbound-new-mechanics.md W2): the beasts' tells feed the shared dodge states.
+	case("Q3b: Viper's windup and Pouncer's telegraph register a dodgeable attack; a Hit asks resolve() first", function()
+		local beasts = sources.beasts
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundDodgeService"))')
+		has(beasts, 'DodgeService.telegraph(entry.player, key .. (attack + 1), "Viper", event.at, event.dashAt)')
+		has(beasts, 'DodgeService.telegraph(entry.player, key .. (attack + 1), "Pouncer", event.at, event.landAt)')
+		has(beasts, 'DodgeService.resolve(entry.player, key .. tostring(event.attack), event.at) == "Dodged"')
+		has(beasts, "elseif dodgeStep(entry, event) then", "a dodged hit is neither landed nor sent")
+		local stepBody = beasts:match("local function stepEncounter%(id, entry, at%)(.-)\nend\n") or ""
+		local dodgeAt, landAt = stepBody:find("dodgeStep(entry, event)", 1, true), stepBody:find("landHit(entry, event)", 1, true)
+		assert(dodgeAt and landAt and dodgeAt < landAt, "resolve before the hit lands")
 	end)
 
 	return result

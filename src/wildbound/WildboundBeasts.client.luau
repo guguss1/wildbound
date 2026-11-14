@@ -8,13 +8,20 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): Streamer, Root, Gaze and Lurker send generic events: Phase (posture,
+-- a Spanish line, a sound), Tell (a shape from WildboundBeastConfig, the exact hit volume, drawn until its Strike or
+-- TellEnd), Move (dash, arc, burrow, blink, slide on the server's timeline) and Exposure (Gaze's meter). The only thing
+-- this client sends is the camera's look vector on BeastObserve, while it draws a Gaze or a Lurker
+-- (WildboundBeastSight.SEND_INTERVAL); the server validates it and never uses it for a hit or a dodge.
 local Config = require(ReplicatedStorage:WaitForChild("WildboundBeastConfig"))
 local Catalog = require(ReplicatedStorage:WaitForChild("WildboundAudioCatalog"))
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
+local Sight = require(ReplicatedStorage:WaitForChild("WildboundBeastSight"))
 
 local player = Players.LocalPlayer
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork")
 local beastEvent = network:WaitForChild("BeastEvent")
+local observeEvent = network:WaitForChild("BeastObserve", 10)
 
 -- Client-made, so it exists on this client only.
 local folder = Instance.new("Folder")
@@ -46,7 +53,7 @@ warning.Position = UDim2.fromScale(0.5, 0.16)
 warning.Size = UDim2.fromScale(0.8, 0.07)
 warning.BackgroundTransparency = 1
 warning.TextScaled = true
-warning.Font = Enum.Font.GothamBlack
+warning.Font = Enum.Font.FredokaOne -- UI colorida: the rounded display font, same red stroke
 warning.TextColor3 = Color3.fromRGB(255, 235, 225)
 warning.TextStrokeColor3 = Color3.fromRGB(150, 0, 0)
 warning.TextStrokeTransparency = 0
@@ -60,6 +67,13 @@ local function showWarning(beast, untilAt)
 	warning.Text = words.warn
 	warning.Visible = true
 	warningUntil = math.max(warningUntil, untilAt)
+end
+-- Wave 2: a phase's own line (Text.BEAST[beast].phases[phase]), shown at least a second.
+local function showLine(line, untilAt)
+	if type(line) ~= "string" then return end
+	warning.Text = line
+	warning.Visible = true
+	warningUntil = math.max(warningUntil, untilAt, workspace:GetServerTimeNow() + 1)
 end
 
 -- Sounds: existing catalogue ids only (WildboundAudioCatalog), on the beast so they come from its direction.
@@ -203,16 +217,167 @@ local function dust(at)
 	task.delay(1.2, function() part:Destroy() end)
 end
 
+-- Wave 2 tells ----------------------------------------------------------------------------------------------------------
+-- Colours per beast; every tell also has its line, a sound and a pulse, so colour is never the only cue.
+local TELL_COLOR = {
+	Streamer = Color3.fromRGB(255, 45, 140), Root = Color3.fromRGB(130, 235, 90), Gaze = Color3.fromRGB(165, 80, 255),
+	Lurker = Color3.fromRGB(255, 70, 200),
+}
+local GAP_COLOR = Color3.fromRGB(235, 255, 235)
+local WALL_COLOR = Color3.fromRGB(92, 70, 52)
+local WALL_HEIGHT = 7
+
+local function piece(model, name, size, cframe, color, transparency)
+	local part = marker(name, size, cframe, transparency)
+	part.Color = color
+	part.Parent = model
+	return part
+end
+
+-- A flat bar from a to b (Vector3 on the ground), `width` wide.
+local function bar(model, name, a, b, width, color, transparency, height)
+	local length = (b - a).Magnitude
+	if length < 0.05 then return nil end
+	local h = height or 0.12
+	local middle = (a + b) / 2 + Vector3.new(0, h / 2, 0)
+	return piece(model, name, Vector3.new(width, h, length), CFrame.lookAt(middle, middle + (b - a)), color, transparency)
+end
+
+local function ring(model, cx, y, cz, radius, color, transparency, count)
+	count = count or 24
+	for i = 1, count do
+		local a0, a1 = (i - 1) / count * math.pi * 2, i / count * math.pi * 2
+		bar(model, "Ring" .. i, Vector3.new(cx + math.cos(a0) * radius, y, cz + math.sin(a0) * radius),
+			Vector3.new(cx + math.cos(a1) * radius, y, cz + math.sin(a1) * radius), 0.3, color, transparency)
+	end
+end
+
+local function rotate(gx, gz, angle)
+	local c, s = math.cos(angle), math.sin(angle)
+	return gx * c - gz * s, gx * s + gz * c
+end
+
+-- Draws one shape into a fresh model (the exact Config geometry the server checks).
+local function drawShape(model, shape, color, raised)
+	model:ClearAllChildren()
+	local kind = shape.kind
+	if kind == "circle" then
+		local disc = piece(model, "Disc", Vector3.new(0.12, shape.r * 2, shape.r * 2),
+			CFrame.new(shape.x, shape.y + 0.1, shape.z) * CFrame.Angles(0, 0, math.pi / 2), color, 0.6)
+		disc.Shape = Enum.PartType.Cylinder
+		ring(model, shape.x, shape.y + 0.14, shape.z, shape.r, color, 0.1)
+	elseif kind == "lane" then
+		local spec = Config.lane(shape.ox, shape.oz, shape.dx, shape.dz, shape.length, shape.width)
+		local cframe = CFrame.new(spec.cx, shape.oy + 0.12, spec.cz) * CFrame.Angles(0, spec.yaw, 0)
+		piece(model, "Fill", Vector3.new(shape.width, 0.12, math.max(shape.length, 0.1)), cframe, color, 0.55)
+		piece(model, "EdgeL", Vector3.new(0.25, 0.14, math.max(shape.length, 0.1)), cframe * CFrame.new(-shape.width / 2, 0, 0), color, 0.15)
+		piece(model, "EdgeR", Vector3.new(0.25, 0.14, math.max(shape.length, 0.1)), cframe * CFrame.new(shape.width / 2, 0, 0), color, 0.15)
+		-- Chevrons along the lane show the direction of travel.
+		for i = 1, math.floor(shape.length / 6) do
+			local at = Vector3.new(shape.ox + shape.dx * i * 6, shape.oy + 0.16, shape.oz + shape.dz * i * 6)
+			piece(model, "Chevron" .. i, Vector3.new(shape.width * 0.6, 0.1, 0.4), CFrame.lookAt(at, at + Vector3.new(shape.dx, 0, shape.dz)),
+				color, 0.05)
+		end
+	elseif kind == "sector" then
+		local half = math.rad(shape.arc / 2)
+		local steps = 12
+		for i = 0, steps do
+			local dx, dz = rotate(shape.dx, shape.dz, -half + i / steps * half * 2)
+			local edge = i == 0 or i == steps
+			bar(model, "Ray" .. i, Vector3.new(shape.x, shape.y, shape.z),
+				Vector3.new(shape.x + dx * shape.r, shape.y, shape.z + dz * shape.r), edge and 0.35 or 0.9, color, edge and 0.1 or 0.65)
+			if i > 0 then
+				local px, pz = rotate(shape.dx, shape.dz, -half + (i - 1) / steps * half * 2)
+				bar(model, "Arc" .. i, Vector3.new(shape.x + px * shape.r, shape.y, shape.z + pz * shape.r),
+					Vector3.new(shape.x + dx * shape.r, shape.y, shape.z + dz * shape.r), 0.35, color, 0.1)
+			end
+		end
+	elseif kind == "multi" then
+		-- Root's lanes: each split into `segments` cracked pieces of the drawn width (raised as roots on the eruption).
+		local segments = shape.segments or 1
+		for l, lane in ipairs(shape.list or {}) do
+			local step = lane.length / segments
+			for s = 1, segments do
+				local a = Vector3.new(lane.ox + lane.dx * (s - 1) * step, lane.oy, lane.oz + lane.dz * (s - 1) * step)
+				local b = Vector3.new(lane.ox + lane.dx * (s * step - 0.4), lane.oy, lane.oz + lane.dz * (s * step - 0.4))
+				bar(model, ("Lane%dSeg%d"):format(l, s), a, b, lane.width, raised and WALL_COLOR or color, raised and 0 or 0.45,
+					raised and 3 or nil)
+			end
+		end
+	elseif kind == "walls" then
+		local height = raised and WALL_HEIGHT or 0.12
+		for w, span in ipairs(shape.list) do
+			local count = math.max(2, math.ceil((span.to - span.from) * shape.r / 3))
+			for i = 1, count do
+				local a0 = span.from + (i - 1) / count * (span.to - span.from)
+				local a1 = span.from + i / count * (span.to - span.from)
+				local x0, z0 = rotate(shape.gx, shape.gz, a0)
+				local x1, z1 = rotate(shape.gx, shape.gz, a1)
+				local part = bar(model, ("Wall%dSeg%d"):format(w, i), Vector3.new(shape.x + x0 * shape.r, shape.y, shape.z + z0 * shape.r),
+					Vector3.new(shape.x + x1 * shape.r, shape.y, shape.z + z1 * shape.r), 1.4, raised and WALL_COLOR or color,
+					raised and 0 or 0.35, height)
+				if part then part:SetAttribute("Wall", true) end
+			end
+		end
+		-- The gap: two bright posts and a strip leading out (white-green, never the danger colour).
+		local half = shape.list[1].from
+		for _, a in ipairs({ half, -half }) do
+			local px, pz = rotate(shape.gx, shape.gz, a)
+			local base = Vector3.new(shape.x + px * shape.r, shape.y, shape.z + pz * shape.r)
+			piece(model, "GapPost", Vector3.new(0.6, 9, 0.6), CFrame.new(base + Vector3.new(0, 9 / 2, 0)), GAP_COLOR, 0.1)
+		end
+		bar(model, "GapPath", Vector3.new(shape.x, shape.y, shape.z),
+			Vector3.new(shape.x + shape.gx * (shape.r + 4), shape.y, shape.z + shape.gz * (shape.r + 4)), 2, GAP_COLOR, 0.3)
+	end
+end
+
+-- Raised walls collide on this client only, so they hold back only this player's own character (the owner simulates
+-- it); a wall piece that would rise inside the character stays open, so nobody is ever trapped in a wall.
+local function raiseWalls(model)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	for _, part in ipairs(model:GetChildren()) do
+		if part:IsA("BasePart") and part:GetAttribute("Wall") then
+			local inside = root and (part.CFrame:PointToObjectSpace(root.Position)) or nil
+			local overlapping = inside and math.abs(inside.X) < part.Size.X / 2 + 1.5 and math.abs(inside.Z) < part.Size.Z / 2 + 1.5
+			part.CanCollide = not overlapping
+		end
+	end
+end
+
+local function clearTell(view, tell, delay)
+	local item = view.tells and view.tells[tell]
+	if not item then return end
+	view.tells[tell] = nil
+	if delay and delay > 0 then
+		task.delay(delay, function() item.model:Destroy() end)
+	else
+		item.model:Destroy()
+	end
+end
+
+local function clearTells(view)
+	for tell in pairs(view.tells or {}) do clearTell(view, tell) end
+end
+
 local function finishView(id)
 	local view = views[id]
 	if not view then return end
 	views[id] = nil
 	clearLane(view)
 	clearCircle(view)
+	clearTells(view)
+	if view.extras then view.extras:Destroy() end
 	if view.model then view.model:Destroy() end
 end
 
 local function rootOf(view) return view.model and view.model.PrimaryPart end
+-- Wave 2: the phase, published on the model for WildboundBeastAnim (a rigged model plays the matching baked clip).
+local function publishPhase(view, phase, at, untilAt)
+	if not view.model then return end
+	view.model:SetAttribute("BeastPhase", phase)
+	view.model:SetAttribute("BeastPhaseAt", at)
+	view.model:SetAttribute("BeastPhaseUntil", untilAt or at)
+end
 
 local handlers = {}
 function handlers.Spawn(ev)
@@ -221,11 +386,23 @@ function handlers.Spawn(ev)
 	local view = { beast = ev.beast, snaps = {}, mode = "snap", dx = ev.dx or 0, dz = ev.dz or 1 }
 	if template then
 		view.model = template:Clone()
+		-- Wave 2: the visual in the world is named exactly after the beast (Streamer, Root, Gaze, Lurker), proxy or art.
+		view.model.Name = ev.beast
 		for _, d in ipairs(view.model:GetDescendants()) do if d:IsA("BasePart") then quiet(d) end end
 		view.model.Parent = folder
 	end
 	table.insert(view.snaps, { at = ev.at, x = ev.pos.x, y = ev.pos.y, z = ev.pos.z, dx = view.dx, dz = view.dz })
 	views[ev.id] = view
+	if Config.WAVE2[ev.beast] then
+		view.tells, view.wave2, view.exposure = {}, true, 0
+		-- A rigged model (bones under its mesh) animates its own posture; the Part proxies keep posture().
+		view.rigged = view.model ~= nil and view.model:FindFirstChildWhichIsA("Bone", true) ~= nil
+		publishPhase(view, "Spawn", ev.at, ev.at)
+		view.extras = Instance.new("Folder")
+		view.extras.Name = ev.beast .. "Extras"
+		view.extras.Parent = folder
+		return
+	end
 	play(ev.beast == "Viper" and "dirt" or "steps", rootOf(view), ev.beast == "Viper" and 0.8 or 1.25, 0.6)
 end
 function handlers.Snap(ev, view)
@@ -288,19 +465,114 @@ function handlers.Land(ev, view)
 	-- The circle stays until after the landing, then goes.
 	task.delay(0.35, function() clearCircle(view) end)
 end
-function handlers.Hit(_, view)
+function handlers.Hit(ev, view)
 	play("hit", rootOf(view), 1, 1)
 	shake(0.5)
+	-- Wave 2: Streamer's scream pushes lightly. This client owns its character, so it applies the push, never faster
+	-- than the configured speed and never a ragdoll.
+	local knock = ev.knock
+	local cap = Config.BEASTS.Streamer.tuning.ScreamKnockbackStudsPerSecond
+	if type(knock) == "table" and Config.finite(knock.dx) and Config.finite(knock.dz) and Config.finite(knock.speed) then
+		local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		local dx, dz = Config.unit(knock.dx, knock.dz)
+		if root and dx then
+			local speed = math.clamp(knock.speed, 0, cap)
+			root.AssemblyLinearVelocity += Vector3.new(dx * speed, 0, dz * speed)
+		end
+	end
+end
+
+-- Wave 2 handlers ---------------------------------------------------------------------------------------------------
+-- A sound per phase (catalogue slots only) and a posture the Heartbeat applies.
+local PHASE_SOUND = {
+	Warn = { "breathing", 0.9 }, ScreamCharge = { "groan", 1.4 }, RushTelegraph = { "snap", 1.1 }, RushCommit = { "dirt", 1.6 },
+	Recovery = { "crack", 1 }, Stunned = { "crack", 0.7 },
+	Rise = { "creak", 0.8 }, TelegraphTrap = { "crack", 0.6 }, Erupt = { "crack", 1.2 }, TelegraphWalls = { "creak", 1.2 },
+	WhipWindup = { "whisper", 0.7 },
+	Manifest = { "unease", 1 }, ExposureBuild = { "heartbeat", 1 }, ChargeZone = { "pulse", 1.2 },
+	Presence = { "steps", 0.8 }, CoverApproach = { "steps", 1.1 }, LeapWindup = { "whisper", 1.4 }, OverrunStunned = { "crack", 0.9 },
+}
+function handlers.Phase(ev, view)
+	if not view.wave2 then return end
+	view.phase, view.phaseAt, view.phaseUntil = ev.phase, ev.at, ev.untilAt
+	publishPhase(view, ev.phase, ev.at, ev.untilAt)
+	-- A move ends at the first phase that starts after it.
+	if view.move and ev.at >= (view.move.endAt or math.huge) - 1e-3 then view.move = nil end
+	local words = Text.BEAST[view.beast]
+	local line = words and words.phases and words.phases[ev.phase]
+	if line then showLine(line, ev.untilAt or ev.at) end
+	local sound = PHASE_SOUND[ev.phase]
+	if sound then play(sound[1], rootOf(view), sound[2], 0.85) end
+	if ev.phase == "Stunned" or ev.phase == "OverrunStunned" then view.stunUntil = ev.untilAt end
+end
+function handlers.Tell(ev, view)
+	if not view.wave2 or type(ev.shape) ~= "table" or type(ev.tell) ~= "string" then return end
+	local item = view.tells[ev.tell]
+	if not item then
+		local model = Instance.new("Model")
+		model.Name = view.beast .. "Tell"
+		model.Parent = view.extras
+		item = { model = model }
+		view.tells[ev.tell] = item
+	end
+	item.shape, item.startAt, item.strikeAt, item.locked = ev.shape, ev.startAt, ev.strikeAt, ev.locked
+	drawShape(item.model, ev.shape, TELL_COLOR[view.beast] or RED, false)
+	if ev.locked and item.model:FindFirstChild("Fill") then item.model.Fill.Transparency = 0.35 end
+end
+function handlers.TellEnd(ev, view)
+	if view.wave2 then clearTell(view, ev.tell) end
+end
+function handlers.Strike(ev, view)
+	local item = view.wave2 and view.tells[ev.tell]
+	if not item then return end
+	if item.shape.kind == "multi" then
+		-- Root's eruption: the roots rise on the drawn lanes, then sink.
+		drawShape(item.model, item.shape, TELL_COLOR.Root, true)
+		play("crack", rootOf(view), 1.25, 1)
+	else
+		for _, part in ipairs(item.model:GetChildren()) do
+			if part:IsA("BasePart") then part.Transparency = 0 end
+		end
+	end
+	if ev.dodged then showLine(Text.DODGE and Text.DODGE.perfect, ev.at + 1) end
+	clearTell(view, ev.tell, 0.35)
+end
+function handlers.Move(ev, view)
+	if not view.wave2 then return end
+	local move = { kind = ev.kind, at = ev.at, from = ev.from, to = ev.to, dx = ev.dx, dz = ev.dz, speed = ev.speed,
+		length = ev.length, height = ev.height }
+	if ev.kind == "dash" then move.endAt = ev.at + ev.length / math.max(ev.speed, 1e-3)
+	elseif ev.kind == "arc" then move.endAt = ev.landAt
+	elseif ev.kind == "burrow" or ev.kind == "slide" then move.endAt = ev.untilAt
+	elseif ev.kind == "blink" then
+		view.snaps = { { at = ev.at, x = ev.to.x, y = ev.to.y, z = ev.to.z, dx = view.dx, dz = view.dz } }
+		play("unease", rootOf(view), 0.8, 0.6)
+		return
+	end
+	view.move = move
+	if ev.kind == "burrow" then play("dirt", rootOf(view), 0.7, 0.9) end
+end
+function handlers.Exposure(ev, view)
+	if view.wave2 and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
+end
+function handlers.SightBreak(ev, view)
+	if not view.wave2 then return end
+	view.exposure = 0
+	local words = Text.BEAST.Gaze
+	if words and words.broken then showLine(words.broken, ev.at + 1) end
+	play("softStinger", rootOf(view), 1.2, 0.5)
 end
 function handlers.Cancel(_, view)
 	clearCircle(view)
 	clearLane(view)
 	warningUntil = 0
 end
-function handlers.Disengage(_, view)
+function handlers.Disengage(ev, view)
+	if view.wave2 then publishPhase(view, "Disengage", ev.at, ev.untilAt) end
 	view.fadeFrom = os.clock()
 	clearCircle(view)
 	clearLane(view)
+	clearTells(view)
 end
 function handlers.End(ev)
 	finishView(ev.id)
@@ -315,8 +587,37 @@ beastEvent.OnClientEvent:Connect(function(ev)
 	handler(ev, view)
 end)
 
+-- Wave 2: a move on the server's timeline (dash, arc, burrow, slide), held at its end until the next phase.
+local function movePlace(view, at)
+	local m = view.move
+	local span = math.max((m.endAt or m.at) - m.at, 1e-3)
+	local t = math.clamp((at - m.at) / span, 0, 1)
+	if m.kind == "dash" then
+		local travelled = math.clamp((at - m.at) * m.speed, 0, m.length)
+		local last = view.snaps[#view.snaps]
+		local y = last and last.at >= m.at and last.y or m.from.y
+		return m.from.x + m.dx * travelled, y, m.from.z + m.dz * travelled, m.dx, m.dz
+	elseif m.kind == "arc" then
+		local x, y, z = Config.arc(m.from.x, m.from.y, m.from.z, m.to.x, m.to.y, m.to.z, m.height, t)
+		local dx, dz = Config.unit(m.to.x - m.from.x, m.to.z - m.from.z)
+		return x, y, z, dx or view.dx, dz or view.dz
+	elseif m.kind == "burrow" then
+		-- Sinks into the mud at the old spot, rises at the new one.
+		if t < 0.5 then return m.from.x, m.from.y - 9 * t, m.from.z, view.dx, view.dz end
+		return m.to.x, m.to.y - 9 * (1 - t), m.to.z, view.dx, view.dz
+	elseif m.kind == "slide" then
+		return m.from.x + (m.to.x - m.from.x) * t, m.from.y + (m.to.y - m.from.y) * t, m.from.z + (m.to.z - m.from.z) * t,
+			view.dx, view.dz
+	end
+	return nil
+end
+
 -- Where the beast is now: the dash and the leap follow the server's own timeline; otherwise between two snapshots.
 local function placeOf(view, at)
+	if view.move then
+		local x, y, z, dx, dz = movePlace(view, at)
+		if x then return x, y, z, dx, dz end
+	end
 	if view.mode == "dash" and view.dash then
 		local d = view.dash
 		local L = view.laneSpec
@@ -345,10 +646,131 @@ local function placeOf(view, at)
 	return a.x + (b.x - a.x) * t, a.y + (b.y - a.y) * t, a.z + (b.z - a.z) * t, b.dx or a.dx, b.dz or a.dz
 end
 
+-- Wave 2: Gaze's exposure overlay. Four soft violet edges (a vignette that never covers the centre, never a blackout),
+-- a small meter with its word, and a light blur capped at MaxScreenBlurSize that Efectos suaves leaves out.
+local GAZE = Config.BEASTS.Gaze.tuning
+local vignette = Instance.new("Frame")
+vignette.Name = "GazeVignette"
+vignette.BackgroundTransparency = 1
+vignette.Size = UDim2.fromScale(1, 1)
+vignette.Visible = false
+vignette.Parent = gui
+local edges = {}
+for i, spec in ipairs({ { 0, 0, 1, 0.22, 90 }, { 0, 0.78, 1, 0.22, -90 }, { 0, 0, 0.18, 1, 0 }, { 0.82, 0, 0.18, 1, 180 } }) do
+	local edge = Instance.new("Frame")
+	edge.Name = "Edge" .. i
+	edge.BorderSizePixel = 0
+	edge.BackgroundColor3 = TELL_COLOR.Gaze
+	edge.Position = UDim2.fromScale(spec[1], spec[2])
+	edge.Size = UDim2.fromScale(spec[3], spec[4])
+	local gradient = Instance.new("UIGradient")
+	gradient.Rotation = spec[5]
+	gradient.Transparency = NumberSequence.new(0, 1)
+	gradient.Parent = edge
+	edge.Parent = vignette
+	table.insert(edges, edge)
+end
+local meter = Instance.new("TextLabel")
+meter.Name = "GazeMeter"
+meter.AnchorPoint = Vector2.new(0.5, 0)
+meter.Position = UDim2.fromScale(0.5, 0.24)
+meter.Size = UDim2.fromScale(0.3, 0.04)
+meter.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
+meter.BackgroundTransparency = 0.3
+meter.TextScaled = true
+meter.Font = Enum.Font.FredokaOne
+meter.TextColor3 = Color3.fromRGB(240, 225, 255)
+-- UI colorida: stroked words in a rounded, outlined meter.
+meter.TextStrokeColor3, meter.TextStrokeTransparency = Color3.fromRGB(16, 18, 34), 0
+Instance.new("UICorner", meter).CornerRadius = UDim.new(0, 8)
+do
+	local edge = Instance.new("UIStroke")
+	edge.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	edge.Color, edge.Thickness = Color3.fromRGB(16, 18, 34), 3
+	edge.Parent = meter
+end
+meter.Visible = false
+meter.Parent = gui
+local meterFill = Instance.new("Frame")
+meterFill.Name = "Fill"
+meterFill.BorderSizePixel = 0
+meterFill.BackgroundColor3 = TELL_COLOR.Gaze
+meterFill.BackgroundTransparency = 0.2
+meterFill.Size = UDim2.fromScale(0, 1)
+meterFill.ZIndex = 0
+meterFill.Parent = meter
+local blur = Instance.new("BlurEffect")
+blur.Name = "WildboundGazeBlur"
+blur.Size = 0
+blur.Enabled = false
+
+-- Lurker's footprints and the stun stars: client-made, short-lived, kept in the view's extras folder.
+local function footprint(view, x, y, z)
+	local mark = Instance.new("Part")
+	mark.Name = "Footprint"
+	mark.Size = Vector3.new(0.7, 0.06, 1)
+	mark.CFrame = CFrame.lookAt(Vector3.new(x, y + 0.05, z), Vector3.new(x + view.dx, y + 0.05, z + view.dz))
+	mark.Color = TELL_COLOR.Lurker
+	mark.Material = Enum.Material.Neon
+	mark.Transparency = 0.35
+	quiet(mark)
+	mark.Parent = view.extras
+	task.delay(6, function() mark:Destroy() end)
+end
+
+local function stars(view, x, y, z, at)
+	view.stars = view.stars or {}
+	for i = 1, 3 do
+		local star = view.stars[i]
+		if not star then
+			star = Instance.new("Part")
+			star.Name = "Star" .. i
+			star.Shape = Enum.PartType.Ball
+			star.Size = Vector3.new(0.6, 0.6, 0.6)
+			star.Color = Color3.fromRGB(255, 240, 150)
+			star.Material = Enum.Material.Neon
+			quiet(star)
+			star.Parent = view.extras
+			view.stars[i] = star
+		end
+		local a = at * 4 + i * math.pi * 2 / 3
+		star.CFrame = CFrame.new(x + math.cos(a) * 1.8, y + 6, z + math.sin(a) * 1.8)
+	end
+end
+
+local function clearStars(view)
+	for _, star in ipairs(view.stars or {}) do star:Destroy() end
+	view.stars = nil
+end
+
+-- Posture per phase (the model keeps its place; the tells stay where the server put them).
+local function posture(view, base, at)
+	local phase = view.phase
+	if phase == "Warn" then
+		local s = reduced() and 0 or 0.12
+		return base * CFrame.new((math.random() - 0.5) * s, -0.2, 0)
+	elseif phase == "ScreamCharge" then
+		return base * CFrame.Angles(math.rad(14), 0, 0)
+	elseif phase == "RushTelegraph" or phase == "LeapWindup" then
+		return base * CFrame.new(0, -0.5, 0.5) * CFrame.Angles(math.rad(-10), 0, 0)
+	elseif phase == "Stunned" or phase == "OverrunStunned" then
+		return base * CFrame.Angles(0, 0, math.rad(22))
+	elseif phase == "Rise" and view.phaseUntil then
+		local left = math.clamp((view.phaseUntil - at) / math.max(view.phaseUntil - view.phaseAt, 1e-3), 0, 1)
+		return base * CFrame.new(0, -5 * left, 0)
+	elseif view.beast == "Gaze" then
+		return base * CFrame.new(0, 1.5 + math.sin(at * 1.2) * 0.4, 0)
+	end
+	return base
+end
+
+local lastObserve = 0
+
 -- Heartbeat, not RenderStepped: it also runs when the window does not render (Studio in the background), so the
 -- beast keeps its place and the warning still clears; the parts are anchored and client-only either way.
 RunService.Heartbeat:Connect(function()
 	local at = serverNow()
+	local exposure, observing = 0, false
 	for _, view in pairs(views) do
 		local x, y, z, dx, dz = placeOf(view, at)
 		if x and view.model then
@@ -357,8 +779,35 @@ RunService.Heartbeat:Connect(function()
 			local base = CFrame.lookAt(Vector3.new(x, y, z), Vector3.new(x, y, z) + look)
 			-- Windup: the body coils back and low; the tells stay where the server put them.
 			if view.mode == "windup" then base *= CFrame.new(0, -0.3, 0.6) * CFrame.Angles(math.rad(-8), 0, 0) end
+			if view.wave2 and not view.rigged then base = posture(view, base, at) end
 			view.model:PivotTo(base)
 		end
+		if view.wave2 then
+			if Config.OBSERVERS[view.beast] then observing = true end
+			if view.beast == "Gaze" then exposure = math.max(exposure, view.exposure or 0) end
+			-- Root's walls rise at their scheduled time and hold this player back on this client only.
+			for _, item in pairs(view.tells) do
+				if item.shape and item.shape.kind == "walls" and not item.raised and item.strikeAt and at >= item.strikeAt then
+					item.raised = true
+					drawShape(item.model, item.shape, TELL_COLOR.Root, true)
+					for _, part in ipairs(item.model:GetChildren()) do
+						if part:GetAttribute("Wall") then part.Material = Enum.Material.Wood end
+					end
+					raiseWalls(item.model)
+					play("creak", rootOf(view), 1.4, 1)
+				end
+			end
+			if x and view.beast == "Lurker" and (view.phase == "Presence" or view.phase == "CoverApproach") then
+				local lastPrint = view.lastPrint
+				if not lastPrint or (Vector3.new(x, 0, z) - lastPrint).Magnitude >= 1.6 then
+					view.lastPrint = Vector3.new(x, 0, z)
+					footprint(view, x, y, z)
+				end
+			end
+			if x and view.stunUntil and at < view.stunUntil then stars(view, x, y, z, at)
+			elseif view.stars then clearStars(view) end
+		end
+		if view.laneSpec and view.lane and not view.laneSpec.locked then drawLane(view) end
 		if view.laneSpec and view.lane and not view.laneSpec.locked then drawLane(view) end
 		if view.circleSpec and view.circle then
 			if not view.circleSpec.frozen then drawCircle(view) end
@@ -370,4 +819,26 @@ RunService.Heartbeat:Connect(function()
 		if view.fadeFrom then fadeModel(view, math.clamp((os.clock() - view.fadeFrom) / 0.9, 0, 1)) end
 	end
 	if warning.Visible and at >= warningUntil then warning.Visible = false end
+	-- Gaze's overlay follows the server's exposure meter (never the local camera).
+	vignette.Visible = exposure > 0.01
+	meter.Visible = exposure > 0.01
+	if exposure > 0.01 then
+		for _, edge in ipairs(edges) do edge.BackgroundTransparency = 1 - 0.55 * exposure end
+		meterFill.Size = UDim2.fromScale(exposure, 1)
+		local words = Text.BEAST.Gaze
+		meter.Text = words and words.meter or ""
+	end
+	local wantBlur = exposure > 0.01 and not reduced()
+	blur.Parent = wantBlur and workspace.CurrentCamera or nil
+	blur.Enabled = wantBlur
+	blur.Size = wantBlur and math.min(GAZE.MaxScreenBlurSize, GAZE.MaxScreenBlurSize * exposure) or 0
+	-- The only message this client sends: the camera's look vector, while it draws a Gaze or a Lurker.
+	if observing and observeEvent and os.clock() - lastObserve >= Sight.SEND_INTERVAL then
+		lastObserve = os.clock()
+		local camera = workspace.CurrentCamera
+		if camera then
+			local v = camera.CFrame.LookVector
+			observeEvent:FireServer({ x = v.X, y = v.Y, z = v.Z })
+		end
+	end
 end)

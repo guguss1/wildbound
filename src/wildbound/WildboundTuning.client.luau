@@ -73,7 +73,7 @@ build = function()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local toggle = button("Ajustes dev", { Name = "Toggle", Size = UDim2.fromOffset(112, 44),
-		Position = UDim2.new(0, 8, 0.4, 0), BackgroundTransparency = 0.15 }, gui)
+		Position = UDim2.new(0, 8, 0.4, 0), BackgroundTransparency = 0.15, Visible = false }, gui)
 	local panel = make("Frame", { Name = "Panel", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 8),
 		Size = UDim2.new(0.92, 0, 1, -16), BackgroundColor3 = PANEL, BackgroundTransparency = 0.06, Visible = false }, gui)
 	corner(panel, 10)

@@ -22,6 +22,8 @@ end
 Species.LOOKS = freeze({
 	Lumipol = { name = "Lumipol", rarity = "Comun", size = { 3, 2, 2.4 }, body = { 121, 202, 160 }, accent = { 81, 151, 117 },
 		eye = { 25, 43, 48 }, glow = { 151, 236, 175 }, rig = nil, asset = nil },
+	LumipolVioleta = { name = "LumipolVioleta", rarity = "Rara", size = { 3, 2, 2.4 }, body = { 175, 70, 255 }, accent = { 125, 45, 210 },
+		eye = { 45, 18, 70 }, glow = { 195, 110, 255 }, tint = { 185, 70, 255 }, rig = nil, asset = nil },
 	Cortezon = { name = "Cortezon", rarity = "Comun", size = { 3.6, 4.0, 2.4 }, body = hexColor("5B4630"), accent = hexColor("7E9440"),
 		eye = hexColor("E8D25A"), glow = hexColor("E8D25A"), rig = "assets/exports/species/SP_Cortezon", asset = nil },
 	Cestillo = { name = "Cestillo", rarity = "Rara", size = { 2.6, 2.8, 4.0 }, body = hexColor("B98E55"), accent = hexColor("7E8C47"),
@@ -33,11 +35,18 @@ Species.LOOKS = freeze({
 })
 -- A cria is this fraction of an adult; the nest glow is teal for a cria and pale gold for an egg (clarity first).
 Species.CRIA_SCALE = 0.55
-Species.NEST_GLOW = freeze({ cria = { 90, 230, 210 }, egg = { 245, 225, 150 } })
+-- User, 2026-11-11: eggs are blue (was pale gold 245, 225, 150).
+Species.NEST_GLOW = freeze({ cria = { 90, 230, 210 }, egg = { 70, 150, 255 } })
+
+-- User, 2026-11-11: "por ahora las criaturas son las Lumipol". While ONLY names a species, every nest, random spawn
+-- and island adult is that species (the server rewrites each slot; look() and byRarity() answer with it). nil restores
+-- every species.
+Species.ONLY = "Lumipol"
 
 -- Random world (RW2): each species' rarity tier; a random spawn of a tier picks one of its species. The order matches
 -- the island reward tiers (Safe and Fog Comun, FogFar Rara, Territory Epica, Heart Legendaria).
 function Species.byRarity(tier)
+	if Species.ONLY then return { Species.ONLY } end
 	local names = {}
 	for name, look in pairs(Species.LOOKS) do
 		if look.rarity == tier then table.insert(names, name) end
@@ -47,6 +56,8 @@ function Species.byRarity(tier)
 end
 
 function Species.look(name)
+	if name == "LumipolVioleta" then return Species.LOOKS.LumipolVioleta end
+	if Species.ONLY then return Species.LOOKS[Species.ONLY] end
 	return type(name) == "string" and Species.LOOKS[name] or Species.LOOKS.Lumipol
 end
 

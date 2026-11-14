@@ -42,14 +42,16 @@ return function(worldSource, serverSource, clientSource)
 		-- Deliberately changed in the chase pass (CP-D2): the hunt keeps its quarry to the give-up distance and the
 		-- pursuit leash (was Rules.CHASE_RANGE, 65); a quarry who hides unseen is lost at once.
 		-- Deliberately changed again by the memory fix (2026-11-09): Hunt and Telegraph read the quarry through
-		-- quarryContext, where anything but legal sight only reads as out of sight; Alert keeps the old sight check.
+		-- quarryContext, where anything but legal sight only reads as out of sight. Changed again on 2026-11-12 (the
+		-- user's Play: an Alert dropped its quarry when a ruin pillar crossed the sight line for one step): Alert reads
+		-- the quarry the same way; a player who hides unseen still breaks it, through Rules.pursuit.
 		has(worldSource, "candidate = quarryContext(h, target)", "hunt and telegraph keep an unseen quarry")
-		has(worldSource, "targetContext(h, target, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)")
+		has(worldSource, "targetContext(h, player, Rules.GIVE_UP_DISTANCE, false, Rules.CHASE_LEASH)", "legal sight is the old check, inside quarryContext")
 		has(worldSource, "candidate.hidden and not candidate.visible", "hiding unseen breaks the chase")
 		-- Chase pass, found in the Play check: during the 2.5 s repeat the giant walked into its quarry and stood inside
 		-- the player. It now holds at half its reach and faces the quarry.
 		has(worldSource, "candidate.distance <= Rules.ATTACK_RANGE * 0.5", "it holds at arm's length")
-		has(worldSource, "Brain.lostSight(brain, last.X, last.Z, now, phase, Rules.clampTerritory)")
+		has(worldSource, "Brain.lostSight(brain, last.X, last.Z, now, phase, searchPoint)")
 	end)
 
 	case("memory fix: the spawn pad, the fog edge, the leash or a floor change never end a hunt early", function()
