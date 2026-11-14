@@ -54,7 +54,26 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 
 ## Checklist
 
-- [ ] PF0 Pull the live lock-zone scripts into the repo, read-only on Studio: WildboundServer, WildboundState, WildboundEggCarry, WildboundBatKnock, WildboundWorldClient and their suites.
+- [x] PF0 Pull the live lock-zone scripts into the repo, read-only on Studio: WildboundServer, WildboundState, WildboundEggCarry, WildboundBatKnock, WildboundWorldClient and their suites.
+  - Route: direct inline (one mechanical sync; no Studio Source written). Studio was in Edit; no Play needed.
+  - Pulled (Studio was ahead; fingerprints after the write, LF, trailing newlines stripped, bytes + Adler-32, repo = Studio):
+    WildboundServer 207073 4f53130b, WildboundState 48395 798a1eea, WildboundEggCarry 14881 7ae344ee,
+    WildboundWorldClient 63600 c6822723, WildboundEggCarry_Test 39209 a9356908, WildboundBat_Test 17721 3432072e,
+    WildboundMechanicsWiring_Test 18689 85aad9da (new in the repo).
+  - Already equal, not rewritten: WildboundBatKnock 7579 ce96d3b6, WildboundBatKnock_Test 7408 b023f099,
+    WildboundTreadmillService 9436 cb93650c, WildboundCreatureToolbar 7221 b56766e2.
+  - `tests/WildboundMechanicsWiring_Test.luau` added to `tools/deploy_manifest.py`, `tools/test_deploy_manifest.py` and the
+    fresh runner's SPECS (`tools/test_studio_fresh_runner.py` and `test_deploy_manifest.py` pass).
+  - Live baseline (fresh loader in Edit, before any PF edit): WildboundBat_Test 13/0; WildboundMechanicsWiring_Test 9 passed,
+    1 failed; WildboundEggCarry_Test 29 passed, 9 failed. The failures are pre-existing Studio drift (multi-egg carry up to
+    the bag capacity, `EggCarry.steal(..., maxCarry)`, STEAL_HOLD 0.5, PICKUP 0.25, the chest calls `Heist.secureAll`); the
+    suites were not re-pinned in PF0.
+  - Live wiring found: `WildboundTreadmillService` is required at server line 3937 and started with `onDismount` (calls
+    `applyCarry`, which restores WalkSpeed because `dismount` clears `mounted` before the callback) and `onLap`
+    (`State:trainByRunning`: +1 walk level up to `Training.live.MAX_LEVEL` and 5 Esencia per lap, sets
+    `WildboundTreadmillBuffUntil` = now + 60). `applyCarry` forces 0 while mounted (line 397). `WildboundCreatureToolbar` is
+    required at line 3969; `syncPlayer` runs on hatch (`stepIncubators`, line 574) and on every new character
+    (`bindCharacter`, deferred, line 3459).
 - [ ] PF1 Backpack:
   - remove the strap and shell from the creature capsule, keeping the invisible model that audio, fear and pose read;
   - put one back pack on the egg carrier;
@@ -84,4 +103,4 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 
 ## Progress
 
-Created 2026-11-14 after the diagnosis. Next step: PF0 (needs Studio in Edit mode).
+Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). Next step: PF1.

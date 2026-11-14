@@ -228,6 +228,15 @@ SPECS["WildboundLumipolWild_Test"] = {
 	"mod:WildboundLumipolWild", "mod:WildboundWorldRules", "src:WildboundLumipolWild", "mod:WildboundRelief",
 	"mod:WildboundReliefLayout",
 }
+SPECS["WildboundMechanicsWiring_Test"] = {
+	{
+		server = "src:WildboundServer", worldServer = "src:WildboundWorld", worldClient = "src:WildboundWorldClient",
+		audio = "src:WildboundAudioClient", record = "src:WildboundRecord", save = "src:WildboundSave",
+		arrulloService = "src:WildboundArrulloService", arrulloClient = "src:WildboundArrulloClient",
+		dodgeService = "src:WildboundDodgeService", tuning = "src:WildboundTuning", text = "mod:WildboundText",
+		schema = "mod:WildboundTuningSchema",
+	},
+}
 SPECS["WildboundOwnership_Test"] = { "mod:WildboundOwnership", "src:WildboundWorld", "src:WildboundWorldGuard" }
 SPECS["WildboundPatrolWiring_Test"] = { "src:WildboundWorld" }
 SPECS["WildboundPersistence_Test"] = {

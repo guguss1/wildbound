@@ -389,7 +389,8 @@ end
 -- A bag item moves to the collection or the bank and pays its Ember. Shared by extraction and capsule.
 local function bankItem(self, player, entry)
 	if entry.kind == "Egg" then
-		table.insert(player.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species })
+		table.insert(player.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species,
+			riskTier = entry.riskTier, rarity = entry.rarity })
 	elseif entry.kind == "Nightbloom" then
 		player.banked.nightbloom += entry.quantity
 	else
@@ -481,6 +482,26 @@ function State:releaseCarried(key)
 	return true, { uid = carried.uid, species = carried.species, tier = carried.riskTier, island = carried.island }
 end
 
+function State:sellDuplicateEggs(key)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local seen, kept, sold, ember = {}, {}, 0, 0
+	for _, egg in ipairs(player.bankedEggs) do
+		if not seen[egg.species] then
+			seen[egg.species] = true
+			table.insert(kept, egg)
+		else
+			sold += 1
+			local payout = math.max(4, self.economy.itemEmber(self.config, egg))
+			ember += payout
+		end
+	end
+	if sold == 0 then return false, "NoDuplicates" end
+	player.bankedEggs = kept
+	player.ember += ember
+	return true, { sold = sold, ember = ember }
+end
+
 function State:hatch(key, uid, alive, distance)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
@@ -509,7 +530,8 @@ function State:incubate(key, uid, alive, distance, now, seconds, slots)
 	if not index then return false, "NotOwnedEgg" end
 	if #incubating(player) >= math.max(1, math.floor(tonumber(slots) or 1)) then return false, "IncubatorFull" end
 	table.remove(player.bankedEggs, index)
-	local entry = { uid = egg.uid, species = egg.species, startedAt = now, readyAt = now + seconds }
+	local entry = { uid = egg.uid, species = egg.species, rarity = egg.rarity, riskTier = egg.riskTier,
+		startedAt = now, readyAt = now + seconds }
 	table.insert(incubating(player), entry)
 	return true, table.clone(entry)
 end
@@ -662,6 +684,29 @@ function State:train(key, kind, alive, distance, cost, maxLevel)
 	levels[kind] = level + 1
 	player.training = levels
 	return true, level + 1
+end
+
+-- Interactive treadmill: running on the belt completes a lap to earn a free walk level (up to maxLevel) + bonus Esencia.
+function State:trainByRunning(key, alive, distance, maxLevel, bonusEmber)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	local levels = player.training or {}
+	local level = levels.walk or 0
+	local cap = type(maxLevel) == "number" and maxLevel or 0
+	local reward = type(bonusEmber) == "number" and bonusEmber > 0 and math.floor(bonusEmber) or 0
+	local leveled = false
+	if level < cap then
+		level += 1
+		levels.walk = level
+		player.training = levels
+		leveled = true
+	end
+	if reward > 0 then
+		player.ember = (player.ember or 0) + reward
+	end
+	return true, { leveled = leveled, level = level, ember = reward }
 end
 
 -- Nest Heist Phase 3 (NS7, user decision 2026-11-10): gloves with rolled stats replace the four IT1 pieces. A
@@ -818,36 +863,42 @@ end
 
 -- Nest Heist (NH5): the egg held in the arms, taken out of the bag. A loose egg belongs to nobody (the server's
 -- EggCarry keeps it for anyone to pick up), so it never goes to `dropped`; a ward never holds it (wards answer defeat).
-local function looseEgg(player)
+-- SistemaSonriente (etapa 1): uid, when given, picks that very egg (the one EggCarry dropped), so with two or more eggs
+-- in the arms the egg on the ground and the entry leaving the bag are the same; an unknown uid falls back to the first.
+local function looseEgg(player, uid)
+	local chosen
 	for index, entry in ipairs(player.pending) do
 		if entry.inArms then
-			table.remove(player.pending, index)
-			entry.protected, entry.wardSource = false, nil
-			return entry
+			if uid == nil or entry.uid == uid then
+				chosen = index
+				break
+			end
+			chosen = chosen or index
 		end
 	end
-	return nil
+	if not chosen then return nil end
+	local entry = table.remove(player.pending, chosen)
+	entry.protected, entry.wardSource = false, nil
+	return entry
 end
 
 -- NH5: a death, a parent's hit or leaving knocks the egg out of the arms. Returns true and a detached copy.
-function State:dropEgg(key)
+-- uid (optional): the bag entry of the egg that fell (EggCarry's egg.uid).
+function State:dropEgg(key, uid)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
-	local entry = looseEgg(player)
+	local entry = looseEgg(player, uid)
 	if not entry then return false, "NotCarrying" end
 	return true, table.clone(entry)
 end
 
--- NH5: anyone alive within 10 studs, with bag and collection room and no egg in the arms, takes a loose egg into the
--- arms. It is not a new catch: it never takes an armed seal.
+-- NH5: anyone alive within 10 studs, with bag and collection room, takes a loose egg into the bag.
+-- It is not a new catch: it never takes an armed seal.
 function State:takeEgg(key, entry, alive, distance)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if not context(alive, distance, 10) then return false, "InvalidContext" end
 	if type(entry) ~= "table" or entry.kind ~= "Egg" or not validId(entry.uid) then return false, "InvalidEncounter" end
-	for _, held in ipairs(player.pending) do
-		if held.inArms then return false, "AlreadyCarrying" end
-	end
 	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
 	table.insert(player.pending, { uid = entry.uid, kind = "Egg", species = entry.species, protected = false,
@@ -1005,6 +1056,8 @@ function State:snapshot(key)
 		sealCharges = player.consumables.seal,
 		carried = table.clone(player.carried), banked = table.clone(player.banked),
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
+		incubatorSlots = self.economy.incubatorSlots(self.config, player.upgrades),
+		hatchSpeedScale = self.economy.hatchSpeedScale(self.config, player.upgrades),
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),
 		sealArmed = player.sealArmed, totemActive = player.totemActive,
 		-- NS7: every glove (detached), the worn one's uid and a copy of it for the effects.

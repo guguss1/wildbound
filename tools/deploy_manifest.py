@@ -287,6 +287,8 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundSiluetaStalk.luau", "ServerScriptService.WildboundSiluetaStalk"),
     ("src/wildbound/WildboundTreadmillService.luau", "ServerScriptService.WildboundTreadmillService"),
     ("src/wildbound/WildboundCreatureToolbar.luau", "ServerScriptService.WildboundCreatureToolbar"),
+    # PF0 (odd/tasks/wildbound-playtest-fixes.md): the new-mechanics wiring suite, pulled from Studio
+    ("tests/WildboundMechanicsWiring_Test.luau", "ServerStorage.WildboundMechanicsWiring_Test"),
     # Studio-to-repo sync: shared modules observed in ReplicatedStorage
     ("src/wildbound/WildboundLumipolAnimData.luau", "ReplicatedStorage.WildboundLumipolAnimData"),
     ("src/wildbound/WildboundLumipolRig.luau", "ReplicatedStorage.WildboundLumipolRig"),

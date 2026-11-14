@@ -88,6 +88,17 @@ local Heist = {}
 -- Nest Heist phase 2 (NP4): the bat rule and its registry ride in the same table.
 Heist.Bat = require(script.Parent:WaitForChild("WildboundBat"))
 Heist.bats = Heist.Bat.new()
+-- Bat knockback (decisions Q4, Q4b; docs/mechanics/wildbound-new-mechanics.md section 3): the cooldown, the ragdoll,
+-- the capped push and the immunity. WildboundBat keeps the hitbox (inReach, pickTarget).
+Heist.Knock = require(script.Parent:WaitForChild("WildboundBatKnock"))
+Heist.knocks = Heist.Knock.new()
+-- SistemaSonriente (etapa 1, odd/tasks/el-sonriente.md S3): external speed modifiers (ragdoll, El Sonriente's carry cap,
+-- slows, stuns) and the server ragdoll (R6/R15) the bat and El Sonriente share. Only applyCarry writes WalkSpeed.
+Heist.Velocidad = require(script.Parent:WaitForChild("SistemaSonriente"):WaitForChild("Velocidad"))
+Heist.Ragdoll = require(script.Parent.SistemaSonriente:WaitForChild("Ragdoll"))
+-- Esquiva perfecta (decision Q3b, section 2): replaces the Burst. One dodge state per player, shared with the world
+-- server (La Silueta's strike) through this module.
+Heist.DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
 local state = State.new(Economy, EconomyConfig)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
@@ -157,6 +168,11 @@ noiseEvent.Name, noiseEvent.Parent = "GuardianNoise", network
 -- Dread pass (D3): the client's sprint intent, "sprint" or "walk". The server owns stamina, stance and WalkSpeed.
 local stanceRemote = Instance.new("RemoteEvent")
 stanceRemote.Name, stanceRemote.Parent = "Stance", network
+-- Q4: a landed bat's push goes to the target's own client, which owns its character's physics. Server to client only:
+-- anything a client sends on it is dropped.
+Heist.knockRemote = Instance.new("RemoteEvent")
+Heist.knockRemote.Name, Heist.knockRemote.Parent = "BatKnock", network
+Heist.knockRemote.OnServerEvent:Connect(function() end)
 network.Parent = ReplicatedStorage
 
 -- Measurement for the capture exit tests. Lives in ServerStorage, so no client can read or change it.
@@ -188,6 +204,10 @@ end
 Heist.Save = require(script.Parent:WaitForChild("WildboundSave"))
 -- Nest Heist Phase 3 (NS5): the treadmill's rule (shared, so the camp screen can word it).
 Heist.Training = require(ReplicatedStorage:WaitForChild("WildboundTraining"))
+-- Arrullo (decision Q2b; which eggs is D10, pending): the rare-egg minigame's sessions, simulated on this server, and
+-- its remote in WildboundNetwork (WildboundArrulloService).
+Heist.Arrullo = require(script.Parent:WaitForChild("WildboundArrulloService"))
+Heist.Arrullo.start(network)
 Heist.joining = {}
 Heist.saves = Heist.Save.start({
 	state = state, record = require(script.Parent:WaitForChild("WildboundRecord")),
@@ -234,7 +254,7 @@ eligibility.OnInvoke = function(player, ability)
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot or not snapshot.equippedUid then return false end
 	for _, pet in ipairs(snapshot.registered) do
-		if pet.uid == snapshot.equippedUid and pet.species == "Lumipol" then return true end
+		if pet.uid == snapshot.equippedUid and (pet.species == "Lumipol" or pet.species == "LumipolVioleta") then return true end
 	end
 	return false
 end
@@ -305,8 +325,9 @@ local function buildCapsule(character, carried)
 	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
 	-- MeshGen1 pass: a Lumipol rides as the user's model, its feet on the base ring, welded to the seat ball (the
 	-- clients animate the seat joint) and hiding it; other species and a missing template keep the primitive.
+	local tint = look.tint and Color3.fromRGB(look.tint[1], look.tint[2], look.tint[3]) or nil
 	local art = Art.uses(look) and lumipolArt.Parent and Art.dress(model, lumipolArt.Parent,
-		creature.CFrame * CFrame.new(0, -creature.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0), Art.CONFIG.CARRIED_HEIGHT)
+		creature.CFrame * CFrame.new(0, -creature.Size.Y / 2, 0) * CFrame.Angles(0, math.pi, 0), Art.CONFIG.CARRIED_HEIGHT, tint)
 	if art then
 		creature.Transparency = 1
 		for _, part in ipairs(art) do
@@ -361,20 +382,22 @@ local function applyCarry(player)
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
 	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
-	-- NS5: trained walk levels, only while unencumbered and never over Training.WALK_CAP (sprint and Burst keep theirs).
+	-- NS5: trained walk levels, only while unencumbered and never over Training.WALK_CAP (sprint keeps its own cap).
 	-- NS7: the worn glove's Velocidad rides on the same rule and cap.
 	speed = Heist.Training.walkSpeed(speed, EconomyConfig.carry.baseSpeed, snapshot.training,
 		Gear.moveBonus(snapshot.glove, EconomyConfig.carry.baseSpeed))
 	record.baseSpeed = speed
 	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
-	-- NH4: a running burst pushes the speed for its 0.8 s (capped, never stacked on the sprint).
-	if record.stamina and Stamina.bursting(record.stamina, workspace:GetServerTimeNow()) then
-		speed = math.max(speed, Stamina.speed(record.baseSpeed, record.stamina.stance, true))
-	end
-	-- NP4: a bat stumble slows the player for a fraction of a second (never faster).
-	speed = Heist.Bat.speed(speed, Heist.bats, player.UserId, workspace:GetServerTimeNow())
+	-- Q3b (replaces the NH4 Burst): a perfect dodge's boost, x1.35 of the current speed for 1 s, capped at 26.
+	speed = Heist.DodgeService.speed(player, speed, workspace:GetServerTimeNow())
+	-- Q4 (was the NP4 stumble): a knocked player is down for the ragdoll and cannot walk.
+	if Heist.Knock.ragdolled(Heist.knocks, player.UserId, workspace:GetServerTimeNow()) then speed = 0 end
+	-- SistemaSonriente: caps, slows and stuns (a server ragdoll is a stun) on top of everything above.
+	speed = Heist.Velocidad.ajustar(player, speed)
+	if Heist.treadmillService and Heist.treadmillService:isMounted(player) then speed = 0 end
 	if humanoid.WalkSpeed ~= speed then humanoid.WalkSpeed = speed end
 end
+Heist.Velocidad.alCambiar(applyCarry)
 -- B4 and B5: set below, once the display spots and the companion are known. Every reply refreshes both.
 local refreshDisplay, syncCompanion
 -- RW3: set with the wave clock below; Esencia a player gains reaches the wave board.
@@ -462,10 +485,22 @@ local function hatch(player, uid, measured)
 	local alive, distance = context(player, incubatorMarker)
 	distance = math.min(distance, measured or (Heist.hub and Heist.hub:distance(player, "WildboundIncubatorStation"))
 		or math.huge)
+	local snapshot = state:snapshot(player.UserId)
+	local slots = math.max(Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)
+	local speedScale = snapshot and snapshot.hatchSpeedScale or 1
+	local eggRarity = "Comun"
+	for _, bankedEgg in ipairs(snapshot and snapshot.bankedEggs or {}) do
+		if bankedEgg.uid == uid then
+			eggRarity = Heist.EggLoop and Heist.EggLoop.rarityOf(bankedEgg, Species.LOOKS) or Species.look(bankedEgg.species).rarity
+			break
+		end
+	end
+	local hatchTime = Incubator.hatchSeconds(eggRarity, Incubator.live.HATCH_SECONDS, speedScale)
 	local ok, result = state:incubate(player.UserId, uid, alive, distance, workspace:GetServerTimeNow(),
-		Incubator.live.HATCH_SECONDS, Incubator.live.SLOTS)
+		hatchTime, slots)
 	local started = ok and Text.INCUBATOR.started:format(math.ceil(result.readyAt - result.startedAt)) or nil
 	reply(player, "Hatch", ok, result, started)
+	if ok and Heist.syncFloorEggs then Heist.syncFloorEggs() end
 end
 -- B8: a seal wards a bag item anywhere while alive (M5.5). It is spent only if it saves the item.
 local function protect(player, uid)
@@ -487,8 +522,8 @@ extractPrompt.Triggered:Connect(function(player)
 	local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
 	if ok then
 		analytics:extracted(player.UserId)
-		-- NH6: the egg in the arms was banked with the bag: Secured, out of the arms.
-		Heist.secure(player)
+		-- NH6: the eggs in the bag/arms were banked: Secured, out of the arms.
+		Heist.secureAll(player)
 		send(player, "Extract", true, extractNotice(count, receipt))
 	elseif count == "Empty" then
 		local snapshot = state:snapshot(player.UserId)
@@ -533,16 +568,18 @@ local function stepIncubators(now)
 	nextHatchAt = now + 1
 	for player in pairs(records) do
 		for _, born in ipairs(state:hatchReady(player.UserId, now)) do
-			-- NS3: a newborn with no companion out follows at once (send rebuilds the companion from the snapshot).
-			if born.equipped then
-				player:SetAttribute("WildboundEquippedUid", born.uid)
-				player:SetAttribute("WildboundHasLumipol", true)
+			player:SetAttribute("WildboundEquippedUid", nil)
+			player:SetAttribute("WildboundHasLumipol", true)
+			if Heist.creatureToolbar then
+				Heist.creatureToolbar:syncPlayer(player, state:snapshot(player.UserId))
 			end
-			local words = born.equipped and Text.INCUBATOR.hatchedEquipped or Text.INCUBATOR.hatched
-			send(player, "Hatched", true, words:format(Text.CARD.species[born.species] or born.species), nil,
+			local spName = Text.CARD.species[born.species] or born.species
+			send(player, "Hatched", true, "¡Tu huevo eclosionó! " .. spName .. " está en tu barra de herramientas.", nil,
 				{ uid = born.uid, species = born.species, ember = 0, isNew = born.isNew, repeated = false })
+			Heist.autoIncubate(player, (context(player)), true)
 		end
 	end
+	if Heist.syncFloorEggs then Heist.syncFloorEggs() end
 end
 local protectionPrompt = prompt(protectionMarker, notices.protectPrompt, notices.protectObject, 12, nil, Keys.CAMP.protect)
 protectionPrompt.Triggered:Connect(function(player)
@@ -583,11 +620,12 @@ local function visual(kind, position, species, scale, height)
 	local model = Instance.new("Model")
 	local bloom = kind == "Nightbloom"
 	local look = Species.look(species)
+	local tint = look.tint and rgb(look.tint) or nil
 	scale = type(scale) == "number" and scale > 0 and scale or 1
 	model.Name = kind == "Egg" and "LumipolEgg" or bloom and "NightbloomBundle" or "Lumipol"
 	local creatureSize = Vector3.new(look.size[1], look.size[2], look.size[3]) * scale
 	local size = kind == "Egg" and Vector3.new(2, 2.8, 2) or bloom and Vector3.new(1.6, 1.6, 1.6) or creatureSize
-	local color = bloom and Color3.fromRGB(150, 110, 230) or kind == "Egg" and species and rgb(Species.NEST_GLOW.egg)
+	local color = bloom and Color3.fromRGB(150, 110, 230) or kind == "Egg" and (tint or (species and rgb(Species.NEST_GLOW.egg)))
 		or rgb(look.body)
 	local lift = kind == "Creature" and size.Y / 2 + 1 or 2
 	local body = block(model, "Body", size, CFrame.new(position + Vector3.new(0, lift, 0)), color, Enum.PartType.Ball)
@@ -595,7 +633,7 @@ local function visual(kind, position, species, scale, height)
 		-- MeshGen1 pass: a Lumipol wears the user's model, its feet on the ground under the ball. The ball stays the
 		-- gameplay body (prompt, light, tags, every move) and is hidden; without the template it keeps its eyes and ears.
 		local dressed = Art.uses(look) and lumipolArt.Parent ~= nil
-			and Art.dress(model, lumipolArt.Parent, CFrame.new(position), height or Art.CONFIG.HEIGHT * scale) ~= nil
+			and Art.dress(model, lumipolArt.Parent, CFrame.new(position), height or Art.CONFIG.HEIGHT * scale, tint) ~= nil
 		if dressed then
 			body.Transparency = 1
 			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
@@ -614,13 +652,13 @@ local function visual(kind, position, species, scale, height)
 		-- the ball stays the gameplay body (prompt, light, rarity tag) and is hidden.
 		local rest = Heist.groundBelow(position.X, position.Y + lift, position.Z, lift + 4)
 		if Art.dress(model, lumipolArt.Egg, CFrame.new(position.X, rest or position.Y + lift - size.Y / 2, position.Z),
-			Art.CONFIG.EGG_HEIGHT) then
+			Art.CONFIG.EGG_HEIGHT, tint) then
 			body.Transparency = 1
 			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
 		end
 	end
 	local light = Instance.new("PointLight")
-	light.Color, light.Brightness, light.Range, light.Parent = rgb(look.glow), 0.7, 10, body
+	light.Color, light.Brightness, light.Range, light.Parent = kind == "Egg" and color or rgb(look.glow), 0.7, 10, body
 	model.PrimaryPart, model.Parent = body, runtime
 	return model, body
 end
@@ -870,6 +908,7 @@ syncCompanion = function(player)
 			part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.Massless = false, false, false, false, true
 			part.CastShadow = false
 			if part ~= body then
+				part.Transparency = 0
 				local joint = Instance.new("WeldConstraint")
 				joint.Part0, joint.Part1, joint.Parent = body, part, part
 			end
@@ -963,9 +1002,12 @@ end
 
 local function nestSlot(island, index, kind)
 	local spec = island.spec
-	local offset = index == 1 and 0 or 3
+	-- User, 2026-11-11: the eggs of one nest lie in a small ring (Island.eggOffset), never on top of each other.
+	local ox, oz = Island.eggOffset(index, Island.nestCount(spec, #Players:GetPlayers()))
 	return { id = spec.id .. ":" .. index, island = spec.id, index = index, kind = kind, tier = spec.tier,
-		rewardTier = spec.rewardTier, species = spec.species, x = spec.x + offset, z = spec.z,
+		rewardTier = spec.rewardTier, species = island.species or spec.species,
+		rarity = (spec.id == "I3" and "Rara") or (spec.id == "I4" and "Epica") or (spec.id == "I5" and "Legendaria") or nil,
+		x = spec.x + ox, z = spec.z + oz,
 		leash = math.max(4, spec.floorRadius - 4) }
 end
 
@@ -978,7 +1020,10 @@ local function poseAdult(adult, awake, x, z, fx, fz, rearing)
 	fx, fz = fx or adult.point.faceX, fz or adult.point.faceZ
 	local at = Vector3.new(x, relief:heightAt(x, z) + adult.lift, z)
 	local frame = CFrame.lookAt(at, at + Vector3.new(fx, 0, fz))
-	if not awake then frame = frame * CFrame.new(0, -adult.lift * 0.35, 0) * CFrame.Angles(0, 0, math.rad(70)) end
+	-- Lumipol rig pass: a rigged guardian ("LumipolRig") lies down through its Sleep animation, so it is not tipped over.
+	if not awake and adult.model:GetAttribute("LumipolRig") ~= true then
+		frame = frame * CFrame.new(0, -adult.lift * 0.35, 0) * CFrame.Angles(0, 0, math.rad(70))
+	end
 	if rearing then frame = frame * CFrame.new(0, adult.lift * 0.5, 0) * CFrame.Angles(math.rad(25), 0, 0) end
 	adult.model:PivotTo(frame)
 	if adult.rearing ~= (rearing == true) then
@@ -1021,6 +1066,7 @@ for _, spec in ipairs(islandLayout.islands) do
 	holder.Name = "Island_" .. spec.id
 	holder:SetAttribute("IslandId", spec.id)
 	local island = { spec = spec, meter = Island.newMeter(spec), adults = {}, pips = {}, model = holder,
+		species = (spec.id == "I3" or spec.id == "I4" or spec.id == "I5") and "LumipolVioleta" or spec.species,
 		wokeAt = nil, chase = nil, level = nil }
 	-- One shared "Zzz" readout over the nest: three pips, pale while asleep, amber when stirring, red when awake.
 	for index = 1, 3 do
@@ -1049,11 +1095,13 @@ for _, spec in ipairs(islandLayout.islands) do
 		bed.Parent = holder
 	end
 	for index, point in ipairs(spec.adultPoints) do
+		-- User, 2026-11-11: one sleeping parent per nest (Island.parentCount); the other points stay empty.
+		if index > Island.parentCount(spec) then break end
 		-- A Lumipol guardian stands on the floor the map really has (the relief model can sit a stud off it).
-		local stand = Art.uses(Species.look(spec.species)) and lumipolArt.Parent
+		local stand = Art.uses(Species.look(island.species)) and lumipolArt.Parent
 			and Heist.groundBelow(point.x, relief:heightAt(point.x, point.z) + 6, point.z, 12)
 		local model = visual("Creature", Vector3.new(point.x, stand or relief:heightAt(point.x, point.z) + MARKER_LIFT,
-			point.z), spec.species, 1, Art.CONFIG.PARENT_HEIGHT)
+			point.z), island.species, 1, Art.CONFIG.PARENT_HEIGHT)
 		if model:GetAttribute(Art.CONFIG.ATTRIBUTE) == true then
 			local tell = Instance.new("Highlight")
 			tell.Name, tell.Enabled, tell.FillTransparency = "SwingTell", false, 0.75
@@ -1096,6 +1144,16 @@ function Heist.secure(player)
 	end
 	return ok and egg or nil
 end
+function Heist.secureAll(player)
+	local secured = EggCarry.secureAll(eggs, player.UserId)
+	if #secured > 0 then
+		for _, egg in ipairs(secured) do
+			islandLog("eggSecured", egg.meta.island or "-", player.UserId)
+		end
+		Heist.syncEggArms(player)
+	end
+	return secured
+end
 function Heist.syncEggArms(player)
 	local EGG_ARMS = "WildboundEggCarried"
 	local record, character = records[player], player.Character
@@ -1109,17 +1167,37 @@ function Heist.syncEggArms(player)
 	if existing then existing:Destroy() end
 	local root = character:FindFirstChild("HumanoidRootPart")
 	if not root or not root:IsA("BasePart") then return end
+	local torso = character:FindFirstChild("UpperTorso") or character:FindFirstChild("Torso")
+	local back = torso and torso:IsA("BasePart") and torso or root
 	local model = Instance.new("Model")
 	model.Name = EGG_ARMS
 	model:SetAttribute("EggId", egg.id)
-	local shell = capsulePart(model, "Egg", Vector3.new(1.2, 1.6, 1.2), Enum.PartType.Ball,
-		RARITY_GLOW[egg.meta.rarity] or rgb(Species.NEST_GLOW.egg), Enum.Material.SmoothPlastic)
+	-- User, 2026-11-11: the stolen egg rides in a small backpack on the back (was in the arms, in front of the chest).
+	-- A brown pack with a flap and two shoulder straps, welded to the upper torso; the egg peeks out of its top.
+	local LEATHER, DARK = Color3.fromRGB(122, 84, 52), Color3.fromRGB(84, 56, 34)
+	local pack = capsulePart(model, "Backpack", Vector3.new(1.5, 1.5, 0.8), Enum.PartType.Block, LEATHER,
+		Enum.Material.Fabric)
+	weld("BackpackHold", back, pack, CFrame.new(0, back == root and 0.6 or -0.05, back.Size.Z / 2 + 0.4))
+	local flap = capsulePart(model, "Flap", Vector3.new(1.56, 0.2, 0.86), Enum.PartType.Block, DARK, Enum.Material.Fabric)
+	weld("FlapJoint", pack, flap, CFrame.new(0, 0.62, 0))
+	local pocket = capsulePart(model, "Pocket", Vector3.new(1, 0.6, 0.2), Enum.PartType.Block, DARK, Enum.Material.Fabric)
+	weld("PocketJoint", pack, pocket, CFrame.new(0, -0.3, 0.48))
+	for _, side in ipairs({ -1, 1 }) do
+		local strap = capsulePart(model, "Strap", Vector3.new(0.22, 0.12, back.Size.Z + 0.9), Enum.PartType.Block, DARK,
+			Enum.Material.Fabric)
+		weld("StrapJoint", pack, strap, CFrame.new(side * 0.45, 0.72, -(back.Size.Z + 0.9) / 2 + 0.4))
+	end
+	-- User, 2026-11-11: every egg is blue (Species.NEST_GLOW.egg).
+	local eggLook = Species.look(egg.meta.species)
+	local eggTint = eggLook.tint and rgb(eggLook.tint) or nil
+	local shell = capsulePart(model, "Egg", Vector3.new(0.9, 1.2, 0.9), Enum.PartType.Ball,
+		eggTint or rgb(Species.NEST_GLOW.egg), Enum.Material.SmoothPlastic)
 	local light = Instance.new("PointLight")
 	light.Color, light.Brightness, light.Range, light.Parent = shell.Color, 0.6, 8, shell
-	weld("EggHold", root, shell, CFrame.new(0, -0.3, -1.4))
+	weld("EggHold", pack, shell, CFrame.new(0, 0.85, 0))
 	-- Lumipol generated model pass: a Lumipol egg rides as the generated egg, welded to the shell it hides.
-	local art = Art.uses(Species.look(egg.meta.species)) and lumipolArt.Egg and Art.dress(model, lumipolArt.Egg,
-		shell.CFrame * CFrame.new(0, -shell.Size.Y / 2, 0), Art.CONFIG.ARMS_EGG_HEIGHT)
+	local art = Art.uses(eggLook) and lumipolArt.Egg and Art.dress(model, lumipolArt.Egg,
+		shell.CFrame * CFrame.new(0, -shell.Size.Y / 2, 0), Art.CONFIG.PACK_EGG_HEIGHT or Art.CONFIG.ARMS_EGG_HEIGHT, eggTint)
 	if art then
 		shell.Transparency = 1
 		for _, part in ipairs(art) do
@@ -1127,7 +1205,7 @@ function Heist.syncEggArms(player)
 			weld("ArtJoint", shell, part, shell.CFrame:ToObjectSpace(part.CFrame))
 		end
 	end
-	model.PrimaryPart, model.Parent = shell, character
+	model.PrimaryPart, model.Parent = pack, character
 end
 local function ensureNests()
 	local count = math.max(1, #Players:GetPlayers())
@@ -1148,8 +1226,12 @@ local function scheduleRespawn(slot)
 		SpawnClock.claim(spawnClock, slot.spawnId, workspace:GetServerTimeNow())
 		return
 	end
-	nestState[slot.id] = "wait"
+	nestState[slot.id] = slot.kind == "Egg" and "wait_night" or "wait"
 	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
+	if slot.kind == "Egg" then
+		-- Eggs restock when the 5-minute Night ends (Heist.stepNightEggReset).
+		return
+	end
 	local generation = nestGen[slot.id]
 	local island = islands[slot.island]
 	local function refill()
@@ -1396,9 +1478,9 @@ local function startWave(event, now)
 	SpawnClock.setWeights(spawnClock, WaveClock.VARIANT_WEIGHTS[variant])
 	network:SetAttribute("BiomeVariant", variant)
 	if event.wave == 1 then
-		local egg = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Egg",
+		local first = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Creature",
 			x = Rules.FIRST_EGG_X, z = Rules.FIRST_EGG_Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
-		if egg then applySpawnActions({ { op = "spawn", spawn = egg } }) end
+		if first then applySpawnActions({ { op = "spawn", spawn = first } }) end
 	else
 		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
 	end
@@ -1411,7 +1493,7 @@ end
 -- EVENT_RADIUS of La Silueta's home, for EVENT_SECONDS, one claimant; every client gets a banner and a distant call.
 local currentEvent, eventSpawn = nil, nil
 local function startEvent(event, now)
-	local spawn = SpawnClock.force(spawnClock, now, rng, { tier = "Legendaria", kind = "Egg", x = Rules.HOME_X,
+	local spawn = SpawnClock.force(spawnClock, now, rng, { tier = "Legendaria", kind = "Creature", x = Rules.HOME_X,
 		z = Rules.HOME_Z, radius = WaveClock.live.EVENT_RADIUS, lifetime = WaveClock.live.EVENT_SECONDS, special = true })
 	if not spawn then return end
 	eventSpawn = spawn
@@ -1439,6 +1521,28 @@ local function stepWaves(now)
 		if event.type == "waveStarted" then startWave(event, now) end
 		if event.type == "eventEnded" then endEvent(event, now) end
 		if event.type == "eventStarted" then startEvent(event, now) end
+	end
+end
+-- Q11 (docs/mechanics/wildbound-new-mechanics.md section 5): the dusk warnings. One WildboundDusk state per server
+-- reads the same cycle the islands read (with the Studio-only Play clock shift), once a second; each warning goes to
+-- every player as a HUD notice on the State remote (no snapshot). The dusk beast buff is the beast script's
+-- (WildboundBeasts reads Dusk.buff); this only warns. In the Heist table: this script is at Luau's local limit.
+Heist.Dusk = require(ReplicatedStorage:WaitForChild("WildboundDusk"))
+Heist.dusk = { state = Heist.Dusk.new(), nextAt = 0 }
+function Heist.stepDusk(now)
+	if now < Heist.dusk.nextAt then return end
+	Heist.dusk.nextAt = now + 1
+	local out = Heist.Dusk.step(Heist.dusk.state, islandCycle())
+	local line = nil
+	if out.enteredDusk then
+		line = Text.DUSK.dusk
+	elseif out.nightSoon then
+		line = Text.DUSK.soon:format(out.seconds or Heist.Dusk.live.NIGHT_SOON)
+	end
+	if not line then return end
+	islandLog(out.enteredDusk and "duskWarned" or "nightSoonWarned", "-", 0)
+	for player in pairs(records) do
+		if player.Parent == Players then stateRemote:FireClient(player, { action = "Dusk", ok = true, notice = line }) end
 	end
 end
 bankEsencia = function(player, amount)
@@ -1519,7 +1623,7 @@ local islandHitDamage = 0
 local probeLethal = {} -- Studio only: the IslandProbe "lethal" op, for the Play check
 local probeEggs = 0 -- Studio only: the IslandProbe "egg" op (NB4)
 local function lethalPlayer(player)
-	if probeLethal[player.UserId] == true then return true end
+	if probeLethal[player.UserId] == true or RunService:IsStudio() then return true end
 	local snapshot = state:snapshot(player.UserId)
 	if not snapshot then return false end
 	local banked = 0
@@ -1532,6 +1636,7 @@ end
 -- A landed adult strike (EI-2, chase pass CP-D5): the thief drops this island's cria and it runs home; the hit hurts
 -- only in the private damage mode and after a paid trip. A death goes through the ordinary defeat flow (Died).
 local function adultHit(island, player)
+	if Heist.DodgeService.invulnerable(player, workspace:GetServerTimeNow()) then return end
 	local snapshot = state:snapshot(player.UserId)
 	local carried = snapshot and snapshot.carrying
 	local root = rootOf(player)
@@ -1549,6 +1654,7 @@ local function adultHit(island, player)
 		local character = player.Character
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		if humanoid and humanoid.Health > 0 then humanoid:TakeDamage(effect.damage) end
+		if records[player] then records[player].lastHitAt = workspace:GetServerTimeNow() end
 		islandHitDamage += effect.damage
 		telemetry:SetAttribute("IslandHitDamage", islandHitDamage)
 	end
@@ -1633,7 +1739,28 @@ local function stepIslands(now, dt)
 			local event = Island.chaseStep(chase.state, dt, live and root.Position.X or nil, live and root.Position.Z or nil)
 			local c = chase.state
 			poseAdult(chase.adult, true, c.x, c.z, c.fx, c.fz, c.mode == "Strike" or c.mode == "Pounce")
-			if event == "WindUp" then send(target, "IslandStrike", false, Text.ISLAND.strike) end
+			if event == "WindUp" then
+				send(target, "IslandStrike", false, Text.ISLAND.strike)
+				-- Q3b: the close swing is a dodgeable telegraph that lands STRIKE_WINDUP (0.8 s) later. The charge is not
+				-- registered: its landing time is not known when its tell starts.
+				Heist.dodgeSerial = (Heist.dodgeSerial or 0) + 1
+				chase.dodgeId = "parent:" .. Heist.dodgeSerial
+				Heist.DodgeService.telegraph(target, chase.dodgeId, "Parent", now, now + Island.live.STRIKE_WINDUP)
+			end
+			-- Q3b: the swing ends here (its hit, its miss, or the chase giving up); a perfect dodge cancels the hit.
+			local dodged = false
+			if chase.dodgeId and event ~= nil and event ~= "WindUp" then
+				if event == "Hit" then
+					dodged = Heist.DodgeService.resolve(target, chase.dodgeId, now) == "Dodged"
+				else
+					Heist.DodgeService.cancel(target, chase.dodgeId)
+				end
+				chase.dodgeId = nil
+			end
+			if dodged then
+				islandLog("swingDodged", spec.id, target.UserId)
+				event = "Missed"
+			end
 			-- NH3 (was the FP5b pounce): the charge's 0.8 s tell is the same rearing pose and crack as a swing, plus a
 			-- warning; the dash hits like a swing (below); a miss leaves the adult exposed for a moment.
 			if event == "PounceWindUp" then send(target, "IslandPounce", false, Text.ISLAND.pounce) end
@@ -1850,6 +1977,12 @@ end
 
 spawnEncounter = function(slot)
 	if not slot or runtime.Parent ~= map then return end
+	-- Violet Lumipols represent rare+ tiers (Rara, Epica, Legendaria); common stays green Lumipol.
+	if slot.wild and (slot.rarity == "Rara" or slot.rarity == "Epica" or slot.rarity == "Legendaria") then
+		slot.species = "LumipolVioleta"
+	elseif Species.ONLY and slot.species ~= "LumipolVioleta" then
+		slot.species = Species.ONLY
+	end
 	serial += 1
 	local id = slot.kind .. ":" .. serial
 	if not state:registerEncounter(id, slot.kind) then return end
@@ -1879,12 +2012,17 @@ spawnEncounter = function(slot)
 		label.Parent = tag
 		tag.Parent = body
 		local light = body:FindFirstChildOfClass("PointLight")
-		if light and slot.wild then light.Color = RARITY_GLOW[rarity] or light.Color end
+		if light and slot.wild and not isEgg then light.Color = RARITY_GLOW[rarity] or light.Color end
 	end
+	-- Q2b (D10 pending): a rare egg (Heist.Arrullo.EGGS) opens the Arrullo instead of the steal hold, so its prompt has
+	-- no hold and no glove steal bonus; every other egg keeps the NH1 hold.
+	entry.arrullo = isEgg and Heist.Arrullo.qualifies(rarity, slot.special)
+	-- SistemaSonriente (odd/tasks/el-sonriente.md L32): the Huevo Sonriente can ask for the plain steal hold instead.
+	if slot.sinArrullo then entry.arrullo = false end
 	entry.prompt = prompt(body, isEgg and Text.ISLAND.takeEgg or Text.ISLAND.takeCria, speciesName, 10,
-		isEgg and EggCarry.holdFor(rarity, slot.special) or 0)
+		isEgg and not entry.arrullo and EggCarry.holdFor(rarity, slot.special) or 0)
 	-- NS7: each client shortens its own copy of a steal hold by its glove's "Robo rápido" (WildboundGloveSteal).
-	if isEgg then entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration) end
+	if isEgg and not entry.arrullo then entry.prompt:SetAttribute("WildboundStealHold", entry.prompt.HoldDuration) end
 	-- NH8: who is holding this prompt right now (the spawn clock holds the spawn meanwhile). Gone with the model.
 	entry.holders = {}
 	-- HB-T7: and each player's own hold as the server saw it (when it began, when it was released), for the steal check.
@@ -1917,27 +2055,16 @@ spawnEncounter = function(slot)
 			special = slot.special == true })
 	end
 	if slot.wild then wildEntries[slot.spawnId] = id else nestState[slot.id] = id end
-	-- NH5: one path for the prompt and the Studio-only HeistProbe.
-	entry.trigger = function(player)
-		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
-		if isEgg then
-			if not allowed(player, "Pickup") then return end
-			-- HB-T7: the hold is measured here, never trusted from the client: this player's effective hold (the glove's
-			-- Robo rápido this server wrote, never under the floor), less a small latency allowance.
-			local need = Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),
-				{ stats = { steal = player:GetAttribute("WildboundGloveSteal") or 0 } }, Gear.CONSTANTS.STEAL_FLOOR)
-			if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then
-				send(player, "Pickup", false, Text.EGG.holdLonger)
-				return
-			end
-			entry.holdStarts[player] = nil
+	-- Q2b: the steal itself, after the hold (a normal egg) or a won Arrullo (a rare one). It re-checks everything.
+	entry.claimEgg = function(player)
+		if entries[id] ~= entry or model.Parent ~= runtime or player.Parent ~= Players then return end
+		do
+			-- User, 2026-11-11: awake parents never lock the nest; they chase the thief instead (no "guarded" wait).
 			local island = slot.island and islands[slot.island]
-			if island and not Island.nestOpen(island.meter) then
-				send(player, "Pickup", false, Text.ISLAND.guarded)
-				return
-			end
-			-- NH2: one egg in the arms at a time, and only an egg still in its nest.
-			local free, why = EggCarry.canSteal(eggs, id, player.UserId)
+			-- NH2: carry multiple eggs up to the player's bag capacity.
+			local snap = state:snapshot(player.UserId)
+			local maxCarry = Economy.bagCapacity(EconomyConfig, snap and snap.upgrades or nil)
+			local free, why = EggCarry.canSteal(eggs, id, player.UserId, maxCarry)
 			if not free then
 				if why == "AlreadyCarrying" then send(player, "Pickup", false, Text.EGG.already) end
 				return
@@ -1946,7 +2073,7 @@ spawnEncounter = function(slot)
 			local ok, reason = state:pickup(player.UserId, id, alive, distance, { species = slot.species or "Lumipol",
 				tier = slot.rewardTier or "Territory", island = slot.island, arms = true })
 			if ok then
-				EggCarry.steal(eggs, id, player.UserId, reason)
+				EggCarry.steal(eggs, id, player.UserId, reason, maxCarry)
 				Heist.syncEggArms(player)
 				analytics:gain(player.UserId, "pickup")
 				removeEntry(entry)
@@ -1957,6 +2084,65 @@ spawnEncounter = function(slot)
 				if island and Island.event(island.meter, "EggTaken").woke then wakeIsland(island, workspace:GetServerTimeNow()) end
 			end
 			reply(player, "Pickup", ok, reason, Text.EGG.stolen)
+		end
+	end
+	-- NH5: one path for the prompt and the Studio-only HeistProbe.
+	entry.trigger = function(player)
+		if entries[id] ~= entry or model.Parent ~= runtime or not validPrompt(entry.prompt, body) then return end
+		if isEgg then
+			if not allowed(player, "Pickup") then return end
+			if entry.arrullo then
+				-- Q2b: a rare egg opens the Arrullo (server-simulated; the client sends only "hold" or "release"). It lasts
+				-- while the egg is still in its nest and the thief alive and in the prompt's reach (+2). A win steals it
+				-- through claimEgg; a loss works like a failed capture ring: ring noise and a mistake on the island meter.
+				if Heist.Arrullo.active(player) then return end
+				local free, why = EggCarry.canSteal(eggs, id, player.UserId)
+				if not free then
+					if why == "AlreadyCarrying" then send(player, "Pickup", false, Text.EGG.already) end
+					return
+				end
+				-- The steal (State:pickup) accepts 10 studs at most, so the session keeps the prompt's own reach.
+				local reach = math.min(entry.prompt.MaxActivationDistance, 10)
+				local started = Heist.Arrullo.begin(player, { rarity = rarity, special = slot.special == true,
+					now = workspace:GetServerTimeNow(), seed = rng:NextInteger(1, 2147483646),
+					-- true while it goes on; "far" (walking away is a loss, like leaving a capture ring) or false (the egg
+					-- is gone or the thief died: cancelled, no penalty).
+					valid = function()
+						if entries[id] ~= entry or model.Parent ~= runtime then return false end
+						local alive, distance = context(player, body)
+						if alive ~= true then return false end
+						return distance <= reach or "far"
+					end,
+					onEnd = function(status, reason)
+						if status == "won" then
+							send(player, "Arrullo", true, Text.ARRULLO.won)
+							entry.claimEgg(player)
+						elseif status == "lost" then
+							local at = body.Position
+							noiseEvent:Fire("ring", slot.tier or "Fog", at.X, at.Z)
+							local island = slot.island and islands[slot.island]
+							if island then
+								local snapshot = state:snapshot(player.UserId)
+								local result = Island.event(island.meter, "Failed", { firstSteal = snapshot ~= nil
+									and #snapshot.registered == 0 and snapshot.carrying == nil })
+								if result.woke then wakeIsland(island, workspace:GetServerTimeNow()) end
+							end
+							send(player, "Arrullo", false, reason == "Timeout" and Text.ARRULLO.timeout or Text.ARRULLO.lost)
+						end
+					end })
+				if started then send(player, "Arrullo", true, Text.ARRULLO.hint) end
+				return
+			end
+			-- HB-T7: the hold is measured here, never trusted from the client: this player's effective hold (the glove's
+			-- Robo rápido this server wrote, never under the floor), less a small latency allowance.
+			local need = Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),
+				{ stats = { steal = player:GetAttribute("WildboundGloveSteal") or 0 } }, Gear.CONSTANTS.STEAL_FLOOR)
+			if not EggCarry.holdComplete(entry.holdStarts[player], workspace:GetServerTimeNow(), need) then
+				send(player, "Pickup", false, Text.EGG.holdLonger)
+				return
+			end
+			entry.holdStarts[player] = nil
+			entry.claimEgg(player)
 		else
 			if not allowed(player, "CaptureStart") then return end
 			startCapture(player, entry)
@@ -2065,6 +2251,9 @@ do
 	beastHit.OnInvoke = function(player, beast, damage)
 		if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or type(beast) ~= "string"
 			or not Rules.finite(damage) or damage < 0 or damage > 100 then return nil end
+		if Heist.DodgeService.invulnerable(player, workspace:GetServerTimeNow()) then
+			return { eggDropped = false, damage = 0, dodged = true }
+		end
 		local eggDropped = Heist.dropEgg(player, "Hit") ~= nil
 		local hurt = 0
 		if damageMode == "private" and lethalPlayer(player) then
@@ -2072,6 +2261,7 @@ do
 			if humanoid and humanoid.Health > 0 then
 				humanoid:TakeDamage(damage)
 				hurt = damage
+				if records[player] then records[player].lastHitAt = workspace:GetServerTimeNow() end
 			end
 		end
 		telemetry:SetAttribute("BeastHitDamage", (telemetry:GetAttribute("BeastHitDamage") or 0) + hurt)
@@ -2140,6 +2330,8 @@ end
 function Heist.dropEgg(player, reason, loose, from)
 	local egg = EggCarry.carriedBy(eggs, player.UserId)
 	if not egg then return nil end
+	-- SistemaSonriente (etapa 1): the bag entry of this very egg; EggCarry.drop clears egg.uid, so it is read first.
+	local uid = egg.uid
 	local character = from or player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local now = workspace:GetServerTimeNow()
@@ -2147,7 +2339,7 @@ function Heist.dropEgg(player, reason, loose, from)
 		-- No body left to drop it from: the egg is lost at once (it fades on the next step).
 		if EggCarry.drop(eggs, player.UserId, reason, now) then
 			egg.expireAt = now
-			if not loose then state:dropEgg(player.UserId) end
+			if not loose then state:dropEgg(player.UserId, uid) end
 		end
 		return nil
 	end
@@ -2160,7 +2352,7 @@ function Heist.dropEgg(player, reason, loose, from)
 	end
 	local entry = loose
 	if not entry then
-		local ok, detached = state:dropEgg(player.UserId)
+		local ok, detached = state:dropEgg(player.UserId, uid)
 		entry = ok and detached or nil
 	end
 	egg.entry = entry or { uid = "loose:" .. egg.id, kind = "Egg", species = egg.meta.species or "Lumipol",
@@ -2188,6 +2380,102 @@ function Heist.dropEgg(player, reason, loose, from)
 	applyCarry(player)
 	return egg
 end
+-- SistemaSonriente (etapa 1, odd/tasks/el-sonriente.md S3): a death, a replaced character or leaving empties the arms
+-- (before, only the newest egg fell and the rest stayed "Carried" by a defeated or gone player). Each egg goes through
+-- the one drop path; from the second on they are spread around the first so they do not overlap. A refused drop (a safe
+-- zone keeps a "Hit" egg in the arms) ends the loop. Returns the list of eggs that landed.
+function Heist.dropAllEggs(player, reason, from)
+	local landed = {}
+	for _ = 1, 64 do
+		local before = EggCarry.carriedBy(eggs, player.UserId)
+		if not before then break end
+		local egg = Heist.dropEgg(player, reason, nil, from)
+		if EggCarry.carriedBy(eggs, player.UserId) == before then break end
+		if egg then
+			table.insert(landed, egg)
+			local first = landed[1]
+			if #landed > 1 and egg.model and first.body then
+				local angle = (#landed - 1) * 2.4
+				local target = first.body.Position + Vector3.new(math.cos(angle) * 2.5, 0, math.sin(angle) * 2.5)
+				local at = egg.body and egg.body.Position or target
+				egg.model:PivotTo(egg.model:GetPivot() + Vector3.new(target.X - at.X, 0, target.Z - at.Z))
+			end
+		end
+	end
+	return landed
+end
+-- SistemaSonriente (etapa 2, odd/tasks/el-sonriente.md S4): the bridge for the Huevo Sonriente. The egg is a real nest
+-- egg (spawnEncounter: bag, Arrullo, delivery, hatching) with a home nest: it never fades, it goes back to its nest. The
+-- module calls only these functions; their rules are this script's own paths.
+Heist.Sonriente = require(script.Parent:WaitForChild("SistemaSonriente"):WaitForChild("InterfazHuevos"))
+Heist.Sonriente.conectar({
+	crear = function(p)
+		if type(p) ~= "table" or not Rules.finite(p.x) or not Rules.finite(p.y) or not Rules.finite(p.z) then return nil end
+		local slot = { id = "SistemaSonriente:" .. tostring(p.nombre or "Nido"), kind = "Egg", x = p.x, z = p.z,
+			height = p.y - 0.6 - groundAt(p.x, p.z), species = p.especie, rarity = p.rareza, rewardTier = p.nivel,
+			sonriente = true, sinArrullo = p.sinArrullo == true }
+		spawnEncounter(slot)
+		local id = nestState[slot.id]
+		local entry = type(id) == "string" and entries[id] or nil
+		local egg = entry and EggCarry.get(eggs, id)
+		if not egg then return nil end
+		egg.meta.home, egg.meta.dropSeconds = true, Rules.finite(p.segundosEnPiso) and p.segundosEnPiso or nil
+		return id, entry.model, entry.prompt
+	end,
+	estado = function(id)
+		local egg = EggCarry.get(eggs, id)
+		if not egg then return nil end
+		local entry = entries[id]
+		local home = egg.state == "InNest" and entry
+		return { estado = egg.state, portador = egg.carrier and playersByUserId[egg.carrier] or nil,
+			ultimo = egg.lastCarrier and playersByUserId[egg.lastCarrier] or nil,
+			modelo = home and entry.model or egg.model, cuerpo = home and entry.body or egg.body }
+	end,
+	soltar = function(player, motivo, id)
+		if typeof(player) ~= "Instance" or not player:IsA("Player") or not EggCarry.DROP_REASONS[motivo] then return false end
+		-- That very egg falls: it goes last in the arms, where EggCarry.drop takes it from.
+		local ids = eggs.carriers[player.UserId]
+		if id ~= nil and type(ids) == "table" then
+			for index = #ids, 1, -1 do
+				if ids[index] == id then
+					table.insert(ids, table.remove(ids, index))
+					break
+				end
+			end
+		end
+		return Heist.dropEgg(player, motivo) ~= nil
+	end,
+	devolver = function(id)
+		local egg = EggCarry.get(eggs, id)
+		if not egg then return true end
+		if egg.state == "Carried" then
+			local player = playersByUserId[egg.carrier]
+			if player then
+				Heist.Sonriente.soltar(player, "Void", id)
+			else
+				EggCarry.drop(eggs, egg.carrier, "Void", workspace:GetServerTimeNow())
+			end
+		elseif egg.state == "InNest" then
+			if entries[id] then removeEntry(entries[id]) end
+			return EggCarry.get(eggs, id) == nil
+		end
+		Heist.clearDroppedEgg(egg)
+		return (EggCarry.recover(eggs, id))
+	end,
+	-- Studio only (Play checks): a steal without the Arrullo, and a delivery like the base chest's.
+	reclamar = RunService:IsStudio() and function(player, id)
+		local entry = entries[id]
+		if not entry or not entry.claimEgg then return false end
+		entry.claimEgg(player)
+		local egg = EggCarry.get(eggs, id)
+		return egg ~= nil and egg.state == "Carried"
+	end or nil,
+	entregar = RunService:IsStudio() and function(player)
+		local ok = state:extract(player.UserId, (context(player)), 0, workspace:GetServerTimeNow())
+		if ok then Heist.secureAll(player) end
+		return ok
+	end or nil,
+})
 function Heist.stepEggs(now)
 	for _, action in ipairs(EggCarry.step(eggs, now)) do
 		local egg = action.egg
@@ -2199,6 +2487,9 @@ function Heist.stepEggs(now)
 			local owner = playersByUserId[egg.lastCarrier]
 			if owner then send(owner, "EggGone", false, Text.EGG.gone) end
 		elseif action.op == "remove" then
+			Heist.clearDroppedEgg(egg)
+		elseif action.op == "return" then
+			-- SistemaSonriente (etapa 2): a home egg's time on the ground is up; its nest makes a new one.
 			Heist.clearDroppedEgg(egg)
 		end
 	end
@@ -2718,8 +3009,14 @@ RunService.Heartbeat:Connect(function(dt)
 	stepIslands(now, stepSeconds)
 	Heist.stepEggs(now)
 	stepWaves(now)
+	-- Q11: the dusk warnings.
+	Heist.stepDusk(now)
+	if Heist.stepNightEggReset then Heist.stepNightEggReset(now) end
+	-- Q3b: telegraphs nobody resolved are dropped.
+	Heist.DodgeService.prune(now)
 	stepSpawnClock(now)
 	updateCarryMoods(now)
+	if Heist.stepHealth then Heist.stepHealth(now, stepSeconds) end
 	-- Expedition boundaries (M5.2): leaving the camp circle opens one. Tracking only, never a grant.
 	local campX, campZ = campCenter.Position.X, campCenter.Position.Z
 	for player in pairs(records) do
@@ -2814,6 +3111,7 @@ end
 actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	if type(action) ~= "string" or #action > 32 or select("#", ...) > 0 then return end
 	if action ~= "RequestSnapshot" and action ~= "Equip" and action ~= "Unequip" and action ~= "Protect" and action ~= "Hatch"
+		and action ~= "DepositEggs" and action ~= "HatchAll" and action ~= "SellDuplicateEggs"
 		and action ~= "CaptureCancel" and action ~= "CaptureSeal" and not ECONOMY_ACTIONS[action] then return end
 	if action == "RequestSnapshot" then
 		if uid ~= nil or not allowed(player, action) then return end
@@ -2839,6 +3137,48 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	end
 	if ECONOMY_ACTIONS[action] then economyAction(player, action, uid)
 	elseif action == "Hatch" then hatch(player, uid)
+	elseif action == "DepositEggs" then
+		local alive, campDist = context(player, extraction)
+		local hubDist = (Heist.hub and Heist.hub:distance(player, "WildboundDeliveryStation")) or math.huge
+		local incDist = (Heist.hub and Heist.hub:distance(player, "WildboundIncubatorStation")) or math.huge
+		local distance = math.min(campDist, hubDist, incDist)
+		if distance <= 20 then distance = math.min(distance, 12) end
+		local ok, count, receipt = state:extract(player.UserId, alive, distance, workspace:GetServerTimeNow())
+		if ok then
+			analytics:extracted(player.UserId)
+			Heist.secureAll(player)
+			send(player, "Extract", true, extractNotice(count, receipt))
+		else
+			reply(player, "Extract", false, count)
+		end
+	elseif action == "HatchAll" then
+		local _, campIncDist = context(player, incubatorMarker)
+		local hubIncDist = (Heist.hub and Heist.hub:distance(player, "WildboundIncubatorStation")) or math.huge
+		local measured = math.min(campIncDist, hubIncDist)
+		local snapshot = state:snapshot(player.UserId)
+		local slots = math.max(Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)
+		local started = 0
+		for _ = 1, slots do
+			local current = state:snapshot(player.UserId)
+			if not current or #current.incubating >= slots or #current.bankedEggs == 0 then break end
+			hatch(player, current.bankedEggs[1].uid, measured)
+			started += 1
+		end
+		if started == 0 then send(player, "Hatch", false, Text.INCUBATOR.noEgg) end
+	elseif action == "SellDuplicateEggs" then
+		local alive, campDist = context(player, extraction)
+		local hubDist = (Heist.hub and Heist.hub:distance(player, "WildboundDeliveryStation")) or math.huge
+		local incDist = (Heist.hub and Heist.hub:distance(player, "WildboundIncubatorStation")) or math.huge
+		if not alive or math.min(campDist, hubDist, incDist) > 20 then
+			send(player, "SellDuplicateEggs", false, Text.CAMP.tooFar or "Acércate al campamento o a tu base.")
+			return
+		end
+		local ok, result = state:sellDuplicateEggs(player.UserId)
+		if ok then
+			send(player, "SellDuplicateEggs", true, Text.BAG.soldDuplicates:format(result.sold, result.ember))
+		else
+			send(player, "SellDuplicateEggs", false, Text.BAG.noDuplicates)
+		end
 	elseif action == "Protect" then protect(player, uid)
 	elseif action == "Unequip" then
 		-- NS4: only the companion that is out can be stored; the uid is checked against the server's own state.
@@ -2870,26 +3210,37 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 	end
 end)
 
--- Nest Heist (NH4): the Burst. The rule owns the cooldown; nothing burst-related is read from the client but the word.
--- The speed goes through applyCarry (WalkSpeed, so the player's own move direction steers it); no invulnerability.
--- The puff is made here, so every player sees it; every audio client plays the scuff when WildboundBurstReady changes
--- (this server makes no sounds, delivery B).
-function Heist.burst(player, record, now)
+-- Esquiva perfecta (decision Q3b; replaces the NH4 Burst). The client sends only the word "dodge"; the pure rule judges
+-- the press by this server's clock against the telegraphs registered for this player (the parents' close swing here,
+-- La Silueta's strike in the world server). A perfect press cancels those hits (each attack asks DodgeService.resolve
+-- before it lands) and gives a 1 s boost through applyCarry; an early, late or empty press only starts the cooldown.
+-- Blocked while hidden, capturing (the ring or the Arrullo), ragdolled or dead. No invulnerability. The puff is made
+-- here, so every player sees it; every audio client plays the scuff when WildboundDodgeBoost moves on.
+function Heist.dodge(player, record, now)
 	local root = rootOf(player)
-	local capturing = false
+	local capturing = Heist.Arrullo ~= nil and Heist.Arrullo.active(player)
 	for _, session in ipairs(capture:activeSessions()) do
 		if session.playerKey == player.UserId then capturing = true end
 	end
 	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
-	-- NS7: the worn glove's "Recarga de impulso" shortens the cooldown (the rule keeps at least half of it).
-	local glove = (state:snapshot(player.UserId) or {}).glove
-	local ok = Stamina.burst(record.stamina, now, { blocked = root == nil or context(player) ~= true or capturing or hidden,
-		cooldownScale = Gear.burstScale(glove) })
-	if not ok or not root then return end
-	applyCarry(player)
-	player:SetAttribute("WildboundBurstReady", record.stamina.burstReadyAt)
+	local blocked = root == nil or record == nil or context(player) ~= true or capturing or hidden
+		or Heist.Knock.ragdolled(Heist.knocks, player.UserId, now)
+	local verdict = Heist.DodgeService.press(player, now, blocked)
+	if verdict ~= "Perfect" and verdict ~= "Early" and verdict ~= "Late" and verdict ~= "Whiff" then return end
+	if not root then return end
+	if verdict == "Early" then
+		send(player, "Dodge", false, Text.DODGE.early)
+	elseif verdict == "Late" then
+		send(player, "Dodge", false, Text.DODGE.late)
+	elseif verdict == "Perfect" then
+		islandLog("dodged", "-", player.UserId)
+		send(player, "Dodge", true, Text.DODGE.perfect)
+		task.delay(Heist.DodgeService.Dodge.live.BOOST_SECONDS + 0.05, function()
+			if records[player] then applyCarry(player) end
+		end)
+	end
 	local attachment = Instance.new("Attachment")
-	attachment.Name = "WildboundBurst"
+	attachment.Name = "WildboundDodge"
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Rate, emitter.Lifetime, emitter.Speed = 0, NumberRange.new(0.3, 0.6), NumberRange.new(6, 10)
 	emitter.SpreadAngle, emitter.LightEmission = Vector2.new(180, 30), 0.5
@@ -2897,7 +3248,7 @@ function Heist.burst(player, record, now)
 	emitter.Color = ColorSequence.new(Color3.fromRGB(225, 235, 210))
 	emitter.Parent = attachment
 	attachment.Parent = root
-	emitter:Emit(16)
+	emitter:Emit(verdict == "Perfect" and 16 or 8)
 	task.delay(2, function() attachment:Destroy() end)
 end
 
@@ -2932,12 +3283,20 @@ function Heist.batClear(from, to)
 	local a, b = from.Position + Vector3.new(0, 1, 0), to.Position + Vector3.new(0, 1, 0)
 	return workspace:Raycast(a, b - a, Heist.batParams) == nil
 end
--- A swing. The client sends only the word; the server checks the rule's cooldown, the safe zones and the attacker's
--- state, then picks the target from its own positions and facing (reach, angle, height) and a line-of-sight ray. A
--- carrier hit stumbles and drops the egg for anyone (the attacker gets nothing for it); anyone else only taps; an
--- immune target is untouched. No damage. The parents and La Silueta keep acting as before.
+-- Q4: the knock rule's safe zones, the hub disc (with every base inside it) and the camp circle, read live from the
+-- shared rules. Rules.zone (which also knows the shelter and the Refugios) is checked first on both sides.
+function Heist.knockZones()
+	return { { x = Rules.HUB_X, z = Rules.HUB_Z, radius = Rules.HUB_RADIUS },
+		{ x = Rules.CAMP_X, z = Rules.CAMP_Z, radius = Rules.CAMP_RADIUS } }
+end
+-- A swing. The client sends only the word; the server checks the knock rule's cooldown (5 s, spent on a miss too), the
+-- safe zones and the attacker's state, then picks the target from its own positions and facing (WildboundBat's reach,
+-- angle, height) and a line-of-sight ray. Q4 and Q4b (WildboundBatKnock): a landed hit ragdolls the target 1.2 s,
+-- pushes them away from the attacker (capped so the flight never passes 24 studs), drops a carried egg for anyone
+-- (the attacker gets nothing for it) and starts a 3 s immunity; an immune target is untouched. No damage. The push is
+-- applied by the target's own client (it owns its character); the server rechecks the travel afterwards.
 function Heist.swingBat(player, record, now)
-	local Bat = Heist.Bat
+	local Bat, Knock = Heist.Bat, Heist.Knock
 	local root = rootOf(player)
 	local capturing = false
 	for _, session in ipairs(capture:activeSessions()) do
@@ -2946,8 +3305,12 @@ function Heist.swingBat(player, record, now)
 	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
 	local at = root and root.Position
 	local safe = at ~= nil and select(2, Rules.zone(at.X, at.Z)) == true
-	local ok, readyAt = Bat.swing(Heist.bats, player.UserId, now,
-		{ alive = root ~= nil and record ~= nil and context(player) == true, safe = safe, busy = capturing or hidden })
+	local ok, readyAt = false, "SafeZone"
+	if not safe then
+		ok, readyAt = Knock.swing(Heist.knocks, player.UserId, now, { alive = root ~= nil and record ~= nil
+			and context(player) == true, busy = capturing or hidden, x = at and at.X, z = at and at.Z,
+			zones = Heist.knockZones() })
+	end
 	if not ok then
 		if readyAt == "SafeZone" and allowed(player, "BatRefused") then send(player, "Bat", false, Text.BAT.safe) end
 		return
@@ -2969,17 +3332,35 @@ function Heist.swingBat(player, record, now)
 	local target = Bat.pickTarget(from, candidates, function(candidate) return Heist.batClear(root, candidate.root) end)
 	if not target then return end
 	local victim = target.player
-	local effect = Bat.hit(Heist.bats, target.key, now, EggCarry.carriedBy(eggs, target.key) ~= nil)
-	islandLog(effect.immune and "batBlocked" or "batHit", "-", target.key)
-	if effect.immune then
-		send(player, "Bat", false, Text.BAT.immune)
+	local effect = Knock.knock(Heist.knocks, from, target.key, { x = target.x, y = target.y, z = target.z }, now,
+		{ carrying = EggCarry.carriedBy(eggs, target.key) ~= nil, zones = Heist.knockZones() })
+	islandLog(effect.landed and "batHit" or "batBlocked", "-", target.key)
+	if not effect.landed then
+		if effect.reason == "Immune" then send(player, "Bat", false, Text.BAT.immune) end
 		return
 	end
 	local dropped = effect.drop and Heist.dropEgg(victim, "Bat") ~= nil
 	victim:SetAttribute("WildboundBatHit", now)
+	victim:SetAttribute("WildboundRagdollUntil", effect.ragdollUntil)
+	-- SistemaSonriente (etapa 1): the server ragdolls the target (R6/R15, server-owned while down) and applies the push
+	-- (already capped by the rule); the remote only tells the target's client it was hit.
+	local push = effect.impulse
+	Heist.Ragdoll.aplicar(victim, effect.ragdoll, Vector3.new(push.x, push.y, push.z))
+	Heist.knockRemote:FireClient(victim, { x = push.x, y = push.y, z = push.z, ragdoll = effect.ragdoll })
 	applyCarry(victim)
-	task.delay(effect.stumble + 0.05, function()
-		if records[victim] then applyCarry(victim) end
+	local hitAt, hitRoot = target.root.Position, target.root
+	task.delay(effect.ragdoll + 0.05, function()
+		if not records[victim] then return end
+		applyCarry(victim)
+		-- The server rechecks the travel: a body farther than MAX_FLIGHT + 10 studs (flat) from where it was hit goes back.
+		local nowRoot = rootOf(victim)
+		if nowRoot and nowRoot == hitRoot and nowRoot.Parent then
+			local moved = Vector3.new(nowRoot.Position.X - hitAt.X, 0, nowRoot.Position.Z - hitAt.Z).Magnitude
+			if moved > Knock.MAX_FLIGHT + 10 then
+				nowRoot.Parent:PivotTo(CFrame.new(hitAt + Vector3.new(0, 3, 0)) * nowRoot.CFrame.Rotation)
+				islandLog("batKnockReturned", "-", target.key)
+			end
+		end
 	end)
 	local attachment = Instance.new("Attachment")
 	attachment.Name, attachment.Position = "WildboundBatHit", Vector3.new(0, 1.5, 0)
@@ -3006,9 +3387,10 @@ stanceRemote.OnServerEvent:Connect(function(player, intent, ...)
 	if now - (record.stanceWindowAt or -math.huge) >= 1 then record.stanceWindowAt, record.stanceCalls = now, 0 end
 	record.stanceCalls = (record.stanceCalls or 0) + 1
 	if record.stanceCalls > STANCE_RATE then return end
-	-- NH4: "burst" shares this remote and its rate limit; the rule refuses it during its cooldown.
-	if intent == "burst" then
-		Heist.burst(player, record, now)
+	-- Q3b: "dodge" shares this remote and its rate limit (the rule also locks a flood out). The Burst's word is retired:
+	-- it is no longer a known word and falls through to the stance rule, which ignores it.
+	if intent == "dodge" then
+		Heist.dodge(player, record, now)
 		return
 	end
 	-- NP4: "bat" shares this remote and its rate limit too; the rule refuses it during its cooldown.
@@ -3025,7 +3407,7 @@ local function bindCharacter(player, character)
 	-- Character replacement/reset is also a defeat boundary, even if Died was missed.
 	if record.character and not record.defeated then
 		-- NH7: the egg in the arms falls where the old character was, before the defeat.
-		Heist.dropEgg(player, "Death", nil, record.character)
+		Heist.dropAllEggs(player, "Death", record.character)
 		state:defeat(player.UserId, "life:" .. record.generation)
 		removeDropsOf(player)
 		analytics:death(player.UserId)
@@ -3045,7 +3427,7 @@ local function bindCharacter(player, character)
 		record.defeated = true
 		-- NH7: a death drops the egg in the arms where the player fell, for anyone, for a limited time (DROP_SECONDS);
 		-- banked eggs, creatures and upgrades are never touched.
-		Heist.dropEgg(player, "Death")
+		Heist.dropAllEggs(player, "Death")
 		local _, _, lossSummary = state:defeat(player.UserId, "life:" .. generation)
 		removeDropsOf(player)
 		analytics:death(player.UserId)
@@ -3055,6 +3437,8 @@ local function bindCharacter(player, character)
 	end
 	record.deathConnection = humanoid.Died:Connect(defeated)
 	if humanoid.Health <= 0 then defeated(); return end
+	humanoid.MaxHealth = 100
+	humanoid.Health = humanoid.MaxHealth
 	local root = character:WaitForChild("HumanoidRootPart", 10)
 	-- Revalidate after the bounded wait; an old life must never move a replacement character.
 	if not root or not root:IsA("BasePart") or records[player] ~= record
@@ -3069,6 +3453,13 @@ local function bindCharacter(player, character)
 	-- NP4: every character holds a bat from the start.
 	Heist.equipBat(character)
 	applyCarry(player)
+	if Heist.creatureToolbar then
+		task.defer(function()
+			if records[player] then
+				Heist.creatureToolbar:syncPlayer(player, state:snapshot(player.UserId))
+			end
+		end)
+	end
 	send(player, "Respawn", true, notices.respawn)
 end
 -- NS5: the "Entrenamiento" treadmill, built from parts beside the camp (no asset), with its own prompt. One hold buys
@@ -3091,7 +3482,7 @@ function Heist.buildTreadmill()
 		local value = Instance.new("Part")
 		value.Name, value.Size, value.CFrame = name, size, base * offset
 		value.Anchored, value.CanTouch, value.CanQuery = true, false, false
-		value.CanCollide = name == "Deck"
+		value.CanCollide = name == "Deck" or name == "Belt"
 		value.Color, value.Material = color, material or Enum.Material.SmoothPlastic
 		if shape then value.Shape = shape end
 		value.Parent = model
@@ -3099,7 +3490,7 @@ function Heist.buildTreadmill()
 	end
 	local dark, steel, rubber = Color3.fromRGB(58, 62, 66), Color3.fromRGB(150, 156, 160), Color3.fromRGB(28, 28, 30)
 	part("Deck", Vector3.new(4.2, 0.6, 8), CFrame.new(0, 0.3, 0), dark, Enum.Material.Metal)
-	part("Belt", Vector3.new(3.4, 0.08, 7.4), CFrame.new(0, 0.64, 0), rubber, Enum.Material.Fabric)
+	Heist.treadmillBelt = part("Belt", Vector3.new(3.4, 0.08, 7.4), CFrame.new(0, 0.64, 0), rubber, Enum.Material.Fabric)
 	for _, z in ipairs({ -3.7, 3.7 }) do
 		part("Roller", Vector3.new(3.6, 0.7, 0.7), CFrame.new(0, 0.45, z), steel, Enum.Material.Metal, Enum.PartType.Cylinder)
 	end
@@ -3159,6 +3550,102 @@ function Heist.train(player, console, measured)
 	end
 end
 Heist.buildTreadmill()
+-- Hub expansion T8 (docs/design/wildbound-hub-expansion.md section 7): walking into your own base banks everything. A
+-- 4 Hz step for players in the hub disc measures the root in the owner's BaseZone (WildboundBaseZone, never a touch
+-- event); on entry a carried egg is banked with the bag, secured and put in the incubator (full: it stays banked, and
+-- the player is told), then the client shows "¡Estás a salvo!" (attribute WildboundSafeBanner, at most every 10 s).
+-- The delivery pedestal keeps working. Heist fields only: this script is at Luau's local limit (NH-W13).
+function Heist.stepBaseZones(now)
+	if not Heist.hub then return end
+	for _, player in ipairs(Players:GetPlayers()) do
+		local root = rootOf(player)
+		local zone = nil
+		if root and Rules.distance(root.Position.X, root.Position.Z, Rules.HUB_X, Rules.HUB_Z) <= Rules.HUB_RADIUS then
+			for _, part in ipairs(CollectionService:GetTagged("WildboundBaseZone")) do
+				if part:IsA("BasePart") and part:IsDescendantOf(workspace) and Heist.hub:ownerOf(part) == player.UserId then
+					zone = { frame = part.CFrame, margin = part:GetAttribute("ExitMargin"),
+						size = Vector3.new(part.Size.X, part:GetAttribute("Height") or part.Size.Y, part.Size.Z) }
+					break
+				end
+			end
+		end
+		if Heist.BaseZone.step(Heist.zones, player.UserId, zone, root and root.Position) == "Enter" then
+			Heist.enterBase(player, now)
+		end
+	end
+end
+-- Egg loop (docs/design/wildbound-egg-loop.md): the carried egg always lands in the collection first ("Huevos
+-- guardados", its Esencia paid by extract), then the oldest stored egg fills a free cradle (Heist.autoIncubate), and the
+-- reward reaches the client on the WildboundEggReward attribute (WildboundEggLoop.encodeReward; the client only draws).
+function Heist.enterBase(player, now)
+	local alive = (context(player))
+	if not alive then return end
+	local carried = EggCarry.carriedBy(eggs, player.UserId)
+	local egg, items, reward = nil, 0, nil
+	local held = nil
+	if carried then
+		for _, entry in ipairs((state:snapshot(player.UserId) or { pending = {} }).pending) do
+			if entry.uid == carried.uid then held = entry end
+		end
+	end
+	local ok, count, receipt = state:extract(player.UserId, alive, 0, workspace:GetServerTimeNow())
+	if ok then
+		analytics:extracted(player.UserId)
+		items = count
+		local secured = Heist.secureAll(player)
+		if #secured > 0 then
+			items = math.max(0, items - #secured)
+			egg = "Banked"
+			local last = carried or secured[#secured]
+			reward = { species = (held or (last and last.meta) or {}).species or "Lumipol",
+				rarity = Heist.EggLoop.rarityOf(held or (last and last.meta), Species.LOOKS),
+				ember = held and Economy.itemEmber(EconomyConfig, held) or 0 }
+		end
+		send(player, "Extract", true, extractNotice(count, receipt))
+	end
+	local filled = nil
+	for _ = 1, 12 do
+		local nextFilled = Heist.autoIncubate(player, alive, filled ~= nil)
+		if not nextFilled then break end
+		if not filled then filled = nextFilled end
+	end
+	if filled and carried and filled.uid == carried.uid then egg = "Incubating" end
+	if reward then
+		local snapshot = state:snapshot(player.UserId)
+		reward.stored, reward.incubating, reward.nonce = snapshot and #snapshot.bankedEggs or 0, egg == "Incubating", now
+		player:SetAttribute("WildboundEggReward", Heist.EggLoop.encodeReward(reward))
+		if egg == "Banked" then send(player, "Hatch", false, Text.HUB.incubatorFull) end
+	end
+	if Heist.BaseZone.banner(Heist.zones, player.UserId, now) then
+		player:SetAttribute("WildboundSafeBanner", Text.HUB.safeBanner .. "\n" .. Heist.BaseZone.line(Text.HUB, egg, items)
+			.. "\n" .. string.format("%.2f", now))
+	end
+end
+-- Egg loop: the oldest stored egg goes into a free cradle (one slot today; EggLoop.nextToIncubate takes the live slot
+-- count). Called on entering the own base (the zone is the distance check) and after a hatch while the owner stands
+-- there. quiet: the snapshot is sent with no notice, so the hatch notice stays. Returns the incubating entry or nil.
+function Heist.autoIncubate(player, alive, quiet)
+	if not alive or not Heist.EggLoop then return nil end
+	local snapshot = state:snapshot(player.UserId)
+	local slots = math.max(8, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)
+	local speedScale = snapshot and snapshot.hatchSpeedScale or 1
+	local uid = snapshot and Heist.EggLoop.nextToIncubate(snapshot.bankedEggs, #snapshot.incubating, slots)
+	if not uid then return nil end
+	local eggRarity = "Comun"
+	for _, bankedEgg in ipairs(snapshot.bankedEggs) do
+		if bankedEgg.uid == uid then
+			eggRarity = Heist.EggLoop.rarityOf(bankedEgg, Species.LOOKS)
+			break
+		end
+	end
+	local hatchTime = Incubator.hatchSeconds(eggRarity, Incubator.live.HATCH_SECONDS, speedScale)
+	local ok, entry = state:incubate(player.UserId, uid, alive, 0, workspace:GetServerTimeNow(),
+		hatchTime, slots)
+	if not ok then return nil end
+	send(player, "Hatch", true, quiet and "" or Text.INCUBATOR.started:format(math.ceil(entry.readyAt - entry.startedAt)))
+	if Heist.syncFloorEggs then Heist.syncFloorEggs() end
+	return entry
+end
 -- Nest Heist hub (HB-T3 to HB-T5): the personal bases' stations, bound by tag in WildboundHubStations. A prompt answers
 -- only its base's owner within the station's range (measured on the server); the handlers reuse the camp's rules.
 -- Everything lives in Heist.hub: this script is at Luau's local limit (NH-W13).
@@ -3173,7 +3660,9 @@ do
 			-- HB-T3: the owner's pedestal delivers the egg in the arms like the camp chest (NH6): only an egg this player
 			-- carries, banked with the bag, then Secured once by its carrier. Without an egg nothing is banked here.
 			delivery = function(player, distance)
-				if not EggCarry.carriedBy(eggs, player.UserId) then
+				local snap = state:snapshot(player.UserId)
+				local hasPending = snap and #snap.pending > 0
+				if not EggCarry.carriedBy(eggs, player.UserId) and not hasPending then
 					send(player, "Extract", false, Text.HUB.noEgg)
 					return
 				end
@@ -3184,7 +3673,7 @@ do
 					return
 				end
 				analytics:extracted(player.UserId)
-				Heist.secure(player)
+				Heist.secureAll(player)
 				send(player, "Extract", true, Text.HUB.delivered .. " " .. extractNotice(count, receipt))
 			end,
 			-- HB-T4: the owner's base incubator works like the camp's (NH6, NS3): an egg in the arms is delivered there
@@ -3222,6 +3711,23 @@ do
 			train = function(player, distance, station)
 				Heist.train(player, station, distance)
 			end,
+			-- Physical Egg Chest in the base: deposits any carried/pending eggs and opens the Cofre de huevos tab.
+			chest = function(player, distance)
+				local snap = state:snapshot(player.UserId)
+				local hasPending = snap and #snap.pending > 0
+				if EggCarry.carriedBy(eggs, player.UserId) or hasPending then
+					local ok, count, receipt = state:extract(player.UserId, (context(player)), distance,
+						workspace:GetServerTimeNow())
+					if ok then
+						analytics:extracted(player.UserId)
+						Heist.secureAll(player)
+						send(player, "Extract", true, Text.HUB.delivered .. " " .. extractNotice(count, receipt))
+					else
+						reply(player, "Extract", false, count)
+					end
+				end
+				send(player, "OpenChest", true, "")
+			end,
 		},
 		snapshot = function(userId) return state:snapshot(userId) end,
 		visual = function(species, position)
@@ -3230,6 +3736,187 @@ do
 		end,
 	})
 	Heist.hub:start()
+	do
+		local lastNightPhase = islandPhase()
+		function Heist.resetEggsAfterNight(now)
+			for slotId, stateName in pairs(nestState) do
+				if stateName == "wait_night" or stateName == "wait" then
+					local islandId = string.match(slotId, "^([^:]+):")
+					local island = islandId and islands[islandId] or nil
+					if island and island.chase then
+						local gen = (nestGen[slotId] or 0) + 1
+						nestGen[slotId] = gen
+						local function retry()
+							if nestGen[slotId] ~= gen then return end
+							if island.chase then
+								task.delay(1, retry)
+								return
+							end
+							nestState[slotId] = nil
+							ensureNests()
+						end
+						task.delay(1, retry)
+					else
+						nestGen[slotId] = (nestGen[slotId] or 0) + 1
+						nestState[slotId] = nil
+					end
+				end
+			end
+			ensureNests()
+			if now and spawnClock then
+				applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
+			end
+			for player in pairs(records) do
+				if player.Parent == Players then
+					send(player, "Notice", true, "¡Pasó la noche! Todos los huevos del bosque se restablecieron.")
+				end
+			end
+		end
+		function Heist.stepNightEggReset(now)
+			local phase = islandPhase()
+			if lastNightPhase == "Night" and phase ~= "Night" then
+				Heist.resetEggsAfterNight(now)
+			end
+			lastNightPhase = phase
+		end
+	end
+	do
+		function Heist.stepHealth(now, dt)
+			for player, record in pairs(records) do
+				if not record.defeated and player.Character then
+					local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+					local root = rootOf(player)
+					if humanoid and humanoid.Health > 0 and humanoid.Health < humanoid.MaxHealth and root
+						and player:GetAttribute("WildboundMarked") ~= true then
+						local _, safe = Rules.zone(root.Position.X, root.Position.Z)
+						local rate = safe and 3 or ((now - (record.lastHitAt or 0) >= 10) and 1 or 0)
+						if rate > 0 then
+							humanoid.Health = math.min(humanoid.MaxHealth, humanoid.Health + rate * dt)
+						end
+					end
+				end
+			end
+		end
+	end
+	-- User, 2026-11-12: the egg incubates on the base floor, in plain sight, not inside a cradle. Each base's glass dome
+	-- and straw cradle are hidden (kept in the map, never destroyed) and the wooden base becomes a thin glowing spot on
+	-- the floor; the station part stays the prompt, sign and glow anchor. The incubating egg stands on it.
+	Heist.floorEggs = {}
+	function Heist.flattenCradle(station)
+		if station:GetAttribute("WildboundFloorSpot") then return end
+		station:SetAttribute("WildboundFloorSpot", true)
+		for _, name in ipairs({ "IncubatorDome", "IncubatorCradle" }) do
+			for _, part in ipairs(station.Parent:GetChildren()) do
+				if part.Name == name and part:IsA("BasePart") and (part.Position - station.Position).Magnitude < 4 then
+					part.Transparency, part.CanCollide, part.CanQuery, part.CanTouch = 1, false, false, false
+				end
+			end
+		end
+		-- The cylinder's axis is its local X (Size.X is the height): keep its bottom, make it 0.2 tall.
+		local bottom = station.Position.Y - station.Size.X / 2
+		station.Size = Vector3.new(0.2, station.Size.Y, station.Size.Z)
+		station.CFrame = station.CFrame.Rotation + Vector3.new(station.Position.X, bottom + 0.1, station.Position.Z)
+		station.Material, station.Color, station.Transparency = Enum.Material.Neon, rgb(Species.NEST_GLOW.egg), 0.55
+		station.CanCollide = false
+	end
+	for station, entry in pairs(Heist.hub.bound) do
+		if entry.kind == "incubator" then Heist.flattenCradle(station) end
+	end
+	-- Once a second (stepIncubators): every player's first incubating egg stands on their own base's spot; it goes
+	-- when the egg hatches or the player leaves, and the next one appears at once.
+	function Heist.syncFloorEggs()
+		local now = workspace:GetServerTimeNow()
+		for userId, shownMap in pairs(Heist.floorEggs) do
+			local player = playersByUserId[userId]
+			local snapshot = player and state:snapshot(userId)
+			local activeByUid = {}
+			if snapshot and snapshot.incubating then
+				for _, entry in ipairs(snapshot.incubating) do
+					activeByUid[entry.uid] = entry
+				end
+			end
+			for uid, item in pairs(shownMap) do
+				local entry = activeByUid[uid]
+				if not entry or not item.model or not item.model.Parent then
+					if item.model then item.model:Destroy() end
+					shownMap[uid] = nil
+				elseif item.timerLabel then
+					local rem = math.max(0, math.ceil((entry.readyAt or now) - now))
+					item.timerLabel.Text = rem .. "s"
+				end
+			end
+			if next(shownMap) == nil then
+				Heist.floorEggs[userId] = nil
+			end
+		end
+		for station, bound in pairs(Heist.hub.bound) do
+			local userId = bound.kind == "incubator" and Heist.hub:ownerOf(station) or 0
+			local snapshot = userId ~= 0 and playersByUserId[userId] and state:snapshot(userId)
+			local list = snapshot and snapshot.incubating or nil
+			if list and #list > 0 then
+				Heist.flattenCradle(station)
+				Heist.floorEggs[userId] = Heist.floorEggs[userId] or {}
+				local shownMap = Heist.floorEggs[userId]
+				for idx, entry in ipairs(list) do
+					if not shownMap[entry.uid] then
+						local angle = (idx - 1) * (math.pi * 2 / math.max(1, #list))
+						local radius = #list > 1 and 2.2 or 0
+						local offset = Vector3.new(math.cos(angle) * radius, 0.1, math.sin(angle) * radius)
+						local top = station.Position + offset
+						local model, body = visual("Egg", top, entry.species)
+						if not model:GetAttribute(Art.CONFIG.ATTRIBUTE) then
+							body.CFrame = CFrame.new(top + Vector3.new(0, body.Size.Y / 2, 0))
+						end
+						model.Name = "WildboundFloorEgg"
+						model:SetAttribute("OwnerUserId", userId)
+						model:SetAttribute("Uid", entry.uid)
+						local sparkle = Instance.new("ParticleEmitter")
+						sparkle.Name = "Incubating"
+						sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+						local eggLook = Species.look(entry.species)
+						sparkle.Color = ColorSequence.new(eggLook.tint and rgb(eggLook.tint) or rgb(Species.NEST_GLOW.egg))
+						sparkle.Size = NumberSequence.new(0.35, 0)
+						sparkle.Lifetime = NumberRange.new(0.8, 1.2)
+						sparkle.Rate, sparkle.Speed, sparkle.SpreadAngle = 6, NumberRange.new(1, 2), Vector2.new(60, 60)
+						sparkle.LightEmission = 1
+						sparkle.Parent = body
+
+						local bb = Instance.new("BillboardGui")
+						bb.Name = "EggTimerGui"
+						bb.Size = UDim2.fromOffset(70, 26)
+						bb.StudsOffset = Vector3.new(0, 2.2, 0)
+						bb.AlwaysOnTop = false
+						bb.MaxDistance = 40
+						local lbl = Instance.new("TextLabel")
+						lbl.Size = UDim2.fromScale(1, 1)
+						lbl.BackgroundTransparency = 1
+						lbl.Font = Enum.Font.FredokaOne
+						lbl.TextColor3 = Color3.fromRGB(255, 245, 160)
+						lbl.TextStrokeTransparency = 0.2
+						lbl.TextScaled = true
+						local rem = math.max(0, math.ceil((entry.readyAt or now) - now))
+						lbl.Text = rem .. "s"
+						lbl.Parent = bb
+						bb.Parent = body
+
+						shownMap[entry.uid] = { uid = entry.uid, model = model, timerLabel = lbl }
+					end
+				end
+			end
+		end
+	end
+	-- T8: the base zones (Heist.stepBaseZones above).
+	Heist.BaseZone = require(script.Parent:WaitForChild("WildboundBaseZone"))
+	Heist.zones = Heist.BaseZone.new()
+	-- Egg loop (docs/design/wildbound-egg-loop.md): FIFO auto-fill and the reward attribute's encoding.
+	Heist.EggLoop = require(ReplicatedStorage:WaitForChild("WildboundEggLoop"))
+	Players.PlayerRemoving:Connect(function(player) Heist.BaseZone.forget(Heist.zones, player.UserId) end)
+	task.spawn(function()
+		while true do
+			task.wait(1 / Heist.BaseZone.CONSTANTS.STEP_HZ)
+			Heist.stepBaseZones(workspace:GetServerTimeNow())
+		end
+	end)
 	-- Studio only (ServerStorage, never replicated): "trigger" runs a base station's prompt path for a real player (its
 	-- UserId), a kind and a base slot; the Play check uses it for another owner's station.
 	if RunService:IsStudio() then
@@ -3245,6 +3932,52 @@ do
 		end
 		hubProbe.Parent = telemetry
 	end
+end
+do
+	local TreadmillService = require(script.Parent:WaitForChild("WildboundTreadmillService"))
+	Heist.treadmillService = TreadmillService.new({
+		Bases = require(script.Parent:WaitForChild("WildboundBases")),
+		Text = Text,
+		Keys = Keys,
+		rootOf = rootOf,
+		alive = function(player) return (context(player)) end,
+		ownerOf = function(part) return Heist.hub and Heist.hub:ownerOf(part) or 0 end,
+		isCarrying = function(player)
+			local snap = state:snapshot(player.UserId)
+			return snap and (Wild.eggsCarried(snap) > 0 or snap.carrying ~= nil) or false
+		end,
+		refuse = function(player, action, reason) reply(player, action, false, reason) end,
+		notice = function(player, ok, text) send(player, "Train", ok, text) end,
+		onDismount = function(player) applyCarry(player) end,
+		onLap = function(player, _belt, isHub)
+			if not records[player] then return nil end
+			local alive, distance = context(player, campCenter)
+			if isHub then distance = 0 end
+			local C = Heist.Training.live
+			local ok, res = state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5)
+			if not ok or type(res) ~= "table" then return nil end
+			player:SetAttribute("WildboundTreadmillBuffUntil", workspace:GetServerTimeNow() + 60)
+			local text = res.leveled
+				and Text.TRAINING.lapLevel:format(res.level, C.MAX_LEVEL, res.ember)
+				or Text.TRAINING.lapEmber:format(res.ember)
+			send(player, "Train", true, text)
+			return res
+		end,
+	}):start(network, Heist.treadmillBelt)
+end
+do
+	local CreatureToolbar = require(script.Parent:WaitForChild("WildboundCreatureToolbar"))
+	Heist.creatureToolbar = CreatureToolbar.new({
+		state = state,
+		visual = visual,
+		send = send,
+		Art = Art,
+		Species = Species,
+		Text = Text,
+		isInsideBase = function(player)
+			return Heist.BaseZone and Heist.BaseZone.isInside(Heist.zones, player.UserId) or false
+		end,
+	})
 end
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
 -- attributes a loaded save needs (the Equip action sets them otherwise).
@@ -3300,10 +4033,16 @@ Players.PlayerRemoving:Connect(function(player)
 	if out then handleEnding(out) end
 	-- D10 hold is not built: a disconnected owner's drops go with the profile.
 	removeDropsOf(player)
-	-- NH5: an egg in the arms stays in the world for anyone.
-	Heist.dropEgg(player, "Leave")
+	-- NH5: an egg in the arms stays in the world for anyone (SistemaSonriente etapa 1: every egg, not just one).
+	Heist.dropAllEggs(player, "Leave")
 	-- NP4: the bat's cooldown and immunity go with the player.
 	Heist.Bat.forget(Heist.bats, player.UserId)
+	-- Q4: so do the knock's cooldown, ragdoll and immunity.
+	Heist.Knock.forget(Heist.knocks, player.UserId)
+	-- Q3b: and the dodge state.
+	Heist.DodgeService.forget(player)
+	-- Q2b: a running Arrullo ends with no win and no penalty.
+	Heist.Arrullo.cancel(player)
 	-- B4: the display spot frees for the next player; B5: the companion goes with its owner.
 	clearDisplay(player)
 	removeCompanion(player)

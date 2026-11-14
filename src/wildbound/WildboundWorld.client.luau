@@ -45,37 +45,56 @@ end
 local function rgb(value)
 	return Color3.fromRGB(value.r, value.g, value.b)
 end
+-- UI colorida: the shared look (palette, outlines, shading, press squash). Without the module every call is a no-op.
+local Style = (function()
+	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	return found and require(found) or setmetatable({}, { __index = function() return function() end end })
+end)()
 -- Above the inventory interface, so the awareness chip stays readable when the inventory is open.
 local gui = make("ScreenGui", {Name = "WildboundWorldUI", ResetOnSpawn = false, DisplayOrder = 10}, playerGui)
+Style.screen(gui)
+task.spawn(function()
+	local StarterGui = game:GetService("StarterGui")
+	for _ = 1, 10 do
+		if pcall(function() StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true) end) then break end
+		task.wait(0.2)
+	end
+end)
 -- Delivery C: a full-screen red flash when a strike lands (WildboundHudView.hitFlash). It never takes input.
 local hitFlash = make("Frame", {Name = "HitFlash", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 	BorderSizePixel = 0, Visible = false, Active = false, ZIndex = 50}, gui)
 local panel = make("Frame", {Name = "WorldPanel", BackgroundColor3 = Color3.fromRGB(25, 34, 31),
-	BackgroundTransparency = 0.15}, gui)
+	BackgroundTransparency = 0.15, Visible = false}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, panel)
+Style.panel(panel, 0.12)
 local function label(parent, text, position, size)
-	return make("TextLabel", {BackgroundTransparency = 1, Position = position, Size = size,
-		Text = text, TextColor3 = Color3.fromRGB(240, 244, 231), TextSize = 14,
+	local item = make("TextLabel", {BackgroundTransparency = 1, Position = position, Size = size,
+		Text = text, TextColor3 = Color3.fromRGB(255, 255, 255), TextSize = 14,
 		TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, Font = Enum.Font.Gotham}, parent)
+	Style.body(item)
+	return item
 end
 local phaseLabel = label(panel, word("connecting"), UDim2.fromOffset(10, 4), UDim2.new(1, -140, 0, 24))
 local warningLabel = label(panel, "", UDim2.fromOffset(10, 29), UDim2.new(1, -146, 0, 29))
 local statusLabel = label(panel, "", UDim2.fromOffset(10, 60), UDim2.new(1, -20, 0, 26))
-local function button(parent, text, position, size)
+local function button(parent, text, position, size, tone)
 	local item = make("TextButton", {Text = text, Position = position, Size = size,
-		BackgroundColor3 = Color3.fromRGB(77, 115, 88), TextColor3 = Color3.fromRGB(240, 244, 231),
+		BackgroundColor3 = Color3.fromRGB(92, 214, 64), TextColor3 = Color3.fromRGB(255, 255, 255),
 		TextSize = 14, Font = Enum.Font.GothamBold, TextWrapped = true}, parent)
 	make("UICorner", {CornerRadius = UDim.new(0, 7)}, item)
+	Style.button(item, tone or "green")
 	return item
 end
 -- Positions come from the layout module (applyLayout below); only the sizes start here.
-local effects = button(gui, reducedText(false), UDim2.new(), UDim2.fromOffset(126, 44))
-local flashlight = button(gui, word("flashlightKey"), UDim2.new(), UDim2.fromOffset(110, 44))
-local pulse = button(gui, word("pulseKey"), UDim2.new(), UDim2.fromOffset(110, 44))
+-- UI colorida: each ability wears its own colour (comfort slate-blue, flashlight yellow, pulse sky).
+local effects = button(gui, reducedText(false), UDim2.new(), UDim2.fromOffset(126, 44), "slate")
+local flashlight = button(gui, word("flashlightKey"), UDim2.new(), UDim2.fromOffset(110, 44), "yellow")
+local pulse = button(gui, word("pulseKey"), UDim2.new(), UDim2.fromOffset(110, 44), "sky")
 effects.Name, flashlight.Name, pulse.Name = "ReducedButton", "FlashlightButton", "PulseButton"
+effects.Visible = false
 -- The awareness chip lives outside the panel, so it stays visible while the inventory is open (M2.3).
 -- It always carries words and a shape; colour is only a redundant cue, and nothing depends on audio.
-local chip = make("Frame", {Name = "AwarenessChip", BackgroundColor3 = Color3.fromRGB(30, 38, 35)}, gui)
+local chip = make("Frame", {Name = "AwarenessChip", BackgroundColor3 = Color3.fromRGB(30, 38, 35), Visible = false}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, chip)
 local chipStroke = make("UIStroke", {Thickness = 2, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, chip)
 local chipShape = make("Frame", {Name = "Shape", AnchorPoint = Vector2.new(0.5, 0.5),
@@ -88,6 +107,12 @@ local chipGlyph = make("TextLabel", {Name = "Glyph", BackgroundTransparency = 1,
 local chipText = make("TextLabel", {Name = "Text", BackgroundTransparency = 1, Position = UDim2.fromOffset(40, 0),
 	Size = UDim2.new(1, -44, 1, 0), Font = Enum.Font.GothamBold, TextSize = 15, Text = "",
 	TextXAlignment = Enum.TextXAlignment.Left}, chip)
+-- UI colorida: the threat chip keeps its tone colours (WildboundHudView.TONES) and gains the shading, a bolder
+-- corner and stroked words; its border stays the tone's own stroke.
+Style.corner(chip, 12)
+Style.shade(chip, 0.8)
+Style.body(chipText, true)
+chipText.TextStrokeTransparency = 0.3
 local SHAPES = {
 	diamond = {size = Vector2.new(20, 20), rotation = 45, radius = UDim.new(0, 3), filled = true},
 	square = {size = Vector2.new(24, 24), rotation = 0, radius = UDim.new(0, 3), filled = true},
@@ -153,8 +178,13 @@ local function applyLayout()
 	placeRect(chip, rects.chip)
 	placeRect(panel, rects.panel)
 	placeRect(effects, rects.effects)
-	placeRect(flashlight, rects.flashlight)
-	placeRect(pulse, rects.pulse)
+	if touchPrimary() then
+		placeRect(flashlight, rects.flashlight)
+		placeRect(pulse, rects.pulse)
+	else
+		flashlight.Position, flashlight.Size = UDim2.new(0, 16, 1, -90), UDim2.fromOffset(110, 44)
+		pulse.Position, pulse.Size = UDim2.new(0, 132, 1, -90), UDim2.fromOffset(110, 44)
+	end
 	local textSize = compact and 13 or 14
 	for _, item in ipairs({phaseLabel, warningLabel, statusLabel, effects, flashlight, pulse}) do item.TextSize = textSize end
 	chipText.TextSize = compact and 14 or 15
@@ -169,6 +199,93 @@ local function applyLayout()
 	end
 	statusLabel.Visible = not compact
 	gui:SetAttribute("LayoutMode", layout.mode)
+end
+-- Always-visible Player Health Bar HUD (below AwarenessChip, centered, with smooth fill, color shift, low-HP pulse & hit shake).
+local healthBar = make("Frame", {Name = "HealthBar", AnchorPoint = Vector2.new(0.5, 0),
+	BackgroundColor3 = Color3.fromRGB(25, 34, 31), BackgroundTransparency = 0.15, BorderSizePixel = 0, ZIndex = 12}, gui)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, healthBar)
+Style.panel(healthBar, 0.12)
+local healthFill = make("Frame", {Name = "Fill", BackgroundColor3 = Color3.fromRGB(76, 209, 90),
+	BorderSizePixel = 0, Size = UDim2.fromScale(1, 1), ZIndex = 13}, healthBar)
+make("UICorner", {CornerRadius = UDim.new(0, 8)}, healthFill)
+local healthLabel = make("TextLabel", {Name = "Label", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
+	Font = Enum.Font.GothamBold, TextSize = 14, Text = "Vida: 100 / 100",
+	TextColor3 = Color3.fromRGB(255, 255, 255), ZIndex = 14}, healthBar)
+make("UIStroke", {Thickness = 1.5, Color = Color3.fromRGB(16, 20, 24)}, healthLabel)
+local healthTargetRatio, healthCurrentRatio = 1, 1
+local healthShakeUntil, healthFlashUntil = 0, 0
+local healthBasePos = UDim2.fromOffset(0, 12)
+local function positionHealthBar()
+	local size = gui.AbsoluteSize
+	local cx = size.X > 0 and math.floor(size.X / 2) or (chip.Position.X.Offset + chip.Size.X.Offset / 2)
+	local cy = 12
+	local w = math.clamp(chip.Size.X.Offset, 220, 260)
+	healthBasePos = UDim2.fromOffset(cx, cy)
+	healthBar.Size = UDim2.fromOffset(w, 28)
+	if os.clock() >= healthShakeUntil then
+		healthBar.Position = healthBasePos
+	end
+end
+local function watchHealthBar(character)
+	local humanoid = character:WaitForChild("Humanoid", 10)
+	if not (humanoid and humanoid:IsA("Humanoid")) then return end
+	local lastHp = humanoid.Health
+	local function update()
+		local maxHp = math.max(1, humanoid.MaxHealth)
+		local hp = math.clamp(humanoid.Health, 0, maxHp)
+		healthTargetRatio = hp / maxHp
+		healthLabel.Text = ("Vida: %d / %d"):format(math.ceil(hp), math.ceil(maxHp))
+		if hp < lastHp - 0.5 then
+			healthShakeUntil = os.clock() + 0.35
+			healthFlashUntil = os.clock() + 0.16
+		end
+		lastHp = hp
+	end
+	update()
+	listen(humanoid.HealthChanged, update)
+	listen(humanoid:GetPropertyChangedSignal("MaxHealth"), update)
+end
+if player.Character then task.spawn(watchHealthBar, player.Character) end
+listen(player.CharacterAdded, function(character)
+	healthTargetRatio, healthCurrentRatio = 1, 1
+	healthLabel.Text = "Vida: 100 / 100"
+	task.spawn(watchHealthBar, character)
+end)
+listen(RunService.Heartbeat, function(dt)
+	local alpha = math.clamp((dt or 0.016) * 12, 0, 1)
+	healthCurrentRatio += (healthTargetRatio - healthCurrentRatio) * alpha
+	healthFill.Size = UDim2.fromScale(math.clamp(healthCurrentRatio, 0, 1), 1)
+	local now = os.clock()
+	local targetColor
+	if now < healthFlashUntil then
+		targetColor = Color3.fromRGB(255, 255, 255)
+	elseif healthTargetRatio > 0.5 then
+		targetColor = Color3.fromRGB(76, 209, 90)
+	elseif healthTargetRatio > 0.25 then
+		targetColor = Color3.fromRGB(245, 178, 42)
+	else
+		targetColor = Color3.fromRGB(228, 60, 66)
+	end
+	healthFill.BackgroundColor3 = healthFill.BackgroundColor3:Lerp(targetColor, math.clamp(alpha * 1.5, 0, 1))
+	if healthTargetRatio <= 0.35 and healthTargetRatio > 0 then
+		local pulseAlpha = 0.5 + 0.5 * math.sin(now * 7)
+		healthFill.BackgroundTransparency = 0.28 * pulseAlpha
+	else
+		healthFill.BackgroundTransparency = 0
+	end
+	if now < healthShakeUntil then
+		healthBar.Position = UDim2.fromOffset(
+			healthBasePos.X.Offset + math.sin(now * 58) * 5,
+			healthBasePos.Y.Offset + math.cos(now * 46) * 3
+		)
+	else
+		healthBar.Position = healthBasePos
+	end
+end)
+local origApplyLayout = applyLayout
+applyLayout = function()
+	origApplyLayout()
+	positionHealthBar()
 end
 applyLayout()
 listen(gui:GetPropertyChangedSignal("AbsoluteSize"), applyLayout)
@@ -195,7 +312,7 @@ do
 	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
 	if ok and type(value) == "table" and type(value.HIDE) == "table" then hideWords = value.HIDE end
 end
-local hideExit = button(gui, hideWords.exit or "Salir", UDim2.new(), UDim2.fromOffset(110, 44))
+local hideExit = button(gui, hideWords.exit or "Salir", UDim2.new(), UDim2.fromOffset(110, 44), "red")
 hideExit.Name, hideExit.Visible, hideExit.ZIndex = "HideExitButton", false, 5
 local pushedSince
 local function isHidden()
@@ -263,19 +380,23 @@ ContextActionService:BindActionAtPriority("WildboundSprint", function(_, inputSt
 	end
 	return Enum.ContextActionResult.Sink
 end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.LeftShift, Enum.KeyCode.ButtonL3)
-local sprintButton = button(gui, staminaWords.sprint or "Correr", UDim2.new(), UDim2.fromOffset(110, 44))
+local sprintButton = button(gui, staminaWords.sprint or "Correr", UDim2.new(), UDim2.fromOffset(110, 44), "purple")
 sprintButton.Name = "SprintButton"
 local staminaBar = make("Frame", {Name = "StaminaBar", BackgroundColor3 = Color3.fromRGB(25, 34, 31),
-	BackgroundTransparency = 0.2, BorderSizePixel = 0, Visible = false}, gui)
+	BackgroundTransparency = 0.2, BorderSizePixel = 0, Visible = true}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 4)}, staminaBar)
-local staminaFill = make("Frame", {Name = "Fill", BackgroundColor3 = Color3.fromRGB(214, 226, 196),
+local staminaFill = make("Frame", {Name = "Fill", BackgroundColor3 = Color3.fromRGB(255, 255, 255),
 	BorderSizePixel = 0, Size = UDim2.fromScale(1, 1)}, staminaBar)
 make("UICorner", {CornerRadius = UDim.new(0, 4)}, staminaFill)
+-- UI colorida: an outlined dark track with a rainbow fill (the fill's colour tints it red when exhausted).
+Style.bar(staminaBar, staminaFill)
 local staminaLabel = make("TextLabel", {Name = "Words", BackgroundTransparency = 1, Position = UDim2.new(0, 0, 0, -18),
 	Size = UDim2.new(1, 0, 0, 16), Font = Enum.Font.GothamBold, TextSize = 13, Text = staminaWords.label or "Aliento",
-	TextColor3 = Color3.fromRGB(240, 244, 231), TextXAlignment = Enum.TextXAlignment.Left}, staminaBar)
+	TextColor3 = Color3.fromRGB(255, 255, 255), TextXAlignment = Enum.TextXAlignment.Left}, staminaBar)
+Style.title(staminaLabel)
 local function paintSprintButton()
-	sprintButton.BackgroundColor3 = sprintToggle and Color3.fromRGB(150, 96, 60) or Color3.fromRGB(77, 115, 88)
+	-- On: orange; off: the button's purple. The word on the button does not change, the colour and the bar do.
+	sprintButton.BackgroundColor3 = sprintToggle and Color3.fromRGB(255, 146, 38) or Color3.fromRGB(150, 86, 232)
 end
 listen(sprintButton.Activated, function()
 	sprintToggle = not sprintToggle
@@ -290,43 +411,157 @@ local function applyStamina()
 	-- Exhausted shows words, not only colour (D4).
 	local tired = stance == "exhausted"
 	staminaLabel.Text = tired and (staminaWords.exhausted or "Sin aliento") or (staminaWords.label or "Aliento")
-	staminaFill.BackgroundColor3 = tired and Color3.fromRGB(196, 92, 72) or Color3.fromRGB(214, 226, 196)
-	staminaBar.Visible = amount < 0.999 or stance == "sprint"
+	staminaFill.BackgroundColor3 = tired and Color3.fromRGB(236, 64, 72) or Color3.fromRGB(255, 255, 255)
+	staminaBar.Visible = not isHidden()
 end
+applyStamina()
 listen(player:GetAttributeChangedSignal("WildboundStamina"), applyStamina)
 listen(player:GetAttributeChangedSignal("WildboundStance"), applyStamina)
 listen(RunService.Heartbeat, function()
 	sendStance(false)
-	-- Above the pulse slot; the button only on touch-first screens, where there is no Shift.
-	sprintButton.Position, sprintButton.Size = pulse.Position - UDim2.fromOffset(0, 52), pulse.Size
-	sprintButton.Visible = touchPrimary() and not isHidden()
-	staminaBar.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 66 or 14)
-	staminaBar.Size = UDim2.new(pulse.Size.X.Scale, pulse.Size.X.Offset, 0, 8)
+	if touchPrimary() then
+		-- Above the pulse slot; the button only on touch-first screens, where there is no Shift.
+		sprintButton.Position, sprintButton.Size = pulse.Position - UDim2.fromOffset(0, 52), pulse.Size
+		sprintButton.Visible = not isHidden()
+		staminaBar.Position = pulse.Position - UDim2.fromOffset(0, 66)
+		staminaBar.Size = UDim2.new(pulse.Size.X.Scale, pulse.Size.X.Offset, 0, 8)
+	else
+		sprintButton.Visible = false
+		staminaBar.Position = UDim2.new(0, 16, 1, -154)
+		staminaBar.Size = UDim2.fromOffset(226, 8)
+	end
 end)
--- Nest Heist (NH4): the Burst. Z on a keyboard, R3 on a gamepad and the "Impulso" button (touch, and the ready
--- indicator everywhere: it counts down while the burst cools). The server owns the cooldown and the speed; this asks.
-local burstButton = button(gui, staminaWords.burst or "Impulso", UDim2.new(), UDim2.fromOffset(110, 44))
-burstButton.Name = "BurstButton"
-local function askBurst()
-	if stanceRemote then stanceRemote:FireServer("burst") end
+-- Esquiva perfecta (decision Q3b; replaces the NH4 Burst in the same slot and on the same inputs, Z and R3). Z on a
+-- keyboard, R3 on a gamepad and the "Esquivar" button (touch, and the ready indicator everywhere: it counts down the
+-- cooldown after a press, and reads "¡Esquiva!" while an attack aimed at this player is telegraphed). The server owns
+-- the timing, the cooldown and the boost; this only sends the word "dodge".
+do
+	local dodgeWords = {}
+	local textModule = ReplicatedStorage:FindFirstChild("WildboundText")
+	local ok, value = false, nil
+	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
+	if ok and type(value) == "table" and type(value.DODGE) == "table" then dodgeWords = value.DODGE end
+	local dodgeButton = button(gui, dodgeWords.button or "Esquivar", UDim2.new(), UDim2.fromOffset(110, 44))
+	dodgeButton.Name = "DodgeButton"
+	local function askDodge()
+		if stanceRemote then stanceRemote:FireServer("dodge") end
+	end
+	ContextActionService:BindActionAtPriority("WildboundDodge", function(_, inputState)
+		if inputState == Enum.UserInputState.Begin then askDodge() end
+		return Enum.ContextActionResult.Sink
+	end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.Z, Enum.KeyCode.ButtonR3)
+	listen(dodgeButton.Activated, askDodge)
+	local dashDuration, dashSpeed = 0.22, 52
+	local dashTweenService = game:GetService("TweenService")
+	local dashSerial, dashBaseFov = 0, nil
+	listen(player:GetAttributeChangedSignal("WildboundDash"), function()
+		if type(player:GetAttribute("WildboundDash")) ~= "number" then return end
+		local character = player.Character
+		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+		local root = character and character:FindFirstChild("HumanoidRootPart")
+		if not humanoid or humanoid.Health <= 0 or not root or not root:IsA("BasePart") then return end
+		dashSerial += 1
+		local token = dashSerial
+		for _, child in ipairs(root:GetChildren()) do
+			if child.Name == "WildboundDashVelocity" or child.Name == "WildboundDashAttachment" then
+				child:Destroy()
+			end
+		end
+		local move = humanoid.MoveDirection
+		local flat = Vector3.new(move.X, 0, move.Z)
+		if flat.Magnitude <= 0.05 then
+			local look = root.CFrame.LookVector
+			flat = Vector3.new(look.X, 0, look.Z)
+		end
+		local dir = flat.Magnitude > 1e-4 and flat.Unit or Vector3.new(0, 0, -1)
+		local att = Instance.new("Attachment")
+		att.Name = "WildboundDashAttachment"
+		att.Parent = root
+		local lv = Instance.new("LinearVelocity")
+		lv.Name = "WildboundDashVelocity"
+		lv.Attachment0 = att
+		lv.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+		lv.PrimaryTangentAxis = Vector3.new(1, 0, 0)
+		lv.SecondaryTangentAxis = Vector3.new(0, 0, 1)
+		lv.MaxForce = 50000
+		lv.PlaneVelocity = Vector2.new(dir.X * dashSpeed, dir.Z * dashSpeed)
+		lv.Parent = root
+		local topAtt = Instance.new("Attachment")
+		topAtt.Name = "WildboundDashTrailTop"
+		topAtt.Position = Vector3.new(0, 1.2, 0)
+		topAtt.Parent = root
+		local botAtt = Instance.new("Attachment")
+		botAtt.Name = "WildboundDashTrailBot"
+		botAtt.Position = Vector3.new(0, -1.2, 0)
+		botAtt.Parent = root
+		local trail = Instance.new("Trail")
+		trail.Name = "WildboundDashTrail"
+		trail.Attachment0 = topAtt
+		trail.Attachment1 = botAtt
+		trail.Lifetime = 0.25
+		trail.MinLength = 0.1
+		trail.Color = ColorSequence.new(Color3.fromRGB(220, 245, 255))
+		trail.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.2),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		trail.Parent = root
+		local cam = workspace.CurrentCamera
+		if cam then
+			if dashBaseFov == nil then dashBaseFov = cam.FieldOfView end
+			local base = dashBaseFov
+			dashTweenService:Create(cam, TweenInfo.new(0.08, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				FieldOfView = math.clamp(base + 6, 40, 95),
+			}):Play()
+			task.delay(0.1, function()
+				if dashSerial == token and workspace.CurrentCamera then
+					dashTweenService:Create(workspace.CurrentCamera, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+						FieldOfView = base,
+					}):Play()
+					task.delay(0.23, function()
+						if dashSerial == token then dashBaseFov = nil end
+					end)
+				end
+			end)
+		end
+		task.delay(dashDuration, function()
+			if lv.Parent then lv:Destroy() end
+			if att.Parent then att:Destroy() end
+			if trail.Parent then trail.Enabled = false end
+		end)
+		task.delay(dashDuration + 0.3, function()
+			if trail.Parent then trail:Destroy() end
+			if topAtt.Parent then topAtt:Destroy() end
+			if botAtt.Parent then botAtt:Destroy() end
+		end)
+	end)
+	listen(RunService.Heartbeat, function()
+		local now = workspace:GetServerTimeNow()
+		local readyAt = player:GetAttribute("WildboundDodgeReady")
+		local strikeAt = player:GetAttribute("WildboundDodgeStrike")
+		local left = type(readyAt) == "number" and readyAt - now or 0
+		local cue = type(strikeAt) == "number" and strikeAt >= now and strikeAt - now <= 1.5
+		local word = dodgeWords.button or "Esquivar"
+		if cue then
+			dodgeButton.Text = dodgeWords.cue or "¡Esquiva!"
+		elseif left > 0.05 then
+			dodgeButton.Text = ("%s %d"):format(word, math.ceil(left))
+		else
+			dodgeButton.Text = touchPrimary() and word or (dodgeWords.buttonKey or "Esquivar (Z)")
+		end
+		dodgeButton.BackgroundColor3 = cue and Color3.fromRGB(255, 146, 38)
+			or (left > 0.05 and Color3.fromRGB(84, 92, 112) or Color3.fromRGB(92, 214, 64))
+		dodgeButton.AutoButtonColor = left <= 0.05
+		if touchPrimary() then
+			dodgeButton.Position = pulse.Position - UDim2.fromOffset(0, 120)
+			dodgeButton.Size = pulse.Size
+		else
+			dodgeButton.Position = UDim2.new(0, 132, 1, -140)
+			dodgeButton.Size = UDim2.fromOffset(110, 44)
+		end
+		dodgeButton.Visible = not isHidden()
+	end)
 end
-ContextActionService:BindActionAtPriority("WildboundBurst", function(_, inputState)
-	if inputState == Enum.UserInputState.Begin then askBurst() end
-	return Enum.ContextActionResult.Sink
-end, false, Enum.ContextActionPriority.High.Value, Enum.KeyCode.Z, Enum.KeyCode.ButtonR3)
-listen(burstButton.Activated, askBurst)
-listen(RunService.Heartbeat, function()
-	local readyAt = player:GetAttribute("WildboundBurstReady")
-	local left = type(readyAt) == "number" and readyAt - workspace:GetServerTimeNow() or 0
-	local word = staminaWords.burst or "Impulso"
-	burstButton.Text = left > 0.05 and ("%s %d"):format(word, math.ceil(left))
-		or (touchPrimary() and word or (staminaWords.burstKey or "Impulso (Z)"))
-	burstButton.BackgroundColor3 = left > 0.05 and Color3.fromRGB(70, 74, 72) or Color3.fromRGB(77, 115, 88)
-	burstButton.AutoButtonColor = left <= 0.05
-	burstButton.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 120 or 70)
-	burstButton.Size = pulse.Size
-	burstButton.Visible = not isHidden()
-end)
 -- Nest Heist phase 2 (NP5): the bat. A left click (never one on the interface), DPadRight or the "Bate" button (touch,
 -- and the ready indicator everywhere: it counts down while the bat cools) asks the server to swing; the server owns
 -- the cooldown, the target and every effect. Every client turns every player's bat grip for the swing it sees.
@@ -337,7 +572,7 @@ do
 	if textModule and textModule:IsA("ModuleScript") then ok, value = pcall(require, textModule) end
 	if ok and type(value) == "table" and type(value.BAT) == "table" then batWords = value.BAT end
 	local BAT_SWING_SECONDS = 0.3 -- WildboundBat.CONSTANTS.SWING_SECONDS (a server-only module)
-	local batButton = button(gui, batWords.button or "Bate", UDim2.new(), UDim2.fromOffset(110, 44))
+	local batButton = button(gui, batWords.button or "Bate", UDim2.new(), UDim2.fromOffset(110, 44), "red")
 	batButton.Name = "BatButton"
 	local lastAsk = 0
 	local function askBat()
@@ -351,6 +586,9 @@ do
 		if processed or UserInputService:GetFocusedTextBox() then return end
 		if input.UserInputType == Enum.UserInputType.MouseButton1 or input.KeyCode == Enum.KeyCode.DPadRight then askBat() end
 	end)
+	-- Q4 (docs/mechanics/wildbound-new-mechanics.md section 3): a landed bat hit on this player. SistemaSonriente
+	-- (etapa 1): the server now ragdolls the body and applies the push itself (ServerScriptService.SistemaSonriente.Ragdoll,
+	-- R6 and R15); StarterPlayerScripts.SistemaSonriente.RagdollCliente follows it on this client. Nothing to do here.
 	local rest = setmetatable({}, { __mode = "k" })
 	listen(RunService.Heartbeat, function()
 		local now = workspace:GetServerTimeNow()
@@ -359,10 +597,15 @@ do
 		local word = batWords.button or "Bate"
 		batButton.Text = left > 0.05 and ("%s %d"):format(word, math.ceil(left))
 			or (touchPrimary() and word or (batWords.buttonKey or "Bate (clic)"))
-		batButton.BackgroundColor3 = left > 0.05 and Color3.fromRGB(70, 74, 72) or Color3.fromRGB(120, 86, 58)
+		batButton.BackgroundColor3 = left > 0.05 and Color3.fromRGB(84, 92, 112) or Color3.fromRGB(236, 64, 72)
 		batButton.AutoButtonColor = left <= 0.05
-		batButton.Position = pulse.Position - UDim2.fromOffset(0, touchPrimary() and 172 or 122)
-		batButton.Size = pulse.Size
+		if touchPrimary() then
+			batButton.Position = pulse.Position - UDim2.fromOffset(0, 172)
+			batButton.Size = pulse.Size
+		else
+			batButton.Position = UDim2.new(0, 16, 1, -140)
+			batButton.Size = UDim2.fromOffset(110, 44)
+		end
 		batButton.Visible = not isHidden()
 		for _, other in ipairs(Players:GetPlayers()) do
 			local model = other.Character and other.Character:FindFirstChild("WildboundBat")
@@ -516,10 +759,10 @@ local function animateCompanions(now, root)
 				if camera then
 					local fade = View.companionTransparency((camera.CFrame.Position - body.Position).Magnitude)
 					if model:GetAttribute("LumipolArt") == true then
-						-- MeshGen1 pass: the ball stays hidden; the user's model fades, on this client only.
+						-- Equipped Lumipol stays opaque (no transparent-pass eye artifacts), matching the parent model.
 						for _, part in ipairs(model:GetChildren()) do
 							if part:IsA("BasePart") and part:GetAttribute("LumipolArt") == true then
-								part.LocalTransparencyModifier = fade
+								part.LocalTransparencyModifier = 0
 							end
 						end
 					else
@@ -671,11 +914,14 @@ end)
 -- ("Shift: Correr", "L3: Correr"; touch has the button), a wider view while sprinting, and near a hunting Silueta a
 -- small camera shake and darker screen edges. The numbers are pure rules in WildboundHudView; "Efectos suaves" softens
 -- the kick and the vignette and removes the shake.
-local sprintHint = make("TextLabel", {Name = "SprintHint", AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, -10), Size = UDim2.fromOffset(150, 24), BackgroundColor3 = Color3.fromRGB(25, 34, 31),
+local sprintHint = make("TextLabel", {Name = "SprintHint", AnchorPoint = Vector2.new(0, 1),
+	Position = UDim2.new(0, 16, 1, -16), Size = UDim2.fromOffset(226, 24), BackgroundColor3 = Color3.fromRGB(25, 34, 31),
 	BackgroundTransparency = 0.35, Font = Enum.Font.GothamBold, TextSize = 15, Text = "",
 	TextColor3 = Color3.fromRGB(240, 244, 231), Visible = false}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 6)}, sprintHint)
+-- UI colorida: a bold outlined pill at the bottom centre.
+Style.pill(sprintHint, 0.15)
+Style.title(sprintHint)
 local vignette = make("Frame", {Name = "DreadVignette", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 	Active = false, ZIndex = 40, Visible = false}, gui)
 local VIGNETTE_EDGES = {
@@ -802,7 +1048,7 @@ listen(RunService.Heartbeat, function(dt)
 	local step = elapsed
 	elapsed = 0
 	local hidden = inventoryOpen()
-	panel.Visible, effects.Visible, flashlight.Visible, pulse.Visible = not hidden, not hidden, not hidden, not hidden
+	panel.Visible, effects.Visible, flashlight.Visible, pulse.Visible = false, false, not hidden, not hidden
 	flashlight.Active, pulse.Active = not not fresh, not not fresh
 	flashlight.AutoButtonColor, pulse.AutoButtonColor = not not fresh, not not fresh
 	if not fresh then
@@ -841,15 +1087,21 @@ listen(RunService.Heartbeat, function(dt)
 		local target = Atmos.variant(Atmos.at(state.clockTime, zone, reduced), variant)
 		variantTint.TintColor = variantTint.TintColor:Lerp(rgb(target.tint), alpha)
 		playVariantBed(variant)
-		local ambient = original.Ambient:Lerp(rgb(target.ambient), target.ambientWeight)
-		local outdoor = original.OutdoorAmbient:Lerp(rgb(target.outdoorAmbient), target.ambientWeight)
+		-- Dev lighting (the tuning panel's "Iluminación"): applied on top of the atmosphere; defaults change nothing.
+		local dev = View.live
+		local lift = math.clamp(dev.LIGHT_AMBIENT or 0, 0, 1)
+		local fogX = math.max(dev.LIGHT_FOG or 1, 1)
+		local white = Color3.new(1, 1, 1)
+		local ambient = original.Ambient:Lerp(rgb(target.ambient), target.ambientWeight):Lerp(white, lift)
+		local outdoor = original.OutdoorAmbient:Lerp(rgb(target.outdoorAmbient), target.ambientWeight):Lerp(white, lift)
 		Lighting.Ambient = Lighting.Ambient:Lerp(ambient, alpha)
 		Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(outdoor, alpha)
 		Lighting.FogColor = Lighting.FogColor:Lerp(rgb(target.fogColor), alpha)
-		Lighting.FogStart += (target.fogStart - Lighting.FogStart) * alpha
-		Lighting.FogEnd += (target.fogEnd - Lighting.FogEnd) * alpha
-		Lighting.Brightness += (original.Brightness * target.brightness - Lighting.Brightness) * alpha
-		Lighting.ExposureCompensation += (original.ExposureCompensation + target.exposure
+		Lighting.FogStart += (target.fogStart * fogX - Lighting.FogStart) * alpha
+		Lighting.FogEnd += (target.fogEnd * fogX - Lighting.FogEnd) * alpha
+		Lighting.Brightness += (original.Brightness * target.brightness * (dev.LIGHT_BRIGHTNESS or 1)
+			- Lighting.Brightness) * alpha
+		Lighting.ExposureCompensation += (original.ExposureCompensation + target.exposure + (dev.LIGHT_EXPOSURE or 0)
 			- Lighting.ExposureCompensation) * alpha
 		if atmosphere.Parent == Lighting then
 			atmosphere.Density += (target.density - atmosphere.Density) * alpha
@@ -861,7 +1113,13 @@ listen(RunService.Heartbeat, function(dt)
 		-- by day; it never replicates and Reduced effects never dims it.
 		local beam = ownFlashlight()
 		if beam then
-			beam.Brightness += (target.flashlight.brightness - beam.Brightness) * alpha
+			-- User, 2026-11-11 ("la linterna no funciona"): the beam only followed the clock (Brightness 0 by day) and F only
+			-- ran the server's reveal, so "Linterna (F)" never lit anything in a daytime session. An F the server accepts
+			-- (FlashlightOnUntil, set below) now turns the beam fully on for a while, day or night; the reveal is unchanged.
+			local onUntil = gui:GetAttribute("FlashlightOnUntil")
+			local on = type(onUntil) == "number" and os.clock() < onUntil
+			local goal = on and math.max(target.flashlight.brightness, 5) or target.flashlight.brightness
+			beam.Brightness += (goal - beam.Brightness) * (on and 1 or alpha)
 			beam.Range, beam.Angle = target.flashlight.range, target.flashlight.angle
 			beam.Enabled = beam.Brightness > 0.05
 		end
@@ -877,7 +1135,7 @@ listen(gui.Destroying, function()
 	pcall(function() RunService:UnbindFromRenderStep("WildboundChaseFeel") end)
 	if fov.base and workspace.CurrentCamera then workspace.CurrentCamera.FieldOfView = fov.base end
 	pcall(function() ContextActionService:UnbindAction("WildboundSprint") end)
-	pcall(function() ContextActionService:UnbindAction("WildboundBurst") end)
+	pcall(function() ContextActionService:UnbindAction("WildboundDodge") end)
 	local beam = player.Character and player.Character:FindFirstChild("WildboundFlashlight", true)
 	if beam then beam:Destroy() end
 	for key, value in pairs(original) do Lighting[key] = value end
@@ -971,6 +1229,8 @@ task.spawn(function()
 	listen(updates.OnClientEvent, function(payload)
 		if type(payload) ~= "table" then return end
 		state, lastUpdate = payload, os.clock()
+		-- User, 2026-11-11: an accepted F lights the local beam for 8 s (the Heartbeat block reads this).
+		if payload.action == "Flashlight" and payload.ok == true then gui:SetAttribute("FlashlightOnUntil", os.clock() + 8) end
 		-- The inventory controller reads this for the explorer compass (Night Nose works at Night only).
 		if type(payload.phase) == "string" then gui:SetAttribute("Phase", payload.phase) end
 		View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
@@ -981,7 +1241,3 @@ task.spawn(function()
 		task.wait(3)
 	end
 end)
-
-
-
-

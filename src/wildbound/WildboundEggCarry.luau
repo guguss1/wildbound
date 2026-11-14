@@ -6,13 +6,13 @@
 local EggCarry = {}
 
 EggCarry.CONSTANTS = table.freeze({
-	STEAL_HOLD = 0.8, -- seconds, the master prompt's 0.6 to 1 s
-	RARE_HOLD = 1, -- the hold every egg had before (I3)
+	STEAL_HOLD = 0.5, -- seconds, fast frantic egg grab
+	RARE_HOLD = 0.75,
 	-- NH5 drop and pickup: a dropped egg can be picked up by anyone after PICKUP_DELAY, with a PICKUP_HOLD hold within
 	-- PICKUP_RANGE studs; left alone for DROP_SECONDS it fades for DESPAWN_SECONDS and is gone. A drop lands on the
 	-- first ground found within LAND_DEPTH studs under the player, else on the relief.
-	PICKUP_DELAY = 0.4,
-	PICKUP_HOLD = 0.4,
+	PICKUP_DELAY = 0.25,
+	PICKUP_HOLD = 0.25,
 	PICKUP_RANGE = 10,
 	DROP_SECONDS = 30,
 	DESPAWN_SECONDS = 1,
@@ -22,14 +22,18 @@ EggCarry.CONSTANTS = table.freeze({
 	-- still refuses (at the 0.6 s glove floor a hold of at least 0.1 s is always needed).
 	HOLD_ALLOWANCE = 0.35,
 })
-EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.6, 1
-EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.3, 0.5
+EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.35, 1
+EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.2, 0.5
+EggCarry.MAX_CARRY = 12
 -- Nest Heist phase 2 (NP1): State:takeEgg refuses a pickup beyond 10 studs, so the tunable reach never exceeds it.
 EggCarry.PICKUP_RANGE_MAX = 10
 EggCarry.HOLD_ALLOWANCE_MIN, EggCarry.HOLD_ALLOWANCE_MAX = 0.05, 0.5
 -- Why an egg leaves the arms. Inside a safe zone (camp, a Refugio) only a death or leaving the server drops it.
-EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true })
-local SAFE_DROPS = table.freeze({ Death = true, Leave = true })
+-- SistemaSonriente (etapa 2): "Guardian" is El Sonriente's catch (never in a safe zone, like a hit); "Void" is a fall out
+-- of the map (anywhere, like a death).
+EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true, Guardian = true,
+	Void = true })
+local SAFE_DROPS = table.freeze({ Death = true, Leave = true, Void = true })
 local RARE = table.freeze({ Epica = true, Legendaria = true })
 
 local function finite(value)
@@ -100,32 +104,54 @@ function EggCarry.get(registry, id)
 	return type(registry) == "table" and validId(id) and registry.eggs[id] or nil
 end
 
--- The egg this player carries, or nil.
+-- All eggs currently carried by this player (oldest first).
+function EggCarry.carriedList(registry, key)
+	local list = {}
+	if type(registry) ~= "table" or not validKey(key) then return list end
+	local ids = registry.carriers[key]
+	if type(ids) ~= "table" then
+		local egg = ids and registry.eggs[ids]
+		if egg and egg.state == "Carried" and egg.carrier == key then table.insert(list, egg) end
+		return list
+	end
+	for _, id in ipairs(ids) do
+		local egg = registry.eggs[id]
+		if egg and egg.state == "Carried" and egg.carrier == key then table.insert(list, egg) end
+	end
+	return list
+end
+
+function EggCarry.carriedCount(registry, key)
+	return #EggCarry.carriedList(registry, key)
+end
+
+-- The most recent egg this player carries, or nil.
 function EggCarry.carriedBy(registry, key)
-	if type(registry) ~= "table" or not validKey(key) then return nil end
-	local id = registry.carriers[key]
-	local egg = id and registry.eggs[id]
-	if egg and egg.state == "Carried" and egg.carrier == key then return egg end
-	return nil
+	local list = EggCarry.carriedList(registry, key)
+	return list[#list]
 end
 
 -- Whether this player may take this egg out of its nest now. Returns true, or false and a reason.
-function EggCarry.canSteal(registry, id, key)
+function EggCarry.canSteal(registry, id, key, maxCarry)
 	if not validKey(key) then return false, "InvalidPlayer" end
 	local egg = EggCarry.get(registry, id)
 	if not egg then return false, "NoEgg" end
 	if egg.state ~= "InNest" then return false, "NotInNest" end
-	if EggCarry.carriedBy(registry, key) then return false, "AlreadyCarrying" end
+	local cap = finite(maxCarry) and maxCarry >= 1 and math.floor(maxCarry) or EggCarry.MAX_CARRY
+	if EggCarry.carriedCount(registry, key) >= cap then return false, "AlreadyCarrying" end
 	return true
 end
 
 -- InNest to Carried. uid: the bag entry the server's state created for it (how the chest banks it later).
-function EggCarry.steal(registry, id, key, uid)
-	local ok, reason = EggCarry.canSteal(registry, id, key)
+function EggCarry.steal(registry, id, key, uid, maxCarry)
+	local ok, reason = EggCarry.canSteal(registry, id, key, maxCarry)
 	if not ok then return false, reason end
 	local egg = registry.eggs[id]
 	egg.state, egg.carrier, egg.uid = "Carried", key, uid
-	registry.carriers[key] = id
+	local ids = registry.carriers[key]
+	if type(ids) ~= "table" then ids = ids and { ids } or {} end
+	table.insert(ids, id)
+	registry.carriers[key] = ids
 	return true, egg
 end
 
@@ -146,31 +172,46 @@ function EggCarry.drop(registry, key, reason, now, opts)
 	local egg = EggCarry.carriedBy(registry, key)
 	if not egg then return false, "NotCarrying" end
 	if type(opts) == "table" and opts.safe == true and not SAFE_DROPS[reason] then return false, "SafeZone" end
-	registry.carriers[key] = nil
+	local ids = registry.carriers[key]
+	if type(ids) == "table" then
+		for index = #ids, 1, -1 do
+			if ids[index] == egg.id then table.remove(ids, index); break end
+		end
+		if #ids == 0 then registry.carriers[key] = nil end
+	else
+		registry.carriers[key] = nil
+	end
 	egg.state, egg.carrier, egg.uid, egg.lastCarrier, egg.reason = "Dropped", nil, nil, key, reason
-	egg.droppedAt, egg.pickableAt, egg.expireAt = now, now + C.PICKUP_DELAY, now + C.DROP_SECONDS
+	-- SistemaSonriente (etapa 2): an egg may bring its own time on the ground (meta.dropSeconds, the Huevo Sonriente's 15 s).
+	local lies = egg.meta.dropSeconds
+	lies = finite(lies) and lies > 0 and lies or C.DROP_SECONDS
+	egg.droppedAt, egg.pickableAt, egg.expireAt = now, now + C.PICKUP_DELAY, now + lies
 	egg.open = false
 	return true, egg
 end
 
 -- Whether this player may pick this dropped egg up now. Anyone may, the last carrier included, with no priority.
-function EggCarry.canPickup(registry, id, key, now)
+function EggCarry.canPickup(registry, id, key, now, maxCarry)
 	if not validKey(key) then return false, "InvalidPlayer" end
 	local egg = EggCarry.get(registry, id)
 	if not egg then return false, "NoEgg" end
 	if egg.state ~= "Dropped" then return false, "NotDropped" end
 	if not finite(now) or now < egg.pickableAt then return false, "TooSoon" end
-	if EggCarry.carriedBy(registry, key) then return false, "AlreadyCarrying" end
+	local cap = finite(maxCarry) and maxCarry >= 1 and math.floor(maxCarry) or EggCarry.MAX_CARRY
+	if EggCarry.carriedCount(registry, key) >= cap then return false, "AlreadyCarrying" end
 	return true
 end
 
 -- Dropped to Carried. The first valid request wins: the next one finds the egg Carried and gets "NotDropped".
-function EggCarry.pickup(registry, id, key, now, uid)
-	local ok, reason = EggCarry.canPickup(registry, id, key, now)
+function EggCarry.pickup(registry, id, key, now, uid, maxCarry)
+	local ok, reason = EggCarry.canPickup(registry, id, key, now, maxCarry)
 	if not ok then return false, reason end
 	local egg = registry.eggs[id]
 	egg.state, egg.carrier, egg.uid, egg.open = "Carried", key, uid, false
-	registry.carriers[key] = id
+	local ids = registry.carriers[key]
+	if type(ids) ~= "table" then ids = ids and { ids } or {} end
+	table.insert(ids, id)
+	registry.carriers[key] = ids
 	return true, egg
 end
 
@@ -182,10 +223,27 @@ function EggCarry.secure(registry, id, key)
 	if not egg then return false, "NoEgg" end
 	if egg.state ~= "Carried" then return false, "NotCarried" end
 	if egg.carrier ~= key then return false, "NotCarrier" end
-	registry.carriers[key] = nil
+	local ids = registry.carriers[key]
+	if type(ids) == "table" then
+		for index = #ids, 1, -1 do
+			if ids[index] == id then table.remove(ids, index); break end
+		end
+		if #ids == 0 then registry.carriers[key] = nil end
+	else
+		registry.carriers[key] = nil
+	end
 	egg.state, egg.carrier = "Secured", nil
 	registry.eggs[id] = nil
 	return true, egg
+end
+
+function EggCarry.secureAll(registry, key)
+	local secured = {}
+	for _, egg in ipairs(EggCarry.carriedList(registry, key)) do
+		local ok, done = EggCarry.secure(registry, egg.id, key)
+		if ok then table.insert(secured, done) end
+	end
+	return secured
 end
 
 -- An adult carried a dropped egg home (FP5c): it leaves the registry.
@@ -197,13 +255,17 @@ function EggCarry.recover(registry, id)
 end
 
 -- The clock of dropped eggs. Returns a list of { op, egg }: "open" (pickable from now), "despawn" (abandoned too
--- long: Despawning, fading) and "remove" (gone; it left the registry).
+-- long: Despawning, fading) and "remove" (gone; it left the registry). SistemaSonriente (etapa 2): an egg with a home
+-- nest (meta.home) does not fade: when its time is up it leaves the registry at once with "return" (back to its nest).
 function EggCarry.step(registry, now)
 	local actions = {}
 	if type(registry) ~= "table" or not finite(now) then return actions end
 	for id, egg in pairs(registry.eggs) do
 		if egg.state == "Dropped" then
-			if now >= egg.expireAt then
+			if now >= egg.expireAt and egg.meta.home == true then
+				registry.eggs[id] = nil
+				table.insert(actions, { op = "return", egg = egg })
+			elseif now >= egg.expireAt then
 				egg.state, egg.despawnAt = "Despawning", now + C.DESPAWN_SECONDS
 				table.insert(actions, { op = "despawn", egg = egg })
 			elseif not egg.open and now >= egg.pickableAt then
