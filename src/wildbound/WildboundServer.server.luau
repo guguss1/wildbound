@@ -308,22 +308,18 @@ local function buildCapsule(character, carried)
 	model:SetAttribute("Uid", carried.uid)
 	model:SetAttribute("Species", carried.species)
 	local back = torso.Size.Z / 2
-	local strap = capsulePart(model, "Strap", Vector3.new(0.9, 1.6, 0.14), Enum.PartType.Block,
-		Color3.fromRGB(96, 70, 46), Enum.Material.Fabric)
-	weld("StrapJoint", torso, strap, CFrame.new(0, 0, back + 0.08))
+	-- PF1 (user, 2026-11-14): one backpack, only while carrying an egg; a carried creature wears no bag. The strap, the
+	-- glass shell and the wooden base ring are gone; the shell stays as an invisible mount (the seat, the mood light
+	-- and the refuge's "from" point hang from it), so audio, fear, pose and the HUD read the same model.
 	local shell = capsulePart(model, "Shell", Vector3.new(1.8, 1.8, 1.8), Enum.PartType.Ball, Color3.new(1, 1, 1),
-		Enum.Material.Glass, 0.6)
-	weld("Mount", torso, shell, CFrame.new(0, 0.15, back + 0.95))
+		Enum.Material.SmoothPlastic, 1)
+	weld("Mount", torso, shell, CFrame.new(0, 0.15, back + 0.65))
 	local light = Instance.new("PointLight")
 	light.Range, light.Shadows, light.Parent = 7, false, shell
-	-- A wooden base ring, its rim showing outside the glass, that the creature sits on.
-	local base = capsulePart(model, "Base", Vector3.new(0.25, 1.95, 1.95), Enum.PartType.Cylinder,
-		Color3.fromRGB(120, 86, 52), Enum.Material.Wood)
-	weld("BaseJoint", shell, base, CFrame.new(0, -0.45, 0) * CFrame.Angles(0, 0, math.rad(90)))
 	local creature = capsulePart(model, "Creature", Vector3.new(1.15, 0.85, 1), Enum.PartType.Ball,
 		Color3.fromRGB(look.body[1], look.body[2], look.body[3]), Enum.Material.SmoothPlastic)
 	weld("Seat", shell, creature, CFrame.new(0, 0.1, 0))
-	-- MeshGen1 pass: a Lumipol rides as the user's model, its feet on the base ring, welded to the seat ball (the
+	-- MeshGen1 pass: a Lumipol rides as the user's model, its feet at the seat ball's bottom, welded to the seat ball (the
 	-- clients animate the seat joint) and hiding it; other species and a missing template keep the primitive.
 	local tint = look.tint and Color3.fromRGB(look.tint[1], look.tint[2], look.tint[3]) or nil
 	local art = Art.uses(look) and lumipolArt.Parent and Art.dress(model, lumipolArt.Parent,

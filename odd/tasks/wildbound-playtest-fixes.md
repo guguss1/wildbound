@@ -74,10 +74,33 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
     `WildboundTreadmillBuffUntil` = now + 60). `applyCarry` forces 0 while mounted (line 397). `WildboundCreatureToolbar` is
     required at line 3969; `syncPlayer` runs on hatch (`stepIncubators`, line 574) and on every new character
     (`bindCharacter`, deferred, line 3459).
-- [ ] PF1 Backpack:
+- [x] PF1 Backpack:
   - remove the strap and shell from the creature capsule, keeping the invisible model that audio, fear and pose read;
   - put one back pack on the egg carrier;
   - re-pin the EggCarry and Carry suites.
+  - Route: direct inline (one server function plus two suites). TDD on (task method), runner: fresh loader in Edit (a
+    trimmed copy of `tools/studio-fresh-runner.luau` with the same SPECS, held in a temporary ServerStorage StringValue,
+    removed after).
+  - Change: `buildCapsule` no longer builds the Strap or the Base ring; the Shell is an invisible SmoothPlastic mount
+    (Transparency 1) moved to `back + 0.65`, so the creature sits on the back with no bag. The capsule model, its Uid,
+    Species, Mood, SoundCue and Warded attributes, the Seat joint and the mood light stay. The egg pack
+    (`Heist.syncEggArms`, `WildboundEggCarried`) was already the single live pack and is unchanged; its part names stay
+    because SistemaSonriente's HuevoSonriente dresses them.
+  - Suites re-pinned to live behaviour (pulled in PF0): steal hold 0.5 / rare 0.75 / floor 0.35, pickup 0.25, several
+    eggs up to the bag capacity (`maxCarry`), the chest's `Heist.secureAll`, a second egg in the same bag in State.
+  - RED (suites written to Studio, server unchanged): WildboundCarry_Test 12 passed, 1 failed (PF1 case);
+    WildboundEggCarry_Test 38 passed, 1 failed (PF1 case; the 9 pre-existing failures now pass).
+  - GREEN: WildboundCarry_Test 13/0, WildboundEggCarry_Test 39/0, WildboundBeastWiring_Test 49/0 (reads
+    `WildboundEggCarried`), WildboundBaseZone_Test 8 passed, 1 failed (BZ7, pre-existing and unchanged).
+  - Fingerprints (repo = Studio after the write): WildboundServer 206888 f1f3e4b9 (was 207073 4f53130b, checked just
+    before writing), WildboundEggCarry_Test 41622 34ea7029, WildboundCarry_Test 10960 93e19195.
+  - Solo Play (PlayLock `PF1`, cleared after): HeistProbe steal of Egg:20 gave exactly one `WildboundEggCarried` on the
+    R15 character, `BackpackHold` on UpperTorso, egg art visible in the pack's top; a second steal (Egg:18, two eggs
+    carried) still showed one pack. No server errors. Screenshot:
+    `assets/exports/forest-kit/captures/pf1-egg-backpack-desktop.jpg`. Not checked in Play: a carried creature (the
+    capture probe's seal accepts probe keys only), covered by the source suite.
+  - Python: 1186 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
+  - Not re-pinned: WildboundMechanicsWiring_Test W1 (`canSteal` without `maxCarry`), outside PF1's suites.
 - [ ] PF2 Treadmill:
   - a large trained walk speed, from 16 up to a high cap, with tuning bounds widened;
   - restore the walk speed on dismount;
@@ -103,4 +126,5 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 
 ## Progress
 
-Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). Next step: PF1.
+Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). PF1 done 2026-11-14
+(commit `fix(carry): one backpack, only while carrying an egg`). Next step: PF2.

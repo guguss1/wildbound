@@ -145,6 +145,26 @@ return function(Carry, source, Text, sources)
 		assert(not server:find("Instance.new(\"Sound\")", 1, true), "no sound in delivery B")
 	end)
 
+	-- PF1 (user, 2026-11-14): one backpack, only while carrying an egg. A carried creature rides on the back with no bag:
+	-- no strap, no glass shell, no wooden base ring. The WildboundCarryCapsule model stays (audio, fear, pose and the HUD
+	-- read it and its attributes); the shell is kept as an invisible mount the seat hangs from.
+	case("PF1: a carried creature rides with no bag: no strap, glass shell or base ring", function()
+		local server = sources.server
+		assert(type(server) == "string", "server source missing")
+		local i = server:find("local function buildCapsule(character, carried)", 1, true)
+		assert(i, "buildCapsule missing")
+		local capsule = server:sub(i, server:find("\nend\n", i, true))
+		for _, bag in ipairs({ '"Strap"', '"Base"', '"Backpack"', "Enum.Material.Glass", "Enum.Material.Fabric" }) do
+			assert(not capsule:find(bag, 1, true), "the capsule still builds " .. bag)
+		end
+		assert(capsule:find("model.Name = CAPSULE", 1, true), "the capsule model stays")
+		assert(capsule:find('model:SetAttribute("Uid", carried.uid)', 1, true), "its Uid stays")
+		assert(capsule:find('capsulePart(model, "Shell"', 1, true) and capsule:find("Enum.Material.SmoothPlastic, 1)", 1, true),
+			"the shell is an invisible mount")
+		assert(capsule:find('weld("Seat", shell, creature', 1, true), "the clients still animate the seat")
+		assert(capsule:find('paintCapsule(model, "calm")', 1, true), "the mood attribute stays")
+	end)
+
 	case("the module source is pure", function()
 		assert(type(source) == "string" and #source > 200, "source missing")
 		for _, banned in ipairs({ "GetService", "require", "workspace", "game%.", "Instance", "os%.", "tick%(" }) do
