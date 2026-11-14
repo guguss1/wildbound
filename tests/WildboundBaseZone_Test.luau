@@ -128,8 +128,11 @@ return function(Zone, source, sources)
 		local guide = sources.guide
 		assert(type(guide) == "string" and #guide > 200, "guide source")
 		has(guide, 'FindFirstChild("WildboundEggCarried")', "carrying = the server's backpack on the character")
-		has(guide, "Text.HUB.dropHere"); has(guide, "Text.HUB.goBase"); has(guide, "Text.HUB.safeBanner")
+		has(guide, "Text.HUB.dropHere"); has(guide, "Text.HUB.goBase")
+		-- Deliberately changed (user decision 2026-11-14, "Que quede oculto"): the safe banner signal is still heard,
+		-- but the banner stays hidden.
 		has(guide, '"WildboundSafeBanner"')
+		has(guide, "local function showBanner()\n\tbanner.Visible = false\nend", "the safe banner stays hidden")
 		has(guide, '"OwnerUserId"', "the own base")
 		has(guide, "Highlight", "the own base pad stands out")
 		assert(not guide:find("FireServer", 1, true) and not guide:find("InvokeServer", 1, true), "the client sends nothing")
