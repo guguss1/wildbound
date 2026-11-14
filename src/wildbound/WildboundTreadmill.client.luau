@@ -286,18 +286,27 @@ RunService.RenderStepped:Connect(function(dt)
 	end
 end)
 
--- Treadmill audio & local HUD.
-local runSound = Instance.new("Sound")
+-- Treadmill audio & local HUD. Ids come only from WildboundAudioCatalog (delivery D9).
+local catalogModule = ReplicatedStorage:WaitForChild("WildboundAudioCatalog", 10)
+local Catalog = catalogModule and catalogModule:IsA("ModuleScript") and require(catalogModule)
+local function catalogSound(slot)
+	local entry = Catalog and Catalog.SOUNDS and Catalog.SOUNDS[slot]
+	local sound = Instance.new("Sound")
+	if entry then
+		sound.SoundId = "rbxassetid://" .. entry.ids[1]
+		sound.Looped = entry.loop
+		sound.PlaybackSpeed = entry.pitch
+	end
+	return sound
+end
+
+local runSound = catalogSound("treadmillSteps")
 runSound.Name = "WildboundTreadmillSteps"
-runSound.SoundId = "rbxassetid://9114080709"
-runSound.Looped = true
-runSound.PlaybackSpeed = 1.45
 runSound.Volume = 0.28
 runSound.Parent = SoundService
 
-local lapSound = Instance.new("Sound")
+local lapSound = catalogSound("treadmillLap")
 lapSound.Name = "WildboundTreadmillLap"
-lapSound.SoundId = "rbxassetid://9114826444"
 lapSound.Volume = 0.5
 lapSound.Parent = SoundService
 

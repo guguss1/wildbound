@@ -95,7 +95,8 @@ def _value(value, depth):
 
 def render(tuning):
     data = {k: v for k, v in tuning.items() if k not in EXCLUDED}
-    return HEADER + _value(data, 0) + ")\n"
+    # No trailing newline: the live module is pulled from Studio, whose sync trims it.
+    return HEADER + _value(data, 0) + ")"
 
 
 # ---- Reading the module back (used by the tests) ------------------------------

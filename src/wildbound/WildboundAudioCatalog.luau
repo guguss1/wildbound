@@ -53,6 +53,10 @@ Catalog.SOUNDS = table.freeze({
 	-- shortlist, layer 7) and the hatch (the harp sting, "registration chime" in the same layer). 2D one-shots.
 	eggBanked = slot("Impact", { 9114826444 }),
 	eggHatched = slot("Impact", { 1841772016 }),
+	-- Training treadmill (WildboundTreadmillClient), 2D: the stride thump looped fast while running, and the bank bells
+	-- for each lap.
+	treadmillSteps = slot("Impact", { 9114080709 }, { loop = true, pitch = 1.45 }),
+	treadmillLap = slot("Impact", { 9114826444 }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.
@@ -60,6 +64,8 @@ Catalog.SHARED = table.freeze({
 	[9125440130] = table.freeze({ "signature", "whisper" }),
 	[9113586909] = table.freeze({ "breathing", "hiddenBreath" }),
 	[9114628321] = table.freeze({ "call", "groan" }),
+	[9114080709] = table.freeze({ "steps", "treadmillSteps" }),
+	[9114826444] = table.freeze({ "eggBanked", "treadmillLap" }),
 })
 
 return Catalog
