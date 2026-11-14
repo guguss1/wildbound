@@ -24,9 +24,9 @@ Route: inline (one writer, test files only; the classification read about 20 liv
 - [x] SR5 Python suite (2026-11-14): 1298 run, 5 failures, 28 skipped. None from this track: `test_export_economy_config_luau` x3 (EconomyConfig vs its document), `test_lumipol_v2.test_v1_files_are_unchanged`, `test_studio_fresh_runner.test_every_suite_has_a_spec_or_a_skip` (`WildboundRoulette_Test`, another track's new suite). A first run during other tracks' edits showed 16 transient failures; the rerun showed these 5.
 - [ ] SR6 Owner decisions on the 12 decision-(2) cases and the open cycle decision (T08a here; T02 in `odd/tasks/wildbound-2-0.md`).
 
-## Open decision (T08a)
+## Cycle decision (T08a)
 
-The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.luau` PHASES and `WildboundEconomyConfig.luau` cycle). The 2.0 pack proposes 240/60/300/120. The user has not decided. The suites now pin the live values. `docs/mechanics/wildbound-economy-p0.md` still lists 360/72/216/72 (the Python export tests report that gap).
+The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.luau` PHASES and `WildboundEconomyConfig.luau` cycle). The 2.0 pack proposed 240/60/300/120. User decision 2026-11-14 ("Mantener 300/60/300/60"): the live split stays; the suites pinned in `9aaeee1` are final. `docs/mechanics/wildbound-economy-p0.md` still lists 360/72/216/72 (the Python export tests report that gap).
 
 ## Classification
 
