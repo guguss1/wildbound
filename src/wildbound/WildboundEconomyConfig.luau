@@ -32,7 +32,7 @@ return freeze({
 	capacity = {
 		bagItems = 12,
 		pouchUnits = 30,
-		collectionLimit = 500,
+		collectionLimit = 100,
 		consumableCaps = { seal = 3, capsule = 1, totem = 1 },
 	},
 	carry = {

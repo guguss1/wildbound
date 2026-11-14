@@ -76,6 +76,8 @@ The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.
 
 ## Next step
 
+Collection limit resolved 2026-11-14 (user decision "Volver a 100"): `WildboundEconomyConfig.luau` `collectionLimit = 100`; Studio `ReplicatedStorage.WildboundEconomyConfig` matches the repo (8939 bytes, Adler-32 3658947834). Record 25/0 (RT-17 passes). State 64/14: the four messages read are bag-size cases (expected 3, live 12), not checked against the old limit because Studio entered Play. Export tests unchanged at 9/3 (document drift).
+
 Deferred (user decision 2026-11-14 "Después de su etapa"): Tuning DT1 `Eggs.STEAL_HOLD` (EggCarry 0.8 vs schema 0.5) waits until the teammate finishes stage 1; it is in their lock zone.
 
 SR6: the owner decides each decision-(2) case (restore the behaviour, or confirm the change so the suite can pin it), the teammate looks at the 6 decision-(3) cases, and the user decides the cycle split (T08a).
