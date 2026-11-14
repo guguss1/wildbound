@@ -285,7 +285,19 @@ local function updateTutorial()
 	end
 	local step = Tutorial.step(tutorial)
 	gui:SetAttribute("TutorialState", step and step.id or Tutorial.state(tutorial))
-	card.Visible = false
+	-- User decision 2026-11-14 ("Que se muestre"): the card shows again under the conditions above.
+	local hints = Settings.get(settings, "hints")
+	local blocked = screen ~= "closed" or player:GetAttribute("WildboundCapturing") == true
+		or (inventory and inventory.Visible == true)
+	local finishing = Tutorial.state(tutorial) == "done" and os.clock() < doneUntil
+	if (step or finishing) and hints and not blocked then
+		if cardKey ~= tostring(gui.AbsoluteSize) or cardMode == nil then layoutCard() end
+		cardText.Text = step and Tutorial.cardText(step, compactNow()) or Tutorial.DONE_TEXT
+		skip.Visible = step ~= nil
+		card.Visible = true
+	else
+		card.Visible = false
+	end
 end
 listen(gui:GetPropertyChangedSignal("AbsoluteSize"), function() cardKey = nil end)
 
