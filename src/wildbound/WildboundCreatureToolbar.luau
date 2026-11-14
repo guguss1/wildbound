@@ -1,19 +1,39 @@
 -- Manages hatched creatures in the player's Roblox Toolbar (Backpack Tools) and depositing them onto the player's Base Farm floor.
+-- PF3 (user decision 2026-11-14): a creature is deposited only on the player's OWN base pad; a deposited creature stops
+-- following the player (deps.unequip) and taking it back to the hotbar never equips it; tools are rebuilt once per
+-- respawn, never duplicated. No icon asset is uploaded: TextureId stays empty until an icon upload is approved.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
 local Toolbar = {}
 Toolbar.__index = Toolbar
 
+local UID = "WildboundCreatureUid"
+local DEPOSIT_REACH = 20 -- studs from the own pad when the base zone does not report the player inside
+
 function Toolbar.new(deps)
 	local self = setmetatable({
-		deps = deps, -- { state, visual, send, isInsideBase, Art, Species, Text }
+		-- { state, visual, send, isInsideBase, unequip, Art, Species, Text, tagged?, players? }
+		-- unequip(player, uid): the server puts that creature back in the collection when it is the companion out.
+		deps = deps,
 		placed = {}, -- [userId] = { [uid] = { model = Model, species = string } }
 	}, Toolbar)
-	Players.PlayerRemoving:Connect(function(player)
+	local players = deps.players or Players
+	players.PlayerRemoving:Connect(function(player)
 		self:clearPlayer(player.UserId)
 	end)
 	return self
+end
+
+function Toolbar:words()
+	local text = self.deps.Text
+	return text and text.FARM or {}
+end
+
+function Toolbar:displayName(species)
+	local text = self.deps.Text
+	local names = text and text.CARD and text.CARD.species
+	return names and names[species] or species
 end
 
 function Toolbar:clearPlayer(userId)
@@ -26,8 +46,14 @@ function Toolbar:clearPlayer(userId)
 	end
 end
 
+function Toolbar:tagged(tag)
+	if self.deps.tagged then return self.deps.tagged(tag) end
+	return CollectionService:GetTagged(tag)
+end
+
+-- The player's own base pad only (PF3: no fallback to another base's pad).
 function Toolbar:basePadOf(userId)
-	for _, model in ipairs(CollectionService:GetTagged("WildboundBaseSlot")) do
+	for _, model in ipairs(self:tagged("WildboundBaseSlot")) do
 		if model:IsA("Model") and model:GetAttribute("OwnerUserId") == userId then
 			local pad = model:FindFirstChild("Pad")
 			if pad and pad:IsA("BasePart") then return pad, model end
@@ -36,43 +62,40 @@ function Toolbar:basePadOf(userId)
 	return nil, nil
 end
 
-local function findToolByUid(player, uid)
-	local backpack = player:FindFirstChildOfClass("Backpack")
-	if backpack then
-		for _, item in ipairs(backpack:GetChildren()) do
-			if item:IsA("Tool") and item:GetAttribute("WildboundCreatureUid") == uid then
-				return item
+local function creatureTools(player)
+	local found = {}
+	for _, container in ipairs({ player:FindFirstChildOfClass("Backpack"), player.Character }) do
+		if container then
+			for _, item in ipairs(container:GetChildren()) do
+				if item:IsA("Tool") and item:GetAttribute(UID) ~= nil then table.insert(found, item) end
 			end
 		end
 	end
-	local character = player.Character
-	if character then
-		for _, item in ipairs(character:GetChildren()) do
-			if item:IsA("Tool") and item:GetAttribute("WildboundCreatureUid") == uid then
-				return item
-			end
-		end
+	return found
+end
+
+local function registeredPet(snapshot, uid)
+	for _, pet in ipairs(snapshot and snapshot.registered or {}) do
+		if pet.uid == uid then return pet end
 	end
 	return nil
 end
 
 function Toolbar:depositInFarm(player, uid, species, tool)
-	local pad, baseModel = self:basePadOf(player.UserId)
-	local inside = self.deps.isInsideBase and self.deps.isInsideBase(player)
-	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
-	if not pad and root then
-		-- Fallback: nearest owned/any base pad within 20 studs
-		for _, model in ipairs(CollectionService:GetTagged("WildboundBaseSlot")) do
-			local p = model:FindFirstChild("Pad")
-			if p and p:IsA("BasePart") and (p.Position - root.Position).Magnitude <= 20 then
-				pad, baseModel = p, model
-				inside = true
-				break
-			end
-		end
+	local words = self:words()
+	local snapshot = self.deps.state:snapshot(player.UserId)
+	local pet = registeredPet(snapshot, uid)
+	local userMap = self.placed[player.UserId]
+	if not pet or (userMap and userMap[uid]) then
+		if tool and tool.Parent then tool:Destroy() end
+		return false
 	end
-	if not pad or not root or (not inside and (root.Position - pad.Position).Magnitude > 20) then
-		self.deps.send(player, "Notice", false, "Entrá a tu base para dejar la criatura en la granja.")
+	species = pet.species or species or "Lumipol"
+	local pad, baseModel = self:basePadOf(player.UserId)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local inside = self.deps.isInsideBase and self.deps.isInsideBase(player) == true
+	if not pad or not root or (not inside and (root.Position - pad.Position).Magnitude > DEPOSIT_REACH) then
+		self.deps.send(player, "Notice", false, words.notInBase)
 		return false
 	end
 
@@ -95,7 +118,7 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 	local creatureModel, body = self.deps.visual("Creature", spotWorld, species, 0.75)
 	creatureModel.Name = "WildboundFarmCreature"
 	creatureModel:SetAttribute("OwnerUserId", player.UserId)
-	creatureModel:SetAttribute("WildboundCreatureUid", uid)
+	creatureModel:SetAttribute(UID, uid)
 	creatureModel:SetAttribute("WildboundSpecies", species)
 	local goalFrame = CFrame.lookAt(spotWorld, spotWorld + lookDir)
 	if not creatureModel:GetAttribute(self.deps.Art.CONFIG.ATTRIBUTE) and body then
@@ -103,14 +126,15 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 	else
 		creatureModel:PivotTo(goalFrame)
 	end
-	creatureModel.Parent = baseModel or workspace
+	creatureModel.Parent = baseModel
 
+	local displayName = self:displayName(species)
 	local promptTarget = body or creatureModel:FindFirstChildWhichIsA("BasePart", true)
 	if promptTarget then
 		local p = Instance.new("ProximityPrompt")
 		p.Name = "PickupFarmCreaturePrompt"
-		p.ActionText = "Guardar en barra"
-		p.ObjectText = (species == "LumipolVioleta" and "Lumipol Violeta" or "Lumipol")
+		p.ActionText = words.pickupAction
+		p.ObjectText = displayName
 		p.HoldDuration = 0.2
 		p.MaxActivationDistance = 7
 		p.RequiresLineOfSight = false
@@ -118,37 +142,50 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 		p.Parent = promptTarget
 		p.Triggered:Connect(function(who)
 			if who ~= player then return end
-			local userMap = self.placed[player.UserId]
-			if userMap and userMap[uid] then
-				if userMap[uid].model then userMap[uid].model:Destroy() end
-				userMap[uid] = nil
-			end
-			local snap = self.deps.state:snapshot(player.UserId)
-			self:syncPlayer(player, snap)
-			self.deps.send(player, "Notice", true, "Guardaste la criatura en tu barra de herramientas.")
+			self:pickUp(player, uid)
 		end)
 	end
 
 	self.placed[player.UserId] = self.placed[player.UserId] or {}
 	self.placed[player.UserId][uid] = { model = creatureModel, species = species }
 
-	if tool and tool.Parent then
-		tool:Destroy()
+	-- PF3: a creature in the farm no longer follows the player.
+	if self.deps.unequip then self.deps.unequip(player, uid) end
+	for _, item in ipairs(creatureTools(player)) do
+		if item:GetAttribute(UID) == uid then item:Destroy() end
 	end
-	local displayName = species == "LumipolVioleta" and "Lumipol Violeta" or "Lumipol"
-	self.deps.send(player, "Notice", true, "¡Dejaste tu " .. displayName .. " en la base!")
+	if tool and tool.Parent then tool:Destroy() end
+	self.deps.send(player, "Notice", true, string.format(words.placed or "%s", displayName))
 	return true
+end
+
+-- PF3: back to the hotbar as a tool; never equipped as the companion.
+function Toolbar:pickUp(player, uid)
+	local userMap = self.placed[player.UserId]
+	local entry = userMap and userMap[uid]
+	if not entry then return false end
+	if entry.model then entry.model:Destroy() end
+	userMap[uid] = nil
+	self:syncPlayer(player, self.deps.state:snapshot(player.UserId))
+	self.deps.send(player, "Notice", true, string.format(self:words().stored or "%s", self:displayName(entry.species)))
+	return true
+end
+
+-- PF3: a newborn (or any creature) that the hatch made the companion goes to the hotbar instead.
+function Toolbar:stow(player, uid)
+	if self.deps.unequip then return self.deps.unequip(player, uid) end
+	return false
 end
 
 function Toolbar:buildTool(player, pet)
 	local species = pet.species or "Lumipol"
-	local displayName = species == "LumipolVioleta" and "Lumipol Violeta" or "Lumipol"
 	local tool = Instance.new("Tool")
-	tool.Name = displayName
-	tool.ToolTip = "Clic en tu base para dejarla en la granja"
+	tool.Name = self:displayName(species)
+	tool.ToolTip = self:words().toolTip or ""
+	tool.TextureId = "" -- no icon asset until an upload is approved
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
-	tool:SetAttribute("WildboundCreatureUid", pet.uid)
+	tool:SetAttribute(UID, pet.uid)
 	tool:SetAttribute("WildboundSpecies", species)
 
 	local handle = Instance.new("Part")
@@ -190,6 +227,8 @@ function Toolbar:buildTool(player, pet)
 	return tool
 end
 
+-- One tool per registered creature that is not in the farm: duplicates and tools of creatures no longer owned (or now
+-- in the farm) are removed, so it is safe to call on every hatch, pickup and respawn.
 function Toolbar:syncPlayer(player, snapshot)
 	if not player or not player.Parent then return end
 	local backpack = player:FindFirstChildOfClass("Backpack")
@@ -198,12 +237,32 @@ function Toolbar:syncPlayer(player, snapshot)
 	if not snapshot or not snapshot.registered then return end
 
 	local placedMap = self.placed[player.UserId] or {}
+	local wanted = {}
 	for _, pet in ipairs(snapshot.registered) do
-		if not placedMap[pet.uid] and not findToolByUid(player, pet.uid) then
+		if not placedMap[pet.uid] then wanted[pet.uid] = pet end
+	end
+	local have = {}
+	for _, item in ipairs(creatureTools(player)) do
+		local uid = item:GetAttribute(UID)
+		if not wanted[uid] or have[uid] then
+			item:Destroy()
+		else
+			have[uid] = item
+		end
+	end
+	for _, pet in ipairs(snapshot.registered) do
+		if wanted[pet.uid] and not have[pet.uid] then
+			have[pet.uid] = true
 			local tool = self:buildTool(player, pet)
 			tool.Parent = backpack
 		end
 	end
+end
+
+-- PF3: a new character gets a new Backpack; rebuild the tools there once it exists.
+function Toolbar:respawn(player)
+	local backpack = player:FindFirstChildOfClass("Backpack") or player:WaitForChild("Backpack", 5)
+	if backpack then self:syncPlayer(player) end
 end
 
 return Toolbar

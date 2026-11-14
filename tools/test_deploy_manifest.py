@@ -432,6 +432,7 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundTreadmillService.luau": "ServerScriptService.WildboundTreadmillService",
         "src/wildbound/WildboundCreatureToolbar.luau": "ServerScriptService.WildboundCreatureToolbar",
         "tests/WildboundMechanicsWiring_Test.luau": "ServerStorage.WildboundMechanicsWiring_Test",
+        "tests/WildboundCreatureToolbar_Test.luau": "ServerStorage.WildboundCreatureToolbar_Test",
         # Studio-to-repo sync: shared modules observed in ReplicatedStorage
         "src/wildbound/WildboundLumipolAnimData.luau": "ReplicatedStorage.WildboundLumipolAnimData",
         "src/wildbound/WildboundLumipolRig.luau": "ReplicatedStorage.WildboundLumipolRig",

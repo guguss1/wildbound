@@ -137,6 +137,11 @@ SPECS["WildboundCarry_Test"] = {
 	"mod:WildboundText",
 	{ server = "src:WildboundServer", world = "src:WildboundWorldClient", client = "src:WildboundClient" },
 }
+SPECS["WildboundCreatureToolbar_Test"] = {
+	"mod:WildboundCreatureToolbar",
+	"src:WildboundCreatureToolbar",
+	{ server = "src:WildboundServer", text = "mod:WildboundText" },
+}
 SPECS["WildboundDodge_Test"] = { "mod:WildboundDodge", "src:WildboundDodge" }
 SPECS["WildboundDusk_Test"] = { "mod:WildboundDusk", "src:WildboundDusk", "mod:WildboundWorldRules" }
 SPECS["WildboundEconomy_Test"] = {

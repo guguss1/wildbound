@@ -710,4 +710,12 @@ return freeze({
 		eggRow = "Huevo de %s · %s",
 		eggsHeader = "Huevos guardados (%d) · Se incuban solos en tu base",
 	},
+	-- PF3: the creature hotbar and the base farm. Notices at most 72 bytes.
+	FARM = {
+		toolTip = "Úsala en tu base para dejarla en la granja",
+		notInBase = "Ve a tu base para dejar la criatura en la granja.",
+		placed = "¡Dejaste a %s en tu granja! Ya no te sigue.",
+		stored = "Guardaste a %s en tu barra.",
+		pickupAction = "Guardar en la barra",
+	},
 })

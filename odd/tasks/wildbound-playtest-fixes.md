@@ -134,11 +134,46 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
   - Not retuned: La Silueta and the parents' speeds; a trained walker outruns them (product question).
   - Seen, not pulled: Studio's `WildboundText` is ahead of the repo by the Flanfuria beast lines (not PF2's; left for the
     sync).
-- [ ] PF3 Creature hotbar:
+- [x] PF3 Creature hotbar:
   - own pad only;
   - rebuild tools on respawn;
   - a creature deposited in the farm stops following (unequip);
   - a Lumipol icon placeholder, until an icon upload is approved.
+  - Route: direct inline (one module plus small additive server wiring; the module was read in full first). Strict TDD
+    on, runner: fresh loader in Edit with the `tools/studio-fresh-runner.luau` SPECS.
+  - Pulled first: Studio's `WildboundText` was ahead by the two Flanfuria beast lines (separate commit
+    `chore(sync): pull the live Flanfuria beast lines into WildboundText`). Server, Toolbar, State and the
+    Incubator suite matched the repo before any write (Server 207220 11fe5162, Toolbar 7221 b56766e2).
+  - `WildboundCreatureToolbar`: deposit only on the player's own pad (the any-pad-within-20-studs fallback is
+    gone) and only for a registered creature; `depositInFarm` calls the injected `unequip`; new `pickUp` (back to
+    the hotbar, never equips), `stow` (newborn) and `respawn` (waits for the new Backpack); `syncPlayer` keeps one
+    tool per creature and removes duplicates and tools of creatures no longer owned or in the farm. Words moved to
+    `Text.FARM` (neutral Spanish; the old "Entrá..." literal is gone). `tagged`/`players` deps for the fakes.
+  - `WildboundServer` (lock zone, additive): an `unequip` dep (`state:unequip`, clears the companion attributes,
+    `syncCompanion`); the hatch step stows a newborn the State made the companion (`born.equipped`) and the notice is
+    `Text.LOOP.hatchTitle` + `Text.LOOP.hatchStored`; a new character calls `creatureToolbar:respawn`.
+    `WildboundState` is unchanged (its NS3 still equips the newborn; the server puts it back).
+  - Icon: no Lumipol icon image exists in the place (no ImageLabel/ImageButton/Decal/Tool with a Lumipol or icon
+    image; the repo ids next to Lumipol are mesh UV textures, not icons). `TextureId` stays empty, Name "Lumipol",
+    ToolTip from `Text.FARM.toolTip`. An icon upload (candidate `assets/blender/lumipol-forest-sprite-v2-front.png`)
+    needs the user's approval.
+  - Tests: new `tests/WildboundCreatureToolbar_Test.luau` (CT-1..CT-10, fakes only), added to
+    `tools/deploy_manifest.py`, `tools/test_deploy_manifest.py` and the runner SPECS; `tests/WildboundIncubator_Test.luau`
+    NS3 re-pinned to PF3 (the newborn goes to the hotbar; deliberately changed).
+  - RED (tests written, sources unchanged): CreatureToolbar_Test 1 passed, 9 failed; Incubator_Test 6 passed, 1
+    failed. GREEN: CreatureToolbar_Test 10/0; Incubator_Test 7/0; Text_Test 19/0; MechanicsWiring_Test 9/1 (the
+    known W1 `maxCarry` drift, unchanged); Hub_Test 22/1 (the known HB-T3, unchanged).
+  - Fingerprints (repo = Studio after the write, LF, trailing newlines stripped, bytes + Adler-32):
+    WildboundCreatureToolbar 9557 9c35a497, WildboundServer 207961 bcbc47b1 (compiles), WildboundText 34242 ad48cf82,
+    WildboundCreatureToolbar_Test 10662 2d8e96df, WildboundIncubator_Test 6465 7524302a.
+  - Play (lock "PF3", cleared after; Play stopped): IslandProbe "egg" banked one egg; at the own base it
+    incubated and hatched: one "Lumipol" tool in the Backpack, no companion out (stowed). Equipped through the Action
+    remote: one companion follows. Tool activated on the own pad: a `WildboundFarmCreature` in Base1, companion gone,
+    no creature tool. Prompt "Guardar en la barra": back to one tool, not equipped. `LoadCharacter`: exactly one tool
+    in the new Backpack. Activated on another base's pad: refused, tool kept. No script errors; saves in memory mode.
+    Nothing saved or published.
+  - Python: 1186 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
+  - Open: the farm is still memory-only (PF4); the icon upload waits for approval.
 - [ ] PF4 Persistent farm in State: farm list, slot cap from `Balance.farm.startSlots`, a schema step, and a rebuild on join.
 - [ ] PF5 Roulette in the hub:
   - station;
@@ -157,4 +192,5 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 
 Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). PF1 done 2026-11-14
 (commit `fix(carry): one backpack, only while carrying an egg`). PF2 done 2026-11-14
-(commit `feat(training): a large treadmill walk speed`). Next step: PF3.
+(commit `feat(training): a large treadmill walk speed`). PF3 done 2026-11-14
+(commit `feat(farm): own-pad farm and a hotbar home for creatures`). Next step: PF4.

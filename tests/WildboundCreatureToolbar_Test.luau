@@ -1,0 +1,235 @@
+-- Invoke with require(freshTestClone)(require(freshCreatureToolbarClone), freshCreatureToolbarClone.Source, { server =
+-- WildboundServer.Source, text = require(freshTextClone) }).
+-- PF3 (user decision 2026-11-14): hatched creatures live in the hotbar; one placed in the OWN base farm stops following
+-- the player and can be taken back to the hotbar, which never equips it. Tools are rebuilt on respawn without
+-- duplicates. Every Instance here stays outside the DataModel; players, pads and state are fakes.
+return function(Toolbar, source, sources)
+	local result = { passed = 0, failed = 0, messages = {} }
+	local function case(name, run)
+		local ok, message = pcall(run)
+		if ok then result.passed += 1 else
+			result.failed += 1
+			table.insert(result.messages, name .. ": " .. tostring(message))
+		end
+	end
+	local function equal(actual, expected, label)
+		assert(actual == expected, (label and label .. ": " or "") .. "Expected " .. tostring(expected)
+			.. ", got " .. tostring(actual))
+	end
+	local Text, server = sources.text, sources.server
+
+	local function signal()
+		local s = { handlers = {} }
+		function s:Connect(fn) table.insert(self.handlers, fn); return { Disconnect = function() end } end
+		return s
+	end
+
+	local function fakePlayer(userId, position)
+		local holder = Instance.new("Folder")
+		local backpack = Instance.new("Backpack")
+		backpack.Parent = holder
+		local character = Instance.new("Model")
+		local root = Instance.new("Part")
+		root.Name = "HumanoidRootPart"
+		root.Anchored = true
+		root.CFrame = CFrame.new(position or Vector3.zero)
+		root.Parent = character
+		character.Parent = holder
+		local player = { UserId = userId, Parent = holder, Character = character, holder = holder }
+		function player:FindFirstChildOfClass(className) return holder:FindFirstChildOfClass(className) end
+		function player:WaitForChild(name) return holder:FindFirstChild(name) end
+		return player
+	end
+
+	local function pad(ownerId, position)
+		local model = Instance.new("Model")
+		model:SetAttribute("OwnerUserId", ownerId)
+		local part = Instance.new("Part")
+		part.Name = "Pad"
+		part.Anchored = true
+		part.Size = Vector3.new(40, 1, 40)
+		part.CFrame = CFrame.new(position)
+		part.Parent = model
+		return model
+	end
+
+	local function fixture(opts)
+		opts = opts or {}
+		local log = { sends = {}, unequips = {}, equips = 0 }
+		local snapshot = { registered = opts.registered or { { uid = "c1", species = "Lumipol" } },
+			equippedUid = opts.equippedUid }
+		local state = {}
+		function state:snapshot() return snapshot end
+		function state:equip() log.equips += 1 end
+		local pads = opts.pads or {}
+		local toolbar = Toolbar.new({
+			state = state,
+			players = { PlayerRemoving = signal() },
+			tagged = function(tag)
+				equal(tag, "WildboundBaseSlot")
+				return pads
+			end,
+			visual = function()
+				local model = Instance.new("Model")
+				local body = Instance.new("Part")
+				body.Name = "Body"
+				body.Size = Vector3.new(1, 1, 1)
+				body.Parent = model
+				return model, body
+			end,
+			send = function(_, action, ok, notice) table.insert(log.sends, { action = action, ok = ok, notice = notice }) end,
+			isInsideBase = function() return opts.inside == true end,
+			unequip = function(_, uid)
+				table.insert(log.unequips, uid)
+				if snapshot.equippedUid == uid then snapshot.equippedUid = nil; return true end
+				return false
+			end,
+			Art = { CONFIG = { ATTRIBUTE = "WildboundArtTest" } },
+			Species = {},
+			Text = Text,
+		})
+		return toolbar, log, snapshot
+	end
+
+	local function tools(player, uid)
+		local list = {}
+		for _, container in ipairs({ player:FindFirstChildOfClass("Backpack"), player.Character }) do
+			for _, item in ipairs(container:GetChildren()) do
+				if item:IsA("Tool") and (uid == nil or item:GetAttribute("WildboundCreatureUid") == uid) then
+					table.insert(list, item)
+				end
+			end
+		end
+		return list
+	end
+
+	case("CT-1: the farm words are Spanish and come from WildboundText", function()
+		local F = Text.FARM
+		assert(type(F) == "table", "Text.FARM")
+		for _, key in ipairs({ "toolTip", "notInBase", "placed", "stored", "pickupAction" }) do
+			assert(type(F[key]) == "string" and #F[key] > 0 and #F[key] <= 72, "FARM." .. key)
+		end
+		assert(F.placed:find("%s", 1, true) and F.stored:find("%s", 1, true), "placed and stored name the creature")
+		assert(not source:find("Entrá", 1, true), "no Rioplatense literal left in the module")
+		assert(not source:find('"Guardaste la criatura', 1, true), "the pickup notice moved to WildboundText")
+	end)
+
+	case("CT-2: one tool per creature, named and tipped, no icon asset", function()
+		local toolbar = fixture({ registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "LumipolVioleta" } } })
+		local player = fakePlayer(7)
+		toolbar:syncPlayer(player)
+		toolbar:syncPlayer(player)
+		equal(#tools(player, "c1"), 1, "c1 once"); equal(#tools(player, "c2"), 1, "c2 once")
+		local tool = tools(player, "c1")[1]
+		equal(tool.Name, "Lumipol"); equal(tool.ToolTip, Text.FARM.toolTip); equal(tool.TextureId, "", "no icon until approved")
+		equal(tools(player, "c2")[1].Name, Text.CARD.species.LumipolVioleta)
+	end)
+
+	case("CT-3: sync removes duplicates and tools of creatures no longer owned", function()
+		local toolbar = fixture()
+		local player = fakePlayer(7)
+		toolbar:syncPlayer(player)
+		local copy = tools(player, "c1")[1]:Clone()
+		copy.Parent = player.Character
+		local stray = Instance.new("Tool")
+		stray:SetAttribute("WildboundCreatureUid", "gone")
+		stray.Parent = player:FindFirstChildOfClass("Backpack")
+		toolbar:syncPlayer(player)
+		equal(#tools(player, "c1"), 1, "the duplicate is removed")
+		equal(#tools(player, "gone"), 0, "a creature no longer owned has no tool")
+	end)
+
+	case("CT-4: a respawn rebuilds the tools once in the new Backpack", function()
+		local toolbar = fixture()
+		local player = fakePlayer(7)
+		toolbar:syncPlayer(player)
+		player:FindFirstChildOfClass("Backpack"):Destroy()
+		local fresh = Instance.new("Backpack")
+		fresh.Parent = player.holder
+		assert(type(toolbar.respawn) == "function", "Toolbar:respawn")
+		toolbar:respawn(player)
+		toolbar:respawn(player)
+		equal(#tools(player, "c1"), 1, "one tool after respawn")
+		equal(tools(player, "c1")[1].Parent, fresh, "in the new Backpack")
+	end)
+
+	case("CT-5: only the own base pad takes a creature; another base's pad never does", function()
+		local other = pad(99, Vector3.new(0, 0, 0))
+		local own = pad(7, Vector3.new(500, 0, 0))
+		local toolbar, log = fixture({ pads = { other, own }, inside = false })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		toolbar:syncPlayer(player)
+		local ok = toolbar:depositInFarm(player, "c1", "Lumipol", tools(player, "c1")[1])
+		equal(ok, false, "refused next to someone else's pad")
+		equal(#other:GetChildren(), 1, "nothing lands on another base")
+		equal(#tools(player, "c1"), 1, "the tool stays in the hotbar")
+		equal(log.sends[#log.sends].notice, Text.FARM.notInBase)
+		assert(not source:find("any base pad", 1, true) and not source:find("Fallback", 1, true),
+			"no any-pad fallback in the module")
+	end)
+
+	case("CT-6: a creature placed in the own farm stops following and leaves the hotbar", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log, snapshot = fixture({ pads = { own }, inside = true, equippedUid = "c1" })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		toolbar:syncPlayer(player)
+		local ok = toolbar:depositInFarm(player, "c1", "Lumipol", tools(player, "c1")[1])
+		equal(ok, true, "placed on the own pad")
+		equal(log.unequips[1], "c1", "the server is asked to unequip it")
+		equal(snapshot.equippedUid, nil, "no longer the companion")
+		local farm = own:FindFirstChild("WildboundFarmCreature")
+		assert(farm, "the farm creature stands in the own base")
+		equal(farm:GetAttribute("WildboundCreatureUid"), "c1")
+		equal(#tools(player, "c1"), 0, "no tool while it is in the farm")
+		toolbar:syncPlayer(player)
+		equal(#tools(player, "c1"), 0, "a sync does not bring it back")
+		equal(log.sends[#log.sends].notice, Text.FARM.placed:format("Lumipol"))
+		equal(toolbar:depositInFarm(player, "c1", "Lumipol", nil), false, "it cannot be placed twice")
+	end)
+
+	case("CT-7: taking it back puts it in the hotbar and never equips it", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log, snapshot = fixture({ pads = { own }, inside = true })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		toolbar:syncPlayer(player)
+		toolbar:depositInFarm(player, "c1", "Lumipol", tools(player, "c1")[1])
+		assert(type(toolbar.pickUp) == "function", "Toolbar:pickUp")
+		equal(toolbar:pickUp(player, "c1"), true)
+		equal(own:FindFirstChild("WildboundFarmCreature"), nil, "the farm model is gone")
+		equal(#tools(player, "c1"), 1, "back in the hotbar")
+		equal(snapshot.equippedUid, nil, "not equipped"); equal(log.equips, 0, "equip is never called")
+		equal(log.sends[#log.sends].notice, Text.FARM.stored:format("Lumipol"))
+		equal(toolbar:pickUp(player, "c1"), false, "nothing to pick up twice")
+	end)
+
+	case("CT-8: a creature the player does not own is never placed", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar = fixture({ pads = { own }, inside = true })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		equal(toolbar:depositInFarm(player, "stolen", "Lumipol", nil), false)
+		equal(own:FindFirstChild("WildboundFarmCreature"), nil)
+	end)
+
+	case("CT-9: stow unequips the companion through the injected dep", function()
+		local toolbar, log, snapshot = fixture({ equippedUid = "c1" })
+		local player = fakePlayer(7)
+		assert(type(toolbar.stow) == "function", "Toolbar:stow")
+		equal(toolbar:stow(player, "c1"), true)
+		equal(snapshot.equippedUid, nil); equal(log.unequips[1], "c1")
+	end)
+
+	case("CT-10: the server wires unequip, respawn and the newborn's hotbar home", function()
+		assert(type(server) == "string", "server source")
+		local block = server:match("CreatureToolbar%.new%((.-)\n%s*%}%)")
+		assert(block, "the toolbar is created in the server")
+		assert(block:find("unequip = function", 1, true), "an unequip dep")
+		assert(block:find("state:unequip(", 1, true), "it unequips through State")
+		assert(block:find("syncCompanion(player)", 1, true), "and removes the following companion")
+		assert(server:find("Heist.creatureToolbar:respawn(player)", 1, true), "a new character rebuilds the tools")
+		assert(server:find("if born.equipped then Heist.creatureToolbar:stow(player, born.uid) end", 1, true),
+			"a newborn the hatch equipped goes to the hotbar instead")
+		assert(server:find("Text.LOOP.hatchStored:format(spName)", 1, true), "the hatch notice says it is in the hotbar")
+	end)
+
+	return result
+end

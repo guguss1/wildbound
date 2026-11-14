@@ -97,15 +97,17 @@ return function(Incubator, source, sources)
 		assert(client:find("snapshot.incubating", 1, true), "it reads the server snapshot")
 	end)
 
-	-- Nest Heist Phase 3 (NS3): the newborn is shown on the card, joins the collection and, with no companion out,
-	-- follows the player at once; an egg whose time passed while the player was away hatches on the next step.
-	case("NS3: the hatch card names the companion and the server shows it at once", function()
+	-- Deliberately changed (PF3, user decision 2026-11-14; replaces NS3's "the newborn follows at once"): the newborn
+	-- joins the collection and goes to the hotbar. State still makes it the companion when none is out (NS3 in the State
+	-- suite); the server reads that and puts it back, so it never follows until the player equips it.
+	case("NS3/PF3: the newborn goes to the hotbar and the notice says so", function()
 		local server, text = sources.server, sources.text
-		assert(type(text.INCUBATOR.hatchedEquipped) == "string" and text.INCUBATOR.hatchedEquipped:find("%s", 1, true),
-			"a notice for a newborn companion")
+		assert(type(text.LOOP.hatchStored) == "string" and text.LOOP.hatchStored:find("%s", 1, true),
+			"a notice that names the newborn in the hotbar")
 		assert(server:find("born.equipped", 1, true), "the server reads the hatch's equip")
-		assert(server:find('player:SetAttribute("WildboundEquippedUid", born.uid)', 1, true), "and sets the companion")
-		assert(server:find("Text.INCUBATOR.hatchedEquipped", 1, true), "with its notice")
+		assert(server:find("Heist.creatureToolbar:stow(player, born.uid)", 1, true), "and stows that newborn")
+		assert(not server:find('player:SetAttribute("WildboundEquippedUid", born.uid)', 1, true), "never sets it out")
+		assert(server:find("Text.LOOP.hatchStored:format(spName)", 1, true), "with its notice")
 	end)
 
 	return result

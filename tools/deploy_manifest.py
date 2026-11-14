@@ -289,6 +289,8 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCreatureToolbar.luau", "ServerScriptService.WildboundCreatureToolbar"),
     # PF0 (odd/tasks/wildbound-playtest-fixes.md): the new-mechanics wiring suite, pulled from Studio
     ("tests/WildboundMechanicsWiring_Test.luau", "ServerStorage.WildboundMechanicsWiring_Test"),
+    # PF3: the creature hotbar and base farm suite (fakes only)
+    ("tests/WildboundCreatureToolbar_Test.luau", "ServerStorage.WildboundCreatureToolbar_Test"),
     # Studio-to-repo sync: shared modules observed in ReplicatedStorage
     ("src/wildbound/WildboundLumipolAnimData.luau", "ReplicatedStorage.WildboundLumipolAnimData"),
     ("src/wildbound/WildboundLumipolRig.luau", "ReplicatedStorage.WildboundLumipolRig"),

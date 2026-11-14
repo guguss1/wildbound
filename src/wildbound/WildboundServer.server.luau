@@ -567,10 +567,12 @@ local function stepIncubators(now)
 			player:SetAttribute("WildboundEquippedUid", nil)
 			player:SetAttribute("WildboundHasLumipol", true)
 			if Heist.creatureToolbar then
+				-- PF3: the hotbar is the newborn's home; one the hatch made the companion is put back at once.
+				if born.equipped then Heist.creatureToolbar:stow(player, born.uid) end
 				Heist.creatureToolbar:syncPlayer(player, state:snapshot(player.UserId))
 			end
 			local spName = Text.CARD.species[born.species] or born.species
-			send(player, "Hatched", true, "¡Tu huevo eclosionó! " .. spName .. " está en tu barra de herramientas.", nil,
+			send(player, "Hatched", true, Text.LOOP.hatchTitle .. " " .. Text.LOOP.hatchStored:format(spName), nil,
 				{ uid = born.uid, species = born.species, ember = 0, isNew = born.isNew, repeated = false })
 			Heist.autoIncubate(player, (context(player)), true)
 		end
@@ -3450,9 +3452,10 @@ local function bindCharacter(player, character)
 	Heist.equipBat(character)
 	applyCarry(player)
 	if Heist.creatureToolbar then
+		-- PF3: the new character's Backpack gets the creature tools once (waits for it; never duplicates).
 		task.defer(function()
 			if records[player] then
-				Heist.creatureToolbar:syncPlayer(player, state:snapshot(player.UserId))
+				Heist.creatureToolbar:respawn(player)
 			end
 		end)
 	end
@@ -3975,6 +3978,18 @@ do
 		Art = Art,
 		Species = Species,
 		Text = Text,
+		-- PF3: a creature placed in the farm (or a newborn sent to the hotbar) stops following the player.
+		unequip = function(player, uid)
+			local snapshot = state:snapshot(player.UserId)
+			if not snapshot or snapshot.equippedUid ~= uid then return false end
+			local ok = state:unequip(player.UserId, true)
+			if ok then
+				player:SetAttribute("WildboundEquippedUid", nil)
+				player:SetAttribute("WildboundHasLumipol", false)
+				if syncCompanion then syncCompanion(player) end
+			end
+			return ok
+		end,
 		isInsideBase = function(player)
 			return Heist.BaseZone and Heist.BaseZone.isInside(Heist.zones, player.UserId) or false
 		end,
