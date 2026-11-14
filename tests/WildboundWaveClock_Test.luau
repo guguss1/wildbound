@@ -356,12 +356,14 @@ return function(WaveClock, source, sources)
 		equal(View.eventBanner(nil), nil)
 	end)
 
-	case("RW7: the inventory client draws the board and the banner from the pure views", function()
+	-- Deliberately changed (user decision 2026-11-14, "Que queden ocultos"): the client still builds the board and the
+	-- banner, but keeps both hidden; the pure views above stay ready for when they come back.
+	case("RW7: the inventory client keeps the wave board and the event banner hidden", function()
 		local client = sources.client
-		has(client, "View.waveBoard(")
-		has(client, "View.eventBanner(")
 		has(client, '"WaveBoard"')
-		has(client, "COMPACT_BOARD_CHARS", "a phone gets the compact board")
+		has(client, '"EventBanner"')
+		has(client, "local function refreshBoard()\n\twaveBoard.Visible = false\nend", "the board stays hidden")
+		has(client, "local function refreshBanner()\n\teventBanner.Visible = false\nend", "the banner stays hidden")
 	end)
 
 	return result

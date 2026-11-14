@@ -76,6 +76,10 @@ The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.
 
 ## Next step
 
+Wave board and event banner resolved 2026-11-14 (user decision "Que queden ocultos"): both stay hidden; WaveClock RW7 now pins it. Studio test matched HEAD before (18676/2014190735) and the repo after (18993/2183892134). WaveClock 20/1; the remaining RW5 reads `WildboundServer` (teammate).
+
+User asked on 2026-11-14 to stop asking for now. Still open, not asked: IslandWiring K2 (refuge card bonus and next island), EggLoop EL13 (hard-coded hatch banner lines), Hub HB-T5 (Lumipol hover display), the old economy doc and simulator, roulette pity and location.
+
 Safe banner resolved 2026-11-14 (user decision "Que quede oculto"): the banner stays hidden; BaseZone BZ8 now pins `showBanner` hiding it. Studio test matched HEAD before (7970/3579841611) and the repo after (8189/1907381655). BaseZone 8/1; the remaining BZ7 reads `WildboundServer` (teammate).
 
 Tutorial card resolved 2026-11-14 (user decision "Que se muestre"): `WildboundStart.client.luau` `updateTutorial` shows the card again (hints on, no full screen, no capture, inventory closed). Studio matched HEAD before (14100/1578877645) and matches the repo after (14751/4053573199). StartWiring 9/0. Solo Play: state `robar`, card visible with "1/4 Busca un nido y mantén E." and Saltar, no script errors (`assets/exports/forest-kit/captures/tutorial-card-restored-desktop.jpg`). The start screen itself stays skipped (`show("closed")`), unchanged.
