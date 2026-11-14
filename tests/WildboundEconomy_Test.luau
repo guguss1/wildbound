@@ -25,9 +25,13 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(Config.currency.purchasable, false)
 	end)
 
-	case("the tuning copy carries the document's numbers for this part", function()
+	-- Deliberately changed (suite repair, odd/tasks/wildbound-suite-repair.md): the live tuning copy, synced from Studio
+	-- at 34eab83, holds 12 bag items (was 3), Reinforced Pack 16 (was 4) and higher Ember per tier
+	-- (WildboundEconomyConfig.luau capacity, upgrades and earn). docs/mechanics/wildbound-economy-p0.md still lists the
+	-- old numbers (the Python export tests report that gap).
+	case("the tuning copy carries the live numbers for this part", function()
 		equal(Config.loss.rateBasisPoints, 2000); equal(Config.loss.rateBasisPointsReinforced, 1000)
-		equal(Config.capacity.bagItems, 3); equal(Config.capacity.pouchUnits, 30)
+		equal(Config.capacity.bagItems, 12); equal(Config.capacity.pouchUnits, 30)
 		equal(Config.capacity.consumableCaps.seal, 3); equal(Config.capacity.consumableCaps.totem, 1)
 		equal(Config.recipes.seal.cost.fogbark, 8); equal(Config.recipes.seal.cost.glowmoss, 4)
 		equal(Config.upgrades.reinforcedPack.effects.pouchUnits, 45)
@@ -55,13 +59,13 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 	end)
 
 	case("capacity and loss follow owned upgrades only", function()
-		equal(Economy.bagCapacity(Config, {}), 3); equal(Economy.pouchCapacity(Config, {}), 30)
+		equal(Economy.bagCapacity(Config, {}), 12); equal(Economy.pouchCapacity(Config, {}), 30)
 		equal(Economy.lossBasisPoints(Config, {}), 2000)
 		local pack = { reinforcedPack = true }
-		equal(Economy.bagCapacity(Config, pack), 4); equal(Economy.pouchCapacity(Config, pack), 45)
+		equal(Economy.bagCapacity(Config, pack), 16); equal(Economy.pouchCapacity(Config, pack), 45)
 		equal(Economy.lossBasisPoints(Config, pack), 1000)
-		equal(Economy.bagCapacity(Config, { reinforcedPack = "yes" }), 3, "only true owns")
-		equal(Economy.bagCapacity(Config, nil), 3)
+		equal(Economy.bagCapacity(Config, { reinforcedPack = "yes" }), 12, "only true owns")
+		equal(Economy.bagCapacity(Config, nil), 12)
 		local names = Economy.pouchMaterials(Config)
 		equal(#names, 2); equal(names[1], "fogbark"); equal(names[2], "glowmoss")
 		equal(#Economy.materials(Config), 3)
@@ -93,13 +97,15 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 	end)
 
 	case("ECO-17 item Ember reads the stored tier, and a trip pays its base only when complete", function()
-		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Safe" }), 6)
 		-- Deliberately changed (I7): Fog 8 to 10, the Territory egg 10 to 11, and nests at islands 2 and 3 hold eggs.
-		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Fog" }), 10)
-		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Territory" }), 14)
-		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Territory" }), 11)
-		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Fog" }), 8)
-		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Safe" }), 0)
+		-- Deliberately changed again (suite repair): the live earn table (WildboundEconomyConfig.luau earn, synced at
+		-- 34eab83) pays creatures 8/14/20/28/42 and eggs 4/10/16/24/36, and a Safe egg now pays 4 (it had no entry).
+		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Safe" }), 8)
+		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Fog" }), 14)
+		equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = "Territory" }), 28)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Territory" }), 24)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Fog" }), 10)
+		equal(Economy.itemEmber(Config, { kind = "Egg", riskTier = "Safe" }), 4)
 		equal(Economy.itemEmber(Config, { kind = "Nightbloom", quantity = 3 }), 0)
 		equal(Economy.itemEmber(Config, { kind = "Creature" }), 0, "no tier pays nothing")
 		equal(Economy.itemEmber(Config, nil), 0)
@@ -187,8 +193,9 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 	end)
 
 	case("I7: island tier Ember by tier", function()
-		local creature = { Safe = 6, Fog = 10, FogFar = 12, Territory = 14, Heart = 22 }
-		local egg = { Fog = 8, FogFar = 10, Territory = 11, Heart = 14 }
+		-- Deliberately changed (suite repair): the live earn table, see ECO-17 above.
+		local creature = { Safe = 8, Fog = 14, FogFar = 20, Territory = 28, Heart = 42 }
+		local egg = { Safe = 4, Fog = 10, FogFar = 16, Territory = 24, Heart = 36 }
 		for tier, ember in pairs(creature) do
 			equal(Economy.itemEmber(Config, { kind = "Creature", riskTier = tier }), ember, "cria " .. tier)
 		end

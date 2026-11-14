@@ -89,7 +89,9 @@ return function(Dusk, source, Rules)
 
 	case("U8: it matches the day cycle: WorldRules names Dusk and gives it longer than NIGHT_SOON", function()
 		if type(Rules) ~= "table" or type(Rules.cycle) ~= "function" then error("WorldRules was not passed") end
-		local at = Rules.cycle(360 + 1)
+		-- Deliberately changed (suite repair): the live Dusk is 300 to 360 (WildboundWorldRules.luau PHASES, Day 300 then
+		-- Dusk 60; was 360 to 432). The 240/60/300/120 split of the 2.0 pack is an open user decision (T08a / T02).
+		local at = Rules.cycle(300 + 1)
 		equal(at.phase, Dusk.PHASE)
 		assert(at.remaining > Dusk.CONSTANTS.NIGHT_SOON, "a full dusk holds both warnings")
 	end)
