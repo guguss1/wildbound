@@ -43,7 +43,7 @@ Island.CONSTANTS = table.freeze({
 	-- Fear pass (FA2, user: "faster"): up in 0.4 s (was 0.6), 19 studs/s (was 17), for 14 s (was 10). A walking
 	-- carrier (14) or walker (16) is caught; only a sprint (which scares a carried cria) outruns it, by 1.3 studs/s.
 	WAKE_WINDUP = 0.35,
-	CHASE_SPEED = 23,
+	CHASE_SPEED = 19, -- user decision 2026-11-14: back to 19 from 23 so a sprinting carrier (20.3) can escape
 	CHASE_SECONDS = 14,
 	CHASE_LEASH = 35,
 	STRIKE_REACH = 3.5,
