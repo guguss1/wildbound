@@ -493,6 +493,7 @@ return function(sources, Proxies)
 	case("KB-4: the server registers both summoned behaviours and summons them by presence, never by a roll", function()
 		local beasts = sources.beasts
 		has(beasts, '{ name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" }')
+		has(beasts, '{ name = "Gomibu", module = "WildboundBeastGomibu" }') -- Caramelo biome
 		has(beasts, "for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end")
 		has(beasts, 'require(script.Parent:WaitForChild("WildboundPraderaSites"))')
 		has(beasts, "Director.summon(director, player.UserId, kid.name, ctx, at)")

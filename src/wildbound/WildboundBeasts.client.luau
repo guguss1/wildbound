@@ -998,7 +998,7 @@ local function posture(view, base, at)
 		return base * CFrame.new(0, -5 * left, 0)
 	elseif view.beast == "Gaze" then
 		return base * CFrame.new(0, 1.5 + math.sin(at * 1.2) * 0.4, 0)
-	elseif Config.SUMMONED[view.beast] then
+	elseif Config.SUMMONED[view.beast] and not Config.BEASTS[view.beast].grounded then
 		-- The Nube and the Abeja bob gently over their ground pivot.
 		return base * CFrame.new(0, math.sin(at * 1.6) * 0.5, 0)
 	end

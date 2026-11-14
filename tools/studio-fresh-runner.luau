@@ -40,6 +40,9 @@ local SPECS, SKIP = {}, {}
 SKIP["WildboundForestDress_Test"] = "its line-of-sight cases park a copy of the forest in a Workspace folder; this runner never touches Workspace"
 SKIP["WildboundSiluetaVisual_Test"] = "it parents its fixture folder straight into ServerStorage (folder.Parent = game:GetService('ServerStorage')); this runner only writes inside its temporary folder"
 SKIP["WildboundP0Map_Test"] = "its R3 relief case parks a probe folder in Workspace (arena.Parent = workspace); this runner never touches Workspace"
+SKIP["WildboundCandyBeastSites_Test"] = "it takes two Workspace instances (the WildboundPradera marker and Candy_Bioma_v1) as arguments; this runner never touches Workspace"
+SKIP["WildboundCandyBuilder_Test"] = "it parents its scratch build folder straight into ServerStorage (scratch.Parent = game:GetService('ServerStorage')); this runner only writes inside its temporary folder"
+SKIP["WildboundCandyKit_Test"] = "it parks a scratch WorldModel straight in ServerStorage for its ray queries; this runner only writes inside its temporary folder"
 
 SPECS["WildboundAggroWiring_Test"] = { "src:WildboundWorld" }
 SPECS["WildboundAmbush_Test"] = { "mod:WildboundAmbush", "mod:WildboundWorldRules", "src:WildboundAmbush" }
@@ -103,6 +106,12 @@ SPECS["WildboundBeastScuttler_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastScuttler", "mod:WildboundBeastConfig", "mod:WildboundBeastAttack",
 	"src:WildboundBeastScuttler",
 }
+SPECS["WildboundBeastGomibu_Test"] = { "mod:WildboundBeastEncounters", "mod:WildboundBeastGomibu", "mod:WildboundBeastConfig" }
+SPECS["WildboundCandyLayout_Test"] = { "mod:WildboundCandyLayout", "mod:WildboundBiomes" }
+SPECS["WildboundCandyGomibu_Test"] = { "mod:WildboundCandyGomibu", "inst:ServerStorage.WildboundAssets.Gomibu" }
+SPECS["WildboundCandyGomibuClips_Test"] = { "mod:WildboundCandyGomibuClips", "inst:ServerStorage.WildboundAssets.Gomibu" }
+SPECS["WildboundCandyGomibuAttack_Test"] = { "mod:WildboundCandyGomibuAttack" }
+SPECS["WildboundCandyFlanfuria_Test"] = { "mod:WildboundCandyFlanfuria", "inst:ServerStorage.WildboundAssets.Flanfuria" }
 SPECS["WildboundBeastSight_Test"] = { "mod:WildboundBeastSight", "src:WildboundBeastSight", "mod:WildboundBiomes" }
 SPECS["WildboundBeastStreamer_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastStreamer", "mod:WildboundBeastConfig", "src:WildboundBeastStreamer",

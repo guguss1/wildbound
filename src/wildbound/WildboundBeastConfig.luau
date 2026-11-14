@@ -269,6 +269,27 @@ Config.BEASTS = table.freeze({
 			StickyWalkSpeed = 9, StickySeconds = 6, FlyBackStudsPerSecond = 18,
 		}),
 	}),
+	-- Caramelo biome (pack 03_PERSONAJES/01_GOMIBU.md): Gomibu guards a candy nest. Summoned like the kids: never rolled,
+	-- points 0, damage 0. keepsEgg: its hit never reaches BeastHit, so the carried egg stays. grounded: it walks, so the
+	-- client does not bob it like the Nube and the Abeja. Every number is the pack's proposal.
+	Gomibu = table.freeze({
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10,
+		damage = 0,
+		keepsEgg = true,
+		grounded = true,
+		hitHeight = 8,
+		disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 40, PerceptionStuds = 16, AbandonStuds = 25, LeashStuds = 30,
+			PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 12, AlertSeconds = 0.7,
+			JumpRangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.55, JumpSeconds = 0.45, RadiusStuds = 4.5,
+			RecoverSeconds = 0.7, AttackCooldownSeconds = 5.5,
+			PushStuds = 8, PushSeconds = 0.35, SlowMultiplier = 0.8, SlowSeconds = 1,
+			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
+		}),
+	}),
 })
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
 Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker",
@@ -278,10 +299,10 @@ Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, 
 	Scuttler = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
-	AbejaReina = true, Scuttler = true })
+	AbejaReina = true, Scuttler = true, Gomibu = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
-Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true })
+Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
 

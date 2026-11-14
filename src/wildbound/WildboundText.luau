@@ -396,6 +396,8 @@ return freeze({
 				Yawn = "La Nube bostezó",
 				Asleep = "La Nube duerme",
 			} },
+		Gomibu = { warn = "¡Golpe de Goma! Sal del círculo", hit = "¡Boing!",
+			phases = { Notice = "Gomibú te vio", Chase = "¡Gomibú te sigue!", Telegraph = "¡Golpe de Goma! Sal del círculo", GiveUp = "Gomibú volvió a su nido" } },
 		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
 			phases = {
 				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",

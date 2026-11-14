@@ -484,6 +484,26 @@ class DefaultMappingTests(unittest.TestCase):
         # T09a 2.0 roulette prize table (unwired)
         "src/wildbound/WildboundRoulette.luau": "ReplicatedStorage.WildboundRoulette",
         "tests/WildboundRoulette_Test.luau": "ServerStorage.WildboundRoulette_Test",
+        # Caramelo biome: Gomibu and the candy blockout, pulled from Studio
+        "src/wildbound/WildboundBeastGomibu.luau": "ServerScriptService.WildboundBeastGomibu",
+        "tests/WildboundBeastGomibu_Test.luau": "ServerStorage.WildboundBeastGomibu_Test",
+        "src/wildbound/WildboundCandyGomibuService.server.luau": "ServerScriptService.WildboundCandyGomibuService",
+        "src/wildbound/WildboundCandyGomibuAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyGomibuAnim",
+        "tools/WildboundCandyLayout.luau": "ServerStorage.WildboundCandyLayout",
+        "tests/WildboundCandyLayout_Test.luau": "ServerStorage.WildboundCandyLayout_Test",
+        "tools/WildboundCandyBuilder.luau": "ServerStorage.WildboundCandyBuilder",
+        "tests/WildboundCandyBuilder_Test.luau": "ServerStorage.WildboundCandyBuilder_Test",
+        "tests/WildboundCandyBeastSites_Test.luau": "ServerStorage.WildboundCandyBeastSites_Test",
+        "tools/WildboundCandyKit.luau": "ServerStorage.WildboundCandyKit",
+        "tests/WildboundCandyKit_Test.luau": "ServerStorage.WildboundCandyKit_Test",
+        "tools/WildboundCandyGomibu.luau": "ServerStorage.WildboundCandyGomibu",
+        "tests/WildboundCandyGomibu_Test.luau": "ServerStorage.WildboundCandyGomibu_Test",
+        "tools/WildboundCandyGomibuClips.luau": "ServerStorage.WildboundCandyGomibuClips",
+        "tests/WildboundCandyGomibuClips_Test.luau": "ServerStorage.WildboundCandyGomibuClips_Test",
+        "tools/WildboundCandyGomibuAttack.luau": "ServerStorage.WildboundCandyGomibuAttack",
+        "tests/WildboundCandyGomibuAttack_Test.luau": "ServerStorage.WildboundCandyGomibuAttack_Test",
+        "tools/WildboundCandyFlanfuria.luau": "ServerStorage.WildboundCandyFlanfuria",
+        "tests/WildboundCandyFlanfuria_Test.luau": "ServerStorage.WildboundCandyFlanfuria_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

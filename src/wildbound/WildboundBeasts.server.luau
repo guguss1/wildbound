@@ -41,7 +41,8 @@ for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker", "Scuttler" }) do
 end
 -- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts, never rolled (Config.SUMMONED).
 local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites"))
-local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" } }
+local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" },
+	{ name = "Gomibu", module = "WildboundBeastGomibu" } } -- Caramelo biome: Gomibu at its candy nest
 for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.
 local duskModule = ReplicatedStorage:WaitForChild("WildboundDusk", 10)
@@ -539,6 +540,28 @@ local function afflict(entry, event)
 	applySlow(entry.player, event.slow, event.slowSeconds)
 end
 
+-- Caramelo biome: Gomibu's push. The target is moved 'studs' away over 'seconds' by a short-lived LinearVelocity on the
+-- character's root (flat: it never lifts), which the owning client simulates. One push at a time; clamped.
+local function applyPush(player, dx, dz, studs, seconds)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if not root or not Config.finite(studs) or not Config.finite(seconds) then return end
+	local ux, uz = Config.unit(dx, dz)
+	if not ux or root:FindFirstChild("WildboundBeastPush") then return end
+	studs, seconds = math.clamp(studs, 0, 12), math.clamp(seconds, 0.1, 1)
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "WildboundBeastPush"
+	attachment.Parent = root
+	local push = Instance.new("LinearVelocity")
+	push.Attachment0 = attachment
+	push.RelativeTo = Enum.ActuatorRelativeTo.World
+	push.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+	push.PrimaryTangentAxis, push.SecondaryTangentAxis = Vector3.xAxis, Vector3.zAxis
+	push.PlaneVelocity = Vector2.new(ux, uz) * (studs / seconds)
+	push.MaxForce = 1e5
+	push.Parent = attachment
+	task.delay(seconds, function() attachment:Destroy() end)
+end
+
 local beastHit = nil
 local function landHit(entry, event)
 	count("hits")
@@ -547,7 +570,11 @@ local function landHit(entry, event)
 	-- Kids rule (defence in depth): a summoned beast, or any hit on a target in the Pradera, never deals damage.
 	local _, _, body = bodyOf(entry.player)
 	if Config.SUMMONED[entry.e.beast] or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
-	if beastHit and beastHit:IsA("BindableFunction") then
+	-- Caramelo biome: a keepsEgg beast (Gomibu) never reaches BeastHit: no damage, and the carried egg stays.
+	local kept = Config.BEASTS[entry.e.beast]
+	if kept and kept.keepsEgg == true then
+		ok = true
+	elseif beastHit and beastHit:IsA("BindableFunction") then
 		ok, effect = pcall(function() return beastHit:Invoke(entry.player, entry.e.beast, event.damage) end)
 	end
 	if not ok then telemetry:SetAttribute("Beast_hitFailed", (telemetry:GetAttribute("Beast_hitFailed") or 0) + 1) end
@@ -555,6 +582,7 @@ local function landHit(entry, event)
 	-- Wave 2 extras: Root's slow is applied here; Streamer's light push (event.knock) rides on the Hit event to the
 	-- target's client, which owns its character's physics and clamps it.
 	if type(event.slow) == "table" then applySlow(entry.player, event.slow.multiplier, event.slow.seconds) end
+	if type(event.push) == "table" then applyPush(entry.player, event.push.dx, event.push.dz, event.push.studs, event.push.seconds) end
 	-- Kids biome: the Nube's mark and the Abeja's Pegajoso; their knocks ride on the Hit event like Streamer's push.
 	if type(event.sticky) == "table" then applySticky(entry.player, event.sticky.walkSpeed, event.sticky.seconds) end
 	local humanoid = entry.player.Character and entry.player.Character:FindFirstChildOfClass("Humanoid")
