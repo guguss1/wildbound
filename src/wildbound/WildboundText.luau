@@ -372,6 +372,28 @@ return freeze({
 				LeapWindup = "¡Va a saltar! Esquiva hacia un lado.",
 				OverrunStunned = "¡Se pasó de largo! Aprovecha.",
 			} },
+		-- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts. Never damage; phases also
+		-- holds the hit lines the client shows from a Hit event's `line` (Gust, Sticky).
+		NubeGrunona = { warn = "¡Rayo! Sal del círculo", hit = "¡Chispazo!",
+			phases = {
+				Notice = "La Nube te vio",
+				Chase = "¡La Nube te sigue!",
+				Telegraph = "¡Rayo! Sal del círculo",
+				Gust = "¡Ráfaga! De vuelta al portón",
+				GiveUp = "La Nube se aburrió",
+				Yawn = "La Nube bostezó",
+				Asleep = "La Nube duerme",
+			} },
+		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
+			phases = {
+				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",
+				Heard = "Te oyó",
+				Search = "Te busca",
+				Telegraph = "¡Zum! Sal de la línea",
+				Lost = "Te perdió",
+				Sleep = "La Reina duerme",
+				Sticky = "¡Pegajoso!",
+			} },
 	},
 	-- Arrullo (decision Q2b, docs/mechanics/wildbound-new-mechanics.md section 1): the rare-egg lullaby meter. The title,
 	-- hint, won, lost and timeout lines are WildboundArrullo.TEXT's; hold and holdKey label the hold button (touch, and

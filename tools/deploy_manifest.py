@@ -328,6 +328,12 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundSiluetaReworkWiring_Test.luau", "ServerStorage.WildboundSiluetaReworkWiring_Test"),
     ("tests/WildboundSiluetaStalk_Test.luau", "ServerStorage.WildboundSiluetaStalk_Test"),
     ("tests/WildboundBalance_Test.luau", "ServerStorage.WildboundBalance_Test"),
+    # Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's summoned beasts
+    ("src/wildbound/WildboundPraderaSites.luau", "ServerScriptService.WildboundPraderaSites"),
+    ("src/wildbound/WildboundBeastNube.luau", "ServerScriptService.WildboundBeastNube"),
+    ("src/wildbound/WildboundBeastAbeja.luau", "ServerScriptService.WildboundBeastAbeja"),
+    ("tests/WildboundBeastNube_Test.luau", "ServerStorage.WildboundBeastNube_Test"),
+    ("tests/WildboundBeastAbeja_Test.luau", "ServerStorage.WildboundBeastAbeja_Test"),
 ]
 
 

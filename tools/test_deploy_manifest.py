@@ -469,6 +469,12 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundSiluetaReworkWiring_Test.luau": "ServerStorage.WildboundSiluetaReworkWiring_Test",
         "tests/WildboundSiluetaStalk_Test.luau": "ServerStorage.WildboundSiluetaStalk_Test",
         "tests/WildboundBalance_Test.luau": "ServerStorage.WildboundBalance_Test",
+        # Kids biome: the Pradera's summoned beasts
+        "src/wildbound/WildboundPraderaSites.luau": "ServerScriptService.WildboundPraderaSites",
+        "src/wildbound/WildboundBeastNube.luau": "ServerScriptService.WildboundBeastNube",
+        "src/wildbound/WildboundBeastAbeja.luau": "ServerScriptService.WildboundBeastAbeja",
+        "tests/WildboundBeastNube_Test.luau": "ServerStorage.WildboundBeastNube_Test",
+        "tests/WildboundBeastAbeja_Test.luau": "ServerStorage.WildboundBeastAbeja_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

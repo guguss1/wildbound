@@ -122,7 +122,7 @@ return function(sources, Proxies)
 			assert(models:FindFirstChild(beast .. "Proxy"), "wave 2 proxy " .. beast)
 		end
 		Proxies.ensure(fake)
-		equal(#models:GetChildren(), 6, "no duplicate on a second call")
+		equal(#models:GetChildren(), 8, "no duplicate on a second call (6 forest proxies, the Nube and the Abeja)")
 		equal(Proxies.modelFor(models, "Viper"), models.ViperProxy, "the proxy while there is no import")
 		local imported = Instance.new("Model")
 		imported.Name = "Viper"
@@ -180,7 +180,7 @@ return function(sources, Proxies)
 		equal(models:FindFirstChild("Gargoyle"), nil, "Gargoyle: template only")
 		equal(models:FindFirstChild("Mire"), nil, "Mire: template only")
 		Proxies.ensure(fake, templates)
-		equal(#models:GetChildren(), 8, "no duplicate on a second call (6 proxies, 2 adopted)")
+		equal(#models:GetChildren(), 10, "no duplicate on a second call (8 proxies, 2 adopted)")
 		local empty = keep(Instance.new("Folder"))
 		local only = Proxies.ensure(empty, nil)
 		equal(Proxies.modelFor(only, "Viper"), only.ViperProxy, "no templates: the proxy")
@@ -387,12 +387,13 @@ return function(sources, Proxies)
 		local beasts = sources.beasts
 		has(beasts, 'Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))')
 		has(beasts, 'for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do')
-		has(beasts, "if not Config.PLAYABLE[reservation.beast] or not Enc.registered(reservation.beast) then")
+		has(beasts, "if not (Config.PLAYABLE[beast] or Config.SUMMONED[beast]) or not Enc.registered(beast) then")
 		has(beasts, "world = worldFor(player)")
 		has(beasts, "Attack.closeAll(entry.e, entry.world)", "close cancels every open attack")
 		has(beasts, "Attack.closeAll(entry.e, nil)", "a leave too")
 		has(beasts, "sights[player] = nil"); has(beasts, "claims[player] = nil")
-		has(beasts, "Enc.step(entry.e, at, targetOf(entry), entry.world or world)")
+		has(beasts, "local target = targetOf(entry)")
+		has(beasts, "Enc.step(entry.e, at, target, entry.world or world)")
 	end)
 
 	case("BW2: dodgeable attacks go through WildboundDodgeService; the client never claims one", function()
@@ -451,6 +452,99 @@ return function(sources, Proxies)
 		local beasts = sources.beasts
 		has(beasts, "farFromBase = Rules.farFromBase(p.X, p.Z, D.FAR_FROM_BASE)", "the shared rule")
 		hasNot(beasts, "CAMP_X", "no camp-only centre")
+	end)
+
+	-- Kids biome (odd/tasks/wildbound-kids-beasts.md, KB-4).
+	case("KB-4: the Nube and the Abeja proxies are inert, labelled, soft-coloured and hover over a ground pivot", function()
+		local P = Proxies.PALETTE
+		for beast, spec in pairs({ NubeGrunona = { colour = P.nubePuff, hover = 10, prefix = "Puff" },
+			AbejaReina = { colour = P.abejaYellow, hover = 6, prefix = "Band" } }) do
+			local build = Proxies.BUILDERS[beast]
+			assert(type(build) == "function", beast .. " builder")
+			local model = keep(build())
+			equal(model.Name, beast .. "Proxy"); equal(model:GetAttribute("Beast"), beast); equal(model:GetAttribute("Proxy"), true)
+			assert(model.PrimaryPart and model.PrimaryPart.Name == "Root", beast .. " pivot")
+			assert(math.abs(model.PrimaryPart.Position.Y - 0.1) < 1e-3, beast .. " pivot on the ground")
+			local list = parts(model)
+			assert(#list >= 12, beast .. " has " .. #list .. " parts")
+			for _, p in ipairs(list) do
+				assert(p.Anchored and not p.CanCollide and not p.CanQuery and not p.CanTouch, p:GetFullName())
+				for _, bad in ipairs({ "Lane", "Circle", "Telegraph", "Ring", "Wall" }) do assert(not p.Name:find(bad, 1, true), p.Name) end
+				assert(p.Color ~= Color3.fromRGB(255, 40, 30), "never the red danger colour")
+			end
+			assert(named(model, spec.prefix) >= 5, beast .. " body pieces")
+			local body = model:FindFirstChild(spec.prefix .. "1")
+			equal(body.Color, spec.colour, beast .. " colour")
+			assert(math.abs(body.Position.Y - spec.hover) < 2, beast .. " hovers")
+			local head = model:FindFirstChild("Head")
+			assert(head and head.Position.Z < 0, beast .. " faces -Z")
+		end
+		equal(P.nubePuff, Color3.fromHex("B4A8D2")); equal(P.nubeBelly, Color3.fromHex("8C7FB0"))
+		equal(P.abejaYellow, Color3.fromHex("FFD54A")); equal(P.abejaBrown, Color3.fromHex("B8793A"))
+		equal(P.abejaCrown, Color3.fromHex("F7E3A1")); equal(P.abejaTip, Color3.fromHex("FFE27A"))
+		local nube = keep(Proxies.nube())
+		equal(nube.Shadow.Transparency > 0.5, true, "a translucent shadow disc")
+		local abeja = keep(Proxies.abeja())
+		equal(abeja.AntennaTipL.Material, Enum.Material.Neon); equal(abeja.WingL.Transparency > 0.3, true, "translucent wings")
+	end)
+
+	case("KB-4: the server registers both summoned behaviours and summons them by presence, never by a roll", function()
+		local beasts = sources.beasts
+		has(beasts, '{ name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" }')
+		has(beasts, "for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end")
+		has(beasts, 'require(script.Parent:WaitForChild("WildboundPraderaSites"))')
+		has(beasts, "Director.summon(director, player.UserId, kid.name, ctx, at)")
+		has(beasts, "if Sites.wants(kid.name, want) then")
+		has(beasts, "if ok then safeStart(player, value, at) end", "a summon starts safely")
+		has(beasts, "summonPass(player, at)")
+		has(beasts, "local site = world.site(Sites.HOME[beast])", "spawned at their site")
+	end)
+
+	case("KB-4: damage 0 for the summoned beasts and in the Pradera; forest beasts are closed on entering it", function()
+		local beasts = sources.beasts
+		has(beasts, "if Config.SUMMONED[entry.e.beast] or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end")
+		local i = beasts:find("event.damage = 0", 1, true)
+		local j = beasts:find("beastHit:Invoke(entry.player, entry.e.beast, event.damage)", 1, true)
+		assert(i and j and i < j, "zeroed before BeastHit")
+		has(beasts, 'if target and target.meadow and not Config.SUMMONED[entry.e.beast] then')
+		has(beasts, 'close(id, "Pradera", at)')
+		for _, name in ipairs({ "NubeGrunona", "AbejaReina" }) do equal(sources.config.BEASTS[name].damage, 0, name) end
+		has(beasts, "local STICKY_FLOOR, STICKY_CAP = 9, 6")
+		has(beasts, "speed, seconds = math.max(speed, STICKY_FLOOR), math.clamp(seconds, 0, STICKY_CAP)")
+		has(beasts, "if before <= speed then return end", "Pegajoso never raises the speed")
+		has(beasts, 'humanoid:SetAttribute("WildboundKidsMarkUntil", now() + math.clamp(event.mark, 0, 30))')
+	end)
+
+	case("KB-4: the Nube's sky ray and the Abeja's BiomeEvent window are read on the server", function()
+		local beasts = sources.beasts
+		has(beasts, 'CollectionService:GetTagged("WildboundRoof")')
+		has(beasts, "roofParams.FilterType = Enum.RaycastFilterType.Include")
+		has(beasts, 'telemetry:GetAttributeChangedSignal("BiomeEvent")')
+		has(beasts, 'local biomeEvent = telemetry:GetAttribute("BiomeEvent")')
+		hasNot(beasts, 'SetAttribute("BiomeEvent"', "read only: the server's event clock owns it")
+		has(beasts, "target.noise = Sites.noiseRadius(")
+		has(beasts, "humanoid.FloorMaterial == Enum.Material.Air")
+		has(beasts, 'workspace:FindFirstChild("WildboundPradera")')
+		local i = beasts:find("if RunService:IsStudio() then", 1, true)
+		has(beasts:sub(i), 'abeja.Name = "ForceAbejaEvent"', "the override is Studio only")
+		hasNot(beasts:sub(1, i), 'Instance.new("BindableFunction")', "no bindable outside the Studio block")
+	end)
+
+	case("KB-4: the client draws the kids tells in yellow and honey with their own sounds, never the scary ones", function()
+		local client = sources.client
+		has(client, 'NubeGrunona = Color3.fromHex("FFD23F"), AbejaReina = Color3.fromHex("F2A33A")')
+		has(client, 'NubeGrunona = { Notice = { "groan", 1.1 }, Telegraph = { "crack", 1.3 } }')
+		has(client, 'AbejaReina = { Telegraph = { "unease", 1.2 } }')
+		has(client, 'local KIDS_HIT_SOUND = { NubeGrunona = "softStinger", AbejaReina = "softStinger" }')
+		has(client, 'local KIDS_HUM = { AbejaReina = "insectsDusk" }')
+		local i = client:find("local KIDS_PHASE_SOUND", 1, true)
+		local j = client:find("local KIDS_HUM", 1, true)
+		local block = client:sub(i, j + 60)
+		for _, bad in ipairs({ "chaseMusic", "heartbeat", "roar", '"stinger"' }) do hasNot(block, bad, "kids sounds") end
+		local T = sources.text.BEAST
+		for _, beast in ipairs({ "NubeGrunona", "AbejaReina" }) do
+			assert(T[beast] and T[beast].warn and T[beast].hit and T[beast].phases, beast .. " strings")
+		end
 	end)
 
 	-- Esquiva perfecta (Q3b, odd/tasks/wildbound-new-mechanics.md W2): the beasts' tells feed the shared dodge states.

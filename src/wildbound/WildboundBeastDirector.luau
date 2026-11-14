@@ -51,14 +51,16 @@ function Director.chance(name, ctx, override)
 end
 
 -- Eligibility by place (beast spawn design, owner decision 3): a Biome beast needs its biome tag in ctx.biomes; a Global
--- beast is barred from every biome in Config.NO_GLOBAL_BIOMES (Pradera). Safe zones bar every beast before this.
--- Returns nil when eligible, else the refusal reason.
+-- beast is barred from every biome in Config.NO_GLOBAL_BIOMES (Pradera). Safe zones bar every beast before this. The
+-- biome and category are the effective ones (Config.homeBiome / categoryOf): with Config.BIOME_PREFERENCE off every
+-- playable beast is Global. Returns nil when eligible, else the refusal reason.
 function Director.placeBlock(name, ctx)
 	local beast = Config.BEASTS[name]
 	if not beast then return "UnknownBeast" end
 	local biomes = type(ctx) == "table" and type(ctx.biomes) == "table" and ctx.biomes or {}
-	if beast.biome and biomes[beast.biome] ~= true then return "Biome" end
-	if beast.category == "Global" then
+	local home = Config.homeBiome(name)
+	if home and biomes[home] ~= true then return "Biome" end
+	if Config.categoryOf(name) == "Global" then
 		for tag in pairs(Config.NO_GLOBAL_BIOMES) do
 			if biomes[tag] == true then return "NoGlobalZone" end
 		end
@@ -121,7 +123,8 @@ local function check(dir, userId, name, ctx, now, force)
 	local player = record(dir, userId)
 	if not force then
 		if finite(ctx.respawnedAt) and now - ctx.respawnedAt < D.RESPAWN_GRACE then return "RespawnGrace" end
-		if now < player.globalReadyAt then return "GlobalCooldown" end
+		-- Kids biome: a summoned beast neither obeys nor sets the global cooldown (Config.SUMMONED).
+		if not Config.SUMMONED[name] and now < player.globalReadyAt then return "GlobalCooldown" end
 		if now < (player.speciesReadyAt[name] or -math.huge) then return "SpeciesCooldown" end
 	end
 	for _, id in pairs(player.active) do
@@ -165,12 +168,29 @@ function Director.release(dir, id, reason, now)
 		player.points = math.max(0, player.points - encounter.points)
 		player.active[id] = nil
 		if finite(now) then
-			player.globalReadyAt = math.max(player.globalReadyAt, now + D.GLOBAL_COOLDOWN)
-			player.speciesReadyAt[encounter.beast] = now + Config.BEASTS[encounter.beast].cooldown
+			local beast = Config.BEASTS[encounter.beast]
+			if not Config.SUMMONED[encounter.beast] then
+				player.globalReadyAt = math.max(player.globalReadyAt, now + D.GLOBAL_COOLDOWN)
+			end
+			-- A reason-specific cooldown (the Nube's Bostezo nap) wins over the species cooldown.
+			local ends = beast.endCooldowns
+			player.speciesReadyAt[encounter.beast] = now + (ends and ends[reason] or beast.cooldown)
 		end
 	end
 	log(dir, { userId = encounter.userId, beast = encounter.beast, reason = "Ended:" .. tostring(reason), id = id, at = now })
 	return true
+end
+
+-- Kids biome (odd/tasks/wildbound-kids-beasts.md): the presence spawn of the Pradera beasts. Only Config.SUMMONED beasts
+-- (never rolled, never in ORDER); the same rules as reserve (placeBlock keeps them in their Meadow home, budget 0 points
+-- but MAX_ACTIVE and AlreadyActive count, species cooldown, respawn grace, safe zone, death, Silueta), except the global
+-- cooldown. A refusal is returned without a log entry: the beast script asks every poll while the player stays near.
+function Director.summon(dir, userId, name, ctx, now, opts)
+	if not Config.SUMMONED[name] then return false, "NotSummoned" end
+	local force = type(opts) == "table" and opts.force == true
+	local why = check(dir, userId, name, ctx, now, force)
+	if why then return false, why end
+	return Director.reserve(dir, userId, name, ctx, now, opts)
 end
 
 -- Wave 2: the calendar. The first call for a player sets their anchor; beast i of Config.ORDER has its slots at

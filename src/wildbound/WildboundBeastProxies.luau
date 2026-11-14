@@ -14,6 +14,11 @@ Proxies.PALETTE = table.freeze({
 	pouncerCharcoal = Color3.fromHex("352A3F"), pouncerPlum = Color3.fromHex("5E4568"), pouncerPlumDark = Color3.fromHex("4A3854"),
 	pouncerViolet = Color3.fromHex("7B5288"), pouncerMagenta = Color3.fromHex("A8407F"), pouncerIvory = Color3.fromHex("E6D7C0"),
 	pouncerEye = Color3.fromHex("FF3FC0"),
+	-- Kids biome: La Nube Gruñona and La Abeja Reina (soft, friendly colours; never a red danger colour).
+	nubePuff = Color3.fromHex("B4A8D2"), nubeBelly = Color3.fromHex("8C7FB0"), nubeEye = Color3.fromHex("FFFFFF"),
+	nubePupil = Color3.fromHex("2E2840"), nubeBrow = Color3.fromHex("5E5480"), nubeShadow = Color3.fromHex("3A3550"),
+	abejaYellow = Color3.fromHex("FFD54A"), abejaBrown = Color3.fromHex("B8793A"), abejaWing = Color3.fromHex("E8F4FF"),
+	abejaCrown = Color3.fromHex("F7E3A1"), abejaTip = Color3.fromHex("FFE27A"), abejaEye = Color3.fromHex("2E2418"),
 })
 local C = Proxies.PALETTE
 
@@ -263,8 +268,83 @@ function Proxies.lurker()
 	return finish(model, "Lurker", root)
 end
 
+-- Kids biome (odd/tasks/wildbound-kids-beasts.md): La Nube Gruñona, a grumpy storm cloud about 14 x 8 studs: five
+-- lilac-grey puff balls over a darker belly, white eye discs with frowning brow bars, hovering HoverStuds over a
+-- translucent shadow disc on the ground (the pivot stays on the ground, like every proxy).
+function Proxies.nube()
+	local model = Instance.new("Model")
+	model.Name = "NubeGrunonaProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), C.nubeShadow)
+	root.Transparency = 1
+	local h = 10 -- Config.BEASTS.NubeGrunona.tuning.HoverStuds (the proxies never require the config)
+	local shadow = part(model, "Shadow", Vector3.new(0.1, 40, 40), CFrame.new(0, 0.12, 0) * CFrame.Angles(0, 0, math.pi / 2),
+		C.nubeShadow)
+	shadow.Shape = Enum.PartType.Cylinder
+	shadow.Transparency = 0.75
+	for i, spec in ipairs({ { 0, 1.2, 0, 8 }, { -4, 0, 0.4, 6 }, { 4, 0, 0.4, 6 }, { -2, 1.6, 1.4, 5.5 }, { 2.4, 1.8, 1.2, 5 } }) do
+		local puff = part(model, "Puff" .. i, Vector3.new(spec[4], spec[4], spec[4]), CFrame.new(spec[1], h + spec[2], spec[3]),
+			C.nubePuff)
+		puff.Shape = Enum.PartType.Ball
+	end
+	local belly = part(model, "Belly", Vector3.new(12, 2.4, 6), CFrame.new(0, h - 2.4, 0.4), C.nubeBelly)
+	belly.Shape = Enum.PartType.Block
+	local head = CFrame.new(0, h + 0.6, -3.7)
+	part(model, "Head", Vector3.new(4, 2.6, 0.4), head, C.nubePuff)
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		local disc = part(model, "Eye" .. tag, Vector3.new(0.2, 1.6, 1.6), head * CFrame.new(side * 1.1, 0, -0.3)
+			* CFrame.Angles(0, math.pi / 2, 0), C.nubeEye, "Part")
+		disc.Shape = Enum.PartType.Cylinder
+		disc.Material = Enum.Material.Neon
+		local pupil = part(model, "Pupil" .. tag, Vector3.new(0.2, 0.7, 0.7), head * CFrame.new(side * 1.1, -0.2, -0.45)
+			* CFrame.Angles(0, math.pi / 2, 0), C.nubePupil)
+		pupil.Shape = Enum.PartType.Cylinder
+		part(model, "Brow" .. tag, Vector3.new(1.8, 0.35, 0.4), head * CFrame.new(side * 1.1, 1.1, -0.45)
+			* CFrame.Angles(0, 0, math.rad(side * -18)), C.nubeBrow)
+	end
+	return finish(model, "NubeGrunona", root)
+end
+
+-- Kids biome: La Abeja Reina, a round queen bee hovering HoverStuds up: an ellipsoid body with alternating yellow and
+-- brown bands, two translucent wings, a wax crown, antennae with Neon tips and dark eyes.
+function Proxies.abeja()
+	local model = Instance.new("Model")
+	model.Name = "AbejaReinaProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), C.abejaBrown)
+	root.Transparency = 1
+	local h = 6 -- Config.BEASTS.AbejaReina.tuning.HoverStuds
+	for i, z in ipairs({ -1.2, -0.4, 0.4, 1.2, 2 }) do
+		local size = 3.2 - math.abs(z - 0.2) * 0.5
+		local band = part(model, "Band" .. i, Vector3.new(size, size, 0.8), CFrame.new(0, h, z), i % 2 == 1 and C.abejaYellow
+			or C.abejaBrown)
+		band.Shape = Enum.PartType.Ball
+	end
+	local head = CFrame.new(0, h + 0.4, -2.2)
+	local headPart = part(model, "Head", Vector3.new(2, 2, 2), head, C.abejaYellow)
+	headPart.Shape = Enum.PartType.Ball
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		local eyeBall = part(model, "Eye" .. tag, Vector3.new(0.6, 0.6, 0.6), head * CFrame.new(side * 0.55, 0.2, -0.8), C.abejaEye)
+		eyeBall.Shape = Enum.PartType.Ball
+		local wing = part(model, "Wing" .. tag, Vector3.new(3, 0.15, 1.8), CFrame.new(side * 1.9, h + 1.6, 0)
+			* CFrame.Angles(0, 0, math.rad(side * 20)), C.abejaWing)
+		wing.Transparency = 0.55
+		segment(model, "Antenna" .. tag, head.Position + Vector3.new(side * 0.4, 0.9, -0.3),
+			head.Position + Vector3.new(side * 0.9, 2, -0.8), 0.15, C.abejaBrown)
+		eye(model, "AntennaTip" .. tag, Vector3.new(0.45, 0.45, 0.45), CFrame.new(head.Position + Vector3.new(side * 0.9, 2, -0.8)),
+			C.abejaTip, Enum.PartType.Ball)
+	end
+	part(model, "Crown", Vector3.new(1.4, 0.6, 1.4), head * CFrame.new(0, 1.1, 0.1), C.abejaCrown)
+	for i = 1, 3 do
+		part(model, "CrownPoint" .. i, Vector3.new(0.3, 0.6, 0.3), head * CFrame.new(-0.5 + (i - 1) * 0.5, 1.6, 0.1), C.abejaCrown)
+	end
+	part(model, "Stinger", Vector3.new(0.4, 0.4, 0.8), CFrame.new(0, h - 0.2, 2.8), C.abejaBrown, "WedgePart")
+	return finish(model, "AbejaReina", root)
+end
+
 Proxies.BUILDERS = table.freeze({ Viper = Proxies.viper, Pouncer = Proxies.pouncer, Streamer = Proxies.streamer,
-	Root = Proxies.root, Gaze = Proxies.gaze, Lurker = Proxies.lurker })
+	Root = Proxies.root, Gaze = Proxies.gaze, Lurker = Proxies.lurker, NubeGrunona = Proxies.nube,
+	AbejaReina = Proxies.abeja })
 
 -- The visual a client clones: the user's imported model when present, else the proxy.
 function Proxies.modelFor(models, beast)

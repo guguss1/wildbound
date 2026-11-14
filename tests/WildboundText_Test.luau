@@ -320,5 +320,26 @@ return function(Text, source, sources)
 		assert(#Text.HUD.objective <= 42, "the objective fits the HUD line")
 	end)
 
+	-- Kids biome (odd/tasks/wildbound-kids-beasts.md, KB-5): the Pradera beasts' lines, Spanish and short.
+	case("KB-5: the Nube and the Abeja have their warn, hit and phase lines", function()
+		local expected = {
+			NubeGrunona = { warn = "¡Rayo! Sal del círculo", hit = "¡Chispazo!", phases = { Notice = "La Nube te vio",
+				Chase = "¡La Nube te sigue!", Telegraph = "¡Rayo! Sal del círculo", Gust = "¡Ráfaga! De vuelta al portón",
+				GiveUp = "La Nube se aburrió", Yawn = "La Nube bostezó", Asleep = "La Nube duerme" } },
+			AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!", phases = {
+				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.", Heard = "Te oyó", Search = "Te busca",
+				Telegraph = "¡Zum! Sal de la línea", Lost = "Te perdió", Sleep = "La Reina duerme", Sticky = "¡Pegajoso!" } },
+		}
+		for beast, words in pairs(expected) do
+			local actual = Text.BEAST[beast]
+			assert(type(actual) == "table", beast)
+			assert(actual.warn == words.warn, beast .. ".warn"); assert(actual.hit == words.hit, beast .. ".hit")
+			for key, line in pairs(words.phases) do
+				assert(actual.phases[key] == line, beast .. ".phases." .. key .. " = " .. tostring(actual.phases[key]))
+				assert(#line <= 64, beast .. "." .. key .. " fits 64 bytes")
+			end
+		end
+	end)
+
 	return result
 end

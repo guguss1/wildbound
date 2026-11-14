@@ -1,6 +1,8 @@
 -- Wave 2 (odd/tasks/wildbound-beasts-wave2.md, BW2-5): Root, the swamp's root beast (pack 02_BESTIAS/ROOT). Server
--- only and pure, stepped by WildboundBeastEncounters through Enc.register. Rolled only with the Swamp tag (director);
--- it gives up when the target stays out of the Pantano. State machine (pack names):
+-- only and pure, stepped by WildboundBeastEncounters through Enc.register. With Config.BIOME_PREFERENCE on it is rolled
+-- only with the Swamp tag (director) and gives up when the target stays out of the Pantano; with it off (now) it is a
+-- global beast and hunts anywhere. Nothing here needs swamp terrain: the rise, lanes and walls use world.ground and
+-- world.landing, which are plain ground raycasts. State machine (pack names):
 --   Rise (out of the mud, no tell yet) -> SelectAttack, alternating:
 --   a) TelegraphTrap (Fase 1, TrapTelegraphSeconds: cracks mark the exact lanes, fixed by the server, never following
 --      the target, cut before any safe zone) -> Erupt (Fase 2, an active window of trapActiveSeconds: one hit per
@@ -129,8 +131,9 @@ function Root.step(events, e, now, target, world, dt)
 	local busy = e.phase == "TelegraphTrap" or e.phase == "Erupt" or e.phase == "WhipWindup"
 	if Attack.guard(events, e, now, target, { timeout = T.EncounterTimeoutSeconds, escapeDistance = T.DetectionRadiusStuds,
 		escapeSeconds = C.escapeSeconds, busy = busy, disengage = C.disengage }) then return end
-	-- Out of the Pantano for escapeSeconds: Root stays in its biome.
-	if type(target.biomes) == "table" and target.biomes.Swamp ~= true then
+	-- Out of its home biome (the Pantano, only while Config.BIOME_PREFERENCE is on) for escapeSeconds: it gives up.
+	local home = Config.homeBiome("Root")
+	if home and type(target.biomes) == "table" and target.biomes[home] ~= true then
 		e.outSince = e.outSince or now
 		if not busy and now - e.outSince >= C.escapeSeconds then
 			Attack.disengage(events, e, "LeftBiome", now, C.disengage)

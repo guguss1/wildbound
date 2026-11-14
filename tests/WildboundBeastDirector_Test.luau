@@ -191,20 +191,39 @@ return function(Director, source, Config)
 		assert(Director.reserve(dir, 1, "Pouncer", ctx({ biomes = { Swamp = true } }), 0, { force = true }), "Root + Pouncer = 3")
 	end)
 
-	case("BW2 biome: Root only with the Swamp tag; the globals anywhere except Pradera", function()
-		equal(Director.placeBlock("Root", ctx()), "Biome")
-		equal(Director.placeBlock("Root", ctx({ biomes = { Cemetery = true } })), "Biome")
-		equal(Director.placeBlock("Root", ctx({ biomes = { Swamp = true } })), nil)
-		for _, name in ipairs({ "Streamer", "Gaze", "Lurker" }) do
-			equal(Director.placeBlock(name, ctx()), nil, name .. " in the open")
-			equal(Director.placeBlock(name, ctx({ biomes = { Swamp = true } })), nil, name .. " in the Pantano")
-			equal(Director.placeBlock(name, ctx({ biomes = { Cemetery = true } })), nil, name .. " in the Cementerio")
+	case("BIOME-OFF: with BIOME_PREFERENCE off every playable beast rolls anywhere except Pradera", function()
+		equal(Config.BIOME_PREFERENCE, false, "the switch is off for now (owner, 2026-11-14)")
+		for name in pairs(Config.PLAYABLE) do
+			equal(Config.homeBiome(name), nil, name .. " has no home biome while the switch is off")
+			equal(Config.categoryOf(name), "Global", name .. " acts as a global beast")
+			for _, biomes in ipairs({ {}, { Swamp = true }, { Cemetery = true }, { Swamp = true, Cemetery = true } }) do
+				equal(Director.placeBlock(name, ctx({ biomes = biomes })), nil, name .. " outside Pradera")
+			end
 			equal(Director.placeBlock(name, ctx({ biomes = { Meadow = true } })), "NoGlobalZone", name .. " never in Pradera")
+			equal(Director.placeBlock(name, ctx({ biomes = { Meadow = true, Swamp = true } })), "NoGlobalZone",
+				name .. ": Pradera wins over any other tag")
 		end
 		local dir = Director.new({ random = always(0) })
-		local started = Director.roll(dir, 1, ctx({ biomes = { Swamp = true } }), 0, { "Root" })
-		equal(#started, 1); equal(started[1].beast, "Root")
-		equal(#Director.roll(dir, 2, ctx(), 0, { "Root" }), 0, "no Root outside the Pantano")
+		local started = Director.roll(dir, 1, ctx(), 0, { "Root" })
+		equal(#started, 1, "Root rolls in the open forest"); equal(started[1].beast, "Root")
+		equal(#Director.roll(dir, 2, ctx({ biomes = { Meadow = true } }), 0, { "Root" }), 0, "no Root in Pradera")
+		local forced = Director.new({ random = always(0) })
+		equal(select(2, Director.reserve(forced, 1, "Root", ctx({ biomes = { Meadow = true } }), 0, { force = true })),
+			"NoGlobalZone", "not even forced")
+	end)
+
+	case("BIOME-OFF: the preference data stays and comes back with the switch on; config-only beasts keep their biome", function()
+		equal(Config.BEASTS.Root.biome, "Swamp", "data kept"); equal(Config.BEASTS.Root.category, "Biome", "data kept")
+		equal(Config.homeBiome("Root", true), "Swamp", "switch on: Root needs the Pantano again")
+		equal(Config.categoryOf("Root", true), "Biome")
+		for _, name in ipairs({ "Viper", "Pouncer", "Streamer", "Gaze", "Lurker" }) do
+			equal(Config.homeBiome(name, true), nil, name); equal(Config.categoryOf(name, true), "Global", name)
+		end
+		-- Gargoyle and Mire have no behaviour: never rolled, and the switch does not touch their biome.
+		equal(Config.homeBiome("Gargoyle"), "Cemetery"); equal(Config.homeBiome("Mire"), "Swamp")
+		equal(Config.categoryOf("Gargoyle"), "Biome"); equal(Config.categoryOf("Mire"), "Biome")
+		equal(Config.homeBiome("Nope"), nil); equal(Config.categoryOf("Nope"), nil)
+		equal(Director.placeBlock("Mire", ctx()), "Biome")
 	end)
 
 	case("NB2: multipliers multiply, only for real conditions, capped at x4", function()
@@ -351,7 +370,7 @@ return function(Director, source, Config)
 		equal(select(2, Director.reserve(dir, 1, "Gargoyle", ctx(), 0, { force = true })), "Biome", "even forced")
 		equal(select(2, Director.reserve(dir, 1, "Mire", ctx({ biomes = { Cemetery = true } }), 0, { force = true })), "Biome")
 		local started = Director.roll(dir, 1, ctx(), 0)
-		for _, enc in ipairs(started) do assert(Config.BEASTS[enc.beast].category == "Global", enc.beast) end
+		for _, enc in ipairs(started) do assert(Config.categoryOf(enc.beast) == "Global", enc.beast) end
 	end)
 
 	case("NB2: no queue of won rolls: a win without budget is discarded and logged, never retried", function()
@@ -492,6 +511,74 @@ return function(Director, source, Config)
 		assert(root, "with its tag Root rolls")
 		assert(not mire, "Mire has no behaviour yet: never rolled, even in the Pantano")
 		equal(select(2, Director.reserve(dir, 2, "Mire", ctx({ biomes = { Cemetery = true } }), 0, { force = true })), "Biome")
+	end)
+
+	-- Kids biome (odd/tasks/wildbound-kids-beasts.md, KB-1): the summoned Pradera beasts.
+	case("KB-1: summoned beasts are never rolled and never in ORDER or PLAYABLE", function()
+		local KIDS = { "NubeGrunona", "AbejaReina" }
+		for _, name in ipairs(KIDS) do
+			equal(Config.SUMMONED[name], true, name); equal(Config.PLAYABLE[name], nil, name)
+			for _, other in ipairs(Config.ORDER) do assert(other ~= name, name .. " in ORDER") end
+			equal(Config.homeBiome(name), "Meadow", name .. " keeps its Meadow home while the switch is off")
+		end
+		equal(#Config.ORDER, 8, "the calendar is unchanged")
+		local calls = 0
+		local dir = Director.new({ random = function() calls += 1; return 0 end })
+		local started, refused = Director.roll(dir, 1, ctx({ biomes = { Meadow = true } }), 0, KIDS)
+		equal(#started, 0, "never rolled"); equal(#refused, 0, "not even skipped"); equal(calls, 0, "no roll spent")
+		equal(#Director.due(dir, 2, 0), 0); equal(#Director.due(dir, 2, 100), 8, "only the ORDER beasts are ever due")
+	end)
+
+	case("KB-1: summon is refused outside Meadow (Biome) and for any non-summoned beast", function()
+		local dir = Director.new({ random = always(0) })
+		equal(select(2, Director.summon(dir, 1, "NubeGrunona", ctx(), 0)), "Biome", "the open forest")
+		equal(select(2, Director.summon(dir, 1, "AbejaReina", ctx({ biomes = { Swamp = true } }), 0)), "Biome")
+		equal(select(2, Director.summon(dir, 1, "Viper", ctx({ biomes = { Meadow = true } }), 0)), "NotSummoned")
+		equal(select(2, Director.summon(dir, 1, "NubeGrunona", ctx({ biomes = { Meadow = true }, safe = true }), 0)), "SafeZone")
+		equal(#dir.log, 0, "a refused summon is not logged (the script asks every poll)")
+		local ok, enc = Director.summon(dir, 1, "NubeGrunona", ctx({ biomes = { Meadow = true } }), 0)
+		assert(ok and enc.beast == "NubeGrunona", "summoned in the Pradera")
+		equal(select(2, Director.summon(dir, 1, "NubeGrunona", ctx({ biomes = { Meadow = true } }), 1)), "AlreadyActive")
+	end)
+
+	case("KB-1: points 0 never spend the budget but count toward MAX_ACTIVE", function()
+		local dir = Director.new({ random = always(0) })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		assert(Director.summon(dir, 1, "NubeGrunona", meadow, 0), "Nube")
+		assert(Director.summon(dir, 1, "AbejaReina", meadow, 0), "Abeja")
+		local points, active = Director.budget(dir, 1)
+		equal(points, 0, "no points spent"); equal(active, 2)
+		equal(select(2, Director.reserve(dir, 1, "Viper", ctx(), 0, { force = true })), "MaxActive", "two encounters at once")
+	end)
+
+	case("KB-1: a summoned end sets no global cooldown; species 10 s, 60 s after Bostezo; respawn grace applies", function()
+		local dir = Director.new({ random = always(0) })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		local _, nube = Director.summon(dir, 1, "NubeGrunona", meadow, 0)
+		Director.release(dir, nube.id, "GiveUp", 100)
+		local started = Director.roll(dir, 1, ctx(), 101, { "Viper" })
+		equal(#started, 1, "no global cooldown after a summoned end")
+		assert(Director.summon(dir, 2, "AbejaReina", meadow, 0), "another player")
+		equal(select(2, Director.summon(dir, 1, "NubeGrunona", meadow, 105)), "SpeciesCooldown")
+		local again = Director.new({ random = always(0) })
+		local _, viper = Director.reserve(again, 1, "Viper", ctx(), 0)
+		Director.release(again, viper.id, "Done", 50)
+		assert(Director.summon(again, 1, "AbejaReina", meadow, 51), "a global cooldown never blocks a summon")
+		local napped = Director.new({ random = always(0) })
+		local _, cloud = Director.summon(napped, 1, "NubeGrunona", meadow, 0)
+		Director.release(napped, cloud.id, "Yawn", 10)
+		equal(select(2, Director.summon(napped, 1, "NubeGrunona", meadow, 69)), "SpeciesCooldown", "the 60 s nap")
+		assert(Director.summon(napped, 1, "NubeGrunona", meadow, 70.5), "awake again after 60 s")
+		equal(select(2, Director.summon(napped, 3, "NubeGrunona", ctx({ biomes = { Meadow = true }, respawnedAt = 0 }), 5)),
+			"RespawnGrace")
+	end)
+
+	case("KB-1: the globals stay NoGlobalZone in Meadow next to the summoned beasts", function()
+		for name in pairs(Config.PLAYABLE) do
+			equal(Director.placeBlock(name, ctx({ biomes = { Meadow = true } })), "NoGlobalZone", name)
+		end
+		equal(Director.placeBlock("NubeGrunona", ctx({ biomes = { Meadow = true } })), nil)
+		equal(Director.placeBlock("AbejaReina", ctx({ biomes = { Meadow = true } })), nil)
 	end)
 
 	case("NB2: the director is pure: no world, no clock, no global random", function()

@@ -16,7 +16,7 @@ local finite, flat, unit = Config.finite, Config.flat, Config.unit
 -- beast script registers them at start. Viper and Pouncer below are unchanged.
 local behaviours = {}
 function Enc.register(name, behaviour)
-	assert(Config.WAVE2[name], "not a wave 2 beast: " .. tostring(name))
+	assert(Config.WAVE2[name] or Config.SUMMONED[name], "not a wave 2 or summoned beast: " .. tostring(name))
 	assert(type(behaviour) == "table" and type(behaviour.step) == "function", "a behaviour needs step")
 	behaviours[name] = behaviour
 end
@@ -39,7 +39,9 @@ local function setPhase(e, phase, at)
 end
 
 function Enc.new(beast, id, userId, now, pos)
-	assert(Config.BEASTS[beast] and Config.PLAYABLE[beast] and Enc.registered(beast), "no behaviour for " .. tostring(beast))
+	-- Kids biome: the summoned Pradera beasts (Config.SUMMONED) run here too, through their registered behaviour.
+	assert(Config.BEASTS[beast] and (Config.PLAYABLE[beast] or Config.SUMMONED[beast]) and Enc.registered(beast),
+		"no behaviour for " .. tostring(beast))
 	local e = { beast = beast, id = id, userId = userId, startedAt = now, lastStep = now, phase = "Spawn", phaseAt = now,
 		pos = copy(pos), dx = 0, dz = 1, attacks = 0, jumps = 0, skips = 0, done = false, farSince = nil, open = {} }
 	local behaviour = behaviours[beast]

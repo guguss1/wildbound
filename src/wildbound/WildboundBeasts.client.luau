@@ -222,7 +222,16 @@ end
 local TELL_COLOR = {
 	Streamer = Color3.fromRGB(255, 45, 140), Root = Color3.fromRGB(130, 235, 90), Gaze = Color3.fromRGB(165, 80, 255),
 	Lurker = Color3.fromRGB(255, 70, 200),
+	-- Kids biome: the Nube's ring in sun yellow, the Abeja's lane in honey; never red.
+	NubeGrunona = Color3.fromHex("FFD23F"), AbejaReina = Color3.fromHex("F2A33A"),
 }
+-- Kids biome: their own sounds (catalogue slots only; never chaseMusic, heartbeat, roar or stinger).
+local KIDS_PHASE_SOUND = {
+	NubeGrunona = { Notice = { "groan", 1.1 }, Telegraph = { "crack", 1.3 } },
+	AbejaReina = { Telegraph = { "unease", 1.2 } },
+}
+local KIDS_HIT_SOUND = { NubeGrunona = "softStinger", AbejaReina = "softStinger" }
+local KIDS_HUM = { AbejaReina = "insectsDusk" } -- looped while her encounter lives
 local GAP_COLOR = Color3.fromRGB(235, 255, 235)
 local WALL_COLOR = Color3.fromRGB(92, 70, 52)
 local WALL_HEIGHT = 7
@@ -401,6 +410,16 @@ function handlers.Spawn(ev)
 		view.extras = Instance.new("Folder")
 		view.extras.Name = ev.beast .. "Extras"
 		view.extras.Parent = folder
+		local hum = KIDS_HUM[ev.beast] and Catalog.SOUNDS[KIDS_HUM[ev.beast]]
+		if hum then
+			-- Destroyed with the model (or the extras folder) when the encounter ends.
+			local sound = Instance.new("Sound")
+			sound.Name = "Hum"
+			sound.SoundId = "rbxassetid://" .. tostring(hum.ids[1])
+			sound.Looped, sound.Volume, sound.RollOffMaxDistance = true, 0.5, 120
+			sound.Parent = rootOf(view) or view.extras
+			sound:Play()
+		end
 		return
 	end
 	play(ev.beast == "Viper" and "dirt" or "steps", rootOf(view), ev.beast == "Viper" and 0.8 or 1.25, 0.6)
@@ -466,8 +485,12 @@ function handlers.Land(ev, view)
 	task.delay(0.35, function() clearCircle(view) end)
 end
 function handlers.Hit(ev, view)
-	play("hit", rootOf(view), 1, 1)
-	shake(0.5)
+	local kid = KIDS_HIT_SOUND[view.beast]
+	play(kid or "hit", rootOf(view), 1, 1)
+	if not kid then shake(0.5) end
+	-- Kids biome: the Ráfaga and Pegajoso lines ride on the Hit event (Text.BEAST[beast].phases[ev.line]).
+	local said = Text.BEAST[view.beast]
+	if type(ev.line) == "string" and said and said.phases and said.phases[ev.line] then showLine(said.phases[ev.line], ev.at + 1.5) end
 	-- Wave 2: Streamer's scream pushes lightly. This client owns its character, so it applies the push, never faster
 	-- than the configured speed and never a ragdoll.
 	local knock = ev.knock
@@ -501,7 +524,9 @@ function handlers.Phase(ev, view)
 	local words = Text.BEAST[view.beast]
 	local line = words and words.phases and words.phases[ev.phase]
 	if line then showLine(line, ev.untilAt or ev.at) end
-	local sound = PHASE_SOUND[ev.phase]
+	local own = KIDS_PHASE_SOUND[view.beast]
+	local sound
+	if own then sound = own[ev.phase] else sound = PHASE_SOUND[ev.phase] end
 	if sound then play(sound[1], rootOf(view), sound[2], 0.85) end
 	if ev.phase == "Stunned" or ev.phase == "OverrunStunned" then view.stunUntil = ev.untilAt end
 end
@@ -575,6 +600,10 @@ function handlers.Disengage(ev, view)
 	clearTells(view)
 end
 function handlers.End(ev)
+	-- Kids biome: after Bostezo the Nube goes to sleep.
+	local view = views[ev.id]
+	local said = view and Text.BEAST[view.beast]
+	if ev.reason == "Yawn" and said and said.phases and said.phases.Asleep then showLine(said.phases.Asleep, ev.at + 1.5) end
 	finishView(ev.id)
 end
 
@@ -760,6 +789,9 @@ local function posture(view, base, at)
 		return base * CFrame.new(0, -5 * left, 0)
 	elseif view.beast == "Gaze" then
 		return base * CFrame.new(0, 1.5 + math.sin(at * 1.2) * 0.4, 0)
+	elseif Config.SUMMONED[view.beast] then
+		-- The Nube and the Abeja bob gently over their ground pivot.
+		return base * CFrame.new(0, math.sin(at * 1.6) * 0.5, 0)
 	end
 	return base
 end

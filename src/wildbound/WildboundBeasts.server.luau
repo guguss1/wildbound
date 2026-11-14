@@ -12,6 +12,7 @@
 -- dodgeable attacks are registered with and resolved by WildboundDodgeService (the same per-player states the
 -- inventory server's "dodge" press uses); the client's camera direction arrives on BeastObserve, is validated by
 -- WildboundBeastSight and only steers Gaze and Lurker, never a hit or a dodge.
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -28,6 +29,10 @@ local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService")
 for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
 	Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))
 end
+-- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts, never rolled (Config.SUMMONED).
+local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites"))
+local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" } }
+for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.
 local duskModule = ReplicatedStorage:WaitForChild("WildboundDusk", 10)
 local Dusk = duskModule and require(duskModule) or nil
@@ -181,6 +186,36 @@ function world.gapClear(center, gx, gz, radius)
 	return not safe
 end
 
+-- Kids biome: the Pradera's sites from the sector origin (Workspace "WildboundPradera", read only, else the Meadow
+-- centre), and the sky ray: one upward ray from the head against WildboundRoof parts only (a hit means covered).
+local function praderaOrigin()
+	local pradera = workspace:FindFirstChild("WildboundPradera")
+	if pradera and (pradera:IsA("Model") or pradera:IsA("BasePart")) then
+		local p = pradera:GetPivot().Position
+		return { x = p.X, z = p.Z }
+	end
+	return nil
+end
+function world.site(key)
+	return Sites.world(praderaOrigin(), key)
+end
+local roofParams = RaycastParams.new()
+roofParams.FilterType = Enum.RaycastFilterType.Include
+roofParams.RespectCanCollide = false
+local function covered(head)
+	roofParams.FilterDescendantsInstances = CollectionService:GetTagged("WildboundRoof")
+	return workspace:Raycast(head, Vector3.new(0, 200, 0), roofParams) ~= nil
+end
+local function inMeadow(x, z) return Biomes.has(x, z, "Meadow") end
+-- The Abeja window: the server's event clock writes BiomeEvent (read only here); Studio may override it (ForceAbejaEvent).
+local biomeEvent = telemetry:GetAttribute("BiomeEvent")
+telemetry:GetAttributeChangedSignal("BiomeEvent"):Connect(function()
+	biomeEvent = telemetry:GetAttribute("BiomeEvent")
+	telemetry:SetAttribute("Beast_abejaWindow", Sites.eventOpen(biomeEvent, nil))
+end)
+local abejaOverride = nil -- Studio only: true opens, false closes, nil follows BiomeEvent
+local function eventOpen() return Sites.eventOpen(biomeEvent, abejaOverride) end
+
 -- Player context ----------------------------------------------------------------------------------------------------
 
 local function bodyOf(player)
@@ -264,20 +299,26 @@ local function close(id, reason, at, event)
 end
 
 -- Wave 2: where each beast may appear. Viper and Pouncer keep their ring and prefer a hidden point; Gaze prefers a
--- point the target can see (its eyes are the tell), Root needs the Pantano, Lurker starts behind the target at its
--- InitialSpawnDistance.
+-- point the target can see (its eyes are the tell), Lurker starts behind the target at its InitialSpawnDistance. A
+-- beast with a home biome (Config.homeBiome: Root's Pantano, only while Config.BIOME_PREFERENCE is on) spawns only on it.
 local function spawnSpec(beast)
 	local C = Config.BEASTS[beast]
 	if beast == "Lurker" then
 		local d = C.tuning.InitialSpawnDistanceStuds
 		return { min = d, max = d, visible = false, behind = true }
 	end
-	return { min = C.spawnMin, max = C.spawnMax, visible = beast == "Gaze", biome = C.biome }
+	return { min = C.spawnMin, max = C.spawnMax, visible = beast == "Gaze", biome = Config.homeBiome(beast) }
 end
 
 -- A spawn point 35 to 70 (Viper) or 75 (Pouncer) studs from the target, on the ground, out of every safe zone and
 -- clear of solid parts; one hidden from the target's eyes (behind a trunk or a rock) is preferred.
 local function spawnPoint(beast, root)
+	if Config.SUMMONED[beast] then
+		-- Kids biome: the Nube at the pond, the Abeja at La Colmena, on the ground there (no ground: no spawn).
+		local site = world.site(Sites.HOME[beast])
+		local y = site and groundAt(site.x, site.z, root.Position.Y)
+		return y and { x = site.x, y = y, z = site.z } or nil
+	end
 	local spec = spawnSpec(beast)
 	local from = root.Position
 	local look = root.CFrame.LookVector
@@ -344,7 +385,8 @@ end
 
 local function start(player, reservation, at)
 	local character, _, root = bodyOf(player)
-	if not Config.PLAYABLE[reservation.beast] or not Enc.registered(reservation.beast) then
+	local beast = reservation.beast
+	if not (Config.PLAYABLE[beast] or Config.SUMMONED[beast]) or not Enc.registered(beast) then
 		close(reservation.id, "NoBehaviour", at)
 		return false, "NoBehaviour"
 	end
@@ -383,7 +425,17 @@ local function targetOf(entry)
 	if entry.player.Parent ~= Players or not character or character ~= entry.character or humanoid.Health <= 0 then return nil end
 	local p, v = root.Position, root.AssemblyLinearVelocity
 	local _, safe = Rules.zone(p.X, p.Z)
-	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe }
+	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe, meadow = inMeadow(p.X, p.Z) }
+	if Config.SUMMONED[entry.e.beast] then
+		-- Kids biome: what the Nube sees (open sky, Night range) and what the Abeja hears (the server's speed and floor).
+		local night = phaseAt(now()) == "Night"
+		target.night = night
+		target.covered = covered(p + Vector3.new(0, 1.5, 0))
+		target.noise = Sites.noiseRadius(Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air, night)
+		target.eventOpen = eventOpen()
+		target.markedUntil = humanoid:GetAttribute("WildboundKidsMarkUntil")
+		target.stickyUntil = humanoid:GetAttribute("WildboundKidsStickyUntil")
+	end
 	if Config.WAVE2[entry.e.beast] then
 		target.biomes = Biomes.at(p.X, p.Z)
 		if Config.OBSERVERS[entry.e.beast] then
@@ -417,11 +469,34 @@ local function applySlow(player, multiplier, seconds)
 	end)
 end
 
+-- Kids biome: La Abeja's Pegajoso. The walk speed is set to `speed` for at most 6 s: never lower than 9, never raised
+-- (a slower player keeps their speed). It never stacks with Root's slow (the same WildboundBeastSlowUntil) and is put
+-- back only if nothing changed the speed meanwhile. WildboundKidsStickyUntil tells the Abeja a second sting knocks.
+local STICKY_FLOOR, STICKY_CAP = 9, 6
+local function applySticky(player, speed, seconds)
+	local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not humanoid or not Config.finite(speed) or not Config.finite(seconds) then return end
+	speed, seconds = math.max(speed, STICKY_FLOOR), math.clamp(seconds, 0, STICKY_CAP)
+	humanoid:SetAttribute("WildboundKidsStickyUntil", now() + seconds)
+	local untilAt = humanoid:GetAttribute("WildboundBeastSlowUntil")
+	if type(untilAt) == "number" and untilAt > now() then return end
+	local before = humanoid.WalkSpeed
+	if before <= speed then return end
+	humanoid.WalkSpeed = speed
+	humanoid:SetAttribute("WildboundBeastSlowUntil", now() + seconds)
+	task.delay(seconds, function()
+		if humanoid.Parent and math.abs(humanoid.WalkSpeed - speed) < 1e-3 then humanoid.WalkSpeed = before end
+	end)
+end
+
 local beastHit = nil
 local function landHit(entry, event)
 	count("hits")
 	beastHit = beastHit or network:FindFirstChild("BeastHit")
 	local ok, effect = false, nil
+	-- Kids rule (defence in depth): a summoned beast, or any hit on a target in the Pradera, never deals damage.
+	local _, _, body = bodyOf(entry.player)
+	if Config.SUMMONED[entry.e.beast] or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
 	if beastHit and beastHit:IsA("BindableFunction") then
 		ok, effect = pcall(function() return beastHit:Invoke(entry.player, entry.e.beast, event.damage) end)
 	end
@@ -430,6 +505,12 @@ local function landHit(entry, event)
 	-- Wave 2 extras: Root's slow is applied here; Streamer's light push (event.knock) rides on the Hit event to the
 	-- target's client, which owns its character's physics and clamps it.
 	if type(event.slow) == "table" then applySlow(entry.player, event.slow.multiplier, event.slow.seconds) end
+	-- Kids biome: the Nube's mark and the Abeja's Pegajoso; their knocks ride on the Hit event like Streamer's push.
+	if type(event.sticky) == "table" then applySticky(entry.player, event.sticky.walkSpeed, event.sticky.seconds) end
+	local humanoid = entry.player.Character and entry.player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid and Config.finite(event.mark) then
+		humanoid:SetAttribute("WildboundKidsMarkUntil", now() + math.clamp(event.mark, 0, 30))
+	end
 end
 
 -- Esquiva perfecta (decision Q3b, odd/tasks/wildbound-new-mechanics.md W2): Viper's dash and Pouncer's leap are
@@ -457,7 +538,13 @@ local function dodgeStep(entry, event)
 end
 
 local function stepEncounter(id, entry, at)
-	local events = Enc.step(entry.e, at, targetOf(entry), entry.world or world)
+	local target = targetOf(entry)
+	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
+	if target and target.meadow and not Config.SUMMONED[entry.e.beast] then
+		close(id, "Pradera", at)
+		return
+	end
+	local events = Enc.step(entry.e, at, target, entry.world or world)
 	for _, event in ipairs(events) do
 		if event.type == "End" then
 			close(id, event.reason, at, event)
@@ -482,6 +569,26 @@ local function snapshot(entry, at)
 	local e = entry.e
 	send(entry.player, { type = "Snap", id = e.id, at = at, phase = e.phase, x = e.pos.x, y = e.pos.y, z = e.pos.z,
 		dx = e.dx, dz = e.dz, center = e.beast == "Pouncer" and e.phase == "Telegraph" and not e.frozen and e.center or nil })
+end
+
+-- Kids biome: presence instead of chance. Each poll, a player in the Pradera near the pond (or near La Colmena while
+-- the event window is open) summons that beast through the director (Director.summon: points 0, its own rules).
+local function summonPass(player, at)
+	local character, humanoid, root = bodyOf(player)
+	if not character or humanoid.Health <= 0 then return end
+	local p = root.Position
+	if not inMeadow(p.X, p.Z) then return end
+	local _, safe = Rules.zone(p.X, p.Z)
+	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(at) == "Night", eventOpen = eventOpen(),
+		x = p.X, z = p.Z, origin = praderaOrigin() }
+	local ctx
+	for _, kid in ipairs(KIDS) do
+		if Sites.wants(kid.name, want) then
+			ctx = ctx or contextFor(player, at)
+			local ok, value = Director.summon(director, player.UserId, kid.name, ctx, at)
+			if ok then safeStart(player, value, at) end
+		end
+	end
 end
 
 local stepClock, snapClock, pollClock = 0, 0, 0
@@ -521,6 +628,7 @@ RunService.Heartbeat:Connect(function(dt)
 				count("refused")
 				telemetry:SetAttribute("Beast_lastRefusal", refusal.beast .. ":" .. refusal.reason)
 			end
+			summonPass(player, at)
 		end
 	end
 end)
@@ -579,6 +687,14 @@ if RunService:IsStudio() then
 		return safeStart(player, value, at)
 	end
 	force.Parent = telemetry
+	-- Kids biome: open (true), close (false) or release (nil) a local Abeja window for the Play check.
+	local abeja = Instance.new("BindableFunction")
+	abeja.Name = "ForceAbejaEvent"
+	abeja.OnInvoke = function(open)
+		if open == true or open == false then abejaOverride = open else abejaOverride = nil end
+		return eventOpen()
+	end
+	abeja.Parent = telemetry
 	local probe = Instance.new("BindableFunction")
 	probe.Name = "BeastProbe"
 	probe.OnInvoke = function(op, value)

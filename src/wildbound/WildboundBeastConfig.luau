@@ -50,10 +50,18 @@ Config.DIRECTOR = table.freeze({
 -- Beast spawn design section 2: A "Guardian" (outside the budget, not run by the director today), B "Biome" (rolls only
 -- inside its biome tag), C "Global" (anywhere except safe zones and the biomes below). riskModifier scales one beast's
 -- base chance (1 = neutral; P0 sets every beast to 1, so nothing is retuned).
-Config.CATEGORIES = table.freeze({ Guardian = true, Biome = true, Global = true })
+Config.CATEGORIES = table.freeze({ Guardian = true, Biome = true, Global = true, Event = true })
+-- "Event": a creature woken by the server's biome event window, summoned by the beast script (La Abeja Reina).
 -- Biome tags where no Global beast may appear (owner decision 3: Pradera Arcoiris has a no-damage rule). Safe zones are
 -- excluded for every beast already. Nothing fills the "Meadow" tag until the P1 biome tags exist.
 Config.NO_GLOBAL_BIOMES = table.freeze({ Meadow = true })
+-- Biome preference switch (owner, 2026-11-14: "que no tengan un bioma predilecto de momento"). Off: every playable
+-- beast is treated as Global (it rolls and spawns anywhere the director allows beasts: still never in a safe zone or in
+-- NO_GLOBAL_BIOMES), and Root no longer gives up outside the Pantano. The `category` and `biome` fields below stay as the
+-- design data, so turning this back on restores Root's Swamp gate, its Swamp spawn filter and its LeftBiome exit.
+-- Read through Config.homeBiome / Config.categoryOf, never `beast.biome` directly. Beasts with no behaviour (Gargoyle,
+-- Mire) are never rolled and keep their biome either way.
+Config.BIOME_PREFERENCE = false
 
 -- Wave 2: the base chance of the four new beasts. The pack gives none ("REVISAR_CONFIG_EXISTENTE"); the owner asked for
 -- Viper's base chance (1/45 per 10 s roll, so 1 - (44/45)^2 = 89/2025, about 0.0440, per 20 s roll). PROPUESTA, open.
@@ -167,15 +175,80 @@ Config.BEASTS = table.freeze({
 			PerfectDodgeStunSeconds = 1.8, LeapCooldownSeconds = 4.0, EncounterTimeoutSeconds = 50,
 		}),
 	}),
+
+	-- Kids biome (odd/tasks/wildbound-kids-beasts.md; docs/design/wildbound-biome-pradera.md s5 and s6). Both are
+	-- SUMMONED: never rolled, never in ORDER or PLAYABLE; the beast script summons them by presence in the Pradera and
+	-- reserves them through Director.summon (points 0: they count toward MAX_ACTIVE, never the budget). Kids rule: damage
+	-- 0 everywhere, a hit only knocks a carried egg loose plus a mark or a slow. Every number is PROPUESTA (design docs).
+	NubeGrunona = table.freeze({
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, -- PROPUESTA: species cooldown after any end
+		endCooldowns = table.freeze({ Yawn = 60 }), -- PROPUESTA: Bostezo, the nap after three roof losses
+		damage = 0, -- kids rule: never damage
+		hitHeight = 8, -- PROPUESTA: the bolt reaches the ground under the ring
+		disengage = 0.9, -- PROPUESTA (Viper's), the Escape retreat
+		tuning = table.freeze({ -- PROPUESTA DE BALANCE (biome doc s5)
+			WakeRadiusStuds = 110, NightWakeRadiusStuds = 25, HoverStuds = 10,
+			DetectionRadiusStuds = 40, NightDetectionRadiusStuds = 20,
+			CalmSpeedStudsPerSecond = 6, PondWaypointRadiusStuds = 20,
+			GrowlSeconds = 1.5, ChaseSpeedStudsPerSecond = 14, ChaseMemorySeconds = 2, ChaseGiveUpSeconds = 12,
+			ChaseGiveUpDistanceStuds = 60, LeashStuds = 90,
+			BoltRangeStuds = 12, BoltRadiusStuds = 6, BoltTelegraphSeconds = 1.0, BoltRecoverSeconds = 1.5,
+			GiveUpSeconds = 3, YawnRoofLosses = 3, YawnSeconds = 3,
+			EscapeDistanceStuds = 110, EscapeSeconds = 2,
+			MarkSeconds = 30, GustStudsPerSecond = 18,
+		}),
+	}),
+	AbejaReina = table.freeze({
+		category = "Event", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, -- PROPUESTA
+		damage = 0, -- kids rule: never damage
+		hitHeight = 6, -- PROPUESTA (Pouncer's)
+		disengage = 0.9, -- PROPUESTA (Viper's), the Escape retreat
+		tuning = table.freeze({ -- PROPUESTA DE BALANCE (biome doc s6, kids-biome-concepts/bee.md)
+			WakeRadiusStuds = 70, WakeSeconds = 3, HoverStuds = 6,
+			GuardRadiusStuds = 35, PatrolRadiusStuds = 18, PatrolSpeedStudsPerSecond = 7,
+			StillSpeedStuds = 1, WalkSpeedLimitStuds = 17, NoiseWalkStuds = 30, NoiseRunStuds = 55, NoiseAirStuds = 70,
+			NightNoiseScale = 0.5,
+			HeardSeconds = 1.0, SearchSpeedStudsPerSecond = 10, SearchMemorySeconds = 3, LeashStuds = 45,
+			DiveRangeStuds = 9, DiveLaneWidthStuds = 6, DiveLaneLengthStuds = 12, DiveTelegraphSeconds = 1.2,
+			AfterSeconds = 2.5, SleepSeconds = 4, EscapeDistanceStuds = 70,
+			StickyWalkSpeed = 9, StickySeconds = 6, FlyBackStudsPerSecond = 18,
+		}),
+	}),
 })
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
 Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker" })
 -- Beasts that have an encounter behaviour. The director only rolls and starts these.
 Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, Root = true, Gaze = true, Lurker = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
-Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true })
+Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
+	AbejaReina = true })
+-- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
+-- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
+Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
+
+-- The biome a beast is bound to right now (rolls only inside it, spawns only on it), or nil. `preference` overrides
+-- Config.BIOME_PREFERENCE (tests and tuning only).
+function Config.homeBiome(name, preference)
+	local beast = Config.BEASTS[name]
+	if not beast then return nil end
+	if preference == nil then preference = Config.BIOME_PREFERENCE end
+	if preference ~= true and Config.PLAYABLE[name] then return nil end
+	return beast.biome
+end
+
+-- The category the director applies right now: a playable Biome beast counts as Global while the switch is off.
+function Config.categoryOf(name, preference)
+	local beast = Config.BEASTS[name]
+	if not beast then return nil end
+	if beast.category == "Biome" and Config.homeBiome(name, preference) == nil then return "Global" end
+	return beast.category
+end
 
 local function finite(value)
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
