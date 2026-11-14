@@ -92,11 +92,11 @@ return function(world, Rules, Hide)
 		assert(Rules.TELEGRAPH_SECONDS >= 0.8, "never under the fair-strike warning lead")
 	end)
 
-	case("S4: a search walks to the hide spots near where she lost her quarry and looks long enough to find someone", function()
-		at("hideSpotsNear(brain.point.x, brain.point.z)")
-		-- Verification finding: she follows an unseen quarry on memory, so the place she lost it was the hide spot itself
-		-- and hiding far from where she saw you never worked. A quarry that hid is searched for where she last saw it.
-		assert(at("if hid and seenAt then last = seenAt end") < at("\tclearTarget(h, now)\n\tif last and alive then"), "read before the target is cleared")
+	-- Deliberately changed (user decision 2026-11-14, "que siga patrullando normal"): losing a quarry resumes the patrol,
+	-- so nothing fills the hide-spot list on loss; a search that does carry one still walks and looks long enough.
+	case("S4: losing a quarry fills no hide-spot list; a search that has one looks long enough to find someone", function()
+		assert(not world:find("hideSpotsNear(brain.point.x, brain.point.z)", 1, true), "losing a quarry still fills hide spots")
+		at("\tclearTarget(h, now)\n\tif alive then\n\t\t-- When she loses sight completely", "she resumes the patrol")
 		at("h.checkSpots = nil -- a search that starts from a noise has no spots to check")
 		at("hideSpotPoints[id] = { x = zone.Position.X, z = zone.Position.Z }", "the spots are known from their own zones")
 		at("elseif h.mode == \"Search\" and h.checkSpots and h.checkSpots[1] and now < brain.untilAt then")

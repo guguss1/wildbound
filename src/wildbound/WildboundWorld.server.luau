@@ -757,7 +757,7 @@ local function tryAmbush(h, now, phase)
 	publish()
 end
 
--- The quarry got away but is still alive: search where it was last seen (clamped to the territory). A dead or
+-- The quarry got away but is still alive: she resumes her patrol (user decision 2026-11-14, no search). A dead or
 -- departed quarry, or a finished attack, sends the guardian home instead.
 local function loseTarget(h, now, phase)
 	local target = h.target
@@ -892,7 +892,7 @@ local function step(h, now, dt)
 		-- ruin pillar crossed her sight line on the next step, and she walked home with the player in the open.
 		local candidate = quarryContext(h, target)
 		-- Aggro fix (user, 2026-11-12: "pierde muy rápido el agro"). Where the quarry stands is remembered every combat
-		-- step, in sight or on memory, so losing it always starts a search there (an Alert that lost sight for one step
+		-- step, in sight or on memory; since 2026-11-14 losing it resumes the patrol (an Alert that lost sight for one step
 		-- used to walk home). And the chase clock only runs while the quarry is out of sight or beyond her detection
 		-- radius: a chase is never cut by time with its quarry in front of her.
 		if candidate and candidate.character == h.targetLife then
@@ -907,8 +907,8 @@ local function step(h, now, dt)
 		if not candidate or candidate.character ~= h.targetLife then
 			loseTarget(h, now, phase)
 		elseif candidate.hidden and not candidate.visible then
-			-- Chase pass (CP-D2): a quarry who hides unseen breaks the chase at once; the search starts where it was last
-			-- known (aggro fix: its position one step before it hid, no longer only where it was last seen).
+			-- Chase pass (CP-D2): a quarry who hides unseen breaks the chase at once; since 2026-11-14 she resumes her
+			-- patrol (no search where it was last known).
 			loseTarget(h, now, phase)
 		elseif Brain.chaseExpired(chaseStartedAt, now, phase) then
 			clearTarget(h, now)

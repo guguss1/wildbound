@@ -39,10 +39,13 @@ return function(sources, Island)
 		has(audio, 'GetAttribute("LungeAt")', "the audio client watches its own hunter's tell")
 	end)
 
-	case("FP4b: a lost quarry may start the search with a fake retreat", function()
+	-- Deliberately changed (user decision 2026-11-14): a lost quarry no longer starts a search, so no fake retreat
+	-- opens one; the step keeps running any fake retreat it is given.
+	case("FP4b: a lost quarry starts no fake retreat; the step still runs one", function()
 		local lose = body(world, "local function loseTarget(")
-		has(lose, "Moves.fakeRetreat(h.rng:NextNumber())")
-		has(lose, "h.fake = Moves.newFake(now, brain.point.x, brain.point.z)")
+		assert(not lose:find("Moves.fakeRetreat(", 1, true), "losing a quarry still rolls a fake retreat")
+		assert(not lose:find("Moves.newFake(", 1, true), "losing a quarry still creates a fake retreat")
+		has(lose, "setMode(h, \"Patrol\")", "she resumes the patrol")
 		local stepBody = body(world, "local function step(h, now, dt)")
 		has(stepBody, "Moves.fakeStep(h.fake, now, body.Position.X, body.Position.Z)")
 	end)

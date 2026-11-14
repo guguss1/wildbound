@@ -76,6 +76,8 @@ The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.
 
 ## Next step
 
+Silueta on loss resolved 2026-11-14 (user decision "que siga patrullando normal"): the live behaviour stays (losing a living quarry resumes the patrol). AggroWiring (2 cases), HideWiring D6, SiluetaMovesWiring FP4b and SiluetaReworkWiring S4 now pin it; three stale comments in `WildboundWorld.server.luau` updated (comments only). Studio matched HEAD before the edits and matches the repo after (World 82639/75932747). Fresh load: AggroWiring 10/0, HideWiring 14/0, SiluetaMovesWiring 5/0, SiluetaReworkWiring 7/0. `hideSpotsNear` and the hide-spot index stay in the code unused on loss.
+
 Collection limit resolved 2026-11-14 (user decision "Volver a 100"): `WildboundEconomyConfig.luau` `collectionLimit = 100`; Studio `ReplicatedStorage.WildboundEconomyConfig` matches the repo (8939 bytes, Adler-32 3658947834). Record 25/0 (RT-17 passes). State 64/14: the four messages read are bag-size cases (expected 3, live 12), not checked against the old limit because Studio entered Play. Export tests unchanged at 9/3 (document drift).
 
 Deferred (user decision 2026-11-14 "Después de su etapa"): Tuning DT1 `Eggs.STEAL_HOLD` (EggCarry 0.8 vs schema 0.5) waits until the teammate finishes stage 1; it is in their lock zone.

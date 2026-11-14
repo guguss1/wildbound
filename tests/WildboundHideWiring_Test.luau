@@ -37,7 +37,7 @@ return function(worldSource, serverSource, clientSource)
 		assert(not worldSource:find("targetContext(h, target, Rules.ATTACK_RANGE, true)", 1, true), "strike allows hidden")
 	end)
 
-	case("D6: a hunt on a player who hides becomes Search", function()
+	case("D6: a hunt on a player who hides ends, and she resumes her patrol", function()
 		-- Hunt keeps the context with visible = false, so the hunt memory runs out and loseTarget searches.
 		-- Deliberately changed in the chase pass (CP-D2): the hunt keeps its quarry to the give-up distance and the
 		-- pursuit leash (was Rules.CHASE_RANGE, 65); a quarry who hides unseen is lost at once.
@@ -51,7 +51,9 @@ return function(worldSource, serverSource, clientSource)
 		-- Chase pass, found in the Play check: during the 2.5 s repeat the giant walked into its quarry and stood inside
 		-- the player. It now holds at half its reach and faces the quarry.
 		has(worldSource, "candidate.distance <= Rules.ATTACK_RANGE * 0.5", "it holds at arm's length")
-		has(worldSource, "Brain.lostSight(brain, last.X, last.Z, now, phase, searchPoint)")
+		-- Deliberately changed (user decision 2026-11-14): the lost hunt resumes the patrol instead of searching.
+		has(worldSource, "-- When she loses sight completely or the quarry hides, she immediately resumes patrolling.")
+		assert(not worldSource:find("Brain.lostSight(", 1, true), "no search is placed on loss")
 	end)
 
 	case("memory fix: the spawn pad, the fog edge, the leash or a floor change never end a hunt early", function()

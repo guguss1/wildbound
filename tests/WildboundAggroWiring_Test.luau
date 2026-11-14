@@ -26,11 +26,15 @@ return function(world)
 		at("Hunt.step(h.huntState, now, current, {}, profile.memorySeconds)", "the memory still decides when the hunt ends")
 	end)
 
-	case("losing the quarry searches where it was last known, from an Alert too", function()
-		at("h.lastKnown = candidate.root.Position", "remembered every combat step")
-		at("local last = h.lastKnown or (h.huntState and h.huntState.lastPosition)", "the search starts there")
-		at("\th.lastKnown = nil", "cleared with the target")
-		assert(at("local last = h.lastKnown or") < at("\tif last and alive then"), "read before the target is cleared")
+	-- Deliberately changed (user decision 2026-11-14, "que siga patrullando normal"): losing a quarry that is still
+	-- alive no longer starts a search where it was last known; she clears the target and resumes her patrol at once.
+	case("losing a living quarry resumes the patrol at once, with no search", function()
+		local from, to = at("local function loseTarget(h, now, phase)"), at("local function gaveUp(h, point, now)")
+		local lose = world:sub(from, to)
+		assert(lose:find("clearTarget(h, now)", 1, true), "the target is cleared first")
+		assert(lose:find("setMode(h, \"Patrol\")", 1, true), "a living quarry sends her back to patrol")
+		assert(not lose:find("Brain.lostSight", 1, true), "no search is placed on loss")
+		at("\th.lastKnown = nil", "the last known spot is cleared with the target")
 	end)
 
 	case("the chase clock only runs while the quarry is out of sight or beyond her detection radius", function()
@@ -59,12 +63,11 @@ return function(world)
 	-- retreat, and its way back aimed at the raw spot outside the territory. Every step is clamped, so she never
 	-- arrived, the fake retreat never ended and she stood at the edge in Search for good (over 40 s measured), blind to
 	-- a quarry 7 studs away just outside. The fake retreat now turns back to the search's own clamped, free point.
-	case("a fake retreat turns back to the search point, which she can reach", function()
-		at("h.fake = Moves.newFake(now, brain.point.x, brain.point.z)")
-		assert(not world:find("Moves.newFake(now, last.X, last.Z)", 1, true), "it still aims at the raw last position")
-		at("if out.done or not out.destination or now >= brain.untilAt then", "and a fake retreat never outlasts its search")
-		assert(at("Brain.lostSight(brain, last.X, last.Z, now, phase, searchPoint)") < at("h.fake = Moves.newFake(now, brain.point.x, brain.point.z)"),
-			"the search point is placed first, inside the territory and off any trunk")
+	-- The fake retreat only ever opened a search on loss; with no search on loss (2026-11-14) nothing starts one, and
+	-- the step that would run it still never outlasts a search.
+	case("no fake retreat starts on loss, and a running one never outlasts its search", function()
+		assert(not world:find("Moves.newFake(", 1, true), "a fake retreat is still created")
+		at("if out.done or not out.destination or now >= brain.untilAt then", "a fake retreat never outlasts its search")
 	end)
 
 	-- Measured in Play (2026-11-12): a hunt set to 13 studs/s moved at about 10, and set to 17 at about 12. A step
