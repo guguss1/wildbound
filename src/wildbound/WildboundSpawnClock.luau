@@ -30,7 +30,7 @@ SpawnClock.CONSTANTS = freeze({
 	LIFETIME = 300,
 	RESPAWN_COMUN = 90, RESPAWN_RARA = 150, RESPAWN_EPICA = 240, RESPAWN_LEGENDARIA = 360,
 	MAX_COMUN = 4, MAX_RARA = 3, MAX_EPICA = 2, MAX_LEGENDARIA = 1,
-	EGG_SHARE = 0,
+	EGG_SHARE = 0.4, -- user decision 2026-11-14: wild eggs back (was 0 after the Studio sync)
 	SPACING = 12,
 })
 
@@ -183,6 +183,7 @@ end
 
 local function make(state, now, rand, tier, point, kind, lifetime, special)
 	state.serial += 1
+	if point.kind == "canopy" then kind = "Egg" end
 	local pool, luck = tier, nil
 	-- IT2: the first spawn inside a standing luck totem rolls one tier up.
 	if special ~= true and NEXT_TIER[tier] then

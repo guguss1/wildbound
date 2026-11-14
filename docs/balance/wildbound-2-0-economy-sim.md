@@ -162,7 +162,7 @@ Each value is re-read from its source by pattern (no line numbers are tracked).
 - `beast_per_roll_cap_10s` = 0.2 (src/wildbound/WildboundBeastConfig.luau)
 - `beast_global_cooldown` = 15 (src/wildbound/WildboundBeastConfig.luau)
 - `eggs_per_nest` = 3 (src/wildbound/WildboundIsland.luau)
-- `egg_share` = 0 (src/wildbound/WildboundSpawnClock.luau)
+- `egg_share` = 0.4 (src/wildbound/WildboundSpawnClock.luau); restored 2026-11-14 with bough eggs. The trip model still counts nest eggs only, so wild eggs are not in these numbers yet
 - Drift: none
 
 ## ASSUMED fields

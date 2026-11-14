@@ -71,6 +71,7 @@ The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.
 - No Play session was used (the user was in Play once; this track waited for Edit). Nothing saved or published; Workspace untouched.
 - CP4 resolved 2026-11-14 (user decision "Sí, a 19"): `WildboundIsland.luau:46` `CHASE_SPEED = 19`, deployed to Studio with a one-line edit; Studio copy matches the repo (24028 bytes, Adler-32 1077545602). Fresh load: Island 34/0, Tuning 14/1. The remaining Tuning DT1 failure is `WAKE_WINDUP` (module 0.35, schema default 0.4), a separate owner decision.
 - WAKE_WINDUP resolved 2026-11-14 (user decision "Volver a 0.4"): `WAKE_WINDUP = 0.4`, deployed; Studio matches the repo (24114 bytes, Adler-32 4027590012). Island 34/0, Tuning 14/1; DT1 now stops at `World.EGG_SHARE` (module 0, schema 0.4), the bough-egg decision.
+- Bough eggs resolved 2026-11-14 (user decision "Sí, activalos"): `WildboundSpawnClock.luau` `EGG_SHARE = 0.4` and the `canopy` rule restored; Studio matches the repo (14072 bytes, Adler-32 2557691973). SpawnClock 13/0, Tuning 14/1; DT1 now stops at `Eggs.STEAL_HOLD` (EggCarry 0.8, schema 0.5), in the teammate's lock zone. Economy sim v2 mirror moved to 0.4 (39/39 OK).
 - Not committed (the task said do not commit). Engram mirror `odd/wildbound-suite-repair/tasks`: pending (not available to this worker).
 
 ## Next step

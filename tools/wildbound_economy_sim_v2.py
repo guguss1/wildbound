@@ -232,8 +232,8 @@ MIRRORED = {
     "beast_per_roll_cap_10s": {"value": 0.20, "source": BEAST_CONFIG, "note": "MAX_CHANCE = perRoll(0.20)"},
     "beast_global_cooldown": {"value": 15, "source": BEAST_CONFIG, "note": "seconds after an encounter"},
     "eggs_per_nest": {"value": 3, "source": ISLAND, "note": "caps eggs_per_trip_target"},
-    "egg_share": {"value": 0, "source": SPAWN_CLOCK,
-                  "note": "EGG_SHARE 0: ground spawns give no eggs, nests are the only egg source"},
+    "egg_share": {"value": 0.4, "source": SPAWN_CLOCK,
+                  "note": "EGG_SHARE 0.4 and every bough spawn is an egg; the trip model still counts nest eggs only"},
 }
 
 

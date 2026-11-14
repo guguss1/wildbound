@@ -59,8 +59,8 @@ class LoadingTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             patched = Path(tmp) / "WildboundSpawnClock.luau"
             text = (REPO / SPAWN_CLOCK).read_text(encoding="utf-8")
-            self.assertIn("EGG_SHARE = 0,", text)
-            patched.write_text(text.replace("EGG_SHARE = 0,", "EGG_SHARE = 0.5,"), encoding="utf-8")
+            self.assertIn("EGG_SHARE = 0.4,", text)
+            patched.write_text(text.replace("EGG_SHARE = 0.4,", "EGG_SHARE = 0.5,"), encoding="utf-8")
             drift = sim.check_drift(paths={SPAWN_CLOCK: patched})
         self.assertTrue(any("EGG_SHARE" in line for line in drift), drift)
 
