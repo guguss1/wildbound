@@ -36,7 +36,7 @@ Success for the first playable: in solo Play, a player who reads the tells can s
 Two observations that affect the plan:
 
 - The dodge **press handler is not in `src/wildbound`** outside the lock zone (only `WildboundDodgeService.press` exists; the beast script header says the inventory server calls it). Scuttler only reads the attribute it sets, so no lock-zone change is needed, but SC1 checks in Studio that a live press really moves `WildboundDash`.
-- Encounters are **target-only**: the beast script fires `BeastEvent` to the target's client alone, so other players do not see the target's beast. The pack's "affects nearby players" for the pulse is therefore target-only in v1 (open question Q4).
+- Encounters are **target-only**: the beast script fires `BeastEvent` to the target's client alone, so other players do not see the target's beast. SC0 makes beasts visible to nearby players; the pack's "affects nearby players" for the pulse stays target-only (Q4 decided).
 - Pack images: the file names do not match their content (`02_Ruta_Predictiva.png` shows Castigo y caída, `03_Finta_de_Caza.png` shows Ruta predictiva, `04_Pulso_de_Panico.png` shows Finta, `05_Castigo_y_Caida.png` shows Pulso). Use the titles inside the images.
 
 ## 3. The four mechanics mapped to existing systems
@@ -195,7 +195,7 @@ Text (`WildboundText.BEAST.Scuttler`, Spanish): `warn = "¡El Scuttler va a embe
 
 - One encounter, one target (existing): the server owns every transition and hit; the client only draws `Phase`/`Tell`/`Strike` and sends nothing for Scuttler (it is not an observer, no `BeastObserve`).
 - The feint's bait check reads a server-written attribute; a client cannot fake a press or skip a tell.
-- The pulse affects only the encounter's target in v1, because other clients do not draw that beast (open question Q4).
+- The pulse affects only the encounter's target (Q4 decided); after SC0 other nearby clients see it but are not affected.
 - Two players near each other can each have their own Scuttler (budgets are per player); the two-player test (SC11) checks this reads fine.
 
 ## 12. Dependencies on the lock zone (needs teammate)
@@ -235,7 +235,7 @@ Also add the new scripts to `tools/deploy_manifest.py` and `tools/test_deploy_ma
 - **Feint reads as unfair**: if players cannot tell feint from real, it feels like a cheat. Mitigation: first charge real, feint outline without fill, cue only on real attacks, playtest SC11.
 - **Intercept reads as teleporting**: a fast reposition out of sight can feel like cheating. Mitigation: speed below sprint, zone drawn from the phase start, `ETA` margin.
 - **Too much pressure with an egg**: Scuttler plus the `egg = 1.2` roll step. Mitigation: section 7 rule 5; if the two-player test feels unfair, drop the pulse egg drop first.
-- **Target-only beast in multiplayer**: another player may see the target flee from nothing. Existing limit for every beast; Q4.
+- **Shared visibility cost**: SC0 sends visual events to nearby clients; up to 16 active beasts with 8 players. Mitigation: proximity radius and visual-only events.
 - **Missing generator**: `tools/beast_rig/to_luau.py` is not in the repo; SC9 may need to rebuild it.
 - **Parallel writers**: the spawn task is editing `WildboundBeastConfig` and `WildboundBeasts.server.luau` now; SC1 waits for it.
 
