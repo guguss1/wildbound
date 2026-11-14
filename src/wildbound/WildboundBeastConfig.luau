@@ -189,6 +189,44 @@ Config.BEASTS = table.freeze({
 		}),
 	}),
 
+	-- Scuttler (docs/design/wildbound-scuttler-plan.md, SC1; owner decisions 2026-11-14): a global threat-3 beast that
+	-- fills the whole per-player budget alone (it starts only with 0 points in use, and nothing starts while it hunts).
+	-- No biome preference: Global, biome nil, uniform spawn ring (no route bias). 12-14 studs tall (Q1); the pulse knocks a
+	-- carried egg loose only on the second landed pulse inside PressureMemorySeconds (Q2). Every number is PROPUESTA
+	-- (plan section 6), to be tuned in Studio.
+	Scuttler = table.freeze({
+		category = "Global", riskModifier = 1, points = 3, biome = nil,
+		chance10 = 1 / 60, chance = Config.perRoll(1 / 60), -- rarer than Viper (1/45): a boss-like event
+		cooldown = 75, -- species cooldown, longer than Viper 35 s and Pouncer 40 s
+		damage = 30, -- the charge (tuning.ChargeDamage); private mode only (BeastHit rule)
+		spawnMin = 40, spawnMax = 75, spawnSeconds = 1.0, -- Viper's ring, a bit wider for the bigger body
+		laneWidth = 8, -- the charge lane, wider than Viper's 4.5
+		lockLead = 0.3, -- the lane is frozen in the last 0.3 s of the charge telegraph
+		hitHeight = 8, -- taller body
+		escapeDistance = 110, escapeSeconds = 4, disengage = 1.2, -- Viper's rules, slightly wider
+		tuning = table.freeze({ -- PROPUESTA (plan section 6)
+			EncounterTimeoutSeconds = 45,
+			StalkMin = 20, StalkMax = 34, StalkSpeed = 14,
+			-- Ruta predictiva
+			ReadSeconds = 0.8, PredictSeconds = 1.2, InterceptMaxStuds = 30, InterceptSpeed = 21,
+			InterceptMarginSeconds = 0.4, InterceptMinSpeed = 8, BlockSeconds = 2.5,
+			ReplanCooldownSeconds = 0.6, MaxReplans = 1,
+			SnapTelegraphSeconds = 0.9, SnapRadius = 10, SnapArc = 100, SnapDamage = 20,
+			-- Finta de caza
+			FeintSeconds = 0.9, FeintChance = 0.4, MaxFeintsWhileEgg = 1,
+			ChargeTelegraphSeconds = 1.1, PunishTelegraphSeconds = 0.9,
+			ChargeMaxRangeStuds = 40, ChargeSpeed = 46, ChargeDamage = 30, ChargeCooldownSeconds = 4.5,
+			ChargeMissRecoverySeconds = 1.2,
+			-- Castigo y caida
+			OverrunStuds = 8, FallStumbleSeconds = 2.2, FallCrashSeconds = 3.0, FallsToGiveUp = 2,
+			-- Pulso de panico
+			PulseChargeSeconds = 1.3, PulseRadiusStuds = 16, PulseSlowMultiplier = 0.75, PulseSlowSeconds = 1.5,
+			-- PulseCooldownSeconds runs from the release: 5 + PulseChargeSeconds 1.3 = 6.3 s < PressureMemorySeconds 8, so the
+			-- second landed pulse the owner decided on (Q2) can happen (the plan's 9 made it unreachable).
+			PulseCooldownSeconds = 5, PressureMemorySeconds = 8, PulseCanDropEgg = true,
+		}),
+	}),
+
 	-- Kids biome (odd/tasks/wildbound-kids-beasts.md; docs/design/wildbound-biome-pradera.md s5 and s6). Both are
 	-- SUMMONED: never rolled, never in ORDER or PLAYABLE; the beast script summons them by presence in the Pradera and
 	-- reserves them through Director.summon (points 0: they count toward MAX_ACTIVE, never the budget). Kids rule: damage
@@ -233,12 +271,14 @@ Config.BEASTS = table.freeze({
 	}),
 })
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
-Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker" })
+Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker",
+	"Scuttler" })
 -- Beasts that have an encounter behaviour. The director only rolls and starts these.
-Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, Root = true, Gaze = true, Lurker = true })
+Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, Root = true, Gaze = true, Lurker = true,
+	Scuttler = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
-	AbejaReina = true })
+	AbejaReina = true, Scuttler = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
 Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true })

@@ -342,9 +342,65 @@ function Proxies.abeja()
 	return finish(model, "AbejaReina", root)
 end
 
+-- Scuttler (docs/design/wildbound-scuttler-plan.md section 10, SC8): the global threat-3 insect, a Part placeholder until
+-- its rig (SC9) and the approved mesh upload (SC10). Maroon carapace with cream chevrons, moss accents, amber Neon eyes and
+-- antenna tips (the client flashes them at a real lock), two claw arms with A/B pincers and eight legs. 12-14 studs tall
+-- (owner decision Q1). A model named exactly "Scuttler" in ReplicatedStorage.WildboundBeasts.Models replaces it.
+local S = table.freeze({
+	carapace = Color3.fromHex("6E2A35"), carapaceDark = Color3.fromHex("4A1C26"), chevron = Color3.fromHex("EADBB8"),
+	moss = Color3.fromHex("7E8F3A"), eye = Color3.fromHex("FFB020"), claw = Color3.fromHex("E3D3B4"),
+})
+Proxies.SCUTTLER_PALETTE = S
+
+function Proxies.scuttler()
+	local model = Instance.new("Model")
+	model.Name = "ScuttlerProxy"
+	local root = part(model, "Root", Vector3.new(1, 0.2, 1), CFrame.new(0, 0.1, 0), S.carapaceDark)
+	root.Transparency = 1
+	part(model, "Abdomen", Vector3.new(7, 4.5, 8), CFrame.new(0, 6.5, 4) * CFrame.Angles(math.rad(-8), 0, 0), S.carapace)
+	for i = 1, 4 do
+		-- Chevrons along the back point forward (toward the head).
+		part(model, "Chevron" .. i, Vector3.new(2.6 - i * 0.2, 0.5, 1.2), CFrame.new(0, 9.1 - i * 0.12, 0.6 + i * 1.6)
+			* CFrame.Angles(0, math.pi, 0), S.chevron, "WedgePart")
+	end
+	part(model, "Thorax", Vector3.new(5, 4, 4.2), CFrame.new(0, 8.2, -1.2) * CFrame.Angles(math.rad(18), 0, 0), S.carapaceDark)
+	local head = CFrame.new(0, 10.4, -4.5)
+	part(model, "Head", Vector3.new(3.6, 3, 3), head, S.carapace)
+	part(model, "HeadPlate", Vector3.new(2.6, 1, 2.6), head * CFrame.new(0, 2, 0.3), S.carapaceDark, "WedgePart")
+	part(model, "Jaw", Vector3.new(2.4, 0.6, 1.2), head * CFrame.new(0, -1.3, -1.5), S.claw)
+	for _, side in ipairs({ -1, 1 }) do
+		local tag = side < 0 and "L" or "R"
+		eye(model, "Eye" .. tag, Vector3.new(0.8, 0.8, 0.8), head * CFrame.new(side * 0.9, 0.4, -1.45), S.eye, Enum.PartType.Ball)
+		eye(model, "EyeSmall" .. tag, Vector3.new(0.45, 0.45, 0.45), head * CFrame.new(side * 0.45, 1, -1.4), S.eye,
+			Enum.PartType.Ball)
+		local base, tip = Vector3.new(side * 0.8, 11.8, -5.5), Vector3.new(side * 2.2, 13.4, -7.2)
+		segment(model, "Antenna" .. tag, base, tip, 0.25, S.carapaceDark)
+		eye(model, "AntennaTip" .. tag, Vector3.new(0.5, 0.5, 0.5), CFrame.new(tip), S.eye, Enum.PartType.Ball)
+		-- The claw arm: shoulder, upper arm, forearm, and the two pincer blades (A above, B below).
+		local shoulder, elbow, wrist = Vector3.new(side * 2.4, 8.8, -2.8), Vector3.new(side * 4.6, 10.2, -5.2),
+			Vector3.new(side * 4, 7.6, -7.6)
+		segment(model, "ClawUpper" .. tag, shoulder, elbow, 0.9, S.carapace)
+		segment(model, "ClawFore" .. tag, elbow, wrist, 0.8, S.carapaceDark)
+		segment(model, "Pincer" .. tag .. "A", wrist, Vector3.new(side * 3.3, 8, -10.2), 0.5, S.claw)
+		segment(model, "Pincer" .. tag .. "B", wrist, Vector3.new(side * 4.4, 6.7, -9.8), 0.45, S.claw)
+		for i, z in ipairs({ -1.2, 1.2, 3.6, 6 }) do
+			local leg = tag .. i
+			local hip = Vector3.new(side * 2.8, 6.4, z)
+			local knee = Vector3.new(side * 6.4, 9.2, z * 1.15 - 0.4)
+			local foot = Vector3.new(side * 8, 0.6, z * 1.3 - 0.6)
+			segment(model, "LegUpper" .. leg, hip, knee, 0.7, S.carapaceDark)
+			segment(model, "LegLower" .. leg, knee, foot, 0.5, i % 2 == 0 and S.carapace or S.carapaceDark)
+		end
+		part(model, "Moss" .. tag, Vector3.new(1.6, 0.4, 1.4), CFrame.new(side * 2, 8.6, 5.2), S.moss)
+	end
+	part(model, "MossThorax", Vector3.new(1.4, 0.4, 1.2), CFrame.new(0.6, 10.2, -1), S.moss)
+	part(model, "Tail", Vector3.new(2, 1.4, 2), CFrame.new(0, 5.6, 8.8), S.carapaceDark, "WedgePart")
+	return finish(model, "Scuttler", root)
+end
+
 Proxies.BUILDERS = table.freeze({ Viper = Proxies.viper, Pouncer = Proxies.pouncer, Streamer = Proxies.streamer,
 	Root = Proxies.root, Gaze = Proxies.gaze, Lurker = Proxies.lurker, NubeGrunona = Proxies.nube,
-	AbejaReina = Proxies.abeja })
+	AbejaReina = Proxies.abeja, Scuttler = Proxies.scuttler })
 
 -- The visual a client clones: the user's imported model when present, else the proxy.
 function Proxies.modelFor(models, beast)

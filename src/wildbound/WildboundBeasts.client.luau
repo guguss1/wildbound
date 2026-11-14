@@ -18,6 +18,10 @@ local RunService = game:GetService("RunService")
 -- no warning or phase line, no sound, no camera shake, no hit feedback or knock, no Gaze meter, no BeastObserve, and
 -- Root's raised walls never collide for a bystander. Their tells keep the exact server geometry in a neutral, faded
 -- colour (soften), so a bystander reads the attack without being alarmed by it.
+-- SC8 Scuttler (docs/design/wildbound-scuttler-plan.md section 9): its feint lane is an outline without fill, its real
+-- lane is solid with an antenna flash at the lock, the intercept zone is hatched, the pulse ring has rings rippling out
+-- to its true radius, a fall shows dizzy stars over the tall body, and a landed pulse (Afflict, target only) gives a
+-- short shake and desaturation that Efectos suaves leaves out. Sounds are existing catalogue slots only.
 local Config = require(ReplicatedStorage:WaitForChild("WildboundBeastConfig"))
 local Catalog = require(ReplicatedStorage:WaitForChild("WildboundAudioCatalog"))
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
@@ -226,6 +230,26 @@ local function shake(strength)
 	end)
 end
 
+-- SC8: a brief desaturation on this client's camera (client-made, removed after `seconds`).
+local desaturateToken = 0
+local function desaturate(seconds)
+	if muting then return end
+	local camera = workspace.CurrentCamera
+	if not camera then return end
+	local effect = camera:FindFirstChild("WildboundPulseDesaturate")
+	if not effect then
+		effect = Instance.new("ColorCorrectionEffect")
+		effect.Name = "WildboundPulseDesaturate"
+		effect.Parent = camera
+	end
+	effect.Saturation, effect.Contrast, effect.Enabled = -0.65, 0.05, true
+	desaturateToken += 1
+	local token = desaturateToken
+	task.delay(seconds, function()
+		if token == desaturateToken and effect.Parent then effect:Destroy() end
+	end)
+end
+
 local function dust(at)
 	if reduced() then return end
 	local part = Instance.new("Part")
@@ -252,7 +276,7 @@ end
 -- Colours per beast; every tell also has its line, a sound and a pulse, so colour is never the only cue.
 local TELL_COLOR = {
 	Streamer = Color3.fromRGB(255, 45, 140), Root = Color3.fromRGB(130, 235, 90), Gaze = Color3.fromRGB(165, 80, 255),
-	Lurker = Color3.fromRGB(255, 70, 200),
+	Lurker = Color3.fromRGB(255, 70, 200), Scuttler = Color3.fromRGB(255, 60, 40),
 	-- Kids biome: the Nube's ring in sun yellow, the Abeja's lane in honey; never red.
 	NubeGrunona = Color3.fromHex("FFD23F"), AbejaReina = Color3.fromHex("F2A33A"),
 }
@@ -263,6 +287,17 @@ local KIDS_PHASE_SOUND = {
 }
 local KIDS_HIT_SOUND = { NubeGrunona = "softStinger", AbejaReina = "softStinger" }
 local KIDS_HUM = { AbejaReina = "insectsDusk" } -- looped while her encounter lives
+-- SC8: a beast's own phase sounds (plan section 9 slots only); "Phase:Variant" wins when the event carries it. The feint
+-- has no cue on purpose: only real attacks sound.
+local OWN_PHASE_SOUND = {
+	Scuttler = {
+		Stalk = { "steps", 1.1 }, Read = { "unease", 1 }, Intercept = { "steps", 1.5 }, ChargeTell = { "steps", 1.6 },
+		PunishTell = { "stinger", 1.2 }, Charge = { "dirt", 1.5 }, Snap = { "snap", 1 }, PulseCharge = { "unease", 0.7 },
+		Pulse = { "roar", 1.1 }, Fallen = { "softStinger", 1 }, ["Fallen:Crash"] = { "crack", 0.9 },
+	},
+}
+local SPAWN_SOUND = { Scuttler = "dirt" } -- the rise out of the ground
+local STAR_HEIGHT = { Scuttler = 15 } -- dizzy stars over a tall body (others: 6 studs)
 local GAP_COLOR = Color3.fromRGB(235, 255, 235)
 local WALL_COLOR = Color3.fromRGB(92, 70, 52)
 local WALL_HEIGHT = 7
@@ -289,6 +324,39 @@ local function ring(model, cx, y, cz, radius, color, transparency, count)
 		local a0, a1 = (i - 1) / count * math.pi * 2, i / count * math.pi * 2
 		bar(model, "Ring" .. i, Vector3.new(cx + math.cos(a0) * radius, y, cz + math.sin(a0) * radius),
 			Vector3.new(cx + math.cos(a1) * radius, y, cz + math.sin(a1) * radius), 0.3, color, transparency)
+	end
+end
+
+-- SC8: Scuttler's feint, an outline without fill: the lane's two edges and its two ends, never the fill or the chevrons.
+local function outline(model)
+	local fill = model:FindFirstChild("Fill")
+	local cframe, size, color = fill and fill.CFrame, fill and fill.Size, fill and fill.Color
+	for _, part in ipairs(model:GetChildren()) do
+		local name = part.Name
+		if name == "Fill" or name:sub(1, 7) == "Chevron" then part:Destroy() end
+	end
+	if not cframe then return end
+	for i, z in ipairs({ -size.Z / 2, size.Z / 2 }) do
+		piece(model, "EdgeEnd" .. i, Vector3.new(size.X, 0.14, 0.25), cframe * CFrame.new(0, 0, z), color, 0.15)
+	end
+end
+
+-- SC8: the intercept zone, hatched: diagonal bars clipped to the exact circle (on top of its disc and ring).
+local function hatch(model, shape, color)
+	local r = shape.r
+	if type(r) ~= "number" or r <= 0 then return end
+	local step = 2.5
+	local dx, dz = math.cos(math.pi / 4), math.sin(math.pi / 4)
+	local nx, nz = -dz, dx
+	local i = 0
+	for offset = -r + step / 2, r - step / 2, step do
+		local half = math.sqrt(math.max(r * r - offset * offset, 0))
+		if half > 0.3 then
+			i += 1
+			local cx, cz = shape.x + nx * offset, shape.z + nz * offset
+			bar(model, "Hatch" .. i, Vector3.new(cx - dx * half, shape.y + 0.04, cz - dz * half),
+				Vector3.new(cx + dx * half, shape.y + 0.04, cz + dz * half), 0.35, color, 0.25)
+		end
 	end
 end
 
@@ -417,6 +485,28 @@ local function publishPhase(view, phase, at, untilAt)
 	view.model:SetAttribute("BeastPhase", phase)
 	view.model:SetAttribute("BeastPhaseAt", at)
 	view.model:SetAttribute("BeastPhaseUntil", untilAt or at)
+	view.model:SetAttribute("BeastPhaseVariant", nil)
+end
+-- SC8: a phase's variant (Scuttler's Fallen: "Crash" or "Stumble"), published after the phase it belongs to.
+local function publishVariant(view, variant)
+	if not view.model then return end
+	if type(variant) ~= "string" then variant = nil end
+	view.model:SetAttribute("BeastPhaseVariant", variant)
+end
+
+-- SC8: Scuttler's antennas flash white for a moment when a real attack locks (never for a feint).
+local function flash(view)
+	if not view.model then return end
+	for _, name in ipairs({ "AntennaTipL", "AntennaTipR" }) do
+		local tip = view.model:FindFirstChild(name, true)
+		if tip and tip:IsA("BasePart") then
+			if tip:GetAttribute("BaseColor") == nil then tip:SetAttribute("BaseColor", tip.Color) end
+			tip.Color = Color3.new(1, 1, 1)
+			task.delay(0.3, function()
+				if tip.Parent then tip.Color = tip:GetAttribute("BaseColor") end
+			end)
+		end
+	end
 end
 
 local handlers = {}
@@ -446,6 +536,7 @@ function handlers.Spawn(ev)
 		view.extras = Instance.new("Folder")
 		view.extras.Name = ev.beast .. "Extras"
 		view.extras.Parent = folder
+		if SPAWN_SOUND[ev.beast] then play(SPAWN_SOUND[ev.beast], rootOf(view), 0.7, 0.8) end
 		local hum = not muting and KIDS_HUM[ev.beast] and Catalog.SOUNDS[KIDS_HUM[ev.beast]]
 		if hum then
 			-- Destroyed with the model (or the extras folder) when the encounter ends.
@@ -557,16 +648,25 @@ function handlers.Phase(ev, view)
 	if not view.wave2 then return end
 	view.phase, view.phaseAt, view.phaseUntil = ev.phase, ev.at, ev.untilAt
 	publishPhase(view, ev.phase, ev.at, ev.untilAt)
+	publishVariant(view, ev.fall)
 	-- A move ends at the first phase that starts after it.
 	if view.move and ev.at >= (view.move.endAt or math.huge) - 1e-3 then view.move = nil end
 	local words = Text.BEAST[view.beast]
 	local line = words and words.phases and words.phases[ev.phase]
 	if line then showLine(line, ev.untilAt or ev.at) end
-	local own = KIDS_PHASE_SOUND[view.beast]
+	local own = KIDS_PHASE_SOUND[view.beast] or OWN_PHASE_SOUND[view.beast]
 	local sound
-	if own then sound = own[ev.phase] else sound = PHASE_SOUND[ev.phase] end
+	if own then
+		sound = (type(ev.fall) == "string" and own[ev.phase .. ":" .. ev.fall]) or own[ev.phase]
+	else
+		sound = PHASE_SOUND[ev.phase]
+	end
 	if sound then play(sound[1], rootOf(view), sound[2], 0.85) end
-	if ev.phase == "Stunned" or ev.phase == "OverrunStunned" then view.stunUntil = ev.untilAt end
+	if ev.phase == "Stunned" or ev.phase == "OverrunStunned" or ev.phase == "Fallen" then view.stunUntil = ev.untilAt end
+	if ev.phase == "Fallen" then
+		local last = view.snaps[#view.snaps]
+		if last then dust(Vector3.new(last.x, last.y + 0.5, last.z)) end
+	end
 end
 function handlers.Tell(ev, view)
 	if not view.wave2 or type(ev.shape) ~= "table" or type(ev.tell) ~= "string" then return end
@@ -579,8 +679,17 @@ function handlers.Tell(ev, view)
 		view.tells[ev.tell] = item
 	end
 	item.shape, item.startAt, item.strikeAt, item.locked = ev.shape, ev.startAt, ev.strikeAt, ev.locked
+	item.zone, item.feint = ev.zone == true, ev.feint == true
 	drawShape(item.model, ev.shape, TELL_COLOR[view.beast] or RED, false)
+	local color = TELL_COLOR[view.beast] or RED
 	if ev.locked and item.model:FindFirstChild("Fill") then item.model.Fill.Transparency = 0.35 end
+	-- SC8: Scuttler's feint is an outline only, its intercept zone is hatched, a real lock flashes its antennas once.
+	if ev.feint then outline(item.model) end
+	if ev.zone then hatch(item.model, ev.shape, color) end
+	if view.beast == "Scuttler" and ev.locked and not item.flashed then
+		item.flashed = true
+		if not ev.feint then flash(view) end
+	end
 	soften(view, item.model)
 end
 function handlers.TellEnd(ev, view)
@@ -608,7 +717,7 @@ function handlers.Move(ev, view)
 		length = ev.length, height = ev.height }
 	if ev.kind == "dash" then move.endAt = ev.at + ev.length / math.max(ev.speed, 1e-3)
 	elseif ev.kind == "arc" then move.endAt = ev.landAt
-	elseif ev.kind == "burrow" or ev.kind == "slide" then move.endAt = ev.untilAt
+	elseif ev.kind == "burrow" or ev.kind == "slide" or ev.kind == "run" then move.endAt = ev.untilAt
 	elseif ev.kind == "blink" then
 		view.snaps = { { at = ev.at, x = ev.to.x, y = ev.to.y, z = ev.to.z, dx = view.dx, dz = view.dz } }
 		play("unease", rootOf(view), 0.8, 0.6)
@@ -616,6 +725,14 @@ function handlers.Move(ev, view)
 	end
 	view.move = move
 	if ev.kind == "burrow" then play("dirt", rootOf(view), 0.7, 0.9) end
+end
+-- SC8: a landed pulse (Afflict) on this player. The server already applied the slow; the client only adds a short
+-- shake and a brief desaturation, both left out by Efectos suaves. A bystander never receives Afflict.
+function handlers.Afflict(ev, view)
+	if view.bystander then return end
+	if ev.shake ~= true or reduced() then return end
+	shake(0.45)
+	desaturate(0.45)
 end
 function handlers.Exposure(ev, view)
 	if view.wave2 and not view.bystander and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
@@ -681,6 +798,11 @@ local function movePlace(view, at)
 	elseif m.kind == "slide" then
 		return m.from.x + (m.to.x - m.from.x) * t, m.from.y + (m.to.y - m.from.y) * t, m.from.z + (m.to.z - m.from.z) * t,
 			view.dx, view.dz
+	elseif m.kind == "run" then
+		-- SC8: Scuttler's intercept, a straight run to P facing where it goes.
+		local dx, dz = Config.unit(m.to.x - m.from.x, m.to.z - m.from.z)
+		return m.from.x + (m.to.x - m.from.x) * t, m.from.y + (m.to.y - m.from.y) * t, m.from.z + (m.to.z - m.from.z) * t,
+			dx or view.dx, dz or view.dz
 	end
 	return nil
 end
@@ -807,8 +929,48 @@ local function stars(view, x, y, z, at)
 			view.stars[i] = star
 		end
 		local a = at * 4 + i * math.pi * 2 / 3
-		star.CFrame = CFrame.new(x + math.cos(a) * 1.8, y + 6, z + math.sin(a) * 1.8)
+		local radius = STAR_HEIGHT[view.beast] and 2.6 or 1.8
+		star.CFrame = CFrame.new(x + math.cos(a) * radius, y + (STAR_HEIGHT[view.beast] or 6), z + math.sin(a) * radius)
 	end
+end
+
+-- SC8: Scuttler's pulse ring: PULSE_RINGS thin rings ripple out from its centre to the drawn radius (item.shape.r, the
+-- server's own circle), faster toward the release. Kept inside the tell's model, so a redraw or its end removes them.
+local PULSE_RINGS, PULSE_SEGMENTS = 2, 20
+local function pulseRings(view, item, at)
+	local shape = item.shape
+	local r = item.shape.r
+	if type(r) ~= "number" or r <= 0 then return end
+	item.pulse = item.pulse or {}
+	local span = math.max((item.strikeAt or at) - (item.startAt or at), 0.1)
+	local progress = math.clamp((at - (item.startAt or at)) / span, 0, 1)
+	local made = false
+	for k = 1, PULSE_RINGS do
+		local parts = item.pulse[k]
+		if not parts or not parts[1] or parts[1].Parent ~= item.model then
+			parts = {}
+			for i = 1, PULSE_SEGMENTS do
+				parts[i] = piece(item.model, ("Pulse%dSeg%d"):format(k, i), Vector3.new(0.3, 0.12, 1), CFrame.new(),
+					TELL_COLOR.Scuttler, 0.2)
+			end
+			item.pulse[k] = parts
+			made = true
+		end
+		-- About two ripples a second at the start, four at the release.
+		local phase = (progress * (2 + 2 * progress) * span + (k - 1) / PULSE_RINGS) % 1
+		local radius = math.max(r * phase, 0.3)
+		local alpha = 0.85 - 0.6 * phase -- brightest as it reaches the true radius
+		if view.bystander then alpha = dim(alpha) end
+		for i, p in ipairs(parts) do
+			local a0, a1 = (i - 1) / PULSE_SEGMENTS * math.pi * 2, i / PULSE_SEGMENTS * math.pi * 2
+			local a = Vector3.new(shape.x + math.cos(a0) * radius, shape.y + 0.2, shape.z + math.sin(a0) * radius)
+			local b = Vector3.new(shape.x + math.cos(a1) * radius, shape.y + 0.2, shape.z + math.sin(a1) * radius)
+			p.Size = Vector3.new(0.3, 0.12, math.max((b - a).Magnitude, 0.05))
+			p.CFrame = CFrame.lookAt((a + b) / 2, b)
+			p.Transparency = alpha
+		end
+	end
+	if made then soften(view, item.model) end
 end
 
 local function clearStars(view)
@@ -822,11 +984,14 @@ local function posture(view, base, at)
 	if phase == "Warn" then
 		local s = reduced() and 0 or 0.12
 		return base * CFrame.new((math.random() - 0.5) * s, -0.2, 0)
-	elseif phase == "ScreamCharge" then
+	elseif phase == "ScreamCharge" or phase == "PulseCharge" then
+		-- Scuttler rears up for its pulse (SC8), like the Streamer before its scream.
 		return base * CFrame.Angles(math.rad(14), 0, 0)
-	elseif phase == "RushTelegraph" or phase == "LeapWindup" then
+	elseif phase == "RushTelegraph" or phase == "LeapWindup" or phase == "ChargeTell" or phase == "PunishTell"
+		or phase == "FeintTell" then
+		-- Scuttler's feint crouches exactly like its real windup (SC8): only the drawn lane tells them apart.
 		return base * CFrame.new(0, -0.5, 0.5) * CFrame.Angles(math.rad(-10), 0, 0)
-	elseif phase == "Stunned" or phase == "OverrunStunned" then
+	elseif phase == "Stunned" or phase == "OverrunStunned" or phase == "Fallen" then
 		return base * CFrame.Angles(0, 0, math.rad(22))
 	elseif phase == "Rise" and view.phaseUntil then
 		local left = math.clamp((view.phaseUntil - at) / math.max(view.phaseUntil - view.phaseAt, 1e-3), 0, 1)
@@ -880,6 +1045,13 @@ RunService.Heartbeat:Connect(function()
 				if not lastPrint or (Vector3.new(x, 0, z) - lastPrint).Magnitude >= 1.6 then
 					view.lastPrint = Vector3.new(x, 0, z)
 					footprint(view, x, y, z)
+				end
+			end
+			if view.beast == "Scuttler" then
+				for _, item in pairs(view.tells) do
+					if item.shape and item.shape.kind == "circle" and not item.zone and item.strikeAt and at < item.strikeAt then
+						pulseRings(view, item, at)
+					end
 				end
 			end
 			if x and view.stunUntil and at < view.stunUntil then stars(view, x, y, z, at)

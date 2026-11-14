@@ -341,5 +341,22 @@ return function(Text, source, sources)
 		end
 	end)
 
+	-- SC8 (odd/tasks/wildbound-scuttler.md; docs/design/wildbound-scuttler-plan.md section 9): Scuttler's lines.
+	-- PunishTell (the bait was taken) is a real charge, so it says what ChargeTell says.
+	case("SC8: Scuttler has its warn, hit and phase lines", function()
+		local words = Text.BEAST.Scuttler
+		assert(type(words) == "table" and type(words.phases) == "table", "Text.BEAST.Scuttler")
+		assert(words.warn == "¡El Scuttler va a embestir! Sal del carril.", "warn = " .. tostring(words.warn))
+		assert(words.hit == "¡El Scuttler te atrapó!", "hit = " .. tostring(words.hit))
+		local expected = { Read = "Te está leyendo...", Intercept = "¡Te corta el camino! Cambia de ruta.",
+			FeintTell = "¡Va a embestir!", ChargeTell = "¡Va a embestir! Sal del carril.",
+			PunishTell = "¡Va a embestir! Sal del carril.", PulseCharge = "¡Va a chillar! Sal de los anillos.",
+			Fallen = "¡Se cayó! Escapa ahora." }
+		for key, line in pairs(expected) do
+			assert(words.phases[key] == line, "Scuttler.phases." .. key .. " = " .. tostring(words.phases[key]))
+			assert(#line <= 64, key .. " fits 64 bytes")
+		end
+	end)
+
 	return result
 end

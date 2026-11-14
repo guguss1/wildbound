@@ -92,7 +92,8 @@ local function step(entry, dt, camera)
 		entry.phase, entry.phaseAt = phase, phaseAt
 		local untilAt = model:GetAttribute("BeastPhaseUntil")
 		local duration = (type(untilAt) == "number" and type(phaseAt) == "number") and untilAt - phaseAt or nil
-		local steps = Plan.steps(entry.beast, previous, phase)
+		-- SC8: Scuttler's Fallen publishes its fall (Crash or Stumble) as BeastPhaseVariant.
+		local steps = Plan.steps(entry.beast, previous, phase, model:GetAttribute("BeastPhaseVariant"))
 		local current = entry.run and entry.run.clip
 		local currentTime = entry.run and entry.run.time
 		local run = Plan.start(steps, duration, entry.lengths, current, currentTime, math.abs(entry.speed) > 2)

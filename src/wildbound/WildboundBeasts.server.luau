@@ -17,6 +17,10 @@
 -- as filtered copies marked `bystander` (WildboundBeastAudience). Hits, slows, sticky, marks, knocks, egg drops, the
 -- Gaze meter and every HUD cue stay with the target. Membership is re-evaluated as players move: an entering player
 -- gets a spawn snapshot, a leaving one an End. The director, the budget and the dodge states are untouched.
+-- SC7 Scuttler (docs/design/wildbound-scuttler-plan.md): registered like the wave 2 behaviours. Its adapter adds the
+-- server-written dash time (bait and re-plan) and a server Random (the feint roll); its target carries the egg and
+-- whether the player's own Silueta hunts (Scuttler yields). A landed pulse is an Afflict: applySlow only, never
+-- BeastHit, and never copied to a bystander (not in Audience.VISUAL). Its egg drops ride the ordinary Hit path.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -32,7 +36,7 @@ local Attack = require(script.Parent:WaitForChild("WildboundBeastAttack"))
 local Sight = require(ReplicatedStorage:WaitForChild("WildboundBeastSight"))
 local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
 local Audience = require(script.Parent:WaitForChild("WildboundBeastAudience"))
-for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
+for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker", "Scuttler" }) do
 	Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))
 end
 -- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts, never rolled (Config.SUMMONED).
@@ -85,7 +89,7 @@ local players = {} -- [Player] = { respawnedAt, outsideSince, character }
 local live = {} -- [encounter id] = { e = encounter, player = Player, character = Model, world = per-encounter adapter }
 local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strike time } } (anti-frustration stagger)
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
-	observeDropped = 0 }
+	observeDropped = 0, afflicted = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
 local AUDIENCE = Config.AUDIENCE
 local audience = Audience.new() -- SC0: which other players see which encounter
@@ -329,6 +333,10 @@ local function spawnSpec(beast)
 		local d = C.tuning.InitialSpawnDistanceStuds
 		return { min = d, max = d, visible = false, behind = true }
 	end
+	-- SC7: Scuttler is Global (no home biome, no route weighting): a plain ring like Viper's, a hidden point preferred.
+	if beast == "Scuttler" then
+		return { min = C.spawnMin, max = C.spawnMax, visible = false }
+	end
 	return { min = C.spawnMin, max = C.spawnMax, visible = beast == "Gaze", biome = Config.homeBiome(beast) }
 end
 
@@ -402,6 +410,13 @@ local function worldFor(player)
 		local _, _, root = bodyOf(player)
 		return root and spawnPoint(e.beast, root) or nil
 	end
+	-- SC7 Scuttler: the last dodge press (WildboundDodgeService writes WildboundDash on the server, the same
+	-- GetServerTimeNow clock as the encounter) and a server-side roll for the feint.
+	function w.lastDash()
+		local at = player:GetAttribute("WildboundDash")
+		return Config.finite(at) and at or nil
+	end
+	function w.random() return rng:NextNumber() end
 	return w
 end
 
@@ -458,6 +473,12 @@ local function targetOf(entry)
 		target.markedUntil = humanoid:GetAttribute("WildboundKidsMarkUntil")
 		target.stickyUntil = humanoid:GetAttribute("WildboundKidsStickyUntil")
 	end
+	if entry.e.beast == "Scuttler" then
+		-- SC7: the egg in the arms (the inventory server's own child) caps the feints and lets a pressured pulse drop it;
+		-- the player's own Silueta hunting makes Scuttler yield (plan section 7 rule 6).
+		target.carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil
+		target.siluetaActive = siluetaActive(entry.player.UserId)
+	end
 	if Config.WAVE2[entry.e.beast] then
 		target.biomes = Biomes.at(p.X, p.Z)
 		if Config.OBSERVERS[entry.e.beast] then
@@ -509,6 +530,13 @@ local function applySticky(player, speed, seconds)
 	task.delay(seconds, function()
 		if humanoid.Parent and math.abs(humanoid.WalkSpeed - speed) < 1e-3 then humanoid.WalkSpeed = before end
 	end)
+end
+
+-- SC7: Scuttler's landed pulse (Attack.afflict). Only the slow, clamped and never stacked by applySlow; the shake rides
+-- on the event to the target's client. Never BeastHit: no damage and no egg drop.
+local function afflict(entry, event)
+	count("afflicted")
+	applySlow(entry.player, event.slow, event.slowSeconds)
 end
 
 local beastHit = nil
@@ -581,6 +609,7 @@ local function stepEncounter(id, entry, at)
 				claimStrike(entry.player, id, id .. ":leap:" .. tostring(event.at), event.landAt, true)
 			end
 			if event.type == "Hit" then landHit(entry, event) end
+			if event.type == "Afflict" then afflict(entry, event) end
 			logEvent(id, event.type, event.at, event.reason or event.hit)
 			send(entry.player, event)
 			sendBystanders(id, event)

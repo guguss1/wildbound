@@ -1,7 +1,7 @@
 -- Wave 2 beast animations (odd/tasks/wildbound-beasts-wave2.md): which baked clip (assets/bestias_rig/<beast>, the
 -- actions in WildboundBeastAnim<Beast>) a rigged Streamer, Root, Gaze or Lurker plays in each phase of its server state
--- machine. Pure and shared: WildboundBeastAnim (client) asks it for a plan when the phase changes and advances it every
--- frame; it never reads an Instance.
+-- machine (and Scuttler's, SC8). Pure and shared: WildboundBeastAnim (client) asks it for a plan when the phase
+-- changes and advances it every frame; it never reads an Instance.
 --
 -- A plan is a list of steps played in order:
 --   { clip = "Warn", loop = true }              loops until the phase changes
@@ -98,12 +98,42 @@ Plan.PLANS = table.freeze({
 			Disengage = { fit("Retreat") },
 		},
 	},
+	-- Scuttler (docs/design/wildbound-scuttler-plan.md section 9, SC8): the clips its rig bakes in SC9. Fallen carries the
+	-- fall (Crash or Stumble) as the phase's variant; "Fallen:Crash" applies when the overrun ended on a wall.
+	Scuttler = {
+		default = { walk("Skitter", "Idle", 14) },
+		phases = {
+			Spawn = { walk("Skitter", "Idle", 14) },
+			Stalk = { walk("Skitter", "Idle", 14) },
+			-- The feint looks like a real windup until it is cancelled (crouch and a short lunge).
+			FeintTell = { fit("Feint") },
+			ChargeTell = { fit("ChargeWindup") },
+			PunishTell = { fit("ChargeWindup") },
+			Charge = { loop("Charge") },
+			Recovery = { once("Recover"), walk("Skitter", "Idle", 14) },
+			Fallen = { once("Stumble"), loop("Fallen") },
+			["Fallen:Crash"] = { once("Crash"), loop("Fallen") },
+			["Fallen>Stalk"] = { once("GetUp"), walk("Skitter", "Idle", 14) },
+			Read = { loop("Read") },
+			Intercept = { walk("Intercept", "Idle", 21) },
+			Block = { loop("Block") },
+			Snap = { fit("Snap") },
+			PulseCharge = { fit("PulseCharge") },
+			Pulse = { once("Pulse"), walk("Skitter", "Idle", 14) },
+			Disengage = { fit("Retreat") },
+		},
+	},
 })
 
--- The steps for `phase` after `previous`, or nil for a beast without a plan.
-function Plan.steps(beast, previous, phase)
+-- The steps for `phase` after `previous`, or nil for a beast without a plan. `variant` (optional) picks a
+-- "Phase:Variant" entry when the plan has one (Scuttler's Fallen: Crash); otherwise it is ignored.
+function Plan.steps(beast, previous, phase, variant)
 	local plan = Plan.PLANS[beast]
 	if not plan then return nil end
+	if type(variant) == "string" and type(phase) == "string" then
+		local own = plan.phases[phase .. ":" .. variant]
+		if own then return own end
+	end
 	if type(previous) == "string" and type(phase) == "string" then
 		local after = plan.phases[previous .. ">" .. phase]
 		if after then return after end

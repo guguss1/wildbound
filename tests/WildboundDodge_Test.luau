@@ -149,6 +149,17 @@ return function(Dodge, source)
 		assert(Dodge.tunable().WINDOW == 0.35, "flat rows for the dev tuning schema")
 	end)
 
+	-- Scuttler SC1 (docs/design/wildbound-scuttler-plan.md section 7): its Snap, charge and pulse register as Scuttler.
+	case("D14: Scuttler is a dodge source; its 0.9 s tells register and a perfect press dodges them", function()
+		equal(Dodge.SOURCES.Scuttler, true, "Scuttler can be dodged")
+		local state = Dodge.new()
+		equal(Dodge.telegraph(state, "s1", "Scuttler", 10, 10.9), true, "the 0.9 s Snap or punish charge")
+		equal(select(2, Dodge.telegraph(state, "s2", "Scuttler", 20, 20.79)), "ShortTelegraph", "the floor holds")
+		local outcome = Dodge.press(state, 10.8, CALM)
+		equal(outcome, "Perfect")
+		equal(Dodge.resolve(state, "s1", 10.9), "Dodged")
+	end)
+
 	case("D13: cancel, prune and the player strings; the module is pure", function()
 		local state = Dodge.new()
 		Dodge.telegraph(state, "c1", "Viper", 0, 1.15)

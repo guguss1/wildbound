@@ -157,6 +157,78 @@ return function(Attack, Config, source)
 		equal(Config.shapeHit({ kind = "lane", ox = 0, oy = 0, oz = 0, dx = 0, dz = 1, length = 10, width = 4 }, 2.1, 5), false)
 	end)
 
+	-- SC2 (odd/tasks/wildbound-scuttler.md): a non-damaging outcome. Same dodge resolution as Attack.hit, but it emits
+	-- Strike + Afflict and never Hit, so the beast script can slow and shake without reaching BeastHit (egg drop).
+	local function count(events, kind)
+		local n = 0
+		for _, ev in ipairs(events) do if ev.type == kind then n += 1 end end
+		return n
+	end
+	local function find(events, kind)
+		for _, ev in ipairs(events) do if ev.type == kind then return ev end end
+		return nil
+	end
+
+	case("SC2 afflict: a landed affliction emits Strike + Afflict with the fields, never Hit", function()
+		assert(type(Attack.afflict) == "function", "Attack.afflict exists")
+		local w, e, events = fakeWorld(), encounter("beast:20"), {}
+		e.beast = "Scuttler"
+		local attack = Attack.open(events, e, w, { key = "pulse", startAt = 0, strikeAt = 1, shape = circle, dodgeable = true })
+		local slow = { multiplier = 0.55, seconds = 2.5 }
+		equal(Attack.afflict(events, e, w, attack, 1, { slow = slow, shake = true }), "Afflicted")
+		equal(count(events, "Hit"), 0, "an affliction never emits Hit")
+		equal(count(events, "Strike"), 1); equal(count(events, "Afflict"), 1)
+		local strike, afflict = find(events, "Strike"), find(events, "Afflict")
+		equal(strike.tell, attack.id); equal(strike.hit, true); equal(strike.dodged, nil)
+		equal(afflict.attack, attack.id); equal(afflict.beast, "Scuttler"); equal(afflict.at, 1)
+		equal(afflict.slow, slow); equal(afflict.shake, true)
+		equal(afflict.damage, nil, "an affliction carries no damage")
+		equal(#w.resolved, 1, "the dodge is asked once")
+		equal(e.open[attack.id], nil, "closed")
+	end)
+
+	case("SC2 afflict: a perfect dodge cancels the effect (dodged Strike, no Afflict, no Hit)", function()
+		local w, e, events = fakeWorld(), encounter("beast:21"), {}
+		w.verdict = "Dodged"
+		local attack = Attack.open(events, e, w, { key = "pulse", startAt = 0, strikeAt = 1, shape = circle, dodgeable = true })
+		equal(Attack.afflict(events, e, w, attack, 1, { slow = { multiplier = 0.55, seconds = 2.5 } }), "Dodged")
+		equal(count(events, "Afflict"), 0); equal(count(events, "Hit"), 0)
+		local strike = find(events, "Strike")
+		equal(strike.hit, false); equal(strike.dodged, true)
+		equal(#w.resolved, 1)
+	end)
+
+	case("SC2 afflict: one outcome only; afflict, hit and miss after it are no-ops", function()
+		local w, e, events = fakeWorld(), encounter("beast:22"), {}
+		local a = Attack.open(events, e, w, { key = "pulse", startAt = 0, strikeAt = 1, shape = circle, dodgeable = true })
+		equal(Attack.afflict(events, e, w, a, 1), "Afflicted")
+		equal(Attack.afflict(events, e, w, a, 1.05), nil, "settled")
+		equal(Attack.hit(events, e, w, a, 1.05), nil, "settled")
+		equal(Attack.miss(events, e, w, a, 1.1), nil, "settled")
+		equal(count(events, "Afflict"), 1); equal(count(events, "Strike"), 1); equal(count(events, "Hit"), 0)
+		equal(#w.resolved, 1); equal(#w.cancelled, 0)
+		local b = Attack.open(events, e, w, { key = "pulse", startAt = 2, strikeAt = 3, shape = circle, dodgeable = true, damage = 0 })
+		equal(Attack.hit(events, e, w, b, 3), "Hit")
+		equal(Attack.afflict(events, e, w, b, 3), nil, "a hit attack cannot also afflict")
+		local c = Attack.open(events, e, w, { key = "pulse", startAt = 4, strikeAt = 5, shape = circle, dodgeable = true })
+		equal(Attack.miss(events, e, w, c, 5), "Miss")
+		equal(Attack.afflict(events, e, w, c, 5), nil, "a missed attack cannot afflict")
+		equal(count(events, "Afflict"), 1)
+	end)
+
+	case("SC2 afflict: undodgeable never asks the dodge; nothing afflicts after closeAll", function()
+		local w, e, events = fakeWorld(), encounter("beast:23"), {}
+		local a = Attack.open(events, e, w, { key = "pulse", startAt = 0, strikeAt = 1, shape = circle, dodgeable = false })
+		equal(Attack.afflict(events, e, w, a, 1), "Afflicted")
+		equal(#w.resolved, 0, "an undodgeable attack never asks the dodge")
+		local short = Attack.open(events, e, w, { key = "pulse", startAt = 2, strikeAt = 2.5, shape = circle, dodgeable = true })
+		equal(short.registered, false)
+		local b = Attack.open(events, e, w, { key = "pulse", startAt = 3, strikeAt = 4, shape = circle, dodgeable = true })
+		Attack.closeAll(e, w)
+		equal(Attack.afflict(events, e, w, b, 4), nil, "no affliction after the end")
+		equal(count(events, "Afflict"), 1); equal(count(events, "Hit"), 0)
+	end)
+
 	case("BW2 attack: the layer is pure", function()
 		for _, banned in ipairs({ "workspace", "game:", "task.", "os.clock", "math.random", "Random.new", "Touched" }) do
 			assert(not source:find(banned, 1, true), "source uses " .. banned)

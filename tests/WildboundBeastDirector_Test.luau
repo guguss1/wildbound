@@ -60,7 +60,7 @@ return function(Director, source, Config)
 		equal(P.points, 1); near(P.chance10, 1 / 55); near(P.chance, p20(1 / 55)); equal(P.cooldown, 40); equal(P.biome, nil)
 		equal(G.points, 2); equal(G.biome, "Cemetery"); equal(Mi.points, 2); equal(Mi.biome, "Swamp")
 		near(G.chance, p20(1 / 100)); near(Mi.chance, p20(1 / 80))
-		equal(Config.ORDER[1], "Viper"); equal(Config.ORDER[2], "Pouncer"); equal(#Config.ORDER, 8)
+		equal(Config.ORDER[1], "Viper"); equal(Config.ORDER[2], "Pouncer"); equal(#Config.ORDER, 9, "SC1: Scuttler is ninth")
 	end)
 
 	-- Wave 2 config (pack 04_CONFIG_BALANCE_PROPUESTA.json, owner decision 2026-11-11).
@@ -114,6 +114,7 @@ return function(Director, source, Config)
 		equal(dueAt(121), "Pouncer", "Pouncer 1 s later")
 		equal(dueAt(122), "Gargoyle"); equal(dueAt(123), "Mire"); equal(dueAt(124), "Streamer")
 		equal(dueAt(125), "Root"); equal(dueAt(126), "Gaze"); equal(dueAt(127), "Lurker")
+		equal(dueAt(128), "Scuttler", "SC1: the ninth beast 8 s after Viper")
 		equal(dueAt(139.9), ""); equal(dueAt(140), "Viper", "every 20 s")
 		equal(Director.nextSlot(dir, 5, "Viper", 140.1), 160)
 		equal(Director.nextSlot(dir, 5, "Lurker", 140.1), 147)
@@ -140,9 +141,9 @@ return function(Director, source, Config)
 		Director.tick(dir, 5, ctx(), 0)
 		equal(#Director.tick(dir, 5, ctx({ safe = true }), 20), 0)
 		equal(#Director.tick(dir, 5, ctx({ alive = false }), 21), 0)
-		for t = 22, 27 do Director.tick(dir, 5, ctx({ alive = false }), t) end
+		for t = 22, 28 do Director.tick(dir, 5, ctx({ alive = false }), t) end -- SC1: Scuttler's slot is at 28
 		equal(calls, 0, "no roll spent")
-		equal(#Director.tick(dir, 5, ctx(), 27.5), 0, "the missed slots are not made up")
+		equal(#Director.tick(dir, 5, ctx(), 28.5), 0, "the missed slots are not made up")
 		local started = Director.tick(dir, 5, ctx(), 40)
 		equal(#started, 1, "Viper's next slot rolls"); equal(started[1].beast, "Viper")
 	end)
@@ -521,12 +522,12 @@ return function(Director, source, Config)
 			for _, other in ipairs(Config.ORDER) do assert(other ~= name, name .. " in ORDER") end
 			equal(Config.homeBiome(name), "Meadow", name .. " keeps its Meadow home while the switch is off")
 		end
-		equal(#Config.ORDER, 8, "the calendar is unchanged")
+		equal(#Config.ORDER, 9, "the calendar holds only rolled beasts (SC1 added Scuttler)")
 		local calls = 0
 		local dir = Director.new({ random = function() calls += 1; return 0 end })
 		local started, refused = Director.roll(dir, 1, ctx({ biomes = { Meadow = true } }), 0, KIDS)
 		equal(#started, 0, "never rolled"); equal(#refused, 0, "not even skipped"); equal(calls, 0, "no roll spent")
-		equal(#Director.due(dir, 2, 0), 0); equal(#Director.due(dir, 2, 100), 8, "only the ORDER beasts are ever due")
+		equal(#Director.due(dir, 2, 0), 0); equal(#Director.due(dir, 2, 100), 9, "only the ORDER beasts are ever due")
 	end)
 
 	case("KB-1: summon is refused outside Meadow (Biome) and for any non-summoned beast", function()
@@ -579,6 +580,161 @@ return function(Director, source, Config)
 		end
 		equal(Director.placeBlock("NubeGrunona", ctx({ biomes = { Meadow = true } })), nil)
 		equal(Director.placeBlock("AbejaReina", ctx({ biomes = { Meadow = true } })), nil)
+	end)
+
+	-- Scuttler SC1 (docs/design/wildbound-scuttler-plan.md sections 6 to 8): a global threat-3 beast that fills the whole
+	-- per-player budget, rolls 1/60 per 10 s with a 75 s species cooldown, and has no biome preference.
+	case("SC1 config: Scuttler's entry, section 6 numbers, ORDER ninth, playable and wave 2", function()
+		local B = Config.BEASTS.Scuttler
+		assert(type(B) == "table" and table.isfrozen(B), "BEASTS.Scuttler frozen")
+		equal(B.category, "Global"); equal(B.biome, nil); equal(B.riskModifier, 1)
+		equal(B.points, 3, "fills the budget alone"); equal(B.points, Config.DIRECTOR.MAX_POINTS)
+		near(B.chance10, 1 / 60); near(B.chance, p20(1 / 60), "1 - (59/60)^2"); near(B.chance, Config.perRoll(1 / 60))
+		equal(B.cooldown, 75)
+		equal(B.spawnMin, 40); equal(B.spawnMax, 75); equal(B.spawnSeconds, 1.0)
+		equal(B.escapeDistance, 110); equal(B.escapeSeconds, 4); near(B.disengage, 1.2)
+		equal(B.lockLead, 0.3); equal(B.laneWidth, 8); equal(B.hitHeight, 8); equal(B.damage, 30, "the charge")
+		local T = B.tuning
+		assert(type(T) == "table" and table.isfrozen(T), "tuning frozen")
+		local expected = {
+			EncounterTimeoutSeconds = 45, StalkMin = 20, StalkMax = 34, StalkSpeed = 14, ReadSeconds = 0.8,
+			PredictSeconds = 1.2, InterceptMaxStuds = 30, InterceptSpeed = 21, InterceptMarginSeconds = 0.4,
+			InterceptMinSpeed = 8, BlockSeconds = 2.5, ReplanCooldownSeconds = 0.6, MaxReplans = 1,
+			SnapTelegraphSeconds = 0.9, SnapRadius = 10, SnapArc = 100, SnapDamage = 20, FeintSeconds = 0.9,
+			FeintChance = 0.4, MaxFeintsWhileEgg = 1, ChargeTelegraphSeconds = 1.1, PunishTelegraphSeconds = 0.9,
+			ChargeMaxRangeStuds = 40, ChargeSpeed = 46, ChargeDamage = 30, ChargeCooldownSeconds = 4.5,
+			ChargeMissRecoverySeconds = 1.2, OverrunStuds = 8, FallStumbleSeconds = 2.2, FallCrashSeconds = 3.0,
+			FallsToGiveUp = 2, PulseChargeSeconds = 1.3, PulseRadiusStuds = 16, PulseSlowMultiplier = 0.75,
+			PulseSlowSeconds = 1.5, PulseCooldownSeconds = 5, PressureMemorySeconds = 8, PulseCanDropEgg = true,
+		}
+		for key, value in pairs(expected) do
+			if type(value) == "number" then near(T[key], value, key) else equal(T[key], value, key) end
+		end
+		for key in pairs(T) do assert(expected[key] ~= nil, "unexpected tuning key " .. key) end
+		equal(B.damage, T.ChargeDamage, "damage is the charge's")
+		equal(Config.ORDER[9], "Scuttler", "ninth on the calendar")
+		equal(Config.PLAYABLE.Scuttler, true); equal(Config.WAVE2.Scuttler, true)
+		equal(Config.SUMMONED.Scuttler, nil); equal(Config.OBSERVERS.Scuttler, nil)
+	end)
+
+	case("SC1 config: every Scuttler tell is at least 0.8 s; the pulse slow fits applySlow; slower than a sprint", function()
+		local B = Config.BEASTS.Scuttler
+		assert(B, "BEASTS.Scuttler")
+		local T = B.tuning
+		for label, seconds in pairs({ snap = T.SnapTelegraphSeconds, charge = T.ChargeTelegraphSeconds,
+			punish = T.PunishTelegraphSeconds, pulse = T.PulseChargeSeconds, read = T.ReadSeconds }) do
+			assert(seconds >= Config.MIN_TELL - 1e-9, label .. " tell " .. seconds)
+		end
+		assert(T.ChargeTelegraphSeconds - B.lockLead > 0, "the lane follows before it locks")
+		assert(T.PulseSlowMultiplier >= 0.5 and T.PulseSlowMultiplier <= 1, "applySlow clamps 0.5..1")
+		assert(T.PulseSlowSeconds > 0 and T.PulseSlowSeconds <= 3, "applySlow lasts at most 3 s")
+		-- WildboundStamina: a rested sprint is 16 x 1.45 = 23.2 studs/s; the intercept and the stalk never outrun it.
+		assert(T.InterceptSpeed < 16 * 1.45, "intercept below a rested sprint")
+		assert(T.StalkSpeed < 16 * 1.45, "stalk below a rested sprint")
+		assert(T.StalkMin < T.StalkMax and T.StalkMax < B.spawnMin, "stalk ring inside the spawn ring")
+	end)
+
+	case("SC1: no biome preference: homeBiome nil, Global with the switch either way, no spawn bias", function()
+		assert(Config.BEASTS.Scuttler, "BEASTS.Scuttler")
+		equal(Config.BIOME_PREFERENCE, false)
+		equal(Config.homeBiome("Scuttler"), nil); equal(Config.categoryOf("Scuttler"), "Global")
+		equal(Config.homeBiome("Scuttler", true), nil, "no home biome even with the preference on")
+		equal(Config.categoryOf("Scuttler", true), "Global")
+		assert(Config.SPAWN_BIAS ~= true, "the return-route spawn bias stays off (plan section 8)")
+	end)
+
+	case("SC1: Scuttler never starts when any point is in use; no roll is spent on it", function()
+		for _, other in ipairs({ "Viper", "Pouncer", "Streamer", "Gaze", "Lurker", "Root" }) do
+			local calls = 0
+			local dir = Director.new({ random = function() calls += 1; return 0 end })
+			assert(Director.reserve(dir, 1, other, ctx(), 0, { force = true }), other)
+			local before = calls
+			local started, refused = Director.roll(dir, 1, ctx(), 0, { "Scuttler" })
+			equal(#started, 0, other .. " active")
+			assert(refused[1], "Scuttler is skipped, not ignored, while " .. other .. " hunts")
+			equal(refused[1].reason, "Budget", other); equal(refused[1].rolled, false)
+			equal(calls, before, "no roll spent while " .. other .. " hunts")
+			equal(select(2, Director.reserve(dir, 1, "Scuttler", ctx(), 0, { force = true })), "Budget", "not even forced")
+		end
+	end)
+
+	case("SC1: nothing else starts while Scuttler is active; release refunds 3 once; 75 s species cooldown", function()
+		local dir = Director.new({ random = always(0) })
+		local ok, enc = Director.reserve(dir, 1, "Scuttler", ctx(), 0)
+		assert(ok, "Scuttler starts with 0 points in use: " .. tostring(enc))
+		equal(Director.budget(dir, 1), 3)
+		local started, refused = Director.roll(dir, 1, ctx(), 1)
+		equal(#started, 0, "no other beast starts")
+		for _, entry in ipairs(refused) do
+			assert(entry.reason == "Budget" or entry.reason == "AlreadyActive", entry.beast .. " " .. entry.reason)
+			equal(entry.rolled, false, entry.beast)
+		end
+		for _, other in ipairs({ "Viper", "Pouncer", "Streamer", "Root", "Gaze", "Lurker" }) do
+			equal(select(2, Director.reserve(dir, 1, other, ctx(), 1, { force = true })), "Budget", other .. " forced")
+		end
+		equal(select(2, Director.reserve(dir, 1, "Scuttler", ctx(), 1, { force = true })), "AlreadyActive")
+		equal(Director.release(dir, enc.id, "Done", 10), true)
+		equal(Director.budget(dir, 1), 0, "refunded at once")
+		equal(Director.release(dir, enc.id, "Done", 10), false, "exactly once")
+		equal(select(2, Director.reserve(dir, 1, "Scuttler", ctx(), 84.9)), "SpeciesCooldown")
+		assert(Director.reserve(dir, 1, "Scuttler", ctx(), 85), "75 s later")
+	end)
+
+	-- Correction (review finding 4): a summoned kids beast has 0 points, so the budget alone let one start beside
+	-- Scuttler (the poll tick a hunted player steps into the Pradera) and let Scuttler start beside one. Scuttler fills
+	-- the whole budget: nothing at all runs with it.
+	case("SC1: Scuttler stays alone: no summoned kids beast beside it, and it never joins one", function()
+		local dir = Director.new({ random = always(0) })
+		local ok, enc = Director.reserve(dir, 1, "Scuttler", ctx(), 0)
+		assert(ok, "Scuttler starts: " .. tostring(enc))
+		local meadow = ctx({ biomes = { Meadow = true } })
+		for _, kid in ipairs({ "NubeGrunona", "AbejaReina" }) do
+			equal(select(2, Director.summon(dir, 1, kid, meadow, 1)), "Budget", kid .. " while Scuttler hunts")
+			equal(select(2, Director.summon(dir, 1, kid, meadow, 1, { force = true })), "Budget", kid .. " forced")
+		end
+		equal(Director.release(dir, enc.id, "Pradera", 2), true)
+		assert(Director.summon(dir, 1, "NubeGrunona", meadow, 3), "a kids beast once Scuttler is gone")
+		local other = Director.new({ random = always(0) })
+		assert(Director.summon(other, 1, "AbejaReina", meadow, 0), "a kids beast hunts")
+		local started, refused = Director.roll(other, 1, ctx(), 1, { "Scuttler" })
+		equal(#started, 0, "Scuttler never joins it")
+		assert(refused[1], "Scuttler is skipped, not ignored")
+		equal(refused[1].reason, "Budget"); equal(refused[1].rolled, false, "no roll spent")
+		equal(select(2, Director.reserve(other, 1, "Scuttler", ctx(), 1, { force = true })), "Budget", "not even forced")
+		assert(Director.summon(other, 1, "NubeGrunona", meadow, 1), "two kids beasts still share the Pradera")
+	end)
+
+	case("SC1: never in Pradera, a safe zone, while dead or while the Silueta hunts", function()
+		equal(Director.placeBlock("Scuttler", ctx()), nil, "the open forest")
+		for _, biomes in ipairs({ { Swamp = true }, { Cemetery = true } }) do
+			equal(Director.placeBlock("Scuttler", ctx({ biomes = biomes })), nil, "any biome outside Pradera")
+		end
+		equal(Director.placeBlock("Scuttler", ctx({ biomes = { Meadow = true } })), "NoGlobalZone")
+		local dir = Director.new({ random = always(0) })
+		equal(#Director.roll(dir, 1, ctx({ biomes = { Meadow = true } }), 0, { "Scuttler" }), 0, "no roll in Pradera")
+		equal(#Director.roll(dir, 1, ctx({ safe = true }), 0, { "Scuttler" }), 0, "no roll in a safe zone")
+		for _, pair in ipairs({ { ctx({ biomes = { Meadow = true } }), "NoGlobalZone" }, { ctx({ safe = true }), "SafeZone" },
+			{ ctx({ alive = false }), "Dead" }, { ctx({ siluetaActive = true }), "SiluetaActive" } }) do
+			equal(select(2, Director.reserve(dir, 1, "Scuttler", pair[1], 0, { force = true })), pair[2], pair[2])
+		end
+		equal(Director.budget(dir, 1), 0, "nothing booked")
+	end)
+
+	case("SC1 calendar: Scuttler rolls 8 s after Viper, every 20 s, and its roll is the configured chance", function()
+		local dir = Director.new({ random = always(0.999) })
+		equal(#Director.due(dir, 5, 100), 0, "anchor")
+		local function has(list, name)
+			for _, value in ipairs(list) do if value == name then return true end end
+			return false
+		end
+		assert(not has(Director.due(dir, 5, 127.9), "Scuttler"), "not before anchor + 28")
+		assert(has(Director.due(dir, 5, 128), "Scuttler"), "anchor + 20 + 8 x 1 s")
+		equal(Director.nextSlot(dir, 5, "Scuttler", 128.1), 148)
+		near(Director.chance("Scuttler", ctx()), p20(1 / 60), "day in the open")
+		local roll = Director.new({ random = sequence({ p20(1 / 60) - 1e-6 }) })
+		local started = Director.roll(roll, 1, ctx(), 0, { "Scuttler" })
+		equal(#started, 1, "a roll just under the chance wins"); equal(started[1].beast, "Scuttler")
+		equal(started[1].points, 3)
 	end)
 
 	case("NB2: the director is pure: no world, no clock, no global random", function()

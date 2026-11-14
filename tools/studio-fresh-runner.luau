@@ -99,6 +99,10 @@ SPECS["WildboundBeastNube_Test"] = {
 	"mod:WildboundPraderaSites",
 }
 SPECS["WildboundBeastRoot_Test"] = { "mod:WildboundBeastEncounters", "mod:WildboundBeastRoot", "mod:WildboundBeastConfig", "src:WildboundBeastRoot" }
+SPECS["WildboundBeastScuttler_Test"] = {
+	"mod:WildboundBeastEncounters", "mod:WildboundBeastScuttler", "mod:WildboundBeastConfig", "mod:WildboundBeastAttack",
+	"src:WildboundBeastScuttler",
+}
 SPECS["WildboundBeastSight_Test"] = { "mod:WildboundBeastSight", "src:WildboundBeastSight", "mod:WildboundBiomes" }
 SPECS["WildboundBeastStreamer_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastStreamer", "mod:WildboundBeastConfig", "src:WildboundBeastStreamer",
@@ -107,7 +111,7 @@ SPECS["WildboundBeastWiring_Test"] = {
 	{
 		beasts = "src:WildboundBeasts", client = "src:WildboundBeastsClient", server = "src:WildboundServer",
 		proxies = "src:WildboundBeastProxies", text = "mod:WildboundText", config = "mod:WildboundBeastConfig",
-		director = "mod:WildboundBeastDirector",
+		director = "mod:WildboundBeastDirector", audience = "mod:WildboundBeastAudience",
 	},
 	"mod:WildboundBeastProxies",
 }

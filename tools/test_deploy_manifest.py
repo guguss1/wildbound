@@ -478,6 +478,9 @@ class DefaultMappingTests(unittest.TestCase):
         # SC0 shared beast visibility
         "src/wildbound/WildboundBeastAudience.luau": "ServerScriptService.WildboundBeastAudience",
         "tests/WildboundBeastAudience_Test.luau": "ServerStorage.WildboundBeastAudience_Test",
+        # SC3 Scuttler brain
+        "src/wildbound/WildboundBeastScuttler.luau": "ServerScriptService.WildboundBeastScuttler",
+        "tests/WildboundBeastScuttler_Test.luau": "ServerStorage.WildboundBeastScuttler_Test",
         # T09a 2.0 roulette prize table (unwired)
         "src/wildbound/WildboundRoulette.luau": "ReplicatedStorage.WildboundRoulette",
         "tests/WildboundRoulette_Test.luau": "ServerStorage.WildboundRoulette_Test",

@@ -372,6 +372,18 @@ return freeze({
 				LeapWindup = "¡Va a saltar! Esquiva hacia un lado.",
 				OverrunStunned = "¡Se pasó de largo! Aprovecha.",
 			} },
+		-- Scuttler (docs/design/wildbound-scuttler-plan.md section 9, SC8). The feint's line opens like a real charge's on
+		-- purpose; PunishTell (the bait was taken) is a real charge, so it says what ChargeTell says.
+		Scuttler = { warn = "¡El Scuttler va a embestir! Sal del carril.", hit = "¡El Scuttler te atrapó!",
+			phases = {
+				Read = "Te está leyendo...",
+				Intercept = "¡Te corta el camino! Cambia de ruta.",
+				FeintTell = "¡Va a embestir!",
+				ChargeTell = "¡Va a embestir! Sal del carril.",
+				PunishTell = "¡Va a embestir! Sal del carril.",
+				PulseCharge = "¡Va a chillar! Sal de los anillos.",
+				Fallen = "¡Se cayó! Escapa ahora.",
+			} },
 		-- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts. Never damage; phases also
 		-- holds the hit lines the client shows from a Hit event's `line` (Gust, Sticky).
 		NubeGrunona = { warn = "¡Rayo! Sal del círculo", hit = "¡Chispazo!",

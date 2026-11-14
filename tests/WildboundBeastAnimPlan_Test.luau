@@ -170,5 +170,59 @@ return function(Plan, datas, beastsClient, animClient)
 		assert(not string.find(animClient, "FireServer", 1, true), "the anim client sends nothing")
 	end)
 
+	-- SC8 (odd/tasks/wildbound-scuttler.md, docs/design/wildbound-scuttler-plan.md section 9): Scuttler's phases and the
+	-- clips its rig will bake. The baked data arrives with the rig (SC9), so these cases read no data module.
+	local SCUTTLER_PHASES = { "Spawn", "Stalk", "FeintTell", "ChargeTell", "PunishTell", "Charge", "Recovery", "Fallen",
+		"Read", "Intercept", "Block", "Snap", "PulseCharge", "Pulse", "Disengage" }
+	local SCUTTLER_CLIPS = { "Idle", "Skitter", "Read", "Intercept", "Block", "Feint", "ChargeWindup", "Charge", "Snap",
+		"PulseCharge", "Pulse", "Recover", "Stumble", "Crash", "Fallen", "GetUp", "Retreat" }
+
+	case("SC8 plan: every Scuttler phase has its own plan and the plans name exactly the section 9 clips", function()
+		local plan = Plan.PLANS.Scuttler
+		assert(type(plan) == "table" and type(plan.phases) == "table", "a Scuttler plan")
+		for _, phase in ipairs(SCUTTLER_PHASES) do assert(plan.phases[phase], "a plan for " .. phase) end
+		local expected = table.clone(SCUTTLER_CLIPS)
+		table.sort(expected)
+		equal(table.concat(Plan.clips("Scuttler"), ","), table.concat(expected, ","), "clips")
+	end)
+
+	case("SC8 plan: each Scuttler phase maps to its section 9 action; a fall's variant picks Crash or Stumble", function()
+		local function first(previous, phase, variant)
+			local s = Plan.steps("Scuttler", previous, phase, variant)[1]
+			return s.clip or s.moving
+		end
+		equal(first(nil, "Spawn"), "Skitter")
+		equal(first(nil, "Stalk"), "Skitter")
+		equal(Plan.steps("Scuttler", nil, "Stalk")[1].still, "Idle", "idle when it stands")
+		equal(first(nil, "Read"), "Read")
+		equal(first(nil, "Intercept"), "Intercept")
+		equal(first(nil, "Block"), "Block")
+		equal(first(nil, "FeintTell"), "Feint")
+		equal(first(nil, "ChargeTell"), "ChargeWindup")
+		equal(first(nil, "PunishTell"), "ChargeWindup")
+		assert(Plan.steps("Scuttler", nil, "ChargeTell")[1].fit, "the windup fills the tell")
+		equal(first(nil, "Charge"), "Charge")
+		equal(first(nil, "Snap"), "Snap")
+		equal(first(nil, "PulseCharge"), "PulseCharge")
+		assert(Plan.steps("Scuttler", nil, "PulseCharge")[1].fit, "rears up for the whole charge")
+		equal(first(nil, "Pulse"), "Pulse")
+		equal(first(nil, "Recovery"), "Recover")
+		equal(first(nil, "Fallen"), "Stumble", "a stumble without a variant")
+		equal(first(nil, "Fallen", "Stumble"), "Stumble")
+		equal(first(nil, "Fallen", "Crash"), "Crash", "head into the wall")
+		equal(Plan.steps("Scuttler", nil, "Fallen")[2].clip, "Fallen", "then dazed")
+		equal(Plan.steps("Scuttler", nil, "Fallen", "Crash")[2].clip, "Fallen", "then dazed")
+		equal(first("Fallen", "Stalk"), "GetUp", "it gets up after a fall")
+		equal(first(nil, "Disengage"), "Retreat")
+		equal(first(nil, "Unknown"), "Skitter", "default")
+		equal(Plan.steps("Streamer", nil, "Warn", "Crash")[1].clip, "Warn", "a variant without its own entry is ignored")
+	end)
+
+	case("SC8 client: the fall's variant is published on the model and read by the anim client", function()
+		has(beastsClient, 'view.model:SetAttribute("BeastPhaseVariant", variant)', "the variant attribute")
+		has(beastsClient, "publishVariant(view, ev.fall)", "Fallen's fall (Crash or Stumble)")
+		has(animClient, 'Plan.steps(entry.beast, previous, phase, model:GetAttribute("BeastPhaseVariant"))', "the anim client")
+	end)
+
 	return result
 end

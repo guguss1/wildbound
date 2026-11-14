@@ -150,22 +150,45 @@ local function close(e, attack)
 	if e.open then e.open[attack.id] = nil end
 end
 
--- The target is inside the attack's volume: the one outcome of this attack. Returns "Dodged" (a perfect dodge held
--- the window: no damage) or "Hit" (a Hit event with the damage and the extra fields). nil when already settled.
-function Attack.hit(events, e, world, attack, now, fields)
+-- Settles a landed attack once: closes it, asks the dodge (only when dodgeable) and emits the Strike. Returns nil when
+-- already settled, true when a perfect dodge held the window, false when it landed.
+local function land(events, e, world, attack, now)
 	if attack.done then return nil end
 	close(e, attack)
 	local verdict = "Hit"
 	if attack.dodgeable and world.resolve then verdict = world.resolve(attack.id, now) end
 	if verdict == "Dodged" then
 		Attack.emit(events, e, "Strike", now, { tell = attack.id, hit = false, dodged = true })
-		return "Dodged"
+		return true
 	end
 	Attack.emit(events, e, "Strike", now, { tell = attack.id, hit = true })
+	return false
+end
+
+-- The target is inside the attack's volume: the one outcome of this attack. Returns "Dodged" (a perfect dodge held
+-- the window: no damage) or "Hit" (a Hit event with the damage and the extra fields). nil when already settled.
+function Attack.hit(events, e, world, attack, now, fields)
+	local dodged = land(events, e, world, attack, now)
+	if dodged == nil then return nil end
+	if dodged then return "Dodged" end
 	local payload = { damage = attack.damage, attack = attack.id }
 	for k, v in pairs(fields or {}) do payload[k] = v end
 	Attack.emit(events, e, "Hit", now, payload)
 	return "Hit"
+end
+
+-- SC2 (odd/tasks/wildbound-scuttler.md): the non-damaging outcome of an attack whose target is inside its volume. The
+-- same dodge resolution as Attack.hit, but a landed attack emits an "Afflict" event (the attack id and the extra
+-- fields, e.g. a slow and a shake; no damage) and never "Hit", so the beast script applies the effect without reaching
+-- BeastHit (damage and the egg drop). Returns "Dodged", "Afflicted", or nil when already settled.
+function Attack.afflict(events, e, world, attack, now, fields)
+	local dodged = land(events, e, world, attack, now)
+	if dodged == nil then return nil end
+	if dodged then return "Dodged" end
+	local payload = { attack = attack.id }
+	for k, v in pairs(fields or {}) do payload[k] = v end
+	Attack.emit(events, e, "Afflict", now, payload)
+	return "Afflicted"
 end
 
 -- The window closed with nobody inside. Returns "Miss" once, nil when already settled.

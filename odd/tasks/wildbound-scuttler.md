@@ -94,14 +94,29 @@ personal. SC0 is that beast-system change, done before SC1.
     late-joiner replay plus Stalk/Hunt as visual, idempotent soften, membership committed after the spawn send; 5 new
     Audience behaviour cases and 1 Wiring case; RED then GREEN; module, client and both suites deployed and read back
     (server: repo only, see SC0.4). Not committed
-- [ ] SC1 Config entry and director pins; verify a live press moves `WildboundDash`
-- [ ] SC2 `Attack.afflict`
-- [ ] SC3 Brain skeleton (Spawn, Stalk, committed charge, Recovery, Castigo y caida, Disengage)
-- [ ] SC4 Finta de caza
-- [ ] SC5 Ruta predictiva
-- [ ] SC6 Pulso de panico
-- [ ] SC7 Beast script wiring
-- [ ] SC8 Client and proxy
+- [x] SC1 Config entry and director pins; verify a live press moves `WildboundDash` -- RED then GREEN, config and
+  Dodge deployed and read back, live press checked in solo Play (see "Evidence (SC1)"). Not committed
+- [x] SC2 `Attack.afflict` -- RED 9/4 then GREEN 13/0, module and suite deployed and read back, `Attack.hit` consumers
+  65/0 (see "Evidence (SC2)"). Not committed
+- [x] SC3 Brain skeleton (Spawn, Stalk, committed charge, Recovery, Castigo y caida, Disengage) -- RED (module
+  missing) then GREEN 12/0, module and suite deployed and read back, manifest rows and runner SPECS added; not wired
+  into the beast script yet (SC7) (see "Evidence (SC3)"). Not committed
+- [x] SC4 Finta de caza -- RED 13/7 then GREEN 20/0, module and suite deployed and read back; the brain reads
+  `world.random`, `world.lastDash` and `target.carryingEgg`, which the beast script supplies only from SC7 (see
+  "Evidence (SC4)"). Not committed
+- [x] SC5 Ruta predictiva -- RED 21/8 then GREEN 29/0, module and suite deployed and read back; the brain reads
+  `target.vx/vz`, `world.safe`, `world.landing`, `world.lineOfSight` and `world.lastDash` (see "Evidence (SC5)"). Not
+  committed
+- [x] SC6 Pulso de panico -- RED 30/8 (Scuttler) and 45/1 (Director pin) then GREEN 38/0 and 46/0, module, config and
+  both suites deployed and read back; `PulseCooldownSeconds` 9 -> 5 (see "Evidence (SC6)"). Not committed
+- [x] SC7 Beast script wiring -- RED Scuttler 38/3, Wiring 42/3 then GREEN 41/0 and 45/0, beast script and brain
+  deployed and read back; solo Play: three forced Scuttler encounters ran and each released the budget once, two
+  landed pulses slowed 16 -> 12 for about 1.5 s (see "Evidence (SC7)"). Not committed
+- [x] SC8 Client and proxy -- RED AnimPlan 9/3, Wiring 44/5, Text 18/1 then GREEN 12/0, 49/0, 19/0; proxy, plans,
+  texts, client tells and the anim client's variant deployed and read back; solo Play: forced encounters showed the
+  proxy (13.65 studs), the real lane, the feint outline, the hatched zone, the Snap sector, the pulse rings, a landed
+  pulse's desaturation and the fall stars, 0 client errors (see "Evidence (SC8)"). Bystander style not checked (needs two
+  players). Not committed
 - [ ] SC9 Blender rig and baked clips (no upload)
 - [ ] SC10 Mesh upload (only after explicit user approval)
 - [ ] SC11 Playtest: solo, then two players
@@ -190,7 +205,393 @@ beyond the radius nothing is sent; Silueta events stay target-only; the per-play
   economy-config export, lumipol_v2 v1 files, and `test_studio_fresh_runner` (`WildboundRoulette_Test` has no SPECS
   or SKIP entry; another writer's suite). The audio catalog d9 failure seen earlier now passes.
 
+### Evidence (SC1, 2026-11-14)
+
+Route: direct inline (two source files with mechanical config rows, two suites). TDD: strict (workflow task).
+
+- Changes: `WildboundBeastConfig` gains `BEASTS.Scuttler` (plan section 6: Global, biome nil, points 3, chance10 1/60
+  through `Config.perRoll`, cooldown 75, spawn 40-75 / 1.0 s, escape 110 / 4 / 1.2, laneWidth 8, lockLead 0.3,
+  hitHeight 8, damage 30, and a frozen `tuning` table with every other section 6 key), and Scuttler is appended to
+  `ORDER` (ninth: its calendar slot is 8 s after Viper's), `PLAYABLE` and `WAVE2`. `WildboundDodge.SOURCES.Scuttler`.
+  No `Config.SPAWN_BIAS` is added (plan section 8: a later toggle, off by absence; a case pins it is not true). The
+  director needed no code change.
+- Tests: `WildboundBeastDirector_Test` 7 new SC1 cases (entry and numbers, tells >= 0.8 s and slow inside applySlow's
+  clamps, no biome preference, never starts with any point in use, nothing starts while it hunts plus release once and
+  the 75 s cooldown, never in Pradera / safe zone / dead / Silueta, calendar slot and chance); `WildboundDodge_Test`
+  D14 (source, a 0.9 s tell registers, 0.79 s is refused, a perfect press dodges it). Existing pins adapted to the
+  ninth calendar beast (no rule changed): `#Config.ORDER` 8 -> 9 (two cases), `#Director.due` 8 -> 9, the BW2 calendar
+  case gains `dueAt(128) == "Scuttler"`, and the "dead or safe player" case consumes up to t = 28 (Scuttler's slot)
+  instead of 27.
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-deploy (Studio == repo HEAD):
+  `WildboundBeastConfig` 23694:362591623, `WildboundDodge` 9010:1762949462, `WildboundBeastDirector_Test`
+  35347:496867519, `WildboundDodge_Test` 8769:979668193, `WildboundBeastDirector` 13956:3503643689 (unchanged).
+- RED (fresh-clone runner logic, filtered to the two suites; tests deployed first, old modules): Director 37 passed,
+  9 failed (the 7 new cases and the two `#ORDER` pins); Dodge 13 passed, 1 failed (D14).
+- GREEN after deploying config and Dodge: Director 44/2 on the first pass (the two calendar pins above, which assumed
+  8 beasts), fixed, then Director 46/0, Dodge 14/0. Same deploy, every other beast suite on the fresh runner: Abeja
+  10/0, AnimPlan 9/0, Attack 9/0, Audience 17/0, Encounters 24/0, Gaze 7/0, Lurker 7/0, Nube 11/0, Root 9/0, Sight 7/0,
+  Streamer 8/0, Wiring 41/0. Total 219 passed, 0 failed, no leaks.
+- Read-back (Studio == repo working tree): `WildboundBeastConfig` 26047:2520817000, `WildboundDodge` 9137:2062853421,
+  `WildboundBeastDirector_Test` 43890:3431936679, `WildboundDodge_Test` 9435:3858719119. `WildboundBeasts`
+  41462:2561573253 unchanged. Every write was compiled with `loadstring` and fingerprint-checked before
+  `UpdateSourceAsync`. No save, no publish, no Workspace edit, runner lock and temp folders cleared.
+- Live press (solo Play, lock `SC1-dodge-press` set from nil and cleared after): Z on the client (the
+  `WildboundWorldClient` "WildboundDodge" action fires the stance remote; Studio's `WildboundServer` `Heist.dodge` calls
+  `DodgeService.press`). Server attribute `WildboundDash` went nil -> 1794690287.38 with `WildboundDodgeReady` = +1.2 s
+  (a Whiff: MISS_COOLDOWN), and the root moved 14.5 studs; a second press 1.5 s later moved it to 1794690297.72 and the
+  root another 14.5 studs. In Play the live modules had `BEASTS.Scuttler`, `ORDER[9] == "Scuttler"` and
+  `Dodge.SOURCES.Scuttler`. No beast-script errors in the console.
+- Python: `python -I -B -m unittest discover -s tools -p "test_*.py"`: 1298 run, 4 failed, 28 skipped. Failures, all
+  other tracks: 3 economy-config export (`test_export_economy_config_luau`), 1 lumipol_v2 v1 blend hash.
+- Open: until SC3/SC7 register a Scuttler behaviour, a won Scuttler roll in Play reaches `start` and closes at once
+  with `NoBehaviour` (the existing guard): the 3 points are released, but the release starts the 15 s global cooldown
+  and Scuttler's 75 s species cooldown. Rare (1/60 per 10 s, only with 0 points in use), not observed in this Play.
+- Open: summoned kids beasts (points 0) are outside the budget by design (KB-1), so a Pradera summon is not blocked by
+  an active Scuttler through the budget; Scuttler itself never starts in Pradera. SC7 should decide whether entering
+  Pradera ends a Scuttler encounter.
+
+## Evidence (SC2, 2026-11-14)
+
+- Route: direct inline (one module plus its suite). TDD strict, fresh-clone runner logic (`tools/studio-fresh-runner.luau`,
+  SPECS reduced to the filtered suites), Edit datamodel.
+- `src/wildbound/WildboundBeastAttack.luau`: new `Attack.afflict(events, e, world, attack, now, fields)`. Settling is
+  shared with `Attack.hit` through a local `land` (close once, ask the dodge only when dodgeable, emit the Strike);
+  `Attack.hit` behaviour is unchanged. A landed affliction emits `Strike` (hit = true) and `Afflict`
+  (`attack` id plus the fields, no `damage`), never `Hit`; a perfect dodge emits only the dodged Strike. Returns
+  "Afflicted", "Dodged" or nil when already settled.
+- `tests/WildboundBeastAttack_Test.luau`: 4 new SC2 cases (landed: Strike + Afflict with fields, never Hit, dodge asked
+  once; dodged: no Afflict, no Hit; one outcome only: afflict/hit/miss after any outcome are no-ops; undodgeable never
+  asks the dodge and nothing afflicts after closeAll).
+- Studio pre-check: module and suite equalled repo HEAD (module 9536 / 3457584777, suite 9479 / 2358479208).
+- RED (new suite against the current module): 9 passed, 4 failed (the 4 SC2 cases: `Attack.afflict` is nil).
+- GREEN after deploy: `WildboundBeastAttack_Test` 13 passed, 0 failed. Regression over every `Attack.hit` consumer
+  (Abeja 10, Attack 13, Gaze 7, Lurker 7, Nube 11, Root 9, Streamer 8): 65 passed, 0 failed.
+- Read-back: `ServerScriptService.WildboundBeastAttack` 10743 / 3970247103, `ServerStorage.WildboundBeastAttack_Test`
+  13805 / 3200446642, both equal to the working files (length / Adler-32, LF, trailing newlines trimmed). No Play needed
+  (pure module; no wiring yet).
+- Manifest and runner already list the module and suite; no new rows.
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures as SC1 (3 economy-config export, 1 lumipol_v2
+  v1 blend hash). Not committed.
+
+## Evidence (SC3, 2026-11-14)
+
+- Route: direct inline (one new module plus its new suite; mechanical manifest and runner rows). TDD strict.
+- `src/wildbound/WildboundBeastScuttler.luau` (new, ServerScriptService): pure `init`/`step` brain. Spawn (1.0 s) ->
+  Stalk (keeps 20..34 studs at 14 studs/s, faces the target) -> ChargeTell (1.1 s, the lane follows the target until
+  `lockLead` 0.3 s before the commit, then is locked and cut at a wall by `world.castLane`; registered with the dodge
+  through `Attack.open`) -> Charge (straight swept lane at 46 studs/s, 40 studs, `Attack.hit` with `ChargeDamage`, no
+  homing) -> Recovery (1.2 s; landed or missed) or Fallen (the charge was `"Dodged"`: an 8-stud overrun along the
+  locked line, then Stumble 2.2 s in open ground, or Crash 3.0 s when a wall is inside the overrun (stops 0.5 stud
+  short) or already cut the lane) -> Stalk; after `FallsToGiveUp` (2) falls the second fall's end starts Disengage
+  `Outplayed`. Escape and Timeout through `Attack.guard` (busy only during ChargeTell and Charge). The first move is a
+  committed charge (`chargeReadyAt = -inf`); later charges wait `ChargeCooldownSeconds` (4.5 s) from the commit. A
+  staggered `Attack.open` (claimStrike refused) leaves it in Stalk and retries next step. Fallen carries
+  `{ fall, crashed, overrun, falls }`; an overrun emits a `Move` dash. Nothing is open while Fallen. Not registered with
+  `Enc` by the beast script yet (SC7).
+- `tests/WildboundBeastScuttler_Test.luau` (new, 12 cases): first move is a registered committed charge (tell >= 0.8 s,
+  never refused, lockAt = commit - 0.3); stalk band; lane follows until the lock then never moves, one hit with
+  ChargeDamage, Move dash, Recovery, no fall on a landed charge; step-out is a miss with cancel and 1.2 s recovery;
+  dodged in open ground -> Stumble, full overrun straight on, no tell or open attack while fallen; wall inside the
+  overrun -> Crash short of the wall; wall cutting the lane -> Crash; two falls -> Disengage Outplayed at the second
+  fall's end, End after 1.2 s, no third charge; stagger waits; safe zone mid-tell ends at once and `Attack.closeAll`
+  cancels the registration; death; Escape at 4 s and Timeout at 45 s; purity.
+- `tools/deploy_manifest.py` and `tools/test_deploy_manifest.py`: two SC3 rows each. `tools/studio-fresh-runner.luau`:
+  `SPECS["WildboundBeastScuttler_Test"]` (Encounters, Scuttler, Config, Attack modules, Scuttler source).
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check: neither new instance existed;
+  dependencies equalled the working tree (`WildboundBeastEncounters` 15458:1404725380, `WildboundBeastAttack`
+  10743:3970247103, `WildboundBeastConfig` 26047:2520817000).
+- RED (suite deployed first, fresh-clone runner logic filtered to `^WildboundBeast[SE][a-z]+_Test$`):
+  `WildboundBeastScuttler_Test` ERROR "module not found: WildboundBeastScuttler"; Encounters 24/0, Streamer 8/0.
+- GREEN after deploying the module, same runner: Scuttler 12/0, Encounters 24/0, Streamer 8/0 (44 passed, 0 failed),
+  no leaks, runner lock cleared.
+- Read-back (Studio == working tree): `ServerScriptService.WildboundBeastScuttler` 8564:2270039255,
+  `ServerStorage.WildboundBeastScuttler_Test` 13751:1470235773. Each source was fingerprint-checked and compiled with
+  `loadstring` before it was parented. No save, no publish, no Workspace edit, no Play (pure module, not wired).
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures as SC2 (3 economy-config export, 1 lumipol_v2
+  v1 blend hash). The runner guard (15) and the manifest suite (25) pass with the new rows.
+
+## Evidence (SC4, 2026-11-14)
+
+- Route: direct inline (one module and its suite). TDD on (strict, project config); runner: the fresh-clone loader of
+  `tools/studio-fresh-runner.luau` with SPECS cut to the filtered suites (`^WildboundBeast[SE][a-z]+_Test$`).
+- `src/wildbound/WildboundBeastScuttler.luau`: Stalk's move choice rolls once per move (`e.plan`, kept while
+  staggered). A feint (`FeintTell`, `FeintSeconds` 0.9) is chosen only when the encounter already opened a real charge,
+  the last move was not a feint, `world.random()` < `FeintChance` (no `world.random`: never), and, while
+  `target.carryingEgg`, fewer than `MaxFeintsWhileEgg` egg feints were made. The feint emits a `Tell` with
+  `feint = true`, `dodgeable = false` (redrawn at `TELL_RATE`, following the target), never calls `Attack.open`
+  (no `world.telegraph`, no strike claim, nothing in `e.open`), never moves the body, and ends with `TellEnd`
+  reason `Feint`. Bait check: `world.lastDash()` inside [feint start, now] opens `PunishTell` at once, re-aimed,
+  `PunishTelegraphSeconds` 0.9; no press opens `ChargeTell` (1.1 s) at the feint's end. Both are the registered real
+  charge (lock 0.3 s before the commit; dodged -> Fallen). A refused strike slot after a feint goes back to Stalk and
+  the next move is real. `FeintTell` and `PunishTell` count as busy for `Attack.guard`.
+- `tests/WildboundBeastScuttler_Test.luau`: 8 new SC4 cases (first charge never a feint with every roll at 0; a feint
+  never registers, strikes or hits, the body holds still, a real charge follows; a whole encounter never has two
+  feints in a row and only real charges hit; press in the window -> re-aimed PunishTell, registration accepted with a
+  tell >= 0.9 s, a dodge of it is a fall; press before the feint -> committed ChargeTell at the feint's end with the
+  full 1.1 s; egg cap = 1 feint per encounter; roll >= FeintChance or no `world.random` -> never a feint; safe zone
+  mid-feint ends at once with nothing to cancel).
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check (Studio == working tree before
+  the edits, both files are new and untracked): `WildboundBeastScuttler` 8564:2270039255, `WildboundBeastScuttler_Test`
+  13751:1470235773; dependencies unchanged (`WildboundBeastConfig` 26047:2520817000, `WildboundBeastAttack`
+  10743:3970247103, `WildboundBeastEncounters` 15458:1404725380).
+- RED (suite deployed first, module unchanged): Scuttler 13 passed, 7 failed (the SC3 12 plus the first-charge case,
+  which holds already); Encounters 24/0, Streamer 8/0.
+- GREEN after deploying the module: Scuttler 20/0, Encounters 24/0, Streamer 8/0 (52 passed, 0 failed), no leaks,
+  runner lock cleared, temporary runner holder removed.
+- Read-back (Studio == working tree): `ServerScriptService.WildboundBeastScuttler` 12607:4261626075 (compiles),
+  `ServerStorage.WildboundBeastScuttler_Test` 22029:2134861214. No save, no publish, no Workspace edit, no Play (pure
+  module, not wired).
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures as SC2 and SC3 (3 economy-config export, 1
+  lumipol_v2 v1 blend hash). No manifest or runner change (no new suite).
+- Wiring owed to SC7: `worldFor(player)` must add `w.lastDash()` (the `WildboundDash` attribute, same
+  `GetServerTimeNow` clock as the encounter) and `w.random()` (a server `Random`), and `targetOf` must set
+  `carryingEgg` (the `WildboundEggCarried` child) for Scuttler; without them the brain never feints. Client (SC8):
+  draw `Tell` events with `feint = true` as an outline without fill and without the antenna flash.
+
+## Evidence (SC5, 2026-11-14)
+
+- Route (inline, one writer: `src/wildbound/WildboundBeastScuttler.luau` and `tests/WildboundBeastScuttler_Test.luau`).
+  TDD on (project setting), runner `tools/studio-fresh-runner.luau` filtered to `^WildboundBeast[SEA]` (Scuttler,
+  Encounters, Streamer, Attack specs; same engine, pasted as a temporary holder and removed after).
+- Behaviour: after the first charge, a target faster than `InterceptMinSpeed` is read first (`Read`, 0.8 s, never two
+  reads in a row). At the read's end P = target + v x `PredictSeconds` (at most `InterceptMaxStuds`); P must pass
+  `world.safe`, `world.landing` and `world.lineOfSight`, and Scuttler commits only when
+  `ETA(Scuttler) + InterceptMarginSeconds < ETA(target)`; otherwise `Stalk` with `fallback = "Pursue"`. `Intercept`
+  runs straight to P at `InterceptSpeed` 21 (< rested sprint 23.2) and draws the zone (Tell `zone = true`, circle of
+  `SnapRadius` at P, not dodgeable, never an attack) from its start. `Block` (2.5 s) at P: a target inside the zone
+  opens a `Snap` (registered sector, `SnapTelegraphSeconds` 0.9, `SnapArc` 100, locked when drawn), never before the
+  zone was drawn `MIN_TELL`; hit only inside the sector at the strike. A press in `Read` uses the one re-plan; a press
+  in `Intercept` re-plans once at >= plan + `ReplanCooldownSeconds` with the new velocity (zone TellEnd `Replan`, a new
+  zone or the pursuit). The zone ends with TellEnd `Done` (block end or Snap) or `End` (guard). New events for SC8:
+  Phase `Read`/`Intercept` (`to`, `eta`, `targetEta`, `replan`)/`Block`/`Snap`, Move `kind = "run"`.
+- Cases (9 new): arrives-first commit with the ETA check; a target running straight away at 23.2 never gets an
+  intercept and is pursued without a teleport; run speed <= `InterceptSpeed` < 23.2 and it stands at P; entering the
+  zone opens a registered Snap >= MIN_TELL after the zone; no entry, no Snap, the zone ends at the block's end; one
+  re-plan on an early dash, after the cooldown, with the new velocity; a press during Read uses the re-plan; never a
+  safe zone, a void or an unseen P, and a re-plan into a safe zone falls back; the first move stays a charge.
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check (Studio == working tree, both files
+  untracked): `WildboundBeastScuttler` 12607:4261626075, `WildboundBeastScuttler_Test` 22029:2134861214; dependencies
+  unchanged (`WildboundBeastConfig` 26047:2520817000, `WildboundBeastAttack` 10743:3970247103,
+  `WildboundBeastEncounters` 15458:1404725380).
+- RED (suite deployed first): Scuttler 21 passed, 8 failed (the first-move case holds already); Attack 13/0,
+  Encounters 24/0, Streamer 8/0.
+- GREEN: Scuttler 29/0, Attack 13/0, Encounters 24/0, Streamer 8/0 (74 passed, 0 failed), no leaks, runner lock
+  cleared, temporary holder removed. Two test-only fixes between the first and the last GREEN run (find the Snap
+  registration by id; read its locked Tell, not the first one).
+- Read-back (Studio == working tree): `ServerScriptService.WildboundBeastScuttler` 21181:2903062228 (compiles),
+  `ServerStorage.WildboundBeastScuttler_Test` 34539:2853157269. No save, no publish, no Workspace edit, no Play.
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1 blend
+  hash). No manifest or runner change (no new suite).
+- Deviation (recorded, plan section 4 is PROPUESTA): the move choice reads any target faster than `InterceptMinSpeed`,
+  not only one moving away. Moving away (radial speed >= 0) gives |P - Scuttler| >= |target - Scuttler| >= `StalkMin`
+  20, while committing needs |P - Scuttler| < 21 x (1.2 - 0.4) = 16.8, so the literal rule could never commit. The
+  arrive-first check still filters every route Scuttler cannot win.
+- Wiring owed to SC7: `targetOf` already passes `vx/vz`; `worldFor` must expose `safe`, `landing`, `lineOfSight`
+  (exist in the beast script) and `lastDash`. Client (SC8): draw the zone Tell (`zone = true`) as a red hatched circle,
+  the Snap sector, and the `run` Move.
+
+## Evidence (SC6, 2026-11-14)
+
+- Route (inline, one writer: `src/wildbound/WildboundBeastScuttler.luau`, `tests/WildboundBeastScuttler_Test.luau`, plus
+  the one-number change in `src/wildbound/WildboundBeastConfig.luau` and its pin in
+  `tests/WildboundBeastDirector_Test.luau`). TDD on (project setting), runner `tools/studio-fresh-runner.luau` engine with
+  the Scuttler, Encounters, Streamer, Attack and Director specs, filter `^WildboundBeast[SEAD]`, kept as a temporary
+  ServerStorage StringValue holder and removed after.
+- Behaviour: move choice after the first charge, inside the shared move gate (`chargeReadyAt`, line of sight, range):
+  pulse first when `now >= pulseReadyAt` and the target is closer than `PulseRadiusStuds + 4` (20, strict, so a target
+  the stalk holds at `StalkMin` 20 is never pulsed), then the read, then a charge (feint or real). `PulseCharge`
+  (1.3 s): the ring, a circle of `PulseRadiusStuds` 16 centred on Scuttler, opened through `Attack.open` (registered,
+  dodgeable, damage 0) and locked at the charge start; the body holds still. At the release, one check against the
+  drawn ring: outside -> `Strike` hit false and the registration cancelled; inside -> `Attack.afflict` with
+  `{ pulse, slow = 0.75, slowSeconds = 1.5, shake = true }`; a perfect press -> `Strike` dodged, no slow, no pressure,
+  never a fall. A landed pulse sets `lastPulseAt`; a second landed pulse within `PressureMemorySeconds` while
+  `target.carryingEgg` and `e.pulseCanDropEgg` (copied per encounter from `PulseCanDropEgg`) is `Attack.hit` with
+  damage 0 and `escalated = true` (the one egg drop path), then `Disengage` `EggDropped` at the release. Otherwise phase
+  `Pulse` (0.5 s release, local constant) -> `Stalk`. `PulseCharge` counts as busy for `Attack.guard`.
+- EggDropped after any Scuttler egg drop (plan section 7 rule 5): a landed charge on an egg carrier disengages at the
+  lane end (no Recovery), a landed Snap at its strike.
+- Deviations (recorded): (1) `PulseCooldownSeconds` 9 -> 5, measured from the release. With 9 the second pulse could
+  never land inside the 8 s memory (9 + 1.3 > 8), so the owner's Q2 decision was unreachable; 5 + 1.3 = 6.3 s. Plan
+  section 6 updated. PROPUESTA, tune in Studio. (2) The escalation needs `target.carryingEgg`: without an egg the second
+  pulse stays an Afflict, because a damage-0 `Hit` would reach `BeastHit` and show "¡El Scuttler te atrapó!" with
+  nothing to drop. (3) The SC4 egg-cap case now has the target step out of every locked lane (a landed charge would end
+  the hunt with EggDropped); the SC5 read re-plan case reads `replans` during the intercept, since a later pulse lets a
+  new read start.
+- Cases (9 new): ring at the real radius from the charge start, registered and fixed; outside gets nothing; inside is an
+  Afflict with the slow and shake and no damage, also on the first pulse with an egg; a perfect press cancels it (no
+  slow, no fall, no pressure); a second landed pulse inside the memory with an egg is a damage-0 Hit, then EggDropped and
+  End; no escalation without an egg, with the switch off, or past the memory; the first move is never a pulse and the
+  band edge is never pulsed; a landed charge on an egg carrier ends with EggDropped; a safe zone mid-pulse ends at once
+  and closeAll cancels the ring.
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check (Studio == working tree):
+  `WildboundBeastScuttler` 21181:2903062228, `WildboundBeastScuttler_Test` 34539:2853157269, `WildboundBeastConfig`
+  26047:2520817000, `WildboundBeastDirector_Test` 43890:3431936679, `WildboundBeastAttack` 10743:3970247103,
+  `WildboundBeastEncounters` 15458:1404725380.
+- RED (suites deployed first): Scuttler 30 passed, 8 failed (the first-move case holds already); Director 45/1 (the new
+  pin); Attack 13/0, Encounters 24/0, Streamer 8/0.
+- GREEN: Scuttler 38/0, Director 46/0, Attack 13/0, Encounters 24/0, Streamer 8/0 (129 passed, 0 failed), no leaks,
+  runner lock cleared, holder removed. One test-only fix between runs (the SC5 re-plan case, deviation 3).
+- Read-back (Studio == working tree, all compile): `ServerScriptService.WildboundBeastScuttler` 25866:2885303217,
+  `ServerStorage.WildboundBeastScuttler_Test` 46108:1605442438, `ReplicatedStorage.WildboundBeastConfig`
+  26265:1751049468, `ServerStorage.WildboundBeastDirector_Test` 43890:1644638883. No save, no publish, no Workspace
+  edit, no Play.
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1 blend
+  hash). No manifest or runner change (no new suite).
+- Wiring owed to SC7: handle `Afflict` (`applySlow(slow, slowSeconds)`, client shake, never `BeastHit`), pass
+  `target.carryingEgg`; the escalated pulse arrives as a normal `Hit` (damage 0). Client (SC8): the `PulseCharge` ring
+  (circle Tell, `r`), the `Pulse` release, the shake skipped by "Efectos suaves".
+
+## Evidence (SC7, 2026-11-14)
+
+- Route: inline, one writer (`src/wildbound/WildboundBeasts.server.luau`, `src/wildbound/WildboundBeastScuttler.luau`,
+  `tests/WildboundBeastWiring_Test.luau`, `tests/WildboundBeastScuttler_Test.luau`, and one SPECS key in
+  `tools/studio-fresh-runner.luau`). TDD strict. Runner: the `tools/studio-fresh-runner.luau` engine, SPECS cut to the
+  beast suites, kept as a temporary `ServerStorage.SC7_RunnerHolder` StringValue and removed after.
+- Beast script: `Scuttler` appended to the registered behaviours; its own `spawnSpec` entry (a plain ring 40..75, a
+  hidden point preferred, no biome, no `SPAWN_BIAS`); `worldFor` adds `w.lastDash()` (the `WildboundDash` attribute,
+  finite or nil) and `w.random()` (the server `rng`); `targetOf` sets `carryingEgg` (the `WildboundEggCarried` child)
+  and `siluetaActive` for Scuttler; a new `afflict(entry, event)` calls only `applySlow(slow, slowSeconds)` and counts
+  `Beast_afflicted`, never BeastHit. The Afflict event goes to the target alone (not in `Audience.VISUAL`); the client's
+  shake is SC8. Patio hooks, SC0 fan-out and the Studio tools are unchanged.
+- Silueta yield (plan section 7 rule 6) lives in the brain: with `target.siluetaActive` and no open attack (`busy`),
+  the zone ends with TellEnd `Silueta` and Scuttler disengages `Silueta`; an open charge, Snap or pulse resolves first.
+- Egg-drop disengage needed no new script code: the brain's EggDropped paths read `target.carryingEgg`, now supplied;
+  the drop itself is the ordinary Hit path (damage-0 Hit for the escalated pulse).
+- Pradera (SC1 open item): decided by the existing rule; a non-summoned encounter whose target enters the Pradera ends
+  at once with reason `Pradera` (pinned by the SC7 Wiring case).
+- Cases: Wiring 4 new (registration and spawnSpec; adapter and target extras; Afflict target-only with
+  `sources.audience`; ends through the shared close, Patio and SC0 kept) and the BW2 pin updated to the five-name list;
+  Scuttler 3 new (Silueta mid-tell yields after the charge resolves; Silueta already hunting: no attack, disengage at
+  once; Silueta during an intercept ends the zone).
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check (Studio == repo): `WildboundBeasts`
+  41462:2561573253 (== HEAD), `WildboundBeastScuttler` 25866:2885303217, `WildboundBeastAudience` 11067:2813954137,
+  `WildboundBeastScuttler_Test` 46108:1605442438, `WildboundBeastWiring_Test` 37929:1908846378 (== HEAD).
+- RED (suites deployed first): Scuttler 38/3, Wiring 42/3 (the fourth SC7 Wiring case pins existing behaviour).
+- GREEN after deploying both scripts (both compile with `loadstring`): first pass every beast suite 234/1 (the BW2 pin),
+  pin updated; then Scuttler 41/0, Wiring 45/0, Sight 7/0, Streamer 8/0; the same deploy's other beast suites Attack
+  13/0, Audience 17/0, Director 46/0, Encounters 24/0, Gaze 7/0, Lurker 7/0, Nube 11/0, Root 9/0. No leaks.
+  Not run: Abeja and AnimPlan (not in the reduced SPECS; neither reads the changed files).
+- Read-back (Studio == working tree): `WildboundBeasts` 43288:2374956119, `WildboundBeastScuttler` 26338:1753340479,
+  `WildboundBeastWiring_Test` 41900:2169754626, `WildboundBeastScuttler_Test` 48323:3586383435.
+- Solo Play (lock `SC7-scuttler-wiring`, set from nil and cleared after; Play stopped by this step): character moved
+  out of the safe zone, `ForceSpawnBeast("Scuttler")` three times.
+  - beast:1: Spawn, ChargeTell, Charge, Recovery, Stalk, FeintTell then ChargeTell (bait refused), Charge... 4 hits;
+    ended `Death` (this place deals damage: 4 x 30). Director log: Started, Ended:Death once; points 0 after.
+  - beast:2: ended `SafeZone` (the test's teleport crossed a safe zone); points 0.
+  - beast:3 (at 298, 197, the test teleporting the character 12 studs from it during Stalk): two PulseCharge -> Pulse
+    releases landed as Afflict (`Beast_afflicted` 2, later 3); WalkSpeed 16 -> 12.00 for about 1.5 s then back to 16;
+    no Hit from a pulse. Ended `Death` after charge hits; released once, points 0.
+  - Totals: started 3, ended 3, errors 0. No beast-script error or warning in the console.
+- Not observed in Play: an intercept, a Silueta yield, an EggDropped disengage (no egg carried) and a dodge (no press);
+  these are covered by the pure suites only.
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1
+  blend hash). Runner guard passes with the new `audience` key. No manifest change (no new file).
+
+## Evidence (SC8, 2026-11-14)
+
+- Route: inline, one writer (`src/wildbound/WildboundBeastProxies.luau`, `src/wildbound/WildboundBeastAnimPlan.luau`,
+  `src/wildbound/WildboundText.luau`, `src/wildbound/WildboundBeasts.client.luau`, `src/wildbound/WildboundBeastAnim.client.luau`,
+  `tests/WildboundBeastAnimPlan_Test.luau`, `tests/WildboundBeastWiring_Test.luau`, `tests/WildboundText_Test.luau`). TDD
+  strict. Runner: the `tools/studio-fresh-runner.luau` engine with the AnimPlan, Wiring and Text specs, kept as a
+  temporary `ServerStorage.SC8_RunnerHolder` StringValue and removed after. No new suite or file: no manifest or SPECS
+  change.
+- Proxy: `Proxies.scuttler` (in `BUILDERS`, so `Proxies.ensure` builds `ScuttlerProxy`), `Proxies.SCUTTLER_PALETTE`
+  (carapace maroon 6E2A35/4A1C26, cream chevrons EADBB8, moss 7E8F3A, amber Neon eyes and antenna tips FFB020, claws
+  E3D3B4). 46 inert parts, pivot on the ground, head -Z, top 13.65 studs (Q1 12-14), claw arms with Pincer A/B, 8 legs.
+- AnimPlan: `PLANS.Scuttler` names exactly the 17 clips of plan section 9; every brain phase (Spawn, Stalk, FeintTell,
+  ChargeTell, PunishTell, Charge, Recovery, Fallen, Read, Intercept, Block, Snap, PulseCharge, Pulse, Disengage) has a
+  plan; `Fallen>Stalk` plays GetUp. New optional `variant` argument of `Plan.steps`: a "Phase:Variant" entry wins
+  (`Fallen:Crash` plays Crash, otherwise Stumble). The beast client publishes `BeastPhaseVariant` (Fallen's `fall`) and
+  the anim client passes it.
+- Text: `Text.BEAST.Scuttler` with the section 9 lines. Deviation: `PunishTell` (the bait was taken) is a real charge
+  and has no line in the plan, so it reuses the ChargeTell line (otherwise the feint's line would stay up).
+- Client: tell colour red (255, 60, 40). Feint `Tell` (`feint = true`): the lane's Fill and Chevrons are removed and two
+  end bars added (outline only). Real lock: the antenna tips flash white 0.3 s (never for a feint). Zone `Tell`
+  (`zone = true`): the circle plus diagonal hatch bars clipped to its radius. Pulse ring (Scuttler circle that is not a
+  zone, until its strike): two rings ripple from the centre to the drawn `shape.r`, faster toward the release. `Fallen`
+  shows the stars at 15 studs and a dust burst. `Move` `run` follows the server's timeline (endAt = `untilAt`). New
+  `Afflict` handler: target only, skipped by "Efectos suaves"; a 0.25 s camera shake and a 0.45 s
+  `ColorCorrectionEffect` on the client camera; never touches WalkSpeed (the server applied the slow). Proxy posture:
+  ChargeTell, PunishTell and FeintTell crouch alike; PulseCharge rears up; Fallen tilts. Sounds (catalogue slots of plan
+  section 9 only): Stalk/Intercept/ChargeTell `steps`, Read and PulseCharge `unease`, PunishTell `stinger`, Charge
+  `dirt`, Snap `snap`, Pulse `roar`, Fallen `softStinger`, Fallen Crash `crack`, spawn `dirt`; FeintTell has no sound
+  on purpose (cue only on real attacks).
+- Studio target: the single instance for placeId 122652861404212 (Edit). Pre-check (Studio == HEAD): `WildboundBeastAnimPlan`
+  8823:2528121456, `WildboundBeastAnimPlan_Test` 9025:1963586904, `WildboundBeastProxies` 23116:3065146105,
+  `WildboundText` 32539:1870242275, `WildboundText_Test` 20104:313314756, `WildboundBeastsClient` 41884:3225949834,
+  `WildboundBeastAnim` 6628:1692643219; `WildboundBeastWiring_Test` 41900:2169754626 (== working tree after SC7).
+- RED (suites deployed first): AnimPlan 9/3, Wiring 44/5, Text 18/1 (71 passed, 9 failed).
+- GREEN: first pass AnimPlan 12/0, Text 19/0, Wiring 46/3 (two existing pins: the EV-W3 model count 10 -> 11 now that
+  9 proxies exist, and NB6's "no 4.5 in the client", hit by a first star height of 14.5, set to 15; plus the BW2 needle
+  for the exact `drawShape` line, kept). Final: AnimPlan 12/0, Wiring 49/0, Text 19/0 (80 passed, 0 failed), no leaks,
+  runner lock cleared, holder removed.
+- Read-back (Studio == working tree, all compile): `ReplicatedStorage.WildboundBeastAnimPlan` 10278:4044280000,
+  `StarterPlayer.StarterPlayerScripts.WildboundBeastAnim` 6757:2605243356, `ReplicatedStorage.WildboundText`
+  33213:2854910699, `ServerScriptService.WildboundBeastProxies` 26841:3305354192,
+  `StarterPlayer.StarterPlayerScripts.WildboundBeastsClient` 50115:1639409740, `ServerStorage.WildboundBeastAnimPlan_Test`
+  12316:1001067766, `ServerStorage.WildboundText_Test` 21224:692927815, `ServerStorage.WildboundBeastWiring_Test`
+  47934:2994433138. No save, no publish, no Workspace edit.
+- Solo Play (lock `SC8-scuttler-client`, set from nil and cleared after; Play stopped by this step). Test-only runtime
+  changes inside Play: the character's health raised to 100000 (this place deals damage), the character moved by
+  `Humanoid:MoveTo`, `WildboundDash` set by the server during a feint (bait), and the real dodge sent through the
+  `Stance` remote ("dodge") 0.1 s before a charge's strike. Six forced Scuttler encounters (beast:1 to beast:6): five
+  ended `Timeout`, beast:6 was ended by `BeastProbe`; started 6, ended 6; counters `dodged` 2, `afflicted` 1, `errors`
+  0. Observed on the client: every phase listed above except a `Charge` landing on a carrier; `Fallen` with variant
+  `Crash` and with `Stumble` published on the model; a landed pulse slowed WalkSpeed 16 -> 12 and the client's
+  `WildboundPulseDesaturate` appeared and was removed. No "Wildbound beasts client" warning in the console.
+- Screenshots (`assets/exports/forest-kit/captures/`, untracked): `sc8-scuttler-proxy-day-desktop.jpg` (live proxy next
+  to the character), and frozen client copies of the drawn tells taken the moment they appeared (night lighting):
+  `sc8-scuttler-real-lane-desktop.jpg`, `sc8-scuttler-feint-outline-desktop.jpg`, `sc8-scuttler-intercept-zone-desktop.jpg`,
+  `sc8-scuttler-pulse-rings-desktop.jpg`, `sc8-scuttler-fallen-stars-desktop.jpg`.
+- Not checked: the bystander style (needs a second player, SC11 or the SC0.6 two-player check); "Efectos suaves" on
+  (only the source contract is pinned); the escalated egg drop (no egg carried).
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1 blend
+  hash).
+
+## Correction (SC1-SC8 review, 2026-11-14)
+
+The review found no blocker, high or medium finding; four low or informational items. One scoped correction, Strict
+TDD (cases first, RED against the Studio modules, then GREEN).
+
+- Finding 2 (low, fixed): the escalated second pulse carried `slow` as a number, which `landHit` ignores (it applies
+  only a table), so the egg-dropping pulse did not slow. `releasePulse` now sends the Hit form `slow = { multiplier,
+  seconds }` and no `slowSeconds` on the Hit. The shake already ran: `handlers.Hit` shakes (0.5) for every non-kids
+  beast. Pinned in the SC6 escalation case.
+- Finding 3 (low, fixed in the brain): `choosePoint` now also refuses a straight run that crosses a safe zone
+  (`world.safe`, sampled every 2 studs, P included), the Pradera (`world.meadow`, optional) or a wall (`world.castLane`
+  shorter than the run); it falls back to the pursuit. New SC5 case with three setups.
+- Finding 4 (low, fixed): `WildboundBeastDirector` check: when a beast that fills the budget (Scuttler, 3 points) is
+  active, a 0-point summoned kids beast is refused `Budget` (also forced), and Scuttler is refused `Budget` (no roll
+  spent) while a kids beast is active. Two kids beasts still share the Pradera. New Director case.
+- Finding 1 (info, left open): `PulseCooldownSeconds` 9 -> 5 is still the owner's decision (accept 5, or grow
+  `PressureMemorySeconds` instead). No change.
+- Not done, blocked by the fingerprint guard: `ServerScriptService.WildboundBeasts` (Studio 43594:3817298632, working
+  tree 43288:2374956119), `StarterPlayer.StarterPlayerScripts.WildboundBeastsClient` (50158:3899946924 vs
+  50115:1639409740) and `ServerStorage.WildboundBeastWiring_Test` (48022:1409714347 vs 47934:2994433138) differ from
+  the repo: Studio has newer Studio-only edits by another track (a third kids beast, Gomibu, in `KIDS`, the client and
+  the Wiring suite). Not overwritten, and the repo copies were left untouched. Still open there: wiring
+  `world.meadow` in the beast script (so the Pradera check in the run applies live; safe zones and walls already do)
+  and a desaturation for the escalated pulse on the client `Hit` handler.
+- RED (Studio modules before the fix, fresh-clone runner): Scuttler 40/2 (the SC5 run case, setup 1, "no intercept
+  through it: expected 0, got 1"; the SC6 escalation "the Hit form of the slow: expected table, got number"),
+  Director 46/1 ("NubeGrunona while Scuttler hunts: expected Budget, got table"). Setups 2 and 3 of the SC5 case were
+  not reached in RED (the case stops at its first failing setup).
+- GREEN (after deploy): Scuttler 42/0, Director 47/0; also Attack 13/0, Encounters 24/0, Audience 17/0, Wiring 49/0
+  (the Studio Wiring suite, against the Studio sources). No leaks; runner lock cleared.
+- Runner: `tools/studio-fresh-runner.luau` lines 330-722 unchanged, wrapped as a function of FILTER, SPECS trimmed to
+  the six Beast suites above (copied unchanged), one suite per FILTER.
+- Deploy: pre-image of each Studio Source equal to the working file before the edit (Scuttler 26338:1753340479,
+  Director 13956:3503643689, Scuttler_Test 48323:3586383435, Director_Test 43890:1644638883); applied as exact
+  replacements. Read-back (Studio == working tree): `ServerScriptService.WildboundBeastScuttler` 27589:1620408176,
+  `ServerScriptService.WildboundBeastDirector` 14282:2793392716, `ServerStorage.WildboundBeastScuttler_Test`
+  50275:3922806828, `ServerStorage.WildboundBeastDirector_Test` 45560:2491437752. No Play, no save, no publish, no
+  Workspace edit; `WildboundPlayLock` was nil and was not touched.
+- Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1 blend
+  hash).
+
 ## Next step
 
-1. Two-player Studio check (Test > Clients and Servers, 2 players), SC0.6; then SC1.
-2. Commit the SC0 server merge (not committed yet).
+1. Two-player Studio check (Test > Clients and Servers, 2 players), SC0.6.
+2. SC9 Blender rig and baked clips (`WildboundBeastAnimScuttler`, the 17 clips named by `PLANS.Scuttler`; add its data
+   to the AnimPlan suite's data cases and the runner SPECS when it exists).
+3. Commit the SC0 server merge, SC1 to SC7 (not committed yet).

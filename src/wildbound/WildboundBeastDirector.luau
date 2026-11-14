@@ -133,6 +133,9 @@ local function check(dir, userId, name, ctx, now, force)
 	local _, count = Director.budget(dir, userId)
 	if count >= D.MAX_ACTIVE then return "MaxActive" end
 	if player.points + beast.points > D.MAX_POINTS then return "Budget" end
+	-- A beast that fills the whole budget (Scuttler, 3 points) hunts alone: a 0-point summoned kids beast never starts
+	-- beside it, and it never starts beside one (docs/design/wildbound-scuttler-plan.md, "only alone").
+	if count > 0 and (player.points >= D.MAX_POINTS or beast.points >= D.MAX_POINTS) then return "Budget" end
 	return nil
 end
 Director.blocked = function(dir, userId, name, ctx, now, force)

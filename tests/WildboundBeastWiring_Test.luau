@@ -1,6 +1,7 @@
 -- Invoke with require(freshTestClone)({ beasts = WildboundBeasts.Source, client = WildboundBeastsClient.Source,
 -- server = WildboundServer.Source, proxies = WildboundBeastProxies.Source, text = require(freshTextClone),
--- config = require(freshBeastConfigClone), director = require(freshBeastDirectorClone) }, require(freshBeastProxiesClone)).
+-- config = require(freshBeastConfigClone), director = require(freshBeastDirectorClone),
+-- audience = require(freshBeastAudienceClone) }, require(freshBeastProxiesClone)).
 -- Nest Heist phase 4a (NB4 to NB6): the beast proxies (real Instances, built and destroyed here) and the source
 -- contracts for how the beast script, the inventory server and the beast client wire the director and the encounters.
 return function(sources, Proxies)
@@ -122,7 +123,8 @@ return function(sources, Proxies)
 			assert(models:FindFirstChild(beast .. "Proxy"), "wave 2 proxy " .. beast)
 		end
 		Proxies.ensure(fake)
-		equal(#models:GetChildren(), 8, "no duplicate on a second call (6 forest proxies, the Nube and the Abeja)")
+		assert(models:FindFirstChild("ScuttlerProxy"), "SC8 Scuttler proxy")
+		equal(#models:GetChildren(), 9, "no duplicate on a second call (7 forest proxies with Scuttler, the Nube and the Abeja)")
 		equal(Proxies.modelFor(models, "Viper"), models.ViperProxy, "the proxy while there is no import")
 		local imported = Instance.new("Model")
 		imported.Name = "Viper"
@@ -180,7 +182,7 @@ return function(sources, Proxies)
 		equal(models:FindFirstChild("Gargoyle"), nil, "Gargoyle: template only")
 		equal(models:FindFirstChild("Mire"), nil, "Mire: template only")
 		Proxies.ensure(fake, templates)
-		equal(#models:GetChildren(), 10, "no duplicate on a second call (8 proxies, 2 adopted)")
+		equal(#models:GetChildren(), 11, "no duplicate on a second call (9 proxies with SC8 Scuttler, 2 adopted)")
 		local empty = keep(Instance.new("Folder"))
 		local only = Proxies.ensure(empty, nil)
 		equal(Proxies.modelFor(only, "Viper"), only.ViperProxy, "no templates: the proxy")
@@ -386,7 +388,7 @@ return function(sources, Proxies)
 	case("BW2: the server registers the four behaviours, rolls them through the director and ends them cleanly", function()
 		local beasts = sources.beasts
 		has(beasts, 'Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))')
-		has(beasts, 'for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do')
+		has(beasts, 'for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker", "Scuttler" }) do', "SC7 appended Scuttler")
 		has(beasts, "if not (Config.PLAYABLE[beast] or Config.SUMMONED[beast]) or not Enc.registered(beast) then")
 		has(beasts, "world = worldFor(player)")
 		has(beasts, "Attack.closeAll(entry.e, entry.world)", "close cancels every open attack")
@@ -635,6 +637,163 @@ return function(sources, Proxies)
 		has(client, "local BYSTANDER_BEHIND = Config.AUDIENCE.SNAP_SECONDS + ", "the delay follows the snapshot interval")
 		has(body(client, "local function placeOf(view, at)"), "local renderAt = at - (view.behind or BEHIND)")
 		has(body(client, "local function soften(view, model)"), 'GetAttribute("Softened")', "soften never dims a part twice")
+	end)
+
+	-- SC7 (odd/tasks/wildbound-scuttler.md): the Scuttler behaviour wired into the beast script.
+	case("SC7: the beast script registers Scuttler and spawns it on a plain ring, hidden point preferred, no biome or bias", function()
+		local beasts = sources.beasts
+		has(beasts, 'for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker", "Scuttler" }) do', "registered")
+		local spec = body(beasts, "local function spawnSpec(beast)")
+		has(spec, 'if beast == "Scuttler" then', "its own spawnSpec entry")
+		has(spec, "return { min = C.spawnMin, max = C.spawnMax, visible = false }", "a plain ring like Viper's")
+		hasNot(beasts, "SPAWN_BIAS", "no route weighting (plan section 8)")
+		local C = sources.config.BEASTS.Scuttler
+		equal(C.spawnMin, 40); equal(C.spawnMax, 75)
+		equal(sources.config.homeBiome("Scuttler"), nil, "no home biome")
+		equal(sources.config.BIOME_PREFERENCE, false, "no biome preference")
+	end)
+
+	case("SC7: the adapter gives Scuttler the server's dash time and a server Random; its target carries egg and Silueta", function()
+		local beasts = sources.beasts
+		local adapter = body(beasts, "local function worldFor(player)")
+		has(adapter, "function w.lastDash()", "the bait detector")
+		has(adapter, 'player:GetAttribute("WildboundDash")', "the server-written press time (WildboundDodgeService)")
+		has(adapter, "function w.random() return rng:NextNumber() end", "the feint roll uses the server's Random")
+		hasNot(beasts, "math.random", "beasts")
+		local target = body(beasts, "local function targetOf(entry)")
+		has(target, 'if entry.e.beast == "Scuttler" then', "Scuttler's target extras")
+		has(target, 'target.carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil', "the egg, server-made child")
+		has(target, "target.siluetaActive = siluetaActive(entry.player.UserId)", "the Silueta yield (rule 6)")
+	end)
+
+	case("SC7: Afflict only slows the target (applySlow), never reaches BeastHit and is never shown to a bystander", function()
+		local beasts = sources.beasts
+		local afflict = body(beasts, "local function afflict(entry, event)")
+		has(afflict, "applySlow(entry.player, event.slow, event.slowSeconds)", "the slow, clamped by applySlow")
+		has(afflict, 'count("afflicted")', "a counter")
+		for _, bad in ipairs({ "beastHit", "landHit", "BeastHit", "applySticky", "WildboundKidsMarkUntil", "Audience",
+			"sendBystanders", "damage" }) do
+			hasNot(afflict, bad, "afflict")
+		end
+		local step = body(beasts, "local function stepEncounter(id, entry, at)")
+		has(step, 'if event.type == "Afflict" then afflict(entry, event) end', "handled in the step")
+		local Audience = sources.audience
+		assert(type(Audience) == "table", "sources.audience")
+		equal(Audience.VISUAL.Afflict, nil, "Afflict is not a visual event")
+		equal(Audience.forBystander({ type = "Afflict", id = "beast:1", slow = 0.75, slowSeconds = 1.5, shake = true }), nil,
+			"target-only: never copied to a bystander")
+		has(beasts, "afflicted = 0", "the counter starts at 0")
+	end)
+
+	case("SC7: Scuttler's ends go through the shared close: budget released once; Patio hooks and SC0 fan-out kept", function()
+		local beasts = sources.beasts
+		has(beasts, "close(id, event.reason, at, event)", "Disengage Silueta/EggDropped/Outplayed end through close")
+		has(beasts, "if Director.release(director, id, reason, at) then", "released once")
+		has(beasts, 'if target and target.meadow and not Config.SUMMONED[entry.e.beast] then', "the Pradera ends it")
+		has(beasts, 'player:GetAttribute("PatioDentro") ~= true', "the yard's roll guard")
+		has(beasts, 'patio.Name = "PatioBestia"', "the yard's hook")
+		has(beasts, "sendBystanders(id, event)", "SC0 fan-out")
+		local i = beasts:find("if RunService:IsStudio() then", 1, true)
+		has(beasts:sub(i), 'force.Name = "ForceSpawnBeast"', "the Studio force spawn")
+		equal(sources.config.BEASTS.Scuttler.points, 3, "fills the budget")
+	end)
+
+	-- SC8 (odd/tasks/wildbound-scuttler.md): Scuttler's proxy and its client tells.
+	case("SC8: Scuttler's proxy is a labelled, inert Part placeholder 12-14 studs tall, pivot on the ground, head -Z", function()
+		local build = Proxies.BUILDERS.Scuttler
+		assert(type(build) == "function" and build == Proxies.scuttler, "Proxies.scuttler is the Scuttler builder")
+		local model = keep(build())
+		equal(model.Name, "ScuttlerProxy"); equal(model:GetAttribute("Beast"), "Scuttler"); equal(model:GetAttribute("Proxy"), true)
+		assert(type(model:GetAttribute("ProxyNote")) == "string", "a swap note")
+		assert(model.PrimaryPart and model.PrimaryPart.Name == "Root", "pivot")
+		assert(math.abs(model.PrimaryPart.Position.Y - 0.1) < 1e-3, "the pivot sits on the ground")
+		local box, size = model:GetBoundingBox()
+		local top, bottom = box.Position.Y + size.Y / 2, box.Position.Y - size.Y / 2
+		assert(top >= 12 and top <= 14, "12-14 studs tall (Q1): " .. top)
+		assert(bottom > -0.05 and bottom < 0.5, "it stands on the ground: " .. bottom)
+		local P = Proxies.SCUTTLER_PALETTE
+		assert(type(P) == "table", "Proxies.SCUTTLER_PALETTE")
+		local list = parts(model)
+		assert(#list >= 25, "Scuttler has " .. #list .. " parts")
+		local counts = { eye = 0, chevron = 0, moss = 0, carapace = 0 }
+		for _, p in ipairs(list) do
+			assert(p.Anchored and not p.CanCollide and not p.CanQuery and not p.CanTouch, p:GetFullName())
+			for _, bad in ipairs({ "Lane", "Circle", "Telegraph", "Ring", "Zone", "Wall" }) do
+				assert(not p.Name:find(bad, 1, true), p.Name)
+			end
+			if p.Material == Enum.Material.Neon and p.Color == P.eye then counts.eye += 1 end
+			if p.Color == P.chevron then counts.chevron += 1 end
+			if p.Color == P.moss then counts.moss += 1 end
+			if p.Color == P.carapace or p.Color == P.carapaceDark then counts.carapace += 1 end
+		end
+		assert(counts.eye >= 2, "amber Neon eyes: " .. counts.eye)
+		assert(counts.chevron >= 3, "cream chevrons: " .. counts.chevron)
+		assert(counts.moss >= 2, "moss accents: " .. counts.moss)
+		assert(counts.carapace >= 4, "a maroon carapace: " .. counts.carapace)
+		local head = model:FindFirstChild("Head")
+		assert(head and head.Position.Z < -2, "the head faces the pivot's LookVector (-Z)")
+		for _, name in ipairs({ "AntennaTipL", "AntennaTipR" }) do
+			local tip = model:FindFirstChild(name)
+			assert(tip and tip.Material == Enum.Material.Neon, name .. " glows (the lock's antenna flash)")
+		end
+		for _, side in ipairs({ "L", "R" }) do
+			assert(model:FindFirstChild("Pincer" .. side .. "A") and model:FindFirstChild("Pincer" .. side .. "B"), "claw " .. side)
+		end
+	end)
+
+	case("SC8: the client draws Scuttler's feint as an outline, the zone hatched, the pulse rings and the fall stars", function()
+		local client = sources.client
+		has(client, "Scuttler = Color3.fromRGB(", "a tell colour")
+		local tell = body(client, "function handlers.Tell(ev, view)")
+		has(tell, "if ev.feint then outline(item.model) end", "the feint: an outline without fill")
+		has(tell, "if ev.zone then hatch(item.model, ev.shape, color) end", "the intercept zone, hatched")
+		has(tell, "if not ev.feint then flash(view) end", "the antenna flash only on a real lock")
+		local outline = body(client, "local function outline(model)")
+		has(outline, 'name == "Fill"', "the fill goes"); has(outline, 'name:sub(1, 7) == "Chevron"', "and the chevrons")
+		has(client, "local function pulseRings(view, item, at)", "rings expanding to the true radius")
+		has(body(client, "local function pulseRings(view, item, at)"), "item.shape.r", "the drawn radius, never a guess")
+		has(client, 'if ev.phase == "Stunned" or ev.phase == "OverrunStunned" or ev.phase == "Fallen" then',
+			"stars while Fallen")
+		has(client, "STAR_HEIGHT[view.beast]", "the stars over a tall body")
+		has(client, 'ev.kind == "run"', "the intercept's straight run follows the server's timeline")
+		local phase = body(client, "function handlers.Phase(ev, view)")
+		has(phase, "OWN_PHASE_SOUND[view.beast]", "its own sounds")
+		has(phase, "publishVariant(view, ev.fall)", "the fall's variant")
+	end)
+
+	case("SC8: a landed pulse (Afflict) shakes and desaturates only the target, never with Efectos suaves", function()
+		local client = sources.client
+		local afflict = body(client, "function handlers.Afflict(ev, view)")
+		has(afflict, "if view.bystander then return end", "never a bystander")
+		has(afflict, "if ev.shake ~= true or reduced() then return end", "Efectos suaves skips it")
+		has(afflict, "shake(", "a camera shake"); has(afflict, "desaturate(", "a brief desaturation")
+		for _, bad in ipairs({ "WalkSpeed", "FireServer", "AssemblyLinearVelocity", "Health" }) do
+			hasNot(afflict, bad, "afflict (the server already applied the slow)")
+		end
+		has(body(client, "local function desaturate(seconds)"), "ColorCorrectionEffect")
+	end)
+
+	case("SC8: Scuttler's sounds are existing catalogue slots from plan section 9 and its lines exist", function()
+		local client = sources.client
+		local i = client:find("local OWN_PHASE_SOUND = {", 1, true)
+		assert(i, "OWN_PHASE_SOUND")
+		local j = client:find("\n}\n", i, true)
+		local block = client:sub(i, j)
+		local allowed = { steps = true, snap = true, roar = true, unease = true, crack = true, hit = true, stinger = true,
+			softStinger = true, dirt = true }
+		local n = 0
+		for slot in block:gmatch('{ "(%w+)"') do
+			n += 1
+			assert(allowed[slot], "slot " .. slot .. " is not in plan section 9")
+		end
+		assert(n >= 6, "Scuttler phases with a sound: " .. n)
+		has(block, 'Pulse = { "roar"', "the pulse release roars")
+		has(block, 'Snap = { "snap"', "the Snap")
+		has(block, 'PunishTell = { "stinger"', "the bait taken")
+		hasNot(block, "FeintTell", "the feint has no cue (only real attacks do)")
+		has(client, 'Scuttler = "dirt"', "the spawn rise")
+		local words = sources.text.BEAST.Scuttler
+		assert(type(words) == "table" and words.phases and words.phases.PulseCharge, "Text.BEAST.Scuttler")
 	end)
 
 	return result

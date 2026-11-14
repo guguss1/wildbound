@@ -154,7 +154,7 @@ Scale: a Roblox avatar is about 5.5 studs for 1.7 m, so 1 stud is about 0.31 m a
 | `PulseChargeSeconds` | 1.3 | Time to leave the ring at walk speed |
 | `PulseRadiusStuds` | 16 | Pack: about 5-6 m |
 | `PulseSlowMultiplier` / `PulseSlowSeconds` | 0.75 / 1.5 | Inside `applySlow`'s clamps (0.5..1, at most 3 s) |
-| `PulseCooldownSeconds` | 9 | |
+| `PulseCooldownSeconds` | 5 (was 9) | From the release. SC6: 9 made the decided second pulse inside the 8 s memory unreachable (9 + 1.3 > 8); 5 + 1.3 = 6.3 s |
 | `PressureMemorySeconds` | 8 | Window for "bad state" |
 | `PulseCanDropEgg` | true | Q2 decided by the user |
 | `hitHeight` | 8 | Taller body |
