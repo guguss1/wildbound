@@ -156,7 +156,7 @@ Scale: a Roblox avatar is about 5.5 studs for 1.7 m, so 1 stud is about 0.31 m a
 | `PulseSlowMultiplier` / `PulseSlowSeconds` | 0.75 / 1.5 | Inside `applySlow`'s clamps (0.5..1, at most 3 s) |
 | `PulseCooldownSeconds` | 9 | |
 | `PressureMemorySeconds` | 8 | Window for "bad state" |
-| `PulseCanDropEgg` | true | Open question Q2 |
+| `PulseCanDropEgg` | true | Q2 decided by the user |
 | `hitHeight` | 8 | Taller body |
 
 ## 7. Fairness rules
