@@ -334,6 +334,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundBeastAbeja.luau", "ServerScriptService.WildboundBeastAbeja"),
     ("tests/WildboundBeastNube_Test.luau", "ServerStorage.WildboundBeastNube_Test"),
     ("tests/WildboundBeastAbeja_Test.luau", "ServerStorage.WildboundBeastAbeja_Test"),
+    # SC0 shared beast visibility (odd/tasks/wildbound-scuttler.md)
+    ("src/wildbound/WildboundBeastAudience.luau", "ServerScriptService.WildboundBeastAudience"),
+    ("tests/WildboundBeastAudience_Test.luau", "ServerStorage.WildboundBeastAudience_Test"),
 ]
 
 

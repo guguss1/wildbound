@@ -13,6 +13,11 @@ local RunService = game:GetService("RunService")
 -- TellEnd), Move (dash, arc, burrow, blink, slide on the server's timeline) and Exposure (Gaze's meter). The only thing
 -- this client sends is the camera's look vector on BeastObserve, while it draws a Gaze or a Lurker
 -- (WildboundBeastSight.SEND_INTERVAL); the server validates it and never uses it for a hit or a dodge.
+-- SC0 shared visibility (odd/tasks/wildbound-scuttler.md): the server also sends this client other players' beasts in
+-- range, as visual copies marked `bystander`. They use the same model, animation and timeline, but are drawn quietly:
+-- no warning or phase line, no sound, no camera shake, no hit feedback or knock, no Gaze meter, no BeastObserve, and
+-- Root's raised walls never collide for a bystander. Their tells keep the exact server geometry in a neutral, faded
+-- colour (soften), so a bystander reads the attack without being alarmed by it.
 local Config = require(ReplicatedStorage:WaitForChild("WildboundBeastConfig"))
 local Catalog = require(ReplicatedStorage:WaitForChild("WildboundAudioCatalog"))
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
@@ -30,7 +35,14 @@ folder.Parent = workspace
 
 local RED = Color3.fromRGB(255, 40, 30)
 local BEHIND = 0.1 -- render this far behind the server clock, between two snapshots
+-- SC0: a bystander's snapshots come every Config.AUDIENCE.SNAP_SECONDS, so its view renders at least that far behind.
+local BYSTANDER_BEHIND = Config.AUDIENCE.SNAP_SECONDS + BEHIND / 2
 local views = {}
+-- SC0: true while a bystander's event is being handled, so its HUD lines, sounds and shake stay silent.
+local muting = false
+local NEUTRAL = Color3.fromRGB(226, 224, 210)
+local BYSTANDER_OPACITY = 0.4 -- a bystander's tell keeps this share of the target's opacity
+local function dim(transparency) return 1 - (1 - transparency) * BYSTANDER_OPACITY end
 
 local function serverNow() return workspace:GetServerTimeNow() end
 
@@ -62,6 +74,7 @@ warning.Parent = gui
 gui.Parent = player:WaitForChild("PlayerGui")
 local warningUntil = 0
 local function showWarning(beast, untilAt)
+	if muting then return end
 	local words = Text.BEAST[beast]
 	if not words then return end
 	warning.Text = words.warn
@@ -70,6 +83,7 @@ local function showWarning(beast, untilAt)
 end
 -- Wave 2: a phase's own line (Text.BEAST[beast].phases[phase]), shown at least a second.
 local function showLine(line, untilAt)
+	if muting then return end
 	if type(line) ~= "string" then return end
 	warning.Text = line
 	warning.Visible = true
@@ -78,6 +92,7 @@ end
 
 -- Sounds: existing catalogue ids only (WildboundAudioCatalog), on the beast so they come from its direction.
 local function play(slot, parent, pitch, volume)
+	if muting then return end
 	local entry = Catalog.SOUNDS[slot]
 	if not entry or not parent then return end
 	local sound = Instance.new("Sound")
@@ -129,6 +144,19 @@ local function clearCircle(view)
 	view.circle = nil
 end
 
+-- SC0: a bystander's tell in the neutral colour at a lower opacity (same shape and timing); nothing for the target.
+local function soften(view, model)
+	if not view.bystander or not model then return end
+	for _, part in ipairs(model:GetDescendants()) do
+		-- Once per drawn part (a redraw makes new parts), so a second call never dims it again.
+		if part:IsA("BasePart") and part:GetAttribute("Softened") ~= true then
+			part.Color = NEUTRAL
+			part.Transparency = dim(part.Transparency)
+			part:SetAttribute("Softened", true)
+		end
+	end
+end
+
 -- Viper's lane: the exact rectangle of Config.lane, a few hundredths over the ground, with brighter edges.
 local function drawLane(view)
 	local L = view.laneSpec
@@ -143,6 +171,7 @@ local function drawLane(view)
 		marker("EdgeR", Vector3.new(0.25, 0.14, L.length), cframe, 0.15).Parent = lane
 		lane.Parent = folder
 		view.lane = lane
+		soften(view, lane)
 	end
 	local fill, left, right = view.lane:FindFirstChild("Fill"), view.lane:FindFirstChild("EdgeL"), view.lane:FindFirstChild("EdgeR")
 	fill.Size = Vector3.new(L.width, 0.12, math.max(L.length, 0.1))
@@ -165,6 +194,7 @@ local function drawCircle(view)
 		for i = 1, RING do marker("Ring" .. i, Vector3.new(0.18, 0.3, c.radius * 2 * math.pi / RING), CFrame.new(), 0.1).Parent = circle end
 		circle.Parent = folder
 		view.circle = circle
+		soften(view, circle)
 	end
 	local base = CFrame.new(c.x, c.y + 0.12, c.z)
 	view.circle.Disc.CFrame = base * CFrame.Angles(0, 0, math.pi / 2)
@@ -183,6 +213,7 @@ end
 
 local function shake(strength)
 	if reduced() then return end
+	if muting then return end
 	local camera = workspace.CurrentCamera
 	local untilAt = os.clock() + 0.25
 	local name = "WildboundBeastShake"
@@ -393,6 +424,8 @@ function handlers.Spawn(ev)
 	finishView(ev.id)
 	local template = visualFor(ev.beast)
 	local view = { beast = ev.beast, snaps = {}, mode = "snap", dx = ev.dx or 0, dz = ev.dz or 1 }
+	view.bystander = ev.bystander == true
+	view.behind = view.bystander and BYSTANDER_BEHIND or BEHIND
 	if template then
 		view.model = template:Clone()
 		-- Wave 2: the visual in the world is named exactly after the beast (Streamer, Root, Gaze, Lurker), proxy or art.
@@ -406,11 +439,14 @@ function handlers.Spawn(ev)
 		view.tells, view.wave2, view.exposure = {}, true, 0
 		-- A rigged model (bones under its mesh) animates its own posture; the Part proxies keep posture().
 		view.rigged = view.model ~= nil and view.model:FindFirstChildWhichIsA("Bone", true) ~= nil
-		publishPhase(view, "Spawn", ev.at, ev.at)
+		-- SC0: a bystander joining mid-encounter starts in the beast's current phase.
+		local phase = view.bystander and type(ev.phase) == "string" and ev.phase or "Spawn"
+		view.phase = phase ~= "Spawn" and phase or nil
+		publishPhase(view, phase, ev.at, ev.at)
 		view.extras = Instance.new("Folder")
 		view.extras.Name = ev.beast .. "Extras"
 		view.extras.Parent = folder
-		local hum = KIDS_HUM[ev.beast] and Catalog.SOUNDS[KIDS_HUM[ev.beast]]
+		local hum = not muting and KIDS_HUM[ev.beast] and Catalog.SOUNDS[KIDS_HUM[ev.beast]]
 		if hum then
 			-- Destroyed with the model (or the extras folder) when the encounter ends.
 			local sound = Instance.new("Sound")
@@ -445,7 +481,7 @@ function handlers.Lock(ev, view)
 	if not view.laneSpec then return end
 	view.laneSpec.dx, view.laneSpec.dz, view.laneSpec.length, view.laneSpec.locked = ev.dx, ev.dz, ev.length, true
 	drawLane(view)
-	if view.lane then view.lane.Fill.Transparency = 0.35 end
+	if view.lane then view.lane.Fill.Transparency = view.bystander and dim(0.35) or 0.35 end
 end
 function handlers.Dash(ev, view)
 	view.mode = "dash"
@@ -485,6 +521,8 @@ function handlers.Land(ev, view)
 	task.delay(0.35, function() clearCircle(view) end)
 end
 function handlers.Hit(ev, view)
+	-- SC0: never sent to a bystander; if it ever arrived, no feedback and no knock on this character.
+	if view.bystander then return end
 	local kid = KIDS_HIT_SOUND[view.beast]
 	play(kid or "hit", rootOf(view), 1, 1)
 	if not kid then shake(0.5) end
@@ -543,6 +581,7 @@ function handlers.Tell(ev, view)
 	item.shape, item.startAt, item.strikeAt, item.locked = ev.shape, ev.startAt, ev.strikeAt, ev.locked
 	drawShape(item.model, ev.shape, TELL_COLOR[view.beast] or RED, false)
 	if ev.locked and item.model:FindFirstChild("Fill") then item.model.Fill.Transparency = 0.35 end
+	soften(view, item.model)
 end
 function handlers.TellEnd(ev, view)
 	if view.wave2 then clearTell(view, ev.tell) end
@@ -553,10 +592,11 @@ function handlers.Strike(ev, view)
 	if item.shape.kind == "multi" then
 		-- Root's eruption: the roots rise on the drawn lanes, then sink.
 		drawShape(item.model, item.shape, TELL_COLOR.Root, true)
+		soften(view, item.model)
 		play("crack", rootOf(view), 1.25, 1)
 	else
 		for _, part in ipairs(item.model:GetChildren()) do
-			if part:IsA("BasePart") then part.Transparency = 0 end
+			if part:IsA("BasePart") then part.Transparency = view.bystander and dim(0) or 0 end
 		end
 	end
 	if ev.dodged then showLine(Text.DODGE and Text.DODGE.perfect, ev.at + 1) end
@@ -578,10 +618,10 @@ function handlers.Move(ev, view)
 	if ev.kind == "burrow" then play("dirt", rootOf(view), 0.7, 0.9) end
 end
 function handlers.Exposure(ev, view)
-	if view.wave2 and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
+	if view.wave2 and not view.bystander and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
 end
 function handlers.SightBreak(ev, view)
-	if not view.wave2 then return end
+	if not view.wave2 or view.bystander then return end
 	view.exposure = 0
 	local words = Text.BEAST.Gaze
 	if words and words.broken then showLine(words.broken, ev.at + 1) end
@@ -590,7 +630,7 @@ end
 function handlers.Cancel(_, view)
 	clearCircle(view)
 	clearLane(view)
-	warningUntil = 0
+	if not view.bystander then warningUntil = 0 end
 end
 function handlers.Disengage(ev, view)
 	if view.wave2 then publishPhase(view, "Disengage", ev.at, ev.untilAt) end
@@ -613,7 +653,11 @@ beastEvent.OnClientEvent:Connect(function(ev)
 	if not handler then return end
 	local view = views[ev.id]
 	if ev.type ~= "Spawn" and ev.type ~= "End" and not view then return end
-	handler(ev, view)
+	-- SC0: a bystander's events (or a bystander view's) are handled silently.
+	muting = (view ~= nil and view.bystander) or ev.bystander == true
+	local ok, message = pcall(handler, ev, view)
+	muting = false
+	if not ok then warn("Wildbound beasts client: " .. tostring(message)) end
 end)
 
 -- Wave 2: a move on the server's timeline (dash, arc, burrow, slide), held at its end until the next phase.
@@ -664,7 +708,7 @@ local function placeOf(view, at)
 		return x, y, z, dx or view.dx, dz or view.dz
 	end
 	local snaps = view.snaps
-	local renderAt = at - BEHIND
+	local renderAt = at - (view.behind or BEHIND)
 	local a, b = snaps[1], snaps[1]
 	for i = 1, #snaps do
 		if snaps[i].at <= renderAt then a = snaps[i]; b = snaps[i + 1] or snaps[i] end
@@ -815,7 +859,7 @@ RunService.Heartbeat:Connect(function()
 			view.model:PivotTo(base)
 		end
 		if view.wave2 then
-			if Config.OBSERVERS[view.beast] then observing = true end
+			if Config.OBSERVERS[view.beast] and not view.bystander then observing = true end
 			if view.beast == "Gaze" then exposure = math.max(exposure, view.exposure or 0) end
 			-- Root's walls rise at their scheduled time and hold this player back on this client only.
 			for _, item in pairs(view.tells) do
@@ -825,8 +869,10 @@ RunService.Heartbeat:Connect(function()
 					for _, part in ipairs(item.model:GetChildren()) do
 						if part:GetAttribute("Wall") then part.Material = Enum.Material.Wood end
 					end
-					raiseWalls(item.model)
-					play("creak", rootOf(view), 1.4, 1)
+					soften(view, item.model)
+					-- SC0: Root's walls hold back only the target; a bystander's stay see-through and never collide.
+					if not view.bystander then raiseWalls(item.model) end
+					if not view.bystander then play("creak", rootOf(view), 1.4, 1) end
 				end
 			end
 			if x and view.beast == "Lurker" and (view.phase == "Presence" or view.phase == "CoverApproach") then
@@ -846,6 +892,7 @@ RunService.Heartbeat:Connect(function()
 			-- A pulse on the ring that quickens toward the landing.
 			local left = math.max(view.circleSpec.landAt - at, 0)
 			local pulse = 0.1 + 0.3 * (0.5 + 0.5 * math.sin(at * (8 + 12 / (left + 0.3))))
+			if view.bystander then pulse = dim(pulse) end
 			for i = 1, RING do view.circle["Ring" .. i].Transparency = pulse end
 		end
 		if view.fadeFrom then fadeModel(view, math.clamp((os.clock() - view.fadeFrom) / 0.9, 0, 1)) end

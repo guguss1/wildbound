@@ -475,6 +475,9 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundBeastAbeja.luau": "ServerScriptService.WildboundBeastAbeja",
         "tests/WildboundBeastNube_Test.luau": "ServerStorage.WildboundBeastNube_Test",
         "tests/WildboundBeastAbeja_Test.luau": "ServerStorage.WildboundBeastAbeja_Test",
+        # SC0 shared beast visibility
+        "src/wildbound/WildboundBeastAudience.luau": "ServerScriptService.WildboundBeastAudience",
+        "tests/WildboundBeastAudience_Test.luau": "ServerStorage.WildboundBeastAudience_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

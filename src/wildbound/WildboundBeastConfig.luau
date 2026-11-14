@@ -47,6 +47,19 @@ Config.DIRECTOR = table.freeze({
 	CONDITIONS = table.freeze({ egg = "carryingEgg" }),
 })
 
+-- SC0 shared beast visibility (docs/design/wildbound-scuttler-plan.md Q4, owner decision 2026-11-14): every player sees
+-- every beast (La Silueta excepted) within RADIUS flat studs; only the target is ever struck, slowed or knocked. A
+-- bystander keeps a beast until it is RADIUS + LEAVE_MARGIN away (no flicker on the edge), sees at most MAX_PER_CLIENT
+-- other players' beasts (the nearest), and gets their snapshots every SNAP_SECONDS (5 Hz, the target keeps 10 Hz).
+-- Membership is re-evaluated every REFRESH_SECONDS. Every number is a PROPUESTA to tune with two players.
+Config.AUDIENCE = table.freeze({
+	RADIUS = 150,
+	LEAVE_MARGIN = 15,
+	MAX_PER_CLIENT = 4,
+	SNAP_SECONDS = 0.2,
+	REFRESH_SECONDS = 0.5,
+})
+
 -- Beast spawn design section 2: A "Guardian" (outside the budget, not run by the director today), B "Biome" (rolls only
 -- inside its biome tag), C "Global" (anywhere except safe zones and the biomes below). riskModifier scales one beast's
 -- base chance (1 = neutral; P0 sets every beast to 1, so nothing is retuned).

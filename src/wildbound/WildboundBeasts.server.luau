@@ -12,6 +12,11 @@
 -- dodgeable attacks are registered with and resolved by WildboundDodgeService (the same per-player states the
 -- inventory server's "dodge" press uses); the client's camera direction arrives on BeastObserve, is validated by
 -- WildboundBeastSight and only steers Gaze and Lurker, never a hit or a dodge.
+-- SC0 shared visibility (odd/tasks/wildbound-scuttler.md, owner decision Q4): every other player within
+-- Config.AUDIENCE.RADIUS of a beast also gets its visual events (spawn, phases, tells, moves, end) and 5 Hz snapshots,
+-- as filtered copies marked `bystander` (WildboundBeastAudience). Hits, slows, sticky, marks, knocks, egg drops, the
+-- Gaze meter and every HUD cue stay with the target. Membership is re-evaluated as players move: an entering player
+-- gets a spawn snapshot, a leaving one an End. The director, the budget and the dodge states are untouched.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -26,6 +31,7 @@ local Biomes = require(script.Parent:WaitForChild("WildboundBiomes"))
 local Attack = require(script.Parent:WaitForChild("WildboundBeastAttack"))
 local Sight = require(ReplicatedStorage:WaitForChild("WildboundBeastSight"))
 local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
+local Audience = require(script.Parent:WaitForChild("WildboundBeastAudience"))
 for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
 	Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))
 end
@@ -53,7 +59,8 @@ do
 	local assets = ServerStorage:FindFirstChild("WildboundAssets")
 	Proxies.ensure(ReplicatedStorage, assets and assets:FindFirstChild("Beasts"))
 end
--- Server to the target client only. No server handler is connected: whatever a client fires on it reaches nothing.
+-- Server to the target client, and (SC0) visual copies to bystanders in range. No server handler is connected:
+-- whatever a client fires on it reaches nothing.
 local beastEvent = Instance.new("RemoteEvent")
 beastEvent.Name = "BeastEvent"
 beastEvent.Parent = network
@@ -80,6 +87,8 @@ local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strik
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
 	observeDropped = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
+local AUDIENCE = Config.AUDIENCE
+local audience = Audience.new() -- SC0: which other players see which encounter
 
 local function now() return workspace:GetServerTimeNow() end
 
@@ -277,6 +286,17 @@ local function send(player, payload)
 	if player.Parent == Players then beastEvent:FireClient(player, payload) end
 end
 
+-- SC0: a visual event's filtered copy to the encounter's bystanders; a non-visual event (a hit) is never copied.
+local function sendBystanders(id, event)
+	local copy = Audience.forBystander(event)
+	if not copy then return end
+	Audience.remember(audience, id, copy) -- the live visual state, replayed to a late joiner
+	for _, userId in ipairs(Audience.recipients(audience, id)) do
+		local viewer = Players:GetPlayerByUserId(userId)
+		if viewer then send(viewer, copy) end
+	end
+end
+
 local function close(id, reason, at, event)
 	local entry = live[id]
 	live[id] = nil
@@ -294,8 +314,10 @@ local function close(id, reason, at, event)
 		if ending then
 			logEvent(id, "End", at, reason)
 			send(entry.player, ending)
+			sendBystanders(id, ending)
 		end
 	end
+	Audience.close(audience, id)
 end
 
 -- Wave 2: where each beast may appear. Viper and Pouncer keep their ring and prefer a hidden point; Gaze prefers a
@@ -561,14 +583,57 @@ local function stepEncounter(id, entry, at)
 			if event.type == "Hit" then landHit(entry, event) end
 			logEvent(id, event.type, event.at, event.reason or event.hit)
 			send(entry.player, event)
+			sendBystanders(id, event)
 		end
 	end
 end
 
 local function snapshot(entry, at)
 	local e = entry.e
-	send(entry.player, { type = "Snap", id = e.id, at = at, phase = e.phase, x = e.pos.x, y = e.pos.y, z = e.pos.z,
-		dx = e.dx, dz = e.dz, center = e.beast == "Pouncer" and e.phase == "Telegraph" and not e.frozen and e.center or nil })
+	local snap = { type = "Snap", id = e.id, at = at, phase = e.phase, x = e.pos.x, y = e.pos.y, z = e.pos.z,
+		dx = e.dx, dz = e.dz, center = e.beast == "Pouncer" and e.phase == "Telegraph" and not e.frozen and e.center or nil }
+	send(entry.player, snap)
+	-- SC0: bystanders get the same snapshot at SNAP_SECONDS (5 Hz) instead of 10 Hz.
+	local copy
+	for _, userId in ipairs(Audience.recipients(audience, e.id)) do
+		if Audience.snapDue(audience, e.id, userId, at, AUDIENCE.SNAP_SECONDS) then
+			local viewer = Players:GetPlayerByUserId(userId)
+			copy = copy or Audience.forBystander(snap)
+			if viewer and copy then send(viewer, copy) end
+		end
+	end
+end
+
+-- SC0: re-evaluates who sees which encounter from the server's own positions. An entering player gets a spawn
+-- snapshot (the beast where it is now, in its phase) and a replay of its live tells, lane, circle and move; a leaving
+-- one an End, so its client drops the view. A viewer in a safe zone sees no beast, one in the Pradera only the summoned
+-- kids beasts (the forest beasts never exist there). Membership is committed only once the spawn was sent.
+local function refreshAudience(at)
+	local encounters, viewers = {}, {}
+	for id, entry in pairs(live) do
+		local e = entry.e
+		table.insert(encounters, { id = id, beast = e.beast, x = e.pos.x, z = e.pos.z, target = entry.player.UserId,
+			summoned = Config.SUMMONED[e.beast] == true })
+	end
+	for _, player in ipairs(Players:GetPlayers()) do
+		local character, humanoid, root = bodyOf(player)
+		if character and humanoid.Health > 0 then
+			local p = root.Position
+			local _, safe = Rules.zone(p.X, p.Z)
+			table.insert(viewers, { userId = player.UserId, x = p.X, z = p.Z, safe = safe, meadow = inMeadow(p.X, p.Z) })
+		end
+	end
+	local _, leaves = Audience.refresh(audience, encounters, viewers, AUDIENCE, function(item)
+		local viewer, entry = Players:GetPlayerByUserId(item.userId), live[item.id]
+		if not viewer or not entry then return false end
+		send(viewer, Audience.spawnFor(entry.e, at))
+		for _, event in ipairs(Audience.replay(audience, item.id, at)) do send(viewer, event) end
+		return true
+	end)
+	for _, item in ipairs(leaves) do
+		local viewer = Players:GetPlayerByUserId(item.userId)
+		if viewer then send(viewer, Audience.leaveFor(item.id, at)) end
+	end
 end
 
 -- Kids biome: presence instead of chance. Each poll, a player in the Pradera near the pond (or near La Colmena while
@@ -591,11 +656,12 @@ local function summonPass(player, at)
 	end
 end
 
-local stepClock, snapClock, pollClock = 0, 0, 0
+local stepClock, snapClock, pollClock, audienceClock = 0, 0, 0, 0
 RunService.Heartbeat:Connect(function(dt)
 	stepClock += dt
 	snapClock += dt
 	pollClock += dt
+	audienceClock += dt
 	if stepClock >= STEP then
 		stepClock = 0
 		local at = now()
@@ -613,6 +679,11 @@ RunService.Heartbeat:Connect(function(dt)
 		snapClock = 0
 		local at = now()
 		for _, entry in pairs(live) do snapshot(entry, at) end
+	end
+	if audienceClock >= AUDIENCE.REFRESH_SECONDS then
+		audienceClock = 0
+		local ok, message = pcall(refreshAudience, now())
+		if not ok then warn("Wildbound beasts: audience refresh error: " .. tostring(message)) end
 	end
 	-- Wave 2: the director's calendar decides which beasts roll (20 s each, 1 s apart); this only asks it often enough.
 	if pollClock >= D.POLL_SECONDS then
@@ -646,11 +717,15 @@ Players.PlayerRemoving:Connect(function(player)
 	for id, entry in pairs(live) do
 		if entry.player == player then
 			live[id] = nil
-			Enc.finish(entry.e, "Leave", at)
+			local ending = Enc.finish(entry.e, "Leave", at)
 			Attack.closeAll(entry.e, nil)
 			logEvent(id, "End", at, "Leave")
+			-- SC0: the leaving target's beasts end for their bystanders too.
+			if ending then sendBystanders(id, ending) end
+			Audience.close(audience, id)
 		end
 	end
+	Audience.forgetViewer(audience, player.UserId)
 	local released = Director.forget(director, player.UserId, at)
 	count("ended", #released)
 	players[player] = nil

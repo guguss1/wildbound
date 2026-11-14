@@ -560,5 +560,82 @@ return function(sources, Proxies)
 		assert(dodgeAt and landAt and dodgeAt < landAt, "resolve before the hit lands")
 	end)
 
+	-- SC0 (odd/tasks/wildbound-scuttler.md): shared beast visibility. Visual events reach bystanders in range through
+	-- WildboundBeastAudience; effects (hit, slow, sticky, mark, knock, egg drop) stay on the target.
+	local function body(text, header)
+		local i = text:find(header, 1, true)
+		assert(i, "missing " .. header)
+		local j = text:find("\nend\n", i, true)
+		return text:sub(i, j or #text)
+	end
+
+	case("SC0: the beast script fans visual events out through WildboundBeastAudience and keeps effects on the target", function()
+		local beasts = sources.beasts
+		has(beasts, 'local Audience = require(script.Parent:WaitForChild("WildboundBeastAudience"))')
+		has(beasts, "local audience = Audience.new()")
+		has(beasts, "local copy = Audience.forBystander(event)", "only the filtered copy goes to bystanders")
+		local step = body(beasts, "local function stepEncounter(id, entry, at)")
+		local targetAt = step:find("send(entry.player, event)", 1, true)
+		local fanAt = step:find("sendBystanders(id, event)", 1, true)
+		assert(targetAt and fanAt and targetAt < fanAt, "the target first, then the bystanders")
+		for _, header in ipairs({ "local function landHit(entry, event)", "local function applySlow(player, multiplier, seconds)",
+			"local function applySticky(player, speed, seconds)", "local function dodgeStep(entry, event)" }) do
+			local text = body(beasts, header)
+			hasNot(text, "Audience", header); hasNot(text, "sendBystanders", header)
+		end
+		hasNot(beasts, "FireAllClients", "never a broadcast to everyone")
+		local _, handlers = beasts:gsub("OnServerEvent", "")
+		equal(handlers, 1, "no new client-to-server traffic")
+	end)
+
+	case("SC0: bystanders join and leave as players move, get throttled snapshots, and are cleaned up on every end", function()
+		local beasts = sources.beasts
+		has(beasts, "Audience.refresh(audience, ", "membership re-evaluated on a clock")
+		has(beasts, "audienceClock >= AUDIENCE.REFRESH_SECONDS")
+		has(beasts, "send(viewer, Audience.spawnFor(", "a late joiner gets a spawn snapshot")
+		has(beasts, "send(viewer, Audience.leaveFor(", "a leaver gets a cleanup")
+		has(beasts, "Audience.snapDue(audience, e.id, ", "bystander movement is throttled")
+		local closeBody = body(beasts, "local function close(id, reason, at, event)")
+		has(closeBody, "sendBystanders(id, ending)", "bystanders see the end")
+		has(closeBody, "Audience.close(audience, id)", "and are forgotten once")
+		local removing = beasts:sub(beasts:find("Players.PlayerRemoving:Connect", 1, true) or 1)
+		has(removing, "Audience.forgetViewer(audience, player.UserId)", "a leaving viewer is dropped")
+		has(removing, "Audience.close(audience, id)", "a leaving target's beasts end for their bystanders")
+		equal(sources.config.AUDIENCE.RADIUS, 150, "proposed radius, configurable in WildboundBeastConfig")
+	end)
+
+	case("SC0: the client draws a bystander's beast quietly: no HUD line, sound, shake, knock, wall or observation", function()
+		local client = sources.client
+		has(client, "view.bystander = ev.bystander == true")
+		for _, header in ipairs({ "local function play(slot, parent, pitch, volume)", "local function showWarning(beast, untilAt)",
+			"local function showLine(line, untilAt)", "local function shake(strength)" }) do
+			has(body(client, header), "if muting then return end", header)
+		end
+		has(body(client, "function handlers.Hit(ev, view)"), "if view.bystander then return end", "no hit feedback or knock")
+		has(body(client, "function handlers.Exposure(ev, view)"), "view.bystander", "no Gaze meter")
+		has(client, "if Config.OBSERVERS[view.beast] and not view.bystander then observing = true end", "no BeastObserve")
+		has(client, "if not view.bystander then raiseWalls(item.model) end", "Root's walls never hold a bystander back")
+		has(client, "local function soften(view, model)", "neutral, lower-opacity tells")
+		has(client, "muting = (view ~= nil and view.bystander) or ev.bystander == true")
+		local _, fires = client:gsub("FireServer%(", "")
+		equal(fires, 1, "still one FireServer")
+	end)
+
+	case("SC0 correction: Pradera and safe viewers, committed spawns with a replay, smooth and single-dimmed bystander views", function()
+		local beasts, client = sources.beasts, sources.client
+		local refresh = body(beasts, "local function refreshAudience(at)")
+		has(refresh, "summoned = Config.SUMMONED[e.beast] == true", "the module knows which beasts the Pradera allows")
+		has(refresh, "meadow = inMeadow(", "a meadow viewer is marked")
+		has(refresh, "safe = safe", "a safe-zone viewer is marked")
+		has(refresh, "Audience.replay(audience, item.id, at)", "a late joiner gets the live tells, lane and move")
+		has(refresh, "return true", "membership is committed only after the spawn was sent")
+		has(body(beasts, "local function sendBystanders(id, event)"), "Audience.remember(audience, id, copy)",
+			"every visual copy is remembered for late joiners")
+		has(client, "view.behind = view.bystander and BYSTANDER_BEHIND or BEHIND", "a bystander renders behind its 5 Hz snapshots")
+		has(client, "local BYSTANDER_BEHIND = Config.AUDIENCE.SNAP_SECONDS + ", "the delay follows the snapshot interval")
+		has(body(client, "local function placeOf(view, at)"), "local renderAt = at - (view.behind or BEHIND)")
+		has(body(client, "local function soften(view, model)"), 'GetAttribute("Softened")', "soften never dims a part twice")
+	end)
+
 	return result
 end
