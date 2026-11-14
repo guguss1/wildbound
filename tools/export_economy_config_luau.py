@@ -20,7 +20,7 @@ _HERE = str(Path(__file__).resolve().parent)
 if _HERE not in sys.path:  # `python -I` does not put the script folder on the path
     sys.path.insert(0, _HERE)
 
-import simulate_economy as eco  # noqa: E402  (the one reader of the tuning block)
+import economy_tuning as eco  # noqa: E402  (the one reader of the tuning block)
 
 REPO = Path(__file__).resolve().parent.parent
 MODULE = REPO / "src/wildbound/WildboundEconomyConfig.luau"

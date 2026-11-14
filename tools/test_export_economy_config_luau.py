@@ -15,7 +15,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 
 import export_economy_config_luau as gen
-import simulate_economy as eco
+import economy_tuning as eco
 
 REPO = Path(__file__).resolve().parent.parent
 DOC = REPO / "docs/mechanics/wildbound-economy-p0.md"

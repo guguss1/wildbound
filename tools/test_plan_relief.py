@@ -156,7 +156,7 @@ class ReliefLayout(unittest.TestCase):
     def test_hide_spots_and_slots_on_flat_ground(self):
         points = [(s["x"], s["z"]) for s in json.loads(HIDE.read_text(encoding="utf-8"))["spots"]]
         points += LUMIPOL_SLOTS
-        import simulate_economy as eco  # the one reader of the economy tuning block
+        import economy_tuning as eco  # the one reader of the economy tuning block
         points += [(s["x"], s["z"]) for s in eco.load_tuning()["gather"]["slots"]]
         self.assertGreater(len(points), 40)
         for p in points:

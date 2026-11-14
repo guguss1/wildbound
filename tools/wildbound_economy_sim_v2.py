@@ -8,8 +8,9 @@ carry speed), lose the carried load to beasts, PvP or a bat hit, bank Esencia, i
 sell the hatched creature, collect the farm and buy upgrades. Every profile field and every rate
 the code does not define (PvP, bat, beast loss per trip) is ASSUMED and listed in the output.
 
-It replaces nothing: tools/simulate_economy.py (P0 materials) and tools/simulate_hub_economy.py
-stay as they are. The old 183-208 s expedition numbers are not used.
+It replaces tools/simulate_economy.py (P0 materials), retired on 2026-11-14; its tuning reader now
+lives in tools/economy_tuning.py. tools/simulate_hub_economy.py stays as it is.
+The old 183-208 s expedition numbers are not used.
 
 Simplifications (also printed in the report):
   * losses are rolled once per trip at a combined rate, not from the Beast Director's 20 s ticks;
@@ -289,7 +290,7 @@ def load_numbers(repo=REPO, source="live", balance="proposed"):
             raise NumbersUnavailable(f"{ECONOMY_CONFIG}: cannot parse ({error})") from error
     elif source == "doc":
         try:
-            import simulate_economy as eco
+            import economy_tuning as eco
             economy = eco.load_tuning()
         except Exception as error:  # noqa: BLE001
             raise NumbersUnavailable(f"docs/mechanics/wildbound-economy-p0.md: cannot load ({error})") from error

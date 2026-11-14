@@ -8,9 +8,10 @@ breeder ladders, and the Robux rows modelled only as purchase modifiers in the p
 (nothing is a product; `monetization` must be "none" or the tool refuses to run).
 
 THIS MODELS MATH ONLY. It says nothing about fun or balance, and the policies are the document's
-invented archetypes, not players. `tools/simulate_economy.py` (the P0 expedition simulator) stays
-untouched; this tool imports it for the shared helpers and for the P0 tuning block, so the first
-two tree tiers are cross-checked against the ids and costs that exist today.
+invented archetypes, not players. It imports `tools/economy_tuning.py` for the shared helpers and
+the P0 tuning block, so the first two tree tiers are cross-checked against the ids and costs that
+exist today. (`tools/simulate_economy.py`, the P0 expedition simulator, was retired on 2026-11-14
+in favour of `tools/wildbound_economy_sim_v2.py`.)
 
 SIMULATOR ASSUMPTIONS (not game data; every one is printed in the report):
   * a session is 20 minutes of play: a 2-minute first steal near the hub, then 6-minute cycles of
@@ -59,7 +60,7 @@ _HERE = str(Path(__file__).resolve().parent)
 if _HERE not in sys.path:  # `python -I` does not put the script folder on the path
     sys.path.insert(0, _HERE)
 
-import simulate_economy as p0  # noqa: E402  (shared helpers and the P0 tuning block)
+import economy_tuning as p0  # noqa: E402  (the P0 tuning block reader)
 
 REPO = Path(__file__).resolve().parent.parent
 DOC = REPO / "docs/design/wildbound-economy-and-offers.md"

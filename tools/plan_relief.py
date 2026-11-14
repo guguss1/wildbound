@@ -40,7 +40,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))  # -I leaves the script folder off the path
 import plan_forest_layout as forest  # noqa: E402
 import plan_islands as islands  # noqa: E402  (island centres and design floor radii)
-import simulate_economy as eco  # noqa: E402  (the one reader of the economy tuning block)
+import economy_tuning as eco  # noqa: E402  (the one reader of the economy tuning block)
 
 REPO = Path(__file__).resolve().parent.parent
 LAYOUT = REPO / "assets/maps/forest-layout/forest-layout-v1.json"

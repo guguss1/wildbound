@@ -36,7 +36,7 @@ Two ways, both apply at once with no restart:
 1. Press **Copiar valores**. The box first lists every changed value with its file, then shows a Luau table, one line per value, with `-- CHANGED (default X)` on the values you changed and, above each group, the file that holds the default. Roblox cannot write the clipboard: click the box, Ctrl+A, Ctrl+C.
 2. Paste the changed numbers into the named module default (for example `SPRINT_MULTIPLIER = 1.45` in `Stamina.CONSTANTS`).
 3. Change the same `default` in `WildboundTuningSchema.luau`.
-4. Update the tests that pin the old number on purpose (mark the change in the test), run the suites, and commit. `tools/simulate_economy.py` and `tools/simulate_silueta_pressure.py` read the module source, so they see the new default; they never see live tuning.
+4. Update the tests that pin the old number on purpose (mark the change in the test), run the suites, and commit. `tools/simulate_silueta_pressure.py` reads the module source, so it sees the new default; it never sees live tuning. (`tools/simulate_economy.py` was retired on 2026-11-14 in favour of `tools/wildbound_economy_sim_v2.py`, which reads `WildboundEconomyConfig.luau`.)
 
 ## Edit mode: values persist in the place
 

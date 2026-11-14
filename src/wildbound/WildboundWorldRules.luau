@@ -183,7 +183,8 @@ end
 function Rules.zone(x, z)
 	if not Rules.finite(x) or not Rules.finite(z) then return false, false end
 	-- HB-T6: the hub disc is safe like the camp (no PvP, no beasts, no strikes, chases end).
-	-- The camp and shelter circles stay literal: tools/simulate_economy.py and simulate_silueta_pressure.py read them from
+	-- The camp and shelter circles stay literal: tools/simulate_silueta_pressure.py reads them from (as did
+	-- tools/simulate_economy.py until it was retired on 2026-11-14)
 	-- this source (Rules.CAMP_X, CAMP_Z, CAMP_RADIUS repeat the camp's; a test keeps them equal).
 	local safe = Rules.distance(x, z, -140, 140) <= 35 or Rules.distance(x, z, 105, 125) <= 22
 		or Rules.refugeAt(x, z) ~= nil

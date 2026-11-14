@@ -6,8 +6,9 @@
 -- speed from training plus any other bonus never passes WALK_CAP. A player slowed by an egg in the arms, a heavy
 -- pouch or a carried creature gets no bonus, so the parents' chase (19) and the egg carrier's burst (18.7) keep
 -- their balance. The sprint (Stamina.SPEED_CAP 24) and the Burst (Stamina.BURST_CAP 28) keep their own caps, so a
--- trained player is never much faster than a new one. The simulator (tools/simulate_economy.py) reads WALK_STEP and
--- MAX_LEVEL from this file and checks a fully trained greedy player against the 180 s expedition floor.
+-- trained player is never much faster than a new one. The old simulator (tools/simulate_economy.py) read WALK_STEP and
+-- MAX_LEVEL from this file and checked a fully trained greedy player against the 180 s expedition floor; it was
+-- retired on 2026-11-14 in favour of tools/wildbound_economy_sim_v2.py.
 local Training = {}
 
 local function finite(value)

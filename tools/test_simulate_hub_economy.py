@@ -18,7 +18,7 @@ import re
 import unittest
 from pathlib import Path
 
-import simulate_economy as p0
+import economy_tuning as p0
 import simulate_hub_economy as hub
 
 REPO = Path(__file__).resolve().parent.parent

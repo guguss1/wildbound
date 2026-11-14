@@ -44,7 +44,7 @@ CaptureSession.CONSTANTS = table.freeze({
 	SPOOK_SECONDS = 2,
 	MAX_FAILS = 3,
 	-- H2: floors for the per-player capture skills. CALM_MIN stays above the 3.6 s a still player can fill by chance
-	-- (tools/simulate_economy.py); RETRY_MIN keeps a miss from being free.
+	-- (tools/simulate_economy.py, retired 2026-11-14); RETRY_MIN keeps a miss from being free.
 	CALM_MIN = 4,
 	RETRY_MIN = 3,
 	-- H1 seal step. The marker waits SEAL_DELAY after the meter fills, then sweeps the bar from 0 to 1 in SEAL_SWEEP

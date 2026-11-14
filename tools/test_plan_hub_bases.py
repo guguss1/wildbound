@@ -28,7 +28,7 @@ import layout_geometry as g
 import plan_forest_layout as forest
 import plan_hub_bases as plan
 import plan_pradera_layout as pradera
-import simulate_economy as p0
+import economy_tuning as p0
 
 REPO = Path(__file__).resolve().parent.parent
 OPEN_WORLD = REPO / "assets/maps/open-world/layout-v1.json"
