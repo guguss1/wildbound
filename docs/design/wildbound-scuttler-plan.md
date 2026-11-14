@@ -68,7 +68,7 @@ Reuse: `Attack.open/aim/lock/hit/miss` (Streamer's rush is the template for the 
 1. **Charge** (phase `PulseCharge`, `PulseChargeSeconds`): Scuttler rears up; the client draws the real ring (`circle`, `PulseRadiusStuds`) from the start, plus antenna and mouth glow.
 2. **Pulse**: one radial check at the strike against the drawn ring. The attack is registered with the dodge (a perfect press cancels it), and stepping or dashing out of the ring also avoids it (the pack's "dash lateral").
 3. **Effect on a landed pulse**: no damage. A slow (`PulseSlowMultiplier` for `PulseSlowSeconds`, through the existing `applySlow`, which never stacks) and a client camera shake and short desaturation (`shake`, skipped by "Efectos suaves" like every other shake). No control inversion, no camera steal.
-4. **Egg risk** ("si ya estabas en mal estado"): "bad state" is defined server-side as **already pulsed within `PressureMemorySeconds`**. The second landed pulse inside that memory is escalated to a `Hit` with damage 0, so the egg drops through the one existing path (`BeastHit` -> `Heist.dropEgg(player, "Hit")`), no lock-zone change. Behind the switch `PulseCanDropEgg` (proposed **on**, open question Q2). `MARKED_HEALTH` is not used: health only drops in private mode, so it cannot define "bad state" everywhere.
+4. **Egg risk** ("si ya estabas en mal estado"): "bad state" is defined server-side as **already pulsed within `PressureMemorySeconds`**. The second landed pulse inside that memory is escalated to a `Hit` with damage 0, so the egg drops through the one existing path (`BeastHit` -> `Heist.dropEgg(player, "Hit")`), no lock-zone change. Behind the switch `PulseCanDropEgg` (**on**, Q2 decided by the user). `MARKED_HEALTH` is not used: health only drops in private mode, so it cannot define "bad state" everywhere.
 
 New code needed outside the lock zone: today every `Hit` event reaches `BeastHit` and drops the egg, so a non-damaging effect needs its own outcome. Add `Attack.afflict(events, e, world, attack, now, fields)`: the same dodge resolution as `Attack.hit`, but it emits `Strike` + `Afflict` (not `Hit`). The beast script handles `Afflict` by calling `applySlow` only (and telling the client to shake), never `BeastHit`.
 
@@ -241,6 +241,6 @@ Also add the new scripts to `tools/deploy_manifest.py` and `tools/test_deploy_ma
 ## 15. Open product questions for the user
 
 - **Q1 Scale**: DECIDED 2026-11-14 by the user: smaller, 12-14 studs tall (not the pack's 16-19), so it moves well between trees.
-- **Q2 Egg and the pulse**: may the pulse make the player drop the egg (proposed: only on a second pulse within 8 s), or should the pulse never touch the egg?
+- **Q2 Egg and the pulse**: DECIDED 2026-11-14 by the user: yes, only on a second landed pulse within PressureMemorySeconds (8 s); the first pulse only slows. PulseCanDropEgg = true.
 - **Q3 Rarity**: is "about 1/60 per 10 s roll, 75 s species cooldown, only when no other beast is active" the right rarity for a threat-3 beast?
 - **Q4 Other players**: should nearby players see (and be hit by the pulse of) someone else's Scuttler? Today every beast is visible only to its target; changing that is a wider beast-system change.
