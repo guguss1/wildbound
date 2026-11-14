@@ -236,14 +236,14 @@ Schema.SYSTEMS = table.freeze({
 		-- RW6: the biome variant rotates every this many waves (never by nights).
 		value("VARIANT_EVERY_WAVES", "Cambia el bosque cada (oleadas)", "WaveClock", "VARIANT_EVERY_WAVES", 1, 1, 12, 1),
 	}) }),
-	-- Nest Heist Phase 3 (NS5): the treadmill. HF-T4 (user decision Q9): the walk cap is 16 and stays under 17, so no
-	-- walk reaches La Silueta's night hunt (17); the sprint and the Burst keep the stamina caps (24 and 28).
+	-- Nest Heist Phase 3 (NS5): the treadmill. PF2 (user decision 2026-11-14, replaces HF-T4 / Q9's cap of 16): a large
+	-- trained walk, +2 per level up to 50; the cap never goes under the base walk (16).
 	table.freeze({ id = "Training", label = "Entrenamiento", entries = table.freeze({
-		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 0.25, 0, 1, 0.05),
-		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 4, 0, 10, 1),
-		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 16, 16, 16.5, 0.5),
+		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 2, 0, 5, 0.25),
+		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 17, 0, 30, 1),
+		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 50, 16, 60, 1),
 		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 30, 0, 500, 5),
-		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.6, 1, 3, 0.1),
+		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.2, 1, 3, 0.1),
 	}) }),
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	table.freeze({ id = "Companion", label = "Compañero", entries = table.freeze({

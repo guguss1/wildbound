@@ -110,7 +110,8 @@ Balance.CONSTANTS = freeze({
 -- CONSTANTS; WildboundStamina CONSTANTS; the TuningSchema HUNT_NIGHT entry.
 Balance.LIVE = freeze({
 	dayCycle = { cycleSeconds = 720, phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 } },
-	training = { walkStep = 0.25, maxLevel = 4, walkCap = 16, walkCapMin = 16, walkCapMax = 16.5, baseCost = 30, costGrowth = 1.6 },
+	-- PF2 (user decision 2026-11-14): the live treadmill is +2 walk per level, 17 levels, a walk cap of 50.
+	training = { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60, baseCost = 30, costGrowth = 1.2 },
 	bat = { cooldown = 5, ragdollSeconds = 1.2, immunity = 3, push = 45, lift = 20, immunityMax = 15 },
 	incubator = { hatchSeconds = 15, slots = 1 },
 	movement = { sprintMultiplier = 1.45, sprintCap = 24 },
@@ -123,7 +124,7 @@ local function scalar(min, max, integer) return { kind = "scalar", min = min, ma
 local function array(min, max, integer) return { kind = "array", min = min, max = max, integer = integer == true } end
 local function map(min, max, integer) return { kind = "map", min = min, max = max, integer = integer == true } end
 Balance.RANGES = freeze({
-	["treadmill.speeds"] = array(16, 24),
+	["treadmill.speeds"] = array(16, 60), -- PF2: the live walk cap tunes up to 60
 	["treadmill.costs"] = array(0, 5000, true),
 	["incubation.firstEggSeconds"] = scalar(5, 60),
 	["incubation.secondEggSeconds"] = scalar(5, 120),

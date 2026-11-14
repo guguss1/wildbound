@@ -1,9 +1,10 @@
 -- Invoke with require(freshTestClone)(require(freshTrainingClone), freshTrainingClone.Source, { state =
 -- require(freshStateClone), economy = require(freshEconomyClone), config = require(freshConfigClone),
 -- stamina = require(freshStaminaClone), schema = require(freshSchemaClone), keys = require(freshKeysClone),
--- text = require(freshTextClone), server = WildboundServer.Source, bridge = WildboundTuning.Source }).
--- Nest Heist Phase 3 (NS5): the camp's "Entrenamiento" treadmill. Esencia buys small walk-speed levels with a growing
--- price and an explicit cap; every speed keeps a ceiling so parents and new players still meet a trained player.
+-- text = require(freshTextClone), server = WildboundServer.Source, bridge = WildboundTuning.Source,
+-- treadmill = WildboundTreadmillService.Source }).
+-- Nest Heist Phase 3 (NS5): the camp's "Entrenamiento" treadmill. PF2 (user decision 2026-11-14, "como Steal an Egg,
+-- muchísimo"): each level adds a large walk step, from 16 up to a walk cap of 50; laps on the belt grant the levels.
 return function(Training, source, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -25,28 +26,32 @@ return function(Training, source, sources)
 
 	case("TR-1: walk levels: a growing price, then nothing past the cap", function()
 		local C = Training.CONSTANTS
-		equal(C.WALK_STEP, 0.25); equal(C.MAX_LEVEL, 4); equal(C.WALK_CAP, 16, "HF-T4, user decision Q9")
-		equal(Training.cost(0), 30); equal(Training.cost(1), 48); equal(Training.cost(2), 77); equal(Training.cost(3), 123)
-		equal(Training.cost(4), nil, "no level past the cap")
+		equal(C.WALK_STEP, 2, "PF2: +2 walk per level"); equal(C.MAX_LEVEL, 17); equal(C.WALK_CAP, 50, "PF2: 16 -> 50")
+		equal(Training.cost(0), 30); equal(Training.cost(1), 36); equal(Training.cost(2), 43); equal(Training.cost(16), 555)
+		equal(Training.cost(17), nil, "no level past the cap")
 		equal(Training.cost(-1), nil); equal(Training.cost(0 / 0), nil)
 	end)
 
-	-- Deliberately changed (HF-T4, user decision Q9): the walk cap fell from 17.5 to 16, the base walk, so no bonus
-	-- makes a walk reach La Silueta's night hunt (17); escaping needs the sprint, the Burst or a dodge.
-	case("TR-2: the walk bonus applies only unencumbered and never above WALK_CAP", function()
-		near(Training.walkSpeed(16, 16, { walk = 4 }), 16, "four levels: capped at the base walk")
-		near(Training.walkSpeed(16, 16, { walk = 99 }), 16, "levels past the cap count as the cap")
-		near(Training.walkSpeed(16, 16, { walk = 4 }, 5), 16, "with any other bonus, never above the cap")
-		near(Training.walkSpeed(15, 16, { walk = 2 }), 15, "a slowed walk gets nothing")
-		near(Training.walkSpeed(11, 16, { walk = 4 }), 11, "an egg in the arms gets nothing")
+	-- Deliberately changed (PF2, user decision 2026-11-14; replaces HF-T4 / Q9's walk cap of 16): training must be felt.
+	-- An unencumbered walk gains WALK_STEP per level up to WALK_CAP; a carrier (egg, creature, heavy pouch) keeps the
+	-- same share of the trained walk that the carry leaves of the base walk, so carrying still costs speed.
+	case("TR-2: the walk bonus is large, capped at WALK_CAP, and scaled by the carry share", function()
+		near(Training.walkSpeed(16, 16, { walk = 4 }), 24, "four levels: +8")
+		near(Training.walkSpeed(16, 16, { walk = 17 }), 50, "the top level reaches the cap")
+		near(Training.walkSpeed(16, 16, { walk = 99 }), 50, "levels past the cap count as the cap")
+		near(Training.walkSpeed(16, 16, { walk = 17 }, 5), 50, "with any other bonus, never above the cap")
+		near(Training.walkSpeed(11, 16, { walk = 17 }), 34.375, "an egg carrier keeps 11/16 of the trained walk")
+		near(Training.walkSpeed(11, 16, { walk = 4 }), 16.5, "four levels while carrying one egg")
+		near(Training.walkSpeed(11, 16, nil), 11, "an untrained carrier is unchanged")
 		near(Training.walkSpeed(16, 16, nil), 16); near(Training.walkSpeed(16, 16, { walk = -2 }), 16)
 	end)
 
-	case("TR-3: sprint and Burst keep their own caps over a trained walk", function()
-		local walk = Training.walkSpeed(16, 16, { walk = 4 }, 5)
-		assert(Stamina.speed(walk, "sprint") <= Stamina.CONSTANTS.SPEED_CAP, "sprint stays under its cap")
-		assert(Stamina.speed(walk, "walk", true) <= Stamina.CONSTANTS.BURST_CAP, "the Burst stays under its cap")
-		near(Stamina.speed(11, "walk", true), 18.7, "an egg carrier's Burst is unchanged (parents run 19)")
+	case("TR-3: sprint and Burst never slow a trained walk; an untrained one keeps their caps", function()
+		local walk = Training.walkSpeed(16, 16, { walk = 17 }, 5)
+		near(Stamina.speed(walk, "sprint"), walk, "a sprint never slows a trained walk")
+		near(Stamina.speed(walk, "walk", true), walk, "nor does the Burst")
+		assert(Stamina.speed(16, "sprint") <= Stamina.CONSTANTS.SPEED_CAP, "an untrained sprint stays under its cap")
+		near(Stamina.speed(11, "walk", true), 18.7, "an untrained egg carrier's Burst is unchanged (parents run 19)")
 	end)
 
 	case("TR-4: State:train pays Esencia at camp, one level at a time, and refuses past the cap", function()
@@ -80,7 +85,9 @@ return function(Training, source, sources)
 			assert(keys[key], "schema entry " .. key)
 			equal(keys[key].default, Training.CONSTANTS[key], key)
 		end
-		assert(keys.WALK_CAP.max < 17, "the tuning can never push the walk cap to La Silueta's 17")
+		assert(keys.WALK_CAP.min == 16 and keys.WALK_CAP.max >= 50, "PF2: the tuning reaches the trained top walk")
+		assert(keys.MAX_LEVEL.max >= Training.CONSTANTS.MAX_LEVEL and keys.WALK_STEP.max >= Training.CONSTANTS.WALK_STEP,
+			"PF2: the level count and step fit their tuning ranges")
 		assert(sources.bridge:find('Training = "WildboundTraining"', 1, true), "the bridge requires the module")
 	end)
 
@@ -97,6 +104,24 @@ return function(Training, source, sources)
 		equal(#keys.conflicts(), 0, table.concat(keys.conflicts(), "; "))
 		local T = sources.text.TRAINING
 		assert(T and T.prompt and T.object and T.trained and T.maxed and T.cannot, "Spanish words")
+	end)
+
+	case("TR-8: a lap grants a level and names the new walk; dismounting restores the walk through applyCarry", function()
+		local server, treadmill = sources.server, sources.treadmill
+		local first = server:find("onLap = function(player, _belt, isHub)", 1, true)
+		assert(first, "the live lap hook")
+		local lap = server:sub(first, (server:find("}):start(network, Heist.treadmillBelt)", first, true)))
+		assert(lap:find("state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5)", 1, true), "+1 level per lap")
+		assert(lap:find("Heist.Training.walkSpeed(EconomyConfig.carry.baseSpeed, EconomyConfig.carry.baseSpeed", 1, true),
+			"the lap prices the new walk with the training rule")
+		assert(lap:find("Text.TRAINING.trained:format(res.level, C.MAX_LEVEL, Heist.speedText(", 1, true),
+			"a level-up lap tells the new walk speed")
+		assert(server:find("onDismount = function(player) applyCarry(player) end", 1, true), "dismount re-applies the walk")
+		assert(server:find("if Heist.treadmillService and Heist.treadmillService:isMounted(player) then speed = 0 end", 1, true),
+			"only a mounted player is held at 0")
+		local body = treadmill:sub((treadmill:find("function Treadmill:dismount(player, nudgeBack)", 1, true)))
+		local cleared, called = body:find("self.mounted[player] = nil", 1, true), body:find("self.deps.onDismount(player)", 1, true)
+		assert(cleared and called and cleared < called, "the mount is cleared before applyCarry runs")
 	end)
 
 	case("TR-7: the module is pure: no services, clock or randomness, and no purchase path", function()

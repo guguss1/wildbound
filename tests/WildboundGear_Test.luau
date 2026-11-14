@@ -101,8 +101,12 @@ return function(Gear, source, sources)
 		local Training, Stamina = sources.training, sources.stamina
 		local walk = Training.walkSpeed(16, 16, { walk = 4 }, Gear.moveBonus(glove, 16))
 		assert(walk <= Training.CONSTANTS.WALK_CAP, "training and glove stay under the walk cap: " .. walk)
-		assert(Stamina.speed(walk, "sprint") <= Stamina.CONSTANTS.SPEED_CAP, "the sprint stays capped")
-		assert(Stamina.speed(walk, "walk", true) <= Stamina.CONSTANTS.BURST_CAP, "the Burst stays capped")
+		near(walk, 24 + Gear.moveBonus(glove, 16), "PF2: four levels (+8) and the glove add up")
+		local top = Training.walkSpeed(16, 16, { walk = 99 }, Gear.moveBonus(glove, 16))
+		near(top, Training.CONSTANTS.WALK_CAP, "the glove never pushes a full walk past the cap")
+		near(Stamina.speed(walk, "sprint"), math.max(walk, math.min(walk * Stamina.CONSTANTS.SPRINT_MULTIPLIER,
+			Stamina.CONSTANTS.SPEED_CAP)), "the sprint keeps its cap and never slows a trained walk")
+		assert(Stamina.speed(16, "walk", true) <= Stamina.CONSTANTS.BURST_CAP, "an untrained Burst stays capped")
 		local state = {}
 		Stamina.burst(state, 100, { cooldownScale = Gear.burstScale(glove) })
 		near(state.burstReadyAt, 100 + Stamina.CONSTANTS.BURST_COOLDOWN * 0.8, "Burst recovery shortens the cooldown")

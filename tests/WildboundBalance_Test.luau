@@ -123,6 +123,9 @@ return function(Balance, source)
 	end)
 
 	case("B6: the treadmill is pinned; repeats, drops, a length mismatch and a paid level 0 fail", function()
+		local wide = fresh()
+		wide.treadmill.speeds = { 16, 24, 32, 40, 46, 50 }
+		equal((errorsOf(wide, "a PF2-sized ladder")), true, "PF2: a walk up to 50 is in range")
 		pinArray(Balance.CONSTANTS.treadmill.speeds, { 16, 17, 18, 19, 20, 21 }, "speeds")
 		pinArray(Balance.CONSTANTS.treadmill.costs, { 0, 30, 80, 200, 450, 900 }, "costs")
 		local flat = fresh()
@@ -329,8 +332,9 @@ return function(Balance, source)
 		local live = Balance.LIVE
 		assert(type(live) == "table", "LIVE")
 		pinMap(live.dayCycle, { cycleSeconds = 720, phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 } }, "LIVE.dayCycle")
-		pinMap(live.training, { walkStep = 0.25, maxLevel = 4, walkCap = 16, walkCapMin = 16, walkCapMax = 16.5,
-			baseCost = 30, costGrowth = 1.6 }, "LIVE.training")
+		-- PF2 (user decision 2026-11-14): the live treadmill went to +2 walk per level, 17 levels, a cap of 50.
+		pinMap(live.training, { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60,
+			baseCost = 30, costGrowth = 1.2 }, "LIVE.training")
 		pinMap(live.bat, { cooldown = 5, ragdollSeconds = 1.2, immunity = 3, push = 45, lift = 20, immunityMax = 15 }, "LIVE.bat")
 		pinMap(live.incubator, { hatchSeconds = 15, slots = 1 }, "LIVE.incubator")
 		pinMap(live.movement, { sprintMultiplier = 1.45, sprintCap = 24 }, "LIVE.movement")
@@ -343,8 +347,8 @@ return function(Balance, source)
 		mentions(list, "live: dayCycle.phases.Day is 300 live, 240 in Balance", "Day")
 		mentions(list, "live: dayCycle.phases.Dawn is 60 live, 120 in Balance", "Dawn")
 		lacks(list, "live: dayCycle.phases.Night", "Night agrees")
-		mentions(list, "WALK_CAP tuning range 16..16.5", "the walk cap range")
-		mentions(list, "Training.MAX_LEVEL 4", "the level count")
+		lacks(list, "WALK_CAP tuning range", "PF2: the live walk cap range (16..60) holds the proposed top walk")
+		mentions(list, "Training.MAX_LEVEL 17", "the level count")
 		mentions(list, "live: bat.parentStun", "no live parent stun")
 		lacks(list, "live: bat.cooldown", "the bat cooldown agrees")
 		mentions(list, "HATCH_SECONDS 15", "the incubator")

@@ -378,7 +378,7 @@ local function applyCarry(player)
 	for _, quantity in pairs(snapshot.carried) do units += quantity end
 	local carrySpeed = Wild.carrySpeed(Wild.eggsCarried(snapshot), snapshot.carrying ~= nil)
 	local speed = Economy.carrySpeed(EconomyConfig, units, snapshot.pouchCapacity, carrySpeed, snapshot.skills)
-	-- NS5: trained walk levels, only while unencumbered and never over Training.WALK_CAP (sprint keeps its own cap).
+	-- NS5 / PF2: trained walk levels up to Training.WALK_CAP; a carrier keeps its carry share of the trained walk.
 	-- NS7: the worn glove's Velocidad rides on the same rule and cap.
 	speed = Heist.Training.walkSpeed(speed, EconomyConfig.carry.baseSpeed, snapshot.training,
 		Gear.moveBonus(snapshot.glove, EconomyConfig.carry.baseSpeed))
@@ -3953,8 +3953,13 @@ do
 			local ok, res = state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5)
 			if not ok or type(res) ~= "table" then return nil end
 			player:SetAttribute("WildboundTreadmillBuffUntil", workspace:GetServerTimeNow() + 60)
+			-- PF2: a level-up lap names the new walk speed, so the treadmill visibly trains.
+			local after = state:snapshot(player.UserId)
+			local walk = Heist.Training.walkSpeed(EconomyConfig.carry.baseSpeed, EconomyConfig.carry.baseSpeed,
+				after and after.training)
 			local text = res.leveled
-				and Text.TRAINING.lapLevel:format(res.level, C.MAX_LEVEL, res.ember)
+				and (Text.TRAINING.trained:format(res.level, C.MAX_LEVEL, Heist.speedText(walk)) .. " "
+					.. Text.TRAINING.lapEmber:format(res.ember))
 				or Text.TRAINING.lapEmber:format(res.ember)
 			send(player, "Train", true, text)
 			return res

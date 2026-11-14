@@ -101,10 +101,39 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
     capture probe's seal accepts probe keys only), covered by the source suite.
   - Python: 1186 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
   - Not re-pinned: WildboundMechanicsWiring_Test W1 (`canSteal` without `maxCarry`), outside PF1's suites.
-- [ ] PF2 Treadmill:
+- [x] PF2 Treadmill:
   - a large trained walk speed, from 16 up to a high cap, with tuning bounds widened;
   - restore the walk speed on dismount;
   - re-pin the Training, Balance, Tuning and Gear suites.
+  - Route: direct inline (one rule module, its schema, two comment/record edits, one server hook, four suites). TDD on
+    (task method), runner: trimmed fresh loader in Edit (same SPECS, held in a temporary ServerStorage StringValue,
+    removed after).
+  - Change: `WildboundTraining` WALK_STEP 0.25 -> 2, MAX_LEVEL 4 -> 17, WALK_CAP 16 -> 50, COST_GROWTH 1.6 -> 1.2
+    (level 17 costs 555 instead of about 55,000). `walkSpeed` now also trains a carrier: a slowed walk keeps its carry
+    share of the trained walk (one egg: 11/16, so 34.4 at the top level; untrained carriers are unchanged). Sprint and
+    Burst never slow a trained walk (`Stamina.speed` keeps the faster). `WildboundTuningSchema` ranges: WALK_STEP 0..5,
+    MAX_LEVEL 0..30, WALK_CAP 16..60. `WildboundBalance.LIVE.training` and the `treadmill.speeds` range (16..60) follow;
+    the 2.0 pack's proposed treadmill ladder (16..21, six levels) is unchanged, so the economy simulator input stays.
+  - Dismount: already restored live (`onDismount` -> `applyCarry`; `dismount` clears the mount first); now pinned by TR-8.
+  - Lap: `onLap` still gives +1 level per 8 s lap up to MAX_LEVEL and 5 Esencia; a level-up lap now tells
+    `Text.TRAINING.trained` (level and new walk speed) before the Esencia line. The HUD keeps the first sentence.
+  - RED (suites written, sources unchanged): Training 3 passed, 5 failed; Balance 21/3; Gear 14/1; Tuning 14/2 (1 new);
+    Hub 22/1 (HB-T3, pre-existing).
+  - GREEN: Training 8/0, Balance 24/0 (B23 liveFrom matches the live modules), Gear 15/0, Tuning 15 passed, 1 failed
+    (DT1 Eggs.STEAL_HOLD schema 0.8 vs module 0.5, pre-existing Studio drift), Hub 22 passed, 1 failed (HB-T3,
+    pre-existing).
+  - Fingerprints (repo = Studio after the write): WildboundTraining 4053 dbee4363, WildboundTuningSchema 41284 628a8faa,
+    WildboundBalance 26840 e8ce415d, WildboundGear 7481 f4a07302, WildboundServer 207220 11fe5162 (was 206888 f1f3e4b9,
+    checked just before writing; it compiles), WildboundTraining_Test 8626 a717f250, WildboundBalance_Test 19120
+    2a24cbc2, WildboundTuning_Test 21369 1b343539, WildboundGear_Test 22034 94009980.
+  - Solo Play (PlayLock `PF2`, cleared after): WalkSpeed 16 before; mounted the Base1 belt (WalkSpeed 0 while mounted,
+    progress cycling every 8 s); dismounted by jumping: WalkSpeed 26, notice "Entrenamiento: nivel 5 de 17. Caminas a
+    26,00 studs/s." No script errors. Studio saves were in memory mode.
+  - Python: 1186 tests, 1 failure (known `test_lumipol_v2` V1IsKept); `test_wildbound_economy_sim_v2` re-pinned to the
+    live COST_GROWTH 1.2 and 17 levels.
+  - Not retuned: La Silueta and the parents' speeds; a trained walker outruns them (product question).
+  - Seen, not pulled: Studio's `WildboundText` is ahead of the repo by the Flanfuria beast lines (not PF2's; left for the
+    sync).
 - [ ] PF3 Creature hotbar:
   - own pad only;
   - rebuild tools on respawn;
@@ -127,4 +156,5 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 ## Progress
 
 Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). PF1 done 2026-11-14
-(commit `fix(carry): one backpack, only while carrying an egg`). Next step: PF2.
+(commit `fix(carry): one backpack, only while carrying an egg`). PF2 done 2026-11-14
+(commit `feat(training): a large treadmill walk speed`). Next step: PF3.

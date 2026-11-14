@@ -205,7 +205,8 @@ class ReportTests(unittest.TestCase):
     def test_exponential_ladder_indicator(self):
         costs = sim.training_costs(self.n)
         self.assertEqual(costs[0], 30)
-        self.assertAlmostEqual(sim.ladder_indicator(costs)["growth"], 1.6, delta=0.01)
+        self.assertEqual(len(costs), 17)  # PF2: 17 live walk levels
+        self.assertAlmostEqual(sim.ladder_indicator(costs)["growth"], 1.2, delta=0.01)  # PF2: COST_GROWTH 1.6 -> 1.2
 
     def test_crafted_100x_ladder_flags(self):
         out = sim.ladder_indicator([0, 30, 3000, 300000, 3e7], 500, 60)

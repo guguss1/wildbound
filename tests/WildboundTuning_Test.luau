@@ -337,9 +337,17 @@ return function(Schema, modules)
 	case("HF-T4: the parents' swing tell defaults to 0.8 s and can never be tuned under it", function()
 		local windup = Schema.find("Islands", "STRIKE_WINDUP")
 		equal(windup.default, 0.8); equal(windup.min, 0.8)
-		local cap = Schema.find("Training", "WALK_CAP")
-		equal(cap.default, 16, "user decision Q9: walk 16, under La Silueta's 17")
-		assert(cap.max < 17, "the tuning can never let a walk reach La Silueta's night hunt (17)")
+	end)
+
+	-- Deliberately changed (PF2, user decision 2026-11-14, replaces Q9's walk cap of 16): a large trained walk.
+	case("PF2: the treadmill's walk cap defaults to 50 and its ranges reach it", function()
+		local cap, step, levels = Schema.find("Training", "WALK_CAP"), Schema.find("Training", "WALK_STEP"),
+			Schema.find("Training", "MAX_LEVEL")
+		equal(cap.default, 50); equal(cap.min, 16, "never under the base walk"); assert(cap.max >= 50, "cap max")
+		equal(step.default, 2); assert(step.max >= 2, "step max")
+		equal(levels.default, 17); assert(levels.max >= 17, "level max")
+		equal(16 + step.default * levels.default, cap.default, "the top level reaches the cap exactly")
+		equal(Schema.find("Training", "COST_GROWTH").default, 1.2, "a gentler price over 17 levels")
 	end)
 
 	return result
