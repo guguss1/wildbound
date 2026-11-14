@@ -213,6 +213,7 @@ Each task: strict TDD (cases first, RED against the current Studio module, then 
 
 | ID | Task | Acceptance checks | Studio tests |
 | --- | --- | --- | --- |
+| SC0 | Shared beast visibility (all beasts except La Silueta): the server sends visual BeastEvents to every client within the visibility radius, not only the target; effects (Hit, Afflict, knock, slow, egg drop) stay target-only; client renders other players' beasts without hit feedback | A non-target client within radius sees spawn, tells and phases; a non-target is never hit, slowed or knocked; beyond the radius nothing is sent; Silueta events stay target-only; per-player budget unchanged | `WildboundBeastWiring_Test` (new cases); two-player Studio check |
 | SC1 | Config entry and director pins: `BEASTS.Scuttler` (section 6), `ORDER`, `PLAYABLE`, `WAVE2`; `Dodge.SOURCES.Scuttler`. Verify a live press moves `WildboundDash` | Scuttler never starts when any point is in use; nothing starts while it is active; never in Meadow or safe zones; `homeBiome` nil; registration accepted | `WildboundBeastDirector_Test` (new cases), `WildboundDodge_Test` (source) |
 | SC2 | `Attack.afflict` | Dodged -> no effect; landed -> `Strike` + `Afflict`, never `Hit`; one outcome only | `WildboundBeastAttack_Test` |
 | SC3 | Brain skeleton: Spawn, Stalk, committed charge, Recovery, Castigo y caída, Disengage (Escape, Timeout, Outplayed) | Tell >= 0.8 s and registered; lane frozen after lock; dodged charge -> `Fallen` (stumble vs crash by wall); 2 falls -> `Outplayed`; `closeAll` on End | `WildboundBeastScuttler_Test` (new) |
@@ -243,4 +244,4 @@ Also add the new scripts to `tools/deploy_manifest.py` and `tools/test_deploy_ma
 - **Q1 Scale**: DECIDED 2026-11-14 by the user: smaller, 12-14 studs tall (not the pack's 16-19), so it moves well between trees.
 - **Q2 Egg and the pulse**: DECIDED 2026-11-14 by the user: yes, only on a second landed pulse within PressureMemorySeconds (8 s); the first pulse only slows. PulseCanDropEgg = true.
 - **Q3 Rarity**: DECIDED 2026-11-14 by the user: keep about 1/60 per 10 s roll, 75 s species cooldown, only when no other beast is active (3 points).
-- **Q4 Other players**: should nearby players see (and be hit by the pulse of) someone else's Scuttler? Today every beast is visible only to its target; changing that is a wider beast-system change.
+- **Q4 Other players**: DECIDED 2026-11-14 by the user: every player sees every beast (shared visibility, within a proximity radius such as 150 studs), but strikes, pulses and egg drops affect only the beast's target. La Silueta stays personal (visible only to its own player). This is a beast-system change, task SC0 below, done before SC1.
