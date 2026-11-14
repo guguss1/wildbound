@@ -55,7 +55,12 @@ Checklist:
   - [x] T05b.4 Report generated: `docs/balance/wildbound-2-0-economy-sim.md` (seed 7, 200 runs per cell).
   - [x] T05b.6 Review correction (6 findings, one scoped pass): RED 39 run, 3 failures, 13 errors; GREEN 39 passed / 0 failed; report regenerated with both farm modes, byte-identical on rerun (2026-11-14).
   - [ ] T05b.5 Commit.
-- [ ] T09a
+- [ ] T09a Roulette prize table (unwired, pure). Commit pending; pity ON/OFF and the hub/base choice are open for the user.
+  - [x] T09a.1 Strict RED: Python 18 run / 18 errors (all `NotImplementedError`, stub module); manifest test 25 run / 1 failure (new rows); Studio 0 passed / 15 failed on a `return {}` stub (2026-11-14).
+  - [x] T09a.2 GREEN: Python 18 passed / 0 failed; manifest 25 / 0; Studio 15 passed / 0 failed through the fresh-clone runner (filtered).
+  - [x] T09a.3 Report generated: `docs/balance/wildbound-2-0-roulette.md` (10000 seeded paid spins, seed 7), byte-identical on rerun.
+  - [ ] T09a.4 `tools/studio-fresh-runner.luau` SPECS entry for `WildboundRoulette_Test` (owned by another track; see T09a evidence).
+  - [ ] T09a.5 Commit.
 - [ ] T02, T03, T04, T05a, T06, T07, T08b, T09b, T10 (blocked on teammate stage 1)
 
 Open decision: what a player loses on death or defeat. Today the carried eggs are lost and Esencia is not (`lostOnDefeat = false`).
@@ -119,3 +124,17 @@ Notes for wiring:
 - Commits: none.
 
 Next step: optionally the full Studio run with `tools/studio-fresh-runner.luau` (extend its SPECS for suites with other signatures), then the T01 commit, with the overview's unrelated LG/push-state fixes in a separate `docs(wildbound)` commit. The manifest rows already exist (`tools/deploy_manifest.py:301,330`).
+
+## T09a evidence (roulette prize table)
+
+- Route: delegated direct, one writer. Files: `src/wildbound/WildboundRoulette.luau` (Studio `ReplicatedStorage.WildboundRoulette`, new), `tests/WildboundRoulette_Test.luau` (Studio `ServerStorage.WildboundRoulette_Test`, new, 15 cases), `tools/wildbound_roulette_sim.py` and `tools/test_wildbound_roulette_sim.py` (new, 18 cases; reuse the T05b Luau literal parser), `docs/balance/wildbound-2-0-roulette.md` (generated), two rows each in `tools/deploy_manifest.py` and `tools/test_deploy_manifest.py`.
+- Table: 21 prizes in basis points; each category sums to its Balance `roulette.weights` x 100 (checked in Luau against the deployed Balance and in Python against the file). By rarity: Comun 69%, Rara 22%, Epica 7.5%, Legendaria 1.5%. 45 Esencia per paid spin, one free spin (neither counts nor resets the pity). Every prize names `whenFull`: Esencia `none`, consumables `convert` (smoke 20, trap 30, portal 60 Esencia), everything else `pending`. `locations = { "hub", "base" }` (both allowed; T09b chooses and wires).
+- EV per paid spin (cash = every resale path; value = ASSUMED equivalent): pity OFF Esencia 10.05, cash 19.215, value 36.96; pity ON Rara+ (default) 10.153 / 19.492 / 37.414, pity spins 1.127%; pity Epica+ 11.694 / 24.959 / 44.686, pity spins 6.308% (fails the ASSUMED 50% cash cap, so validate() rejects it with today's caps). No money loop with the default: cash 19.49 < 22.5 cap, Esencia 10.15 < 30.
+- Seeded run (10000 paid spins, seed 7): chi-square 17.98 (OFF) / 18.64 (ON) / 17.44 (Epica+) against 45.3 critical (df 20, p 0.001); longest drought without Rara+ 19 OFF, 9 ON.
+- Conflicts and gaps for the user: the earlier base-chest design (hub-expansion section 6) ruled out Esencia prizes, the 2.0 weights give 35%; glove recycle values 3/6/12/25 are design only; the saved roulette record needs `pityCount` and `paidSpins`.
+- Studio (2026-11-14): one instance, place 122652861404212, PlaceVersion 416, Edit; both instances absent before, created as ours. Waited while another agent's Play (`WildboundPlayLock = patio-merge`) ran; no Play started. RED used a temporary `return {}` stub, replaced after its exact text was confirmed. Read back: module 19762 chars / Adler-32 3161410522, test 17717 / 2491854683, both equal the repo (CRLF normalized, trailing newlines trimmed). The runner was pasted with FILTER `^WildboundRoulette_Test$` and one added SPECS line `{ "mod:WildboundRoulette", "mod:WildboundBalance" }` (comments dropped, engine unchanged) through a temporary `ServerStorage.T09aRunnerTmp`, destroyed afterwards; no runner folder or lock left.
+- Python suite (2026-11-14, before the comment fix below): 1298 run, 6 failures, 28 skipped. The known ones plus `test_studio_fresh_runner.test_every_suite_has_a_spec_or_a_skip` (needs `SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }` in the runner, not owned here) and `test_wildbound_balance_unwired` (fixed: the module comments no longer name the Balance module).
+- Python suite after the fix: 1298 run, 5 failures, 28 skipped: `test_export_economy_config_luau` x3, `test_lumipol_v2.test_v1_files_are_unchanged`, and the runner SPECS check above. `test_wildbound_audio_catalog` d9 now passes (another track).
+- Commits: none.
+
+Next step (T09a): the user picks pity ON (Rara+), OFF, or Epica+ (needs a lower cap or resale), the location, and whether Esencia prizes stay; the runner owner adds the SPECS line; then commit.

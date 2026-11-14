@@ -56,6 +56,7 @@ SPECS["WildboundAtmosphere_Test"] = { "mod:WildboundAtmosphere", "src:WildboundW
 SPECS["WildboundAudioMix_Test"] = { "mod:WildboundAudioMix", "mod:WildboundAudioCatalog" }
 SPECS["WildboundAudioWiring_Test"] = { "src:WildboundAudioClient" }
 SPECS["WildboundBalance_Test"] = { "mod:WildboundBalance", "src:WildboundBalance" }
+SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }
 SPECS["WildboundBaseZone_Test"] = {
 	"mod:WildboundBaseZone",
 	"src:WildboundBaseZone",

@@ -337,6 +337,9 @@ DEFAULT_MAPPINGS = [
     # SC0 shared beast visibility (odd/tasks/wildbound-scuttler.md)
     ("src/wildbound/WildboundBeastAudience.luau", "ServerScriptService.WildboundBeastAudience"),
     ("tests/WildboundBeastAudience_Test.luau", "ServerStorage.WildboundBeastAudience_Test"),
+    # T09a 2.0 roulette prize table, unwired (odd/tasks/wildbound-2-0.md)
+    ("src/wildbound/WildboundRoulette.luau", "ReplicatedStorage.WildboundRoulette"),
+    ("tests/WildboundRoulette_Test.luau", "ServerStorage.WildboundRoulette_Test"),
 ]
 
 
