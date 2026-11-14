@@ -693,7 +693,9 @@ RunService.Heartbeat:Connect(function(dt)
 			-- The context is read only when a slot is due (Director.tick = Director.due + Director.roll).
 			local due = Director.due(director, player.UserId, at)
 			local started, refused = {}, {}
-			if #due > 0 then started, refused = Director.roll(director, player.UserId, contextFor(player, at), at, due) end
+			-- A developer inside the training yard (PatioEntrenamiento sets PatioDentro) gets no random beast: the yard is far
+			-- outside every safe zone, so the calendar would otherwise roll on them and use the budget they test with.
+			if #due > 0 and player:GetAttribute("PatioDentro") ~= true then started, refused = Director.roll(director, player.UserId, contextFor(player, at), at, due) end
 			for _, reservation in ipairs(started) do safeStart(player, reservation, at) end
 			for _, refusal in ipairs(refused) do
 				count("refused")
@@ -803,4 +805,40 @@ if RunService:IsStudio() then
 		return false
 	end
 	probe.Parent = telemetry
+end
+
+-- Patio de entrenamiento (developer training yard, ServerScriptService/PatioEntrenamiento). Server only (ServerStorage,
+-- never a remote) and only for a player the yard marked as inside (PatioDentro): "poner" asks for one beast through
+-- the director's own reservation (timers skipped, budget and every other rule kept); "quitar" ends that player's
+-- encounters. Unlike the Studio tool above it also exists on a live server; the yard itself only admits developers.
+do
+	local patio = Instance.new("BindableFunction")
+	patio.Name = "PatioBestia"
+	patio.OnInvoke = function(op, player, name)
+		if typeof(player) ~= "Instance" or not player:IsA("Player") then return false, "BadArguments" end
+		if player:GetAttribute("PatioDentro") ~= true then return false, "NotInYard" end
+		local at = now()
+		if op == "poner" then
+			if type(name) ~= "string" then return false, "BadArguments" end
+			local ok, value = Director.reserve(director, player.UserId, name, contextFor(player, at), at, { force = true })
+			if not ok then
+				telemetry:SetAttribute("Beast_lastRefusal", name .. ":" .. tostring(value))
+				return false, value
+			end
+			return safeStart(player, value, at)
+		elseif op == "quitar" then
+			local ended = 0
+			local ids = {}
+			for id, entry in pairs(live) do
+				if entry.player == player then table.insert(ids, id) end
+			end
+			for _, id in ipairs(ids) do
+				close(id, "Patio", at)
+				ended += 1
+			end
+			return true, ended
+		end
+		return false, "BadOperation"
+	end
+	patio.Parent = telemetry
 end

@@ -78,16 +78,16 @@ personal. SC0 is that beast-system change, done before SC1.
 
 ## Checklist
 
-- [ ] SC0 Shared beast visibility (all beasts except La Silueta) -- code complete and GREEN; server deploy and the
-  two-player check pending (see evidence)
+- [ ] SC0 Shared beast visibility (all beasts except La Silueta) -- code complete, GREEN and deployed (server
+  included, with the teammate's Patio code ported); only the two-player check is pending (see evidence)
   - [x] SC0.1 Tests first: `WildboundBeastAudience_Test` (12 cases) and 3 SC0 cases in `WildboundBeastWiring_Test`;
     RED observed against Studio
   - [x] SC0.2 `Config.AUDIENCE` and the pure `WildboundBeastAudience` module; deployed and read back
   - [x] SC0.3 Client quiet bystander rendering; deployed and read back
-  - [ ] SC0.4 Server fan-out deployed to Studio -- BLOCKED on porting the teammate's Studio Patio code
-    (`PatioDentro` roll guard, `PatioBestia` BindableFunction) into the repo file; Studio `WildboundBeasts` is still
-    37564:2137873840 and was not overwritten. The repo has the change (with the correction); GREEN ran on a merge of
-    the repo edits onto a temporary clone of the Studio script
+  - [x] SC0.4 Server fan-out deployed to Studio -- the teammate's Studio-only Patio code (`PatioDentro` roll guard,
+    `PatioBestia` BindableFunction) ported byte for byte into the repo file by a 3-way merge (base f9c7ef4), suites
+    GREEN on the merged source, deployed and read back 41462:2561573253, solo Play checked (see "Patio port and server
+    deploy"). Not committed
   - [x] SC0.5 Deploy manifest and pin
   - [ ] SC0.6 Two-player Studio check -- NOT VERIFIED (solo Play only; second recipient simulated)
   - [x] SC0.7 Review correction (findings 1-6): Pradera and safe-zone viewers, cap hysteresis, bystander render delay,
@@ -158,11 +158,39 @@ beyond the radius nothing is sent; Silueta events stay target-only; the per-play
 - Not run this round: solo Play of the corrected client (the change is a render delay, the soften flag and no new
   event type), and the two-player check (SC0.6).
 
+### Patio port and server deploy (SC0.4, 2026-11-14)
+
+- Studio target: the single instance for placeId 122652861404212 (Edit). Studio `WildboundBeasts` re-fingerprinted
+  37564:2137873840 (unchanged since the last check).
+- Studio-only hunks versus `f9c7ef4` (35774:1300170918), exactly two: (1) the poll-loop roll line replaced by a
+  two-line comment plus `if #due > 0 and player:GetAttribute("PatioDentro") ~= true then ... Director.roll(...)`;
+  (2) a 35-line `do ... end` block appended after the Studio tool block that creates `PatioBestia` (BindableFunction
+  in `WildboundTelemetry`: "poner" reserves through `Director.reserve(..., { force = true })` for a player marked
+  `PatioDentro`, "quitar" closes that player's encounters with reason "Patio"). base + these hunks reproduced
+  37564:2137873840 exactly.
+- Merge: `git merge-file` (ours HEAD 39672:2892377211, base f9c7ef4, theirs Studio) applied both hunks with no
+  conflict; repo file now 41462:2561573253. "quitar" goes through `close`, which already calls `Audience.close`, so the
+  yard's removals also end the bystanders' views.
+- Not ported (Studio-only, teammate-owned, not needed for the beast script to run): `ServerScriptService.
+  PatioEntrenamiento` (Servidor, Bichos, LEEME, Pruebas/ReglasVida_Test, Pruebas/BestiasCableado_Test),
+  `ReplicatedStorage.PatioEntrenamiento` (ReglasVida, Config), `StarterPlayerScripts.PatioEntrenamiento.Cliente`,
+  `Workspace.PatioEntrenamiento` (Model, 25 children).
+- GREEN (fresh-runner logic, filter `^WildboundBeast[ADEW][a-z]+_Test$`, `src:WildboundBeasts` served from the merged
+  source, fingerprint asserted): Attack 9/0, Audience 17/0, Director 39/0, Encounters 24/0, Wiring 41/0; 130 passed,
+  0 failed, no leaks, no test expectation changed. The teammate's `BestiasCableado_Test` on the deployed source: 3/0.
+- Deploy: fingerprint re-checked in the same call immediately before writing (37564:2137873840), written with
+  `ScriptEditorService:UpdateSourceAsync`, read back 41462:2561573253 (== repo). No save, no publish, no Workspace
+  edit, lock-zone scripts untouched.
+- Solo Play (lock `patio-merge`, set from nil and cleared after): `WildboundTelemetry` had `ForceSpawnBeast`,
+  `PatioBestia` and `BeastProbe`; `PatioBestia` refused a player outside the yard (`NotInYard`); at spawn a forced
+  Viper was refused `SafeZone`; after moving the Play character outside the safe zone a forced Viper started
+  (`beast:1`, Windup) and ended through the probe (ended 1, errors 0); with `PatioDentro` set in Play, "poner" Pouncer
+  started (`beast:2`, Hunt) and "quitar" ended 1. No beast-script errors or warnings in the console.
+- Python: `python -I -B -m unittest discover -s tools -p "test_*.py"`: 1298 run, 5 failed, 28 skipped. Failures: 3
+  economy-config export, lumipol_v2 v1 files, and `test_studio_fresh_runner` (`WildboundRoulette_Test` has no SPECS
+  or SKIP entry; another writer's suite). The audio catalog d9 failure seen earlier now passes.
+
 ## Next step
 
-1. The owner (or the teammate who owns the training yard) reconciles `WildboundBeasts.server.luau`: port the Studio
-   `PatioDentro` / `PatioBestia` additions into the repo, then deploy the repo file (the 15 SC0 edits apply cleanly to
-   the Studio version, verified in memory) and read it back.
-2. `tools/studio-fresh-runner.luau` (another writer's file) already lists
-   `SPECS["WildboundBeastAudience_Test"]`; `test_studio_fresh_runner.py` passes (7/7).
-3. Two-player Studio check (Test > Clients and Servers, 2 players) after the server deploy; then SC1.
+1. Two-player Studio check (Test > Clients and Servers, 2 players), SC0.6; then SC1.
+2. Commit the SC0 server merge (not committed yet).
