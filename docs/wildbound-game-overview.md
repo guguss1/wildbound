@@ -172,7 +172,7 @@ Numbers are code defaults (most are live-tunable through the Studio dev tuning p
 | 4.11 | **Companions** | One companion out; follows without collisions; PointLight 1.2 brightness, 12 range (tunable); "Guardar"/"Equipar" in the Mochila. Lumipol pulse (Q) reveals La Silueta (see 4.15) | `WildboundRefuge.luau`, `WildboundWorld.client.luau` | Done (NS4) |
 | 4.12 | **Cría capture** | A cría (or a wild Lumipol) uses the calm ring: stay inside a 4.5-stud ring (server 5) that orbits, fill calm 4.5 s (floor 4 s), then a seal tap in a moving band (X / R2). Capture is noisy (ring 32, seal 48 hearing radius) | `WildboundCaptureSession.luau` | Done |
 | 4.13 | **Arrullo** (rare-egg minigame, Q2b) | Hold to raise / release to drop a marker inside a drifting calm zone on a vertical bar; progress starts 35, win at 100, lose at 0 or after 18 s. Zone Rara 0.30, Épica 0.24, Legendaria 0.18 of the bar. Server simulates; client sends only "hold"/"release" (20/s max). Replaces the ring for rare eggs | `WildboundArrullo.luau` | **Prepared** |
-| 4.14 | **Day cycle, dusk, night** | 720 s: Day 360, Dusk 72, Night 216, Dawn 72; a server never opens in Night. Night raises La Silueta's speed and senses in the fog only, and doubles beast odds. Planned **Dusk rule** (Q11): two warnings ("Está anocheciendo..." and "La noche llega en 20 s.") and a small beast buff during Dusk only (speed x1.08, odds x1.25, detection x1.1) | `WildboundWorldRules.luau`, `WildboundDusk.luau` | Cycle: Done. Dusk rule: **Prepared** |
+| 4.14 | **Day cycle, dusk, night** | 720 s: Day 300, Dusk 60, Night 300, Dawn 60 (live Studio source, synced at `34eab83`; earlier 360/72/216/72); a server never opens in Night. Night raises La Silueta's speed and senses in the fog only, and doubles beast odds. Planned **Dusk rule** (Q11): two warnings ("Está anocheciendo..." and "La noche llega en 20 s.") and a small beast buff during Dusk only (speed x1.08, odds x1.25, detection x1.1) | `WildboundWorldRules.luau`, `WildboundDusk.luau` | Cycle: Done. Dusk rule: **Prepared** |
 | 4.15 | **Fog, flashlight, pulse** | Fog rectangle; client atmosphere per phase and biome variant; free flashlight (F, 12 s cooldown) needs facing; registered companion pulse (Q, 30 s) does not; reveal 4 s, range 55, LOS; reveals are shared and non-additive | `WildboundAtmosphere.luau`, `WildboundWorldRules.tryAbility` | Done |
 | 4.16 | **Stalk sightings** | Client-only glimpses of La Silueta behind a trunk at dusk, night, dawn: every ~50 s (x0.6 carrying, x0.8 far from home, x2 with "Efectos suaves"), at most 3 per evening, 18 to 36 studs away, gone when looked at, approached, after 4 s or when the real one hunts. Never in the camp or hub (+10 studs) | `WildboundHudView.luau`, `WildboundFear.client.luau` | Done (SS1 to SS3, HF-T1) |
 | 4.17 | **Sprint and stamina** | Walk 16; sprint x1.45 (cap 24), pool 100, drain 25/s (4 s), regen 10/s moving, 15/s still, x2 in a Refugio. Sprint is loud (hearing 30) | `WildboundStamina.luau` | Done |
@@ -251,7 +251,7 @@ La Nube Gruñona and La Abeja Reina: see 3.4 and `docs/design/wildbound-biome-pr
 
 | Species | Rarity | Where | Look (stand-in) | Art |
 | --- | --- | --- | --- | --- |
-| **Lumipol** | Común | Island 1, random spawns, the tutorial | Mint glowing blob, 3 x 2 x 2.4 | MeshGen1 template (`ServerStorage.WildboundAssets.LumipolMeshGen`); **meshes refused** ("Requester does not have permission for Asset") so the primitive look shows |
+| **Lumipol** | Común | Island 1, random spawns, the tutorial | Mint glowing blob, 3 x 2 x 2.4 | Generated parent and egg templates (`ServerStorage.WildboundAssets.Lumipol.Parent` and `.Egg`, LG pass `2e176d5`); their meshes load; they persist only if the place is saved. MeshGen1 is no longer used (its meshes are refused) |
 | **Cortezón** | Común | Island 2, random | Mossy bark shell | Primitive; rig exported (`assets/exports/species/SP_Cortezon`), not uploaded |
 | **Cestillo** | Rara | Island 3, random | Long-necked wader | Primitive; rig exported |
 | **Polvilla** | Épica | Island 4, random | Dusty moth | Primitive; rig exported |
@@ -413,7 +413,7 @@ Phones: layouts are designed for 375 x 667 portrait and 667 x 375 landscape with
 | --- | --- | --- | --- |
 | Forest kit | Real meshes (six Model packages) | Yes | `assets/exports/forest-kit/forest-kit-upload-manifest.json` |
 | La Silueta v3 | Real rigged model + 4 animations | Yes | Model 123768633946912; animations listed in 5.1; `docs/assets/silueta-animation-upload-manifest.json` |
-| Lumipol (MeshGen1) | User's AI-generated model | Template present, **meshes refused by asset permissions**; primitive fallback shows | `assets/exports/lumipol-meshgen1-spec.json` |
+| Lumipol (generated parent and egg, LG pass) | Roblox mesh generation, text prompts | Templates in `ServerStorage.WildboundAssets.Lumipol`; meshes load; kept only if the place is saved. MeshGen1 (meshes refused) is no longer used | `assets/exports/lumipol-generated-assets.json` |
 | Viper, Pouncer, Gargoyle, Mire | Rigged FBX, 25 clips in all | **Models uploaded, not in the game**: no code or place references the ids; Viper and Pouncer show as Part proxies; an imported model named exactly `Viper` or `Pouncer` in `ReplicatedStorage.WildboundBeasts.Models` replaces a proxy with no code change | Viper 77139866631513, Pouncer 87204464156490, Gargoyle 113241144174504, Mire 105993486058377 (`assets/models/beasts/uploaded-assets.json`, moderation Approved) |
 | Beast animations | 25 FBX clips | **Not uploaded** | `assets/models/beasts/*_anim_*.fbx` |
 | Other species (Cortezón, Cestillo, Polvilla, Tizoncillo) | Rigs exported | Primitive stand-ins | `assets/exports/species/` |
@@ -421,7 +421,7 @@ Phones: layouts are designed for 375 x 667 portrait and 667 x 375 landscape with
 | Pradera and six other biome kits | FBX exported; primitive Luau fallbacks | Not built in the place **(unverified)** | `assets/exports/<biome>-kit/` |
 | Sounds | Existing catalogue ids only (`WildboundAudioCatalog`), reused slots for beasts, bat and burst | Yes | — |
 
-What needs the user: fix MeshGen1 permissions; approve and import the beast models into the place (3D importer or by id) and later the 25 clips; approve any upload of the six biome kits.
+What needs the user: save the place so the generated Lumipol templates persist; approve and import the beast models into the place (3D importer or by id) and later the 25 clips; approve any upload of the six biome kits.
 
 ---
 
@@ -443,12 +443,12 @@ What needs the user: fix MeshGen1 permissions; approve and import the beast mode
 
 | Place location | Contents |
 | --- | --- |
-| `ServerScriptService` | `WildboundServer` (inventory, heist, hub stations wiring; at the 200-local limit: new helpers go in the `Heist` table), `WildboundWorld` (La Silueta, fair strike, cycle), `WildboundBeasts` (director and encounters), `WildboundHub`, `WildboundGather`, `WildboundTuning`, `WildboundWorldGuard`; pure modules (`WildboundState`, `WildboundEggCarry`, `WildboundBat`, `WildboundIsland`, `WildboundWorldRules`, `WildboundFairStrike`, `WildboundBeastDirector`, `WildboundPersistence`, `WildboundSave`, `WildboundStoreRoblox`, ...) |
+| `ServerScriptService` | `WildboundServer` (inventory, heist, hub stations wiring; past the 200-local limit (205): new helpers go in the `Heist` table), `WildboundWorld` (La Silueta, fair strike, cycle), `WildboundBeasts` (director and encounters), `WildboundHub`, `WildboundGather`, `WildboundTuning`, `WildboundWorldGuard`; pure modules (`WildboundState`, `WildboundEggCarry`, `WildboundBat`, `WildboundIsland`, `WildboundWorldRules`, `WildboundFairStrike`, `WildboundBeastDirector`, `WildboundPersistence`, `WildboundSave`, `WildboundStoreRoblox`, ...) |
 | `ReplicatedStorage` | Shared pure modules (`WildboundText`, `WildboundBeastConfig`, `WildboundWaveClock`, `WildboundStamina`, `WildboundGear`, `WildboundHudView`, ...), `WildboundNetwork`, `WildboundBeasts.Models` |
 | `StarterPlayerScripts` | `WildboundClient`, `WildboundWorld.client`, `WildboundCapture.client`, `WildboundFear.client`, `WildboundAudio.client`, `WildboundBeasts.client`, `WildboundTuning.client`, `WildboundStart.client` |
 | `ServerStorage` | `WildboundHubBuilder`, `WildboundAssets` (ForestKit, SiluetaV3, LumipolMeshGen), test suites, Studio-only probes |
 
-Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators and Python tests `tools/`.
+Source: `src/wildbound/` (115 Luau files after the `34eab83` sync of the live Studio scripts), tests `tests/` (95 files), generators and Python tests `tools/`.
 
 ### 12.2 Remotes
 
@@ -467,9 +467,9 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 
 | Item | Value |
 | --- | --- |
-| Studio suites | 70 suites, **1442 passed, 0 failed** on fresh module clones (HF-T5, the last Studio run). Runner: a temporary `ServerStorage.WildboundFreshRunnerTmp`, removed after each session |
+| Studio suites | 70 suites, **1454 passed, 0 failed** on fresh module clones (LG pass, the last comparable full run). A later full run (2.0 T01, rebuilt runner, 88 suites) found 62 failures in 23 suites; it is not comparable and the failures are not attributed. The reproducible runner is now `tools/studio-fresh-runner.luau` (it removes its temporary `ServerStorage.WildboundFreshRunner_Tmp`) |
 | Unrun suites | `WildboundArrullo_Test`, `WildboundDodge_Test`, `WildboundBatKnock_Test`, `WildboundTotemRecord_Test`, `WildboundDusk_Test` (no offline Luau runtime; RED/GREEN pending Studio) |
-| Python | `python -I -B -m unittest discover -s tools -p "test_*.py"`: 1153 run, 1 known failure (`test_lumipol_v2.test_v1_files_are_unchanged`), 28 skipped (last recorded); later EV-W1/EV-W2 commits added placement and builder tests (50/0 placement, 26/0 builder suites recorded) |
+| Python | `python -I -B -m unittest discover -s tools -p "test_*.py"`: 1225 run, 5 failures, 28 skipped (2026-11-14): the known `test_lumipol_v2.test_v1_files_are_unchanged`, plus 4 from the live sources synced at `34eab83` (`test_export_economy_config_luau` x3, the treadmill client's audio ids x1); later EV-W1/EV-W2 commits added placement and builder tests (50/0 placement, 26/0 builder suites recorded) |
 | Deploy manifest | `tools/deploy_manifest.py` maps each repo file to its Explorer path (pinned by `tools/test_deploy_manifest.py`); every Studio deploy is checked by Adler-32 and length against the repo; the five new mechanics modules are mapped but **not deployed** |
 | Mode | Strict TDD; one Studio writer at a time; verify the Studio instance and place and get the user's confirmation before any edit (`AGENTS.md`) |
 | Play checks | Solo Studio Play only, in the background (no two-client session, no Device Simulator); see each phase's table in `odd/tasks/wildbound-capture-extraction-horror.md` |
@@ -488,7 +488,7 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 | Flashlight, companion pulse, reveal | Done | `docs/mechanics/wildbound-awareness.md` |
 | Stalk sightings | Done | `odd/tasks/wildbound-capture-extraction-horror.md` (Stalk sightings) |
 | Hiding spots, Refugios | Done | `docs/mechanics/wildbound-delivery-d.md` |
-| Islands and parents (wake, chase, charge, 0.8 s swing) | Done | `docs/mechanics/wildbound-expedition-islands.md` |
+| Islands and parents (wake, chase, charge, 0.8 s swing); trail nest T1 at (176, 44) by the hub W gate | Done | `docs/mechanics/wildbound-expedition-islands.md`; `odd/tasks/wildbound-capture-extraction-horror.md` (LG4) |
 | Random world, spawn clock, waves, biome event, variants | Done | Same odd doc (Random world) |
 | Fast steal, server-measured hold, egg in arms, drop/pickup, death drop | Done | `docs/mechanics/wildbound-capture.md`, odd doc Nest Heist Phase 1 |
 | Burst "Impulso" | Done (to be replaced) | odd doc NH4 |
@@ -515,13 +515,14 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 | Luck totem persistence (schema 4) | Prepared | Same |
 | Dusk warnings and buff | Prepared | Same |
 | Open-world placement and roads | Prepared | `docs/maps/wildbound-open-world-biomes.md` |
+| Wildbound 2.0 balance config (`WildboundBalance`, T01) | Prepared (not wired; only its own suite ran, 24/0 in Studio) | `odd/tasks/wildbound-2-0.md` |
 | Pradera Arcoíris map | Prepared (builder) | `docs/design/wildbound-biome-pradera.md` |
 | La Nube Gruñona, La Abeja Reina, Pradera species | Design only | Same |
 | Pantano, Cementerio, Abismo, Montañas Heladas, Tierras Volcánicas, Cuevas de Roca | Prepared (primitive builders) | `docs/maps/wildbound-open-world-biomes.md` |
 | Corral, trophies, breeder level, daily gift, cosmetics | Design only | `docs/mechanics/wildbound-hub-systems.md` |
 | Robux offers | Design only (nothing purchasable) | `docs/design/wildbound-economy-and-offers.md` |
 | Beast mesh import and animations | Not started in game (models uploaded) | `assets/models/beasts/README.md` |
-| Lumipol MeshGen1 art | Blocked (asset permissions) | odd doc MeshGen1 |
+| Lumipol generated art (parent and egg) | Done (templates kept only if the place is saved) | odd doc (Lumipol generated model, LG pass) |
 | Two-player and three-player tests | Not started | `docs/testing/wildbound-next-verification.md` |
 | Phone tests and performance capture | Not started | Same |
 | Real DataStore test | Not started (Studio API access off) | `docs/mechanics/wildbound-persistence.md` |
@@ -536,11 +537,11 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 | # | Action | Why |
 | --- | --- | --- |
 | U1 | **Save the place** (File > Save, plus a downloaded backup copy) once the current Studio writer finishes | Several sessions ended without saving; Edit-built geometry (hub v2-r90, any biome builds) lives only in the open place |
-| U2 | **Fix MeshGen1 asset permissions** (check the meshes' and textures' permissions in Creator Hub, or re-create them under your account) | Every Lumipol shows the primitive fallback ("Requester does not have permission for Asset") |
+| U2 | **Save the place** so the generated Lumipol templates persist (MeshGen1 permissions no longer matter: the code does not use it) | Until saved, a new session loses the templates and every Lumipol falls back to the primitive look |
 | U3 | **Enable Game Settings > Security > Enable Studio Access to API Services** | Lets the real data store be tested; today Studio falls back to memory |
 | U4 | **Run a two-player (or three-player) Studio test** ("Clients and Servers") | Bat hits, pickup races, re-targeting, other bases refusing, per-player beasts and Siluetas are only unit-tested |
 | U5 | **Test on a phone** (or Device Simulator) | Touch buttons (Impulso, Bate), layouts, frame time with ~470 hub parts and 35 lights are unmeasured |
-| U6 | **Push to GitHub** (private repo `guguss1/wildbound`) | `origin/codex/wildbound-first-playable` last points at `06a4c99` (2026-11-09, per the local remote-tracking ref); **112 local commits are not pushed**; the branch has no upstream configured |
+| U6 | **Set an upstream** (`git push -u`) | The branch is fully pushed (origin at `0be136d`); it has no upstream configured |
 | U7 | Set the place's `MaxPlayers` to 8 (decision Q5) | It is still 60 (HB-W8) |
 | U8 | Decide whether to import the four uploaded beast models into the place (and later upload the 25 clips) | Proxies are used until then |
 
@@ -553,7 +554,6 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 | D3 | Second incubator cradle: free or the 250 Esencia step |
 | D4 | Chest price and content (45 Esencia, odds, pity 10) |
 | D5 | HB2: where the shared camp stations (registration, chest, skill tree, trophies) go in the hub |
-| D6 | The HUD objective text now that players start at the hub |
 | D7 | Non-carrier bat hit: keep the 0.2 s tap or do nothing (NP-W1); whether the attacker waits longer to pick up the egg they knocked loose |
 | D8 | Beast hits before the first paid trip (NB-W2); Dusk counting as night (NB-W3, now partly answered by the prepared Dusk rule); a Silueta hunt ending a running beast (NB-W1) |
 | D9 | Failed load: offer "Intentar de nuevo" at camp (NS-W2) |
@@ -565,14 +565,13 @@ Source: `src/wildbound/` (84 Luau files), tests `tests/` (81 files), generators 
 
 | Risk | Note |
 | --- | --- |
-| First-minute distance | The new hub spawn is about 400 studs from island 1 and the wave-1 egg (2.1); the "quick first action" hypothesis is untested from the hub |
-| Spawn facing | New characters face east (towards the Pradera, which has no gameplay), while the only playable biome is west **(unverified intent)** |
+| First-minute distance | The wave-1 guaranteed egg is placed within 70 studs of (182, 17), the W trail's forest end (EV-W5); Play showed it 31 studs off; the trail nest T1 holds two eggs (LG4); island 1 is about 290 studs out; the "quick first action" hypothesis is still untested |
 | Multiplayer | Every PvP, race and per-player system is verified solo only |
 | Damage under streaming | Earlier checks found real strikes blocked while `StreamingEnabled` is on (`odd/tasks/wildbound-first-playable.md:133`); the dwell gate is the current answer; not re-measured with two clients |
 | Performance | Hub v2-r90 (35 lights), six biome builders (about 3,300 parts with roads), per-player Siluetas and beasts: no phone MicroProfiler capture |
-| Script size | `WildboundServer.server.luau` is at Luau's 200-local limit (NH-W13) |
+| Script size | `WildboundServer.server.luau` has 205 top-level locals, past the 200 ceiling (NH-W13); new helpers go in tables such as `Heist` |
 | Simulator coverage | The economy simulator models neither eggs, islands, random spawns, PvP nor beasts; real income per trip is likely higher than modelled |
-| Asset access | The Lumipol art depends on a permission fix the code cannot make |
+| Asset access | The generated Lumipol templates load but live only in the open place until it is saved |
 | Lost place work | Unsaved place plus a single Studio writer means a Studio crash loses Edit-only geometry |
 
 ---
@@ -645,6 +644,5 @@ Contradictions where code and a current decision disagree (code is what runs tod
 3. **Death:** the Nest Heist brief says death loses only the carried egg; code also keeps the older trip rule (unwarded bag items lost, 20 % of pouch materials).
 4. **Hub radius:** the hub-expansion design says 100; `Rules.HUB_RADIUS` and the deployed builder use 90.
 5. **Training:** the treadmill and the glove Velocidad stat still cost Esencia and roll, but the walk cap 16 equals the base walk, so they give nothing.
-6. **First egg near camp:** `FIRST_EGG_RADIUS` 70 is measured from the camp, not from the hub where players now spawn.
-7. **HUD objective:** "Roba y vuelve al campamento." while delivery is at the base.
-8. **Push status:** the brief says nothing was pushed; the local remote-tracking ref shows `origin/codex/wildbound-first-playable` at `06a4c99` (2026-11-09), so an older state was pushed and the last 112 commits were not.
+6. **Push status:** fully pushed, origin at `0be136d`, no upstream configured.
+7. **2.0 balance:** the proposed `WildboundBalance` uses treadmill walks 16 to 21 and a 240/60/300/120 day; Q9 keeps the walk at 16 (La Silueta's night hunt is 17) and the live day is 300/60/300/60. `Balance.conflicts()` lists each gap (`Balance.LIVE`).
