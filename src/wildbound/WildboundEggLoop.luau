@@ -185,7 +185,7 @@ function EggLoop.shelf(bankedEggs, max, looks)
 	return { rarities = shown, extra = extra }
 end
 
--- The hatch banner: "¡Nuevo compañero!" and where the creature went (following you, or in the collection).
+-- The hatch banner: Text.LOOP.hatchTitle and where the creature went (following you, or in the collection).
 function EggLoop.hatchLines(card, equippedUid, Text)
 	if type(card) ~= "table" or type(Text) ~= "table" or type(Text.LOOP) ~= "table" then return nil end
 	local L = Text.LOOP

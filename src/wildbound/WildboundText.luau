@@ -686,9 +686,11 @@ return freeze({
 		cradleReady = "¡Naciendo!",
 		cradleFree = "Libre · trae un huevo",
 		cradleFreeEggs = "Libre · Incubar huevo (R)",
-		hatchTitle = "¡Nuevo compañero!",
+		-- The hatch banner keeps the words players see today (user decision 2026-11-14: move them here, unchanged).
+		hatchTitle = "¡Tu huevo eclosionó!",
 		hatchFollows = "%s te acompaña",
-		hatchStored = "%s está en tu colección (Inventario)",
+		hatchStored = "%s se guardó en tu barra de herramientas",
+		hatchStoredPlain = "Se guardó en tu barra de herramientas",
 		eggRow = "Huevo de %s · %s",
 		eggsHeader = "Huevos guardados (%d) · Se incuban solos en tu base",
 	},

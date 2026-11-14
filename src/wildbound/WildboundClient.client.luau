@@ -696,9 +696,51 @@ local cardGui
 local function closeCard()
 	if cardGui then cardGui:Destroy(); cardGui = nil end
 end
-local function showCard(_view)
-	-- Blocking center modal card is suppressed; WildboundBaseGuideClient displays a non-blocking top hatch banner.
+local function showCard(view)
 	closeCard()
+	-- A plain registration card stays suppressed (WildboundBaseGuideClient shows a non-blocking top hatch banner).
+	-- User decision 2026-11-14 ("Que se muestre"): the refuge card that carries the first-steal bonus or the next
+	-- island's tease (K2) shows again.
+	if not view or not (view.bonus or view.next) then return end
+	cardGui = make("ScreenGui", {Name = "WildboundCard", ResetOnSpawn = false, DisplayOrder = 40, IgnoreGuiInset = true}, playerGui)
+	local size = gui.AbsoluteSize
+	local width = math.min(380, math.max(260, size.X - 32))
+	local sheet = make("Frame", {Name = "Card", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45),
+		Size = UDim2.fromOffset(width, 288), BackgroundColor3 = dark, BackgroundTransparency = 0.05}, cardGui)
+	make("UICorner", {CornerRadius = UDim.new(0, 12)}, sheet)
+	make("UIStroke", {Thickness = 2, Color = amber}, sheet)
+	local scale = make("UIScale", {Scale = 0.6}, sheet)
+	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Scale = 1}):Play()
+	local title = label(sheet, view.title, 22)
+	title.Font, title.TextColor3 = Enum.Font.GothamBold, amber
+	title.TextXAlignment = Enum.TextXAlignment.Center
+	title.Position, title.Size = UDim2.fromOffset(12, 10), UDim2.new(1, -24, 0, 28)
+	local name = label(sheet, view.name, 20)
+	name.Font, name.TextXAlignment = Enum.Font.GothamBold, Enum.TextXAlignment.Center
+	name.Position, name.Size = UDim2.fromOffset(12, 40), UDim2.new(1, -24, 0, 24)
+	local lines = {}
+	if view.blurb then table.insert(lines, view.blurb) end
+	if view.entry then table.insert(lines, view.entry) end
+	if view.ember then table.insert(lines, view.ember) end
+	-- Expedition islands (K2): the one-off first-steal bonus and the next island's tease.
+	if view.bonus then table.insert(lines, view.bonus) end
+	if view.next then table.insert(lines, view.next) end
+	local body = label(sheet, table.concat(lines, "\n"), 15)
+	body.TextXAlignment = Enum.TextXAlignment.Center
+	body.TextWrapped = true
+	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, 152)
+	local equip = button(sheet, view.equip)
+	equip.Name = "CardEquip"
+	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -56), UDim2.fromOffset(120, 44)
+	local closer = button(sheet, view.close)
+	closer.Name = "CardClose"
+	closer.BackgroundColor3 = accentOff
+	closer.Position, closer.Size = UDim2.new(0.5, 8, 1, -56), UDim2.fromOffset(120, 44)
+	local uid = view.uid
+	equip.Activated:Connect(function() request("Equip", uid); closeCard() end)
+	closer.Activated:Connect(closeCard)
+	local shown = cardGui
+	task.delay(12, function() if cardGui == shown then closeCard() end end)
 end
 listen(gui.Destroying, closeCard)
 

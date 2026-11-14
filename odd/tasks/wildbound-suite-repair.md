@@ -76,6 +76,8 @@ The live cycle is Day 300 / Dusk 60 / Night 300 / Dawn 60 (`WildboundWorldRules.
 
 ## Next step
 
+Last decision batch 2026-11-14: K2 refuge card shows again (only a card with the first-steal bonus or the next island; a plain registration card stays suppressed); EL13 hatch banner words moved to `Text.LOOP` with the same visible text ("¡Tu huevo eclosionó!", "%s se guardó en tu barra de herramientas") and drawn through `EggLoop.hatchLines`; HB-T5 the collection platform stays empty (re-pinned). Studio matched HEAD for every file except `WildboundText` (it already carried the Scuttler track's lines), so only targeted edits were applied. Fresh load: IslandWiring 13/0, EggLoop 12/1 (EL12, teammate), Hub 22/1 (HB-T3, teammate), Text 19/0. Solo Play: no script errors; `EggLoop.hatchLines` returns the expected words in the client. The refuge card itself was not triggered in Play (needs a first steal on an expedition island).
+
 Wave board and event banner resolved 2026-11-14 (user decision "Que queden ocultos"): both stay hidden; WaveClock RW7 now pins it. Studio test matched HEAD before (18676/2014190735) and the repo after (18993/2183892134). WaveClock 20/1; the remaining RW5 reads `WildboundServer` (teammate).
 
 User asked on 2026-11-14 to stop asking for now. Still open, not asked: IslandWiring K2 (refuge card bonus and next island), EggLoop EL13 (hard-coded hatch banner lines), Hub HB-T5 (Lumipol hover display), the old economy doc and simulator, roulette pity and location.

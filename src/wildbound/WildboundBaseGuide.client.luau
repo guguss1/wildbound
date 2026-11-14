@@ -7,7 +7,7 @@
 -- client sends nothing.
 -- Egg loop (docs/design/wildbound-egg-loop.md, second half of this file): the reward toast with sparkles and bells
 -- (attribute "WildboundEggReward"), the sign over the own base's cradle (timer, "Libre...", the row of stored eggs)
--- and the "¡Nuevo compañero!" banner with the harp when an egg hatches. Words from WildboundEggLoop and Text.LOOP,
+-- and the "¡Tu huevo eclosionó!" banner with the harp when an egg hatches. Words from WildboundEggLoop and Text.LOOP,
 -- sounds from WildboundAudioCatalog.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -457,20 +457,11 @@ if EggLoop and Text.LOOP then
 
 	-- The hatch: the banner, sparkles at the cradle (or the player) and the harp.
 	local function onHatched(card, customNotice)
-		local speciesRaw = type(card) == "table" and card.species or nil
-		local speciesName = speciesRaw and Text and Text.CARD and Text.CARD.species and Text.CARD.species[speciesRaw]
-			or speciesRaw
-		local lineText
-		if type(speciesName) == "string" and speciesName ~= "" then
-			lineText = ("%s se guardó en tu barra de herramientas"):format(speciesName)
-		elseif type(customNotice) == "string" and customNotice ~= "" then
-			lineText = customNotice
-		else
-			lineText = "Se guardó en tu barra de herramientas"
-		end
-		local lines = {
-			title = "¡Tu huevo eclosionó!",
-			line = lineText,
+		-- Words from EggLoop.hatchLines and Text.LOOP (EL13). No auto-equip, so the line always says where it was stored.
+		local hasSpecies = type(card) == "table" and type(card.species) == "string" and card.species ~= ""
+		local lines = hasSpecies and EggLoop.hatchLines(card, nil, Text) or {
+			title = Text.LOOP.hatchTitle,
+			line = (type(customNotice) == "string" and customNotice ~= "") and customNotice or Text.LOOP.hatchStoredPlain,
 		}
 		local color = Color3.fromRGB(150, 255, 190)
 		showToast(lines, color, C.HATCH_BANNER_SECONDS or 4)

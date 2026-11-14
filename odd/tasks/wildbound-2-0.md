@@ -55,7 +55,7 @@ Checklist:
   - [x] T05b.4 Report generated: `docs/balance/wildbound-2-0-economy-sim.md` (seed 7, 200 runs per cell).
   - [x] T05b.6 Review correction (6 findings, one scoped pass): RED 39 run, 3 failures, 13 errors; GREEN 39 passed / 0 failed; report regenerated with both farm modes, byte-identical on rerun (2026-11-14).
   - [ ] T05b.5 Commit.
-- [ ] T09a Roulette prize table (unwired, pure). Commit pending; pity ON/OFF and the hub/base choice are open for the user.
+- [ ] T09a Roulette prize table (unwired, pure). Committed in `52bfb4d`. User decisions 2026-11-14: the roulette goes in the hub ("En el hub"); for the pity the user asked for research first. Research (Steal an Egg has no published spin wheel; Steal a Brainrot's event wheels show no confirmed pity; Grow a Garden uses hard count pity; Roblox's paid-random-items policy, https://create.roblox.com/docs/production/monetization/paid-random-items, requires full odds only when Robux are involved, directly or through Robux-buyable currency, and names pity systems) recommends keeping the current Rara+ pity, shown with its counter. The module keeps its Rara+ default; final pity confirmation still open.
   - [x] T09a.1 Strict RED: Python 18 run / 18 errors (all `NotImplementedError`, stub module); manifest test 25 run / 1 failure (new rows); Studio 0 passed / 15 failed on a `return {}` stub (2026-11-14).
   - [x] T09a.2 GREEN: Python 18 passed / 0 failed; manifest 25 / 0; Studio 15 passed / 0 failed through the fresh-clone runner (filtered).
   - [x] T09a.3 Report generated: `docs/balance/wildbound-2-0-roulette.md` (10000 seeded paid spins, seed 7), byte-identical on rerun.
@@ -68,7 +68,7 @@ Open decision: what a player loses on death or defeat. Today the carried eggs ar
 Conflicts with round-2 decisions:
 - A 2.0 walk of 21 breaks Q9 (walk 16, La Silueta night hunt 17). T06 must choose. `Balance.conflicts()` flags it.
 - Live values that differ from the pack are recorded in `Balance.LIVE` (from the commit 34eab83 sync) and reported by `Balance.conflicts()` with a `live:` prefix: the day cycle 300/60/300/60 vs 240/60/300/120 (Day and Dawn differ); the WALK_CAP tuning range 16..16.5 would clamp treadmill walks 17-21; Training has MAX_LEVEL 4 at WALK_STEP 0.25 vs 5 Balance levels; the bat has no live `parentStun` (the other bat values match BatKnock, and the immunity range now matches its cap of 15); the incubator has one HATCH_SECONDS 15 and 1 slot. `Balance.liveFrom(modules)` rebuilds LIVE from the live modules, and test B23 fails if the copy drifts. TreadmillService (LAP_SECONDS 8) has no level or cap constants of its own; it calls the server's `onLap`.
-- The 2.0 roulette location vs the round-2 base-chest roulette. T09a must choose.
+- The 2.0 roulette location vs the round-2 base-chest roulette: decided 2026-11-14, the hub.
 
 Assumptions to confirm: the T03, T05b, T08a and T10 titles; the per-rarity minimum incubation seconds (25 / 45 / 90 / 180) are a proposal, not from the pack.
 
