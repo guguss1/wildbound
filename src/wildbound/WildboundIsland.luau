@@ -509,4 +509,33 @@ function Island.withTrailNest(layout)
 	return merged
 end
 
+-- CF2 (odd/tasks/wildbound-caramelo.md; CA4): the pure core of the server's wave-start nest refresh. nestState maps a
+-- nest slot id ("<island>:<index>") to "wait_wave" (its egg was taken), "wait" (its cria was taken), "returning" (a
+-- cria running home) or the encounter id lying in it; nestGen to each slot's generation; chasing[islandId] = true for
+-- an island whose parents are chasing. Every empty nest ("wait_wave" or "wait") gets a new generation (cancelling any
+-- pending refill timer); one whose island is not chasing is opened (nil) for ensureNests, one whose island is chasing
+-- stays empty for the server's retry. Anything else, and every egg (carried, dropped or secured eggs live in the egg
+-- registry, which this never sees), is untouched. Returns the opened and the waiting slot ids, sorted.
+function Island.waveRefill(nestState, nestGen, chasing)
+	local refilled, waiting = {}, {}
+	if type(nestState) ~= "table" or type(nestGen) ~= "table" then return refilled, waiting end
+	chasing = type(chasing) == "table" and chasing or {}
+	local slots = {}
+	for slotId, stateName in pairs(nestState) do
+		if stateName == "wait_wave" or stateName == "wait" then table.insert(slots, slotId) end
+	end
+	table.sort(slots, function(a, b) return tostring(a) < tostring(b) end)
+	for _, slotId in ipairs(slots) do
+		nestGen[slotId] = (finite(nestGen[slotId]) and nestGen[slotId] or 0) + 1
+		local islandId = type(slotId) == "string" and string.match(slotId, "^([^:]+):") or nil
+		if islandId and chasing[islandId] then
+			table.insert(waiting, slotId)
+		else
+			nestState[slotId] = nil
+			table.insert(refilled, slotId)
+		end
+	end
+	return refilled, waiting
+end
+
 return Island

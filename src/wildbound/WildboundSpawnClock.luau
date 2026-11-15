@@ -290,6 +290,11 @@ function SpawnClock.reroll(state, now, rand, held)
 	local ignore, ids = {}, {}
 	for id, spawn in pairs(state.active) do
 		if not spawn.special and not held[id] then table.insert(ids, id) end
+		-- CF2 (odd/tasks/wildbound-caramelo.md): a held spawn stays through the reroll and takes the new wave's end, so
+		-- the step after its hold ends does not expire it on the old wave's timer.
+		if not spawn.special and held[id] and finite(state.waveEndsAt) then
+			spawn.expiresAt, spawn.waveBound = state.waveEndsAt + SpawnClock.CONSTANTS.WAVE_GRACE, true
+		end
 	end
 	table.sort(ids)
 	for _, id in ipairs(ids) do

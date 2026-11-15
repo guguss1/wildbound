@@ -230,6 +230,39 @@ return function(SpawnClock, graph, Species, source, sources)
 		equal(SpawnClock.bindWave(nil, 10), false)
 	end)
 
+	-- CF2 (odd/tasks/wildbound-caramelo.md): a spawn someone is holding or capturing stays through the reroll, and it
+	-- takes the new wave's end, so the step right after the hold ends does not expire it on its old wave's timer.
+	case("CF2: a held spawn kept through the reroll gets the new wave's expiry", function()
+		SpawnClock.tune(nil)
+		local state = SpawnClock.new(graph, Species)
+		SpawnClock.bindWave(state, 300)
+		local first = SpawnClock.step(state, 0, Random.new(3))
+		local kept = first[1].spawn
+		equal(kept.expiresAt, 301)
+		local special = SpawnClock.force(state, 60, Random.new(4), { tier = "Legendaria", kind = "Egg", lifetime = 400,
+			special = true, x = 0, z = -85, radius = 45 })
+		assert(special, "a special spawn")
+		SpawnClock.bindWave(state, 600)
+		local moved = SpawnClock.reroll(state, 300, Random.new(6), { [kept.id] = true, [special.id] = true })
+		for _, action in ipairs(moved) do
+			assert(not (action.op == "expire" and action.spawn.id == kept.id), "the held spawn is not rerolled")
+		end
+		equal(state.active[kept.id], kept, "the held spawn stays")
+		equal(kept.expiresAt, 601, "it ends with the new wave")
+		equal(kept.waveBound, true)
+		equal(special.expiresAt, 460, "a special spawn keeps its own life")
+		-- The hold ends right after the refresh: the next step keeps it.
+		for _, action in ipairs(SpawnClock.step(state, 305, Random.new(7))) do
+			assert(not (action.op == "expire" and action.spawn.id == kept.id), "not expired on the old wave's end")
+		end
+		equal(state.active[kept.id], kept)
+		local expired = false
+		for _, action in ipairs(SpawnClock.step(state, 601, Random.new(8))) do
+			if action.op == "expire" and action.spawn.id == kept.id then expired = true end
+		end
+		equal(expired, true, "it leaves with the new wave")
+	end)
+
 	case("CA4: the server binds each wave before its reroll", function()
 		local server = sources.server or ""
 		local at = server:find("SpawnClock.bindWave(spawnClock, event.endsAt)", 1, true)

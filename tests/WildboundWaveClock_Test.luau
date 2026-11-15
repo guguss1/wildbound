@@ -442,5 +442,69 @@ return function(WaveClock, source, sources)
 		has(sources.client, "WaveClock.ALERTS", "the alert seconds come from the clock module")
 	end)
 
+	-- CF2 (odd/tasks/wildbound-caramelo.md): a steal hold is judged when it starts. A hold that would end inside the
+	-- Warning window (or starts in it) is refused at once, so nobody holds for nothing; one that ends before the
+	-- warning, or spans the whole warning and resolves after the refresh, is allowed.
+	case("CF2: holdFits refuses a hold that would end inside the Warning window", function()
+		WaveClock.tune(nil)
+		local state = WaveClock.new(0)
+		equal(WaveClock.holdFits(state, 5, 3), true, "no wave yet: nothing to lock")
+		WaveClock.step(state, 0)
+		equal(WaveClock.holdFits(state, 100, 3), true, "mid-wave")
+		equal(WaveClock.holdFits(state, 286.9, 3), true, "ends at 289.9: before the warning")
+		equal(WaveClock.holdFits(state, 287, 3), false, "ends at 290: inside the warning")
+		equal(WaveClock.holdFits(state, 289, 3), false, "starts in Collect, ends in Warning")
+		equal(WaveClock.holdFits(state, 292, 1), false, "starts in the warning")
+		equal(WaveClock.holdFits(state, 285, 20), true, "spans the whole warning: resolves after the refresh")
+		equal(WaveClock.holdFits(state, 100, 0), true, "an instant hold")
+		equal(WaveClock.holdFits(state, 100, 0 / 0), false, "a bad hold length")
+		equal(WaveClock.holdFits(state, 0 / 0, 3), false, "a bad start")
+		WaveClock.step(state, 300)
+		equal(WaveClock.holdFits(state, 295, 1), false, "a warning hold stays refused after the refresh")
+		equal(WaveClock.holdFits(state, 300, 3), true, "the new wave collects at once")
+	end)
+
+	-- CF2: the wave's end is bound when it starts (the waveStarted event's endsAt, the same one SpawnClock.bindWave
+	-- gets). The Warning window, holdAllowed, endsAt and the refresh read that bound end, never the live WAVE_SECONDS,
+	-- so a tuned length applies from the next wave and the two clocks never disagree.
+	case("CF2: the window, the hold gate and the refresh use the bound wave end", function()
+		WaveClock.tune(nil)
+		local state = WaveClock.new(0)
+		local first = WaveClock.step(state, 0)
+		equal(first[1].endsAt, 300)
+		WaveClock.tune({ WAVE_SECONDS = 30 })
+		equal(WaveClock.endsAt(state), 300, "endsAt is the bound end")
+		equal(WaveClock.window(state, 25).name, "Collect", "no warning at 25 of a 300 s wave")
+		equal(WaveClock.window(state, 25).endsAt, 300)
+		equal(WaveClock.holdAllowed(state, 25), true, "a hold at 25 is not in the bound wave's warning")
+		equal(WaveClock.holdAllowed(state, 295), false, "the bound wave's warning")
+		equal(WaveClock.holdFits(state, 285, 3), true)
+		local early = 0
+		for _, event in ipairs(WaveClock.step(state, 30)) do
+			if event.type == "waveStarted" then early += 1 end
+		end
+		equal(early, 0, "the refresh waits for the bound end")
+		local second = WaveClock.step(state, 300)
+		equal(second[1].type, "waveStarted")
+		equal(second[1].endsAt, 330, "the tuned length applies from the next wave")
+		equal(WaveClock.endsAt(state), 330)
+		equal(WaveClock.window(state, 321).name, "Warning", "the tuned wave's warning (half of 30 s caps at 10 s)")
+		WaveClock.tune(nil)
+		equal(WaveClock.endsAt(state), 330, "restoring the default does not move the bound end")
+	end)
+
+	case("CF2: the server refuses a steal hold at its start and binds the hold gate to the wave", function()
+		local server = sources.server or ""
+		has(server, "WaveClock.holdFits(waveClock, now, need)", "the hold-start check")
+		has(server, "entry.holdStarts[player] = { at = now, refused = true }", "a refused hold is remembered")
+		has(server, "if entry.holdStarts[player] and entry.holdStarts[player].refused then", "the trigger never resolves it")
+		local began = server:find("PromptButtonHoldBegan", 1, true)
+		local fits = server:find("WaveClock.holdFits(waveClock, now, need)", 1, true)
+		local locked = fits and server:find("Text.WAVE.locked", fits, true)
+		assert(began and fits and fits > began and locked and locked - fits < 400, "the refusal is sent at the hold start")
+		assert(type(source) == "string" and not source:find("state.waveStartedAt + WaveClock.live.WAVE_SECONDS", 1, true),
+			"nothing recomputes a wave end from the live length")
+	end)
+
 	return result
 end

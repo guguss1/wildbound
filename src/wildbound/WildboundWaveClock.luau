@@ -77,11 +77,22 @@ function WaveClock.new(startedAt)
 		nextEventAt = startedAt + WaveClock.live.EVENT_FIRST, eventIndex = 0, event = nil }
 end
 
--- The wave a clock is in at `now` (1 from the start). A tuned length counts from the current wave's own start, so a
--- live change never jumps back.
+-- CF2 (odd/tasks/wildbound-caramelo.md): a wave's end is bound when it starts (the waveStarted event's endsAt, the one
+-- SpawnClock.bindWave gets). The refresh, the window, holdAllowed and endsAt all read it, so a tuned length applies
+-- from the next wave and nothing recomputes a running wave's end from the live length.
+local function boundEnd(state)
+	return finite(state.waveEndsAt) and state.waveEndsAt or nil
+end
+
+-- A bound wave's warning: at most half of that wave's own length.
+local function warningOf(state)
+	return math.min(WaveClock.CONSTANTS.WARNING_SECONDS, (state.waveEndsAt - state.waveStartedAt) * 0.5)
+end
+
+-- The wave a clock is in at `now` (1 from the start): the next one starts at the current wave's bound end.
 local function due(state, now)
-	if state.wave == 0 then return true end
-	return now >= state.waveStartedAt + WaveClock.live.WAVE_SECONDS
+	if state.wave == 0 or not boundEnd(state) then return true end
+	return now >= state.waveEndsAt
 end
 
 -- Returns the events this step, in order: { type = "waveStarted", wave, startedAt, endsAt }. A long gap starts one
@@ -91,11 +102,13 @@ function WaveClock.step(state, now)
 	if type(state) ~= "table" or not finite(now) then return events end
 	if due(state, now) then
 		state.wave += 1
+		state.previousEndsAt = boundEnd(state)
+		state.previousWarning = state.previousEndsAt and finite(state.waveStartedAt) and warningOf(state) or nil
 		state.waveStartedAt = now
+		state.waveEndsAt = now + WaveClock.live.WAVE_SECONDS
 		table.clear(state.board)
 		state.order = 0
-		table.insert(events, { type = "waveStarted", wave = state.wave, startedAt = now,
-			endsAt = now + WaveClock.live.WAVE_SECONDS })
+		table.insert(events, { type = "waveStarted", wave = state.wave, startedAt = now, endsAt = state.waveEndsAt })
 	end
 	-- RW5: one biome event at a time; it ends after EVENT_SECONDS, claimed or not.
 	if state.event and now >= state.event.endsAt then
@@ -130,21 +143,19 @@ function WaveClock.claimEvent(state, key)
 end
 
 -- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01): this clock is the only world clock (no day/night cycle). The
--- warning lasts WARNING_SECONDS, at most half a (tuned) wave.
-local function warningSeconds()
-	return math.min(WaveClock.CONSTANTS.WARNING_SECONDS, WaveClock.live.WAVE_SECONDS * 0.5)
-end
+-- warning lasts WARNING_SECONDS, at most half of its (bound) wave: warningOf above.
 
 -- The window at `now`: { name = "Collect" | "Warning" | "Idle", wave, endsAt, remaining }. "Collect" from the wave's
 -- start to WARNING_SECONDS before its end, then "Warning" until the refresh (the next step's waveStarted); "Idle"
 -- before the first wave or for a bad clock.
 function WaveClock.window(state, now)
-	if type(state) ~= "table" or not finite(now) or state.wave == 0 or not finite(state.waveStartedAt) then
+	if type(state) ~= "table" or not finite(now) or state.wave == 0 or not finite(state.waveStartedAt)
+		or not boundEnd(state) then
 		return { name = "Idle", wave = 0 }
 	end
-	local endsAt = state.waveStartedAt + WaveClock.live.WAVE_SECONDS
+	local endsAt = state.waveEndsAt
 	local remaining = math.max(0, endsAt - now)
-	return { name = now >= endsAt - warningSeconds() and "Warning" or "Collect", wave = state.wave, endsAt = endsAt,
+	return { name = now >= endsAt - warningOf(state) and "Warning" or "Collect", wave = state.wave, endsAt = endsAt,
 		remaining = remaining }
 end
 
@@ -153,17 +164,35 @@ end
 -- hold begun at 289 resolves across it. True before the first wave; false for a bad time.
 function WaveClock.holdAllowed(state, startedAt)
 	if not finite(startedAt) then return false end
-	if type(state) ~= "table" or state.wave == 0 or not finite(state.waveStartedAt) then return true end
-	local warning = warningSeconds()
-	local endsAt = state.waveStartedAt + WaveClock.live.WAVE_SECONDS
-	if startedAt >= endsAt - warning and startedAt < endsAt then return false end
-	if startedAt >= state.waveStartedAt - warning and startedAt < state.waveStartedAt then return false end
+	if type(state) ~= "table" or state.wave == 0 or not finite(state.waveStartedAt) or not boundEnd(state) then
+		return true
+	end
+	local endsAt = state.waveEndsAt
+	if startedAt >= endsAt - warningOf(state) and startedAt < endsAt then return false end
+	-- The wave before the refresh: its warning ran from its own bound end less the warning to the refresh itself.
+	local previous = finite(state.previousEndsAt) and state.previousEndsAt or state.waveStartedAt
+	local before = finite(state.previousWarning) and state.previousWarning or warningOf(state)
+	if startedAt >= previous - before and startedAt < state.waveStartedAt then return false end
 	return true
+end
+
+-- CF2: judged when a steal hold starts. A hold of `holdSeconds` begun at `startedAt` fits when holdAllowed accepts its
+-- start and it does not end inside the current wave's Warning window, so the server can refuse it at once instead
+-- of letting the player hold for nothing. A hold spanning the whole warning resolves after the refresh, as before.
+function WaveClock.holdFits(state, startedAt, holdSeconds)
+	if not finite(startedAt) or not finite(holdSeconds) or holdSeconds < 0 then return false end
+	if not WaveClock.holdAllowed(state, startedAt) then return false end
+	if type(state) ~= "table" or state.wave == 0 or not boundEnd(state) or not finite(state.waveStartedAt) then
+		return true
+	end
+	local finish = startedAt + holdSeconds
+	local endsAt = state.waveEndsAt
+	return not (finish >= endsAt - warningOf(state) and finish < endsAt)
 end
 
 function WaveClock.endsAt(state)
 	if type(state) ~= "table" or not finite(state.waveStartedAt) then return nil end
-	return state.waveStartedAt + WaveClock.live.WAVE_SECONDS
+	return boundEnd(state)
 end
 
 local function cleanName(name)

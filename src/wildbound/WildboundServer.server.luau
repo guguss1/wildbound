@@ -2028,8 +2028,28 @@ spawnEncounter = function(slot)
 	-- HB-T7: and each player's own hold as the server saw it (when it began, when it was released), for the steal check.
 	entry.holdStarts = {}
 	entry.prompt.PromptButtonHoldBegan:Connect(function(player)
-		entry.holders[player] = workspace:GetServerTimeNow()
-		entry.holdStarts[player] = { at = workspace:GetServerTimeNow() }
+		local now = workspace:GetServerTimeNow()
+		-- CF2: a steal hold that would end inside the wave's Warning window is refused when it starts (never held for
+		-- nothing): the line at once, and the bar is cut when this player is the only one holding.
+		if isEgg and not entry.arrullo then
+			local need = Gear.stealHold(entry.prompt:GetAttribute("WildboundStealHold"),
+				{ stats = { steal = player:GetAttribute("WildboundGloveSteal") or 0 } }, Gear.CONSTANTS.STEAL_FLOOR)
+			if not WaveClock.holdFits(waveClock, now, need) then
+				entry.holdStarts[player] = { at = now, refused = true }
+				send(player, "Pickup", false, Text.WAVE.locked)
+				if next(entry.holders) == nil and entry.prompt.Enabled then
+					entry.prompt.Enabled = false
+					task.delay(0.25, function()
+						if entries[id] == entry and entry.prompt.Parent and not entry.prompt.Enabled then
+							entry.prompt.Enabled = true
+						end
+					end)
+				end
+				return
+			end
+		end
+		entry.holders[player] = now
+		entry.holdStarts[player] = { at = now }
 	end)
 	entry.prompt.PromptButtonHoldEnded:Connect(function(player)
 		entry.holders[player] = nil
@@ -2136,6 +2156,12 @@ spawnEncounter = function(slot)
 						end
 					end })
 				if started then send(player, "Arrullo", true, Text.ARRULLO.hint) end
+				return
+			end
+			-- CF2: a hold refused at its start never resolves (the player was told when it began).
+			if entry.holdStarts[player] and entry.holdStarts[player].refused then
+				entry.holdStarts[player] = nil
+				send(player, "Pickup", false, Text.WAVE.locked)
 				return
 			end
 			-- CA4 (pack 05_SISTEMAS/01): a steal hold begun in the wave's Warning window (its last 10 s) is refused; one
@@ -3756,28 +3782,24 @@ do
 		function Heist.resetNestsForWave(_now, wave)
 			if Heist.nestWave == wave then return end
 			Heist.nestWave = wave
-			for slotId, stateName in pairs(nestState) do
-				if stateName == "wait_wave" or stateName == "wait" then
-					local islandId = string.match(slotId, "^([^:]+):")
-					local island = islandId and islands[islandId] or nil
+			-- CF2: the pure core (Island.waveRefill) opens the empty nests; a chasing island's nest retries each second.
+			local chasing = {}
+			for islandId, island in pairs(islands) do
+				if island.chase then chasing[islandId] = true end
+			end
+			local _, waiting = Island.waveRefill(nestState, nestGen, chasing)
+			for _, slotId in ipairs(waiting) do
+				local gen, island = nestGen[slotId], islands[string.match(slotId, "^([^:]+):")]
+				local function retry()
+					if nestGen[slotId] ~= gen then return end
 					if island and island.chase then
-						local gen = (nestGen[slotId] or 0) + 1
-						nestGen[slotId] = gen
-						local function retry()
-							if nestGen[slotId] ~= gen then return end
-							if island.chase then
-								task.delay(1, retry)
-								return
-							end
-							nestState[slotId] = nil
-							ensureNests()
-						end
 						task.delay(1, retry)
-					else
-						nestGen[slotId] = (nestGen[slotId] or 0) + 1
-						nestState[slotId] = nil
+						return
 					end
+					nestState[slotId] = nil
+					ensureNests()
 				end
+				task.delay(1, retry)
 			end
 			ensureNests()
 		end

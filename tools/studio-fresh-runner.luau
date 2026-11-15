@@ -282,6 +282,7 @@ SPECS["WildboundMechanicsWiring_Test"] = {
 		schema = "mod:WildboundTuningSchema",
 	},
 }
+SPECS["WildboundNestRefill_Test"] = { "mod:WildboundIsland", "mod:WildboundEggCarry", { server = "src:WildboundServer" } }
 SPECS["WildboundOwnership_Test"] = { "mod:WildboundOwnership", "src:WildboundWorld", "src:WildboundWorldGuard" }
 SPECS["WildboundPatrolWiring_Test"] = { "src:WildboundWorld" }
 SPECS["WildboundPersistence_Test"] = {

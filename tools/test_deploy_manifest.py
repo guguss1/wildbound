@@ -367,6 +367,7 @@ class DefaultMappingTests(unittest.TestCase):
         # Nest Heist phase 1 (NH1 to NH8): the egg-carry rule (server only) and its suite
         "src/wildbound/WildboundEggCarry.luau": "ServerScriptService.WildboundEggCarry",
         "tests/WildboundEggCarry_Test.luau": "ServerStorage.WildboundEggCarry_Test",
+        "tests/WildboundNestRefill_Test.luau": "ServerStorage.WildboundNestRefill_Test",
         # Nest Heist phase 2 (NP3): the bat rule (server only) and its suite
         "src/wildbound/WildboundBat.luau": "ServerScriptService.WildboundBat",
         "tests/WildboundBat_Test.luau": "ServerStorage.WildboundBat_Test",
