@@ -19,7 +19,7 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 
 ## Checklist
 
-- [ ] BP1 Treadmill and training: a lap pays Esencia only on a level-up lap; level L+1 needs L+1 laps (about 20 min to the top); re-price the console as a shortcut; keep the unburdened walk cap 50. Route: inline (parent subagent, one writer).
+- [x] BP1 Treadmill and training: a lap pays Esencia only on a level-up lap; level L+1 needs L+1 laps (about 20 min to the top); re-price the console as a shortcut; keep the unburdened walk cap 50. Route: inline (parent subagent, one writer). Done 2026-11-15 (`5287a33`; Studio suites and solo Play below).
 - [ ] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`).
 - [ ] BP3 Remaining findings (collection limit, base bonus timing, Caramelo tiers, Nightbloom, sinks, incubation slots) as the batch assigns them.
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
@@ -47,6 +47,13 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Source changes are in the working tree, not committed (Luau RED/GREEN not observed yet).
 - Repo fingerprints (LF, trailing newlines stripped; bytes, Adler-32) HEAD -> working: Training 4053/3689825123 -> 4792/1375218450; TuningSchema 41284/1653247914 -> 41284/3354955688; State 54917/1236784352 -> 55710/1188551955; Server 217661/1447361815 -> 218030/2564715851; Text 38373/1300234362 -> 38543/2206283221; Balance 29142/989013169 -> 29230/3954851041; Training_Test 8626/2803364432 -> 12330/3569453963; Balance_Test 21861/2737315898 -> 21970/1724923732.
 
+### BP1 in Studio (2026-11-15, second session, another machine)
+
+- Found already deployed: before any write, the eight Studio scripts (Training, TuningSchema, State, Server, Text, Balance, Training_Test, Balance_Test) matched the repo at `79892bd` byte for byte (the "working" fingerprints above). This session wrote no Source. Who deployed them is not recorded, and the RED step in Studio was not observed by this session.
+- Studio suites, fresh loader (trimmed `tools/studio-fresh-runner.luau`, same SPECS), run `d832e188`: Training 11/0, Balance 25/0, Record 30/0, Text 21/0, TuningWiring 8/0. Red, all on the handoff's known list: State 71/14 (EconomyConfig drift, bag 3 vs 12), Tuning 15/1 (DT1 `Eggs.STEAL_HOLD` 0.8 vs 0.5), Hub 22/1 (HB-T3). No leaks, no timeouts.
+- Solo Play (PlayLock `BP1`, cleared after; Play stopped; saves in memory mode): WalkSpeed 16 before; mounted the Base1 belt (WalkSpeed 0). The `Treadmill` remote's lap payloads, 8 s apart: lap 1 `level 1, leveled, ember 5`; lap 2 `laps 1 of need 2, ember 0`; lap 3 `level 2, leveled, ember 5`; lap 4 `laps 1 of need 3, ember 0`. Dismounted through the remote: WalkSpeed 20. No script errors in the output.
+- Not checked: the notice wording on screen (`lapProgress`, `lapLevelEmber`), the console purchase at the new prices in Play, a rejoin keeping `training.walkLaps`, two players, a phone. Python tests were not run on this machine (no Python installed).
+
 ## Next step
 
-BP1 in Studio, in Edit mode: compare the Studio fingerprints with the HEAD values above; push the two test files and run `WildboundTraining_Test` and `WildboundBalance_Test` with the fresh runner (expect RED); push Training, TuningSchema, State, Server, Text, Balance with exact replacements (the working-tree diff); rerun those suites plus State, Record, Tuning, TuningWiring, Text and Hub (expect GREEN); solo Play check of a treadmill lap; then commit.
+BP2: cap the carrier speed (a carrier's share is taken of at most a 24 walk).
