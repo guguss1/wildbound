@@ -390,7 +390,7 @@ return function(Text, source, sources)
 		for _, key in ipairs({ "object", "prompt", "readyIn" }) do text(P[key], "PORTAL." .. key, 24) end
 		for _, key in ipairs({ "channel", "barTitle" }) do text(P[key], "PORTAL." .. key, 32) end
 		for _, key in ipairs({ "arrived", "cooldown", "threat", "cutThreat", "cutMoved", "cutDead", "tooFar", "busy",
-			"noBase", "disabled", "dead" }) do
+			"noBase", "disabled", "dead", "carrying", "cutDisabled" }) do
 			text(P[key], "PORTAL." .. key, 72)
 		end
 		for _, id in ipairs({ "caramelo", "bosque" }) do text(P.names[id], "PORTAL.names." .. id, 24) end

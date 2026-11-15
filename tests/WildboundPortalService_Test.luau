@@ -4,7 +4,8 @@
 -- CE3 / T08b (odd/tasks/wildbound-caramelo.md, odd/tasks/wildbound-2-0.md): the return portal service. The server alone
 -- decides: a portal's prompt names only the player (the client sends nothing), the server measures its own root against
 -- the station, reads the threat signals it wrote itself (La Silueta's level, the beasts' stamp, bat hits, ragdoll, health,
--- awake parents), runs the channel on its own clock and moves the character onto the player's own base pad. Fakes only:
+-- awake parents), runs the channel on its own clock and moves the character onto the player's own base pad. CG2: a player
+-- carrying an egg is refused (decision 47) and a station switched off mid-channel cuts it (F6). Fakes only:
 -- fake players (attribute tables), parentless parts as roots and pads, a scripted clock, recorded teleports.
 return function(Service, Portal, Text, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
@@ -33,7 +34,8 @@ return function(Service, Portal, Text, sources)
 	-- A world: one station, the player's base pad, a clock, recorded calls.
 	local function world(options)
 		options = options or {}
-		local w = { clock = 1000, teleports = {}, notes = {}, fired = {}, alive = true, health = 100, adults = {} }
+		local w = { clock = 1000, teleports = {}, notes = {}, fired = {}, alive = true, health = 100, adults = {},
+			carrying = false }
 		w.player = fakePlayer(7)
 		w.root = Instance.new("Part")
 		w.root.Position = STATION + Vector3.new(3, 3, 0)
@@ -54,11 +56,13 @@ return function(Service, Portal, Text, sources)
 			spawnFrame = function() return options.spawnFrame end,
 			adults = function() return w.adults end,
 			health = function() return w.health end,
+			carrying = function() return w.carrying end,
 			notify = function(player, ok, text) table.insert(w.notes, { player = player, ok = ok, text = text }) end,
 			fire = function(player, payload) table.insert(w.fired, payload) end,
 			hubCentre = Vector3.new(282, 0, -3),
 		})
 		w.service:addStation("caramelo", STATION, function() return stationEnabled end)
+		function w.setEnabled(value) stationEnabled = value end
 		w.service:track(w.player)
 		function w.advance(seconds, step)
 			step = step or 0.1
@@ -238,13 +242,39 @@ return function(Service, Portal, Text, sources)
 		equal(w.service.states[w.player], nil, "state dropped")
 	end)
 
-	case("SV-11: the carried egg rides along: a carrier is moved like anyone, nothing is dropped", function()
+	case("SV-11: CG2 (decision 47): a carrier is refused with the walk-it-home notice; an egg picked up mid-channel cuts it", function()
 		local w = world()
-		w.player:SetAttribute("WildboundCarrying", true)
+		w.carrying = true
+		local ok, reason = w.service:trigger(w.player, "caramelo")
+		equal(ok, false, "refused"); equal(reason, "Carrying", "reason")
+		equal(w.lastNote().text, Text.PORTAL.carrying, "the Spanish notice")
+		equal(w.lastFired().kind, "Refused", "the client is told")
+		w.advance(C.channelSeconds + 0.5)
+		equal(#w.teleports, 0, "never moved")
+		w.carrying = false
 		assert(w.service:trigger(w.player, "caramelo"))
-		w.advance(C.channelSeconds + 0.1)
-		equal(#w.teleports, 1, "moved")
+		w.advance(0.5)
+		w.carrying = true
+		w.advance(0.2)
+		equal(w.lastFired().kind, "Cut", "cut"); equal(w.lastFired().reason, "Carrying", "carrying cut")
+		equal(w.lastNote().text, Text.PORTAL.carrying, "the same notice")
+		w.advance(C.channelSeconds + 0.5)
+		equal(#w.teleports, 0, "never moved with an egg")
 		assert(not string.find(sources.service, "dropEgg", 1, true), "the service never drops an egg")
+	end)
+
+	case("SV-14: CG2 (F6): a station switched off mid-channel cancels it; no teleport, no rest", function()
+		local w = world()
+		assert(w.service:trigger(w.player, "caramelo"))
+		w.advance(0.5)
+		w.setEnabled(false)
+		w.advance(0.2)
+		equal(w.lastFired().kind, "Cut", "cut"); equal(w.lastFired().reason, "Disabled", "reason")
+		equal(w.lastNote().text, Text.PORTAL.cutDisabled, "notice")
+		w.advance(C.channelSeconds + 0.5)
+		equal(#w.teleports, 0, "never moved")
+		w.setEnabled(true)
+		equal((w.service:trigger(w.player, "caramelo")), true, "no rest after the cut")
 	end)
 
 	case("SV-12: the forest station builder: a lit arch with a prompt, anchored, at its spot", function()
@@ -274,6 +304,7 @@ return function(Service, Portal, Text, sources)
 	case("SV-13: wiring: the server starts the service; the beasts stamp their target; the client sends nothing", function()
 		assert(string.find(sources.server, 'WaitForChild("WildboundPortalService")', 1, true), "server requires the service")
 		assert(string.find(sources.server, "PortalService.new(", 1, true), "server builds it")
+		assert(string.find(sources.server, "carrying = function(player)", 1, true), "server tells it who carries an egg")
 		assert(string.find(sources.beasts, '"WildboundBeastEngagedAt"', 1, true), "beasts stamp their target")
 		assert(not string.find(sources.client, "FireServer", 1, true), "the client never fires the server")
 		assert(not string.find(sources.client, "InvokeServer", 1, true), "nor invokes it")

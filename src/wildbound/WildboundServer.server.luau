@@ -147,6 +147,12 @@ do
 	local candyOk, candyLayout = pcall(function()
 		local CandyNests = require(script.Parent:WaitForChild("WildboundCandyNests", 5))
 		local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites", 5))
+		-- CG2 (F1): the layout's nest and portal flags go onto the live biome first (no unsaved Edit session needed).
+		local builder = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyBuilder")
+		local layout = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyLayout")
+		if builder and layout then
+			CandyNests.applyFlags(workspace:FindFirstChild(CandyNests.ROOT_NAME), require(builder), require(layout))
+		end
 		return CandyNests.merge(islandLayout, CandyNests.read(workspace:FindFirstChild(CandyNests.ROOT_NAME)),
 			CandyNests.posts(Sites))
 	end)
@@ -1623,6 +1629,15 @@ local function islandReadings()
 	return list
 end
 
+-- CG2 (F5, decision 50): a stolen Caramelo nest egg wakes that nest's guardian (spec.guard) on the thief. WildboundBeasts
+-- owns the summon: ServerStorage.WildboundTelemetry.GuardAlarm, a server-only BindableEvent (Director.alarm).
+function Heist.guardAlarm(beast, player)
+	local telemetry = game:GetService("ServerStorage"):FindFirstChild("WildboundTelemetry")
+	local alarm = telemetry and telemetry:FindFirstChild("GuardAlarm")
+	if type(beast) ~= "string" or not (alarm and alarm:IsA("BindableEvent")) then return false end
+	alarm:Fire(beast, player)
+	return true
+end
 local function wakeIsland(island, now)
 	local spec = island.spec
 	-- CE1: a nest with no parent (a Caramelo nest, guarded by its beast) has nobody to wake, scream or chase.
@@ -2144,6 +2159,7 @@ spawnEncounter = function(slot)
 				if slot.special then claimBiomeEvent(player) end
 				-- I2: rolling an egg out of the nest is noisy.
 				if island and Island.event(island.meter, "EggTaken").woke then wakeIsland(island, workspace:GetServerTimeNow()) end
+				if island and island.spec.guard then Heist.guardAlarm(island.spec.guard, player) end
 			end
 			reply(player, "Pickup", ok, reason, Text.EGG.stolen)
 		end
@@ -4106,7 +4122,7 @@ end
 do
 	-- CE3 / T08b: the return portals (the Caramelo arch and the deep forest arch). The service validates on the server
 	-- (alive, its own root's distance, 5 s calm, 2 s channel, 30 s rest) and moves the character to its own base pad;
-	-- the carried egg rides along and the base zone banks it as usual. The client sends nothing.
+	-- CG2: a player carrying an egg is refused (decision 47). The client sends nothing.
 	local PortalService = require(script.Parent:WaitForChild("WildboundPortalService"))
 	Heist.portals = PortalService.new({
 		Portal = require(script.Parent:WaitForChild("WildboundPortal")),
@@ -4116,6 +4132,12 @@ do
 		spawnFrame = function(player) return Heist.hub and Heist.hub:spawnFrame(player) or nil end,
 		hubCentre = Vector3.new(Rules.HUB_X, 0, Rules.HUB_Z),
 		notify = function(player, ok, text) send(player, "Portal", ok, text) end,
+		-- CG2 (decision 47): a player carrying an egg (or a wild Lumipol or cria) walks it home; the portal refuses.
+		carrying = function(player)
+			local snap = state:snapshot(player.UserId)
+			return EggCarry.carriedBy(eggs, player.UserId) ~= nil
+				or (snap ~= nil and (Wild.eggsCarried(snap) > 0 or snap.carrying ~= nil))
+		end,
 	}):start(network, workspace)
 end
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion

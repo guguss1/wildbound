@@ -1699,5 +1699,30 @@ return function(State, Economy, Config)
 		equal(select(2, state:spinRoulette("Nobody", true, 0, 12, scripted(ESENCIA10, true))), "InvalidPlayer")
 	end)
 
+	-- CG2 (F8, odd/tasks/wildbound-caramelo.md decision 52): an older save whose companion (equippedUid) is a farm-only
+	-- species (the server's state.farmOnly) loads with no companion; the creature stays registered. No schema change.
+	case("CG2: a loaded farm-only companion is cleared and kept registered", function()
+		local source = State.new(Economy, Config)
+		accepted(source:addPlayer("Alice"))
+		local function saved(equipped)
+			local profile = table.clone(source.players["s:Alice"])
+			profile.registered = { { uid = "u1", species = "Gomibu" }, { uid = "u2", species = "Lumipol" } }
+			profile.equippedUid = equipped
+			return profile
+		end
+		local state = State.new(Economy, Config)
+		state.farmOnly = { Gomibu = true }
+		equal(state:loadPlayer("Alice", saved("u1")), true, "loads")
+		local snap = state:snapshot("Alice")
+		equal(snap.equippedUid, nil, "a farm-only companion is cleared")
+		equal(#snap.registered, 2, "both creatures stay registered")
+		equal(snap.registered[1].uid, "u1", "the Gomibu kept")
+		equal(state:loadPlayer("Alice", saved("u2")), true)
+		equal(state:snapshot("Alice").equippedUid, "u2", "a Lumipol companion stays")
+		local plain = State.new(Economy, Config)
+		equal(plain:loadPlayer("Alice", saved("u1")), true)
+		equal(plain:snapshot("Alice").equippedUid, "u1", "without the server's farm-only set nothing is cleared")
+	end)
+
 	return result
 end

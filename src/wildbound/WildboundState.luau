@@ -108,6 +108,12 @@ function State:loadPlayer(key, loaded)
 		or type(loaded.banked) ~= "table" or type(loaded.consumables) ~= "table" or not finite(loaded.ember) then
 		return false, "InvalidProfile"
 	end
+	-- CG2 (F8): an older save whose companion is a farm-only species (state.farmOnly, set by the server) loads with no
+	-- companion; the creature stays registered. No schema change.
+	if loaded.equippedUid ~= nil and type(self.farmOnly) == "table" then
+		local _, pet = find(loaded.registered, loaded.equippedUid)
+		if pet and self.farmOnly[pet.species] == true then loaded.equippedUid = nil end
+	end
 	self.players[normalized] = loaded
 	return true
 end

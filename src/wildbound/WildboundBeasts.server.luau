@@ -913,6 +913,31 @@ if RunService:IsStudio() then
 	probe.Parent = telemetry
 end
 
+-- CG2 (F5, odd/tasks/wildbound-caramelo.md decision 50): the guard binding. When the server steals the egg of a guarded
+-- Caramelo nest (WildboundServer Heist.guardAlarm, the nest's spec.guard) it fires this server-only BindableEvent (never
+-- a remote) with the guardian's name and the thief. The guardian wakes on the thief through the director's own
+-- reservation (Director.alarm: the species rest and respawn grace skipped, every other rule kept: its Caramelo home, safe
+-- zones, death, La Silueta, one of a kind, budget). A refusal (already on the thief, a safe zone) only notes telemetry.
+do
+	local old = telemetry:FindFirstChild("GuardAlarm")
+	if old then old:Destroy() end
+	local alarm = Instance.new("BindableEvent")
+	alarm.Name = "GuardAlarm"
+	alarm.Event:Connect(function(name, player)
+		if type(name) ~= "string" or typeof(player) ~= "Instance" or not player:IsA("Player") or player.Parent ~= Players then
+			return
+		end
+		local at = now()
+		local ok, value = Director.alarm(director, player.UserId, name, contextFor(player, at), at)
+		if ok then
+			safeStart(player, value, at)
+		else
+			telemetry:SetAttribute("Beast_lastRefusal", name .. ":" .. tostring(value))
+		end
+	end)
+	alarm.Parent = telemetry
+end
+
 -- Patio de entrenamiento (developer training yard, ServerScriptService/PatioEntrenamiento). Server only (ServerStorage,
 -- never a remote) and only for a player the yard marked as inside (PatioDentro): "poner" asks for one beast through
 -- the director's own reservation (timers skipped, budget and every other rule kept); "quitar" ends that player's

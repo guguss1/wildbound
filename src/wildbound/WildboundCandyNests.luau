@@ -108,6 +108,17 @@ function Nests.merge(layout, markers, posts)
 	return merged
 end
 
+-- CG2 (F1, decision 48): the server's start step. It applies the layout's flags to the live biome through the builder's
+-- own sync steps (Builder.syncNests, Builder.syncPortal: attributes only, no part moved), so a reopened or published
+-- place has its nests and portal on without an Edit session. Each step is guarded: a missing Nests folder or Portal
+-- model, or no builder, changes nothing. Returns how many nests and portals changed.
+function Nests.applyFlags(root, Builder, Layout)
+	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
+	local okNests, nests = pcall(Builder.syncNests, root, Layout)
+	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
+	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0
+end
+
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.
 function Nests.read(root)
 	local list = {}

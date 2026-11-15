@@ -208,6 +208,14 @@ function Director.summon(dir, userId, name, ctx, now, opts)
 	return Director.reserve(dir, userId, name, ctx, now, opts)
 end
 
+-- CG2 (F5, odd/tasks/wildbound-caramelo.md decision 50): a stolen Caramelo nest egg wakes that nest's guardian on the
+-- thief at once. Only a summoned beast; every rule of summon stands (its home biome, safe zones, death, an active Silueta,
+-- one of a kind per player, budget) except the timers a forced reservation skips (species rest, respawn grace).
+function Director.alarm(dir, userId, name, ctx, now)
+	if not Config.SUMMONED[name] then return false, "NotSummoned" end
+	return Director.reserve(dir, userId, name, ctx, now, { force = true })
+end
+
 -- Wave 2: the calendar. The first call for a player sets their anchor; beast i of Config.ORDER has its slots at
 -- anchor + (i - 1) x BEAST_OFFSET + k x TICK_SECONDS, k >= 1 (the first roll comes one interval after the anchor).
 -- Returns the beasts whose newest slot has passed and was not consumed yet, and consumes it. Only the newest slot

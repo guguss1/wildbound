@@ -3,8 +3,8 @@
 -- CE3 / T08a + T08b (odd/tasks/wildbound-caramelo.md, odd/tasks/wildbound-2-0.md): the return portals' pure rules. A
 -- portal sends its user to their own base after 5 s with no threat nearby and a 2 s channel, then rests 30 s for that
 -- player (pack 04_ENTORNO/03 "Portal", Balance.portal). A threat, a hit, a beast on the player, death or stepping away
--- cuts the channel. The carried egg rides along (pack: "No reiniciar/consumir huevo por teleport legitimo"). No
--- services, no clock, no instances.
+-- cuts the channel. CG2 (decision 47, supersedes 34): a player carrying an egg is refused (the egg goes home on foot,
+-- past the beasts), and a station switched off during the channel cuts it. No services, no clock, no instances.
 return function(Portal, Balance, Rules, Layout, Biomes, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -73,8 +73,10 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		local busy = Portal.new()
 		assert(Portal.request(busy, ready(), 50))
 		refuse(ready(), "Busy", busy, 50.5)
+		refuse(ready({ carrying = true }), "Busy", busy, 50.5)
 		local rested = Portal.new()
 		Portal.complete(rested, 40)
+		refuse(ready({ carrying = true, hasDestination = false }), "Carrying", rested, 50)
 		refuse(ready({ hasDestination = false }), "Cooldown", rested, 50)
 		local hunted = Portal.new()
 		Portal.noteThreat(hunted, 49)
@@ -127,6 +129,9 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		cut(function(_, ctx) ctx.distance = C.useRange + C.allowance + 1 end, "Moved")
 		cut(function(_, ctx) ctx.alive = false end, "Dead")
 		cut(function(_, ctx) ctx.x = 0 / 0 end, "Moved")
+		-- CG2 (F6): the station switched off mid-channel, or an egg picked up during it, cuts with no teleport.
+		cut(function(_, ctx) ctx.enabled = false end, "Disabled")
+		cut(function(_, ctx) ctx.carrying = true end, "Carrying")
 		local st = Portal.new()
 		assert(Portal.request(st, ready(), 0))
 		equal(Portal.step(st, { alive = true, x = C.moveTolerance - 0.1, z = 0, distance = 3 }, 1), "Channeling",
@@ -158,7 +163,7 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		equal(Portal.threatened({ x = 0, z = 0, beastEngagedAt = "soon" }, now), false, "bad stamp")
 	end)
 
-	case("PT-8: two stations, the Caramelo arch and the deep forest, both outside every safe zone", function()
+	case("PT-8: two stations, the Caramelo arch and the forest, outside every safe zone, the forest one far from La Silueta", function()
 		equal(#Portal.STATIONS, 2, "two stations")
 		local byId = {}
 		for _, s in ipairs(Portal.STATIONS) do byId[s.id] = s end
@@ -175,15 +180,20 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 			equal(safe, false, s.id .. " outside every safe zone")
 			assert(Rules.distance(s.x, s.z, Rules.HUB_X, Rules.HUB_Z) >= 300, s.id .. " far from the hub")
 		end
-		local fog = Rules.zone(forest.x, forest.z)
-		equal(fog, true, "bosque in the deep fog")
+		-- CG2 (F4, decision 49): the forest arch stands away from La Silueta's home, outside her fog, on clear floor.
+		assert(Rules.distance(forest.x, forest.z, Rules.HOME_X, Rules.HOME_Z) >= 120, "bosque at least 120 studs from her home")
+		equal((Rules.zone(forest.x, forest.z)), false, "bosque outside the deep fog")
 		equal(Portal.station("bosque"), forest, "lookup"); equal(Portal.station("nope"), nil, "unknown")
 		assert(table.isfrozen(Portal.STATIONS), "frozen")
 	end)
 
-	case("PT-9: the carried egg rides along; carrying is never a refusal", function()
-		equal(Portal.CARRY, "keep", "carry rule")
-		equal(Portal.request(Portal.new(), ready({ carrying = true }), 0), true, "a carrier may use it")
+	case("PT-9: CG2 (decision 47): a player carrying an egg cannot use a portal", function()
+		equal(Portal.CARRY, "refuse", "carry rule")
+		local st = Portal.new()
+		local ok, reason = Portal.request(st, ready({ carrying = true }), 0)
+		equal(ok, false, "a carrier is refused"); equal(reason, "Carrying", "reason")
+		equal(st.channel, nil, "no channel")
+		equal(Portal.request(st, ready({ carrying = false }), 0), true, "empty arms may use it")
 	end)
 
 	case("PT-10: pure: no services, no instances, no clock", function()

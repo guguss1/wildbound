@@ -161,7 +161,7 @@ SPECS["WildboundCandyClipPublish_Test"] = {
 SPECS["WildboundCandyNests_Test"] = {
 	"mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundPraderaSites", "mod:WildboundBeastConfig",
 	"mod:WildboundIsland", "mod:WildboundSpecies", "mod:WildboundCandyBuilder",
-	{ server = "src:WildboundServer", text = "mod:WildboundText" },
+	{ server = "src:WildboundServer", text = "mod:WildboundText", beasts = "src:WildboundBeasts" },
 }
 SPECS["WildboundCandyPets_Test"] = {
 	"mod:WildboundCandyPets", "mod:WildboundSpecies", "mod:WildboundState", "mod:WildboundEconomy", "mod:WildboundEconomyConfig",

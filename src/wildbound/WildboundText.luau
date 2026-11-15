@@ -791,6 +791,9 @@ return freeze({
 		noBase = "No tienes una base a la que volver.",
 		disabled = "Este portal está apagado.",
 		dead = "Ahora no puedes usar el portal.",
+		-- CG2 (decision 47): a carried egg goes home on foot.
+		carrying = "No puedes usar el portal con un huevo: llévalo caminando a tu base",
+		cutDisabled = "El portal se apagó y se cortó.",
 		names = {
 			caramelo = "Portal del Caramelo",
 			bosque = "Portal del Bosque",

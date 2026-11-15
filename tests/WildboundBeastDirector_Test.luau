@@ -737,6 +737,29 @@ return function(Director, source, Config)
 		equal(started[1].points, 3)
 	end)
 
+	-- CG2 (F5, odd/tasks/wildbound-caramelo.md decision 50): a stolen Caramelo nest egg wakes the nest's guardian on the
+	-- thief at once. Director.alarm skips only the timers (species rest, respawn grace); every other rule stands.
+	case("CG2: a stolen Caramelo egg wakes its guardian on the thief through its rest (Director.alarm)", function()
+		local dir = Director.new()
+		local meadow = ctx({ biomes = { Meadow = true } })
+		local ok, enc = Director.alarm(dir, 1, "Tortidragon", meadow, 0)
+		equal(ok, true, "the guardian starts on the thief"); equal(enc.beast, "Tortidragon", "beast")
+		equal(enc.userId, 1, "on the thief")
+		equal(select(2, Director.alarm(dir, 1, "Tortidragon", meadow, 1)), "AlreadyActive", "one at a time")
+		Director.release(dir, enc.id, "Lost", 2)
+		equal(select(2, Director.summon(dir, 1, "Tortidragon", meadow, 3)), "SpeciesCooldown", "presence waits for its rest")
+		equal((Director.alarm(dir, 1, "Tortidragon", meadow, 3)), true, "a steal wakes it through its rest")
+		local fresh = Director.new()
+		equal(select(2, Director.alarm(fresh, 1, "Gomibu", ctx({ biomes = { Meadow = true }, safe = true }), 0)), "SafeZone",
+			"never in a safe zone")
+		equal(select(2, Director.alarm(fresh, 1, "Gomibu", ctx(), 0)), "Biome", "never outside its home")
+		equal(select(2, Director.alarm(fresh, 1, "Flanfuria", ctx({ biomes = { Meadow = true }, alive = false }), 0)), "Dead",
+			"never on a dead thief")
+		equal(select(2, Director.alarm(fresh, 1, "Viper", meadow, 0)), "NotSummoned", "only a summoned guardian")
+		equal(select(2, Director.alarm(fresh, 1, "Flanfuria", ctx({ biomes = { Meadow = true }, siluetaActive = true }), 0)),
+			"SiluetaActive", "La Silueta still wins")
+	end)
+
 	case("NB2: the director is pure: no world, no clock, no global random", function()
 		for _, banned in ipairs({ "game:", "workspace", "task.", "os.clock", "os.time", "math.random", "Random.new" }) do
 			assert(not source:find(banned, 1, true), "director source uses " .. banned)

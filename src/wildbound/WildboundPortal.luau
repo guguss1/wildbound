@@ -1,8 +1,9 @@
 -- CE3 / T08a + T08b (odd/tasks/wildbound-caramelo.md, odd/tasks/wildbound-2-0.md; pack 04_ENTORNO/03 "Portal"): the
 -- return portals' pure rules. A portal takes its user home to their own base pad in the hub after 5 s with no threat
 -- nearby and a 2 s channel, then rests 30 s for that player (Balance.portal; the Caramelo layout's Portal marker). A
--- threat noted during the channel, stepping away, leaving the portal's range or dying cuts it, with no rest. The egg in
--- the arms rides along (pack: a legitimate teleport never resets or consumes the egg), so carrying is never a refusal.
+-- threat noted during the channel, stepping away, leaving the portal's range or dying cuts it, with no rest. CG2
+-- (decision 47, supersedes 34): a player carrying an egg is refused, so the heist stays "carry it home past the beasts";
+-- an egg picked up or the station switched off during the channel cuts it too.
 -- Numbers, tables and the caller's clock in, answers out: WildboundPortalService applies them on the server.
 local Portal = {}
 
@@ -23,15 +24,16 @@ Portal.CONFIG = table.freeze({
 })
 local C = Portal.CONFIG
 
--- What happens to the carried egg: it stays in the arms (decision CE3; the base banks it on arrival as usual).
-Portal.CARRY = "keep"
+-- What a carried egg does at a portal: CG2 (decision 47) refuses the carrier ("Carrying"); the egg is never touched.
+Portal.CARRY = "refuse"
 
 -- The stations, in world coordinates. "candy": the Candy builder's Portal model (Candy_Bioma_v1.Portal, the layout's
 -- Portal marker (160, 0) on the plot centre (612, -3)). "build": the service builds it at server start (place file never
--- saved), in the forest's deep fog, south-west, on a clear patch of floor 55 studs from La Silueta's home.
+-- saved). CG2 (F4, decision 49): in the west forest beside Path2, outside the fog, on a clear 12x12 floor patch (floor
+-- scan, y 1.0), 134 studs from La Silueta's home, 376 from the hub and 64 from the nearest island nest.
 Portal.STATIONS = table.freeze({
 	table.freeze({ id = "caramelo", source = "candy", x = 772, z = -3 }),
-	table.freeze({ id = "bosque", source = "build", x = -28, z = -132, y = 1, yaw = 90 }),
+	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),
 })
 
 function Portal.station(id)
@@ -93,14 +95,15 @@ local function inRange(distance)
 	return finite(distance) and distance >= 0 and distance <= C.useRange + C.allowance
 end
 
--- ctx: { enabled, alive, ragdolled, distance, hasDestination, station, x, z }. On success the channel opens.
--- Refusals, in order: Disabled, Dead, TooFar, Busy, Cooldown, Threat, NoBase.
+-- ctx: { enabled, alive, ragdolled, distance, hasDestination, station, x, z, carrying }. On success the channel opens.
+-- Refusals, in order: Disabled, Dead, TooFar, Busy, Carrying, Cooldown, Threat, NoBase.
 function Portal.request(st, ctx, now)
 	if type(st) ~= "table" or type(ctx) ~= "table" or not finite(now) then return false, "Invalid" end
 	if ctx.enabled ~= true then return false, "Disabled" end
 	if ctx.alive ~= true or ctx.ragdolled == true then return false, "Dead" end
 	if not inRange(ctx.distance) then return false, "TooFar" end
 	if st.channel then return false, "Busy" end
+	if ctx.carrying == true then return false, "Carrying" end
 	if Portal.cooldownLeft(st, now) > 0 then return false, "Cooldown" end
 	if Portal.calmLeft(st, now) > 0 then return false, "Threat" end
 	if ctx.hasDestination ~= true then return false, "NoBase" end
@@ -112,8 +115,9 @@ function Portal.cancel(st)
 	if type(st) == "table" then st.channel = nil end
 end
 
--- ctx: { alive, x, z, distance }. "Idle" (no channel), "Channeling", "Ready" (the caller moves them, then complete),
--- or "Interrupted" with "Dead", "Threat" or "Moved" (the channel closes, no rest).
+-- ctx: { alive, x, z, distance, enabled, carrying }. "Idle" (no channel), "Channeling", "Ready" (the caller moves them,
+-- then complete), or "Interrupted" with "Dead", "Disabled", "Carrying", "Threat" or "Moved" (the channel closes, no
+-- rest). CG2 (F6): enabled == false (the station switched off) or carrying == true cuts it.
 function Portal.step(st, ctx, now)
 	if type(st) ~= "table" or not st.channel then return "Idle" end
 	local channel = st.channel
@@ -122,6 +126,8 @@ function Portal.step(st, ctx, now)
 		return "Interrupted", reason
 	end
 	if type(ctx) ~= "table" or ctx.alive ~= true then return cut("Dead") end
+	if ctx.enabled == false then return cut("Disabled") end
+	if ctx.carrying == true then return cut("Carrying") end
 	if st.lastThreatAt >= channel.startedAt then return cut("Threat") end
 	if not finite(ctx.x) or not finite(ctx.z) or not finite(channel.x) or not finite(channel.z) then return cut("Moved") end
 	local dx, dz = ctx.x - channel.x, ctx.z - channel.z

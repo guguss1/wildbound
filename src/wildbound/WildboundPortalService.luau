@@ -6,7 +6,8 @@
 -- The server measures its own root against the station, notes threats from what the server itself wrote (La Silueta's
 -- WildboundThreatLevel, the beasts' WildboundBeastEngagedAt stamp, WildboundBatHit, WildboundRagdollUntil, a health
 -- drop, an awake nest parent within reach), runs the 2 s channel on its own clock at 10 Hz and moves the character onto
--- the player's own base pad (the hub spawn pad without a base). The carried egg rides along; the base banks it as usual.
+-- the player's own base pad (the hub spawn pad without a base). CG2 (decision 47): a player carrying an egg (the
+-- server's deps.carrying) is refused, and a station switched off during the channel cuts it (F6).
 -- The client (WildboundPortalClient) draws the channel bar from the "PortalEvent" remote and the wait on the prompt
 -- from the WildboundPortalReadyAt attribute.
 local Service = {}
@@ -52,6 +53,11 @@ local function liveDeps(deps)
 			end
 		end
 		return list
+	end
+	-- Without the server's answer, the backpack the server welds to a carrier's character.
+	deps.carrying = deps.carrying or function(player)
+		local character = player.Character
+		return character ~= nil and character:FindFirstChild("WildboundEggCarried") ~= nil
 	end
 	deps.health = deps.health or function(player)
 		local character = player.Character
@@ -149,7 +155,8 @@ local function refusalText(self, reason, st, now)
 	local P, Portal = self.deps.Text.PORTAL, self.Portal
 	if reason == "Cooldown" then return P.cooldown:format(math.max(1, math.ceil(Portal.cooldownLeft(st, now)))) end
 	if reason == "Threat" then return P.threat:format(math.max(1, math.ceil(Portal.calmLeft(st, now)))) end
-	return ({ Disabled = P.disabled, Dead = P.dead, TooFar = P.tooFar, Busy = P.busy, NoBase = P.noBase })[reason] or P.dead
+	return ({ Disabled = P.disabled, Dead = P.dead, TooFar = P.tooFar, Busy = P.busy, NoBase = P.noBase,
+		Carrying = P.carrying })[reason] or P.dead
 end
 
 -- A prompt was used (the server's Triggered): the only input. Returns ok and the refusal reason.
@@ -166,6 +173,7 @@ function Service:trigger(player, id)
 		ctx.x, ctx.z = root.Position.X, root.Position.Z
 		ctx.distance = flat(root.Position, station.position)
 		ctx.hasDestination = self:destination(player) ~= nil
+		ctx.carrying = self.deps.carrying(player) == true
 	end
 	local ok, reason
 	if st then ok, reason = Portal.request(st, ctx, now) else ok, reason = false, ctx.enabled and "Dead" or "Disabled" end
@@ -180,7 +188,7 @@ function Service:trigger(player, id)
 	return false, reason
 end
 
-local CUT_TEXT = { Threat = "cutThreat", Moved = "cutMoved", Dead = "cutDead" }
+local CUT_TEXT = { Threat = "cutThreat", Moved = "cutMoved", Dead = "cutDead", Disabled = "cutDisabled", Carrying = "carrying" }
 
 function Service:tick()
 	local Portal, now = self.Portal, self.deps.now()
@@ -189,10 +197,11 @@ function Service:tick()
 		if root and Portal.threatened(self:signals(player, root), now) then Portal.noteThreat(st, now) end
 		if st.channel then
 			local station = self.stations[st.channel.station]
-			local ctx = { alive = root ~= nil }
+			local ctx = { alive = root ~= nil, enabled = station ~= nil and station.enabled() == true }
 			if root and station then
 				ctx.x, ctx.z = root.Position.X, root.Position.Z
 				ctx.distance = flat(root.Position, station.position)
+				ctx.carrying = self.deps.carrying(player) == true
 			end
 			local status, reason = Portal.step(st, ctx, now)
 			if status == "Interrupted" then

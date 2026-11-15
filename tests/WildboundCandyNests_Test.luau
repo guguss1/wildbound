@@ -1,8 +1,10 @@
 -- Invoke with require(freshTestClone)(require(freshCandyNestsClone), require(freshCandyLayoutClone),
 -- require(freshPraderaSitesClone), require(freshBeastConfigClone), require(freshIslandClone), require(freshSpeciesClone),
--- require(freshCandyBuilderClone), { server = WildboundServer.Source, text = require(freshTextClone) }).
+-- require(freshCandyBuilderClone), { server = WildboundServer.Source, text = require(freshTextClone),
+-- beasts = WildboundBeasts.Source }).
 -- CE1 (odd/tasks/wildbound-caramelo.md): the Caramelo nests are island nests with one egg of their rarity's species,
 -- each guardian post bound to the nest beside it, refilled by the wave refresh, live through the builder's layout flag.
+-- CG2: the server applies that flag itself at start (F1), and a guarded nest's steal wakes its guardian (F5).
 -- Every fixture is built detached (never parented to a service).
 return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
@@ -196,6 +198,70 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		has(server, "if #island.adults == 0 then return end", "no parent, no scream or chase")
 		has(server, "elseif Species.ONLY and not Species.keepsOwn(slot.species) then", "Caramelo eggs keep their species")
 		has(server, "for index = 1, #spec.adultPoints > 0 and 3 or 0 do", "no sleep readout without a parent")
+	end)
+
+	-- CG2 (F1, decision 48): a reopened or published place has its Caramelo nests and portal on without an Edit session.
+	case("CG2: applyFlags switches the live markers on from the layout (nests, never the event nest, and the portal)", function()
+		local root = Instance.new("Model")
+		root.Name = Nests.ROOT_NAME
+		local folder = Instance.new("Folder")
+		folder.Name = "Nests"
+		folder.Parent = root
+		for _, spec in ipairs(Layout.NESTS) do
+			local nest = Instance.new("Model")
+			nest.Name = "Nest_" .. spec.id
+			nest:SetAttribute("NestId", spec.id)
+			nest:SetAttribute("Enabled", false)
+			nest.Parent = folder
+		end
+		local portal = Instance.new("Model")
+		portal.Name = "Portal"
+		portal:SetAttribute("Enabled", false)
+		portal.Parent = root
+		local nests, portals = Nests.applyFlags(root, Builder, Layout)
+		local live = 0
+		for _, spec in ipairs(Layout.NESTS) do
+			local want = Builder.nestEnabled(spec, Layout)
+			equal(folder["Nest_" .. spec.id]:GetAttribute("Enabled"), want, spec.id)
+			if want then live += 1 end
+			if spec.eventOnly then equal(want, false, spec.id .. " event-only stays off") end
+		end
+		equal(nests, live, "nests changed")
+		equal(portals, Layout.PORTAL.enabled and 1 or 0, "portal changed")
+		equal(portal:GetAttribute("Enabled"), Layout.PORTAL.enabled == true, "portal flag")
+		equal(root:GetAttribute("NestsEnabled"), Layout.NESTS_ENABLED == true, "root flag")
+		equal(select(1, Nests.applyFlags(root, Builder, Layout)), 0, "idempotent")
+		portal:Destroy()
+		local n2, p2 = Nests.applyFlags(root, Builder, Layout)
+		equal(n2, 0, "no portal model: the nests still apply"); equal(p2, 0, "and no portal")
+		equal(select(1, Nests.applyFlags(nil, Builder, Layout)), 0, "no biome: nothing, no error")
+		equal(select(1, Nests.applyFlags(root, nil, Layout)), 0, "no builder: nothing, no error")
+		root:Destroy()
+	end)
+
+	case("CG2: the server applies the layout flags before it reads the nests and before the portals bind", function()
+		local server = sources.server
+		local apply = server:find("CandyNests.applyFlags(", 1, true)
+		assert(apply, "the server applies the flags")
+		has(server, 'ServerStorage"):FindFirstChild("WildboundCandyBuilder")', "with the builder")
+		has(server, 'ServerStorage"):FindFirstChild("WildboundCandyLayout")', "and the layout")
+		assert(apply < server:find("CandyNests.merge(islandLayout, CandyNests.read(", 1, true), "before the read")
+		assert(apply < server:find("PortalService.new(", 1, true), "before the portal service binds the arch")
+	end)
+
+	-- CG2 (F5, decision 50): the guard binding is used: a steal at a guarded nest wakes that guardian on the thief.
+	case("CG2: a steal at a guarded nest raises the guard alarm; the beasts wake that guardian on the thief", function()
+		local server, beasts = sources.server, sources.beasts
+		local claim = server:find("entry.claimEgg = function(player)", 1, true)
+		local alarm = server:find("if island and island.spec.guard then Heist.guardAlarm(island.spec.guard, player) end", 1,
+			true)
+		assert(claim and alarm and alarm > claim, "claimEgg raises the alarm for a guarded nest")
+		has(server, "function Heist.guardAlarm(beast, player)", "the alarm")
+		has(server, 'FindFirstChild("GuardAlarm")', "fires the beasts' server-only event")
+		has(beasts, 'alarm.Name = "GuardAlarm"', "the beasts own the event")
+		has(beasts, 'Instance.new("BindableEvent")', "a BindableEvent (never a remote)")
+		has(beasts, "Director.alarm(director, player.UserId, name, contextFor(player, at), at)", "through the director")
+		for _, name in ipairs(Nests.GUARDIANS) do equal(Config.SUMMONED[name], true, name .. " is a summoned guardian") end
 	end)
 
 	return result
