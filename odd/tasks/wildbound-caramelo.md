@@ -741,7 +741,7 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
 33. **CE2, data:** no schema change. Esencia is the egg's nest tier (Fog 10, FogFar 16, Territory 24), rarity comes from
    `Species.LOOKS`, hatch time from `Incubator.RARITY_MULTIPLIER`, the collection entry from `discovered`: all existing.
 
-34. **CE3, the egg rides along:** a player may use a portal while carrying an egg; it stays in the arms and the own base
+34. **CE3, the egg rides along (superseded by decision 47, CG2: a carrier is refused):** a player may use a portal while carrying an egg; it stays in the arms and the own base
    banks it on arrival as usual (pack 04_ENTORNO/03: a legitimate teleport never resets or consumes the egg). The heist
    tension stays in the calm rule: a portal only works after 5 s with no threat nearby, so it is an escape after breaking
    a pursuit, never an instant exit (`Portal.CARRY = "keep"`).
@@ -915,7 +915,15 @@ strict (fresh loader in Studio).
   shell). New client `WildboundCandyEggBob` plays the gummy squash bob on nest eggs only. A non-Caramelo egg is untouched.
   Route: inline (one module + one client + one suite; small additive edits to WildboundServer; the writer trigger fired
   but every Studio write needs the parent's fingerprint gate and this worker may not delegate). TDD strict. Commit 30fe8f1.
-- [ ] CG2 Reserved for the next task of this batch (not defined in this task).
+- [x] CG2 CE review fixes: (F1) the server applies the Candy layout's nest and portal flags to the live `Candy_Bioma_v1`
+  at start (`WildboundCandyNests.applyFlags` through `Builder.syncNests` / `Builder.syncPortal`), before
+  `CandyNests.read` and before the portal service binds the arch; (F3) a player carrying an egg cannot use a portal
+  (`Portal.CARRY = "refuse"`, refusal and cut `Carrying`, `Text.PORTAL.carrying`); (F4) the forest arch moved to
+  (-94, 11); (F5) the guard binding works: a steal at a guarded Caramelo nest wakes that guardian on the thief
+  (`Heist.guardAlarm` -> `WildboundTelemetry.GuardAlarm` -> `Director.alarm`); (F6) a station switched off mid-channel cuts
+  it (`Disabled`, `Text.PORTAL.cutDisabled`); (F8) a loaded farm-only companion is cleared on load (`State:loadPlayer`).
+  Route: inline (small edits to eight existing scripts and six suites; the writer trigger fired but every Studio write
+  needs the parent's fingerprint gate and this worker may not delegate). TDD strict. Commit 15d4918.
 
 ### Decisions taken for the user (continued)
 
@@ -941,6 +949,37 @@ strict (fresh loader in Studio).
 46. **CG1, where the egg stands:** the candy egg's foot is the hidden gameplay ball's bottom (nest: y 2.50 in the bowl whose
    top is 2.70, so it sits in the hollow; dropped: on the ground). On the cradle spot the whole egg model moves with its ball
    so the foot lands on the spot's top (1.10).
+
+47. **CG2 (F3), a carried egg walks home (supersedes 34):** a player carrying anything egg-like (the server's
+   `EggCarry.carriedBy`, a wild Lumipol egg or a carried cria in State) is refused at a portal with "No puedes usar el
+   portal con un huevo: llévalo caminando a tu base"; an egg picked up during the 2 s channel cuts it with the same words.
+   Refusal order: Disabled, Dead, TooFar, Busy, Carrying, Cooldown, Threat, NoBase. The egg is never touched. The heist
+   loop stays "carry it home past the beasts"; a portal is a way home with empty arms.
+48. **CG2 (F1), no unsaved Edit session:** at server start, inside the CE1 candy block and before `CandyNests.read`, the
+   server requires `ServerStorage.WildboundCandyBuilder` and `WildboundCandyLayout` and calls
+   `CandyNests.applyFlags(root, Builder, Layout)` (each sync step in a pcall; attributes only, nothing moved). The portal
+   service starts about 4000 lines later, so the arch is on before it binds. A reopened or published place therefore has
+   the 11 nests and the Caramelo arch on. The CE0 publish folder is rebuilt by one documented call (Studio Edit, command
+   bar): `local SS = game:GetService("ServerStorage"); require(SS.WildboundCandyClipPublish).build(SS, { { name =
+   "Tortidragon", Clips = require(SS.WildboundCandyTortidragonClips), prefab = SS.WildboundAssets.Tortidragon }, { name =
+   "DonGlaseon", Clips = require(SS.WildboundCandyDonGlaseonClips), prefab = SS.WildboundAssets.DonGlaseon } })`.
+49. **CG2 (F4), the forest arch's new spot:** (-94, 11), floor y 1.0, yaw 90, in the west forest beside Path2 and outside
+   the fog rectangle, chosen by a floor scan (6-stud grid over the forest square; a 13x13 patch level within 0.6 studs and
+   no collidable or queryable part in a 13x10x13 box above it): 134 studs from La Silueta's home (was 55), 376 from the
+   hub, 64 from the nearest island nest (awake parents count within 40), outside every safe zone. PT-8 now asks at least
+   120 studs from her home and outside the fog instead of "in the deep fog".
+50. **CG2 (F5), guarding works:** `spec.guard` is used. After a steal at a guarded nest (`claimEgg`), the server fires the
+   server-only BindableEvent `ServerStorage.WildboundTelemetry.GuardAlarm` (made by WildboundBeasts, never a remote)
+   with the guardian's name and the thief; WildboundBeasts calls `Director.alarm`, a forced reservation of a summoned
+   beast: it skips the species rest and the respawn grace, keeps every other rule (Caramelo home biome, safe zone,
+   death, La Silueta active, one of a kind, budget), and starts the encounter on the thief. No extra notice: the
+   encounter's own Notice phase is the tell. Bindings unchanged (Gomibú C1, Flanfuria R1, Tortidragón C3).
+51. **CG2 (F6), a station switched off mid-channel:** the service passes the station's live `enabled()` to `Portal.step`
+   every tick; false cuts with `Disabled` ("El portal se apagó y se cortó."), no teleport and no rest; a vanished station
+   counts as off.
+52. **CG2 (F8), a saved farm-only companion:** `State:loadPlayer` clears `equippedUid` when it names a registered creature
+   of a `state.farmOnly` species; the creature stays registered and saved. Without the server's farm-only set nothing is
+   cleared. No schema change (the record already accepts no companion).
 
 ### Evidence CG1
 
@@ -978,7 +1017,55 @@ strict (fresh loader in Studio).
   cradle egg screenshot (it hatched in seconds; its art and foot were read on the server); the bob under streaming on a
   far client; two players, phone.
 
+### Evidence CG2
+
+- Studio target: place 122652861404212 (universe 10774749224), instance ba5a21af, Edit, PlayLock nil, runner lock nil.
+- Studio == HEAD before (bytes, Adler-32): Portal 6851 e4faff01, PortalService 15773 bb427b8f, Portal_Test 10677
+  8bc43ebd, PortalService_Test 13512 32d01db7, Text 38180 bccdbfd7, Text_Test 23755 4d6e4a54, CandyNests 6445 7c8c4b60,
+  CandyNests_Test 10931 3ba8a274, Server 215965 7e98bc68, Beasts 47753 cd99de9f, BeastDirector 14874 5dc5908f,
+  BeastDirector_Test 45560 948052b8, State 53911 c4087c0b, State_Test 84403 7c682fde, CandyBuilder 19220 0b2b7640,
+  CandyLayout 5659 27e0e9d6 (Server, State and Beasts checked again just before their writes: unchanged).
+- Runner: the engine of `tools/studio-fresh-runner.luau` (loadstring per clone, unchanged except a name-set filter) and
+  the SPECS of the 47 suites that read a touched script, in two temporary ServerStorage ModuleScripts, destroyed after.
+- RED (tests deployed, sources unchanged): Portal 6/4 (PT-3 Carrying, PT-6 Disabled, PT-8 distance, PT-9 CARRY),
+  PortalService 12/3 (SV-11, SV-14, SV-13 pin), Text 20/1 (`PORTAL.carrying`), BeastDirector 47/1 (`Director.alarm` nil),
+  CandyNests 9/3 (`applyFlags` nil, server order pin, guard alarm pin), State 69/15 (the 14 known PF4 drift cases + CG2).
+- GREEN: Portal 10/0, PortalService 15/0, Text 21/0, BeastDirector 48/0, CandyNests 12/0, State 70/14 (only the 14 known
+  PF4 cases). Regression over the 47 suites: 816 passed, 21 failed, all known: AN-3, BZ7, ECO-20, EL12, HB-T3, W1, RW5
+  and the 14 State PF4 cases; MechanicsWiring's local-count case (NH-W13) passes.
+- Studio == repo after the writes: Portal 7371 012ea845, PortalService 16367 cc23462c, Text 38373 4d80007a, CandyNests
+  7256 77d965e5, Server 217383 b765a0d9, Beasts 48978 66377d0f, BeastDirector 15427 d5cd4f26, State 54310 e9180485,
+  Portal_Test 11597 ebfd6a5f, PortalService_Test 15030 6fd606a8, Text_Test 23782 98865337, BeastDirector_Test 47264
+  5c1a780b, State_Test 85768 878df45a, CandyNests_Test 14720 d2b782d9.
+- Solo Play (PlayLock CG2, cleared after; Play stopped). Before Play the Edit session's 11 nest markers and the Caramelo
+  Portal were set `Enabled = false` (F1 check); in Play the server had them on at start: nests on 11, portal true, root
+  `NestsEnabled` true, both prompts ("Portal del Bosque", "Portal del Caramelo"), the forest arch at (-94.0, 1.2, 11.0),
+  `WildboundTelemetry.GuardAlarm` present. HeistProbe steal at CandyC3 (guard Tortidragón): Egg:21 carried, and 0.01 s
+  later the director log reads "Tortidragon Started beast:1" with the encounter on the thief in Notice (before the
+  steal: no encounter; no refusal). At the Caramelo arch with the egg: the probe trigger refused `Carrying`, the HUD read
+  "No puedes usar el portal con un huevo: llévalo caminando...". Egg dropped, encounters ended: trigger accepted, the
+  arch switched off 0.6 s into the channel: no teleport 2.5 s later, no rest (`WildboundPortalReadyAt` nil). At the new
+  forest arch: refused Threat twice (a fresh beast stamp), then accepted; 2.5 s later the root stood on the Base1 pad
+  (348.5, 4.0, 24.6) with the 30 s rest set. After Play: `Builder.syncNests` / `syncPortal` set the Edit markers back on
+  (11 nests, portal true). No Wildbound script error (only the usual TexturePack, asset fork and DataStore messages).
+- Screenshots: none usable. The Studio capture showed only the GUI over a white viewport (the 3D view did not render to
+  the capture in this session), so nothing was saved to `assets/exports/forest-kit/captures/`.
+- Finding (not fixed, outside CG2's scope): the Caramelo arch sits within the Nube Gruñona's presence radius; a Calm Nube
+  encounter keeps stamping `WildboundBeastEngagedAt`, so the Caramelo portal mostly refuses `Threat` (a second channel
+  there was cut; the CE3 "regeneration" refusals may have been this too).
+- Commit 15d4918 (code and tests).
+- Python: 1212 tests, 2 failures: the known `test_lumipol_v2` V1IsKept and `test_studio_fresh_runner`
+  every-suite-has-a-spec, caused by the untracked `tests/WildboundScuttlerClips_Test.luau` of a parallel task (not this
+  one).
+- Not tested: a real held prompt (the probes stand in); a Gomibú or Flanfuria guard alarm in Play (only Tortidragón at
+  C3; the director case covers the rules); the guard alarm through a won Arrullo (same `claimEgg` path); an egg picked up
+  mid-channel in Play (suite only); F8 in Play (a save with a farm-only companion needs an older record; suite only); a
+  reopened place and a published server (simulated by switching the Edit markers off); two players, phone.
+
 ## Next step
+
+- Decide whether a Calm (passive) beast encounter should count as a portal threat, or move the Caramelo arch out of the
+  Nube Gruñona's presence radius (finding in Evidence CG2).
 
 - Owner action for the icons (CE2): in the Creator Hub open each image (130041727906990, 106158128076232, 85016154045779
   and the Lumipol 121561289565386) and share it with the experience / group 465694015, or upload the four PNGs from
