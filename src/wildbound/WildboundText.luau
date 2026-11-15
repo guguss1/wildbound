@@ -131,7 +131,7 @@ return freeze({
 		equip = "Equipar",
 		close = "Cerrar",
 		species = { Lumipol = "Lumipol", LumipolVioleta = "Lumipol Violeta", Cortezon = "Cortezón", Cestillo = "Cestillo", Polvilla = "Polvilla",
-			Tizoncillo = "Tizoncillo" },
+			Tizoncillo = "Tizoncillo", Gomibu = "Gomibú", Tortidragon = "Tortidragón", Flanfuria = "Flanfuria" },
 		blurb = {
 			Lumipol = "Brilla en la niebla. Su pulso revela a La Silueta.",
 			LumipolVioleta = "Brilla en violeta. Su huevo es raro y tarda más en eclosionar.",
@@ -139,6 +139,9 @@ return freeze({
 			Cestillo = "Camina entre los juncos con su cesto a cuestas.",
 			Polvilla = "Polilla de las ruinas. Suelta polvo dorado al volar.",
 			Tizoncillo = "Un tronco que arde por dentro. Solo nace de noche.",
+			Gomibu = "Osito de goma del bioma Caramelo. Rebota y empuja.",
+			Tortidragon = "Dragón de pastel y fresa. Estornuda confites.",
+			Flanfuria = "Flan con un gatito de crema. Su onda de caramelo frena.",
 		},
 		-- Expedition islands (K2): the card's first line for a later species, the one-off bonus and the tease.
 		newSpecies = "¡Nueva especie!",

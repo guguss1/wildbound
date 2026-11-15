@@ -552,6 +552,9 @@ class DefaultMappingTests(unittest.TestCase):
         # CE0 clip publishing kit
         "tools/WildboundCandyClipPublish.luau": "ServerStorage.WildboundCandyClipPublish",
         "tests/WildboundCandyClipPublish_Test.luau": "ServerStorage.WildboundCandyClipPublish_Test",
+        # CE1 Caramelo nests
+        "src/wildbound/WildboundCandyNests.luau": "ServerScriptService.WildboundCandyNests",
+        "tests/WildboundCandyNests_Test.luau": "ServerStorage.WildboundCandyNests_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

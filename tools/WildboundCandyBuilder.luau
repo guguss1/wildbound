@@ -34,6 +34,31 @@ local palette = {
 local RARITY_COLOR = { Comun = palette.mint, Rara = palette.confetti, Epica = palette.grape, Legendaria = palette.orange }
 local SWEETS = { palette.mint, palette.confetti, palette.magenta, palette.grape, palette.strawberry, palette.biscuit }
 
+-- CE1: whether a nest marker is live: the layout's NESTS_ENABLED, never an event-only nest (decision 24).
+function Builder.nestEnabled(spec, layout)
+	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
+	return L.NESTS_ENABLED == true and type(spec) == "table" and spec.eventOnly ~= true
+end
+
+-- CE1: applies the layout's nest flag to an existing build: the nests' Enabled attribute and the root's NestsEnabled,
+-- nothing else (no part is added, moved or removed). Returns how many nests changed.
+function Builder.syncNests(root, layout)
+	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
+	local folder = typeof(root) == "Instance" and root:FindFirstChild("Nests") or nil
+	assert(folder, "no Nests folder")
+	local changed = 0
+	for _, spec in ipairs(L.NESTS) do
+		local nest = folder:FindFirstChild("Nest_" .. spec.id)
+		local live = Builder.nestEnabled(spec, L)
+		if nest and nest:GetAttribute("Enabled") ~= live then
+			nest:SetAttribute("Enabled", live)
+			changed += 1
+		end
+	end
+	root:SetAttribute("NestsEnabled", L.NESTS_ENABLED == true)
+	return changed
+end
+
 function Builder.build(parent, layout, kit, library)
 	assert(typeof(parent) == "Instance", "parent must be an Instance")
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
@@ -157,7 +182,7 @@ function Builder.build(parent, layout, kit, library)
 			prop(lake, "Bridge_" .. i, "CookieBridge", L.BRIDGE.x + (i - (tiles + 1) / 2) * tile, L.BRIDGE.z, math.rad(90), 1.1, -0.6)
 		end
 
-		-- Nests: one base with a hollow for a single egg and a rarity ring. Candidates only.
+		-- Nests: one base with a hollow for a single egg and a rarity ring. CE1: live (Enabled) per Builder.nestEnabled.
 		local nests = group("Folder", "Nests")
 		for _, spec in ipairs(L.NESTS) do
 			local nest = prop(nests, "Nest_" .. spec.id, "Nest", spec.x, spec.z, 0, 1)
@@ -167,7 +192,7 @@ function Builder.build(parent, layout, kit, library)
 			nest:SetAttribute("Rarity", spec.rarity)
 			nest:SetAttribute("EventOnly", spec.eventOnly)
 			nest:SetAttribute("Candidate", true)
-			nest:SetAttribute("Enabled", false)
+			nest:SetAttribute("Enabled", Builder.nestEnabled(spec, L))
 			CollectionService:AddTag(nest, "WildboundCandyNestCandidate")
 		end
 
@@ -351,6 +376,7 @@ function Builder.build(parent, layout, kit, library)
 	root:SetAttribute("Seed", L.SEED)
 	root:SetAttribute("Blockout", true)
 	root:SetAttribute("SpawnsEnabled", L.SPAWNS_ENABLED)
+	root:SetAttribute("NestsEnabled", L.NESTS_ENABLED == true)
 	root:SetAttribute("PartCount", created)
 	root:SetAttribute("GeneratedBy", "ServerStorage.WildboundCandyBuilder")
 	root:SetAttribute("KitAssetId", Kit.ASSET_ID)

@@ -633,7 +633,12 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
   `ServerStorage.WildboundPublishClips.<Creature>.<Clip>` with a Spanish README; pure helper
   `WildboundCandyClipPublish` (pending, parseId, idsSource, build); no upload. Route: inline (one new module + suite,
   manifest/runner rows; no trigger fired). TDD strict. Commit 7c5c044.
-- [ ] CE1 (assigned by the follow-up workflow).
+- [x] CE1 Caramelo nests with eggs to steal: the Candy builder's nests are island nests of the one island system
+  (`WildboundCandyNests` merged after the trail nest; one egg each, no sleeping parent, the 300 s wave refill, the same
+  steal hold / Arrullo, backpack and bank), species by rarity, each guardian post bound to its nest, live through
+  `Layout.NESTS_ENABLED` + `Builder.syncNests`. Route: inline (one new module + suite; small additive edits to
+  WildboundServer, Island, Species, Text, CandyLayout, CandyBuilder; the 4-file mapping read stayed in the parent because
+  this worker may not delegate). TDD strict. Commit (pending, see Evidence CE1).
 - [ ] CE2 (assigned by the follow-up workflow).
 - [ ] CE3 (assigned by the follow-up workflow).
 
@@ -676,6 +681,32 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
 22. **CE0, not saved by the assistant:** the folder lives in the open session (no place save in this batch). If it is
    lost, `Publish.build` recreates it in one call. README text without accents (plain ASCII in a StringValue).
 
+23. **CE1, which species each nest holds (pack 06_PROMPTS_CLAUDE/07):** Común -> Gomibú, Rara -> Tortidragón, Épica ->
+   Flanfuria; Legendaria -> Flanfuria (the best of the three) at Legendaria rarity. The workflow suggested Rara ->
+   Flanfuria / Épica -> Tortidragón; the pack, the user's design source, says Tortidragón Rara and Flanfuria Épica, so
+   the pack wins. Reward tiers as the random world's (Fog, FogFar, Territory, Heart). One table (`CandyNests.POOL`).
+24. **CE1, the legendary nest L1 stays off:** it is `eventOnly` in the layout and there is no Caramelo event; the flag
+   (`Builder.nestEnabled`) keeps every event-only nest off. 11 live nests (C1-C5, R1-R4, E1-E2).
+25. **CE1, guardian binding:** each Caramelo guardian post (`PraderaSites.HOME`/`FIXED`) is bound to the nearest nest
+   within 20 studs: Gomibú -> C1, Flanfuria -> R1, Tortidragón -> C3 (`entry.guard`). A nest keeps its rarity's species
+   (C3 holds a Gomibú egg guarded by Tortidragón; R1 a Tortidragón egg guarded by Flanfuria): the ring colour and the
+   egg's rarity stay one rule. Guarding is the beasts' existing behaviour: each bound nest lies inside its guardian's
+   wake radius (40) and leash (16-35), so a thief at that nest is the guardian's target (pinned by a test). The other 8
+   nests have no guardian; Don Glaseón keeps priority on Rara/Épica carriers in his territory (the carried egg's
+   `EggRarity` is the nest's rarity; `Sites.bossPick` unchanged, pinned by a test).
+26. **CE1, one egg per Caramelo nest, no parent:** the pack's nest has a hollow for a single egg, so a candy nest holds
+   `eggs = 1` (`Island.nestCount` honours it; forest nests keep `EGGS_PER_NEST` 3). No sleeping parent, so a steal wakes
+   nobody: `wakeIsland` returns at once for an island with no adults (no scream for La Silueta, no "parents woke"
+   message, no chase), and the nest has no Zzz readout. The egg rests in the bowl (`nestTop`, read from the marker).
+27. **CE1, the species keep their own look:** `Species.ONLY = "Lumipol"` rewrote every nest; `Species.KEEPS_OWN` /
+   `keepsOwn` now exempts LumipolVioleta (as before) and the three Caramelo species. Stand-in looks until CE2: candy egg
+   tints (Gomibú pink FF7FA8, Tortidragón orange F2A24A, Flanfuria caramel F5CD5A), primitive companion colours; names
+   and blurbs in `Text.CARD`. Steal hold as the forest: Común/Rara the NH1 hold, Épica/Legendaria the Arrullo.
+28. **CE1, how the nests are switched on:** `WildboundCandyLayout.NESTS_ENABLED = true` and `Builder.syncNests(root)`,
+   run once on the live `Candy_Bioma_v1` (attributes only, no part moved). The server reads the markers' `Enabled` at
+   start. As with CE0, nothing is saved by the assistant: in Team Create the attributes live in the session; if they are
+   lost, one `Builder.syncNests` call restores them.
+
 ### Evidence CE0
 
 - Studio target: place 122652861404212 (universe 10774749224); was in Play at start, polled until Edit (about 2 min),
@@ -696,6 +727,40 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
 - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
 - No upload. Play not run: the folder is server-only data read by no script, nothing in Play changes until ids exist.
 - Not tested: the "Save to Roblox" dialog itself (owner action) and the clips playing in the game (needs the ids).
+
+### Evidence CE1
+
+- Studio target: place 122652861404212 (universe 10774749224), Edit, PlayLock nil, runner lock nil.
+- Studio == HEAD before (bytes, Adler-32): Server 211034 0f244a65, Island 25780 8f265def, Species 3909 079bd746, Text
+  36792 d3cafe78, CandyLayout 5295 4e626a0a, CandyBuilder 17351 4e900109, CandyBuilder_Test 14179 4996c70f,
+  CandyLayout_Test 8578 6fb48347, Species_Test 3917 22b8eb62, Island_Test 32142 6af14620, PraderaSites 6227 144c1889;
+  CandyNests absent.
+- Runner: a mini fresh loader (loadstring + setfenv, every Wildbound require a fresh load of the original's Source,
+  SPECS copied from `tools/studio-fresh-runner.luau` for every suite reading a touched script, plus CandyBuilder_Test),
+  held in a temporary ServerStorage StringValue, destroyed after.
+- RED (tests deployed, `WildboundCandyNests` an empty stub, old Layout/Builder): CandyNests 1/8 (every new case "attempt to
+  call a nil value"; the wave-refill pin passes on the existing Island.waveRefill), CandyLayout 13/1 (`NESTS_ENABLED`
+  nil). CandyBuilder_Test 13/0 (its nest case reads the layout flag, so it only turns with the layout; the builder's RED
+  is the CandyNests sync case).
+- GREEN: CandyNests 9/0, CandyLayout 14/0, CandyBuilder 13/0. Regression, 45 suites: 690 passed, 7 failed, all known
+  pre-existing (AN-3, BZ7, ECO-20, EL12, HB-T3, W1, RW5).
+- Studio == repo after the writes: Server 212254 ff46e7ff, Island 25987 c0a2a53c, Species 5336 17f59604, Text 37074
+  c8cd5ca1, CandyLayout 5552 740bc39c, CandyBuilder 18623 6712aaaf, CandyBuilder_Test 14360 a34702b2, CandyLayout_Test
+  8918 785fef85, CandyNests 6445 7c8c4b60 (new), CandyNests_Test 10931 3ba8a274 (new).
+- Builder: `Builder.syncNests(workspace.Candy_Bioma_v1)` changed 11 nests (L1 stays false), root `NestsEnabled` true;
+  `CandyNests.read` gives C1 at (452, -21), bowl top 2.70.
+- Solo Play (PlayLock CE1, removed after; Play stopped): IslandCount 17 (6 forest + 11 Caramelo); 11 eggs, C1-C5
+  Gomibu Comun, R1-R4 Tortidragon Rara, E1-E2 Flanfuria Epica, each centred at y 3.90 (in the bowl). HeistProbe steal
+  at CandyR1 (the real trigger, the hold stood in): Egg:26 Carried, `WildboundEggCarried` with `EggRarity=Rara`, the
+  nest emptied, its meter Alert with no chase. Moved to the own base (Base1): banked and incubating,
+  `WildboundEggReward = 1|Tortidragon|Rara|16|0|1|...`, an orange egg on the cradle. No Wildbound script error (only
+  the usual TexturePack, asset and DataStore messages). Screenshots
+  `assets/exports/forest-kit/captures/ce1-caramelo-egg-stolen-desktop.jpg`, `ce1-caramelo-egg-banked-desktop.jpg`.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Not tested: the steal through a real held prompt (the Studio client cannot fire it, as in CF2); the 300 s wave refill
+  of a Caramelo nest in Play (pure core pinned by a case); an Arrullo on an Épica Caramelo egg in Play; a guardian
+  actually chasing a thief at its bound nest in Play; the hatch result (a primitive stand-in until CE2); two players,
+  phone.
 
 ## Next step
 

@@ -419,6 +419,9 @@ DEFAULT_MAPPINGS = [
     # CE0: the kit the owner uses to publish Tortidragon's and Don Glaseon's clips to the group
     ("tools/WildboundCandyClipPublish.luau", "ServerStorage.WildboundCandyClipPublish"),
     ("tests/WildboundCandyClipPublish_Test.luau", "ServerStorage.WildboundCandyClipPublish_Test"),
+    # CE1: the Caramelo nests join the island nests (one egg each, the guardian beside it)
+    ("src/wildbound/WildboundCandyNests.luau", "ServerScriptService.WildboundCandyNests"),
+    ("tests/WildboundCandyNests_Test.luau", "ServerStorage.WildboundCandyNests_Test"),
 ]
 
 

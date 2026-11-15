@@ -258,6 +258,8 @@ end
 -- Islands 3 to 5 hold a second nest with three or more players.
 function Island.nestCount(island, players)
 	if type(island) ~= "table" then return 0 end
+	-- CE1 (odd/tasks/wildbound-caramelo.md): a nest with its own egg count (a Caramelo nest, WildboundCandyNests) keeps it.
+	if finite(island.eggs) and island.eggs >= 1 then return math.floor(island.eggs) end
 	if C.EGGS_PER_NEST >= 1 then return math.floor(C.EGGS_PER_NEST) end
 	if finite(island.nests) and island.nests >= 1 then return math.floor(island.nests) end
 	local deep = island.id == "I3" or island.id == "I4" or island.id == "I5"

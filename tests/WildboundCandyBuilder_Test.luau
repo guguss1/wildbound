@@ -141,7 +141,7 @@ return function(Builder, Layout, Kit, library)
 		near(paved, planned, "paved length")
 	end)
 
-	case("S5: twelve inert candidate nests with their rarity", function()
+	case("S5: twelve candidate nests with their rarity, live per the layout flag (CE1)", function()
 		local nests = root.Nests:GetChildren()
 		equal(#nests, #Layout.NESTS, "nests")
 		for _, spec in ipairs(Layout.NESTS) do
@@ -152,7 +152,8 @@ return function(Builder, Layout, Kit, library)
 			equal(nest:GetAttribute("Rarity"), spec.rarity, spec.id .. " Rarity")
 			equal(nest:GetAttribute("EventOnly"), spec.eventOnly, spec.id .. " EventOnly")
 			equal(nest:GetAttribute("Candidate"), true, spec.id .. " Candidate")
-			equal(nest:GetAttribute("Enabled"), false, spec.id .. " Enabled")
+			-- Deliberately changed (CE1, layout NESTS_ENABLED): every nest but the event-only legendary one is live.
+			equal(nest:GetAttribute("Enabled"), Layout.NESTS_ENABLED == true and not spec.eventOnly, spec.id .. " Enabled")
 			local base = nest.PrimaryPart
 			assert(base and base.Name == "Collision_Bowl", spec.id .. " primary part")
 			at(base, spec, nil, spec.id)

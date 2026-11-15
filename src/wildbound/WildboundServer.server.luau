@@ -137,6 +137,19 @@ if not islandsLoaded or type(islandLayout) ~= "table" or type(islandLayout.islan
 end
 -- Lumipol generated model pass: the trail nest, a guarded Lumipol egg nest by the hub's W trail (WildboundIsland).
 islandLayout = Island.withTrailNest(islandLayout)
+-- CE1 (odd/tasks/wildbound-caramelo.md): the Candy builder's live nest markers join as island nests (WildboundCandyNests):
+-- one egg each, no sleeping parent, the Caramelo guardian of the post beside it. Without the biome or the module: none.
+do
+	local candyOk, candyLayout = pcall(function()
+		local CandyNests = require(script.Parent:WaitForChild("WildboundCandyNests", 5))
+		local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites", 5))
+		return CandyNests.merge(islandLayout, CandyNests.read(workspace:FindFirstChild(CandyNests.ROOT_NAME)),
+			CandyNests.posts(Sites))
+	end)
+	if candyOk and type(candyLayout) == "table" then islandLayout = candyLayout else
+		warn("Wildbound: no Caramelo nests this session: " .. tostring(candyLayout))
+	end
+end
 -- Never overwrite an unowned or already-running root on duplicate startup.
 if map:FindFirstChild("WildboundRuntime") or ReplicatedStorage:FindFirstChild("WildboundNetwork") then
 	warn("Wildbound: runtime/network already exists; duplicate startup refused.")
@@ -1003,8 +1016,11 @@ local function nestSlot(island, index, kind)
 	local ox, oz = Island.eggOffset(index, Island.nestCount(spec, #Players:GetPlayers()))
 	return { id = spec.id .. ":" .. index, island = spec.id, index = index, kind = kind, tier = spec.tier,
 		rewardTier = spec.rewardTier, species = island.species or spec.species,
-		rarity = (spec.id == "I3" and "Rara") or (spec.id == "I4" and "Epica") or (spec.id == "I5" and "Legendaria") or nil,
+		rarity = spec.rarity or (spec.id == "I3" and "Rara") or (spec.id == "I4" and "Epica") or (spec.id == "I5" and "Legendaria")
+			or nil,
 		x = spec.x + ox, z = spec.z + oz,
+		-- CE1: a Caramelo egg rests in its nest's bowl (the marker's top), not on the floor.
+		height = spec.nestTop and spec.nestTop - 0.8 - groundAt(spec.x + ox, spec.z + oz) or nil,
 		leash = math.max(4, spec.floorRadius - 4) }
 end
 
@@ -1066,7 +1082,8 @@ for _, spec in ipairs(islandLayout.islands) do
 		species = (spec.id == "I3" or spec.id == "I4" or spec.id == "I5") and "LumipolVioleta" or spec.species,
 		wokeAt = nil, chase = nil, level = nil }
 	-- One shared "Zzz" readout over the nest: three pips, pale while asleep, amber when stirring, red when awake.
-	for index = 1, 3 do
+	-- CE1: a nest with no sleeping parent (a Caramelo nest) has no readout.
+	for index = 1, #spec.adultPoints > 0 and 3 or 0 do
 		local pip = block(holder, "SleepPip", Vector3.new(0.5, 0.5, 0.5) * (0.7 + index * 0.25),
 			CFrame.new(spec.x - 1.2 + index * 0.8, relief:heightAt(spec.x, spec.z) + 5 + index * 0.7, spec.z),
 			READOUT.sleep, Enum.PartType.Ball)
@@ -1586,6 +1603,8 @@ end
 
 local function wakeIsland(island, now)
 	local spec = island.spec
+	-- CE1: a nest with no parent (a Caramelo nest, guarded by its beast) has nobody to wake, scream or chase.
+	if #island.adults == 0 then return end
 	island.wokeAt = now
 	-- EI-5: the scream is a guardian noise from the island, on the same hearing scale as every other noise.
 	noiseEvent:Fire("scream", spec.tier, spec.x, spec.z)
@@ -1980,7 +1999,7 @@ spawnEncounter = function(slot)
 	-- Violet Lumipols represent rare+ tiers (Rara, Epica, Legendaria); common stays green Lumipol.
 	if slot.wild and (slot.rarity == "Rara" or slot.rarity == "Epica" or slot.rarity == "Legendaria") then
 		slot.species = "LumipolVioleta"
-	elseif Species.ONLY and slot.species ~= "LumipolVioleta" then
+	elseif Species.ONLY and not Species.keepsOwn(slot.species) then
 		slot.species = Species.ONLY
 	end
 	serial += 1

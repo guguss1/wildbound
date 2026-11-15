@@ -165,6 +165,15 @@ return function(Layout, Biomes)
 		equal(Layout.SPAWNS_ENABLED, false)
 	end)
 
+	case("CE1: the nests are live egg nests; the legendary one stays event-only", function()
+		equal(Layout.NESTS_ENABLED, true, "NESTS_ENABLED")
+		local events = 0
+		for _, spec in ipairs(Layout.NESTS) do
+			if spec.eventOnly then events += 1; equal(spec.rarity, "Legendaria", spec.id) end
+		end
+		equal(events, 1, "event-only nests")
+	end)
+
 	case("the syrup lake stays out of the boss territory and under the bridge", function()
 		assert(#Layout.LAKE >= 1, "no lake")
 		for _, disc in ipairs(Layout.LAKE) do

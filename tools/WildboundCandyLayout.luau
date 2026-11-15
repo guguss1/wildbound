@@ -24,6 +24,9 @@ Layout.FLOOR_TOP = 0.5
 Layout.PATH_WIDTH = 14
 -- The blockout places candidates only: nothing here spawns eggs or beasts.
 Layout.SPAWNS_ENABLED = false
+-- CE1 (odd/tasks/wildbound-caramelo.md): the nests are live egg nests of the island system (WildboundCandyNests);
+-- the event-only legendary nest stays off (no Caramelo event yet). false turns every nest back into a candidate.
+Layout.NESTS_ENABLED = true
 
 Layout.ENTRANCE = point(-200, 0)
 Layout.FORK = point(-110, 0)
