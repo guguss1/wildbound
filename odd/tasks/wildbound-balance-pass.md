@@ -21,7 +21,8 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 
 - [x] BP1 Treadmill and training: a lap pays Esencia only on a level-up lap; level L+1 needs L+1 laps (about 20 min to the top); re-price the console as a shortcut; keep the unburdened walk cap 50. Route: inline (parent subagent, one writer). Done 2026-11-15 (`5287a33`; Studio suites and solo Play below).
 - [x] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`). Done 2026-11-15 (Studio suites and solo Play below).
-- [ ] BP3 Remaining findings (collection limit, base bonus timing, Caramelo tiers, Nightbloom, sinks, incubation slots) as the batch assigns them.
+- [x] BP3 Reward findings 4, 5 and 9: Caramelo nests one reward tier lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s. Done 2026-11-15 (Studio suites and solo Play below). The other remaining findings (collection limit, sinks, incubation slots) are BP4a below.
+- [ ] BP4a Sinks and the collection wall (findings 6, 7, 8; handoff B4): a server-validated "Liberar" for duplicate creatures (+4 Esencia, never the companion or a farmed creature), incubator slot upgrades that count on the base path, extra farm slots for sale (400 / 900), within the RT-17 20 KB profile budget.
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
 
 ## Decisions taken for the user
@@ -39,6 +40,10 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 | BP2-D1 | The carry cap is `Training.CONSTANTS.CARRY_WALK_CAP = 24`, a constant, not a tuning entry (as BP1-D2 did for `LAP_STEP`). | No new tuning surface; the schema, the bridge and `Balance.liveFrom` stay untouched. |
 | BP2-D2 | The cap binds every slowed walk (`speed < base`): eggs, a carried creature and a heavy pouch alike. The lower of `WALK_CAP` and the carry cap applies. | One rule; `walkSpeed` cannot tell the kinds of load apart, and the old share already treated them alike. |
 | BP2-D3 | `WildboundServer` was not edited: its `applyCarry` comment still says "a carrier keeps its carry share of the trained walk", which stays true (the share is now of at most 24). | The server is in the teammate's lock zone and at the local limit; a comment is not worth a write there. |
+| BP3-D1 | Caramelo nests: the first suggestion of finding 4 (one tier down), not "a guardian on 6 of 11 nests". The event-only Legendaria nest keeps Heart. | The handoff names the tiers (Común 4, Rara 10, Épica 16); L1 is off and was not in the list. |
+| BP3-D2 | Only the pay moved: a new `Nests.RISK` keeps the island entry's `tier` (noise events, slot rules) at Fog / FogFar / Territory / Heart, and `POOL` keeps its one-line row shape. | A reward change should not quieten a steal; the simulator parses the `POOL` rows by pattern. |
+| BP3-D3 | Nightbloom: the weight suggestion of finding 5 (Night fog 15 -> 6, territory 35 -> 15), not a shorter wilt. The other weights are unchanged (the table is normalised, so shares are over 91 and 80). `NIGHT_ONLY_SECONDS` stays 300. | Back to about the old rate with no timer change; GF pins the 300 s wilt. |
+| BP3-D4 | `WildboundEconomyConfig.luau` is a generated file; with no Python here, the JSON block in `docs/mechanics/wildbound-economy-p0.md` and the Luau copy were edited by hand in step (three numbers each). | Run `python -I -B tools/export_economy_config_luau.py --write` and its test on a machine with Python to confirm. |
 
 ## Evidence
 
@@ -71,6 +76,21 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
   - The overview's two treadmill rows were updated; the `applyCarry` comment was left (BP2-D3).
 - Not done on this machine (no Python): `tools/wildbound_economy_sim_v2.py` still models the uncapped share as live and keeps `carry_trained_cap` as a what-if; its tests and `check_drift` were not run. Fold the cap into the sim in BP4.
 
+### BP3 (2026-11-15)
+
+- Change:
+  - `WildboundCandyNests`: `POOL` reward tiers Comun Fog -> Safe (4 Esencia), Rara FogFar -> Fog (10), Epica Territory -> FogFar (16); new `RISK` table; `pick` returns `tier`; `islands` uses it.
+  - `WildboundEconomyConfig` and the economy doc's JSON: `spawnWeights.fog.Night.nightbloom` 15 -> 6, `spawnWeights.territory.Night.nightbloom` 35 -> 15, `earn.baseRequires.minExpeditionSeconds` 45 -> 25.
+- Suites re-pinned on purpose: Economy (ECO-17: 25 s pays, 24.9 s does not), Spawn (fog and territory Night shares; ECO-16's 100,000 draws), CandyNests (CE1 reward and risk tiers), CandyPets (CP-5 tiers Safe / Fog / FogFar, 4 / 10 / 16), State (ECO-19: the short trip is 20 s).
+- Fingerprint rule: before writing, the six Studio scripts (the four suites first touched, EconomyConfig, CandyNests) equalled HEAD, and so did State_Test before its edit. Written with exact replacements. After: Studio == repo. EconomyConfig 8938/1612979398, CandyNests 7804/1134762144, Economy_Test 20453/2251548254, Spawn_Test 10201/2417858517, CandyNests_Test 15282/3328652547, CandyPets_Test 12194/3287507693, State_Test 88072/3391150256.
+- RED (tests pushed, sources unchanged), run `6842feeb`: CandyNests 10/2, Economy 20/2 (ECO-17 "Expected 25, got 45", plus the known ECO-20), Spawn 10/1.
+- First GREEN run `677a3cc7` showed two more pins of the old numbers (Spawn ECO-16, State ECO-19 "30 s is too short"); both re-pinned.
+- GREEN, run `2f09ec88`, 25 suites: pass Balance 25, Bat 13, CampView 22, CandyEggArt 14, CandyNests 12, CandyPets 8, EggCarry 39, Funnel 13, GatherField 13, Gear 15, Island 34, NestRefill 5, Persistence 31, PlacePhase 8, Record 30, RouletteService 9, Save 23, SpawnClock 17, Spawn 11, Training 12. Red, all on the handoff's known list: State 71/14, Economy 21/1 (ECO-20), BaseZone 8/1 (BZ7), EggLoop 12/1 (EL12), AnalyticsWiring 11/1 (AN-3). No leaks, no timeouts.
+- Solo Play (PlayLock `BP3`, cleared after; Play stopped; memory saves): `HeistProbe` "steal" on CandyC1 (Comun), carried into the own base zone: Esencia 0 -> 8 (Safe egg 4 + first-steal bonus 4; the trip was under 25 s). Then CandyR1 (Rara): 8 -> 22 (Fog egg 10 + trip base 4). Before BP3 these were 10 and 16. Both hatched (Gomibú, Tortidragón). No script errors.
+- Not checked in Play: an Épica nest, the Nightbloom rate in the forest, the 25 s boundary itself (suite only), two players, a phone.
+- Review (workflow `wf_108110bb-bdd`, three lenses, each finding verified): no defect in the Luau. It read the exporter and judged that it would reproduce the hand-edited config byte for byte. It found leftover pins, now fixed in this commit: two Python tests (`test_extract_base_requires_45s`, renamed `..._25s` with 20 s / 25 s trips; `test_live_caramelo_nests`, now 4 / 10 / 16), the simulator's printed assumption row (25 s), and the old numbers in the economy doc's weight and earning tables and in two overview rows. The Python edits were made **without running them**.
+- Not done on this machine (no Python): the exporter and its test (BP3-D4); the Python suite; the simulator rerun. The simulator's dated findings text still suggests the changes BP1 to BP3 already made (regenerate in BP4).
+
 ## Next step
 
-BP3: the remaining findings (Caramelo nest tiers one lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s).
+BP4a: the "Liberar" action, incubator slots that count, farm slots for sale. Then BP4: rerun the simulator (needs Python).

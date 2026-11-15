@@ -294,9 +294,11 @@ Filter first by zone and phase, then normalize: `p = weight / sum(weights)`. Wei
 | --- | --- | --- | --- |
 | Outside, any | 85.0% | 15.0% | 0 |
 | Fog, not Night | 55.0% | 45.0% | 0 |
-| Fog, Night | 45.0% | 40.0% | 15.0% |
+| Fog, Night | 49.5% | 44.0% | 6.6% |
 | Territory, not Night | 40.0% | 60.0% | 0 |
-| Territory, Night | 25.0% | 40.0% | 35.0% |
+| Territory, Night | 31.3% | 50.0% | 18.8% |
+
+The two Night rows changed on 2026-11-15 (BP3, `odd/tasks/wildbound-balance-pass.md`): the Nightbloom weights went from 15 to 6 (fog) and from 35 to 15 (territory), with the other weights unchanged at 45 / 40 and 25 / 40. Rates quoted elsewhere in this document (for example the safe path's "15% Nightbloom" and its per-minute figures) predate that change.
 
 Yields, per node, inclusive:
 
@@ -317,7 +319,7 @@ Paid once at extraction. Only at extraction, so it can be lost by not returning,
 
 | Source | Ember | Condition |
 | --- | --- | --- |
-| Completed trip | 4 | Expedition at least 45 s, reached 60 studs from camp, at least one new item or unit |
+| Completed trip | 4 | Expedition at least 25 s (BP3, 2026-11-15; was 45 s), reached 60 studs from camp, at least one new item or unit |
 | Cria, tier Safe | 6, plus 4 once for the first steal (`firstStealBonus`) | Island 1, Claro de los Lumipol |
 | Cria, tier Fog | 10 | Island 2, Hondonada del Musgo |
 | Cria, tier FogFar | 12 | Island 3, Pantano de los Juncos |
@@ -584,13 +586,13 @@ Stable schema read by `tools/economy_tuning.py` (formerly `tools/simulate_econom
     "fog": {
       "Day": { "fogbark": 55, "glowmoss": 45 },
       "Dusk": { "fogbark": 55, "glowmoss": 45 },
-      "Night": { "fogbark": 45, "glowmoss": 40, "nightbloom": 15 },
+      "Night": { "fogbark": 45, "glowmoss": 40, "nightbloom": 6 },
       "Dawn": { "fogbark": 55, "glowmoss": 45 }
     },
     "territory": {
       "Day": { "fogbark": 40, "glowmoss": 60 },
       "Dusk": { "fogbark": 40, "glowmoss": 60 },
-      "Night": { "fogbark": 25, "glowmoss": 40, "nightbloom": 35 },
+      "Night": { "fogbark": 25, "glowmoss": 40, "nightbloom": 15 },
       "Dawn": { "fogbark": 40, "glowmoss": 60 }
     }
   },
@@ -601,7 +603,7 @@ Stable schema read by `tools/economy_tuning.py` (formerly `tools/simulate_econom
   },
   "earn": {
     "extractBaseEmber": 4,
-    "baseRequires": { "minExpeditionSeconds": 45, "minDistanceFromCamp": 60, "minNewUnitsOrItems": 1 },
+    "baseRequires": { "minExpeditionSeconds": 25, "minDistanceFromCamp": 60, "minNewUnitsOrItems": 1 },
     "creatureEmberByTier": { "Safe": 8, "Fog": 14, "FogFar": 20, "Territory": 28, "Heart": 42 },
     "eggEmberByTier": { "Safe": 4, "Fog": 10, "FogFar": 16, "Territory": 24, "Heart": 36 },
     "firstStealBonus": 4,

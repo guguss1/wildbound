@@ -37,7 +37,12 @@ return function(Spawn, Config, source, Rules)
 			end
 		end
 		local fogNight = probabilities({ zone = "fog", phase = "Night", nightRewards = true })
-		near(fogNight.fogbark, 0.45, 1e-12); near(fogNight.glowmoss, 0.40, 1e-12); near(fogNight.nightbloom, 0.15, 1e-12)
+		-- Deliberately re-pinned (BP3, 2026-11-15, simulator finding 5): Nightbloom is scarce again. Night weights fog
+		-- 15 -> 6 and territory 35 -> 15; the other weights are unchanged, so the shares are over 91 and 80.
+		near(fogNight.fogbark, 45 / 91, 1e-12); near(fogNight.glowmoss, 40 / 91, 1e-12); near(fogNight.nightbloom, 6 / 91, 1e-12)
+		local territoryNight = probabilities({ zone = "territory", phase = "Night", nightRewards = true })
+		near(territoryNight.fogbark, 25 / 80, 1e-12); near(territoryNight.glowmoss, 40 / 80, 1e-12)
+		near(territoryNight.nightbloom, 15 / 80, 1e-12)
 		local outside = probabilities({ zone = "outside", phase = "Day" })
 		near(outside.fogbark, 0.85, 1e-12); near(outside.glowmoss, 0.15, 1e-12)
 		local territoryDay = probabilities({ zone = "territory", phase = "Dawn" })
@@ -141,8 +146,9 @@ return function(Spawn, Config, source, Rules)
 			local node = Spawn.rollNode(Config, slot, "Night", rng, { nightRewards = true })
 			counts[node.material] = (counts[node.material] or 0) + 1
 		end
-		near(counts.fogbark / draws, 0.25, 0.01, "fogbark"); near(counts.glowmoss / draws, 0.40, 0.01, "glowmoss")
-		near(counts.nightbloom / draws, 0.35, 0.01, "nightbloom")
+		-- Re-pinned with BP3 (2026-11-15): the territory Night table is 25 / 40 / 15 (was 25 / 40 / 35).
+		near(counts.fogbark / draws, 25 / 80, 0.01, "fogbark"); near(counts.glowmoss / draws, 40 / 80, 0.01, "glowmoss")
+		near(counts.nightbloom / draws, 15 / 80, 0.01, "nightbloom")
 	end)
 
 	case("rollNode refuses unknown slots, phases and generators", function()

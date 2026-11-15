@@ -128,7 +128,10 @@ return function(Pets, Species, State, Economy, Config, Record, Incubator, EggLoo
 		local state = State.new(Economy, Config)
 		state.farmOnly = Species.FARM_ONLY
 		state:addPlayer("Alice")
-		local TIER = { Gomibu = "Fog", Tortidragon = "FogFar", Flanfuria = "Territory" }
+		-- BP3 (2026-11-15): the candy nests pay one reward tier lower (WildboundCandyNests.POOL): 4, 10 and 16 Esencia.
+		local TIER = { Gomibu = "Safe", Tortidragon = "Fog", Flanfuria = "FogFar" }
+		equal(Config.earn.eggEmberByTier.Safe, 4); equal(Config.earn.eggEmberByTier.Fog, 10)
+		equal(Config.earn.eggEmberByTier.FogFar, 16)
 		local SECONDS = { Comun = 15, Rara = 45, Epica = 60 }
 		local now = 100
 		for _, name in ipairs(PETS) do

@@ -101,13 +101,13 @@ return freeze({
 		fog = {
 			Day = { fogbark = 55, glowmoss = 45 },
 			Dusk = { fogbark = 55, glowmoss = 45 },
-			Night = { fogbark = 45, glowmoss = 40, nightbloom = 15 },
+			Night = { fogbark = 45, glowmoss = 40, nightbloom = 6 },
 			Dawn = { fogbark = 55, glowmoss = 45 },
 		},
 		territory = {
 			Day = { fogbark = 40, glowmoss = 60 },
 			Dusk = { fogbark = 40, glowmoss = 60 },
-			Night = { fogbark = 25, glowmoss = 40, nightbloom = 35 },
+			Night = { fogbark = 25, glowmoss = 40, nightbloom = 15 },
 			Dawn = { fogbark = 40, glowmoss = 60 },
 		},
 	},
@@ -129,7 +129,7 @@ return freeze({
 	},
 	earn = {
 		extractBaseEmber = 4,
-		baseRequires = { minExpeditionSeconds = 45, minDistanceFromCamp = 60, minNewUnitsOrItems = 1 },
+		baseRequires = { minExpeditionSeconds = 25, minDistanceFromCamp = 60, minNewUnitsOrItems = 1 },
 		creatureEmberByTier = { Safe = 8, Fog = 14, FogFar = 20, Territory = 28, Heart = 42 },
 		eggEmberByTier = { Safe = 4, Fog = 10, FogFar = 16, Territory = 24, Heart = 36 },
 		firstStealBonus = 4,

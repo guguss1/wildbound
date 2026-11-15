@@ -1213,8 +1213,9 @@ return function(State, Economy, Config)
 		accepted(state:observeExpedition("Alice", 80, true, 0))
 		accepted(state:bondEvent("Alice", "pulseRevealInFog", true))
 		gathered(state, "Alice", "fogbark", 2, 5)
-		local _, _, receipt = state:extract("Alice", true, 0, 30)
-		equal(receipt.baseEmber, 0, "30 s is too short")
+		-- Re-pinned with BP3 (2026-11-15): the trip minimum is 25 s (was 45 s), so the short trip is 20 s (was 30 s).
+		local _, _, receipt = state:extract("Alice", true, 0, 20)
+		equal(receipt.baseEmber, 0, "20 s is too short")
 		equal(snap(state).bond[pet].xp, 5)
 	end)
 

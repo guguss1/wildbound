@@ -35,12 +35,16 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	end
 
 	case("CE1: each rarity holds its Caramelo species (Comun Gomibu, Rara Tortidragon, Epica and Legendaria Flanfuria)", function()
-		local want = { Comun = { "Gomibu", "Fog" }, Rara = { "Tortidragon", "FogFar" }, Epica = { "Flanfuria", "Territory" },
-			Legendaria = { "Flanfuria", "Heart" } }
+		-- Deliberately re-pinned (BP3, 2026-11-15, simulator finding 4): the unguarded candy nests pay one reward tier
+		-- lower (Comun Safe 4, Rara Fog 10, Epica FogFar 16 Esencia; were Fog 10, FogFar 16, Territory 24). The event-only
+		-- Legendaria nest keeps Heart. The nest's risk tier (noise, slot rules) is unchanged: Nests.RISK.
+		local want = { Comun = { "Gomibu", "Safe", "Fog" }, Rara = { "Tortidragon", "Fog", "FogFar" },
+			Epica = { "Flanfuria", "FogFar", "Territory" }, Legendaria = { "Flanfuria", "Heart", "Heart" } }
 		for rarity, row in pairs(want) do
 			local pick = Nests.pick(rarity)
 			assert(pick, rarity)
 			equal(pick.species, row[1], rarity .. " species"); equal(pick.rewardTier, row[2], rarity .. " reward")
+			equal(pick.tier, row[3], rarity .. " risk tier"); equal(Nests.RISK[rarity], row[3], rarity .. " RISK")
 			equal(pick.rarity, rarity, rarity .. " rarity")
 		end
 		equal(Nests.pick("Mitica"), nil, "unknown rarity"); equal(Nests.pick(nil), nil, "nil rarity")
@@ -103,6 +107,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 			assert(entry.nestId ~= "L1", "the event-only nest is off")
 			local pick = Nests.pick(entry.rarity)
 			equal(entry.species, pick.species, entry.id .. " species"); equal(entry.rewardTier, pick.rewardTier)
+			equal(entry.tier, Nests.RISK[entry.rarity], entry.id .. " keeps its risk tier (BP3)")
 			equal(Island.nestCount(entry, 8), 1, entry.id .. " one egg, whatever the crowd")
 			equal(Island.parentCount(entry), 0, entry.id .. " no sleeping parent")
 			equal(Island.rollContent(entry, "Day", function() return 0.1 end), "Egg", entry.id .. " an egg")

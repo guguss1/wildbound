@@ -7,13 +7,19 @@
 local Nests = {}
 
 -- Decision 23 (pack 06_PROMPTS_CLAUDE/07 and 05_SISTEMAS/03: Gomibu Comun, Tortidragon Rara, Flanfuria Epica). The
--- legendary nest holds the best of the three, a Flanfuria; its reward tiers are the random world's (SpawnClock.REWARD).
+-- legendary nest holds the best of the three, a Flanfuria. BP3 (balance pass 2026-11-15, simulator finding 4): the candy
+-- nests have no sleeping parents, so they pay one reward tier under the random world's (SpawnClock.REWARD): Comun Safe
+-- (4 Esencia), Rara Fog (10), Epica FogFar (16); they were Fog, FogFar and Territory. The event-only Legendaria keeps
+-- Heart.
 Nests.POOL = table.freeze({
-	Comun = table.freeze({ species = "Gomibu", rewardTier = "Fog" }),
-	Rara = table.freeze({ species = "Tortidragon", rewardTier = "FogFar" }),
-	Epica = table.freeze({ species = "Flanfuria", rewardTier = "Territory" }),
+	Comun = table.freeze({ species = "Gomibu", rewardTier = "Safe" }),
+	Rara = table.freeze({ species = "Tortidragon", rewardTier = "Fog" }),
+	Epica = table.freeze({ species = "Flanfuria", rewardTier = "FogFar" }),
 	Legendaria = table.freeze({ species = "Flanfuria", rewardTier = "Heart" }),
 })
+-- BP3: the nest's risk tier (the island entry's `tier`: noise events, slot rules) stays what it was before the reward
+-- moved down a tier, so only the pay changed.
+Nests.RISK = table.freeze({ Comun = "Fog", Rara = "FogFar", Epica = "Territory", Legendaria = "Heart" })
 -- The beasts that guard a candy nest from a post (WildboundPraderaSites.HOME), in a fixed order.
 Nests.GUARDIANS = table.freeze({ "Gomibu", "Flanfuria", "Tortidragon" })
 -- Decision 25: a post guards the nearest nest within BIND_RADIUS studs (each post at most one nest, each nest at most
@@ -27,11 +33,11 @@ local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
--- The species, rarity and reward tier of a nest of `rarity`, or nil for an unknown rarity.
+-- The species, rarity, reward tier and risk tier of a nest of `rarity`, or nil for an unknown rarity.
 function Nests.pick(rarity)
 	local row = type(rarity) == "string" and Nests.POOL[rarity] or nil
 	if not row then return nil end
-	return { species = row.species, rarity = rarity, rewardTier = row.rewardTier }
+	return { species = row.species, rarity = rarity, rewardTier = row.rewardTier, tier = Nests.RISK[rarity] }
 end
 
 -- The guardian posts in world coordinates, from WildboundPraderaSites: { { name, x, z } ... } in GUARDIANS order.
@@ -80,7 +86,7 @@ function Nests.islands(markers, posts)
 		local pick = Nests.pick(m.rarity)
 		table.insert(list, table.freeze({
 			id = Nests.ID_PREFIX .. m.id, key = "caramelo_" .. string.lower(m.id), x = m.x, z = m.z,
-			floorRadius = 6, zone = "outside", tier = pick.rewardTier,
+			floorRadius = 6, zone = "outside", tier = pick.tier,
 			rewardTier = pick.rewardTier, species = pick.species, rarity = pick.rarity, adults = 0,
 			wakeDay = 12, wakeNight = 15, hideSpot = nil,
 			adultPoints = table.freeze({}), content = "Egg", eggs = Nests.EGGS,

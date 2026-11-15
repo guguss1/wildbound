@@ -1412,7 +1412,7 @@ LIVE_ASSUMPTIONS = [
     ("outrun_factor", OUTRUN_FACTOR),
     ("loss", "a loss drops every carried egg; the nest stays empty until the next wave; banked Esencia is never lost"),
     ("first_steal_bonus", "not paid for eggs (State pays it only when an island cria is registered)"),
-    ("extract_base", "4 Esencia when a trip lasts 45 s or more (minExpeditionSeconds); every trip passes 60 studs"),
+    ("extract_base", "4 Esencia when a trip lasts 25 s or more (minExpeditionSeconds, BP3); every trip passes 60 studs"),
     ("forest_eggs", "Species.ONLY rewrites forest eggs to Lumipol (Comun, 15 s hatch); Esencia by the island's tier"),
     ("wild_eggs", "wild/bough pickups per forest trip by profile; rarity by SpawnClock MAX weights, Esencia by REWARD"),
     ("incubation", "eggs start as soon as one of the 8 base slots frees (the owner is assumed near the base)"),

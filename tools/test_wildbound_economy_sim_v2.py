@@ -126,11 +126,12 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(state.eggs_lost, 2)
         self.assertEqual(state.eggs_banked, 1)
 
-    def test_extract_base_requires_45s(self):
+    def test_extract_base_requires_25s(self):
+        # BP3 (2026-11-15): minExpeditionSeconds 45 -> 25. Edited without running (no Python on that machine).
         short = sim.new_state(self.n, self.profiles["beginner"], 3600)
-        sim.bank_trip(short, self.n, 40, 40, [], ["Comun"], lost=False)
+        sim.bank_trip(short, self.n, 20, 20, [], ["Comun"], lost=False)
         long_ = sim.new_state(self.n, self.profiles["beginner"], 3600)
-        sim.bank_trip(long_, self.n, 45, 45, [], ["Comun"], lost=False)
+        sim.bank_trip(long_, self.n, 25, 25, [], ["Comun"], lost=False)
         self.assertEqual(short.esencia, self.n["creature_esencia"]["Fog"])
         self.assertEqual(long_.esencia, self.n["creature_esencia"]["Fog"] + self.n["extract_base"])
 
@@ -456,7 +457,7 @@ class LiveLoadingTests(unittest.TestCase):
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Comun"}, {"Gomibu"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Rara"}, {"Tortidragon"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Epica"}, {"Flanfuria"})
-        self.assertEqual({n["rarity"]: n["esencia"] for n in nests}, {"Comun": 10, "Rara": 16, "Epica": 24})
+        self.assertEqual({n["rarity"]: n["esencia"] for n in nests}, {"Comun": 4, "Rara": 10, "Epica": 16})  # BP3: one tier lower
         self.assertEqual({n["rarity"]: n["hatch_s"] for n in nests}, {"Comun": 15, "Rara": 45, "Epica": 60})
         self.assertTrue(all(n["eggs"] == 1 for n in nests))
 

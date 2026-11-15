@@ -109,9 +109,12 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(Economy.itemEmber(Config, { kind = "Nightbloom", quantity = 3 }), 0)
 		equal(Economy.itemEmber(Config, { kind = "Creature" }), 0, "no tier pays nothing")
 		equal(Economy.itemEmber(Config, nil), 0)
-		equal(Economy.baseEmber(Config, 45, 60, 1), 4)
-		equal(Economy.baseEmber(Config, 44.9, 60, 1), 0, "too short")
-		equal(Economy.baseEmber(Config, 45, 59.9, 1), 0, "too close")
+		-- Deliberately re-pinned (BP3, 2026-11-15, simulator finding 9): the trip minimum 45 s -> 25 s, so a fast trained
+		-- trip is not paid less than a slow one.
+		equal(Config.earn.baseRequires.minExpeditionSeconds, 25)
+		equal(Economy.baseEmber(Config, 25, 60, 1), 4)
+		equal(Economy.baseEmber(Config, 24.9, 60, 1), 0, "too short")
+		equal(Economy.baseEmber(Config, 25, 59.9, 1), 0, "too close")
 		equal(Economy.baseEmber(Config, 600, 300, 0), 0, "AFK-5 nothing new pays nothing")
 		equal(Economy.baseEmber(Config, 0 / 0, 300, 3), 0)
 	end)
