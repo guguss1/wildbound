@@ -94,7 +94,7 @@ return function(Toolbar, source, sources)
 				equal(tag, "WildboundBaseSlot")
 				return pads
 			end,
-			visual = function()
+			visual = opts.visual or function()
 				local model = Instance.new("Model")
 				local body = Instance.new("Part")
 				body.Name = "Body"
@@ -318,6 +318,37 @@ return function(Toolbar, source, sources)
 		toolbar:syncPlayer(player)
 		equal(#farmModels(own), 0, "a creature no longer in the farm has no model")
 		equal(#tools(player, "c1"), 1, "and is back in the hotbar")
+	end)
+
+	-- Playtest (user, 2026-11-14): farm Lumipols sank into the base floor. The live creature model has parts below its
+	-- body (bounding box bottom 1.7 studs under the pad top), so a farm creature must stand on the pad's top surface.
+	case("CT-14: a farm creature stands on the pad's top surface, never sunk into it", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local function sinkingVisual(_, spot)
+			local model = Instance.new("Model")
+			local body = Instance.new("Part")
+			body.Name = "Body"
+			body.Anchored = true
+			body.Size = Vector3.new(1, 1, 1)
+			body.CFrame = CFrame.new(spot)
+			body.Parent = model
+			local leg = Instance.new("Part")
+			leg.Name = "Leg"
+			leg.Anchored = true
+			leg.Size = Vector3.new(1, 2, 1)
+			leg.CFrame = CFrame.new(spot - Vector3.new(0, 1.5, 0))
+			leg.Parent = model
+			return model, body
+		end
+		local toolbar = fixture({ pads = { own }, inside = false, farm = { "c1" }, visual = sinkingVisual })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		local models = farmModels(own)
+		equal(#models, 1, "the farm creature is built")
+		local top = own.Pad.Position.Y + own.Pad.Size.Y / 2
+		local frame, size = models[1]:GetBoundingBox()
+		local bottom = frame.Position.Y - size.Y / 2
+		assert(math.abs(bottom - top) < 0.05, ("its lowest point sits on the pad top (%.2f), got %.2f"):format(top, bottom))
 	end)
 
 	return result

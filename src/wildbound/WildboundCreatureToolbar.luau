@@ -170,6 +170,11 @@ function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseMo
 		creatureModel:PivotTo(goalFrame)
 	end
 	creatureModel.Parent = baseModel
+	-- Playtest (2026-11-14): the creature model reaches below its body/pivot, so it sank into the base floor. Stand its
+	-- lowest point on the pad's top surface (spotWorld is on that surface).
+	local boxFrame, boxSize = creatureModel:GetBoundingBox()
+	local lift = spotWorld.Y - (boxFrame.Position.Y - boxSize.Y / 2)
+	if math.abs(lift) > 0.01 then creatureModel:PivotTo(creatureModel:GetPivot() + Vector3.new(0, lift, 0)) end
 
 	local displayName = self:displayName(species)
 	local promptTarget = body or creatureModel:FindFirstChildWhichIsA("BasePart", true)

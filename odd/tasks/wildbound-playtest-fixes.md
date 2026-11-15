@@ -315,3 +315,13 @@ Open for the user:
 - (was open) Whether the trained walk should also apply while carrying. It does now: about 34 at the top level, against La Silueta 17-18 and the parents 19.
 - Retuning the threats.
 - The Lumipol icon upload (needs approval).
+
+## Playtest follow-up: sunken farm creatures (2026-11-15)
+
+The user saw the farm Lumipols sunk into the base floor.
+
+- Measured live (Base1): pad top 0.90; farm model pivot 0.90; bounding-box bottom -0.80. The model reaches 1.7 studs below its pivot.
+- Fix: `WildboundCreatureToolbar:spawnFarmModel` lifts the model after parenting, so that its bounding-box bottom sits on the pad top.
+- Test: new CT-14, a fake model with a leg below the body. RED 13/1 (bottom -2.00 vs top 0.50), then GREEN 14/0.
+- Studio matches the repo: Toolbar 12929/4189460251, Test 16427/942460237. Studio instance `ba5a21af-1109-4a96-988f-4e087b83defe` (same place 122652861404212, reconnected).
+- No Play check yet: a farm creature needs a hatch in Play, and the live farm is memory-only in Studio. The user can confirm on their next Play.
