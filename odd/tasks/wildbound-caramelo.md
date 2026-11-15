@@ -217,7 +217,7 @@ always bright, the forest always dark; eggs refresh every 300 s.
 
 - [x] CA0 Discovery and plan (this document). Route: inline, read-only (Studio reads, repo reads).
 - [x] CA1 Flanfuria finished: Studio work pulled, suites green, pack contract checked, solo Play. Route: inline
-  (13 scripts pulled byte-exact; no new behaviour written, so no RED: every suite was already GREEN). Commit below.
+  (13 scripts pulled byte-exact; no new behaviour written, so no RED: every suite was already GREEN). Commit 1de89f3.
 - [ ] CA2 Tortidragón: Blender source, model + 11 clips uploaded, modules, brain, wiring, suites, Play.
 - [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play.
 - [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
