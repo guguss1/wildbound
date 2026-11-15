@@ -226,7 +226,9 @@ always bright, the forest always dark; eggs refresh every 300 s.
   (writer trigger fired; kept inline because every Studio write needs the fingerprint gate). PARTIAL: model, rig, attack, boss
   brain, one-per-server rule, wiring, suites and solo Play done; the 11 clips are data + build in Studio but NOT published (same
   group-ownership blocker as CA2, no clip uploaded). Commit e49fa59.
-- [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
+- [x] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated. Route:
+  inline (writer trigger fired: 2+ non-trivial files; kept inline because every Studio write needs the parent's fingerprint
+  gate and Studio == repo before each write). Commit: see Evidence CA4.
 - [ ] CA5 Close: Python suite, Play pass, overview rows, commit.
 
 ## Uploaded assets
@@ -354,8 +356,64 @@ Receipts: `assets/exports/caramelo/upload-receipts.md`.
   - Not tested: the egg drop in Play (Caramelo nests are still disabled, so no egg to carry there), two players / target
     switching, phone, Search with real walls, the clips (unpublished). Python: 1195 tests, 1 failure = known `test_lumipol_v2` V1IsKept.
 
+- CA4 (2026-11-15): one 300 s egg clock and fixed light per biome; the global day/night cycle is removed. This reverses the
+  2026-11-14 decision "Mantener 300/60/300/60" (user request 2026-11-15, pack item 08).
+  - Decisions, per system that read the day/night phase (what it keys on now):
+
+| System | Before | Now |
+|---|---|---|
+| `WildboundWorldRules` cycle | `Rules.cycle(elapsed)` over PHASES 300/60/300/60, `startOffset`, `CYCLE_SECONDS` | Removed. `Rules.cycle()` returns the fixed `WORLD_PHASE` "Day" (clock `WORLD_CLOCK` 14, remaining 0); `FOREST_CONTENT_PHASE` "Night" |
+| Lighting (world client) | `Atmos.at(state.clockTime, zone)` from the server cycle | `WildboundBiomeLight`: the preset of the biome the local character stands in, ~1 s blend (`alpha(dt) = 1 - e^(-3 dt)`), only this client's Lighting (+ ColorCorrection saturation/contrast/brightness). Caramelo Day + `candy` fog row (fogEnd 900), no wave variant; Bosque Night (variants kept); Pantano/Cementerio/Volcán Dusk; Abismo/Cuevas Night; Montañas/Hub Day |
+| La Silueta (profile, Brain hunt/sight/memory, ambush timer) | Night profile in the fog (speed 8, detection 38), Brain Day/Twilight/Night rows | Fixed Day: base profile (6/28), Brain Day row (live tuning HUNT_DAY 17, SIGHT_DAY 60), day ambush delay. Key: none (no hidden night multiplier, pack 02 step 2) |
+| Beasts (`WildboundBeasts.server` phaseAt) | night odds x2, Dusk buff, Nube night range | Fixed Day in every biome: no night odds, no Dusk buff, no Nube night range |
+| Dusk (`WildboundDusk`, `Heist.stepDusk`) | two warnings + buff in Dusk | Inert (never Dusk); code kept so the tuning schema and MechanicsWiring pins stay |
+| Island nests (`Heist.stepNightEggReset`) | empty egg nests restocked after the Night, plus a second spawn reroll | `Heist.resetNestsForWave(now, wave)` at each wave start (wave >= 2), idempotent by wave id, only empty nests (`wait_wave`/`wait`), waits while its island chases; no second reroll |
+| Island adults (phase, deep sleep) | Dusk/Night wake radius, 11:00-13:00 deep sleep | Fixed Day, clock 14 (never the deep-sleep window) |
+| Gather (`WildboundGather`, `worldClock`) | Nightbloom only at Night, wilts at Dawn | Key: forest content. Always the night table (the forest is always dark): Nightbloom always, never wilts |
+| Hide, GuardianBrain PHASE_KEYS | by phase | Fixed Day row |
+| Presentation (HUD hint, `Phase` attribute: fear stalk, Night Nose, audio) | server phase | Local biome mood: Bosque Night (stalks, Night Nose, night audio), Caramelo Day |
+| WaveClock | 300 s, reroll at start | The only clock: `window()` Collect 0-289.999 / Warning 290-299.999, `holdAllowed()` (a hold begun in a Warning is refused, also right after the refresh; one begun before resolves), `ALERTS` 10/5/3/2/1 |
+| SpawnClock | each spawn its own 300 s LIFETIME | `bindWave(state, endsAt)`: a random spawn born under a wave lives to that wave's end + `WAVE_GRACE` 1 s, so the wave's reroll always moves it first; special spawns keep their own life |
+| Server egg prompts | no gate | steal hold and Arrullo refused in Warning (`Text.WAVE.locked`); countdown notices on the inventory client (`Text.WAVE.warning`) |
+| World server | `CycleStartedAt`, `StudioClockShift` | gone; snapshot still sends the fixed phase/clock (unused by the client) |
+
+  - Not changed on purpose: island eggs still sitting in a nest are not re-rolled at the refresh (identity kept; only the random
+    spawns re-roll, as the pack allows "refrescar apariencia con identidad estable"); Caramelo nests are still `Enabled = false`
+    (builder flag), so Caramelo has no eggs yet; `Balance.LIVE.dayCycle` (prepared, not wired) still lists 300/60/300/60.
+  - TDD (fresh loadstring+setfenv loader, SPECS args). RED: WorldRules 38/3, Economy 19/3 (2 new + known ECO-20), HideWiring 13/1,
+    BeastWiring 49/1, Dusk 8/1, SpawnClock 13/3, WaveClock 20/5 (4 new + known RW5), BiomeLight ERROR (module missing). GREEN:
+    WorldRules 41/0, Dusk 9/0, HideWiring 14/0, BeastWiring 50/0, SpawnClock 16/0, BiomeLight 7/0, Settings 10/0 (re-pinned D12),
+    Economy 21/1 and WaveClock 24/1 (only the known ECO-20 and RW5). One test bug fixed after GREEN: the CA4 window case expected
+    only waveStarted at 300, but the first biome event also starts at 300 (`EVENT_FIRST`).
+  - Regression, the 50 suites whose SPECS read a touched source or module (LumipolArt skipped: `inst:` token): all pass except the
+    known pre-existing AN-3 (AnalyticsWiring), BZ7 (BaseZone), ECO-20, EL12 (EggLoop), HB-T3 (Hub), W1 (MechanicsWiring, the
+    `canSteal(..., maxCarry)` text), RW5 (WaveClock). AN-3 and W1 were checked against HEAD's server source (same result);
+    ECO-20 and RW5 also failed in the RED run before any source change; BZ7, EL12 and HB-T3 are listed as teammate failures in
+    `odd/tasks/wildbound-suite-repair.md`.
+  - Studio == repo after the writes (bytes, Adler-32): WorldRules 16518 15b6722d, WaveClock 13175 19e1e819, SpawnClock 15047
+    53cc9082, Atmosphere 7145 8390ba8f, BiomeLight 5606 51e7ffb7 (new), World.server 82337 72413b84, World.client 65340 d33d780a,
+    Server 209254 05a7ec58, Beasts.server 46644 2cc56627, Gather 7684 b5df3234, Text 36797 ee13000e, Client 46667 63ee83bd; tests
+    WorldRules 27324 6fbf1410, Economy 20233 89c39f9c, HideWiring 9408 96495e78, BeastWiring 49386 cb8a4f24, Dusk 5666 9d5b1239,
+    SpawnClock 13181 c06393f0, WaveClock 23182 c156cf0e, BiomeLight 6869 4b1e90b9 (new), Settings 4930 22a95ef1. Every touched
+    Studio script matched HEAD before the first write. All compile (loadstring).
+  - Solo Play (PlayLock CA4, cleared; Play stopped): server runtime has no `CycleStartedAt`, `Rules.cycle` Day/14. Client: spawn
+    at the hub (298,-3) Phase Day, ClockTime 13; teleported into Caramelo (620,60): after 0.5 s Clock 13.8, FogEnd 771, grading
+    0.064/0.032/0.024; after 1.1 s 13.97 / 881 / 0.078; 2.1 s 14.00 / 899 / 0.080 0.040 0.030 (Brightness 3, Exposure 0). Into
+    the forest (20,-40): 0.5 s Clock 22.1, Bright 1.55; 1.1 s 23.7 / 1.25 / FogEnd 77; 2.1 s 23.98 / 1.20 / -0.50 / 47, Phase
+    Night. Back to Caramelo: 1.1 s 14.35, 2.1 s 14.02 bright again. Waves with the dev tuning `World.WAVE_SECONDS` 30 (restored
+    to 300): a HeistProbe steal 21 s into the wave (Warning) was refused, the refresh came at 30.11 s, a steal 1 s later was
+    accepted (same egg), the wave id changed once (3 to 4) and stayed; WildSpawns stayed 11. The client showed "Los huevos se
+    renuevan en 10 s", 5, 3, 2, 1 at the expected times. No script error in the output.
+  - Not tested: two clients in different biomes at once, phone, 15 minutes / three full 300 s waves in Caramelo, a late join's
+    countdown, the nest restock in Play (no island nest was emptied during the check), reconnect. Screenshots: none (Studio
+    screen_capture timed out in Play again).
+  - Python: `tools/wildbound_economy_sim_v2.py` read the PHASES lengths (stored, never used): it now reads `WORLD_PHASE`
+    (35 errors on the first full run, fixed). Final full run in the commit evidence below.
+
 ## Next step
 
-Owner action for CA2 and CA3 clips: publish them to group 465694015 (or grant the Assistant group upload or the
-`asset-permissions:write` scope), then fill Tortidragon and Don Glaseon `Clips.IDS` and rerun both Clips suites and a Play
-check. Then CA4 (egg waves every 300 s and fixed per-biome lighting).
+- CA5 close: full Python run and commit (CA4 commit hash recorded below), then a two-client lighting check (one in the Bosque,
+  one in Caramelo at once) and a 15-minute / three-wave stay in Caramelo; enable the Caramelo nests through the builder when the
+  user wants Caramelo eggs.
+- Owner action for CA2 and CA3 clips (unchanged): publish them to group 465694015 (or grant the Assistant group upload or the
+  `asset-permissions:write` scope), then fill Tortidragon and Don Glaseon `Clips.IDS` and rerun both Clips suites and a Play check.

@@ -661,6 +661,13 @@ local originalAtmosphere = {Density = atmosphere.Density, Color = atmosphere.Col
 -- Delivery D1: whole-map fog by zone and time of day comes from a pure module; this script only applies it.
 local atmosphereModule = ReplicatedStorage:WaitForChild("WildboundAtmosphere", 10)
 local Atmos = atmosphereModule and require(atmosphereModule)
+-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/02, odd/tasks/wildbound-caramelo.md): no global day/night cycle. The
+-- light is fixed per biome (Caramelo always day, the forest always night, ...): this client picks the preset of the
+-- biome its own character stands in and blends to it in about a second. Only this client's Lighting changes.
+local BiomeLight = (function()
+	local found = ReplicatedStorage:WaitForChild("WildboundBiomeLight", 10)
+	return found and found:IsA("ModuleScript") and require(found) or nil
+end)()
 -- Random world (RW6): the biome variant the server publishes on the network folder ("BiomeVariant"). It tints the fog
 -- and the palette (a local ColorCorrectionEffect, removed on cleanup) and plays a quiet bed from an existing catalog
 -- slot; night keeps its own fog and darkness (Atmos.variant never touches brightness, exposure or ambient).
@@ -1058,8 +1065,17 @@ listen(RunService.Heartbeat, function(dt)
 		return
 	end
 	local now = workspace:GetServerTimeNow()
-	phaseLabel.Text = tostring(worldWords.phases[state.phase] or state.phase or "?") .. " · "
-		.. math.max(0, math.ceil((state.nextPhaseAt or now) - now)) .. "s" .. (state.marked == true and word("marked") or "")
+	-- CA4: the biome this character stands in sets the light, the HUD's phase line and the presentation mood (the
+	-- "Phase" attribute the fear stalk and Night Nose read): the forest reads as night, Caramelo as day.
+	local lightName, light = "Hub", nil
+	if BiomeLight and root then
+		lightName, light = BiomeLight.presetAt(root.Position.X, root.Position.Z)
+	elseif BiomeLight then
+		lightName, light = BiomeLight.presetAt(nil, nil)
+	end
+	if light and gui:GetAttribute("Phase") ~= light.mood then gui:SetAttribute("Phase", light.mood) end
+	phaseLabel.Text = (light and light.label or tostring(worldWords.phases[state.phase] or state.phase or "?"))
+		.. (state.marked == true and word("marked") or "")
 	local guardian = guardianState
 	-- Only the targeted player receives an attack deadline, inside their own awareness (M2.2).
 	local aware = type(guardian.awareness) == "table" and guardian.awareness or {}
@@ -1067,7 +1083,7 @@ listen(RunService.Heartbeat, function(dt)
 	local attack = View.attackPending(aware) or pendingAttack ~= nil
 	local hint = View.hint({attack = attack, threat = guardian.threat == true,
 		revealed = type(guardian.revealedUntil) == "number" and guardian.revealedUntil > now,
-		phase = state.phase, isFog = state.isFog == true})
+		phase = light and light.mood or state.phase, isFog = state.isFog == true})
 	-- A notice shows for a few seconds, then goes. On small screens it takes the hint line, never an attack warning.
 	local notice = View.currentNotice(noticeState, os.clock())
 	if compact then
@@ -1080,13 +1096,20 @@ listen(RunService.Heartbeat, function(dt)
 	flashlight.Text = (keys and word("flashlightKey") or word("flashlight")) .. "\n" .. cooldown(state.flashlightReadyAt, now)
 	pulse.Text = (keys and word("pulseKey") or word("pulse")) .. "\n"
 		.. (state.hasLumipol and cooldown(state.pulseReadyAt, now) or word("equipLumipol"))
-	local alpha = 1 - math.exp(-step * 0.5)
+	-- CA4: about one second to cross into a biome's light (BiomeLight.alpha), without flicker.
+	local alpha = BiomeLight and BiomeLight.alpha(step) or 1 - math.exp(-step * 0.5)
 	if Atmos then
 		local zone = state.isSafe == true and "camp" or (state.isFog == true and "fog" or "open")
 		local variant = biomeVariant()
-		local target = Atmos.variant(Atmos.at(state.clockTime, zone, reduced), variant)
+		-- CA4: the biome's fixed light (a missing preset module falls back to a plain day, never to a server clock).
+		local target = BiomeLight and BiomeLight.target(Atmos, lightName, zone, reduced, variant)
+			or Atmos.variant(Atmos.at(14, zone, reduced), variant)
 		variantTint.TintColor = variantTint.TintColor:Lerp(rgb(target.tint), alpha)
-		playVariantBed(variant)
+		variantTint.Saturation += ((target.saturation or 0) - variantTint.Saturation) * alpha
+		variantTint.Contrast += ((target.contrast or 0) - variantTint.Contrast) * alpha
+		variantTint.Brightness += ((target.lift or 0) - variantTint.Brightness) * alpha
+		-- The wave's variant bed plays only where the preset takes variants (never in Caramelo).
+		playVariantBed((light == nil or light.variants) and variant or nil)
 		-- Dev lighting (the tuning panel's "Iluminación"): applied on top of the atmosphere; defaults change nothing.
 		local dev = View.live
 		local lift = math.clamp(dev.LIGHT_AMBIENT or 0, 0, 1)
@@ -1124,8 +1147,8 @@ listen(RunService.Heartbeat, function(dt)
 			beam.Enabled = beam.Brightness > 0.05
 		end
 	end
-	if type(state.clockTime) == "number" then
-		local delta = (state.clockTime - Lighting.ClockTime + 12) % 24 - 12
+	if light then
+		local delta = (light.clockTime - Lighting.ClockTime + 12) % 24 - 12
 		Lighting.ClockTime = (Lighting.ClockTime + delta * alpha) % 24
 	end
 end)
@@ -1232,7 +1255,7 @@ task.spawn(function()
 		-- User, 2026-11-11: an accepted F lights the local beam for 8 s (the Heartbeat block reads this).
 		if payload.action == "Flashlight" and payload.ok == true then gui:SetAttribute("FlashlightOnUntil", os.clock() + 8) end
 		-- The inventory controller reads this for the explorer compass (Night Nose works at Night only).
-		if type(payload.phase) == "string" then gui:SetAttribute("Phase", payload.phase) end
+		-- CA4: "Phase" is now the local biome's mood, set every Heartbeat from WildboundBiomeLight (no server cycle).
 		View.setNotice(noticeState, View.pickNotice(payload, compact), os.clock())
 	end)
 	for _ = 1, 3 do

@@ -59,6 +59,14 @@ SPECS["WildboundAtmosphere_Test"] = { "mod:WildboundAtmosphere", "src:WildboundW
 SPECS["WildboundAudioMix_Test"] = { "mod:WildboundAudioMix", "mod:WildboundAudioCatalog" }
 SPECS["WildboundAudioWiring_Test"] = { "src:WildboundAudioClient" }
 SPECS["WildboundBalance_Test"] = { "mod:WildboundBalance", "src:WildboundBalance" }
+SPECS["WildboundBiomeLight_Test"] = {
+	"mod:WildboundBiomeLight",
+	"src:WildboundBiomeLight",
+	{
+		biomes = "mod:WildboundBiomes", atmosphere = "mod:WildboundAtmosphere", worldClient = "src:WildboundWorldClient",
+		world = "src:WildboundWorld",
+	},
+}
 SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }
 SPECS["WildboundRouletteService_Test"] = {
 	"mod:WildboundRouletteService", "mod:WildboundRoulette", "mod:WildboundState", "mod:WildboundEconomy",

@@ -87,13 +87,18 @@ return function(Dusk, source, Rules)
 		equal(Dusk.message("nope"), nil)
 	end)
 
-	case("U8: it matches the day cycle: WorldRules names Dusk and gives it longer than NIGHT_SOON", function()
+	-- CA4 (user, 2026-11-15): no global day/night cycle, so the world never enters Dusk and never warns of a night.
+	-- This reverses the former U8 ("a full dusk holds both warnings" at Rules.cycle(301)).
+	case("U8 CA4: the fixed world phase is never Dusk, so no warning and no dusk buff ever fire", function()
 		if type(Rules) ~= "table" or type(Rules.cycle) ~= "function" then error("WorldRules was not passed") end
-		-- Deliberately changed (suite repair): the live Dusk is 300 to 360 (WildboundWorldRules.luau PHASES, Day 300 then
-		-- Dusk 60; was 360 to 432). The 240/60/300/120 split of the 2.0 pack is an open user decision (T08a / T02).
-		local at = Rules.cycle(300 + 1)
-		equal(at.phase, Dusk.PHASE)
-		assert(at.remaining > Dusk.CONSTANTS.NIGHT_SOON, "a full dusk holds both warnings")
+		local state = Dusk.new()
+		for _, at in ipairs({ 0, 301, 330, 359, 600, 1e5 }) do
+			local now = Rules.cycle(at)
+			assert(now.phase ~= Dusk.PHASE, "never Dusk at " .. at)
+			local out = Dusk.step(state, now)
+			equal(out.enteredDusk, false); equal(out.nightSoon, false)
+			equal(Dusk.buff(now.phase).roll, 1)
+		end
 	end)
 
 	case("U9: the module is pure", function()

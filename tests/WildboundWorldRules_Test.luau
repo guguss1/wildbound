@@ -19,77 +19,38 @@ return function(Rules, islandLayout)
 		return value
 	end
 
-	-- Deliberately changed (suite repair, odd/tasks/wildbound-suite-repair.md): the live cycle is Day 300, Dusk 60,
-	-- Night 300, Dawn 60 (WildboundWorldRules.luau PHASES, synced from Studio at 34eab83; was 360/72/216/72). Open user
-	-- decision T08a / T02 (odd/tasks/wildbound-2-0.md): the 2.0 pack proposes 240/60/300/120. These cases pin the live
-	-- values until the user decides; docs/mechanics/wildbound-economy-p0.md still lists 360/72/216/72.
-	case("phase boundaries use the single 720 second cycle (M5.7, D5)", function()
-		for _, sample in ipairs({ { 0, "Day" }, { 299.99, "Day" }, { 300, "Dusk" }, { 359.99, "Dusk" },
-			{ 360, "Night" }, { 659.99, "Night" }, { 660, "Dawn" }, { 719.99, "Dawn" }, { 720, "Day" } }) do
-			equal(Rules.cycle(sample[1]).phase, sample[2])
+	-- CA4 (user, 2026-11-15, Caramelo pack 05_SISTEMAS/01-02, odd/tasks/wildbound-caramelo.md): there is no global day/night
+	-- cycle any more. This reverses the 2026-11-14 decision "keep 300/60/300/60" that these cases used to pin. The world
+	-- keeps one fixed gameplay phase (Day: the base threat values, no hidden night multiplier), the always-dark forest
+	-- keeps its night content (Nightbloom) through FOREST_CONTENT_PHASE, and the light is per biome on each client.
+	case("CA4: no global cycle: Rules.cycle is the fixed world phase at any elapsed time", function()
+		for _, value in ipairs({ 0, 299.99, 300, 360, 659.99, 660, 719.99, 720, 1e6, -1, math.huge, 0 / 0, "720" }) do
+			local now = Rules.cycle(value)
+			equal(now.phase, Rules.WORLD_PHASE)
+			equal(now.clockTime, Rules.WORLD_CLOCK)
+			equal(now.elapsed, 0)
+			equal(now.remaining, 0)
+			equal(now.fixed, true)
 		end
-		equal(Rules.CYCLE_SECONDS, 720)
+		equal(Rules.cycle(nil).phase, "Day")
+		equal(Rules.WORLD_PHASE, "Day")
+		equal(Rules.WORLD_CLOCK, 14)
 	end)
-	case("phase duration and progression remain exact", function()
-		equal(Rules.cycle(0).remaining, 300)
-		equal(Rules.cycle(300).remaining, 60)
-		equal(Rules.cycle(360).remaining, 300)
-		equal(Rules.cycle(660).remaining, 60)
-		equal(Rules.cycle(150).progress, 0.5)
-		equal(Rules.cycle(730).elapsed, 10)
+	case("CA4: the cycle timer, its length and its random start are gone", function()
+		equal(Rules.CYCLE_SECONDS, nil)
+		equal(Rules.startOffset, nil)
+		equal(Rules.FOREST_CONTENT_PHASE, "Night")
 	end)
-	case("invalid elapsed time normalizes without NaN propagation", function()
-		for _, value in ipairs({ -1, math.huge, -math.huge, 0 / 0, "720" }) do
-			equal(Rules.cycle(value).phase, "Day")
-			equal(Rules.cycle(value).elapsed, 0)
-		end
-		equal(Rules.cycle(nil).elapsed, 0)
+	case("CA4: La Silueta keeps her base values everywhere (no hidden night multiplier)", function()
+		local now = Rules.cycle(500)
+		local inFog = Rules.resolveCreatureProfile("Silueta", now.phase, true)
+		equal(inFog.speed, 6)
+		equal(inFog.detectionRange, 28)
+		equal(Rules.guardianParameters(now.phase, true).speed, 6)
 	end)
-	case("clock starts and phase joins are continuous", function()
-		equal(Rules.cycle(0).clockTime, 6)
-		equal(Rules.cycle(300).clockTime, 18)
-		equal(Rules.cycle(360).clockTime, 20)
-		equal(Rules.cycle(660).clockTime, 5)
-		for time = 0, 1440, 1 do
-			local clock = Rules.cycle(time).clockTime
-			assert(clock >= 0 and clock < 24)
-		end
-	end)
-	case("the start offset is drawn over non-Night time only, so the first phase is never Night", function()
-		for index = 0, 9999 do
-			local offset = Rules.startOffset(index / 10000)
-			assert(offset >= 0 and offset < Rules.CYCLE_SECONDS, "offset in the cycle: " .. tostring(offset))
-			assert(Rules.cycle(offset).phase ~= "Night", "Night start at roll " .. index / 10000)
-		end
-		equal(Rules.startOffset(0), 0)
-		equal(Rules.cycle(Rules.startOffset(0.999999)).phase, "Dawn")
-		equal(Rules.startOffset(360 / 420), 660, "the join between Dusk and Dawn skips the whole Night")
-		equal(Rules.startOffset(0.5), 210)
-	end)
-	case("the start offset is uniform over non-Night time and rejects bad rolls", function()
-		local day, steps = 0, 5040
-		for index = 0, steps - 1 do
-			if Rules.cycle(Rules.startOffset(index / steps)).phase == "Day" then day += 1 end
-		end
-		equal(day, 3600, "Day is 300 of the 420 non-Night seconds")
-		for _, bad in ipairs({ -1, 0 / 0, math.huge, -math.huge, "0.5", 1, 2 }) do
-			local offset = Rules.startOffset(bad)
-			assert(offset >= 0 and offset < Rules.CYCLE_SECONDS and Rules.cycle(offset).phase ~= "Night", tostring(bad))
-		end
-		equal(Rules.startOffset(nil), 0)
-	end)
-	-- Deliberately changed with the live cycle: the document's 253 / 453 / 504 s were for 360/72/216/72. Night now
-	-- starts at 360 and the non-Night time is 420 s, so the wait is uniform over (0, 420]: median 210, p90 378.
-	case("the wait to the first Night follows the live cycle", function()
-		local waits = {}
-		for index = 0, 9999 do
-			local offset = Rules.startOffset(index / 10000)
-			table.insert(waits, (360 - offset) % Rules.CYCLE_SECONDS)
-		end
-		table.sort(waits)
-		assert(math.abs(waits[5000] - 210) <= 3, "median " .. waits[5000])
-		assert(math.abs(waits[9000] - 378) <= 3, "90th percentile " .. waits[9000])
-		assert(waits[10000] <= 420 and waits[10000] > 419, "maximum " .. waits[10000])
+	case("CA4: the island adults never fall into the midday deep sleep at the fixed clock", function()
+		local clock = Rules.cycle(0).clockTime
+		assert(not (clock >= 11 and clock < 13), "fixed clock " .. clock .. " sits outside Island DEEP_FROM..DEEP_TO")
 	end)
 	case("camp and shelter safe regions do not overlap fog", function()
 		local fog, safe = Rules.zone(-140, 140)

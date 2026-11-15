@@ -303,21 +303,19 @@ return function(Economy, Config, source, Rules, Wild, Ambush, serverSource, worl
 		equal(worldSource:find(":GetAttribute(", 1, true), nil, "no attribute is read back")
 	end)
 
-	case("ECO-22 the world rules follow the tuned 12-minute cycle (M5.7, D5)", function()
-		equal(Rules.CYCLE_SECONDS, Config.cycle.seconds)
-		local at = 0
-		for _, phase in ipairs(Config.cycle.phaseOrder) do
-			equal(Rules.cycle(at).phase, phase, "phase starting at " .. at)
-			equal(Rules.cycle(at).remaining, Config.cycle.phases[phase], phase .. " length")
-			at += Config.cycle.phases[phase]
+	-- CA4 (user, 2026-11-15, odd/tasks/wildbound-caramelo.md): the world has no global day/night cycle any more. The
+	-- economy JSON keeps its "cycle" block as simulator data only; the live rules no longer run it.
+	case("ECO-22 CA4: the world rules run no cycle; the economy cycle block is simulator data only", function()
+		equal(Rules.CYCLE_SECONDS, nil)
+		for _, at in ipairs({ 0, 300, 360, 660, Config.cycle.seconds }) do
+			equal(Rules.cycle(at).phase, Rules.WORLD_PHASE, "fixed at " .. at)
 		end
-		equal(at, Config.cycle.seconds)
-		equal(Rules.cycle(at).phase, Config.cycle.phaseOrder[1], "the cycle wraps")
-		equal(Config.cycle.startRule, "uniform_over_non_night")
+		equal(type(Config.cycle.phases), "table")
 	end)
 
-	case("the world draws one non-Night start and counts its own timers from the real start", function()
-		assert(worldSource:find("Rules.startOffset(", 1, true), "a random non-Night start is drawn")
+	case("CA4: the world draws no cycle start and counts its own timers from the real start", function()
+		equal(worldSource:find("Rules.startOffset(", 1, true), nil, "no random cycle start")
+		equal(worldSource:find("CycleStartedAt", 1, true), nil, "no cycle origin is published")
 		equal(worldSource:find("originTime + 3", 1, true), nil, "the first-grace timer counts from the real start")
 		equal(worldSource:find("originTime + Ambush", 1, true), nil, "the first ambush counts from the real start")
 	end)

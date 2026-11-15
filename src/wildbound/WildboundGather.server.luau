@@ -133,11 +133,10 @@ local function build(node)
 	return model
 end
 
+-- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The gather nodes are the forest's and the forest is
+-- always dark, so its night table holds (Nightbloom grows and never wilts at a Dawn that no longer comes).
 local function currentPhase()
-	local world = map:FindFirstChild("WildboundWorldRuntime")
-	local origin = world and world:GetAttribute("CycleStartedAt")
-	if not Rules.finite(origin) then return nil end
-	return Rules.cycle(workspace:GetServerTimeNow() - origin).phase
+	return Rules.FOREST_CONTENT_PHASE
 end
 
 local function roll()

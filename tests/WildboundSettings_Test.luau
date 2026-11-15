@@ -81,7 +81,8 @@ return function(Settings, source, Text, sources)
 	case("D12: all three consumers read one switch", function()
 		sources = type(sources) == "table" and sources or {}
 		local world, audio = sources.world or "", sources.audio or ""
-		assert(world:find("Atmos.at(state.clockTime, zone, reduced)", 1, true), "fog and light read the switch")
+		-- CA4: the light is the biome's fixed preset (no server clock); it still reads the one switch.
+		assert(world:find("BiomeLight.target(Atmos, lightName, zone, reduced, variant)", 1, true), "fog and light read the switch")
 		assert(world:find("View.hitFlash(payload.outcome, reduced)", 1, true), "the defeat fade reads the switch")
 		assert(world:find('GetAttributeChangedSignal("Reduced")', 1, true), "the world client follows the one attribute")
 		assert(audio:find('worldGui:GetAttribute("Reduced") == true', 1, true), "audio reads the same attribute")

@@ -188,6 +188,56 @@ return function(SpawnClock, graph, Species, source, sources)
 		equal(special.expiresAt, 360)
 	end)
 
+	-- CA4 (pack 05_SISTEMAS/01, "no correr dos sistemas independientes"): once the wave clock binds the spawn clock, a
+	-- random spawn lives until its wave ends (plus a short grace, so the wave's reroll always moves it first), never by
+	-- its own 300 s timer, so the two clocks can never expire or refill one spawn twice.
+	case("CA4: a bound wave owns the lifetime of every random spawn", function()
+		equal(SpawnClock.CONSTANTS.WAVE_GRACE, 1)
+		local state = SpawnClock.new(graph, Species)
+		SpawnClock.bindWave(state, 300)
+		local first = SpawnClock.step(state, 0, Random.new(3))
+		assert(#first > 0, "the tiers fill")
+		for _, action in ipairs(first) do equal(action.spawn.expiresAt, 301, "born at 0, ends with the wave") end
+		-- A claim mid-wave: the refill born at 200 still ends with this wave, not at 200 + LIFETIME.
+		local id = first[1].spawn.id
+		SpawnClock.claim(state, id, 10)
+		local refill = SpawnClock.step(state, 200, Random.new(4))
+		for _, action in ipairs(refill) do
+			if action.op == "spawn" then equal(action.spawn.expiresAt, 301, "a refill ends with its wave") end
+		end
+		equal(#SpawnClock.step(state, 300.5, Random.new(5)), 0, "nothing expires before the grace ends")
+		-- The next wave: the server binds the new end, then rerolls; the rerolled spawns end with the new wave.
+		SpawnClock.bindWave(state, 600)
+		local moved = SpawnClock.reroll(state, 300, Random.new(6))
+		for _, action in ipairs(moved) do
+			if action.op == "spawn" then equal(action.spawn.expiresAt, 601) end
+		end
+		-- A tuned shorter LIFETIME no longer reaches a wave-bound spawn.
+		SpawnClock.tune({ LIFETIME = 30 })
+		equal(#SpawnClock.step(state, 400, Random.new(7)), 0, "the wave, not LIFETIME, ends it")
+		SpawnClock.tune(nil)
+	end)
+
+	case("CA4: a special spawn keeps its own life and a bad bind is ignored", function()
+		local state = SpawnClock.new(graph, Species)
+		SpawnClock.bindWave(state, 300)
+		local special = SpawnClock.force(state, 60, Random.new(4), { tier = "Legendaria", kind = "Egg", lifetime = 120,
+			special = true, x = 0, z = -85, radius = 45 })
+		assert(special, "a special spawn")
+		equal(special.expiresAt, 180)
+		SpawnClock.bindWave(state, 0 / 0)
+		equal(state.waveEndsAt, 300, "a NaN end keeps the last good bind")
+		equal(SpawnClock.bindWave(nil, 10), false)
+	end)
+
+	case("CA4: the server binds each wave before its reroll", function()
+		local server = sources.server or ""
+		local at = server:find("SpawnClock.bindWave(spawnClock, event.endsAt)", 1, true)
+		assert(at, "startWave binds the spawn clock")
+		local reroll = server:find("applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))", at, true)
+		assert(reroll, "the reroll comes after the bind")
+	end)
+
 	case("RW2: the module is pure", function()
 		assert(type(source) == "string" and #source > 0, "source")
 		for _, banned in ipairs({ "game:", "workspace", "task.", "os.time", "os.clock", "math.random", "tick(" }) do

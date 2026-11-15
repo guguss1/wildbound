@@ -32,6 +32,8 @@ SpawnClock.CONSTANTS = freeze({
 	MAX_COMUN = 4, MAX_RARA = 3, MAX_EPICA = 2, MAX_LEGENDARIA = 1,
 	EGG_SHARE = 0.4, -- user decision 2026-11-14: wild eggs back (was 0 after the Studio sync)
 	SPACING = 12,
+	-- CA4: seconds a wave-bound spawn outlives its wave's end, so the wave's reroll always moves it first.
+	WAVE_GRACE = 1,
 })
 
 local TUNABLE = { "LIFETIME", "RESPAWN_COMUN", "RESPAWN_RARA", "RESPAWN_EPICA", "RESPAWN_LEGENDARIA", "MAX_COMUN",
@@ -203,6 +205,10 @@ local function make(state, now, rand, tier, point, kind, lifetime, special)
 		expiresAt = now + (finite(lifetime) and lifetime or SpawnClock.live.LIFETIME), special = special == true,
 		pool = pool, luck = luck,
 	}
+	-- CA4: under a bound wave a random spawn ends with its wave (plus WAVE_GRACE), not by its own timer.
+	if special ~= true and finite(state.waveEndsAt) then
+		spawn.expiresAt, spawn.waveBound = state.waveEndsAt + SpawnClock.CONSTANTS.WAVE_GRACE, true
+	end
 	state.active[spawn.id] = spawn
 	return spawn
 end
@@ -242,7 +248,9 @@ function SpawnClock.step(state, now, rand, held)
 	for _, id in ipairs(ids) do
 		local spawn = state.active[id]
 		-- A tuned shorter LIFETIME reaches the spawns already out; a special spawn keeps its own life.
-		local ends = spawn.special and spawn.expiresAt or math.min(spawn.expiresAt, spawn.bornAt + SpawnClock.live.LIFETIME)
+		-- CA4: a wave-bound spawn keeps the end its wave gave it.
+		local ends = (spawn.special or spawn.waveBound) and spawn.expiresAt
+			or math.min(spawn.expiresAt, spawn.bornAt + SpawnClock.live.LIFETIME)
 		if now >= ends and not held[id] then
 			state.active[id] = nil
 			ignore[spawn.point.id] = true
@@ -251,6 +259,15 @@ function SpawnClock.step(state, now, rand, held)
 	end
 	fill(state, now, rand, actions, ignore)
 	return actions
+end
+
+-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01, "no correr dos sistemas independientes"): the wave clock binds
+-- this clock to the current wave's end, so every random spawn born from now on lives until that wave's refresh and
+-- the two clocks never expire or refill one spawn twice. A bad end keeps the last bind. Returns true when it bound.
+function SpawnClock.bindWave(state, endsAt)
+	if type(state) ~= "table" or not finite(endsAt) then return false end
+	state.waveEndsAt = endsAt
+	return true
 end
 
 -- A player took the spawn: it leaves, and its tier waits RESPAWN before the next one. Returns false when unknown.

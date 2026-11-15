@@ -366,5 +366,81 @@ return function(WaveClock, source, sources)
 		has(client, "local function refreshBanner()\n\teventBanner.Visible = false\nend", "the banner stays hidden")
 	end)
 
+	-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01_OLEADAS_300_SEGUNDOS.md): the one 300 s egg clock. Collect from
+	-- 0 to 289.999, Warning from 290 to 299.999 (no new steal hold), the refresh at 300 (a new wave id, once).
+	case("CA4: the Collect and Warning windows and their boundaries", function()
+		WaveClock.tune(nil)
+		equal(WaveClock.CONSTANTS.WARNING_SECONDS, 10)
+		local alerts = WaveClock.ALERTS
+		equal(table.concat(alerts, ","), "10,5,3,2,1")
+		local state = WaveClock.new(0)
+		equal(WaveClock.window(state, 0).name, "Idle", "before the first step")
+		WaveClock.step(state, 0)
+		for _, sample in ipairs({ { 0, "Collect" }, { 289.9, "Collect" }, { 290, "Warning" }, { 299.9, "Warning" } }) do
+			local window = WaveClock.window(state, sample[1])
+			equal(window.name, sample[2], "at " .. sample[1])
+			equal(window.wave, 1)
+			equal(window.endsAt, 300)
+		end
+		equal(WaveClock.window(state, 295).remaining, 5)
+		equal(#WaveClock.step(state, 299.9), 0, "no refresh before 300")
+		local events = WaveClock.step(state, 300)
+		equal(events[1].type, "waveStarted", "the refresh comes first (the first biome event may share the step)")
+		equal(select(2, types(events):gsub("waveStarted", "")), 1, "one refresh")
+		equal(events[1].wave, 2)
+		equal(#WaveClock.step(state, 300), 0, "the wave id changes once")
+		equal(#WaveClock.step(state, 300.01), 0)
+		equal(WaveClock.window(state, 300).name, "Collect")
+		equal(WaveClock.window(state, 300).wave, 2)
+		equal(WaveClock.window(nil, 5).name, "Idle")
+		equal(WaveClock.window(state, 0 / 0).name, "Idle")
+	end)
+
+	case("CA4: a steal hold begun before the warning resolves; one begun in the warning is refused", function()
+		WaveClock.tune(nil)
+		local state = WaveClock.new(0)
+		equal(WaveClock.holdAllowed(state, 5), true, "no wave yet: nothing to lock")
+		WaveClock.step(state, 0)
+		equal(WaveClock.holdAllowed(state, 289), true, "begun at 289: it resolves")
+		equal(WaveClock.holdAllowed(state, 289.99), true)
+		equal(WaveClock.holdAllowed(state, 290), false, "begun at 290: refused")
+		equal(WaveClock.holdAllowed(state, 299.9), false)
+		WaveClock.step(state, 300)
+		equal(WaveClock.holdAllowed(state, 295), false, "a warning hold stays refused after the refresh")
+		equal(WaveClock.holdAllowed(state, 289), true, "an older hold still resolves across the refresh")
+		equal(WaveClock.holdAllowed(state, 300), true, "the new wave collects at once")
+		equal(WaveClock.holdAllowed(state, 0 / 0), false)
+		-- A wave tuned short keeps a warning of at most half the wave.
+		WaveClock.tune({ WAVE_SECONDS = 12 })
+		local short = WaveClock.new(0)
+		WaveClock.step(short, 0)
+		equal(WaveClock.window(short, 5).name, "Collect")
+		equal(WaveClock.window(short, 6).name, "Warning")
+		WaveClock.tune(nil)
+	end)
+
+	case("CA4: the server gates new holds, binds the spawn clock and refreshes the empty nests at the wave start", function()
+		local server = sources.server or ""
+		has(server, "WaveClock.holdAllowed(waveClock, entry.holdStarts[player].at)", "the steal hold")
+		has(server, "WaveClock.holdAllowed(waveClock, workspace:GetServerTimeNow())", "the Arrullo start")
+		has(server, "Text.WAVE.locked", "the refusal line")
+		has(server, "SpawnClock.bindWave(spawnClock, event.endsAt)")
+		has(server, "Heist.resetNestsForWave(now, event.wave)")
+		has(server, "if Heist.nestWave == wave then return end", "idempotent by wave id")
+		for _, gone in ipairs({ "stepNightEggReset", "resetEggsAfterNight", "lastNightPhase", "wait_night",
+			"¡Pasó la noche!" }) do
+			assert(not server:find(gone, 1, true), "the night egg reset is gone: " .. gone)
+		end
+	end)
+
+	case("CA4: the client warns at 10, 5, 3, 2 and 1 s and the lines are Spanish", function()
+		local Text = sources.text
+		assert(type(Text.WAVE.warning) == "string" and Text.WAVE.warning:find("%d", 1, true), "Text.WAVE.warning")
+		assert(type(Text.WAVE.locked) == "string" and #Text.WAVE.locked > 0, "Text.WAVE.locked")
+		assert(Text.WAVE.started:find("renov", 1, true), "the wave start says the eggs were renewed")
+		has(sources.client, "Text.WAVE.warning:format(", "the countdown notice")
+		has(sources.client, "WaveClock.ALERTS", "the alert seconds come from the clock module")
+	end)
+
 	return result
 end

@@ -242,15 +242,10 @@ local function bodyOf(player)
 	return character, humanoid, root
 end
 
--- The day cycle's phase name ("Day", "Dusk", "Night", "Dawn"), or nil before the world script starts the cycle.
-local function phaseAt(at)
-	local worldRuntime = map:FindFirstChild("WildboundWorldRuntime")
-	local origin = worldRuntime and worldRuntime:GetAttribute("CycleStartedAt")
-	if type(origin) ~= "number" then return nil end
-	local holder = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
-	local shift = holder and holder:IsA("NumberValue") and holder.Value or 0
-	if shift ~= shift or math.abs(shift) > 1e6 then shift = 0 end
-	return Rules.cycle(at - origin + shift).phase
+-- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The beasts read the fixed world phase
+-- (Rules.WORLD_PHASE, "Day"): no night odds, no Dusk buff and no Nube night range, in any biome.
+local function phaseAt(_at)
+	return Rules.cycle().phase
 end
 
 -- The player's own Silueta (the world script's hunter whose Owner is this player) is hunting or telegraphing.

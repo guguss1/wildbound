@@ -9,6 +9,9 @@ local ROWS = table.freeze({
 	open = { Day = { 0.68, 0.02, 3.0, 24, 140 }, Dusk = { 0.76, 0.01, 4.0, 18, 90 }, Night = { 0.82, 0, 5.0, 15, 60 } },
 	fog = { Day = { 0.74, 0.01, 3.6, 20, 110 }, Dusk = { 0.82, 0, 4.8, 16, 70 }, Night = { 0.88, 0, 6.0, 15, 48 } },
 	camp = { Day = { 0.55, 0.05, 2.2, 40, 260 }, Dusk = { 0.64, 0.03, 3.0, 26, 160 }, Night = { 0.72, 0, 3.8, 18, 100 } },
+	-- CA4 (Caramelo pack 05_SISTEMAS/02): the Caramelo biome's bright pastel air, a light haze and a long view
+	-- (WildboundBiomeLight uses its Day row; Dusk and Night exist only so the blend has every row).
+	candy = { Day = { 0.28, 0.12, 0.6, 120, 900 }, Dusk = { 0.34, 0.08, 1.0, 90, 600 }, Night = { 0.4, 0.05, 1.5, 60, 400 } },
 })
 -- Colours and light per time of day. ambientWeight 0 keeps the place's own Ambient and OutdoorAmbient. The flashlight
 -- is a SpotLight on the player's own head (brightness, range, angle): off by day, the main light at night.

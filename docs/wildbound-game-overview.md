@@ -31,7 +31,7 @@
 | Core fantasy | Daring theft, a tense run home, a cute reward. Risk lives in the trip; what is banked at home is never lost |
 | Audience | Roblox players roughly 8 to 14 who like light horror (dark forest, a tall silent stalker, no gore), plus a planned bright kids' biome (Pradera Arcoíris) with "half the tension" (`docs/design/wildbound-biome-pradera.md`) |
 | Tone | Contrast: the forest is foggy, dark, quiet and frightening (stalk sightings, heartbeat, red edge), the hub is warm, lit and social. **99 Nights in the Forest is an aesthetic reference only** (low-poly trees, palette, campfire warmth), not its night ladder (`docs/design/wildbound-biome-2-proposal.md:34`); the night ladder was removed by the user ("no mechanic is gated by nights survived", `odd/tasks/wildbound-capture-extraction-horror.md:677`) |
-| Session shape | Short expeditions (simulated median 183 to 208 s, floor 180 s) from a persistent base; a 12-minute day cycle; 5-minute waves; a 20-minute biome event |
+| Session shape | Short expeditions (simulated median 183 to 208 s, floor 180 s) from a persistent base; no day/night cycle since CA4 (2026-11-15): fixed light per biome; 5-minute egg waves; a 20-minute biome event |
 | Players | Server target 8 (user decision Q5, `docs/design/wildbound-combined-plan.md:69`); 8 personal bases; the place's `MaxPlayers` is still 60 (HB-W8, open) |
 | Test place | `Experiencia sin título`, PlaceId `122652861404212`, GameId `10774749224` (`odd/tasks/wildbound-first-playable.md:105`). Unpublished |
 
@@ -65,7 +65,7 @@
 
 | Goal | Source |
 | --- | --- |
-| Bank eggs and creatures before dusk/night | Day cycle 720 s; Night is when La Silueta is fastest (17) |
+| Steal before the egg refresh | Each 300 s wave refreshes the unclaimed eggs; the last 10 s refuse new steals (CA4) |
 | Top the wave board (Esencia gained this wave, top 3, resets each 300 s) | RW3, RW7 |
 | Claim the 20-minute biome event egg (Tizoncillo, Legendaria, one claimant per server) | RW5 |
 | Contest other players' eggs with the bat | NP3 to NP5 |
@@ -172,15 +172,15 @@ Numbers are code defaults (most are live-tunable through the Studio dev tuning p
 | 4.11 | **Companions** | One companion out; follows without collisions; PointLight 1.2 brightness, 12 range (tunable); "Guardar"/"Equipar" in the Mochila. Lumipol pulse (Q) reveals La Silueta (see 4.15) | `WildboundRefuge.luau`, `WildboundWorld.client.luau` | Done (NS4) |
 | 4.12 | **Cría capture** | A cría (or a wild Lumipol) uses the calm ring: stay inside a 4.5-stud ring (server 5) that orbits, fill calm 4.5 s (floor 4 s), then a seal tap in a moving band (X / R2). Capture is noisy (ring 32, seal 48 hearing radius) | `WildboundCaptureSession.luau` | Done |
 | 4.13 | **Arrullo** (rare-egg minigame, Q2b) | Hold to raise / release to drop a marker inside a drifting calm zone on a vertical bar; progress starts 35, win at 100, lose at 0 or after 18 s. Zone Rara 0.30, Épica 0.24, Legendaria 0.18 of the bar. Server simulates; client sends only "hold"/"release" (20/s max). Replaces the ring for rare eggs | `WildboundArrullo.luau` | **Prepared** |
-| 4.14 | **Day cycle, dusk, night** | 720 s: Day 300, Dusk 60, Night 300, Dawn 60 (live Studio source, synced at `34eab83`; earlier 360/72/216/72); a server never opens in Night. Night raises La Silueta's speed and senses in the fog only, and doubles beast odds. Planned **Dusk rule** (Q11): two warnings ("Está anocheciendo..." and "La noche llega en 20 s.") and a small beast buff during Dusk only (speed x1.08, odds x1.25, detection x1.1) | `WildboundWorldRules.luau`, `WildboundDusk.luau` | Cycle: Done. Dusk rule: **Prepared** |
+| 4.14 | **No day/night cycle; fixed light per biome** | Since CA4 (user, 2026-11-15, Caramelo pack item 08; it reverses the 2026-11-14 decision to keep 300/60/300/60): the world has no cycle. Each client applies the preset of the biome it stands in, blending in about 1 s: Caramelo always day (pastel grading +0.08 saturation, +0.04 contrast, +0.03 brightness, long view), Bosque always night, Pantano and Cementerio a dusk, others their own; the wave variant never tints Caramelo. Server rules read one fixed phase, Day (base values): La Silueta's base profile and her Day brain profile, no night beast odds, no Dusk warnings or buff, no island midday deep sleep; the always-dark forest keeps its night gather table (Nightbloom, never wilts) and the night presentation (stalk sightings, Night Nose, night audio). | `WildboundWorldRules.luau` (`WORLD_PHASE`), `WildboundBiomeLight.luau`, `WildboundWorld.client.luau` | Done (solo Play; two clients in different biomes not tested) |
 | 4.15 | **Fog, flashlight, pulse** | Fog rectangle; client atmosphere per phase and biome variant; free flashlight (F, 12 s cooldown) needs facing; registered companion pulse (Q, 30 s) does not; reveal 4 s, range 55, LOS; reveals are shared and non-additive | `WildboundAtmosphere.luau`, `WildboundWorldRules.tryAbility` | Done |
 | 4.16 | **Stalk sightings** | Client-only glimpses of La Silueta behind a trunk at dusk, night, dawn: every ~50 s (x0.6 carrying, x0.8 far from home, x2 with "Efectos suaves"), at most 3 per evening, 18 to 36 studs away, gone when looked at, approached, after 4 s or when the real one hunts. Never in the camp or hub (+10 studs) | `WildboundHudView.luau`, `WildboundFear.client.luau` | Done (SS1 to SS3, HF-T1) |
 | 4.17 | **Sprint and stamina** | Walk 16; sprint x1.45 (cap 24), pool 100, drain 25/s (4 s), regen 10/s moving, 15/s still, x2 in a Refugio. Sprint is loud (hearing 30) | `WildboundStamina.luau` | Done |
 | 4.18 | **Hiding spots** | H to hide; a hidden player is never acquired; rustle noise 10 | `WildboundHide.luau` | Done |
 | 4.19 | **Random world** | Spawns live 300 s then move; respawn 90/150/240/360 s by rarity; at most 4/3/2/1; 40 % eggs; a held prompt pins its spawn | `WildboundSpawnClock.luau` | Done (RW2) |
-| 4.20 | **Waves, Refugios, event** | Wave 300 s: reroll spawns, 2 to 3 random Refugios (r 12, stamina x2, chases end), board reset. Event: first at 300 s, then every 1200 s, 300 s window, one Legendaria Tizoncillo egg within 45 studs of La Silueta's home, one claimant | `WildboundWaveClock.luau` | Done (RW3 to RW5) |
+| 4.20 | **Waves, Refugios, event** | Wave 300 s, the only world clock (CA4): Collect 0 to 290 s, Warning the last 10 s (no new steal hold or Arrullo; a hold begun earlier resolves), countdown notices at 10/5/3/2/1 s; at the refresh: reroll the unheld random spawns, restock the island nests emptied last wave (once per wave id; carried, dropped and secured eggs untouched), random spawns live until their wave ends (no second timer), (r 12, stamina x2, chases end), board reset. Event: first at 300 s, then every 1200 s, 300 s window, one Legendaria Tizoncillo egg within 45 studs of La Silueta's home, one claimant | `WildboundWaveClock.luau` | Done (RW3 to RW5) |
 | 4.21 | **Luck totem** | Crafted (15 Esencia, 6 Fogbark, 6 Glowmoss, hold 1), placed 30+ studs from camp for 60 s, radius 40: the next spawn inside rolls one tier up (and one spawn is lured in). Single use. Today it is **session-only**; Q10 persistence (schema 4, cap 5) | `WildboundGear.luau`, `WildboundTotemRecord.luau` | Totem: Done. Persistence: **Prepared** |
-| 4.22 | **Gathering** | 24 gather slots (outside, fog, territory; hold 3/4/6/9 s), Fogbark, Glowmoss, Nightbloom (night only, fog/territory) | `WildboundGatherField.luau`, `WildboundGather.server.luau` | Done |
+| 4.22 | **Gathering** | 24 gather slots (outside, fog, territory; hold 3/4/6/9 s), Fogbark, Glowmoss, Nightbloom (the forest's night table; always on since CA4, the forest being always dark) | `WildboundGatherField.luau`, `WildboundGather.server.luau` | Done |
 
 ---
 
@@ -193,7 +193,7 @@ Numbers are code defaults (most are live-tunable through the Studio dev tuning p
 | One per player | Each player has their own hunter (cap `MAX_HUNTERS` 8); it only ever targets its owner; others see it faint | `WildboundHunters.luau`, `WildboundWorld.server.luau` |
 | Where | Only in the fog territory: home (0, -85), territory leash 80, chase leash 100, give-up distance 100 | `WildboundWorldRules.luau` |
 | States | Patrol, Suspicious, Investigate, Search, Retreat (brain); Alert, Hunt, Telegraph (fight) | `WildboundGuardianBrain.luau` |
-| Speed by phase | Hunt: Day 13, Dusk/Dawn 15, **Night 17**; detection 21 / 26 / 30; chase 12 / 15 / 18 s | `Brain.PROFILES` |
+| Speed by phase | Hunt: Day 13, Dusk/Dawn 15, Night 17; detection 21 / 26 / 30; chase 12 / 15 / 18 s. Since CA4 (no cycle) only the Day row is read (the live tuning folder sets HUNT_DAY 17, SIGHT_DAY 60) | `Brain.PROFILES` |
 | Walk vs her | Walk capped at 16 (Q9) so walking never outruns a night hunt; sprint 23.2 always does | `WildboundTraining.WALK_CAP`, `WildboundStamina` |
 | Strike | Telegraph 0.9 s (target-only warning at least 0.8 s before impact), range 7, repeat 2.5 s | `Rules.TELEGRAPH_SECONDS` |
 | Two hits | First landed strike marks the player (health pinned at 35, knocks the carried egg loose for anyone, drops a bag item); rest 5 s to clear the pin; a second strike while marked defeats | `WildboundFairStrike.luau`, `docs/mechanics/wildbound-fair-strike.md` |
@@ -482,14 +482,14 @@ Source: `src/wildbound/` (115 Luau files after the `34eab83` sync of the live St
 | Feature | Status | Detailed doc |
 | --- | --- | --- |
 | Forest map, fog, relief, kit art | Done | `docs/maps/wildbound-p0.md`, `docs/maps/silueta-forest-concept-v1.md` |
-| Day cycle 720 s | Done | `docs/mechanics/wildbound-world.md` |
+| Day cycle 720 s | Removed (CA4, 2026-11-15): fixed light per biome instead, Done (solo Play) | `odd/tasks/wildbound-caramelo.md` (CA4) |
 | La Silueta per player, fair strike, mark-then-defeat | Done (damage path blocked by the streaming gate in older checks; private mode only) | `docs/mechanics/wildbound-fair-strike.md`, `docs/mechanics/wildbound-guardian.md` |
 | La Silueta moves (lunge, fake retreat, glare, scream) | Done | `docs/mechanics/wildbound-guardian.md` |
 | Flashlight, companion pulse, reveal | Done | `docs/mechanics/wildbound-awareness.md` |
 | Stalk sightings | Done | `odd/tasks/wildbound-capture-extraction-horror.md` (Stalk sightings) |
 | Hiding spots, Refugios | Done | `docs/mechanics/wildbound-delivery-d.md` |
 | Islands and parents (wake, chase, charge, 0.8 s swing); trail nest T1 at (176, 44) by the hub W gate | Done | `docs/mechanics/wildbound-expedition-islands.md`; `odd/tasks/wildbound-capture-extraction-horror.md` (LG4) |
-| Random world, spawn clock, waves, biome event, variants | Done | Same odd doc (Random world) |
+| Random world, spawn clock, waves, biome event, variants | Done; CA4 egg refresh with a 10 s Warning, nest restock per wave, one clock: Done (solo Play) | Same odd doc (Random world); `odd/tasks/wildbound-caramelo.md` (CA4) |
 | Fast steal, server-measured hold, egg in arms, drop/pickup, death drop | Done | `docs/mechanics/wildbound-capture.md`, odd doc Nest Heist Phase 1 |
 | Burst "Impulso" | Done (to be replaced) | odd doc NH4 |
 | Bat PvP (12 s, stumble) | Done (solo-verified) | odd doc Phase 2 |
@@ -513,7 +513,7 @@ Source: `src/wildbound/` (115 Luau files after the `34eab83` sync of the live St
 | Esquiva perfecta | Prepared | Same |
 | Bat knockback (5 s, ragdoll, 3 s immunity) | Prepared | Same |
 | Luck totem persistence (schema 4) | Prepared | Same |
-| Dusk warnings and buff | Prepared | Same |
+| Dusk warnings and buff | Inert since CA4 (no Dusk ever comes); code kept | Same |
 | Open-world placement and roads | Prepared | `docs/maps/wildbound-open-world-biomes.md` |
 | Wildbound 2.0 balance config (`WildboundBalance`, T01) | Prepared (not wired; only its own suite ran, 24/0 in Studio) | `odd/tasks/wildbound-2-0.md` |
 | Pradera Arcoíris map | Prepared (builder) | `docs/design/wildbound-biome-pradera.md` |
@@ -645,4 +645,4 @@ Contradictions where code and a current decision disagree (code is what runs tod
 4. **Hub radius:** the hub-expansion design says 100; `Rules.HUB_RADIUS` and the deployed builder use 90.
 5. **Training:** the treadmill and the glove Velocidad stat still cost Esencia and roll, but the walk cap 16 equals the base walk, so they give nothing.
 6. **Push status:** fully pushed, origin at `0be136d`, no upstream configured.
-7. **2.0 balance:** the proposed `WildboundBalance` uses treadmill walks 16 to 21 and a 240/60/300/120 day; Q9 keeps the walk at 16 (La Silueta's night hunt is 17) and the live day is 300/60/300/60. `Balance.conflicts()` lists each gap (`Balance.LIVE`).
+7. **2.0 balance:** the proposed `WildboundBalance` uses treadmill walks 16 to 21 and a 240/60/300/120 day; Q9 keeps the walk at 16 (La Silueta's night hunt is 17) and the live world has no day/night cycle since CA4 (2026-11-15); `Balance.LIVE.dayCycle` still lists the old 300/60/300/60. `Balance.conflicts()` lists each gap (`Balance.LIVE`).

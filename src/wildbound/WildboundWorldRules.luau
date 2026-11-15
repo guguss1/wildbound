@@ -1,15 +1,16 @@
 -- Pure server rules: no services, client state, wall clock, persistence or RNG.
 local Rules = {}
 
--- M5.7, D5: a 12-minute cycle with the old proportions (Day 50%, Dusk 10%, Night 30%, Dawn 10%). The
--- numbers match the "cycle" block of docs/mechanics/wildbound-economy-p0.md; a contract compares them.
-local PHASES = table.freeze({
-	table.freeze({ name = "Day", seconds = 300, clockStart = 6, clockEnd = 18 }),
-	table.freeze({ name = "Dusk", seconds = 60, clockStart = 18, clockEnd = 20 }),
-	table.freeze({ name = "Night", seconds = 300, clockStart = 20, clockEnd = 29 }),
-	table.freeze({ name = "Dawn", seconds = 60, clockStart = 5, clockEnd = 6 }),
-})
-Rules.CYCLE_SECONDS = 720
+-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01-02, odd/tasks/wildbound-caramelo.md): there is no global day/night
+-- cycle. It replaces the 12-minute cycle (M5.7, D5; Day 300 / Dusk 60 / Night 300 / Dawn 60 since 2026-11-14). The only
+-- world clock is WildboundWaveClock (eggs every 300 s); the light is fixed per biome on each client
+-- (WildboundBiomeLight). The server keeps one fixed gameplay phase, WORLD_PHASE, so every rule that used to read the
+-- cycle (La Silueta's profile, beast odds, Dusk, ambush, islands, hide) reads its base, daytime values: no hidden night
+-- multiplier. The always-dark forest keeps its night content (the gather table with Nightbloom) through
+-- FOREST_CONTENT_PHASE. WORLD_CLOCK is the clock time those rules read (outside the islands' 11:00-13:00 deep sleep).
+Rules.WORLD_PHASE = "Day"
+Rules.WORLD_CLOCK = 14
+Rules.FOREST_CONTENT_PHASE = "Night"
 Rules.REVEAL_SECONDS = 4
 Rules.REVEAL_RANGE = 55
 -- Chase pass (CP-D1): a 0.9 s telegraph (was 1.4) and a 2.5 s repeat (was 4). Still a full, standing wind-up with the
@@ -112,46 +113,11 @@ function Rules.distance(x1, z1, x2, z2)
 	return math.sqrt((x1 - x2) ^ 2 + (z1 - z2) ^ 2)
 end
 
-function Rules.cycle(elapsed)
-	if not Rules.finite(elapsed) or elapsed < 0 then elapsed = 0 end
-	local time = elapsed % Rules.CYCLE_SECONDS
-	local found = PHASES[#PHASES]
-	local phaseStart = Rules.CYCLE_SECONDS - found.seconds
-	local startedAt = 0
-	for _, phase in ipairs(PHASES) do
-		if time < startedAt + phase.seconds then
-			found, phaseStart = phase, startedAt
-			break
-		end
-		startedAt += phase.seconds
-	end
-	local duration = found.seconds
-	local progress = (time - phaseStart) / duration
-	return {
-		elapsed = time, phase = found.name, progress = progress,
-		remaining = duration - (time - phaseStart),
-		clockTime = (found.clockStart + (found.clockEnd - found.clockStart) * progress) % 24,
-	}
-end
-
--- M5.7, D5: where in the cycle a new server starts. One roll in [0, 1), drawn once by the server, is
--- spread uniformly over the time that is not Night, so a session never opens in the dark. Anything that is
--- not a finite roll below one reads as the start of the cycle.
-function Rules.startOffset(roll)
-	if not Rules.finite(roll) or roll < 0 or roll >= 1 then roll = 0 end
-	local open = 0
-	for _, phase in ipairs(PHASES) do
-		if phase.name ~= "Night" then open += phase.seconds end
-	end
-	local remaining, startedAt = roll * open, 0
-	for _, phase in ipairs(PHASES) do
-		if phase.name ~= "Night" then
-			if remaining < phase.seconds then return startedAt + remaining end
-			remaining -= phase.seconds
-		end
-		startedAt += phase.seconds
-	end
-	return 0
+-- CA4: the fixed world phase, whatever is passed (the argument is ignored and kept only so older callers still read
+-- a table of the same shape). remaining is 0: there is no next phase.
+function Rules.cycle(_elapsed)
+	return { elapsed = 0, phase = Rules.WORLD_PHASE, progress = 0, remaining = 0, clockTime = Rules.WORLD_CLOCK,
+		fixed = true }
 end
 
 -- Random world (RW4): the wave clock's Refugios, safe circles that move each wave. The inventory server sets them and

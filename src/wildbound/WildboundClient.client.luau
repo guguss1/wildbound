@@ -931,6 +931,23 @@ task.spawn(function()
 			local message = WaveClock.read(payload)
 			if message then onWorldEvent(message) end
 		end)
+		-- CA4 (pack 05_SISTEMAS/01): the countdown before each egg refresh, at WaveClock.ALERTS seconds (10, 5, 3, 2, 1),
+		-- once each per wave, from the wave's endsAt (a late joiner gets it with the wave in progress).
+		local warned = {}
+		while gui.Parent do
+			local wave = boardState
+			if wave and type(wave.endsAt) == "number" and Text and Text.WAVE and Text.WAVE.warning then
+				local remaining = wave.endsAt - workspace:GetServerTimeNow()
+				for _, second in ipairs(WaveClock.ALERTS or {}) do
+					local key = tostring(wave.wave) .. ":" .. second
+					if remaining <= second and remaining > second - 1 and not warned[key] then
+						warned[key] = true
+						showNotice(Text.WAVE.warning:format(second))
+					end
+				end
+			end
+			task.wait(0.2)
+		end
 	end)
 	request("RequestSnapshot")
 	task.wait(3)

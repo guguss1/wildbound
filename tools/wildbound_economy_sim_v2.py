@@ -335,9 +335,12 @@ def load_numbers(repo=REPO, source="live", balance="proposed"):
     wave_text = _read(repo, WAVE_CLOCK)
     wave = {key: _number(wave_text, WAVE_CLOCK, key + r" = (\d+)") for key in ("WAVE_SECONDS", "EVENT_FIRST", "EVENT_EVERY")}
     world_text = _read(repo, WORLD_RULES)
-    phases = {name: int(seconds) for name, seconds in re.findall(r'name = "(\w+)", seconds = (\d+)', world_text)}
-    if set(phases) != {"Day", "Dusk", "Night", "Dawn"}:
-        raise NumbersUnavailable(f"{WORLD_RULES}: phase seconds not found")
+    # CA4 (odd/tasks/wildbound-caramelo.md): the world has no day/night cycle any more, only a fixed world phase; the
+    # sim never used the phase lengths (it models no day/night), so it records the fixed phase instead.
+    fixed = re.search(r'Rules\.WORLD_PHASE = "(\w+)"', world_text)
+    if not fixed:
+        raise NumbersUnavailable(f"{WORLD_RULES}: WORLD_PHASE not found")
+    phases = {"fixed": fixed.group(1)}
     carry_text = _read(repo, EGG_CARRY)
     holds = {key: _number(carry_text, EGG_CARRY, r"^\s*" + key + r" = ([0-9.]+)")
              for key in ("STEAL_HOLD", "RARE_HOLD", "PICKUP_HOLD")}

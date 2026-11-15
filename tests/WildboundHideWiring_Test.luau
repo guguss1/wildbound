@@ -129,10 +129,12 @@ return function(worldSource, serverSource, clientSource)
 		has(worldSource, "stepThreat(now)", "stepped with the fixed step")
 	end)
 
-	case("D13: the clock shift for Play checks is Studio-only", function()
-		has(worldSource, "RunService:IsStudio() and telemetry:FindFirstChild(\"StudioClockShift\")")
+	-- CA4: no global cycle, so the Studio-only clock shift (D13) has nothing to shift and is gone.
+	case("D13 CA4: the world reads the fixed world phase, with no clock shift", function()
+		has(worldSource, "return Rules.cycle()")
+		assert(not worldSource:find("StudioClockShift", 1, true), "no clock shift left")
 		assert(not worldSource:find(":GetAttribute(", 1, true), "no attribute is read back")
-		assert(not worldSource:find("Rules.cycle(now - originTime)", 1, true), "a cycle read skips the shift")
+		assert(not worldSource:find("originTime", 1, true), "no cycle origin")
 	end)
 
 	case("D6: the client exits by button, H or the thumbstick and never moves itself", function()

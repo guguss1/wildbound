@@ -31,7 +31,11 @@ WaveClock.CONSTANTS = freeze({
 	EVENT_FIRST = 300, EVENT_EVERY = 1200, EVENT_SECONDS = 300, EVENT_RADIUS = 45,
 	-- RW6: the biome variant changes every this many waves (not by nights: no mechanic is gated by nights survived).
 	VARIANT_EVERY_WAVES = 1,
+	-- CA4 (pack 05_SISTEMAS/01): the last WARNING_SECONDS of a wave are its Warning window (no new steal hold).
+	WARNING_SECONDS = 10,
 })
+-- CA4: the seconds before a refresh at which every client shows the countdown notice.
+WaveClock.ALERTS = freeze({ 10, 5, 3, 2, 1 })
 -- RW6: the variants in rotation order, and how each weights the spawn points' kinds (WildboundSpawnClock.setWeights).
 WaveClock.VARIANTS = freeze({ "Niebla", "Escarcha", "Ceniza", "Floracion" })
 WaveClock.VARIANT_WEIGHTS = freeze({
@@ -122,6 +126,38 @@ function WaveClock.claimEvent(state, key)
 	local event = type(state) == "table" and state.event or nil
 	if not event or event.claimant ~= nil or key == nil then return false end
 	event.claimant = key
+	return true
+end
+
+-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01): this clock is the only world clock (no day/night cycle). The
+-- warning lasts WARNING_SECONDS, at most half a (tuned) wave.
+local function warningSeconds()
+	return math.min(WaveClock.CONSTANTS.WARNING_SECONDS, WaveClock.live.WAVE_SECONDS * 0.5)
+end
+
+-- The window at `now`: { name = "Collect" | "Warning" | "Idle", wave, endsAt, remaining }. "Collect" from the wave's
+-- start to WARNING_SECONDS before its end, then "Warning" until the refresh (the next step's waveStarted); "Idle"
+-- before the first wave or for a bad clock.
+function WaveClock.window(state, now)
+	if type(state) ~= "table" or not finite(now) or state.wave == 0 or not finite(state.waveStartedAt) then
+		return { name = "Idle", wave = 0 }
+	end
+	local endsAt = state.waveStartedAt + WaveClock.live.WAVE_SECONDS
+	local remaining = math.max(0, endsAt - now)
+	return { name = now >= endsAt - warningSeconds() and "Warning" or "Collect", wave = state.wave, endsAt = endsAt,
+		remaining = remaining }
+end
+
+-- Whether a steal hold that began at `startedAt` may complete: not when it began inside a Warning window, the current
+-- wave's or the one just before the refresh, so a hold begun at 295 is still refused after the refresh at 300 while a
+-- hold begun at 289 resolves across it. True before the first wave; false for a bad time.
+function WaveClock.holdAllowed(state, startedAt)
+	if not finite(startedAt) then return false end
+	if type(state) ~= "table" or state.wave == 0 or not finite(state.waveStartedAt) then return true end
+	local warning = warningSeconds()
+	local endsAt = state.waveStartedAt + WaveClock.live.WAVE_SECONDS
+	if startedAt >= endsAt - warning and startedAt < endsAt then return false end
+	if startedAt >= state.waveStartedAt - warning and startedAt < state.waveStartedAt then return false end
 	return true
 end
 

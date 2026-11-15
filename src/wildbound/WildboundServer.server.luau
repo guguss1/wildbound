@@ -980,22 +980,13 @@ local islandFolder = map:FindFirstChild("Islands")
 local READOUT = { sleep = Color3.fromRGB(170, 205, 255), stir = Color3.fromRGB(255, 190, 80),
 	alert = Color3.fromRGB(255, 70, 70) }
 
--- The phase, with the Studio-only Play clock shift the world script also reads (D-D7), so both agree in Play.
+-- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The islands, the Dusk warnings and the parents
+-- read the fixed world phase (Rules.WORLD_PHASE, its clock Rules.WORLD_CLOCK), the same one the world script reads.
 local function islandCycle()
-	local world = map:FindFirstChild("WildboundWorldRuntime")
-	local origin = world and world:GetAttribute("CycleStartedAt")
-	local shift = 0
-	local value = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
-	if value and value:IsA("NumberValue") and Rules.finite(value.Value) then shift = value.Value end
-	return Rules.cycle((Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0) + shift)
+	return Rules.cycle()
 end
 local function islandPhase()
-	local world = map:FindFirstChild("WildboundWorldRuntime")
-	local origin = world and world:GetAttribute("CycleStartedAt")
-	local shift = 0
-	local value = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
-	if value and value:IsA("NumberValue") and Rules.finite(value.Value) then shift = value.Value end
-	return Rules.cycle((Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0) + shift).phase
+	return Rules.cycle().phase
 end
 
 local function nestSlot(island, index, kind)
@@ -1225,10 +1216,10 @@ local function scheduleRespawn(slot)
 		SpawnClock.claim(spawnClock, slot.spawnId, workspace:GetServerTimeNow())
 		return
 	end
-	nestState[slot.id] = slot.kind == "Egg" and "wait_night" or "wait"
+	nestState[slot.id] = slot.kind == "Egg" and "wait_wave" or "wait"
 	nestGen[slot.id] = (nestGen[slot.id] or 0) + 1
 	if slot.kind == "Egg" then
-		-- Eggs restock when the 5-minute Night ends (Heist.stepNightEggReset).
+		-- CA4: an island egg restocks at the next 300 s wave start (Heist.resetNestsForWave), no longer after a Night.
 		return
 	end
 	local generation = nestGen[slot.id]
@@ -1476,12 +1467,16 @@ local function startWave(event, now)
 	local variantChanged = currentWave ~= nil and currentWave.variant ~= variant
 	SpawnClock.setWeights(spawnClock, WaveClock.VARIANT_WEIGHTS[variant])
 	network:SetAttribute("BiomeVariant", variant)
+	-- CA4 (pack 05_SISTEMAS/01): this wave owns the life of every random spawn born in it (one clock, no double refill).
+	SpawnClock.bindWave(spawnClock, event.endsAt)
 	if event.wave == 1 then
 		local first = SpawnClock.force(spawnClock, now, rng, { tier = "Comun", kind = "Creature",
 			x = Rules.FIRST_EGG_X, z = Rules.FIRST_EGG_Z, radius = WaveClock.live.FIRST_EGG_RADIUS })
 		if first then applySpawnActions({ { op = "spawn", spawn = first } }) end
 	else
 		applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
+		-- CA4: and the island nests emptied last wave restock, once per wave id.
+		if Heist.resetNestsForWave then Heist.resetNestsForWave(now, event.wave) end
 	end
 	placeRefuges()
 	currentWave = { wave = event.wave, endsAt = event.endsAt, variant = variant, variantChanged = variantChanged }
@@ -2095,6 +2090,11 @@ spawnEncounter = function(slot)
 				-- while the egg is still in its nest and the thief alive and in the prompt's reach (+2). A win steals it
 				-- through claimEgg; a loss works like a failed capture ring: ring noise and a mistake on the island meter.
 				if Heist.Arrullo.active(player) then return end
+				-- CA4: no new Arrullo in the wave's last 10 s (Warning); the eggs are about to refresh.
+				if not WaveClock.holdAllowed(waveClock, workspace:GetServerTimeNow()) then
+					send(player, "Pickup", false, Text.WAVE.locked)
+					return
+				end
 				local free, why = EggCarry.canSteal(eggs, id, player.UserId)
 				if not free then
 					if why == "AlreadyCarrying" then send(player, "Pickup", false, Text.EGG.already) end
@@ -2130,6 +2130,13 @@ spawnEncounter = function(slot)
 						end
 					end })
 				if started then send(player, "Arrullo", true, Text.ARRULLO.hint) end
+				return
+			end
+			-- CA4 (pack 05_SISTEMAS/01): a steal hold begun in the wave's Warning window (its last 10 s) is refused; one
+			-- begun before it resolves as usual, across the refresh too.
+			if entry.holdStarts[player] and not WaveClock.holdAllowed(waveClock, entry.holdStarts[player].at) then
+				entry.holdStarts[player] = nil
+				send(player, "Pickup", false, Text.WAVE.locked)
 				return
 			end
 			-- HB-T7: the hold is measured here, never trusted from the client: this player's effective hold (the glove's
@@ -2504,11 +2511,10 @@ telemetry:SetAttribute("SpawnSeed", spawnSeed)
 local spawnRng = Random.new(spawnSeed)
 local gatherNodes, gatherSerial = {}, 0
 local MATERIAL_NAMES = { fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" }
+-- CA4: the gather nodes are the forest's, and the forest is always dark: its night table (with Nightbloom) always.
 local function worldClock()
 	local world = map:FindFirstChild("WildboundWorldRuntime")
-	local origin = world and world:GetAttribute("CycleStartedAt")
-	local phase = Rules.cycle(Rules.finite(origin) and workspace:GetServerTimeNow() - origin or 0).phase
-	return phase, world ~= nil and world:GetAttribute("NightRewardsEnabled") == true
+	return Rules.FOREST_CONTENT_PHASE, world ~= nil and world:GetAttribute("NightRewardsEnabled") == true
 end
 local function gatherNotice(receipt)
 	local name = MATERIAL_NAMES[receipt.material] or receipt.material
@@ -3008,9 +3014,8 @@ RunService.Heartbeat:Connect(function(dt)
 	stepIslands(now, stepSeconds)
 	Heist.stepEggs(now)
 	stepWaves(now)
-	-- Q11: the dusk warnings.
+	-- Q11: the dusk warnings (CA4: inert, the fixed world phase is never Dusk).
 	Heist.stepDusk(now)
-	if Heist.stepNightEggReset then Heist.stepNightEggReset(now) end
 	-- Q3b: telegraphs nobody resolved are dropped.
 	Heist.DodgeService.prune(now)
 	stepSpawnClock(now)
@@ -3737,10 +3742,16 @@ do
 	})
 	Heist.hub:start()
 	do
-		local lastNightPhase = islandPhase()
-		function Heist.resetEggsAfterNight(now)
+		-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01): an island nest emptied last wave restocks at the wave start
+		-- (it used to wait for the end of the Night), once per wave id. Only empty nests: an egg still in its nest, carried,
+		-- dropped or secured is never touched, and a nest whose island is chasing waits for the chase to end (no egg
+		-- appears under a running parent). The wave start has already rerolled the random spawns, so nothing here does.
+		Heist.nestWave = nil
+		function Heist.resetNestsForWave(_now, wave)
+			if Heist.nestWave == wave then return end
+			Heist.nestWave = wave
 			for slotId, stateName in pairs(nestState) do
-				if stateName == "wait_night" or stateName == "wait" then
+				if stateName == "wait_wave" or stateName == "wait" then
 					local islandId = string.match(slotId, "^([^:]+):")
 					local island = islandId and islands[islandId] or nil
 					if island and island.chase then
@@ -3763,21 +3774,6 @@ do
 				end
 			end
 			ensureNests()
-			if now and spawnClock then
-				applySpawnActions(SpawnClock.reroll(spawnClock, now, rng, spawnHeld(now)))
-			end
-			for player in pairs(records) do
-				if player.Parent == Players then
-					send(player, "Notice", true, "¡Pasó la noche! Todos los huevos del bosque se restablecieron.")
-				end
-			end
-		end
-		function Heist.stepNightEggReset(now)
-			local phase = islandPhase()
-			if lastNightPhase == "Night" and phase ~= "Night" then
-				Heist.resetEggsAfterNight(now)
-			end
-			lastNightPhase = phase
 		end
 	end
 	do

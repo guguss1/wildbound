@@ -147,7 +147,10 @@ return freeze({
 	},
 	-- Random world (plan Part 6, RW3): the wave clock's player words. Notices at most 72 bytes.
 	WAVE = {
-		started = "Oleada %d: los huevos y las crías cambiaron de lugar.",
+		started = "Oleada %d: los huevos se renovaron y las crías cambiaron de lugar.",
+		-- CA4 (pack 05_SISTEMAS/01): the countdown before a refresh (10, 5, 3, 2, 1 s) and a steal refused in it.
+		warning = "Los huevos se renuevan en %d s.",
+		locked = "Los huevos se están renovando: espera a la nueva oleada para robar.",
 		-- RW7: the wave board (WildboundHudView.waveBoard): its title, a row and the empty line.
 		board = "Oleada %d · %s",
 		row = "%d. %s · %s",

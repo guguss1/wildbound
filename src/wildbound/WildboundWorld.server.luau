@@ -131,9 +131,8 @@ local actionRemote, stateRemote = remote("WorldAction"), remote("WorldState")
 local attackWarning, attackResolved = remote("AttackWarning"), remote("AttackResolved")
 local attackAck, readyRemote, pulseRemote = remote("AttackAck"), remote("ClientReady"), remote("FieldPulse")
 local startedAt = workspace:GetServerTimeNow()
--- D5 (M5.7): the 12-minute cycle opens at one random point that is never Night, drawn once per server.
--- Timers that mean "since the world started" count from startedAt, not from the shifted origin.
-local originTime = startedAt - Rules.startOffset(Random.new():NextNumber())
+-- CA4 (odd/tasks/wildbound-caramelo.md): there is no global day/night cycle any more, so no cycle origin is drawn;
+-- timers that mean "since the world started" count from startedAt.
 -- Damage never follows streaming. A missing or unreadable flag module means off, which is shadow mode
 -- (M4.2). The attribute and payload only report the result; nothing reads them back to decide.
 local flagsModule = script.Parent:FindFirstChild("WildboundFlags")
@@ -142,7 +141,6 @@ if flagsModule and flagsModule:IsA("ModuleScript") then flagsOk, flags = pcall(r
 local damageMode, flagMisconfigured = FairStrike.effectiveMode(flagsOk and flags or nil, game.PlaceId)
 runtime:SetAttribute("DamageEnabled", damageMode == "private")
 runtime:SetAttribute("NightRewardsEnabled", true)
-runtime:SetAttribute("CycleStartedAt", originTime)
 -- Publish the remotes and the folder; the hunters are added as players arrive.
 runtime.Parent = map
 
@@ -152,13 +150,11 @@ if not telemetry then
 	telemetry = Instance.new("Folder")
 	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
 end
--- Delivery D13: a Studio-only, server-only clock shift for Play checks of dusk and night: a NumberValue a tester puts
--- in ServerStorage.WildboundTelemetry (no client can reach it). Outside Studio it is 0.
-local function cycleAt(now)
-	local holder = RunService:IsStudio() and telemetry:FindFirstChild("StudioClockShift")
-	local shift = holder and holder:IsA("NumberValue") and holder.Value or 0
-	if shift ~= shift or math.abs(shift) > 1e6 then shift = 0 end
-	return Rules.cycle(now - originTime + shift)
+-- CA4: every phase read here (La Silueta's profile and memory, the ambush timer, the snapshot) is the fixed world
+-- phase (WildboundWorldRules.WORLD_PHASE); the light is per biome on each client (WildboundBiomeLight). The Studio-only
+-- clock shift of D13 had nothing left to shift and is gone.
+local function cycleAt(_now)
+	return Rules.cycle()
 end
 local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0, noises = 0, noisesHeard = 0,
 	spared = 0, hunters = 0, huntersRefused = 0 }
