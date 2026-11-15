@@ -358,5 +358,30 @@ return function(Text, source, sources)
 		end
 	end)
 
+	-- PF5 (user decision 2026-11-14): the hub roulette's words, neutral Spanish, Esencia never Ember.
+	case("PF5: the hub roulette has its prompt, panel, result and refusal words and one label per live prize", function()
+		local R = Text.ROULETTE
+		assert(type(R) == "table", "Text.ROULETTE")
+		for _, key in ipairs({ "object", "prompt" }) do text(R[key], "ROULETTE." .. key, 24) end
+		for _, key in ipairs({ "title", "free", "spin", "spinning", "close", "oddsHeader" }) do
+			text(R[key], "ROULETTE." .. key, 32)
+		end
+		for _, key in ipairs({ "price", "pity", "pityNext", "balance", "won", "wonFree", "pityWon", "cannotAfford", "tooFar",
+			"busy", "unavailable", "oddsNote" }) do
+			text(R[key], "ROULETTE." .. key, 72)
+		end
+		equal(R.price:format(45), "Tirada: 45 de Esencia")
+		equal(R.free, "Tirada gratis")
+		assert(R.pity:format(7):find("7", 1, true) and R.pity:find("Rara", 1, true), "the pity line names the counter")
+		assert(R.cannotAfford:format(35):find("35", 1, true) and R.cannotAfford:find("Esencia", 1, true), "cannotAfford")
+		assert(R.oddsRow:format("10 de Esencia", "Común", "20,00") ~= nil, "oddsRow formats")
+		for _, id in ipairs({ "esencia10", "esencia25", "esencia45", "esencia90", "esencia200", "fogbark10", "glowmoss6",
+			"mixedPouch", "nightbloom2", "nightbloom5", "forestChest" }) do
+			text(R.prizes[id], "ROULETTE.prizes." .. id, 64)
+		end
+		equal(R.prizes.esencia10, "10 de Esencia")
+		equal(R.prizes.forestChest, "Cofre del bosque (40 Fogbark, 20 Glowmoss y 5 Nightbloom)")
+	end)
+
 	return result
 end

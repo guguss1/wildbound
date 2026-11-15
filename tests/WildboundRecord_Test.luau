@@ -78,11 +78,13 @@ return function(Record, Economy, Config, State, source)
 		-- NS7: schema 3 adds the gloves (deliberately changed pin: 2 -> 3).
 		-- Q10: schema 4 adds the luck totems (deliberately changed pin: 3 -> 4).
 		-- PF4: schema 5 adds the base farm (deliberately changed pin: 4 -> 5).
-		equal(Record.SCHEMA, 5)
-		equal(record.schema, 5)
+		-- PF5: schema 6 adds the hub roulette's free spin and pity (deliberately changed pin: 5 -> 6).
+		equal(Record.SCHEMA, 6)
+		equal(record.schema, 6)
 		deepEqual(record.incubating, {}); deepEqual(record.training, {}); deepEqual(record.gloves, { owned = {} })
 		deepEqual(record.totems, {})
 		deepEqual(record.farm, {})
+		deepEqual(record.roulette, { freeSpinUsed = false, pityCount = 0, paidSpins = 0 })
 		equal(record.revision, 0)
 		equal(record.nextUid, 1); equal(record.nextTrip, 1); equal(record.nextOp, 1)
 		equal(record.firstSealGranted, false)
@@ -302,6 +304,8 @@ return function(Record, Economy, Config, State, source)
 		expected.totems = {}
 		-- PF4: the 4 -> 5 step adds the empty farm (deliberately changed expected shape).
 		expected.farm = {}
+		-- PF5: the 5 -> 6 step adds the unused roulette state (deliberately changed expected shape).
+		expected.roulette = { freeSpinUsed = false, pityCount = 0, paidSpins = 0 }
 		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), expected)
 	end)
 
@@ -481,14 +485,15 @@ return function(Record, Economy, Config, State, source)
 	case("RT-26: migration 4 -> 5 adds an empty farm, invents nothing and never repairs a malformed one", function()
 		local Farm = Record.FarmRecord
 		assert(type(Farm) == "table", "Record.FarmRecord")
-		equal(Farm.FROM, 4); equal(Farm.SCHEMA, 5); equal(Record.SCHEMA, Farm.SCHEMA)
+		-- PF5: the record goes on past this step (deliberately changed pin: Record.SCHEMA = Farm.SCHEMA -> above it).
+		equal(Farm.FROM, 4); equal(Farm.SCHEMA, 5); assert(Record.SCHEMA > Farm.SCHEMA, "the record is past schema 5")
 		equal(type(Record.MIGRATIONS[Farm.FROM]), "function", "the ladder carries the 4 -> 5 step")
 		equal(type(Record.MIGRATIONS[3]), "function", "the 3 -> 4 totem step is kept")
 		equal(table.isfrozen(Record.MIGRATIONS), true)
 		local old = fixture()
 		old.schema = 4; old.farm = nil
 		local status, migrated = Record.migrate(old)
-		equal(status, "Migrated"); equal(migrated.schema, 5)
+		equal(status, "Migrated"); equal(migrated.schema, Record.SCHEMA)
 		deepEqual(migrated.farm, {}, "no creature is put in the farm")
 		equal(old.farm, nil, "the input is never changed")
 		valid(migrated, "a schema 4 save migrates and validates")
@@ -535,6 +540,62 @@ return function(Record, Economy, Config, State, source)
 		equal(select(2, state:equip(1, "u2", true)), "InFarm", "a loaded farm creature is not the companion")
 		profile.farm = { "wb:7" }
 		equal((Record.fromProfile(profile, base, { nowUnix = 1 }, Economy, Config)), nil, "session IDs are never saved")
+	end)
+
+	-- PF5 (user decision 2026-11-14): schema 6 saves the hub roulette's free spin and pity counter.
+	case("RT-28: migration 5 -> 6 adds an unused roulette state and never repairs a malformed one", function()
+		local Spin = Record.RouletteRecord
+		assert(type(Spin) == "table", "Record.RouletteRecord")
+		equal(Spin.FROM, 5); equal(Spin.SCHEMA, 6); equal(Record.SCHEMA, Spin.SCHEMA)
+		equal(type(Record.MIGRATIONS[Spin.FROM]), "function", "the ladder carries the 5 -> 6 step")
+		equal(type(Record.MIGRATIONS[4]), "function", "the 4 -> 5 farm step is kept")
+		equal(table.isfrozen(Record.MIGRATIONS), true)
+		local old = fixture()
+		old.schema = 5; old.roulette = nil
+		local status, migrated = Record.migrate(old)
+		equal(status, "Migrated"); equal(migrated.schema, 6)
+		deepEqual(migrated.roulette, { freeSpinUsed = false, pityCount = 0, paidSpins = 0 }, "the free spin is still there")
+		equal(old.roulette, nil, "the input is never changed")
+		valid(migrated, "a schema 5 save migrates and validates")
+		deepEqual(migrated.farm, old.farm); equal(migrated.ember, old.ember)
+		for label, bad in pairs({ text = "x", flag = { freeSpinUsed = 1, pityCount = 0, paidSpins = 0 },
+			negative = { freeSpinUsed = true, pityCount = -1, paidSpins = 3 },
+			fraction = { freeSpinUsed = true, pityCount = 0, paidSpins = 1.5 },
+			pityOverPaid = { freeSpinUsed = true, pityCount = 4, paidSpins = 3 },
+			missing = { freeSpinUsed = true }, extra = { freeSpinUsed = true, pityCount = 0, paidSpins = 0, pending = {} } }) do
+			local broken = fixture(); broken.schema = 5; broken.roulette = bad
+			local brokenStatus, brokenMigrated = Record.migrate(broken)
+			equal(brokenStatus, "Migrated", label)
+			invalid(brokenMigrated, "malformed roulette (" .. label .. ")")
+		end
+		local missing = fixture(); missing.roulette = nil
+		invalid(missing, "a schema 6 record without the roulette state")
+		local used = fixture(); used.roulette = { freeSpinUsed = true, pityCount = 7, paidSpins = 120 }
+		valid(used, "a used roulette")
+	end)
+
+	case("RT-29: the roulette state survives profile -> record -> profile and a rejoin; unused means no field", function()
+		local profile = stateProfile()
+		equal(profile.roulette, nil)
+		deepEqual(assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config)).roulette,
+			{ freeSpinUsed = false, pityCount = 0, paidSpins = 0 }, "a new profile saves the unused state")
+		profile.roulette = { freeSpinUsed = true, pityCount = 3, paidSpins = 14 }
+		local record = assert(Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config))
+		valid(record, "with a used roulette")
+		deepEqual(record.roulette, { freeSpinUsed = true, pityCount = 3, paidSpins = 14 })
+		profile.roulette.pityCount = 4
+		equal(record.roulette.pityCount, 3, "the record holds a copy")
+		local back = Record.toProfile(record, Economy, Config, 0)
+		deepEqual(back.roulette, { freeSpinUsed = true, pityCount = 3, paidSpins = 14 }, "back after a rejoin")
+		equal(Record.toProfile(Record.blank(), Economy, Config, 0).roulette, nil, "a blank record sets no roulette field")
+		local _, roundTrip = Record.migrate(HttpService:JSONDecode(HttpService:JSONEncode(record)))
+		deepEqual(roundTrip.roulette, { freeSpinUsed = true, pityCount = 3, paidSpins = 14 }, "a JSON round trip keeps it")
+		local state = State.new(Economy, Config)
+		equal(state:loadPlayer(1, back), true)
+		equal(state:snapshot(1).roulette.freeSpinUsed, true, "State reads the loaded state: no second free spin")
+		profile.roulette = { freeSpinUsed = "yes", pityCount = 0, paidSpins = 0 }
+		equal((Record.fromProfile(profile, Record.blank(), { nowUnix = 1 }, Economy, Config)), nil,
+			"a malformed session state is never saved")
 	end)
 
 	return result

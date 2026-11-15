@@ -3995,6 +3995,22 @@ do
 		end,
 	})
 end
+do
+	-- PF5 (user decision 2026-11-14): the hub roulette. One station in the hub plaza that everyone may use; the service
+	-- checks the rate, that the player is alive and near it, rolls with this server's Random and spends and grants
+	-- through State:spinRoulette (saved in record schema 6). The client only sends "open" or "spin".
+	local RouletteService = require(script.Parent:WaitForChild("WildboundRouletteService"))
+	local rouletteRng = Random.new()
+	Heist.roulette = RouletteService.new({
+		state = state,
+		Roulette = require(ReplicatedStorage:WaitForChild("WildboundRoulette")),
+		Text = Text,
+		alive = function(player) return (context(player)) end,
+		rootOf = rootOf,
+		random = function() return rouletteRng:NextNumber() end,
+		notify = function(player, ok, text) send(player, "Roulette", ok, text) end,
+	}):start(network, workspace, CFrame.new(Rules.HUB_X - 17, 0.5, Rules.HUB_Z + 17))
+end
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
 -- attributes a loaded save needs (the Equip action sets them otherwise).
 function Heist.saveNotice(userId)

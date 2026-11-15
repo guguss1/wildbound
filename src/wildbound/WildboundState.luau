@@ -750,6 +750,50 @@ function State:trainByRunning(key, alive, distance, maxLevel, bonusEmber)
 	return true, { leveled = leveled, level = level, ember = reward }
 end
 
+-- PF5 (user decision 2026-11-14): one hub roulette spin. Check, pay, grant, with no yield; a refusal changes nothing.
+-- `draw(current)` is the pure roll the server binds (WildboundRoulette.draw over its LIVE table with a server-side
+-- rng); it returns prize, nextState, receipt { cost, free, pity }. Only Esencia and banked-material prizes are granted;
+-- anything else is refused before paying. The roulette state is made on first use (a blank profile must equal the
+-- saved record's, RT-2) and saved (record schema 6). Returns true and a receipt, or false and InvalidPlayer,
+-- InvalidContext, TooFar, InvalidSpin, UnsupportedPrize or CannotAfford.
+local function rouletteState(player)
+	local held = player.roulette
+	if type(held) ~= "table" then return { freeSpinUsed = false, pityCount = 0, paidSpins = 0 } end
+	return { freeSpinUsed = held.freeSpinUsed, pityCount = held.pityCount, paidSpins = held.paidSpins }
+end
+function State:spinRoulette(key, alive, distance, range, draw)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if not finite(range) or not context(true, distance, range) then return false, "TooFar" end
+	if type(draw) ~= "function" then return false, "InvalidSpin" end
+	local prize, nextState, receipt = draw(rouletteState(player))
+	if type(prize) ~= "table" or type(prize.grant) ~= "table" or type(nextState) ~= "table" or type(receipt) ~= "table"
+		or type(nextState.freeSpinUsed) ~= "boolean" or not finite(nextState.pityCount) or not finite(nextState.paidSpins) then
+		return false, "InvalidSpin"
+	end
+	local cost = receipt.cost
+	if not (finite(cost) and cost >= 0 and cost % 1 == 0) then return false, "InvalidSpin" end
+	local esencia, materials = 0, {}
+	for name, amount in pairs(prize.grant) do
+		if not (finite(amount) and amount > 0 and amount % 1 == 0) then return false, "UnsupportedPrize" end
+		if name == "esencia" then
+			esencia += amount
+		elseif type(name) == "string" and type(player.banked[name]) == "number" then
+			materials[name] = amount
+		else
+			return false, "UnsupportedPrize"
+		end
+	end
+	if cost > 0 and not purchase(self, player, { ember = cost }) then return false, "CannotAfford" end
+	player.ember += esencia
+	for name, amount in pairs(materials) do player.banked[name] += amount end
+	player.roulette = { freeSpinUsed = nextState.freeSpinUsed, pityCount = nextState.pityCount,
+		paidSpins = nextState.paidSpins }
+	return true, { prizeId = prize.id, rarity = prize.rarity, grant = table.clone(prize.grant), cost = cost,
+		free = receipt.free == true, pity = receipt.pity == true, roulette = table.clone(player.roulette) }
+end
+
 -- Nest Heist Phase 3 (NS7, user decision 2026-11-10): gloves with rolled stats replace the four IT1 pieces. A
 -- profile's gloves are { list = { { uid, rarity, stats } }, equipped = uid or nil }, made on first use (a blank profile
 -- must equal what the saved record makes) and saved (record schema 3). The server rolls the stats (WildboundGear.roll)
@@ -1106,6 +1150,8 @@ function State:snapshot(key)
 		glove = equippedGlove(player), luckTotems = player.luckTotems or 0,
 		-- PF4: the base farm (a copy) and its slot count.
 		farm = table.clone(player.farm or {}), farmSlots = State.FARM_SLOTS,
+		-- PF5: the hub roulette's state (a copy; the unused state before a first spin).
+		roulette = rouletteState(player),
 		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,

@@ -221,12 +221,68 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
     back one tool, no model, not equipped; a second respawn kept one tool and no model. No script errors; saves in
     memory mode. Leave and rejoin cannot be done in one Play: the record round trip is covered by RT-27 and SV-22.
   - Python: 1188 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
-- [ ] PF5 Roulette in the hub:
+- [x] PF5 Roulette in the hub:
   - station;
   - server roll and atomic Esencia spend;
   - prizes limited to the supported kinds;
   - persisted free spin and pity;
   - Spanish UI with odds.
+  - Route: direct inline (a new service module, a new record step, a new LocalScript and small additive edits to
+    State, Record, Save, Text, the Roulette table and the server). Strict TDD on, runner: trimmed fresh loader in Edit
+    (the `tools/studio-fresh-runner.luau` SPECS and SIBLINGS for the PF5 suites, held in a temporary ServerStorage
+    ModuleScript, removed after).
+  - Studio matched the repo before any write: State 50577 9d000684, Server 207961 bcbc47b1, Record 28170 ef81d498,
+    Text 34377 63abfab2, Save 15820 1a15da1c, Roulette 19762 bc6f4bda and the suites.
+  - `WildboundRoulette`: status "wired"; CONFIG stays the 2.0 proposal (Balance mirror unchanged). New `Roulette.LIVE`,
+    the wired hub table: Esencia and banked materials only (the economy has no roulette path for gloves, boosters,
+    consumables or special eggs), re-weighted to Esencia 40 / materials 60, 11 prizes (new `nightbloom5` Epica and
+    `forestChest` Legendaria), Comun 68 / Rara 22 / Epica 7 / Legendaria 3, same 45 Esencia, one free spin, Rara+ pity
+    every 10, hub only. Esencia EV 12.01 per paid spin with pity (cap 30; scaling the 2.0 share up would pay about 35).
+  - `WildboundState:spinRoulette(key, alive, distance, range, draw)`: check, pay 45 through the local purchase helper,
+    grant (Esencia to `ember`, materials to `banked`), save the state; anything else is refused before paying
+    (UnsupportedPrize). The state is made on first use (RT-2 unchanged); the snapshot carries `roulette`.
+  - New `WildboundRouletteRecord` (schema 5 -> 6, sibling of Record): `roulette = { freeSpinUsed, pityCount,
+    paidSpins }`, the unused state on migration, validation (exact fields, counts, pityCount <= paidSpins) that
+    quarantines a malformed one, no profile field while unused. `WildboundRecord` SCHEMA 6; `WildboundSave` digest
+    includes `roulette`.
+  - New `WildboundRouletteService` (ServerScriptService), started by `WildboundServer` in a `do` block (no new
+    top-level local) with `Random.new()`: builds one station at runtime at (HUB_X - 17, HUB_Z + 17) in the hub plaza,
+    one ProximityPrompt "Ver la ruleta" with no owner gating; remote `WildboundNetwork.Roulette` reads only "open" or
+    "spin"; one spin per 1.6 s, alive and within 12 studs of the server-side root, then the server roll through
+    `State:spinRoulette`; the result refreshes the HUD through `send`.
+  - New `WildboundRouletteClient` LocalScript: the panel lists every prize's odds (Spanish label, rarity, percent),
+    the price or "Tirada gratis", the pity counter and the balance before any spin; "Girar" sends "spin", a short spin
+    over the rows lands on the server's prize. `Text.ROULETTE` holds every word.
+  - Tools: `tools/wildbound_roulette_sim.py` parses LIVE too; `docs/balance/wildbound-2-0-roulette.md` regenerated with
+    a "Live hub table (PF5)" section (seed 7: chi-square 3.52, df 10). Manifest rows for the record step, the service,
+    its suite and the client; the runner's SPECS and SIBLINGS.
+  - Tests: new `tests/WildboundRouletteService_Test.luau` (RS-1..RS-9, fakes); Roulette_Test R1 re-pinned (wired) plus
+    R16/R17; State_Test PF5-S1..S3; Record_Test RT-1, RT-14, RT-26 re-pinned to schema 6 (deliberate) plus RT-28/RT-29;
+    Save_Test SV-23; MechanicsWiring_Test W4 re-pinned (`Record.SCHEMA = RouletteRecord.SCHEMA`, digest reads
+    `view.roulette`); Text_Test PF5; Python LiveTableTests (7).
+  - RED (suites written, sources unchanged): Roulette 14/3, State 66/17 (3 PF5 + 14 pre-existing), MechanicsWiring 8/2
+    (W4 + the known W1), Text 19/1, Record, Save, Persistence and TotemRecord ERROR (sibling WildboundRouletteRecord
+    missing), RouletteService ERROR (module missing); Python roulette sim 7 errors.
+  - GREEN: Roulette 17/0, RouletteService 9/0, State 69/14 (the 14 pre-existing EconomyConfig drift), Record 29/0,
+    Save 23/0, Persistence 31/0, TotemRecord 7/0, Text 20/0, MechanicsWiring 9/1 (the known W1), CreatureToolbar 13/0,
+    Incubator 7/0, Balance 24/0.
+  - Fingerprints (repo = Studio after the write, every source compiles): WildboundRoulette 22814 177902e1,
+    WildboundText 35825 d14bb9df, WildboundRouletteRecord 4629 704e4511, WildboundRecord 29616 20dfcd56,
+    WildboundSave 16001 788d1554, WildboundState 53376 ec12c43e, WildboundRouletteService 10600 055fe676,
+    WildboundRouletteClient 7780 50dff463, WildboundServer 208864 cea678ec, WildboundRoulette_Test 23049 c2372c8a,
+    WildboundRouletteService_Test 12374 1623bd4b, WildboundState_Test 84403 7c682fde, WildboundRecord_Test 34210
+    da1f5410, WildboundSave_Test 23310 a99b8a49, WildboundMechanicsWiring_Test 19129 214d69a2, WildboundText_Test
+    22740 e4550fde.
+  - Solo Play (PlayLock `PF5`, cleared after; Play stopped): the station stood at (265, 14) with its prompt; "open"
+    showed the panel with 11 odds rows, "Tirada gratis", the pity line (10) and 0 Esencia. The free spin through the
+    remote gave 10 Fogbark (cost 0) and the panel switched to "Tirada: 45 de Esencia". A paid spin with 0 Esencia was
+    refused ("Te faltan 45 de Esencia para girar.") and a second one inside 1.6 s was refused as busy. After the
+    GearProbe "fund" (500 Esencia): a paid spin gave 45 de Esencia (Rara, pity counter stays 10) and the next one 25 de
+    Esencia (480 left, counter 9). No script errors; saves in memory mode. The panel's DisplayOrder was raised to 35
+    after Play (the base guide's tutorial card covered the buttons). Screenshot:
+    `assets/exports/forest-kit/captures/pf5-roulette-hub-desktop.jpg`. Not checked in Play: the prompt's own trigger
+    (the probe used the same server `open` path) and a rejoin (covered by RT-29 and SV-23).
+  - Python: 1195 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
 
 ## Checks
 
@@ -240,4 +296,6 @@ Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync)
 (commit `fix(carry): one backpack, only while carrying an egg`). PF2 done 2026-11-14
 (commit `feat(training): a large treadmill walk speed`). PF3 done 2026-11-14
 (commit `feat(farm): own-pad farm and a hotbar home for creatures`). PF4 done 2026-11-14
-(commit `feat(farm): save the base farm in the record (schema 5)`). Next step: PF5.
+(commit `feat(farm): save the base farm in the record (schema 5)`). PF5 done 2026-11-14
+(commit `feat(roulette): a hub roulette with server rolls and saved pity (schema 6)`). All PF tasks are done; next step:
+the user's open product questions.

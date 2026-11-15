@@ -487,6 +487,11 @@ class DefaultMappingTests(unittest.TestCase):
         # T09a 2.0 roulette prize table (unwired)
         "src/wildbound/WildboundRoulette.luau": "ReplicatedStorage.WildboundRoulette",
         "tests/WildboundRoulette_Test.luau": "ServerStorage.WildboundRoulette_Test",
+        # PF5 the hub roulette, wired
+        "src/wildbound/WildboundRouletteRecord.luau": "ServerScriptService.WildboundRouletteRecord",
+        "src/wildbound/WildboundRouletteService.luau": "ServerScriptService.WildboundRouletteService",
+        "tests/WildboundRouletteService_Test.luau": "ServerStorage.WildboundRouletteService_Test",
+        "src/wildbound/WildboundRoulette.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient",
         # Caramelo biome: Gomibu and the candy blockout, pulled from Studio
         "src/wildbound/WildboundBeastGomibu.luau": "ServerScriptService.WildboundBeastGomibu",
         "tests/WildboundBeastGomibu_Test.luau": "ServerStorage.WildboundBeastGomibu_Test",

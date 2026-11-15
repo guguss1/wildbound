@@ -134,7 +134,10 @@ return function(sources)
 		local record = sources.record or ""
 		has(record, 'script.Parent:FindFirstChild("WildboundTotemRecord")')
 		-- PF4: schema 5 (the farm) follows the totem step (deliberately changed pin).
-		has(record, "Record.SCHEMA = FarmRecord.SCHEMA")
+		-- PF5: schema 6 (the hub roulette) follows the farm step (deliberately changed pin).
+		has(record, "Record.SCHEMA = RouletteRecord.SCHEMA")
+		has(record, "Record.MIGRATIONS = FarmRecord.ladder(Record.MIGRATIONS)")
+		has(record, "Record.MIGRATIONS = RouletteRecord.ladder(Record.MIGRATIONS)")
 		has(record, "Record.MIGRATIONS = TotemRecord.ladder({")
 		has(record, "totems = true,", "a known field, never copied as an unknown one")
 		has(block(record, "function Record.blank()", "\nend\n"), "totems = {}")
@@ -144,6 +147,7 @@ return function(sources)
 		hasNot(record, "DataStoreService", "the record never names the store")
 		local save = sources.save or ""
 		has(block(save, "local function digestOf(self, view)", "\nend\n"), "view.luckTotems", "a totem change is saved")
+		has(block(save, "local function digestOf(self, view)", "\nend\n"), "view.roulette", "a roulette change is saved")
 	end)
 
 	-- W2 (Q3b): Esquiva perfecta replaces the Burst.

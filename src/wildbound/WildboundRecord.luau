@@ -11,16 +11,21 @@
 -- the save glue never starts and nothing is written (a failed load never overwrites real data).
 -- Schema 5 (PF4, user decision 2026-11-14): the base farm, `farm = { uid, ... }` (registered creatures, never the
 -- companion out), in the sibling WildboundFarmRecord, with the same fail-closed rule.
+-- Schema 6 (PF5, user decision 2026-11-14): the hub roulette's state, `roulette = { freeSpinUsed, pityCount,
+-- paidSpins }`, in the sibling WildboundRouletteRecord, with the same fail-closed rule.
 local totemModule = script.Parent and script.Parent:FindFirstChild("WildboundTotemRecord")
 assert(totemModule and totemModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundTotemRecord (schema 4)")
 local TotemRecord = require(totemModule)
 local farmModule = script.Parent and script.Parent:FindFirstChild("WildboundFarmRecord")
 assert(farmModule and farmModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundFarmRecord (schema 5)")
 local FarmRecord = require(farmModule)
+local rouletteModule = script.Parent and script.Parent:FindFirstChild("WildboundRouletteRecord")
+assert(rouletteModule and rouletteModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundRouletteRecord (schema 6)")
+local RouletteRecord = require(rouletteModule)
 
 local Record = {}
 
-Record.SCHEMA = FarmRecord.SCHEMA
+Record.SCHEMA = RouletteRecord.SCHEMA
 Record.LEDGER_CAP = 64
 Record.MAX_CHARS = 4194304
 
@@ -36,9 +41,12 @@ local KNOWN = table.freeze({
 	totems = true,
 	-- PF4: schema 5.
 	farm = true,
+	-- PF5: schema 6.
+	roulette = true,
 })
 Record.TotemRecord = TotemRecord
 Record.FarmRecord = FarmRecord
+Record.RouletteRecord = RouletteRecord
 local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlayedDay" })
 -- NS7: a glove's stats and their hard caps in percent. Must equal WildboundGear.HARD_CAPS (the Save suite checks).
 Record.GLOVE_CAPS = table.freeze({ move = 3, steal = 25, burst = 30, drain = 40, calm = 40 })
@@ -79,6 +87,7 @@ function Record.blank()
 		collection = { registered = {}, bankedEggs = {} },
 		banked = {}, ember = 0, consumables = {}, upgrades = {}, skills = {}, bondXp = {}, settings = {},
 		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} }, totems = {}, farm = {},
+		roulette = RouletteRecord.unused(),
 	}
 end
 
@@ -205,6 +214,10 @@ function Record.fromProfile(profile, base, meta, economy, config)
 	local farm, farmProblem = FarmRecord.fromProfile(profile)
 	if not farm then return nil, farmProblem end
 	record.farm = farm
+	-- PF5 (schema 6): the hub roulette's free spin and pity counter.
+	local roulette, rouletteProblem = RouletteRecord.fromProfile(profile)
+	if not roulette then return nil, rouletteProblem end
+	record.roulette = roulette
 
 	-- NS2: nothing at risk is saved. Schema 1's atRisk writer is kept behind meta.saveAtRisk, which no caller sets, so
 	-- the legacy shape stays readable by the validator; toProfile never restores it.
@@ -298,6 +311,8 @@ function Record.toProfile(record, economy, config, sessionNow)
 	TotemRecord.toProfile(record, profile)
 	-- PF4 (schema 5): the saved farm, made only when there is one.
 	FarmRecord.toProfile(record, profile)
+	-- PF5 (schema 6): the roulette state, made only when it was used.
+	RouletteRecord.toProfile(record, profile)
 	-- NS2: a legacy atRisk section is never restored, so carried things never come back after a leave.
 	return profile
 end
@@ -421,6 +436,11 @@ function Record.validate(record, economy, config)
 	local farmOk, farmProblems = FarmRecord.validate(record, registeredSet)
 	if not farmOk then
 		for _, problem in ipairs(farmProblems or {}) do fail(problem) end
+	end
+	-- PF5 (schema 6): the roulette state; any problem quarantines the load and refuses the write.
+	local rouletteOk, rouletteProblems = RouletteRecord.validate(record)
+	if not rouletteOk then
+		for _, problem in ipairs(rouletteProblems or {}) do fail(problem) end
 	end
 	if record.equippedUid ~= nil and not registeredSet[record.equippedUid] then fail("equippedUid is not registered") end
 	if map(record.bondXp, "bondXp") then
@@ -566,6 +586,9 @@ Record.MIGRATIONS = TotemRecord.ladder({
 -- PF4: FarmRecord.ladder keeps every step above and adds MIGRATIONS[4] (schema 4 -> 5), which only adds an empty
 -- farm when there is none and never repairs a malformed one (validation then quarantines it).
 Record.MIGRATIONS = FarmRecord.ladder(Record.MIGRATIONS)
+-- PF5: RouletteRecord.ladder keeps every step above and adds MIGRATIONS[5] (schema 5 -> 6), which only adds the unused
+-- roulette state when there is none and never repairs a malformed one.
+Record.MIGRATIONS = RouletteRecord.ladder(Record.MIGRATIONS)
 
 -- Returns "Current" or "Migrated" with a new table, or "TooNew" or "Quarantined" with nil. Never changes `raw`.
 function Record.migrate(raw, migrations)

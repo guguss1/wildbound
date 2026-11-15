@@ -349,6 +349,12 @@ DEFAULT_MAPPINGS = [
     # T09a 2.0 roulette prize table, unwired (odd/tasks/wildbound-2-0.md)
     ("src/wildbound/WildboundRoulette.luau", "ReplicatedStorage.WildboundRoulette"),
     ("tests/WildboundRoulette_Test.luau", "ServerStorage.WildboundRoulette_Test"),
+    # PF5 (odd/tasks/wildbound-playtest-fixes.md): the hub roulette, wired. The schema 6 step is a sibling WildboundRecord
+    # requires (its cases are in WildboundRecord_Test); the service is started by WildboundServer.
+    ("src/wildbound/WildboundRouletteRecord.luau", "ServerScriptService.WildboundRouletteRecord"),
+    ("src/wildbound/WildboundRouletteService.luau", "ServerScriptService.WildboundRouletteService"),
+    ("tests/WildboundRouletteService_Test.luau", "ServerStorage.WildboundRouletteService_Test"),
+    ("src/wildbound/WildboundRoulette.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient"),
     # Caramelo biome (odd/tasks/caramelo-bioma.md): Gomibu and the candy blockout, built in Studio and pulled into the
     # repo at the Explorer paths observed there
     ("src/wildbound/WildboundBeastGomibu.luau", "ServerScriptService.WildboundBeastGomibu"),

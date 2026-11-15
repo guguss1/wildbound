@@ -1,6 +1,8 @@
--- Wildbound 2.0 roulette prize table (T09a), PROPOSED and UNWIRED: no module requires it. Wiring (location, saved
--- state, pending claims, UI) is T09b. Pure data plus pure rules: no Instance, service, clock or random source. The
--- caller rolls rng01 in [0, 1) and saves the state this module returns.
+-- Wildbound 2.0 roulette prize table (T09a) and the live hub roulette (PF5, user decision 2026-11-14). CONFIG is the
+-- 2.0 proposal (six kinds, mirroring the Balance weights). LIVE is the wired table: the hub station
+-- (WildboundRouletteService) rolls only from it, because it grants only what the economy supports today (Esencia and
+-- the banked materials). Pure data plus pure rules: no Instance, service, clock or random source. The caller (the
+-- server) rolls rng01 in [0, 1) and saves the state this module returns (WildboundRecord schema 6).
 -- Esencia only (no Robux, monetization stays "none"). Every percent comes from the 2.0 Balance module roulette.weights
 -- (categoryWeights mirrors it; tests/WildboundRoulette_Test.luau and tools/test_wildbound_roulette_sim.py check the
 -- mirror). Report: docs/balance/wildbound-2-0-roulette.md (tools/wildbound_roulette_sim.py).
@@ -33,8 +35,8 @@ end
 
 local Roulette = {}
 
-Roulette.status = "proposed"
-Roulette.wired = false
+Roulette.status = "wired"
+Roulette.wired = true
 
 Roulette.RARITIES = freeze({ "Comun", "Rara", "Epica", "Legendaria" })
 Roulette.CATEGORIES = freeze({ "esencia", "materials", "gloves", "incubationBoosters", "consumables", "specialEgg" })
@@ -79,6 +81,34 @@ Roulette.CONFIG = freeze({
 		{ id = "portal1", category = "consumables", rarity = "Rara", weight = 100, grant = { portablePortal = 1 }, value = 125, resale = 60, whenFull = "convert", fullEsencia = 60, label = "Portal portátil" },
 		{ id = "eggEpica", category = "specialEgg", rarity = "Epica", weight = 150, grant = { specialEgg = "Epica" }, value = 200, resale = 200, whenFull = "pending", label = "Huevo especial épico" },
 		{ id = "eggLegendaria", category = "specialEgg", rarity = "Legendaria", weight = 50, grant = { specialEgg = "Legendaria" }, value = 650, resale = 650, whenFull = "pending", label = "Huevo especial legendario" },
+	},
+})
+
+-- PF5: the live hub table. Same price, free first spin, Rara+ pity and money-loop caps as CONFIG; re-weighted to the
+-- two kinds the economy supports today (Esencia 40, banked materials 60). The Esencia share is lower than CONFIG's
+-- 35 of 100 scaled up, because scaling it to 58 would pay about 35 Esencia a spin and break the maxEsenciaPerSpin cap.
+-- Banked materials have no cap, so "pending" never holds a live prize back. Report:
+-- docs/balance/wildbound-2-0-roulette.md ("Live hub table").
+Roulette.LIVE = freeze({
+	currency = "esencia",
+	spinCost = 45,
+	freeFirstSpin = true,
+	categoryWeights = { esencia = 40, materials = 60 },
+	locations = { "hub" },
+	pity = { enabled = true, every = 10, minRarity = "Rara" },
+	limits = { maxCashShare = 0.5, maxEsenciaPerSpin = 30 },
+	prizes = {
+		{ id = "esencia10", category = "esencia", rarity = "Comun", weight = 2000, grant = { esencia = 10 }, value = 10, resale = 10, whenFull = "none", label = "10 de Esencia" },
+		{ id = "esencia25", category = "esencia", rarity = "Comun", weight = 1000, grant = { esencia = 25 }, value = 25, resale = 25, whenFull = "none", label = "25 de Esencia" },
+		{ id = "esencia45", category = "esencia", rarity = "Rara", weight = 600, grant = { esencia = 45 }, value = 45, resale = 45, whenFull = "none", label = "45 de Esencia" },
+		{ id = "esencia90", category = "esencia", rarity = "Epica", weight = 300, grant = { esencia = 90 }, value = 90, resale = 90, whenFull = "none", label = "90 de Esencia" },
+		{ id = "esencia200", category = "esencia", rarity = "Legendaria", weight = 100, grant = { esencia = 200 }, value = 200, resale = 200, whenFull = "none", label = "200 de Esencia" },
+		{ id = "fogbark10", category = "materials", rarity = "Comun", weight = 2200, grant = { fogbark = 10 }, value = 10, resale = 0, whenFull = "pending", label = "10 Fogbark" },
+		{ id = "glowmoss6", category = "materials", rarity = "Comun", weight = 1600, grant = { glowmoss = 6 }, value = 12, resale = 0, whenFull = "pending", label = "6 Glowmoss" },
+		{ id = "mixedPouch", category = "materials", rarity = "Rara", weight = 900, grant = { fogbark = 10, glowmoss = 5 }, value = 20, resale = 0, whenFull = "pending", label = "10 Fogbark y 5 Glowmoss" },
+		{ id = "nightbloom2", category = "materials", rarity = "Rara", weight = 700, grant = { nightbloom = 2 }, value = 10, resale = 0, whenFull = "pending", label = "2 Nightbloom" },
+		{ id = "nightbloom5", category = "materials", rarity = "Epica", weight = 400, grant = { nightbloom = 5 }, value = 25, resale = 0, whenFull = "pending", label = "5 Nightbloom" },
+		{ id = "forestChest", category = "materials", rarity = "Legendaria", weight = 200, grant = { fogbark = 40, glowmoss = 20, nightbloom = 5 }, value = 80, resale = 0, whenFull = "pending", label = "Cofre del bosque" },
 	},
 })
 

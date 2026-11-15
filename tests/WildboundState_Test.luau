@@ -1619,5 +1619,85 @@ return function(State, Economy, Config)
 		equal(state:snapshot("Alice").farm[1], a, "the snapshot's farm is a copy")
 	end)
 
+	-- PF5 (user decision 2026-11-14): the hub roulette spends and grants through State, atomically. The server binds the
+	-- pure roll (WildboundRoulette.draw over its LIVE table with a server rng); these cases pass a scripted one.
+	local function scripted(prize, free, pity)
+		return function(current)
+			local nextState = { freeSpinUsed = true, pityCount = current.pityCount, paidSpins = current.paidSpins }
+			if not free then
+				nextState.paidSpins += 1
+				nextState.pityCount = pity and 0 or current.pityCount + 1
+			end
+			return prize, nextState, { cost = free and 0 or 45, free = free == true, pity = pity == true }
+		end
+	end
+	local ESENCIA10 = { id = "esencia10", rarity = "Comun", grant = { esencia = 10 } }
+	local CHEST = { id = "forestChest", rarity = "Legendaria", grant = { fogbark = 40, glowmoss = 20, nightbloom = 5 } }
+
+	case("PF5-S1: the free spin costs nothing, grants its prize and is used once; a profile has no roulette until then", function()
+		local state = setup()
+		equal(state.players["s:Alice"].roulette, nil, "made on first use, so the blank profile stays (RT-2)")
+		local fresh = state:snapshot("Alice").roulette
+		equal(fresh.freeSpinUsed, false); equal(fresh.pityCount, 0); equal(fresh.paidSpins, 0)
+		local seen
+		local ok, receipt = state:spinRoulette("Alice", true, 3, 12, function(current)
+			seen = current
+			return scripted(ESENCIA10, true)(current)
+		end)
+		equal(ok, true, tostring(receipt))
+		equal(seen.freeSpinUsed, false, "the roll sees the saved state")
+		equal(receipt.prizeId, "esencia10"); equal(receipt.cost, 0); equal(receipt.free, true)
+		equal(receipt.roulette.freeSpinUsed, true)
+		local snap = state:snapshot("Alice")
+		equal(snap.ember, 10, "the Esencia prize is paid at once")
+		equal(snap.roulette.freeSpinUsed, true); equal(snap.roulette.paidSpins, 0)
+		snap.roulette.freeSpinUsed = false
+		equal(state:snapshot("Alice").roulette.freeSpinUsed, true, "the snapshot is a copy")
+		equal(state:snapshot("Bob").roulette.freeSpinUsed, false, "per player")
+	end)
+
+	case("PF5-S2: a paid spin checks, pays 45 and grants in one step; a refusal changes nothing", function()
+		local state = setup()
+		accepted(state:spinRoulette("Alice", true, 0, 12, scripted(ESENCIA10, true)))
+		local before = state:snapshot("Alice")
+		equal(select(2, state:spinRoulette("Alice", true, 0, 12, scripted(CHEST, false))), "CannotAfford")
+		local after = state:snapshot("Alice")
+		equal(after.ember, before.ember); equal(after.banked.fogbark, before.banked.fogbark)
+		equal(after.roulette.paidSpins, 0, "a refused spin is not counted")
+		state.players["s:Alice"].ember = 100
+		local ok, receipt = state:spinRoulette("Alice", true, 0, 12, scripted(CHEST, false, true))
+		equal(ok, true, tostring(receipt))
+		equal(receipt.cost, 45); equal(receipt.free, false); equal(receipt.pity, true)
+		local paid = state:snapshot("Alice")
+		equal(paid.ember, 55, "45 paid, no Esencia prize")
+		equal(paid.banked.fogbark, before.banked.fogbark + 40); equal(paid.banked.glowmoss, before.banked.glowmoss + 20)
+		equal(paid.banked.nightbloom, before.banked.nightbloom + 5, "materials go to the bank")
+		equal(paid.roulette.paidSpins, 1); equal(paid.roulette.pityCount, 0)
+		accepted(state:spinRoulette("Alice", true, 0, 12, scripted(ESENCIA10, false)))
+		equal(state:snapshot("Alice").ember, 55 - 45 + 10)
+		equal(state:snapshot("Alice").roulette.pityCount, 1, "a Comun prize counts toward the pity")
+	end)
+
+	case("PF5-S3: the spin refuses a dead, far, unknown or unsupported request before paying", function()
+		local state = setup()
+		state.players["s:Alice"].ember = 500
+		local function unchanged(reason, ...)
+			equal(select(2, state:spinRoulette(...)), reason, reason)
+			equal(state:snapshot("Alice").ember, 500, reason .. ": nothing paid")
+			equal(state:snapshot("Alice").roulette.freeSpinUsed, false, reason .. ": nothing used")
+		end
+		unchanged("InvalidContext", "Alice", false, 0, 12, scripted(ESENCIA10, true))
+		unchanged("TooFar", "Alice", true, 13, 12, scripted(ESENCIA10, true))
+		unchanged("TooFar", "Alice", true, 0 / 0, 12, scripted(ESENCIA10, true))
+		unchanged("InvalidSpin", "Alice", true, 0, 12, nil)
+		unchanged("InvalidSpin", "Alice", true, 0, 12, function() return nil, nil, "bad rng" end)
+		unchanged("UnsupportedPrize", "Alice", true, 0, 12,
+			scripted({ id = "gloveRara", rarity = "Rara", grant = { glove = "Rara" } }, true))
+		unchanged("UnsupportedPrize", "Alice", true, 0, 12,
+			scripted({ id = "trap1", rarity = "Comun", grant = { trap = 1 } }, true))
+		unchanged("UnsupportedPrize", "Alice", true, 0, 12, scripted({ id = "x", rarity = "Comun", grant = { esencia = -5 } }, true))
+		equal(select(2, state:spinRoulette("Nobody", true, 0, 12, scripted(ESENCIA10, true))), "InvalidPlayer")
+	end)
+
 	return result
 end

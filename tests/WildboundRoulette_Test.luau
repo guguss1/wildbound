@@ -72,9 +72,11 @@ return function(Roulette, Balance)
 		{ "eggLegendaria", "specialEgg", "Legendaria", 50, 650, 650, "pending", 0 },
 	}
 
-	case("R1: the module is pure, unwired data and the default config validates", function()
-		equal(Roulette.status, "proposed", "status")
-		equal(Roulette.wired, false, "wired")
+	-- PF5 (user decision 2026-11-14, deliberately changed pin): the module is wired through its LIVE hub table; CONFIG
+	-- stays the 2.0 proposal that mirrors the Balance weights.
+	case("R1: the module is pure data, wired through LIVE, and the default config validates", function()
+		equal(Roulette.status, "wired", "status")
+		equal(Roulette.wired, true, "wired")
 		assert(type(Roulette.CONFIG) == "table" and table.isfrozen(Roulette.CONFIG), "CONFIG frozen")
 		for _, name in ipairs({ "validate", "draw", "oddsTable", "expectedValue", "newState", "allowedAt" }) do
 			assert(type(Roulette[name]) == "function", "missing function " .. name)
@@ -350,6 +352,84 @@ return function(Roulette, Balance)
 		fails(none, "no location", "location")
 		local bad = fresh(); bad.locations = { "hub", "cave" }
 		fails(bad, "unknown location", "location")
+	end)
+
+	-- PF5 (user decision 2026-11-14): the hub roulette grants only what the economy supports today (Esencia and the
+	-- banked materials), so LIVE re-weights the table to those two kinds. Same price, free spin and Rara+ pity.
+	local LIVE_EXPECTED = {
+		{ id = "esencia10", category = "esencia", rarity = "Comun", weight = 2000, value = 10, resale = 10 },
+		{ id = "esencia25", category = "esencia", rarity = "Comun", weight = 1000, value = 25, resale = 25 },
+		{ id = "esencia45", category = "esencia", rarity = "Rara", weight = 600, value = 45, resale = 45 },
+		{ id = "esencia90", category = "esencia", rarity = "Epica", weight = 300, value = 90, resale = 90 },
+		{ id = "esencia200", category = "esencia", rarity = "Legendaria", weight = 100, value = 200, resale = 200 },
+		{ id = "fogbark10", category = "materials", rarity = "Comun", weight = 2200, value = 10, resale = 0 },
+		{ id = "glowmoss6", category = "materials", rarity = "Comun", weight = 1600, value = 12, resale = 0 },
+		{ id = "mixedPouch", category = "materials", rarity = "Rara", weight = 900, value = 20, resale = 0 },
+		{ id = "nightbloom2", category = "materials", rarity = "Rara", weight = 700, value = 10, resale = 0 },
+		{ id = "nightbloom5", category = "materials", rarity = "Epica", weight = 400, value = 25, resale = 0 },
+		{ id = "forestChest", category = "materials", rarity = "Legendaria", weight = 200, value = 80, resale = 0 },
+	}
+
+	case("R16: LIVE is the hub table: Esencia and banked materials only, validated, hub only, same price and pity", function()
+		local live = Roulette.LIVE
+		assert(type(live) == "table" and table.isfrozen(live), "LIVE frozen")
+		passes(copy(live), "LIVE")
+		equal(#live.prizes, #LIVE_EXPECTED, "prize count")
+		for index, row in ipairs(LIVE_EXPECTED) do
+			local prize = live.prizes[index]
+			for key, value in pairs(row) do equal(prize[key], value, row.id .. " " .. key) end
+			if prize.category == "esencia" then
+				equal(prize.whenFull, "none", row.id .. " whenFull")
+				equal(prize.grant.esencia, prize.resale, row.id .. " grant")
+			else
+				equal(prize.whenFull, "pending", row.id .. " whenFull")
+				for name, amount in pairs(prize.grant) do
+					assert(name == "fogbark" or name == "glowmoss" or name == "nightbloom", row.id .. " grants " .. name)
+					assert(amount > 0 and amount % 1 == 0, row.id .. " amount")
+				end
+			end
+		end
+		equal(prizeIn(live, "forestChest").grant.fogbark, 40, "forestChest fogbark")
+		equal(prizeIn(live, "forestChest").grant.glowmoss, 20, "forestChest glowmoss")
+		equal(prizeIn(live, "forestChest").grant.nightbloom, 5, "forestChest nightbloom")
+		equal(prizeIn(live, "nightbloom5").grant.nightbloom, 5, "nightbloom5")
+		equal(live.categoryWeights.esencia, 40); equal(live.categoryWeights.materials, 60)
+		for _, name in ipairs({ "gloves", "incubationBoosters", "consumables", "specialEgg" }) do
+			equal(live.categoryWeights[name], nil, "no " .. name)
+		end
+		equal(live.spinCost, Roulette.CONFIG.spinCost, "same price (45)")
+		equal(live.spinCost, 45)
+		equal(live.freeFirstSpin, true, "one free spin per account")
+		equal(live.pity.enabled, true); equal(live.pity.every, 10); equal(live.pity.minRarity, "Rara")
+		equal(Roulette.allowedAt("hub", live), true, "hub")
+		equal(Roulette.allowedAt("base", live), false, "never at a base")
+		local odds = Roulette.oddsTable(live)
+		near(odds.byRarity.Comun, 68, 1e-9, "Comun"); near(odds.byRarity.Rara, 22, 1e-9, "Rara")
+		near(odds.byRarity.Epica, 7, 1e-9, "Epica"); near(odds.byRarity.Legendaria, 3, 1e-9, "Legendaria")
+		local off, on = Roulette.expectedValue(live, false), Roulette.expectedValue(live, true)
+		near(off.esencia, 11.9, 1e-9, "off esencia"); near(off.value, 21.12, 1e-9, "off value")
+		near(on.esencia, 12.014076350265439, 1e-9, "on esencia"); near(on.cash, on.esencia, 1e-12, "cash is Esencia only")
+		near(on.value, 21.30234431310803, 1e-9, "on value")
+		near(on.pitySpinShare, 0.010162703809838618, 1e-12, "pity share")
+		assert(on.cash < live.spinCost * live.limits.maxCashShare, "no money loop")
+	end)
+
+	case("R17: draw() over LIVE: the free spin, the cumulative pins and the Rara+ pity pool", function()
+		local live = Roulette.LIVE
+		local prize, state, receipt = Roulette.draw(0.0, Roulette.newState(), live)
+		equal(prize.id, "esencia10"); equal(receipt.free, true); equal(receipt.cost, 0)
+		for _, pair in ipairs({ { 0.1999, "esencia10" }, { 0.2, "esencia25" }, { 0.3, "esencia45" }, { 0.36, "esencia90" },
+			{ 0.39, "esencia200" }, { 0.4, "fogbark10" }, { 0.62, "glowmoss6" }, { 0.78, "mixedPouch" },
+			{ 0.87, "nightbloom2" }, { 0.94, "nightbloom5" }, { 0.98, "forestChest" }, { 0.9999, "forestChest" } }) do
+			local p, _, r = Roulette.draw(pair[1], state, live)
+			equal(p.id, pair[2], "rng " .. pair[1])
+			equal(r.cost, 45, "paid")
+		end
+		for _ = 1, 9 do state = select(2, Roulette.draw(0.0, state, live)) end
+		equal(state.pityCount, 9)
+		local pityPrize, after, pityReceipt = Roulette.draw(0.0, state, live)
+		equal(pityPrize.id, "esencia45", "pity pool at rng 0"); equal(pityReceipt.pity, true); equal(after.pityCount, 0)
+		equal(Roulette.draw(0.999, state, live).id, "forestChest", "pity pool top")
 	end)
 
 	return result

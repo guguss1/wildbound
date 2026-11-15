@@ -9,8 +9,9 @@
 --   never overwrite the real record.
 -- * What is saved: banked eggs, registered creatures, the equipped companion, Ember (Esencia), materials banked at
 --   camp, consumables, upgrades, skills, bond, the incubator (server Unix times), the training levels and the gloves
---   with the worn one (NS7), and the luck totems held (Q10, schema 4) and the base farm (PF4, schema 5). What is out
---   in the world (the bag, the pouch, a carried or dropped egg, the trip) is never saved.
+--   with the worn one (NS7), and the luck totems held (Q10, schema 4), the base farm (PF4, schema 5) and the hub
+--   roulette's state (PF5, schema 6). What is out in the world (the bag, the pouch, a carried or dropped egg, the
+--   trip) is never saved.
 -- * State makes session IDs (wb:N). Each one gets a durable ID (uN) from the saved counter the first time it is saved,
 --   and keeps it for the rest of the session, so the next session loads the same IDs.
 -- * Dirty tracking: a digest of the saved fields; a change marks the profile dirty and the next autosave (about every
@@ -131,6 +132,8 @@ local function digestOf(self, view)
 		totems = type(view.luckTotems) == "number" and view.luckTotems or 0,
 		-- PF4 (schema 5): placing or taking back a farm creature marks the profile dirty.
 		farm = view.farm or {},
+		-- PF5 (schema 6): a hub roulette spin (the free spin, the pity counter) marks the profile dirty.
+		roulette = view.roulette or {},
 	})
 end
 

@@ -60,6 +60,11 @@ SPECS["WildboundAudioMix_Test"] = { "mod:WildboundAudioMix", "mod:WildboundAudio
 SPECS["WildboundAudioWiring_Test"] = { "src:WildboundAudioClient" }
 SPECS["WildboundBalance_Test"] = { "mod:WildboundBalance", "src:WildboundBalance" }
 SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }
+SPECS["WildboundRouletteService_Test"] = {
+	"mod:WildboundRouletteService", "mod:WildboundRoulette", "mod:WildboundState", "mod:WildboundEconomy",
+	"mod:WildboundEconomyConfig", "mod:WildboundText",
+	{ server = "src:WildboundServer", service = "src:WildboundRouletteService", client = "src:WildboundRouletteClient" },
+}
 SPECS["WildboundBaseZone_Test"] = {
 	"mod:WildboundBaseZone",
 	"src:WildboundBaseZone",
@@ -354,7 +359,7 @@ SPECS["WildboundWorldRules_Test"] = { "mod:WildboundWorldRules", "mod:WildboundI
 -- Modules that require a sibling by script.Parent: the sibling is cloned into the same per-suite folder first.
 -- tools/test_studio_fresh_runner.py fails when a ModuleScript in src/wildbound requires a sibling not listed here.
 local SIBLINGS = {
-	WildboundRecord = { "WildboundTotemRecord", "WildboundFarmRecord" },
+	WildboundRecord = { "WildboundTotemRecord", "WildboundFarmRecord", "WildboundRouletteRecord" },
 	WildboundCaptureView = { "WildboundText" }, -- require(script.Parent:WaitForChild("WildboundText")) would yield forever
 }
 local SUITE_TIMEOUT = 30 -- seconds; a suite still yielding after this is cancelled and reported as TIMEOUT

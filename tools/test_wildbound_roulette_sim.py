@@ -201,5 +201,73 @@ class SimulationTests(unittest.TestCase):
         self.assertTrue(text.startswith("# Wildbound 2.0 roulette"))
 
 
+def live():
+    return rs.load_live_config()
+
+
+class LiveTableTests(unittest.TestCase):
+    """PF5 (user decision 2026-11-14): the hub roulette's LIVE table, Esencia and banked materials only."""
+
+    def test_parses_the_live_config(self):
+        c = live()
+        self.assertEqual(len(c["prizes"]), 11)
+        self.assertEqual({p["category"] for p in c["prizes"]}, {"esencia", "materials"})
+        self.assertEqual(c["categoryWeights"], {"esencia": 40, "materials": 60})
+        self.assertEqual(c["locations"], ["hub"])
+        self.assertEqual((c["spinCost"], c["freeFirstSpin"]), (45, True))
+        self.assertEqual(c["pity"], {"enabled": True, "every": 10, "minRarity": "Rara"})
+        for prize in c["prizes"]:
+            if prize["category"] == "materials":
+                self.assertTrue(set(prize["grant"]) <= set(rs.MATERIALS), prize["id"])
+
+    def test_live_validates(self):
+        self.assertEqual(rs.validate(live()), [])
+
+    def test_luau_test_pins_the_same_live_rows(self):
+        rows = re.findall(r'\{ id = "(\w+)", category = "(\w+)", rarity = "(\w+)", weight = (\d+), value = (\d+),'
+                          r' resale = (\d+) \}', TEST.read_text(encoding="utf-8"))
+        self.assertEqual(len(rows), 11)
+        for row, prize in zip(rows, live()["prizes"]):
+            self.assertEqual((row[0], row[1], row[2], int(row[3]), int(row[4]), int(row[5])),
+                             (prize["id"], prize["category"], prize["rarity"], prize["weight"], prize["value"],
+                              prize["resale"]))
+
+    def test_live_expected_values_match_the_luau_pins(self):
+        off = rs.expected_value(live(), pity=False)
+        self.assertAlmostEqual(off["esencia"], 11.9, places=9)
+        self.assertAlmostEqual(off["value"], 21.12, places=9)
+        on = rs.expected_value(live(), pity=True)
+        self.assertAlmostEqual(on["esencia"], 12.014076350265439, places=9)
+        self.assertAlmostEqual(on["cash"], on["esencia"], places=12)
+        self.assertAlmostEqual(on["value"], 21.30234431310803, places=9)
+        self.assertAlmostEqual(on["pitySpinShare"], 0.010162703809838618, places=12)
+        self.assertFalse(rs.money_loop(live(), True))
+
+    def test_live_draw_matches_the_luau_pins(self):
+        c = live()
+        state = rs.draw(0.0, rs.new_state(), c)[1]
+        for rng, expected in [(0.1999, "esencia10"), (0.2, "esencia25"), (0.3, "esencia45"), (0.36, "esencia90"),
+                              (0.39, "esencia200"), (0.4, "fogbark10"), (0.62, "glowmoss6"), (0.78, "mixedPouch"),
+                              (0.87, "nightbloom2"), (0.94, "nightbloom5"), (0.98, "forestChest")]:
+            self.assertEqual(rs.draw(rng, state, c)[0]["id"], expected, rng)
+        for _ in range(9):
+            state = rs.draw(0.0, state, c)[1]
+        self.assertEqual(rs.draw(0.0, state, c)[0]["id"], "esencia45")
+        self.assertEqual(rs.draw(0.999, state, c)[0]["id"], "forestChest")
+
+    def test_live_frequencies_fit_and_pity_caps_the_drought(self):
+        run = rs.simulate(live(), spins=20000, seed=7, pity=True)
+        chi2 = rs.chi_square(run["counts"], rs.effective_odds(live(), True), run["paid"])
+        self.assertLess(chi2, rs.CHI2_CRITICAL_DF10_P001, chi2)
+        self.assertLessEqual(run["longestDrought"], 9)
+
+    def test_full_report_carries_the_live_table_and_matches_the_doc(self):
+        text = rs.full_report()
+        self.assertEqual(text, rs.full_report())
+        self.assertIn("## Live hub table (PF5)", text)
+        self.assertIn("| forestChest |", text)
+        self.assertEqual(REPORT.read_text(encoding="utf-8"), text, "regenerate with --write")
+
+
 if __name__ == "__main__":
     unittest.main()

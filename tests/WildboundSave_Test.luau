@@ -446,6 +446,30 @@ return function(m, sources)
 		equal(#stored(store).farm, 1, "taking it back is saved too")
 	end)
 
+	-- PF5 (user decision 2026-11-14): the hub roulette's free spin and pity are saved (schema 6).
+	case("SV-23: a roulette spin marks the profile dirty, is saved and the free spin stays used after a rejoin", function()
+		local store, clock, server = world()
+		seed(store, clock)
+		local save, state = server("A")
+		save:join(USER, 0)
+		clock.t += Persistence.AUTOSAVE + 1
+		save:step()
+		local writes = #store.writes
+		-- Only the roulette state changes (no prize), so the digest alone must see it.
+		state.players["n:" .. USER].roulette = { freeSpinUsed = true, pityCount = 2, paidSpins = 5 }
+		clock.t += Persistence.AUTOSAVE + 1
+		save:step()
+		equal(#store.writes, writes + 1, "a roulette change marks the profile dirty")
+		local saved = stored(store)
+		equal(saved.roulette.freeSpinUsed, true); equal(saved.roulette.pityCount, 2); equal(saved.roulette.paidSpins, 5)
+		save:leave(USER)
+		local again, state2 = server("B")
+		equal((again:join(USER, 0)), "Saved")
+		local snapshot = state2:snapshot(USER)
+		equal(snapshot.roulette.freeSpinUsed, true, "no second free spin after a rejoin")
+		equal(snapshot.roulette.pityCount, 2, "the pity counter is kept")
+	end)
+
 	case("SV-19: the autosave loop steps every STEP_SECONDS until stopped", function()
 		local store, clock, server = world()
 		seed(store, clock)
