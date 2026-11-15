@@ -92,7 +92,7 @@ Sources: `git log 6edfa21..df0d0bb` (the work since 2026-11-14 starts after `5e9
 | Companion bond levels (XP thresholds 0, 40, 100, 180, 280) | Done in state (saved `bond`) |
 | Gloves with random stats (best rolls Legendaria) | Done |
 | Skill tree: 4 branches x 2 tiers (8 nodes, 5 with live effects) | Done |
-| Walk-speed training | Done (PF2): 17 levels of +2 studs/s, walk 16 to 50, also while carrying |
+| Walk-speed training | Done (PF2, BP1, BP2): 17 levels of +2 studs/s, walk 16 to 50; a carrier keeps its carry share of at most a 24 walk (one egg 16.5) |
 | Hub roulette (45 Esencia, one free spin, Rara+ pity every 10, saved) | Done (PF5, schema 6) |
 | Creature hotbar and base farm (4 slots, saved, creatures wander) | Done (PF3, PF4 schema 5, PF6); no farm income |
 | Recycling, shops, showcases, hatch ladder, second cradle, base chest stations | Prepared (geometry) / Design only (rules) |
@@ -577,7 +577,7 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Creature hotbar (a Tool per creature, own-pad deposit, rebuild on respawn) | Done (solo Play, PF3) | Same (PF3) |
 | Farm wander and pad lift | Done (solo Play with a stand-in model, PF6; the lift suite only); a hatched creature's real model wandering seen only for Gomibu (CE2) | Same (PF6, sunken-creature follow-up) |
 | Creature hotbar icons (Lumipol + 3 Caramelo) | Ids wired; images **do not load** (user-owned assets in a group experience; owner action) | Same (PF7); `odd/tasks/wildbound-caramelo.md` (CE2) |
-| Treadmill (17 levels, walk 16 to 50, also while carrying, lap +1 level and 5 Esencia) | Done (solo Play, PF2) | `odd/tasks/wildbound-playtest-fixes.md` (PF2) |
+| Treadmill (17 levels, walk 16 to 50; level L+1 needs L+1 laps and only a level-up lap pays 5 Esencia (BP1); a carrier's share is taken of at most a 24 walk (BP2)) | Done (solo Play, PF2, BP1, BP2) | `odd/tasks/wildbound-playtest-fixes.md` (PF2); `odd/tasks/wildbound-balance-pass.md` (BP1, BP2) |
 | Incubation (15 s x rarity, one slot), newborn to the hotbar | Done | `docs/mechanics/wildbound-incubator.md`; PF3 |
 | Gloves with random stats | Done | odd doc NS7 |
 | Skill tree (8 nodes, 5 live), upgrades, seals, capsule, ward totem, luck totem | Done | `docs/mechanics/wildbound-economy-p0.md` |

@@ -20,7 +20,7 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 ## Checklist
 
 - [x] BP1 Treadmill and training: a lap pays Esencia only on a level-up lap; level L+1 needs L+1 laps (about 20 min to the top); re-price the console as a shortcut; keep the unburdened walk cap 50. Route: inline (parent subagent, one writer). Done 2026-11-15 (`5287a33`; Studio suites and solo Play below).
-- [ ] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`).
+- [x] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`). Done 2026-11-15 (Studio suites and solo Play below).
 - [ ] BP3 Remaining findings (collection limit, base bonus timing, Caramelo tiers, Nightbloom, sinks, incubation slots) as the batch assigns them.
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
 
@@ -36,6 +36,9 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 | BP1-D8 | The simulator's "lap Esencia only on a level-up lap" what-if row is removed (it is now as built); its findings 1, 2 and 6 print "never" for the AFK hours instead of dividing by zero. The dated findings narrative is not regenerated in BP1 (BP4). | The model mirrors the live rule. |
 | BP1-D5 | A console purchase keeps the laps already run toward the next level (they are not lost). | Never take progress away. |
 | BP1-D6 | The simulator profiles keep their ASSUMED `laps_at_start` (4, 17, 17); with the new rule those laps reach level 2 and level 5. | A profile is behaviour, not the rule. |
+| BP2-D1 | The carry cap is `Training.CONSTANTS.CARRY_WALK_CAP = 24`, a constant, not a tuning entry (as BP1-D2 did for `LAP_STEP`). | No new tuning surface; the schema, the bridge and `Balance.liveFrom` stay untouched. |
+| BP2-D2 | The cap binds every slowed walk (`speed < base`): eggs, a carried creature and a heavy pouch alike. The lower of `WALK_CAP` and the carry cap applies. | One rule; `walkSpeed` cannot tell the kinds of load apart, and the old share already treated them alike. |
+| BP2-D3 | `WildboundServer` was not edited: its `applyCarry` comment still says "a carrier keeps its carry share of the trained walk", which stays true (the share is now of at most 24). | The server is in the teammate's lock zone and at the local limit; a comment is not worth a write there. |
 
 ## Evidence
 
@@ -54,6 +57,20 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Solo Play (PlayLock `BP1`, cleared after; Play stopped; saves in memory mode): WalkSpeed 16 before; mounted the Base1 belt (WalkSpeed 0). The `Treadmill` remote's lap payloads, 8 s apart: lap 1 `level 1, leveled, ember 5`; lap 2 `laps 1 of need 2, ember 0`; lap 3 `level 2, leveled, ember 5`; lap 4 `laps 1 of need 3, ember 0`. Dismounted through the remote: WalkSpeed 20. No script errors in the output.
 - Not checked: the notice wording on screen (`lapProgress`, `lapLevelEmber`), the console purchase at the new prices in Play, a rejoin keeping `training.walkLaps`, two players, a phone. Python tests were not run on this machine (no Python installed).
 
+### BP2 (2026-11-15)
+
+- Change: `WildboundTraining.walkSpeed`, slowed branch: `speed * min(base + bonus, WALK_CAP, CARRY_WALK_CAP) / base` (was `min(base + bonus, WALK_CAP)`); new constant `CARRY_WALK_CAP = 24`. Suite: TR-2 re-pinned on purpose (one egg at the top level 34.375 -> 16.5), new TR-12 (cap constant; under the cap unchanged; one egg 16.5; three or more 13.5; a glove bonus neither lifts a carrier past the cap nor is lost under it; an unburdened walk still 50; a `WALK_CAP` tuned to 20 binds first).
+- Fingerprint rule: before writing, Studio `WildboundTraining` and `WildboundTraining_Test` equalled the repo (4792/1375218450, 12330/3569453963). Written with exact replacements (`multi_edit`); after: Studio == repo, Training 5216/154448288, Training_Test 13903/525429571.
+- RED (test pushed, source unchanged), fresh loader run `feb47590`: Training 10 passed, 2 failed (TR-2 "Expected 16.5, got 34.375"; TR-12 "Expected 24, got nil").
+- GREEN, run `925d5b3e`: Training 12/0, Gear 15/0, Balance 25/0, EggCarry 39/0, Carry 13/0, Stamina 16/0, StaminaWiring 9/0, Text 21/0, Record 30/0, TuningWiring 8/0. Red, all on the handoff's known list: State 71/14, Tuning 15/1 (DT1), Hub 22/1 (HB-T3), Economy 21/1 (ECO-20), MechanicsWiring 9/1 (W1). No leaks, no timeouts.
+- Solo Play (PlayLock `BP2`, cleared after; Play stopped; memory saves): 15 laps on the Base1 belt took the walk to level 5; WalkSpeed 26 unburdened; `HeistProbe` "steal" (Egg:19): WalkSpeed 16.5 carrying one egg (the old rule gave 17.875); `HeistProbe` "drop": WalkSpeed back to 26. No script errors in the output.
+- Not checked: three eggs or a carried creature in Play (suite only), a sprint or a dodge while carrying, a chase by a parent, two players, a phone.
+- Review (workflow `wf_a0d6bc6d-d50`, three lenses, each finding verified): no defect in the rule. Open after it:
+  - **A carried creature still outwalks the parents.** `Wild.carrySpeed(0, true)` is 14, so a trained creature carrier walks 14/16 of 24 = 21 from walk level 4 (19.25 at level 3; 22.5 with Light Load), above the parents' chase 19. Before BP2 it was 43.75, so the gap is smaller, but "a chase stays a chase" holds for eggs only. The approved number (24) was kept; a lower cap for this case needs the user's call.
+  - The simulator and its tests still pin the uncapped share (`live_carry`, `test_wildbound_economy_sim_v2.py` lines 483, 485, 597, and the "carrier share of at most a 24 walk" what-if, which is now as built). See the next bullet.
+  - The overview's two treadmill rows were updated; the `applyCarry` comment was left (BP2-D3).
+- Not done on this machine (no Python): `tools/wildbound_economy_sim_v2.py` still models the uncapped share as live and keeps `carry_trained_cap` as a what-if; its tests and `check_drift` were not run. Fold the cap into the sim in BP4.
+
 ## Next step
 
-BP2: cap the carrier speed (a carrier's share is taken of at most a 24 walk).
+BP3: the remaining findings (Caramelo nest tiers one lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s).

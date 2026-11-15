@@ -46,7 +46,8 @@ return function(Training, source, sources)
 		near(Training.walkSpeed(16, 16, { walk = 17 }), 50, "the top level reaches the cap")
 		near(Training.walkSpeed(16, 16, { walk = 99 }), 50, "levels past the cap count as the cap")
 		near(Training.walkSpeed(16, 16, { walk = 17 }, 5), 50, "with any other bonus, never above the cap")
-		near(Training.walkSpeed(11, 16, { walk = 17 }), 34.375, "an egg carrier keeps 11/16 of the trained walk")
+		-- Deliberately re-pinned (BP2, 2026-11-15): was 34.375, 11/16 of the full 50 walk.
+		near(Training.walkSpeed(11, 16, { walk = 17 }), 16.5, "BP2: an egg carrier keeps 11/16 of at most a 24 walk")
 		near(Training.walkSpeed(11, 16, { walk = 4 }), 16.5, "four levels while carrying one egg")
 		near(Training.walkSpeed(11, 16, nil), 11, "an untrained carrier is unchanged")
 		near(Training.walkSpeed(16, 16, nil), 16); near(Training.walkSpeed(16, 16, { walk = -2 }), 16)
@@ -179,6 +180,25 @@ return function(Training, source, sources)
 		record.training = { walk = 6, walkLaps = 3 }
 		local ok, problems = Record.validate(record, Economy, Config)
 		assert(ok, "a record with lap progress is valid: " .. table.concat(problems or {}, "; "))
+	end)
+
+	-- BP2 (2026-11-15, simulator finding 3; supersedes the 2026-11-14 "the trained walk also applies while carrying" as
+	-- built): a carrier's share is taken of at most a CARRY_WALK_CAP walk, so a chase stays a chase (parents run 19).
+	case("TR-12: a carrier's share is taken of at most a 24 walk; an unburdened walk still reaches 50", function()
+		equal(Training.CONSTANTS.CARRY_WALK_CAP, 24)
+		near(Training.walkSpeed(11, 16, { walk = 2 }), 13.75, "under the carry cap the share is unchanged: 11/16 of 20")
+		near(Training.walkSpeed(11, 16, { walk = 5 }), 16.5, "one egg: 11/16 of 24, not of 26")
+		near(Training.walkSpeed(9, 16, { walk = 17 }), 13.5, "three or more eggs: 9/16 of 24")
+		near(Training.walkSpeed(11, 16, { walk = 17 }, 5), 16.5, "a glove bonus does not lift a carrier past the carry cap")
+		near(Training.walkSpeed(11, 16, { walk = 3 }, 1), 15.8125, "a glove bonus still counts under the carry cap: 11/16 of 23")
+		near(Training.walkSpeed(11, 16, nil), 11, "an untrained carrier is unchanged")
+		near(Training.walkSpeed(16, 16, { walk = 17 }), 50, "an unburdened walk keeps the full cap")
+		assert(Training.walkSpeed(11, 16, { walk = 17 }) < 19, "a top-level one-egg carrier walks under the parents' chase 19")
+		-- A live WALK_CAP tuned under the carry cap still binds a carrier.
+		Training.tune({ WALK_CAP = 20 })
+		local low = Training.walkSpeed(11, 16, { walk = 17 })
+		Training.tune(nil)
+		near(low, 13.75, "the lower of the walk cap and the carry cap")
 	end)
 
 	case("TR-7: the module is pure: no services, clock or randomness, and no purchase path", function()
