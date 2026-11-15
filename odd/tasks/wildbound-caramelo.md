@@ -639,7 +639,15 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
   `Layout.NESTS_ENABLED` + `Builder.syncNests`. Route: inline (one new module + suite; small additive edits to
   WildboundServer, Island, Species, Text, CandyLayout, CandyBuilder; the 4-file mapping read stayed in the parent because
   this worker may not delegate). TDD strict. Commit f2e0c77.
-- [ ] CE2 (assigned by the follow-up workflow).
+- [x] CE2 Caramelo pets: a banked Caramelo egg incubates by its rarity (Común 15 s, Rara 45 s, Épica 60 s) and hatches
+  into Gomibú, Flanfuria or Tortidragón, registered and saved like any creature (no schema step: the record only needs a
+  species string), never the companion (`Species.FARM_ONLY`, `State.farmOnly`: no auto-equip, `equip` refuses
+  `FarmOnly`); a hotbar tool with its own icon (`Toolbar.ICONS`, three uploads); in the farm a scaled-down copy of the real
+  rig (`WildboundCandyPets.build`, injected as the Toolbar's `farmModel`), passive (no brain, no collision, no light),
+  wandering like the Lumipol and playing its published FarmIdle / walk clip from the server (`FarmWalking`). Route: inline
+  (one new module + suite; small additive edits to Toolbar, Species, State, Text, Server; the writer trigger fired but
+  every Studio write needs the parent's fingerprint gate, and this worker may not delegate). TDD strict. Commit (see
+  Evidence CE2).
 - [ ] CE3 (assigned by the follow-up workflow).
 
 ### CE0: qué es publicar las animaciones y cómo se hace
@@ -707,6 +715,25 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
    start. As with CE0, nothing is saved by the assistant: in Team Create the attributes live in the session; if they are
    lost, one `Builder.syncNests` call restores them.
 
+29. **CE2, the icons:** cropped from the pack's 3/4-front turnaround views (the Blender sources of Gomibú and Flanfuria are
+   lost, Tortidragón's turnaround matches the other two), 256x256 on the sheet's own dark background like the Lumipol
+   icon; files `assets/icons/<species>-hotbar-icon-256.png`.
+30. **CE2, farm only, never the companion (pack 05/03: "Nunca autoequipar. No seguir por el mapa"):** `Species.FARM_ONLY`
+   (Gomibú, Tortidragón, Flanfuria) set on State by the server (`state.farmOnly`); a hatch never makes them the companion
+   and `equip` refuses with `FarmOnly` ("Esta criatura vive en tu barra y tu granja; no te sigue."). Lumipols keep NS3.
+   The held hotbar tool keeps the species' primitive stand-in (only the farm uses the rig).
+31. **CE2, the farm model:** a clone of the wild beast's prefab (`ServerStorage.WildboundAssets.<species>`) scaled so its
+   visible height is Gomibú 3, Flanfuria 3.2, Tortidragón 3.6 studs (a Lumipol is about 1.5, a player 5.5); scripts,
+   lights and package links removed; only the root anchored; nothing collides, touches or is queried; no light of its own.
+   It stands on its pivot (its feet), so the Toolbar skips the bounding-box lift for it (the hidden root reaches 1 stud
+   below the feet).
+32. **CE2, animation:** played on the server's Animator (replicates to every client): `FarmIdle` at rest and the walk clip
+   (Gomibú `Bounce_Move`, Flanfuria `Hop_Move`, Tortidragón `Walk_Quadruped`) while the Toolbar's wander walks
+   (`FarmWalking`, set only when it changes). Tortidragón has no published clip yet, so it rests in its bind pose until the
+   owner publishes the CE0 clips; once `Clips.IDS` holds them it animates with no code change.
+33. **CE2, data:** no schema change. Esencia is the egg's nest tier (Fog 10, FogFar 16, Territory 24), rarity comes from
+   `Species.LOOKS`, hatch time from `Incubator.RARITY_MULTIPLIER`, the collection entry from `discovered`: all existing.
+
 ### Evidence CE0
 
 - Studio target: place 122652861404212 (universe 10774749224); was in Play at start, polled until Edit (about 2 min),
@@ -763,7 +790,44 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
   actually chasing a thief at its bound nest in Play; the hatch result (a primitive stand-in until CE2); two players,
   phone.
 
+### Evidence CE2
+
+- Studio target: place 122652861404212 (universe 10774749224), instance ba5a21af, Edit, PlayLock nil, runner lock nil.
+- Studio == HEAD before (bytes, Adler-32): Toolbar 18156 3445d012, Toolbar_Test 21536 434f288d, Species 5336 17f59604,
+  Species_Test 3917 22b8eb62, State 53376 ec12c43e, State_Test 84403 7c682fde, Server 212254 ff46e7ff, Text 37074
+  c8cd5ca1; CandyPets and its suite absent.
+- Uploads (user-approved, one each): Gomibú 130041727906990, Flanfuria 106158128076232, Tortidragón 85016154045779
+  (receipts in `assets/exports/caramelo/upload-receipts.md`).
+- Runner: a trimmed copy of `tools/studio-fresh-runner.luau` (engine unchanged, the SPECS of every suite reading a
+  touched script, a name set instead of FILTER) in a temporary ServerStorage ModuleScript, destroyed after.
+- RED (tests deployed, `WildboundCandyPets` an empty stub, sources unchanged): CandyPets 0/8, CreatureToolbar 17/3
+  (CT-18 icon, CT-19 rig, CT-20 FarmWalking).
+- GREEN: CandyPets 8/0, CreatureToolbar 20/0. Regression, 44 suites: 629 passed, 21 failed, all known pre-existing:
+  AN-3, BZ7, ECO-20, EL12, HB-T3, W1, RW5 and the 14 State_Test EconomyConfig drift cases (PF4).
+- Studio == repo after the writes: Toolbar 19587 fe8da42d, Toolbar_Test 25972 a7cbaac8, Species 5860 44144708, State
+  53911 c4087c0b, Server 213398 873a6713, Text 37237 896f92f9, CandyPets 6013 7e0ceeac (new), CandyPets_Test 11950
+  9e1015f6 (new).
+- Solo Play (PlayLock CE2, removed after; Play stopped): HeistProbe steal at CandyC1, carried to Base1: banked,
+  `WildboundEggReward = 1|Gomibu|Comun|10|0|1|...`; 15 s later a hotbar tool "Gomibú" (TextureId
+  rbxassetid://130041727906990, uid wb:2), not equipped. The client equipped and activated it on the own pad: a
+  `WildboundFarmCreature` in Base1, species Gomibu, passive, pivot on the pad top (0.00), 3.45 studs tall (bounding box),
+  no light, pickup prompt; it wandered 12 studs in 4 s; the server's Animator played FarmIdle 135673668651279 (3.00 s
+  clip), seen playing on the client too. No Wildbound script error. Screenshot
+  `assets/exports/forest-kit/captures/ce2-gomibu-farm-pet-desktop.jpg`.
+- Icons do not load yet: the client log says "Requester does not have permission for Asset" for the three new icons and
+  for the Lumipol icon (PF7): user-owned images cannot be used by the group experience. Owner action below.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept. `test_studio_fresh_runner` 15/15,
+  `test_deploy_manifest` 25/25.
+- Not tested: Flanfuria and Tortidragón farm models in Play (only in the suite), the walk clip switching in Play, the hotbar
+  showing the image (blocked by asset permission), the `FarmOnly` refusal through the Bag's equip remote in Play, two
+  players, phone.
+
 ## Next step
+
+- Owner action for the icons (CE2): in the Creator Hub open each image (130041727906990, 106158128076232, 85016154045779
+  and the Lumipol 121561289565386) and share it with the experience / group 465694015, or upload the four PNGs from
+  `assets/icons/` to the group and give the ids to the assistant, who swaps them in `Toolbar.ICONS` and reruns CT-17/CT-18.
+
 
 - CA5 close: a two-client lighting check (one in the Bosque,
   one in Caramelo at once) and a 15-minute / three-wave stay in Caramelo; enable the Caramelo nests through the builder when the
