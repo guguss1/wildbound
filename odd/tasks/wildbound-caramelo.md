@@ -646,8 +646,8 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
   rig (`WildboundCandyPets.build`, injected as the Toolbar's `farmModel`), passive (no brain, no collision, no light),
   wandering like the Lumipol and playing its published FarmIdle / walk clip from the server (`FarmWalking`). Route: inline
   (one new module + suite; small additive edits to Toolbar, Species, State, Text, Server; the writer trigger fired but
-  every Studio write needs the parent's fingerprint gate, and this worker may not delegate). TDD strict. Commit (see
-  Evidence CE2).
+  every Studio write needs the parent's fingerprint gate, and this worker may not delegate). TDD strict. Commit
+  551f56e.
 - [ ] CE3 (assigned by the follow-up workflow).
 
 ### CE0: qué es publicar las animaciones y cómo se hace
@@ -818,6 +818,7 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
   for the Lumipol icon (PF7): user-owned images cannot be used by the group experience. Owner action below.
 - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept. `test_studio_fresh_runner` 15/15,
   `test_deploy_manifest` 25/25.
+- Commits 551f56e (code, tests, icons, screenshot) and 4aa1eab (this record).
 - Not tested: Flanfuria and Tortidragón farm models in Play (only in the suite), the walk clip switching in Play, the hotbar
   showing the image (blocked by asset permission), the `FarmOnly` refusal through the Bag's equip remote in Play, two
   players, phone.
