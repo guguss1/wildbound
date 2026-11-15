@@ -142,6 +142,7 @@ SPECS["WildboundBeastFlanfuria_Test"] = {
 SPECS["WildboundCandyTortidragon_Test"] = { "mod:WildboundCandyTortidragon", "inst:ServerStorage.WildboundAssets.Tortidragon" }
 SPECS["WildboundCandyTortidragonAttack_Test"] = { "mod:WildboundCandyTortidragonAttack" }
 SPECS["WildboundCandyTortidragonClips_Test"] = { "mod:WildboundCandyTortidragonClips", "inst:ServerStorage.WildboundAssets.Tortidragon" }
+SPECS["WildboundScuttlerClips_Test"] = { "mod:WildboundScuttlerClips", "mod:WildboundBeastAnimPlan" }
 SPECS["WildboundBeastTortidragon_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastTortidragon", "mod:WildboundBeastConfig", "mod:WildboundCandyTortidragonAttack",
 }
@@ -173,7 +174,8 @@ SPECS["WildboundCandyPets_Test"] = {
 }
 SPECS["WildboundCandyEggArt_Test"] = {
 	"mod:WildboundCandyEggArt", "mod:WildboundSpecies", "mod:WildboundEggLoop",
-	{ server = "src:WildboundServer", bob = "src:WildboundCandyEggBob" },
+	{ server = "src:WildboundServer", bob = "src:WildboundCandyEggBob", state = "mod:WildboundState",
+		economy = "mod:WildboundEconomy", economyConfig = "mod:WildboundEconomyConfig" },
 }
 SPECS["WildboundPortal_Test"] = {
 	"mod:WildboundPortal", "mod:WildboundBalance", "mod:WildboundWorldRules", "mod:WildboundCandyLayout", "mod:WildboundBiomes",

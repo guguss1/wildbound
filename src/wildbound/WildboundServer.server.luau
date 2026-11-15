@@ -2147,8 +2147,11 @@ spawnEncounter = function(slot)
 				return
 			end
 			local alive, distance = context(player, body)
+			-- CH2 (decision 54): the egg keeps its nest's rarity (the same tier as its prompt and EggCarry record); a tier
+			-- State does not know is left out, so the egg falls back to its species' default instead of being refused.
 			local ok, reason = state:pickup(player.UserId, id, alive, distance, { species = slot.species or "Lumipol",
-				tier = slot.rewardTier or "Territory", island = slot.island, arms = true })
+				tier = slot.rewardTier or "Territory", island = slot.island, arms = true,
+				rarity = Text.RARITY[rarity] and rarity or nil })
 			if ok then
 				EggCarry.steal(eggs, id, player.UserId, reason, maxCarry)
 				Heist.syncEggArms(player)

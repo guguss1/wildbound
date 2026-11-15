@@ -196,6 +196,42 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		equal(Portal.request(st, ready({ carrying = false }), 0), true, "empty arms may use it")
 	end)
 
+	case("PT-11: CH1 (decision 53): a beast only calm or present is no threat; noticing, chasing or attacking is", function()
+		assert(type(Portal.engaging) == "function", "Portal.engaging exists")
+		-- Present but not on the player: the Nube drifting at its pond, a sleeping or patrolling guardian, a hive guard,
+		-- a beast walking home, an encounter winding down.
+		for _, phase in ipairs({ "Spawn", "Calm", "Dormant", "Patrol", "Guard", "Wake", "Return", "Disengage", "Ended" }) do
+			equal(Portal.engaging(phase), false, phase .. " is calm")
+			equal(Portal.CALM_PHASES[phase], true, phase .. " listed")
+		end
+		-- On the player: every phase that noticed, follows, telegraphs, strikes or recovers from a strike.
+		for _, phase in ipairs({ "Notice", "Chase", "Telegraph", "Recover", "Stalk", "Pursue", "Watch", "Presence",
+			"Suspicious", "Heard", "Search", "Attack", "Charge", "Snap", "Pulse", "Stunned" }) do
+			equal(Portal.engaging(phase), true, phase .. " engages")
+		end
+		-- Fail safe: a phase a future beast adds counts as a threat until it is listed as calm.
+		equal(Portal.engaging("SomeNewPhase"), true, "an unknown phase engages")
+		equal(Portal.engaging(nil), false, "no phase"); equal(Portal.engaging(12), false, "not a phase name")
+		assert(table.isfrozen(Portal.CALM_PHASES), "frozen")
+		-- The portal then sees only the engaging beasts' stamps: a Calm Nube near the arch writes none, so the calm clock
+		-- runs and the channel opens; a Nube that noticed the player stamps and the portal refuses Threat.
+		local st = Portal.new()
+		local stamp = nil
+		for t = 0, 6, 0.5 do
+			if Portal.engaging("Calm") then stamp = t end
+			if Portal.threatened({ x = 0, z = 0, beastEngagedAt = stamp }, t) then Portal.noteThreat(st, t) end
+		end
+		equal((Portal.request(st, ready(), 6)), true, "a Calm beast near the arch lets the channel open")
+		st = Portal.new()
+		stamp = nil
+		for t = 0, 6, 0.5 do
+			if Portal.engaging("Notice") then stamp = t end
+			if Portal.threatened({ x = 0, z = 0, beastEngagedAt = stamp }, t) then Portal.noteThreat(st, t) end
+		end
+		local ok, reason = Portal.request(st, ready(), 6)
+		equal(ok, false, "a noticing beast"); equal(reason, "Threat", "refused as a threat")
+	end)
+
 	case("PT-10: pure: no services, no instances, no clock", function()
 		local src = sources.portal
 		for _, banned in ipairs({ "GetService", "Instance.new", "os.clock", "tick()", "workspace", "task." }) do

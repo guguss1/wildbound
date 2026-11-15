@@ -52,6 +52,9 @@ local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlay
 Record.GLOVE_CAPS = table.freeze({ move = 3, steal = 25, burst = 30, drain = 40, calm = 40 })
 Record.GLOVE_RARITIES = table.freeze({ Comun = true, Rara = true, Epica = true, Legendaria = true })
 Record.GLOVE_LIMIT = 12
+-- CH2 (decision 54): a banked or incubating egg may carry its nest's rarity, an optional field inside schema 6 (no
+-- migration: an old save without it loads unchanged and the egg falls back to its species' default rarity).
+Record.EGG_RARITIES = table.freeze({ Comun = true, Rara = true, Epica = true, Legendaria = true })
 
 local function copy(value)
 	if type(value) ~= "table" then return value end
@@ -183,7 +186,7 @@ function Record.fromProfile(profile, base, meta, economy, config)
 		table.insert(record.collection.registered, { uid = entry.uid, species = entry.species })
 	end
 	for _, entry in ipairs(profile.bankedEggs) do
-		table.insert(record.collection.bankedEggs, { uid = entry.uid, species = entry.species })
+		table.insert(record.collection.bankedEggs, { uid = entry.uid, species = entry.species, rarity = entry.rarity })
 	end
 	record.equippedUid = profile.equippedUid
 	record.banked = copy(profile.banked)
@@ -196,7 +199,7 @@ function Record.fromProfile(profile, base, meta, economy, config)
 	record.incubating = {}
 	for _, entry in ipairs(profile.incubating or {}) do
 		table.insert(record.incubating, { uid = entry.uid, species = entry.species, startedAtUnix = entry.startedAt,
-			readyAtUnix = entry.readyAt })
+			readyAtUnix = entry.readyAt, rarity = entry.rarity })
 	end
 	record.training = copy(profile.training or {})
 	-- NS7: every glove and the worn one.
@@ -284,7 +287,7 @@ function Record.toProfile(record, economy, config, sessionNow)
 		profile.discovered[entry.species] = true
 	end
 	for _, entry in ipairs(record.collection.bankedEggs) do
-		table.insert(profile.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species })
+		table.insert(profile.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species, rarity = entry.rarity })
 	end
 	for uid, xp in pairs(record.bondXp) do
 		profile.bond[uid] = { xp = xp, level = economy.bondLevel(config, xp) }
@@ -295,7 +298,7 @@ function Record.toProfile(record, economy, config, sessionNow)
 		profile.incubating = {}
 		for _, entry in ipairs(record.incubating) do
 			table.insert(profile.incubating, { uid = entry.uid, species = entry.species, startedAt = entry.startedAtUnix,
-				readyAt = entry.readyAtUnix })
+				readyAt = entry.readyAtUnix, rarity = entry.rarity })
 		end
 	end
 	if type(record.training) == "table" and next(record.training) ~= nil then profile.training = copy(record.training) end
@@ -377,6 +380,9 @@ function Record.validate(record, economy, config)
 						species(entry, label)
 						companions += 1
 						if name == "registered" then registeredSet[entry.uid] = true end
+						if name == "bankedEggs" and entry.rarity ~= nil and not Record.EGG_RARITIES[entry.rarity] then
+							fail(label .. " has an unknown rarity")
+						end
 					end
 				end
 			end
@@ -391,6 +397,7 @@ function Record.validate(record, economy, config)
 				species(entry, label)
 				companions += 1
 				if not finite(entry.startedAtUnix) or not finite(entry.readyAtUnix) then fail(label .. " has no times") end
+				if entry.rarity ~= nil and not Record.EGG_RARITIES[entry.rarity] then fail(label .. " has an unknown rarity") end
 			end
 		end
 	end

@@ -47,7 +47,8 @@ RunService.RenderStepped:Connect(function()
 				local part, offset, size = item[1], item[2], item[3]
 				if part.Parent == holder then
 					local p = offset.Position
-					part.Size = Vector3.new(size.X * sx, size.Y * sy, size.Z * sx)
+					-- CH3: in the part's own axes (the RarityRim is a cylinder turned upright: its height is its X).
+					part.Size = size * CandyEggArt.localScale(offset.Rotation, sx, sy)
 					part.CFrame = entry.foot * CFrame.new(p.X * sx, p.Y * sy, p.Z * sx) * offset.Rotation
 				end
 			end

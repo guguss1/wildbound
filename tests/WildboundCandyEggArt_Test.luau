@@ -1,5 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshCandyEggArtClone), require(freshSpeciesClone),
--- require(freshEggLoopClone), { server = WildboundServer.Source, bob = WildboundCandyEggBob.Source }).
+-- require(freshEggLoopClone), { server = WildboundServer.Source, bob = WildboundCandyEggBob.Source,
+-- state = require(freshStateClone), economy = require(freshEconomyClone), economyConfig = require(freshEconomyConfigClone) }).
 -- CG1 (odd/tasks/wildbound-caramelo.md): each Caramelo egg has its own candy look built from primitives, the same in the
 -- nest, on the ground, in the carried backpack and on the cradle spot; the rarity colour stays readable and a
 -- Legendaria egg shimmers gold. A forest egg is never touched. Every model here stays detached.
@@ -248,6 +249,61 @@ return function(CandyEggArt, Species, EggLoop, sources)
 		assert(server:find("CandyEggArt.weldTo(candy, shell)", 1, true), "backpack welds it")
 		local bob = sources.bob
 		assert(bob:find("CandyEggArt.BOB_TAG", 1, true) and bob:find("CandyEggArt.bob(", 1, true), "client bob")
+	end)
+
+	case("CG-13: CH2 (decision 54): a Legendaria Flanfuria egg from its nest reaches the cradle as Legendaria, shimmering", function()
+		local State, Economy, Config = sources.state, sources.economy, sources.economyConfig
+		local state = State.new(Economy, Config)
+		assert(state:addPlayer("Alice"))
+		assert(state:registerEncounter("nest:CandyE1", "Egg"))
+		-- The server's steal passes the nest's rarity (the same `rarity` local the prompt and the EggCarry record use).
+		local ok, uid = state:pickup("Alice", "nest:CandyE1", true, 0,
+			{ species = "Flanfuria", tier = "Territory", island = "CandyE1", arms = true, rarity = "Legendaria" })
+		equal(ok, true, tostring(uid))
+		equal(select(2, state:extract("Alice", true, 0)), 1, "banked at the base")
+		local entry = select(2, state:incubate("Alice", uid, true, 0, 100, 90, 1))
+		local cradle = state:snapshot("Alice").incubating[1]
+		equal(cradle.uid, entry.uid); equal(cradle.rarity, "Legendaria", "the incubator keeps the rarity")
+		-- The cradle draw (`visual("Egg", top, entry.species, nil, nil, entry.rarity, "cradle")`).
+		local look = Species.look(cradle.species)
+		assert(look.rarity ~= "Legendaria", "the species default is not Legendaria, so the rarity must come from the egg")
+		local model = build(cradle.species, cradle.rarity or look.rarity, "cradle")
+		local holder = model:FindFirstChild(CandyEggArt.MODEL)
+		equal(holder:GetAttribute(CandyEggArt.RARITY_ATTRIBUTE), "Legendaria", "drawn as Legendaria")
+		local rim = named(holder, "RarityRim")[1]
+		equal(rim.Color, Color3.fromRGB(table.unpack(CandyEggArt.RIM.Legendaria)), "a gold rim")
+		local glaze = named(holder, "GoldGlaze")[1]
+		assert(glaze and glaze:FindFirstChild("GoldShimmer"), "the gold shimmer")
+		model:Destroy()
+		local server = sources.server
+		assert(server:find('tier = slot.rewardTier or "Territory", island = slot.island, arms = true,\n\t\t\t\trarity = Text.RARITY[rarity] and rarity or nil })', 1, true),
+			"the steal passes the nest's rarity to State:pickup")
+	end)
+
+	case("CG-14: CH3: the bob squashes every part in its own axes (the turned RarityRim grows along its upright X)", function()
+		assert(type(CandyEggArt.localScale) == "function", "CandyEggArt.localScale exists")
+		local sx, sy = 0.97, 1.06
+		local model = build("Gomibu", "Comun", "nest")
+		local holder = model:FindFirstChild(CandyEggArt.MODEL)
+		local rim = named(holder, "RarityRim")[1]
+		local scale = CandyEggArt.localScale(BASE:ToObjectSpace(rim.CFrame).Rotation, sx, sy)
+		near(scale.X, sy, 1e-4, "rim X is its height"); near(scale.Y, sx, 1e-4, "rim Y"); near(scale.Z, sx, 1e-4, "rim Z")
+		local shell = named(holder, "GummyShell")[1]
+		scale = CandyEggArt.localScale(BASE:ToObjectSpace(shell.CFrame).Rotation, sx, sy)
+		near(scale.X, sx, 1e-4, "shell X"); near(scale.Y, sy, 1e-4, "shell Y is its height"); near(scale.Z, sx, 1e-4, "shell Z")
+		-- Squashed, the rim stays a thin disc: its height grows with the egg, its diameter thins with it.
+		local size = rim.Size * CandyEggArt.localScale(BASE:ToObjectSpace(rim.CFrame).Rotation, sx, sy)
+		near(size.X, rim.Size.X * sy, 1e-4, "height"); near(size.Y, rim.Size.Y * sx, 1e-4, "diameter")
+		-- A part tilted 45 degrees mixes both.
+		local tilted = CandyEggArt.localScale(CFrame.Angles(0, 0, math.pi / 4), sx, sy)
+		near(tilted.X, math.sqrt((sx * sx + sy * sy) / 2), 1e-4, "tilted X")
+		near(tilted.Z, sx, 1e-4, "tilted Z")
+		equal(CandyEggArt.localScale(nil, sx, sy), Vector3.one, "no rotation")
+		equal(CandyEggArt.localScale(CFrame.identity, 0 / 0, sy), Vector3.one, "bad squash")
+		model:Destroy()
+		local bob = sources.bob
+		assert(bob:find("CandyEggArt.localScale(offset.Rotation, sx, sy)", 1, true), "the client scales in the part's axes")
+		assert(not bob:find("Vector3.new(size.X * sx, size.Y * sy, size.Z * sx)", 1, true), "not in the egg's axes")
 	end)
 
 	return result

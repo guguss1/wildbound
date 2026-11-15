@@ -208,6 +208,12 @@ local TIERS = table.freeze({ Safe = true, Fog = true, FogFar = true, Territory =
 local function validSpecies(value)
 	return type(value) == "string" and #value > 0 and #value <= 32
 end
+-- CH2 (decision 54): an egg's own rarity tier, from its nest (EggCarry's record, the prompt's label). Optional: an egg
+-- without one keeps the old rule (its species' default, WildboundEggLoop.rarityOf).
+local RARITIES = table.freeze({ Comun = true, Rara = true, Epica = true, Legendaria = true })
+local function validRarity(value)
+	return value == nil or RARITIES[value] == true
+end
 
 -- Expedition islands (I5): `meta` = { species, tier, island } from the island nest the egg came from. Without it the
 -- egg keeps the old rule: a Lumipol egg of the Territory tier.
@@ -221,11 +227,13 @@ function State:pickup(key, id, alive, distance, meta)
 	if encounter.claimed then return false, "AlreadyClaimed" end
 	-- A creature is granted only by a finished capture session (completeCapture), never by a prompt.
 	if encounter.kind == "Creature" then return false, "CaptureRequired" end
-	local species, tier, island, arms = "Lumipol", "Territory", nil, false
+	local species, tier, island, arms, rarity = "Lumipol", "Territory", nil, false, nil
 	if meta ~= nil then
 		if type(meta) ~= "table" or not validSpecies(meta.species) then return false, "InvalidSpecies" end
 		if type(meta.tier) ~= "string" or not TIERS[meta.tier] then return false, "InvalidTier" end
 		species, tier, island = meta.species, meta.tier, type(meta.island) == "string" and meta.island or nil
+		if not validRarity(meta.rarity) then return false, "InvalidRarity" end
+		rarity = meta.rarity
 		-- Nest Heist (NH2): an egg stolen into the arms (the server's EggCarry tracks it); it can be knocked loose.
 		arms = meta.arms == true
 	end
@@ -237,7 +245,7 @@ function State:pickup(key, id, alive, distance, meta)
 	-- An egg pays by the tier of the nest it came from (I7); the old nest sat in the territory.
 	addToBag(self, player, {
 		uid = uid, kind = encounter.kind, species = species, protected = false, riskTier = tier, island = island,
-		inArms = arms or nil,
+		inArms = arms or nil, rarity = rarity,
 	})
 	return true, uid
 end
@@ -998,10 +1006,11 @@ function State:takeEgg(key, entry, alive, distance)
 	if not player then return false, "InvalidPlayer" end
 	if not context(alive, distance, 10) then return false, "InvalidContext" end
 	if type(entry) ~= "table" or entry.kind ~= "Egg" or not validId(entry.uid) then return false, "InvalidEncounter" end
+	if not validRarity(entry.rarity) then return false, "InvalidRarity" end
 	if #player.pending >= bagCapacity(self, player) then return false, "BackpackFull" end
 	if collectionSize(player) >= self.config.capacity.collectionLimit then return false, "CollectionFull" end
 	table.insert(player.pending, { uid = entry.uid, kind = "Egg", species = entry.species, protected = false,
-		riskTier = entry.riskTier, island = entry.island, inArms = true })
+		riskTier = entry.riskTier, island = entry.island, inArms = true, rarity = entry.rarity })
 	return true, entry.uid
 end
 

@@ -58,6 +58,19 @@ function CandyEggArt.bob(t)
 	return 1 - wave / 2, 1 + wave
 end
 
+-- CH3: the bob's squash (sx across, sy up, in the egg's own frame) in one part's own axes. rotation: the part's
+-- rotation relative to the egg's foot. Each local axis is stretched by how much it points across or up, so the turned
+-- RarityRim (a cylinder lying along its X, stood upright) grows in height along X and thins along Y and Z.
+function CandyEggArt.localScale(rotation, sx, sy)
+	local function bad(value) return type(value) ~= "number" or value ~= value or value <= 0 or value == math.huge end
+	if typeof(rotation) ~= "CFrame" or bad(sx) or bad(sy) then return Vector3.one end
+	local function along(axis)
+		local v = rotation:VectorToWorldSpace(axis)
+		return math.sqrt((v.X * sx) ^ 2 + (v.Y * sy) ^ 2 + (v.Z * sx) ^ 2)
+	end
+	return Vector3.new(along(Vector3.xAxis), along(Vector3.yAxis), along(Vector3.zAxis))
+end
+
 local function part(holder, name, size, frame, color, material, shape)
 	local item = Instance.new("Part")
 	item.Name, item.Size, item.CFrame = name, size, frame

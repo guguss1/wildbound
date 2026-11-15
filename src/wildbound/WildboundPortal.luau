@@ -43,6 +43,19 @@ function Portal.station(id)
 	return nil
 end
 
+-- CH1 (decision 53): the encounter phases in which a beast is only present, not on the player: spawning, drifting
+-- calm (the Nube at its pond), asleep or patrolling (Don Glaseon), guarding its hive (Abeja), walking home, winding
+-- down. WildboundBeasts writes the WildboundBeastEngagedAt stamp only for the other phases, so a calm beast near an
+-- arch never blocks a portal. Any phase not listed counts as engaging (a new beast's phases are threats until listed).
+Portal.CALM_PHASES = table.freeze({
+	Spawn = true, Calm = true, Dormant = true, Patrol = true, Guard = true, Wake = true, Return = true,
+	Disengage = true, Ended = true,
+})
+
+function Portal.engaging(phase)
+	return type(phase) == "string" and Portal.CALM_PHASES[phase] ~= true
+end
+
 -- La Silueta's published threat levels that count (WildboundThreatLevel: Near and Chase; Distant and Safe do not).
 Portal.SILUETA_LEVELS = table.freeze({ Near = true, Chase = true })
 

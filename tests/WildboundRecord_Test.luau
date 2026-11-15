@@ -598,5 +598,35 @@ return function(Record, Economy, Config, State, source)
 			"a malformed session state is never saved")
 	end)
 
+	case("RT-30: CH2: a banked or incubating egg keeps its rarity across a save; an old save without one still loads", function()
+		local profile = stateProfile()
+		profile.bankedEggs = { { uid = "u1", kind = "Egg", species = "Flanfuria", rarity = "Legendaria" },
+			{ uid = "u2", kind = "Egg", species = "Lumipol" } }
+		profile.incubating = { { uid = "u3", species = "Tortidragon", rarity = "Rara", startedAt = 1700000000,
+			readyAt = 1700000090 } }
+		local base = Record.blank(); base.nextUid = 4
+		local record = assert(Record.fromProfile(profile, base, { nowUnix = 1700000010 }, Economy, Config))
+		valid(record, "with rarities")
+		equal(record.collection.bankedEggs[1].rarity, "Legendaria", "banked rarity saved")
+		equal(record.collection.bankedEggs[2].rarity, nil, "no rarity, no field")
+		equal(record.incubating[1].rarity, "Rara", "incubating rarity saved")
+		local _, roundTrip = Record.migrate(HttpService:JSONDecode(HttpService:JSONEncode(record)))
+		local back = Record.toProfile(roundTrip, Economy, Config, 0)
+		equal(back.bankedEggs[1].rarity, "Legendaria", "banked after a rejoin")
+		equal(back.bankedEggs[2].rarity, nil, "still none")
+		equal(back.incubating[1].rarity, "Rara", "incubating after a rejoin")
+		-- An old save (no rarity anywhere) loads unchanged.
+		local old = Record.copy(record)
+		old.collection.bankedEggs[1].rarity = nil; old.incubating[1].rarity = nil
+		valid(old, "an old save")
+		local oldBack = Record.toProfile(old, Economy, Config, 0)
+		equal(oldBack.bankedEggs[1].rarity, nil); equal(oldBack.incubating[1].rarity, nil)
+		deepEqual(oldBack.bankedEggs[1], { uid = "u1", kind = "Egg", species = "Flanfuria" }, "the old profile shape")
+		-- A rarity that is not one of the four tiers fails the load (a failed load never overwrites real data).
+		local r = Record.copy(record); r.collection.bankedEggs[1].rarity = "Mitica"; invalid(r, "unknown banked rarity")
+		r = Record.copy(record); r.incubating[1].rarity = 5; invalid(r, "a number as incubating rarity")
+		equal(Record.SCHEMA, 6, "no schema bump: the rarity is an optional field")
+	end)
+
 	return result
 end

@@ -37,6 +37,8 @@ local Attack = require(script.Parent:WaitForChild("WildboundBeastAttack"))
 local Sight = require(ReplicatedStorage:WaitForChild("WildboundBeastSight"))
 local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
 local Audience = require(script.Parent:WaitForChild("WildboundBeastAudience"))
+-- CH1 (decision 53): which encounter phases count as a beast on the player for the return portal's calm check.
+local Portal = require(script.Parent:WaitForChild("WildboundPortal"))
 for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker", "Scuttler" }) do
 	Enc.register(name, require(script.Parent:WaitForChild("WildboundBeast" .. name)))
 end
@@ -774,11 +776,12 @@ RunService.Heartbeat:Connect(function(dt)
 		local at = now()
 		for _, entry in pairs(live) do snapshot(entry, at) end
 		publishBoss()
-		-- CE3 / T08b: the return portal's calm check reads this server stamp: the time a live encounter (any phase but
-		-- Disengage and Ended) was last on this player, at most twice a second per player.
+		-- CE3 / T08b: the return portal's calm check reads this server stamp: the time a live encounter was last on
+		-- this player, at most twice a second per player. CH1 (decision 53): only an engaging phase stamps (noticing,
+		-- chasing, telegraphing, attacking, recovering); a beast only Calm or present (Portal.CALM_PHASES) never does.
 		for _, entry in pairs(live) do
 			local target, phase = entry.player, entry.e.phase
-			if phase ~= "Disengage" and phase ~= "Ended" and typeof(target) == "Instance" and target.Parent == Players then
+			if Portal.engaging(phase) and typeof(target) == "Instance" and target.Parent == Players then
 				local last = target:GetAttribute("WildboundBeastEngagedAt")
 				if type(last) ~= "number" or at - last >= 0.5 then target:SetAttribute("WildboundBeastEngagedAt", at) end
 			end

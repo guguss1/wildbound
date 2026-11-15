@@ -399,6 +399,8 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundCandyTortidragonAttack_Test.luau", "ServerStorage.WildboundCandyTortidragonAttack_Test"),
     ("tools/WildboundCandyTortidragonClips.luau", "ServerStorage.WildboundCandyTortidragonClips"),
     ("tests/WildboundCandyTortidragonClips_Test.luau", "ServerStorage.WildboundCandyTortidragonClips_Test"),
+    ("tools/WildboundScuttlerClips.luau", "ServerStorage.WildboundScuttlerClips"),
+    ("tests/WildboundScuttlerClips_Test.luau", "ServerStorage.WildboundScuttlerClips_Test"),
     ("src/wildbound/WildboundBeastTortidragon.luau", "ServerScriptService.WildboundBeastTortidragon"),
     ("tests/WildboundBeastTortidragon_Test.luau", "ServerStorage.WildboundBeastTortidragon_Test"),
     ("src/wildbound/WildboundCandyTortidragonService.server.luau", "ServerScriptService.WildboundCandyTortidragonService"),

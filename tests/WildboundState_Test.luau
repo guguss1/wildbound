@@ -1724,5 +1724,36 @@ return function(State, Economy, Config)
 		equal(plain:snapshot("Alice").equippedUid, "u1", "without the server's farm-only set nothing is cleared")
 	end)
 
+	case("CH2: an egg keeps its nest rarity through pickup, a knock loose, the bank and the incubator", function()
+		local state = setup()
+		accepted(state:registerEncounter("nest:E1", "Egg"))
+		local uid = accepted(state:pickup("Alice", "nest:E1", true, 0,
+			{ species = "Flanfuria", tier = "Territory", island = "CandyE1", arms = true, rarity = "Legendaria" }))
+		equal(state:snapshot("Alice").pending[1].rarity, "Legendaria", "in the bag")
+		-- Knocked loose and taken back (NH5): the copy on the ground keeps it.
+		local dropped, entry = state:dropEgg("Alice", uid)
+		equal(dropped, true, "knocked loose"); equal(entry.rarity, "Legendaria", "the loose copy")
+		equal(accepted(state:takeEgg("Bob", entry, true, 0)), uid, "Bob takes it")
+		equal(state:snapshot("Bob").pending[1].rarity, "Legendaria", "in Bob's bag")
+		equal(accepted(state:extract("Bob", true, 0)), 1, "banked")
+		local banked = state:snapshot("Bob").bankedEggs[1]
+		equal(banked.species, "Flanfuria"); equal(banked.rarity, "Legendaria", "banked")
+		local incubated = accepted(state:incubate("Bob", uid, true, 0, 100, 90, 1))
+		equal(incubated.rarity, "Legendaria", "the incubate reply")
+		equal(state:snapshot("Bob").incubating[1].rarity, "Legendaria", "on the cradle")
+		-- No rarity: the old rule (nil here; the species' default is read later). A bad one is refused.
+		accepted(state:registerEncounter("nest:C1", "Egg"))
+		local plain = accepted(state:pickup("Alice", "nest:C1", true, 0, { species = "Gomibu", tier = "Territory" }))
+		equal(state:snapshot("Alice").pending[1].uid, plain); equal(state:snapshot("Alice").pending[1].rarity, nil, "none given")
+		accepted(state:registerEncounter("nest:C2", "Egg"))
+		for _, bad in ipairs({ "Mitica", 3, "" }) do
+			local ok, why = state:pickup("Alice", "nest:C2", true, 0, { species = "Gomibu", tier = "Territory", rarity = bad })
+			equal(ok, false, "bad rarity " .. tostring(bad)); equal(why, "InvalidRarity", "reason")
+		end
+		local forged = table.clone(entry); forged.uid = "wb:999"; forged.rarity = "Mitica"
+		local okTake, whyTake = state:takeEgg("Alice", forged, true, 0)
+		equal(okTake, false, "a loose egg with a bad rarity"); equal(whyTake, "InvalidRarity")
+	end)
+
 	return result
 end
