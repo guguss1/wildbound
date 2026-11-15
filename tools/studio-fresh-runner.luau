@@ -117,6 +117,11 @@ SPECS["WildboundCandyGomibu_Test"] = { "mod:WildboundCandyGomibu", "inst:ServerS
 SPECS["WildboundCandyGomibuClips_Test"] = { "mod:WildboundCandyGomibuClips", "inst:ServerStorage.WildboundAssets.Gomibu" }
 SPECS["WildboundCandyGomibuAttack_Test"] = { "mod:WildboundCandyGomibuAttack" }
 SPECS["WildboundCandyFlanfuria_Test"] = { "mod:WildboundCandyFlanfuria", "inst:ServerStorage.WildboundAssets.Flanfuria" }
+SPECS["WildboundCandyFlanfuriaAttack_Test"] = { "mod:WildboundCandyFlanfuriaAttack" }
+SPECS["WildboundCandyFlanfuriaClips_Test"] = { "mod:WildboundCandyFlanfuriaClips", "inst:ServerStorage.WildboundAssets.Flanfuria" }
+SPECS["WildboundBeastFlanfuria_Test"] = {
+	"mod:WildboundBeastEncounters", "mod:WildboundBeastFlanfuria", "mod:WildboundBeastConfig", "mod:WildboundCandyFlanfuriaAttack",
+}
 SPECS["WildboundBeastSight_Test"] = { "mod:WildboundBeastSight", "src:WildboundBeastSight", "mod:WildboundBiomes" }
 SPECS["WildboundBeastStreamer_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastStreamer", "mod:WildboundBeastConfig", "src:WildboundBeastStreamer",

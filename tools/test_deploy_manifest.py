@@ -512,6 +512,15 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundCandyGomibuAttack_Test.luau": "ServerStorage.WildboundCandyGomibuAttack_Test",
         "tools/WildboundCandyFlanfuria.luau": "ServerStorage.WildboundCandyFlanfuria",
         "tests/WildboundCandyFlanfuria_Test.luau": "ServerStorage.WildboundCandyFlanfuria_Test",
+        # CA1 Flanfuria, pulled from Studio
+        "tools/WildboundCandyFlanfuriaAttack.luau": "ServerStorage.WildboundCandyFlanfuriaAttack",
+        "tests/WildboundCandyFlanfuriaAttack_Test.luau": "ServerStorage.WildboundCandyFlanfuriaAttack_Test",
+        "tools/WildboundCandyFlanfuriaClips.luau": "ServerStorage.WildboundCandyFlanfuriaClips",
+        "tests/WildboundCandyFlanfuriaClips_Test.luau": "ServerStorage.WildboundCandyFlanfuriaClips_Test",
+        "src/wildbound/WildboundBeastFlanfuria.luau": "ServerScriptService.WildboundBeastFlanfuria",
+        "tests/WildboundBeastFlanfuria_Test.luau": "ServerStorage.WildboundBeastFlanfuria_Test",
+        "src/wildbound/WildboundCandyFlanfuriaService.server.luau": "ServerScriptService.WildboundCandyFlanfuriaService",
+        "src/wildbound/WildboundCandyFlanfuriaAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyFlanfuriaAnim",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

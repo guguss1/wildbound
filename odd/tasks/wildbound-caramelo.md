@@ -216,7 +216,8 @@ always bright, the forest always dark; eggs refresh every 300 s.
 ## Checklist
 
 - [x] CA0 Discovery and plan (this document). Route: inline, read-only (Studio reads, repo reads).
-- [ ] CA1 Flanfuria finished: Studio work pulled, suites green, pack contract checked, solo Play.
+- [x] CA1 Flanfuria finished: Studio work pulled, suites green, pack contract checked, solo Play. Route: inline
+  (13 scripts pulled byte-exact; no new behaviour written, so no RED: every suite was already GREEN). Commit below.
 - [ ] CA2 Tortidragón: Blender source, model + 11 clips uploaded, modules, brain, wiring, suites, Play.
 - [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play.
 - [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
@@ -241,8 +242,32 @@ always bright, the forest always dark; eggs refresh every 300 s.
 
 - CA0: Studio instance ba5a21af (place 122652861404212, Edit, PlayLock nil), fingerprint table above
   taken twice, identical. Engram #2574, #2581, #2721 for the upload route. No writes to Studio.
+- CA1 (2026-11-15): Studio re-fingerprinted before pulling (unchanged from CA0). Pulled into the repo, each now equal
+  to Studio (bytes, Adler-32): BeastConfig 28335 f87f71ea, Beasts.server 44985 654a3fba, PraderaSites 4441 170bcdce,
+  BeastWiring_Test 48116 e7d9a74e, CandyBeastSites_Test 9695 3fe75159, and the new files
+  `tools/WildboundCandyFlanfuriaAttack.luau` 8329 5a85dbc7 (+ `_Test` 8761 9e998694),
+  `tools/WildboundCandyFlanfuriaClips.luau` 9823 eba3bba7 (+ `_Test` 10583 45e80ec0),
+  `src/wildbound/WildboundBeastFlanfuria.luau` 7476 5e3d97ce (+ `tests/..._Test` 13633 28cfefd8),
+  `WildboundCandyFlanfuriaService.server.luau` 1626 9a0135fc, `WildboundCandyFlanfuriaAnim.client.luau` 5911 2aa69239.
+  No Studio Source was written. Manifest rows + pins (8) and runner SPECS (3) added.
+  - Fresh loader (loadstring + setfenv, SPECS args), filter Beast*/Candy*: 16 suites, 254 passed, 0 failed
+    (BeastFlanfuria 10, CandyFlanfuriaAttack 11, CandyFlanfuriaClips 8, CandyFlanfuria 7, BeastWiring 49,
+    BeastGomibu 9, Director 47, Encounters 24, Attack 13, Audience 17, Nube 11, Abeja 10, CandyLayout 13, Gomibu x3 25).
+    CandyBeastSites_Test (runner SKIP, reads Workspace) run with a loadstring loader: 8 passed, 0 failed.
+  - Pack contract (03_PERSONAJES/02_FLANFURIA.md) matches the code: tell 1.00 s, ring r2 to r11 in 0.80 s, one hit
+    per cast, slow x0.65 1.5 s, puddle r4 3 s x0.8 as 0.6 s pulses with a 0.15 s gap (no stacking), recover 0.85 s,
+    cooldown 8 s, damage 0, egg kept (Afflict, never BeastHit), pet refused, safe zone ends it, 10 clips published.
+  - Solo Play (PlayLock CA1, cleared after; Play stopped): teleported 10 studs from the post `candyNestR1`. Server
+    phases Chase -> Telegraph -> Release -> Recover -> Chase; client ring radius 4.8 -> 7.8 -> 10.8 then puddle r4;
+    WalkSpeed 16 -> 10.40 (x0.65) for 1.5 s, back to 16, then puddle pulses 12.80 (x0.8) every ~0.75 s until the
+    puddle dried, then 16 (no permanent change, no stacking). Screenshots: `assets/exports/forest-kit/captures/`
+    `ca1-flanfuria-tell-pink-floor-desktop.jpg` (red circle r11 + "¡Onda de Caramelo! Aléjate o salta" on the pink
+    floor), `ca1-flanfuria-ring-front-desktop.jpg` (dotted front), `ca1-flanfuria-puddle-desktop.jpg`.
+  - Observations, not fixed: the tell circle is red, the pack says amber; the r4 puddle is mostly hidden under the
+    flan's own base until it hops away. The place was still on the day/night cycle (dim), CA4 removes it.
+  - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept; `test_studio_fresh_runner` and
+    `test_deploy_manifest` OK. Not tested: two players, phone, farm Flanfuria in Play (no farm Flanfuria exists).
 
 ## Next step
 
-CA1: pull the 13 Studio-ahead Flanfuria scripts into the repo byte-exact, then run the Flanfuria
-suites fresh (RED/GREEN as needed).
+CA2 Tortidragón: Blender source, model + 11 clip uploads, modules on the Gomibu/Flanfuria pattern.

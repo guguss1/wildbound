@@ -107,5 +107,45 @@ return function(Layout, Sites, Config, marker, biome)
 		end
 	end)
 
+	-- T3, T4: the candy guardians live at fixed posts beside a nest (Sites.FIXED), which the marker above never moves.
+	case("T4: each candy guardian is summoned only near its own fixed post, and the posts do not move with the marker", function()
+		for _, name in ipairs({ "Gomibu", "Flanfuria" }) do
+			local key = Sites.HOME[name]
+			assert(key and Sites.FIXED[key], name .. " has no fixed post")
+			local post, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
+			equal(moved.x, post.x, name .. " post x moved with the origin"); equal(moved.z, post.z, name .. " post z moved with the origin")
+			local wake = Config.BEASTS[name].tuning.WakeRadiusStuds
+			local function wants(dx, extra)
+				local ctx = { alive = true, safe = false, meadow = true, x = post.x + dx, z = post.z, origin = origin }
+				for k, v in pairs(extra or {}) do ctx[k] = v end
+				return Sites.wants(name, ctx)
+			end
+			equal(wants(0), true, name .. " at its post"); equal(wants(wake - 0.5), true, name .. " inside the wake radius")
+			equal(wants(wake + 0.5), false, name .. " outside the wake radius")
+			equal(wants(0, { safe = true }), false, name .. " for a safe player"); equal(wants(0, { meadow = false }), false, name .. " outside the biome")
+			equal(wants(0, { alive = false }), false, name .. " for a dead player")
+		end
+		assert(Sites.HOME.Gomibu ~= Sites.HOME.Flanfuria, "the two guardians share a post")
+		local a, b = Sites.world(nil, Sites.HOME.Gomibu), Sites.world(nil, Sites.HOME.Flanfuria)
+		local leashes = Config.BEASTS.Gomibu.tuning.LeashStuds + Config.BEASTS.Flanfuria.tuning.LeashStuds
+		assert(Layout.flat(a.x, a.z, b.x, b.z) >= leashes, "the two guardians can reach each other's ground")
+	end)
+
+	case("T4: Flanfuria's post is open floor beside a nest, off the routes and off the boss ground even at the end of its leash", function()
+		assert(biome and biome:FindFirstChild("Ground"), "no live candy biome given")
+		local w = Sites.world(nil, Sites.HOME.Flanfuria)
+		local post = { x = w.x - Layout.CENTRE.x, z = w.z - Layout.CENTRE.z }
+		local T = Config.BEASTS.Flanfuria.tuning
+		assert(nearestNest(post) >= 8 and nearestNest(post) <= 16, "the post is " .. nearestNest(post) .. " studs from the nearest nest")
+		assert(Layout.depth(post.x, post.z) >= T.LeashStuds, "its leash leaves the plot")
+		assert(Layout.flat(post.x, post.z, Layout.BOSS.x, Layout.BOSS.z) >= Layout.BOSS.territoryRadius + T.LeashStuds, "its leash reaches the boss ground")
+		-- somebody walking a route is watched, never chased
+		assert(Layout.routeDistance(post.x, post.z) >= T.PerceptionStuds + HALF_PATH, "a route passes " .. Layout.routeDistance(post.x, post.z) .. " studs from the post")
+		for _, off in ipairs({ { 0, 0 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 0, -4 } }) do
+			local hit = workspace:Raycast(Vector3.new(w.x + off[1], 120, w.z + off[2]), Vector3.new(0, -200, 0))
+			assert(hit and hit.Instance == biome.Ground.Floor, "the post is under or inside " .. (hit and hit.Instance:GetFullName() or "nothing"))
+		end
+	end)
+
 	return result
 end

@@ -42,7 +42,7 @@ end
 -- Kids biome (odd/tasks/wildbound-kids-beasts.md): the Pradera's two summoned beasts, never rolled (Config.SUMMONED).
 local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites"))
 local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" },
-	{ name = "Gomibu", module = "WildboundBeastGomibu" } } -- Caramelo biome: Gomibu at its candy nest
+	{ name = "Gomibu", module = "WildboundBeastGomibu" }, { name = "Flanfuria", module = "WildboundBeastFlanfuria" } } -- Caramelo biome: Gomibu at its candy nest
 for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.
 local duskModule = ReplicatedStorage:WaitForChild("WildboundDusk", 10)

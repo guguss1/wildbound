@@ -290,6 +290,25 @@ Config.BEASTS = table.freeze({
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
 	}),
+	-- Caramelo biome (pack 03_PERSONAJES/02_FLANFURIA.md): Flanfuria guards a candy nest, summoned like Gomibu. Its one
+	-- attack, Onda de Caramelo, has its numbers in ServerStorage.WildboundCandyFlanfuriaAttack; both of its slows travel
+	-- as Afflict events (never BeastHit). Only where it lives and how it moves is tuned here.
+	Flanfuria = table.freeze({
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10,
+		damage = 0,
+		keepsEgg = true,
+		grounded = true,
+		hitHeight = 8,
+		disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 40, PerceptionStuds = 20, AbandonStuds = 30, LeashStuds = 16,
+			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 11, AlertSeconds = 0.8,
+			CastRangeStuds = 7, StandOffStuds = 4, JumpClearStuds = 4.5,
+			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
+		}),
+	}),
 })
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
 Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker",
@@ -299,10 +318,10 @@ Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, 
 	Scuttler = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
-	AbejaReina = true, Scuttler = true, Gomibu = true })
+	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
-Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true })
+Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true, Flanfuria = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
 
