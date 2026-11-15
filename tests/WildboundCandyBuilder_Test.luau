@@ -213,13 +213,25 @@ return function(Builder, Layout, Kit, library)
 		near(label.Position.X.Scale * 2 + label.Size.X.Scale, 1, "sign text centred")
 	end)
 
-	case("S4: the portal is a switched-off position with its proposed rules", function()
+	case("S4: the portal is a live position with its rules (CE3: switched on)", function()
 		local portal = root.Portal
 		at(portal, Layout.PORTAL, nil, "portal")
-		equal(portal:GetAttribute("Enabled"), false, "Enabled")
+		equal(portal:GetAttribute("Enabled"), Layout.PORTAL.enabled, "Enabled")
+		equal(portal:GetAttribute("Enabled"), true, "on since CE3")
 		equal(portal:GetAttribute("QuietSeconds"), Layout.PORTAL.quietSeconds, "QuietSeconds")
 		equal(portal:GetAttribute("ChannelSeconds"), Layout.PORTAL.channelSeconds, "ChannelSeconds")
 		equal(portal:GetAttribute("CooldownSeconds"), Layout.PORTAL.cooldownSeconds, "CooldownSeconds")
+	end)
+
+	case("CE3: syncPortal applies the layout's portal flag to an existing build, nothing else", function()
+		local portal = root.Portal
+		portal:SetAttribute("Enabled", false)
+		local pivot = portal:GetPivot()
+		equal(Builder.syncPortal(root, Layout), 1, "one change")
+		equal(portal:GetAttribute("Enabled"), true, "on")
+		equal(Builder.syncPortal(root, Layout), 0, "a second sync changes nothing")
+		assert((portal:GetPivot().Position - pivot.Position).Magnitude < 1e-6, "not moved")
+		assert(not pcall(Builder.syncPortal, Instance.new("Folder"), Layout), "a root without a Portal is an error")
 	end)
 
 	case("S4: markers name the walk test stops", function()

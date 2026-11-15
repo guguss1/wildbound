@@ -36,8 +36,9 @@ Layout.TORTA = table.freeze({ x = 0, z = 0, radius = 26 })
 -- starting balance (05_SISTEMAS/04_BALANCE_INICIAL_CONFIG.md); they only size the safe distances here.
 Layout.BOSS = table.freeze({ x = 0, z = 0, plazaRadius = 44, territoryRadius = 62, perception = 36, whipLength = 22,
 	home = point(-34, 0) })
--- Return to the hub (pack 04_ENTORNO/03: 5 s without threat, 2 s channel, 30 s cooldown). A position only for now.
-Layout.PORTAL = table.freeze({ x = 160, z = 0, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = false })
+-- Return to the hub (pack 04_ENTORNO/03: 5 s without threat, 2 s channel, 30 s cooldown). CE3: live; the server's
+-- WildboundPortalService binds its prompt while the model's Enabled attribute is true (Builder.syncPortal).
+Layout.PORTAL = table.freeze({ x = 160, z = 0, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = true })
 
 Layout.ROUTES = table.freeze({
 	main = route({ { -200, 0 }, { -110, 0 }, { -44, 0 } }),

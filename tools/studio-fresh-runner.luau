@@ -171,6 +171,15 @@ SPECS["WildboundCandyPets_Test"] = {
 		Tortidragon = "mod:WildboundCandyTortidragonClips" },
 	{ server = "src:WildboundServer" },
 }
+SPECS["WildboundPortal_Test"] = {
+	"mod:WildboundPortal", "mod:WildboundBalance", "mod:WildboundWorldRules", "mod:WildboundCandyLayout", "mod:WildboundBiomes",
+	{ portal = "src:WildboundPortal" },
+}
+SPECS["WildboundPortalService_Test"] = {
+	"mod:WildboundPortalService", "mod:WildboundPortal", "mod:WildboundText",
+	{ server = "src:WildboundServer", beasts = "src:WildboundBeasts", service = "src:WildboundPortalService",
+		client = "src:WildboundPortalClient" },
+}
 SPECS["WildboundBeastDonGlaseon_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastDonGlaseon", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseonAttack",
 	"mod:WildboundBeastDirector", "mod:WildboundPraderaSites",

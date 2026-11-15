@@ -558,6 +558,12 @@ class DefaultMappingTests(unittest.TestCase):
         # CE2 Caramelo farm pets
         "src/wildbound/WildboundCandyPets.luau": "ServerScriptService.WildboundCandyPets",
         "tests/WildboundCandyPets_Test.luau": "ServerStorage.WildboundCandyPets_Test",
+        # CE3 return portals
+        "src/wildbound/WildboundPortal.luau": "ServerScriptService.WildboundPortal",
+        "tests/WildboundPortal_Test.luau": "ServerStorage.WildboundPortal_Test",
+        "src/wildbound/WildboundPortalService.luau": "ServerScriptService.WildboundPortalService",
+        "tests/WildboundPortalService_Test.luau": "ServerStorage.WildboundPortalService_Test",
+        "src/wildbound/WildboundPortal.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundPortalClient",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

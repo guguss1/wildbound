@@ -59,6 +59,18 @@ function Builder.syncNests(root, layout)
 	return changed
 end
 
+-- CE3: applies the layout's portal flag to an existing build (the Portal model's Enabled attribute), nothing else.
+-- Returns 1 when it changed, 0 when it already matched.
+function Builder.syncPortal(root, layout)
+	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
+	local portal = typeof(root) == "Instance" and root:FindFirstChild("Portal") or nil
+	assert(portal, "no Portal model")
+	local live = L.PORTAL.enabled == true
+	if portal:GetAttribute("Enabled") == live then return 0 end
+	portal:SetAttribute("Enabled", live)
+	return 1
+end
+
 function Builder.build(parent, layout, kit, library)
 	assert(typeof(parent) == "Instance", "parent must be an Instance")
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
@@ -335,7 +347,7 @@ function Builder.build(parent, layout, kit, library)
 			prop(hills, "Peak_" .. i, "RockSugar", 207, z + (z < 0 and -1 or 1) * scale * 5.5, rng:NextNumber(0, math.pi * 2), scale * 0.55)
 		end
 
-		-- Portal back to the hub: a pad and an arch. A position and its proposed rules, nothing teleports yet.
+		-- Portal back to the hub: a pad and an arch. CE3: WildboundPortalService binds its prompt while Enabled is true.
 		local portal = prop(root, "Portal", "ReturnPortal", L.PORTAL.x, L.PORTAL.z, math.rad(90), 1.5) -- posts 9 studs off the path axis
 		portal:SetAttribute("Leads", "hub")
 		portal:SetAttribute("Enabled", L.PORTAL.enabled)

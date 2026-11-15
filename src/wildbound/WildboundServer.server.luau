@@ -4078,6 +4078,21 @@ do
 		notify = function(player, ok, text) send(player, "Roulette", ok, text) end,
 	}):start(network, workspace, CFrame.new(Rules.HUB_X - 17, 0.5, Rules.HUB_Z + 17))
 end
+do
+	-- CE3 / T08b: the return portals (the Caramelo arch and the deep forest arch). The service validates on the server
+	-- (alive, its own root's distance, 5 s calm, 2 s channel, 30 s rest) and moves the character to its own base pad;
+	-- the carried egg rides along and the base zone banks it as usual. The client sends nothing.
+	local PortalService = require(script.Parent:WaitForChild("WildboundPortalService"))
+	Heist.portals = PortalService.new({
+		Portal = require(script.Parent:WaitForChild("WildboundPortal")),
+		Text = Text,
+		alive = function(player) return (context(player)) end,
+		rootOf = rootOf,
+		spawnFrame = function(player) return Heist.hub and Heist.hub:spawnFrame(player) or nil end,
+		hubCentre = Vector3.new(Rules.HUB_X, 0, Rules.HUB_Z),
+		notify = function(player, ok, text) send(player, "Portal", ok, text) end,
+	}):start(network, workspace)
+end
 -- NS1: what the player is told about their save after a join (or a Studio probe's rejoin), and the companion
 -- attributes a loaded save needs (the Equip action sets them otherwise).
 function Heist.saveNotice(userId)

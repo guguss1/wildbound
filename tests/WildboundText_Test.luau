@@ -383,5 +383,21 @@ return function(Text, source, sources)
 		equal(R.prizes.forestChest, "Cofre del bosque (40 Fogbark, 20 Glowmoss y 5 Nightbloom)")
 	end)
 
+	-- CE3 / T08b: the return portals' words (prompt, channel bar, refusals with the wait, cuts, arrival, station names).
+	case("CE3: the return portals have their prompt, channel, refusal, cut and arrival words", function()
+		local P = Text.PORTAL
+		assert(type(P) == "table", "Text.PORTAL")
+		for _, key in ipairs({ "object", "prompt", "readyIn" }) do text(P[key], "PORTAL." .. key, 24) end
+		for _, key in ipairs({ "channel", "barTitle" }) do text(P[key], "PORTAL." .. key, 32) end
+		for _, key in ipairs({ "arrived", "cooldown", "threat", "cutThreat", "cutMoved", "cutDead", "tooFar", "busy",
+			"noBase", "disabled", "dead" }) do
+			text(P[key], "PORTAL." .. key, 72)
+		end
+		for _, id in ipairs({ "caramelo", "bosque" }) do text(P.names[id], "PORTAL.names." .. id, 24) end
+		assert(P.cooldown:format(12):find("12", 1, true), "cooldown shows the wait")
+		assert(P.threat:format(4):find("4", 1, true), "threat shows the calm left")
+		assert(P.readyIn:format(9):find("9", 1, true), "readyIn shows the wait")
+	end)
+
 	return result
 end

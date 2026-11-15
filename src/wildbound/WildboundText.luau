@@ -772,4 +772,28 @@ return freeze({
 			forestChest = "Cofre del bosque (40 Fogbark, 20 Glowmoss y 5 Nightbloom)",
 		},
 	},
+	-- CE3 / T08b: the return portals (WildboundPortalService, WildboundPortalClient). Prompt words at most 24 bytes, the
+	-- bar 32, notices 72; cooldown, threat and readyIn take the seconds left.
+	PORTAL = {
+		object = "Portal",
+		prompt = "Volver a la base",
+		readyIn = "Listo en %d s",
+		channel = "Volviendo a tu base...",
+		barTitle = "Portal de regreso",
+		arrived = "¡Volviste a tu base!",
+		cooldown = "El portal se está recargando: %d s.",
+		threat = "Hay peligro cerca. Espera %d s en calma.",
+		cutThreat = "¡Peligro! El portal se cortó.",
+		cutMoved = "Te moviste y el portal se cortó.",
+		cutDead = "El portal se cortó.",
+		tooFar = "Acércate al portal.",
+		busy = "Ya estás usando el portal.",
+		noBase = "No tienes una base a la que volver.",
+		disabled = "Este portal está apagado.",
+		dead = "Ahora no puedes usar el portal.",
+		names = {
+			caramelo = "Portal del Caramelo",
+			bosque = "Portal del Bosque",
+		},
+	},
 })

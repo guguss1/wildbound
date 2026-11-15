@@ -425,6 +425,12 @@ DEFAULT_MAPPINGS = [
     # CE2: the hatched Caramelo creatures as passive farm pets (their real rig, scaled down)
     ("src/wildbound/WildboundCandyPets.luau", "ServerScriptService.WildboundCandyPets"),
     ("tests/WildboundCandyPets_Test.luau", "ServerStorage.WildboundCandyPets_Test"),
+    # CE3 / T08b: the return portals (pure rules, the server service, the client's prompt and channel bar)
+    ("src/wildbound/WildboundPortal.luau", "ServerScriptService.WildboundPortal"),
+    ("tests/WildboundPortal_Test.luau", "ServerStorage.WildboundPortal_Test"),
+    ("src/wildbound/WildboundPortalService.luau", "ServerScriptService.WildboundPortalService"),
+    ("tests/WildboundPortalService_Test.luau", "ServerStorage.WildboundPortalService_Test"),
+    ("src/wildbound/WildboundPortal.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundPortalClient"),
 ]
 
 

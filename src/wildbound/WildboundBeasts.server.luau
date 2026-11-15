@@ -774,6 +774,15 @@ RunService.Heartbeat:Connect(function(dt)
 		local at = now()
 		for _, entry in pairs(live) do snapshot(entry, at) end
 		publishBoss()
+		-- CE3 / T08b: the return portal's calm check reads this server stamp: the time a live encounter (any phase but
+		-- Disengage and Ended) was last on this player, at most twice a second per player.
+		for _, entry in pairs(live) do
+			local target, phase = entry.player, entry.e.phase
+			if phase ~= "Disengage" and phase ~= "Ended" and typeof(target) == "Instance" and target.Parent == Players then
+				local last = target:GetAttribute("WildboundBeastEngagedAt")
+				if type(last) ~= "number" or at - last >= 0.5 then target:SetAttribute("WildboundBeastEngagedAt", at) end
+			end
+		end
 	end
 	if audienceClock >= AUDIENCE.REFRESH_SECONDS then
 		audienceClock = 0

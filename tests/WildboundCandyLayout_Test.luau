@@ -150,12 +150,12 @@ return function(Layout, Biomes)
 		end
 	end)
 
-	case("S4: the portal is past the boss's reach and switched off", function()
+	case("S4: the portal is past the boss's reach and, since CE3, switched on", function()
 		local P, B = Layout.PORTAL, Layout.BOSS
 		assert(flat(P.x, P.z, B.x, B.z) - B.territoryRadius >= B.perception + B.whipLength, "portal under the boss")
 		assert(Layout.depth(P.x, P.z) >= 30, "portal on the plot edge")
 		assert(P.x > 0, "portal on the deep side")
-		equal(P.enabled, false, "enabled")
+		equal(P.enabled, true, "enabled (CE3: the return portal is live)")
 		equal(P.quietSeconds, 5, "quiet")
 		equal(P.channelSeconds, 2, "channel")
 		equal(P.cooldownSeconds, 30, "cooldown")
