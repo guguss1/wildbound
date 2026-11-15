@@ -899,6 +899,85 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
   players, phone (the bar is capped at 360 px and 70 % width but was not seen on a phone); why the health sat at 35 after
   a Silueta defeat (pre-existing, not a portal matter).
 
+## Follow-up CG (2026-11-15)
+
+User intent (2026-11-15, workflow batch): CG1, each Caramelo egg gets its own candy look (user-approved), the same in the
+nest, the carried backpack and the incubator spot, built from primitives only (no upload). No publishing, no place save, no
+monetization, no SistemaSonriente. The user asked not to be stopped by decisions: each one taken is listed below. TDD
+strict (fresh loader in Studio).
+
+- [x] CG1 Candy egg looks: new shared module `WildboundCandyEggArt` (ReplicatedStorage: `uses`, `build`, `weldTo`,
+  `rimColor`, `bob`) builds Gomibú as a translucent gummy egg (GummyShell glass, GummyCore neon, GummyShine), Flanfuria as
+  a flan egg (FlanBody cream, CaramelCap, seven CaramelDrip streaks), Tortidragón as a cake egg (CakeSponge, two
+  CreamBand, Strawberry, StrawberryLeaf); every candy egg has a neon `RarityRim` in the rarity colour and its glow in that
+  colour; a Legendaria egg adds `GoldGlaze` + `GoldShimmer`. Routed through the server's one egg path: `visual` (nest,
+  dropped egg, cradle spot; new `rarity`, `context` arguments) and `Heist.syncEggArms` (the backpack, welded to the hidden
+  shell). New client `WildboundCandyEggBob` plays the gummy squash bob on nest eggs only. A non-Caramelo egg is untouched.
+  Route: inline (one module + one client + one suite; small additive edits to WildboundServer; the writer trigger fired
+  but every Studio write needs the parent's fingerprint gate and this worker may not delegate). TDD strict. Commit 30fe8f1.
+- [ ] CG2 Reserved for the next task of this batch (not defined in this task).
+
+### Decisions taken for the user (continued)
+
+40. **CG1, primitives only:** each egg is Parts with a Sphere `SpecialMesh` (a Ball part is always round; the mesh follows
+   the part's Size, so it gives an egg shape) and upright cylinders for bands and the rim. No MeshPart, no upload, no
+   texture. 2.2 studs tall in a nest, on the ground and on the cradle spot; 1.2 in the backpack (as the Lumipol pack egg).
+41. **CG1, one module for every place:** the server's existing `visual("Egg", ...)` (nest, dropped egg, cradle) and
+   `Heist.syncEggArms` (backpack) call `WildboundCandyEggArt.build`; the Lumipol art branch keeps priority and a forest
+   egg never reaches the candy branch, so forest eggs are byte-for-byte the same instances as before. `Species.LOOKS`
+   tints stay (the cradle's sparkle colour still reads them). The module is held in `Heist.CandyEggArt`, not a top-level
+   local: the server is at Luau's local limit (NH-W13 caught a first draft).
+42. **CG1, rarity stays readable:** the rim and the egg's PointLight use the rarity colour, the same values as
+   `WildboundEggLoop.RARITY_COLOR` (pinned by CG-6), so a Común Gomibú reads pale, a Rara Tortidragón blue, an Épica
+   Flanfuria violet; the RarityTag label over the egg is unchanged.
+43. **CG1, Legendaria:** any species at Legendaria gets a faint gold neon glaze and a gold sparkle emitter (the Legendaria
+   rim is already gold). Today no Caramelo egg is Legendaria in play (L1 stays event-only, decision 24); the suite covers it.
+44. **CG1, the bob:** only a Gomibú egg in its nest bobs (the pack and cradle eggs are still; the flan and the cake do not
+   bob). The server tags the egg's `CandyEggArt` sub-model `WildboundCandyEggBob`; the new client script scales those parts
+   locally around the egg's foot (period 1.6 s, +-6 % height, half that in width), within 160 studs of the camera. Nothing
+   is sent or replicated back.
+45. **CG1, the flan drips:** the first Play showed five round drips reading as eyes; they became seven slender streaks from
+   under the cap's rim lying on the body (a RED/GREEN round on CG-3).
+46. **CG1, where the egg stands:** the candy egg's foot is the hidden gameplay ball's bottom (nest: y 2.50 in the bowl whose
+   top is 2.70, so it sits in the hollow; dropped: on the ground). On the cradle spot the whole egg model moves with its ball
+   so the foot lands on the spot's top (1.10).
+
+### Evidence CG1
+
+- Studio target: place 122652861404212 (universe 10774749224), instance ba5a21af, Edit, PlayLock nil, runner lock nil;
+  no HeistProbe in Edit (it is created in Play).
+- Studio == HEAD before (bytes, Adler-32): Server 214269 828f8dcc, Species 5860 44144708, LumipolArt 9241 a831dc3a;
+  CandyEggArt, its suite and CandyEggBob absent.
+- RED (suite deployed, `WildboundCandyEggArt` a `return {}` stub, the client a stub, Server unchanged; fresh loader:
+  loadstring of each current Source): CandyEggArt 1/11 (every case "attempt to call a nil value" or "server requires it";
+  CG-8 passed vacuously on the stub).
+- GREEN: CandyEggArt 12/0. Regression (39 suites reading Server, Species, EggLoop or LumipolArt, the engine of
+  `tools/studio-fresh-runner.luau` pasted with their SPECS): 550 passed, 8 failed: the known AN-3, BZ7, ECO-20, EL12,
+  HB-T3, W1, RW5 and NH-W13 (226 top-level locals); the require moved into `Heist.CandyEggArt`, then MechanicsWiring 9/1
+  (only W1) and CandyEggArt 12/0, Server compiles. Play round: CG-3 RED 11/1 ("a slender drip"), GREEN 12/0.
+- Studio == repo after the writes: Server 215965 7e98bc68, CandyEggArt 9794 4b9e4f03 (new), CandyEggArt_Test 12987
+  44c23909 (new), CandyEggBob 2467 5d423eba (new).
+- Solo Play (PlayLock CG1, cleared after; Play stopped both times): 11 Caramelo nest eggs with candy art (C1-C5 Gomibú Común
+  tagged for the bob, R1-R4 Tortidragón Rara, E1-E2 Flanfuria Épica), each ball hidden, foot at y 2.50. HeistProbe steal at
+  CandyR1: the backpack's `CandyEggArt` Tortidragon, context pack, the shell hidden, the light Rara blue, the sponge welded
+  on the shell (0.00 studs apart, unanchored); banked at Base1 (`WildboundEggReward = 1|Tortidragon|Rara|16|...`). Steal at
+  CandyC1: the pack's gummy egg, no bob tag; banked, on the cradle spot a `WildboundFloorEgg` with Gomibu art, context
+  cradle, foot 1.10 = the spot's top; it hatched into the Gomibú tool. Steal at CandyR2, banked: the cake egg on the cradle
+  spot with its timer. On the client the bob ran (4 tagged nest eggs; a gummy shell's height 2.159 -> 2.074 in 0.4 s).
+  CandyE1 (Épica): the probe's steal returns false because an Épica egg opens the Arrullo (the probe stands in for the
+  steal hold only), so no Flanfuria egg was carried or incubated in Play. No Wildbound script error (only the usual
+  TexturePack, asset fork and DataStore messages). Screenshots `assets/exports/forest-kit/captures/`
+  `cg1-nest-gomibu-gummy-desktop.jpg`, `cg1-nest-flanfuria-flan-desktop.jpg` (after the drip fix),
+  `cg1-nest-tortidragon-cake-desktop.jpg`, `cg1-backpack-tortidragon-cake-desktop.jpg`,
+  `cg1-backpack-gomibu-gummy-desktop.jpg`, `cg1-cradle-tortidragon-cake-desktop.jpg`.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept (`test_deploy_manifest`, `test_studio_fresh_runner`
+  and the mechanics-wiring local count included).
+- Commit 30fe8f1 (code, tests, manifest and runner rows, screenshots).
+- Not tested: a Flanfuria egg in the backpack or on the cradle in Play (Épica needs an Arrullo win; the suite builds both
+  contexts); a Legendaria egg in Play (none exists; suite only); a dropped candy egg on the ground in Play; the Gomibú
+  cradle egg screenshot (it hatched in seconds; its art and foot were read on the server); the bob under streaming on a
+  far client; two players, phone.
+
 ## Next step
 
 - Owner action for the icons (CE2): in the Creator Hub open each image (130041727906990, 106158128076232, 85016154045779
