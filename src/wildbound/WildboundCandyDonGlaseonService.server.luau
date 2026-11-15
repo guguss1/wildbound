@@ -5,13 +5,16 @@
 -- 2. One boss per server, seen by everybody: while no Don Glaseon encounter lives (the beast script writes
 --    WildboundTelemetry.Beast_bossAwake), a sleeping copy stands on its BossHome marker facing the biome's entrance;
 --    it is taken away while the boss is awake (every encounter starts and ends at home, so it never jumps). It is
---    scenery: anchored, it never attacks and the server never moves it.
+--    scenery: anchored, it never attacks and the server never moves it. CF3: it is taken away in the summon's own
+--    server step (the beast script writes Beast_bossAwake when an encounter starts and ends), and while it sleeps it
+--    is pass-through (DonGlaseon.asleep), so it never blocks the main lane that ends at the plaza.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Clips = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseonClips"))
 local Latigo = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseonAttack"))
+local DonGlaseon = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseon"))
 local Sites = require(ServerScriptService:WaitForChild("WildboundPraderaSites"))
 local prefab = ServerStorage:WaitForChild("WildboundAssets"):WaitForChild("DonGlaseon")
 
@@ -37,7 +40,7 @@ end
 -- The sleeping boss on BossHome.
 local telemetry = ServerStorage:WaitForChild("WildboundTelemetry", 60)
 local home = Sites.world(nil, "bossHome")
-local sleeper = dress(prefab:Clone())
+local sleeper = DonGlaseon.asleep(dress(prefab:Clone()))
 sleeper.Name = "DonGlaseonDormant"
 sleeper:SetAttribute("BeastPhase", "Dormant")
 local params = RaycastParams.new()

@@ -105,11 +105,21 @@ Balance.CONSTANTS = freeze({
 
 -- What the running game uses today (the live Studio sources, synced into the repo at commit 34eab83). Not owned here:
 -- a record of the gap later tasks must close. Balance.liveFrom() rebuilds it from the live modules so the copy cannot
--- drift silently (test B23). Sources: WildboundWorldRules PHASES; WildboundTraining CONSTANTS and the TuningSchema
+-- drift silently (test B23). Sources: WildboundWorldRules cycle (CA4: fixed, no day/night cycle), WildboundWaveClock
+-- CONSTANTS and WildboundBiomeLight RULES and PRESETS (dayCycle, CF3); WildboundTraining CONSTANTS and the TuningSchema
 -- WALK_CAP entry; WildboundBatKnock CONSTANTS (immunityMax is the clamp in its tune(), not exported); WildboundIncubator
 -- CONSTANTS; WildboundStamina CONSTANTS; the TuningSchema HUNT_NIGHT entry.
 Balance.LIVE = freeze({
-	dayCycle = { cycleSeconds = 720, phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 } },
+	-- CF3 (odd/tasks/wildbound-caramelo.md): since CA4 there is no day/night cycle. The world runs a wave clock
+	-- (WAVE_SECONDS, the last WARNING_SECONDS are its Warning window) and each place has a fixed gameplay phase (rules,
+	-- BiomeLight.RULES, CF1) and a fixed light mood (light, BiomeLight.PRESETS[...].mood). No phase lengths exist.
+	dayCycle = {
+		fixed = true, waveSeconds = 300, warningSeconds = 10,
+		rules = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
+			Swamp = "Day", Cemetery = "Day", Volcanic = "Day" },
+		light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
+			Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" },
+	},
 	-- PF2 (user decision 2026-11-14): the live treadmill is +2 walk per level, 17 levels, a walk cap of 50.
 	training = { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60, baseCost = 30, costGrowth = 1.2 },
 	bat = { cooldown = 5, ragdollSeconds = 1.2, immunity = 3, push = 45, lift = 20, immunityMax = 15 },
@@ -421,7 +431,7 @@ function Balance.validate(config)
 end
 
 -- Builds a LIVE-shaped table from the live modules (or their CONSTANTS tables), which the caller loads and passes in:
--- { worldRules, training, stamina, batKnock, incubator, tuningSchema }. Any source that is absent or unreadable keeps
+-- { worldRules, training, stamina, batKnock, incubator, tuningSchema, waveClock, biomeLight }. Any source that is absent or unreadable keeps
 -- the LIVE value. Pure: it only reads the tables and calls worldRules.cycle(t).
 function Balance.liveFrom(sources)
 	local live = deepCopy(Balance.LIVE)
@@ -449,6 +459,37 @@ function Balance.liveFrom(sources)
 			if not finite(phases[name]) then return end
 		end
 		live.dayCycle = { cycleSeconds = rules.CYCLE_SECONDS, phases = phases }
+	end)
+	-- CF3: the fixed world's description (only while no cycling world replaced it above).
+	pcall(function()
+		if live.dayCycle.fixed ~= true then return end
+		local c = constants(sources.waveClock)
+		if c then
+			take(live.dayCycle, "waveSeconds", c.WAVE_SECONDS)
+			take(live.dayCycle, "warningSeconds", c.WARNING_SECONDS)
+		end
+	end)
+	pcall(function()
+		local light = sources.biomeLight
+		if live.dayCycle.fixed ~= true or type(light) ~= "table" then return end
+		local function phases(read)
+			local out, any = {}, false
+			for name, value in pairs(read) do
+				if type(name) ~= "string" or type(value) ~= "string" then return nil end
+				out[name], any = value, true
+			end
+			return any and out or nil
+		end
+		if type(light.RULES) == "table" then
+			live.dayCycle.rules = phases(light.RULES) or live.dayCycle.rules
+		end
+		if type(light.PRESETS) == "table" then
+			local moods = {}
+			for name, preset in pairs(light.PRESETS) do
+				moods[name] = type(preset) == "table" and preset.mood or nil
+			end
+			live.dayCycle.light = phases(moods) or live.dayCycle.light
+		end
 	end)
 	pcall(function()
 		local c = constants(sources.training)
@@ -519,6 +560,12 @@ function Balance.conflicts(config, live)
 		if multiplier and cap and top * multiplier > cap then
 			add("sprint %g x %g = %g is clamped to the Stamina cap %g", top, multiplier, top * multiplier, cap)
 		end
+	end)
+	pcall(function()
+		-- CF3: a fixed world (no day/night cycle) has no phase lengths to compare.
+		if get(live, "dayCycle.fixed") ~= true then return end
+		add("live: no day/night cycle: a %g s wave clock and a fixed light per biome (WildboundWaveClock, WildboundBiomeLight); Balance's %g s dayCycle is not used",
+			num(get(live, "dayCycle.waveSeconds")) or 0, num(get(config, "dayCycle.cycleSeconds")) or 0)
 	end)
 	pcall(function()
 		local cycle, liveCycle = num(get(config, "dayCycle.cycleSeconds")), num(get(live, "dayCycle.cycleSeconds"))

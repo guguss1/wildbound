@@ -129,14 +129,16 @@ local function point(value, withLook)
 	return not withLook or (value.lookX == nil or finite(value.lookX)) and (value.lookZ == nil or finite(value.lookZ))
 end
 
--- A landed swing from `from` on `key` standing at `to`. ctx = { carrying, zones }. Returns { landed = false, reason,
--- drop = false } ("Invalid", "SafeZone", "Immune") or { landed = true, drop, ragdoll, ragdollUntil, immuneUntil,
+-- A landed swing from `from` on `key` standing at `to`. ctx = { carrying, zones, batImmune, config }. Returns { landed =
+-- false, reason, drop = false } ("Invalid", "BatImmune", "SafeZone", "Immune") or { landed = true, drop, ragdoll, ragdollUntil, immuneUntil,
 -- impulse = { x, y, z } }. The server applies the impulse to the target's root and its ragdoll state.
 function Knock.knock(registry, from, key, to, now, ctx)
 	local miss = function(reason) return { landed = false, reason = reason, drop = false } end
 	if type(registry) ~= "table" or not validKey(key) or not finite(now) then return miss("Invalid") end
 	if not point(from, true) or not point(to, false) then return miss("Invalid") end
 	ctx = type(ctx) == "table" and ctx or {}
+	-- CF3: a bat-immune target (the flag, or its beast config's, Don Glaseon) is refused before its record is touched.
+	if ctx.batImmune == true or (type(ctx.config) == "table" and ctx.config.batImmune == true) then return miss("BatImmune") end
 	if Knock.inSafe(to.x, to.z, ctx.zones) then return miss("SafeZone") end
 	local rec = record(registry, key)
 	if now < rec.immuneUntil then return miss("Immune") end

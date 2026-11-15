@@ -301,9 +301,16 @@ local function sendBystanders(id, event)
 	end
 end
 
+-- CF3 (odd/tasks/wildbound-caramelo.md): Beast_bossAwake is written in the step an encounter starts or ends (and again
+-- with every snapshot), so WildboundCandyDonGlaseonService hides the sleeping copy in the summon's own server step.
+local function publishBoss()
+	if telemetry then telemetry:SetAttribute("Beast_bossAwake", Config.bossAwake(live)) end
+end
+
 local function close(id, reason, at, event)
 	local entry = live[id]
 	live[id] = nil
+	publishBoss()
 	if Director.release(director, id, reason, at) then count("ended") end
 	if entry then
 		-- Wave 2: an attack still open never lands after the end, and its dodge registration and stagger claim go too.
@@ -438,6 +445,7 @@ local function start(player, reservation, at)
 	local dx, dz = Config.unit(root.Position.X - point.x, root.Position.Z - point.z)
 	e.dx, e.dz = dx or 0, dz or 1
 	live[reservation.id] = { e = e, player = player, character = character, world = worldFor(player) }
+	publishBoss()
 	count("started")
 	logEvent(e.id, "Spawn", at, reservation.beast)
 	send(player, { type = "Spawn", id = e.id, beast = e.beast, at = at, pos = { x = point.x, y = point.y, z = point.z },
@@ -764,12 +772,8 @@ RunService.Heartbeat:Connect(function(dt)
 	if snapClock >= SNAPSHOT then
 		snapClock = 0
 		local at = now()
-		local awake = false
-		for _, entry in pairs(live) do
-			snapshot(entry, at)
-			if entry.e.beast == "DonGlaseon" then awake = true end
-		end
-		telemetry:SetAttribute("Beast_bossAwake", awake)
+		for _, entry in pairs(live) do snapshot(entry, at) end
+		publishBoss()
 	end
 	if audienceClock >= AUDIENCE.REFRESH_SECONDS then
 		audienceClock = 0

@@ -3369,7 +3369,7 @@ function Heist.swingBat(player, record, now)
 	if not target then return end
 	local victim = target.player
 	local effect = Knock.knock(Heist.knocks, from, target.key, { x = target.x, y = target.y, z = target.z }, now,
-		{ carrying = EggCarry.carriedBy(eggs, target.key) ~= nil, zones = Heist.knockZones() })
+		{ carrying = EggCarry.carriedBy(eggs, target.key) ~= nil, zones = Heist.knockZones(), batImmune = Bat.immune(target) })
 	islandLog(effect.landed and "batHit" or "batBlocked", "-", target.key)
 	if not effect.landed then
 		if effect.reason == "Immune" then send(player, "Bat", false, Text.BAT.immune) end

@@ -357,6 +357,16 @@ Config.BEASTS = table.freeze({
 		}),
 	}),
 })
+-- CF3 (odd/tasks/wildbound-caramelo.md): whether a Don Glaseon encounter lives in the beast server's live table ({ [id]
+-- = { e = encounter } }). The server writes the answer to WildboundTelemetry.Beast_bossAwake when an encounter starts
+-- and when it ends, so the sleeping copy goes in the summon's own step, not one snapshot later.
+function Config.bossAwake(live)
+	if type(live) ~= "table" then return false end
+	for _, entry in pairs(live) do
+		if type(entry) == "table" and type(entry.e) == "table" and entry.e.beast == "DonGlaseon" then return true end
+	end
+	return false
+end
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
 Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker",
 	"Scuttler" })

@@ -546,6 +546,7 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
         "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",
         "tests/WildboundBeastDonGlaseon_Test.luau": "ServerStorage.WildboundBeastDonGlaseon_Test",
+        "tests/WildboundBossRobustness_Test.luau": "ServerStorage.WildboundBossRobustness_Test",
         "src/wildbound/WildboundCandyDonGlaseonService.server.luau": "ServerScriptService.WildboundCandyDonGlaseonService",
         "src/wildbound/WildboundCandyDonGlaseonAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyDonGlaseonAnim",
     }

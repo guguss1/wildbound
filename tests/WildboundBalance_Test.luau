@@ -331,7 +331,13 @@ return function(Balance, source)
 	case("B20: Balance.LIVE records the live values (sync 34eab83) that differ from the pack", function()
 		local live = Balance.LIVE
 		assert(type(live) == "table", "LIVE")
-		pinMap(live.dayCycle, { cycleSeconds = 720, phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 } }, "LIVE.dayCycle")
+		-- CF3 (odd/tasks/wildbound-caramelo.md): no day/night cycle since CA4; a 300 s wave clock with a 10 s Warning window,
+		-- and per place a fixed gameplay phase (BiomeLight.RULES, CF1) and a fixed light mood (BiomeLight.PRESETS).
+		pinMap(live.dayCycle, { fixed = true, waveSeconds = 300, warningSeconds = 10,
+			rules = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
+				Swamp = "Day", Cemetery = "Day", Volcanic = "Day" },
+			light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
+				Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" } }, "LIVE.dayCycle")
 		-- PF2 (user decision 2026-11-14): the live treadmill went to +2 walk per level, 17 levels, a cap of 50.
 		pinMap(live.training, { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60,
 			baseCost = 30, costGrowth = 1.2 }, "LIVE.training")
@@ -344,9 +350,8 @@ return function(Balance, source)
 
 	case("B21: conflicts() reports each live gap at default", function()
 		local list = Balance.conflicts()
-		mentions(list, "live: dayCycle.phases.Day is 300 live, 240 in Balance", "Day")
-		mentions(list, "live: dayCycle.phases.Dawn is 60 live, 120 in Balance", "Dawn")
-		lacks(list, "live: dayCycle.phases.Night", "Night agrees")
+		mentions(list, "live: no day/night cycle: a 300 s wave clock and a fixed light per biome", "CF3: the fixed world")
+		lacks(list, "live: dayCycle.phases", "CF3: no phase lengths are compared with a world that has none")
 		lacks(list, "WALK_CAP tuning range", "PF2: the live walk cap range (16..60) holds the proposed top walk")
 		mentions(list, "Training.MAX_LEVEL 17", "the level count")
 		mentions(list, "live: bat.parentStun", "no live parent stun")
@@ -356,11 +361,12 @@ return function(Balance, source)
 
 	case("B22: conflicts() takes the live constants as an argument", function()
 		local live = copy(Balance.LIVE)
-		live.dayCycle.phases = { Day = 240, Dusk = 60, Night = 300, Dawn = 120 }
+		live.dayCycle = { cycleSeconds = 720, phases = { Day = 240, Dusk = 60, Night = 300, Dawn = 120 } }
 		live.bat.cooldown = 12
 		live.silueta.nightHunt = 22
 		local list = Balance.conflicts(nil, live)
 		lacks(list, "live: dayCycle", "the passed day cycle agrees")
+		lacks(list, "live: no day/night cycle", "CF3: a passed cycling world is not the fixed one")
 		mentions(list, "live: bat.cooldown is 12 live, 5 in Balance", "the passed bat")
 		lacks(list, "outruns", "a 22 hunt is not outrun by 21")
 		local config = fresh()
@@ -379,6 +385,8 @@ return function(Balance, source)
 			batKnock = { "ServerScriptService", "WildboundBatKnock" },
 			incubator = { "ReplicatedStorage", "WildboundIncubator" },
 			tuningSchema = { "ReplicatedStorage", "WildboundTuningSchema" },
+			waveClock = { "ReplicatedStorage", "WildboundWaveClock" },
+			biomeLight = { "ReplicatedStorage", "WildboundBiomeLight" },
 		}
 		local sources, missing = {}, {}
 		for key, spot in pairs(where) do
@@ -395,6 +403,34 @@ return function(Balance, source)
 		local derived = Balance.liveFrom(sources)
 		pinMap(derived, copy(Balance.LIVE), "liveFrom vs LIVE")
 		pinMap(Balance.liveFrom({}), copy(Balance.LIVE), "liveFrom with nothing falls back to LIVE")
+	end)
+
+	case("B24: CF3, liveFrom() describes the fixed world from the wave clock and the biome light it is given", function()
+		local fixedRules = { CYCLE_SECONDS = 0, cycle = function() return { phase = "Day", remaining = 0, fixed = true } end }
+		local wave = { CONSTANTS = { WAVE_SECONDS = 240, WARNING_SECONDS = 12 } }
+		local light = { RULES = { Forest = "Night", Caramelo = "Day" },
+			PRESETS = { Forest = { mood = "Night" }, Caramelo = { mood = "Day" }, Swamp = { mood = "Dusk" } } }
+		local derived = Balance.liveFrom({ worldRules = fixedRules, waveClock = wave, biomeLight = light })
+		pinMap(derived.dayCycle, { fixed = true, waveSeconds = 240, warningSeconds = 12,
+			rules = { Forest = "Night", Caramelo = "Day" }, light = { Forest = "Night", Caramelo = "Day", Swamp = "Dusk" } },
+			"derived dayCycle")
+		mentions(Balance.conflicts(nil, derived), "live: no day/night cycle: a 240 s wave clock", "the derived wave")
+		-- a bad source keeps the LIVE value
+		local broken = Balance.liveFrom({ waveClock = { CONSTANTS = { WAVE_SECONDS = "x" } }, biomeLight = { RULES = 3 } })
+		pinMap(broken.dayCycle, copy(Balance.LIVE.dayCycle), "broken sources")
+		-- a cycling world (the old 720 s day) still replaces the description with its phase lengths
+		local cycling = { CYCLE_SECONDS = 720, cycle = function(t)
+			local spans = { { "Day", 300 }, { "Dusk", 60 }, { "Night", 300 }, { "Dawn", 60 } }
+			local at = 0
+			for _, span in ipairs(spans) do
+				if t < at + span[2] then return { phase = span[1], remaining = at + span[2] - t } end
+				at += span[2]
+			end
+			return { phase = "Day", remaining = 300 }
+		end }
+		local old = Balance.liveFrom({ worldRules = cycling, waveClock = wave, biomeLight = light })
+		pinMap(old.dayCycle, { cycleSeconds = 720, phases = { Day = 300, Dusk = 60, Night = 300, Dawn = 60 } }, "cycling")
+		mentions(Balance.conflicts(nil, old), "live: dayCycle.phases.Day is 300 live, 240 in Balance", "the old gap")
 	end)
 
 	return result

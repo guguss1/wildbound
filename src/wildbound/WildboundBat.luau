@@ -103,6 +103,14 @@ function Bat.inReach(from, to)
 	return dot >= math.cos(math.rad(C.HALF_ANGLE)) - 1e-9, flat
 end
 
+-- CF3 (odd/tasks/wildbound-caramelo.md): a candidate the bat never touches, flagged itself (batImmune) or by its beast
+-- config (config.batImmune, Don Glaseon). The bat is player against player: the server offers no beast as a candidate,
+-- and this keeps any future beast candidate built from its config out of reach of both hit resolvers.
+function Bat.immune(candidate)
+	if type(candidate) ~= "table" then return false end
+	return candidate.batImmune == true or (type(candidate.config) == "table" and candidate.config.batImmune == true)
+end
+
 -- candidates = { { key, x, y, z, alive, safe, hidden } }; clear(candidate) answers the server's line-of-sight ray from
 -- the attacker to that target. The nearest valid target with a clear line is hit. Returns the candidate, or nil and
 -- "NoTarget" (nobody valid in reach) or "Blocked" (only through a wall). Without a clear function nothing is hit.
@@ -111,7 +119,7 @@ function Bat.pickTarget(attacker, candidates, clear)
 	local valid = {}
 	for _, candidate in ipairs(candidates) do
 		if type(candidate) == "table" and candidate.key ~= attacker.key and candidate.alive == true
-			and candidate.safe ~= true and candidate.hidden ~= true then
+			and candidate.safe ~= true and candidate.hidden ~= true and not Bat.immune(candidate) then
 			local inside, distance = Bat.inReach(attacker, candidate)
 			if inside then table.insert(valid, { candidate = candidate, distance = distance or 0 }) end
 		end

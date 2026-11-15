@@ -412,6 +412,8 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundCandyDonGlaseonClips_Test.luau", "ServerStorage.WildboundCandyDonGlaseonClips_Test"),
     ("src/wildbound/WildboundBeastDonGlaseon.luau", "ServerScriptService.WildboundBeastDonGlaseon"),
     ("tests/WildboundBeastDonGlaseon_Test.luau", "ServerStorage.WildboundBeastDonGlaseon_Test"),
+    # CF3: the boss's robustness (bat immunity, the sleeping copy)
+    ("tests/WildboundBossRobustness_Test.luau", "ServerStorage.WildboundBossRobustness_Test"),
     ("src/wildbound/WildboundCandyDonGlaseonService.server.luau", "ServerScriptService.WildboundCandyDonGlaseonService"),
     ("src/wildbound/WildboundCandyDonGlaseonAnim.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyDonGlaseonAnim"),
 ]

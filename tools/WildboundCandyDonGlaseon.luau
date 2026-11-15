@@ -86,4 +86,19 @@ function DonGlaseon.spawn(prefab, groundCFrame)
 	return copy
 end
 
+-- CF3 (odd/tasks/wildbound-caramelo.md): the sleeping copy on BossHome. It stays on the marker (a summon starts there,
+-- so it never jumps) but nothing of it collides, touches or answers a ray, so it never walls the main approach lane
+-- that ends at the plaza. The live boss is drawn by each client from the prefab and keeps its hitbox. Returns the copy.
+function DonGlaseon.asleep(copy)
+	for _, d in ipairs(copy:GetDescendants()) do
+		if d:IsA("BasePart") then
+			d.CanCollide = false
+			d.CanTouch = false
+			d.CanQuery = false
+		end
+	end
+	copy:SetAttribute("BeastSolid", false)
+	return copy
+end
+
 return DonGlaseon
