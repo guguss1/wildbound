@@ -47,7 +47,7 @@ Checklist:
   - [x] T01.3 Python suite run (1225 run, 5 known failures, none from T01).
   - [ ] T01.4 Full Studio suite through `tools/studio-fresh-runner.luau` (not run; see Evidence).
   - [ ] T01.5 Commit (the overview's LG/push-state fixes go in their own `docs(wildbound)` commit).
-- [ ] T08a
+- [x] T08a Portal pure rules: done as part of CE3 (`odd/tasks/wildbound-caramelo.md`), `WildboundPortal`, commit e10e8f1.
 - [ ] T05b Economy simulator for the 2.0 numbers (simulation scope; the merged-vs-separate title decision is still open, see T05b evidence). Commit pending.
   - [x] T05b.1 Strict RED: the new test file against a stub module (24 run, 24 errors, every one `NotImplementedError`, 2026-11-14).
   - [x] T05b.2 GREEN: `tools/test_wildbound_economy_sim_v2.py` 24 passed / 0 failed.
@@ -61,7 +61,8 @@ Checklist:
   - [x] T09a.3 Report generated: `docs/balance/wildbound-2-0-roulette.md` (10000 seeded paid spins, seed 7), byte-identical on rerun.
   - [ ] T09a.4 `tools/studio-fresh-runner.luau` SPECS entry for `WildboundRoulette_Test` (owned by another track; see T09a evidence).
   - [ ] T09a.5 Commit.
-- [ ] T02, T03, T04, T05a, T06, T07, T08b, T09b, T10 (blocked on teammate stage 1)
+- [ ] T02, T03, T04, T05a, T06, T07, T09b, T10 (blocked on teammate stage 1)
+- [x] T08b Portal placement and wiring: done as CE3 (`odd/tasks/wildbound-caramelo.md`, decisions 34-39): the Caramelo arch (772, -3) and a deep-forest arch (-28, -132), commit e10e8f1.
 
 Open decision: what a player loses on death or defeat. Today the carried eggs are lost and Esencia is not (`lostOnDefeat = false`).
 

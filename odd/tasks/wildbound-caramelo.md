@@ -648,7 +648,14 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
   (one new module + suite; small additive edits to Toolbar, Species, State, Text, Server; the writer trigger fired but
   every Studio write needs the parent's fingerprint gate, and this worker may not delegate). TDD strict. Commit
   551f56e.
-- [ ] CE3 (assigned by the follow-up workflow).
+- [x] CE3 Return portals (T08a + T08b of `odd/tasks/wildbound-2-0.md`): pure rules `WildboundPortal` (calm 5 s, channel
+  2 s, rest 30 s, refusals, cuts, threat signals, the two stations), the server service `WildboundPortalService` (started
+  by WildboundServer; the prompt's server-side Triggered is the only input; teleport to the own base pad, the hub spawn pad
+  without a base), the forest arch built by the service at start, the Caramelo arch switched on through
+  `Layout.PORTAL.enabled` + `Builder.syncPortal`, the client bar and prompt wait (`WildboundPortalClient`), Spanish words
+  in `Text.PORTAL`, a beast-engagement stamp in WildboundBeasts. Route: inline (two new modules + one client + two
+  suites; small additive edits to Server, Beasts, Text, CandyLayout, CandyBuilder; the writer trigger fired but every
+  Studio write needs the parent's fingerprint gate and this worker may not delegate). TDD strict. Commit e10e8f1.
 
 ### CE0: qué es publicar las animaciones y cómo se hace
 
@@ -733,6 +740,35 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
    owner publishes the CE0 clips; once `Clips.IDS` holds them it animates with no code change.
 33. **CE2, data:** no schema change. Esencia is the egg's nest tier (Fog 10, FogFar 16, Territory 24), rarity comes from
    `Species.LOOKS`, hatch time from `Incubator.RARITY_MULTIPLIER`, the collection entry from `discovered`: all existing.
+
+34. **CE3, the egg rides along:** a player may use a portal while carrying an egg; it stays in the arms and the own base
+   banks it on arrival as usual (pack 04_ENTORNO/03: a legitimate teleport never resets or consumes the egg). The heist
+   tension stays in the calm rule: a portal only works after 5 s with no threat nearby, so it is an escape after breaking
+   a pursuit, never an instant exit (`Portal.CARRY = "keep"`).
+35. **CE3, what counts as a threat** (all server-written, never the client's): La Silueta's `WildboundThreatLevel` at Near
+   or Chase (Distant does not count); a live beast encounter on the player (new `WildboundBeastEngagedAt` stamp written by
+   WildboundBeasts, any phase but Disengage/Ended, at most twice a second); a bat hit (`WildboundBatHit`) or ragdoll
+   (`WildboundRagdollUntil`); a health drop of 3 or more between two 0.1 s samples (`hurtMin`; Play showed the
+   regeneration dipping 1 point a second, which must not count); an awake nest parent within 40 studs. Other players
+   nearby are not a threat (a friend standing at the arch must not block it). A stamp counts for 1 s.
+36. **CE3, the rules' numbers:** 5 s calm, 2 s channel, 30 s rest per player across both stations (Balance.portal and the
+   Caramelo layout, pinned by PT-1); the server measures its own root within 10 + 2 studs of the station (the prompt
+   reaches 8); the channel is cut by a threat noted after it started, moving more than 3 studs, leaving the range or
+   dying; a cut costs no rest. Refusal order: Disabled, Dead (also ragdolled), TooFar, Busy, Cooldown, Threat, NoBase.
+37. **CE3, where the player lands:** 3 studs over the centre of their own base's Pad, facing the hub centre (Play landed
+   0.1 studs from the target). Without a base (a ninth player) the hub spawn pad of `Heist.hub:spawnFrame`; with neither
+   the portal refuses NoBase.
+38. **CE3, the stations:** two. Caramelo: the Candy builder's existing `Portal` arch at (772, -3) (layout marker (160, 0)),
+   switched on by `Layout.PORTAL.enabled = true` and `Builder.syncPortal` (run once on the live biome; session-only
+   attribute, no save; the service also checks the model is still at its spot). Forest: a small stone arch with a faint
+   violet ring and light, built by the service at server start at (-28, -132), the south-west of the deep fog, on the
+   only clear 12x12 patch a floor scan found there, 55 studs from La Silueta's home and 336 from the hub: the deepest
+   escape, which her hunting makes hard to use. Neither is in a safe zone (PT-8).
+39. **CE3, the UI:** the server's prompt "Volver a la base" with the station name; the client changes its words locally to
+   "Listo en N s" while the player's rest lasts (from `WildboundPortalReadyAt`), draws a 2 s bar "Volviendo a tu base..."
+   from the `PortalEvent` remote, and every refusal and cut arrives as an ordinary HUD notice with the wait in it. The
+   client sends nothing. For the Play check a Studio-only server `ServerStorage.PortalProbe` BindableFunction stands in
+   for the prompt and calls the same trigger.
 
 ### Evidence CE0
 
@@ -822,6 +858,46 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
 - Not tested: Flanfuria and Tortidragón farm models in Play (only in the suite), the walk clip switching in Play, the hotbar
   showing the image (blocked by asset permission), the `FarmOnly` refusal through the Bag's equip remote in Play, two
   players, phone.
+
+### Evidence CE3
+
+- Studio target: place 122652861404212 (universe 10774749224), instance ba5a21af, Edit, PlayLock nil, runner lock nil.
+- Studio == HEAD before (bytes, Adler-32): Server 213398 873a6713, Beasts 47165 58801d54, Text 37237 896f92f9,
+  CandyLayout 5552 740bc39c, CandyBuilder 18623 6712aaaf, CandyLayout_Test 8918 785fef85, CandyBuilder_Test 14360
+  a34702b2, Text_Test 22740 e4550fde; Portal, PortalService, PortalClient absent.
+- Runner: a mini loader (fresh clones in a temporary ServerStorage folder, destroyed after) for the five touched suites,
+  and the engine of `tools/studio-fresh-runner.luau` pasted with the 44 suites that read a touched script.
+- RED (tests deployed, `WildboundPortal` / `WildboundPortalService` as `return {}` stubs, old Text/Layout/Builder):
+  Portal 1/9 (only the purity pin passed), PortalService 0/13, CandyLayout 13/1, CandyBuilder 12/2, Text 20/1.
+- GREEN: Portal 10/0, PortalService 13/0 (after fixing two test-side mistakes: a nil override that `pairs` skipped, and a
+  beast stamp that still counts for 1 s), CandyLayout 14/0, CandyBuilder 14/0, Text 21/0. Two later RED/GREEN rounds from
+  the Play check: the Studio PortalProbe (SV-13 RED 12/1, GREEN 13/0) and the regeneration dips (SV-5b and PT-1 RED, then
+  Portal 10/0, PortalService 14/0).
+- Regression, 44 suites: 681 passed, 7 failed, all known pre-existing (AN-3, BZ7, ECO-20, EL12, HB-T3, W1, RW5).
+- Studio == repo after the writes: Server 214269 828f8dcc, Beasts 47753 cd99de9f, Text 38180 bccdbfd7, CandyLayout 5659
+  27e0e9d6, CandyBuilder 19220 0b2b7640, CandyLayout_Test 8961 21b2fd46, CandyBuilder_Test 15040 05b5e4c1, Text_Test 23755
+  4d6e4a54, Portal 6851 e4faff01 (new), PortalService 15773 bb427b8f (new), PortalClient 4384 decfbd25 (new), Portal_Test
+  10677 8bc43ebd (new), PortalService_Test 13512 32d01db7 (new).
+- Builder: `Builder.syncPortal(workspace.Candy_Bioma_v1)` changed 1 (Portal `Enabled` true); session-only, no save.
+- Solo Play (PlayLock CE3, cleared after; Play stopped both times): the forest arch built at (-28, 1.2, -132), the Caramelo
+  prompt "Portal del Caramelo", `PortalEvent` and `PortalProbe` present. HeistProbe steal at CandyR2 (Rara, carried),
+  moved to the Caramelo arch, probe trigger accepted (Safe); 2 s later the root stood 0.10 studs from the own Base1 pad
+  target, the egg banked (`WildboundEggReward = 1|Tortidragon|Rara|16|...`), 24.5 s of rest left. At the forest arch
+  during the rest: bosque Cooldown, caramelo TooFar. A Scuttler and La Silueta came; a trigger while defeated was refused
+  Dead; later at the forest arch with La Silueta Near: Threat. Back at the Caramelo arch every trigger was refused Threat:
+  the health regeneration dipped 36 -> 35 each second (fixed with `hurtMin`, decision 35). Second Play: steal at CandyR3,
+  trigger at the Caramelo arch, stepped 7 studs at 0.6 s: cut, still there 2.2 s later, no rest, egg still carried;
+  trigger again: bar "Volviendo a tu base..." on screen, landed 0.10 studs from the Base1 target, egg banked, both prompts
+  read "Listo en 18 s" on the client, bar hidden. No Wildbound script error (only the usual TexturePack, asset fork and
+  DataStore messages). Screenshots `assets/exports/forest-kit/captures/ce3-forest-portal-arch-desktop.jpg`,
+  `ce3-caramelo-portal-channel-desktop.jpg`, `ce3-portal-arrived-own-base-desktop.jpg`.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept. `test_studio_fresh_runner` 15/15,
+  `test_deploy_manifest` 25/25.
+- Commit e10e8f1 (code, tests, screenshots).
+- Not tested: a real held prompt (the probe stands in, same trigger); a full channel at the forest arch (La Silueta was
+  always Near there; only its refusals were seen); a cut by a beast hit or an awake parent in Play (suite only); two
+  players, phone (the bar is capped at 360 px and 70 % width but was not seen on a phone); why the health sat at 35 after
+  a Silueta defeat (pre-existing, not a portal matter).
 
 ## Next step
 
