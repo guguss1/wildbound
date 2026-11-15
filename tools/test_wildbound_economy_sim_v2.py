@@ -412,5 +412,201 @@ class CraftedConfigTests(unittest.TestCase):
         self.assertIn("| beginner | carry | 10 |", outs[0])
 
 
+
+# ---- Live game model (2026-11-15) ---------------------------------------------------------------------------------
+class LiveLoadingTests(unittest.TestCase):
+    def setUp(self):
+        self.live = sim.load_live_game()
+
+    def test_live_mirrors_are_in_check_drift(self):
+        for name in ("treadmill_lap_seconds", "treadmill_lap_esencia", "base_incubator_slots", "nightbloom_wilt_seconds",
+                     "candy_nest_eggs", "farm_slots", "parent_chase_speed", "portal_carry", "egg_max_carry",
+                     "wave_seconds"):
+            self.assertIn(name, sim.MIRRORED)
+        self.assertEqual(sim.check_drift(), [])
+
+    def test_lap_esencia_drift_detected(self):
+        server = sim.MIRRORED["treadmill_lap_esencia"]["source"]
+        text = (REPO / server).read_text(encoding="utf-8")
+        with tempfile.TemporaryDirectory() as tmp:
+            patched = Path(tmp) / "server.luau"
+            patched.write_text(text.replace("C.MAX_LEVEL, 5)", "C.MAX_LEVEL, 0)"), encoding="utf-8")
+            drift = sim.check_drift(paths={server: patched})
+        self.assertTrue(any("treadmill_lap_esencia" in line for line in drift), drift)
+
+    def test_live_training_and_wave(self):
+        live = self.live
+        self.assertEqual(live["training"]["WALK_STEP"], 2)
+        self.assertEqual(live["training"]["MAX_LEVEL"], 17)
+        self.assertEqual(live["training"]["WALK_CAP"], 50)
+        self.assertEqual(live["training"]["COST_GROWTH"], 1.2)
+        self.assertEqual(live["wave_seconds"], 300)
+        self.assertEqual(live["collection_limit"], 100)
+        self.assertEqual(live["farm_slots"], 4)
+
+    def test_live_caramelo_nests(self):
+        nests = self.live["candy_nests"]
+        self.assertEqual(len(nests), 11)
+        by_rarity = {}
+        for nest in nests:
+            by_rarity[nest["rarity"]] = by_rarity.get(nest["rarity"], 0) + 1
+        self.assertEqual(by_rarity, {"Comun": 5, "Rara": 4, "Epica": 2})
+        self.assertEqual({n["species"] for n in nests if n["rarity"] == "Comun"}, {"Gomibu"})
+        self.assertEqual({n["species"] for n in nests if n["rarity"] == "Rara"}, {"Tortidragon"})
+        self.assertEqual({n["species"] for n in nests if n["rarity"] == "Epica"}, {"Flanfuria"})
+        self.assertEqual({n["rarity"]: n["esencia"] for n in nests}, {"Comun": 10, "Rara": 16, "Epica": 24})
+        self.assertEqual({n["rarity"]: n["hatch_s"] for n in nests}, {"Comun": 15, "Rara": 45, "Epica": 60})
+        self.assertTrue(all(n["eggs"] == 1 for n in nests))
+
+    def test_live_forest_islands(self):
+        islands = self.live["forest_islands"]
+        self.assertEqual([i["id"] for i in islands], ["I1", "I2", "I3", "I4", "I5"])
+        self.assertTrue(all(i["eggs"] == 3 and i["adults"] >= 2 for i in islands))
+
+    def test_live_roulette_table(self):
+        rou = self.live["roulette"]
+        self.assertEqual(rou["spinCost"], 45)
+        self.assertTrue(rou["freeFirstSpin"])
+        self.assertEqual(rou["pity"]["every"], 10)
+
+
+class LiveRuleTests(unittest.TestCase):
+    def setUp(self):
+        self.live = sim.load_live_game()
+
+    def test_trained_walk_and_carry_speed(self):
+        self.assertEqual(sim.live_walk(self.live, 0), 16)
+        self.assertEqual(sim.live_walk(self.live, 17), 50)
+        self.assertEqual(sim.live_walk(self.live, 30), 50)
+        self.assertAlmostEqual(sim.live_carry(self.live, 17, 1), 34.375)
+        self.assertEqual(sim.live_carry(self.live, 0, 1), 11)
+        self.assertAlmostEqual(sim.live_carry(self.live, 17, 5), 9 * 50 / 16)
+
+    def test_treadmill_progression_table(self):
+        rows = sim.treadmill_progression(self.live)
+        self.assertEqual(len(rows), 18)
+        self.assertEqual(rows[-1]["lap_seconds_total"], 17 * 8)
+        self.assertEqual(rows[-1]["lap_esencia_total"], 17 * 5)
+        self.assertEqual(rows[1]["console_cost"], 30)
+        self.assertEqual(rows[-1]["console_cost"], 555)
+
+    def test_afk_treadmill_rate(self):
+        self.assertAlmostEqual(sim.afk_treadmill_esencia_per_minute(self.live), 37.5)
+
+    def test_nightbloom_supply_now_beats_old_cycle(self):
+        nb = sim.nightbloom_supply(self.live)
+        self.assertGreater(nb["now_per_hour"], 0)
+        self.assertAlmostEqual(nb["old_cycle_per_hour"], nb["now_per_hour"] * 300 / 720)
+        self.assertEqual(nb["wilt_seconds"], 300)
+
+    def test_roulette_sink(self):
+        r = sim.live_roulette_summary(self.live)
+        self.assertAlmostEqual(r["esencia_per_paid_spin"], 12.01, places=1)
+        self.assertAlmostEqual(r["net_esencia_per_paid_spin"], r["esencia_per_paid_spin"] - 45)
+        self.assertLess(r["net_esencia_per_paid_spin"], 0)
+
+
+class LiveSessionTests(unittest.TestCase):
+    def setUp(self):
+        self.live = sim.load_live_game()
+        self.profiles = sim.default_live_profiles()
+
+    def test_deterministic(self):
+        p = self.profiles["intermediate"]
+        a = sim.simulate_live_session(self.live, p, "caramelo", 30, seed=3)
+        b = sim.simulate_live_session(self.live, p, "caramelo", 30, seed=3)
+        self.assertEqual(a, b)
+
+    def test_invariants(self):
+        for name, p in self.profiles.items():
+            for route in sim.LIVE_ROUTES:
+                r = sim.simulate_live_session(self.live, p, route, 30, seed=11)
+                self.assertGreaterEqual(r["esencia_total"], 0)
+                self.assertAlmostEqual(r["esencia_total"], sum(r["split"].values()), places=6)
+                self.assertLessEqual(r["collection"], self.live["collection_limit"])
+                self.assertLessEqual(r["walk_level"], 17)
+                if r["first_hatch_s"] is not None:
+                    self.assertGreater(r["first_hatch_s"], r["first_egg_s"])
+
+    def test_caramelo_wave_cap(self):
+        """One solo server: at most 11 Caramelo eggs per 300 s wave can be stolen."""
+        p = self.profiles["advanced"]
+        r = sim.simulate_live_session(self.live, p, "caramelo", 10, seed=5)
+        waves = 10 * 60 / 300 + 1
+        self.assertLessEqual(r["eggs_stolen"], 11 * waves)
+
+    def test_collection_limit_stops_steals(self):
+        live = dict(self.live, collection_limit=5)
+        r = sim.simulate_live_session(live, self.profiles["advanced"], "caramelo", 30, seed=1)
+        self.assertEqual(r["collection"], 5)
+        self.assertIsNotNone(r["collection_full_s"])
+
+    def test_treadmill_laps_at_start_train_walk(self):
+        r = sim.simulate_live_session(self.live, self.profiles["advanced"], "forest", 10, seed=2)
+        self.assertEqual(r["walk_level"], 17)
+        self.assertGreaterEqual(r["split"]["treadmill"], 17 * 5)
+
+    def test_run_live_and_render(self):
+        report = sim.run_live(self.live, self.profiles, [10, 30, 60], seed=7, runs=4)
+        self.assertEqual(len(report["cells"]), 3 * len(sim.LIVE_ROUTES) * 3)
+        text = sim.render_live_md(report)
+        self.assertIn("Esencia/min", text)
+        self.assertIn("Treadmill progression", text)
+        self.assertIn("Nightbloom", text)
+        self.assertIn("Roulette", text)
+        self.assertIn("ASSUMED", text)
+
+
+
+class LiveFindingsTests(unittest.TestCase):
+    def setUp(self):
+        self.live = sim.load_live_game()
+        self.profiles = sim.default_live_profiles()
+
+    def test_what_ifs_move_the_flagged_numbers(self):
+        rows = sim.run_what_ifs(self.live, self.profiles, minutes=30, runs=5)
+        by = {(r["case"], r["profile"], r["route"]): r for r in rows}
+        built, level_only = by[("as built", "advanced", "mixed")], by[("lap Esencia only on a level-up lap", "advanced", "mixed")]
+        self.assertLess(level_only["treadmill_per_min"], built["treadmill_per_min"])
+        capped = by[("carrier share of at most a 24 walk", "intermediate", "forest")]
+        self.assertGreater(capped["eggs_lost_per_hour"], by[("as built", "intermediate", "forest")]["eggs_lost_per_hour"])
+
+    def test_carry_cap_what_if(self):
+        capped = dict(self.live, carry_trained_cap=24)
+        self.assertAlmostEqual(sim.live_carry(capped, 17, 1), 11 * 24 / 16)
+        self.assertAlmostEqual(sim.live_carry(self.live, 17, 1), 34.375)
+
+    def test_findings_section(self):
+        report = sim.run_live(self.live, self.profiles, [10, 60], seed=7, runs=3)
+        text = sim.render_live_findings(report, sim.run_what_ifs(self.live, self.profiles, minutes=10, runs=2))
+        for words in ("## 2026-11-15 findings", "### Too easy", "### Too slow", "treadmill", "collection limit",
+                      "Caramelo", "Suggest", "What-if"):
+            self.assertIn(words, text)
+
+    def test_cli_has_live_section_and_no_live_skips_it(self):
+        def run(argv):
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                sim.main(argv)
+            return buf.getvalue()
+        base = ["--profile", "beginner", "--minutes", "10", "--runs", "2", "--md"]
+        text = run(base)
+        self.assertIn("## Live game model (2026-11-15)", text)
+        self.assertIn("## 2026-11-15 findings", text)
+        self.assertIn("## Proposed 2.0 balance model", text)
+        self.assertEqual(text.splitlines()[2], sim.DISCLAIMER)
+        self.assertNotIn("## Live game model", run(base + ["--no-live"]))
+
+    def test_json_has_live_results(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / "r.json"
+            with contextlib.redirect_stdout(io.StringIO()):
+                sim.main(["--profile", "beginner", "--minutes", "10", "--runs", "2", "--json", str(out)])
+            data = json.loads(out.read_text(encoding="utf-8"))
+        self.assertIn("cells", data["live_model"])
+        self.assertNotIn("live", data["live_model"])
+        self.assertEqual(data["live_model"]["profiles"]["beginner"]["max_eggs_per_trip"], 1)
+
+
 if __name__ == "__main__":
     unittest.main()

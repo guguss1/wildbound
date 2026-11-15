@@ -1,4 +1,10 @@
-"""Wildbound 2.0 economy simulator (T05b of odd/tasks/wildbound-2-0.md).
+"""Wildbound economy simulator: the live game (2026-11-15) and the proposed 2.0 balance (T05b of odd/tasks/wildbound-2-0.md).
+
+The live game model (load_live_game, simulate_live_session, run_live) reads what is wired today from the Luau: 300 s
+egg waves with no day/night cycle, Caramelo's 11 one-egg nests and the forest's island nests, the treadmill (a free walk
+level and Esencia per lap, kept while carrying), base auto-incubation, the hub roulette (Roulette.LIVE), the collection
+limit, Nightbloom and the return portals. It plays caramelo, forest and mixed routes for three ASSUMED live profiles
+and writes a dated findings section. The rest of this docstring describes the proposed 2.0 model.
 
 A MODEL, NOT MEASURED BALANCE. It reads the live economy numbers from
 src/wildbound/WildboundEconomyConfig.luau and the proposed, unwired 2.0 numbers from
@@ -58,6 +64,15 @@ EGG_CARRY = "src/wildbound/WildboundEggCarry.luau"
 LUMIPOL_WILD = "src/wildbound/WildboundLumipolWild.luau"
 BEAST_CONFIG = "src/wildbound/WildboundBeastConfig.luau"  # read only: another agent edits it
 ISLAND = "src/wildbound/WildboundIsland.luau"
+TREADMILL = "src/wildbound/WildboundTreadmillService.luau"
+SERVER = "src/wildbound/WildboundServer.server.luau"
+GATHER_FIELD = "src/wildbound/WildboundGatherField.luau"
+CANDY_NESTS = "src/wildbound/WildboundCandyNests.luau"
+CANDY_LAYOUT = "tools/WildboundCandyLayout.luau"
+STATE = "src/wildbound/WildboundState.luau"
+PORTAL = "src/wildbound/WildboundPortal.luau"
+ROULETTE = "src/wildbound/WildboundRoulette.luau"
+ISLAND_LAYOUT = "src/wildbound/WildboundIslandLayout.luau"
 
 RARITIES = ("Comun", "Rara", "Epica", "Legendaria")
 BASE_WALK = 16.0
@@ -235,6 +250,19 @@ MIRRORED = {
     "eggs_per_nest": {"value": 3, "source": ISLAND, "note": "caps eggs_per_trip_target"},
     "egg_share": {"value": 0.4, "source": SPAWN_CLOCK,
                   "note": "EGG_SHARE 0.4 and every bough spawn is an egg; the trip model still counts nest eggs only"},
+    # Live game model (2026-11-15): values buried in large scripts, copied here and re-read by check_drift.
+    "treadmill_lap_seconds": {"value": 8, "source": TREADMILL, "note": "Treadmill.LAP_SECONDS: one lap, one walk level"},
+    "treadmill_lap_esencia": {"value": 5, "source": SERVER, "note": "onLap -> state:trainByRunning(..., 5): Esencia per lap"},
+    "base_incubator_slots": {"value": 8, "source": SERVER,
+                             "note": "Heist.autoIncubate: math.max(8, Incubator SLOTS, upgrades) on entering the own base"},
+    "nightbloom_wilt_seconds": {"value": 300, "source": GATHER_FIELD, "note": "Field.NIGHT_ONLY_SECONDS (CF1)"},
+    "candy_nest_eggs": {"value": 1, "source": CANDY_NESTS, "note": "Nests.EGGS: one egg per Caramelo nest"},
+    "farm_slots": {"value": 4, "source": STATE, "note": "State.FARM_SLOTS (no farm income)"},
+    "parent_chase_speed": {"value": 19, "source": ISLAND, "note": "Island CHASE_SPEED of a woken forest parent"},
+    "portal_carry": {"value": "refuse", "source": PORTAL,
+                     "note": "Portal.CARRY (CG2, decision 47): refuse = an egg carrier may not use a portal"},
+    "egg_max_carry": {"value": 12, "source": EGG_CARRY, "note": "EggCarry.MAX_CARRY eggs in the arms"},
+    "wave_seconds": {"value": 300, "source": WAVE_CLOCK, "note": "WaveClock WAVE_SECONDS: nests refill each wave"},
 }
 
 
@@ -262,6 +290,24 @@ def _read_mirror(name, text, relpath):
         return _number(text, relpath, r"^\s*EGGS_PER_NEST = (\d+)")
     if name == "egg_share":
         return _number(text, relpath, r"EGG_SHARE = ([0-9.]+)")
+    patterns = {
+        "treadmill_lap_seconds": r"Treadmill\.LAP_SECONDS = (\d+)",
+        "treadmill_lap_esencia": r"trainByRunning\(player\.UserId, alive, distance, C\.MAX_LEVEL, (\d+)\)",
+        "base_incubator_slots": r"local slots = math\.max\((\d+), Incubator\.live\.SLOTS",
+        "nightbloom_wilt_seconds": r"Field\.NIGHT_ONLY_SECONDS = (\d+)",
+        "candy_nest_eggs": r"Nests\.EGGS = (\d+)",
+        "farm_slots": r"State\.FARM_SLOTS = (\d+)",
+        "parent_chase_speed": r"^\s*CHASE_SPEED = (\d+)",
+        "egg_max_carry": r"EggCarry\.MAX_CARRY = (\d+)",
+        "wave_seconds": r"^\s*WAVE_SECONDS = (\d+)",
+    }
+    if name in patterns:
+        return _number(text, relpath, patterns[name])
+    if name == "portal_carry":
+        found = re.search(r'Portal\.CARRY = "(\w+)"', text)
+        if not found:
+            raise NumbersUnavailable(f"{relpath}: Portal.CARRY not found")
+        return found.group(1)
     raise KeyError(name)
 
 
@@ -1157,17 +1203,26 @@ def render_md(report, command=None):
     cells = report["cells"]
     modes = list(dict.fromkeys(c.get("farm_mode", "fresh") for c in cells))
     lines = [
-        "# Wildbound 2.0 economy simulation (T05b)",
+        "# Wildbound economy simulation (live game 2026-11-15, proposed 2.0 balance)",
         "",
         DISCLAIMER,
         "",
-        "Inputs are read from the repo (live WildboundEconomyConfig, proposed unwired WildboundBalance); every profile "
-        "field, the PvP and bat rates and the roulette prize values are ASSUMED. This is not measured play data.",
+        "Two models. The live game model reads what is wired today from the Luau (waves, Caramelo and forest nests, "
+        "the treadmill, base incubation, the hub roulette, the collection limit, Nightbloom). The proposed 2.0 model "
+        "below it reads the unwired WildboundBalance (T05b). Every profile field, the loss rates and the roulette "
+        "prize values are ASSUMED. This is not measured play data.",
         "",
     ]
     if command:
         lines += [f"Regenerate: `{command}`", ""]
+    if report.get("live_model"):
+        lines += [render_live_md(report["live_model"]), render_live_findings(report["live_model"], report["what_ifs"])]
     lines += [
+        "## Proposed 2.0 balance model (T05b, WildboundBalance unwired)",
+        "",
+        "This model is unchanged from T05b: it plays the proposed farm income, sell prices, treadmill ladder (16-21) "
+        "and incubation timers, none of which the live game uses.",
+        "",
         f"Seed {report['seed']}, {report['runs']} runs per cell (seeds seed..seed+runs-1), source `{report['source']}`, "
         f"incubation balance `{report['balance']}`, farm modes `{', '.join(modes)}`. Values are mean (p10-p90).",
         "",
@@ -1306,13 +1361,815 @@ def render_md(report, command=None):
               "- `fresh` farm mode treats every session as a fresh account, which biases toward selling: the farm is "
               "worth nothing after the session. `carry` is the steady-state counterpart; neither carries upgrade levels.",
               "- WildboundBalance is `wired=false`: these results describe the proposed 2.0 economy, not the live game.",
-              "- The treadmill walk 17-21 conflicts with Q9 (walk 16) and the live WALK_CAP 16; the model uses the proposed speeds.",
-              "- No day/night, no material gathering, no consumables, no portals.", ""]
+              "- The proposed treadmill walk 17-21 is not the live one (16 to 50 by laps, PF2); the live model above uses "
+              "the live speeds.",
+              "- This proposed model has no waves, material gathering, consumables or portals; the live model above has "
+              "waves, portals and Nightbloom.", ""]
     return "\n".join(lines)
 
 
 def render_json(report):
-    return json.dumps(report, indent=2, sort_keys=True, default=str)
+    out = dict(report)
+    if out.get("live_model"):  # the live inputs are long; keep the results and the profiles
+        out["live_model"] = {k: v for k, v in out["live_model"].items() if k != "live"}
+        out["live_model"]["profiles"] = {k: asdict(v) for k, v in out["live_model"]["profiles"].items()}
+    return json.dumps(out, indent=2, sort_keys=True, default=str)
+
+
+# ---- Live game model (2026-11-15) -------------------------------------------------------------------------------------
+# What the wired game does today (odd/tasks/wildbound-caramelo.md, odd/tasks/wildbound-playtest-fixes.md), read from the
+# live Luau: no day/night cycle (300 s egg waves, the forest plays by Night rules), Caramelo's 11 one-egg nests refilled
+# each wave, the forest's five island nests (3 eggs, woken parents), the treadmill (a free walk level and 5 Esencia per
+# 8 s lap, +2 walk per level up to 50, kept while carrying), base auto-incubation, the hub roulette (Roulette.LIVE), the
+# 100-creature collection limit, a 4-slot farm with no income and the return portals. Every number below that is not
+# read from a Luau file is ASSUMED and listed in LIVE_ASSUMPTIONS.
+LIVE_ROUTES = ("caramelo", "forest", "mixed")
+BASE_TO_HUB_EDGE = 60.0  # ASSUMED: studs from a base pad to the hub disc's edge
+PATH_FACTOR = 1.2  # ASSUMED: walked path over straight-line distance (paths, trees, candy props)
+ARRULLO_SECONDS = 6.0  # ASSUMED: mean Arrullo minigame time for an Epica egg (TIMEOUT is 18 s)
+WILD_EGG_DETOUR = 6.0  # ASSUMED: seconds a wild or bough egg pickup adds to a forest trip
+PORTAL_PROMPT = 1.0  # ASSUMED: seconds to reach and trigger the portal prompt, on top of the 2 s channel
+CANDY_GUARDED = {"C1": "Gomibu", "R1": "Flanfuria", "C3": "Tortidragon"}  # decision 25 (odd/tasks/wildbound-caramelo.md)
+GUARD_LOSS_SLOW = 0.25  # ASSUMED: extra loss chance at a guarded nest when the carrier is not faster than its guardian
+GUARD_LOSS_FAST = 0.05  # ASSUMED: the same when the carrier outruns the guardian
+BOSS_LOSS = 0.05  # ASSUMED: extra loss chance per Epica nest inside Don Glaseon's territory
+OUTRUN_FACTOR = 0.4  # ASSUMED: forest loss multiplier when the carrier outruns a woken parent (CHASE_SPEED)
+HARVEST_TRAVEL = {"fog": 20.0, "territory": 25.0}  # ASSUMED: seconds of walking between two gather nodes
+LIVE_ASSUMPTIONS = [
+    ("solo_server", "one player per server: nobody else takes eggs, and every nest is full at session start"),
+    ("wave_offset", "the session starts at a uniform random point of the 300 s wave"),
+    ("base_to_hub_edge_studs", BASE_TO_HUB_EDGE),
+    ("path_factor", PATH_FACTOR),
+    ("arrullo_seconds", ARRULLO_SECONDS),
+    ("wild_egg_detour_seconds", WILD_EGG_DETOUR),
+    ("portal_prompt_seconds", PORTAL_PROMPT),
+    ("guarded_nests", "C1 Gomibu, R1 Flanfuria, C3 Tortidragon (decision 25)"),
+    ("guard_loss_slow / fast", f"{GUARD_LOSS_SLOW} / {GUARD_LOSS_FAST}"),
+    ("boss_loss_per_epica_nest", BOSS_LOSS),
+    ("outrun_factor", OUTRUN_FACTOR),
+    ("loss", "a loss drops every carried egg; the nest stays empty until the next wave; banked Esencia is never lost"),
+    ("first_steal_bonus", "not paid for eggs (State pays it only when an island cria is registered)"),
+    ("extract_base", "4 Esencia when a trip lasts 45 s or more (minExpeditionSeconds); every trip passes 60 studs"),
+    ("forest_eggs", "Species.ONLY rewrites forest eggs to Lumipol (Comun, 15 s hatch); Esencia by the island's tier"),
+    ("wild_eggs", "wild/bough pickups per forest trip by profile; rarity by SpawnClock MAX weights, Esencia by REWARD"),
+    ("incubation", "eggs start as soon as one of the 8 base slots frees (the owner is assumed near the base)"),
+    ("roulette", "the free first spin only, drawn from Roulette.LIVE; paid spins are a separate sink table"),
+    ("harvest_travel_seconds", HARVEST_TRAVEL),
+    ("materials", "Nightbloom and roulette materials pay no Esencia; they are counted, not priced"),
+]
+
+
+@dataclass(frozen=True)
+class LiveProfile:
+    """An invented player for the live game. Every field is ASSUMED."""
+    name: str
+    laps_at_start: int  # treadmill laps before the first trip (one walk level and 5 Esencia each)
+    idle_on_treadmill: bool  # rides the treadmill while every nest of the route is empty
+    max_eggs_per_trip: int
+    overhead_s: float  # looking, hesitating, hiding: seconds added to every trip
+    caramelo_loss: float  # base chance a Caramelo trip loses its eggs
+    forest_loss: float  # base chance a forest trip loses its eggs (parents, La Silueta, beasts, PvP)
+    wild_eggs_per_forest_trip: float
+    sell_duplicates: bool
+    nest_choice: str  # "nearest" or "value" (Esencia per stud)
+    uses_portal: bool
+
+    FIELDS = ("laps_at_start", "idle_on_treadmill", "max_eggs_per_trip", "overhead_s", "caramelo_loss", "forest_loss",
+              "wild_eggs_per_forest_trip", "sell_duplicates", "nest_choice", "uses_portal")
+
+
+def default_live_profiles():
+    return {
+        "beginner": LiveProfile("beginner", 4, False, 1, 35.0, 0.10, 0.35, 0.3, False, "nearest", False),
+        "intermediate": LiveProfile("intermediate", 17, False, 3, 18.0, 0.06, 0.22, 0.6, True, "nearest", True),
+        "advanced": LiveProfile("advanced", 17, True, 6, 8.0, 0.03, 0.12, 1.0, True, "value", True),
+    }
+
+
+def _layout_nests(text, relpath):
+    nests = [{"id": m.group(1), "rarity": m.group(2), "x": int(m.group(3)), "z": int(m.group(4))}
+             for m in re.finditer(r'nest\("(\w+)", "(\w+)", (-?\d+), (-?\d+)\)', text)]
+    if not nests:
+        raise NumbersUnavailable(f"{relpath}: Layout.NESTS not found")
+    return nests
+
+
+def _point(text, relpath, name):
+    found = re.search(name + r" = point\((-?\d+), (-?\d+)\)", text)
+    if not found:
+        raise NumbersUnavailable(f"{relpath}: {name} not found")
+    return int(found.group(1)), int(found.group(2))
+
+
+def load_live_game(repo=REPO):
+    """Every number the live model uses, read from the Luau files. Raises NumbersUnavailable on any failure."""
+    repo = Path(repo)
+    text = _read(repo, ECONOMY_CONFIG)
+    try:
+        import export_economy_config_luau as exporter
+        economy = exporter.parse_luau(text)
+    except Exception as error:  # noqa: BLE001
+        raise NumbersUnavailable(f"{ECONOMY_CONFIG}: cannot parse ({error})") from error
+    mirrors = {name: _read_mirror(name, _read(repo, e["source"]), e["source"]) for name, e in MIRRORED.items()}
+    training_text = _read(repo, TRAINING)
+    training = {key: _number(training_text, TRAINING, r"^\s*" + key + r" = ([0-9.]+)")
+                for key in ("WALK_STEP", "MAX_LEVEL", "WALK_CAP", "BASE_COST", "COST_GROWTH")}
+    incubator_text = _read(repo, INCUBATOR)
+    hatch_base = _number(incubator_text, INCUBATOR, r"HATCH_SECONDS = ([0-9.]+)")
+    try:
+        multiplier = parse_balance_literal(_assignment_literal(incubator_text, "Incubator.RARITY_MULTIPLIER = freeze("))
+    except ValueError as error:
+        raise NumbersUnavailable(f"{INCUBATOR}: RARITY_MULTIPLIER ({error})") from error
+    hatch = {r: hatch_base * multiplier[r] for r in RARITIES}
+    carry_text = _read(repo, EGG_CARRY)
+    holds = {key: _number(carry_text, EGG_CARRY, r"^\s*" + key + r" = ([0-9.]+)") for key in ("STEAL_HOLD", "PICKUP_HOLD")}
+    egg_esencia = dict(economy["earn"]["eggEmberByTier"])
+
+    pool_text = _read(repo, CANDY_NESTS)
+    pool = {m.group(1): {"species": m.group(2), "tier": m.group(3)} for m in re.finditer(
+        r'(Comun|Rara|Epica|Legendaria) = table\.freeze\(\{ species = "(\w+)", rewardTier = "(\w+)" \}\)', pool_text)}
+    if len(pool) != 4:
+        raise NumbersUnavailable(f"{CANDY_NESTS}: POOL not found")
+    layout_text = _read(repo, CANDY_LAYOUT)
+    if not re.search(r"Layout\.NESTS_ENABLED = true", layout_text):
+        raise NumbersUnavailable(f"{CANDY_LAYOUT}: NESTS_ENABLED is not true")
+    centre = _point(layout_text, CANDY_LAYOUT, r"Layout\.CENTRE")
+    entrance = _point(layout_text, CANDY_LAYOUT, r"Layout\.ENTRANCE")
+    boss = re.search(r"Layout\.BOSS = table\.freeze\(\{ x = (-?\d+), z = (-?\d+),.*?territoryRadius = (\d+)", layout_text)
+    if not boss:
+        raise NumbersUnavailable(f"{CANDY_LAYOUT}: BOSS not found")
+    candy = []
+    for nest in _layout_nests(layout_text, CANDY_LAYOUT):
+        if nest["rarity"] == "Legendaria":  # event-only (nest() marks it), no Caramelo event exists
+            continue
+        row = pool[nest["rarity"]]
+        candy.append({
+            "id": nest["id"], "rarity": nest["rarity"], "species": row["species"], "tier": row["tier"],
+            "esencia": egg_esencia[row["tier"]], "hatch_s": hatch[nest["rarity"]], "eggs": mirrors["candy_nest_eggs"],
+            "x": centre[0] + nest["x"], "z": centre[1] + nest["z"],
+            "guard": CANDY_GUARDED.get(nest["id"]),
+            "in_boss_territory": math.hypot(nest["x"] - int(boss.group(1)), nest["z"] - int(boss.group(2)))
+            <= int(boss.group(3)),
+        })
+
+    island_text = _read(repo, ISLAND_LAYOUT)
+    islands = [{"id": m.group(1), "x": float(m.group(2)), "z": float(m.group(3)), "tier": m.group(4),
+                "species": m.group(5), "adults": int(m.group(6)), "eggs": mirrors["eggs_per_nest"]}
+               for m in re.finditer(r'id = "(I\d+)", key = "\w+", x = (-?[\d.]+), z = (-?[\d.]+),.*?'
+                                    r'rewardTier = "(\w+)", species = "(\w+)", adults = (\d+)', island_text, re.S)]
+    if not islands:
+        raise NumbersUnavailable(f"{ISLAND_LAYOUT}: islands not found")
+    for island in islands:
+        island["esencia"] = egg_esencia[island["tier"]]
+        island["rarity"] = "Comun"  # Species.ONLY = "Lumipol"
+        island["hatch_s"] = hatch["Comun"]
+        island["species"] = "Lumipol"
+
+    world_text = _read(repo, WORLD_RULES)
+    hub = re.search(r"Rules\.HUB_X, Rules\.HUB_Z, Rules\.HUB_RADIUS = (-?\d+), (-?\d+), (\d+)", world_text)
+    if not hub:
+        raise NumbersUnavailable(f"{WORLD_RULES}: HUB_X not found")
+    portal_text = _read(repo, PORTAL)
+    portal = {key: _number(portal_text, PORTAL, key + r" = (\d+)") for key in ("calmSeconds", "channelSeconds", "cooldown")}
+    portal["stations"] = {m.group(1): (int(m.group(2)), int(m.group(3))) for m in re.finditer(
+        r'id = "(\w+)", source = "\w+", x = (-?\d+), z = (-?\d+)', portal_text)}
+    portal["carry"] = mirrors["portal_carry"]
+    beast_text = _read(repo, BEAST_CONFIG)
+    guard_speed = {}
+    for name in sorted(set(CANDY_GUARDED.values())):
+        found = re.search(name + r" = table\.freeze\(\{.*?ChaseSpeedStudsPerSecond = (\d+)", beast_text, re.S)
+        if not found:
+            raise NumbersUnavailable(f"{BEAST_CONFIG}: {name} chase speed not found")
+        guard_speed[name] = int(found.group(1))
+    spawn_text = _read(repo, SPAWN_CLOCK)
+    wild_weights = {r: _number(spawn_text, SPAWN_CLOCK, rf"MAX_{r.upper()} = (\d+)") for r in RARITIES}
+    try:
+        reward = parse_balance_literal(_assignment_literal(spawn_text, "SpawnClock.REWARD = freeze("))
+    except ValueError as error:
+        raise NumbersUnavailable(f"{SPAWN_CLOCK}: REWARD ({error})") from error
+    try:
+        import wildbound_roulette_sim as roulette_sim
+        roulette = roulette_sim.load_live_config(repo / ROULETTE)
+    except Exception as error:  # noqa: BLE001
+        raise NumbersUnavailable(f"{ROULETTE}: Roulette.LIVE ({error})") from error
+    return {
+        "training": training, "lap_seconds": mirrors["treadmill_lap_seconds"],
+        "lap_esencia": mirrors["treadmill_lap_esencia"], "base_slots": mirrors["base_incubator_slots"],
+        "hatch_s": hatch, "holds": holds, "egg_esencia": egg_esencia, "egg_speeds": mirrors["egg_carry_speeds"],
+        "max_carry": mirrors["egg_max_carry"], "wave_seconds": mirrors["wave_seconds"],
+        "candy_nests": candy, "candy_entrance": (centre[0] + entrance[0], centre[1] + entrance[1]),
+        "forest_islands": islands, "hub": (int(hub.group(1)), int(hub.group(2)), int(hub.group(3))),
+        "portal": portal, "guard_speed": guard_speed, "parent_chase_speed": mirrors["parent_chase_speed"],
+        "wild_weights": wild_weights, "reward_tier": reward, "extract_base": economy["earn"]["extractBaseEmber"],
+        "extract_min_seconds": economy["earn"]["baseRequires"]["minExpeditionSeconds"],
+        "collection_limit": economy["capacity"]["collectionLimit"], "farm_slots": mirrors["farm_slots"],
+        "gather": economy["gather"], "spawn_weights": economy["spawnWeights"], "yields": economy["yields"],
+        "nightbloom_wilt_seconds": mirrors["nightbloom_wilt_seconds"], "roulette": roulette,
+        "upgrades": economy["upgrades"], "skills": economy["skills"], "gear": economy["gear"],
+        "cycle": economy["cycle"],
+    }
+
+
+# ---- Live rules -------------------------------------------------------------------------------------------------------
+def live_walk(live, level):
+    """Training.walkSpeed for an unencumbered walk: 16 + WALK_STEP x level, never past WALK_CAP."""
+    t = live["training"]
+    level = max(0, min(int(level), int(t["MAX_LEVEL"])))
+    return min(BASE_WALK + t["WALK_STEP"] * level, t["WALK_CAP"])
+
+
+def live_carry(live, level, eggs):
+    """A carrier keeps its carry share (eggSpeed / 16) of the trained walk (PF2: also while carrying)."""
+    if eggs <= 0:
+        return live_walk(live, level)
+    speed = live["egg_speeds"][min(eggs, 3)]
+    trained = live_walk(live, level)
+    cap = live.get("carry_trained_cap")  # what-if only: the trained walk a carrier's share is taken of
+    if cap is not None:
+        trained = min(trained, cap)
+    return max(speed, speed * trained / BASE_WALK)
+
+
+def treadmill_progression(live):
+    """One row per walk level: walk and carry speeds, the laps' cumulative time and Esencia, the console price."""
+    t, rows = live["training"], []
+    for level in range(int(t["MAX_LEVEL"]) + 1):
+        rows.append({
+            "level": level, "walk": live_walk(live, level),
+            "carry_1": live_carry(live, level, 1), "carry_3": live_carry(live, level, 3),
+            "lap_seconds_total": level * live["lap_seconds"], "lap_esencia_total": level * live["lap_esencia"],
+            "console_cost": None if level == 0 else math.floor(t["BASE_COST"] * t["COST_GROWTH"] ** (level - 1) + 0.5),
+        })
+    total = 0
+    for row in rows:
+        total += row["console_cost"] or 0
+        row["console_total"] = total
+    return rows
+
+
+def afk_treadmill_esencia_per_minute(live):
+    return live["lap_esencia"] * 60.0 / live["lap_seconds"]
+
+
+def nightbloom_supply(live, players=1):
+    """Nightbloom per hour one player can harvest by claiming every forest node (a node only frees on claim or wilt).
+
+    Each active slot refills respawnSeconds after a claim with a re-roll of the Night table; a slot cycles in
+    respawn + hold + travel seconds. Before CA4 Nightbloom only rolled at Night (300 of 720 s)."""
+    gather = live["gather"]
+    active = next(row for row in reversed(gather["activeByPlayers"]) if row["minPlayers"] <= players)
+    zones, total = {}, 0.0
+    for zone in ("fog", "territory"):
+        weights = live["spawn_weights"][zone]["Night"]
+        share = weights.get("nightbloom", 0) / float(sum(weights.values()))
+        low, high = live["yields"][zone]["nightbloom"]
+        cycle = gather["respawnSeconds"] + gather["holdSeconds"][zone] + HARVEST_TRAVEL[zone]
+        per_hour = active[zone] * share * (low + high) / 2.0 * 3600.0 / cycle
+        zones[zone] = {"slots": active[zone], "share": share, "yield": (low + high) / 2.0, "cycle_s": cycle,
+                       "per_hour": per_hour}
+        total += per_hour
+    night = live["cycle"]["phases"]["Night"] / float(live["cycle"]["seconds"])
+    return {"zones": zones, "now_per_hour": total, "old_cycle_per_hour": total * night,
+            "wilt_seconds": live["nightbloom_wilt_seconds"], "night_share_before": night}
+
+
+def nightbloom_sinks(live):
+    """Nightbloom every one-time purchase needs (camp upgrades and skills)."""
+    one_time = sum(spec["cost"].get("nightbloom", 0) for spec in live["upgrades"].values())
+    one_time += sum(spec["cost"].get("nightbloom", 0) for spec in live["skills"].values())
+    return one_time
+
+
+def esencia_sinks(live):
+    """Esencia of every one-time purchase: camp upgrades, skills, one of each gear, the treadmill console ladder."""
+    upgrades = sum(spec["cost"].get("ember", 0) for spec in live["upgrades"].values())
+    skills = sum(spec["cost"].get("ember", 0) for spec in live["skills"].values())
+    gear = sum(spec["cost"].get("ember", 0) for spec in live["gear"].values())
+    console = treadmill_progression(live)[-1]["console_total"]
+    return {"upgrades": upgrades, "skills": skills, "gear": gear, "treadmill_console": console,
+            "total_without_console": upgrades + skills + gear}
+
+
+def live_roulette_summary(live):
+    import wildbound_roulette_sim as roulette_sim
+    config = live["roulette"]
+    ev = roulette_sim.expected_value(config, True)
+    return {"spin_cost": config["spinCost"], "free_first_spin": config["freeFirstSpin"],
+            "pity_every": config["pity"]["every"], "pity_min": config["pity"]["minRarity"],
+            "esencia_per_paid_spin": ev["esencia"], "value_per_paid_spin": ev["value"],
+            "net_esencia_per_paid_spin": ev["esencia"] - config["spinCost"], "pity_spin_share": ev["pitySpinShare"],
+            "free_spin_esencia_ev": roulette_sim.expected_value(config, False)["esencia"]}
+
+
+def _dist(a, b):
+    return math.hypot(a[0] - b[0], a[1] - b[1])
+
+
+def _route_points(live, route):
+    """(hub edge point toward the route, the route's entry point) in world studs."""
+    hx, hz, radius = live["hub"]
+    if route == "caramelo":
+        return (hx + radius, hz), live["candy_entrance"]
+    return (hx - radius, hz), (hx - radius, hz)
+
+
+def plan_trip(live, profile, level, route, targets, wild):
+    """Seconds, carried eggs, carry speed and portal use of one trip through `targets` plus `wild` wild eggs.
+
+    Out at the trained walk, between nests and home at the carry speed of the eggs held; home is the walk back or, when
+    the portal lets a carrier through and the profile uses it, the nearer portal plus its channel."""
+    edge, entry = _route_points(live, route)
+    walk = live_walk(live, level)
+    seconds = (BASE_TO_HUB_EDGE + _dist(edge, entry)) / walk
+    here, held = entry, 0
+    for nest in targets:
+        speed = walk if held == 0 else live_carry(live, level, held)
+        seconds += _dist(here, (nest["x"], nest["z"])) * PATH_FACTOR / speed
+        hold = ARRULLO_SECONDS if nest["rarity"] in ("Epica", "Legendaria") else live["holds"]["STEAL_HOLD"]
+        seconds += hold + live["holds"]["PICKUP_HOLD"]
+        held += 1
+        here = (nest["x"], nest["z"])
+    held += len(wild)
+    seconds += WILD_EGG_DETOUR * len(wild)
+    carry = live_carry(live, level, held)
+    home = (_dist(here, entry) * PATH_FACTOR + _dist(entry, edge) + BASE_TO_HUB_EDGE) / carry
+    portal_used = False
+    if profile.uses_portal and live["portal"]["carry"] == "keep":
+        station = live["portal"]["stations"]["caramelo" if route == "caramelo" else "bosque"]
+        via = _dist(here, station) * PATH_FACTOR / carry + live["portal"]["channelSeconds"] + PORTAL_PROMPT
+        if via < home:
+            home, portal_used = via, True
+    return seconds + home + profile.overhead_s, held, carry, portal_used
+
+
+def _pick_targets(live, profile, route, available):
+    entry = _route_points(live, route)[1]
+    if profile.nest_choice == "value":
+        ordered = sorted(available, key=lambda n: (-n["esencia"] / max(_dist(entry, (n["x"], n["z"])), 1.0), n["id"]))
+    else:
+        ordered = sorted(available, key=lambda n: (_dist(entry, (n["x"], n["z"])), n["id"]))
+    if route == "forest":
+        island = ordered[0]
+        return [island] * min(island["left"], profile.max_eggs_per_trip, live["max_carry"])
+    chosen = ordered[:min(profile.max_eggs_per_trip, live["max_carry"])]
+    # Walk them nearest-neighbour from the entry so a multi-egg trip is not a zig-zag.
+    path, here, pool = [], entry, list(chosen)
+    while pool:
+        nxt = min(pool, key=lambda n: (_dist(here, (n["x"], n["z"])), n["id"]))
+        pool.remove(nxt)
+        path.append(nxt)
+        here = (nxt["x"], nxt["z"])
+    return path
+
+
+def _trip_loss(live, profile, route, targets, carry):
+    if route == "caramelo":
+        loss = profile.caramelo_loss
+        for nest in targets:
+            if nest.get("guard"):
+                faster = carry > live["guard_speed"][nest["guard"]]
+                loss += GUARD_LOSS_FAST if faster else GUARD_LOSS_SLOW
+            if nest.get("in_boss_territory"):
+                loss += BOSS_LOSS
+        return min(loss, 0.9)
+    adults = targets[0]["adults"] if targets else 2
+    loss = profile.forest_loss * (0.5 + adults / 6.0)
+    if carry > live["parent_chase_speed"]:
+        loss *= OUTRUN_FACTOR
+    return min(loss, 0.9)
+
+
+def simulate_live_session(live, profile, route, minutes, seed):
+    """One deterministic live-game session. All randomness comes from random.Random(seed)."""
+    if route not in LIVE_ROUTES:
+        raise ValueError(f"unknown route {route!r}")
+    import wildbound_roulette_sim as roulette_sim
+    rng = random.Random(seed)
+    session = minutes * 60.0
+    wave = float(live["wave_seconds"])
+    state = {"t": 0.0, "level": 0, "hatched": 0, "next_wave": rng.uniform(0.0, wave)}
+    split = {"eggs": 0.0, "base": 0.0, "sale": 0.0, "treadmill": 0.0, "roulette": 0.0}
+    out = {"eggs_stolen": 0, "eggs_banked": 0, "eggs_lost": 0, "trips": 0, "portal_trips": 0,
+           "first_egg_s": None, "first_hatch_s": None, "max_walk_s": None, "collection_full_s": None, "hatches": 0,
+           "materials": {}}
+    trip_seconds = []
+    candy = [dict(n, left=n["eggs"]) for n in live["candy_nests"]]
+    islands = [dict(i, left=i["eggs"]) for i in live["forest_islands"]]
+    slots, queue = [], []  # slots: end times; queue: [rarity, species, esencia]
+    max_level = int(live["training"]["MAX_LEVEL"])
+
+    prize, _, _ = roulette_sim.draw(rng.random(), roulette_sim.new_state(), live["roulette"])  # the free first spin
+    if prize["category"] == "esencia":
+        split["roulette"] += prize["grant"]["esencia"]
+    else:
+        for material, amount in prize["grant"].items():
+            out["materials"][material] = out["materials"].get(material, 0) + amount
+
+    def ride(seconds_available):
+        for _ in range(int(seconds_available // live["lap_seconds"])):
+            state["t"] += live["lap_seconds"]
+            if state["level"] < max_level or not live.get("lap_pay_on_level_only"):
+                split["treadmill"] += live["lap_esencia"]
+            if state["level"] < max_level:
+                state["level"] += 1
+                if state["level"] == max_level and out["max_walk_s"] is None:
+                    out["max_walk_s"] = state["t"]
+
+    def advance_incubator(to_t):
+        slots.sort()
+        while slots and slots[0] <= to_t:
+            end = slots.pop(0)
+            state["hatched"] += 1
+            out["hatches"] += 1
+            if out["first_hatch_s"] is None:
+                out["first_hatch_s"] = end
+            if queue:
+                slots.append(end + live["hatch_s"][queue.pop(0)[0]])
+            slots.sort()
+
+    def collection():
+        return state["hatched"] + len(slots) + len(queue)
+
+    def refill(to_t):
+        while state["next_wave"] <= to_t:
+            for nest in candy:
+                nest["left"] = nest["eggs"]
+            for island in islands:
+                island["left"] = island["eggs"]
+            state["next_wave"] += wave
+
+    ride(min(profile.laps_at_start * live["lap_seconds"], session))
+    while state["t"] < session:
+        t = state["t"]
+        refill(t)
+        advance_incubator(t)
+        if collection() >= live["collection_limit"]:
+            if out["collection_full_s"] is None:
+                out["collection_full_s"] = t
+            if profile.idle_on_treadmill:
+                ride(session - t)
+            break
+        leg = route
+        if route == "mixed":
+            leg = "caramelo" if any(n["left"] for n in candy) else "forest"
+        available = [n for n in (candy if leg == "caramelo" else islands) if n["left"] > 0]
+        if not available:
+            until = min(state["next_wave"], session)
+            if profile.idle_on_treadmill:
+                ride(until - t)
+            state["t"] = max(state["t"], until)
+            continue
+        room = live["collection_limit"] - collection()
+        targets = _pick_targets(live, profile, leg, available)[:room]
+        wild = []
+        if leg == "forest":
+            count = int(profile.wild_eggs_per_forest_trip) + (rng.random() < profile.wild_eggs_per_forest_trip % 1)
+            weights = [live["wild_weights"][r] for r in RARITIES]
+            wild = [rng.choices(RARITIES, weights=weights)[0] for _ in range(count)][:max(0, room - len(targets))]
+        seconds, held, carry, portal = plan_trip(live, profile, state["level"], leg, targets, wild)
+        lost = rng.random() < _trip_loss(live, profile, leg, targets, carry)
+        if t + seconds > session:
+            state["t"] = session  # the session ends mid-trip; nothing from it is banked
+            break
+        state["t"] = t = t + seconds
+        for nest in targets:
+            nest["left"] -= 1
+        out["trips"] += 1
+        out["portal_trips"] += 1 if portal else 0
+        trip_seconds.append(seconds)
+        out["eggs_stolen"] += held
+        if lost:
+            out["eggs_lost"] += held
+            continue
+        eggs = [(n["rarity"], n["species"], n["esencia"]) for n in targets]
+        eggs += [("Comun", "Lumipol", live["egg_esencia"][live["reward_tier"][r]]) for r in wild]
+        split["eggs"] += sum(e[2] for e in eggs)
+        if seconds >= live["extract_min_seconds"]:
+            split["base"] += live["extract_base"]
+        out["eggs_banked"] += len(eggs)
+        if out["first_egg_s"] is None:
+            out["first_egg_s"] = t
+        advance_incubator(t)
+        for egg in eggs:
+            if len(slots) < live["base_slots"]:
+                slots.append(t + live["hatch_s"][egg[0]])
+            else:
+                queue.append(list(egg))
+        if profile.sell_duplicates and queue:  # State:sellDuplicateEggs keeps one banked egg per species
+            seen, kept = set(), []
+            for egg in queue:
+                if egg[1] in seen:
+                    split["sale"] += max(4, egg[2])
+                else:
+                    seen.add(egg[1])
+                    kept.append(egg)
+            queue[:] = kept
+    advance_incubator(session)
+    return dict(out, minutes=minutes, route=route, esencia_total=round(sum(split.values()), 6),
+                split={k: round(v, 6) for k, v in split.items()}, walk_level=state["level"],
+                carry_1=live_carry(live, state["level"], 1),
+                mean_trip_s=statistics.fmean(trip_seconds) if trip_seconds else None, collection=collection())
+
+
+def run_live(live, profiles, minutes_list, seed=7, runs=200, routes=LIVE_ROUTES):
+    cells = []
+    for name, profile in profiles.items():
+        for route in routes:
+            for minutes in minutes_list:
+                results = [simulate_live_session(live, profile, route, minutes, seed + i) for i in range(runs)]
+                cells.append({
+                    "profile": name, "route": route, "minutes": minutes, "runs": runs,
+                    "esencia_per_min": _stats([r["esencia_total"] / minutes for r in results]),
+                    "split_per_min": {k: statistics.fmean(r["split"][k] / minutes for r in results)
+                                      for k in results[0]["split"]},
+                    "eggs_banked_per_hour": statistics.fmean(r["eggs_banked"] * 60.0 / minutes for r in results),
+                    "eggs_lost_per_hour": statistics.fmean(r["eggs_lost"] * 60.0 / minutes for r in results),
+                    "trips": statistics.fmean(r["trips"] for r in results),
+                    "portal_share": statistics.fmean(r["portal_trips"] / r["trips"] if r["trips"] else 0.0
+                                                     for r in results),
+                    "mean_trip_s": _reach([r["mean_trip_s"] for r in results]),
+                    "first_egg_s": _reach([r["first_egg_s"] for r in results]),
+                    "first_hatch_s": _reach([r["first_hatch_s"] for r in results]),
+                    "max_walk_s": _reach([r["max_walk_s"] for r in results]),
+                    "collection_full_s": _reach([r["collection_full_s"] for r in results]),
+                    "collection": statistics.fmean(r["collection"] for r in results),
+                    "hatches": statistics.fmean(r["hatches"] for r in results),
+                    "walk_level": statistics.fmean(r["walk_level"] for r in results),
+                    "carry_1": statistics.fmean(r["carry_1"] for r in results),
+                })
+    return {
+        "seed": seed, "runs": runs, "cells": cells, "treadmill": treadmill_progression(live),
+        "afk_treadmill_per_min": afk_treadmill_esencia_per_minute(live), "nightbloom": nightbloom_supply(live),
+        "nightbloom_sinks": nightbloom_sinks(live), "esencia_sinks": esencia_sinks(live),
+        "roulette": live_roulette_summary(live), "live": live, "profiles": profiles,
+    }
+
+
+def _mins(reach):
+    if reach["mean"] is None:
+        return "-"
+    text = f"{reach['mean'] / 60:.1f}"
+    return text if reach["share"] >= 0.995 else f"{text} ({reach['share'] * 100:.0f}%)"
+
+
+def _rarity_line(nests, rarity):
+    group = [n for n in nests if n["rarity"] == rarity]
+    return f"{rarity} x{len(group)} {group[0]['species']} {group[0]['esencia']} Esencia, hatch {group[0]['hatch_s']:g} s"
+
+
+def render_live_md(report):
+    live, cells = report["live"], report["cells"]
+    nests = live["candy_nests"]
+    afk = report["afk_treadmill_per_min"]
+    lines = [
+        "## Live game model (2026-11-15)",
+        "",
+        "What the wired game does today, read from the live Luau (no WildboundBalance proposal in this section). "
+        f"Seed {report['seed']}, {report['runs']} runs per cell; values are mean (p10-p90). Solo server and ASSUMED "
+        "profiles; the ASSUMED values are listed at the end of this section.",
+        "",
+        f"- Waves: every {live['wave_seconds']} s each empty nest refills; no day/night cycle; the forest plays by "
+        "Night rules.",
+        f"- Caramelo: {len(nests)} nests, one egg each ("
+        + "; ".join(_rarity_line(nests, r) for r in ("Comun", "Rara", "Epica"))
+        + "), no sleeping parent. Guarded by a beast: " + ", ".join(f"{k} ({v})" for k, v in CANDY_GUARDED.items())
+        + "; inside Don Glaseon's territory: " + ", ".join(n["id"] for n in nests if n["in_boss_territory"]) + ".",
+        "- Forest: " + ", ".join(f"{i['id']} {i['tier']} {i['esencia']} Esencia, {i['adults']} parents"
+                                  for i in live["forest_islands"])
+        + f"; {live['forest_islands'][0]['eggs']} eggs per nest; woken parents chase at {live['parent_chase_speed']}.",
+        f"- Incubation: the own base auto-incubates up to {live['base_slots']} eggs at once; hatch "
+        + ", ".join(f"{r} {live['hatch_s'][r]:g} s" for r in RARITIES) + ".",
+        f"- Collection limit {live['collection_limit']} (hatched + incubating + banked + carried): at the limit no steal "
+        f"is allowed. Farm: {live['farm_slots']} slots, no income.",
+        f"- Portal carry rule `{live['portal']['carry']}` (Portal.CARRY): "
+        + ("an egg carrier may use a return portal." if live["portal"]["carry"] == "keep"
+           else "an egg carrier may not use a return portal."),
+        "",
+        "### Esencia per minute by profile and route",
+        "",
+        "Esencia/min is the total; the next five columns split it. Times are session minutes (share of runs when under "
+        "100%). Collection is the creatures owned at the end (hatched + incubating + banked).",
+        "",
+        "| Profile | Route | Min | Esencia/min | Eggs | Base | Treadmill | Roulette | Sale | Eggs banked/h | Eggs lost/h "
+        "| Trip s | Portal trips % | First egg | First hatch | Max walk | Collection | Collection full |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for c in cells:
+        s = c["split_per_min"]
+        lines.append(
+            f"| {c['profile']} | {c['route']} | {c['minutes']} | {_band(c['esencia_per_min'], 1)} | {s['eggs']:.1f} | "
+            f"{s['base']:.1f} | {s['treadmill']:.1f} | {s['roulette']:.1f} | {s['sale']:.1f} | "
+            f"{c['eggs_banked_per_hour']:.0f} | {c['eggs_lost_per_hour']:.0f} | {_fmt(c['mean_trip_s']['mean'])} | "
+            f"{c['portal_share'] * 100:.0f} | {_mins(c['first_egg_s'])} | {_mins(c['first_hatch_s'])} | "
+            f"{_mins(c['max_walk_s'])} | {c['collection']:.0f} | {_mins(c['collection_full_s'])} |")
+    lines += ["", f"- AFK on the treadmill: {afk:.1f} Esencia/min ({afk * 60:.0f}/h) with no trip and no risk "
+              f"({live['lap_esencia']} Esencia every {live['lap_seconds']} s lap, still paid after the last level).",
+              "", "### Treadmill progression", "",
+              "Laps grant the levels for free; the console sells the same levels (Training.cost).", "",
+              "| Level | Walk | Carry 1 egg | Carry 3+ eggs | Laps time s | Laps Esencia | Console price | Console total |",
+              "| --- | --- | --- | --- | --- | --- | --- | --- |"]
+    for row in report["treadmill"]:
+        lines.append(f"| {row['level']} | {row['walk']:g} | {row['carry_1']:.1f} | {row['carry_3']:.1f} | "
+                     f"{row['lap_seconds_total']} | {row['lap_esencia_total']} | {_fmt(row['console_cost'])} | "
+                     f"{row['console_total']} |")
+    nb = report["nightbloom"]
+    lines += ["", "### Nightbloom", "",
+              "Upper bound for one player who claims every forest gather node (solo server), the Night table always on, "
+              f"wilting after {nb['wilt_seconds']} s (it never binds while every node is claimed within its cycle).", "",
+              "| Zone | Active slots | Nightbloom share | Mean yield | Slot cycle s | Nightbloom/h |",
+              "| --- | --- | --- | --- | --- | --- |"]
+    for zone, z in nb["zones"].items():
+        lines.append(f"| {zone} | {z['slots']} | {z['share'] * 100:.0f}% | {z['yield']:.1f} | {z['cycle_s']:.0f} | "
+                     f"{z['per_hour']:.1f} |")
+    lines += ["", f"- Now: {nb['now_per_hour']:.0f} Nightbloom/h. With the old cycle (Night "
+              f"{nb['night_share_before'] * 100:.0f}% of the time): {nb['old_cycle_per_hour']:.0f}/h.",
+              f"- Every one-time Nightbloom sink (camp upgrades and skills) needs {report['nightbloom_sinks']} Nightbloom "
+              f"in all: {report['nightbloom_sinks'] / nb['now_per_hour'] * 60:.0f} min of gathering at the bound.",
+              "- Nightbloom pays no Esencia (Economy.itemEmber)."]
+    r = report["roulette"]
+    lines += ["", "### Roulette (Roulette.LIVE)", "",
+              f"- Spin cost {r['spin_cost']}, free first spin {r['free_first_spin']}, pity every {r['pity_every']} "
+              f"({r['pity_min']}+; {r['pity_spin_share'] * 100:.1f}% of paid spins are pity spins).",
+              f"- Esencia back per paid spin {r['esencia_per_paid_spin']:.2f}: net {r['net_esencia_per_paid_spin']:.2f} "
+              f"Esencia per spin, a sink. Prize value per spin {r['value_per_paid_spin']:.1f} with materials at their "
+              "ASSUMED table values.",
+              f"- Free spin Esencia EV {r['free_spin_esencia_ev']:.1f}."]
+    finals = [c for c in cells if c["minutes"] == max(x["minutes"] for x in cells)]
+    best = max(finals, key=lambda c: c["esencia_per_min"]["mean"], default=None)
+    if best:
+        per_hour = best["esencia_per_min"]["mean"] * 60
+        lines.append(f"- At the best {best['minutes']} min income ({best['profile']}, {best['route']}: {per_hour:.0f}/h) "
+                     f"a player pays {per_hour / r['spin_cost']:.0f} spins an hour, losing "
+                     f"{-r['net_esencia_per_paid_spin'] * per_hour / r['spin_cost']:.0f} Esencia/h; the AFK treadmill "
+                     f"alone pays {afk * 60 / r['spin_cost']:.0f} spins an hour.")
+    sinks = report["esencia_sinks"]
+    lines += ["", "### One-time Esencia sinks", "",
+              f"Camp upgrades {sinks['upgrades']}, skills {sinks['skills']}, one of each gear {sinks['gear']}: "
+              f"{sinks['total_without_console']} Esencia (plus materials). The treadmill console ladder "
+              f"({sinks['treadmill_console']}) is never needed: laps give the same levels free.", "",
+              f"| Profile | Route | Hours of {finals[0]['minutes'] if finals else '-'} min income to pay every one-time sink |",
+              "| --- | --- | --- |"]
+    for c in finals:
+        rate = c["esencia_per_min"]["mean"] * 60
+        lines.append(f"| {c['profile']} | {c['route']} | {sinks['total_without_console'] / rate:.2f} |")
+    lines += ["", f"- AFK treadmill: {sinks['total_without_console'] / (afk * 60):.2f} h.",
+              "", "### Live profiles and ASSUMED values", "",
+              "| Profile | " + " | ".join(LiveProfile.FIELDS) + " |",
+              "| --- | " + " | ".join("---" for _ in LiveProfile.FIELDS) + " |"]
+    for p in report["profiles"].values():
+        lines.append(f"| {p.name} | " + " | ".join(str(getattr(p, f)) for f in LiveProfile.FIELDS) + " |")
+    lines.append("")
+    lines += [f"- ASSUMED `{name}`: {value}" for name, value in LIVE_ASSUMPTIONS]
+    lines.append("")
+    return "\n".join(lines)
+
+
+WHAT_IFS = (
+    ("as built", {}),
+    ("lap Esencia only on a level-up lap", {"lap_pay_on_level_only": True}),
+    ("carrier share of at most a 24 walk", {"carry_trained_cap": 24}),
+    ("collection limit 300", {"collection_limit": 300}),
+)
+
+
+def run_what_ifs(live, profiles, minutes=60, seed=7, runs=100, cases=(("intermediate", "forest"),
+                                                                        ("advanced", "mixed"),
+                                                                        ("beginner", "caramelo"))):
+    """The suggested changes, one at a time, on a few profile/route pairs (the same seeds for every case)."""
+    rows = []
+    for label, change in WHAT_IFS:
+        variant = dict(live, **change)
+        for name, route in cases:
+            results = [simulate_live_session(variant, profiles[name], route, minutes, seed + i) for i in range(runs)]
+            rows.append({
+                "case": label, "profile": name, "route": route, "minutes": minutes,
+                "esencia_per_min": statistics.fmean(r["esencia_total"] / minutes for r in results),
+                "treadmill_per_min": statistics.fmean(r["split"]["treadmill"] / minutes for r in results),
+                "eggs_lost_per_hour": statistics.fmean(r["eggs_lost"] * 60.0 / minutes for r in results),
+                "eggs_banked_per_hour": statistics.fmean(r["eggs_banked"] * 60.0 / minutes for r in results),
+                "collection_full_s": _reach([r["collection_full_s"] for r in results]),
+            })
+    return rows
+
+
+def _cell(report, profile, route, minutes):
+    return next(c for c in report["cells"] if (c["profile"], c["route"], c["minutes"]) == (profile, route, minutes))
+
+
+def render_live_findings(report, what_ifs):
+    """The dated findings: what is too easy or too slow in the live model, with concrete number suggestions."""
+    live = report["live"]
+    longest = max(c["minutes"] for c in report["cells"])
+    afk = report["afk_treadmill_per_min"]
+    top = report["treadmill"][-1]
+    nests = live["candy_nests"]
+    guarded = sum(1 for n in nests if n["guard"])
+    nb = report["nightbloom"]
+    rou = report["roulette"]
+    sinks = report["esencia_sinks"]
+    per_wave_candy = sum(n["esencia"] * n["eggs"] for n in nests)
+    per_wave_forest = sum(i["esencia"] * i["eggs"] for i in live["forest_islands"])
+    full = [c for c in report["cells"] if c["minutes"] == longest and c["collection_full_s"]["share"] > 0]
+    beginner_c = _cell(report, "beginner", "caramelo", longest)
+    beginner_f = _cell(report, "beginner", "forest", longest)
+    inter_f = _cell(report, "intermediate", "forest", longest)
+    adv_best = max((c for c in report["cells"] if c["minutes"] == longest and c["profile"] == "advanced"),
+                   key=lambda c: c["esencia_per_min"]["mean"])
+    active = [c["esencia_per_min"]["mean"] for c in report["cells"] if c["minutes"] == longest]
+    beaten = sum(1 for v in active if v < afk)
+    hours = [sinks["total_without_console"] / (c["esencia_per_min"]["mean"] * 60) for c in report["cells"]
+             if c["minutes"] == longest]
+    fastest_hatch = min(c["first_hatch_s"]["mean"] for c in report["cells"] if c["first_hatch_s"]["mean"])
+    slowest_hatch = max(c["first_hatch_s"]["mean"] for c in report["cells"] if c["first_hatch_s"]["mean"])
+    lines = [
+        "## 2026-11-15 findings",
+        "",
+        "From the live model above (a model with ASSUMED profiles, not measured play). Each finding names the number "
+        "that makes it too easy or too slow and a concrete change to try; the what-if table under it reruns three "
+        "profile/route pairs with one change at a time.",
+        "",
+        "### Too easy",
+        "",
+        f"1. **The treadmill pays for standing still.** {live['lap_esencia']} Esencia per {live['lap_seconds']} s lap, "
+        f"with no cap after the last level, is {afk:.1f} Esencia/min ({afk * 60:.0f}/h) with no trip and no risk. It "
+        f"beats {beaten} of the {len(active)} active {longest} min profile/route cells, and the advanced player's best "
+        f"route pays only {adv_best['esencia_per_min']['mean']:.1f}/min ({adv_best['route']}). The economy's own "
+        "`antiAfk.timeBasedGrants = 0` says no time-based grants. Suggest: pay the lap Esencia only on a level-up lap "
+        f"(at most {top['lap_esencia_total']} Esencia per account), or 1 Esencia per lap with a cap of 30 per day.",
+        f"2. **Walk training is free and instant.** {int(live['training']['MAX_LEVEL'])} laps of "
+        f"{live['lap_seconds']} s reach the top walk ({top['walk']:g}) in {top['lap_seconds_total']} s; the console's "
+        f"{top['console_total']} Esencia ladder (COST_GROWTH {live['training']['COST_GROWTH']:g}) is never worth "
+        "buying. Suggest: a lap grants progress, not a level: level L+1 needs L+1 laps (153 laps, about 20 min to the "
+        "top), or laps train only to level 4 (walk 24) and the console sells 5 to 17.",
+        f"3. **A trained carrier outruns everything.** At level {top['level']} one egg walks {top['carry_1']:.1f} and "
+        f"three or more {top['carry_3']:.1f}, against woken parents at {live['parent_chase_speed']}, the Caramelo "
+        "guardians at " + ", ".join(f"{k} {v}" for k, v in sorted(live["guard_speed"].items()))
+        + ", La Silueta's lunge at 22 and the sprint cap of 24. Suggest: take the carrier's share of at most a 24 "
+        f"walk (one egg {live['egg_speeds'][1] * 24 / BASE_WALK:.1f}, three or more {live['egg_speeds'][3] * 24 / BASE_WALK:.1f}, "
+        f"under the {live['parent_chase_speed']} chase), so training still helps while carrying but a chase stays a "
+        "chase.",
+        f"4. **Caramelo nests have no parents.** {len(nests)} one-egg nests refill every {live['wave_seconds']} s and "
+        f"only {guarded} have a guardian; nobody wakes on a steal elsewhere. They pay the forest's tiers (Fog 10, "
+        f"FogFar 16, Territory 24). A beginner there loses {beginner_c['eggs_lost_per_hour']:.0f} eggs/h against "
+        f"{beginner_f['eggs_lost_per_hour']:.0f}/h in the forest for about the same income "
+        f"({beginner_c['esencia_per_min']['mean']:.1f} vs {beginner_f['esencia_per_min']['mean']:.1f} Esencia/min). "
+        f"A wave holds {per_wave_candy} Esencia in Caramelo and {per_wave_forest} in the forest nests. Suggest: one "
+        "tier down in Caramelo (Comun Safe 4, Rara Fog 10, Epica FogFar 16), or a guardian on at least 6 of the 11 "
+        "nests.",
+        f"5. **Nightbloom is no longer scarce.** One player claiming every forest node gets about "
+        f"{nb['now_per_hour']:.0f}/h now against {nb['old_cycle_per_hour']:.0f}/h under the old cycle; every one-time "
+        f"Nightbloom sink ({report['nightbloom_sinks']} in all) takes "
+        f"{report['nightbloom_sinks'] / nb['now_per_hour'] * 60:.0f} min. Suggest: Night nightbloom weight fog 15 -> 6 "
+        "and territory 35 -> 15 (back to about the old rate), or a wilt of 120 s instead of 300 s.",
+        f"6. **Nothing to buy after the first hour.** Every one-time Esencia sink costs "
+        f"{sinks['total_without_console']} Esencia; the {longest} min incomes pay it in {min(hours):.2f} to "
+        f"{max(hours):.2f} h, and the AFK treadmill in {sinks['total_without_console'] / (afk * 60):.2f} h. After that "
+        f"the roulette is the only sink, returning {rou['esencia_per_paid_spin']:.2f} Esencia per {rou['spin_cost']} "
+        "spin. Suggest: fix finding 1 first (it alone pays every sink in under an hour), then add a repeatable sink "
+        "(farm slot 5 at 400, slot 6 at 900, the 2.0 proposal's ladder).",
+        f"7. **Base incubation ignores the slot upgrades.** The own base incubates up to {live['base_slots']} eggs at "
+        f"once with 15 to 60 s hatches, so the first hatch lands {fastest_hatch / 60:.1f} to "
+        f"{slowest_hatch / 60:.1f} min into a session and `incubatorSlot2` / `incubatorSlot3` (90 and 220 Esencia plus "
+        "materials) do nothing on the base path. Suggest: let autoIncubate use the bought slot count (1, 2, 3), or "
+        "drop the two upgrades; keep the 15 s Comun hatch for the first-session hook.",
+        "",
+        "### Too slow",
+        "",
+        f"8. **The collection limit is a dead end.** {live['collection_limit']} creatures (hatched + incubating + "
+        "banked) block every further steal, and nothing in State releases or sells a hatched creature "
+        "(`sellDuplicateEggs` only sells banked eggs). In the "
+        f"{longest} min sessions it is reached by "
+        + ", ".join(f"{c['profile']} {c['route']} at {c['collection_full_s']['mean'] / 60:.0f} min" for c in full)
+        + (". " if full else "nobody. ")
+        + "After that the only income is the treadmill. Suggest: let a player release a hatched duplicate for 4 Esencia "
+        "(the Safe egg price), or count one entry per species, or raise the limit to 300.",
+        f"9. **Fast trips lose the base bonus.** The {live['extract_base']} Esencia trip bonus needs "
+        f"{live['extract_min_seconds']} s; trained forest trips last about {inter_f['mean_trip_s']['mean']:.0f} s "
+        f"(intermediate), so a better player is paid less per trip. Suggest: minExpeditionSeconds 45 -> 25.",
+        "",
+        "### As intended",
+        "",
+        f"- First egg {beginner_c['first_egg_s']['mean'] / 60:.1f} min and first hatch "
+        f"{beginner_c['first_hatch_s']['mean'] / 60:.1f} min for a beginner in Caramelo: the quick first action holds "
+        "(a hypothesis to test in Play).",
+        f"- The roulette is a sink, not a money loop: net {rou['net_esencia_per_paid_spin']:.2f} Esencia per paid spin.",
+        "- The return portals refuse an egg carrier (Portal.CARRY `" + live["portal"]["carry"] + "`); the model has "
+        "every carrier walk home, so no trip uses a portal.",
+        "",
+        "### What-if (one change at a time)",
+        "",
+        f"{what_ifs[0]['minutes'] if what_ifs else '-'} min sessions, {len(what_ifs) // max(1, len(WHAT_IFS))} pairs, "
+        "the same seeds in every case.",
+        "",
+        "| Change | Profile | Route | Esencia/min | Treadmill/min | Eggs banked/h | Eggs lost/h | Collection full |",
+        "| --- | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in what_ifs:
+        lines.append(f"| {row['case']} | {row['profile']} | {row['route']} | {row['esencia_per_min']:.1f} | "
+                     f"{row['treadmill_per_min']:.1f} | {row['eggs_banked_per_hour']:.0f} | "
+                     f"{row['eggs_lost_per_hour']:.0f} | {_mins(row['collection_full_s'])} |")
+    lines.append("")
+    return "\n".join(lines)
 
 
 # ---- CLI --------------------------------------------------------------------------------------------
@@ -1329,6 +2186,7 @@ def main(argv=None):
     parser.add_argument("--farm-mode", choices=FARM_MODES + ("both",), default="fresh",
                         help="fresh: every session is a new account (ASSUMED); carry: pre-filled farm; both")
     parser.add_argument("--profile-file")
+    parser.add_argument("--no-live", action="store_true", help="skip the live game model (2026-11-15)")
     parser.add_argument("--json")
     parser.add_argument("--md", action="store_true", help="print the markdown report")
     args = parser.parse_args(argv)
@@ -1342,6 +2200,11 @@ def main(argv=None):
     minutes = [int(m) for m in args.minutes.split(",")]
     modes = FARM_MODES if args.farm_mode == "both" else (args.farm_mode,)
     report = run_all(numbers, profiles, minutes, args.seed, args.runs, args.roulette_policy, values, modes)
+    if not args.no_live:
+        live = load_live_game()
+        live_profiles = default_live_profiles()
+        report["live_model"] = run_live(live, live_profiles, minutes, args.seed, args.runs)
+        report["what_ifs"] = run_what_ifs(live, live_profiles, max(minutes), args.seed, min(args.runs, 100))
     if args.json:
         Path(args.json).write_text(render_json(report), encoding="utf-8")
     if args.md or not args.json:
