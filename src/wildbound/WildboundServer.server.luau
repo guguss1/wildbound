@@ -3726,13 +3726,14 @@ function Heist.enterBase(player, now)
 			.. "\n" .. string.format("%.2f", now))
 	end
 end
--- Egg loop: the oldest stored egg goes into a free cradle (one slot today; EggLoop.nextToIncubate takes the live slot
--- count). Called on entering the own base (the zone is the distance check) and after a hatch while the owner stands
+-- Egg loop: the oldest stored egg goes into a free cradle (EggLoop.nextToIncubate takes the live slot count). BP4b
+-- (2026-11-15): the slots are the bought ones (1, then 2 and 3 with the incubator upgrades), no longer a free eight.
+-- Called on entering the own base (the zone is the distance check) and after a hatch while the owner stands
 -- there. quiet: the snapshot is sent with no notice, so the hatch notice stays. Returns the incubating entry or nil.
 function Heist.autoIncubate(player, alive, quiet)
 	if not alive or not Heist.EggLoop then return nil end
 	local snapshot = state:snapshot(player.UserId)
-	local slots = math.max(8, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)
+	local slots = math.max(1, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)
 	local speedScale = snapshot and snapshot.hatchSpeedScale or 1
 	local uid = snapshot and Heist.EggLoop.nextToIncubate(snapshot.bankedEggs, #snapshot.incubating, slots)
 	if not uid then return nil end

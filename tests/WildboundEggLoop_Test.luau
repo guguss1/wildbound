@@ -233,5 +233,24 @@ return function(EggLoop, source, sources)
 		end
 	end)
 
+	-- BP4b (balance pass 2026-11-15, simulator finding 7; user decision "Sí, bajala a 1"): the own base used to fill eight
+	-- cradles for free (`math.max(8, ...)`), so the two incubator upgrades did nothing there. It now fills the bought
+	-- slots only: 1, then 2 and 3.
+	case("BP4b: the base fills only the bought incubator slots: 1, then 2 and 3 with the upgrades", function()
+		local Economy, Config = sources.economy, sources.config
+		equal(Economy.incubatorSlots(Config, {}), 1, "a new player")
+		equal(Economy.incubatorSlots(Config, { incubatorSlot2 = true }), 2, "the second incubator")
+		equal(Economy.incubatorSlots(Config, { incubatorSlot2 = true, incubatorSlot3 = true }), 3, "the third")
+		local auto = sources.server:match("function Heist%.autoIncubate%((.-)\nend\n")
+		assert(auto, "autoIncubate body")
+		has(auto, "local slots = math.max(1, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)",
+			"the slot count is the live base slot or the bought ones")
+		assert(not auto:find("math.max(8", 1, true), "no eight free cradles")
+		local eggs = { { uid = "wb:1" }, { uid = "wb:2" }, { uid = "wb:3" } }
+		equal(EggLoop.nextToIncubate(eggs, 1, 1), nil, "one slot: the second egg waits")
+		equal(EggLoop.nextToIncubate(eggs, 1, 2), "wb:1", "the second incubator takes it")
+		equal(EggLoop.nextToIncubate(eggs, 2, 2), nil); equal(EggLoop.nextToIncubate(eggs, 2, 3), "wb:1", "and the third")
+	end)
+
 	return result
 end

@@ -255,8 +255,9 @@ MIRRORED = {
                               "note": "Treadmill.LAP_SECONDS: one lap (BP1: level L+1 needs LAP_STEP x (L+1) laps)"},
     "treadmill_lap_esencia": {"value": 5, "source": SERVER,
                               "note": "onLap -> state:trainByRunning(..., 5, need): Esencia on a level-up lap only (BP1)"},
-    "base_incubator_slots": {"value": 8, "source": SERVER,
-                             "note": "Heist.autoIncubate: math.max(8, Incubator SLOTS, upgrades) on entering the own base"},
+    "base_incubator_slots": {"value": 1, "source": SERVER,
+                             "note": "Heist.autoIncubate: math.max(1, Incubator SLOTS, upgrades) on entering the own base "
+                                     "(BP4b: was a free 8; the model does not buy the slot upgrades)"},
     "nightbloom_wilt_seconds": {"value": 300, "source": GATHER_FIELD, "note": "Field.NIGHT_ONLY_SECONDS (CF1)"},
     "candy_nest_eggs": {"value": 1, "source": CANDY_NESTS, "note": "Nests.EGGS: one egg per Caramelo nest"},
     "farm_slots": {"value": 4, "source": STATE, "note": "State.FARM_SLOTS (no farm income)"},

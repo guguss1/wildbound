@@ -23,7 +23,7 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - [x] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`). Done 2026-11-15 (Studio suites and solo Play below).
 - [x] BP3 Reward findings 4, 5 and 9: Caramelo nests one reward tier lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s. Done 2026-11-15 (Studio suites and solo Play below). The other remaining findings (collection limit, sinks, incubation slots) are BP4a below.
 - [x] BP4a "Liberar" (finding 8; handoff B4, first part): a server-validated release of a duplicate hatched creature for +4 Esencia, never the companion, a farm creature or the last of its species. Done 2026-11-15 (Studio suites and solo Play below).
-- [ ] BP4b Incubator slot upgrades that count on the base path (finding 7; the base auto-incubates `math.max(8, ...)` today).
+- [x] BP4b Incubator slot upgrades that count on the base path (finding 7): the base fills the bought slots only (1, then 2 and 3), no longer a free eight. Done 2026-11-15 (Studio suites and solo Play below).
 - [ ] BP4c Extra farm slots for sale (400 / 900; finding 6), within the RT-17 20 KB profile budget.
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
 
@@ -52,6 +52,8 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 | BP4a-D4 | No schema step: the entry leaves `registered`, and its `bond` and unbanked bond go with it. | The saved record refuses a bond for an unregistered creature; a shorter list only shrinks the record (RT-17). |
 | BP4a-D5 | The action rides the existing `ECONOMY_ACTIONS` table and a branch in `economyAction`: no new top-level local in `WildboundServer` (NH-W13), three small additive edits in the teammate's lock zone. | The file is at Luau's local limit and shared. |
 | BP4a-D6 | Fixed in passing: the "Canjear rep." (duplicate eggs) reply read `Text.BAG`, a table that does not exist, so that button never answered. It now reads `Text.HUD`. `NOTICES.NotOwnedPet` reworded ("Esa criatura no está en tu colección.") since release uses it too; `NOTICES.InFarm` is new and also answers an "Equipar" on a farm creature. | Found by the mapping pass; one-token fixes on the same lines of work. |
+| BP4b-D1 | User decision 2026-11-15 ("Sí, bajala a 1"): of finding 7's two options (use the bought slot count, or drop the two upgrades), the base now uses the bought count. | The upgrades (90 and 220 Esencia plus materials) become worth buying; a new player incubates one egg at a time. |
+| BP4b-D2 | The line keeps a literal first argument, `math.max(1, Incubator.live.SLOTS, ...)`. | The simulator's `check_drift` reads that number by pattern; its mirror is now 1. |
 
 ## Evidence
 
@@ -127,6 +129,16 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Not checked: a real leave-and-rejoin after a release (memory saves in Studio; the record path is suite only), a phone, two players, releasing a creature whose tool is in the hand.
 - Not done (no Python): the simulator still treats the collection limit as a wall (BP4).
 
+### BP4b incubator slots (2026-11-15)
+
+- Change: `Heist.autoIncubate` in `WildboundServer`: `local slots = math.max(8, Incubator.live.SLOTS, ...)` -> `math.max(1, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)`, plus its comment. One line in the teammate's lock zone. The simulator mirror `base_incubator_slots` 8 -> 1 (edited, not run).
+- Suite: new EggLoop "BP4b" (`Economy.incubatorSlots` is 1 / 2 / 3 with the upgrades; the server line; no `math.max(8`; `nextToIncubate` fills the bought slots only).
+- Fingerprint rule: Studio equalled HEAD before the write (EggLoop_Test 14124/1927995124, Server 218633/4198778477) and the repo after it (EggLoop_Test 15545/4264603697, Server 218740/2981586812). The server compiles.
+- RED, run `31b2f6f3`: EggLoop 12/2 (the new case, plus the known EL12). GREEN, run `6fdffb15`, 18 suites: EggLoop 13/1 (only EL12), Incubator 7/0, CandyPets 8/0, CandyEggArt 14/0, Balance 25/0, Record 30/0, Save 23/0, Persistence 31/0, Gear 15/0, CampView 23/0, CreatureToolbar 21/0, Text 22/0, RouletteService 9/0. Known reds: BaseZone BZ7, Economy ECO-20, Hub HB-T3, MechanicsWiring W1, State 14.
+- Solo Play (PlayLock `BP4b`, cleared after; memory saves): three probe eggs banked, then the player stood in the own base zone. The snapshots showed one egg incubating at a time (banked 1 / incubating 1, then a hatch, then the next egg in), never two; `incubatorSlots` 1. Before this change all three went in at once.
+- Not checked: buying `incubatorSlot2` in Play and seeing two eggs incubate (suite only), the Eggs tab's "Incubadora: n/n ranuras" header, two players, a phone. No review workflow (a one-line change).
+- Not done (no Python): the Python suite; a test there may pin first-hatch times that assumed eight slots.
+
 ## Next step
 
-BP4b: incubator slot upgrades that count on the base path. Then BP4c (farm slots for sale) and BP4 (rerun the simulator; needs Python).
+BP4c: extra farm slots for sale (400 / 900). Then BP4 (rerun the simulator; needs Python).
