@@ -23,60 +23,60 @@ Esencia/min is the total; the next five columns split it. Times are session minu
 
 | Profile | Route | Min | Esencia/min | Eggs | Base | Treadmill | Roulette | Sale | Eggs banked/h | Eggs lost/h | Trip s | Portal trips % | First egg | First hatch | Max walk | Collection | Collection full |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| beginner | caramelo | 10 | 17.1 (13.6-19.4) | 10.8 | 3.2 | 2.0 | 1.1 | 0.0 | 47 | 7 | 58 | 0 | 1.5 | 1.8 | - | 8 | - |
-| beginner | caramelo | 30 | 16.8 (15.0-18.4) | 12.4 | 3.4 | 0.7 | 0.4 | 0.0 | 51 | 7 | 59 | 0 | 1.5 | 1.8 | - | 25 | - |
-| beginner | caramelo | 60 | 16.8 (15.6-18.0) | 12.8 | 3.4 | 0.3 | 0.2 | 0.0 | 52 | 7 | 60 | 0 | 1.5 | 1.8 | - | 52 | - |
-| beginner | forest | 10 | 18.7 (11.8-25.2) | 13.3 | 2.3 | 2.0 | 1.1 | 0.0 | 44 | 27 | 57 | 0 | 2.0 | 2.3 | - | 7 | - |
-| beginner | forest | 30 | 19.0 (14.8-22.6) | 15.4 | 2.6 | 0.7 | 0.4 | 0.0 | 50 | 27 | 58 | 0 | 2.0 | 2.3 | - | 25 | - |
-| beginner | forest | 60 | 18.9 (16.5-21.6) | 15.8 | 2.6 | 0.3 | 0.2 | 0.0 | 51 | 28 | 59 | 0 | 2.0 | 2.3 | - | 51 | - |
-| beginner | mixed | 10 | 17.1 (13.6-19.4) | 10.8 | 3.2 | 2.0 | 1.1 | 0.0 | 47 | 7 | 58 | 0 | 1.5 | 1.8 | - | 8 | - |
-| beginner | mixed | 30 | 16.8 (15.0-18.4) | 12.4 | 3.4 | 0.7 | 0.4 | 0.0 | 51 | 7 | 59 | 0 | 1.5 | 1.8 | - | 25 | - |
-| beginner | mixed | 60 | 16.8 (15.6-18.0) | 12.8 | 3.4 | 0.3 | 0.2 | 0.0 | 52 | 7 | 60 | 0 | 1.5 | 1.8 | - | 52 | - |
-| intermediate | caramelo | 10 | 39.4 (32.5-44.3) | 27.9 | 1.9 | 8.5 | 1.1 | 0.0 | 114 | 17 | 47 | 0 | 3.0 | 3.3 | 2.3 | 19 | - |
-| intermediate | caramelo | 30 | 33.4 (29.8-36.6) | 28.2 | 2.1 | 2.8 | 0.4 | 0.0 | 115 | 17 | 47 | 0 | 3.0 | 3.3 | 2.3 | 57 | - |
-| intermediate | caramelo | 60 | 27.9 (27.4-28.4) | 24.5 | 1.8 | 1.4 | 0.2 | 0.0 | 100 | 14 | 47 | 0 | 3.0 | 3.3 | 2.3 | 100 | 51.7 |
-| intermediate | forest | 10 | 69.2 (58.3-78.5) | 59.3 | 0.3 | 8.5 | 1.1 | 0.0 | 189 | 18 | 39 | 0 | 2.9 | 3.1 | 2.3 | 32 | - |
-| intermediate | forest | 30 | 61.8 (56.8-66.4) | 58.2 | 0.4 | 2.8 | 0.4 | 0.0 | 193 | 17 | 40 | 0 | 2.9 | 3.1 | 2.3 | 96 | 28.6 (44%) |
-| intermediate | forest | 60 | 32.0 (30.4-33.4) | 30.2 | 0.2 | 1.4 | 0.2 | 0.0 | 100 | 9 | 40 | 0 | 2.9 | 3.1 | 2.3 | 100 | 30.4 |
-| intermediate | mixed | 10 | 56.3 (46.9-65.5) | 44.9 | 1.8 | 8.5 | 1.1 | 0.0 | 160 | 21 | 44 | 0 | 3.0 | 3.3 | 2.3 | 27 | - |
-| intermediate | mixed | 30 | 66.4 (63.6-69.4) | 61.2 | 1.9 | 2.8 | 0.4 | 0.0 | 198 | 24 | 43 | 0 | 3.0 | 3.3 | 2.3 | 99 | 28.2 (82%) |
-| intermediate | mixed | 60 | 33.5 (32.1-34.9) | 30.9 | 1.0 | 1.4 | 0.2 | 0.0 | 100 | 12 | 43 | 0 | 3.0 | 3.3 | 2.3 | 100 | 28.8 |
-| advanced | caramelo | 10 | 55.4 (46.1-65.4) | 30.2 | 1.5 | 22.6 | 1.1 | 0.0 | 123 | 23 | 51 | 0 | 3.4 | 3.6 | 2.3 | 21 | - |
-| advanced | caramelo | 30 | 53.3 (47.9-58.0) | 28.0 | 1.4 | 23.5 | 0.4 | 0.0 | 115 | 22 | 51 | 0 | 3.4 | 3.6 | 2.3 | 57 | - |
-| advanced | caramelo | 60 | 50.9 (49.0-52.7) | 24.1 | 1.2 | 25.3 | 0.2 | 0.0 | 99 | 19 | 50 | 0 | 3.4 | 3.6 | 2.3 | 99 | 52.4 (92%) |
-| advanced | forest | 10 | 89.2 (78.6-101.5) | 71.9 | 0.0 | 16.3 | 1.1 | 0.0 | 233 | 12 | 32 | 0 | 2.7 | 3.0 | 2.3 | 39 | - |
-| advanced | forest | 30 | 80.5 (77.7-83.7) | 60.4 | 0.0 | 19.7 | 0.4 | 0.0 | 200 | 9 | 32 | 0 | 2.7 | 3.0 | 2.3 | 100 | 25.5 |
-| advanced | forest | 60 | 59.0 (57.6-60.6) | 30.2 | 0.0 | 28.6 | 0.2 | 0.0 | 100 | 5 | 32 | 0 | 2.7 | 3.0 | 2.3 | 100 | 25.5 |
-| advanced | mixed | 10 | 90.8 (75.7-104.0) | 79.2 | 1.4 | 9.1 | 1.1 | 0.0 | 276 | 33 | 39 | 0 | 3.3 | 3.6 | 2.3 | 46 | - |
-| advanced | mixed | 30 | 75.1 (72.0-78.3) | 56.3 | 0.9 | 17.5 | 0.4 | 0.0 | 200 | 21 | 38 | 0 | 3.3 | 3.6 | 2.3 | 100 | 19.3 |
-| advanced | mixed | 60 | 56.3 (54.7-57.9) | 28.2 | 0.5 | 27.5 | 0.2 | 0.0 | 100 | 11 | 38 | 0 | 3.3 | 3.6 | 2.3 | 100 | 19.3 |
+| beginner | caramelo | 10 | 15.1 (12.0-17.8) | 10.0 | 3.0 | 1.0 | 1.1 | 0.0 | 45 | 6 | 62 | 0 | 1.6 | 1.9 | - | 8 | - |
+| beginner | caramelo | 30 | 15.2 (13.5-16.8) | 11.3 | 3.2 | 0.3 | 0.4 | 0.0 | 48 | 7 | 63 | 0 | 1.6 | 1.9 | - | 24 | - |
+| beginner | caramelo | 60 | 15.4 (14.3-16.6) | 11.8 | 3.3 | 0.2 | 0.2 | 0.0 | 49 | 7 | 64 | 0 | 1.6 | 1.9 | - | 49 | - |
+| beginner | forest | 10 | 16.8 (10.6-23.4) | 12.5 | 2.2 | 1.0 | 1.1 | 0.0 | 42 | 27 | 61 | 0 | 2.1 | 2.4 | - | 7 | - |
+| beginner | forest | 30 | 17.4 (13.5-20.9) | 14.3 | 2.4 | 0.3 | 0.4 | 0.0 | 47 | 25 | 62 | 0 | 2.1 | 2.4 | - | 23 | - |
+| beginner | forest | 60 | 17.5 (14.9-20.1) | 14.7 | 2.5 | 0.2 | 0.2 | 0.0 | 48 | 26 | 62 | 0 | 2.1 | 2.4 | - | 48 | - |
+| beginner | mixed | 10 | 15.1 (12.0-17.8) | 10.0 | 3.0 | 1.0 | 1.1 | 0.0 | 45 | 6 | 62 | 0 | 1.6 | 1.9 | - | 8 | - |
+| beginner | mixed | 30 | 15.2 (13.5-16.8) | 11.3 | 3.2 | 0.3 | 0.4 | 0.0 | 48 | 7 | 63 | 0 | 1.6 | 1.9 | - | 24 | - |
+| beginner | mixed | 60 | 15.4 (14.3-16.6) | 11.8 | 3.3 | 0.2 | 0.2 | 0.0 | 49 | 7 | 64 | 0 | 1.6 | 1.9 | - | 49 | - |
+| intermediate | caramelo | 10 | 26.9 (18.9-33.7) | 21.3 | 2.1 | 2.5 | 1.1 | 0.0 | 88 | 22 | 67 | 0 | 3.4 | 3.6 | - | 15 | - |
+| intermediate | caramelo | 30 | 28.5 (24.6-32.3) | 24.8 | 2.5 | 0.8 | 0.4 | 0.0 | 102 | 24 | 70 | 0 | 3.4 | 3.6 | - | 51 | - |
+| intermediate | caramelo | 60 | 27.0 (25.8-27.7) | 24.0 | 2.4 | 0.4 | 0.2 | 0.0 | 99 | 23 | 70 | 0 | 3.4 | 3.6 | - | 99 | 55.2 (80%) |
+| intermediate | forest | 10 | 50.0 (35.2-63.1) | 44.6 | 1.8 | 2.5 | 1.1 | 0.0 | 136 | 40 | 52 | 0 | 3.3 | 3.5 | - | 23 | - |
+| intermediate | forest | 30 | 51.8 (43.8-59.1) | 48.3 | 2.3 | 0.8 | 0.4 | 0.0 | 161 | 44 | 54 | 0 | 3.3 | 3.5 | - | 80 | 30.0 (0%) |
+| intermediate | forest | 60 | 32.0 (30.1-33.9) | 29.9 | 1.5 | 0.4 | 0.2 | 0.0 | 100 | 28 | 54 | 0 | 3.3 | 3.5 | - | 100 | 36.9 |
+| intermediate | mixed | 10 | 27.4 (19.9-33.7) | 21.8 | 2.0 | 2.5 | 1.1 | 0.0 | 90 | 22 | 66 | 0 | 3.4 | 3.6 | - | 15 | - |
+| intermediate | mixed | 30 | 30.9 (26.7-35.4) | 27.3 | 2.5 | 0.8 | 0.4 | 0.0 | 111 | 26 | 68 | 0 | 3.4 | 3.6 | - | 56 | - |
+| intermediate | mixed | 60 | 27.3 (26.8-27.8) | 24.5 | 2.2 | 0.4 | 0.2 | 0.0 | 100 | 23 | 67 | 0 | 3.4 | 3.6 | - | 100 | 51.1 (98%) |
+| advanced | caramelo | 10 | 31.6 (20.5-40.8) | 25.9 | 1.2 | 3.4 | 1.1 | 0.0 | 103 | 33 | 80 | 0 | 4.0 | 4.3 | - | 17 | - |
+| advanced | caramelo | 30 | 31.0 (25.2-36.3) | 26.9 | 1.3 | 2.4 | 0.4 | 0.0 | 110 | 26 | 68 | 0 | 4.0 | 4.3 | - | 55 | - |
+| advanced | caramelo | 60 | 27.0 (26.2-27.7) | 24.2 | 1.2 | 1.4 | 0.2 | 0.0 | 99 | 22 | 60 | 0 | 4.0 | 4.3 | 37.5 | 99 | 53.2 (88%) |
+| advanced | forest | 10 | 66.3 (51.6-77.4) | 60.4 | 2.1 | 2.8 | 1.1 | 0.0 | 188 | 28 | 45 | 0 | 2.9 | 3.2 | - | 31 | - |
+| advanced | forest | 30 | 63.4 (59.4-66.8) | 59.7 | 1.5 | 1.8 | 0.4 | 0.0 | 198 | 25 | 43 | 0 | 2.9 | 3.2 | - | 99 | 27.6 (86%) |
+| advanced | forest | 60 | 32.5 (30.9-34.0) | 30.1 | 0.7 | 1.4 | 0.2 | 0.0 | 100 | 12 | 43 | 0 | 2.9 | 3.2 | 41.0 | 100 | 28.1 |
+| advanced | mixed | 10 | 53.4 (38.6-66.5) | 48.1 | 1.8 | 2.5 | 1.1 | 0.0 | 162 | 39 | 64 | 0 | 4.0 | 4.2 | - | 27 | - |
+| advanced | mixed | 30 | 65.1 (60.9-69.0) | 61.3 | 2.2 | 1.2 | 0.4 | 0.0 | 196 | 44 | 59 | 0 | 4.0 | 4.2 | - | 98 | 27.3 (76%) |
+| advanced | mixed | 60 | 34.0 (32.5-35.7) | 31.3 | 1.1 | 1.4 | 0.2 | 0.0 | 100 | 23 | 58 | 0 | 4.0 | 4.2 | 46.5 | 100 | 28.4 |
 
-- AFK on the treadmill: 37.5 Esencia/min (2250/h) with no trip and no risk (5 Esencia every 8 s lap, still paid after the last level).
+- AFK on the treadmill: 0.0 Esencia/min once the walk is at the top (BP1: 5 Esencia only on a level-up lap, 85 per account in all).
 
 ### Treadmill progression
 
-Laps grant the levels for free; the console sells the same levels (Training.cost).
+BP1: level L+1 needs L+1 laps; the laps grant the levels for free and the console sells the same levels as a shortcut (Training.cost).
 
 | Level | Walk | Carry 1 egg | Carry 3+ eggs | Laps time s | Laps Esencia | Console price | Console total |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | 0 | 16 | 11.0 | 9.0 | 0 | 0 | - | 0 |
-| 1 | 18 | 12.4 | 10.1 | 8 | 5 | 30 | 30 |
-| 2 | 20 | 13.8 | 11.2 | 16 | 10 | 36 | 66 |
-| 3 | 22 | 15.1 | 12.4 | 24 | 15 | 43 | 109 |
-| 4 | 24 | 16.5 | 13.5 | 32 | 20 | 52 | 161 |
-| 5 | 26 | 17.9 | 14.6 | 40 | 25 | 62 | 223 |
-| 6 | 28 | 19.2 | 15.8 | 48 | 30 | 75 | 298 |
-| 7 | 30 | 20.6 | 16.9 | 56 | 35 | 90 | 388 |
-| 8 | 32 | 22.0 | 18.0 | 64 | 40 | 107 | 495 |
-| 9 | 34 | 23.4 | 19.1 | 72 | 45 | 129 | 624 |
-| 10 | 36 | 24.8 | 20.2 | 80 | 50 | 155 | 779 |
-| 11 | 38 | 26.1 | 21.4 | 88 | 55 | 186 | 965 |
-| 12 | 40 | 27.5 | 22.5 | 96 | 60 | 223 | 1188 |
-| 13 | 42 | 28.9 | 23.6 | 104 | 65 | 267 | 1455 |
-| 14 | 44 | 30.2 | 24.8 | 112 | 70 | 321 | 1776 |
-| 15 | 46 | 31.6 | 25.9 | 120 | 75 | 385 | 2161 |
-| 16 | 48 | 33.0 | 27.0 | 128 | 80 | 462 | 2623 |
-| 17 | 50 | 34.4 | 28.1 | 136 | 85 | 555 | 3178 |
+| 1 | 18 | 12.4 | 10.1 | 8 | 5 | 20 | 20 |
+| 2 | 20 | 13.8 | 11.2 | 24 | 10 | 22 | 42 |
+| 3 | 22 | 15.1 | 12.4 | 48 | 15 | 24 | 66 |
+| 4 | 24 | 16.5 | 13.5 | 80 | 20 | 27 | 93 |
+| 5 | 26 | 17.9 | 14.6 | 120 | 25 | 29 | 122 |
+| 6 | 28 | 19.2 | 15.8 | 168 | 30 | 32 | 154 |
+| 7 | 30 | 20.6 | 16.9 | 224 | 35 | 35 | 189 |
+| 8 | 32 | 22.0 | 18.0 | 288 | 40 | 39 | 228 |
+| 9 | 34 | 23.4 | 19.1 | 360 | 45 | 43 | 271 |
+| 10 | 36 | 24.8 | 20.2 | 440 | 50 | 47 | 318 |
+| 11 | 38 | 26.1 | 21.4 | 528 | 55 | 52 | 370 |
+| 12 | 40 | 27.5 | 22.5 | 624 | 60 | 57 | 427 |
+| 13 | 42 | 28.9 | 23.6 | 728 | 65 | 63 | 490 |
+| 14 | 44 | 30.2 | 24.8 | 840 | 70 | 69 | 559 |
+| 15 | 46 | 31.6 | 25.9 | 960 | 75 | 76 | 635 |
+| 16 | 48 | 33.0 | 27.0 | 1088 | 80 | 84 | 719 |
+| 17 | 50 | 34.4 | 28.1 | 1224 | 85 | 92 | 811 |
 
 ### Nightbloom
 
@@ -96,25 +96,25 @@ Upper bound for one player who claims every forest gather node (solo server), th
 - Spin cost 45, free first spin True, pity every 10 (Rara+; 1.0% of paid spins are pity spins).
 - Esencia back per paid spin 12.01: net -32.99 Esencia per spin, a sink. Prize value per spin 21.3 with materials at their ASSUMED table values.
 - Free spin Esencia EV 11.9.
-- At the best 60 min income (advanced, forest: 3540/h) a player pays 79 spins an hour, losing 2595 Esencia/h; the AFK treadmill alone pays 50 spins an hour.
+- At the best 60 min income (advanced, mixed: 2040/h) a player pays 45 spins an hour, losing 1495 Esencia/h; the AFK treadmill alone pays 0 spins an hour.
 
 ### One-time Esencia sinks
 
-Camp upgrades 900, skills 560, one of each gear 45: 1505 Esencia (plus materials). The treadmill console ladder (3178) is never needed: laps give the same levels free.
+Camp upgrades 900, skills 560, one of each gear 45: 1505 Esencia (plus materials). The treadmill console ladder (811) is an optional shortcut: laps give the same levels free in 20.4 min.
 
 | Profile | Route | Hours of 60 min income to pay every one-time sink |
 | --- | --- | --- |
-| beginner | caramelo | 1.50 |
-| beginner | forest | 1.33 |
-| beginner | mixed | 1.50 |
-| intermediate | caramelo | 0.90 |
-| intermediate | forest | 0.79 |
-| intermediate | mixed | 0.75 |
-| advanced | caramelo | 0.49 |
-| advanced | forest | 0.43 |
-| advanced | mixed | 0.45 |
+| beginner | caramelo | 1.63 |
+| beginner | forest | 1.44 |
+| beginner | mixed | 1.63 |
+| intermediate | caramelo | 0.93 |
+| intermediate | forest | 0.78 |
+| intermediate | mixed | 0.92 |
+| advanced | caramelo | 0.93 |
+| advanced | forest | 0.77 |
+| advanced | mixed | 0.74 |
 
-- AFK treadmill: 0.67 h.
+- AFK treadmill: never.
 
 ### Live profiles and ASSUMED values
 
@@ -145,7 +145,9 @@ Camp upgrades 900, skills 560, one of each gear 45: 1505 Esencia (plus materials
 - ASSUMED `harvest_travel_seconds`: {'fog': 20.0, 'territory': 25.0}
 - ASSUMED `materials`: Nightbloom and roulette materials pay no Esencia; they are counted, not priced
 
-## 2026-11-15 findings
+## 2026-11-15 findings (before the balance pass)
+
+Frozen at commit cdf245c, before BP1: the narrative below is not regenerated (BP1-D8; the renderer's text still describes the old treadmill, so a rerun prints contradictory sentences until BP4). The live tables above are the current model; the next section compares the two.
 
 From the live model above (a model with ASSUMED profiles, not measured play). Each finding names the number that makes it too easy or too slow and a concrete change to try; the what-if table under it reruns three profile/route pairs with one change at a time.
 
@@ -188,6 +190,35 @@ From the live model above (a model with ASSUMED profiles, not measured play). Ea
 | collection limit 300 | intermediate | forest | 60.2 | 1.4 | 195 | 19 | - |
 | collection limit 300 | advanced | mixed | 92.9 | 7.7 | 300 | 31 | 54.7 (99%) |
 | collection limit 300 | beginner | caramelo | 16.6 | 0.3 | 51 | 8 | - |
+
+## After the balance pass (BP1, 2026-11-15)
+
+Same command, seed 7, 200 runs, against the working tree after BP1 (laps grant progress, level L+1 needs L+1 laps, only a level-up lap pays 5 Esencia, console 20 x 1.1). BP2 (capped carrier), BP3 and BP4 are not in this run. A model with ASSUMED profiles, not measured play.
+
+| Measure | Before | After |
+| --- | --- | --- |
+| Laps to the top walk (50) | 17 laps, 136 s | 153 laps, 1224 s (20.4 min) |
+| AFK treadmill | 37.5 Esencia/min | 0 after the top; 85 per account in all |
+| Console ladder | 3178 (level 17: 555) | 811 (level 17: 92) |
+| AFK pays every one-time sink in | 0.67 h | never |
+| One-time sinks paid by 60 min income | 0.43 to 1.50 h | 0.74 to 1.63 h |
+
+60 min Esencia/min (Treadmill/min), before -> after:
+
+| Profile | Caramelo | Forest | Mixed |
+| --- | --- | --- | --- |
+| beginner | 16.8 (0.3) -> 15.4 (0.2) | 18.9 (0.3) -> 17.5 (0.2) | 16.8 (0.3) -> 15.4 (0.2) |
+| intermediate | 27.9 (1.4) -> 27.0 (0.4) | 32.0 (1.4) -> 32.0 (0.4) | 33.5 (1.4) -> 27.3 (0.4) |
+| advanced | 50.9 (25.3) -> 27.0 (1.4) | 59.0 (28.6) -> 32.5 (1.4) | 56.3 (27.5) -> 34.0 (1.4) |
+
+What changed in the findings:
+
+- Finding 1 (AFK income) is closed: the advanced player's income now comes from trips, not the belt.
+- Finding 2 (free, instant training) is closed: the top walk takes 20.4 min of laps; the advanced profiles reach it at 37 to 47 min, the others not within 60 min. The console is a shortcut.
+- Finding 3 (carrier outruns chasers) is open: a level 17 carrier still walks 34.4 (one egg). The "carrier share of at most a 24 walk" what-if now moves 60 min income by under 1 Esencia/min, because few players reach a high walk in the first hour; the cap matters for trained accounts, not for income.
+- Finding 8 (collection limit) is now the main wall: every intermediate and advanced profile hits 100 creatures at 28 to 55 min, and after that the treadmill no longer pays, so income drops to about 0 (advanced forest 63.4 at 30 min -> 32.5 averaged over 60). The "collection limit 300" what-if gives advanced mixed 72.6 instead of 33.9.
+- Finding 9 (base bonus timing) is weaker: slower walks lengthen intermediate forest trips from 40 s to 54 s, past the 45 s threshold.
+- Eggs lost per hour rise with the slower walk (intermediate forest 9 -> 28, advanced mixed 11 -> 23 at 60 min).
 
 ## Proposed 2.0 balance model (T05b, WildboundBalance unwired)
 
@@ -255,16 +286,16 @@ Minutes from session start, mean over the runs that bought it during play (share
 
 | Profile | Farm mode | Min | Stall runs % | Hard lockout runs % | Longest stall s | Treadmill level | Treadmill hours for next | Treadmill sessions to top | Ladder flags (runs %) | Idle farm Esencia/h | Idle / expedition | Legendary sell attractive | Sell mandatory | Viable at end |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| beginner | fresh | 10 | 21 | 2 | 259 | 1.2 | 0.22 | 27.1 | treadmill_proposed 51%, incubator_proposed 100%, farm_slots_proposed 36%, training_live 91% | 110 | 0.32 | True | False | none |
-| beginner | fresh | 30 | 88 | 0 | 547 | 2.1 | 0.40 | 5.9 | treadmill_proposed 0%, incubator_proposed 100%, farm_slots_proposed 0%, training_live 4% | 377 | 0.96 | True | False | none |
+| beginner | fresh | 10 | 21 | 2 | 259 | 1.2 | 0.22 | 27.1 | treadmill_proposed 51%, incubator_proposed 100%, farm_slots_proposed 36%, training_live 14% | 110 | 0.32 | True | False | none |
+| beginner | fresh | 30 | 88 | 0 | 547 | 2.1 | 0.40 | 5.9 | treadmill_proposed 0%, incubator_proposed 100%, farm_slots_proposed 0%, training_live 0% | 377 | 0.96 | True | False | none |
 | beginner | fresh | 60 | 99 | 0 | 782 | 3.0 | 0.63 | 1.9 | incubator_proposed 100% | 616 | 1.53 | False | False | none |
-| beginner | carry | 10 | 17 | 0 | 274 | 1.6 | 0.21 | 14.5 | treadmill_proposed 10%, incubator_proposed 100%, farm_slots_proposed 4%, training_live 94% | 411 | 1.27 | True | False | none |
+| beginner | carry | 10 | 17 | 0 | 274 | 1.6 | 0.21 | 14.5 | treadmill_proposed 10%, incubator_proposed 100%, farm_slots_proposed 4% | 411 | 1.27 | True | False | none |
 | beginner | carry | 30 | 74 | 0 | 437 | 2.5 | 0.38 | 3.7 | incubator_proposed 100% | 533 | 1.41 | True | False | none |
 | beginner | carry | 60 | 98 | 0 | 635 | 3.0 | 0.49 | 1.5 | incubator_proposed 100% | 776 | 1.90 | False | False | none |
-| intermediate | fresh | 10 | 4 | 0 | 84 | 2.2 | 0.17 | 7.3 | treadmill_proposed 2%, incubator_proposed 100%, farm_slots_proposed 2%, training_live 16% | 496 | 0.45 | True | False | incubator_1 49% |
+| intermediate | fresh | 10 | 4 | 0 | 84 | 2.2 | 0.17 | 7.3 | treadmill_proposed 2%, incubator_proposed 100%, farm_slots_proposed 2% | 496 | 0.45 | True | False | incubator_1 49% |
 | intermediate | fresh | 30 | 4 | 0 | 98 | 3.9 | 0.40 | 1.0 | incubator_proposed 100% | 1234 | 1.03 | True | False | cradle_2 68%, farm_slot_5 74%, incubator_1 89% |
 | intermediate | fresh | 60 | 4 | 0 | 155 | 5.0 | 0.62 | 0.0 | incubator_proposed 100% | 1955 | 1.57 | False | False | cradle_2 24%, farm_slot_5 32%, incubator_1 0% |
-| intermediate | carry | 10 | 1 | 0 | 51 | 2.7 | 0.17 | 4.1 | incubator_proposed 100%, training_live 0% | 1079 | 0.98 | True | False | cradle_2 2%, farm_slot_5 9%, incubator_1 60% |
+| intermediate | carry | 10 | 1 | 0 | 51 | 2.7 | 0.17 | 4.1 | incubator_proposed 100% | 1079 | 0.98 | True | False | cradle_2 2%, farm_slot_5 9%, incubator_1 60% |
 | intermediate | carry | 30 | 1 | 0 | 67 | 4.3 | 0.34 | 0.5 | incubator_proposed 100% | 1544 | 1.28 | True | False | cradle_2 71%, farm_slot_5 74%, incubator_1 71% |
 | intermediate | carry | 60 | 1 | 0 | 168 | 5.0 | - | 0.0 | incubator_proposed 100% | 2297 | 1.84 | False | False | cradle_2 10%, farm_slot_5 12% |
 | advanced | fresh | 10 | 0 | 0 | 29 | 2.2 | 0.06 | 2.5 | incubator_proposed 100% | 919 | 0.34 | True | False | farm_slot_5 4%, incubator_1 16%, incubator_2 2%, treadmill_2 4%, treadmill_3 1% |
@@ -281,7 +312,7 @@ Minutes from session start, mean over the runs that bought it during play (share
 | treadmill_proposed | 30/80/200/450/900 | 2.667/2.5/2.25/2.0 | 2.34 | False |
 | incubator_proposed | 100/300/750 | 3.0/2.5 | 2.74 | True |
 | farm_slots_proposed | 200/500 | 2.5 | 2.50 | False |
-| training_live | 30/36/43/52/62/75/90/107/129/155/186/223/267/321/385/462/555 | 1.2/1.194/1.209/1.192/1.21/1.2/1.189/1.206/1.202/1.2/1.199/1.197/1.202/1.199/1.2/1.201 | 1.20 | False |
+| training_live | 20/22/24/27/29/32/35/39/43/47/52/57/63/69/76/84/92 | 1.1/1.091/1.125/1.074/1.103/1.094/1.114/1.103/1.093/1.106/1.096/1.105/1.095/1.101/1.105/1.095 | 1.10 | False |
 
 ## Stalls and lockouts, stated plainly
 
