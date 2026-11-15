@@ -638,7 +638,7 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
   steal hold / Arrullo, backpack and bank), species by rarity, each guardian post bound to its nest, live through
   `Layout.NESTS_ENABLED` + `Builder.syncNests`. Route: inline (one new module + suite; small additive edits to
   WildboundServer, Island, Species, Text, CandyLayout, CandyBuilder; the 4-file mapping read stayed in the parent because
-  this worker may not delegate). TDD strict. Commit (pending, see Evidence CE1).
+  this worker may not delegate). TDD strict. Commit f2e0c77.
 - [ ] CE2 (assigned by the follow-up workflow).
 - [ ] CE3 (assigned by the follow-up workflow).
 
@@ -757,6 +757,7 @@ Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a 
   the usual TexturePack, asset and DataStore messages). Screenshots
   `assets/exports/forest-kit/captures/ce1-caramelo-egg-stolen-desktop.jpg`, `ce1-caramelo-egg-banked-desktop.jpg`.
 - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Commit f2e0c77.
 - Not tested: the steal through a real held prompt (the Studio client cannot fire it, as in CF2); the 300 s wave refill
   of a Caramelo nest in Play (pure core pinned by a case); an Arrullo on an Épica Caramelo egg in Play; a guardian
   actually chasing a thief at its bound nest in Play; the hatch result (a primitive stand-in until CE2); two players,
