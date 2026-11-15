@@ -251,8 +251,10 @@ MIRRORED = {
     "egg_share": {"value": 0.4, "source": SPAWN_CLOCK,
                   "note": "EGG_SHARE 0.4 and every bough spawn is an egg; the trip model still counts nest eggs only"},
     # Live game model (2026-11-15): values buried in large scripts, copied here and re-read by check_drift.
-    "treadmill_lap_seconds": {"value": 8, "source": TREADMILL, "note": "Treadmill.LAP_SECONDS: one lap, one walk level"},
-    "treadmill_lap_esencia": {"value": 5, "source": SERVER, "note": "onLap -> state:trainByRunning(..., 5): Esencia per lap"},
+    "treadmill_lap_seconds": {"value": 8, "source": TREADMILL,
+                              "note": "Treadmill.LAP_SECONDS: one lap (BP1: level L+1 needs LAP_STEP x (L+1) laps)"},
+    "treadmill_lap_esencia": {"value": 5, "source": SERVER,
+                              "note": "onLap -> state:trainByRunning(..., 5, need): Esencia on a level-up lap only (BP1)"},
     "base_incubator_slots": {"value": 8, "source": SERVER,
                              "note": "Heist.autoIncubate: math.max(8, Incubator SLOTS, upgrades) on entering the own base"},
     "nightbloom_wilt_seconds": {"value": 300, "source": GATHER_FIELD, "note": "Field.NIGHT_ONLY_SECONDS (CF1)"},
@@ -292,7 +294,7 @@ def _read_mirror(name, text, relpath):
         return _number(text, relpath, r"EGG_SHARE = ([0-9.]+)")
     patterns = {
         "treadmill_lap_seconds": r"Treadmill\.LAP_SECONDS = (\d+)",
-        "treadmill_lap_esencia": r"trainByRunning\(player\.UserId, alive, distance, C\.MAX_LEVEL, (\d+)\)",
+        "treadmill_lap_esencia": r"trainByRunning\(player\.UserId, alive, distance, C\.MAX_LEVEL, (\d+), need\)",
         "base_incubator_slots": r"local slots = math\.max\((\d+), Incubator\.live\.SLOTS",
         "nightbloom_wilt_seconds": r"Field\.NIGHT_ONLY_SECONDS = (\d+)",
         "candy_nest_eggs": r"Nests\.EGGS = (\d+)",
@@ -362,7 +364,7 @@ def load_numbers(repo=REPO, source="live", balance="proposed"):
 
     training_text = _read(repo, TRAINING)
     training = {key: _number(training_text, TRAINING, r"^\s*" + key + r" = ([0-9.]+)")
-                for key in ("WALK_STEP", "MAX_LEVEL", "WALK_CAP", "BASE_COST", "COST_GROWTH")}
+                for key in ("WALK_STEP", "MAX_LEVEL", "WALK_CAP", "BASE_COST", "COST_GROWTH", "LAP_STEP")}
     incubator_text = _read(repo, INCUBATOR)
     incubator = {key: _number(incubator_text, INCUBATOR, key + r" = ([0-9.]+)") for key in ("HATCH_SECONDS", "SLOTS")}
     try:
@@ -1379,8 +1381,9 @@ def render_json(report):
 # ---- Live game model (2026-11-15) -------------------------------------------------------------------------------------
 # What the wired game does today (odd/tasks/wildbound-caramelo.md, odd/tasks/wildbound-playtest-fixes.md), read from the
 # live Luau: no day/night cycle (300 s egg waves, the forest plays by Night rules), Caramelo's 11 one-egg nests refilled
-# each wave, the forest's five island nests (3 eggs, woken parents), the treadmill (a free walk level and 5 Esencia per
-# 8 s lap, +2 walk per level up to 50, kept while carrying), base auto-incubation, the hub roulette (Roulette.LIVE), the
+# each wave, the forest's five island nests (3 eggs, woken parents), the treadmill (BP1: level L+1 needs L+1 laps of
+# 8 s and only a level-up lap pays 5 Esencia; +2 walk per level up to 50, kept while carrying), base auto-incubation,
+# the hub roulette (Roulette.LIVE), the
 # 100-creature collection limit, a 4-slot farm with no income and the return portals. Every number below that is not
 # read from a Luau file is ASSUMED and listed in LIVE_ASSUMPTIONS.
 LIVE_ROUTES = ("caramelo", "forest", "mixed")
@@ -1423,7 +1426,7 @@ LIVE_ASSUMPTIONS = [
 class LiveProfile:
     """An invented player for the live game. Every field is ASSUMED."""
     name: str
-    laps_at_start: int  # treadmill laps before the first trip (one walk level and 5 Esencia each)
+    laps_at_start: int  # treadmill laps before the first trip (BP1: level L+1 needs L+1 laps; 5 Esencia per level-up)
     idle_on_treadmill: bool  # rides the treadmill while every nest of the route is empty
     max_eggs_per_trip: int
     overhead_s: float  # looking, hesitating, hiding: seconds added to every trip
@@ -1473,7 +1476,7 @@ def load_live_game(repo=REPO):
     mirrors = {name: _read_mirror(name, _read(repo, e["source"]), e["source"]) for name, e in MIRRORED.items()}
     training_text = _read(repo, TRAINING)
     training = {key: _number(training_text, TRAINING, r"^\s*" + key + r" = ([0-9.]+)")
-                for key in ("WALK_STEP", "MAX_LEVEL", "WALK_CAP", "BASE_COST", "COST_GROWTH")}
+                for key in ("WALK_STEP", "MAX_LEVEL", "WALK_CAP", "BASE_COST", "COST_GROWTH", "LAP_STEP")}
     incubator_text = _read(repo, INCUBATOR)
     hatch_base = _number(incubator_text, INCUBATOR, r"HATCH_SECONDS = ([0-9.]+)")
     try:
@@ -1590,14 +1593,25 @@ def live_carry(live, level, eggs):
     return max(speed, speed * trained / BASE_WALK)
 
 
+def laps_for(live, level):
+    """Training.lapsFor: the laps that take `level` to the next level (BP1: LAP_STEP x (level + 1)), None at the top."""
+    t = live["training"]
+    if level < 0 or level >= int(t["MAX_LEVEL"]):
+        return None
+    return max(1, math.ceil(t["LAP_STEP"] * (int(level) + 1)))
+
+
 def treadmill_progression(live):
     """One row per walk level: walk and carry speeds, the laps' cumulative time and Esencia, the console price."""
-    t, rows = live["training"], []
+    t, rows, laps = live["training"], [], 0
     for level in range(int(t["MAX_LEVEL"]) + 1):
+        if level > 0:
+            laps += laps_for(live, level - 1)
         rows.append({
             "level": level, "walk": live_walk(live, level),
             "carry_1": live_carry(live, level, 1), "carry_3": live_carry(live, level, 3),
-            "lap_seconds_total": level * live["lap_seconds"], "lap_esencia_total": level * live["lap_esencia"],
+            "laps_total": laps, "lap_seconds_total": laps * live["lap_seconds"],
+            "lap_esencia_total": level * live["lap_esencia"],
             "console_cost": None if level == 0 else math.floor(t["BASE_COST"] * t["COST_GROWTH"] ** (level - 1) + 0.5),
         })
     total = 0
@@ -1608,7 +1622,8 @@ def treadmill_progression(live):
 
 
 def afk_treadmill_esencia_per_minute(live):
-    return live["lap_esencia"] * 60.0 / live["lap_seconds"]
+    """Esencia per minute standing on the belt once the walk is at the top: BP1 pays a lap only on a level-up, so 0."""
+    return 0.0
 
 
 def nightbloom_supply(live, players=1):
@@ -1747,7 +1762,7 @@ def simulate_live_session(live, profile, route, minutes, seed):
     rng = random.Random(seed)
     session = minutes * 60.0
     wave = float(live["wave_seconds"])
-    state = {"t": 0.0, "level": 0, "hatched": 0, "next_wave": rng.uniform(0.0, wave)}
+    state = {"t": 0.0, "level": 0, "laps": 0, "hatched": 0, "next_wave": rng.uniform(0.0, wave)}
     split = {"eggs": 0.0, "base": 0.0, "sale": 0.0, "treadmill": 0.0, "roulette": 0.0}
     out = {"eggs_stolen": 0, "eggs_banked": 0, "eggs_lost": 0, "trips": 0, "portal_trips": 0,
            "first_egg_s": None, "first_hatch_s": None, "max_walk_s": None, "collection_full_s": None, "hatches": 0,
@@ -1766,14 +1781,19 @@ def simulate_live_session(live, profile, route, minutes, seed):
             out["materials"][material] = out["materials"].get(material, 0) + amount
 
     def ride(seconds_available):
+        # BP1: a lap counts toward the next level (laps_for); only a level-up lap pays; at the top a lap pays nothing.
         for _ in range(int(seconds_available // live["lap_seconds"])):
             state["t"] += live["lap_seconds"]
-            if state["level"] < max_level or not live.get("lap_pay_on_level_only"):
-                split["treadmill"] += live["lap_esencia"]
-            if state["level"] < max_level:
-                state["level"] += 1
-                if state["level"] == max_level and out["max_walk_s"] is None:
-                    out["max_walk_s"] = state["t"]
+            if state["level"] >= max_level:
+                continue
+            state["laps"] += 1
+            if state["laps"] < laps_for(live, state["level"]):
+                continue
+            state["laps"] = 0
+            state["level"] += 1
+            split["treadmill"] += live["lap_esencia"]
+            if state["level"] == max_level and out["max_walk_s"] is None:
+                out["max_walk_s"] = state["t"]
 
     def advance_incubator(to_t):
         slots.sort()
@@ -1962,10 +1982,12 @@ def render_live_md(report):
             f"{c['eggs_banked_per_hour']:.0f} | {c['eggs_lost_per_hour']:.0f} | {_fmt(c['mean_trip_s']['mean'])} | "
             f"{c['portal_share'] * 100:.0f} | {_mins(c['first_egg_s'])} | {_mins(c['first_hatch_s'])} | "
             f"{_mins(c['max_walk_s'])} | {c['collection']:.0f} | {_mins(c['collection_full_s'])} |")
-    lines += ["", f"- AFK on the treadmill: {afk:.1f} Esencia/min ({afk * 60:.0f}/h) with no trip and no risk "
-              f"({live['lap_esencia']} Esencia every {live['lap_seconds']} s lap, still paid after the last level).",
+    lines += ["", f"- AFK on the treadmill: {afk:.1f} Esencia/min once the walk is at the top (BP1: "
+              f"{live['lap_esencia']} Esencia only on a level-up lap, {report['treadmill'][-1]['lap_esencia_total']} "
+              "per account in all).",
               "", "### Treadmill progression", "",
-              "Laps grant the levels for free; the console sells the same levels (Training.cost).", "",
+              "BP1: level L+1 needs L+1 laps; the laps grant the levels for free and the console sells the same levels "
+              "as a shortcut (Training.cost).", "",
               "| Level | Walk | Carry 1 egg | Carry 3+ eggs | Laps time s | Laps Esencia | Console price | Console total |",
               "| --- | --- | --- | --- | --- | --- | --- | --- |"]
     for row in report["treadmill"]:
@@ -2006,13 +2028,14 @@ def render_live_md(report):
     lines += ["", "### One-time Esencia sinks", "",
               f"Camp upgrades {sinks['upgrades']}, skills {sinks['skills']}, one of each gear {sinks['gear']}: "
               f"{sinks['total_without_console']} Esencia (plus materials). The treadmill console ladder "
-              f"({sinks['treadmill_console']}) is never needed: laps give the same levels free.", "",
+              f"({sinks['treadmill_console']}) is an optional shortcut: laps give the same levels free in "
+              f"{report['treadmill'][-1]['lap_seconds_total'] / 60:.1f} min.", "",
               f"| Profile | Route | Hours of {finals[0]['minutes'] if finals else '-'} min income to pay every one-time sink |",
               "| --- | --- | --- |"]
     for c in finals:
         rate = c["esencia_per_min"]["mean"] * 60
         lines.append(f"| {c['profile']} | {c['route']} | {sinks['total_without_console'] / rate:.2f} |")
-    lines += ["", f"- AFK treadmill: {sinks['total_without_console'] / (afk * 60):.2f} h.",
+    lines += ["", f"- AFK treadmill: {_afk_hours(sinks, afk)}.",
               "", "### Live profiles and ASSUMED values", "",
               "| Profile | " + " | ".join(LiveProfile.FIELDS) + " |",
               "| --- | " + " | ".join("---" for _ in LiveProfile.FIELDS) + " |"]
@@ -2026,7 +2049,6 @@ def render_live_md(report):
 
 WHAT_IFS = (
     ("as built", {}),
-    ("lap Esencia only on a level-up lap", {"lap_pay_on_level_only": True}),
     ("carrier share of at most a 24 walk", {"carry_trained_cap": 24}),
     ("collection limit 300", {"collection_limit": 300}),
 )
@@ -2050,6 +2072,11 @@ def run_what_ifs(live, profiles, minutes=60, seed=7, runs=100, cases=(("intermed
                 "collection_full_s": _reach([r["collection_full_s"] for r in results]),
             })
     return rows
+
+
+def _afk_hours(sinks, afk):
+    """Hours of AFK treadmill income to pay every one-time sink, or "never" when the belt pays nothing (BP1)."""
+    return "never" if afk <= 0 else f"{sinks['total_without_console'] / (afk * 60):.2f} h"
 
 
 def _cell(report, profile, route, minutes):
@@ -2123,7 +2150,7 @@ def render_live_findings(report, what_ifs):
         "and territory 35 -> 15 (back to about the old rate), or a wilt of 120 s instead of 300 s.",
         f"6. **Nothing to buy after the first hour.** Every one-time Esencia sink costs "
         f"{sinks['total_without_console']} Esencia; the {longest} min incomes pay it in {min(hours):.2f} to "
-        f"{max(hours):.2f} h, and the AFK treadmill in {sinks['total_without_console'] / (afk * 60):.2f} h. After that "
+        f"{max(hours):.2f} h, and the AFK treadmill in {_afk_hours(sinks, afk)}. After that "
         f"the roulette is the only sink, returning {rou['esencia_per_paid_spin']:.2f} Esencia per {rou['spin_cost']} "
         "spin. Suggest: fix finding 1 first (it alone pays every sink in under an hour), then add a repeatable sink "
         "(farm slot 5 at 400, slot 6 at 900, the 2.0 proposal's ladder).",

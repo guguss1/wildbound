@@ -339,8 +339,9 @@ return function(Balance, source)
 			light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
 				Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" } }, "LIVE.dayCycle")
 		-- PF2 (user decision 2026-11-14): the live treadmill went to +2 walk per level, 17 levels, a cap of 50.
+		-- Deliberately re-pinned (BP1, balance pass 2026-11-15): the console is re-priced (30 x 1.2 -> 20 x 1.1).
 		pinMap(live.training, { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60,
-			baseCost = 30, costGrowth = 1.2 }, "LIVE.training")
+			baseCost = 20, costGrowth = 1.1 }, "LIVE.training")
 		pinMap(live.bat, { cooldown = 5, ragdollSeconds = 1.2, immunity = 3, push = 45, lift = 20, immunityMax = 15 }, "LIVE.bat")
 		pinMap(live.incubator, { hatchSeconds = 15, slots = 1 }, "LIVE.incubator")
 		pinMap(live.movement, { sprintMultiplier = 1.45, sprintCap = 24 }, "LIVE.movement")

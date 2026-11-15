@@ -2,7 +2,7 @@
 -- require(freshStateClone), economy = require(freshEconomyClone), config = require(freshConfigClone),
 -- stamina = require(freshStaminaClone), schema = require(freshSchemaClone), keys = require(freshKeysClone),
 -- text = require(freshTextClone), server = WildboundServer.Source, bridge = WildboundTuning.Source,
--- treadmill = WildboundTreadmillService.Source }).
+-- treadmill = WildboundTreadmillService.Source, record = require(freshRecordClone) }).
 -- Nest Heist Phase 3 (NS5): the camp's "Entrenamiento" treadmill. PF2 (user decision 2026-11-14, "como Steal an Egg,
 -- muchísimo"): each level adds a large walk step, from 16 up to a walk cap of 50; laps on the belt grant the levels.
 return function(Training, source, sources)
@@ -27,7 +27,13 @@ return function(Training, source, sources)
 	case("TR-1: walk levels: a growing price, then nothing past the cap", function()
 		local C = Training.CONSTANTS
 		equal(C.WALK_STEP, 2, "PF2: +2 walk per level"); equal(C.MAX_LEVEL, 17); equal(C.WALK_CAP, 50, "PF2: 16 -> 50")
-		equal(Training.cost(0), 30); equal(Training.cost(1), 36); equal(Training.cost(2), 43); equal(Training.cost(16), 555)
+		-- Deliberately re-pinned (BP1-D4, 2026-11-15): BASE_COST 30 -> 20, COST_GROWTH 1.2 -> 1.1, so the console is a
+		-- shortcut against the slower laps (about 35-41 Esencia per minute of laps saved from level 5 up; total 811).
+		equal(C.BASE_COST, 20); equal(C.COST_GROWTH, 1.1)
+		equal(Training.cost(0), 20); equal(Training.cost(1), 22); equal(Training.cost(2), 24); equal(Training.cost(16), 92)
+		local total = 0
+		for level = 0, 16 do total += Training.cost(level) end
+		equal(total, 811, "the whole console ladder")
 		equal(Training.cost(17), nil, "no level past the cap")
 		equal(Training.cost(-1), nil); equal(Training.cost(0 / 0), nil)
 	end)
@@ -111,7 +117,11 @@ return function(Training, source, sources)
 		local first = server:find("onLap = function(player, _belt, isHub)", 1, true)
 		assert(first, "the live lap hook")
 		local lap = server:sub(first, (server:find("}):start(network, Heist.treadmillBelt)", first, true)))
-		assert(lap:find("state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5)", 1, true), "+1 level per lap")
+		assert(lap:find("Heist.Training.lapsFor(Heist.Training.level(", 1, true), "BP1: the laps a level needs come from the rule")
+		assert(lap:find("state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5, need)", 1, true),
+			"BP1: a lap counts toward the level; 5 Esencia only on a level-up lap")
+		assert(lap:find("Text.TRAINING.lapProgress:format(", 1, true), "BP1: a lap that does not level names the progress")
+		assert(not lap:find("Text.TRAINING.lapEmber", 1, true), "BP1: no Esencia notice for a lap that pays nothing")
 		assert(lap:find("Heist.Training.walkSpeed(EconomyConfig.carry.baseSpeed, EconomyConfig.carry.baseSpeed", 1, true),
 			"the lap prices the new walk with the training rule")
 		assert(lap:find("Text.TRAINING.trained:format(res.level, C.MAX_LEVEL, Heist.speedText(", 1, true),
@@ -122,6 +132,53 @@ return function(Training, source, sources)
 		local body = treadmill:sub((treadmill:find("function Treadmill:dismount(player, nudgeBack)", 1, true)))
 		local cleared, called = body:find("self.mounted[player] = nil", 1, true), body:find("self.deps.onDismount(player)", 1, true)
 		assert(cleared and called and cleared < called, "the mount is cleared before applyCarry runs")
+	end)
+
+	-- BP1 (2026-11-15, simulator finding 2): a lap grants progress, not a level. Level L+1 needs LAP_STEP x (L+1) laps.
+	case("TR-9: level L+1 needs L+1 laps: 153 laps of 8 s, about 20 min, to the top", function()
+		equal(Training.CONSTANTS.LAP_STEP, 1)
+		equal(Training.lapsFor(0), 1, "level 1 takes one lap"); equal(Training.lapsFor(4), 5); equal(Training.lapsFor(16), 17)
+		equal(Training.lapsFor(17), nil, "no laps past the top"); equal(Training.lapsFor(-1), nil)
+		equal(Training.lapsFor(0 / 0), nil)
+		local laps = 0
+		for level = 0, 16 do laps += Training.lapsFor(level) end
+		equal(laps, 153); assert(laps * 8 >= 20 * 60, "about 20 min of laps to the top")
+	end)
+
+	-- BP1 (2026-11-15, simulator finding 1): standing on the belt is not an income. Only a level-up lap pays.
+	case("TR-10: laps count toward the level, only a level-up lap pays, and the top pays nothing", function()
+		local state = State.new(Economy, Config)
+		state:addPlayer("Bea")
+		local profile = state.players["s:Bea"]
+		profile.ember = 0
+		local ok, res = state:trainByRunning("Bea", true, 0, 17, 5, 1)
+		equal(ok, true); equal(res.leveled, true); equal(res.level, 1); equal(res.ember, 5); equal(profile.ember, 5)
+		ok, res = state:trainByRunning("Bea", true, 0, 17, 5, 2)
+		equal(res.leveled, false, "the first of two laps"); equal(res.ember, 0, "an idle lap pays nothing")
+		equal(res.laps, 1); equal(res.need, 2); equal(profile.ember, 5)
+		equal(state:snapshot("Bea").training.walkLaps, 1, "the progress is kept on the profile")
+		ok, res = state:trainByRunning("Bea", true, 0, 17, 5, 2)
+		equal(res.leveled, true); equal(res.level, 2); equal(res.ember, 5); equal(res.laps, 0); equal(profile.ember, 10)
+		equal(profile.training.walkLaps, nil, "a level-up clears the progress")
+		profile.training.walk = 17
+		ok, res = state:trainByRunning("Bea", true, 0, 17, 5, nil)
+		equal(ok, true); equal(res.leveled, false); equal(res.ember, 0, "the top pays nothing"); equal(profile.ember, 10)
+		equal((state:trainByRunning("Bea", true, 999, 17, 5, 1)), false, "away from the camp nothing counts")
+		equal(profile.ember, 10)
+		-- A console purchase keeps the laps already run (BP1-D5).
+		profile.training.walk, profile.training.walkLaps = 3, 2
+		profile.ember = 100
+		local bought = state:train("Bea", "walk", true, 0, 20, 17)
+		equal(bought, true); equal(profile.training.walk, 4); equal(profile.training.walkLaps, 2)
+		equal(Training.level(profile.training, "walk"), 4, "the progress never reads as a level")
+	end)
+
+	case("TR-11: the saved record accepts the lap progress, with no schema step", function()
+		local Record = sources.record
+		local record = Record.blank()
+		record.training = { walk = 6, walkLaps = 3 }
+		local ok, problems = Record.validate(record, Economy, Config)
+		assert(ok, "a record with lap progress is valid: " .. table.concat(problems or {}, "; "))
 	end)
 
 	case("TR-7: the module is pure: no services, clock or randomness, and no purchase path", function()

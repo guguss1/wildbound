@@ -408,7 +408,7 @@ SPECS["WildboundTraining_Test"] = {
 		state = "mod:WildboundState", economy = "mod:WildboundEconomy", config = "mod:WildboundEconomyConfig",
 		stamina = "mod:WildboundStamina", schema = "mod:WildboundTuningSchema", keys = "mod:WildboundPromptKeys",
 		text = "mod:WildboundText", server = "src:WildboundServer", bridge = "src:WildboundTuning",
-		treadmill = "src:WildboundTreadmillService",
+		treadmill = "src:WildboundTreadmillService", record = "mod:WildboundRecord",
 	},
 }
 SPECS["WildboundTuningWiring_Test"] = {

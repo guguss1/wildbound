@@ -120,8 +120,9 @@ Balance.LIVE = freeze({
 		light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
 			Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" },
 	},
-	-- PF2 (user decision 2026-11-14): the live treadmill is +2 walk per level, 17 levels, a walk cap of 50.
-	training = { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60, baseCost = 30, costGrowth = 1.2 },
+	-- PF2 (user decision 2026-11-14): the live treadmill is +2 walk per level, 17 levels, a walk cap of 50. BP1 (balance
+	-- pass 2026-11-15): the console is re-priced to 20 x 1.1 (was 30 x 1.2).
+	training = { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60, baseCost = 20, costGrowth = 1.1 },
 	bat = { cooldown = 5, ragdollSeconds = 1.2, immunity = 3, push = 45, lift = 20, immunityMax = 15 },
 	incubator = { hatchSeconds = 15, slots = 1 },
 	movement = { sprintMultiplier = 1.45, sprintCap = 24 },

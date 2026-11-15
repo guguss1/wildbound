@@ -6,7 +6,10 @@
 -- walk level adds WALK_STEP studs/s to the unencumbered walk speed, up to MAX_LEVEL, and the walk speed from training
 -- plus any other bonus never passes WALK_CAP (16 + 2 x 17 = 50). Laps on the treadmill grant the levels. A carrier (an
 -- egg in the arms, a heavy pouch, a carried creature) keeps the same share of the trained walk that the carry leaves
--- of the base walk (one egg: 11/16 of it), so training is felt while carrying and carrying still costs speed. The
+-- of the base walk (one egg: 11/16 of it), so training is felt while carrying and carrying still costs speed. BP1
+-- (balance pass 2026-11-15, odd/tasks/wildbound-balance-pass.md): a lap grants progress, not a level: level L+1 needs
+-- LAP_STEP x (L+1) laps (153 laps of 8 s, about 20 min, to the top), only a level-up lap pays Esencia, and the console
+-- is re-priced as a shortcut (BASE_COST 20, COST_GROWTH 1.1: 811 Esencia for the whole ladder, was 3178). The
 -- sprint and the Burst never slow a trained walk (Stamina.speed keeps the faster of the walk and their capped speed).
 -- La Silueta and the parents were not retuned: a trained walker outruns them (an open product question). The old
 -- simulator (tools/simulate_economy.py) was retired on 2026-11-14 in favour of tools/wildbound_economy_sim_v2.py.
@@ -21,8 +24,9 @@ Training.CONSTANTS = table.freeze({
 	MAX_LEVEL = 17, -- PF2 (was 4): 17 laps of the belt from 16 to the cap
 	-- Unencumbered walk speed ceiling for every bonus together. PF2: 50 (HF-T4 had 16, the base walk).
 	WALK_CAP = 50,
-	BASE_COST = 30, -- Esencia for level 1
-	COST_GROWTH = 1.2, -- each next level costs this much more, rounded (PF2: was 1.6; level 17 costs 555)
+	BASE_COST = 20, -- Esencia for level 1 (BP1: was 30)
+	COST_GROWTH = 1.1, -- each next level costs this much more, rounded (BP1: was 1.2; level 17 costs 92, was 555)
+	LAP_STEP = 1, -- BP1: laps on the belt for level L+1 = LAP_STEP x (L+1)
 	RANGE = 12, -- studs from the treadmill to use it
 })
 Training.KINDS = table.freeze({ "walk" })
@@ -60,6 +64,13 @@ function Training.cost(level)
 	local C = Training.live
 	if not finite(level) or level < 0 or level >= C.MAX_LEVEL then return nil end
 	return math.floor(C.BASE_COST * C.COST_GROWTH ^ math.floor(level) + 0.5)
+end
+
+-- BP1: the treadmill laps that take `level` to the next level, or nil at the cap.
+function Training.lapsFor(level)
+	local C = Training.live
+	if not finite(level) or level < 0 or level >= C.MAX_LEVEL then return nil end
+	return math.max(1, math.ceil(C.LAP_STEP * (math.floor(level) + 1)))
 end
 
 -- The walk bonus in studs/s a profile's training gives.

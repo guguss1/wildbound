@@ -204,9 +204,9 @@ class ReportTests(unittest.TestCase):
 
     def test_exponential_ladder_indicator(self):
         costs = sim.training_costs(self.n)
-        self.assertEqual(costs[0], 30)
+        self.assertEqual(costs[0], 20)  # BP1-D4 (2026-11-15): BASE_COST 30 -> 20
         self.assertEqual(len(costs), 17)  # PF2: 17 live walk levels
-        self.assertAlmostEqual(sim.ladder_indicator(costs)["growth"], 1.2, delta=0.01)  # PF2: COST_GROWTH 1.6 -> 1.2
+        self.assertAlmostEqual(sim.ladder_indicator(costs)["growth"], 1.1, delta=0.02)  # BP1-D4: COST_GROWTH 1.2 -> 1.1
 
     def test_crafted_100x_ladder_flags(self):
         out = sim.ladder_indicator([0, 30, 3000, 300000, 3e7], 500, 60)
@@ -430,7 +430,7 @@ class LiveLoadingTests(unittest.TestCase):
         text = (REPO / server).read_text(encoding="utf-8")
         with tempfile.TemporaryDirectory() as tmp:
             patched = Path(tmp) / "server.luau"
-            patched.write_text(text.replace("C.MAX_LEVEL, 5)", "C.MAX_LEVEL, 0)"), encoding="utf-8")
+            patched.write_text(text.replace("C.MAX_LEVEL, 5, need)", "C.MAX_LEVEL, 0, need)"), encoding="utf-8")
             drift = sim.check_drift(paths={server: patched})
         self.assertTrue(any("treadmill_lap_esencia" in line for line in drift), drift)
 
@@ -439,7 +439,9 @@ class LiveLoadingTests(unittest.TestCase):
         self.assertEqual(live["training"]["WALK_STEP"], 2)
         self.assertEqual(live["training"]["MAX_LEVEL"], 17)
         self.assertEqual(live["training"]["WALK_CAP"], 50)
-        self.assertEqual(live["training"]["COST_GROWTH"], 1.2)
+        self.assertEqual(live["training"]["COST_GROWTH"], 1.1)  # BP1-D4 (2026-11-15), was 1.2
+        self.assertEqual(live["training"]["BASE_COST"], 20)  # BP1-D4, was 30
+        self.assertEqual(live["training"]["LAP_STEP"], 1)  # BP1: level L+1 needs L+1 laps
         self.assertEqual(live["wave_seconds"], 300)
         self.assertEqual(live["collection_limit"], 100)
         self.assertEqual(live["farm_slots"], 4)
@@ -485,13 +487,18 @@ class LiveRuleTests(unittest.TestCase):
     def test_treadmill_progression_table(self):
         rows = sim.treadmill_progression(self.live)
         self.assertEqual(len(rows), 18)
-        self.assertEqual(rows[-1]["lap_seconds_total"], 17 * 8)
+        # BP1 (2026-11-15): level L+1 needs L+1 laps (153 laps to the top) and only a level-up lap pays.
+        self.assertEqual(rows[1]["lap_seconds_total"], 8)
+        self.assertEqual(rows[2]["lap_seconds_total"], 3 * 8)
+        self.assertEqual(rows[-1]["lap_seconds_total"], 153 * 8)
         self.assertEqual(rows[-1]["lap_esencia_total"], 17 * 5)
-        self.assertEqual(rows[1]["console_cost"], 30)
-        self.assertEqual(rows[-1]["console_cost"], 555)
+        self.assertEqual(rows[1]["console_cost"], 20)
+        self.assertEqual(rows[-1]["console_cost"], 92)
+        self.assertEqual(rows[-1]["console_total"], 811)
 
     def test_afk_treadmill_rate(self):
-        self.assertAlmostEqual(sim.afk_treadmill_esencia_per_minute(self.live), 37.5)
+        # BP1: standing on the belt after the top pays nothing (was 37.5 Esencia/min).
+        self.assertEqual(sim.afk_treadmill_esencia_per_minute(self.live), 0.0)
 
     def test_nightbloom_supply_now_beats_old_cycle(self):
         nb = sim.nightbloom_supply(self.live)
@@ -542,9 +549,21 @@ class LiveSessionTests(unittest.TestCase):
         self.assertIsNotNone(r["collection_full_s"])
 
     def test_treadmill_laps_at_start_train_walk(self):
-        r = sim.simulate_live_session(self.live, self.profiles["advanced"], "forest", 10, seed=2)
+        # BP1: the beginner's 4 laps reach level 2 (1 + 2 laps, the 4th is progress) and pay two level-ups only.
+        r = sim.simulate_live_session(self.live, self.profiles["beginner"], "forest", 10, seed=2)
+        self.assertEqual(r["walk_level"], 2)
+        self.assertEqual(r["split"]["treadmill"], 2 * 5)
+
+    def test_idle_treadmill_is_not_an_income(self):
+        # BP1: an hour on the belt reaches the top once (153 laps) and pays 85 Esencia in all, then nothing.
+        live = dict(self.live, candy_nests=[], forest_islands=[])
+        idle = sim.LiveProfile(**dict(sim.asdict(self.profiles["advanced"]), laps_at_start=0))
+        r = sim.simulate_live_session(live, idle, "forest", 60, seed=1)
         self.assertEqual(r["walk_level"], 17)
-        self.assertGreaterEqual(r["split"]["treadmill"], 17 * 5)
+        self.assertEqual(r["split"]["treadmill"], 85)
+        # 153 laps of 8 s; the idle rides stop at each wave, so a few seconds of a lap are lost per wave.
+        self.assertGreaterEqual(r["max_walk_s"], 153 * 8)
+        self.assertLess(r["max_walk_s"], 153 * 8 + 60)
 
     def test_run_live_and_render(self):
         report = sim.run_live(self.live, self.profiles, [10, 30, 60], seed=7, runs=4)
@@ -566,10 +585,11 @@ class LiveFindingsTests(unittest.TestCase):
     def test_what_ifs_move_the_flagged_numbers(self):
         rows = sim.run_what_ifs(self.live, self.profiles, minutes=30, runs=5)
         by = {(r["case"], r["profile"], r["route"]): r for r in rows}
-        built, level_only = by[("as built", "advanced", "mixed")], by[("lap Esencia only on a level-up lap", "advanced", "mixed")]
-        self.assertLess(level_only["treadmill_per_min"], built["treadmill_per_min"])
-        capped = by[("carrier share of at most a 24 walk", "intermediate", "forest")]
-        self.assertGreater(capped["eggs_lost_per_hour"], by[("as built", "intermediate", "forest")]["eggs_lost_per_hour"])
+        self.assertNotIn(("lap Esencia only on a level-up lap", "advanced", "mixed"), by)  # BP1: applied, now as built
+        # BP1: the intermediate profile's 17 laps now reach level 5 (walk 26), so the 24 cap is felt by the advanced
+        # profile, which keeps training on the belt between waves.
+        capped = by[("carrier share of at most a 24 walk", "advanced", "mixed")]
+        self.assertGreater(capped["eggs_lost_per_hour"], by[("as built", "advanced", "mixed")]["eggs_lost_per_hour"])
 
     def test_carry_cap_what_if(self):
         capped = dict(self.live, carry_trained_cap=24)

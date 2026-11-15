@@ -4042,7 +4042,10 @@ do
 			local alive, distance = context(player, campCenter)
 			if isHub then distance = 0 end
 			local C = Heist.Training.live
-			local ok, res = state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5)
+			-- BP1: a lap counts toward the level (level L+1 needs L+1 laps); only a level-up lap pays the 5 Esencia.
+			local before = state:snapshot(player.UserId)
+			local need = Heist.Training.lapsFor(Heist.Training.level(before and before.training, "walk"))
+			local ok, res = state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5, need)
 			if not ok or type(res) ~= "table" then return nil end
 			player:SetAttribute("WildboundTreadmillBuffUntil", workspace:GetServerTimeNow() + 60)
 			-- PF2: a level-up lap names the new walk speed, so the treadmill visibly trains.
@@ -4051,8 +4054,9 @@ do
 				after and after.training)
 			local text = res.leveled
 				and (Text.TRAINING.trained:format(res.level, C.MAX_LEVEL, Heist.speedText(walk)) .. " "
-					.. Text.TRAINING.lapEmber:format(res.ember))
-				or Text.TRAINING.lapEmber:format(res.ember)
+					.. Text.TRAINING.lapLevelEmber:format(res.ember))
+				or (res.need > 0 and Text.TRAINING.lapProgress:format(res.laps, res.need, res.level + 1))
+				or Text.TRAINING.maxed:format(res.level, C.MAX_LEVEL)
 			send(player, "Train", true, text)
 			return res
 		end,

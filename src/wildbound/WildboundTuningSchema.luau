@@ -242,8 +242,8 @@ Schema.SYSTEMS = table.freeze({
 		value("WALK_STEP", "Entrenar: velocidad por nivel (studs/s)", "Training", "WALK_STEP", 2, 0, 5, 0.25),
 		value("MAX_LEVEL", "Entrenar: nivel máximo", "Training", "MAX_LEVEL", 17, 0, 30, 1),
 		value("WALK_CAP", "Entrenar: tope al caminar (studs/s)", "Training", "WALK_CAP", 50, 16, 60, 1),
-		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 30, 0, 500, 5),
-		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.2, 1, 3, 0.1),
+		value("BASE_COST", "Entrenar: precio del nivel 1 (Esencia)", "Training", "BASE_COST", 20, 0, 500, 5),
+		value("COST_GROWTH", "Entrenar: subida del precio (x)", "Training", "COST_GROWTH", 1.1, 1, 3, 0.1),
 	}) }),
 	-- Nest Heist Phase 3 (NS4): the companion's light.
 	table.freeze({ id = "Companion", label = "Compañero", entries = table.freeze({

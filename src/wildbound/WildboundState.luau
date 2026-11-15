@@ -749,8 +749,11 @@ function State:train(key, kind, alive, distance, cost, maxLevel)
 	return true, level + 1
 end
 
--- Interactive treadmill: running on the belt completes a lap to earn a free walk level (up to maxLevel) + bonus Esencia.
-function State:trainByRunning(key, alive, distance, maxLevel, bonusEmber)
+-- Interactive treadmill: a lap on the belt counts toward the next walk level (up to maxLevel). BP1 (balance pass
+-- 2026-11-15): the level needs `lapsNeeded` laps (WildboundTraining.lapsFor; nil or under 1 means one lap) and only a
+-- level-up lap pays bonusEmber, so standing on the belt is not an income. The progress is saved as training.walkLaps
+-- (a count in the existing training map, no schema step) and cleared on a level-up; a console purchase keeps it.
+function State:trainByRunning(key, alive, distance, maxLevel, bonusEmber, lapsNeeded)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	local ok, reason = atCamp(self, alive, distance)
@@ -759,17 +762,21 @@ function State:trainByRunning(key, alive, distance, maxLevel, bonusEmber)
 	local level = levels.walk or 0
 	local cap = type(maxLevel) == "number" and maxLevel or 0
 	local reward = type(bonusEmber) == "number" and bonusEmber > 0 and math.floor(bonusEmber) or 0
-	local leveled = false
-	if level < cap then
-		level += 1
-		levels.walk = level
-		player.training = levels
-		leveled = true
+	local need = type(lapsNeeded) == "number" and lapsNeeded == lapsNeeded and math.max(1, math.floor(lapsNeeded)) or 1
+	if level >= cap then return true, { leveled = false, level = level, ember = 0, laps = 0, need = 0 } end
+	local laps = (type(levels.walkLaps) == "number" and math.max(0, math.floor(levels.walkLaps)) or 0) + 1
+	player.training = levels
+	if laps < need then
+		levels.walkLaps = laps
+		return true, { leveled = false, level = level, ember = 0, laps = laps, need = need }
 	end
+	level += 1
+	levels.walk = level
+	levels.walkLaps = nil
 	if reward > 0 then
 		player.ember = (player.ember or 0) + reward
 	end
-	return true, { leveled = leveled, level = level, ember = reward }
+	return true, { leveled = true, level = level, ember = reward, laps = 0, need = need }
 end
 
 -- PF5 (user decision 2026-11-14): one hub roulette spin. Check, pay, grant, with no yield; a refusal changes nothing.

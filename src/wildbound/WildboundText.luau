@@ -645,6 +645,9 @@ return freeze({
 		running = "Corriendo en la caminadora...",
 		lapLevel = "¡Entrenamiento completado! Nivel %d de %d (+%d Esencia).",
 		lapEmber = "¡Carrera completada! +%d de Esencia.",
+		-- BP1: a lap counts toward the next level; only a level-up lap pays Esencia.
+		lapLevelEmber = "+%d de Esencia.",
+		lapProgress = "Vuelta %d de %d para el nivel %d.",
 		busy = "Alguien más está usando esta caminadora.",
 		noCarry = "Suelta lo que cargas antes de subirte a la caminadora.",
 	},
