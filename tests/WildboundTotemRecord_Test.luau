@@ -36,8 +36,8 @@ return function(TotemRecord, Record, source)
 
 	case("TR1: the step goes from schema 3 to 4 and the only totem kind is the luck totem", function()
 		equal(TotemRecord.FROM, 3); equal(TotemRecord.SCHEMA, 4)
-		-- Deliberately changed pin (wiring): the record now ends where this step ends.
-		equal(Record.SCHEMA, TotemRecord.SCHEMA, "the wired record is schema 4")
+		-- Deliberately changed pin (PF4): the record goes on past this step (schema 5 adds the farm).
+		assert(Record.SCHEMA > TotemRecord.SCHEMA, "the wired record is past schema 4")
 		equal(TotemRecord.KINDS.totemSuerte, true)
 		equal(TotemRecord.CAP, 5)
 	end)
@@ -55,7 +55,8 @@ return function(TotemRecord, Record, source)
 	-- Deliberately changed (wiring): the record's own ladder now ends with this step.
 	case("TR3: the whole ladder from an unversioned record through the deployed steps and this one", function()
 		local status, migrated = Record.migrate({ ember = 3 })
-		equal(status, "Migrated"); equal(migrated.schema, TotemRecord.SCHEMA)
+		-- PF4: the ladder now ends at the record's schema (deliberately changed pin).
+		equal(status, "Migrated"); equal(migrated.schema, Record.SCHEMA)
 		valid(migrated, "v0 through every step")
 		equal(type(Record.MIGRATIONS[TotemRecord.FROM]), "function", "the record's ladder carries the 3 -> 4 step")
 		equal(Record.TotemRecord.SCHEMA, TotemRecord.SCHEMA, "the record reads its sibling step")

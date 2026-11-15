@@ -44,6 +44,16 @@ local function incubating(player)
 	return player.incubating
 end
 
+-- PF4 (user decision 2026-11-14): the base farm, the registered creatures placed in the own base. Made on first use
+-- like the incubator list, so a new profile still equals the blank record's (RT-2); saved by WildboundRecord schema 5.
+State.FARM_SLOTS = 4 -- the 2.0 balance's farm.startSlots (tools/test_wildbound_farm_slots.py keeps them equal)
+local function farmIndex(player, uid)
+	for index, value in ipairs(player.farm or {}) do
+		if value == uid then return index end
+	end
+	return nil
+end
+
 local function copy(entries)
 	local detached = {}
 	for index, entry in ipairs(entries) do detached[index] = table.clone(entry) end
@@ -577,8 +587,39 @@ function State:equip(key, uid, alive)
 	if not player then return false, "InvalidPlayer" end
 	if alive ~= true then return false, "InvalidContext" end
 	if not find(player.registered, uid) then return false, "NotOwnedPet" end
+	-- PF4: a creature in the farm is never the companion.
+	if farmIndex(player, uid) then return false, "InFarm" end
 	player.equippedUid = uid
 	return true, uid
+end
+
+-- PF4: places a registered creature in the base farm. It stays owned and saved and stops being the companion.
+-- Returns true and whether it was the companion out, or false and InvalidPlayer, InvalidContext, NotOwnedPet,
+-- AlreadyInFarm or FarmFull. `slots` defaults to State.FARM_SLOTS. A refused place changes nothing. No income.
+function State:placeInFarm(key, uid, alive, slots)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	if not find(player.registered, uid) then return false, "NotOwnedPet" end
+	if farmIndex(player, uid) then return false, "AlreadyInFarm" end
+	if not (finite(slots) and slots >= 0 and slots % 1 == 0) then slots = State.FARM_SLOTS end
+	if #(player.farm or {}) >= slots then return false, "FarmFull" end
+	player.farm = player.farm or {}
+	table.insert(player.farm, uid)
+	local wasOut = player.equippedUid == uid
+	if wasOut then player.equippedUid = nil end
+	return true, wasOut
+end
+
+-- PF4: takes a creature out of the farm, back into the collection (the hotbar). It is never equipped.
+function State:takeFromFarm(key, uid, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	local index = farmIndex(player, uid)
+	if not index then return false, "NotInFarm" end
+	table.remove(player.farm, index)
+	return true
 end
 
 function State:protect(key, uid, alive)
@@ -1063,6 +1104,8 @@ function State:snapshot(key)
 		-- NS7: every glove (detached), the worn one's uid and a copy of it for the effects.
 		gloves = glovesCopy(player), equippedGlove = player.gloves and player.gloves.equipped,
 		glove = equippedGlove(player), luckTotems = player.luckTotems or 0,
+		-- PF4: the base farm (a copy) and its slot count.
+		farm = table.clone(player.farm or {}), farmSlots = State.FARM_SLOTS,
 		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),
 		pendingBondXp = player.expedition and player.expedition.bondXp or 0,
 		expedition = expedition and { startedAt = expedition.startedAt,

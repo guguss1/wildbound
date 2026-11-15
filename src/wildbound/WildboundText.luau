@@ -717,5 +717,7 @@ return freeze({
 		placed = "¡Dejaste a %s en tu granja! Ya no te sigue.",
 		stored = "Guardaste a %s en tu barra.",
 		pickupAction = "Guardar en la barra",
+		-- PF4: the farm has a slot cap (State.FARM_SLOTS).
+		farmFull = "Tu granja está llena (%d lugares). Guarda una criatura primero.",
 	},
 })

@@ -133,7 +133,8 @@ return function(sources)
 	case("W4: the record is schema 4 through the sibling totem step: ladder, known field, blank, validate, profile seam", function()
 		local record = sources.record or ""
 		has(record, 'script.Parent:FindFirstChild("WildboundTotemRecord")')
-		has(record, "Record.SCHEMA = TotemRecord.SCHEMA")
+		-- PF4: schema 5 (the farm) follows the totem step (deliberately changed pin).
+		has(record, "Record.SCHEMA = FarmRecord.SCHEMA")
 		has(record, "Record.MIGRATIONS = TotemRecord.ladder({")
 		has(record, "totems = true,", "a known field, never copied as an unknown one")
 		has(block(record, "function Record.blank()", "\nend\n"), "totems = {}")

@@ -55,12 +55,37 @@ return function(Toolbar, source, sources)
 
 	local function fixture(opts)
 		opts = opts or {}
-		local log = { sends = {}, unequips = {}, equips = 0 }
+		local log = { sends = {}, unequips = {}, equips = 0, places = {}, takes = {} }
 		local snapshot = { registered = opts.registered or { { uid = "c1", species = "Lumipol" } },
-			equippedUid = opts.equippedUid }
+			equippedUid = opts.equippedUid, farm = opts.farm or {}, farmSlots = opts.farmSlots or 4 }
+		-- PF4: a fake of State's farm rules (the real ones are pinned by WildboundState_Test PF4-S1 and PF4-S2).
 		local state = {}
 		function state:snapshot() return snapshot end
 		function state:equip() log.equips += 1 end
+		local function farmIndex(uid)
+			for index, value in ipairs(snapshot.farm) do
+				if value == uid then return index end
+			end
+			return nil
+		end
+		function state:placeInFarm(_, uid, alive)
+			table.insert(log.places, uid)
+			if alive ~= true then return false, "InvalidContext" end
+			if farmIndex(uid) then return false, "AlreadyInFarm" end
+			if #snapshot.farm >= snapshot.farmSlots then return false, "FarmFull" end
+			table.insert(snapshot.farm, uid)
+			local was = snapshot.equippedUid == uid
+			if was then snapshot.equippedUid = nil end
+			return true, was
+		end
+		function state:takeFromFarm(_, uid, alive)
+			table.insert(log.takes, uid)
+			if alive ~= true then return false, "InvalidContext" end
+			local index = farmIndex(uid)
+			if not index then return false, "NotInFarm" end
+			table.remove(snapshot.farm, index)
+			return true
+		end
 		local pads = opts.pads or {}
 		local toolbar = Toolbar.new({
 			state = state,
@@ -106,10 +131,11 @@ return function(Toolbar, source, sources)
 	case("CT-1: the farm words are Spanish and come from WildboundText", function()
 		local F = Text.FARM
 		assert(type(F) == "table", "Text.FARM")
-		for _, key in ipairs({ "toolTip", "notInBase", "placed", "stored", "pickupAction" }) do
+		for _, key in ipairs({ "toolTip", "notInBase", "placed", "stored", "pickupAction", "farmFull" }) do
 			assert(type(F[key]) == "string" and #F[key] > 0 and #F[key] <= 72, "FARM." .. key)
 		end
 		assert(F.placed:find("%s", 1, true) and F.stored:find("%s", 1, true), "placed and stored name the creature")
+		assert(F.farmFull:find("%d", 1, true), "farmFull names the slot count")
 		assert(not source:find("Entrá", 1, true), "no Rioplatense literal left in the module")
 		assert(not source:find('"Guardaste la criatura', 1, true), "the pickup notice moved to WildboundText")
 	end)
@@ -229,6 +255,69 @@ return function(Toolbar, source, sources)
 		assert(server:find("if born.equipped then Heist.creatureToolbar:stow(player, born.uid) end", 1, true),
 			"a newborn the hatch equipped goes to the hotbar instead")
 		assert(server:find("Text.LOOP.hatchStored:format(spName)", 1, true), "the hatch notice says it is in the hotbar")
+	end)
+
+	local function farmModels(base)
+		local list = {}
+		for _, child in ipairs(base:GetChildren()) do
+			if child.Name == "WildboundFarmCreature" then table.insert(list, child) end
+		end
+		return list
+	end
+
+	case("CT-11: PF4 placing and taking back go through State, so the farm is saved", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log, snapshot = fixture({ pads = { own }, inside = true, equippedUid = "c1" })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		toolbar:syncPlayer(player)
+		equal(toolbar:depositInFarm(player, "c1", "Lumipol", tools(player, "c1")[1]), true)
+		equal(log.places[1], "c1", "State:placeInFarm records it")
+		equal(snapshot.farm[1], "c1")
+		equal(log.unequips[1], "c1", "the server unequips it (companion attributes) as it is placed")
+		equal(toolbar:pickUp(player, "c1"), true)
+		equal(log.takes[1], "c1", "State:takeFromFarm records the pickup")
+		equal(#snapshot.farm, 0)
+		equal(#farmModels(own), 0); equal(#tools(player, "c1"), 1)
+	end)
+
+	case("CT-12: PF4 a full farm refuses a creature: nothing is unequipped and the tool stays", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log, snapshot = fixture({ pads = { own }, inside = true, equippedUid = "c1", farmSlots = 1,
+			farm = { "c2" }, registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "Lumipol" } } })
+		local player = fakePlayer(7, Vector3.new(0, 3, 0))
+		toolbar:syncPlayer(player)
+		equal(toolbar:depositInFarm(player, "c1", "Lumipol", tools(player, "c1")[1]), false)
+		equal(#log.unequips, 0, "the companion keeps following")
+		equal(snapshot.equippedUid, "c1"); equal(#snapshot.farm, 1)
+		equal(#tools(player, "c1"), 1, "the tool stays in the hotbar")
+		equal(log.sends[#log.sends].notice, Text.FARM.farmFull:format(1))
+	end)
+
+	case("CT-13: PF4 a join rebuilds the saved farm on the own pad once, and follows State after", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local other = pad(99, Vector3.new(500, 0, 0))
+		local toolbar, _, snapshot = fixture({ pads = { other, own }, inside = false, farm = { "c1" },
+			registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "Lumipol" } } })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		local models = farmModels(own)
+		equal(#models, 1, "the saved farm creature stands in the own base")
+		equal(models[1]:GetAttribute("WildboundCreatureUid"), "c1")
+		equal(models[1]:GetAttribute("OwnerUserId"), 7)
+		assert(models[1]:FindFirstChild("PickupFarmCreaturePrompt", true), "it can be taken back")
+		equal(#farmModels(other), 0, "never on another base")
+		equal(#tools(player, "c1"), 0, "no tool while it is in the farm"); equal(#tools(player, "c2"), 1)
+		toolbar:syncPlayer(player)
+		toolbar:respawn(player)
+		equal(#farmModels(own), 1, "never built twice")
+		toolbar:clearPlayer(7)
+		equal(#farmModels(own), 0, "a leave clears the models; State keeps the list")
+		toolbar:syncPlayer(player)
+		equal(#farmModels(own), 1, "rebuilt from State")
+		snapshot.farm = {}
+		toolbar:syncPlayer(player)
+		equal(#farmModels(own), 0, "a creature no longer in the farm has no model")
+		equal(#tools(player, "c1"), 1, "and is back in the hotbar")
 	end)
 
 	return result

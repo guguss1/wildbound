@@ -414,6 +414,7 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBatKnock_Test.luau": "ServerStorage.WildboundBatKnock_Test",
         "src/wildbound/WildboundTotemRecord.luau": "ServerScriptService.WildboundTotemRecord",
         "tests/WildboundTotemRecord_Test.luau": "ServerStorage.WildboundTotemRecord_Test",
+        "src/wildbound/WildboundFarmRecord.luau": "ServerScriptService.WildboundFarmRecord",
         "src/wildbound/WildboundDusk.luau": "ReplicatedStorage.WildboundDusk",
         "tests/WildboundDusk_Test.luau": "ServerStorage.WildboundDusk_Test",
         # Studio-to-repo sync: server modules and scripts that were in the place but unmapped, at the Explorer paths

@@ -2,6 +2,8 @@
 -- PF3 (user decision 2026-11-14): a creature is deposited only on the player's OWN base pad; a deposited creature stops
 -- following the player (deps.unequip) and taking it back to the hotbar never equips it; tools are rebuilt once per
 -- respawn, never duplicated. No icon asset is uploaded: TextureId stays empty until an icon upload is approved.
+-- PF4: the farm itself is State's (placeInFarm / takeFromFarm, saved by WildboundRecord schema 5, capped by the
+-- snapshot's farmSlots); this module only builds its models and rebuilds a saved farm on the own pad on join.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 
@@ -16,7 +18,7 @@ function Toolbar.new(deps)
 		-- { state, visual, send, isInsideBase, unequip, Art, Species, Text, tagged?, players? }
 		-- unequip(player, uid): the server puts that creature back in the collection when it is the companion out.
 		deps = deps,
-		placed = {}, -- [userId] = { [uid] = { model = Model, species = string } }
+		placed = {}, -- [userId] = { [uid] = { model = Model, species = string } }: the farm models only (PF4)
 	}, Toolbar)
 	local players = deps.players or Players
 	players.PlayerRemoving:Connect(function(player)
@@ -81,12 +83,28 @@ local function registeredPet(snapshot, uid)
 	return nil
 end
 
+-- PF4: the uids State holds in the farm.
+local function farmSet(snapshot)
+	local set = {}
+	for _, uid in ipairs(snapshot and snapshot.farm or {}) do set[uid] = true end
+	return set
+end
+
+-- PF4: where a saved farm creature stands when it is rebuilt: its place in a small grid on the own pad.
+local function slotSpot(pad, index)
+	local column, row = (index - 1) % 4, math.floor((index - 1) / 4)
+	local halfX = math.max(2, pad.Size.X / 2 - 3.0)
+	local halfZ = math.max(2, pad.Size.Z / 2 - 3.0)
+	local localPos = Vector3.new(math.clamp((column - 1.5) * 4.5, -halfX, halfX), pad.Size.Y / 2,
+		math.clamp((row - 0.5) * 4.5, -halfZ, halfZ))
+	return pad.CFrame:PointToWorldSpace(localPos), -pad.CFrame.LookVector
+end
+
 function Toolbar:depositInFarm(player, uid, species, tool)
 	local words = self:words()
 	local snapshot = self.deps.state:snapshot(player.UserId)
 	local pet = registeredPet(snapshot, uid)
-	local userMap = self.placed[player.UserId]
-	if not pet or (userMap and userMap[uid]) then
+	if not pet or farmSet(snapshot)[uid] then
 		if tool and tool.Parent then tool:Destroy() end
 		return false
 	end
@@ -96,6 +114,12 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 	local inside = self.deps.isInsideBase and self.deps.isInsideBase(player) == true
 	if not pad or not root or (not inside and (root.Position - pad.Position).Magnitude > DEPOSIT_REACH) then
 		self.deps.send(player, "Notice", false, words.notInBase)
+		return false
+	end
+	-- PF4: a full farm refuses before anything changes (the companion keeps following, the tool stays).
+	local slots = snapshot.farmSlots or 0
+	if #(snapshot.farm or {}) >= slots then
+		self.deps.send(player, "Notice", false, string.format(words.farmFull or "%d", slots))
 		return false
 	end
 
@@ -115,6 +139,25 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 	if lookDir.Magnitude < 0.05 then lookDir = -pad.CFrame.LookVector end
 	lookDir = lookDir.Unit
 
+	-- PF4: a creature in the farm no longer follows the player: the server clears the companion first, then State
+	-- records the farm (saved). A refusal builds nothing.
+	if self.deps.unequip then self.deps.unequip(player, uid) end
+	if not self.deps.state:placeInFarm(player.UserId, uid, true, slots) then
+		self.deps.send(player, "Notice", false, string.format(words.farmFull or "%d", slots))
+		return false
+	end
+	self:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseModel)
+	for _, item in ipairs(creatureTools(player)) do
+		if item:GetAttribute(UID) == uid then item:Destroy() end
+	end
+	if tool and tool.Parent then tool:Destroy() end
+	self.deps.send(player, "Notice", true, string.format(words.placed or "%s", self:displayName(species)))
+	return true
+end
+
+-- The farm model with its pickup prompt, parented to the own base model.
+function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseModel)
+	local words = self:words()
 	local creatureModel, body = self.deps.visual("Creature", spotWorld, species, 0.75)
 	creatureModel.Name = "WildboundFarmCreature"
 	creatureModel:SetAttribute("OwnerUserId", player.UserId)
@@ -148,27 +191,44 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 
 	self.placed[player.UserId] = self.placed[player.UserId] or {}
 	self.placed[player.UserId][uid] = { model = creatureModel, species = species }
+	return creatureModel
+end
 
-	-- PF3: a creature in the farm no longer follows the player.
-	if self.deps.unequip then self.deps.unequip(player, uid) end
-	for _, item in ipairs(creatureTools(player)) do
-		if item:GetAttribute(UID) == uid then item:Destroy() end
-	end
-	if tool and tool.Parent then tool:Destroy() end
-	self.deps.send(player, "Notice", true, string.format(words.placed or "%s", displayName))
+-- PF3: back to the hotbar as a tool; never equipped as the companion. PF4: State takes it out of the (saved) farm.
+function Toolbar:pickUp(player, uid)
+	if not self.deps.state:takeFromFarm(player.UserId, uid, true) then return false end
+	local userMap = self.placed[player.UserId]
+	local entry = userMap and userMap[uid]
+	if entry and entry.model then entry.model:Destroy() end
+	if userMap then userMap[uid] = nil end
+	local snapshot = self.deps.state:snapshot(player.UserId)
+	self:syncPlayer(player, snapshot)
+	local pet = registeredPet(snapshot, uid)
+	local species = entry and entry.species or pet and pet.species or "Lumipol"
+	self.deps.send(player, "Notice", true, string.format(self:words().stored or "%s", self:displayName(species)))
 	return true
 end
 
--- PF3: back to the hotbar as a tool; never equipped as the companion.
-function Toolbar:pickUp(player, uid)
-	local userMap = self.placed[player.UserId]
-	local entry = userMap and userMap[uid]
-	if not entry then return false end
-	if entry.model then entry.model:Destroy() end
-	userMap[uid] = nil
-	self:syncPlayer(player, self.deps.state:snapshot(player.UserId))
-	self.deps.send(player, "Notice", true, string.format(self:words().stored or "%s", self:displayName(entry.species)))
-	return true
+-- PF4: the farm models follow State: a saved farm creature is rebuilt on the own pad (on join, respawn or any sync)
+-- once, and a model whose creature left the farm is removed.
+function Toolbar:syncFarm(player, snapshot)
+	local farm = farmSet(snapshot)
+	local userMap = self.placed[player.UserId] or {}
+	for uid, entry in pairs(userMap) do
+		if not farm[uid] or not (entry.model and entry.model.Parent) then
+			if entry.model then entry.model:Destroy() end
+			userMap[uid] = nil
+		end
+	end
+	local pad, baseModel = self:basePadOf(player.UserId)
+	if not pad then return end
+	for index, uid in ipairs(snapshot.farm or {}) do
+		local pet = not userMap[uid] and registeredPet(snapshot, uid)
+		if pet then
+			local spot, look = slotSpot(pad, index)
+			self:spawnFarmModel(player, uid, pet.species or "Lumipol", spot, look, baseModel)
+		end
+	end
 end
 
 -- PF3: a newborn (or any creature) that the hatch made the companion goes to the hotbar instead.
@@ -231,15 +291,16 @@ end
 -- in the farm) are removed, so it is safe to call on every hatch, pickup and respawn.
 function Toolbar:syncPlayer(player, snapshot)
 	if not player or not player.Parent then return end
-	local backpack = player:FindFirstChildOfClass("Backpack")
-	if not backpack then return end
 	snapshot = snapshot or self.deps.state:snapshot(player.UserId)
 	if not snapshot or not snapshot.registered then return end
+	self:syncFarm(player, snapshot)
+	local backpack = player:FindFirstChildOfClass("Backpack")
+	if not backpack then return end
 
-	local placedMap = self.placed[player.UserId] or {}
+	local farm = farmSet(snapshot)
 	local wanted = {}
 	for _, pet in ipairs(snapshot.registered) do
-		if not placedMap[pet.uid] then wanted[pet.uid] = pet end
+		if not farm[pet.uid] then wanted[pet.uid] = pet end
 	end
 	local have = {}
 	for _, item in ipairs(creatureTools(player)) do

@@ -77,10 +77,12 @@ return function(Record, Economy, Config, State, source)
 		local record = Record.blank()
 		-- NS7: schema 3 adds the gloves (deliberately changed pin: 2 -> 3).
 		-- Q10: schema 4 adds the luck totems (deliberately changed pin: 3 -> 4).
-		equal(Record.SCHEMA, 4)
-		equal(record.schema, 4)
+		-- PF4: schema 5 adds the base farm (deliberately changed pin: 4 -> 5).
+		equal(Record.SCHEMA, 5)
+		equal(record.schema, 5)
 		deepEqual(record.incubating, {}); deepEqual(record.training, {}); deepEqual(record.gloves, { owned = {} })
 		deepEqual(record.totems, {})
+		deepEqual(record.farm, {})
 		equal(record.revision, 0)
 		equal(record.nextUid, 1); equal(record.nextTrip, 1); equal(record.nextOp, 1)
 		equal(record.firstSealGranted, false)
@@ -298,6 +300,8 @@ return function(Record, Economy, Config, State, source)
 		expected.schema = Record.SCHEMA; expected.incubating = {}; expected.training = {}; expected.gloves = { owned = {} }
 		-- Q10: the 3 -> 4 step adds the empty totem map (deliberately changed expected shape).
 		expected.totems = {}
+		-- PF4: the 4 -> 5 step adds the empty farm (deliberately changed expected shape).
+		expected.farm = {}
 		deepEqual(HttpService:JSONDecode(HttpService:JSONEncode(migrated)), expected)
 	end)
 
@@ -437,7 +441,8 @@ return function(Record, Economy, Config, State, source)
 		local old = fixture()
 		old.schema = 3; old.totems = nil
 		local status, migrated = Record.migrate(old)
-		equal(status, "Migrated"); equal(migrated.schema, 4)
+		-- PF4: the ladder now ends at schema 5 (deliberately changed pin: 4 -> Record.SCHEMA).
+		equal(status, "Migrated"); equal(migrated.schema, Record.SCHEMA)
 		deepEqual(migrated.totems, {}, "no totem is invented")
 		equal(old.totems, nil, "the input is never changed")
 		valid(migrated, "a schema 3 save migrates and validates")
@@ -470,6 +475,66 @@ return function(Record, Economy, Config, State, source)
 		equal(Record.toProfile(Record.blank(), Economy, Config, 0).luckTotems, nil, "a blank record sets no totem field")
 		local _, roundTrip = Record.migrate(HttpService:JSONDecode(HttpService:JSONEncode(record)))
 		equal(roundTrip.totems.totemSuerte, 1, "a JSON round trip keeps it")
+	end)
+
+	-- PF4 (user decision 2026-11-14): schema 5 saves the base farm, the creatures a player placed there.
+	case("RT-26: migration 4 -> 5 adds an empty farm, invents nothing and never repairs a malformed one", function()
+		local Farm = Record.FarmRecord
+		assert(type(Farm) == "table", "Record.FarmRecord")
+		equal(Farm.FROM, 4); equal(Farm.SCHEMA, 5); equal(Record.SCHEMA, Farm.SCHEMA)
+		equal(type(Record.MIGRATIONS[Farm.FROM]), "function", "the ladder carries the 4 -> 5 step")
+		equal(type(Record.MIGRATIONS[3]), "function", "the 3 -> 4 totem step is kept")
+		equal(table.isfrozen(Record.MIGRATIONS), true)
+		local old = fixture()
+		old.schema = 4; old.farm = nil
+		local status, migrated = Record.migrate(old)
+		equal(status, "Migrated"); equal(migrated.schema, 5)
+		deepEqual(migrated.farm, {}, "no creature is put in the farm")
+		equal(old.farm, nil, "the input is never changed")
+		valid(migrated, "a schema 4 save migrates and validates")
+		deepEqual(migrated.collection, old.collection, "everything else is kept")
+		equal(migrated.equippedUid, old.equippedUid); equal(migrated.ember, old.ember)
+		-- fixture: u1 (the companion) and u2 are registered, u3 is a banked egg.
+		for label, bad in pairs({ text = "x", notRegistered = { "u9" }, egg = { "u3" }, session = { "wb:1" },
+			twice = { "u2", "u2" }, companion = { "u1" }, map = { a = "u2" }, number = { 2 } }) do
+			local broken = fixture(); broken.schema = 4; broken.farm = bad
+			local brokenStatus, brokenMigrated = Record.migrate(broken)
+			equal(brokenStatus, "Migrated", label)
+			invalid(brokenMigrated, "malformed farm (" .. label .. ")")
+		end
+		local missing = fixture(); missing.farm = nil
+		invalid(missing, "a schema 5 record without the farm")
+		local full = Record.blank()
+		for n = 1, Farm.CAP + 1 do
+			full.collection.registered[n] = { uid = "u" .. n, species = "Lumipol" }
+			full.farm[n] = "u" .. n
+		end
+		full.nextUid = Farm.CAP + 2
+		invalid(full, "over the farm's hard cap")
+		table.remove(full.farm)
+		valid(full, "exactly at the hard cap")
+	end)
+
+	case("RT-27: the farm survives profile -> record -> profile and a rejoin; none means no field", function()
+		local profile = stateProfile()
+		profile.registered = { { uid = "u1", species = "Lumipol" }, { uid = "u2", species = "Lumipol" } }
+		profile.farm = { "u2" }
+		local base = Record.blank(); base.nextUid = 3
+		local record = assert(Record.fromProfile(profile, base, { nowUnix = 1 }, Economy, Config))
+		valid(record, "with a farmed creature")
+		deepEqual(record.farm, { "u2" })
+		local back = Record.toProfile(record, Economy, Config, 0)
+		deepEqual(back.farm, { "u2" }, "the farm is back after a rejoin")
+		equal(Record.toProfile(Record.blank(), Economy, Config, 0).farm, nil, "a blank record sets no farm field")
+		deepEqual(assert(Record.fromProfile(stateProfile(), Record.blank(), { nowUnix = 1 }, Economy, Config)).farm, {})
+		local _, roundTrip = Record.migrate(HttpService:JSONDecode(HttpService:JSONEncode(record)))
+		deepEqual(roundTrip.farm, { "u2" }, "a JSON round trip keeps it")
+		local state = State.new(Economy, Config)
+		equal(state:loadPlayer(1, back), true)
+		equal(state:snapshot(1).farm[1], "u2", "State reads the loaded farm")
+		equal(select(2, state:equip(1, "u2", true)), "InFarm", "a loaded farm creature is not the companion")
+		profile.farm = { "wb:7" }
+		equal((Record.fromProfile(profile, base, { nowUnix = 1 }, Economy, Config)), nil, "session IDs are never saved")
 	end)
 
 	return result

@@ -9,7 +9,7 @@
 --   never overwrite the real record.
 -- * What is saved: banked eggs, registered creatures, the equipped companion, Ember (Esencia), materials banked at
 --   camp, consumables, upgrades, skills, bond, the incubator (server Unix times), the training levels and the gloves
---   with the worn one (NS7), and the luck totems held (Q10, schema 4). What is out
+--   with the worn one (NS7), and the luck totems held (Q10, schema 4) and the base farm (PF4, schema 5). What is out
 --   in the world (the bag, the pouch, a carried or dropped egg, the trip) is never saved.
 -- * State makes session IDs (wb:N). Each one gets a durable ID (uN) from the saved counter the first time it is saved,
 --   and keeps it for the rest of the session, so the next session loads the same IDs.
@@ -88,6 +88,16 @@ local function durableView(self, userId)
 		if not owned then return nil end
 		view.gloves = { list = owned, equipped = profile.gloves.equipped and durable(profile.gloves.equipped) or nil }
 	end
+	-- PF4 (schema 5): the farm keeps the creatures' durable IDs; only registered ones are written.
+	if profile.farm then
+		local farm = {}
+		for _, uid in ipairs(profile.farm) do
+			local mapped = durable(uid)
+			if not mapped then return nil end
+			if registered[mapped] then table.insert(farm, mapped) end
+		end
+		view.farm = farm
+	end
 	view.equippedUid = profile.equippedUid and durable(profile.equippedUid) or nil
 	if view.equippedUid and not registered[view.equippedUid] then view.equippedUid = nil end
 	view.bond = {}
@@ -119,6 +129,8 @@ local function digestOf(self, view)
 		gloves = view.gloves and { list = view.gloves.list, equipped = view.gloves.equipped or "" } or {},
 		-- Q10 (schema 4): a crafted or placed luck totem marks the profile dirty.
 		totems = type(view.luckTotems) == "number" and view.luckTotems or 0,
+		-- PF4 (schema 5): placing or taking back a farm creature marks the profile dirty.
+		farm = view.farm or {},
 	})
 end
 

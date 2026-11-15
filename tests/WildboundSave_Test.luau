@@ -409,6 +409,43 @@ return function(m, sources)
 		equal(snapshot.equippedGlove, uid); equal(snapshot.glove.stats.calm, 20); equal(snapshot.glove.rarity, "Epica")
 	end)
 
+	-- PF4 (user decision 2026-11-14): the base farm is saved (schema 5) with durable IDs.
+	case("SV-22: the farm is saved with durable IDs, marks the profile dirty and loads back after a rejoin", function()
+		local store, clock, server = world()
+		seed(store, clock)
+		local save, state = server("A")
+		save:join(USER, 0)
+		bankEgg(state, "egg:farm")
+		local egg = state:snapshot(USER).bankedEggs[2].uid
+		local ok, pet = state:hatch(USER, egg, true, 0)
+		assert(ok, "hatched")
+		clock.t += Persistence.AUTOSAVE + 1
+		save:step()
+		local writes = #store.writes
+		assert(state:placeInFarm(USER, pet, true), "placed in the farm")
+		clock.t += Persistence.AUTOSAVE + 1
+		save:step()
+		equal(#store.writes, writes + 1, "placing in the farm marks the profile dirty")
+		local saved = stored(store)
+		equal(#saved.farm, 1)
+		local durable = saved.farm[1]
+		assert(Record.uidNumber(durable), "a durable farm ID: " .. tostring(durable))
+		equal(saved.collection.registered[2].uid, durable, "the farm uses the creature's durable ID")
+		assert(state:placeInFarm(USER, "u1", true), "the companion is placed too")
+		save:leave(USER)
+		saved = stored(store)
+		equal(#saved.farm, 2); equal(saved.equippedUid, nil, "a farmed creature is never saved as the companion")
+		local again, state2 = server("B")
+		equal((again:join(USER, 0)), "Saved")
+		local snapshot = state2:snapshot(USER)
+		equal(#snapshot.farm, 2); equal(snapshot.farm[1], durable); equal(snapshot.farm[2], "u1")
+		equal(snapshot.equippedUid, nil)
+		equal(select(2, state2:equip(USER, "u1", true)), "InFarm")
+		assert(state2:takeFromFarm(USER, "u1", true), "taken back after the rejoin")
+		again:leave(USER)
+		equal(#stored(store).farm, 1, "taking it back is saved too")
+	end)
+
 	case("SV-19: the autosave loop steps every STEP_SECONDS until stopped", function()
 		local store, clock, server = world()
 		seed(store, clock)

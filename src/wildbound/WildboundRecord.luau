@@ -9,13 +9,18 @@
 -- { totemSuerte = count }` (cap 5). The step, its validation and the profile seam live in the sibling
 -- WildboundTotemRecord, which must sit beside this module (ServerScriptService): without it this module fails to load,
 -- the save glue never starts and nothing is written (a failed load never overwrites real data).
+-- Schema 5 (PF4, user decision 2026-11-14): the base farm, `farm = { uid, ... }` (registered creatures, never the
+-- companion out), in the sibling WildboundFarmRecord, with the same fail-closed rule.
 local totemModule = script.Parent and script.Parent:FindFirstChild("WildboundTotemRecord")
 assert(totemModule and totemModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundTotemRecord (schema 4)")
 local TotemRecord = require(totemModule)
+local farmModule = script.Parent and script.Parent:FindFirstChild("WildboundFarmRecord")
+assert(farmModule and farmModule:IsA("ModuleScript"), "WildboundRecord needs its sibling WildboundFarmRecord (schema 5)")
+local FarmRecord = require(farmModule)
 
 local Record = {}
 
-Record.SCHEMA = TotemRecord.SCHEMA
+Record.SCHEMA = FarmRecord.SCHEMA
 Record.LEDGER_CAP = 64
 Record.MAX_CHARS = 4194304
 
@@ -29,8 +34,11 @@ local KNOWN = table.freeze({
 	ledger = true, incubating = true, training = true, gloves = true,
 	-- Q10: schema 4.
 	totems = true,
+	-- PF4: schema 5.
+	farm = true,
 })
 Record.TotemRecord = TotemRecord
+Record.FarmRecord = FarmRecord
 local STATS = table.freeze({ "tripsOpened", "extractions", "defeats", "firstPlayedDay" })
 -- NS7: a glove's stats and their hard caps in percent. Must equal WildboundGear.HARD_CAPS (the Save suite checks).
 Record.GLOVE_CAPS = table.freeze({ move = 3, steal = 25, burst = 30, drain = 40, calm = 40 })
@@ -70,7 +78,7 @@ function Record.blank()
 		schema = Record.SCHEMA, revision = 0, nextUid = 1, nextTrip = 1, nextOp = 1, firstSealGranted = false,
 		collection = { registered = {}, bankedEggs = {} },
 		banked = {}, ember = 0, consumables = {}, upgrades = {}, skills = {}, bondXp = {}, settings = {},
-		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} }, totems = {},
+		stats = stats, ledger = {}, incubating = {}, training = {}, gloves = { owned = {} }, totems = {}, farm = {},
 	}
 end
 
@@ -193,6 +201,10 @@ function Record.fromProfile(profile, base, meta, economy, config)
 	end
 	-- Q10 (schema 4): the luck totems the player holds (State's `luckTotems`), capped by the step's own rule.
 	record.totems = TotemRecord.fromProfile(profile, base)
+	-- PF4 (schema 5): the creatures placed in the base farm, durable IDs only.
+	local farm, farmProblem = FarmRecord.fromProfile(profile)
+	if not farm then return nil, farmProblem end
+	record.farm = farm
 
 	-- NS2: nothing at risk is saved. Schema 1's atRisk writer is kept behind meta.saveAtRisk, which no caller sets, so
 	-- the legacy shape stays readable by the validator; toProfile never restores it.
@@ -284,6 +296,8 @@ function Record.toProfile(record, economy, config, sessionNow)
 	end
 	-- Q10 (schema 4): the saved luck totems, made only when there is one (the blank profile must equal State:addPlayer's).
 	TotemRecord.toProfile(record, profile)
+	-- PF4 (schema 5): the saved farm, made only when there is one.
+	FarmRecord.toProfile(record, profile)
 	-- NS2: a legacy atRisk section is never restored, so carried things never come back after a leave.
 	return profile
 end
@@ -403,6 +417,11 @@ function Record.validate(record, economy, config)
 		for _, problem in ipairs(totemProblems or {}) do fail(problem) end
 	end
 
+	-- PF4 (schema 5): the farm; any problem quarantines the load and refuses the write.
+	local farmOk, farmProblems = FarmRecord.validate(record, registeredSet)
+	if not farmOk then
+		for _, problem in ipairs(farmProblems or {}) do fail(problem) end
+	end
 	if record.equippedUid ~= nil and not registeredSet[record.equippedUid] then fail("equippedUid is not registered") end
 	if map(record.bondXp, "bondXp") then
 		for uid, xp in pairs(record.bondXp) do
@@ -544,6 +563,9 @@ Record.MIGRATIONS = TotemRecord.ladder({
 		return data
 	end,
 })
+-- PF4: FarmRecord.ladder keeps every step above and adds MIGRATIONS[4] (schema 4 -> 5), which only adds an empty
+-- farm when there is none and never repairs a malformed one (validation then quarantines it).
+Record.MIGRATIONS = FarmRecord.ladder(Record.MIGRATIONS)
 
 -- Returns "Current" or "Migrated" with a new table, or "TooNew" or "Quarantined" with nil. Never changes `raw`.
 function Record.migrate(raw, migrations)

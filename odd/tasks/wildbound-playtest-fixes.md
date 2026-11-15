@@ -174,7 +174,53 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
     Nothing saved or published.
   - Python: 1186 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
   - Open: the farm is still memory-only (PF4); the icon upload waits for approval.
-- [ ] PF4 Persistent farm in State: farm list, slot cap from `Balance.farm.startSlots`, a schema step, and a rebuild on join.
+- [x] PF4 Persistent farm in State: farm list, slot cap from `Balance.farm.startSlots`, a schema step, and a rebuild on join.
+  - Route: direct inline (State, Record, a new sibling step, Save, the toolbar and one Text line; every file read in
+    full or around each edit first). Strict TDD on, runner: trimmed fresh loader in Edit (the
+    `tools/studio-fresh-runner.luau` SPECS and SIBLINGS, held in a temporary ServerStorage ModuleScript, removed after).
+  - Studio matched the repo before any write: State 48395 798a1eea, Record 26820 5e460b99, TotemRecord 4936 ba6f99c3,
+    Save 15339 29773d1b, CreatureToolbar 9557 9c35a497, Text 34242 ad48cf82 and the six suites.
+  - `WildboundState`: `State.FARM_SLOTS = 4` (the 2.0 balance's farm.startSlots; WildboundBalance stays unwired, so the
+    new `tools/test_wildbound_farm_slots.py` keeps the two equal); the farm list is made on first use (RT-2 unchanged);
+    `placeInFarm(key, uid, alive, slots)` (registered only, once, FarmFull at the cap, puts the companion down and says
+    so), `takeFromFarm` (never equips), `equip` refuses `InFarm`; the snapshot carries `farm` (a copy) and `farmSlots`.
+  - New `WildboundFarmRecord` (ServerScriptService, sibling of Record, TotemRecord pattern): schema 4 -> 5 step that
+    only adds an empty farm, a frozen ladder, validation (a list of durable IDs, each registered, once, never the
+    companion, at most CAP 12 = the top of the farm.maxSlots range) and the profile seam (no field for an empty farm; a
+    session ID refuses the save). `WildboundRecord`: SCHEMA = FarmRecord.SCHEMA (5), `farm` known, blank `farm = {}`,
+    validate, fromProfile/toProfile, `MIGRATIONS = FarmRecord.ladder(...)`. A malformed farm is never repaired: it
+    fails validation, so the load is quarantined and nothing is written.
+  - `WildboundSave`: the farm goes through the durable ID map (only registered creatures) and is part of the digest, so
+    a place or a pickup marks the profile dirty.
+  - `WildboundCreatureToolbar`: placing and pickup go through State (`placeInFarm` after the server's `unequip`,
+    `takeFromFarm`); a full farm refuses before anything changes (`Text.FARM.farmFull`); `syncFarm` (run by every
+    `syncPlayer`, so on join, hatch, pickup and respawn) rebuilds the saved farm on the own pad once, in a small grid,
+    and removes models whose creature left the farm. The memory table only holds models now.
+  - No farm income (the no-AFK-income rule; left for a later user decision). WildboundServer untouched.
+  - Tools: `WildboundFarmRecord` in `tools/deploy_manifest.py` and `tools/test_deploy_manifest.py`; the runner's
+    SIBLINGS lists it for WildboundRecord. Its cases live in WildboundRecord_Test (RT-26, RT-27).
+  - Tests: State_Test PF4-S1/S2; Record_Test RT-1, RT-14, RT-24 re-pinned to schema 5 (deliberate) plus RT-26
+    (migration, malformed farms, cap) and RT-27 (round trip, JSON, State load, session IDs); TotemRecord_Test TR1/TR3
+    re-pinned (the record goes past schema 4); Save_Test SV-22 (durable IDs, dirty, rejoin, pickup saved);
+    CreatureToolbar_Test CT-1 (farmFull) plus CT-11..13; MechanicsWiring_Test W4 re-pinned to `Record.SCHEMA =
+    FarmRecord.SCHEMA`.
+  - RED (suites written, sources unchanged): State 64/16 (2 PF4 + 14 pre-existing), Record 23/4, TotemRecord 6/1,
+    Save 21/1, CreatureToolbar 9/4, MechanicsWiring 8/2 (W4 + the known W1), Persistence 31/0.
+  - GREEN: State 66/14 (the 14 are pre-existing EconomyConfig drift: bag capacity 12, pay values; not PF4), Record 27/0,
+    TotemRecord 7/0, Save 22/0, CreatureToolbar 13/0, MechanicsWiring 9/1 (the known W1), Persistence 31/0,
+    Incubator 7/0, Text 19/0.
+  - Fingerprints (repo = Studio after the write, every source compiles): WildboundFarmRecord 4296 771da357,
+    WildboundRecord 28170 ef81d498, WildboundState 50577 9d000684, WildboundSave 15820 1a15da1c, WildboundText 34377
+    63abfab2, WildboundCreatureToolbar 12469 553a7c47, WildboundState_Test 79661 21cc2a26, WildboundRecord_Test 29981
+    d419e44d, WildboundTotemRecord_Test 7008 a65f1046, WildboundSave_Test 22146 85960d6b, WildboundCreatureToolbar_Test
+    15018 08c71315, WildboundMechanicsWiring_Test 18769 8b59f3e1.
+  - Solo Play (PlayLock `PF4`, cleared after; Play stopped): IslandProbe "egg" banked one egg; at the own base (Base1)
+    it hatched into one "Lumipol" tool. Equipped and activated on the own pad: a `WildboundFarmCreature` (wb:2) in
+    Base1, no creature tool, no companion attribute. The model was then destroyed by hand and the character respawned:
+    the model came back (only State's farm list could rebuild it) and no tool. The prompt "Guardar en la barra" brought
+    back one tool, no model, not equipped; a second respawn kept one tool and no model. No script errors; saves in
+    memory mode. Leave and rejoin cannot be done in one Play: the record round trip is covered by RT-27 and SV-22.
+  - Python: 1188 tests, 1 failure (known `test_lumipol_v2` V1IsKept).
 - [ ] PF5 Roulette in the hub:
   - station;
   - server roll and atomic Esencia spend;
@@ -193,4 +239,5 @@ A read-only diagnosis ran on 2026-11-14 (workflow `wf_0c08a4a4-6ff`, five Opus a
 Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync): pull the live lock-zone scripts into the repo`). PF1 done 2026-11-14
 (commit `fix(carry): one backpack, only while carrying an egg`). PF2 done 2026-11-14
 (commit `feat(training): a large treadmill walk speed`). PF3 done 2026-11-14
-(commit `feat(farm): own-pad farm and a hotbar home for creatures`). Next step: PF4.
+(commit `feat(farm): own-pad farm and a hotbar home for creatures`). PF4 done 2026-11-14
+(commit `feat(farm): save the base farm in the record (schema 5)`). Next step: PF5.
