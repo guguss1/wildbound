@@ -1062,10 +1062,103 @@ strict (fresh loader in Studio).
   mid-channel in Play (suite only); F8 in Play (a save with a farm-only companion needs an older record; suite only); a
   reopened place and a published server (simulated by switching the Edit markers off); two players, phone.
 
+## Follow-up CH (2026-11-15)
+
+User intent (2026-11-15, workflow batch): four follow-ups from the CG2 review and the Scuttler SC9 hand-off. The user
+asked not to be stopped by product decisions: each one taken is listed below. No upload, no publishing, no place save,
+no monetization, no SistemaSonriente. TDD strict (fresh loader in Studio).
+
+- [x] CH1 (high) A Calm beast is no portal threat: `WildboundPortal.CALM_PHASES` / `Portal.engaging(phase)`;
+  WildboundBeasts writes `WildboundBeastEngagedAt` only for an engaging phase, so the Calm Nube Gruñona present while
+  the player stands at the Caramelo arch (772, -3) no longer refuses the portal with Threat. Route: inline (two small
+  source edits, two suites). TDD strict. Commit bbb3dee.
+- [x] CH2 (medium) The egg keeps its nest rarity to the cradle: `State:pickup` takes `meta.rarity` (validated, else
+  `InvalidRarity`), `State:takeEgg` carries it, the bank and the incubator already copied it; the server's steal passes
+  the nest's rarity; `WildboundRecord` saves an optional `rarity` on banked and incubating eggs (schema 6 unchanged, an
+  old save loads, an unknown tier fails the load). Route: inline (small edits to State, Record and Server; three
+  suites). TDD strict. Commit bbb3dee.
+- [x] CH3 (low) The bob squashes every candy part in its own axes: `CandyEggArt.localScale(rotation, sx, sy)`, used by
+  `WildboundCandyEggBob`; the upright RarityRim grows in height along its X and thins along Y and Z. Route: inline. TDD
+  strict. Commit bbb3dee.
+- [x] CH4 Scuttler SC9 registered exactly as `odd/tasks/wildbound-scuttler.md` "Evidence (SC9)" lists: two
+  `tools/deploy_manifest.py` rows, two `tools/test_deploy_manifest.py` pins, the `tools/studio-fresh-runner.luau`
+  SPECS entry; `ServerStorage.WildboundScuttlerClips` and `ServerStorage.WildboundScuttlerClips_Test` deployed; the
+  suite ran fresh 10/11 (only the published-ids case red, as expected). `test_studio_fresh_runner` passes again. Route:
+  inline. Commit bbb3dee.
+
+### Decisions taken for the user (continued)
+
+53. **CH1, what counts as a beast on the player (filter at the stamp, not in PortalService):** the stamp carries only a
+   time, so the phase is read where it is written. Calm phases (`Portal.CALM_PHASES`, pure, frozen): Spawn, Calm,
+   Dormant, Patrol, Guard, Wake, Return, Disengage, Ended (a beast present, drifting, asleep, guarding its hive, walking
+   home or winding down). Every other phase stamps (Notice, Chase, Telegraph, Recover, Stalk, Pursue, Watch, Presence,
+   Suspicious, Heard, Search and every attack phase), and a phase a future beast adds counts as a threat until it is
+   listed (fail safe). The Caramelo arch stays where it is; La Silueta, bat hits, health drops and awake parents are
+   unchanged.
+54. **CH2, the rarity rides with the egg:** an optional field, never a schema bump. `State:pickup` accepts `meta.rarity`
+   only from the four tiers (Comun, Rara, Epica, Legendaria) and refuses any other value with `InvalidRarity`; no
+   rarity keeps the old rule (`EggLoop.rarityOf` falls back to the species, then the risk tier). A knocked-loose egg
+   keeps it (`takeEgg`, same check). `WildboundRecord` writes `rarity` on `collection.bankedEggs[]` and `incubating[]`
+   only when present, reads it back, and fails the load on an unknown tier (the existing fail-closed rule: a failed load
+   never overwrites real data). An old save has no field and loads unchanged.
+55. **CH2, the server never loses a steal over a rarity:** the steal passes `rarity = Text.RARITY[rarity] and rarity or
+   nil`, so a nest whose tier State does not know (for example a third-party egg's own label) still steals, falling
+   back to the species default. The save digest (`WildboundSave.digestOf`) is unchanged: an egg's rarity is fixed at
+   pickup and never changes on its own, so a new banked egg already changes the digest through its uid.
+56. **CH3, the squash in the part's axes:** for each of the part's local axes, the factor is the length of that axis
+   after the egg's squash (sx across, sy up, in the egg's foot frame). An upright part gets (sx, sy, sx) as before; the
+   rim (a cylinder turned 90 degrees) gets (sy, sx, sx); a tilted part mixes both. Positions keep the old formula.
+57. **CH4, exactly the listed rows:** nothing else in the Scuttler files changed; `Clips.IDS` stays empty, so the
+   published-ids case stays red until the clips are published (owner action, as for CA2/CA3).
+58. **Play lock:** the lock is the ServerStorage attribute `WildboundPlayLock` ("CH" during the Play check, nil after).
+
+### Evidence CH
+
+- Studio target: place 122652861404212 (universe 10774749224), instance ba5a21af, Edit, PlayLock nil, runner lock nil.
+- Studio == HEAD before (bytes, Adler-32, CRLF->LF, trailing newlines stripped): Portal 7371 012ea845, Portal_Test
+  11597 ebfd6a5f, PortalService_Test 15030 6fd606a8, Beasts 48978 66377d0f, State 54310 e9180485, State_Test 85768
+  878df45a, Record 29616 20dfcd56, Record_Test 34210 da1f5410, Server 217383 b765a0d9, CandyEggArt 9794 4b9e4f03,
+  CandyEggArt_Test 12987 44c23909, CandyEggBob 2467 5d423eba; ScuttlerClips and its suite absent from Studio.
+- Runner: a temporary `ServerStorage.CHRunnerTmp` ModuleScript holding the engine of `tools/studio-fresh-runner.luau`
+  (comment lines dropped, code unchanged) and the SPECS of the 43 suites that read a touched script, run through
+  loadstring with a name filter; destroyed after (25937 bytes, 1b1cdd55, equal to the local copy).
+- RED (tests deployed by exact replacement, sources unchanged): Portal 10/1 (PT-11 `Portal.engaging` nil),
+  PortalService 14/1 (SV-13 stamp gate), Record 29/1 (RT-30 banked rarity nil), State 70/15 (the 14 known PF4 cases +
+  CH2), CandyEggArt 12/2 (CG-13 incubator rarity nil, CG-14 `localScale` nil).
+- GREEN: Portal 11/0, PortalService 15/0, Record 30/0, State 71/14 (only the 14 known PF4 cases), CandyEggArt 14/0.
+  Regression over the 43 suites: 671 passed, 21 failed, all known: AN-3, BZ7, ECO-20, EL12, HB-T3, W1, RW5 and the
+  14 State PF4 cases; MechanicsWiring's local-count case (NH-W13) passes.
+- CH4: ScuttlerClips_Test fresh 10/11; the one failure is "every clip is published" ("Idle has no asset id").
+- Studio == repo after the writes: Portal 8121 edf2a7a9, Portal_Test 13811 540b3095, PortalService_Test 15513
+  181aaa9e, Beasts 49279 b356e5d0, State 54917 49b7d4e0, State_Test 87959 e0e5b849, Record 30308 0f88b392,
+  Record_Test 36288 8aa0ff37, Server 217661 5644fd17, CandyEggArt 10622 80f265a7, CandyEggArt_Test 16938 94e4420c,
+  CandyEggBob 2574 9ed2636e, ScuttlerClips 14630 39c04298 (new), ScuttlerClips_Test 13637 33cd9333 (new).
+- Solo Play (PlayLock CH, cleared after; Play stopped):
+  - CH1: standing at (777, 1), 6 studs from the Caramelo arch and 107 from the Nube's pond (Pradera origin (627, 107),
+    pond (777, 107), wake radius 110), a Nube encounter started (`Beast_started` 1; on the client
+    `WildboundBeastsLocal.NubeGrunona` in `BeastPhase` Calm, 121 studs away) and for 20 s `WildboundBeastEngagedAt`
+    stayed nil. PortalProbe "caramelo" accepted (no egg carried); 2.5 s later the root stood on the Base1 pad
+    (348.5, 4.0, 24.6) with `WildboundPortalReadyAt` set (30 s rest): a full channel at the arch. Control: at
+    (777, 80), 27 studs from the pond, the Nube went to Chase and the stamp appeared within 1.0 s.
+  - CH2: HeistProbe steal at CandyR1: carried `EggRarity` Rara, banked at Base1 (`WildboundEggReward =
+    1|Tortidragon|Rara|16|...`), the cradle's `WildboundFloorEgg` drawn as Tortidragon Rara. (Rara is also the
+    species default, so this checks the pipe, not the fallback; the Legendaria case is the suites'.)
+  - CH3: on the client, the nearest bobbing Gomibu nest egg: RarityRim Size X 0.124 -> 0.140 -> 0.125 with the shell's
+    height (2.068 -> 2.332 -> 2.091) while its Y/Z 1.543 -> 1.453 -> 1.535 followed the shell's width: the rim grows in
+    height and thins in diameter.
+  - No Wildbound script error (only the usual TexturePack, asset fork and DataStore messages).
+- Python: 1217 tests, 1 failure = the known `test_lumipol_v2` V1IsKept (`test_studio_fresh_runner` 15/15 and
+  `test_deploy_manifest` 25/25 included).
+- Commit bbb3dee (code, tests, manifest, pins and runner SPECS).
+- Not tested: a Legendaria egg in Play (none exists in play; suites only); a save and rejoin with a rarity (Studio has no
+  DataStore access; Record suite only); a Calm Abeja, Don Glaseón asleep or patrolling, or a Gomibú/Flanfuria/
+  Tortidragón guardian near a portal in Play (the phase rule is shared; suite only); a real held prompt (the probe
+  stands in); two players, phone; screenshots (none taken).
+
 ## Next step
 
-- Decide whether a Calm (passive) beast encounter should count as a portal threat, or move the Caramelo arch out of the
-  Nube Gruñona's presence radius (finding in Evidence CG2).
+- CH done. Owner action still open: publish the Scuttler, Tortidragon and Don Glaseon clips to group 465694015 (or grant
+  the upload scope), then fill each `Clips.IDS` and rerun the Clips suites (ScuttlerClips 11/11 then).
 
 - Owner action for the icons (CE2): in the Creator Hub open each image (130041727906990, 106158128076232, 85016154045779
   and the Lumipol 121561289565386) and share it with the experience / group 465694015, or upload the four PNGs from

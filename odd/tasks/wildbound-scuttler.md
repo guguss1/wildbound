@@ -692,6 +692,8 @@ Decisions taken for the user (SC9):
 Pending Studio steps (each needs its own go-ahead; uploads and publishing need the user's explicit approval):
 
 1. Register the two files (rows above), deploy them, run `WildboundScuttlerClips_Test` fresh: expect 10/11 (ids RED).
+   Done 2026-11-15 (Caramelo CH4, commit bbb3dee): rows, pins and SPECS added, both files in ServerStorage, fresh
+   run 10/11 (only the published-ids case red). See `odd/tasks/wildbound-caramelo.md` "Evidence CH".
 2. Import `assets/exports/scuttler/scuttler-v1.fbx` (Model upload, SC10, approval) and build the prefab
    `ServerStorage.WildboundAssets.Scuttler` (pivot on Root at the ground, faces -Z, anchored root, all 43 bones kept).
 3. Build the 17 KeyframeSequences with `Clips.build(prefab, name)` and publish them to the group that owns the universe
@@ -701,5 +703,6 @@ Pending Studio steps (each needs its own go-ahead; uploads and publishing need t
 ## Next step
 
 1. Two-player Studio check (Test > Clients and Servers, 2 players), SC0.6.
-2. SC9 Studio steps (see "Evidence (SC9)": register the rows, run the suite, import, build and publish the clips).
+2. SC9 Studio steps (see "Evidence (SC9)"): rows registered and the suite run (CH4); still to do: import, build and
+   publish the clips.
 3. Commit the SC0 server merge, SC1 to SC7 (not committed yet).
