@@ -117,7 +117,10 @@ personal. SC0 is that beast-system change, done before SC1.
   proxy (13.65 studs), the real lane, the feint outline, the hatched zone, the Snap sector, the pulse rings, a landed
   pulse's desaturation and the fall stars, 0 client errors (see "Evidence (SC8)"). Bystander style not checked (needs two
   players). Not committed
-- [ ] SC9 Blender rig and baked clips (no upload)
+- [ ] SC9 Blender rig and baked clips (no upload) -- repo part done: Blender source, FBX (43 bones, 8 meshes, all
+  bones skinned, re-import checked), front/side/back previews, the 17 clips as data and their suite (see "Evidence
+  (SC9)"). Pending, Studio only: register the two files, run the suite, import the FBX and build the prefab, build and
+  publish the clips. Suite not run (no Luau runtime outside Studio)
 - [ ] SC10 Mesh upload (only after explicit user approval)
 - [ ] SC11 Playtest: solo, then two players
 - [ ] SC12 Docs: mechanics doc and overview status
@@ -589,9 +592,114 @@ TDD (cases first, RED against the Studio modules, then GREEN).
 - Python: 1298 run, 4 failed, 28 skipped; the same other-track failures (3 economy-config export, 1 lumipol_v2 v1 blend
   hash).
 
+## Evidence (SC9, 2026-11-15)
+
+Route: delegated writer, no Studio (another batch was the only Studio writer). No upload, no publish, no place save.
+Pattern: Caramelo CA2/CA3 (`odd/tasks/wildbound-caramelo.md`).
+
+- Pack read as data: `Scuttler_Pack_Wildbound.zip` extracted into a new scratch folder; only the concept text, the 3D
+  modelling prompt and `01_Scuttler_Concepto.png` were read; nothing in it was executed.
+- Blender source `assets/blender/scuttler/build_scuttler.py`, run in the user's live Blender 5.1.2 through the MCP
+  (`get_addon_status` first reported a lost connection; the next call reached Blender). It builds its own scene
+  `Scuttler` from nothing; the open file's `Scene` was not touched and the file was not saved.
+  - Model: low-poly, faceted insect in the Viper/Gargoyle style: maroon segmented carapace (4 back plates), raised
+    thorax shield, wedge head with a dark brow, an ivory toothy grin, four amber emissive eyes, two antennas with
+    glowing cream bulbs, two claw arms (dark upper arm, big carapace forearm with cream chevrons, two ivory pincer
+    blades), eight jointed legs with ivory pointed feet, moss drips. 8 one-colour meshes (`Carapace`, `CarapaceDark`,
+    `Chevron`, `Moss`, `Ivory`, `Mouth`, `Eye`, `Glow`), 914 vertices, 1432 triangles.
+  - Size: 13.73 studs tall (antenna bulbs; Q1 12-14), 16.1 wide (feet), 18.68 long (pincer tips to tail spike); lowest
+    point -0.007 (the foot tips touch the ground).
+  - Axes: 1 Blender unit = 1 stud; faces -Y in Blender, so -Z in Roblox; left is +X in Blender (-X in Roblox). Root
+    bone head at (0, 0, 0), on the ground between the feet.
+  - Rigid skinning: every vertex has exactly one group at weight 1; the script asserts every bone owns a vertex (Root
+    owns a small gem hidden in the abdomen) and that no mesh is named like a bone.
+- FBX `assets/exports/scuttler/scuttler-v1.fbx` (same export settings as Tortidragon: FBX_SCALE_ALL, no leaf bones,
+  armature node NULL, no baked animation). Round-trip check: re-imported into a temporary scene (removed after):
+  1 armature, 43 bones, 8 meshes, 0 unskinned bones, 0 meshes named like a bone, every vertex in exactly one group,
+  Root head (0, 0, 0), height 13.72.
+- Previews (EEVEE, orthographic, dark background): `assets/exports/scuttler/scuttler-front.png`,
+  `scuttler-side.png`, `scuttler-back.png`. Also checked with the MCP `look` tool (front, right, three-quarter, back).
+- Bones (43), parents first:
+  - `Root` -> `Hips` -> `Thorax` -> `Head` -> `Jaw`
+  - `Head` -> `Antenna_L_01` -> `Antenna_L_02`; `Antenna_R_01` -> `Antenna_R_02`
+  - `Thorax` -> `Claw_<S>_Shoulder` -> `Claw_<S>_Upper` -> `Claw_<S>_Fore` -> `Claw_<S>_PincerA`, `Claw_<S>_PincerB`
+    (S = L, R)
+  - `Hips` -> `Leg_<S><i>_Upper` -> `Leg_<S><i>_Lower` -> `Leg_<S><i>_Foot` (S = L, R; i = 1..4, front to back)
+- Clips as data `tools/WildboundScuttlerClips.luau` (Tortidragon pattern: `Clips.BONES`, `Clips.ORDER`, `Clips.CLIPS`,
+  `Clips.build(prefab, name)` -> KeyframeSequence, `Clips.IDS = {}`, `Clips.animationId`). The 17 clips, exactly
+  `WildboundBeastAnimPlan.clips("Scuttler")`:
+
+  | Clip | Length s | Loop | Notes |
+  | --- | --- | --- | --- |
+  | Idle | 2.4 | yes | breathing, antennas drift, jaw twitch |
+  | Skitter | 0.6 | yes | alternating tripods (L1 R2 L3 R4 vs the rest), bob twice per cycle |
+  | Read | 1.6 | yes | head tilts both ways, antennas sweep |
+  | Intercept | 0.4 | yes | low fast skitter, claws tucked |
+  | Block | 1.2 | yes | claws up and open, sway |
+  | Feint | 0.9 | no | crouch and a short thorax lunge, back to rest; no marker (never registered) |
+  | ChargeWindup | 1.1 | no | only ever deeper; markers TelegraphStart 0, AttackCommit 0.8 (lockLead 0.3); ends in the charge pose |
+  | Charge | 0.45 | yes | head down, fast tripods; starts on the windup's last pose |
+  | Snap | 1.2 | no | claws up and out, inward sweep; markers TelegraphStart 0, HitFrame 0.9 |
+  | PulseCharge | 1.3 | no | rears up on the thorax, only ever higher; marker TelegraphStart 0; ends reared |
+  | Pulse | 0.8 | no | scream from the reared pose (jaw -45), back to rest; marker HitFrame 0 |
+  | Recover | 1.0 | no | from the charge pose, head shake, rest |
+  | Stumble | 0.8 | no | from the charge pose, trips and rolls to the fallen pose |
+  | Crash | 0.7 | no | from the charge pose, head slam, bounce, fallen pose |
+  | Fallen | 1.6 | yes | body on the ground (Hips -4.2), legs splayed up, dazed head |
+  | GetUp | 1.0 | no | fallen pose to rest |
+  | Retreat | 1.0 | no | crouches and backs off, holds low while it fades |
+
+- Suite `tests/WildboundScuttlerClips_Test.luau`, signature `(Clips, Plan)`, 11 cases: rig (43 bones, parents first,
+  legs on Hips); the 17 clips (lengths, loops, ordered keys, known bones); equal to `Plan.clips("Scuttler")`; published
+  ids (stays RED until the clips are published, like Tortidragon); loop seams and rest ends; the chains (windup ->
+  charge -> recover/stumble/crash -> fallen -> get up; pulse charge -> pulse); markers (attack clips only, none on the
+  feint); in place (Root never moves, Hips never slides, standing clips never turn Hips and the legs take its bob
+  back); tripod gait in Skitter/Intercept/Charge; readable moves; `Clips.build` on a stand-in rig made from
+  `Clips.BONES` (44 poses per key, pose tree, Hips offset, unknown clip refused).
+- NOT RUN: the suite (no Luau runtime outside Studio, and Studio was off limits). Expected in Studio: 10/11, the
+  published-ids case RED until the clips are published.
+- Python: `test_studio_fresh_runner` fails only `test_every_suite_has_a_spec_or_a_skip` (the new suite has no SPECS
+  yet, by instruction). On a scratch copy of `tools/`, `tests/` and `src/wildbound/` with the rows below added,
+  `test_studio_fresh_runner` 15/15 OK and `test_deploy_manifest` 25/25 OK.
+
+Rows to add (not added here: another agent is editing these files):
+
+- `tools/deploy_manifest.py`, after the Tortidragon clips rows:
+  `("tools/WildboundScuttlerClips.luau", "ServerStorage.WildboundScuttlerClips"),`
+  `("tests/WildboundScuttlerClips_Test.luau", "ServerStorage.WildboundScuttlerClips_Test"),`
+- `tools/test_deploy_manifest.py`, in the pinned mapping after the Tortidragon clips pins:
+  `"tools/WildboundScuttlerClips.luau": "ServerStorage.WildboundScuttlerClips",`
+  `"tests/WildboundScuttlerClips_Test.luau": "ServerStorage.WildboundScuttlerClips_Test",`
+- `tools/studio-fresh-runner.luau`:
+  `SPECS["WildboundScuttlerClips_Test"] = { "mod:WildboundScuttlerClips", "mod:WildboundBeastAnimPlan" }`
+
+Decisions taken for the user (SC9):
+
+- Followed the Caramelo pattern (KeyframeSequences from data, published Animation ids) as asked. The plan's section 10
+  route (baked `WildboundBeastAnimScuttler` written to `Bone.Transform` by `WildboundBeastAnim.client`, no upload) is
+  not built; the same `Clips.CLIPS` data can feed it later if the group publish stays blocked, as it is for CA2/CA3.
+- Eight legs (`Leg_<S>1..4`), as the plan's bone list and the SC8 proxy, not the "6 legs" line of the proxy text.
+- The legs hang from `Hips`, not `Thorax`, so the pulse's rear-up (Thorax pitch) and leaning never lift a planted foot;
+  only the fall clips turn or drop Hips.
+- The source script is the rig's source of truth; no `.blend` was saved (the plan's
+  `assets/bestias_rig/scuttler/scuttler_rig.blend` is not made). Rerunning the script rebuilds the scene.
+- The suite takes no prefab argument yet (the runner's `inst:` token needs an existing instance); the build case uses
+  a stand-in rig. SC10 adds the imported prefab as a third argument and its `inst:` token.
+- `Proxies.adopt` wants a `Root` BasePart, while the Tortidragon-style import yields a `RootPart` carrying the `Root`
+  bone. Left for SC10: rename on assembly or teach the adopt path the RootPart; the clip pose tree uses the
+  PrimaryPart's name either way.
+
+Pending Studio steps (each needs its own go-ahead; uploads and publishing need the user's explicit approval):
+
+1. Register the two files (rows above), deploy them, run `WildboundScuttlerClips_Test` fresh: expect 10/11 (ids RED).
+2. Import `assets/exports/scuttler/scuttler-v1.fbx` (Model upload, SC10, approval) and build the prefab
+   `ServerStorage.WildboundAssets.Scuttler` (pivot on Root at the ground, faces -Z, anchored root, all 43 bones kept).
+3. Build the 17 KeyframeSequences with `Clips.build(prefab, name)` and publish them to the group that owns the universe
+   (465694015); the Caramelo clips are blocked on the same group permission. Fill `Clips.IDS`, rerun: 11/11.
+4. Adopt the model (`Proxies.adopt`, the Root naming above) and a solo Play check that every phase plays its clip.
+
 ## Next step
 
 1. Two-player Studio check (Test > Clients and Servers, 2 players), SC0.6.
-2. SC9 Blender rig and baked clips (`WildboundBeastAnimScuttler`, the 17 clips named by `PLANS.Scuttler`; add its data
-   to the AnimPlan suite's data cases and the runner SPECS when it exists).
+2. SC9 Studio steps (see "Evidence (SC9)": register the rows, run the suite, import, build and publish the clips).
 3. Commit the SC0 server merge, SC1 to SC7 (not committed yet).
