@@ -71,10 +71,19 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Solo Play (PlayLock `BP2`, cleared after; Play stopped; memory saves): 15 laps on the Base1 belt took the walk to level 5; WalkSpeed 26 unburdened; `HeistProbe` "steal" (Egg:19): WalkSpeed 16.5 carrying one egg (the old rule gave 17.875); `HeistProbe` "drop": WalkSpeed back to 26. No script errors in the output.
 - Not checked: three eggs or a carried creature in Play (suite only), a sprint or a dodge while carrying, a chase by a parent, two players, a phone.
 - Review (workflow `wf_a0d6bc6d-d50`, three lenses, each finding verified): no defect in the rule. Open after it:
-  - **A carried creature still outwalks the parents.** `Wild.carrySpeed(0, true)` is 14, so a trained creature carrier walks 14/16 of 24 = 21 from walk level 4 (19.25 at level 3; 22.5 with Light Load), above the parents' chase 19. Before BP2 it was 43.75, so the gap is smaller, but "a chase stays a chase" holds for eggs only. The approved number (24) was kept; a lower cap for this case needs the user's call.
+  - **A carried creature still outwalks the parents.** `Wild.carrySpeed(0, true)` is 14, so a trained creature carrier walks 14/16 of 24 = 21 from walk level 4 (19.25 at level 3; 22.5 with Light Load), above the parents' chase 19. Before BP2 it was 43.75, so the gap is smaller, but "a chase stays a chase" holds for eggs only. The approved number (24) was kept; a lower cap for this case needs the user's call. Closed by BP2b below.
   - The simulator and its tests still pin the uncapped share (`live_carry`, `test_wildbound_economy_sim_v2.py` lines 483, 485, 597, and the "carrier share of at most a 24 walk" what-if, which is now as built). See the next bullet.
   - The overview's two treadmill rows were updated; the `applyCarry` comment was left (BP2-D3).
 - Not done on this machine (no Python): `tools/wildbound_economy_sim_v2.py` still models the uncapped share as live and keeps `carry_trained_cap` as a what-if; its tests and `check_drift` were not run. Fold the cap into the sim in BP4.
+
+### BP2b (2026-11-15): no trained carrier past 16.5
+
+- User decision 2026-11-15 ("Sí, bajalo"), closing the open point of the BP2 review: a carried creature walks no faster than an egg carrier.
+- Change: new constant `Training.CONSTANTS.CARRY_SPEED_CAP = 16.5` (the one-egg figure, 11/16 of 24); the slowed branch of `walkSpeed` returns `max(speed, min(share of the capped walk, CARRY_SPEED_CAP))`. A carried creature (14) at the top level 21 -> 16.5; with Light Load (15) 22.5 -> 16.5; a 40% pouch (13) 19.5 -> 16.5. One egg 16.5, two 15 and three or more 13.5 are unchanged; an untrained carrier is unchanged; an unburdened walk still reaches 50.
+- Suite: new TR-13 (those values, plus every carry speed 9 to 15 at every level 0 to 17 with a +5 glove bonus stays under 19 and never under its untrained speed).
+- Fingerprint rule: Studio equalled the repo before the write (5216/154448288, 13903/525429571) and after it (Training 5551/3558086912, Training_Test 15448/3177331844). Exact replacements.
+- RED, run `53438184`: Training 12/1 (TR-13 "Expected 16.5, got nil"). GREEN, run `5b8dc654`: Training 13/0, Gear 15/0, Balance 25/0, EggCarry 39/0, Carry 13/0, LumipolWild 49/0, Stamina 16/0, StaminaWiring 9/0.
+- Not checked: no Play run for this step (carrying a creature needs a full capture; suite only). No review workflow (a two-line change to a pure rule). The simulator does not model it (BP4).
 
 ### BP3 (2026-11-15)
 

@@ -27,6 +27,9 @@ Training.CONSTANTS = table.freeze({
 	-- Unencumbered walk speed ceiling for every bonus together. PF2: 50 (HF-T4 had 16, the base walk).
 	WALK_CAP = 50,
 	CARRY_WALK_CAP = 24, -- BP2: the trained walk a carrier's share is taken of, at most (a constant, not a tuning entry)
+	-- BP2b (user decision 2026-11-15): no trained carrier walks faster than this, the one-egg figure (11/16 of 24), so a
+	-- carried creature (14) or a 40% pouch (13) also stays under the parents' chase 19.
+	CARRY_SPEED_CAP = 16.5,
 	BASE_COST = 20, -- Esencia for level 1 (BP1: was 30)
 	COST_GROWTH = 1.1, -- each next level costs this much more, rounded (BP1: was 1.2; level 17 costs 92, was 555)
 	LAP_STEP = 1, -- BP1: laps on the belt for level L+1 = LAP_STEP x (L+1)
@@ -83,14 +86,15 @@ end
 
 -- speed: the walk speed after carry costs; base: the unencumbered walk speed (EconomyConfig.carry.baseSpeed);
 -- extra: any other walk bonus (studs/s). An unencumbered walk gains the bonus up to WALK_CAP; a slowed walk keeps its
--- share (speed / base) of that trained walk, taken of at most CARRY_WALK_CAP (BP2). Never slower than speed.
+-- share (speed / base) of that trained walk, taken of at most CARRY_WALK_CAP (BP2) and never past CARRY_SPEED_CAP (BP2b). Never slower than speed.
 function Training.walkSpeed(speed, base, training, extra)
 	if not finite(speed) or not finite(base) or base <= 0 then return speed end
 	local bonus = Training.walkBonus(training) + (finite(extra) and math.max(0, extra) or 0)
 	if bonus <= 0 then return speed end
 	local cap = Training.live.WALK_CAP
 	if speed < base then
-		return math.max(speed, speed * math.min(base + bonus, cap, Training.live.CARRY_WALK_CAP) / base)
+		local trained = speed * math.min(base + bonus, cap, Training.live.CARRY_WALK_CAP) / base
+		return math.max(speed, math.min(trained, Training.live.CARRY_SPEED_CAP))
 	end
 	return math.max(speed, math.min(speed + bonus, cap))
 end

@@ -201,6 +201,29 @@ return function(Training, source, sources)
 		near(low, 13.75, "the lower of the walk cap and the carry cap")
 	end)
 
+	-- BP2b (user decision 2026-11-15, "Sí, bajalo"): the share of a 24 walk still left a carried creature (14) at 21 and
+	-- a 40% pouch (13) at 19.5, over the parents' chase 19. No trained carrier walks faster than CARRY_SPEED_CAP, the
+	-- one-egg figure.
+	case("TR-13: no trained carrier walks faster than 16.5, the one-egg speed", function()
+		equal(Training.CONSTANTS.CARRY_SPEED_CAP, 16.5)
+		near(Training.walkSpeed(14, 16, { walk = 17 }), 16.5, "a carried creature: was 21")
+		near(Training.walkSpeed(14, 16, { walk = 1 }), 15.75, "under the cap the share is unchanged: 14/16 of 18")
+		near(Training.walkSpeed(15, 16, { walk = 17 }), 16.5, "a carried creature with Light Load: was 22.5")
+		near(Training.walkSpeed(13, 16, { walk = 17 }), 16.5, "a 40% pouch: was 19.5")
+		near(Training.walkSpeed(11, 16, { walk = 17 }), 16.5, "one egg is unchanged")
+		near(Training.walkSpeed(10, 16, { walk = 17 }), 15, "two eggs are unchanged")
+		near(Training.walkSpeed(9, 16, { walk = 17 }), 13.5, "three or more eggs are unchanged")
+		near(Training.walkSpeed(15, 16, nil), 15, "an untrained carrier is unchanged")
+		near(Training.walkSpeed(16, 16, { walk = 17 }), 50, "an unburdened walk keeps the full cap")
+		for _, speed in ipairs({ 9, 10, 11, 13, 14, 15 }) do
+			for level = 0, 17 do
+				local walk = Training.walkSpeed(speed, 16, { walk = level }, 5)
+				assert(walk < 19, ("carry %d at level %d walks %g, not under the parents' chase 19"):format(speed, level, walk))
+				assert(walk >= speed, "training never slows a carrier")
+			end
+		end
+	end)
+
 	case("TR-7: the module is pure: no services, clock or randomness, and no purchase path", function()
 		for _, word in ipairs({ "game:", "GetService", "os.", "task.", "Random", "workspace", "Instance",
 			"MarketplaceService", "Robux", "DataStore" }) do
