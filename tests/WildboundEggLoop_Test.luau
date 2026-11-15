@@ -246,6 +246,10 @@ return function(EggLoop, source, sources)
 		has(auto, "local slots = math.max(1, Incubator.live.SLOTS, snapshot and snapshot.incubatorSlots or 1)",
 			"the slot count is the live base slot or the bought ones")
 		assert(not auto:find("math.max(8", 1, true), "no eight free cradles")
+		-- With two or three slots an older stored egg takes the first and the carried egg the second: it still went in.
+		has(sources.server, "if carried and nextFilled.uid == carried.uid then carriedIn = true end",
+			"the carried egg counts as incubating whichever slot it filled")
+		has(sources.server, 'if carriedIn then egg = "Incubating" end', "the banner and the reward follow it")
 		local eggs = { { uid = "wb:1" }, { uid = "wb:2" }, { uid = "wb:3" } }
 		equal(EggLoop.nextToIncubate(eggs, 1, 1), nil, "one slot: the second egg waits")
 		equal(EggLoop.nextToIncubate(eggs, 1, 2), "wb:1", "the second incubator takes it")

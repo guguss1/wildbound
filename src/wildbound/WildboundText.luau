@@ -596,7 +596,7 @@ return freeze({
 		NotAtShelter = "Usa una cápsula en el refugio.",
 		NoCapsule = "No tienes cápsulas.",
 		MovedAway = "Te moviste. Quédate quieto mientras recolectas.",
-		NeedsPrerequisite = "Primero aprende la primera habilidad de esta rama.",
+		NeedsPrerequisite = "Primero consigue la mejora o habilidad anterior.", -- skills, and upgrades since BP4c
 		EffectPending = "El efecto de esta habilidad aún no está en el juego; no se puede comprar.",
 		IncubatorFull = "La incubadora ya tiene tu huevo. Espera a que eclosione.",
 		fallback = "Esa acción no está disponible.",

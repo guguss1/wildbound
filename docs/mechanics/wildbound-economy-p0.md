@@ -639,6 +639,15 @@ Stable schema read by `tools/economy_tuning.py` (formerly `tools/simulate_econom
     "expeditionPack": {
       "cost": { "fogbark": 100, "glowmoss": 60, "nightbloom": 6, "ember": 300 },
       "effects": { "bagItems": 24, "pouchUnits": 65, "lossBasisPoints": 500 }
+    },
+    "farmSlot5": {
+      "cost": { "ember": 400 },
+      "effects": { "farmSlots": 5 }
+    },
+    "farmSlot6": {
+      "cost": { "ember": 900 },
+      "effects": { "farmSlots": 6 },
+      "requires": "farmSlot5"
     }
   },
   "totem": {

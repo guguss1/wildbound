@@ -3708,13 +3708,15 @@ function Heist.enterBase(player, now)
 		end
 		send(player, "Extract", true, extractNotice(count, receipt))
 	end
-	local filled = nil
+	local filled, carriedIn = nil, false
 	for _ = 1, 12 do
 		local nextFilled = Heist.autoIncubate(player, alive, filled ~= nil)
 		if not nextFilled then break end
 		if not filled then filled = nextFilled end
+		-- BP4b: with two or three bought slots the carried egg may fill the second one; it still went in.
+		if carried and nextFilled.uid == carried.uid then carriedIn = true end
 	end
-	if filled and carried and filled.uid == carried.uid then egg = "Incubating" end
+	if carriedIn then egg = "Incubating" end
 	if reward then
 		local snapshot = state:snapshot(player.UserId)
 		reward.stored, reward.incubating, reward.nonce = snapshot and #snapshot.bankedEggs or 0, egg == "Incubating", now

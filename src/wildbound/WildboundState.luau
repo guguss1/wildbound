@@ -53,6 +53,11 @@ local function farmIndex(player, uid)
 	end
 	return nil
 end
+-- BP4c: the places a player's farm has: FARM_SLOTS, or more with the bought upgrades (Economy.farmSlots).
+local function farmSlots(self, player)
+	local rule = self.economy and self.economy.farmSlots
+	return rule and rule(self.config, player.upgrades, State.FARM_SLOTS) or State.FARM_SLOTS
+end
 
 local function copy(entries)
 	local detached = {}
@@ -642,14 +647,15 @@ end
 
 -- PF4: places a registered creature in the base farm. It stays owned and saved and stops being the companion.
 -- Returns true and whether it was the companion out, or false and InvalidPlayer, InvalidContext, NotOwnedPet,
--- AlreadyInFarm or FarmFull. `slots` defaults to State.FARM_SLOTS. A refused place changes nothing. No income.
+-- AlreadyInFarm or FarmFull. `slots` defaults to the player's own places (FARM_SLOTS, or more with the farm upgrades,
+-- BP4c). A refused place changes nothing. No income.
 function State:placeInFarm(key, uid, alive, slots)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end
 	if alive ~= true then return false, "InvalidContext" end
 	if not find(player.registered, uid) then return false, "NotOwnedPet" end
 	if farmIndex(player, uid) then return false, "AlreadyInFarm" end
-	if not (finite(slots) and slots >= 0 and slots % 1 == 0) then slots = State.FARM_SLOTS end
+	if not (finite(slots) and slots >= 0 and slots % 1 == 0) then slots = farmSlots(self, player) end
 	if #(player.farm or {}) >= slots then return false, "FarmFull" end
 	player.farm = player.farm or {}
 	table.insert(player.farm, uid)
@@ -752,6 +758,8 @@ function State:upgrade(key, name, alive, distance)
 	local ok, reason = atCamp(self, alive, distance)
 	if not ok then return false, reason end
 	if player.upgrades[name] then return false, "AlreadyOwned" end
+	-- BP4c: an upgrade may need another one first (the farm's sixth place needs the fifth).
+	if type(spec.requires) == "string" and player.upgrades[spec.requires] ~= true then return false, "NeedsPrerequisite" end
 	if not purchase(self, player, spec.cost) then return false, "CannotAfford" end
 	player.upgrades[name] = true
 	return true, name
@@ -1204,7 +1212,7 @@ function State:snapshot(key)
 		gloves = glovesCopy(player), equippedGlove = player.gloves and player.gloves.equipped,
 		glove = equippedGlove(player), luckTotems = player.luckTotems or 0,
 		-- PF4: the base farm (a copy) and its slot count.
-		farm = table.clone(player.farm or {}), farmSlots = State.FARM_SLOTS,
+		farm = table.clone(player.farm or {}), farmSlots = farmSlots(self, player),
 		-- PF5: the hub roulette's state (a copy; the unused state before a first spin).
 		roulette = rouletteState(player),
 		skills = table.clone(player.skills), bond = bondCopy(player), training = table.clone(player.training or {}),

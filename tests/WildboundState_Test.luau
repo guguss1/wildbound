@@ -1816,5 +1816,44 @@ return function(State, Economy, Config)
 		accepted(state:completeCapture("Alice", "full:1", true, "Fog"))
 	end)
 
+	-- BP4c (balance pass 2026-11-15, simulator finding 6): a repeatable Esencia sink after the first hour. The farm's
+	-- fifth and sixth places are camp upgrades (400 and 900 Esencia); the sixth needs the fifth. No farm income.
+	case("BP4c-S1: the farm's fifth and sixth places are bought in order, for 400 and 900 Esencia", function()
+		local state = setup()
+		local up = Config.upgrades
+		equal(up.farmSlot5.cost.ember, 400); equal(up.farmSlot5.effects.farmSlots, 5)
+		equal(up.farmSlot6.cost.ember, 900); equal(up.farmSlot6.effects.farmSlots, 6)
+		equal(up.farmSlot6.requires, "farmSlot5")
+		equal(Economy.farmSlots(Config, {}, 4), 4, "nothing bought")
+		equal(Economy.farmSlots(Config, { farmSlot5 = true }, 4), 5)
+		equal(Economy.farmSlots(Config, { farmSlot5 = true, farmSlot6 = true }, 4), 6)
+		equal(Economy.farmSlots(Config, nil, 4), 4); equal(Economy.farmSlots(Config, { reinforcedPack = true }, 4), 4)
+		local pets = {}
+		for index = 1, 6 do pets[index] = bring(state) end
+		local profile = state.players["s:Alice"]
+		equal(state:snapshot("Alice").farmSlots, 4)
+		for index = 1, 4 do accepted(state:placeInFarm("Alice", pets[index], true)) end
+		refusedWith("FarmFull", state:placeInFarm("Alice", pets[5], true))
+		profile.ember = 1500
+		refusedWith("NeedsPrerequisite", state:upgrade("Alice", "farmSlot6", true, 0))
+		equal(profile.ember, 1500, "a refusal costs nothing")
+		profile.ember = 399
+		refusedWith("CannotAfford", state:upgrade("Alice", "farmSlot5", true, 0))
+		profile.ember = 1500
+		refusedWith("NotAtCamp", state:upgrade("Alice", "farmSlot5", true, 999))
+		accepted(state:upgrade("Alice", "farmSlot5", true, 0))
+		equal(profile.ember, 1100, "400 Esencia"); equal(state:snapshot("Alice").farmSlots, 5)
+		refusedWith("AlreadyOwned", state:upgrade("Alice", "farmSlot5", true, 0))
+		accepted(state:placeInFarm("Alice", pets[5], true))
+		refusedWith("FarmFull", state:placeInFarm("Alice", pets[6], true))
+		accepted(state:upgrade("Alice", "farmSlot6", true, 0))
+		equal(profile.ember, 200, "900 Esencia"); equal(state:snapshot("Alice").farmSlots, 6)
+		accepted(state:placeInFarm("Alice", pets[6], true))
+		equal(#state:snapshot("Alice").farm, 6)
+		-- A caller that passes the slot count (the hotbar passes the snapshot's) is still obeyed.
+		accepted(state:takeFromFarm("Alice", pets[6], true))
+		refusedWith("FarmFull", state:placeInFarm("Alice", pets[6], true, 5))
+	end)
+
 	return result
 end

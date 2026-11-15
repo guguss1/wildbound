@@ -66,6 +66,13 @@ function Economy.incubatorSlots(config, upgrades)
 	return #values > 0 and math.max(1, math.floor(math.max(table.unpack(values)))) or 1
 end
 
+-- BP4c: the places of the base farm: `base` (State.FARM_SLOTS), or the most an owned upgrade gives (farmSlot5, farmSlot6).
+function Economy.farmSlots(config, upgrades, base)
+	local values = owned(config, upgrades, "farmSlots")
+	base = type(base) == "number" and base == base and base or 0
+	return #values > 0 and math.max(base, math.floor(math.max(table.unpack(values)))) or base
+end
+
 function Economy.hatchSpeedScale(config, upgrades)
 	local values = owned(config, upgrades, "hatchSpeedScale")
 	return #values > 0 and math.min(table.unpack(values)) or 1

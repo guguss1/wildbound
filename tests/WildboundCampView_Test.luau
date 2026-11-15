@@ -374,5 +374,25 @@ return function(View, Config, Economy, Layout, source)
 		equal(next(View.releasable(snapshot({ registered = { { uid = "z", species = "Lumipol" } } }))), nil, "one creature")
 	end)
 
+	-- BP4c: the farm's fifth and sixth places on the camp board; the sixth says what it needs until the fifth is bought.
+	case("BP4c: the board sells the farm's fifth place, and the sixth only after it", function()
+		local wealthy = { ember = 2000, banked = { fogbark = 0, glowmoss = 0, nightbloom = 0 } }
+		local rows = rowsOf(wealthy, { atCamp = true })
+		local fifth, sixth = byId(rows, "upgrade:farmSlot5"), byId(rows, "upgrade:farmSlot6")
+		equal(fifth.action, "Upgrade"); equal(fifth.argument, "farmSlot5"); equal(fifth.enabled, true); equal(fifth.label, "Comprar")
+		assert(fifth.text:find("Quinto lugar de granja", 1, true) and fifth.text:find("400 de Esencia", 1, true), fifth.text)
+		equal(sixth.enabled, false, "not before the fifth")
+		assert(sixth.text:find("Sexto lugar de granja", 1, true) and sixth.text:find("900 de Esencia", 1, true), sixth.text)
+		assert(sixth.why:find("Requiere Quinto lugar de granja", 1, true), sixth.why)
+		wealthy.upgrades = { farmSlot5 = true }
+		rows = rowsOf(wealthy, { atCamp = true })
+		equal(byId(rows, "upgrade:farmSlot5").action, nil, "owned: no button")
+		assert(byId(rows, "upgrade:farmSlot5").text:find("comprado", 1, true), "owned wording")
+		equal(byId(rows, "upgrade:farmSlot6").enabled, true, "the sixth opens")
+		local poor = rowsOf({ ember = 100, upgrades = { farmSlot5 = true } }, { atCamp = true })
+		equal(byId(poor, "upgrade:farmSlot6").enabled, false)
+		assert(byId(poor, "upgrade:farmSlot6").why:find("Faltan 800 de Esencia", 1, true), byId(poor, "upgrade:farmSlot6").why)
+	end)
+
 	return result
 end

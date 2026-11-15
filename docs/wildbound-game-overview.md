@@ -94,7 +94,7 @@ Sources: `git log 6edfa21..df0d0bb` (the work since 2026-11-14 starts after `5e9
 | Skill tree: 4 branches x 2 tiers (8 nodes, 5 with live effects) | Done |
 | Walk-speed training | Done (PF2, BP1, BP2): 17 levels of +2 studs/s, walk 16 to 50; a carrier keeps its carry share of at most a 24 walk and never walks past 16.5 (one egg 16.5; a carried creature too) |
 | Hub roulette (45 Esencia, one free spin, Rara+ pity every 10, saved) | Done (PF5, schema 6) |
-| Creature hotbar and base farm (4 slots, saved, creatures wander) | Done (PF3, PF4 schema 5, PF6); no farm income |
+| Creature hotbar and base farm (4 slots, a fifth and sixth for 400 and 900 Esencia since BP4c; saved, creatures wander) | Done (PF3, PF4 schema 5, PF6, BP4c); no farm income |
 | Recycling, shops, showcases, hatch ladder, second cradle, base chest stations | Prepared (geometry) / Design only (rules) |
 | Corral that pays Esencia over time, trophies, breeder level, daily gift | Design only (`docs/mechanics/wildbound-hub-systems.md`) |
 | New biomes with their own beasts | Caramelo (in the Meadow square, replacing the Pradera): playable, see 3.4; six others: primitive builders only |

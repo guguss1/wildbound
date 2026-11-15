@@ -130,6 +130,13 @@ local UPGRADE_WORDS = table.freeze({
 	expeditionPack = table.freeze({ order = 6, title = "Mochila de expedición",
 		effect = "bolsa 24, zurrón 65, una derrota quita solo el 5%",
 		owned = "Mochila de expedición: comprada. Bolsa 24, zurrón 65, pérdida mínima." }),
+	-- BP4c: the base farm's fifth and sixth places (the sixth needs the fifth).
+	farmSlot5 = table.freeze({ order = 7, title = "Quinto lugar de granja",
+		effect = "tu granja guarda 5 criaturas",
+		owned = "Quinto lugar de granja: comprado. Tu granja guarda 5 criaturas." }),
+	farmSlot6 = table.freeze({ order = 8, title = "Sexto lugar de granja",
+		effect = "tu granja guarda 6 criaturas",
+		owned = "Sexto lugar de granja: comprado. Tu granja guarda 6 criaturas." }),
 })
 
 local function line(title, effect, cost, why)
@@ -234,7 +241,10 @@ function View.campRows(config, economy, snapshot, ctx)
 		if upgrades[name] == true then
 			table.insert(rows, row("upgrade:" .. name, "Upgrade", words.owned, nil, nil, nil, false))
 		else
-			local why = reason(ctx, snapshot, spec.cost)
+			-- BP4c: an upgrade may need another one first; the row says which until it is owned.
+			local needs = type(spec.requires) == "string" and upgrades[spec.requires] ~= true and spec.requires or nil
+			local why = reason(ctx, snapshot, spec.cost,
+				needs and ("Requiere " .. (UPGRADE_WORDS[needs] and UPGRADE_WORDS[needs].title or needs)) or nil)
 			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why), "Upgrade", name, "Comprar",
 				why == nil, why)
 			made.short = shortLine(words.title, spec.cost, why)

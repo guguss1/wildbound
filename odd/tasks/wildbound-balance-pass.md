@@ -24,7 +24,7 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - [x] BP3 Reward findings 4, 5 and 9: Caramelo nests one reward tier lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s. Done 2026-11-15 (Studio suites and solo Play below). The other remaining findings (collection limit, sinks, incubation slots) are BP4a below.
 - [x] BP4a "Liberar" (finding 8; handoff B4, first part): a server-validated release of a duplicate hatched creature for +4 Esencia, never the companion, a farm creature or the last of its species. Done 2026-11-15 (Studio suites and solo Play below).
 - [x] BP4b Incubator slot upgrades that count on the base path (finding 7): the base fills the bought slots only (1, then 2 and 3), no longer a free eight. Done 2026-11-15 (Studio suites and solo Play below).
-- [ ] BP4c Extra farm slots for sale (400 / 900; finding 6), within the RT-17 20 KB profile budget.
+- [x] BP4c Extra farm slots for sale (400 / 900; finding 6), within the RT-17 20 KB profile budget. Done 2026-11-15 (Studio suites and solo Play below).
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
 
 ## Decisions taken for the user
@@ -54,6 +54,10 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 | BP4a-D6 | Fixed in passing: the "Canjear rep." (duplicate eggs) reply read `Text.BAG`, a table that does not exist, so that button never answered. It now reads `Text.HUD`. `NOTICES.NotOwnedPet` reworded ("Esa criatura no está en tu colección.") since release uses it too; `NOTICES.InFarm` is new and also answers an "Equipar" on a farm creature. | Found by the mapping pass; one-token fixes on the same lines of work. |
 | BP4b-D1 | User decision 2026-11-15 ("Sí, bajala a 1"): of finding 7's two options (use the bought slot count, or drop the two upgrades), the base now uses the bought count. | The upgrades (90 and 220 Esencia plus materials) become worth buying; a new player incubates one egg at a time. |
 | BP4b-D2 | The line keeps a literal first argument, `math.max(1, Incubator.live.SLOTS, ...)`. | The simulator's `check_drift` reads that number by pattern; its mirror is now 1. |
+| BP4c-D1 | The two places are camp upgrades (`farmSlot5` 400 Esencia, `farmSlot6` 900 Esencia, Esencia only), bought on the camp board like the incubator upgrades. | They reuse the saved `upgrades` map, the "Upgrade" action and the board: no schema step, no new remote. |
+| BP4c-D2 | `farmSlot6` carries `requires = "farmSlot5"`; `State:upgrade` refuses with `NeedsPrerequisite` and the board says "Requiere Quinto lugar de granja". | Otherwise the sixth place alone (900) would skip the 400. Upgrades had no order rule before. |
+| BP4c-D3 | Still no farm income. The farm stays at `State.FARM_SLOTS = 4` for free; `FarmRecord.CAP` 12 is untouched. | The no-AFK-income rule; the cap already allows six. |
+| BP4c-D4 | `NOTICES.NeedsPrerequisite` reworded to "Primero consigue la mejora o habilidad anterior." | It was worded for skills only. |
 
 ## Evidence
 
@@ -139,6 +143,26 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Not checked: buying `incubatorSlot2` in Play and seeing two eggs incubate (suite only), the Eggs tab's "Incubadora: n/n ranuras" header, two players, a phone. No review workflow (a one-line change).
 - Not done (no Python): the Python suite; a test there may pin first-hatch times that assumed eight slots.
 
+### BP4c farm slots for sale (2026-11-15)
+
+- Change:
+  - `WildboundEconomyConfig` and the economy doc's JSON (hand-edited in step, as BP3-D4): `upgrades.farmSlot5` and `upgrades.farmSlot6`.
+  - `WildboundEconomy`: `Economy.farmSlots(config, upgrades, base)`.
+  - `WildboundState`: a local `farmSlots(self, player)`; `placeInFarm` defaults to it; `snapshot.farmSlots` uses it (the hotbar passes that number); `State:upgrade` checks `spec.requires`.
+  - `WildboundCampView`: words for the two upgrades; the "Requiere ..." reason.
+  - `WildboundText`: `NOTICES.NeedsPrerequisite`.
+- Suites: new State BP4c-S1 (prices, order, refusals, the farm filling to 4, 5, 6) and CampView BP4c (the two board rows).
+- Fingerprint rule: the seven Studio scripts equalled HEAD before the write; exact replacements; after: Studio == repo. Economy 11012/3505043983, State 57687/2653325141, CampView 26969/3695476606, EconomyConfig 9125/791629780, Text 39233/2605193716, State_Test 94022/3976886250, CampView_Test 24839/1081409781.
+- RED, runs `00a9aede` and `17c949b8`: State 74/15 (the new case plus the known 14), CampView 23/1. GREEN, run `65793d5b`, 18 suites: State 75/14 (only the known 14), CampView 24/0, Record 30/0 (RT-17 holds), Save 23/0, Persistence 31/0, Balance 25/0, CreatureToolbar 21/0, Text 22/0, and the rest as in BP4b.
+- Solo Play (PlayLock `BP4c`, cleared after; memory saves), at the camp with 1500 Esencia from `GearProbe` "fund": the sixth place first was refused ("Primero consigue la mejora o habilidad anterior."); the fifth cost 400 (1500 -> 1100) and `farmSlots` went 4 -> 5; buying it again was refused ("Ya lo tienes."); the sixth cost 900 (1100 -> 200) and `farmSlots` went to 6. No script errors in the log.
+- Review of BP4b and BP4c (workflow `wf_57294e21-9ce`, three lenses, each finding verified):
+  - Fixed: on entering the base with two or three slots, the carried egg could fill the second slot while an older stored egg took the first; the banner then said "guardado" and sent "incubadora llena" although it was incubating. `enterBase` now marks it incubating whichever slot it filled (EggLoop BP4b case pins it). Server 218893/2080545631, EggLoop_Test 15929/1775645566; run `e6d79358` green as above.
+  - Confirmed sound: the saved-farm grid places 5 and 6 on a second row with no overlap; no other hard-coded 4 for the farm.
+  - **Deploy risk, not fixed:** a record saved by this build carries `upgrades.farmSlot5 = false`; a server still on an older build (a rolling update) refuses it ("upgrades has an unknown key") and quarantines the load. Nothing is overwritten, but the player cannot load there. The game is not published, so no old server exists today; before any publish, ship all servers together or make the record tolerant of unknown upgrade keys.
+  - **Open, not fixed:** after a hatch the next stored egg goes in only if the owner is alive at that moment; if not, it waits for the next base entry or a manual "Incubar". With one slot that idle time shows more than with eight.
+- Not checked in Play: placing a fifth and sixth creature in the farm (suite only), the camp board rows on screen, a rejoin, two players, a phone.
+- Not done (no Python): the exporter and its test; the simulator's one-time sink total (1505) does not count the two new upgrades until it is rerun.
+
 ## Next step
 
-BP4c: extra farm slots for sale (400 / 900). Then BP4 (rerun the simulator; needs Python).
+BP4: rerun the simulator and refresh its findings (needs Python, which this machine lacks). Then the adversarial review of the whole pass (handoff B5).
