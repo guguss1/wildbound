@@ -225,7 +225,7 @@ always bright, the forest always dark; eggs refresh every 300 s.
 - [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play. Route: inline
   (writer trigger fired; kept inline because every Studio write needs the fingerprint gate). PARTIAL: model, rig, attack, boss
   brain, one-per-server rule, wiring, suites and solo Play done; the 11 clips are data + build in Studio but NOT published (same
-  group-ownership blocker as CA2, no clip uploaded). Commit: see Evidence CA3.
+  group-ownership blocker as CA2, no clip uploaded). Commit e49fa59.
 - [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
 - [ ] CA5 Close: Python suite, Play pass, overview rows, commit.
 
