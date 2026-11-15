@@ -88,6 +88,9 @@ local Heist = {}
 -- Nest Heist phase 2 (NP4): the bat rule and its registry ride in the same table.
 Heist.Bat = require(script.Parent:WaitForChild("WildboundBat"))
 Heist.bats = Heist.Bat.new()
+-- CG1 (odd/tasks/wildbound-caramelo.md): a Caramelo egg's candy look (nest, ground, backpack, cradle). In the shared
+-- table, not a top-level local (NH-W13).
+Heist.CandyEggArt = require(ReplicatedStorage:WaitForChild("WildboundCandyEggArt"))
 -- Bat knockback (decisions Q4, Q4b; docs/mechanics/wildbound-new-mechanics.md section 3): the cooldown, the ragdoll,
 -- the capped push and the immunity. WildboundBat keeps the hitbox (inReach, pickTarget).
 Heist.Knock = require(script.Parent:WaitForChild("WildboundBatKnock"))
@@ -628,7 +631,8 @@ function Heist.groundBelow(x, y, z, depth)
 	return hit and hit.Position.Y or nil
 end
 -- Lumipol generated model pass: height (optional) overrides the dressed art's height (an island's guardian adult).
-local function visual(kind, position, species, scale, height)
+-- CG1: rarity and context ("nest", "ground", "cradle") only dress a Caramelo egg (WildboundCandyEggArt).
+local function visual(kind, position, species, scale, height, rarity, context)
 	local model = Instance.new("Model")
 	local bloom = kind == "Nightbloom"
 	local look = Species.look(species)
@@ -667,6 +671,14 @@ local function visual(kind, position, species, scale, height)
 			Art.CONFIG.EGG_HEIGHT, tint) then
 			body.Transparency = 1
 			model:SetAttribute(Art.CONFIG.ATTRIBUTE, true)
+		end
+	elseif kind == "Egg" and Heist.CandyEggArt.uses(species) then
+		local CandyEggArt = Heist.CandyEggArt
+		-- CG1: a Caramelo egg wears its candy egg, its foot where the hidden ball's bottom is; its glow is the rarity's.
+		local foot = CFrame.new(position.X, body.Position.Y - body.Size.Y / 2, position.Z)
+		if CandyEggArt.build(model, foot, CandyEggArt.HEIGHT, species, rarity or look.rarity, context) then
+			body.Transparency = 1
+			color = CandyEggArt.rimColor(rarity or look.rarity)
 		end
 	end
 	local light = Instance.new("PointLight")
@@ -1220,6 +1232,15 @@ function Heist.syncEggArms(player)
 			part.Anchored = false
 			weld("ArtJoint", shell, part, shell.CFrame:ToObjectSpace(part.CFrame))
 		end
+	end
+	-- CG1: a Caramelo egg rides as its candy egg (the same look as in its nest), welded to the shell it hides.
+	local CandyEggArt = Heist.CandyEggArt
+	local candy = not art and CandyEggArt.build(model, shell.CFrame * CFrame.new(0, -shell.Size.Y / 2, 0),
+		CandyEggArt.PACK_HEIGHT, egg.meta.species, egg.meta.rarity, "pack")
+	if candy then
+		shell.Transparency = 1
+		light.Color = CandyEggArt.rimColor(egg.meta.rarity)
+		CandyEggArt.weldTo(candy, shell)
 	end
 	model.PrimaryPart, model.Parent = pack, character
 end
@@ -2007,7 +2028,8 @@ spawnEncounter = function(slot)
 	local id = slot.kind .. ":" .. serial
 	if not state:registerEncounter(id, slot.kind) then return end
 	local model, body = visual(slot.kind, Vector3.new(slot.x, groundAt(slot.x, slot.z) + (slot.height or 0), slot.z),
-		slot.species, (slot.island or slot.wild) and slot.kind == "Creature" and Species.CRIA_SCALE or nil)
+		slot.species, (slot.island or slot.wild) and slot.kind == "Creature" and Species.CRIA_SCALE or nil, nil,
+		slot.rarity or Species.look(slot.species).rarity, "nest")
 	model:SetAttribute("EncounterId", id)
 	model:SetAttribute("Slot", slot.id)
 	local isEgg = slot.kind == "Egg"
@@ -2422,7 +2444,7 @@ function Heist.dropEgg(player, reason, loose, from)
 	local x, z = at.X - flat.X * 2, at.Z - flat.Z * 2
 	local y = Heist.landingAt(x, at.Y, z)
 	-- visual() lifts an egg 2 studs over its point and the egg is 2.8 tall: its bottom rests on the ground.
-	local model, body = visual("Egg", Vector3.new(x, y - 0.6, z), egg.meta.species)
+	local model, body = visual("Egg", Vector3.new(x, y - 0.6, z), egg.meta.species, nil, nil, egg.meta.rarity, "ground")
 	model.Name = "WildboundDroppedEgg"
 	model:SetAttribute("EggId", egg.id)
 	local speciesName = Text.CARD.species[egg.meta.species or "Lumipol"] or egg.meta.species or Text.PROMPTS.lumipol
@@ -3907,8 +3929,11 @@ do
 						local radius = #list > 1 and 2.2 or 0
 						local offset = Vector3.new(math.cos(angle) * radius, 0.1, math.sin(angle) * radius)
 						local top = station.Position + offset
-						local model, body = visual("Egg", top, entry.species)
-						if not model:GetAttribute(Art.CONFIG.ATTRIBUTE) then
+						local model, body = visual("Egg", top, entry.species, nil, nil, entry.rarity, "cradle")
+						if model:GetAttribute(Heist.CandyEggArt.ATTRIBUTE) then
+							-- CG1: the candy egg moves with its hidden ball, its foot on the spot.
+							model:PivotTo(model:GetPivot() + (top + Vector3.new(0, body.Size.Y / 2, 0) - body.Position))
+						elseif not model:GetAttribute(Art.CONFIG.ATTRIBUTE) then
 							body.CFrame = CFrame.new(top + Vector3.new(0, body.Size.Y / 2, 0))
 						end
 						model.Name = "WildboundFloorEgg"

@@ -564,6 +564,10 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundPortalService.luau": "ServerScriptService.WildboundPortalService",
         "tests/WildboundPortalService_Test.luau": "ServerStorage.WildboundPortalService_Test",
         "src/wildbound/WildboundPortal.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundPortalClient",
+        # CG1 candy egg looks
+        "src/wildbound/WildboundCandyEggArt.luau": "ReplicatedStorage.WildboundCandyEggArt",
+        "tests/WildboundCandyEggArt_Test.luau": "ServerStorage.WildboundCandyEggArt_Test",
+        "src/wildbound/WildboundCandyEggBob.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyEggBob",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

@@ -171,6 +171,10 @@ SPECS["WildboundCandyPets_Test"] = {
 		Tortidragon = "mod:WildboundCandyTortidragonClips" },
 	{ server = "src:WildboundServer" },
 }
+SPECS["WildboundCandyEggArt_Test"] = {
+	"mod:WildboundCandyEggArt", "mod:WildboundSpecies", "mod:WildboundEggLoop",
+	{ server = "src:WildboundServer", bob = "src:WildboundCandyEggBob" },
+}
 SPECS["WildboundPortal_Test"] = {
 	"mod:WildboundPortal", "mod:WildboundBalance", "mod:WildboundWorldRules", "mod:WildboundCandyLayout", "mod:WildboundBiomes",
 	{ portal = "src:WildboundPortal" },
