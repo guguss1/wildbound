@@ -281,6 +281,8 @@ local TELL_COLOR = {
 	NubeGrunona = Color3.fromHex("FFD23F"), AbejaReina = Color3.fromHex("F2A33A"),
 	-- Caramelo biome (CA2): Tortidragon's fan and circles in candy yellow, which reads on the pink floor.
 	Tortidragon = Color3.fromHex("FFD23F"),
+	-- CA3: Don Glaseon's licorice lane in deep plum, the darkest mark on the pink floor (never La Silueta's red).
+	DonGlaseon = Color3.fromHex("5B1A8C"),
 }
 -- Kids biome: their own sounds (catalogue slots only; never chaseMusic, heartbeat, roar or stinger).
 local KIDS_PHASE_SOUND = {

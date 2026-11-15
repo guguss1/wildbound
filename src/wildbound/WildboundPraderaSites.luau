@@ -19,14 +19,17 @@ Sites.OFFSETS = table.freeze({
 })
 -- Which site each summoned beast lives at.
 Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1",
-	Tortidragon = "candyNestC3" })
+	Tortidragon = "candyNestC3", DonGlaseon = "bossHome" })
 -- Caramelo biome: sites given in world coordinates, which never move with the sector origin. candyNest is the open
 -- floor beside candy nest C1 (the nest itself is at 452, -21), the first one past the biome entrance: Gomibu's post.
 -- candyNestR1 is open floor 11 studs from candy nest R1 (534, -33), away from the main path: Flanfuria's post.
 -- candyNestC3 is open floor about 14 studs from candy nest C3 (522, -135), the furthest point from the routes that keeps
 -- the 35-stud leash on the plot and off the boss ground: Tortidragon's post.
+-- CA3: bossHome is the Candy builder's BossHome marker (578, -3), where Don Glaseon sleeps; bossTerritory is the centre
+-- of its Boss.BossTerritory marker (612, -3, radius Config.BEASTS.DonGlaseon.tuning.TerritoryRadiusStuds = 62).
 Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
-	candyNestC3 = table.freeze({ x = 510, z = -143 }) })
+	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 578, z = -3 }),
+	bossTerritory = table.freeze({ x = 612, z = -3 }) })
 
 -- The sector origin: the given pivot ({x, z} or a Vector3-like with X/Z) when finite, else the Meadow centre.
 function Sites.origin(pivot)
@@ -59,7 +62,29 @@ function Sites.wants(name, ctx)
 		return distance <= (ctx.night == true and T.NightWakeRadiusStuds or T.WakeRadiusStuds)
 	end
 	if name == "Gomibu" or name == "Flanfuria" or name == "Tortidragon" then return distance <= T.WakeRadiusStuds end
+	if name == "DonGlaseon" then
+		local centre = Sites.world(ctx.origin, "bossTerritory")
+		return Config.flat(ctx.x, ctx.z, centre.x, centre.z) <= T.TerritoryRadiusStuds
+	end
 	return ctx.eventOpen == true and distance <= T.WakeRadiusStuds
+end
+
+-- CA3: the one target Don Glaseon wakes for, among candidates { { userId, ctx } ... } (ctx as for Sites.wants, plus
+-- rarity: the carried egg's tier or nil): only players it wants (inside its territory); a carrier of a Rara, Epica or
+-- Legendaria egg first (the rarer the better), then the nearest to its home. Returns a userId or nil.
+local RANK = { Rara = 1, Epica = 2, Legendaria = 3 }
+function Sites.bossPick(candidates)
+	local best, bestRank, bestDistance = nil, -1, math.huge
+	for _, c in ipairs(type(candidates) == "table" and candidates or {}) do
+		if type(c) == "table" and Sites.wants("DonGlaseon", c.ctx) then
+			local home = Sites.world(c.ctx.origin, "bossHome")
+			local rank, distance = RANK[c.ctx.rarity] or 0, Config.flat(c.ctx.x, c.ctx.z, home.x, home.z)
+			if rank > bestRank or (rank == bestRank and distance < bestDistance) then
+				best, bestRank, bestDistance = c.userId, rank, distance
+			end
+		end
+	end
+	return best
 end
 
 -- La Abeja's hearing: the noise radius of a player from the server's horizontal speed (studs/s) and whether the

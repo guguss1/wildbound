@@ -532,6 +532,17 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBeastTortidragon_Test.luau": "ServerStorage.WildboundBeastTortidragon_Test",
         "src/wildbound/WildboundCandyTortidragonService.server.luau": "ServerScriptService.WildboundCandyTortidragonService",
         "src/wildbound/WildboundCandyTortidragonAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyTortidragonAnim",
+        # CA3 Don Glaseon
+        "tools/WildboundCandyDonGlaseon.luau": "ServerStorage.WildboundCandyDonGlaseon",
+        "tests/WildboundCandyDonGlaseon_Test.luau": "ServerStorage.WildboundCandyDonGlaseon_Test",
+        "tools/WildboundCandyDonGlaseonAttack.luau": "ServerStorage.WildboundCandyDonGlaseonAttack",
+        "tests/WildboundCandyDonGlaseonAttack_Test.luau": "ServerStorage.WildboundCandyDonGlaseonAttack_Test",
+        "tools/WildboundCandyDonGlaseonClips.luau": "ServerStorage.WildboundCandyDonGlaseonClips",
+        "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
+        "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",
+        "tests/WildboundBeastDonGlaseon_Test.luau": "ServerStorage.WildboundBeastDonGlaseon_Test",
+        "src/wildbound/WildboundCandyDonGlaseonService.server.luau": "ServerScriptService.WildboundCandyDonGlaseonService",
+        "src/wildbound/WildboundCandyDonGlaseonAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyDonGlaseonAnim",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

@@ -43,7 +43,8 @@ end
 local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites"))
 local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" },
 	{ name = "Gomibu", module = "WildboundBeastGomibu" }, { name = "Flanfuria", module = "WildboundBeastFlanfuria" },
-	{ name = "Tortidragon", module = "WildboundBeastTortidragon" } } -- Caramelo biome: the candy nest guardians
+	{ name = "Tortidragon", module = "WildboundBeastTortidragon" }, -- Caramelo biome: the candy nest guardians
+	{ name = "DonGlaseon", module = "WildboundBeastDonGlaseon", boss = true } } -- and its one boss per server (bossPass)
 for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.
 local duskModule = ReplicatedStorage:WaitForChild("WildboundDusk", 10)
@@ -481,6 +482,12 @@ local function targetOf(entry)
 		target.carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil
 		target.siluetaActive = siluetaActive(entry.player.UserId)
 	end
+	if entry.e.beast == "DonGlaseon" then
+		-- CA3: an egg on the back drops through BeastHit; its tier (EggRarity) sharpens the boss's eyes.
+		local egg = character:FindFirstChild("WildboundEggCarried")
+		target.carryingEgg = egg ~= nil
+		target.eggRarity = egg and egg:GetAttribute("EggRarity") or nil
+	end
 	if Config.WAVE2[entry.e.beast] then
 		target.biomes = Biomes.at(p.X, p.Z)
 		if Config.OBSERVERS[entry.e.beast] then
@@ -706,10 +713,34 @@ local function summonPass(player, at)
 		x = p.X, z = p.Z, origin = praderaOrigin() }
 	local ctx
 	for _, kid in ipairs(KIDS) do
-		if Sites.wants(kid.name, want) then
+		if not kid.boss and Sites.wants(kid.name, want) then
 			ctx = ctx or contextFor(player, at)
 			local ok, value = Director.summon(director, player.UserId, kid.name, ctx, at)
 			if ok then safeStart(player, value, at) end
+		end
+	end
+end
+
+-- Caramelo biome (CA3): Don Glaseon is one per server. Each poll it may wake for one player in its territory
+-- (Sites.bossPick: a rare-egg carrier first, then the nearest to its home); the director refuses while it lives or
+-- rests (BossBusy, BossResting). Beast_bossAwake tells WildboundCandyDonGlaseonService to hide the sleeping model.
+local function bossPass(at)
+	local candidates = {}
+	for _, player in ipairs(Players:GetPlayers()) do
+		local character, humanoid, root = bodyOf(player)
+		if character and humanoid.Health > 0 and inMeadow(root.Position.X, root.Position.Z) then
+			local p = root.Position
+			local _, safe = Rules.zone(p.X, p.Z)
+			local egg = character:FindFirstChild("WildboundEggCarried")
+			table.insert(candidates, { userId = player.UserId, player = player, ctx = { alive = true, safe = safe, meadow = true,
+				x = p.X, z = p.Z, origin = praderaOrigin(), rarity = egg and egg:GetAttribute("EggRarity") or nil } })
+		end
+	end
+	local pick = Sites.bossPick(candidates)
+	for _, c in ipairs(candidates) do
+		if c.userId == pick then
+			local ok, value = Director.summon(director, pick, "DonGlaseon", contextFor(c.player, at), at)
+			if ok then safeStart(c.player, value, at) end
 		end
 	end
 end
@@ -736,7 +767,12 @@ RunService.Heartbeat:Connect(function(dt)
 	if snapClock >= SNAPSHOT then
 		snapClock = 0
 		local at = now()
-		for _, entry in pairs(live) do snapshot(entry, at) end
+		local awake = false
+		for _, entry in pairs(live) do
+			snapshot(entry, at)
+			if entry.e.beast == "DonGlaseon" then awake = true end
+		end
+		telemetry:SetAttribute("Beast_bossAwake", awake)
 	end
 	if audienceClock >= AUDIENCE.REFRESH_SECONDS then
 		audienceClock = 0
@@ -761,6 +797,8 @@ RunService.Heartbeat:Connect(function(dt)
 			end
 			summonPass(player, at)
 		end
+		local okBoss, bossError = pcall(bossPass, at)
+		if not okBoss then warn("Wildbound beasts: boss pass error: " .. tostring(bossError)) end
 	end
 end)
 

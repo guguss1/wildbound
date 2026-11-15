@@ -1170,6 +1170,7 @@ function Heist.syncEggArms(player)
 	local model = Instance.new("Model")
 	model.Name = EGG_ARMS
 	model:SetAttribute("EggId", egg.id)
+	model:SetAttribute("EggRarity", egg.meta.rarity) -- CA3: Don Glaseon sees a rare-egg carrier further
 	-- User, 2026-11-11: the stolen egg rides in a small backpack on the back (was in the arms, in front of the chest).
 	-- A brown pack with a flap and two shoulder straps, welded to the upper torso; the egg peeks out of its top.
 	local LEATHER, DARK = Color3.fromRGB(122, 84, 52), Color3.fromRGB(84, 56, 34)

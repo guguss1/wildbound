@@ -130,6 +130,14 @@ local function check(dir, userId, name, ctx, now, force)
 	for _, id in pairs(player.active) do
 		if dir.encounters[id] and dir.encounters[id].beast == name then return "AlreadyActive" end
 	end
+	-- Caramelo biome (CA3): a serverUnique beast (Don Glaseon) is one per server: none while one lives, nor during its
+	-- switch rest after the last one ended (then it may take another target).
+	if beast.serverUnique == true then
+		for _, other in pairs(dir.encounters) do
+			if other.beast == name then return "BossBusy" end
+		end
+		if now < ((dir.uniqueReadyAt or {})[name] or -math.huge) then return "BossResting" end
+	end
 	local _, count = Director.budget(dir, userId)
 	if count >= D.MAX_ACTIVE then return "MaxActive" end
 	if player.points + beast.points > D.MAX_POINTS then return "Budget" end
@@ -178,6 +186,10 @@ function Director.release(dir, id, reason, now)
 			-- A reason-specific cooldown (the Nube's Bostezo nap) wins over the species cooldown.
 			local ends = beast.endCooldowns
 			player.speciesReadyAt[encounter.beast] = now + (ends and ends[reason] or beast.cooldown)
+			if beast.serverUnique == true then
+				dir.uniqueReadyAt = dir.uniqueReadyAt or {}
+				dir.uniqueReadyAt[encounter.beast] = now + (beast.switchSeconds or 0)
+			end
 		end
 	end
 	log(dir, { userId = encounter.userId, beast = encounter.beast, reason = "Ended:" .. tostring(reason), id = id, at = now })

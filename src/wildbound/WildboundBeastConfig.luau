@@ -329,6 +329,33 @@ Config.BEASTS = table.freeze({
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
 	}),
+	-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the
+	-- territorial boss of the Gran Torta, summoned like Gomibu but one per server (serverUnique: the director refuses a
+	-- second encounter while one lives and for switchSeconds after it ends). Its one attack, Latigo de Regaliz, has its
+	-- numbers in ServerStorage.WildboundCandyDonGlaseonAttack; its hit goes to BeastHit (not keepsEgg), so a carrier drops
+	-- the egg through the one drop path; damage stays 0. batImmune: the bat is player against player, never a beast.
+	-- TerritoryRadiusStuds is the builder's BossTerritory marker (62), used instead of the pack's 110-stud leash.
+	DonGlaseon = table.freeze({
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 8,
+		damage = 0,
+		keepsEgg = false,
+		grounded = true,
+		hitHeight = 12,
+		disengage = 1,
+		serverUnique = true,
+		switchSeconds = 4,
+		batImmune = true,
+		tuning = table.freeze({
+			TerritoryRadiusStuds = 62, PerceptionStuds = 36, ChaseSightStuds = 54, NoiseStuds = 45, NoiseSpeedStuds = 14,
+			RareSightScale = 1.25, EyeHeightStuds = 20,
+			PatrolSpeedStudsPerSecond = 9, ChaseSpeedStudsPerSecond = 17, ReturnSpeedStudsPerSecond = 9, TurnDegreesPerSecond = 150,
+			DormantSeconds = 2, PatrolSeconds = 12, PatrolRadiusStuds = 10, NoticeSeconds = 0.8, RoarSeconds = 1.5,
+			ChaseSeconds = 15, SearchSeconds = 3, LoseTargetSeconds = 1, HomeToleranceStuds = 1.5,
+			CastRangeStuds = 18, CastHalfAngleDegrees = 20, StandOffStuds = 8,
+		}),
+	}),
 })
 -- The calendar order: beast i rolls (i - 1) x BEAST_OFFSET seconds after the first, every TICK_SECONDS.
 Config.ORDER = table.freeze({ "Viper", "Pouncer", "Gargoyle", "Mire", "Streamer", "Root", "Gaze", "Lurker",
@@ -338,11 +365,11 @@ Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, 
 	Scuttler = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
-	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true, Tortidragon = true })
+	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true, Tortidragon = true, DonGlaseon = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
 Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true, Flanfuria = true,
-	Tortidragon = true })
+	Tortidragon = true, DonGlaseon = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
 

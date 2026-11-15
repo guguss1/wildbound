@@ -402,6 +402,10 @@ return freeze({
 			phases = { Notice = "Flanfuria te vio", Chase = "¡Flanfuria te sigue!", Telegraph = "¡Onda de Caramelo! Aléjate o salta", GiveUp = "Flanfuria volvió a su nido" } },
 		Tortidragon = { warn = "¡Abanico de Confites! Sal del cono por un lado", hit = "¡Confitazo!",
 			phases = { Notice = "Tortidragón te vio", Chase = "¡Tortidragón te persigue!", Telegraph = "¡Abanico de Confites! Sal del cono por un lado", GiveUp = "Tortidragón volvió a su nido" } },
+		DonGlaseon = { warn = "¡Látigo de Regaliz! Sal de la franja por un lado", hit = "¡Latigazo!",
+			phases = { Suspicious = "Don Glaseón te vio", Roar = "¡Don Glaseón ruge!", Chase = "¡Don Glaseón te persigue!",
+				Search = "Don Glaseón te busca", Telegraph = "¡Látigo de Regaliz! Sal de la franja por un lado",
+				LoseTarget = "Don Glaseón te perdió", Return = "Don Glaseón vuelve a la Gran Torta" } },
 		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
 			phases = {
 				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",

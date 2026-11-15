@@ -1,0 +1,267 @@
+-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the
+-- territorial boss of the Gran Torta. Server only and pure, stepped by WildboundBeastEncounters through Enc.register,
+-- on the WildboundBeastGomibu pattern, with its own code (nothing of La Silueta's). One boss per server: the director
+-- refuses a second encounter while one lives (Config serverUnique), and the beast script picks its target among the
+-- players in its territory (WildboundPraderaSites.bossPick: a rare-egg carrier first). It is summoned at BossHome and
+-- every encounter ends there, walking (it never teleports); between encounters its model stands dormant at home.
+-- e.dx, e.dz is where it faces; it turns at TurnDegreesPerSecond and never leaves the BossTerritory circle (the
+-- builder's marker, world.site "bossTerritory"; without it, its home) nor steps into a safe zone (world.safe).
+-- States:
+--   Dormant (still at home) -> Patrol (a slow loop round home; bored after PatrolSeconds -> LoseTarget)
+--   -> Suspicious (Notice: the target seen within PerceptionStuds with a clear line, heard running within NoiseStuds,
+--      or a rare-egg carrier seen a little further) -> Roar (once per encounter, no effect) -> Chase (ChaseSpeed, at most
+--      ChaseSeconds) -> Telegraph (Latigo de Regaliz: the lane follows the target until the lock at 0.60 s, 1.10 s)
+--   -> Attack (the 0.35 s lash; at its end the only hit) -> Recover (1.0 s) -> Chase ...
+--   Chase -> Search (the target out of sight: it walks to the last seen spot for SearchSeconds) -> Chase or LoseTarget.
+--   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
+--   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
+-- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
+-- the beast script sends to BeastHit (the one egg drop path) with the push and, for a target without an egg, the slow.
+-- The bat never targets beasts (WildboundBat is player against player), so it is immune by construction (batImmune).
+local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
+local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
+local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
+local Latigo = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAttack"))
+local Boss = {}
+
+local flat, unit = Config.flat, Config.unit
+local copy = Attack.copy
+local RARE = { Rara = true, Epica = true, Legendaria = true }
+
+function Boss.init(e)
+	e.home = copy(e.pos)
+	e.readyAt = -math.huge
+	if not e.dx then e.dx, e.dz = 0, -1 end
+end
+
+function Boss.tellSeconds()
+	return math.max(Latigo.TELEGRAPH_SECONDS + Latigo.RELEASE_SECONDS, Config.MIN_TELL)
+end
+
+-- A clear line from its eyes to the target (world.lineOfSight adds 2.5 studs to `from`); no adapter: clear.
+local function visible(e, target, world, T)
+	if type(world.lineOfSight) ~= "function" then return true end
+	return world.lineOfSight({ x = e.pos.x, y = e.pos.y + T.EyeHeightStuds - 2.5, z = e.pos.z }, target) == true
+end
+local function heard(e, target, T)
+	local speed = math.sqrt((target.vx or 0) ^ 2 + (target.vz or 0) ^ 2)
+	return speed >= T.NoiseSpeedStuds and Attack.distance(e, target) <= T.NoiseStuds
+end
+
+-- Whether it notices the target now: seen within its sight (a rare-egg carrier a little further) or heard running.
+function Boss.sees(e, target, world, T)
+	if not target or target.alive ~= true or target.safe == true then return false end
+	local range = RARE[target.eggRarity] and T.PerceptionStuds * T.RareSightScale or T.PerceptionStuds
+	if Attack.distance(e, target) <= range and visible(e, target, world, T) then return true end
+	return heard(e, target, T)
+end
+-- Whether it keeps track of a target it chases: in a longer sight with a clear line, or heard.
+local function tracks(e, target, world, T)
+	if Attack.distance(e, target) <= T.ChaseSightStuds and visible(e, target, world, T) then return true end
+	return heard(e, target, T)
+end
+
+local function territory(e, world)
+	if not e.territory then
+		local site = type(world.site) == "function" and world.site("bossTerritory") or nil
+		e.territory = site and { x = site.x, z = site.z } or { x = e.home.x, z = e.home.z }
+	end
+	return e.territory
+end
+local function inTerritory(e, world, p, T)
+	local c = territory(e, world)
+	return flat(c.x, c.z, p.x, p.z) <= T.TerritoryRadiusStuds
+end
+
+-- Turns the facing toward a point by at most TurnDegreesPerSecond * dt. Returns the angle left, in degrees.
+local function turn(e, point, T, dt)
+	local tx, tz = unit(point.x - e.pos.x, point.z - e.pos.z)
+	if not tx then return 0 end
+	local current, wanted = math.atan2(e.dz, e.dx), math.atan2(tz, tx)
+	local delta = (wanted - current + math.pi) % (2 * math.pi) - math.pi
+	local step = math.rad(T.TurnDegreesPerSecond) * (dt or 0)
+	if math.abs(delta) <= step then
+		e.dx, e.dz = tx, tz
+		return 0
+	end
+	local angle = current + (delta > 0 and step or -step)
+	e.dx, e.dz = math.cos(angle), math.sin(angle)
+	return math.deg(math.abs(delta) - step)
+end
+
+-- Walks toward a point at `speed`, stopping `stop` studs short, turning as it goes; never out of the territory, never
+-- into a safe zone. Returns the distance left.
+local function walk(e, point, speed, dt, world, T, stop)
+	local distance = flat(e.pos.x, e.pos.z, point.x, point.z)
+	turn(e, point, T, dt)
+	local step = math.min(speed * (dt or 0), math.max(0, distance - (stop or 0)))
+	if step <= 0 then return distance end
+	local ux, uz = unit(point.x - e.pos.x, point.z - e.pos.z)
+	local nx, nz = e.pos.x + ux * step, e.pos.z + uz * step
+	local c = territory(e, world)
+	local out = flat(c.x, c.z, nx, nz)
+	if out > T.TerritoryRadiusStuds then
+		local rx, rz = unit(nx - c.x, nz - c.z)
+		nx, nz = c.x + rx * T.TerritoryRadiusStuds, c.z + rz * T.TerritoryRadiusStuds
+	end
+	if type(world.safe) == "function" and world.safe(nx, nz) then return distance end
+	e.pos.x, e.pos.z = nx, nz
+	e.pos.y = Attack.groundAt(world, nx, nz, e.pos.y)
+	return flat(nx, nz, point.x, point.z)
+end
+
+-- Gives up the target: an open lash is called off (no strike), then it stops and looks at the exit before walking home.
+local function lose(events, e, world, now, T, reason)
+	if e.lash then Attack.drop(events, e, world, e.lash, now, reason) end
+	e.lash, e.cast, e.lane = nil, nil, nil
+	e.lostReason = reason
+	Attack.phase(events, e, "LoseTarget", now, now + T.LoseTargetSeconds, { reason = reason })
+end
+
+local function origin(e) return { x = e.pos.x, y = e.pos.y, z = e.pos.z } end
+
+local function openLash(events, e, now, world, C)
+	local cast = Latigo.start(now, {})
+	if not cast then return false end
+	local attack = Attack.open(events, e, world, { key = "lash", startAt = now, strikeAt = Latigo.impactAt(cast), dodgeable = true,
+		damage = C.damage, lockAt = Latigo.lockAt(cast), shape = Latigo.lane(origin(e), e.dx, e.dz) })
+	if not attack then return false end
+	e.lash, e.cast, e.lane = attack, cast, nil
+	Attack.phase(events, e, "Telegraph", now, Latigo.releaseAt(cast))
+	return true
+end
+
+local function impact(events, e, target, world, C)
+	local cast, attack = e.cast, e.lash
+	local at = Latigo.impactAt(cast)
+	local lane = e.lane or attack.shape
+	local high = math.abs((target.y or e.pos.y) - (lane.oy or e.pos.y)) > C.hitHeight
+	local landed = Latigo.impact(cast, lane, { { id = 1, x = target.x, z = target.z, alive = target.alive == true,
+		safe = target.safe == true or high, carrying = target.carryingEgg == true } })[1]
+	if landed then
+		Attack.hit(events, e, world, attack, at, { push = { dx = landed.push.dx, dz = landed.push.dz, studs = landed.push.studs,
+			seconds = landed.push.seconds }, slow = landed.slowFactor and { multiplier = landed.slowFactor, seconds = landed.slowSeconds } or nil })
+	else
+		Attack.miss(events, e, world, attack, at)
+	end
+	e.lash = nil
+	e.readyAt = Latigo.endsAt(cast) + Latigo.COOLDOWN_SECONDS
+	Attack.phase(events, e, "Recover", at, Latigo.endsAt(cast))
+end
+
+local function chase(events, e, at)
+	Attack.phase(events, e, "Chase", at)
+	e.chaseAt = e.chaseAt or at
+end
+
+function Boss.step(events, e, now, target, world, dt)
+	local C = Config.BEASTS.DonGlaseon
+	local T = C.tuning
+	if e.phase == "Spawn" then Attack.phase(events, e, "Dormant", e.phaseAt) end
+	-- going home: nothing about the target matters any more
+	if e.phase == "LoseTarget" then
+		if now - e.phaseAt >= T.LoseTargetSeconds then Attack.phase(events, e, "Return", e.phaseAt + T.LoseTargetSeconds) end
+		return
+	end
+	if e.phase == "Return" then
+		if walk(e, e.home, T.ReturnSpeedStudsPerSecond, dt, world, T, 0) <= T.HomeToleranceStuds then
+			table.insert(events, Attack.finish(e, "Return", now))
+		end
+		return
+	end
+	if not target or target.alive ~= true then lose(events, e, world, now, T, "Death") return end
+	if target.safe == true then lose(events, e, world, now, T, "SafeZone") return end
+
+	if e.phase == "Dormant" or e.phase == "Patrol" then
+		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		if Boss.sees(e, target, world, T) then
+			e.lastSeen = { x = target.x, z = target.z }
+			turn(e, target, T, dt)
+			Attack.phase(events, e, "Suspicious", now, now + T.NoticeSeconds)
+			return
+		end
+		if e.phase == "Dormant" then
+			if now - e.phaseAt >= T.DormantSeconds then Attack.phase(events, e, "Patrol", now, now + T.PatrolSeconds) end
+			return
+		end
+		if now - e.phaseAt >= T.PatrolSeconds then lose(events, e, world, now, T, "Bored") return end
+		local a = (now - e.phaseAt) * T.PatrolSpeedStudsPerSecond / T.PatrolRadiusStuds
+		walk(e, { x = e.home.x + math.cos(a) * T.PatrolRadiusStuds, z = e.home.z + math.sin(a) * T.PatrolRadiusStuds },
+			T.PatrolSpeedStudsPerSecond, dt, world, T, 0)
+		return
+	end
+	if e.phase == "Suspicious" then
+		turn(e, target, T, dt)
+		if now - e.phaseAt >= T.NoticeSeconds then
+			local at = e.phaseAt + T.NoticeSeconds
+			if not e.roared then
+				e.roared = true
+				Attack.phase(events, e, "Roar", at, at + T.RoarSeconds)
+			else
+				chase(events, e, at)
+			end
+		end
+		return
+	end
+	if e.phase == "Roar" then
+		turn(e, target, T, dt)
+		if now - e.phaseAt >= T.RoarSeconds then chase(events, e, e.phaseAt + T.RoarSeconds) end
+		if e.phase ~= "Chase" then return end
+	end
+	if e.phase == "Chase" or e.phase == "Search" then
+		if now - e.chaseAt >= T.ChaseSeconds then lose(events, e, world, now, T, "Tired") return end
+		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		local seen = tracks(e, target, world, T)
+		if seen then e.lastSeen = { x = target.x, z = target.z } end
+		if e.phase == "Search" then
+			if seen then
+				Attack.phase(events, e, "Chase", now)
+			elseif now - e.phaseAt >= T.SearchSeconds then
+				lose(events, e, world, now, T, "Lost")
+				return
+			else
+				walk(e, e.lastSeen or e.home, T.PatrolSpeedStudsPerSecond, dt, world, T, 0)
+				return
+			end
+		end
+		if not seen then
+			Attack.phase(events, e, "Search", now, now + T.SearchSeconds)
+			return
+		end
+		local distance = Attack.distance(e, target)
+		local fx, fz = unit(target.x - e.pos.x, target.z - e.pos.z)
+		local facing = fx and math.deg(math.acos(math.clamp(fx * e.dx + fz * e.dz, -1, 1))) or 0
+		-- a lash starts only at a target in front, in reach, after the cooldown and with time left in the chase
+		if distance <= T.CastRangeStuds and now >= e.readyAt and facing <= T.CastHalfAngleDegrees
+			and now - e.chaseAt + Latigo.TELEGRAPH_SECONDS + Latigo.RELEASE_SECONDS + Latigo.RECOVER_SECONDS <= T.ChaseSeconds then
+			if openLash(events, e, now, world, C) then return end
+		end
+		walk(e, target, T.ChaseSpeedStudsPerSecond, dt, world, T, T.StandOffStuds)
+		return
+	end
+	if e.phase == "Telegraph" and e.lash then
+		local cast = e.cast
+		if not e.lane then
+			if now < Latigo.lockAt(cast) then
+				-- the lane follows the target until the lock
+				turn(e, target, T, dt)
+				Attack.aim(events, e, e.lash, Latigo.lane(origin(e), e.dx, e.dz), now)
+				return
+			end
+			e.lane = Latigo.lane(origin(e), e.dx, e.dz)
+			Attack.lock(events, e, e.lash, e.lane, Latigo.lockAt(cast))
+		end
+		if now < Latigo.releaseAt(cast) then return end
+		Attack.phase(events, e, "Attack", Latigo.releaseAt(cast), Latigo.impactAt(cast))
+	end
+	if e.phase == "Attack" and e.lash then
+		if now < Latigo.impactAt(e.cast) then return end
+		impact(events, e, target, world, C)
+		return
+	end
+	if e.phase == "Recover" and e.cast and now >= Latigo.endsAt(e.cast) then
+		Attack.phase(events, e, "Chase", Latigo.endsAt(e.cast))
+	end
+end
+
+return Boss

@@ -222,7 +222,10 @@ always bright, the forest always dark; eggs refresh every 300 s.
   (writer trigger fired; kept inline because every Studio write needs the parent's fingerprint gate). PARTIAL: model, rig,
   attack, brain, wiring, suites and solo Play done; the 11 clips are data + built in Studio but NOT published (blocked, see
   Evidence CA2). Commit fed4228.
-- [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play.
+- [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play. Route: inline
+  (writer trigger fired; kept inline because every Studio write needs the fingerprint gate). PARTIAL: model, rig, attack, boss
+  brain, one-per-server rule, wiring, suites and solo Play done; the 11 clips are data + build in Studio but NOT published (same
+  group-ownership blocker as CA2, no clip uploaded). Commit: see Evidence CA3.
 - [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
 - [ ] CA5 Close: Python suite, Play pass, overview rows, commit.
 
@@ -233,6 +236,7 @@ always bright, the forest always dark; eggs refresh every 300 s.
 | 103052975067537 | Tortidragon Model v1 (FBX `assets/exports/caramelo/tortidragon-v1.fbx`, 24 bones, 10 skinned meshes), user 11937129310 | CA2 | op 0a15dba5-c97e-4c2b-b33b-7e6d1b233aa5, Approved |
 | 115362506833585 | Tortidragon Animation Idle (hand-written rbxmx), user-owned: UNUSED, cannot load in the group universe | CA2 | op 0f826065-7e87-46ca-bd97-62af9d63a157 |
 | 81874477774437 | Tortidragon Animation Idle v2 (Studio-serialized rbxm), user-owned: UNUSED, cannot load in the group universe | CA2 | op c58601e8-80e5-4cff-ab07-e61bb18032e3 |
+| 91765062667935 | Don Glaseon Model v1 (FBX `assets/exports/caramelo/don-glaseon-v1.fbx`, 29 bones, 14 skinned meshes), user 11937129310 | CA3 | op 971df032-1e7e-44d8-9b1e-2c2e510efa2a, Approved |
 
 Receipts: `assets/exports/caramelo/upload-receipts.md`.
 
@@ -308,8 +312,50 @@ Receipts: `assets/exports/caramelo/upload-receipts.md`.
     98747.9572). Studio-serialized Idle rbxm at `assets/exports/caramelo/tortidragon-clips-rbxm/`.
   - Python: 1195 tests, 1 failure = known `test_lumipol_v2` V1IsKept. Not run: WildboundText_Test, two players, phone.
 
+- CA3 (2026-11-15): Don Glaseón.
+  - Blender source `assets/blender/caramelo/don-glaseon/build_don_glaseon.py` (own scene "DonGlaseon"; 29 bones per the sheet incl.
+    Jaw, CandyCrown, Licorice_01..03 on the right forearm; 14 one-colour meshes, rigid skin, no mesh named like a bone; pink
+    faceted torso, huge toothed mouth, candy pile, long arms with cream claws, purple grape legs; no hat, crown or robe; 24.74
+    studs). Uploaded as Model 91765062667935 (the only upload of CA3); InsertService import kept all 29 bones (Blender suffixed
+    Body/Claw/Eye ".001", `DonGlaseon.assemble` strips it). Prefab `ServerStorage.WildboundAssets.DonGlaseon`; raw import kept at
+    `ServerStorage.DonGlaseonImport_v1`.
+  - New: `tools/WildboundCandyDonGlaseon(.luau, Attack, Clips)`, `src/wildbound/WildboundBeastDonGlaseon.luau`,
+    `WildboundCandyDonGlaseonService.server.luau` (client model + a dormant copy on BossHome while no encounter lives),
+    `WildboundCandyDonGlaseonAnim.client.luau` (clip per phase + licorice ribbon VFX), 4 suites. Wiring: BeastConfig (DonGlaseon:
+    serverUnique, switchSeconds 4, batImmune, keepsEgg false, damage 0; WAVE2, SUMMONED), BeastDirector (BossBusy while one lives,
+    BossResting for switchSeconds), PraderaSites (bossHome 578,-3 and bossTerritory 612,-3 = builder markers, wants = inside the
+    62-stud territory, `bossPick`: rare-egg carrier first then nearest to home), Beasts.server (KIDS row with boss = true, excluded
+    from summonPass; `bossPass` once per poll; targetOf carryingEgg + eggRarity; `Beast_bossAwake` telemetry), Server (one line:
+    `EggRarity` attribute on the carried-egg backpack), Dodge.SOURCES (perfect dodge works on the lash), Text lines, BeastsClient
+    lane colour 5B1A8C. Manifest rows + pins (10), runner SPECS (4).
+  - Attack Látigo de Regaliz: lane 22 x 5 from the boss, tell 1.10 s, lock 0.60 s, lash 0.35 s, hit at 1.45 s (once), push 12
+    studs along the lash; a carrier drops the egg via BeastHit (no slow), others also slow x0.85 0.7 s; damage 0; recover 1.0 s;
+    cooldown 7 s; dodgeable (perfect dodge registered). States Dormant, Patrol, Suspicious, Roar (once), Chase (17, max 15 s,
+    lash only with time left), Search (last seen, 3 s), Telegraph, Attack, Recover, LoseTarget, Return (walks home at 9, End
+    "Return" at home: never teleports). Sight 36 (x1.25 for Rara/Epica/Legendaria carriers), heard running within 45, line of
+    sight through world.lineOfSight, leash = territory 62 (marker), never steps into a safe zone; a safe/dead/left target makes
+    it drop an open lash (TellEnd) and walk home. Bat immunity is by construction (WildboundBat is PvP only).
+  - TDD (fresh loadstring+setfenv loader): Attack RED (module missing) -> GREEN 5/5; Prefab RED 0/6 -> GREEN 6/6; Clips RED (module
+    missing) -> 6/7 (the published-ids case stays RED: no clip ids); Brain RED (module missing) -> 8/13 (a test-helper bug, fixed in
+    the test) -> GREEN 13/13; BeastWiring RED 48/50 -> GREEN 50/50; CandyBeastSites 10/10 (its new CA3 case ran after Sites/Config
+    were already pushed, so it had no RED of its own). Regression: Director 47, Encounters 24, Dodge 14, Text 20, Audience 17,
+    Attack 13, Gomibu 9, Flanfuria 10, Tortidragon 9, CandyTortidragon 6, EggCarry 39, LumipolArt 12: all passed.
+  - Studio == repo after the writes (bytes, Adler-32): BeastConfig 31089 450ced04, BeastDirector 14874 5dc5908f, PraderaSites 6227
+    144c1889, Beasts.server 46986 4004dc9e, BeastsClient 51090 63559cea, Text 36545 43acaffc, Dodge 9182 6ea9b382, Server 208966
+    f8c39bc2, BeastWiring_Test 49273 a7612a74, CandyBeastSites_Test 11645 1e8cd355, BeastDonGlaseon 12717 ea7c5005 (+_Test 13872
+    13a93685), Service 3417 2fefa7e0, Anim 5258 185fca6b, CandyDonGlaseon 4332 0cd3826d (+_Test 6433 e570efec), Attack 4568
+    4aebe341 (+_Test 4216 996a1dc4), Clips 11370 4b5f62c4 (+_Test 5307 feac9ec2). Studio was checked equal to HEAD before writing.
+  - Solo Play (PlayLock CA3, cleared; Play stopped): the dormant model stood on BossHome (578, 0.58, -3). Standing at (556,-3):
+    awake at once, the lash hit at ~4.1 s: WalkSpeed 16 -> 13.6 (x0.85) and a 13-stud push (556 -> 543), back to 16 at ~0.7 s;
+    pushed out of the territory it went LoseTarget -> Return and the dormant model came back (awake false at ~6.8 s). Second run at
+    (562,-3): client phases Spawn, Suspicious, Roar, Telegraph, Attack, Recover, Chase; the lane drawn 22 long in 5B1A8C; a 6-stud
+    sidestep after the lock: WalkSpeed never dropped (dodged); the licorice ribbon appeared. No boss errors in the output.
+    Screenshots: NOT taken (Studio screen_capture timed out three times in Play; desktop capture access was denied).
+  - Not tested: the egg drop in Play (Caramelo nests are still disabled, so no egg to carry there), two players / target
+    switching, phone, Search with real walls, the clips (unpublished). Python: 1195 tests, 1 failure = known `test_lumipol_v2` V1IsKept.
+
 ## Next step
 
-Owner action for CA2 clips: either grant the Assistant group upload rights (asset:write for group 465694015) or the
-`asset-permissions:write` scope, or publish the 11 clips to the group from Studio; then fill Clips.IDS and rerun the Clips
-suite and a Play check. Meanwhile CA3 Don Glaseón (same blocker applies to its clips).
+Owner action for CA2 and CA3 clips: publish them to group 465694015 (or grant the Assistant group upload or the
+`asset-permissions:write` scope), then fill Tortidragon and Don Glaseon `Clips.IDS` and rerun both Clips suites and a Play
+check. Then CA4 (egg waves every 300 s and fixed per-biome lighting).

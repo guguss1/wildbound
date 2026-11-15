@@ -30,7 +30,7 @@ Dodge.MIN_TELEGRAPH = 0.8
 -- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): Streamer's rush, Root's trap and whip, Gaze's zone, Lurker's leap.
 -- Scuttler (docs/design/wildbound-scuttler-plan.md, SC1): its Snap, real charge and pulse (never its feint).
 Dodge.SOURCES = table.freeze({ Parent = true, Viper = true, Pouncer = true, Silueta = true,
-	Streamer = true, Root = true, Gaze = true, Lurker = true, Scuttler = true })
+	Streamer = true, Root = true, Gaze = true, Lurker = true, Scuttler = true, DonGlaseon = true }) -- CA3: Latigo de Regaliz
 local EPSILON = 1e-6
 
 -- Neutral Spanish player strings (the Studio writer may move them into WildboundText).

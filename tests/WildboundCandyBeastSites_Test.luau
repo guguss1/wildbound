@@ -138,6 +138,25 @@ return function(Layout, Sites, Config, marker, biome)
 		end
 	end)
 
+	-- CA3: Don Glaseon's home and territory are the builder's own markers; its territory never reaches the portal.
+	case("CA3: Don Glaseon sleeps on the BossHome marker and keeps to the BossTerritory marker, away from the portal and the guardians", function()
+		assert(biome and biome:FindFirstChild("Markers") and biome:FindFirstChild("Boss"), "no live candy biome given")
+		local home, centre = Sites.world(nil, "bossHome"), Sites.world(nil, "bossTerritory")
+		local marker, territory = biome.Markers.BossHome, biome.Boss.BossTerritory
+		equal(home.x, marker.Position.X, "home x"); equal(home.z, marker.Position.Z, "home z")
+		equal(centre.x, territory.Position.X, "territory x"); equal(centre.z, territory.Position.Z, "territory z")
+		local T = Config.BEASTS.DonGlaseon.tuning
+		equal(T.TerritoryRadiusStuds, territory:GetAttribute("Radius"), "radius"); equal(territory:GetAttribute("Boss"), "DonGlaseon", "the marker's boss")
+		local portal = biome.Markers.Portal.Position
+		assert(Layout.flat(centre.x, centre.z, portal.X, portal.Z) > T.TerritoryRadiusStuds + 20, "its territory reaches the portal")
+		for _, name in ipairs({ "Gomibu", "Flanfuria", "Tortidragon" }) do
+			local post = Sites.world(nil, Sites.HOME[name])
+			assert(Layout.flat(centre.x, centre.z, post.x, post.z) >= T.TerritoryRadiusStuds, name .. "'s post is inside the boss territory")
+		end
+		local hit = workspace:Raycast(Vector3.new(home.x, 120, home.z), Vector3.new(0, -200, 0))
+		assert(hit and hit.Instance:IsDescendantOf(biome), "nothing of the biome under its home")
+	end)
+
 	-- T4 Flanfuria, CA2 Tortidragon: the same rules for both posts.
 	for _, name in ipairs({ "Flanfuria", "Tortidragon" }) do
 	case("T4: " .. name .. "'s post is open floor beside a nest, off the routes and off the boss ground even at the end of its leash", function()
