@@ -95,3 +95,7 @@ Design only. Nothing in this file is implemented yet. It records the user's deci
 - [ ] CT4 Frutillón, the top guardian
 - [ ] IC Icons through rbxthumb
 - [ ] EC Steal hold by rarity, plus the economy options once the user picks them
+- [ ] AR Remove the Arrullo minigame. It returns later, improved (user, 2026-11-15).
+  - Épica (and Legendaria) eggs use a plain longer hold instead (1.3 s / 1.8 s per the EC scale).
+  - Disable the minigame path and keep its module for later; do not delete it.
+  - Re-pin the suites that expect it.
