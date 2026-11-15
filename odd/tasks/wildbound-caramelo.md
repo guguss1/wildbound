@@ -632,7 +632,7 @@ to be stopped by decisions: each one taken for them is listed below. TDD strict 
 - [x] CE0 Clips ready for the owner to publish: every Tortidragón and Don Glaseón clip built as a KeyframeSequence into
   `ServerStorage.WildboundPublishClips.<Creature>.<Clip>` with a Spanish README; pure helper
   `WildboundCandyClipPublish` (pending, parseId, idsSource, build); no upload. Route: inline (one new module + suite,
-  manifest/runner rows; no trigger fired). TDD strict. Commit COMMIT_CE0.
+  manifest/runner rows; no trigger fired). TDD strict. Commit 7c5c044.
 - [ ] CE1 (assigned by the follow-up workflow).
 - [ ] CE2 (assigned by the follow-up workflow).
 - [ ] CE3 (assigned by the follow-up workflow).
