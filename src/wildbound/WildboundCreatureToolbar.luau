@@ -139,13 +139,13 @@ function Toolbar:depositInFarm(player, uid, species, tool)
 	if lookDir.Magnitude < 0.05 then lookDir = -pad.CFrame.LookVector end
 	lookDir = lookDir.Unit
 
-	-- PF4: a creature in the farm no longer follows the player: the server clears the companion first, then State
-	-- records the farm (saved). A refusal builds nothing.
-	if self.deps.unequip then self.deps.unequip(player, uid) end
+	-- PF4: a creature in the farm no longer follows the player: State records the farm first (saved), then the server
+	-- clears the companion. A refusal builds nothing and leaves the companion as it was.
 	if not self.deps.state:placeInFarm(player.UserId, uid, true, slots) then
 		self.deps.send(player, "Notice", false, string.format(words.farmFull or "%d", slots))
 		return false
 	end
+	if self.deps.unequip then self.deps.unequip(player, uid) end
 	self:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseModel)
 	for _, item in ipairs(creatureTools(player)) do
 		if item:GetAttribute(UID) == uid then item:Destroy() end

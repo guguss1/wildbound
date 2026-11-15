@@ -733,7 +733,7 @@ return freeze({
 		pityNext = "¡La próxima tirada trae un premio Rara o mejor!",
 		oddsHeader = "Probabilidades",
 		oddsRow = "%s · %s · %s %%",
-		oddsNote = "Las probabilidades son las mismas en cada tirada.",
+		oddsNote = "Iguales en cada tirada, salvo la asegurada: Rara o mejor.",
 		spin = "Girar",
 		spinning = "Girando...",
 		close = "Cerrar",

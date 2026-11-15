@@ -299,3 +299,18 @@ Created 2026-11-14 after the diagnosis. PF0 done 2026-11-14 (commit `chore(sync)
 (commit `feat(farm): save the base farm in the record (schema 5)`). PF5 done 2026-11-14
 (commit `feat(roulette): a hub roulette with server rolls and saved pity (schema 6)`). All PF tasks are done; next step:
 the user's open product questions.
+
+## Review follow-up (2026-11-14)
+
+Adversarial review of 6c3f4ec..3f8fb2a: no blocking findings. Fixed after it:
+
+- `WildboundCreatureToolbar` places in the farm before unequipping, so a refused place leaves the companion unchanged.
+- `Text.ROULETTE.oddsNote` no longer claims equal odds under pity.
+
+Studio matches the repo for both (Toolbar 12504/3128789211, Text 35833/4249861137). CreatureToolbar 13/0, Text 20/0.
+
+Open for the user:
+
+- Whether the trained walk should also apply while carrying. It does now: about 34 at the top level, against La Silueta 17-18 and the parents 19.
+- Retuning the threats.
+- The Lumipol icon upload (needs approval).
