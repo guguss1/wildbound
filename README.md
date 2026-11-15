@@ -113,6 +113,8 @@ Read in this order: overview, then the roadmap for gates and history, then the O
 
 | Doc | What it is |
 | --- | --- |
+| [docs/handoff/HANDOFF-2026-11-15.md](docs/handoff/HANDOFF-2026-11-15.md) | **Handoff for a new machine or session:** where things stand, every pending task numbered and categorised, how to resume |
+| [docs/handoff/claude-context.md](docs/handoff/claude-context.md) | Claude working context (sanitized): preferences, Studio safety rules, asset ownership, Engram topics |
 | [docs/wildbound-game-overview.md](docs/wildbound-game-overview.md) | Master overview: game, loop, world, mechanics, economy, architecture, status matrix (13), open decisions (14), glossary (15), outdated docs (16) |
 | [docs/wildbound-roadmap.md](docs/wildbound-roadmap.md) | Milestones M0 to M11, gates F1 and F2, blockers, owner decisions. **Outdated** (2026-11-07, predates Nest Heist and saved progress) |
 | [docs/wildbound-readiness.md](docs/wildbound-readiness.md) | Early setup audit of references and skill sources. **Outdated** (marked superseded) |

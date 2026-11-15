@@ -1,0 +1,76 @@
+# Claude working context (sanitized for a public repo)
+
+This file carries the working rules and preferences that Claude Code kept in its local memory for this project. It lets another machine or session continue the same way. Personal data, verbatim user messages, session ids and people's names were removed on purpose, because the repository is public.
+
+## User preferences
+
+- **Language:** reply in the user's language. The user writes in Rioplatense Spanish; plans and task breakdowns shown to the user go in Spanish too. Code, identifiers, comments, repo docs and commit messages stay in English. Player-facing UI copy is neutral Spanish and lives in `WildboundText`.
+- **Agents:** run delegated agents and workflow agents on Opus at medium effort.
+  - Use as many as the work needs: at most three concurrent agents that don't touch Studio, and only one Studio writer.
+  - While the user is using the PC, agents run in the background only (no computer-use).
+- **Don't block on decisions:** in long batches, take product decisions yourself, record each one in the feature doc under "Decisions taken for the user", and list them at the end. Safety gates still apply (see below).
+- **Commits:** Conventional Commits with no AI attribution and no Co-Authored-By line. This is a user rule that overrides tool defaults.
+- **Commit scope:** commit only your own paths (`git commit -m "..." -- <paths>`). Several agents share one index, and staging the whole tree once swept another agent's files into the wrong commit.
+
+## Team setup
+
+- A teammate works in the same Roblox Team Create place from another PC, building the "Sonriente" system in the `SistemaSonriente` folders. Never touch those folders.
+- During the teammate's stage 1, these scripts were their lock zone: `WildboundServer`, `WildboundState`, `WildboundEggCarry`, `WildboundBatKnock`, `WildboundWorldClient`, and the suites `WildboundEggCarry_Test`, `WildboundBat_Test`, `WildboundMechanicsWiring_Test`.
+  - On 2026-11-14 the user allowed small, additive edits there for the playtest fixes.
+  - Always pull Studio's live version into the repo before editing.
+- Another session (owner unknown) built part of the Caramelo biome directly in Studio. Its task file `odd/tasks/caramelo-bioma.md` and its Blender sources were never in this repo.
+
+## Studio rules that prevent data loss
+
+- Target: Roblox Studio place `122652861404212` (universe `10774749224`, owned by group `465694015`). The Studio MCP instance id changes on every reconnect, so use `list_roblox_studios` and pick the one with this place id. Confirm the target with the user in each new session before writing.
+- **Fingerprint rule:** before writing any Studio `Source`, compare it with the repo HEAD file.
+  - Normalise both first: CRLF→LF, strip trailing newlines, then compare byte length + Adler-32.
+  - If Studio differs, Studio is the live truth: pull it into the repo first, read-only, then build on that.
+  - After writing, read back and verify Studio == repo.
+  - Prefer exact text replacements (`multi_edit`) over full writes.
+- **Play lock:** start Play only if Studio is in Edit and `ServerStorage` attribute `WildboundPlayLock` is nil. Set it to your task id while playing, then clear it and stop Play. Never stop someone else's Play; poll `get_studio_state` and wait instead.
+- **Edit-mode require cache:** Studio caches module requires in Edit, so a plain `require` gives stale code. Run suites with a fresh loader (`loadstring` + `setfenv`, a custom `require` that loads `Wildbound*` modules from their `Source`). See `tools/studio-fresh-runner.luau` and its `SPECS` table for each suite's arguments.
+- The place is not saved by agents. Some state lives only in the open Studio session until the owner presses Ctrl+S (see the handoff).
+- **WildboundServer local limit:** it is at Luau's 200-local limit (test NH-W13). New code goes inside `Heist.*` tables or `do ... end` blocks.
+
+## Safety gates (need the user's explicit OK)
+
+- Publishing, monetization changes and place saves.
+- Asset uploads, unless the user authorised that specific upload.
+- Remote operations other than pushing this repo's branch.
+- Turning on damage outside the private test place.
+
+## Asset ownership (important)
+
+- The game is owned by a Roblox group, and Roblox only plays animations owned by the experience owner.
+- Uploads made through the Studio MCP / Open Cloud route are created as the user, not the group. That route returns 403 for group uploads and has no `asset-permissions:write` scope.
+- So user-owned animations never play in the game, and user-owned images (hotbar icons) fail with "Requester does not have permission".
+  - **Fix for animations:** the owner publishes them to the group from Studio with "Save to Roblox", Creator = group.
+  - **Workaround for icons:** to be tested, the `rbxthumb://type=Asset&id=<id>&w=150&h=150` form loaded in a preload test.
+- Models (FBX meshes) uploaded as the user did insert and work.
+- **Working upload route from this machine:**
+  1. Write the file into `assets/exports/...` or `assets/models/beasts/...`.
+  2. Upload with Studio MCP `open_cloud_invoke` `POST /assets/v1/assets` (FBX for a Model; one `model/x-rbxm` per KeyframeSequence for an Animation).
+  3. Poll the operation.
+  4. `insert_asset`.
+  - Images go through `upload_image` with a short-lived local `python -m http.server` on 127.0.0.1.
+  - Record every id in `assets/exports/caramelo/upload-receipts.md` and in the feature doc.
+
+## Engram (local memory) topics
+
+The local Engram store mirrors the ODD feature docs under these topic keys (the docs in `odd/tasks/` are the source of truth):
+
+- `odd/wildbound-2-0/tasks`
+- `odd/wildbound-scuttler/tasks`
+- `odd/wildbound-caramelo/tasks`, plus `tasks-part2` and `tasks-part3` (split at the 50k limit)
+- `odd/wildbound-playtest-fixes/tasks`
+- `odd/wildbound-balance-pass/tasks`
+
+On a new machine, rebuild them from the docs if needed.
+
+## Tools on this Windows machine
+
+- The Bash tool runs Git Bash. `rg` and `fd` are not on PATH there: use the Grep/Glob tools or PowerShell.
+- Python 3.11. Run tools with `python -I -B`.
+- If Python prints fail on cp1252, use `sys.stdout.reconfigure(encoding='utf-8')`.
+- Python tests: `python -I -B -m unittest discover -s tools -p "test_*.py"`. The known failure is `test_lumipol_v2.V1IsKept`.
