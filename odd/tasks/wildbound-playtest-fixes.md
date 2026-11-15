@@ -349,3 +349,20 @@ The user found the farm creatures too still: they should walk around the whole b
     5.04 studs/s (frame timing), bottom between 0.90 and 1.14 (hop), prompt on the body; clearPlayer disconnected the
     loop. Not checked: a hatched creature's real art model wandering in Play.
   - Python: 1195 tests, 1 failure (same count as the known `test_lumipol_v2` failure).
+
+## PF7 creature hotbar icon (asset uploaded with the user's approval 2026-11-15)
+
+- [x] PF7. `WildboundCreatureToolbar.ICONS` maps a species to its hotbar icon (`Lumipol = rbxassetid://121561289565386`,
+  made from `assets/blender/lumipol-forest-sprite-v2-front.png`, source `assets/icons/lumipol-hotbar-icon-256.png`).
+  `buildTool` sets `TextureId = ICONS[species] or ""`. The tool name stays the display name: the tooltip and the
+  backpack still show it.
+  - Route: inline (same module and test as PF6).
+  - Tests: new CT-17 (a Lumipol tool has the icon id, an unknown species has an empty TextureId and keeps its name).
+    CT-2 no longer asserts the empty TextureId. RED 16/1 (no `Toolbar.ICONS`), GREEN 17/0, fresh loadstring loader.
+  - Studio matches the repo: Toolbar 18156/876990482, Test 21536/1129261197.
+  - Solo Play (PlayLock `PF7`, cleared after; Play stopped): a probe tool built by `buildTool` in the Backpack had
+    TextureId `rbxassetid://121561289565386`. The asset is an Image (type 1) owned by the user's account, created
+    2026-11-15T05:42Z. On the client, `ContentProvider:PreloadAsync` returned Failure for `rbxassetid://121561289565386`
+    and Success for `rbxthumb://type=Asset&id=121561289565386&w=150&h=150`. Most likely it is still in moderation.
+    Not checked: the hotbar slot showing the image. The Studio capture did not show the hotbar, so no screenshot was
+    saved. Next step: preload the id again later. If it still fails, decide whether to use the rbxthumb form.

@@ -150,14 +150,14 @@ return function(Toolbar, source, sources)
 		assert(not source:find('"Guardaste la criatura', 1, true), "the pickup notice moved to WildboundText")
 	end)
 
-	case("CT-2: one tool per creature, named and tipped, no icon asset", function()
+	case("CT-2: one tool per creature, named and tipped", function()
 		local toolbar = fixture({ registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "LumipolVioleta" } } })
 		local player = fakePlayer(7)
 		toolbar:syncPlayer(player)
 		toolbar:syncPlayer(player)
 		equal(#tools(player, "c1"), 1, "c1 once"); equal(#tools(player, "c2"), 1, "c2 once")
 		local tool = tools(player, "c1")[1]
-		equal(tool.Name, "Lumipol"); equal(tool.ToolTip, Text.FARM.toolTip); equal(tool.TextureId, "", "no icon until approved")
+		equal(tool.Name, "Lumipol"); equal(tool.ToolTip, Text.FARM.toolTip)
 		equal(tools(player, "c2")[1].Name, Text.CARD.species.LumipolVioleta)
 	end)
 
@@ -437,6 +437,20 @@ return function(Toolbar, source, sources)
 		toolbar:syncPlayer(player)
 		equal(toolbar:wanderCount(), 1, "a rebuilt farm wanders again")
 		equal(liveHandlers(log), 1, "with one loop again")
+	end)
+
+	-- PF7 (icon upload approved by the user 2026-11-15): a species with an uploaded icon shows it in the hotbar.
+	case("CT-17: PF7 a Lumipol tool shows its hotbar icon; a species without one keeps an empty TextureId", function()
+		local toolbar = fixture({ registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "Unknown" } } })
+		local player = fakePlayer(7)
+		toolbar:syncPlayer(player)
+		assert(type(Toolbar.ICONS) == "table", "Toolbar.ICONS")
+		local lumipol = tools(player, "c1")[1]
+		equal(lumipol.TextureId, "rbxassetid://121561289565386", "the Lumipol icon")
+		equal(lumipol.Name, "Lumipol", "the name stays (the tooltip and the backpack show it)")
+		local unknown = tools(player, "c2")[1]
+		equal(unknown.TextureId, "", "no icon for a species without one")
+		equal(unknown.Name, "Unknown", "it keeps its name text")
 	end)
 
 	return result

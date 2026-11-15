@@ -1,7 +1,8 @@
 -- Manages hatched creatures in the player's Roblox Toolbar (Backpack Tools) and depositing them onto the player's Base Farm floor.
 -- PF3 (user decision 2026-11-14): a creature is deposited only on the player's OWN base pad; a deposited creature stops
 -- following the player (deps.unequip) and taking it back to the hotbar never equips it; tools are rebuilt once per
--- respawn, never duplicated. No icon asset is uploaded: TextureId stays empty until an icon upload is approved.
+-- respawn, never duplicated. PF7: a species with an uploaded icon (Toolbar.ICONS, uploaded with the user's approval
+-- 2026-11-15) shows it in the hotbar; any other species keeps an empty TextureId and shows its name.
 -- PF4: the farm itself is State's (placeInFarm / takeFromFarm, saved by WildboundRecord schema 5, capped by the
 -- snapshot's farmSlots); this module only builds its models and rebuilds a saved farm on the own pad on join.
 local CollectionService = game:GetService("CollectionService")
@@ -13,6 +14,11 @@ Toolbar.__index = Toolbar
 
 local UID = "WildboundCreatureUid"
 local DEPOSIT_REACH = 20 -- studs from the own pad when the base zone does not report the player inside
+
+-- PF7: hotbar icons by species (source assets/icons/lumipol-hotbar-icon-256.png). A missing species has no icon.
+Toolbar.ICONS = {
+	Lumipol = "rbxassetid://121561289565386",
+}
 
 -- PF6 (user playtest 2026-11-15): farm creatures walk around the whole own pad instead of standing still.
 Toolbar.WANDER = {
@@ -369,7 +375,7 @@ function Toolbar:buildTool(player, pet)
 	local tool = Instance.new("Tool")
 	tool.Name = self:displayName(species)
 	tool.ToolTip = self:words().toolTip or ""
-	tool.TextureId = "" -- no icon asset until an upload is approved
+	tool.TextureId = Toolbar.ICONS[species] or "" -- PF7: the hotbar shows the icon; the name stays for the tooltip
 	tool.RequiresHandle = true
 	tool.CanBeDropped = false
 	tool:SetAttribute(UID, pet.uid)
