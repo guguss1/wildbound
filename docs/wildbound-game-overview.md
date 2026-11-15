@@ -573,6 +573,9 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Return portals (Caramelo arch (772, -3), forest arch (-28, -132); 5 s calm, 2 s channel, 30 s rest, the egg rides along) | Done (solo Play at the Caramelo arch, CE3); a full channel at the forest arch not seen | Same (CE3); `odd/tasks/wildbound-2-0.md` (T08a, T08b) |
 | Persistence (schema 6, session lock) | Done in the memory store (Studio API access is off) | `docs/mechanics/wildbound-persistence.md`; `odd/tasks/wildbound-playtest-fixes.md` (PF4, PF5) |
 | Persistent base farm (schema 5) | Done (solo Play rebuild on respawn, PF4); leave and rejoin covered by suites only | `odd/tasks/wildbound-playtest-fixes.md` (PF4) |
+| Farm places 5 and 6 for sale (camp upgrades `farmSlot5` 400 and `farmSlot6` 900 Esencia, in order) | Done (solo Play: the purchases, BP4c); a fifth and sixth creature placed in the farm suite only | `odd/tasks/wildbound-balance-pass.md` (BP4c) |
+| "Liberar": release a duplicate hatched creature for 4 Esencia (bag panel, two taps) | Done (solo Play, BP4a) | Same (BP4a) |
+| Base incubation fills the bought slots only (1, then 2 and 3 with the upgrades), no longer a free eight | Done (solo Play with one slot, BP4b); two or three slots suite only | Same (BP4b) |
 | Roulette state (schema 6: free spin, pity, paid spins) | Done (suites RT-29, SV-23; the counter seen in Play, PF5); rejoin suite only | Same (PF5) |
 | Hub roulette (station at (265, 14), server roll, atomic spend, odds shown, Rara+ pity 10) | Done (solo Play, PF5); the prompt's own trigger not used (the probe called the same server path) | Same (PF5) |
 | Creature hotbar (a Tool per creature, own-pad deposit, rebuild on respawn) | Done (solo Play, PF3) | Same (PF3) |
