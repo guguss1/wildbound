@@ -228,7 +228,7 @@ return function(sources, Proxies)
 	case("NB5: the context reads real server state; storm stays x1 and no biome exists yet", function()
 		local beasts = sources.beasts
 		has(beasts, "local fog, safe = Rules.zone(p.X, p.Z)")
-		has(beasts, "return Rules.cycle().phase", "CA4: the fixed world phase, no cycle origin")
+		has(beasts, "return (PlaceRules.phaseAt(x, z))", "CF1: the phase of the player's place, no cycle origin")
 		assert(not beasts:find("CycleStartedAt", 1, true), "CA4: no cycle origin is read")
 		has(beasts, 'night = phase == "Night"')
 		has(beasts, "dangerousZone = fog or Rules.inTerritory(p.X, p.Z)")

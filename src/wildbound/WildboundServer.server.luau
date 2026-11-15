@@ -980,13 +980,21 @@ local islandFolder = map:FindFirstChild("Islands")
 local READOUT = { sleep = Color3.fromRGB(170, 205, 255), stir = Color3.fromRGB(255, 190, 80),
 	alert = Color3.fromRGB(255, 70, 70) }
 
--- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The islands, the Dusk warnings and the parents
--- read the fixed world phase (Rules.WORLD_PHASE, its clock Rules.WORLD_CLOCK), the same one the world script reads.
-local function islandCycle()
-	return Rules.cycle()
-end
-local function islandPhase()
-	return Rules.cycle().phase
+-- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. CF1 (user, 2026-11-15, "Bosque siempre de noche"):
+-- each island reads the phase of its own nest's place (PlaceRules.phaseAt; the forest is always Night, so the parents
+-- keep their night wake radius and nest content, and the night clock is never the noon deep sleep). With no island
+-- (the Dusk warnings) it is the fixed world phase (Rules.WORLD_PHASE), which is never Dusk: the warnings stay inert.
+local islandCycle, islandPhase
+do
+	local PlaceRules = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight"))
+	function islandCycle(spec)
+		if type(spec) ~= "table" then return Rules.cycle() end
+		local phase, clock = PlaceRules.phaseAt(spec.x, spec.z)
+		return { elapsed = 0, phase = phase, progress = 0, remaining = 0, clockTime = clock, fixed = true }
+	end
+	function islandPhase(spec)
+		return islandCycle(spec).phase
+	end
 end
 
 local function nestSlot(island, index, kind)
@@ -1199,12 +1207,11 @@ function Heist.syncEggArms(player)
 end
 local function ensureNests()
 	local count = math.max(1, #Players:GetPlayers())
-	local phase = islandPhase()
 	for _, island in ipairs(islandList) do
 		for index = 1, Island.nestCount(island.spec, count) do
 			local id = island.spec.id .. ":" .. index
 			if nestState[id] == nil then
-				spawnEncounter(nestSlot(island, index, Island.rollContent(island.spec, phase, rand) or "Creature"))
+				spawnEncounter(nestSlot(island, index, Island.rollContent(island.spec, islandPhase(island.spec), rand) or "Creature"))
 			end
 		end
 	end
@@ -1583,7 +1590,7 @@ local function wakeIsland(island, now)
 	-- EI-5: the scream is a guardian noise from the island, on the same hearing scale as every other noise.
 	noiseEvent:Fire("scream", spec.tier, spec.x, spec.z)
 	for _, adult in ipairs(island.adults) do poseAdult(adult, true) end
-	local radius = Island.wakeRadius(spec, islandPhase())
+	local radius = Island.wakeRadius(spec, islandPhase(spec))
 	local candidates = {}
 	for _, reading in ipairs(islandReadings()) do
 		local distance = math.sqrt((reading.x - spec.x) ^ 2 + (reading.z - spec.z) ^ 2)
@@ -1659,8 +1666,6 @@ end
 local drops, removeDrop = {}, nil
 local function stepIslands(now, dt)
 	if #islandList == 0 then return end
-	local clock = islandCycle().clockTime
-	local phase = islandPhase()
 	local readings = islandReadings()
 	local lulled = {}
 	for _, session in ipairs(capture:activeSessions()) do
@@ -1670,6 +1675,7 @@ local function stepIslands(now, dt)
 	local C = Island.live
 	for _, island in ipairs(islandList) do
 		local spec, meter = island.spec, island.meter
+		local clock, phase = islandCycle(spec).clockTime, islandPhase(spec)
 		-- Fix pass (FP5d): the deep noon sleep scales every wake input; the clients slow the breathing.
 		Island.setSleep(meter, clock)
 		for _, adult in ipairs(island.adults) do
@@ -2635,7 +2641,7 @@ if RunService:IsStudio() then
 	islandProbe.Name = "IslandProbe"
 	islandProbe.OnInvoke = function(op, id, value)
 		if op == "read" then
-			local out = { phase = islandPhase() }
+			local out = { phase = islandPhase(islandList[1] and islandList[1].spec) }
 			for _, item in ipairs(islandList) do
 				out[item.spec.id] = { state = item.meter.state, value = item.meter.value,
 					chase = item.chase and item.chase.state.mode or nil }
@@ -2810,9 +2816,9 @@ noiseEvent.Event:Connect(function(kind, tier, x, z)
 	if kind ~= "sprint" and kind ~= "rustle" and kind ~= "siluetaScream" then return end
 	if not Rules.finite(x) or not Rules.finite(z) then return end
 	local now = workspace:GetServerTimeNow()
-	local phase = islandPhase()
 	for _, island in ipairs(islandList) do
 		local spec = island.spec
+		local phase = islandPhase(spec)
 		local distance = math.sqrt((x - spec.x) ^ 2 + (z - spec.z) ^ 2)
 		local result
 		if kind == "sprint" and distance <= Island.live.SPRINT_NOISE_REACH then

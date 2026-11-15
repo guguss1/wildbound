@@ -130,8 +130,8 @@ return function(worldSource, serverSource, clientSource)
 	end)
 
 	-- CA4: no global cycle, so the Studio-only clock shift (D13) has nothing to shift and is gone.
-	case("D13 CA4: the world reads the fixed world phase, with no clock shift", function()
-		has(worldSource, "return Rules.cycle()")
+	case("D13 CA4 CF1: the world reads the phase of a place (BiomeLight), with no clock shift", function()
+		has(worldSource, "local phase, clockTime = PlaceRules.phaseAt(x, z)")
 		assert(not worldSource:find("StudioClockShift", 1, true), "no clock shift left")
 		assert(not worldSource:find(":GetAttribute(", 1, true), "no attribute is read back")
 		assert(not worldSource:find("originTime", 1, true), "no cycle origin")

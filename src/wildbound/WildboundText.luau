@@ -611,7 +611,7 @@ return freeze({
 		sessionOnly = "Solo esta sesión: la colección se reinicia al salir del servidor.",
 		respawn = "Lleva el botín al campamento. La colección solo dura esta sesión.",
 		gather = "Recolectar",
-		wilts = " · se marchita al amanecer",
+		wilts = " · se marchita pronto",
 	},
 	-- Nest Heist Phase 3 (NS1): saved progress. A failed or locked load never overwrites anything; the player is told.
 	SAVE = {

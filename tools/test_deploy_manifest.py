@@ -321,6 +321,7 @@ class DefaultMappingTests(unittest.TestCase):
         # odd/tasks/wildbound-caramelo.md CA4
         "src/wildbound/WildboundBiomeLight.luau": "ReplicatedStorage.WildboundBiomeLight",
         "tests/WildboundBiomeLight_Test.luau": "ServerStorage.WildboundBiomeLight_Test",
+        "tests/WildboundPlacePhase_Test.luau": "ServerStorage.WildboundPlacePhase_Test",
         # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
         "src/wildbound/WildboundHide.luau": "ServerScriptService.WildboundHide",
         "tests/WildboundHide_Test.luau": "ServerStorage.WildboundHide_Test",

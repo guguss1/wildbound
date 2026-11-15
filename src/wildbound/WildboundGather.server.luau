@@ -134,7 +134,7 @@ local function build(node)
 end
 
 -- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The gather nodes are the forest's and the forest is
--- always dark, so its night table holds (Nightbloom grows and never wilts at a Dawn that no longer comes).
+-- always dark, so its night table holds (Nightbloom grows; with no Dawn it wilts on its own timer, CF1).
 local function currentPhase()
 	return Rules.FOREST_CONTENT_PHASE
 end
@@ -147,18 +147,19 @@ script.Destroying:Connect(function()
 	folder:Destroy()
 end)
 
--- Keeps the field full and wilts Nightbloom at Dawn. Only nodes appear or go here; it grants nothing.
+-- Keeps the field full and wilts Nightbloom when its own life ends (CF1). Only nodes appear or go here; it grants nothing.
 task.spawn(function()
 	while folder.Parent == map do
 		local phase = currentPhase()
 		if phase then
-			for _, id in ipairs(field:wilting(phase)) do
+			local now = workspace:GetServerTimeNow()
+			for _, id in ipairs(field:wilting(phase, now)) do
 				gatherRetire:Invoke(id)
 				remove(id, "wilted")
 			end
 			for _, slotId in ipairs(field:plan(#Players:GetPlayers(), workspace:GetServerTimeNow(), roll)) do
 				local node = gatherSpawn:Invoke(slotId)
-				if type(node) == "table" and field:track(node) then
+				if type(node) == "table" and field:track(node, now) then
 					build(node)
 				elseif type(node) == "table" then
 					gatherRetire:Invoke(node.id)

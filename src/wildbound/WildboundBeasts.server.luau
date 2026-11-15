@@ -32,6 +32,7 @@ local Enc = require(script.Parent:WaitForChild("WildboundBeastEncounters"))
 local Proxies = require(script.Parent:WaitForChild("WildboundBeastProxies"))
 local Config = require(ReplicatedStorage:WaitForChild("WildboundBeastConfig"))
 local Biomes = require(script.Parent:WaitForChild("WildboundBiomes"))
+local PlaceRules = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight"))
 local Attack = require(script.Parent:WaitForChild("WildboundBeastAttack"))
 local Sight = require(ReplicatedStorage:WaitForChild("WildboundBeastSight"))
 local DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
@@ -242,10 +243,11 @@ local function bodyOf(player)
 	return character, humanoid, root
 end
 
--- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. The beasts read the fixed world phase
--- (Rules.WORLD_PHASE, "Day"): no night odds, no Dusk buff and no Nube night range, in any biome.
-local function phaseAt(_at)
-	return Rules.cycle().phase
+-- CA4 (odd/tasks/wildbound-caramelo.md): no global day/night cycle. CF1 (user, 2026-11-15, "Bosque siempre de
+-- noche"): the phase of the player's place (PlaceRules.phaseAt): the forest (and Abismo, Cuevas) always Night, so the
+-- night odds (x2) hold there; Caramelo and the rest Day (no night odds, no Nube night range). Never Dusk: no Dusk buff.
+local function phaseAt(x, z)
+	return (PlaceRules.phaseAt(x, z))
 end
 
 -- The player's own Silueta (the world script's hunter whose Owner is this player) is hunting or telegraphing.
@@ -268,7 +270,7 @@ local function contextFor(player, at)
 	local p = root.Position
 	local fog, safe = Rules.zone(p.X, p.Z)
 	if safe then record.outsideSince = nil else record.outsideSince = record.outsideSince or at end
-	local phase = phaseAt(at)
+	local phase = phaseAt(p.X, p.Z)
 	return { alive = true, safe = safe, night = phase == "Night",
 		duskRoll = Dusk and Dusk.buff(phase).roll or 1, -- x1.25 during Dusk only (WildboundDusk), x1 otherwise
 		-- The inventory server welds its "WildboundEggCarried" backpack to the character exactly while EggCarry says this
@@ -463,7 +465,7 @@ local function targetOf(entry)
 	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe, meadow = inMeadow(p.X, p.Z) }
 	if Config.SUMMONED[entry.e.beast] then
 		-- Kids biome: what the Nube sees (open sky, Night range) and what the Abeja hears (the server's speed and floor).
-		local night = phaseAt(now()) == "Night"
+		local night = phaseAt(p.X, p.Z) == "Night"
 		target.night = night
 		target.covered = covered(p + Vector3.new(0, 1.5, 0))
 		target.noise = Sites.noiseRadius(Vector3.new(v.X, 0, v.Z).Magnitude, humanoid.FloorMaterial == Enum.Material.Air, night)
@@ -704,7 +706,7 @@ local function summonPass(player, at)
 	local p = root.Position
 	if not inMeadow(p.X, p.Z) then return end
 	local _, safe = Rules.zone(p.X, p.Z)
-	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(at) == "Night", eventOpen = eventOpen(),
+	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(p.X, p.Z) == "Night", eventOpen = eventOpen(),
 		x = p.X, z = p.Z, origin = praderaOrigin() }
 	local ctx
 	for _, kid in ipairs(KIDS) do

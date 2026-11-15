@@ -88,12 +88,14 @@ function Field:plan(players, now, rand)
 	return picks
 end
 
--- node = { id, slotId, zone, material }. One node per id and per slot.
-function Field:track(node)
+-- node = { id, slotId, zone, material }. One node per id and per slot. now: optional, when it appeared (CF1: the start
+-- of a night-only node's own life).
+function Field:track(node, now)
 	if type(node) ~= "table" or type(node.id) ~= "string" or type(node.slotId) ~= "string"
 		or type(node.zone) ~= "string" then return false end
 	if self.nodes[node.id] or self.bySlot[node.slotId] then return false end
-	self.nodes[node.id] = { id = node.id, slotId = node.slotId, zone = node.zone, material = node.material }
+	self.nodes[node.id] = { id = node.id, slotId = node.slotId, zone = node.zone, material = node.material,
+		bornAt = finite(now) and now or nil }
 	self.bySlot[node.slotId] = node.id
 	return true
 end
@@ -108,13 +110,21 @@ function Field:release(id, now, reason)
 	return node
 end
 
--- Ids of the night-only nodes that must go now: all of them, as soon as the phase is not Night.
-function Field:wilting(phase)
+-- CF1 (odd/tasks/wildbound-caramelo.md): the forest is always night, so no Dawn ends a night-only node any more. It
+-- lives NIGHT_ONLY_SECONDS (the old Night length) from when it was tracked, then wilts and its place cools down.
+Field.NIGHT_ONLY_SECONDS = 300
+
+-- Ids of the night-only nodes that must go now: all of them as soon as the phase is not Night, and, with `now`, each
+-- one whose own life is over.
+function Field:wilting(phase, now)
 	local ids = {}
-	if phase == "Night" then return ids end
+	local night = phase == "Night"
 	for id, node in pairs(self.nodes) do
 		local spec = self.config.materials[node.material]
-		if spec and spec.nightOnly then table.insert(ids, id) end
+		if spec and spec.nightOnly and (not night
+			or (finite(now) and node.bornAt ~= nil and now - node.bornAt >= Field.NIGHT_ONLY_SECONDS)) then
+			table.insert(ids, id)
+		end
 	end
 	table.sort(ids)
 	return ids

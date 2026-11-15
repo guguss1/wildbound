@@ -150,11 +150,15 @@ if not telemetry then
 	telemetry = Instance.new("Folder")
 	telemetry.Name, telemetry.Parent = "WildboundTelemetry", ServerStorage
 end
--- CA4: every phase read here (La Silueta's profile and memory, the ambush timer, the snapshot) is the fixed world
--- phase (WildboundWorldRules.WORLD_PHASE); the light is per biome on each client (WildboundBiomeLight). The Studio-only
--- clock shift of D13 had nothing left to shift and is gone.
-local function cycleAt(_now)
-	return Rules.cycle()
+-- CA4: no global cycle; the light is per biome on each client (WildboundBiomeLight). The Studio-only clock shift of D13
+-- had nothing left to shift and is gone. CF1 (user, 2026-11-15, "Bosque siempre de noche"): every phase read here is
+-- the phase of a place (PlaceRules.phaseAt), keyed on La Silueta's own body (her profile, brain row, memory and hearing),
+-- the hiding spot (discovery) or her spawn point (the first ambush timer): the forest always plays by Night rules. With
+-- no point (the snapshot) it reads the hub's Day, as the fixed world phase did.
+local PlaceRules = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight"))
+local function cycleAt(_now, x, z)
+	local phase, clockTime = PlaceRules.phaseAt(x, z)
+	return { elapsed = 0, phase = phase, progress = 0, remaining = 0, clockTime = clockTime, fixed = true }
 end
 local extra = { readyAccepted = 0, pulses = 0, acksAccepted = 0, serverPersistentLoaded = 0, noises = 0, noisesHeard = 0,
 	spared = 0, hunters = 0, huntersRefused = 0 }
@@ -800,7 +804,7 @@ local function stalkStep(h, now, phase)
 end
 
 local function step(h, now, dt)
-	local cycle = cycleAt(now)
+	local cycle = cycleAt(now, h.body.Position.X, h.body.Position.Z)
 	local phase = cycle.phase
 	local brain, body, player = h.brain, h.body, h.player
 	-- Delivery C1: day and night profiles come from the brain. Day is the calmest phase, Night the most active.
@@ -1035,7 +1039,7 @@ local function stepAwareness(h, now)
 		targetVisible = context ~= nil and context.visible,
 		lastVisibleAt = h.huntState and h.huntState.lastVisibleAt,
 		telegraphEndsAt = h.telegraphEndsAt, players = entries,
-		searchSeconds = Brain.profile(cycleAt(now).phase).memorySeconds })
+		searchSeconds = Brain.profile(cycleAt(now, h.body.Position.X, h.body.Position.Z).phase).memorySeconds })
 	local result = h.awarenessResults[player.UserId]
 	local seen = result ~= nil and result.state == "seen"
 	if result and result.changed then snapshot(player) end
@@ -1053,10 +1057,10 @@ local function hearNoise(kind, tier, x, z)
 	if stopped or not Brain.NOISE[kind] or type(tier) ~= "string" or not Rules.finite(x) or not Rules.finite(z) then return end
 	extra.noises += 1
 	local now = workspace:GetServerTimeNow()
-	local phase = cycleAt(now).phase
 	for _, h in ipairs(hunterList) do
 		if not COMBAT[h.mode] and now >= h.recoveryEndsAt then
 			local position = h.body.Position
+			local phase = cycleAt(now, position.X, position.Z).phase
 			if Brain.hear(h.brain, { kind = kind, tier = tier, x = x, z = z }, position.X, position.Z, now, phase, clampReach) then
 				extra.noisesHeard += 1
 				h.checkSpots = nil -- a search that starts from a noise has no spots to check
@@ -1154,10 +1158,10 @@ end
 -- Each fixed step: a dead or replaced character leaves its spot, 45 s is the limit, and a hunter that stands near its
 -- owner's spot long enough finds them and engages with the short re-acquire wind-up.
 local function stepHiding(now)
-	local phase = cycleAt(now).phase
 	for player, record in pairs(records) do
 		local hide = record.hide
 		if hide then
+			local phase = cycleAt(now, hide.x, hide.z).phase
 			local _, _, root = characterContext(player)
 			local h = hunters[player]
 			if not root or root ~= hide.root then
@@ -1294,7 +1298,7 @@ local function addHunter(player)
 		acquireBlockedUntil = 0, discSeen = nil, lunge = Moves.newLunge(), glare = Moves.newGlare(), fake = nil, staggerUntil = 0,
 		stalk = Stalk.new(), stalkQuietUntil = 0 }
 	if flagMisconfigured then FairStrike.count(h.ledger, "flagMisconfigured") end
-	h.ambushNextAt = now + Ambush.nextDelay(cycleAt(now).phase, h.rng:NextNumber())
+	h.ambushNextAt = now + Ambush.nextDelay(cycleAt(now, body.Position.X, body.Position.Z).phase, h.rng:NextNumber())
 	-- Look pass: artScale is the art scale in use; a tuned Silueta.VISUAL_SCALE rescales the art live (art only).
 	if Visual then
 		local ok, adapter = pcall(function()

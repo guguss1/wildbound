@@ -77,6 +77,25 @@ function BiomeLight.presetAt(x, z)
 	return "Hub", BiomeLight.PRESETS.Hub
 end
 
+-- CF1 (user, 2026-11-15, "Bosque siempre de noche"; odd/tasks/wildbound-caramelo.md): the gameplay phase of each
+-- preset. No global cycle, but the forest and the other dark biomes play by Night rules always (La Silueta's night
+-- profile and brain row, doubled beast odds, the islands' night wake, the night ambush timer); Caramelo, the hub,
+-- Montañas and the dusk-looking biomes play by Day rules. Dusk and Dawn never happen: a dusk look is only a look.
+BiomeLight.RULES = freeze({
+	Forest = "Night", Abyss = "Night", Caves = "Night",
+	Caramelo = "Day", Hub = "Day", Mountains = "Day", Swamp = "Day", Cemetery = "Day", Volcanic = "Day",
+})
+-- The clock time those rules read (the islands' deep sleep is 11:00-13:00, so neither is in it).
+BiomeLight.RULES_CLOCK = freeze({ Day = 14, Night = 0 })
+
+-- phaseAt(x, z) -> phase, clockTime: the gameplay phase of the place a flat point stands in (the hub's Day between
+-- biomes or for a bad point). Servers key it on the position of the player or entity a rule concerns.
+function BiomeLight.phaseAt(x, z)
+	local name = BiomeLight.presetAt(x, z)
+	local phase = BiomeLight.RULES[name] or "Day"
+	return phase, BiomeLight.RULES_CLOCK[phase]
+end
+
 -- target(Atmosphere, name, serverZone, reduced, variant) -> the WildboundAtmosphere target for a preset, with `tint`
 -- (the variant's, when the preset takes variants, times the preset's), saturation, contrast and lift. An unknown
 -- preset reads as the hub's.

@@ -139,6 +139,8 @@ DEFAULT_MAPPINGS = [
     # odd/tasks/wildbound-caramelo.md CA4: fixed light per biome (no global day/night cycle)
     ("src/wildbound/WildboundBiomeLight.luau", "ReplicatedStorage.WildboundBiomeLight"),
     ("tests/WildboundBiomeLight_Test.luau", "ServerStorage.WildboundBiomeLight_Test"),
+    # CF1 (odd/tasks/wildbound-caramelo.md): the per-place gameplay phase.
+    ("tests/WildboundPlacePhase_Test.luau", "ServerStorage.WildboundPlacePhase_Test"),
     # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
     ("src/wildbound/WildboundHide.luau", "ServerScriptService.WildboundHide"),
     ("tests/WildboundHide_Test.luau", "ServerStorage.WildboundHide_Test"),

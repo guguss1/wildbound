@@ -411,6 +411,84 @@ Receipts: `assets/exports/caramelo/upload-receipts.md`.
     (35 errors on the first full run, fixed). Final full run: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
   - Commit 91e29d7.
 
+## Follow-up CF (2026-11-15): the forest plays by night rules
+
+User intent (2026-11-15): no global day/night cycle; Caramelo always bright; "Bosque siempre de noche": the forest is
+always dark AND plays by night rules. After CA4, `Rules.cycle()` was hard-wired to Day, so in the forest La Silueta used
+her Day profile, beast odds were no longer doubled, island parents lost their night pattern; only gather, stalk, Night
+Nose and audio keyed on `FOREST_CONTENT_PHASE`. The user asked not to be stopped by decisions: each one taken for them
+is listed below.
+
+- [x] CF1 Per-place gameplay phase: one pure `BiomeLight.phaseAt(x, z)` routed through every server phase reader,
+  keyed by the position of the player or entity concerned; Nightbloom gets its own wilt timer. Route: inline (writer
+  trigger fired: 2+ non-trivial files; kept inline because every Studio write needs the parent's fingerprint gate).
+  TDD strict. Commit: see Evidence CF1.
+- [ ] CF2 (assigned by the follow-up workflow; not part of this task).
+- [ ] CF3 (assigned by the follow-up workflow; not part of this task).
+- [ ] CF4 (assigned by the follow-up workflow; not part of this task).
+
+### Decisions taken for the user
+
+1. **Where the phase function lives:** `BiomeLight.phaseAt(x, z) -> phase, clockTime` in the shared, pure
+   `ReplicatedStorage.WildboundBiomeLight`, next to the light presets and the biome squares (already kept equal to
+   `WildboundBiomes` by a suite), so the look and the rules of a place come from one table (`BiomeLight.RULES`). Not
+   in `WildboundWorldRules`, which stays free of requires and would have needed a third copy of the squares.
+2. **Per-place rules:** Bosque (forest square, incl. the I3 swamp island inside it), Abismo, Cuevas = **Night**;
+   Caramelo, hub (and anything between biomes or a bad point), Montañas = **Day**.
+3. **Dusk-look biomes (Pantano, Cementerio, Volcán) play by Day rules.** Their dusk is a look only; a permanent Dusk
+   phase would fire "night is coming" warnings forever and a permanent x1.25 beast buff.
+4. **Dusk stays disabled.** No place resolves to Dusk or Dawn; `Heist.stepDusk` keeps reading the fixed world phase
+   (`islandCycle()` with no island = `Rules.cycle()`, Day), so its warnings and buff are inert. Code kept for the
+   tuning schema and MechanicsWiring pins.
+5. **Rules clock:** Night = 0, Day = 14 (`BiomeLight.RULES_CLOCK`), both outside the islands' 11:00-13:00 deep sleep:
+   forest parents never get the noon deep sleep (it was a daytime rule).
+6. **What each system keys on:** La Silueta's profile, brain row (hunt, sight, memory) and hearing = her own body's
+   position; hide discovery = the hiding spot; first ambush timer = her spawn body (later timers use her step's phase);
+   beast odds, Dusk buff and Nube night range = the player's position; island content, wake radius, sleep = the
+   island's nest position. The world snapshot's `phase` (unused by clients since CA4) reads the hub's Day.
+7. **Gather / Nightbloom:** keep the forest's night gather table (Nightbloom always rollable), but a Nightbloom node
+   now wilts on its own timer, `GatherField.NIGHT_ONLY_SECONDS` = 300 s after it appeared (the old Night length), and
+   its place refills after the normal respawn. Before CA4 Nightbloom existed ~42% of the time (300 s of 720 s); now it
+   can roll at any time, so Nightbloom income rises (not rebalanced: flagged as a balance risk to measure). Prompt
+   text changed from "se marchita al amanecer" to "se marchita pronto".
+8. **Not changed:** `Rules.WORLD_PHASE`/`FOREST_CONTENT_PHASE` stay (other readers and pins use them); client
+   presentation keeps the local biome mood from CA4.
+
+### Evidence CF1
+
+- Studio instance ba5a21af (place 122652861404212, Edit, PlayLock nil). Before any write every touched Source matched
+  HEAD a81d3f0 (bytes, Adler-32): BiomeLight 5606 51e7ffb7, World 82337 72413b84, Server 209254 05a7ec58,
+  Beasts.server 46644 2cc56627, GatherField 5231 1100d6d5, Gather 7684 b5df3234, Text 36797 ee13000e, BeastWiring_Test
+  49386 cb8a4f24, HideWiring_Test 9408 96495e78, GatherField_Test 10518 ceff143b. No pull was needed.
+- New suite `tests/WildboundPlacePhase_Test.luau` (manifest row + pin, runner SPECS). Behavioural cases: the phase of
+  12 points (forest, swamp island, Abismo, Cuevas = Night; Caramelo, hub, Montañas, Pantano, Cementerio, Volcán, bad
+  point, nil = Day); no preset has Dusk/Dawn rules and no rules clock is in the deep sleep; La Silueta's
+  `resolveCreatureProfile` 8/38 in the forest fog vs 6/28 in Caramelo and the forest brain row equal to Night's;
+  `Director.multiplier` 2 in the forest vs 1 in Caramelo and a real beast's `Director.chance` exactly doubled; every
+  island Night with its `wakeNight` radius; `Ambush.nextDelay` NIGHT_MIN at home vs DAY_MIN in Caramelo. Plus wiring
+  pins on World, Server and Beasts. `WildboundGatherField_Test` gained the CF1 own-timer case and a wiring case.
+- RED (fresh loader: the runner engine from `tools/studio-fresh-runner.luau` with the touched suites' SPECS, loaded from
+  a temporary ServerStorage StringValue, destroyed after): PlacePhase 0/8 (`BiomeLight.phaseAt missing`), GatherField
+  11/2, BeastWiring 49/1 and HideWiring 13/1 (their CA4 pins re-pointed to the CF1 text).
+- GREEN: PlacePhase 8/0, GatherField 13/0, BeastWiring 50/0, HideWiring 14/0, BiomeLight 7/0, GuardianBrain 26/0,
+  Ambush 12/0, Dusk 9/0, WorldRules 41/0. Regression, the 43 suites whose SPECS read a touched source or module
+  (LumipolArt left out: `inst:` token): 635 passed, 7 failed, all known pre-existing (AN-3, BZ7, ECO-20, EL12, HB-T3,
+  W1, RW5; same list as CA4).
+- Studio == repo after the writes (bytes, Adler-32), all compile: BiomeLight 6799 a7d9899b, World 82980 bc01140d,
+  Server 209852 05c1b896, Beasts.server 46895 a789b8c5, GatherField 5785 03cb8b43, Gather 7757 86bc4999, Text 36792
+  d3cafe78, BeastWiring_Test 49403 30ff545b, HideWiring_Test 9453 38d76c83, GatherField_Test 12203 b30334a5,
+  PlacePhase_Test 8580 5fdadfb9 (new).
+- Solo Play (PlayLock CF1, cleared; Play stopped): `IslandProbe read` phase Night; La Silueta (Patrol at -3,-99)
+  resolves Night at her body; `BeastProbe context` at the forest (60,-60): night = true, multiplier 3.60 (= 2 night x
+  1.2 far x 1.5 danger); in Caramelo (620,-7): night = false, multiplier 1.20; hub: safe, 1.00. Two Nightbloom
+  prompts showed "Nightbloom x1 · se marchita pronto". No script error from the touched scripts (only the usual
+  asset/TexturePack and DataStore messages). A player placed 64 studs from La Silueta saw her close to 36 studs in 4 s
+  while she stayed in Patrol (stalk hold): her night hunt speed and sight were not measured in Play.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Not tested: a Nightbloom node really wilting after 300 s in Play, La Silueta's night hunt speed/sight in a chase,
+  Nube night range in Caramelo (now never night, by design), two players, phone, the economy effect of always-on
+  Nightbloom.
+
 ## Next step
 
 - CA5 close: a two-client lighting check (one in the Bosque,

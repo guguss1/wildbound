@@ -30,7 +30,7 @@ return function(Field, Config, Spawn, source, gatherSource, serverSource)
 			local slot = Spawn.slot(Config, slotId)
 			local node = { id = "Gather:" .. (#made + 1 + (field.serial or 0)), slotId = slotId, zone = slot.zone,
 				material = materialFor and materialFor(#made + 1) or "fogbark", heart = slot.heart == true }
-			assert(field:track(node), "track " .. slotId)
+			assert(field:track(node, now), "track " .. slotId)
 			table.insert(made, node)
 		end
 		field.serial = (field.serial or 0) + #made
@@ -173,6 +173,33 @@ return function(Field, Config, Spawn, source, gatherSource, serverSource)
 		equal(field:count("outside") + field:count("fog") + field:count("territory"), 16, "the common nodes stay")
 		equal(#field:plan(1, 51, sequence()), 0, "a wilted node is replaced only after the respawn time")
 		equal(#field:plan(1, 125, sequence()), 2, "then both places refill")
+	end)
+
+	-- CF1 (odd/tasks/wildbound-caramelo.md): the forest is always night, so no Dawn ever wilts Nightbloom. A night-only
+	-- node now wilts on its own timer, NIGHT_ONLY_SECONDS after it appeared (the old Night length), and its place
+	-- refills after the respawn time like any other.
+	case("CF1 a night-only node wilts on its own timer while the phase stays Night", function()
+		equal(Field.NIGHT_ONLY_SECONDS, 300)
+		local field = newField()
+		local made = fill(field, 1, 10, sequence(), function(index) return index <= 2 and "nightbloom" or "fogbark" end)
+		equal(#made, 18)
+		equal(#field:wilting("Night", 10), 0, "fresh")
+		equal(#field:wilting("Night", 309.9), 0, "just under its life")
+		local list = field:wilting("Night", 310)
+		equal(#list, 2, "both night-only nodes at their life")
+		equal(list[1], made[1].id); equal(list[2], made[2].id)
+		equal(#field:wilting("Night", 10000), 2, "only night-only nodes, never the common ones")
+		equal(#field:wilting("Night"), 0, "no time: the old Night-only rule")
+		for _, id in ipairs(list) do assert(field:release(id, 310, "wilted")) end
+		equal(#field:wilting("Night", 10000), 0, "gone once")
+		equal(#field:plan(1, 311, sequence()), 0, "a wilted node is replaced only after the respawn time")
+		equal(#field:plan(1, 310 + Config.gather.respawnSeconds, sequence()), 2, "then both places refill")
+	end)
+
+	case("CF1 the gather script passes the time to track and wilting", function()
+		assert(type(gatherSource) == "string", "gather source missing")
+		assert(gatherSource:find("field:wilting(phase, now)", 1, true), "wilting gets the time")
+		assert(gatherSource:find("field:track(node, now)", 1, true), "track gets the time")
 	end)
 
 	case("the gather script draws low non-colliding nodes and claims only from a prompt", function()

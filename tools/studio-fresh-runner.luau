@@ -67,6 +67,15 @@ SPECS["WildboundBiomeLight_Test"] = {
 		world = "src:WildboundWorld",
 	},
 }
+SPECS["WildboundPlacePhase_Test"] = {
+	"mod:WildboundBiomeLight",
+	{
+		rules = "mod:WildboundWorldRules", brain = "mod:WildboundGuardianBrain", director = "mod:WildboundBeastDirector",
+		config = "mod:WildboundBeastConfig", island = "mod:WildboundIsland", layout = "mod:WildboundIslandLayout",
+		ambush = "mod:WildboundAmbush",
+	},
+	{ world = "src:WildboundWorld", server = "src:WildboundServer", beasts = "src:WildboundBeasts" },
+}
 SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }
 SPECS["WildboundRouletteService_Test"] = {
 	"mod:WildboundRouletteService", "mod:WildboundRoulette", "mod:WildboundState", "mod:WildboundEconomy",
