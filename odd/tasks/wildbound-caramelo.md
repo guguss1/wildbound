@@ -423,7 +423,11 @@ is listed below.
   keyed by the position of the player or entity concerned; Nightbloom gets its own wilt timer. Route: inline (writer
   trigger fired: 2+ non-trivial files; kept inline because every Studio write needs the parent's fingerprint gate).
   TDD strict. Commit 58220a1.
-- [ ] CF2 (assigned by the follow-up workflow; not part of this task).
+- [x] CF2 Wave gate and egg refresh: a steal hold that would end inside the Warning window is refused when it
+  starts (`WaveClock.holdFits`); the window, `holdAllowed`, `endsAt` and the refresh read the wave's bound end; a
+  held spawn kept through the reroll gets the new wave's expiry; the nest refresh runs through a pure
+  `Island.waveRefill` core. Route: inline (writer trigger fired: 4 non-trivial files; kept inline because every
+  Studio write needs the parent's fingerprint gate). TDD strict. Commit bfdcfbb.
 - [ ] CF3 (assigned by the follow-up workflow; not part of this task).
 - [ ] CF4 (assigned by the follow-up workflow; not part of this task).
 
@@ -453,6 +457,27 @@ is listed below.
    text changed from "se marchita al amanecer" to "se marchita pronto".
 8. **Not changed:** `Rules.WORLD_PHASE`/`FOREST_CONTENT_PHASE` stay (other readers and pins use them); client
    presentation keeps the local biome mood from CA4.
+9. **CF2, when a hold is judged:** at its start, against the hold the server measures (`Gear.stealHold` with the
+   player's glove, the same `need` the trigger uses). Refused when it starts inside a Warning window (this wave's or
+   the one just before the refresh) or would end inside this wave's Warning window. A hold spanning the whole
+   warning (only possible with a hold longer than 10 s) still resolves after the refresh, as in CA4. The Arrullo
+   keeps its start-only check (it is a mini-game, not a timed hold).
+10. **CF2, how the refusal reaches the player:** `Text.WAVE.locked` at once; when the refused player is the prompt's
+   only holder the prompt is disabled for 0.25 s, which cuts the client's hold bar, then re-enabled (an island egg's
+   prompt is re-synced to its nest every island step anyway). With other holders the prompt is left alone so their
+   holds go on. The refused hold is remembered (`refused = true`) so a completed bar never steals.
+11. **CF2, the bound wave end is the one truth:** the refresh (`due`), the window, `holdAllowed`, `holdFits` and
+   `WaveClock.endsAt` read `state.waveEndsAt`, set when the wave starts (= the `waveStarted` event's `endsAt`, the
+   value `SpawnClock.bindWave` gets). A tuned `WAVE_SECONDS` now applies from the next wave, not to the running one
+   (before, a live change shortened the running wave). Dev checks that tune the wave must wait for the current wave
+   to end once.
+12. **CF2, held spawn through the reroll:** it gets the new wave's expiry (`waveEndsAt + WAVE_GRACE`, `waveBound`),
+   as recommended; a special (event) spawn keeps its own life. Before, the step right after the hold ended expired it
+   on the old wave's timer.
+13. **CF2, the refresh core:** `Island.waveRefill(nestState, nestGen, chasing)` in the pure `WildboundIsland` (the
+   server already requires it): empty nests (`wait_wave`, `wait`) get a new generation and open; a chasing island's
+   nest waits for the server's 1 s retry; eggs in a nest, returning crias and the egg registry are never touched.
+   New suite `WildboundNestRefill_Test` rather than widening `WildboundIsland_Test`'s signature.
 
 ### Evidence CF1
 
@@ -489,6 +514,41 @@ is listed below.
 - Not tested: a Nightbloom node really wilting after 300 s in Play, La Silueta's night hunt speed/sight in a chase,
   Nube night range in Caramelo (now never night, by design), two players, phone, the economy effect of always-on
   Nightbloom.
+
+### Evidence CF2
+
+- Studio instance ba5a21af (place 122652861404212, Edit, PlayLock nil). Before any write every touched Source matched
+  HEAD f9b0835 (bytes, Adler-32): Server 209852 05c1b896, Island 24114 f010257c, SpawnClock 15047 53cc9082,
+  WaveClock 13175 19e1e819, SpawnClock_Test 13181 c06393f0, WaveClock_Test 23182 c156cf0e, EggCarry_Test 41622
+  34ea7029. No pull was needed.
+- New cases: WaveClock_Test 3 (holdFits boundaries 286.9/287/289/292/285+20 s, bad input, the refresh; the bound
+  end under a mid-wave tune to 30 s: window Collect at 25, no refresh at 30, wave 2 at 300 ends at 330, its warning
+  at 321; the server wiring), SpawnClock_Test 1 (a held spawn keeps its identity through the reroll, expiresAt
+  301 -> 601, survives the step at 305, leaves at 601; a special keeps 460), new suite `WildboundNestRefill_Test` 5
+  (behavioural: carried, dropped, secured and in-nest eggs, a cria wait, a returning cria and a chasing island; the
+  egg registry deep-equal before/after; a simulated ensureNests spawns only into I2/I3/I4; second call and bad input;
+  the server runs the core). `WildboundEggCarry_Test` HB-T7 pin re-pointed to `{ at = now }`.
+- RED (fresh loader: the runner engine from `tools/studio-fresh-runner.luau` in a temporary ServerStorage StringValue
+  with the touched suites' SPECS, destroyed after): NestRefill 0/5 (`Island.waveRefill missing`), SpawnClock 16/1
+  (expected 601, got 301), WaveClock 24/4 (3 new + known RW5).
+- GREEN: NestRefill 5/0, SpawnClock 17/0, WaveClock 27/1 (known RW5), EggCarry 39/0. Regression, the 34 suites whose
+  SPECS read a touched source or module plus Tuning: 527+12 cases, failures only the known AN-3, BZ7, ECO-20, EL12,
+  HB-T3, W1, RW5 and DT1 (Tuning_Test: schema `Eggs.STEAL_HOLD` 0.8 vs `EggCarry` 0.5; neither file touched here,
+  pre-existing). HB-T7 failed once (the pin) and passes after the re-point.
+- Studio == repo after the writes (bytes, Adler-32), all compile: Server 211002 5ae83f52, Island 25780 8f265def,
+  SpawnClock 15411 1d480bdf, WaveClock 14894 7ae24a28, SpawnClock_Test 14960 9e3fd92a, WaveClock_Test 27254 99df06c4,
+  NestRefill_Test 6917 fcf08c88 (new), EggCarry_Test 41801 8aa7ac11.
+- Solo Play (PlayLock CF2, removed after; Play stopped; dev tuning `World.WAVE_SECONDS` 30 set 3 s after start,
+  restored to 300): wave 1 did not refresh at 30 s (bound end), wave 2 came at 300 s, then waves every 30 s (wave 3
+  at +30.08 s). Island I2: a HeistProbe steal (Egg:61 Carried), the woken parent knocked it loose (Dropped at +1.8 s,
+  gone at +11.3 s with its drop time), and at the next refresh the empty nest got a new egg (Egg:112) while Egg:5
+  and Egg:6 kept their identity. No script error (only the usual DataStore/asset messages).
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Commit bfdcfbb.
+- Not tested: the hold-start refusal through a real prompt in Play (from the Studio client `InputHoldBegin` never
+  fired `PromptButtonHoldBegan`: no prompt was shown to the command-bar client), so the 0.25 s bar cut is untested;
+  a carried egg held across a refresh in Play (the I2 parent always knocked it loose); a held wild spawn across a
+  reroll in Play; two players, phone.
 
 ## Next step
 
