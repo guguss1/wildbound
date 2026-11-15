@@ -153,6 +153,11 @@ SPECS["WildboundBossRobustness_Test"] = {
 	{ beasts = "src:WildboundBeasts", service = "src:WildboundCandyDonGlaseonService", server = "src:WildboundServer" },
 }
 SPECS["WildboundCandyDonGlaseonClips_Test"] = { "mod:WildboundCandyDonGlaseonClips", "inst:ServerStorage.WildboundAssets.DonGlaseon" }
+SPECS["WildboundCandyClipPublish_Test"] = {
+	"mod:WildboundCandyClipPublish", "mod:WildboundCandyTortidragonClips", "mod:WildboundCandyDonGlaseonClips",
+	"inst:ServerStorage.WildboundAssets.Tortidragon", "inst:ServerStorage.WildboundAssets.DonGlaseon",
+	{ tortidragonService = "src:WildboundCandyTortidragonService", donGlaseonService = "src:WildboundCandyDonGlaseonService" },
+}
 SPECS["WildboundBeastDonGlaseon_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastDonGlaseon", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseonAttack",
 	"mod:WildboundBeastDirector", "mod:WildboundPraderaSites",

@@ -549,6 +549,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBossRobustness_Test.luau": "ServerStorage.WildboundBossRobustness_Test",
         "src/wildbound/WildboundCandyDonGlaseonService.server.luau": "ServerScriptService.WildboundCandyDonGlaseonService",
         "src/wildbound/WildboundCandyDonGlaseonAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyDonGlaseonAnim",
+        # CE0 clip publishing kit
+        "tools/WildboundCandyClipPublish.luau": "ServerStorage.WildboundCandyClipPublish",
+        "tests/WildboundCandyClipPublish_Test.luau": "ServerStorage.WildboundCandyClipPublish_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

@@ -416,6 +416,9 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundBossRobustness_Test.luau", "ServerStorage.WildboundBossRobustness_Test"),
     ("src/wildbound/WildboundCandyDonGlaseonService.server.luau", "ServerScriptService.WildboundCandyDonGlaseonService"),
     ("src/wildbound/WildboundCandyDonGlaseonAnim.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyDonGlaseonAnim"),
+    # CE0: the kit the owner uses to publish Tortidragon's and Don Glaseon's clips to the group
+    ("tools/WildboundCandyClipPublish.luau", "ServerStorage.WildboundCandyClipPublish"),
+    ("tests/WildboundCandyClipPublish_Test.luau", "ServerStorage.WildboundCandyClipPublish_Test"),
 ]
 
 

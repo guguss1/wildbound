@@ -621,6 +621,82 @@ is listed below.
   player); that the write at summon comes from `start` rather than the snapshot is shown by the wiring order only
   (Play showed the same-frame hide, which either write gives); two players, phone.
 
+## Follow-up CE (2026-11-15): Caramelo eggs, pets and portals
+
+User intent (2026-11-15): explain what publishing the Tortidragón / Don Glaseón clips to the group is for and how it is
+done; make Caramelo nests steal-able; give Gomibú, Flanfuria and Tortidragón an egg, a farm version and a hotbar icon;
+start T08b (return portals, `odd/tasks/wildbound-2-0.md`). Authorized for this batch: one 256x256 hotbar icon upload each
+for Gomibú, Flanfuria and Tortidragón. No other upload, no publishing, no place save, no monetization. The user asked not
+to be stopped by decisions: each one taken for them is listed below. TDD strict (fresh loader in Studio).
+
+- [x] CE0 Clips ready for the owner to publish: every Tortidragón and Don Glaseón clip built as a KeyframeSequence into
+  `ServerStorage.WildboundPublishClips.<Creature>.<Clip>` with a Spanish README; pure helper
+  `WildboundCandyClipPublish` (pending, parseId, idsSource, build); no upload. Route: inline (one new module + suite,
+  manifest/runner rows; no trigger fired). TDD strict. Commit COMMIT_CE0.
+- [ ] CE1 (assigned by the follow-up workflow).
+- [ ] CE2 (assigned by the follow-up workflow).
+- [ ] CE3 (assigned by the follow-up workflow).
+
+### CE0: qué es publicar las animaciones y cómo se hace
+
+**Para qué sirve (sí se ve en el juego).** La experiencia pertenece al grupo 465694015. Roblox solo deja reproducir una
+animación si su dueño es el mismo que el de la experiencia. Las que el asistente sube quedan a nombre del usuario, así
+que en el juego no cargan: Tortidragón y Don Glaseón ya atacan, persiguen y hacen daño, pero se mueven rígidos, en pose
+de reposo (sin caminar, sin telegrafiar el ataque con el cuerpo, sin rugido). Publicadas a nombre del grupo, se animan.
+No es un trámite de Studio: es lo que hace que se vean vivos.
+
+**Pasos (unos 10 minutos, 22 animaciones):**
+
+1. Studio en modo Edit (no Play), en la place 122652861404212.
+2. Explorer > ServerStorage > `WildboundPublishClips` > `Tortidragon` (luego `DonGlaseon`). Ahí está cada animación
+   con el nombre de su clip (`Idle`, `Walk_Quadruped`, ...) y un `README` con estos mismos pasos.
+3. Clic derecho en una animación > **Save to Roblox** (Guardar en Roblox).
+4. En la ventana: **Creator = el grupo** (no tu usuario). Nombre sugerido `Tortidragon_<clip>` / `DonGlaseon_<clip>`.
+   Submit.
+5. Copia el id del final (el número o el enlace: los dos sirven).
+6. Repite con las 11 de cada criatura.
+7. Pásale los 22 ids al asistente (en cualquier formato: "Idle 1234...", enlaces, rbxassetid://...). Él los pone en
+   `Clips.IDS` de `WildboundCandyTortidragonClips` y `WildboundCandyDonGlaseonClips`, corre las suites y prueba en Play.
+   Los servicios ya leen `Clips.IDS`: no hace falta tocar nada más.
+
+Si la carpeta no está (Studio se cerró sin guardar), el asistente la vuelve a crear con `Publish.build` en un paso.
+
+### Decisions taken for the user (continued)
+
+19. **CE0, where the clips wait:** `ServerStorage.WildboundPublishClips` (server-only, never replicated, read by no
+   service), one folder per creature, each KeyframeSequence named exactly as its clip key, built by the same
+   `Clips.build` the clip suites check, so what the owner publishes is what the data says.
+20. **CE0, the services are not touched:** both services already set `Clip_<name>` from `Clips.IDS` for every id
+   present, and both clients already play `Clip_<name>`; a suite case pins that line in both sources and checks that a
+   pasted id becomes `rbxassetid://<id>` and leaves the pending list.
+21. **CE0, the helper:** `WildboundCandyClipPublish` in ServerStorage (a tool, like the Clips modules): `pending`
+   (clips still without an id), `parseId` (a number, `rbxassetid://`, or a roblox.com / create.roblox.com link),
+   `idsSource` (the exact `Clips.IDS = { ... }` line, in ORDER, refusing unknown clips and non-ids), `build`
+   (idempotent; keeps any other child the owner adds).
+22. **CE0, not saved by the assistant:** the folder lives in the open session (no place save in this batch). If it is
+   lost, `Publish.build` recreates it in one call. README text without accents (plain ASCII in a StringValue).
+
+### Evidence CE0
+
+- Studio target: place 122652861404212 (universe 10774749224); was in Play at start, polled until Edit (about 2 min),
+  PlayLock nil, runner lock nil.
+- Fingerprints before (Studio == HEAD): TortidragonClips 11124 401e2982, DonGlaseonClips 11370 4b5f62c4,
+  TortidragonService 1629 73453c80, DonGlaseonService 3779 540626e8; new scripts absent.
+- RED (fresh loader: trimmed `tools/studio-fresh-runner.luau` with these three SPECS, in a temporary ServerStorage
+  ModuleScript holder, destroyed after; module deployed as an empty stub): ClipPublish 0/6 (every case "attempt to call
+  a nil value").
+- GREEN: ClipPublish 6/0. TortidragonClips 8/1 and DonGlaseonClips 6/1: the one failure each is the known "every clip
+  is published" case (empty `Clips.IDS`, the owner action below), unchanged.
+- Studio == repo after the writes: WildboundCandyClipPublish 5175 1841ab03, WildboundCandyClipPublish_Test 6048
+  d53d935a.
+- Built in Studio: `ServerStorage.WildboundPublishClips` = README (1089 chars) + Tortidragon (Idle, Walk_Quadruped,
+  Run_Quadruped, Turn, Alert, Attack_Telegraph, Attack_Release, Attack_Recover, HitReact, FarmIdle, HatchReact) +
+  DonGlaseon (Idle_Breath, Patrol_Walk, Chase_Run, Notice, Search, Attack_Telegraph_Licorice, Attack_Release_Licorice,
+  Attack_Recover_Licorice, HitReact_ImmuneBat, LoseTarget, Roar_Visual), keyframe counts equal to each clip's keys.
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- No upload. Play not run: the folder is server-only data read by no script, nothing in Play changes until ids exist.
+- Not tested: the "Save to Roblox" dialog itself (owner action) and the clips playing in the game (needs the ids).
+
 ## Next step
 
 - CA5 close: a two-client lighting check (one in the Bosque,
