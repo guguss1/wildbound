@@ -279,6 +279,8 @@ local TELL_COLOR = {
 	Lurker = Color3.fromRGB(255, 70, 200), Scuttler = Color3.fromRGB(255, 60, 40),
 	-- Kids biome: the Nube's ring in sun yellow, the Abeja's lane in honey; never red.
 	NubeGrunona = Color3.fromHex("FFD23F"), AbejaReina = Color3.fromHex("F2A33A"),
+	-- Caramelo biome (CA2): Tortidragon's fan and circles in candy yellow, which reads on the pink floor.
+	Tortidragon = Color3.fromHex("FFD23F"),
 }
 -- Kids biome: their own sounds (catalogue slots only; never chaseMusic, heartbeat, roar or stinger).
 local KIDS_PHASE_SOUND = {
@@ -402,8 +404,18 @@ local function drawShape(model, shape, color, raised)
 		end
 	elseif kind == "multi" then
 		-- Root's lanes: each split into `segments` cracked pieces of the drawn width (raised as roots on the eruption).
+		-- Caramelo biome (CA2): Tortidragon's three landing circles, each a disc and a ring like a single circle.
 		local segments = shape.segments or 1
+		for c, circle in ipairs(shape.list or {}) do
+			if circle.kind == "circle" then
+				local disc = piece(model, "Disc" .. c, Vector3.new(0.12, circle.r * 2, circle.r * 2),
+					CFrame.new(circle.x, circle.y + 0.1, circle.z) * CFrame.Angles(0, 0, math.pi / 2), color, 0.5)
+				disc.Shape = Enum.PartType.Cylinder
+				ring(model, circle.x, circle.y + 0.14, circle.z, circle.r, color, 0.05)
+			end
+		end
 		for l, lane in ipairs(shape.list or {}) do
+			if lane.kind ~= "lane" then continue end
 			local step = lane.length / segments
 			for s = 1, segments do
 				local a = Vector3.new(lane.ox + lane.dx * (s - 1) * step, lane.oy, lane.oz + lane.dz * (s - 1) * step)
@@ -698,7 +710,7 @@ end
 function handlers.Strike(ev, view)
 	local item = view.wave2 and view.tells[ev.tell]
 	if not item then return end
-	if item.shape.kind == "multi" then
+	if item.shape.kind == "multi" and item.shape.list and item.shape.list[1] and item.shape.list[1].kind == "lane" then
 		-- Root's eruption: the roots rise on the drawn lanes, then sink.
 		drawShape(item.model, item.shape, TELL_COLOR.Root, true)
 		soften(view, item.model)

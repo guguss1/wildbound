@@ -218,7 +218,10 @@ always bright, the forest always dark; eggs refresh every 300 s.
 - [x] CA0 Discovery and plan (this document). Route: inline, read-only (Studio reads, repo reads).
 - [x] CA1 Flanfuria finished: Studio work pulled, suites green, pack contract checked, solo Play. Route: inline
   (13 scripts pulled byte-exact; no new behaviour written, so no RED: every suite was already GREEN). Commit 1de89f3.
-- [ ] CA2 Tortidragón: Blender source, model + 11 clips uploaded, modules, brain, wiring, suites, Play.
+- [ ] CA2 Tortidragón: Blender source, model + 11 clips uploaded, modules, brain, wiring, suites, Play. Route: inline
+  (writer trigger fired; kept inline because every Studio write needs the parent's fingerprint gate). PARTIAL: model, rig,
+  attack, brain, wiring, suites and solo Play done; the 11 clips are data + built in Studio but NOT published (blocked, see
+  Evidence CA2). Commit: see Evidence.
 - [ ] CA3 Don Glaseón: Blender source, model + 11 clips uploaded, modules, boss brain, wiring, suites, Play.
 - [ ] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated.
 - [ ] CA5 Close: Python suite, Play pass, overview rows, commit.
@@ -227,7 +230,11 @@ always bright, the forest always dark; eggs refresh every 300 s.
 
 | Id | What | Task | Receipt |
 |---|---|---|---|
-| (none yet) | | | |
+| 103052975067537 | Tortidragon Model v1 (FBX `assets/exports/caramelo/tortidragon-v1.fbx`, 24 bones, 10 skinned meshes), user 11937129310 | CA2 | op 0a15dba5-c97e-4c2b-b33b-7e6d1b233aa5, Approved |
+| 115362506833585 | Tortidragon Animation Idle (hand-written rbxmx), user-owned: UNUSED, cannot load in the group universe | CA2 | op 0f826065-7e87-46ca-bd97-62af9d63a157 |
+| 81874477774437 | Tortidragon Animation Idle v2 (Studio-serialized rbxm), user-owned: UNUSED, cannot load in the group universe | CA2 | op c58601e8-80e5-4cff-ab07-e61bb18032e3 |
+
+Receipts: `assets/exports/caramelo/upload-receipts.md`.
 
 ## Acceptance criteria
 
@@ -268,6 +275,41 @@ always bright, the forest always dark; eggs refresh every 300 s.
   - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept; `test_studio_fresh_runner` and
     `test_deploy_manifest` OK. Not tested: two players, phone, farm Flanfuria in Play (no farm Flanfuria exists).
 
+- CA2 (2026-11-15): Tortidragón.
+  - Blender source `assets/blender/caramelo/tortidragon/build_tortidragon.py` (own scene "Tortidragon"; 24 bones, 10
+    one-colour meshes, every vertex rigidly skinned to one bone, no mesh named like a bone, no side emblem). Uploaded as Model
+    103052975067537; InsertService import kept all 24 bones; `Tortidragon.assemble` built `ServerStorage.WildboundAssets.Tortidragon`
+    (height 10.62 studs, faces -Z, one box hitbox 3.4x5.4x6.4, root anchored). Raw import kept at `ServerStorage.TortidragonImport_v1`.
+  - New: `tools/WildboundCandyTortidragon(.luau, Attack, Clips)`, `src/wildbound/WildboundBeastTortidragon.luau`,
+    `WildboundCandyTortidragonService.server.luau`, `WildboundCandyTortidragonAnim.client.luau`, 4 suites. Wiring: BeastConfig
+    (Tortidragon entry, WAVE2, SUMMONED), Beasts.server KIDS, PraderaSites post `candyNestC3` (510, -143), Text lines,
+    BeastsClient draws a `multi` of circles + Tortidragon tell colour FFD23F; Wiring and CandyBeastSites suites extended.
+    Manifest rows + pins (10), runner SPECS (4).
+  - Attack Abanico de Confites: fan 55 deg / 12 studs, tell 1.00 s, lock 0.60 s, 3 circles r2.3 (side shots 20 deg), flight
+    0.65 s, impact at 1.65 s (one hit per player), push 4 studs/0.3 s + slow x0.85 0.8 s, damage 0, keepsEgg, recover 0.85 s,
+    cooldown 7 s, no cast at a target behind or beside it (turns at 240 deg/s first). Patrol 10, chase 16, sight 22, leash 35.
+  - TDD (fresh loadstring+setfenv loader): RED Attack (module missing) -> GREEN 7/7; Prefab RED 0/6 -> GREEN 6/6; Clips 8/9
+    (the published-ids case stays RED: no clip ids); Brain RED (module + config missing) -> GREEN 9/9; CandyBeastSites 9/9;
+    BeastWiring 49/49; regression Attack 13, Director 47, Encounters 24, Gomibu 9, Flanfuria 10, CandyFlanfuria 7, CandyGomibu 7: 117/0.
+  - Studio == repo after the writes (bytes, Adler-32): BeastConfig 29446 2640d5b2, Beasts.server 45050 60b3562e, PraderaSites
+    4748 10e63213, Text 36126 4aaa21a1, BeastsClient 50938 d27b6bc3, BeastWiring_Test 48219 f5a9c8dd, CandyBeastSites_Test
+    10093 3023c442, CandyTortidragon 4295 b3808eb0 (+_Test 6795 9d178129), Attack 6259 74f8fab1 (+_Test 5875 57230cbc), Clips
+    11124 401e2982 (+_Test 10341 eb89c78c), BeastTortidragon 7825 8c2f0bc4 (+_Test 9339 95b99dc5), Service 1629 73453c80,
+    Anim 5124 1207a30b. Studio was checked equal to HEAD before writing (no other session's changes).
+  - Solo Play (PlayLock CA2, cleared; Play stopped): at the post the dragon went Release -> Recover -> Chase with the three
+    candies flying; a hit took WalkSpeed 16 -> 13.60 (x0.85) and back; a sidestep of 8 studs after the lock: no slow (dodge
+    works); a player past its reach left it waiting at the 35-stud leash. Screenshots `assets/exports/forest-kit/captures/`
+    `ca2-tortidragon-fan-circles-pink-floor-desktop.jpg` (yellow fan + circles on the pink floor), `ca2-tortidragon-model-side-desktop.jpg`.
+  - BLOCKED, clips: the universe 10774749224 is owned by group 465694015. Animations uploaded as user 11937129310 fail with
+    "Requester does not have permission for Asset" in Edit and in Play (Flanfuria's clips are group-owned). The Assistant token
+    refuses group uploads (403 "User not authenticated") and lacks `asset-permissions:write` to grant the universe Use. So the
+    11 clips are not published; Clips.IDS is empty and the model plays no animation (it moves and attacks in its rest pose).
+    The 11 KeyframeSequences build in Studio (1350 poses); `clips_to_rbxmx.py` mirrors them (checksum 98747.9572 vs Studio
+    98747.9572). Studio-serialized Idle rbxm at `assets/exports/caramelo/tortidragon-clips-rbxm/`.
+  - Python: 1195 tests, 1 failure = known `test_lumipol_v2` V1IsKept. Not run: WildboundText_Test, two players, phone.
+
 ## Next step
 
-CA2 Tortidragón: Blender source, model + 11 clip uploads, modules on the Gomibu/Flanfuria pattern.
+Owner action for CA2 clips: either grant the Assistant group upload rights (asset:write for group 465694015) or the
+`asset-permissions:write` scope, or publish the 11 clips to the group from Studio; then fill Clips.IDS and rerun the Clips
+suite and a Play check. Meanwhile CA3 Don Glaseón (same blocker applies to its clips).

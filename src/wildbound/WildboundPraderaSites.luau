@@ -18,11 +18,15 @@ Sites.OFFSETS = table.freeze({
 	plaza = table.freeze({ x = -40, z = 14 }),
 })
 -- Which site each summoned beast lives at.
-Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1" })
+Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1",
+	Tortidragon = "candyNestC3" })
 -- Caramelo biome: sites given in world coordinates, which never move with the sector origin. candyNest is the open
 -- floor beside candy nest C1 (the nest itself is at 452, -21), the first one past the biome entrance: Gomibu's post.
 -- candyNestR1 is open floor 11 studs from candy nest R1 (534, -33), away from the main path: Flanfuria's post.
-Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }) })
+-- candyNestC3 is open floor about 14 studs from candy nest C3 (522, -135), the furthest point from the routes that keeps
+-- the 35-stud leash on the plot and off the boss ground: Tortidragon's post.
+Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
+	candyNestC3 = table.freeze({ x = 510, z = -143 }) })
 
 -- The sector origin: the given pivot ({x, z} or a Vector3-like with X/Z) when finite, else the Meadow centre.
 function Sites.origin(pivot)
@@ -54,7 +58,7 @@ function Sites.wants(name, ctx)
 	if name == "NubeGrunona" then
 		return distance <= (ctx.night == true and T.NightWakeRadiusStuds or T.WakeRadiusStuds)
 	end
-	if name == "Gomibu" or name == "Flanfuria" then return distance <= T.WakeRadiusStuds end
+	if name == "Gomibu" or name == "Flanfuria" or name == "Tortidragon" then return distance <= T.WakeRadiusStuds end
 	return ctx.eventOpen == true and distance <= T.WakeRadiusStuds
 end
 

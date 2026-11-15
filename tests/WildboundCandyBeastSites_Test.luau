@@ -109,7 +109,7 @@ return function(Layout, Sites, Config, marker, biome)
 
 	-- T3, T4: the candy guardians live at fixed posts beside a nest (Sites.FIXED), which the marker above never moves.
 	case("T4: each candy guardian is summoned only near its own fixed post, and the posts do not move with the marker", function()
-		for _, name in ipairs({ "Gomibu", "Flanfuria" }) do
+		for _, name in ipairs({ "Gomibu", "Flanfuria", "Tortidragon" }) do
 			local key = Sites.HOME[name]
 			assert(key and Sites.FIXED[key], name .. " has no fixed post")
 			local post, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
@@ -125,17 +125,26 @@ return function(Layout, Sites, Config, marker, biome)
 			equal(wants(0, { safe = true }), false, name .. " for a safe player"); equal(wants(0, { meadow = false }), false, name .. " outside the biome")
 			equal(wants(0, { alive = false }), false, name .. " for a dead player")
 		end
-		assert(Sites.HOME.Gomibu ~= Sites.HOME.Flanfuria, "the two guardians share a post")
-		local a, b = Sites.world(nil, Sites.HOME.Gomibu), Sites.world(nil, Sites.HOME.Flanfuria)
-		local leashes = Config.BEASTS.Gomibu.tuning.LeashStuds + Config.BEASTS.Flanfuria.tuning.LeashStuds
-		assert(Layout.flat(a.x, a.z, b.x, b.z) >= leashes, "the two guardians can reach each other's ground")
+		-- CA2: no two guardians share a post or can reach each other's ground
+		local guardians = { "Gomibu", "Flanfuria", "Tortidragon" }
+		for i = 1, #guardians do
+			for j = i + 1, #guardians do
+				local one, two = guardians[i], guardians[j]
+				assert(Sites.HOME[one] ~= Sites.HOME[two], one .. " and " .. two .. " share a post")
+				local a, b = Sites.world(nil, Sites.HOME[one]), Sites.world(nil, Sites.HOME[two])
+				local leashes = Config.BEASTS[one].tuning.LeashStuds + Config.BEASTS[two].tuning.LeashStuds
+				assert(Layout.flat(a.x, a.z, b.x, b.z) >= leashes, one .. " and " .. two .. " can reach each other's ground")
+			end
+		end
 	end)
 
-	case("T4: Flanfuria's post is open floor beside a nest, off the routes and off the boss ground even at the end of its leash", function()
+	-- T4 Flanfuria, CA2 Tortidragon: the same rules for both posts.
+	for _, name in ipairs({ "Flanfuria", "Tortidragon" }) do
+	case("T4: " .. name .. "'s post is open floor beside a nest, off the routes and off the boss ground even at the end of its leash", function()
 		assert(biome and biome:FindFirstChild("Ground"), "no live candy biome given")
-		local w = Sites.world(nil, Sites.HOME.Flanfuria)
+		local w = Sites.world(nil, Sites.HOME[name])
 		local post = { x = w.x - Layout.CENTRE.x, z = w.z - Layout.CENTRE.z }
-		local T = Config.BEASTS.Flanfuria.tuning
+		local T = Config.BEASTS[name].tuning
 		assert(nearestNest(post) >= 8 and nearestNest(post) <= 16, "the post is " .. nearestNest(post) .. " studs from the nearest nest")
 		assert(Layout.depth(post.x, post.z) >= T.LeashStuds, "its leash leaves the plot")
 		assert(Layout.flat(post.x, post.z, Layout.BOSS.x, Layout.BOSS.z) >= Layout.BOSS.territoryRadius + T.LeashStuds, "its leash reaches the boss ground")
@@ -146,6 +155,7 @@ return function(Layout, Sites, Config, marker, biome)
 			assert(hit and hit.Instance == biome.Ground.Floor, "the post is under or inside " .. (hit and hit.Instance:GetFullName() or "nothing"))
 		end
 	end)
+	end
 
 	return result
 end

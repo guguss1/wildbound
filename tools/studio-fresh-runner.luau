@@ -122,6 +122,12 @@ SPECS["WildboundCandyFlanfuriaClips_Test"] = { "mod:WildboundCandyFlanfuriaClips
 SPECS["WildboundBeastFlanfuria_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastFlanfuria", "mod:WildboundBeastConfig", "mod:WildboundCandyFlanfuriaAttack",
 }
+SPECS["WildboundCandyTortidragon_Test"] = { "mod:WildboundCandyTortidragon", "inst:ServerStorage.WildboundAssets.Tortidragon" }
+SPECS["WildboundCandyTortidragonAttack_Test"] = { "mod:WildboundCandyTortidragonAttack" }
+SPECS["WildboundCandyTortidragonClips_Test"] = { "mod:WildboundCandyTortidragonClips", "inst:ServerStorage.WildboundAssets.Tortidragon" }
+SPECS["WildboundBeastTortidragon_Test"] = {
+	"mod:WildboundBeastEncounters", "mod:WildboundBeastTortidragon", "mod:WildboundBeastConfig", "mod:WildboundCandyTortidragonAttack",
+}
 SPECS["WildboundBeastSight_Test"] = { "mod:WildboundBeastSight", "src:WildboundBeastSight", "mod:WildboundBiomes" }
 SPECS["WildboundBeastStreamer_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastStreamer", "mod:WildboundBeastConfig", "src:WildboundBeastStreamer",

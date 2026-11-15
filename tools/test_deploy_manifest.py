@@ -521,6 +521,17 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundBeastFlanfuria_Test.luau": "ServerStorage.WildboundBeastFlanfuria_Test",
         "src/wildbound/WildboundCandyFlanfuriaService.server.luau": "ServerScriptService.WildboundCandyFlanfuriaService",
         "src/wildbound/WildboundCandyFlanfuriaAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyFlanfuriaAnim",
+        # CA2 Tortidragon
+        "tools/WildboundCandyTortidragon.luau": "ServerStorage.WildboundCandyTortidragon",
+        "tests/WildboundCandyTortidragon_Test.luau": "ServerStorage.WildboundCandyTortidragon_Test",
+        "tools/WildboundCandyTortidragonAttack.luau": "ServerStorage.WildboundCandyTortidragonAttack",
+        "tests/WildboundCandyTortidragonAttack_Test.luau": "ServerStorage.WildboundCandyTortidragonAttack_Test",
+        "tools/WildboundCandyTortidragonClips.luau": "ServerStorage.WildboundCandyTortidragonClips",
+        "tests/WildboundCandyTortidragonClips_Test.luau": "ServerStorage.WildboundCandyTortidragonClips_Test",
+        "src/wildbound/WildboundBeastTortidragon.luau": "ServerScriptService.WildboundBeastTortidragon",
+        "tests/WildboundBeastTortidragon_Test.luau": "ServerStorage.WildboundBeastTortidragon_Test",
+        "src/wildbound/WildboundCandyTortidragonService.server.luau": "ServerScriptService.WildboundCandyTortidragonService",
+        "src/wildbound/WildboundCandyTortidragonAnim.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyTortidragonAnim",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
