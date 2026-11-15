@@ -311,6 +311,7 @@ Studio matches the repo for both (Toolbar 12504/3128789211, Text 35833/424986113
 
 Open for the user:
 
-- Whether the trained walk should also apply while carrying. It does now: about 34 at the top level, against La Silueta 17-18 and the parents 19.
+- Decided 2026-11-14 ("Que valga con huevo"): the trained walk also applies while carrying. Kept as built in PF2.
+- (was open) Whether the trained walk should also apply while carrying. It does now: about 34 at the top level, against La Silueta 17-18 and the parents 19.
 - Retuning the threats.
 - The Lumipol icon upload (needs approval).
