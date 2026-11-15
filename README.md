@@ -244,6 +244,12 @@ Each file is one feature: objective, scope, a checklist with task IDs, evidence 
 | File | What it tracks |
 | --- | --- |
 | [wildbound-capture-extraction-horror.md](odd/tasks/wildbound-capture-extraction-horror.md) | **Main log.** Deliveries A to E, dread, chase and fear passes, Nest Heist phases 1 to 4a, hub, forest shift, Edit visibility pass, generated Lumipol. Some early checkboxes (D, D3, D4) were never ticked although later sections built stamina |
+| [wildbound-caramelo.md](odd/tasks/wildbound-caramelo.md) | Caramelo biome: Flanfuria, Tortidragon, Don Glaseon (CA), egg waves and fixed light per biome (CA4), the forest's night rules (CF), nests, pets and portals (CE), candy egg looks (CG); numbered decisions taken for the user |
+| [wildbound-playtest-fixes.md](odd/tasks/wildbound-playtest-fixes.md) | 2026-11-14 playtest fixes PF0 to PF7: one backpack, treadmill, creature hotbar, saved farm (schema 5), hub roulette (schema 6), farm wander, hotbar icon |
+| [wildbound-scuttler.md](odd/tasks/wildbound-scuttler.md) | Shared beast visibility (SC0) and the Scuttler (SC1 to SC12) |
+| [wildbound-kids-beasts.md](odd/tasks/wildbound-kids-beasts.md) | La Nube Gruñona, La Abeja Reina and global beasts with no biome preference |
+| [wildbound-suite-repair.md](odd/tasks/wildbound-suite-repair.md) | Stale Studio suites after the live sync, their classification and the owner's decisions |
+| [wildbound-2-0.md](odd/tasks/wildbound-2-0.md) | Wildbound 2.0 balance config, economy simulator and roulette table (mostly offline) |
 | [wildbound-first-playable.md](odd/tasks/wildbound-first-playable.md) | Original P0 first playable and Silueta rig work. Its P0-1 to P0-7 checklist was not updated after later features superseded it |
 | [wildbound-waves.md](odd/tasks/wildbound-waves.md) | Delivery waves W0 to W17 toward F1, F2 and expansion |
 | [wildbound-new-mechanics.md](odd/tasks/wildbound-new-mechanics.md) | The five prepared mechanics modules (RED/GREEN pending Studio) |
