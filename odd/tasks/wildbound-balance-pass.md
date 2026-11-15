@@ -22,7 +22,9 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - [x] BP1 Treadmill and training: a lap pays Esencia only on a level-up lap; level L+1 needs L+1 laps (about 20 min to the top); re-price the console as a shortcut; keep the unburdened walk cap 50. Route: inline (parent subagent, one writer). Done 2026-11-15 (`5287a33`; Studio suites and solo Play below).
 - [x] BP2 Capped carrier speed: a carrier's share is taken of at most a 24 walk (one egg 16.5, three or more 13.5). Supersedes the 2026-11-14 decision "the trained walk also applies while carrying" (`odd/tasks/wildbound-playtest-fixes.md`). Done 2026-11-15 (Studio suites and solo Play below).
 - [x] BP3 Reward findings 4, 5 and 9: Caramelo nests one reward tier lower, Nightbloom scarce again, trip-bonus minimum 45 s -> 25 s. Done 2026-11-15 (Studio suites and solo Play below). The other remaining findings (collection limit, sinks, incubation slots) are BP4a below.
-- [ ] BP4a Sinks and the collection wall (findings 6, 7, 8; handoff B4): a server-validated "Liberar" for duplicate creatures (+4 Esencia, never the companion or a farmed creature), incubator slot upgrades that count on the base path, extra farm slots for sale (400 / 900), within the RT-17 20 KB profile budget.
+- [x] BP4a "Liberar" (finding 8; handoff B4, first part): a server-validated release of a duplicate hatched creature for +4 Esencia, never the companion, a farm creature or the last of its species. Done 2026-11-15 (Studio suites and solo Play below).
+- [ ] BP4b Incubator slot upgrades that count on the base path (finding 7; the base auto-incubates `math.max(8, ...)` today).
+- [ ] BP4c Extra farm slots for sale (400 / 900; finding 6), within the RT-17 20 KB profile budget.
 - [ ] BP4 Rerun the simulator, record before and after numbers, refresh the findings section.
 
 ## Decisions taken for the user
@@ -44,6 +46,12 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 | BP3-D2 | Only the pay moved: a new `Nests.RISK` keeps the island entry's `tier` (noise events, slot rules) at Fog / FogFar / Territory / Heart, and `POOL` keeps its one-line row shape. | A reward change should not quieten a steal; the simulator parses the `POOL` rows by pattern. |
 | BP3-D3 | Nightbloom: the weight suggestion of finding 5 (Night fog 15 -> 6, territory 35 -> 15), not a shorter wilt. The other weights are unchanged (the table is normalised, so shares are over 91 and 80). `NIGHT_ONLY_SECONDS` stays 300. | Back to about the old rate with no timer change; GF pins the 300 s wilt. |
 | BP3-D4 | `WildboundEconomyConfig.luau` is a generated file; with no Python here, the JSON block in `docs/mechanics/wildbound-economy-p0.md` and the Luau copy were edited by hand in step (three numbers each). | Run `python -I -B tools/export_economy_config_luau.py --write` and its test on a machine with Python to confirm. |
+| BP4a-D1 | "Duplicate" means another registered creature of the same species stays. Either copy may go; the last one may not. | It matches the egg rule (`sellDuplicateEggs`) and keeps the species discovered after a save. |
+| BP4a-D2 | A release needs only a living player, not the camp or the base (like "Equipar"). | A full collection blocks steals in the field; freeing a place there is the point. The review judged it no income loop: 4 is at most what selling the same egg paid. |
+| BP4a-D3 | The button lives in the Bag tab, as a second row under each spare creature, and asks twice: "Liberar", then "Confirmar"; the question expires after 5 s. | A release cannot be undone; the panel has one button per row. |
+| BP4a-D4 | No schema step: the entry leaves `registered`, and its `bond` and unbanked bond go with it. | The saved record refuses a bond for an unregistered creature; a shorter list only shrinks the record (RT-17). |
+| BP4a-D5 | The action rides the existing `ECONOMY_ACTIONS` table and a branch in `economyAction`: no new top-level local in `WildboundServer` (NH-W13), three small additive edits in the teammate's lock zone. | The file is at Luau's local limit and shared. |
+| BP4a-D6 | Fixed in passing: the "Canjear rep." (duplicate eggs) reply read `Text.BAG`, a table that does not exist, so that button never answered. It now reads `Text.HUD`. `NOTICES.NotOwnedPet` reworded ("Esa criatura no está en tu colección.") since release uses it too; `NOTICES.InFarm` is new and also answers an "Equipar" on a farm creature. | Found by the mapping pass; one-token fixes on the same lines of work. |
 
 ## Evidence
 
@@ -100,6 +108,25 @@ The live model shows the treadmill paying 37.5 Esencia/min for standing still, t
 - Review (workflow `wf_108110bb-bdd`, three lenses, each finding verified): no defect in the Luau. It read the exporter and judged that it would reproduce the hand-edited config byte for byte. It found leftover pins, now fixed in this commit: two Python tests (`test_extract_base_requires_45s`, renamed `..._25s` with 20 s / 25 s trips; `test_live_caramelo_nests`, now 4 / 10 / 16), the simulator's printed assumption row (25 s), and the old numbers in the economy doc's weight and earning tables and in two overview rows. The Python edits were made **without running them**.
 - Not done on this machine (no Python): the exporter and its test (BP3-D4); the Python suite; the simulator rerun. The simulator's dated findings text still suggests the changes BP1 to BP3 already made (regenerate in BP4).
 
+### BP4a "Liberar" (2026-11-15)
+
+- Mapping first (workflow `wf_afd88050-5dc`, three read-only agents: State and Record, server plumbing, client and text).
+- Change:
+  - `WildboundState`: `State.RELEASE_EMBER = 4`; `State:releaseCreature(key, uid, alive)` with refusals `InvalidPlayer`, `InvalidContext`, `NotOwnedPet`, `IsCompanion`, `InFarm`, `NotDuplicate`. On success it removes the entry from `registered`, clears `bond[uid]` and `expedition.pendingBond[uid]`, adds the Esencia and returns `{ uid, species, ember }`.
+  - `WildboundServer`: `ReleaseCreature = true` in `ECONOMY_ACTIONS`; a branch in `economyAction` (State decides; `Heist.creatureToolbar:syncPlayer` drops the tool; `reply` with `Text.HUD.released`); `Text.BAG` -> `Text.HUD` in the duplicate-egg branch.
+  - `WildboundCampView`: pure `View.releasable(snapshot)`.
+  - `WildboundClient`: the second row and its two-tap handler (`releaseAsk`, `spec.onTap` in `addRow`); `ReleaseCreature` in the client's `ECONOMY_ACTIONS`.
+  - `WildboundText`: `HUD.release`, `releaseConfirm`, `releaseRow`, `releaseConfirmRow`, `released`; `NOTICES.IsCompanion`, `InFarm`, `NotDuplicate`; `NotOwnedPet` reworded.
+- Suites: new State BP4a-S1 to S3, CampView BP4a, Text BP4a, CreatureToolbar BP4a (server wiring by source text).
+- Fingerprint rule: the nine Studio scripts equalled HEAD before any write; exact replacements; after: Studio == repo. State 57106/4263165139, Server 218633/4198778477, CampView 26200/2626978400, Client 48110/1015170953, Text 39200/1428360875, State_Test 91630/4092096713, CampView_Test 23297/3506176978, CreatureToolbar_Test 27415/631083022, Text_Test 25546/2103089438. The server and client sources compile.
+- RED (tests pushed, sources unchanged), run `c6a205f8`: CampView 22/1, CreatureToolbar 20/1, Text 21/1, State 71/17 (the three new cases plus the known 14).
+- GREEN, runs `7f5268f8` and `a7219270` (after the review fix), 18 suites: CampView 23/0, CreatureToolbar 21/0, Text 22/0, State 74/14 (only the known 14), Record 30/0, Refuge 15/0, Save 23/0, Bat 13/0, CandyPets 8/0, Carry 13/0, HudLayout 24/0, Incubator 7/0, IslandWiring 13/0, RouletteService 9/0, StaminaWiring 9/0, StartWiring 9/0. Known reds: EggLoop EL12, MechanicsWiring W1 (NH-W13's local count still passes).
+- Solo Play 1 (PlayLock `BP4a`, cleared after; memory saves): three Lumipol hatched from probe eggs. Through the remote: the companion refused ("Guarda a tu compañero antes de liberarlo."); a spare released, Esencia 72 -> 76, registered 3 -> 2; the same uid again and a made-up uid refused; a second spare released, 76 -> 80; the last Lumipol refused ("Solo puedes liberar criaturas repetidas."). The server Backpack held one creature tool afterwards (the released ones were gone). The Bag tab showed a "Liberar" row (98 x 44 button) under each of three spare creatures.
+- Review (workflow `wf_7d36e6bb-fab`, four lenses, each finding verified): no integrity or security defect and no income loop. Fixed from it: a stale "Confirmar" row after 5 s only asked again, and a confirm dropped by `request()`'s 0.5 s guard was lost; now the row's own label decides and the question expires through a timed rebuild. A test pins the client's busy entry. The two docs rows that said nothing releases a duplicate were updated.
+- Solo Play 2 (after that fix), a recorder on the button labels while the mouse clicked: "Liberar" -> "Confirmar" on the first click; back to "Liberar" 5.1 s later; "Confirmar" again on a click; a click on it released (three creature rows -> two). No script errors in the output.
+- Not checked: a real leave-and-rejoin after a release (memory saves in Studio; the record path is suite only), a phone, two players, releasing a creature whose tool is in the hand.
+- Not done (no Python): the simulator still treats the collection limit as a wall (BP4).
+
 ## Next step
 
-BP4a: the "Liberar" action, incubator slots that count, farm slots for sale. Then BP4: rerun the simulator (needs Python).
+BP4b: incubator slot upgrades that count on the base path. Then BP4c (farm slots for sale) and BP4 (rerun the simulator; needs Python).

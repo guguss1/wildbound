@@ -302,8 +302,9 @@ end
 local actionRemote
 local receivedSnapshot = false
 local lastRequest = 0
+local releaseAsk = { uid = nil, at = 0 } -- BP4a: the creature whose "Liberar" was tapped once, and when
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
-	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true }
+	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true }
 local function request(action, uid)
 	if not actionRemote then
 		showSticky(H.serverDown)
@@ -362,7 +363,9 @@ local function addRow(spec)
 			b.Active, b.AutoButtonColor = false, false
 			b.BackgroundColor3, b.TextColor3 = accentOff, Color3.fromRGB(200, 206, 220)
 		else
-			b.Activated:Connect(function() request(spec.action, spec.argument) end)
+			b.Activated:Connect(function()
+				if spec.onTap then spec.onTap() else request(spec.action, spec.argument) end
+			end)
 		end
 	end
 end
@@ -411,12 +414,40 @@ local function bagRows(snapshot)
 	end
 	addRow({ text = H.registeredHeader })
 	if #registered == 0 then addRow({ text = H.noRegistered }) end
+	-- BP4a: a spare copy (never the companion, a farm creature or the last of its species) can be released for Esencia.
+	-- The first tap only asks; a tap on the "Confirmar" it leaves sends. The question expires after 5 s (the row goes
+	-- back to "Liberar"). The server checks everything again.
+	local spare = campReady and Camp.releasable(snapshot) or {}
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
 		local creatureName = Text.CARD and Text.CARD.species and Text.CARD.species[creature.species] or creature.species
 		-- NS4: the companion's row stores it; every other row equips (swaps) its creature.
 		addRow({ text = creatureName .. (equipped and H.equipped or ""), label = equipped and H.store or H.equip,
 			action = equipped and "Unequip" or "Equip", argument = creature.uid })
+		if spare[creature.uid] then
+			local uid = creature.uid
+			local asking = releaseAsk.uid == uid
+			addRow({ text = (asking and H.releaseConfirmRow or H.releaseRow):format(creatureName),
+				label = asking and H.releaseConfirm or H.release, action = "ReleaseCreature", argument = uid,
+				enabled = not busy, onTap = function()
+					-- What the row shows decides: a row that reads "Confirmar" always confirms, also when request()
+					-- drops the tap (its 0.5 s guard) and the row stays as it is.
+					if asking then
+						releaseAsk.uid = nil
+						request("ReleaseCreature", uid)
+					else
+						local at = os.clock()
+						releaseAsk.uid, releaseAsk.at = uid, at
+						task.delay(5, function()
+							if releaseAsk.uid == uid and releaseAsk.at == at then
+								releaseAsk.uid = nil
+								if rebuild then rebuild() end
+							end
+						end)
+						if rebuild then rebuild() end
+					end
+				end })
+		end
 	end
 end
 

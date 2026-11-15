@@ -361,5 +361,18 @@ return function(View, Config, Economy, Layout, source)
 		assert(pack.text:find("Mochila reforzada", 1, true), pack.text)
 	end)
 
+	-- BP4a: which rows of the bag get a "Liberar" button. The server (State:releaseCreature) checks the same again.
+	case("BP4a: only spare copies can be released: never the companion, a farm creature or the last of a species", function()
+		local set = View.releasable(snapshot({ registered = { { uid = "a", species = "Lumipol" },
+			{ uid = "b", species = "Lumipol" }, { uid = "c", species = "Lumipol" }, { uid = "d", species = "Gomibu" } },
+			equippedUid = "a", farm = { "b" } }))
+		equal(set.a, nil, "the companion"); equal(set.b, nil, "a farm creature"); equal(set.c, true, "the spare copy")
+		equal(set.d, nil, "the last of its species")
+		local two = View.releasable(snapshot({ registered = { { uid = "x", species = "Lumipol" }, { uid = "y", species = "Lumipol" } } }))
+		equal(two.x, true); equal(two.y, true, "either copy may go; the server refuses the second once one is left")
+		equal(next(View.releasable(nil)), nil, "no snapshot"); equal(next(View.releasable({})), nil, "no creatures")
+		equal(next(View.releasable(snapshot({ registered = { { uid = "z", species = "Lumipol" } } }))), nil, "one creature")
+	end)
+
 	return result
 end

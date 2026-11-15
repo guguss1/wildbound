@@ -302,6 +302,27 @@ function View.quickRows(snapshot, ctx)
 	}
 end
 
+-- BP4a: the uids of the Bag tab's creatures that get a "Liberar" button: a spare copy (its species is registered more
+-- than once) that is neither the companion nor in the farm. A set { [uid] = true }. Only a hint for the panel: the
+-- server (State:releaseCreature) checks all of it again.
+function View.releasable(snapshot)
+	local set = {}
+	local registered = type(snapshot) == "table" and type(snapshot.registered) == "table" and snapshot.registered or nil
+	if not registered then return set end
+	local count, farmed = {}, {}
+	for _, pet in ipairs(registered) do
+		if type(pet) == "table" and pet.species ~= nil then count[pet.species] = (count[pet.species] or 0) + 1 end
+	end
+	for _, uid in ipairs(type(snapshot.farm) == "table" and snapshot.farm or {}) do farmed[uid] = true end
+	for _, pet in ipairs(registered) do
+		if type(pet) == "table" and pet.uid ~= nil and (count[pet.species] or 0) > 1
+			and pet.uid ~= snapshot.equippedUid and not farmed[pet.uid] then
+			set[pet.uid] = true
+		end
+	end
+	return set
+end
+
 local function lossTotals(snapshot)
 	local preview = type(snapshot) == "table" and type(snapshot.riskPreview) == "table" and snapshot.riskPreview or {}
 	local items = amount(preview.loseItems)

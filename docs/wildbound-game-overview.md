@@ -321,9 +321,10 @@ Pradera adds five designed species (Chispín, Musgón, Esponjín, Hongolín, Rel
 | --- | --- |
 | Trip base (extraction) | 4, if the trip lasted 25 s (BP3, 2026-11-15; was 45 s), reached 60 studs from camp and found at least one new item |
 | Creature by tier | Live (synced `34eab83`): Safe 8, Fog 14, FogFar 20, Territory 28, Heart 42 (was 6/10/12/14/22) |
-| Egg by tier (delivery) | Live: Safe 4, Fog 10, FogFar 16, Territory 24, Heart 36 (was Fog 8, FogFar 10, Territory 11, Heart 14); Caramelo nests use the same tiers |
+| Egg by tier (delivery) | Live: Safe 4, Fog 10, FogFar 16, Territory 24, Heart 36 (was Fog 8, FogFar 10, Territory 11, Heart 14); Caramelo nests pay one tier lower since BP3 (Comun Safe 4, Rara Fog 10, Epica FogFar 16) |
 | Hub roulette | Esencia prizes (40 % of the live table), materials the rest (PF5) |
 | First steal bonus | 4 |
+| Releasing a duplicate creature ("Liberar", BP4a) | 4 per spare hatched creature, from the bag panel (two taps); never the companion, a farm creature or the last of its species |
 | First extraction | 1 seal (item, not Esencia) |
 | Hatching | 0 (contract, NS6) |
 | Time-based grants | 0 (anti-AFK contract) |

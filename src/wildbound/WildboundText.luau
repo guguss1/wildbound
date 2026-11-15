@@ -491,6 +491,12 @@ return freeze({
 		sellDuplicatesRow = "Huevos repetidos: %d. Canjéalos por Esencia.",
 		soldDuplicates = "Canjeados %d huevo(s) repetido(s) por +%d de Esencia.",
 		noDuplicates = "No tienes huevos repetidos para canjear.",
+		-- BP4a: "Liberar" a spare (repeated) creature from the bag panel. A first tap asks, a second one sends.
+		release = "Liberar",
+		releaseConfirm = "Confirmar",
+		releaseRow = "Copia repetida de %s: libérala por Esencia.",
+		releaseConfirmRow = "¿Liberar a %s? No se puede deshacer.",
+		released = "Liberaste a %s. +%d de Esencia.",
 		eggRowTime = "Huevo de %s · %s · %d s",
 		noEggs = "No tienes huevos guardados.",
 		egg = "Huevo de %s",
@@ -554,9 +560,13 @@ return freeze({
 		AlreadyClaimed = "Alguien ya recogió esto.",
 		CollectionFull = "Llegaste al límite de la colección de esta sesión (100).",
 		NotOwnedEgg = "Elige uno de tus huevos guardados.",
-		NotOwnedPet = "Solo puedes equipar tus criaturas registradas.",
+		NotOwnedPet = "Esa criatura no está en tu colección.", -- equip, farm and release (BP4a) all refuse with it
 		-- CE2: the Caramelo creatures live in the hotbar and the base farm; they never follow.
 		FarmOnly = "Esta criatura vive en tu barra y tu granja; no te sigue.",
+		-- BP4a: what "Liberar" refuses. InFarm also answers an "Equipar" on a farm creature.
+		IsCompanion = "Guarda a tu compañero antes de liberarlo.",
+		InFarm = "Esa criatura está en tu granja. Sácala primero.",
+		NotDuplicate = "Solo puedes liberar criaturas repetidas.",
 		-- NS7: gloves.
 		GlovesFull = "Ya tienes el máximo de guantes.",
 		NotOwnedGlove = "Solo puedes ponerte tus propios guantes.",

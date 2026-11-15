@@ -1756,5 +1756,65 @@ return function(State, Economy, Config)
 		equal(okTake, false, "a loose egg with a bad rarity"); equal(whyTake, "InvalidRarity")
 	end)
 
+	-- BP4a (balance pass 2026-11-15, simulator finding 8): the collection limit was a dead end, since nothing removed a
+	-- hatched creature. "Liberar" releases one hatched DUPLICATE for State.RELEASE_EMBER, never the companion, never a
+	-- farm creature and never the last of its species. These cases use the carry slot and the refuge, never the bag.
+	case("BP4a-S1: a hatched duplicate is released once for 4 Esencia and takes its bond with it", function()
+		local state = setup()
+		equal(State.RELEASE_EMBER, 4)
+		local a, b = bring(state), bring(state)
+		local profile = state.players["s:Alice"]
+		profile.bond[b] = { xp = 5, level = 1 }
+		accepted(state:observeExpedition("Alice", 80, true, 0))
+		profile.expedition.pendingBond[b] = 5
+		local before = state:snapshot("Alice")
+		local receipt = accepted(state:releaseCreature("Alice", b, true))
+		equal(receipt.ember, 4); equal(receipt.species, "Lumipol"); equal(receipt.uid, b)
+		local after = state:snapshot("Alice")
+		equal(after.ember - before.ember, 4, "Esencia"); equal(#after.registered, #before.registered - 1)
+		equal(after.registered[1].uid, a, "the other copy stays")
+		equal(profile.bond[b], nil, "its bond goes with it (the saved record requires it)")
+		equal(profile.expedition.pendingBond[b], nil, "and so does the bond it had not banked yet")
+		equal(after.discovered.Lumipol, true, "the species stays discovered")
+		refusedWith("NotOwnedPet", state:releaseCreature("Alice", b, true))
+		equal(state:snapshot("Alice").ember, after.ember, "no second payout")
+	end)
+
+	case("BP4a-S2: never the companion, a farm creature, the last of its species, a stranger's or a dead player's", function()
+		local state = setup()
+		local a, b, c = bring(state), bring(state), bring(state)
+		accepted(state:equip("Alice", a, true))
+		accepted(state:placeInFarm("Alice", b, true))
+		local before = state:snapshot("Alice")
+		refusedWith("IsCompanion", state:releaseCreature("Alice", a, true))
+		refusedWith("InFarm", state:releaseCreature("Alice", b, true))
+		refusedWith("InvalidContext", state:releaseCreature("Alice", c, false))
+		refusedWith("InvalidContext", state:releaseCreature("Alice", c, nil))
+		refusedWith("NotOwnedPet", state:releaseCreature("Bob", c, true))
+		refusedWith("NotOwnedPet", state:releaseCreature("Alice", "wb:999", true))
+		refusedWith("NotOwnedPet", state:releaseCreature("Alice", 5, true))
+		refusedWith("InvalidPlayer", state:releaseCreature("Nobody", c, true))
+		local same = state:snapshot("Alice")
+		equal(same.ember, before.ember, "a refusal pays nothing"); equal(#same.registered, 3, "and removes nothing")
+		equal(same.equippedUid, a); equal(same.farm[1], b)
+		-- c is a spare (a and b stay), so it may go; a lone species may not.
+		accepted(state:releaseCreature("Alice", c, true))
+		table.insert(state.players["s:Alice"].registered, { uid = "seed:1", species = "Gomibu" })
+		refusedWith("NotDuplicate", state:releaseCreature("Alice", "seed:1", true))
+		equal(#state:snapshot("Alice").registered, 3)
+	end)
+
+	case("BP4a-S3: a release frees a place under the collection limit", function()
+		local state = setup()
+		local profile = state.players["s:Alice"]
+		for index = 1, Config.capacity.collectionLimit do
+			table.insert(profile.registered, { uid = "seed:" .. index, species = "Lumipol" })
+		end
+		accepted(state:registerEncounter("full:1", "Creature"))
+		refusedWith("CollectionFull", state:completeCapture("Alice", "full:1", true, "Fog"))
+		accepted(state:releaseCreature("Alice", "seed:7", true))
+		accepted(state:completeCapture("Alice", "full:1", true, "Fog"))
+	end)
+
 	return result
 end

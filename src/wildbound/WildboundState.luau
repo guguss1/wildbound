@@ -526,6 +526,31 @@ function State:sellDuplicateEggs(key)
 	return true, { sold = sold, ember = ember }
 end
 
+-- BP4a (balance pass 2026-11-15, simulator finding 8): "Liberar" releases one hatched duplicate for RELEASE_EMBER, so
+-- the collection limit is no longer a dead end. Never the companion, never a farm creature, and only while another
+-- registered creature of its species stays (so the species stays discovered after a save). Its bond goes with it: the
+-- saved record refuses a bond for a creature that is not registered. A refusal changes nothing.
+State.RELEASE_EMBER = 4
+function State:releaseCreature(key, uid, alive)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	local index, pet = find(player.registered, uid)
+	if not index then return false, "NotOwnedPet" end
+	if player.equippedUid == uid then return false, "IsCompanion" end
+	if farmIndex(player, uid) then return false, "InFarm" end
+	local spare = false
+	for _, entry in ipairs(player.registered) do
+		if entry.uid ~= uid and entry.species == pet.species then spare = true; break end
+	end
+	if not spare then return false, "NotDuplicate" end
+	table.remove(player.registered, index)
+	player.bond[uid] = nil
+	if player.expedition and player.expedition.pendingBond then player.expedition.pendingBond[uid] = nil end
+	player.ember += State.RELEASE_EMBER
+	return true, { uid = uid, species = pet.species, ember = State.RELEASE_EMBER }
+end
+
 function State:hatch(key, uid, alive, distance)
 	local player = profile(self, key)
 	if not player then return false, "InvalidPlayer" end

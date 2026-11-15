@@ -90,7 +90,7 @@ Not run in Play: two clients (BLOCKED: one operator and no way to start a second
 | 9 | Loss rounds to the **nearest** unit per stack, not down as the pack suggests | At 20% a stack of 3 or more always loses at least one unit (2.5 or more rounds up). A stack of 1 or 2 is kept |
 | 10 | Risk pays through Ember: a Lumipol from territory earns more than one from outside the leash | Without it the safe route wins. Rewards bravery but widens progress gaps |
 | 11 | After the D10 hold expires, the result equals a defeat. On return in time, you resume **where you left**, not at camp | Otherwise logging out teleports loot to the extraction point. Requires changing the respawn pivot |
-| 12 | No release or sell for duplicates. Duplicates earn Ember once, at extraction | No way to delete a companion by mistake. Collection limit 100 stays unsolved until M6 |
+| 12 | No release or sell for duplicates. Duplicates earn Ember once, at extraction. **Superseded 2026-11-15 (BP4a, `odd/tasks/wildbound-balance-pass.md`):** a hatched duplicate can be released for 4 Esencia from the bag panel, with a second tap to confirm; never the companion, a farm creature or the last of its species | No way to delete a companion by mistake (still true). The collection limit 100 is no longer a dead end |
 
 ## Revision after the simulator
 

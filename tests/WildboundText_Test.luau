@@ -399,5 +399,29 @@ return function(Text, source, sources)
 		assert(P.readyIn:format(9):find("9", 1, true), "readyIn shows the wait")
 	end)
 
+	-- BP4a: "Liberar" a spare creature from the bag panel: a button, a second tap to confirm, the reply and its refusals.
+	case("BP4a: the release button, its two rows, the reply and the refusals are short Spanish; the panel asks twice", function()
+		local H, N = Text.HUD, Text.NOTICES
+		text(H.release, "release", 12); text(H.releaseConfirm, "releaseConfirm", 12)
+		text(H.releaseRow, "releaseRow", 72); text(H.releaseConfirmRow, "releaseConfirmRow", 72)
+		text(H.released, "released", 72)
+		assert(H.releaseRow:format("Lumipol"):find("Lumipol", 1, true), "the row names the creature")
+		assert(H.releaseConfirmRow:format("Lumipol"):find("Lumipol", 1, true), "the question names the creature")
+		assert(H.released:format("Lumipol", 4):find("+4 de Esencia", 1, true), "the reply names the Esencia")
+		text(N.IsCompanion, "IsCompanion", 72); text(N.InFarm, "InFarm", 72); text(N.NotDuplicate, "NotDuplicate", 72)
+		local client = sources.inventory
+		if client then
+			assert(client:find('"ReleaseCreature"', 1, true), "the panel sends the release action")
+			assert(client:find("Camp.releasable(snapshot)", 1, true), "the button shows only on spare copies")
+			assert(client:find("H.releaseConfirmRow", 1, true) and client:find("H.releaseConfirm", 1, true),
+				"a first tap only asks; the second one sends")
+			assert(client:find("EquipGlove = true, ReleaseCreature = true }", 1, true),
+				"the panel waits for the server's reply, so a release is not sent twice")
+			assert(client:find("if asking then\n\t\t\t\t\t\treleaseAsk.uid = nil\n\t\t\t\t\t\trequest(\"ReleaseCreature\", uid)", 1, true),
+				"a row that reads Confirmar always confirms")
+			assert(client:find("task.delay(5, function()", 1, true), "the question expires and the row goes back")
+		end
+	end)
+
 	return result
 end

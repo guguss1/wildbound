@@ -3133,7 +3133,7 @@ end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
-	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true }
+	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
 	if action == "CraftGear" then
@@ -3201,6 +3201,13 @@ local function economyAction(player, action, argument)
 		local ok, result = state:useCapsule(key, argument, alive, distance)
 		if ok then analytics:spent(key, "capsule") end
 		reply(player, action, ok, result, ok and notices.capsule:format(result.ember) or nil)
+	elseif action == "ReleaseCreature" then
+		-- BP4a: "Liberar" a hatched duplicate for Esencia. The uid is untrusted: State owns every rule (owned, not the
+		-- companion, not in the farm, a spare of its species); the sync then drops its hotbar tool.
+		local ok, result = state:releaseCreature(key, argument, (context(player)))
+		if ok and Heist.creatureToolbar then Heist.creatureToolbar:syncPlayer(player, state:snapshot(key)) end
+		reply(player, action, ok, result, ok and Text.HUD.released:format(
+			Text.CARD.species[result.species] or result.species, result.ember) or nil)
 	end
 end
 
@@ -3272,9 +3279,9 @@ actionRemote.OnServerEvent:Connect(function(player, action, uid, ...)
 		end
 		local ok, result = state:sellDuplicateEggs(player.UserId)
 		if ok then
-			send(player, "SellDuplicateEggs", true, Text.BAG.soldDuplicates:format(result.sold, result.ember))
+			send(player, "SellDuplicateEggs", true, Text.HUD.soldDuplicates:format(result.sold, result.ember))
 		else
-			send(player, "SellDuplicateEggs", false, Text.BAG.noDuplicates)
+			send(player, "SellDuplicateEggs", false, Text.HUD.noDuplicates)
 		end
 	elseif action == "Protect" then protect(player, uid)
 	elseif action == "Unequip" then

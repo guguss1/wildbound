@@ -535,5 +535,22 @@ return function(Toolbar, source, sources)
 		assert(flips >= 3 and flips < 200, ("the flag changes with the walk, not every frame (%d)"):format(flips))
 	end)
 
+	-- BP4a: "Liberar". The server passes the untrusted uid to State, which owns every rule, then the sync drops the tool.
+	case("BP4a: the server releases through State, drops the tool on the sync and replies; no notice reads Text.BAG", function()
+		assert(server:find("ReleaseCreature = true", 1, true), "listed with the economy actions (rate limit, uid shape)")
+		local first = server:find('elseif action == "ReleaseCreature" then', 1, true)
+		assert(first, "the release branch")
+		local branch = server:sub(first, first + 700)
+		assert(branch:find("state:releaseCreature(key, argument, (context(player)))", 1, true),
+			"State decides, with the server's own alive check")
+		assert(branch:find("Heist.creatureToolbar:syncPlayer(player, state:snapshot(key))", 1, true), "the hotbar tool goes")
+		assert(branch:find("reply(player, action, ok, result, ok and Text.HUD.released:format(", 1, true), "the reply")
+		assert(not server:find("\nlocal function release", 1, true), "no new top-level local (NH-W13)")
+		-- The duplicate-egg notices live in Text.HUD; Text has no BAG table, so reading it raised and the button never answered.
+		assert(not server:find("Text.BAG", 1, true), "Text.BAG does not exist")
+		assert(server:find("Text.HUD.soldDuplicates:format(result.sold, result.ember)", 1, true), "sold duplicates notice")
+		assert(type(Text.HUD.soldDuplicates) == "string" and type(Text.HUD.noDuplicates) == "string", "the two notices")
+	end)
+
 	return result
 end
