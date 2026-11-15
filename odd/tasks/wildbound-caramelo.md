@@ -428,7 +428,13 @@ is listed below.
   held spawn kept through the reroll gets the new wave's expiry; the nest refresh runs through a pure
   `Island.waveRefill` core. Route: inline (writer trigger fired: 4 non-trivial files; kept inline because every
   Studio write needs the parent's fingerprint gate). TDD strict. Commit bfdcfbb.
-- [ ] CF3 (assigned by the follow-up workflow; not part of this task).
+- [x] CF3 Boss robustness: Don Glaseon's `batImmune` is enforced by both bat hit resolvers (`Bat.immune` in
+  `Bat.pickTarget`, `BatImmune` refusal in `Knock.knock`, the server passes the flag); `Beast_bossAwake` is written
+  when an encounter starts (before its Spawn message) and ends, so the sleeping copy goes in the summon's own step;
+  the sleeping copy stays on BossHome but is pass-through (`DonGlaseon.asleep`); `Balance.LIVE.dayCycle` describes
+  the wave clock and per-biome light; the missing receipt line for 81874477774437. Route: inline (writer trigger
+  fired: 7 non-trivial files; kept inline because every Studio write needs the parent's fingerprint gate). TDD
+  strict. Commit 542023e.
 - [ ] CF4 (assigned by the follow-up workflow; not part of this task).
 
 ### Decisions taken for the user
@@ -478,6 +484,29 @@ is listed below.
    server already requires it): empty nests (`wait_wave`, `wait`) get a new generation and open; a chasing island's
    nest waits for the server's 1 s retry; eggs in a nest, returning crias and the egg registry are never touched.
    New suite `WildboundNestRefill_Test` rather than widening `WildboundIsland_Test`'s signature.
+14. **CF3, where bat immunity is enforced:** in both pure hit resolvers. `Bat.immune(candidate)` is true for a
+   candidate flagged itself (`batImmune`) or by its beast config (`config.batImmune`); `Bat.pickTarget` skips it (the
+   next valid target behind it is hit) and `Knock.knock` refuses it with reason `BatImmune` before its record is
+   created (no ragdoll, no anti-chain immunity). The bat stays player against player: the server still offers no
+   beast as a candidate (adding beasts as bat targets would be a new mechanic nobody asked for); it passes
+   `batImmune = Bat.immune(target)` to the knock so the rule holds if one ever is.
+15. **CF3, the sleeping copy at summon:** one answer, `Config.bossAwake(live)` (the pure beast config module the
+   server already requires), written by a `publishBoss()` right after an encounter enters `live` in `start` (before
+   the Spawn message) and right after one leaves it in `close`, and still on every snapshot. The service's existing
+   attribute listener hides or shows the copy in that same server step.
+16. **CF3, the sleeping copy in the lane: made pass-through, not moved.** It stays on BossHome (578, -3), where every
+   summon starts, so the wake never jumps and the BossHome marker, the builder layout and their pinned suites stay
+   as they are (moving it would need a Caramelo rebuild in the Workspace). `DonGlaseon.asleep` turns off CanCollide,
+   CanTouch and CanQuery on every part of the copy and marks it `BeastSolid = false`; the prefab and the live boss
+   keep their hitbox. Trade-off: a player can walk through the sleeping model.
+17. **CF3, `Balance.LIVE.dayCycle`:** `{ fixed = true, waveSeconds = 300, warningSeconds = 10, rules = <phase per
+   place>, light = <mood per preset> }`, read by `Balance.liveFrom` from `WildboundWaveClock.CONSTANTS` and
+   `WildboundBiomeLight.RULES`/`PRESETS` (B23 now loads both). `conflicts()` reports one line, "no day/night cycle",
+   instead of comparing phase lengths that no longer exist; a passed cycling world is still compared as before.
+   `Balance.CONSTANTS.dayCycle` (the proposed 240/60/300/120) is not changed. The overview's 2.0 balance note is
+   updated to match.
+18. **CF3, receipts:** the Idle v2 done line (81874477774437) is written from the id and state already recorded in
+   this document; the operation was not polled again (no Open Cloud call). Both Idle uploads are marked UNUSED.
 
 ### Evidence CF1
 
@@ -549,6 +578,48 @@ is listed below.
   fired `PromptButtonHoldBegan`: no prompt was shown to the command-bar client), so the 0.25 s bar cut is untested;
   a carried egg held across a refresh in Play (the I2 parent always knocked it loose); a held wild spawn across a
   reroll in Play; two players, phone.
+
+### Evidence CF3
+
+- Studio instance ba5a21af (place 122652861404212, Edit, PlayLock nil). Before any write every touched Source matched
+  HEAD 4329717 (bytes, Adler-32): Server 211002 5ae83f52, Bat 7547 c9d1c189, BeastConfig 31089 450ced04,
+  Beasts.server 46895 a789b8c5, BatKnock 7579 ce96d3b6, Balance 26840 e8ce415d, Balance_Test 19120 2a24cbc2,
+  CandyDonGlaseon 4332 0cd3826d, CandyDonGlaseonService 3417 2fefa7e0, BeastWiring_Test 49403 30ff545b. No pull
+  was needed.
+- New suite `tests/WildboundBossRobustness_Test.luau` (manifest row + pin, runner SPECS), 8 cases. Behavioural:
+  `Bat.immune` on the real Don Glaseon config, a flagged candidate, a player and Viper's config; `Bat.pickTarget`
+  with the boss 2 studs in front and a player at 5 (the player is hit), the boss alone (nil, NoTarget), Viper as a
+  control (picked); `Knock.knock` with the flag and with the config (BatImmune, no ragdoll, no immunity; the same key
+  then lands without the flag); `Config.bossAwake` over a live table as entries enter and leave, malformed and bad
+  input; `DonGlaseon.asleep` on a spawned copy of the real prefab (every part pass-through, the prefab's hitbox still
+  collides). Wiring: `publishBoss()` after the `live` insert and before the Spawn message in `start`, after the
+  removal in `close`; the server's knock passes `Bat.immune(target)`; the service requires the module and puts the
+  copy to sleep. `WildboundBalance_Test`: B20 pins the new LIVE.dayCycle, B21/B22 the new conflict line, B23 loads
+  WaveClock and BiomeLight, new B24 (behavioural liveFrom: a fixed world, broken sources, a cycling world).
+  `WildboundBeastWiring_Test` CA3 pin re-pointed to `Config.bossAwake(live)`.
+- RED (fresh loader: the runner engine in a temporary ServerStorage StringValue, destroyed after): BossRobustness
+  0/8 (`Bat.immune missing`, `Config.bossAwake missing`, `DonGlaseon.asleep missing`, ...), Balance 22/3 (B20, B21,
+  B24), BeastWiring 49/1 (the re-pointed pin).
+- GREEN: BossRobustness 8/0, Balance 25/0, BeastWiring 50/0. Regression, the 54 suites whose SPECS read a touched
+  source or module plus Tuning (LumipolArt included): 808 passed, 8 failed, all known pre-existing (AN-3, BZ7,
+  ECO-20, EL12, HB-T3, W1, DT1, RW5).
+- Studio == repo after the writes (bytes, Adler-32), all compile: Server 211034 0f244a65, Bat 8123 5cee8a80,
+  BeastConfig 31673 2d04b63c, Beasts.server 47165 58801d54, BatKnock 7854 c2f13083, Balance 29142 3af324b1,
+  CandyDonGlaseon 4934 56864d51, CandyDonGlaseonService 3779 540626e8, Balance_Test 21861 a328203a, BeastWiring_Test
+  49464 6b6168d6, BossRobustness_Test 7497 ada88718 (new).
+- Solo Play (PlayLock CF3, removed after; Play stopped; back in Edit with no runner value or lock left): the sleeping
+  copy stood on BossHome (578, 0.58, -3) with 16 parts, none colliding, touching or queryable; a ray down at BossHome
+  hit `Candy_Bioma_v1.Ground.Plaza`. Teleported into the territory at (606, 10): the boss woke 0.18 s later;
+  `Beast_bossAwake` turned true and the copy left the Workspace in the same Heartbeat frame (523); the client saw only
+  `WildboundBeastsLocal.DonGlaseon`. Leaving to (430, -3): the encounter ended and the attribute and the copy came
+  back in one frame (1483). Walking east along z = -3 from x 560, the player passed through the sleeping copy at 578
+  and stopped at 585.5 against the Gran Torta (radius 26 around 612). No script error (only the usual
+  asset/TexturePack and DataStore messages).
+- Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Commit 542023e.
+- Not tested: a real bat swing at Don Glaseon (the server offers no beast as a target, and a swing needs a second
+  player); that the write at summon comes from `start` rather than the snapshot is shown by the wiring order only
+  (Play showed the same-frame hide, which either write gives); two players, phone.
 
 ## Next step
 
