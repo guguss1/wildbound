@@ -6,6 +6,7 @@
 -- snapshot's farmSlots); this module only builds its models and rebuilds a saved farm on the own pad on join.
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
 
 local Toolbar = {}
 Toolbar.__index = Toolbar
@@ -13,12 +14,25 @@ Toolbar.__index = Toolbar
 local UID = "WildboundCreatureUid"
 local DEPOSIT_REACH = 20 -- studs from the own pad when the base zone does not report the player inside
 
+-- PF6 (user playtest 2026-11-15): farm creatures walk around the whole own pad instead of standing still.
+Toolbar.WANDER = {
+	speed = 5, -- studs per second, a calm walk
+	margin = 2.5, -- studs kept from the pad edges
+	pauseMin = 1, -- seconds standing between walks
+	pauseMax = 4,
+	hop = 0.25, -- studs of the hop while walking (only up: the lowest point never goes below the pad top)
+	hopRate = 9, -- radians per second of the hop
+}
+
 function Toolbar.new(deps)
 	local self = setmetatable({
 		-- { state, visual, send, isInsideBase, unequip, Art, Species, Text, tagged?, players? }
 		-- unequip(player, uid): the server puts that creature back in the collection when it is the companion out.
+		-- PF6: heartbeat? (a Connect-able signal, default RunService.Heartbeat), random? (a Random, default a new one).
 		deps = deps,
-		placed = {}, -- [userId] = { [uid] = { model = Model, species = string } }: the farm models only (PF4)
+		placed = {}, -- [userId] = { [uid] = { model = Model, species = string, wander? } }: the farm models only (PF4, PF6)
+		random = deps.random or Random.new(),
+		wanderConnection = nil, -- PF6: one Heartbeat connection for every farm model, only while one exists
 	}, Toolbar)
 	local players = deps.players or Players
 	players.PlayerRemoving:Connect(function(player)
@@ -46,6 +60,7 @@ function Toolbar:clearPlayer(userId)
 		end
 		self.placed[userId] = nil
 	end
+	self:refreshWander()
 end
 
 function Toolbar:tagged(tag)
@@ -175,6 +190,7 @@ function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseMo
 	local boxFrame, boxSize = creatureModel:GetBoundingBox()
 	local lift = spotWorld.Y - (boxFrame.Position.Y - boxSize.Y / 2)
 	if math.abs(lift) > 0.01 then creatureModel:PivotTo(creatureModel:GetPivot() + Vector3.new(0, lift, 0)) end
+	local pad = self:basePadOf(player.UserId)
 
 	local displayName = self:displayName(species)
 	local promptTarget = body or creatureModel:FindFirstChildWhichIsA("BasePart", true)
@@ -195,7 +211,9 @@ function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseMo
 	end
 
 	self.placed[player.UserId] = self.placed[player.UserId] or {}
-	self.placed[player.UserId][uid] = { model = creatureModel, species = species }
+	self.placed[player.UserId][uid] = { model = creatureModel, species = species,
+		wander = pad and self:newWander(pad, creatureModel, spotWorld, lookDir) or nil }
+	self:refreshWander()
 	return creatureModel
 end
 
@@ -206,6 +224,7 @@ function Toolbar:pickUp(player, uid)
 	local entry = userMap and userMap[uid]
 	if entry and entry.model then entry.model:Destroy() end
 	if userMap then userMap[uid] = nil end
+	self:refreshWander()
 	local snapshot = self.deps.state:snapshot(player.UserId)
 	self:syncPlayer(player, snapshot)
 	local pet = registeredPet(snapshot, uid)
@@ -225,6 +244,7 @@ function Toolbar:syncFarm(player, snapshot)
 			userMap[uid] = nil
 		end
 	end
+	self:refreshWander()
 	local pad, baseModel = self:basePadOf(player.UserId)
 	if not pad then return end
 	for index, uid in ipairs(snapshot.farm or {}) do
@@ -234,6 +254,108 @@ function Toolbar:syncFarm(player, snapshot)
 			self:spawnFarmModel(player, uid, pet.species or "Lumipol", spot, look, baseModel)
 		end
 	end
+end
+
+-- PF6: the wander of one farm model, in the pad's own space. offset keeps the model's pivot (and so its lifted
+-- bounding box) where spawnFarmModel stood it, relative to a ground frame on the pad top facing the walk.
+function Toolbar:newWander(pad, model, spotWorld, lookDir)
+	local ground = CFrame.lookAt(spotWorld, spotWorld + lookDir)
+	local here = pad.CFrame:PointToObjectSpace(spotWorld)
+	local W = Toolbar.WANDER
+	local halfX = math.max(0, pad.Size.X / 2 - W.margin)
+	local halfZ = math.max(0, pad.Size.Z / 2 - W.margin)
+	local facing = pad.CFrame:VectorToObjectSpace(lookDir)
+	facing = Vector3.new(facing.X, 0, facing.Z)
+	return {
+		pad = pad,
+		offset = ground:ToObjectSpace(model:GetPivot()),
+		x = math.clamp(here.X, -halfX, halfX),
+		z = math.clamp(here.Z, -halfZ, halfZ),
+		dir = facing.Magnitude > 0.01 and facing.Unit or Vector3.new(0, 0, -1),
+		target = nil,
+		wait = self.random:NextNumber(0, W.pauseMax),
+		phase = 0,
+	}
+end
+
+-- PF6: how many farm models wander now (for tests and the Heartbeat cleanup).
+function Toolbar:wanderCount()
+	local count = 0
+	for _, map in pairs(self.placed) do
+		for _, entry in pairs(map) do
+			if entry.wander and entry.model and entry.model.Parent then count += 1 end
+		end
+	end
+	return count
+end
+
+-- PF6: one Heartbeat for all the farm models, connected only while at least one exists.
+function Toolbar:refreshWander()
+	local needed = self:wanderCount() > 0
+	if needed and not self.wanderConnection then
+		local heartbeat = self.deps.heartbeat or RunService.Heartbeat
+		self.wanderConnection = heartbeat:Connect(function(dt) self:stepFarm(dt) end)
+	elseif not needed and self.wanderConnection then
+		self.wanderConnection:Disconnect()
+		self.wanderConnection = nil
+	end
+end
+
+-- PF6: pause, pick a point inside the pad margin, walk there facing it at a calm pace with a small hop, repeat.
+local function stepWander(wander, dt, random)
+	local W = Toolbar.WANDER
+	local pad = wander.pad
+	local halfX = math.max(0, pad.Size.X / 2 - W.margin)
+	local halfZ = math.max(0, pad.Size.Z / 2 - W.margin)
+	local hop = 0
+	if wander.target then
+		local towards = wander.target - Vector3.new(wander.x, 0, wander.z)
+		local distance = towards.Magnitude
+		local stride = W.speed * dt
+		if distance <= stride then
+			wander.x, wander.z = wander.target.X, wander.target.Z
+			wander.target = nil
+			wander.wait = random:NextNumber(W.pauseMin, W.pauseMax)
+		else
+			local step = towards / distance * stride
+			wander.x, wander.z = wander.x + step.X, wander.z + step.Z
+			wander.phase += W.hopRate * dt
+			hop = math.abs(math.sin(wander.phase)) * W.hop
+		end
+	else
+		wander.wait -= dt
+		if wander.wait <= 0 then
+			local target = Vector3.new(random:NextNumber(-halfX, halfX), 0, random:NextNumber(-halfZ, halfZ))
+			local towards = target - Vector3.new(wander.x, 0, wander.z)
+			if towards.Magnitude > 0.05 then
+				wander.target, wander.dir, wander.phase = target, towards.Unit, 0
+			else
+				wander.wait = random:NextNumber(W.pauseMin, W.pauseMax)
+			end
+		end
+	end
+	-- A pad resized while the model stands keeps it inside the new bounds.
+	wander.x, wander.z = math.clamp(wander.x, -halfX, halfX), math.clamp(wander.z, -halfZ, halfZ)
+	local spot = pad.CFrame:PointToWorldSpace(Vector3.new(wander.x, pad.Size.Y / 2, wander.z))
+	local look = pad.CFrame:VectorToWorldSpace(wander.dir)
+	return CFrame.lookAt(spot, spot + look) * CFrame.new(0, hop, 0) * wander.offset
+end
+
+-- PF6: one cheap step for every farm model (one PivotTo each); a model or pad that is gone leaves the wander.
+function Toolbar:stepFarm(dt)
+	local gone = false
+	for _, map in pairs(self.placed) do
+		for _, entry in pairs(map) do
+			local wander, model = entry.wander, entry.model
+			if wander and model and model.Parent and wander.pad.Parent then
+				model:PivotTo(stepWander(wander, dt, self.random))
+			elseif wander then
+				entry.wander = nil
+				gone = true
+			end
+		end
+	end
+	if gone then self:refreshWander() end
 end
 
 -- PF3: a newborn (or any creature) that the hatch made the companion goes to the hotbar instead.

@@ -87,9 +87,19 @@ return function(Toolbar, source, sources)
 			return true
 		end
 		local pads = opts.pads or {}
+		-- PF6: a fake Heartbeat that counts live connections, and a seeded Random, so the wander is deterministic.
+		local heartbeat = { handlers = {} }
+		function heartbeat:Connect(fn)
+			local handlers = self.handlers
+			handlers[fn] = true
+			return { Disconnect = function() handlers[fn] = nil end }
+		end
+		log.heartbeat = heartbeat
 		local toolbar = Toolbar.new({
 			state = state,
 			players = { PlayerRemoving = signal() },
+			heartbeat = heartbeat,
+			random = Random.new(opts.seed or 6),
 			tagged = function(tag)
 				equal(tag, "WildboundBaseSlot")
 				return pads
@@ -349,6 +359,84 @@ return function(Toolbar, source, sources)
 		local frame, size = models[1]:GetBoundingBox()
 		local bottom = frame.Position.Y - size.Y / 2
 		assert(math.abs(bottom - top) < 0.05, ("its lowest point sits on the pad top (%.2f), got %.2f"):format(top, bottom))
+	end)
+
+	-- PF6 (user playtest 2026-11-15): farm creatures are too still; they walk and wander around the whole own pad.
+	local function liveHandlers(log)
+		local count = 0
+		for _ in pairs(log.heartbeat.handlers) do count += 1 end
+		return count
+	end
+
+	case("CT-15: PF6 a farm creature wanders inside the own pad, on its top, facing where it walks", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log = fixture({ pads = { own }, inside = false, farm = { "c1" } })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		assert(type(toolbar.stepFarm) == "function", "Toolbar:stepFarm")
+		assert(type(Toolbar.WANDER) == "table", "Toolbar.WANDER tunables")
+		equal(liveHandlers(log), 1, "one Heartbeat connection for the farm")
+		local model = farmModels(own)[1]
+		local body = model:FindFirstChild("Body")
+		local padPart = own.Pad
+		local top = padPart.Position.Y + padPart.Size.Y / 2
+		local margin = Toolbar.WANDER.margin
+		local halfX, halfZ = padPart.Size.X / 2 - margin, padPart.Size.Z / 2 - margin
+		local start = body.Position
+		local travelled, facedSteps, walkingSteps = 0, 0, 0
+		local spots = {}
+		for _ = 1, 600 do -- 60 s at 0.1 s per step
+			local before = body.Position
+			toolbar:stepFarm(0.1)
+			local after = body.Position
+			local flat = Vector3.new(after.X - before.X, 0, after.Z - before.Z)
+			travelled += flat.Magnitude
+			if flat.Magnitude > 0.05 then
+				walkingSteps += 1
+				local look = Vector3.new(body.CFrame.LookVector.X, 0, body.CFrame.LookVector.Z).Unit
+				if look:Dot(flat.Unit) > 0.9 then facedSteps += 1 end
+				local speed = flat.Magnitude / 0.1
+				assert(speed <= Toolbar.WANDER.speed + 0.05, ("calm pace, got %.2f studs/s"):format(speed))
+			end
+			local localPos = padPart.CFrame:PointToObjectSpace(after)
+			assert(math.abs(localPos.X) <= halfX + 0.01 and math.abs(localPos.Z) <= halfZ + 0.01,
+				("inside the pad margin, got (%.2f, %.2f)"):format(localPos.X, localPos.Z))
+			local frame, size = model:GetBoundingBox()
+			local bottom = frame.Position.Y - size.Y / 2
+			assert(bottom >= top - 0.05 and bottom <= top + Toolbar.WANDER.hop + 0.05,
+				("its lowest point stays on the pad top (%.2f), got %.2f"):format(top, bottom))
+			spots[math.floor(localPos.X / 6) .. ":" .. math.floor(localPos.Z / 6)] = true
+		end
+		assert(travelled > 40, ("it walks over time, travelled %.1f"):format(travelled))
+		assert((body.Position - start).Magnitude > 0.5 or travelled > 40, "it left its spot")
+		assert(walkingSteps > 0 and facedSteps / walkingSteps > 0.95,
+			("it faces where it walks (%d of %d steps)"):format(facedSteps, walkingSteps))
+		local cells = 0
+		for _ in pairs(spots) do cells += 1 end
+		assert(cells >= 6, ("it roams the whole pad, not one corner (%d cells)"):format(cells))
+		assert(model:FindFirstChild("PickupFarmCreaturePrompt", true), "the pickup prompt rides along")
+	end)
+
+	case("CT-16: PF6 a picked-up or cleared farm creature is no longer stepped", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar, log, snapshot = fixture({ pads = { own }, inside = false, farm = { "c1", "c2" },
+			registered = { { uid = "c1", species = "Lumipol" }, { uid = "c2", species = "Lumipol" } } })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		equal(#farmModels(own), 2)
+		equal(liveHandlers(log), 1, "one loop for all the farm models")
+		toolbar:stepFarm(0.1)
+		equal(toolbar:pickUp(player, "c1"), true)
+		equal(toolbar:wanderCount(), 1, "the picked-up creature leaves the wander")
+		toolbar:stepFarm(0.1)
+		toolbar:clearPlayer(7)
+		equal(toolbar:wanderCount(), 0, "a leave stops the wander")
+		equal(liveHandlers(log), 0, "the loop disconnects when no farm model is left")
+		toolbar:stepFarm(0.1)
+		snapshot.farm = { "c2" }
+		toolbar:syncPlayer(player)
+		equal(toolbar:wanderCount(), 1, "a rebuilt farm wanders again")
+		equal(liveHandlers(log), 1, "with one loop again")
 	end)
 
 	return result

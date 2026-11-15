@@ -325,3 +325,27 @@ The user saw the farm Lumipols sunk into the base floor.
 - Test: new CT-14, a fake model with a leg below the body. RED 13/1 (bottom -2.00 vs top 0.50), then GREEN 14/0.
 - Studio matches the repo: Toolbar 12929/4189460251, Test 16427/942460237. Studio instance `ba5a21af-1109-4a96-988f-4e087b83defe` (same place 122652861404212, reconnected).
 - No Play check yet: a farm creature needs a hatch in Play, and the live farm is memory-only in Studio. The user can confirm on their next Play.
+
+## PF6 farm wander (2026-11-15)
+
+The user found the farm creatures too still: they should walk around the whole base.
+
+- [x] PF6. `WildboundCreatureToolbar`: every farm model wanders inside its owner's pad. It pauses 1-4 s, picks a random
+  point inside the pad with a 2.5-stud margin, walks there at 5 studs/s facing the walk, with a 0.25-stud hop that only
+  goes up. Tunables live in `Toolbar.WANDER`. The ground frame is on the pad top, and the model keeps the pivot offset
+  from the lift, so its bounding-box bottom never goes below the pad top. One Heartbeat connection for all farm models
+  (`deps.heartbeat`, default `RunService.Heartbeat`), connected only while one exists, dropped by pickUp, clearPlayer
+  and syncFarm. The RNG is injectable (`deps.random`). The pickup prompt stays on the body and moves with it. Station
+  circles are not avoided (only the edge margin).
+  - Route: inline (one module plus its test, already read).
+  - Tests: CT-15 (60 s stepped wander: stays inside the margin, at most 5 studs/s, faces where it walks, bottom on the
+    pad top, roams at least 6 cells) and CT-16 (pickUp and clearPlayer stop the stepping; the loop disconnects and comes
+    back on a rebuild). RED 14/2 (no `stepFarm`; no Heartbeat connection), GREEN 16/0, fresh loadstring loader.
+  - Studio matches the repo: Toolbar 17825/4075709584, Test 20753/661335045 (before: 12929/4189460251 and
+    16427/942460237, equal to HEAD). Instance `ba5a21af-1109-4a96-988f-4e087b83defe`, place 122652861404212.
+  - Solo Play (PlayLock `PF6`, cleared after; Play stopped): no farm creature exists without a hatch, so a server probe
+    built a farm model on Base1's pad (29 x 23, top 0.90) with a stand-in visual (a body plus a leg below it) through
+    a second Toolbar on the real Heartbeat. Over 10 s it travelled 29.8 studs, stayed inside the margin, top speed
+    5.04 studs/s (frame timing), bottom between 0.90 and 1.14 (hop), prompt on the body; clearPlayer disconnected the
+    loop. Not checked: a hatched creature's real art model wandering in Play.
+  - Python: 1195 tests, 1 failure (same count as the known `test_lumipol_v2` failure).
