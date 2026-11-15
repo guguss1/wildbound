@@ -228,7 +228,7 @@ always bright, the forest always dark; eggs refresh every 300 s.
   group-ownership blocker as CA2, no clip uploaded). Commit e49fa59.
 - [x] CA4 Egg waves every 300 s with Warning window; fixed per-biome client lighting; cycle consumers migrated. Route:
   inline (writer trigger fired: 2+ non-trivial files; kept inline because every Studio write needs the parent's fingerprint
-  gate and Studio == repo before each write). Commit: see Evidence CA4.
+  gate and Studio == repo before each write). Commit 91e29d7.
 - [ ] CA5 Close: Python suite, Play pass, overview rows, commit.
 
 ## Uploaded assets
@@ -408,11 +408,12 @@ Receipts: `assets/exports/caramelo/upload-receipts.md`.
     countdown, the nest restock in Play (no island nest was emptied during the check), reconnect. Screenshots: none (Studio
     screen_capture timed out in Play again).
   - Python: `tools/wildbound_economy_sim_v2.py` read the PHASES lengths (stored, never used): it now reads `WORLD_PHASE`
-    (35 errors on the first full run, fixed). Final full run in the commit evidence below.
+    (35 errors on the first full run, fixed). Final full run: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+  - Commit 91e29d7.
 
 ## Next step
 
-- CA5 close: full Python run and commit (CA4 commit hash recorded below), then a two-client lighting check (one in the Bosque,
+- CA5 close: a two-client lighting check (one in the Bosque,
   one in Caramelo at once) and a 15-minute / three-wave stay in Caramelo; enable the Caramelo nests through the builder when the
   user wants Caramelo eggs.
 - Owner action for CA2 and CA3 clips (unchanged): publish them to group 465694015 (or grant the Assistant group upload or the
