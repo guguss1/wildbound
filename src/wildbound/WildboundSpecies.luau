@@ -46,6 +46,9 @@ Species.LOOKS = freeze({
 })
 -- CE1: species that keep their own look while ONLY is set (the violet Lumipol and the Caramelo species).
 Species.KEEPS_OWN = freeze({ LumipolVioleta = true, Gomibu = true, Tortidragon = true, Flanfuria = true })
+-- CE2 (pack 05_SISTEMAS/03, 06_PROMPTS_CLAUDE/07): hatched Caramelo creatures live in the hotbar and the base farm only;
+-- they never become the companion that follows the player ("nunca autoequipar", "no seguir por el mapa").
+Species.FARM_ONLY = freeze({ Gomibu = true, Tortidragon = true, Flanfuria = true })
 -- A cria is this fraction of an adult; the nest glow is teal for a cria and pale gold for an egg (clarity first).
 Species.CRIA_SCALE = 0.55
 -- User, 2026-11-11: eggs are blue (was pale gold 245, 225, 150).
@@ -62,6 +65,11 @@ end
 
 -- Random world (RW2): each species' rarity tier; a random spawn of a tier picks one of its species. The order matches
 -- the island reward tiers (Safe and Fog Comun, FogFar Rara, Territory Epica, Heart Legendaria).
+-- CE2: whether a hatched creature of this species may be the companion that follows its owner.
+function Species.followsPlayer(name)
+	return not (type(name) == "string" and Species.FARM_ONLY[name] == true)
+end
+
 function Species.byRarity(tier)
 	if Species.ONLY then return { Species.ONLY } end
 	local names = {}

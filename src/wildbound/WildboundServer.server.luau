@@ -100,6 +100,7 @@ Heist.Ragdoll = require(script.Parent.SistemaSonriente:WaitForChild("Ragdoll"))
 -- server (La Silueta's strike) through this module.
 Heist.DodgeService = require(script.Parent:WaitForChild("WildboundDodgeService"))
 local state = State.new(Economy, EconomyConfig)
+state.farmOnly = Species.FARM_ONLY -- CE2: the Caramelo creatures never become the companion (hotbar and farm only)
 local SHELTER_X, SHELTER_Z = EconomyConfig.capsule.x, EconomyConfig.capsule.z
 local capture = Capture.new()
 local map = workspace:WaitForChild("WildboundP0", 15)
@@ -4015,9 +4016,31 @@ do
 end
 do
 	local CreatureToolbar = require(script.Parent:WaitForChild("WildboundCreatureToolbar"))
+	-- CE2: a Caramelo pet stands in the farm as its real rig (ServerStorage.WildboundAssets), scaled down and passive,
+	-- playing its published FarmIdle / walk clips from the server once it is parented; others keep the stand-in.
+	local CandyPets = require(script.Parent:WaitForChild("WildboundCandyPets"))
+	local petClips = {}
 	Heist.creatureToolbar = CreatureToolbar.new({
 		state = state,
 		visual = visual,
+		farmModel = function(species, spot, look)
+			local spec = CandyPets.SPECIES[species]
+			local assets = spec and ServerStorage:FindFirstChild("WildboundAssets")
+			if not assets then return nil end
+			if petClips[species] == nil then
+				local module = ServerStorage:FindFirstChild(spec.clips)
+				local ok, clips = pcall(function() return module and require(module) end)
+				petClips[species] = ok and clips or false
+			end
+			local model, body = CandyPets.build(species, assets, spot, look,
+				CandyPets.clipIds(species, petClips[species] or nil))
+			if model then
+				task.defer(function()
+					if model.Parent then pcall(CandyPets.animate, model) end
+				end)
+			end
+			return model, body
+		end,
 		send = send,
 		Art = Art,
 		Species = Species,

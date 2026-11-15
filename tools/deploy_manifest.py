@@ -422,6 +422,9 @@ DEFAULT_MAPPINGS = [
     # CE1: the Caramelo nests join the island nests (one egg each, the guardian beside it)
     ("src/wildbound/WildboundCandyNests.luau", "ServerScriptService.WildboundCandyNests"),
     ("tests/WildboundCandyNests_Test.luau", "ServerStorage.WildboundCandyNests_Test"),
+    # CE2: the hatched Caramelo creatures as passive farm pets (their real rig, scaled down)
+    ("src/wildbound/WildboundCandyPets.luau", "ServerScriptService.WildboundCandyPets"),
+    ("tests/WildboundCandyPets_Test.luau", "ServerStorage.WildboundCandyPets_Test"),
 ]
 
 

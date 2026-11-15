@@ -163,6 +163,14 @@ SPECS["WildboundCandyNests_Test"] = {
 	"mod:WildboundIsland", "mod:WildboundSpecies", "mod:WildboundCandyBuilder",
 	{ server = "src:WildboundServer", text = "mod:WildboundText" },
 }
+SPECS["WildboundCandyPets_Test"] = {
+	"mod:WildboundCandyPets", "mod:WildboundSpecies", "mod:WildboundState", "mod:WildboundEconomy", "mod:WildboundEconomyConfig",
+	"mod:WildboundRecord", "mod:WildboundIncubator", "mod:WildboundEggLoop", "mod:WildboundText",
+	"inst:ServerStorage.WildboundAssets",
+	{ Gomibu = "mod:WildboundCandyGomibuClips", Flanfuria = "mod:WildboundCandyFlanfuriaClips",
+		Tortidragon = "mod:WildboundCandyTortidragonClips" },
+	{ server = "src:WildboundServer" },
+}
 SPECS["WildboundBeastDonGlaseon_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastDonGlaseon", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseonAttack",
 	"mod:WildboundBeastDirector", "mod:WildboundPraderaSites",

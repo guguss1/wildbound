@@ -555,6 +555,9 @@ class DefaultMappingTests(unittest.TestCase):
         # CE1 Caramelo nests
         "src/wildbound/WildboundCandyNests.luau": "ServerScriptService.WildboundCandyNests",
         "tests/WildboundCandyNests_Test.luau": "ServerStorage.WildboundCandyNests_Test",
+        # CE2 Caramelo farm pets
+        "src/wildbound/WildboundCandyPets.luau": "ServerScriptService.WildboundCandyPets",
+        "tests/WildboundCandyPets_Test.luau": "ServerStorage.WildboundCandyPets_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

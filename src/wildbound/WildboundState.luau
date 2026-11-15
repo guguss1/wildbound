@@ -546,6 +546,11 @@ function State:incubate(key, uid, alive, distance, now, seconds, slots)
 	return true, table.clone(entry)
 end
 
+-- CE2: the server's set of species that live in the hotbar and farm only (state.farmOnly); none when unset.
+local function farmOnly(self, species)
+	return type(self.farmOnly) == "table" and type(species) == "string" and self.farmOnly[species] == true
+end
+
 -- NB4: every incubating egg whose time has come hatches into a registered creature of its species, exactly once (it
 -- leaves the incubator before it is registered). Returns a list of { uid, species, egg, isNew }; hatching pays nothing.
 function State:hatchReady(key, now)
@@ -561,8 +566,8 @@ function State:hatchReady(key, now)
 			local isNew = player.discovered[entry.species] ~= true
 			table.insert(player.registered, { uid = petUid, species = entry.species })
 			player.discovered[entry.species] = true
-			-- NS3: with no companion out, the newborn becomes the companion at once.
-			local equipped = player.equippedUid == nil
+			-- NS3: with no companion out, the newborn becomes the companion at once. CE2: never a farm-only species.
+			local equipped = player.equippedUid == nil and not farmOnly(self, entry.species)
 			if equipped then player.equippedUid = petUid end
 			table.insert(hatched, { uid = petUid, species = entry.species, egg = entry.uid, isNew = isNew, equipped = equipped })
 		else
@@ -589,6 +594,9 @@ function State:equip(key, uid, alive)
 	if not find(player.registered, uid) then return false, "NotOwnedPet" end
 	-- PF4: a creature in the farm is never the companion.
 	if farmIndex(player, uid) then return false, "InFarm" end
+	-- CE2: a farm-only species (the server sets state.farmOnly = Species.FARM_ONLY) never follows.
+	local _, pet = find(player.registered, uid)
+	if farmOnly(self, pet.species) then return false, "FarmOnly" end
 	player.equippedUid = uid
 	return true, uid
 end

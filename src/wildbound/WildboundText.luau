@@ -555,6 +555,8 @@ return freeze({
 		CollectionFull = "Llegaste al límite de la colección de esta sesión (100).",
 		NotOwnedEgg = "Elige uno de tus huevos guardados.",
 		NotOwnedPet = "Solo puedes equipar tus criaturas registradas.",
+		-- CE2: the Caramelo creatures live in the hotbar and the base farm; they never follow.
+		FarmOnly = "Esta criatura vive en tu barra y tu granja; no te sigue.",
 		-- NS7: gloves.
 		GlovesFull = "Ya tienes el máximo de guantes.",
 		NotOwnedGlove = "Solo puedes ponerte tus propios guantes.",

@@ -3,6 +3,8 @@
 -- following the player (deps.unequip) and taking it back to the hotbar never equips it; tools are rebuilt once per
 -- respawn, never duplicated. PF7: a species with an uploaded icon (Toolbar.ICONS, uploaded with the user's approval
 -- 2026-11-15) shows it in the hotbar; any other species keeps an empty TextureId and shows its name.
+-- CE2: a Caramelo pet (deps.farmModel returns a model for it) stands in the farm as its real rig, scaled down, feet on
+-- its pivot; every farm model carries FarmWalking (true while it walks) so the pet's walk clip can play.
 -- PF4: the farm itself is State's (placeInFarm / takeFromFarm, saved by WildboundRecord schema 5, capped by the
 -- snapshot's farmSlots); this module only builds its models and rebuilds a saved farm on the own pad on join.
 local CollectionService = game:GetService("CollectionService")
@@ -16,9 +18,15 @@ local UID = "WildboundCreatureUid"
 local DEPOSIT_REACH = 20 -- studs from the own pad when the base zone does not report the player inside
 
 -- PF7: hotbar icons by species (source assets/icons/lumipol-hotbar-icon-256.png). A missing species has no icon.
+-- CE2 (uploaded with the user's approval 2026-11-15): the Caramelo pets, from the pack's turnarounds
+-- (assets/icons/<species>-hotbar-icon-256.png).
 Toolbar.ICONS = {
 	Lumipol = "rbxassetid://121561289565386",
+	Gomibu = "rbxassetid://130041727906990",
+	Flanfuria = "rbxassetid://106158128076232",
+	Tortidragon = "rbxassetid://85016154045779",
 }
+Toolbar.WALKING = "FarmWalking" -- CE2: farm model attribute, true while it walks
 
 -- PF6 (user playtest 2026-11-15): farm creatures walk around the whole own pad instead of standing still.
 Toolbar.WANDER = {
@@ -35,6 +43,7 @@ function Toolbar.new(deps)
 		-- { state, visual, send, isInsideBase, unequip, Art, Species, Text, tagged?, players? }
 		-- unequip(player, uid): the server puts that creature back in the collection when it is the companion out.
 		-- PF6: heartbeat? (a Connect-able signal, default RunService.Heartbeat), random? (a Random, default a new one).
+		-- CE2: farmModel?(species, spot, look) -> model, body or nil: a pet's own farm model, its pivot on its feet.
 		deps = deps,
 		placed = {}, -- [userId] = { [uid] = { model = Model, species = string, wander? } }: the farm models only (PF4, PF6)
 		random = deps.random or Random.new(),
@@ -179,13 +188,18 @@ end
 -- The farm model with its pickup prompt, parented to the own base model.
 function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseModel)
 	local words = self:words()
-	local creatureModel, body = self.deps.visual("Creature", spotWorld, species, 0.75)
+	local creatureModel, body = nil, nil
+	if self.deps.farmModel then creatureModel, body = self.deps.farmModel(species, spotWorld, lookDir) end
+	local pet = creatureModel ~= nil
+	if not pet then creatureModel, body = self.deps.visual("Creature", spotWorld, species, 0.75) end
 	creatureModel.Name = "WildboundFarmCreature"
 	creatureModel:SetAttribute("OwnerUserId", player.UserId)
 	creatureModel:SetAttribute(UID, uid)
 	creatureModel:SetAttribute("WildboundSpecies", species)
 	local goalFrame = CFrame.lookAt(spotWorld, spotWorld + lookDir)
-	if not creatureModel:GetAttribute(self.deps.Art.CONFIG.ATTRIBUTE) and body then
+	if pet then
+		creatureModel:PivotTo(goalFrame) -- CE2: the rig's pivot is on its feet
+	elseif not creatureModel:GetAttribute(self.deps.Art.CONFIG.ATTRIBUTE) and body then
 		body.CFrame = goalFrame + Vector3.new(0, body.Size.Y / 2, 0)
 	else
 		creatureModel:PivotTo(goalFrame)
@@ -193,9 +207,12 @@ function Toolbar:spawnFarmModel(player, uid, species, spotWorld, lookDir, baseMo
 	creatureModel.Parent = baseModel
 	-- Playtest (2026-11-14): the creature model reaches below its body/pivot, so it sank into the base floor. Stand its
 	-- lowest point on the pad's top surface (spotWorld is on that surface).
-	local boxFrame, boxSize = creatureModel:GetBoundingBox()
-	local lift = spotWorld.Y - (boxFrame.Position.Y - boxSize.Y / 2)
-	if math.abs(lift) > 0.01 then creatureModel:PivotTo(creatureModel:GetPivot() + Vector3.new(0, lift, 0)) end
+	-- CE2: a pet rig stands on its pivot (its hidden root reaches below the feet), so it is not lifted.
+	if not pet then
+		local boxFrame, boxSize = creatureModel:GetBoundingBox()
+		local lift = spotWorld.Y - (boxFrame.Position.Y - boxSize.Y / 2)
+		if math.abs(lift) > 0.01 then creatureModel:PivotTo(creatureModel:GetPivot() + Vector3.new(0, lift, 0)) end
+	end
 	local pad = self:basePadOf(player.UserId)
 
 	local displayName = self:displayName(species)
@@ -354,7 +371,14 @@ function Toolbar:stepFarm(dt)
 		for _, entry in pairs(map) do
 			local wander, model = entry.wander, entry.model
 			if wander and model and model.Parent and wander.pad.Parent then
+				local hadTarget = wander.target ~= nil
 				model:PivotTo(stepWander(wander, dt, self.random))
+				-- CE2: told only when it changes (a walk starts or ends), so the pet's clip follows the walk
+				local walking = hadTarget or wander.target ~= nil
+				if entry.walking ~= walking then
+					entry.walking = walking
+					model:SetAttribute(Toolbar.WALKING, walking)
+				end
 			elseif wander then
 				entry.wander = nil
 				gone = true

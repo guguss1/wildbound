@@ -16,6 +16,9 @@ return function(Toolbar, source, sources)
 		assert(actual == expected, (label and label .. ": " or "") .. "Expected " .. tostring(expected)
 			.. ", got " .. tostring(actual))
 	end
+	local function near(actual, expected, tolerance, label)
+		assert(math.abs(actual - expected) <= tolerance, ("%s: expected %.2f, got %.2f"):format(label, expected, actual))
+	end
 	local Text, server = sources.text, sources.server
 
 	local function signal()
@@ -120,6 +123,8 @@ return function(Toolbar, source, sources)
 				return false
 			end,
 			Art = { CONFIG = { ATTRIBUTE = "WildboundArtTest" } },
+			-- CE2: the farm model builder of the Caramelo pets (nil for any other species: the visual stand-in).
+			farmModel = opts.farmModel,
 			Species = {},
 			Text = Text,
 		})
@@ -451,6 +456,83 @@ return function(Toolbar, source, sources)
 		local unknown = tools(player, "c2")[1]
 		equal(unknown.TextureId, "", "no icon for a species without one")
 		equal(unknown.Name, "Unknown", "it keeps its name text")
+	end)
+
+	-- CE2 (icons uploaded with the user's approval 2026-11-15): the three Caramelo pets show their own hotbar icon.
+	case("CT-18: CE2 Gomibu, Flanfuria and Tortidragon tools show their own hotbar icons", function()
+		local ICON = { Gomibu = "rbxassetid://130041727906990", Flanfuria = "rbxassetid://106158128076232",
+			Tortidragon = "rbxassetid://85016154045779" }
+		local toolbar = fixture({ registered = { { uid = "g", species = "Gomibu" }, { uid = "f", species = "Flanfuria" },
+			{ uid = "t", species = "Tortidragon" } } })
+		local player = fakePlayer(7)
+		toolbar:syncPlayer(player)
+		for uid, species in pairs({ g = "Gomibu", f = "Flanfuria", t = "Tortidragon" }) do
+			local tool = tools(player, uid)[1]
+			assert(tool, species .. " has a tool")
+			equal(tool.TextureId, ICON[species], species .. " icon")
+			equal(tool.Name, Text.CARD.species[species], species .. " Spanish name")
+		end
+		equal(Toolbar.ICONS.Lumipol, "rbxassetid://121561289565386", "the Lumipol icon stays")
+	end)
+
+	-- CE2: a Caramelo pet in the farm is the farm model builder's rig (feet on the pad top at its pivot), the prompt on
+	-- its body; any other species keeps the visual stand-in.
+	local function rigBuilder(log)
+		return function(species, spot, look)
+			table.insert(log, species)
+			if species ~= "Gomibu" then return nil end
+			local model = Instance.new("Model")
+			local root = Instance.new("Part")
+			root.Name = "RootPart"; root.Anchored = true; root.Size = Vector3.new(2, 2, 2) -- reaches 1 stud below the feet
+			root.CFrame = CFrame.lookAt(spot, spot + look)
+			root.Parent = model
+			local body = Instance.new("Part")
+			body.Name = "Collision"; body.Size = Vector3.new(1, 3, 1)
+			body.CFrame = root.CFrame * CFrame.new(0, 1.5, 0)
+			body.Parent = model
+			model.PrimaryPart = root
+			return model, body
+		end
+	end
+
+	case("CT-19: CE2 a Caramelo pet in the farm is its rig from farmModel, feet on the pad top; others the stand-in", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local built = {}
+		local toolbar = fixture({ pads = { own }, inside = false, farm = { "g", "l" }, farmModel = rigBuilder(built),
+			registered = { { uid = "g", species = "Gomibu" }, { uid = "l", species = "Lumipol" } } })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		local top = own.Pad.Position.Y + own.Pad.Size.Y / 2
+		local byUid = {}
+		for _, model in ipairs(farmModels(own)) do byUid[model:GetAttribute("WildboundCreatureUid")] = model end
+		local pet = byUid.g
+		assert(pet and pet:FindFirstChild("RootPart"), "the Gomibu farm model is the builder's rig")
+		equal(pet.Name, "WildboundFarmCreature"); equal(pet:GetAttribute("WildboundSpecies"), "Gomibu")
+		near(pet:GetPivot().Position.Y, top, 0.05, "its pivot (the feet) on the pad top, no bounding-box lift")
+		assert(pet.Collision:FindFirstChild("PickupFarmCreaturePrompt"), "the pickup prompt on its body")
+		assert(byUid.l and byUid.l:FindFirstChild("Body"), "a Lumipol keeps the stand-in")
+		toolbar:stepFarm(0.1)
+		near(pet:GetPivot().Position.Y, top, Toolbar.WANDER.hop + 0.05, "it wanders on the pad top")
+	end)
+
+	case("CT-20: CE2 a farm model is told when it walks (FarmWalking) so its walk clip can play", function()
+		local own = pad(7, Vector3.new(0, 0, 0))
+		local toolbar = fixture({ pads = { own }, inside = false, farm = { "c1" } })
+		local player = fakePlayer(7, Vector3.new(900, 3, 0))
+		toolbar:syncPlayer(player)
+		local model = farmModels(own)[1]
+		local walked, rested, flips, last = 0, 0, 0, nil
+		for _ = 1, 600 do
+			local before = model:GetPivot().Position
+			toolbar:stepFarm(0.1)
+			local moved = (Vector3.new(model:GetPivot().Position.X - before.X, 0, model:GetPivot().Position.Z - before.Z)).Magnitude > 0.05
+			local flag = model:GetAttribute("FarmWalking")
+			if moved then equal(flag, true, "walking while it moves"); walked += 1 end
+			if flag == false then rested += 1 end
+			if flag ~= last then flips += 1; last = flag end
+		end
+		assert(walked > 0 and rested > 0, "it walks and rests")
+		assert(flips >= 3 and flips < 200, ("the flag changes with the walk, not every frame (%d)"):format(flips))
 	end)
 
 	return result

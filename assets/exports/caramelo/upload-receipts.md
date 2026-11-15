@@ -13,3 +13,9 @@
 - 2026-11-15 Don Glaseon model v1 (don-glaseon-v1.fbx, 540076 bytes): POST /assets/v1/assets -> 200
   {"path":"operations/971df032-1e7e-44d8-9b1e-2c2e510efa2a","operationId":"971df032-1e7e-44d8-9b1e-2c2e510efa2a","done":false}
   done: assetId 91765062667935 (Model, Approved, revision 1)
+- 2026-11-15 CE2 hotbar icons (user-approved: one each), Studio MCP upload_image from a short-lived local http.server on
+  127.0.0.1 (stopped right after): gomibu-hotbar-icon-256.png -> rbxassetid://130041727906990,
+  flanfuria-hotbar-icon-256.png -> rbxassetid://106158128076232, tortidragon-hotbar-icon-256.png -> rbxassetid://85016154045779
+  (sources assets/icons/, cropped from the pack's 3/4 turnaround views). User-owned: in Play the client gets "Requester does
+  not have permission for Asset" for all three (and for the Lumipol icon 121561289565386), so the hotbar shows the name until
+  the owner shares them with the group experience or re-uploads them to group 465694015.
