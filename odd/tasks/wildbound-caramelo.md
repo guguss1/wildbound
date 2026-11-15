@@ -422,7 +422,7 @@ is listed below.
 - [x] CF1 Per-place gameplay phase: one pure `BiomeLight.phaseAt(x, z)` routed through every server phase reader,
   keyed by the position of the player or entity concerned; Nightbloom gets its own wilt timer. Route: inline (writer
   trigger fired: 2+ non-trivial files; kept inline because every Studio write needs the parent's fingerprint gate).
-  TDD strict. Commit: see Evidence CF1.
+  TDD strict. Commit 58220a1.
 - [ ] CF2 (assigned by the follow-up workflow; not part of this task).
 - [ ] CF3 (assigned by the follow-up workflow; not part of this task).
 - [ ] CF4 (assigned by the follow-up workflow; not part of this task).
@@ -485,6 +485,7 @@ is listed below.
   asset/TexturePack and DataStore messages). A player placed 64 studs from La Silueta saw her close to 36 studs in 4 s
   while she stayed in Patrol (stalk hold): her night hunt speed and sight were not measured in Play.
 - Python: 1195 tests, 1 failure = the known `test_lumipol_v2` V1IsKept.
+- Commit 58220a1.
 - Not tested: a Nightbloom node really wilting after 300 s in Play, La Silueta's night hunt speed/sight in a chase,
   Nube night range in Caramelo (now never night, by design), two players, phone, the economy effect of always-on
   Nightbloom.
