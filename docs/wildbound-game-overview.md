@@ -2,6 +2,8 @@
 
 **Snapshot:** 2026-11-15, branch `codex/wildbound-first-playable` at `df0d0bb` (previous snapshot 2026-11-10 at `6edfa21`). Written offline from the repository only: no Studio, Play or device session was run for this document. Where code and an older document disagree, this document follows the code and says so (section 16). Anything not checked against code or a recorded Play result is marked **(unverified)**.
 
+**Partial refresh:** 2026-11-16 at `91b8743` (task B10 of `docs/handoff/HANDOFF-2026-11-16.md`): sections 13 (status matrix), 14 (owner actions, risks, D15) and 16 (contradictions re-checked against the code) cover the 14 to 16 November work. Sections 1 to 12 are still the 2026-11-15 snapshot; where they disagree with sections 13, 14 or 16, those win.
+
 **Status words used everywhere below**
 
 | Word | Meaning |
@@ -557,21 +559,28 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Dusk warnings and buff | Wired but inert since CA4/CF1 (no place resolves to Dusk); code kept | Same; `odd/tasks/wildbound-caramelo.md` (CF1 decision 4) |
 | Auto-banking base zone | Wired by the teammate (synced); banner hidden by owner decision; no Play record of ours | `docs/design/wildbound-hub-expansion.md` section 7; suite-repair |
 | Beast director, Viper, Pouncer (proxies) | Done | `docs/mechanics/wildbound-beasts.md` |
+| Beast revision BR0 to BR7 per the owner's sheet: a persistent chase (`WildboundBeastChase`), Viper (bigger, longer dash, slow on hit), Pouncer as a tarantula (web ball, 1 s root), Screamer (was "Streamer"; statue, scream, fast chase), Root, Gaze (3 s look = one defeat), Lurker (no early warnings) | Done (solo Play, 2026-11-16) | `odd/tasks/wildbound-beast-revision.md` |
+| More beasts in the world (PF7): summoned beasts rest 5 s between encounters, rolled beasts' chances up moderately, a 10 s global cooldown; summoned zero-point beasts take no `MAX_ACTIVE` slot (PF1) | Done (solo Play, PF8) | `odd/tasks/wildbound-caramelo-playfix.md` (PF1, PF7) |
 | Shared beast visibility (SC0: nearby players see every beast but La Silueta) | Done for the target (solo Play); the bystander view is **not verified** (needs two players, SC0.6) | `odd/tasks/wildbound-scuttler.md` |
 | Global beasts with no biome preference (`BIOME_PREFERENCE = false`) | Done (suites; `f9c7ef4`) | `odd/tasks/wildbound-kids-beasts.md` |
 | Scuttler SC1 to SC8 (config, afflict, brain, feint, predictive route, panic pulse, wiring, client and proxy) | Done (solo Play, SC7, SC8; `c64db0d`) | `odd/tasks/wildbound-scuttler.md` |
 | Scuttler SC9 to SC12 (Blender rig and 17 clips, upload, two-player playtest, mechanics doc) | Not started (SC12's overview part: this snapshot) | Same |
-| Streamer, Root, Gaze, Lurker | Wired, suites passed; no Play record and no feature doc (teammate, synced `34eab83`) | `docs/design/beast-pack/` |
+| Screamer (internal id `Streamer`), Root, Gaze, Lurker | Done (solo Play in the beast revision, 2026-11-16; first wired by the teammate, synced `34eab83`) | `odd/tasks/wildbound-beast-revision.md`; `docs/design/beast-pack/` |
 | La Nube Gruñona, La Abeja Reina (summoned, damage 0) | Done (solo Play, KB-8); sticky sting, gust and the client view not observed (KB-9, KB-10) | `odd/tasks/wildbound-kids-beasts.md` |
 | Gargoyle, Mire | Design only (config) | `docs/design/beast-pack/` |
 | Caramelo biome map (`Candy_Bioma_v1`, 736 parts, replaces the Pradera in the Meadow square) | Done as the playable map (solo Play); built by `ServerStorage.WildboundCandyBuilder`, place not saved | `odd/tasks/wildbound-caramelo.md` (CA0) |
-| Gomibu | Wired, suites passed; no Play record in this repo (its record `odd/tasks/caramelo-bioma.md` is not in the repo) | Same (CA0) |
-| Flanfuria | Done (solo Play, CA1) | Same (CA1) |
-| Tortidragon | Done (solo Play, CA2) except its animation: 11 clips built, **not published** (owner action) | Same (CA2) |
-| Don Glaseon (boss, one per server, bat immune, sleeping copy pass-through) | Done (solo Play, CA3, CF3) except its animation: 11 clips **not published**; target switching and the egg drop in his lane not seen in Play | Same (CA3, CF3) |
-| Candy critters Mochimiau, Canelin, Flanin, Mielita, Gato Repartidor (shared brain `WildboundBeastCandyCritter`, model service `WildboundCandyCritterService`) | Done (solo Play, CC6) except tell colours (CC7) and text lines (CC8); live animation is another task; place not saved | `odd/tasks/wildbound-candy-critters.md` |
-| Duquesa Burbuja | Seated scenery only (no brain) | Same |
-| Caramelo nests (11 live: C1-C5 Gomibu, R1-R4 Tortidragon, E1-E2 Flanfuria; L1 event-only, off) | Done (solo Play, CE1); session-only switch, restore with `Builder.syncNests` if the place is reopened unsaved | Same (CE1) |
+| Gomibu (slow patrol round its nest, sight 24, walks home and gives up at its leash instead of fading) | Done (solo Play, PF4, PF4b, PF8) | `odd/tasks/wildbound-caramelo-playfix.md` (PF4, PF4b) |
+| Flanfuria | Done (solo Play, CA1; faster casts, CF in `wildbound-caramelo-v2.md`); still fades when it gives up (B5 in the handoff) | `odd/tasks/wildbound-caramelo.md` (CA1) |
+| Tortidragon | Done (solo Play, CA2; faster casts, CF); animates live from its clip data (A3, solo Play), so publishing its 11 clips is optional now (O3); still fades when it gives up (B5) | Same (CA2); `odd/tasks/wildbound-caramelo-playfix.md` (A3) |
+| Don Glaseon (boss, one per server, bat immune, sleeping copy pass-through) | Done (solo Play, CA3, CF3) | `odd/tasks/wildbound-caramelo.md` (CA3, CF3) |
+| Don Glaseon moves DG1 to DG7: 3-lash combo, vacuum mouth, chocolate walls, glaze with a slip-and-fall ragdoll, rising anger, roar that wakes guardians, trap cakes on the routes (outside his ground since PF6); 3 s grace and longer timers (PF5); live animation (A3) and a stepping walk (DW1 to DW3) | Done (solo Play, 2026-11-16); the full rage seen in suites only; target switching (two players) and the egg drop in his lane not seen in Play | `odd/tasks/wildbound-caramelo-v2.md` (DG1 to DG7); `odd/tasks/wildbound-caramelo-playfix.md` (PF5, PF6, A3, DW) |
+| Candy critters Mochimiau, Canelin, Flanin, Mielita, Gato Repartidor (shared brain `WildboundBeastCandyCritter`, model service `WildboundCandyCritterService`) | Done (solo Play, CC6); tell colours and text lines wired (CC7, CC8, `8e09a29`) but not looked at on screen; live animation without published clips (`wildbound-candy-critters-anim.md`); place not saved | `odd/tasks/wildbound-candy-critters.md` |
+| Candy creature behaviour: rest at their posts (no pop-in or fade), see and chase a walking player, patrol, walk home (PF2, PF3); extra abilities (A2: cream puddles, glaze, caramel and pollen trails, Mielita's swarm, the Gato's golden order) | Done (solo Play, PF8, A2-9, A2-13) | `odd/tasks/wildbound-caramelo-playfix.md` (PF, A2) |
+| Candy creature damage and variety (OF2): each has its own chase speed, reach, cooldown and damage; hits go through `BeastHit` with the egg kept | Done (solo Play for Gato Repartidor, Mochimiau and Flanfuria damage); Canelin, Flanin, Mielita, Tortidragon and Don Glaseon damage suites only | Same (OF2) |
+| Smarter, faster candy creatures (OF3, `WildboundCandySmarts`): sprint at chase start, predictive pursuit, flanking, anti-stuck side-steps, nest guard and ally calls; chase scales with the player's trained walk (caps 34, sprint 38); a dodge stops a close creature at most once per 3 s | Done (solo Play: nest guard, ally call, flanking, sprint speeds read once); speeds in the review re-check not measured (models drawn client-side, B6); trained-walk scaling and the dodge pause suites only | Same (OF3, OF3 review fixes) |
+| La Duquesa Burbuja (remodelled after the owner's drawing): seated, throws bubble bombs every 6 s at a player on the Gran Torta summit and every 8 s at a climber on tier 2 and up | Done (solo Play for the summit throw, A2-6, A2-13); the upper-tier volleys suites only | Same (A2-6, OF3-3) |
+| La Gran Torta (CT1 to CT4): spiral stair, counter-rotating tiers, the biome's best egg in a summit Legendaria nest, Frutillon guarding the rim; hard summit (OF3-3: stair patrols, glaze steps that trip runners only, seeds every 2 s with a 9-stud push) | Done (solo Play, 2026-11-16) except the summit itself: nobody has reached it on foot (navigation cannot jump; B3 in the handoff) | `odd/tasks/wildbound-caramelo-v2.md` (CT1 to CT4); `odd/tasks/wildbound-caramelo-playfix.md` (OF3-3) |
+| Caramelo nests (11 live: C1-C5 Gomibu, R1-R4 Tortidragon, E1-E2 Flanfuria; L1 event-only, off until a Caramelo event exists; the Gran Torta summit nest is a separate row) | Done (solo Play, CE1); session-only switch, restore with `Builder.syncNests` if the place is reopened unsaved | Same (CE1) |
 | Caramelo pets (farm-only, rarity hatch 15 / 45 / 60 s, scaled rig, FarmIdle and walk clips) | Done (solo Play with Gomibu, CE2); Flanfuria and Tortidragon farm models suite only | Same (CE2) |
 | Candy egg looks (nest, backpack, cradle, Gomibu bob) | Done (solo Play, CG1); a Flanfuria egg in the pack or cradle and a dropped candy egg not seen in Play | Same (CG1) |
 | Return portals (Caramelo arch (772, -3), forest arch (-28, -132); 5 s calm, 2 s channel, 30 s rest, the egg rides along) | Done (solo Play at the Caramelo arch, CE3); a full channel at the forest arch not seen | Same (CE3); `odd/tasks/wildbound-2-0.md` (T08a, T08b) |
@@ -586,9 +595,12 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Farm wander and pad lift | Done (solo Play with a stand-in model, PF6; the lift suite only); a hatched creature's real model wandering seen only for Gomibu (CE2) | Same (PF6, sunken-creature follow-up) |
 | Creature hotbar icons (Lumipol + 3 Caramelo) | Done (IC, 2026-11-16): the thumbnail form loads the user-owned images; solo Play saw the four hotbar slots loaded | Same (PF7); `odd/tasks/wildbound-caramelo.md` (CE2) |
 | Treadmill (17 levels, walk 16 to 50; level L+1 needs L+1 laps and only a level-up lap pays 5 Esencia (BP1); a carrier's share is taken of at most a 24 walk (BP2)) | Done (solo Play, PF2, BP1, BP2) | `odd/tasks/wildbound-playtest-fixes.md` (PF2); `odd/tasks/wildbound-balance-pass.md` (BP1, BP2) |
-| Incubation (15 s x rarity, one slot), newborn to the hotbar | Done | `docs/mechanics/wildbound-incubator.md`; PF3 |
-| Gloves with random stats | Done | odd doc NS7 |
-| Skill tree (8 nodes, 5 live), upgrades, seals, capsule, ward totem, luck totem | Done | `docs/mechanics/wildbound-economy-p0.md` |
+| Gold ("oro"), a second currency: farm creatures pay per minute by rarity (7 / 10 / 18 / 30 since OF3), 20 per tamed or hatched creature, treadmill laps 2 each up to 10 per minute; spent on farm places and treadmill levels (saved in `WildboundRecord`) | Done (solo Play, GD and OF3-4 walked checks); the new per-minute rates seen in suites only (B1 in the handoff) | `odd/tasks/wildbound-gold.md` |
+| "Vender": sell a creature for gold from the bag panel, two taps (Común 25, Rara 60, Épica 150, Legendaria 400, +20 % per bond level above 1); never the companion, a farm creature or the last one | Done (solo Play: a Común sold, +25 gold); phone layout not checked (B2) | Same (OF3-3) |
+| Base UI cleanup: gloves, chest, incubator, crafting (seal, capsule, totem) and skills hidden through one list, `WildboundCampView.HIDDEN`; systems, saves and server rules untouched, the incubator keeps working on its own | Done (solo Play, OF3-4) | Same (OF3-1) |
+| Incubation (15 s x rarity, one slot), newborn to the hotbar | Done (its camp panel hidden since OF3-1; incubation itself still runs) | `docs/mechanics/wildbound-incubator.md`; PF3 |
+| Gloves with random stats | Done (hidden in the base UI since OF3-1, code kept) | odd doc NS7 |
+| Skill tree (8 nodes, 5 live), upgrades, seals, capsule, ward totem, luck totem | Done (skills and crafting hidden in the base UI since OF3-1, code kept) | `docs/mechanics/wildbound-economy-p0.md` |
 | Tutorial card | Done (shown again, owner decision 2026-11-14; solo Play) | `odd/tasks/wildbound-suite-repair.md` |
 | Hub v1: 8 bases, assignment, delivery, incubator, glove bench, treadmill, safe disc, spawn pads | Done; the collection platform stays empty (HB-T5, owner decision) | `docs/maps/wildbound-hub.md` |
 | Hub v2-r90 geometry (showcases, shop circles, chest stations, bank zones, 2 cradles, 35 lights) | Prepared (built per `b45bdba`, no rules) | `docs/design/wildbound-hub-expansion.md` |
@@ -604,9 +616,12 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Pradera Arcoíris map | Prepared (builder); its square now holds Caramelo | `docs/design/wildbound-biome-pradera.md` |
 | Pradera species, Huevo Real, Molinillo, Relampino | Design only | Same |
 | Pantano, Cementerio, Abismo, Montañas Heladas, Tierras Volcánicas, Cuevas de Roca | Prepared (primitive builders); their light presets and gameplay phase are live (CA4, CF1) | `docs/maps/wildbound-open-world-biomes.md` |
-| Corral, trophies, breeder level, daily gift, cosmetics, farm income | Design only (no farm income: the no-AFK-income rule) | `docs/mechanics/wildbound-hub-systems.md` |
+| Corral, trophies, breeder level, daily gift, cosmetics | Design only (farm income now exists as gold, see the gold row) | `docs/mechanics/wildbound-hub-systems.md` |
+| Economy options A to G (farm income shown over each creature, capped chest, hatch mutations, feeding to level up, more farm places, better eggs in riskier places, raiding other bases) | Design only: waiting for the owner's pick (O4) | `odd/tasks/wildbound-caramelo-v2.md` |
+| Map "big4": four equal 600 x 600 biomes in a cross round the unmoved base (Bosque W, Caramelo E, Montañas N, Volcán S), `WildboundMapModeSwitch` toggles big4 / classic | Done on branch `agus/big4-map` (worktree `wb-big4`) and in the unsaved Studio session (solo Play); **not merged** into this branch (O8, O9); no phone frame time and no top-down capture (B7) | branch `agus/big4-map` |
 | Robux offers | Design only (nothing purchasable) | `docs/design/wildbound-economy-and-offers.md` |
-| Viper, Pouncer, Gargoyle, Mire mesh import and animations | Not started in game (models uploaded) | `assets/models/beasts/README.md` |
+| Viper and Pouncer (tarantula) models and clips in game | Done (solo Play in BR1, BR2: the clips play) | `odd/tasks/wildbound-beast-revision.md` |
+| Gargoyle, Mire mesh import and animations | Not started in game (models uploaded) | `assets/models/beasts/README.md` |
 | Lumipol generated art (parent and egg) | Done (templates kept only if the place is saved) | odd doc (Lumipol generated model, LG pass) |
 | Two-player and three-player tests | Not started | `docs/testing/wildbound-next-verification.md` |
 | Phone tests and performance capture | Not started | Same |
@@ -619,18 +634,25 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 
 ### 14.1 What the user must do
 
+Numbered as in `docs/handoff/HANDOFF-2026-11-16.md` section (c)A (O1 to O10); the older U numbers are kept in brackets where a row continues one.
+
 | # | Action | Why |
 | --- | --- | --- |
-| U9 | **Publish the 22 Tortidragon and Don Glaseon clips to group 465694015**: in Edit, `ServerStorage.WildboundPublishClips.<Creature>.<Clip>`, right click > Save to Roblox, Creator = the group; give the 22 ids to the assistant (steps in Spanish in `odd/tasks/wildbound-caramelo.md`, "CE0: qué es publicar las animaciones"). Or grant the assistant group upload or the `asset-permissions:write` scope | The universe 10774749224 belongs to the group; user-owned animations cannot load there, so both creatures move in their rest pose. `Clips.IDS` is empty until then |
+| O1 (U1, U2) | **Save the place** (File > Save to Roblox or Ctrl+S, plus a downloaded backup copy) after asking the assistant to confirm no Play is running | Without it every Studio-only change is lost on close: code synced into Studio, the tarantula and other models, the clips folder, the big4 map, the Caramelo switches, the Lumipol templates. Check: reopen the place and see "Vender" in the Bolsa tab and the cross-shaped map |
+| O2 | **Archive the two transport Models 104898638172426 and 110244231107381** in the Creator Dashboard (Creations > Models) | They carried code into Studio once; they must not stay active or be reused (the agent's own archive was refused, BR7) |
+| O3 (U9) | **Optional now:** publish the clips in `ServerStorage.WildboundPublishClips` to group 465694015 (right click > Save to Roblox, Creator = the group; rebuild the folder with `WildboundCandyClipPublish.build`) and give the ids to the assistant for each `IDS` table (steps in `odd/tasks/wildbound-candy-critters-anim.md`) | Roblox only plays animations the experience owner owns. Since A3 the creatures animate live from their clip data, so this is no longer urgent; the "every clip published" cases stay red until it is done |
+| O4 | **Pick the economy options A to G** (recommended A+B+C+D) | A design call; listed in `odd/tasks/wildbound-caramelo-v2.md` |
+| O5 (U4, U5) | **Test with two players and on a phone**: Studio > Test > "Clients and Servers" with 2 players; open the game on a phone | Nothing has been tested that way: creatures chasing two players, selling, the farm, small touch buttons, bat knockback, pickup races, shared beast visibility (SC0.6), Don Glaseon's target switching, per-player Siluetas |
+| O6 (U7) | **Set `MaxPlayers` to 8** in Game Settings > Places (decision Q5) | It is still 60 (HB-W8); a ninth player has no base, and a script cannot change it |
+| O7 | **Re-run the economy simulator** (`docs/balance/wildbound-2-0-economy-sim.md`) with the new gold values and the sale | It has not run since gold was raised and "Vender" added. The handoff says Python is missing on this PC; Blender's bundled Python can run the tools (`python.exe -I -B`), so an agent can do it once asked |
+| O8 | **Decide big4 or the classic map** by playing big4 | The cross map lives only on branch `agus/big4-map` |
+| O9 | **Approve merging `agus/big4-map`** into `codex/wildbound-first-playable` (the assistant merges, runs the Big4Map, BiomeLight, PlacePhase and BeastSight suites and pushes; then `ServerStorage.WildboundMapArchive.Retired_Big4_v1_20261116` may be deleted) | Until then the map code is apart from the rest |
+| O10 | **Decide whether to merge this branch into `main`** | This branch is far ahead of `main` |
 | U10 | **No longer needed for the hotbar (IC, 2026-11-16, the `rbxthumb://` form loads).** Optional, for a clean asset owner: share or re-upload the 4 hotbar icons for the group: 121561289565386 (Lumipol), 130041727906990 (Gomibu), 106158128076232 (Flanfuria), 85016154045779 (Tortidragon); either share each image with the experience / group 465694015 in the Creator Hub, or upload the PNGs in `assets/icons/` to the group and give the new ids | The client logs "Requester does not have permission for Asset"; the hotbar shows no image |
-| U1 | **Save the place** (File > Save, plus a downloaded backup copy) once the current Studio writer finishes | Several sessions ended without saving. Unsaved and lost on close: Edit-built geometry, the Lumipol templates (U2), the Caramelo nest and portal switches, the clips folder for U9, the Tortidragon and Don Glaseon prefabs and raw imports in `ServerStorage` |
-| U2 | Save the place so the generated Lumipol templates persist (same save as U1) | Until saved, a new session loses the templates and every Lumipol falls back to the primitive look |
-| U7 | **Set `MaxPlayers` to 8 in Game Settings** (decision Q5) | It is still 60 (HB-W8); a ninth player has no base |
 | U3 | Enable Game Settings > Security > Enable Studio Access to API Services | Lets the real data store be tested; today Studio falls back to memory |
-| U4 | Run a two-player (or three-player) Studio test ("Clients and Servers") | Bat knockback, pickup races, re-targeting, other bases refusing, shared beast visibility (SC0.6), Don Glaseon's target switching and per-player Siluetas are only unit-tested |
-| U5 | Test on a phone (or Device Simulator) | Touch buttons, the roulette panel, the portal bar, layouts and frame time are unmeasured |
-| U6 | Push and set an upstream (`git push -u`), if wanted | `origin/codex/wildbound-first-playable` is still at `0be136d`; every later commit (all of 2026-11-14 and 2026-11-15) is local only; no upstream is configured |
-| U8 | Decide whether to import the four uploaded beast models (Viper, Pouncer, Gargoyle, Mire) into the place (and later upload their 25 clips) | Proxies are used until then |
+| U8 | Decide whether to import the two remaining uploaded beast models (Gargoyle, Mire) into the place | Viper and Pouncer (as a tarantula) are in game since the beast revision; Gargoyle and Mire are config only |
+
+Closed since 2026-11-15: U6 (the branch is pushed with an upstream: `origin/codex/wildbound-first-playable` matched `91b8743` on 2026-11-16); U10 is optional only (above).
 
 ### 14.2 Decisions taken for the user, to review
 
@@ -641,6 +663,7 @@ On 2026-11-14 and 2026-11-15 the user asked agents not to stop for decisions. Ea
 - `odd/tasks/wildbound-scuttler.md`, "Design choices (SC0)" and the SC1 to SC8 correction (radius 150, cap 4, pulse cooldown 9 to 5 s).
 - `odd/tasks/wildbound-playtest-fixes.md`, "Review follow-up" (the trained walk also applies while carrying, decided "Que valga con huevo") and PF5 (the live roulette table: Esencia 40 / materials 60, 11 prizes).
 - `odd/tasks/wildbound-2-0.md`, T05b evidence (every ASSUMED simulator threshold) and the T03, T05b, T08a, T10 titles.
+- 2026-11-16 (the owner again asked for no questions): `odd/tasks/wildbound-caramelo-v2.md` (DG, CT, EC, AR), `wildbound-caramelo-playfix.md` (PF, A2, A3, OF2, OF3 and the OF3 review: dodge range 12 and cooldown 3 s, chase caps 34 / 38), `wildbound-gold.md` (gold rates, sale prices, hidden UI), `wildbound-beast-revision.md` (BR-D1 onward), `wildbound-candy-critters.md` and `wildbound-candy-critters-anim.md`.
 
 ### 14.3 Open decisions
 
@@ -648,7 +671,7 @@ On 2026-11-14 and 2026-11-15 the user asked agents not to stop for decisions. Ea
 | --- | --- |
 | D13 | Retune the threats for the trained walk: a walker reaches 50 (about 34 carrying), against La Silueta's night hunt 17 and the parents' 19 (PF2 follow-up) |
 | D14 | Treadmill laps pay 5 Esencia each and level for free: confirm, since `antiAfk.timeBasedGrants = 0` forbids time-based grants (the same question as ECO-20, the base-zone loop on a timer) |
-| D15 | Farm income: none today; the 2.0 simulator finds an idle farm pays as much as exploring (T04) |
+| D15 | Farm income: settled by the owner as gold (2026-11-16, `wildbound-gold.md`; the economy doc records it as an explicit exception to the no-AFK rule). Still open: whether the raised rates (7 / 10 / 18 / 30 per minute) keep exploring worth more than idling; the simulator has not re-run (O7) |
 | D16 | Scuttler `PulseCooldownSeconds` 5 (accept, or grow `PressureMemorySeconds` instead) |
 | D17 | Caramelo event: the Legendaria nest L1 stays off while no Caramelo event exists; the Abeja window offset |
 | D18 | Nube and Abeja inside Caramelo: their sites are Pradera offsets in the square Caramelo now fills; keep them there, move them or retire them |
@@ -671,11 +694,16 @@ Closed since the last snapshot: D1 (treadmill: the user chose large gains, PF2),
 
 | Risk | Note |
 | --- | --- |
-| Unsaved place | A Studio crash or close loses the Caramelo switches, the clips folder, the new prefabs and every Edit-only change (U1) |
-| Animations | Tortidragon and Don Glaseon play no clip until U9; their tells are still drawn on the floor |
+| Unsaved place | A Studio crash or close loses the Caramelo switches, the clips folder, the new prefabs, the tarantula and candy models, the big4 map and every Edit-only change (O1) |
+| Animations | No clip is published to the group; every candy creature, Tortidragon and Don Glaseon animate live from their clip data (A3). A future Roblox change to live posing, or a streamed-out model, could freeze them (A3R handles bones lost to streaming); O3 removes the dependency |
+| Two branches | The big4 map is only on `agus/big4-map`; the longer it stays apart, the harder the merge (O8, O9) |
+| Gold economy unmeasured | Gold rates were raised and a sale added (OF3) without re-running the simulator (O7); passive farm gold is an explicit AFK exception |
+| Gran Torta summit | Nobody has reached the summit on foot; it may be too hard (B3: lower seed frequency or push if so) |
+| Candy creature speeds | Not measured in Play after the OF3 review (models drawn client-side, B6); trained-walk scaling suites only |
+| Hidden systems | Gloves, chest, crafting and skills are hidden in the base UI but still run and save; a stale path could surface or a player could hold items they cannot see |
 | First-minute distance | The wave-1 guaranteed egg is placed within 70 studs of (182, 17), the W trail's forest end (EV-W5); Play showed it 31 studs off; the trail nest T1 holds two eggs (LG4); island 1 is about 290 studs out; the "quick first action" hypothesis is still untested |
 | Multiplayer | Every PvP, race, shared-visibility and per-player system is verified solo only |
-| Trained speed | A trained walker outruns every chaser (D13) |
+| Trained speed | A trained walker outruns every chaser (D13); since the OF3 review candy creatures scale with the walk up to a chase of 34 and a sprint of 38, the other beasts and La Silueta do not |
 | Nightbloom income | Always rollable in the forest since CA4; a node wilts after 300 s; the economy effect is not measured (CF1 decision 7) |
 | Damage under streaming | Earlier checks found real strikes blocked while `StreamingEnabled` is on (`odd/tasks/wildbound-first-playable.md:133`); the dwell gate is the current answer; not re-measured with two clients |
 | Performance | Hub v2-r90 (35 lights), Caramelo (736 parts plus rigged beasts and farm pets), six biome builders, per-player Siluetas and beasts, 5 Hz bystander snapshots: no phone MicroProfiler capture |
@@ -749,28 +777,33 @@ Closed since the last snapshot: D1 (treadmill: the user chose large gains, PF2),
 | `docs/design/wildbound-biome-pradera.md` | Still the Pradera's plan; the Meadow square holds `Candy_Bioma_v1` (`Replaces = PraderaArcoiris`) |
 | `docs/design/wildbound-economy-and-offers.md` | Assumes DataStore is forbidden, four equipment pieces (Guantes I, Botas I, Chaleco, Amuleto) and a 20-node tree; code has saved progress, random-stat gloves and an 8-node tree |
 | `docs/mechanics/wildbound-economy-p0.md` and `WildboundEconomyConfig.luau` | The live config (synced) has bag 12, creatures 8/14/20/28/42 and eggs 4/10/16/24/36 Esencia; the 14 State_Test drift cases and the old export tests still expect the document's values |
-| `assets/models/beasts/README.md` | Says nothing has been imported or uploaded; `uploaded-assets.json` records the four models uploaded (still not imported into the place) |
-| `docs/mechanics/wildbound-new-mechanics.md` and `odd/tasks/wildbound-new-mechanics.md` | Say the five mechanics are unwired with unrun suites; the teammate wired all five in Studio and the sync (`ad569e9`) brought them into the repo |
+| `assets/models/beasts/README.md` | Still says nothing has been imported (re-checked 2026-11-16: line 9 and "Import into Roblox Studio (intended steps, not yet run)"); `uploaded-assets.json` records the four models uploaded, and the beast revision (BR1, BR2) put the Viper and a new tarantula Pouncer in game with clips playing |
+| `docs/mechanics/wildbound-new-mechanics.md` and `odd/tasks/wildbound-new-mechanics.md` | Still say the five mechanics are unwired with unrun suites (re-checked 2026-11-16); the teammate wired all five in Studio and the sync (`ad569e9`) brought them into the repo; since AR (2026-11-15) the Arrullo is switched off (`WildboundArrulloService.ENABLED = false`) |
 | NS-W4/NS-W5 in the odd doc | Say a maxed player walks 17 to 17.5; the walk cap is 50 since PF2 |
+| `docs/handoff/HANDOFF-2026-11-15.md` | History only; replaced by `docs/handoff/HANDOFF-2026-11-16.md` |
+| `docs/handoff/claude-context.md` ("Tools on the owner's Windows machine") and the 2026-11-16 handoff (O7, test list) | Say Python cannot run on the owner's PC; Blender 5.0's bundled interpreter (`C:\Program Files\Blender Foundation\Blender 5.0\5.0\python\bin\python.exe -I -B`) runs the Python tools and tests there |
+| Sections 1 to 12 of this overview | Still the 2026-11-15 snapshot: they do not describe gold, the sale, the hidden base UI, the beast revision, the Gran Torta, the candy creatures' damage and smarts or the big4 map; sections 13, 14 and 16 do |
 
 ### Feature docs that contradict the code or each other
 
-Recorded, not guessed; the code and the git log win.
+Recorded, not guessed; the code and the git log win. Re-checked on 2026-11-16 at `91b8743` by searching the docs and the code; each item says whether it still stands.
 
-1. **`odd/tasks/wildbound-scuttler.md`:** SC0 to SC8 each say "Not committed" and the next step says "Commit SC0 ... SC1 to SC7"; the work is committed (`9ca6f5a`, `b1364de` for SC0, `c64db0d` for SC1 to SC8). SC0 stays unticked only for the two-player check.
-2. **`odd/tasks/wildbound-kids-beasts.md`:** "Nothing is committed"; Nube, Abeja and the biome-preference change are in `f9c7ef4`. It also says the kids beasts were checked in "the place's own WildboundPradera map"; that square is Caramelo now, and whether Nube and Abeja still fit it is open (D18).
-3. **`odd/tasks/wildbound-2-0.md`:** T01.5, T05b.5 and T09a.5 say "Commit pending" / "Commits: none"; they are `2145d6c`, `05afd5e` and `52bfb4d`. T03 (hotbar), T04 (farm), T06 (treadmill) and T09b (roulette wiring) are listed as blocked on the teammate's stage 1, but PF2 to PF5 built them after the user allowed lock-zone edits ("Sí, tocalos"). T02 (240/60/300/120) is superseded by CA4. T09a still says the final pity confirmation is open; the playtest-fixes doc records the user's "pity Rara+ kept".
-4. **`odd/tasks/wildbound-suite-repair.md`:** its "Cycle decision" (keep 300/60/300/60) is reversed by CA4. Its "Still open, not asked" list (K2, EL13, HB-T5, roulette pity and location) was answered in the same file and in PF5. Its DT1 line reads "EggCarry 0.8 vs schema 0.5"; the code has the reverse (`WildboundEggCarry.luau` `STEAL_HOLD = 0.5`, `WildboundTuningSchema.luau` default 0.8), as the PF2 and CF2 records say.
-5. **`odd/tasks/wildbound-caramelo.md`:** CA4 says the Caramelo nests are `Enabled = false` and its next step says to enable them "when the user wants Caramelo eggs"; CE1 enabled them (`Layout.NESTS_ENABLED = true`, 11 live nests, session-only). CA5 (close: overview rows, commit) is unticked although CA1 to CA4 are committed; this snapshot covers its overview part.
-6. **This overview before this snapshot:** called the five mechanics Prepared, the bat 12 s with a stumble, the Burst live, one egg per player, a 0.8 s steal, a 90 s hatch and walk cap 16; the live code differs on each (rows updated above).
+1. **Still stands (2026-11-16). `odd/tasks/wildbound-scuttler.md`:** SC0 to SC8 each say "Not committed" and the next step says "Commit SC0 ... SC1 to SC7"; the work is committed (`9ca6f5a`, `b1364de` for SC0, `c64db0d` for SC1 to SC8). SC0 stays unticked only for the two-player check.
+2. **Still stands. `odd/tasks/wildbound-kids-beasts.md`:** "Nothing is committed"; Nube, Abeja and the biome-preference change are in `f9c7ef4`. It also says the kids beasts were checked in "the place's own WildboundPradera map"; that square is Caramelo now, and whether Nube and Abeja still fit it is open (D18).
+3. **Still stands, one more item. `odd/tasks/wildbound-2-0.md`:** T01.5, T05b.5 and T09a.5 say "Commit pending" / "Commits: none"; they are `2145d6c`, `05afd5e` and `52bfb4d`. T03 (hotbar), T04 (farm), T06 (treadmill) and T09b (roulette wiring) are listed as blocked on the teammate's stage 1, but PF2 to PF5 built them after the user allowed lock-zone edits ("Sí, tocalos"). T02 (240/60/300/120) is superseded by CA4. T09a still says the final pity confirmation is open; the playtest-fixes doc records the user's "pity Rara+ kept". New on 2026-11-16: T05a (sale station) is still listed as blocked, but the "Vender" button (`wildbound-gold.md`, OF3-3) answers it.
+4. **Partly resolved. `odd/tasks/wildbound-suite-repair.md`:** its "Cycle decision" (keep 300/60/300/60) is reversed by CA4. Its "Still open, not asked" list (K2, EL13, HB-T5, roulette pity and location) was answered in the same file and in PF5. Its DT1 line still reads "EggCarry 0.8 vs schema 0.5", but the code no longer disagrees with itself: `WildboundEggCarry.luau` `STEAL_HOLD = 0.5` and the `WildboundTuningSchema.luau` `STEAL_HOLD` default is 0.5 too, and EC (2026-11-15) set the hold by rarity (0.5 / 0.9 / 1.3 / 1.8 s). The doc line is only stale.
+5. **Still stands. `odd/tasks/wildbound-caramelo.md`:** CA4 says the Caramelo nests are `Enabled = false` and its next step says to enable them "when the user wants Caramelo eggs"; CE1 enabled them (`Layout.NESTS_ENABLED = true`, 11 live nests, session-only). CA5 (close: overview rows, commit) is unticked although CA1 to CA4 are committed; this snapshot covers its overview part.
+6. **Resolved (rows updated in the 2026-11-15 snapshot). This overview before that snapshot:** called the five mechanics Prepared, the bat 12 s with a stumble, the Burst live, one egg per player, a 0.8 s steal, a 90 s hatch and walk cap 16; the live code differs on each (rows updated above).
 
 ### Code and a current decision disagree (code is what runs today)
 
-1. **Death:** the Nest Heist brief says death loses only the carried egg; code also keeps the older trip rule (unwarded bag items lost, 20 % of pouch materials). Still open as D20.
-2. **Hub radius:** the hub-expansion design says 100; `Rules.HUB_RADIUS` and the deployed builder use 90.
-3. **Push status:** origin is at `0be136d`; nothing since is pushed and no upstream is configured.
-4. **Steal hold:** decision NH1 and the tuning schema say 0.8 s; the live `EggCarry` runs 0.5 / 0.75 s (DT1, deferred).
-5. **One egg in the arms:** the Nest Heist brief carries one egg; the live `EggCarry` lets a player carry several up to the bag capacity (12). The one-backpack fix (PF1) is a single pack visual, not a one-egg rule.
-6. **Anti-AFK:** `antiAfk.timeBasedGrants = 0`, yet a treadmill lap pays 5 Esencia and the base-zone loop runs on a timer (ECO-20) (D14).
-7. **Speed contract:** Q9 kept the walk under La Silueta's night hunt; PF2 (user: "como Steal an Egg, muchísimo") lets a trained walk reach 50 (D13).
-8. **2.0 balance:** the proposed `WildboundBalance` uses treadmill walks 16 to 21 and a 240/60/300/120 day; the live game trains to 50 and has no day/night cycle since CA4 (2026-11-15); since CF3 `Balance.LIVE.dayCycle` describes that fixed world (a 300 s wave clock with a 10 s Warning window, and each biome's gameplay phase and light mood from `WildboundBiomeLight`). `Balance.conflicts()` lists each gap (`Balance.LIVE`). No live script requires `WildboundBalance`.
+Re-checked on 2026-11-16 at `91b8743` against the code.
+
+1. **Still stands. Death:** the Nest Heist brief says death loses only the carried egg; code also keeps the older trip rule (unwarded bag items lost, 20 % of pouch materials). Still open as D20 (not re-traced in code this pass).
+2. **Still stands. Hub radius:** the hub-expansion design says 100; `WildboundWorldRules.luau` sets `Rules.HUB_RADIUS` 90.
+3. **Resolved. Push status:** the branch tracks `origin/codex/wildbound-first-playable`, which matched `91b8743` on 2026-11-16.
+4. **Resolved. Steal hold:** decision NH1 said 0.8 s; the owner's EC decision (2026-11-15) replaced it with a hold by rarity, and both `WildboundEggCarry.luau` (`STEAL_HOLD` 0.5, `RARA_HOLD` 0.9, `EPICA_HOLD` 1.3, `LEGENDARIA_HOLD` 1.8) and the tuning schema default (0.5) follow it.
+5. **Still stands. One egg in the arms:** the Nest Heist brief carries one egg; the live server lets a player carry several up to `Economy.bagCapacity` (`bagItems = 12` in `WildboundEconomyConfig.luau`). The one-backpack fix (PF1) is a single pack visual, not a one-egg rule.
+6. **Partly resolved. Anti-AFK:** `antiAfk.timeBasedGrants = 0` is still in `WildboundEconomyConfig.luau`. The treadmill now pays Esencia only on a level-up lap (BP1) and its lap gold is capped at 10 per minute; farm gold per minute is passive by the owner's choice and recorded as an explicit exception in `docs/mechanics/wildbound-economy-p0.md` ("No AFK path"). The base-zone loop on a timer (ECO-20) is unchanged (D14).
+7. **Still stands. Speed contract:** Q9 kept the walk under La Silueta's night hunt; PF2 (user: "como Steal an Egg, muchísimo") lets a trained walk reach 50 (D13).
+8. **Still stands. 2.0 balance:** the proposed `WildboundBalance` uses treadmill walks 16 to 21 and a 240/60/300/120 day; the live game trains to 50 and has no day/night cycle since CA4 (2026-11-15); since CF3 `Balance.LIVE.dayCycle` describes that fixed world (a 300 s wave clock with a 10 s Warning window, and each biome's gameplay phase and light mood from `WildboundBiomeLight`). `Balance.conflicts()` lists each gap (`Balance.LIVE`). No live script requires `WildboundBalance`.
