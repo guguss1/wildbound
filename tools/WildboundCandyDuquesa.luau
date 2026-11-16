@@ -8,7 +8,7 @@
 local Duq = {}
 
 Duq.EVERY_SECONDS = 10
-Duq.FIRST_SECONDS = 1.5
+Duq.FIRST_SECONDS = 0.3 -- walked Play: Frutillon bumps a climber off the summit about 1.5 s after arriving
 Duq.WINDUP_SECONDS = 0.6
 Duq.FLIGHT_SECONDS = 1.2
 Duq.BUBBLES = 3

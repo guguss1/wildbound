@@ -524,6 +524,11 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			if want.Follow then
 				equal(X.Follow and X.Follow.Max, want.Follow, name .. " follow-ups")
 				assert(table.isfrozen(X.Follow) and X.Follow.RangeStuds > 0, name .. " follow range")
+				-- walked Play (A2): Flanin's burst pushed the player 6 studs out of a 7-stud follow range, so it never
+				-- bounced again; a follow-up must reach a target its own hit just pushed away
+				local A = T.Attack
+				local pushedTo = (A.kind == "burst" and A.RadiusStuds or 0) + A.PushStuds
+				assert(X.Follow.RangeStuds >= pushedTo, name .. " follow range " .. X.Follow.RangeStuds .. " under " .. pushedTo)
 			else equal(X.Follow, nil, name .. " Follow") end
 			if want.Swarm then
 				slowOk(X.Swarm, name .. " Swarm")

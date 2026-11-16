@@ -439,7 +439,8 @@ Config.BEASTS = table.freeze({
 			Extras = table.freeze({
 				Trail = table.freeze({ Phase = "Chase", SpacingStuds = 3, RadiusStuds = 2, LifeSeconds = 2,
 					SlowMultiplier = 0.8, SlowSeconds = 2 }),
-				Follow = table.freeze({ Max = 2, RangeStuds = 7 }),
+				-- 16: its burst (radius 10) pushes 6 studs; a bounce must reach a target it just pushed (walked Play)
+				Follow = table.freeze({ Max = 2, RangeStuds = 16 }),
 			}),
 		}),
 	}),

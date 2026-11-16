@@ -50,6 +50,9 @@ return function(Duq, Frut, Layout, sources, Chase)
 		near(Duq.SLOW_MULTIPLIER, 0.7, "slow"); near(Duq.SLOW_SECONDS, 2, "slow time"); near(Duq.PUSH_STUDS, 4, "push")
 		assert(Duq.WINDUP_SECONDS + Duq.FLIGHT_SECONDS >= 0.8, "the ring shows at least 0.8 s before the pop")
 		assert(Duq.FLIGHT_SECONDS >= 1, "the bubbles fly slowly")
+		-- walked Play (A2): Frutillon bumped the climber off the summit about 1.5 s after arriving, before her first
+		-- volley; she reacts at once
+		assert(Duq.FIRST_SECONDS <= 0.5, "the first volley comes " .. Duq.FIRST_SECONDS .. " s after a player arrives")
 		assert(Duq.POP_RADIUS_STUDS >= 2.5 and Duq.POP_RADIUS_STUDS <= 4.5, "small circles")
 		if Chase then
 			assert(Duq.SLOW_MULTIPLIER >= Chase.EFFECTS.slowMinMultiplier, "inside the shared slow cap")
