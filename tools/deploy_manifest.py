@@ -426,6 +426,10 @@ DEFAULT_MAPPINGS = [
     # CT1-CT2 Gran Torta tower
     ("tests/WildboundCandyTower_Test.luau", "ServerStorage.WildboundCandyTower_Test"),
     ("src/wildbound/WildboundCandyTower.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyTowerClient"),
+    # CT4 Frutillon
+    ("tools/WildboundCandyFrutillon.luau", "ServerStorage.WildboundCandyFrutillon"),
+    ("tests/WildboundCandyFrutillon_Test.luau", "ServerStorage.WildboundCandyFrutillon_Test"),
+    ("src/wildbound/WildboundCandyFrutillonService.server.luau", "ServerScriptService.WildboundCandyFrutillonService"),
     ("tools/WildboundCandyDonGlaseonClips.luau", "ServerStorage.WildboundCandyDonGlaseonClips"),
     ("tests/WildboundCandyDonGlaseonClips_Test.luau", "ServerStorage.WildboundCandyDonGlaseonClips_Test"),
     ("src/wildbound/WildboundBeastDonGlaseon.luau", "ServerScriptService.WildboundBeastDonGlaseon"),

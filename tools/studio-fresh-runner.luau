@@ -162,6 +162,9 @@ SPECS["WildboundCandyTower_Test"] = {
 	{ nests = "src:WildboundCandyNests", client = "src:WildboundCandyTowerClient" },
 	"mod:WildboundCandyNests", "inst:ServerStorage.WildboundAssets.CandyKit",
 }
+SPECS["WildboundCandyFrutillon_Test"] = {
+	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
+}
 SPECS["WildboundCandyTrapCake_Test"] = {
 	"mod:WildboundCandyTrapCake", "mod:WildboundCandyLayout",
 	{ service = "src:WildboundCandyTrapCakeService", server = "src:WildboundServer", bossService = "src:WildboundCandyDonGlaseonService" },

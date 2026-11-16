@@ -93,7 +93,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] CT1 Spiral staircase on the Gran Torta. Done 2026-11-16 (evidence below).
 - [x] CT2 Counter-rotating tiers. Done 2026-11-16 (evidence below).
 - [x] CT3 Best egg at the top. Done 2026-11-16 (evidence below).
-- [ ] CT4 Frutillón, the top guardian
+- [x] CT4 Frutillón, the top guardian. Done 2026-11-16 (evidence below).
 - [x] IC Icons through rbxthumb. Done 2026-11-16 (the thumbnail form loads; evidence below).
 - [x] EC Steal hold by rarity: Común 0.5 s, Rara 0.9 s, Épica 1.3 s, Legendaria 1.8 s. Done 2026-11-15 (evidence below).
 - [ ] Economy options A-G, once the user picks them (not started on purpose).
@@ -152,6 +152,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | CT-D5 | The stair is static while the ledges turn, so a player standing on a ledge is carried slowly into the next flight's steps (a gentle bump). Accepted as part of the tower's feel. | No pinning at 1.8 studs/s; they can walk or jump. |
 | CT3-D1 | The summit holds a new nest T1, rarity Legendaria but not event-only, so the island system gives it what the Legendaria row already gives (a Flanfuria egg, reward tier Heart, the 1.8 s steal hold) and refills it on the 300 s wave like every other nest. No new `Huevo de la Gran Torta` species. | The doc allowed "the top Legendaria"; a new species would need art and economy numbers the user has not chosen. |
 | CT3-D2 | The nest is the kit's nest at 70 % (5.2 studs wide) at local (0, 5.8) on the summit (radius 8.7): clear of La Duquesa's 6-stud seat on the centre and across the summit from where the stair arrives (about 17 studs away). It is built by `syncTower` into the `Nests` folder, so `WildboundCandyNests` reads it like the others; it is not in `Layout.NESTS` (the floor nests). No guardian post binds it: CT4 Frutillón guards it. | The summit is small; the player must cross it past Frutillón. |
+| CT4-D1 | Frutillón is built at runtime from plain parts (a 4-stud red body with a SpecialMesh sphere, a leaf cap, yellow seeds) by `WildboundCandyFrutillonService`: no model upload. It is not a beast encounter of `WildboundBeasts.server` (no director slot, no BeastHit): a standalone guard with its own pure rules (`WildboundCandyFrutillon`). | The doc's proposal needed a model; parts avoid an upload. Standalone keeps the shared beast server untouched. |
+| CT4-D2 | It rolls on a ring of radius 6.3 round the summit's centre (its edge stays 4.3 studs from the centre, outside La Duquesa's 3-stud circle, and inside the 8.7-stud summit), toward the player on the summit nearest it and 0.6 rad past them, at 18 studs/s; tell 0.8 s (squash to 75 % and a red neon line along the arc), recovery 1 s; a player it rolls over (within 3 studs) is pushed 12 studs outward over 0.4 s, once per roll. Alone 6 s, it goes back to its rest spot (west) and sleeps. | "Rolls around the top tier", "telegraphs with a squash and a line", "bump players off the edge", never through her seat. |
+| CT4-D3 | Seeds: while anyone stands on the stair, one seed every 2.5 s (at most 3) starts at the top step and bounces down step by step at 8 steps/s; a climber within 2 studs is pushed 6 studs down the stair over 0.3 s, once per seed. | "Throws strawberry seeds that bounce down"; the 5 s trip makes each seed readable from below. |
+| CT4-D4 | Knockback only: damage 0, never the egg, all pushes in the beasts' `WildboundBeastPush` slot. Don Glaseón's climbing or roaring for a summit carrier is left to his existing territory rules (no new behaviour). | Candy beasts never damage; DG6 owns the roar. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -292,3 +296,17 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - The wave: at 301 s of game time `Wave` went 1 -> 2 and `CandyT1` had a new egg `Egg:53` in the nest (the candy egg art: flan body, gold glaze, at y 43.4 on the bowl) while the first one was still carried.
   - No script errors from these scripts in the output.
 - Not checked: a person holding the prompt for 1.8 s on the summit, carrying the egg down the turning tiers, Don Glaseon's behaviour toward a summit carrier (his existing territory rules apply; not observed), two players, a phone.
+
+### CT4 (2026-11-16)
+
+- Change: new `tools/WildboundCandyFrutillon.luau` (ServerStorage; the pure rules), new `src/wildbound/WildboundCandyFrutillonService.server.luau` (ServerScriptService). Registered in the runner SPECS and the two manifest files (Python edited by hand, not run). No shared file edited.
+- Suites: new `WildboundCandyFrutillon_Test` (6 cases: numbers and the ring clear of La Duquesa; wake and tell; one outward bump per roll and the next roll; back to sleep alone; seeds down the stair; service wiring with no damage or egg path).
+- Coordination: the parent session reported the summit floor at y 40.94 with La Duquesa at (612, 40.94, -3); `Frut.summit` reads 40.944 from the layout, and the ring keeps the body 4.3 studs from her centre.
+- Fingerprint rule: the three files are new (absent in Studio before; the first test copy was removed after the RED run of the earlier session). After: Studio == repo, Frutillon 8096/4113960932, Frutillon_Test 7624/2383702863, FrutillonService 7081/2994406431 (CandyLayout unchanged, 8223/2050365548).
+- RED, run `49de31bd`: "module not found: WildboundCandyFrutillon". GREEN (a minimal loadstring loader: both modules require nothing): Frutillon 6/0.
+- Solo Play (PlayLock `CT4`, cleared after; Play stopped; memory saves):
+  - Asleep at (605.7, 42.9, -3), its rest spot (west on the ring).
+  - The player set on the ring a quarter turn away (y 44): Telegraph at once (body squashed to 0.75, a 10-piece line on the floor), Roll 0.84 s later, the push on the player's root 0.40 s into the roll, Recover at 1.60 s; the player fell from the summit to y 16.8 (a lower tier). Health 100.
+  - Seeds: the player held on step 4/2: a seed left the top step every 2.5 s (seeds 2, 3, 4 at 0.1, 2.6, 5.2 s) and the first one pushed the player down the stair (plane velocity (-7.2, 18.7), 20 studs/s = 6 studs over 0.3 s).
+  - No script errors from these scripts in the output.
+- Not checked: how the roll and seeds read to a person, dodging a roll by hand, a seed bouncing off a moving climber, two players, a phone.
