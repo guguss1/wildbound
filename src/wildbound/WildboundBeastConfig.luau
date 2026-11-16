@@ -472,8 +472,10 @@ Config.BEASTS = table.freeze({
 			TerritoryRadiusStuds = 62, PerceptionStuds = 36, ChaseSightStuds = 54, NoiseStuds = 45, NoiseSpeedStuds = 14,
 			RareSightScale = 1.25, EyeHeightStuds = 20,
 			PatrolSpeedStudsPerSecond = 9, ChaseSpeedStudsPerSecond = 17, ReturnSpeedStudsPerSecond = 9, TurnDegreesPerSecond = 150,
-			DormantSeconds = 2, PatrolSeconds = 12, PatrolRadiusStuds = 10, NoticeSeconds = 0.8, RoarSeconds = 1.5,
-			ChaseSeconds = 15, SearchSeconds = 3, LoseTargetSeconds = 1, HomeToleranceStuds = 1.5,
+			-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): patrol 12 -> 25 s, chase 15 -> 30 s, search 3 -> 5 s, so an
+			-- encounter lasts; LeftGraceSeconds (new): out of the territory this long in a row before he lets the target go.
+			DormantSeconds = 2, PatrolSeconds = 25, PatrolRadiusStuds = 10, NoticeSeconds = 0.8, RoarSeconds = 1.5,
+			ChaseSeconds = 30, SearchSeconds = 5, LoseTargetSeconds = 1, HomeToleranceStuds = 1.5, LeftGraceSeconds = 3,
 			CastRangeStuds = 18, CastHalfAngleDegrees = 20, StandOffStuds = 8,
 		}),
 	}),

@@ -81,7 +81,11 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		equal(C.chance, 0, "never rolled"); equal(C.serverUnique, true, "one per server"); equal(C.batImmune, true, "the bat never stuns it")
 		equal(Config.SUMMONED.DonGlaseon, true, "summoned"); equal(Config.WAVE2.DonGlaseon, true, "behaviour module")
 		near(T.PerceptionStuds, 36, "sight"); near(T.NoiseStuds, 45, "noise"); near(T.PatrolSpeedStudsPerSecond, 9, "patrol")
-		near(T.ChaseSpeedStudsPerSecond, 17, "chase"); near(T.ChaseSeconds, 15, "chase time"); near(T.SearchSeconds, 3, "search")
+		-- Deliberately changed (PF5, odd/tasks/wildbound-caramelo-playfix.md): longer timers so a chase lasts (chase 15 -> 30 s,
+		-- search 3 -> 5 s, patrol before Bored 12 -> 25 s) and a 3 s grace before "Left" (a lash or a pull can shove the
+		-- target out of the territory for a moment).
+		near(T.ChaseSpeedStudsPerSecond, 17, "chase"); near(T.ChaseSeconds, 30, "chase time"); near(T.SearchSeconds, 5, "search")
+		near(T.PatrolSeconds, 25, "patrol"); near(T.LeftGraceSeconds, 3, "left grace")
 		near(T.TerritoryRadiusStuds, 62, "the BossTerritory marker's radius")
 		assert(T.CastRangeStuds < Latigo.LENGTH_STUDS, "it lashes at targets the lane cannot reach")
 		assert(Boss.tellSeconds() >= Config.MIN_TELL, "the tell is shorter than the minimum")
@@ -304,12 +308,12 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		assert(ended and ended.reason == "Return", "it never got home")
 	end)
 
-	case("lost from sight: it searches the last seen spot for 3 s, then gives up", function()
+	case("lost from sight: it searches the last seen spot for SearchSeconds, then gives up", function()
 		local e, w, tgt = boss("g9"), fakeWorld(), target(0, 25)
 		run(e, w, tgt, 0, 2.5)
 		equal(e.phase, "Chase", "chasing")
 		function w.lineOfSight() return false end
-		local events = run(e, w, tgt, 2.55, 7)
+		local events = run(e, w, tgt, 2.55, 2.55 + T.SearchSeconds + 4)
 		local list = phases(events)
 		assert(string.find(list, "Search,LoseTarget", 1, true), "phases " .. list)
 		local search, lose
@@ -319,10 +323,10 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		near(lose - search, T.SearchSeconds, "search time", 0.051)
 	end)
 
-	case("a chase lasts at most 15 s, then it gives up", function()
+	case("a chase lasts at most ChaseSeconds, then it gives up", function()
 		local e, w, tgt = boss("g10"), fakeWorld(), target(0, 30)
 		local chaseAt
-		local events = run(e, w, tgt, 0, 25, function(_, target, en)
+		local events = run(e, w, tgt, 0, T.ChaseSeconds + 10, function(_, target, en)
 			-- the target keeps 30 studs ahead, out of reach of the lash, inside the territory
 			target.z = en.pos.z + 30; target.x = 0
 			if target.z > 55 then target.z = 55 end
@@ -332,6 +336,26 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "LoseTarget" then lose = lose or ev.at end end
 		assert(chaseAt and lose, "phases " .. phases(events))
 		assert(lose - chaseAt <= T.ChaseSeconds + 0.051, "it chased for " .. (lose - chaseAt) .. " s")
+	end)
+
+	-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): in a walked Play the lash shoved the player out of the territory and he
+	-- went LoseTarget "Left" in the same step, ending every encounter in 5-8 s. Now the target must stay out of the
+	-- territory LeftGraceSeconds in a row before he lets it go.
+	case("PF5: a moment outside the territory (a lash's shove) keeps the chase; LeftGraceSeconds outside ends it", function()
+		local e, w, tgt = boss("g20"), fakeWorld(), target(0, 30)
+		local events = run(e, w, tgt, 0, 9, function(t, target)
+			if t >= 4 and t < 4 + T.LeftGraceSeconds - 1 then target.z = T.TerritoryRadiusStuds + 4 else target.z = 30 end
+		end)
+		for _, ev in ipairs(each(events, "Phase")) do
+			assert(ev.phase ~= "LoseTarget", "it let the target go at " .. ev.at .. " (" .. tostring(ev.reason) .. ")")
+		end
+		local outAt = 9.05
+		local later = run(e, w, tgt, outAt, outAt + T.LeftGraceSeconds + 1, function(_, target) target.z = T.TerritoryRadiusStuds + 6 end)
+		local lose
+		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "LoseTarget" then lose = lose or ev end end
+		assert(lose, "it never let a target that stayed outside go (phases " .. phases(later) .. ")")
+		equal(lose.reason, "Left", "the reason")
+		assert(lose.at >= outAt + T.LeftGraceSeconds - 0.051, "it let go after " .. (lose.at - outAt) .. " s outside")
 	end)
 
 	case("director: one boss per server; another player waits while it lives and for its switch rest", function()

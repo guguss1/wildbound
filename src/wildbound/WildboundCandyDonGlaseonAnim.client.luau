@@ -108,10 +108,49 @@ local function setup(model)
 	play()
 end
 
+-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): until the owner publishes Idle_Breath to the group, the sleeping copy
+-- was a statue. Here it breathes on its own: a slow sway of its chest bone when the rig has one, else a small rise and
+-- fall of the whole copy (client-only; the server never moves it). Only while it has no published breath clip, and
+-- once per model (the server re-parents the sleeper, which reaches this client as a new copy each time).
+local BREATH_PERIOD, BREATH_DEGREES, BREATH_RISE = 3.6, 2.5, 0.18
+local CHEST = { "Spine_Upper", "Chest", "Spine", "Torso", "Body" } -- the rig's chest bone is Spine_Upper
+local breathing = setmetatable({}, { __mode = "k" })
+local function breathe(model)
+	if breathing[model] or not model:IsA("Model") or model:GetAttribute("Clip_Idle_Breath") then return end
+	breathing[model] = true
+	local chest
+	for _, key in ipairs(CHEST) do
+		for _, d in ipairs(model:GetDescendants()) do
+			if not chest and d:IsA("Bone") and string.find(d.Name, key, 1, true) then chest = d end
+		end
+	end
+	local base = model:GetPivot()
+	local started = os.clock()
+	local connection
+	connection = RunService.RenderStepped:Connect(function()
+		if not model.Parent then
+			connection:Disconnect()
+			breathing[model] = nil
+			return
+		end
+		local wave = math.sin((os.clock() - started) * 2 * math.pi / BREATH_PERIOD)
+		if chest then
+			chest.Transform = CFrame.Angles(math.rad(BREATH_DEGREES) * wave, 0, 0)
+		else
+			model:PivotTo(base * CFrame.new(0, BREATH_RISE * (wave + 1) / 2, 0))
+		end
+	end)
+end
+
 if folder then
 	folder.ChildAdded:Connect(setup)
 	for _, child in ipairs(folder:GetChildren()) do setup(child) end
 end
-workspace.ChildAdded:Connect(function(child) if child.Name == "DonGlaseonDormant" then setup(child) end end)
+workspace.ChildAdded:Connect(function(child)
+	if child.Name == "DonGlaseonDormant" then setup(child) breathe(child) end
+end)
 local dormant = workspace:FindFirstChild("DonGlaseonDormant")
-if dormant then setup(dormant) end
+if dormant then
+	setup(dormant)
+	breathe(dormant)
+end

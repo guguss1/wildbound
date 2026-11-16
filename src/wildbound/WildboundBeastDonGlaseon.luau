@@ -26,7 +26,8 @@
 --   DG6 Rugido de guardianes: his roar at a carrier of a Rara egg or better (the notice roar, or a new Roar mid-chase
 --      when the egg shows later) emits Summon, once per chase; the beast script wakes fresh guardians round the thief.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
---   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
+--   The target dead, gone, in a safe zone or out of the territory (PF5: for LeftGraceSeconds in a row, so his own lash's
+--   shove never ends it at once): an open lash is called off and it goes LoseTarget.
 -- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
 -- the beast script sends to BeastHit (the one egg drop path) with the push and, for a target without an egg, the slow.
 -- The bat never targets beasts (WildboundBat is player against player), so it is immune by construction (batImmune).
@@ -98,6 +99,16 @@ end
 local function inTerritory(e, world, p, T)
 	local c = territory(e, world)
 	return flat(c.x, c.z, p.x, p.z) <= T.TerritoryRadiusStuds
+end
+-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): the target has left only after LeftGraceSeconds outside the territory
+-- in a row, so the shove of his own lash (or a step over the edge) never ends the encounter in the same moment.
+local function left(e, world, target, T, now)
+	if inTerritory(e, world, target, T) then
+		e.outsideSince = nil
+		return false
+	end
+	e.outsideSince = e.outsideSince or now
+	return now - e.outsideSince >= (T.LeftGraceSeconds or 0)
 end
 
 -- Turns the facing toward a point by at most TurnDegreesPerSecond * dt. Returns the angle left, in degrees.
@@ -248,7 +259,7 @@ function Boss.step(events, e, now, target, world, dt)
 	end
 
 	if e.phase == "Dormant" or e.phase == "Patrol" then
-		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		if left(e, world, target, T, now) then lose(events, e, world, now, T, "Left") return end
 		if Boss.sees(e, target, world, T) then
 			e.lastSeen = { x = target.x, z = target.z }
 			turn(e, target, T, dt)
@@ -286,7 +297,7 @@ function Boss.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Chase" or e.phase == "Search" then
 		if now - e.chaseAt >= T.ChaseSeconds then lose(events, e, world, now, T, "Tired") return end
-		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		if left(e, world, target, T, now) then lose(events, e, world, now, T, "Left") return end
 		local seen = tracks(e, target, world, T)
 		if seen then e.lastSeen = { x = target.x, z = target.z } end
 		if e.phase == "Search" then
@@ -334,7 +345,7 @@ function Boss.step(events, e, now, target, world, dt)
 		return
 	end
 	if (e.phase == "Inhale" or e.phase == "Vacuum") and e.vacuum then
-		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		if left(e, world, target, T, now) then lose(events, e, world, now, T, "Left") return end
 		local state = e.vacuum
 		if e.phase == "Inhale" then
 			if now < Vacuum.pullAt(state) then return end

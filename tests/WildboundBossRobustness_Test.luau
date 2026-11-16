@@ -1,6 +1,7 @@
 -- Invoke with require(freshTestClone)(require(freshBatClone), require(freshBatKnockClone), require(freshBeastConfigClone),
 -- require(freshDonGlaseonClone), ServerStorage.WildboundAssets:FindFirstChild("DonGlaseon"), { beasts =
--- WildboundBeasts.Source, service = WildboundCandyDonGlaseonService.Source, server = WildboundServer.Source }).
+-- WildboundBeasts.Source, service = WildboundCandyDonGlaseonService.Source, server = WildboundServer.Source,
+-- anim = WildboundCandyDonGlaseonAnim.Source }).
 -- CF3 (odd/tasks/wildbound-caramelo.md): Don Glaseon's robustness. (a) batImmune is enforced by the bat's two hit
 -- resolvers (WildboundBat.pickTarget, WildboundBatKnock.knock), not only written in the config; (b) the sleeping copy
 -- on BossHome is hidden in the same server step as the summon (Beast_bossAwake is written when an encounter starts and
@@ -133,6 +134,18 @@ return function(Bat, Knock, Config, DonGlaseon, prefab, sources)
 		has(service, 'require(ServerStorage:WaitForChild("WildboundCandyDonGlaseon"))')
 		has(service, "local sleeper = DonGlaseon.asleep(dress(prefab:Clone()))")
 		has(service, 'local home = Sites.world(nil, "bossHome")')
+	end)
+
+	-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): with no published Idle_Breath clip the sleeping copy was a statue. The
+	-- client now gives it a slow breath of its own (a chest bone's sway when the rig has one, else a small rise and fall of
+	-- the whole copy), only while no published clip plays, and only once per model however often it is re-parented.
+	case("PF5: the sleeping copy breathes on the client while no published clip plays", function()
+		local anim = sources.anim
+		assert(type(anim) == "string", "pass the Don Glaseon client animator source")
+		has(anim, "local function breathe(model)", "the breathing fallback")
+		has(anim, 'model:GetAttribute("Clip_Idle_Breath")', "only without a published breath clip")
+		has(anim, "breathing[model] = true", "set up once per model")
+		has(anim, 'if child.Name == "DonGlaseonDormant" then setup(child) breathe(child) end', "the sleeper breathes when it comes back")
 	end)
 
 	return result
