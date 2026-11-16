@@ -746,3 +746,85 @@ Don Glaseon woke and attacked -> (530, 30). Client samples (bones whose Transfor
 
 Not checked: a real stream-out by distance (the map does not reach the 1024-stud radius from the walked points); the
 part swap above is the stand-in.
+
+## Don Glaseon walk
+
+Owner: "el Don Glaseon no camina con animacion de sus patas y es medio raro". Data and spec only (no beast config or
+brain edits; another agent owns those).
+
+What was wrong (old -> new):
+
+- `Patrol_Walk` / `Chase_Run` had 4 keys per cycle with cubic in-out easing, so every limb stopped dead at each key; the
+  passing keys put both thighs straight with no knee bend, so the swinging foot never lifted (a shuffle); the thighs took
+  the body bob back, so at each landing the stretched leg floated about 0.5 stud over the ground; the swing (18 deg walk,
+  30/26 run) and the cycle (1.1 s, 0.75 s) covered about 7.9 and 13 studs/s against his 9 and 17-21 studs/s (sliding).
+- `Search` was an in-place look-around, but the brain walks him to the last sighting at the patrol speed during Search:
+  he slid with still legs.
+- New (`tools/WildboundCandyDonGlaseonClips.luau`): `Patrol_Walk`, `Chase_Run` and `Search` are a sampled gait, 16
+  Linear keys per step cycle: opposite thighs (cos), the swinging knee bends (50 deg walk, 80 deg run; foot lifts about 1
+  and 2 studs), the planted foot stays level, the toes come up in the swing, the pelvis drops on each landing by
+  HIP*(1-cos swing) so the stretched leg reaches the ground, the torso rocks and shifts over the planted leg, hips and
+  shoulders counter-twist, the arms counter-swing slightly late, elbows bend, the licorice, crown and head follow late, the
+  run leans 16 deg, pumps the arms and opens the jaw. Cycle = 4*HIP*sin(swing)/speed with HIP = 7 (the prefab's thigh
+  joints): walk 22 deg at 9 studs/s = 1.165 s; run 32 deg at 21 studs/s = 0.707 s; `Search` = two walk cycles with the
+  head and chest turning left and right once.
+- `WildboundCandyClipKit.fromLegacy` now carries a clip's `easing` (the legacy clips without one keep cubic); the legacy
+  `Clips.build` writes Linear poses for Linear clips.
+
+Rig read (ServerStorage.WildboundAssets.DonGlaseon, 29 bones under Root): Pelvis at 7, Thigh_L/R at (+-2.2, 7) rest
+180 deg about X (pointing down), Shin at 3.6, Foot at 0.9 (rest -104 deg, pointing forward); arms hang (-178); no tail
+bone. Model-axis pitch on the leg chain is consistent (positive = foot forward), so no axis fix was needed.
+
+Phase -> clip map (`WildboundCandyCritterAnimSpec` DonGlaseon), checked against the brain: moving phases Patrol and
+Return -> `Patrol_Walk`, Chase -> `Chase_Run`, Search -> `Search` (now walking). Standing phases (Dormant, Suspicious,
+Roar, Telegraph, Attack, Recover, Inhale/Vacuum (idle fallback), LoseTarget, Stagger) keep their in-place clips. The map
+itself needed no change.
+
+- [x] DW1 Spec: the walking clips step (opposite thighs on every key, the deepest knee bend on the swinging leg, a bob of
+  at least 0.3 stud, counter-swinging arms, Linear easing, at least 12 keys per cycle, start on the left heel strike).
+- [x] DW2 Spec: the cadence matches `WildboundBeastConfig` (Patrol, Chase, Search at patrol speed within 10%, Return
+  within 15%); the loop seam and lengths are covered by the existing cases (the sheet lengths of the three walking clips
+  now come from his speeds).
+- [x] DW3 Spec (`WildboundCandyLiveClips_Test` A3-1): `fromLegacy` carries Linear easing.
+
+### Decisions taken for the user (Don Glaseon walk)
+
+- Search walks: the brain moves him during Search, so the clip walks and looks around; if he reaches the last sighting
+  before Search ends he steps in place (brain behaviour, not changed here).
+- Chase at the stand-off distance (he stops 8 studs from the target while still in Chase) keeps playing the run in
+  place; fixing that needs the brain or the client to look at speed, which was out of scope.
+- The run is matched to the other agent's final Chase speed, 21 studs/s (repo working copy of `WildboundBeastConfig`);
+  Studio still had 17 when this was tested. Until his Config lands in Studio, DW2 fails on Chase_Run only (checked both
+  ways, see the runs).
+- Clips stay unpublished (`Clips.IDS` empty); a published copy would need re-uploading after this change.
+
+### Evidence (Don Glaseon walk)
+
+Fingerprints: before writing, Studio == repo HEAD d9152bd for Clips 11370 1264542404, Clips_Test 5307 4272725698,
+ClipKit 8974 2415748930, LiveClips_Test 9395 442617447 (Adler-32 decimal). Writes by `multi_edit` exact replacements.
+Final (Studio == repo): Clips 14933 2903425329, Clips_Test 8857 3116302047, ClipKit 8996 944402127, LiveClips_Test 9876
+177955971.
+
+Runs (a minimal fresh loader in `execute_luau`: loadstring + setfenv over each module's Source, only these suites;
+`WildboundFreshRunnerLock` nil before, set to `dgwalk@<time>` during, cleared after):
+
+| Run | What | Result |
+|---|---|---|
+| RED | DonGlaseonClips_Test, LiveClips_Test | Clips 6 passed, 3 failed (DW1, DW2, the known "not published"); LiveClips 6 passed, 1 failed (easing) |
+| GREEN | the same | Clips 8 passed, 1 failed (only "not published", pre-existing); LiveClips 7 passed, 0 failed |
+| Run 21 | Clips_Test with Studio Config (Chase 17) / with Chase patched to 21 | 7/2 (DW2 Chase_Run vs 17) / 8/1 (only "not published") |
+
+Walked Play (`WildboundPlayLock = "dgwalk"`, both locks nil before, cleared after; `character_navigation` only; map mode
+big4 untouched; with RUN_SPEED 17 data): spawn -> (530, -3) -> (566, -20) in his territory; he woke and chased. Client
+samples of `WildboundBeastsLocal.DonGlaseon` bone Transforms (X angle, degrees):
+
+- Chase (13-17 studs/s): Thigh_L swings 29 -> -29 while Thigh_R swings -29 -> 29; Shin_L bends to -69/-78 only while the
+  left thigh comes forward.
+- Search (about 10 studs/s): thighs +-22 opposite, the swinging shin to -50, the arm opposite the leg (+-14).
+- LoseTarget: legs still (0). Return (about 10 studs/s): the same walk, Shin_R to -50 while the right thigh comes forward,
+  Foot level in stance.
+
+Screen capture: the 3D viewport rendered blank white both in Play and in Edit (a posed temporary copy, destroyed after),
+the known background-window rendering issue (RenderStepped not firing); the blank images are kept in the session
+scratchpad only. Not checked: the look on screen, two players, a phone, the run at 21 studs/s in Play (Config not yet in
+Studio).
