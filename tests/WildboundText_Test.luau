@@ -341,6 +341,16 @@ return function(Text, source, sources)
 		end
 	end)
 
+	-- B5 (odd/tasks/wildbound-caramelo-playfix.md, "Not done"): the GiveUp line shows when the creature gives up, before
+	-- its walk home, so it says that it goes back ("vuelve"), not that it is already back ("volvió").
+	case("B5: Gomibu, Flanfuria and Tortidragon say they go back to the nest when they give up", function()
+		for beast, name in pairs({ Gomibu = "Gomibú", Flanfuria = "Flanfuria", Tortidragon = "Tortidragón" }) do
+			local line = Text.BEAST[beast] and Text.BEAST[beast].phases and Text.BEAST[beast].phases.GiveUp
+			assert(line == name .. " vuelve a su nido", beast .. ".phases.GiveUp = " .. tostring(line))
+			assert(#line <= 64, beast .. ".GiveUp fits 64 bytes")
+		end
+	end)
+
 	-- SC8 (odd/tasks/wildbound-scuttler.md; docs/design/wildbound-scuttler-plan.md section 9): Scuttler's lines.
 	-- PunishTell (the bait was taken) is a real charge, so it says what ChargeTell says.
 	case("SC8: Scuttler has its warn, hit and phase lines", function()

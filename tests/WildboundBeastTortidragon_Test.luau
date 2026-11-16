@@ -185,5 +185,50 @@ return function(Enc, Tortidragon, Config, Abanico)
 		assert(string.find(phases(events), "GiveUp", 1, true) or each(events, "Disengage")[1], "it never gave up")
 	end)
 
+	-- B5 (odd/tasks/wildbound-caramelo-playfix.md, "Not done"): like Gomibu and the critters, a calm ending walks it back
+	-- to its nest and the encounter ends there with no fade (no Disengage), facing +Z where its resting copy stands between
+	-- encounters. It used to fade out where it gave up, and the resting copy then popped in at the post.
+	case("B5: after giving up it walks home and ends at its nest without fading out", function()
+		local e, w, tgt = dragon("homeGiveUp"), fakeWorld(), target(0, 14)
+		-- it notices and is led out to the end of its leash, the target always just past its cast range in front of it
+		run(e, w, tgt, 0, 4, function(_, tg, b) tg.x, tg.z = b.pos.x, b.pos.z + T.CastRangeStuds + 3 end)
+		local out = math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2)
+		assert(out >= T.LeashStuds - 1, "test setup: led out only " .. out .. " studs")
+		local midway, endedAt = false, nil
+		local later = run(e, w, tgt, 4.05, 14, function(_, tg) tg.x, tg.z = 0, T.LeashStuds + T.AbandonStuds + 2 end,
+			function(t, b)
+				local r = math.sqrt(b.pos.x ^ 2 + b.pos.z ^ 2)
+				if b.phase == "Return" and r > out * 0.25 and r < out * 0.75 then midway = true end
+				if b.done and not endedAt then endedAt = t end
+			end)
+		local list = phases(later)
+		assert(string.find(list, "GiveUp,Return", 1, true), "phases " .. list)
+		equal(#each(later, "Disengage"), 0, "it faded out")
+		local over = each(later, "End")[1]
+		assert(over, "never ended (phases " .. list .. ")")
+		equal(over.reason, "GiveUp", "the reason")
+		assert(midway, "it never walked: no step on the way home between its leash and its nest")
+		assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, "ended away from its nest")
+		local returned = nil
+		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "Return" then returned = returned or ev.at end end
+		assert(endedAt - returned >= (out - 1) / T.ChaseSpeedStudsPerSecond, "it got home faster than it chases")
+		equal(#each(later, "Tell"), 0, "it attacked on the way home")
+		near(e.dx, 0, "the resting copy's facing (x)", 1e-6); near(e.dz, 1, "the resting copy's facing (z)", 1e-6)
+	end)
+
+	case("B5: an escape walks it home too, never a fade", function()
+		-- a calm dragon whose visitor stands past its sight and its guarded ring, then goes far away
+		local e, w, tgt = dragon("homeEscape"), fakeWorld(), target(0, T.PerceptionStuds + 10)
+		run(e, w, tgt, 0, 0.9)
+		tgt.z = T.EscapeDistanceStuds + 5
+		local later = run(e, w, tgt, 0.95, 6)
+		local list = phases(later)
+		assert(string.find(list, "Return", 1, true), "phases " .. list)
+		equal(#each(later, "Disengage"), 0, "it faded out")
+		local over = each(later, "End")[1]
+		assert(over, "never ended (phases " .. list .. ")")
+		equal(over.reason, "Escape", "the reason")
+	end)
+
 	return result
 end

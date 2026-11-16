@@ -249,5 +249,50 @@ return function(Enc, Flanfuria, Config, Onda)
 		assert(#each(dead, "End") == 1, "the encounter did not end on death")
 	end)
 
+	-- B5 (odd/tasks/wildbound-caramelo-playfix.md, "Not done"): like Gomibu and the critters, a calm ending walks it back
+	-- to its nest and the encounter ends there with no fade (no Disengage), where its resting copy stands between
+	-- encounters. It used to fade out where it gave up, and the resting copy then popped in at the post.
+	case("B5: after giving up it walks home and ends at its nest without fading out", function()
+		local e, w, tgt = flan("homeGiveUp"), fakeWorld(), target(15, 0)
+		-- it notices and is led out to the end of its leash, the target always just past its cast range
+		run(e, w, tgt, 0, 3, function(_, tg, b) tg.x, tg.z = b.pos.x + T.CastRangeStuds + 3, b.pos.z end)
+		local out = math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2)
+		assert(out >= T.LeashStuds - 1, "test setup: led out only " .. out .. " studs")
+		local midway, endedAt = false, nil
+		local later = run(e, w, tgt, 3.05, 12, function(_, tg) tg.x, tg.z = T.LeashStuds + T.AbandonStuds + 2, 0 end,
+			function(t, b)
+				local r = math.sqrt(b.pos.x ^ 2 + b.pos.z ^ 2)
+				if b.phase == "Return" and r > out * 0.25 and r < out * 0.75 then midway = true end
+				if b.done and not endedAt then endedAt = t end
+			end)
+		local list = phases(later)
+		assert(string.find(list, "GiveUp,Return", 1, true), "phases " .. list)
+		equal(#each(later, "Disengage"), 0, "it faded out")
+		local over = each(later, "End")[1]
+		assert(over, "never ended (phases " .. list .. ")")
+		equal(over.reason, "GiveUp", "the reason")
+		assert(midway, "it never walked: no step on the way home between its leash and its nest")
+		assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, "ended away from its nest")
+		local returned = nil
+		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "Return" then returned = returned or ev.at end end
+		assert(endedAt - returned >= (out - 1) / T.ChaseSpeedStudsPerSecond, "it got home faster than it chases")
+		equal(#each(later, "Tell"), 0, "it attacked on the way home")
+		equal(#each(later, "Afflict"), 0, "it slowed on the way home")
+	end)
+
+	case("B5: an escape walks it home too, never a fade", function()
+		-- a calm flan whose visitor stands past its sight and its guarded ring, then goes far away
+		local e, w, tgt = flan("homeEscape"), fakeWorld(), target(T.PerceptionStuds + 6, 0)
+		run(e, w, tgt, 0, 0.9)
+		tgt.x = T.EscapeDistanceStuds + 5
+		local later = run(e, w, tgt, 0.95, 6)
+		local list = phases(later)
+		assert(string.find(list, "Return", 1, true), "phases " .. list)
+		equal(#each(later, "Disengage"), 0, "it faded out")
+		local over = each(later, "End")[1]
+		assert(over, "never ended (phases " .. list .. ")")
+		equal(over.reason, "Escape", "the reason")
+	end)
+
 	return result
 end

@@ -2,7 +2,7 @@
 -- require(freshDonGlaseonClipsClone), ServerStorage.WildboundAssets.Tortidragon, ServerStorage.WildboundAssets.DonGlaseon,
 -- { anim = WildboundCandyCritterAnim.Source, tortService = WildboundCandyTortidragonService.Source,
 -- donService = WildboundCandyDonGlaseonService.Source, tortAnim = WildboundCandyTortidragonAnim.Source,
--- donAnim = WildboundCandyDonGlaseonAnim.Source }).
+-- donAnim = WildboundCandyDonGlaseonAnim.Source, flanAnim = WildboundCandyFlanfuriaAnim.Source }).
 -- A3 (odd/tasks/wildbound-caramelo-playfix.md): Tortidragon and Don Glaseon animate live with no published Animation
 -- asset, the same way the six critters do. Their clip data (ServerStorage, keys { time, pose }) is copied to
 -- ReplicatedStorage by their services, converted to the clip kit format by Kit.fromLegacy, and played by the shared
@@ -33,8 +33,10 @@ return function(Kit, Spec, TortClips, DonClips, tortPrefab, donPrefab, sources)
 	end
 
 	-- The phase maps of the old WildboundCandyTortidragonAnim / WildboundCandyDonGlaseonAnim clients (plus Stagger).
+	-- B5 (odd/tasks/wildbound-caramelo-playfix.md): Tortidragon walks home in Return now, so Return plays its walk too.
 	local TORTI = { Spawn = "Idle", Calm = "Idle", Notice = "Alert", Chase = "Run_Quadruped", GiveUp = "Walk_Quadruped",
-		Disengage = "Walk_Quadruped", Telegraph = "Attack_Telegraph", Release = "Attack_Release", Recover = "Attack_Recover" }
+		Disengage = "Walk_Quadruped", Return = "Walk_Quadruped", Telegraph = "Attack_Telegraph", Release = "Attack_Release",
+		Recover = "Attack_Recover" }
 	local DON = { Spawn = "Idle_Breath", Dormant = "Idle_Breath", Patrol = "Patrol_Walk", Suspicious = "Notice",
 		Roar = "Roar_Visual", Chase = "Chase_Run", Search = "Search", Telegraph = "Attack_Telegraph_Licorice",
 		Attack = "Attack_Release_Licorice", Recover = "Attack_Recover_Licorice", LoseTarget = "LoseTarget",
@@ -164,6 +166,16 @@ return function(Kit, Spec, TortClips, DonClips, tortPrefab, donPrefab, sources)
 			lacks(text, ".Transform =", label)
 		end
 		lacks(don, "local function breathe(", "donAnim (the breath is the Idle_Breath clip now)")
+	end)
+
+	-- B5 (odd/tasks/wildbound-caramelo-playfix.md): Flanfuria walks home in Return now (it used to fade out). Its own
+	-- published-clip player hops on the way (not the idle loop sliding over the ground), and the caramel wave it drew is
+	-- removed when the walk home starts, as on GiveUp (an escape goes straight to Return).
+	case("B5: Flanfuria's client hops home in Return and clears the wave", function()
+		local flan = sources.flanAnim
+		assert(type(flan) == "string", "sources.flanAnim (WildboundCandyFlanfuriaAnim) is missing")
+		has(flan, 'Return = "Hop_Move"', "Flanfuria client (the walk home)")
+		has(flan, 'phase == "Return"', "Flanfuria client (the wave cleared on the walk home)")
 	end)
 
 	return result
