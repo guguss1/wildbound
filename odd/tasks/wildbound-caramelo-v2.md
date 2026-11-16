@@ -2,7 +2,7 @@
 
 ## Status
 
-Design only. Nothing in this file is implemented yet. It records the user's decisions of 2026-11-15, made while the balance pass (`odd/tasks/wildbound-balance-pass.md`) was running. Implement one task at a time, after that pass.
+It records the user's decisions of 2026-11-15, made while the balance pass (`odd/tasks/wildbound-balance-pass.md`) was running. Implemented one task at a time; the checklist says which are done, and the evidence is at the end.
 
 ## User decisions (2026-11-15)
 
@@ -95,7 +95,30 @@ Design only. Nothing in this file is implemented yet. It records the user's deci
 - [ ] CT4 Frutillón, the top guardian
 - [ ] IC Icons through rbxthumb
 - [ ] EC Steal hold by rarity, plus the economy options once the user picks them
-- [ ] AR Remove the Arrullo minigame. It returns later, improved (user, 2026-11-15).
+- [x] AR Remove the Arrullo minigame. It returns later, improved (user, 2026-11-15).
   - Épica (and Legendaria) eggs use a plain longer hold instead (1.3 s / 1.8 s per the EC scale).
   - Disable the minigame path and keep its module for later; do not delete it.
   - Re-pin the suites that expect it.
+  - Done 2026-11-15 (Studio suites and solo Play in the evidence below).
+
+## Decisions taken for the user
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| AR-D1 | The switch is one flag, `WildboundArrulloService.ENABLED = false`, checked first in `Service.qualifies`. `WildboundServer` is not edited: its Arrullo branch stays in place and is simply never taken (`entry.arrullo` is false for every egg). | The server is at the 200-local limit and shared with the teammate; one flag brings the minigame back. |
+| AR-D2 | Until EC, a rare egg's hold is the existing `RARE_HOLD` (module 0.75 s; the place's tuning folder applies 1 s). | AR only removes the minigame; EC sets the per-rarity scale. |
+| AR-D3 | The Arrullo tuning rows, `Text.ARRULLO`, the client and the remote stay. The client panel never opens because the server never starts a session. | "Keep its module for later." |
+| AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
+
+## Evidence
+
+### AR (2026-11-15)
+
+- Change: `WildboundArrulloService`: `Service.ENABLED = false`; `qualifies` returns false while it is off. Suite: MechanicsWiring W1 re-pinned on purpose (the flag, the guard in `qualifies`; the D10 list kept) and its stale `maxCarry` pin fixed.
+- Fingerprint rule: before writing, Studio equalled the repo HEAD for ArrulloService 5524/2803847513 and MechanicsWiring_Test 19129/558721442. Exact replacements (`multi_edit`). After: Studio == repo, ArrulloService 5934/4037729304, MechanicsWiring_Test 19833/2891207789.
+- Baseline before any write, run `154105b8`: MechanicsWiring 9/1 (the known W1), Tuning 15/1 (the known DT1), Arrullo 13/0, EggCarry 39/0.
+- RED (test pushed, source unchanged), run `8b054286`: MechanicsWiring 9/1 ("lacks Service.ENABLED = false"; the stale `maxCarry` case already passed).
+- GREEN, run `0d6a4446`: MechanicsWiring 10/0, Arrullo 13/0, EggCarry 39/0. Known reds only: Tuning DT1, WaveClock RW5. A fresh load of the service answered `qualifies` false for Común, Rara, Épica, Legendaria and the event egg.
+- Solo Play (PlayLock `AR`, cleared after; Play stopped; memory saves): the egg prompts showed Común and Rara 0.8 s, Épica (6 eggs) and Legendaria (5) 1 s, all with `WildboundStealHold` set (before AR a rare egg's prompt had no hold). `HeistProbe` "steal" on island I4 (Épica): stolen (`Egg:10`, WalkSpeed 11 while carrying); the client's `WildboundArrulloUI` stayed disabled. No script errors from these scripts in the output (only the place's known texture-pack and DataStore lines).
+- Found: the live holds are the tuning folder's 0.8 / 1, not the module's 0.5 / 0.75 that the overview called live. EC settles it.
+- Not checked: a real held prompt by a person (the probe stands in for a completed hold), the event egg in Play, two players, a phone.

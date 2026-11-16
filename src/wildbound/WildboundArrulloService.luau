@@ -19,10 +19,16 @@ Service.VIEW_RATE = 10
 -- the owner decides. This is the only list: change it here.
 Service.EGGS = table.freeze({ "Epica", "Legendaria", "Evento" })
 
+-- AR (user, 2026-11-15; odd/tasks/wildbound-caramelo-v2.md): the minigame is off for now and returns later, improved.
+-- While off no egg qualifies, so Épica, Legendaria and the event egg take the plain steal hold (EggCarry.holdFor).
+-- The rule, this session code, the remote and the client stay as they are; set true to bring it back.
+Service.ENABLED = false
+
 local sessions = {} -- Player -> { session, onEnd, valid, nextViewAt }
 local remote = nil
 
 function Service.qualifies(rarity, special)
+	if not Service.ENABLED then return false end
 	for _, name in ipairs(Service.EGGS) do
 		if name == "Evento" then
 			if special == true then return true end

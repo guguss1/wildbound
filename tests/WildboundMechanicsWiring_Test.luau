@@ -68,9 +68,15 @@ return function(sources)
 	end)
 
 	-- W1 (Q2b, D10 pending): the Arrullo replaces the steal hold for the rare eggs.
+	-- Deliberately changed (AR, user 2026-11-15, odd/tasks/wildbound-caramelo-v2.md): the minigame is off for now and
+	-- returns later, improved. The module, its remote and the server path stay; Service.ENABLED = false makes qualifies
+	-- answer false, so every egg (Épica, Legendaria and the event egg too) takes the plain steal hold.
 	case("W1: one config list of Arrullo eggs (D10: Épica, Legendaria, the event egg) and a server-simulated session", function()
 		local service = sources.arrulloService or ""
-		has(service, 'Service.EGGS = table.freeze({ "Epica", "Legendaria", "Evento" })', "the D10 list, pending the owner")
+		has(service, 'Service.EGGS = table.freeze({ "Epica", "Legendaria", "Evento" })', "the D10 list, kept for its return")
+		has(service, "Service.ENABLED = false", "AR: the minigame is off for now")
+		has(block(service, "function Service.qualifies(rarity, special)", "\nend\n"), "if not Service.ENABLED then return false end",
+			"AR: while off, no egg opens the Arrullo")
 		has(service, 'require(ReplicatedStorage:WaitForChild("WildboundArrullo"))')
 		has(service, "Arrullo.session(rarity, Random.new(options.seed), options.now)")
 		has(service, "Arrullo.advance(item.session, now)", "the server simulates on its own clock")
@@ -101,8 +107,9 @@ return function(sources)
 		has(trigger, 'return distance <= reach or "far"', "walking away is a loss")
 		has(sources.arrulloService or "", 'finish(player, "lost", "TooFar")')
 		local claim = block(server, "entry.claimEgg = function(player)", "entry.trigger = function(player)")
-		has(claim, "EggCarry.canSteal(eggs, id, player.UserId)"); has(claim, "state:pickup(player.UserId, id, alive, distance,")
-		has(claim, "EggCarry.steal(eggs, id, player.UserId, reason)")
+		-- Deliberately changed (AR, fixing a stale pin): NH2 passes the bag capacity to both calls.
+		has(claim, "EggCarry.canSteal(eggs, id, player.UserId, maxCarry)"); has(claim, "state:pickup(player.UserId, id, alive, distance,")
+		has(claim, "EggCarry.steal(eggs, id, player.UserId, reason, maxCarry)")
 	end)
 
 	case("W1: the client draws the meter, sends only hold and release, and is readable on a phone", function()
