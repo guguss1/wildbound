@@ -1,6 +1,7 @@
 -- Invoke with require(freshTestClone)(require(freshCandyTrapCakeClone), require(freshCandyLayoutClone),
 --   { service = <WildboundCandyTrapCakeService Source>, server = <WildboundServer Source>,
---     bossService = <WildboundCandyDonGlaseonService Source> }).
+--     bossService = <WildboundCandyDonGlaseonService Source>, client = <WildboundCandyCakeClient Source>,
+--     text = require(freshTextClone) }).
 -- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, DG7): Torta trampa. Three decoy cakes stand on the routes a thief
 -- uses; each holds a slice (a short sugar rush); one of them is Don Glaseon in disguise while he sleeps. It breathes and
 -- drops a crumb now and then; it springs when a player comes close or bites it, lashes everyone near away, and the
@@ -47,13 +48,20 @@ return function(Trap, Layout, sources)
 		assert(type(Trap.TEXT.prompt) == "string" and type(Trap.TEXT.object) == "string", "the prompt's words")
 	end)
 
-	case("DG7: the decoys stand on the thief routes: the stair entrance, the main path to the Torta, beside a rare nest", function()
+	-- Deliberately changed (PF6, odd/tasks/wildbound-caramelo-playfix.md): two of the three cakes stood inside Don
+	-- Glaseon's 62-stud territory (the stair one 33.5, the path one 60.6 studs from its centre). Walking to them woke him,
+	-- which unmasks the disguise, so they could never spring. Every cake now stands outside the territory, past a
+	-- spring's reach: the stair cake moved to the left (riverside) route, the path cake further out along the main route.
+	case("DG7/PF6: the decoys stand on the thief routes, outside Don Glaseon's territory: riverside, main path, rare nest", function()
 		local keys = {}
 		for _, spot in ipairs(Trap.SPOTS) do keys[spot.key] = spot end
-		assert(keys.stair and keys.path and keys.rareNest, "stair, path and rareNest spots")
-		local torta = Layout.TORTA
-		local stair = Layout.flat(keys.stair.x, keys.stair.z, torta.x, torta.z)
-		assert(stair > torta.radius + 3 and stair < torta.radius + 12, "the stair decoy stands just outside the bottom tier: " .. stair)
+		assert(keys.riverside and keys.path and keys.rareNest, "riverside, path and rareNest spots")
+		local boss = Layout.BOSS
+		for _, spot in ipairs(Trap.SPOTS) do
+			local d = Layout.flat(spot.x, spot.z, boss.x, boss.z)
+			assert(d > boss.territoryRadius + Trap.SPRING_STUDS, spot.key .. " stands " .. d .. " studs from the boss ground's centre")
+		end
+		assert(Layout.routeDistance(keys.riverside.x, keys.riverside.z, "left") <= Layout.PATH_WIDTH / 2 + 3, "the riverside decoy is by the left route")
 		assert(Layout.routeDistance(keys.path.x, keys.path.z, "main") <= Layout.PATH_WIDTH / 2 + 3, "the path decoy is by the main route")
 		local nest
 		for _, n in ipairs(Layout.NESTS) do if n.id == keys.rareNest.nest then nest = n end end
@@ -134,6 +142,28 @@ return function(Trap, Layout, sources)
 		has(service, 'SetAttribute("WildboundCandyRushUntil"', "the rush through the server's one WalkSpeed writer")
 		has(service, '"WildboundBeastPush"', "the beasts' push slot, never two at once")
 		has(service, 'Instance.new("ParticleEmitter")', "the crumbs"); has(service, "DonGlaseon.asleep(", "the pop-out never collides")
+	end)
+
+	-- PF6 (odd/tasks/wildbound-caramelo-playfix.md): a bite used to give only an invisible +25 % walk for 5 s, and a second
+	-- bite was refused in silence, so the owner read "the cake does nothing". Now the prompt says what it is, a bite tells
+	-- the player on screen (WildboundText.CANDY_CAKE.rush) with a catalogue sound and a sparkle, and a refused second bite
+	-- says "Ya comiste de esta torta". The server only names what happened (player attribute WildboundCandyCakeSaid,
+	-- "<what>:<serial>"); WildboundCandyCakeClient shows it.
+	case("PF6 wiring: a clear prompt, and a bite or a refused bite is told to the player", function()
+		local service, client, text = sources.service, sources.client, sources.text
+		assert(type(client) == "string" and type(text) == "table", "pass the cake client source and WildboundText")
+		local words = text.CANDY_CAKE
+		assert(type(words) == "table", "WildboundText.CANDY_CAKE")
+		equal(words.rush, "¡Subidón de azúcar! Corres más rápido", "the rush line")
+		equal(words.eaten, "Ya comiste de esta torta", "the refusal line")
+		equal(words.prompt, "Comer una porción", "the prompt"); equal(words.object, "Torta de caramelo", "the prompt's object")
+		for key, line in pairs(words) do assert(#line <= 64, key .. " is longer than 64 bytes") end
+		has(service, "prompt.ActionText, prompt.ObjectText = Text.CANDY_CAKE.prompt, Text.CANDY_CAKE.object", "the prompt's words")
+		has(service, 'say(player, "rush")', "a bite is told"); has(service, 'say(player, "eaten")', "a refused bite is told")
+		has(service, 'player:SetAttribute("WildboundCandyCakeSaid"', "the server names what happened")
+		has(client, 'GetAttributeChangedSignal("WildboundCandyCakeSaid")', "the client listens")
+		has(client, "Text.CANDY_CAKE[what]", "the line comes from WildboundText")
+		has(client, 'Catalog.SOUNDS.eggBanked', "a catalogue sound"); has(client, 'Instance.new("ParticleEmitter")', "a sparkle")
 	end)
 
 	case("DG7 wiring: applyCarry applies the rush; the server re-applies when it starts and ends; the sleeper hides in disguise", function()

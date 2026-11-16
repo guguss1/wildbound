@@ -8,12 +8,14 @@
 -- random (the server passes `pick(n)`, its own roll of 1..n). WildboundCandyTrapCakeService runs it.
 local Trap = {}
 
--- Local to the Candy layout's centre (WildboundCandyLayout.CENTRE). stair: just outside the bottom tier on the south
--- side, where the CT1 stair starts; path: the edge of the main route between the fork and the plaza; rareNest: beside
--- nest R1 (Rara), on the side away from Flanfuria's post.
+-- Local to the Candy layout's centre (WildboundCandyLayout.CENTRE). PF6 (odd/tasks/wildbound-caramelo-playfix.md): every
+-- cake stands outside Don Glaseon's 62-stud territory (walking up to one inside it woke him, which unmasks the
+-- disguise, so those two could never spring). riverside: the edge of the left (syrup riverside) route, where the old
+-- stair cake (6, -33) by the tower stair was; path: the edge of the main route, further out than the old (-60, 8);
+-- rareNest: beside nest R1 (Rara), on the side away from Flanfuria's post.
 Trap.SPOTS = table.freeze({
-	table.freeze({ key = "stair", x = 6, z = -33 }),
-	table.freeze({ key = "path", x = -60, z = 8 }),
+	table.freeze({ key = "riverside", x = -97, z = -55 }),
+	table.freeze({ key = "path", x = -72, z = 8 }),
 	table.freeze({ key = "rareNest", x = -86, z = -21, nest = "R1" }),
 })
 Trap.SPRING_STUDS = 5

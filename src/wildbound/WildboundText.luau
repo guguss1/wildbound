@@ -433,6 +433,14 @@ return freeze({
 				Sticky = "¡Pegajoso!",
 			} },
 	},
+	-- PF6 (odd/tasks/wildbound-caramelo-playfix.md): the Caramelo trap cakes' prompt and what a bite tells the player
+	-- (WildboundCandyTrapCakeService names it, WildboundCandyCakeClient shows it). At most 64 bytes each.
+	CANDY_CAKE = {
+		prompt = "Comer una porción",
+		object = "Torta de caramelo",
+		rush = "¡Subidón de azúcar! Corres más rápido",
+		eaten = "Ya comiste de esta torta",
+	},
 	-- Arrullo (decision Q2b, docs/mechanics/wildbound-new-mechanics.md section 1): the rare-egg lullaby meter. The title,
 	-- hint, won, lost and timeout lines are WildboundArrullo.TEXT's; hold and holdKey label the hold button (touch, and
 	-- Space or the gamepad's A), time the seconds left. Short lines fit 64 bytes.

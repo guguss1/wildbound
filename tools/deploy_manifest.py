@@ -470,6 +470,8 @@ DEFAULT_MAPPINGS = [
     # PF3 (odd/tasks/wildbound-caramelo-playfix.md): the resting copies of the Caramelo creatures at their posts
     ("src/wildbound/WildboundCandyRestingService.server.luau", "ServerScriptService.WildboundCandyRestingService"),
     ("src/wildbound/WildboundCandyRestingClient.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyRestingClient"),
+    # PF6: what a bite of a trap cake did, told to the player
+    ("src/wildbound/WildboundCandyCakeClient.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyCakeClient"),
 ]
 
 

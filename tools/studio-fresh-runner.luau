@@ -174,12 +174,14 @@ SPECS["WildboundCandyFrutillon_Test"] = {
 }
 SPECS["WildboundCandyTrapCake_Test"] = {
 	"mod:WildboundCandyTrapCake", "mod:WildboundCandyLayout",
-	{ service = "src:WildboundCandyTrapCakeService", server = "src:WildboundServer", bossService = "src:WildboundCandyDonGlaseonService" },
+	{ service = "src:WildboundCandyTrapCakeService", server = "src:WildboundServer", bossService = "src:WildboundCandyDonGlaseonService",
+		client = "src:WildboundCandyCakeClient", text = "mod:WildboundText" },
 }
 SPECS["WildboundBossRobustness_Test"] = {
 	"mod:WildboundBat", "mod:WildboundBatKnock", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseon",
 	"inst:ServerStorage.WildboundAssets.DonGlaseon",
-	{ beasts = "src:WildboundBeasts", service = "src:WildboundCandyDonGlaseonService", server = "src:WildboundServer" },
+	{ beasts = "src:WildboundBeasts", service = "src:WildboundCandyDonGlaseonService", server = "src:WildboundServer",
+		anim = "src:WildboundCandyDonGlaseonAnim" },
 }
 SPECS["WildboundCandyDonGlaseonClips_Test"] = { "mod:WildboundCandyDonGlaseonClips", "inst:ServerStorage.WildboundAssets.DonGlaseon" }
 SPECS["WildboundCandyClipPublish_Test"] = {

@@ -19,6 +19,7 @@ local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
 local Kit = require(ServerStorage:WaitForChild("WildboundCandyKit"))
 local DonGlaseon = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseon"))
 local Rules = require(ServerScriptService:WaitForChild("WildboundWorldRules"))
+local Text = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundText"))
 local assets = ServerStorage:WaitForChild("WildboundAssets")
 local library = assets:WaitForChild(Kit.LIBRARY_NAME)
 local prefab = assets:WaitForChild("DonGlaseon")
@@ -105,8 +106,9 @@ local function buildCake(index)
 	crumbs.Enabled = false
 	crumbs.Parent = anchor
 	local prompt = Instance.new("ProximityPrompt")
-	prompt.ActionText, prompt.ObjectText = Trap.TEXT.prompt, Trap.TEXT.object
-	prompt.HoldDuration = 0.3
+	-- PF6: clearer words (WildboundText.CANDY_CAKE) and a short, deliberate hold
+	prompt.ActionText, prompt.ObjectText = Text.CANDY_CAKE.prompt, Text.CANDY_CAKE.object
+	prompt.HoldDuration = 0.5
 	prompt.MaxActivationDistance = Trap.PROMPT_STUDS
 	prompt.RequiresLineOfSight = false
 	prompt.Parent = anchor
@@ -199,6 +201,14 @@ local function play(events)
 	end
 end
 
+-- PF6: names what a bite did for the player's own client (WildboundCandyCakeClient shows the line, the sound and the
+-- sparkle). A serial makes the same word twice in a row still a change.
+local said = 0
+local function say(player, what)
+	said += 1
+	player:SetAttribute("WildboundCandyCakeSaid", what .. ":" .. said)
+end
+
 onPrompt = function(index, player)
 	local root = rootOf(player)
 	local spot = spots[index]
@@ -206,11 +216,15 @@ onPrompt = function(index, player)
 	local distance = Vector3.new(root.Position.X - spot.x, 0, root.Position.Z - spot.z).Magnitude
 	local awake = telemetry and telemetry:GetAttribute("Beast_bossAwake") == true
 	local ok, result = Trap.take(state, index, player.UserId, distance, now(), true, awake)
-	if not ok then return end
+	if not ok then
+		if result == "Eaten" then say(player, "eaten") end
+		return
+	end
 	if result.kind == "Spring" then
 		play({ result })
 	elseif result.kind == "Rush" then
 		player:SetAttribute("WildboundCandyRushUntil", result.untilAt)
+		say(player, "rush")
 	end
 end
 
