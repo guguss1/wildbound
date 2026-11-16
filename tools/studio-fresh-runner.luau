@@ -206,6 +206,13 @@ SPECS["WildboundCandyClipKit_Test"] = {
 	},
 	"src:WildboundCandyCritterAnim",
 }
+SPECS["WildboundCandyLiveClips_Test"] = {
+	"mod:WildboundCandyClipKit", "mod:WildboundCandyCritterAnimSpec", "mod:WildboundCandyTortidragonClips",
+	"mod:WildboundCandyDonGlaseonClips", "inst:ServerStorage.WildboundAssets.Tortidragon", "inst:ServerStorage.WildboundAssets.DonGlaseon",
+	{ anim = "src:WildboundCandyCritterAnim", tortService = "src:WildboundCandyTortidragonService",
+		donService = "src:WildboundCandyDonGlaseonService", tortAnim = "src:WildboundCandyTortidragonAnim",
+		donAnim = "src:WildboundCandyDonGlaseonAnim" },
+}
 SPECS["WildboundCandyNests_Test"] = {
 	"mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundPraderaSites", "mod:WildboundBeastConfig",
 	"mod:WildboundIsland", "mod:WildboundSpecies", "mod:WildboundCandyBuilder",

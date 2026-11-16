@@ -136,16 +136,15 @@ return function(Bat, Knock, Config, DonGlaseon, prefab, sources)
 		has(service, 'local home = Sites.world(nil, "bossHome")')
 	end)
 
-	-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): with no published Idle_Breath clip the sleeping copy was a statue. The
-	-- client now gives it a slow breath of its own (a chest bone's sway when the rig has one, else a small rise and fall of
-	-- the whole copy), only while no published clip plays, and only once per model however often it is re-parented.
-	case("PF5: the sleeping copy breathes on the client while no published clip plays", function()
+	-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): with no published Idle_Breath clip the sleeping copy was a statue.
+	-- A3 replaced PF5's chest sway: the shared live animator (WildboundCandyCritterAnim) plays the whole Idle_Breath clip on
+	-- the sleeping copy (WildboundCandyLiveClips_Test), so this client must no longer write any bone itself.
+	case("PF5/A3: the Don Glaseon client leaves the sleeping copy's bones to the shared live animator", function()
 		local anim = sources.anim
 		assert(type(anim) == "string", "pass the Don Glaseon client animator source")
-		has(anim, "local function breathe(model)", "the breathing fallback")
-		has(anim, 'model:GetAttribute("Clip_Idle_Breath")', "only without a published breath clip")
-		has(anim, "breathing[model] = true", "set up once per model")
-		has(anim, 'if child.Name == "DonGlaseonDormant" then setup(child) breathe(child) end', "the sleeper breathes when it comes back")
+		assert(not anim:find("local function breathe(model)", 1, true), "the old chest sway is gone")
+		assert(not anim:find(".Transform =", 1, true), "no second writer on the bones")
+		has(anim, "local function ribbon(", "the licorice ribbon stays")
 	end)
 
 	return result

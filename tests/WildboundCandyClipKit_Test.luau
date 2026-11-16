@@ -213,7 +213,8 @@ return function(Kit, prefab, Clips, Spec, allClips, clientSource)
 		assert(Spec and allClips, "pass the spec and the six clips modules")
 		local count = 0
 		for _ in pairs(Spec.SPEC) do count += 1 end
-		equal(count, #NAMES, "six critters in the spec")
+		-- A3 (odd/tasks/wildbound-caramelo-playfix.md): Tortidragon and Don Glaseon joined the spec (WildboundCandyLiveClips_Test)
+		equal(count, #NAMES + 2, "six critters and the two big candy beasts in the spec")
 		for _, name in ipairs(NAMES) do
 			local spec, data = Spec.SPEC[name], allClips[name]
 			assert(spec, "spec for " .. name)
