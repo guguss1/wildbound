@@ -10,8 +10,9 @@
 --   Dormant (still at home) -> Patrol (a slow loop round home; bored after PatrolSeconds -> LoseTarget)
 --   -> Suspicious (Notice: the target seen within PerceptionStuds with a clear line, heard running within NoiseStuds,
 --      or a rare-egg carrier seen a little further) -> Roar (once per encounter, no effect) -> Chase (ChaseSpeed, at most
---      ChaseSeconds) -> Telegraph (Latigo de Regaliz: the lane follows the target until the lock at 0.60 s, 1.10 s)
---   -> Attack (the 0.35 s lash; at its end the only hit) -> Recover (1.0 s) -> Chase ...
+--      ChaseSeconds) -> Telegraph (Latigo de Regaliz, DG1: three lanes, left, right and centre, follow the target until
+--      the lock at 0.35 s; 0.80 s) -> Attack (the three 0.35 s lashes back to back; each hits at its end, a target at
+--      most once) -> Recover (1.0 s) -> Chase ...
 --   Chase -> Search (the target out of sight: it walks to the last seen spot for SearchSeconds) -> Chase or LoseTarget.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
 --   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
@@ -112,41 +113,46 @@ end
 
 -- Gives up the target: an open lash is called off (no strike), then it stops and looks at the exit before walking home.
 local function lose(events, e, world, now, T, reason)
-	if e.lash then Attack.drop(events, e, world, e.lash, now, reason) end
-	e.lash, e.cast, e.lane = nil, nil, nil
+	for _, lash in ipairs(e.lashes or {}) do Attack.drop(events, e, world, lash, now, reason) end
+	e.lashes, e.cast, e.lanes = nil, nil, nil
 	e.lostReason = reason
 	Attack.phase(events, e, "LoseTarget", now, now + T.LoseTargetSeconds, { reason = reason })
 end
 
 local function origin(e) return { x = e.pos.x, y = e.pos.y, z = e.pos.z } end
 
+-- DG1: one telegraphed attack per lash, all drawn at the start, each with its own lane and strike time.
 local function openLash(events, e, now, world, C)
 	local cast = Latigo.start(now, {})
 	if not cast then return false end
-	local attack = Attack.open(events, e, world, { key = "lash", startAt = now, strikeAt = Latigo.impactAt(cast), dodgeable = true,
-		damage = C.damage, lockAt = Latigo.lockAt(cast), shape = Latigo.lane(origin(e), e.dx, e.dz) })
-	if not attack then return false end
-	e.lash, e.cast, e.lane = attack, cast, nil
+	local lanes, lashes = Latigo.lanes(origin(e), e.dx, e.dz), {}
+	for i = 1, Latigo.LASHES do
+		local attack = Attack.open(events, e, world, { key = "lash" .. i, startAt = now, strikeAt = Latigo.impactAt(cast, i),
+			dodgeable = true, damage = C.damage, lockAt = Latigo.lockAt(cast), shape = lanes[i] })
+		if not attack then
+			for _, open in ipairs(lashes) do Attack.drop(events, e, world, open, now, "Stagger") end
+			return false
+		end
+		lashes[i] = attack
+	end
+	e.lashes, e.cast, e.lanes, e.lashIndex = lashes, cast, nil, 1
 	Attack.phase(events, e, "Telegraph", now, Latigo.releaseAt(cast))
 	return true
 end
 
-local function impact(events, e, target, world, C)
-	local cast, attack = e.cast, e.lash
-	local at = Latigo.impactAt(cast)
-	local lane = e.lane or attack.shape
+local function impact(events, e, target, world, C, i)
+	local cast, attack = e.cast, e.lashes[i]
+	local at = Latigo.impactAt(cast, i)
+	local lane = e.lanes and e.lanes[i] or attack.shape
 	local high = math.abs((target.y or e.pos.y) - (lane.oy or e.pos.y)) > C.hitHeight
 	local landed = Latigo.impact(cast, lane, { { id = 1, x = target.x, z = target.z, alive = target.alive == true,
-		safe = target.safe == true or high, carrying = target.carryingEgg == true } })[1]
+		safe = target.safe == true or high, carrying = target.carryingEgg == true } }, i)[1]
 	if landed then
 		Attack.hit(events, e, world, attack, at, { push = { dx = landed.push.dx, dz = landed.push.dz, studs = landed.push.studs,
 			seconds = landed.push.seconds }, slow = landed.slowFactor and { multiplier = landed.slowFactor, seconds = landed.slowSeconds } or nil })
 	else
 		Attack.miss(events, e, world, attack, at)
 	end
-	e.lash = nil
-	e.readyAt = Latigo.endsAt(cast) + Latigo.COOLDOWN_SECONDS
-	Attack.phase(events, e, "Recover", at, Latigo.endsAt(cast))
 end
 
 local function chase(events, e, at)
@@ -233,30 +239,38 @@ function Boss.step(events, e, now, target, world, dt)
 		local facing = fx and math.deg(math.acos(math.clamp(fx * e.dx + fz * e.dz, -1, 1))) or 0
 		-- a lash starts only at a target in front, in reach, after the cooldown and with time left in the chase
 		if distance <= T.CastRangeStuds and now >= e.readyAt and facing <= T.CastHalfAngleDegrees
-			and now - e.chaseAt + Latigo.TELEGRAPH_SECONDS + Latigo.RELEASE_SECONDS + Latigo.RECOVER_SECONDS <= T.ChaseSeconds then
+			and now - e.chaseAt + Latigo.comboSeconds() <= T.ChaseSeconds then
 			if openLash(events, e, now, world, C) then return end
 		end
 		walk(e, target, T.ChaseSpeedStudsPerSecond, dt, world, T, T.StandOffStuds)
 		return
 	end
-	if e.phase == "Telegraph" and e.lash then
+	if e.phase == "Telegraph" and e.lashes then
 		local cast = e.cast
-		if not e.lane then
+		if not e.lanes then
 			if now < Latigo.lockAt(cast) then
-				-- the lane follows the target until the lock
+				-- the lanes follow the target until the lock
 				turn(e, target, T, dt)
-				Attack.aim(events, e, e.lash, Latigo.lane(origin(e), e.dx, e.dz), now)
+				local lanes = Latigo.lanes(origin(e), e.dx, e.dz)
+				for i, lash in ipairs(e.lashes) do Attack.aim(events, e, lash, lanes[i], now) end
 				return
 			end
-			e.lane = Latigo.lane(origin(e), e.dx, e.dz)
-			Attack.lock(events, e, e.lash, e.lane, Latigo.lockAt(cast))
+			e.lanes = Latigo.lanes(origin(e), e.dx, e.dz)
+			for i, lash in ipairs(e.lashes) do Attack.lock(events, e, lash, e.lanes[i], Latigo.lockAt(cast)) end
 		end
 		if now < Latigo.releaseAt(cast) then return end
 		Attack.phase(events, e, "Attack", Latigo.releaseAt(cast), Latigo.impactAt(cast))
 	end
-	if e.phase == "Attack" and e.lash then
-		if now < Latigo.impactAt(e.cast) then return end
-		impact(events, e, target, world, C)
+	if e.phase == "Attack" and e.lashes then
+		-- every lash whose end has come lands, in order; the recovery starts after the last one
+		while e.lashIndex <= Latigo.LASHES and now >= Latigo.impactAt(e.cast, e.lashIndex) do
+			impact(events, e, target, world, C, e.lashIndex)
+			e.lashIndex += 1
+		end
+		if e.lashIndex <= Latigo.LASHES then return end
+		e.lashes = nil
+		e.readyAt = Latigo.endsAt(e.cast) + Latigo.COOLDOWN_SECONDS
+		Attack.phase(events, e, "Recover", Latigo.impactAt(e.cast), Latigo.endsAt(e.cast))
 		return
 	end
 	if e.phase == "Recover" and e.cast and now >= Latigo.endsAt(e.cast) then

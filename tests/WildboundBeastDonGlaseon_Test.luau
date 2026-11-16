@@ -87,13 +87,23 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		assert(Boss.tellSeconds() >= Config.MIN_TELL, "the tell is shorter than the minimum")
 	end)
 
-	case("Dormant -> Suspicious -> Roar -> Chase -> Telegraph: a 22 x 5 lane in front, dodgeable, lock 0.60 s, strike 1.45 s", function()
+	-- Deliberately changed (DG1, user 2026-11-15): a combo of three lashes, left, right, centre, all drawn at the start.
+	case("DG1: Dormant -> Suspicious -> Roar -> Chase -> Telegraph: three 22 x 5 lanes in front, lock 0.35 s, strikes 1.15 / 1.5 / 1.85 s", function()
 		local e, w, _, events, tell = telegraphing("g1")
 		equal(string.sub(phases(events), 1, #"Dormant,Suspicious,Roar,Chase,Telegraph"), "Dormant,Suspicious,Roar,Chase,Telegraph", "phases")
-		equal(tell.shape.kind, "lane"); near(tell.shape.length, 22, "length"); near(tell.shape.width, 5, "width")
-		assert(tell.shape.dz > 0.9, "the lane does not point at the target")
-		near(tell.lockAt - tell.startAt, 0.6, "lock"); near(tell.strikeAt - tell.startAt, 1.45, "strike")
-		equal(tell.dodgeable, true, "the perfect dodge works on it"); equal(#w.telegraphs, 1, "registered with the dodge")
+		local tells = each(events, "Tell")
+		equal(#tells, 3, "one tell per lash, all at the start")
+		for i, ev in ipairs(tells) do
+			equal(ev.shape.kind, "lane", "lane " .. i); near(ev.shape.length, 22, "length"); near(ev.shape.width, 5, "width")
+			assert(ev.shape.dz > 0.9, "lane " .. i .. " does not point at the target")
+			near(ev.startAt, tell.startAt, "drawn at the start"); near(ev.lockAt - ev.startAt, 0.35, "lock")
+			equal(ev.dodgeable, true, "the perfect dodge works on each")
+		end
+		near(tells[1].strikeAt - tell.startAt, 1.15, "first strike"); near(tells[2].strikeAt - tell.startAt, 1.5, "second strike")
+		near(tells[3].strikeAt - tell.startAt, 1.85, "third strike")
+		assert(math.abs(tells[3].shape.ox) < 1e-6, "the last lash is the centre")
+		assert(tells[1].shape.ox * tells[2].shape.ox < 0, "the first two are on both sides")
+		equal(#w.telegraphs, 3, "each registered with the dodge")
 		equal(e.phase, "Telegraph")
 	end)
 
@@ -107,27 +117,41 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		equal(Boss.sees(e, target(0, 20), fakeWorld({ blind = true }), T), false, "behind a wall")
 	end)
 
-	case("the lane locks at 0.60 s; sidestepping out of it after the lock dodges the lash (Strike miss, no Hit)", function()
+	case("DG1: the lanes lock at 0.35 s; stepping out of all three after the lock dodges the combo (three misses, no Hit)", function()
 		local e, w, tgt, _, tell = telegraphing("g3")
 		local start = tell.startAt
-		local events = run(e, w, tgt, start + 0.05, start + 1.6, function(t, target) if t > start + 0.65 then target.x = 4 end end)
-		local locked
-		for _, ev in ipairs(each(events, "Tell")) do if ev.locked then locked = locked or ev end end
-		assert(locked, "no locked tell"); near(locked.at, start + 0.6, "lock time", 0.051)
-		for _, ev in ipairs(each(events, "Tell")) do if ev.at > locked.at then error("the lane moved after the lock") end end
+		local events = run(e, w, tgt, start + 0.05, start + 2.0, function(t, target) if t > start + 0.4 then target.x = 9 end end)
+		local locked = {}
+		for _, ev in ipairs(each(events, "Tell")) do if ev.locked then table.insert(locked, ev) end end
+		equal(#locked, 3, "three locked tells"); near(locked[1].at, start + 0.35, "lock time", 0.051)
+		for _, ev in ipairs(each(events, "Tell")) do if not ev.locked and ev.at > locked[1].at then error("a lane moved after the lock") end end
 		equal(#each(events, "Hit"), 0, "hits")
-		local strike = each(events, "Strike")[1]
-		assert(strike and strike.hit == false, "no missed strike")
+		local strikes = each(events, "Strike")
+		equal(#strikes, 3, "three strikes")
+		for _, strike in ipairs(strikes) do assert(strike.hit == false, "a strike landed") end
 	end)
 
-	case("standing in the lane: one Hit at 1.45 s, damage 0, a 12-stud push along the lash and a short slow; then Recover, Chase", function()
+	case("DG1: the left lash hits a target in the left lane; stepping into a lane after its lash is safe", function()
+		local e, w, tgt, _, tell = telegraphing("g3b")
+		local start = tell.startAt
+		local events = run(e, w, tgt, start + 0.05, start + 2.0, function(t, target) if t > start + 0.4 then target.x = tell.shape.ox end end)
+		local hits = each(events, "Hit")
+		equal(#hits, 1, "one hit in the left lane"); near(hits[1].at, start + 1.15, "the first lash")
+		local e2, w2, tgt2, _, tell2 = telegraphing("g3c")
+		local s2 = tell2.startAt
+		-- centre until the left lash has landed, then into the left lane: the centre lash comes last and misses
+		local moved = run(e2, w2, tgt2, s2 + 0.05, s2 + 2.0, function(t, target) if t > s2 + 1.2 then target.x = tell2.shape.ox end end)
+		equal(#each(moved, "Hit"), 0, "hit after stepping into a spent lane")
+	end)
+
+	case("DG1: standing in the centre lane: one Hit at 1.85 s (the last lash), damage 0, a 12-stud push and a short slow; then Recover, Chase", function()
 		local e, w, tgt, _, tell = telegraphing("g4")
 		local start = tell.startAt
-		local events = run(e, w, tgt, start + 0.05, start + 2.6)
+		local events = run(e, w, tgt, start + 0.05, start + 3.2)
 		local hits = each(events, "Hit")
 		equal(#hits, 1, "hits")
 		local hit = hits[1]
-		near(hit.at, start + 1.45, "impact"); equal(hit.damage, 0, "damage")
+		near(hit.at, start + 1.85, "impact"); equal(hit.damage, 0, "damage")
 		near(hit.push.studs, 12, "push"); assert(hit.push.dz > 0.9, "the push does not follow the lash")
 		near(hit.slow.multiplier, 0.85, "slow"); near(hit.slow.seconds, 0.7, "slow time")
 		assert(string.find(phases(events), "Attack,Recover,Chase", 1, true), "phases " .. phases(events))
@@ -135,17 +159,18 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 
 	case("an egg carrier in the lane gets the Hit (BeastHit drops the egg) and the push, but no slow", function()
 		local e, w, tgt, _, tell = telegraphing("g5", { carryingEgg = true })
-		local events = run(e, w, tgt, tell.startAt + 0.05, tell.startAt + 1.6)
+		local events = run(e, w, tgt, tell.startAt + 0.05, tell.startAt + 2.0)
 		local hit = each(events, "Hit")[1]
 		assert(hit, "no hit"); equal(hit.slow, nil, "slow"); near(hit.push.studs, 12, "push")
 	end)
 
-	case("cooldown: no second lash until 7 s after the cast ended", function()
+	case("cooldown: no second combo until 7 s after the combo ended", function()
 		local e, w, tgt, _, tell = telegraphing("g6")
 		local start = tell.startAt
-		local events = run(e, w, tgt, start + 0.05, start + 2.45 + 6.9)
-		for _, ev in ipairs(each(events, "Tell")) do if ev.tell ~= tell.tell then error("a second lash inside the cooldown") end end
-		events = run(e, w, tgt, start + 2.45 + 6.95, start + 2.45 + 7.6)
+		for _, ev in ipairs(each(run(e, w, tgt, start + 0.05, start + 2.85 + 6.9), "Tell")) do
+			if ev.startAt > start + 1e-6 then error("a second combo inside the cooldown") end
+		end
+		local events = run(e, w, tgt, start + 2.85 + 6.95, start + 2.85 + 7.6)
 		assert(#each(events, "Tell") >= 1, "no lash after the cooldown")
 	end)
 

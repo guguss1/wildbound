@@ -79,7 +79,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 
 ## Checklist
 
-- [ ] DG1 Lash combo, faster
+- [x] DG1 Lash combo, faster. Done 2026-11-16 (evidence below).
 - [ ] DG2 Vacuum mouth
 - [ ] DG3 Chocolate wall
 - [ ] DG4 Slippery glaze with a slip-and-fall ragdoll
@@ -122,6 +122,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | CF-D5 | The two beast suites (Flanfuria, Tortidragón) now read their times from the rule module instead of literals, and the Gomibú beast suite looks for its lock in the first window too (the lock now falls before 1.2 s). | The literals were the old timings; the rule suites pin the numbers. |
 | IC-D1 | `Toolbar.ICON_IDS` holds the four upload ids; `Toolbar.ICONS` is built from it as `rbxthumb://type=Asset&id=<id>&w=150&h=150`. No new upload, no change to who owns the images. | The form the plan named; one place to add an icon later. |
 | IC-D2 | The owner action U10 (re-upload or share the icons with the group) is no longer needed for the hotbar; it stays optional in the overview. | The images load as they are. |
+| DG1-D1 | The three lanes are side by side (left, right, centre), each 5 studs wide and 22 long, parallel to his facing, with no overlap, and all three are drawn from the start. They follow the target until one lock at 0.35 s. | A player reads the whole combo at once; each lash lands at least 0.8 s after its lane appeared (1.15 / 1.5 / 1.85 s). |
+| DG1-D2 | Tell 0.8 s; the three lashes run back to back, 0.35 s each; recovery 1.0 s and cooldown 7 s unchanged (the whole combo takes 2.85 s, was 2.45 s for one lash). | The user asked for a faster tell and a combo, not a shorter rest; DG5 (anger) shortens the cooldown later. |
+| DG1-D3 | A player is hit at most once per combo; stepping into a lane whose lash already landed is safe. Each lash is its own dodge telegraph. | One egg drop per combo; it rewards reading the order. |
+| DG1-D4 | The licorice ribbon (client art) still unrolls once per combo, at the first lash; the lanes on the ground flash for each lash. The clips are still unpublished (O2). Three ribbons are a client follow-up. | No test harness for the client art; the ground lanes carry the information. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -169,3 +173,16 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - RED, run `d3f5f902`: CreatureToolbar 19/3. GREEN, run `ebf195e3`: CreatureToolbar 22/0, CandyPets 8/0.
 - Solo Play (PlayLock `IC`, cleared after; Play stopped): four temporary tools with `Toolbar.ICONS` as `TextureId` were put in the Backpack; Roblox's own hotbar (`CoreGui.RobloxGui.Backpack.Hotbar` slots 1-4) showed each `Icon` with `IsLoaded = true` at 48 x 48. The tools were removed after. The Studio screen capture does not draw the CoreGui, so there is no picture of it.
 - Not checked: a real hatched creature's tool in Play (its `TextureId` comes from the same table, suite only), how the icons look to a person, a phone, a published server.
+
+### DG1 (2026-11-16)
+
+- Change: `tools/WildboundCandyDonGlaseonAttack.luau` (ServerStorage): tell 0.8, lock 0.35, `LASHES = 3`, `SIDES`, `Latigo.lanes`, `impactAt(state, i)`, `comboSeconds()`, `impact(..., i)` once per lash and once per player per combo. `WildboundBeastDonGlaseon`: one telegraphed attack per lash (`e.lashes`), the lanes aim and lock together, the Attack phase lands each lash in order, then Recover; the chase-time check uses the whole combo; `lose` calls off every open lash.
+- Suites: CandyDonGlaseonAttack re-pinned (numbers, timeline) plus two new DG1 cases (the three lanes; once per lash, once per player); BeastDonGlaseon re-pinned (three tells, three locks, the strike times, the centre lash at 1.85 s, the 2.85 s combo in the cooldown case) plus a new case (the left lash hits the left lane; stepping into a spent lane is safe).
+- Fingerprint rule: before writing, the six Studio scripts (the attack rule and suite, the boss and its suite, the boss service, BossRobustness_Test) equalled HEAD. Exact replacements. After: Studio == repo, DonGlaseonAttack 5973/1856743129, BeastDonGlaseon 13490/3619965978, DonGlaseonAttack_Test 7211/1466872854, BeastDonGlaseon_Test 15488/4155125277.
+- RED, run `a2ff002f`: DonGlaseonAttack 3/4, BeastDonGlaseon 9/5. GREEN, run `2cd5e1b3`: DonGlaseonAttack 7/0, BeastDonGlaseon 14/0, BossRobustness 8/0, BeastWiring 50/0, BeastEncounters 24/0, CandyDonGlaseon 6/0, CandyClipPublish 6/0.
+- Solo Play (PlayLock `DG1`, cleared after; Play stopped; memory saves), a recorder on the client's boss model:
+  - Each combo: Telegraph 0.80 s, Attack 1.05 s (the three lashes), Recover 1.00 s; the next Telegraph 7.05 s after the recovery; the client built 3 tell models per combo (18 for 6 combos).
+  - Standing still 17 studs in front of his home on the plaza with a stolen Épica egg (`Egg:24`): the egg left the arms ("Dropped") 1.94 s after the tell began (the centre lash at 1.85 s plus one server step), and the player was pushed from z 14 to z 25.9 (12 studs along the lash).
+  - Standing on a cake tier about 24 studs above him, no lash landed (the existing height rule, `hitHeight` 8).
+  - No script errors in the log.
+- Not checked: dodging the side lanes by hand, the perfect dodge on a lash, how three lanes read on screen, two players, a phone.
