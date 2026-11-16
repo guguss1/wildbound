@@ -631,6 +631,21 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		equal(slowed.slow, X.SlowMultiplier, "-20 %"); equal(slowed.slowSeconds, X.SlowSeconds, "2 s")
 	end)
 
+	-- A2 review (walked Play): Canelin's first glaze piece lay where it started, beside the player it rolled into; the
+	-- patch's -20 % took the one slow slot 0.1 s before the roll's -30 %, so every roll hit landed as -20 %. A patch never
+	-- slows while the creature's own attack is open: the strike settles first.
+	case("A2 Canelin: a target on its lane gets the roll's -30 %, not its own glaze's -20 %, first", function()
+		local A = tuning("Canelin").Attack
+		local e, w, tgt = spawn("Canelin", "lanefirst"), fakeWorld(), target(1, 0)
+		local events = run(e, w, tgt, 0, 8)
+		local hit = each(events, "Hit")[1]
+		assert(hit, "the roll never hit a target on its lane (phases " .. phases(events) .. ")")
+		equal(hit.slow and hit.slow.multiplier, A.SlowMultiplier, "the roll's slow")
+		for _, ev in ipairs(each(events, "Afflict")) do
+			assert(not (ev.patch and ev.at <= hit.at + 1e-6), "a glaze patch slowed at " .. ev.at .. ", before the roll's hit at " .. hit.at)
+		end
+	end)
+
 	case("A2 Flanin and Mielita: a trail while they chase that slows; nobody leaves one on a quiet patrol", function()
 		for _, name in ipairs({ "Flanin", "Mielita" }) do
 			local X = tuning(name).Extras.Trail

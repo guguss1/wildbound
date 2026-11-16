@@ -106,6 +106,49 @@ return function(Duq, Frut, Layout, sources, Chase)
 		equal(#charges, 0, "a volley with nobody on the summit")
 	end)
 
+	-- A2 review (walked Play): Frutillon rolled a climber off 0.8 s after arriving and her first pops (1.8 s after the
+	-- Charge) found nobody. A climber walking onto the summit next to Frutillon's rest spot (his fastest bump) feels her
+	-- first pop before his first roll can start.
+	case("A2 review: a climber's first pop on the summit lands before Frutillon's first roll", function()
+		local frut, duq = Frut.new(0, summit), Duq.new()
+		local p = { id = 4, alive = true, x = summit.x + math.cos(Frut.REST_ANGLE) * Frut.RING_STUDS, y = summit.top + 3,
+			z = summit.z + math.sin(Frut.REST_ANGLE) * Frut.RING_STUDS }
+		local popAt, hitAt, rollAt
+		local t = 2
+		while t <= 8 and not rollAt do
+			for _, ev in ipairs(Duq.step(duq, t, { p }, summit)) do
+				if ev.kind == "Pop" then popAt = popAt or t end
+				if ev.kind == "Hit" and ev.id == p.id then hitAt = hitAt or t end
+			end
+			for _, ev in ipairs(Frut.step(frut, t, { p }, summit)) do
+				if ev.kind == "Roll" then rollAt = ev.at end
+			end
+			t += 0.05
+		end
+		assert(popAt and hitAt, "her first pop never hit the climber")
+		assert(rollAt, "Frutillon never rolled")
+		assert(hitAt + 0.3 <= rollAt + 1e-6, "her first pop at " .. hitAt .. " s, his first roll at " .. rollAt .. " s")
+	end)
+
+	case("A2 review: a short drop off the summit keeps her 10 s cadence; a long absence starts it again", function()
+		local state = Duq.new()
+		local p = onTop(5)
+		-- on the summit 0-3 s, bumped down 3-5 s, back from 5 s
+		local events = run(state, 0, 14, function(t) return (t < 3 or t >= 5) and { p } or { below() } end)
+		local charges = each(events, "Charge")
+		assert(charges[1] and charges[1].t <= Duq.FIRST_SECONDS + 0.11, "no first volley")
+		assert(charges[2], "no second volley after climbing back")
+		near(charges[2].t - charges[1].t, Duq.EVERY_SECONDS, "a short drop restarted the cadence", 0.11)
+		-- away longer than REARM_SECONDS: she greets the next arrival at once again
+		assert(type(Duq.REARM_SECONDS) == "number" and Duq.REARM_SECONDS >= 3 and Duq.REARM_SECONDS < Duq.EVERY_SECONDS, "REARM_SECONDS")
+		local s2 = Duq.new()
+		local away = 1 + Duq.REARM_SECONDS + 1
+		local later = run(s2, 0, away + 3, function(t) return (t < 1 or t >= away) and { p } or { below() } end)
+		local back
+		for _, c in ipairs(each(later, "Charge")) do if c.t >= away then back = back or c end end
+		assert(back and back.t <= away + Duq.FIRST_SECONDS + 0.11, "a fresh arrival waited for the old cadence")
+	end)
+
 	case("A2 wiring: the service throws on the summit through the beasts' slow and push slots; she plays Charge and Whip", function()
 		local service, anim = sources and sources.service, sources and sources.anim
 		has(service, 'require(ServerStorage:WaitForChild("WildboundCandyDuquesa"))', "the pure rules")

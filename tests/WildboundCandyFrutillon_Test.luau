@@ -38,6 +38,9 @@ return function(Frut, Layout, sources)
 	case("CT4: the numbers: tell 0.8 s, roll on a ring between La Duquesa and the edge, push 12 studs, seeds push 6", function()
 		near(Frut.TELL_SECONDS, 0.8); assert(Frut.TELL_SECONDS >= 0.8, "the fair-strike floor")
 		near(Frut.RECOVER_SECONDS, 1.0); near(Frut.SLEEP_SECONDS, 6)
+		-- A2 review (walked Play): he rolled a climber off 0.8 s after arriving, before La Duquesa's first bubbles could
+		-- pop; he now takes WAKE_SECONDS to wake up before his first tell
+		near(Frut.WAKE_SECONDS, 2)
 		near(Frut.ROLL_STUDS_PER_SECOND, 18); near(Frut.OVERSHOOT_RADIANS, 0.6); near(Frut.HIT_STUDS, 3)
 		near(Frut.PUSH_STUDS, 12); near(Frut.PUSH_SECONDS, 0.4)
 		assert(Frut.RING_STUDS - Frut.RADIUS_STUDS >= 3, "it rolls clear of La Duquesa's seat")
@@ -48,29 +51,41 @@ return function(Frut, Layout, sources)
 		near(summit.top, Layout.FLOOR_TOP + Layout.TOWER.tiers[#Layout.TOWER.tiers].top, "the summit's floor")
 	end)
 
-	case("CT4: asleep until a player stands on the summit; then a squash and a line, and a roll toward them", function()
+	local WOKE = 2 + (Frut.WAKE_SECONDS or 0) -- a player arrives at 2; his first tell when he has woken up
+	local ROLL = WOKE + Frut.TELL_SECONDS
+
+	case("CT4: asleep until a player stands on the summit; he wakes up, then a squash and a line, and a roll toward them", function()
 		local s = Frut.new(0, summit)
 		equal(s.phase, "Asleep")
 		equal(#Frut.step(s, 1, { below() }), 0, "nobody up there: asleep")
 		local target = onRing(s.angle + 1.2, 5)
 		local wake = Frut.step(s, 2, { target })
-		equal(kinds(wake), "Wake,Telegraph"); equal(s.phase, "Telegraph")
-		local tell = wake[2]
-		near(tell.rollAt, 2.8, "rolls 0.8 s later")
+		equal(kinds(wake), "Wake"); equal(s.phase, "Waking")
+		equal(#Frut.step(s, WOKE - 0.05, { target }), 0, "still waking up")
+		local woke = Frut.step(s, WOKE, { target })
+		equal(kinds(woke), "Telegraph"); equal(s.phase, "Telegraph")
+		local tell = woke[1]
+		near(tell.rollAt, ROLL, "rolls 0.8 s later")
 		near(tell.toAngle, tell.fromAngle + 1.2 + Frut.OVERSHOOT_RADIANS, "toward the target and a little past", 1e-6)
-		equal(#Frut.step(s, 2.5, { target }), 0, "the tell")
-		equal(kinds(Frut.step(s, 2.8, { target })), "Roll"); equal(s.phase, "Roll")
+		equal(#Frut.step(s, ROLL - 0.3, { target }), 0, "the tell")
+		equal(kinds(Frut.step(s, ROLL, { target })), "Roll"); equal(s.phase, "Roll")
+		-- nobody left when he has woken up: he waits and goes back to sleep
+		local s2 = Frut.new(0, summit)
+		Frut.step(s2, 2, { target })
+		equal(#Frut.step(s2, WOKE, {}), 0, "woke up alone: no tell")
+		equal(kinds(Frut.step(s2, WOKE + Frut.SLEEP_SECONDS, {})), "Sleep"); equal(s2.phase, "Asleep")
 	end)
 
 	case("CT4: rolling over a player bumps them outward once; then a recovery and the next roll", function()
 		local s = Frut.new(0, summit)
 		local target = onRing(s.angle + 1.2, 5)
 		Frut.step(s, 2, { target })
-		Frut.step(s, 2.8, { target })
+		Frut.step(s, WOKE, { target })
+		Frut.step(s, ROLL, { target })
 		local duration = (1.2 + Frut.OVERSHOOT_RADIANS) * Frut.RING_STUDS / Frut.ROLL_STUDS_PER_SECOND
-		near(s.rollEndsAt, 2.8 + duration, "roll time from the arc", 1e-6)
+		near(s.rollEndsAt, ROLL + duration, "roll time from the arc", 1e-6)
 		local hits = {}
-		local t = 2.8
+		local t = ROLL
 		while t < s.rollEndsAt + 0.05 do
 			t += 0.05
 			for _, e in ipairs(Frut.step(s, t, { target })) do if e.kind == "Hit" then table.insert(hits, e) end end
@@ -91,8 +106,9 @@ return function(Frut, Layout, sources)
 		local s = Frut.new(0, summit)
 		local target = onRing(s.angle + 1.2, 5)
 		Frut.step(s, 2, { target })
-		Frut.step(s, 2.8, { target })
-		local t = 2.8
+		Frut.step(s, WOKE, { target })
+		Frut.step(s, ROLL, { target })
+		local t = ROLL
 		while s.phase ~= "Recover" do t += 0.1; Frut.step(s, t, {}) end
 		t = s.recoverEndsAt
 		equal(#Frut.step(s, t, {}), 0, "nobody: it waits")
