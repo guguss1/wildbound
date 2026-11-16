@@ -851,3 +851,64 @@ Owner: "quiero que los árboles del reino caramelo sean más frondosos".
 Decisions taken for the user: only the cotton trees get blobs (the lollipop, cookie and cream trees keep their own
 shapes); Ball parts instead of new meshes (no upload, no collision change on the paths); five blobs per tree to stay
 under the 6000-part big4 budget (big4 total 5657).
+
+## Owner feedback 2: faster, harmful and different candy creatures (OF2, 2026-11-16)
+
+Owner: the creatures should chase faster, take health with their attacks and not all feel the same; Canelin's attack
+stays as it is.
+
+- [x] OF2-1 Faster chase: every candy creature now chases between a walking player (16) and a running one
+  (16 x 1.45 = 23.2), so walking gets caught and running (Shift) still escapes. Commits 9cafb27 (specs), 8ddf9e9.
+- [x] OF2-2 Damage through the existing path: a landed hit goes to `BeastHit` (the forest beasts' path: fair-strike
+  private mode, `lethalPlayer`, dodge invulnerability, `TakeDamage`, the ordinary Died and respawn, the "BeastHit" hit
+  message). `BeastHit` gained a 4th argument `keepEgg`: a keepsEgg creature hurts but the carried egg stays. Don Glaseon
+  (keepsEgg false) still drops the egg and now also hurts. Flanfuria's ring is an Afflict, so its slow carries `damage`
+  and the beast script sends it to `BeastHit` too. Side attacks (Mielita's swarm, the helper Gato), puddles and trails
+  never damage. The kids (Nube, Abeja: damage 0) and forest beasts in the Pradera still never hurt. Commits 8ddf9e9,
+  385a3dd (spec), 7582969 (fix: the Caramelo biome and the big4 annex lie inside the "Meadow" tag, which zeroed the
+  damage in the first walked check).
+- [x] OF2-3 Variety by data: each creature has its own chase speed, reach, cooldown, tell and damage. New optional
+  `StandOffStuds` in the critter brain: a thrower stops that far from its target and throws from there.
+
+| Creature | Chase (old -> new) | Reach | Cooldown | Tell | Damage | Personality |
+| --- | --- | --- | --- | --- | --- | --- |
+| Mochimiau | 13 -> 20 | leap 9 -> 7 | 6 -> 3.5 | 0.8 | 8 | fast, frequent short hops (plus its follow hop) |
+| Canelin | 14 -> 18 | dash 10 (unchanged) | 6 (unchanged) | 0.9 (unchanged) | 12 | its roll, tell, slow and trail exactly as before |
+| Flanin | 12 -> 17 | burst 7 (radius 10) | 7 | 1 -> 1.2 | 16 | slowest and heaviest, bouncy (two follow bounces) |
+| Mielita | 14 -> 19 | lob 14 -> 18, stand-off 10 | 9 -> 5 | 0.9 | 10 | flies fast, throws pollen from range |
+| Gato Repartidor | 12 -> 17.5 | lob 10 -> 15, stand-off 8 | 8 -> 4.5 | 0.9 -> 1 | 9 | keeps its distance and throws fries often |
+| Gomibu | 12 -> 19 | jump 10 (unchanged) | 3.5 | 0.8 | 14 | big bouncing jump |
+| Flanfuria | 11 -> 17 | ring (attack module unchanged) | module | module | 15 | slow, heavy caramel wave |
+| Tortidragon | 16 -> 20 | fan volley (module unchanged) | module | module | 12 | volley at range |
+| Don Glaseon | 17 -> 21 | lash, vacuum, wall (unchanged) | unchanged | unchanged | 25 | the boss hurts the most |
+
+### Decisions taken for the user (OF2)
+
+- Canelin's attack is untouched; it gets damage 12 (the middle of the critters) and chase 18 like the others got.
+- Damages 8-16 for the small creatures, 12-15 for the guardians and 25 for the boss: never a one-shot (a full-health
+  player needs at least four boss hits).
+- Hits by keepsEgg creatures keep the carried egg (only Don Glaseon knocks it loose, as before); they now show the
+  ordinary beast-hit message.
+- The candy creatures hurt inside the "Meadow" biome tag, because the Caramelo biome (and the big4 annex) lies inside it;
+  the kids rule still holds for the Nube and the Abeja and for forest beasts in the Pradera.
+- Gomibu's jump range stays 10 (a planned 10 -> 13 broke its give-up specs); its big jump is already its identity.
+- Don Glaseon's chase is 21, the stride his live `Chase_Run` clip already steps for (`WildboundCandyDonGlaseonClips_Test`
+  DW2 fails at 18.5 and passes at 21; its clip data was not touched).
+- Side attacks, patches and trails stay damage 0 (their slow is the feedback).
+- Spec setups that the faster chase broke were moved, not the rules: Gomibu's chase-speed target 24 -> 30 studs,
+  Flanfuria's speed window 0.5 -> 0.25 s (its 16-stud leash), Don Glaseon's DG2 target cap 55 -> 68 (inside the territory
+  plus LeftMarginStuds).
+
+### Evidence (OF2)
+
+- Fresh loader (engine of `tools/studio-fresh-runner.luau` in a temporary ServerStorage StringValue, destroyed after;
+  lock respected): red first (127 passed, 12 failed), then BeastCandyCritter 32/0, BeastDonGlaseon 24/0,
+  BeastFlanfuria 10/0, BeastGomibu 11/0, BeastTortidragon 9/0, BeastWiring 53/0 (139/0, run 122c10c7).
+- Fingerprints: Studio == repo for the 5 sources and 6 specs after every write.
+- Walked Play (big4 map mode, `WildboundPlayLock` held and cleared, character_navigation only): walking into each post
+  the creature chased and hit; HP drops (health regenerates between hits): Gomibu 100->86, 91->77, 82->68, 73->59 (14);
+  Gato Repartidor 66->57, 63->54, 61->52, 58->49 (9); Mochimiau 57->49, 54->46, 48->40 (8); Flanfuria 52->37, 44->29,
+  20->5, 13->-1 (15). The last hit killed from 13 HP; the player respawned 3.4 s later at the spawn with 100 HP.
+- Not checked: Canelin, Flanin, Mielita, Tortidragon and Don Glaseon damage in Play (covered by the specs only); a
+  running escape was not walked (character_navigation walks); `BeastHit` "BeastHit" message text not looked at on
+  screen; no two-player check.
