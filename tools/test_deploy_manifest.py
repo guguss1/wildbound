@@ -557,6 +557,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tools/WildboundCandyTrapCake.luau": "ServerStorage.WildboundCandyTrapCake",
         "tests/WildboundCandyTrapCake_Test.luau": "ServerStorage.WildboundCandyTrapCake_Test",
         "src/wildbound/WildboundCandyTrapCakeService.server.luau": "ServerScriptService.WildboundCandyTrapCakeService",
+        # CT1-CT2 Gran Torta tower
+        "tests/WildboundCandyTower_Test.luau": "ServerStorage.WildboundCandyTower_Test",
+        "src/wildbound/WildboundCandyTower.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyTowerClient",
         "tools/WildboundCandyDonGlaseonClips.luau": "ServerStorage.WildboundCandyDonGlaseonClips",
         "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
         "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",

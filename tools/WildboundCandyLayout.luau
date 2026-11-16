@@ -80,6 +80,48 @@ Layout.NESTS = table.freeze({
 	nest("L1", "Legendaria", 36, -22),
 })
 
+-- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT3): the Gran Torta as a tower. tiers are the kit cake's four
+-- collision cylinders (WildboundCandyKit.PROXIES.CakeTower) at the builder's scale (TORTA.radius * 2 / 72), heights from
+-- FLOOR_TOP. CT1: a spiral stair, one flight per tier, climbing counter-clockwise from startDegrees (south, by the DG7
+-- stair decoy) around the outside of each tier, standing on the floor or on the ledge of the tier below; a flight ends
+-- level with its tier's top, then a short landing on that ledge leads to the next flight. CT2: the three lower tiers
+-- turn slowly, alternating (1 and -1: the sign of the angular velocity about +Y), one turn per spinPeriodSeconds; the top
+-- tier (the summit with the best egg, Frutillon and La Duquesa) stays still.
+do
+	local scale, tiers = 26 / 36, {}
+	for i, row in ipairs({ { 72, 18, 0 }, { 56, 15, 18 }, { 40, 13, 33 }, { 24, 10, 46 } }) do
+		tiers[i] = table.freeze({ radius = row[1] / 2 * scale, bottom = row[3] * scale, top = (row[3] + row[2]) * scale })
+	end
+	Layout.TOWER = table.freeze({
+		tiers = table.freeze(tiers),
+		spinPeriodSeconds = 90,
+		spinDirections = table.freeze({ 1, -1, 1, 0 }),
+		stair = table.freeze({ width = 3.8, inset = 0.5, tread = 2.6, maxRise = 1, startDegrees = -100, landingDegrees = 15 }),
+	})
+end
+
+-- CT1: every stair step, flight by flight: { flight, index, x, z (local to the plot), angle (radians, x = cos, z = sin),
+-- radius (of its centre), bottom, top (from FLOOR_TOP) }. Pure.
+function Layout.stairSteps()
+	local T, steps = Layout.TOWER, {}
+	local S = T.stair
+	local angle = math.rad(S.startDegrees)
+	for k, tier in ipairs(T.tiers) do
+		local base = k == 1 and 0 or T.tiers[k - 1].top
+		local count = math.ceil((tier.top - base) / S.maxRise - 1e-9)
+		local rise = (tier.top - base) / count
+		local radius = tier.radius + S.inset + S.width / 2
+		local step = S.tread / radius
+		for i = 1, count do
+			local a = angle + (i - 0.5) * step
+			table.insert(steps, { flight = k, index = i, angle = a, radius = radius, bottom = base, top = base + i * rise,
+				x = Layout.TORTA.x + math.cos(a) * radius, z = Layout.TORTA.z + math.sin(a) * radius })
+		end
+		angle += count * step + math.rad(S.landingDegrees)
+	end
+	return steps
+end
+
 function Layout.flat(ax, az, bx, bz)
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end

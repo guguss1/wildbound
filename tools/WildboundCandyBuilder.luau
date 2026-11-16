@@ -71,6 +71,75 @@ function Builder.syncPortal(root, layout)
 	return 1
 end
 
+-- Caramelo v2 (CT1, CT2): adds the Gran Torta's tower pieces to an existing build, once (a root that already has its
+-- Tower model is left as it is). CT1: the stair (Layout.stairSteps), one solid column per step, from its floor up to the
+-- step's top. CT2: for each turning tier, an invisible collision disc on its top (Turntable_<k>, Role floor) whose
+-- AssemblyAngularVelocity carries whoever stands on it (anchored, it never moves; the physics treats it as a slow
+-- turntable), and a ring of cream dollops on its rim (Spin_<k>, decor) that WildboundCandyTowerClient turns on each
+-- client at the same rate (attributes SpinRate, CentreX, CentreZ). Needs the GranTorta prop. Returns the parts added.
+function Builder.syncTower(root, layout)
+	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
+	assert(typeof(root) == "Instance" and root:FindFirstChild("GranTorta"), "no Gran Torta")
+	if root:FindFirstChild("Tower") then return 0 end
+	local T, top = L.TOWER, L.FLOOR_TOP
+	local cx, cz = L.CENTRE.x + L.TORTA.x, L.CENTRE.z + L.TORTA.z
+	local tower = Instance.new("Model")
+	tower.Name = "Tower"
+	local created = 0
+	local function part(into, name, role, shape, size, cframe, color)
+		local p = Instance.new("Part")
+		p.Name, p.Shape, p.Size, p.CFrame, p.Color = name, shape, size, cframe, color
+		p.Material = Enum.Material.SmoothPlastic
+		p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		p.Anchored, p.CanTouch = true, false
+		p.CanCollide = role == "floor" or role == "solid"
+		p.CanQuery = p.CanCollide
+		if not p.CanCollide then p.CastShadow = false end
+		p:SetAttribute("Role", role)
+		p.Parent = into
+		created += 1
+		return p
+	end
+	local stair = Instance.new("Folder")
+	stair.Name = "Stair"
+	stair.Parent = tower
+	for _, s in ipairs(L.stairSteps()) do
+		local x, z = L.CENTRE.x + s.x, L.CENTRE.z + s.z
+		local height = s.top - s.bottom
+		local centre = Vector3.new(x, top + s.bottom + height / 2, z)
+		local tangent = Vector3.new(-math.sin(s.angle), 0, math.cos(s.angle))
+		part(stair, ("Step_%d_%d"):format(s.flight, s.index), "solid", Enum.PartType.Block,
+			Vector3.new(T.stair.width, height, T.stair.tread + 0.2), CFrame.lookAt(centre, centre + tangent),
+			s.index % 2 == 0 and palette.icing or palette.biscuit)
+	end
+	local rate = 2 * math.pi / T.spinPeriodSeconds
+	for k, tier in ipairs(T.tiers) do
+		local direction = T.spinDirections[k] or 0
+		if direction ~= 0 then
+			local disc = part(tower, "Turntable_" .. k, "floor", Enum.PartType.Cylinder, Vector3.new(0.2, tier.radius * 2, tier.radius * 2),
+				CFrame.new(cx, top + tier.top + 0.1, cz) * CFrame.Angles(0, 0, math.rad(90)), palette.cake)
+			disc.Transparency = 1
+			disc.AssemblyAngularVelocity = Vector3.new(0, rate * direction, 0)
+			disc:SetAttribute("SpinRate", rate * direction)
+			local spin = Instance.new("Model")
+			spin.Name = "Spin_" .. k
+			spin:SetAttribute("SpinRate", rate * direction)
+			spin:SetAttribute("CentreX", cx)
+			spin:SetAttribute("CentreZ", cz)
+			for i = 1, 16 do
+				local a = (i - 1) * math.pi / 8
+				local r = tier.radius - 0.75
+				part(spin, "Dollop_" .. i, "decor", Enum.PartType.Ball, Vector3.new(1.4, 1.4, 1.4),
+					CFrame.new(cx + math.cos(a) * r, top + tier.top + 0.5, cz + math.sin(a) * r), i % 2 == 0 and palette.strawberry or palette.icing)
+			end
+			spin.Parent = tower
+		end
+	end
+	tower:SetAttribute("GeneratedBy", "ServerStorage.WildboundCandyBuilder.syncTower")
+	tower.Parent = root
+	return created
+end
+
 function Builder.build(parent, layout, kit, library)
 	assert(typeof(parent) == "Instance", "parent must be an Instance")
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))

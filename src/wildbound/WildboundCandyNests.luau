@@ -122,7 +122,11 @@ function Nests.applyFlags(root, Builder, Layout)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
-	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0
+	-- Caramelo v2 (CT1-CT3): the Gran Torta's tower (stair, turning tiers, summit nest) is added the same way, once,
+	-- before the nests are read. A third value: the parts it added.
+	local okTower, tower = false, 0
+	if type(Builder.syncTower) == "function" then okTower, tower = pcall(Builder.syncTower, root, Layout) end
+	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.

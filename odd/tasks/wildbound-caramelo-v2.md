@@ -90,8 +90,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - tells down to the 0.8 s floor, shorter recovery;
   - cooldowns about 3.5 / 5 / 4.5 s.
   - Done 2026-11-16 (Studio suites and solo Play in the evidence below).
-- [ ] CT1 Spiral staircase on the Gran Torta
-- [ ] CT2 Counter-rotating tiers
+- [x] CT1 Spiral staircase on the Gran Torta. Done 2026-11-16 (evidence below).
+- [x] CT2 Counter-rotating tiers. Done 2026-11-16 (evidence below).
 - [ ] CT3 Best egg at the top
 - [ ] CT4 Frutillón, the top guardian
 - [x] IC Icons through rbxthumb. Done 2026-11-16 (the thumbnail form loads; evidence below).
@@ -145,6 +145,11 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | DG7-D4 | While he is in disguise his bed on BossHome is empty: the service writes `WildboundTelemetry.Candy_bossDisguised` and `WildboundCandyDonGlaseonService` hides the sleeper on it. | The trap cake is him, so he cannot also sleep at home. |
 | DG7-D5 | It springs when a player comes within 5 studs or bites it: a sleeping copy of him rises out of the cake for the 0.8 s tell (the fair-strike floor), then a lash pushes everyone within 9 studs away (12 studs over 0.4 s, the beasts' `WildboundBeastPush` slot), no damage and the egg stays; 0.7 s later the three decoys pop (confetti) and grow back 90 s later with a new random pick. The tell for the disguised cake is a slow breath (its meshes grow 4 % and back every 2.4 s) and a crumb now and then (a ParticleEmitter at 0.7 per second). | DG1 keeps the lash as his only egg-drop attack; a push off the route is the scare. No new asset (Roblox's default particle; the boss prefab already in the place). |
 | DG7-D6 | The two prompt words ("Comer porción", "Torta") live in `WildboundCandyTrapCake.TEXT`, not in `WildboundText`, which the beast-revision session holds. Move them when it is free. | Shared-file protocol. |
+| CT-D1 | The tower pieces are added by the Candy builder at every server start (`Builder.syncTower`, called from `WildboundCandyNests.applyFlags` beside `syncNests` and `syncPortal`), once, into `Candy_Bioma_v1.Tower`. The place file needs no save. | The CG2 pattern: a reopened or published place has them without an Edit session; never built by hand. |
+| CT-D2 | CT1: four flights, one per tier, climbing round the outside of each tier from the south (by the DG7 stair decoy), on the floor or on the ledge of the tier below: steps 3.8 wide, 2.6 deep, at most 1 stud high (13 + 11 + 10 + 8 = 42 steps), each a solid column down to its floor; a 15-degree landing on each ledge leads to the next flight. | Walkable without jumping; the ledges are 5.8 studs wide, so a flight fits beside the next tier's wall. |
+| CT-D3 | CT2: the kit's cake is one mesh across all tiers, so the tiers' look cannot turn. What turns: an invisible collision disc on each of the three lower tiers (anchored, with `AssemblyAngularVelocity`, which the physics uses to carry whoever stands on it) and a ring of 16 cream dollops on each rim that every client turns at the same rate from the server clock (`WildboundCandyTowerClient`). One turn in 90 s (about 1.8 studs/s at the widest rim), alternating sense. | Proper carrying with no moving physics parts and no jitter; slow and readable. |
+| CT-D4 | The top tier does not turn: it is the summit for the best egg (CT3), Frutillón (CT4) and La Duquesa Burbuja, whose seat at (612, 46, -3) stays where it is. | The parent session's scenery stays put; Frutillón's rolls stay readable on still ground. |
+| CT-D5 | The stair is static while the ledges turn, so a player standing on a ledge is carried slowly into the next flight's steps (a gentle bump). Accepted as part of the tower's feel. | No pinning at 1.8 studs/s; they can walk or jump. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -256,3 +261,19 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Regrow: about 90 s after the pop the three cakes were back, a new pick (the rare-nest cake) breathing, `Candy_bossDisguised` true again after he had gone back to sleep.
   - No script errors from these scripts in the output (only the place's texture-pack, asset and DataStore lines).
 - Not checked: a bite through the real prompt (neither `ProximityPrompt:InputHoldBegin` from a script nor a simulated E key fired it in Studio; the bite rules are suite only), how the breath and crumbs read to a person, the egg-carrier case (the push never touches the egg by construction), two players, a phone.
+
+### CT1 and CT2 (2026-11-16)
+
+- Change: `tools/WildboundCandyLayout.luau` (`Layout.TOWER`: the four tiers from the kit's proxies at the builder's scale, the spin period and senses, the stair numbers; `Layout.stairSteps()`); `tools/WildboundCandyBuilder.luau` (`Builder.syncTower`: the stair columns, the three turntable discs, the dollop rings); `src/wildbound/WildboundCandyNests.luau` (`applyFlags` also runs `syncTower`, a third return value); new `src/wildbound/WildboundCandyTower.client.luau` (StarterPlayerScripts; turns the rings). Registered in the runner SPECS and the two manifest files (Python edited by hand, not run).
+- Suites: new `WildboundCandyTower_Test` (6 cases: tiers equal the kit, the flights and their rises and ledges, the start by the decoy and no nest underfoot, syncTower's stair once, the turning discs and rings, the client and applyFlags wiring).
+- Coordination: "writing" sent to the parent session before Layout, Builder and CandyNests were written; the top tier, where La Duquesa sits, does not move.
+- Fingerprint rule: before writing, Studio equalled HEAD for CandyLayout 5659/669051350, CandyBuilder 19220/187397696, CandyNests 7804/1134762144 (and CandyKit, CandyNests_Test, CandyLayout_Test, read only). Exact replacements. After: Studio == repo, CandyLayout 7913/3889673665, CandyBuilder 22730/361553883, CandyNests 8159/183275574, TowerClient 1907/3036841359, Tower_Test 7804/2999829394.
+- RED, run `b1625743`: Tower 0/6 (`Layout.TOWER` nil, `stairSteps` and `syncTower` missing; the client source was stood in by CandyNests for that run because the client did not exist yet).
+- One test fix before GREEN (the disc-height case added 0.1 twice). GREEN, runs `fa275e26` + `616c66e7`: Tower 6/0, CandyLayout 14/0, CandyNests 12/0, CandyTrapCake 8/0, Portal 11/0. After the Heartbeat change, run `b966d9f2`: Tower 6/0, CandyLayout 14/0.
+- Solo Play (PlayLock `CT1-CT2`, cleared after; Play stopped twice; memory saves):
+  - At start the server built `Candy_Bioma_v1.Tower`: 42 steps, Turntable_1-3 at y 13.6 / 24.43 / 33.82 with angular velocity +0.0698, -0.0698, +0.0698 rad/s.
+  - Carry: a player set on tier 1's ledge (radius 23.5) went round with it at 0.0701 rad/s over 6 s, the radius unchanged (23.50 -> 23.51), standing on the disc.
+  - Climb: the client walked the player step by step with `Humanoid:MoveTo`. Flights 1 and 2 ended level with their tiers (root y 16.06 and 26.96 over tops 13.5 and 24.33); on the first run the scripted walker fell off during the landing from flight 2 to 3 (it had 1.2 s to cross the turning ledge while Don Glaseon chased). Started again from the end of flight 2, it climbed flights 3 and 4 (root y 36.43 and 43.52 over tops 33.72 and 40.94) and stepped onto the summit (y 44.0).
+  - The rings: the first client script used RenderStepped, which never fired in the Studio Play client (0 frames in 2 s), so the rings stood still; changed to Heartbeat, the three rings turned at -0.0698, +0.0698, -0.0698 rad/s in the client's angle measure, the same sense and rate as the carried player.
+  - No script errors from these scripts in the output.
+- Not checked: how the turning reads to a person (motion comfort), a person climbing by hand, two players, a phone.

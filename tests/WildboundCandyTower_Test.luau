@@ -1,0 +1,151 @@
+-- Invoke with require(freshTestClone)(require(freshCandyLayoutClone), require(freshCandyBuilderClone),
+--   require(freshCandyKitClone), { nests = <WildboundCandyNests Source>, client = <WildboundCandyTowerClient Source> }).
+-- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT2): the Gran Torta as a tower. CT1 a spiral stair round the
+-- tiers; CT2 three lower tiers that turn slowly, alternating, carrying whoever stands on them; the top stays still.
+-- Builds only into detached models (never parented to a service). Changes nothing.
+return function(Layout, Builder, Kit, sources)
+	local result = { passed = 0, failed = 0, messages = {} }
+	local function case(name, run)
+		local ok, message = pcall(run)
+		if ok then result.passed += 1 else
+			result.failed += 1
+			table.insert(result.messages, name .. ": " .. tostring(message))
+		end
+	end
+	local function equal(actual, expected, label)
+		assert(actual == expected, (label and label .. ": " or "") .. "expected " .. tostring(expected) .. ", got " .. tostring(actual))
+	end
+	local function near(actual, expected, label, tolerance)
+		assert(type(actual) == "number" and math.abs(actual - expected) <= (tolerance or 1e-3),
+			(label and label .. ": " or "") .. "expected " .. tostring(expected) .. ", got " .. tostring(actual))
+	end
+	local function has(source, needle, label)
+		assert(type(source) == "string" and string.find(source, needle, 1, true), (label or "missing") .. ": " .. needle)
+	end
+	local T = Layout.TOWER
+	local function fakeBiome()
+		local root = Instance.new("Model")
+		root.Name = Layout.ROOT_NAME
+		local torta = Instance.new("Model")
+		torta.Name = "GranTorta"
+		torta.Parent = root
+		local nests = Instance.new("Folder")
+		nests.Name = "Nests"
+		nests.Parent = root
+		return root
+	end
+
+	case("CT: the tiers are the kit cake's collision cylinders at the builder's scale", function()
+		local scale = Layout.TORTA.radius * 2 / Kit.PROXIES.CakeTower[1].size.Y
+		equal(#T.tiers, #Kit.PROXIES.CakeTower, "four tiers")
+		for i, proxy in ipairs(Kit.PROXIES.CakeTower) do
+			near(T.tiers[i].radius, proxy.size.Y / 2 * scale, "radius " .. i)
+			near(T.tiers[i].bottom, (proxy.at.Y - proxy.size.X / 2) * scale, "bottom " .. i)
+			near(T.tiers[i].top, (proxy.at.Y + proxy.size.X / 2) * scale, "top " .. i)
+		end
+	end)
+
+	case("CT1: one flight per tier, each from the floor below to its tier's top, steps of at most 1 stud", function()
+		local steps, flights = Layout.stairSteps(), {}
+		for _, s in ipairs(steps) do
+			flights[s.flight] = flights[s.flight] or {}
+			table.insert(flights[s.flight], s)
+		end
+		equal(#flights, 4, "four flights")
+		for k, list in ipairs(flights) do
+			local base = k == 1 and 0 or T.tiers[k - 1].top
+			near(list[1].bottom, base, "flight " .. k .. " stands on the floor below")
+			near(list[#list].top, T.tiers[k].top, "flight " .. k .. " ends level with its tier")
+			local last = base
+			for i, s in ipairs(list) do
+				assert(s.top - last <= T.stair.maxRise + 1e-6 and s.top > last, ("flight %d step %d rise %.2f"):format(k, i, s.top - last))
+				last = s.top
+				local r = Layout.flat(s.x, s.z, Layout.TORTA.x, Layout.TORTA.z)
+				local inner, outer = r - T.stair.width / 2, r + T.stair.width / 2
+				assert(inner >= T.tiers[k].radius + 0.4, ("flight %d step %d stands outside its tier (%.2f)"):format(k, i, inner))
+				if k > 1 then
+					assert(outer <= T.tiers[k - 1].radius - 1.45, ("flight %d step %d stays on the ledge, inside the dollops (%.2f)"):format(k, i, outer))
+				end
+				if i > 1 then
+					local p = list[i - 1]
+					assert(Layout.flat(s.x, s.z, p.x, p.z) <= T.stair.tread + 0.01, "steps touch")
+				end
+			end
+		end
+	end)
+
+	case("CT1: the stair starts by the south decoy and never steps on a nest", function()
+		local steps = Layout.stairSteps()
+		near(math.deg(steps[1].angle - T.stair.tread / 2 / steps[1].radius), T.stair.startDegrees, "it starts at startDegrees", 0.01)
+		for _, s in ipairs(steps) do
+			for _, nest in ipairs(Layout.NESTS) do
+				assert(Layout.flat(s.x, s.z, nest.x, nest.z) >= 6, "a step on nest " .. nest.id)
+			end
+		end
+		local first = steps[1]
+		assert(Layout.flat(first.x, first.z, 6, -33) <= 12, "the DG7 stair decoy stands by the first steps")
+	end)
+
+	case("CT1: syncTower builds the stair once: solid anchored columns from their floor to their top", function()
+		local root = fakeBiome()
+		local added = Builder.syncTower(root, Layout)
+		local tower = root:FindFirstChild("Tower")
+		assert(tower, "no Tower model")
+		local stair = tower:FindFirstChild("Stair")
+		local steps = Layout.stairSteps()
+		equal(#stair:GetChildren(), #steps, "one column per step")
+		for _, s in ipairs(steps) do
+			local p = stair:FindFirstChild(("Step_%d_%d"):format(s.flight, s.index))
+			assert(p and p.Anchored and p.CanCollide and p.CanQuery, "a solid step " .. s.flight .. "/" .. s.index)
+			equal(p:GetAttribute("Role"), "solid")
+			near(p.Position.Y + p.Size.Y / 2, Layout.FLOOR_TOP + s.top, "its top")
+			near(p.Position.Y - p.Size.Y / 2, Layout.FLOOR_TOP + s.bottom, "its foot")
+			near(p.Position.X, Layout.CENTRE.x + s.x, "x"); near(p.Position.Z, Layout.CENTRE.z + s.z, "z")
+		end
+		assert(added >= #steps, "it reports the parts it added")
+		equal(Builder.syncTower(root, Layout), 0, "a second sync adds nothing")
+		assert(not pcall(Builder.syncTower, Instance.new("Model"), Layout), "no Gran Torta: an error")
+		root:Destroy()
+	end)
+
+	case("CT2: three turning tiers, alternating, one turn in 90 s (the rim under 2 studs/s); the top stays still", function()
+		equal(T.spinPeriodSeconds, 90)
+		equal(T.spinDirections[1], 1); equal(T.spinDirections[2], -1); equal(T.spinDirections[3], 1); equal(T.spinDirections[4], 0)
+		local rate = 2 * math.pi / T.spinPeriodSeconds
+		assert(rate * T.tiers[1].radius <= 2, "slow at the widest rim")
+		local root = fakeBiome()
+		Builder.syncTower(root, Layout)
+		local tower = root.Tower
+		for k, tier in ipairs(T.tiers) do
+			local disc, spin = tower:FindFirstChild("Turntable_" .. k), tower:FindFirstChild("Spin_" .. k)
+			if T.spinDirections[k] == 0 then
+				assert(not disc and not spin, "the top tier never turns")
+			else
+				assert(disc and disc.Anchored and disc.CanCollide and disc.Transparency == 1, "an invisible floor disc on tier " .. k)
+				equal(disc:GetAttribute("Role"), "floor")
+				near(disc.AssemblyAngularVelocity.Y, rate * T.spinDirections[k], "its spin carries the players")
+				near(disc.AssemblyAngularVelocity.X, 0); near(disc.AssemblyAngularVelocity.Z, 0)
+				near(disc.Position.X, Layout.CENTRE.x + Layout.TORTA.x); near(disc.Position.Z, Layout.CENTRE.z + Layout.TORTA.z)
+				near(disc.Position.Y - disc.Size.X / 2, Layout.FLOOR_TOP + tier.top, "on the tier's top")
+				near(disc.Size.Y, tier.radius * 2, "the tier's width")
+				assert(spin, "a ring of dollops on tier " .. k)
+				near(spin:GetAttribute("SpinRate"), rate * T.spinDirections[k], "the ring turns with its disc")
+				near(spin:GetAttribute("CentreX"), Layout.CENTRE.x); near(spin:GetAttribute("CentreZ"), Layout.CENTRE.z)
+				for _, d in ipairs(spin:GetChildren()) do
+					assert(d:IsA("BasePart") and not d.CanCollide and not d.CanQuery, "decor never collides")
+				end
+			end
+		end
+		root:Destroy()
+	end)
+
+	case("CT2 wiring: the client turns the rings by SpinRate x server time, never the discs; the server adds the tower at start", function()
+		local client = sources.client
+		has(client, 'string.sub(model.Name, 1, 5) ~= "Spin_"', "only the Spin_ rings")
+		has(client, "ring.rate * t", "rate x time"); has(client, "workspace:GetServerTimeNow()", "the server's clock")
+		assert(not string.find(client, "Turntable_", 1, true) or string.find(client, "never moved here", 1, true), "the discs stay")
+		has(sources.nests, "pcall(Builder.syncTower, root, Layout)", "applyFlags adds the tower before the nests are read")
+	end)
+
+	return result
+end
