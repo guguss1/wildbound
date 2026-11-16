@@ -542,14 +542,59 @@ return function(Director, source, Config)
 		equal(select(2, Director.summon(dir, 1, "NubeGrunona", ctx({ biomes = { Meadow = true } }), 1)), "AlreadyActive")
 	end)
 
-	case("KB-1: points 0 never spend the budget but count toward MAX_ACTIVE", function()
+	-- Deliberately changed (PF1, odd/tasks/wildbound-caramelo-playfix.md): a points-0 summoned beast no longer counts
+	-- toward MAX_ACTIVE (it used to: with Gomibu and one critter alive, every other Caramelo creature was refused).
+	case("KB-1: points 0 never spend the budget; PF1: nor do they take a MAX_ACTIVE slot", function()
 		local dir = Director.new({ random = always(0) })
 		local meadow = ctx({ biomes = { Meadow = true } })
 		assert(Director.summon(dir, 1, "NubeGrunona", meadow, 0), "Nube")
 		assert(Director.summon(dir, 1, "AbejaReina", meadow, 0), "Abeja")
 		local points, active = Director.budget(dir, 1)
 		equal(points, 0, "no points spent"); equal(active, 2)
-		equal(select(2, Director.reserve(dir, 1, "Viper", ctx(), 0, { force = true })), "MaxActive", "two encounters at once")
+		equal((Director.reserve(dir, 1, "Viper", ctx(), 0, { force = true })), true, "two summoned beasts leave the cap free")
+	end)
+
+	-- PF1 (odd/tasks/wildbound-caramelo-playfix.md): every summoned points-0 beast (the Pradera and Caramelo creatures)
+	-- is outside MAX_ACTIVE: it neither counts toward it nor is refused by it. The rolled beasts keep the cap among
+	-- themselves; every other rule (one of a kind, Don Glaseon one per server, the Scuttler alone) stands.
+	case("PF1: summoned points-0 beasts are neither counted by nor refused by MAX_ACTIVE; rolled beasts keep the cap", function()
+		local dir = Director.new({ random = always(0) })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		local candy = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor",
+			"NubeGrunona", "AbejaReina", "DonGlaseon" }
+		for _, name in ipairs(candy) do
+			equal(Config.BEASTS[name].points, 0, name .. " is a points-0 beast")
+			local ok, why = Director.summon(dir, 1, name, meadow, 0)
+			equal(ok, true, name .. " summoned beside the others (" .. tostring(why) .. ")")
+		end
+		local _, active = Director.budget(dir, 1)
+		equal(active, #candy, "all of them at once")
+		equal(select(2, Director.summon(dir, 1, "Gomibu", meadow, 1)), "AlreadyActive", "still one of a kind")
+		equal(select(2, Director.summon(dir, 2, "DonGlaseon", meadow, 1)), "BossBusy", "still one boss per server")
+		-- the rolled beasts: two at once, the summoned ones not counted
+		local other = Director.new({ random = always(0) })
+		assert(Director.summon(other, 1, "NubeGrunona", meadow, 0), "a summoned beast first")
+		assert(Director.reserve(other, 1, "Viper", ctx(), 0, { force = true }), "Viper")
+		assert(Director.reserve(other, 1, "Pouncer", ctx(), 0, { force = true }), "Pouncer")
+		equal(select(2, Director.reserve(other, 1, "Streamer", ctx(), 0, { force = true })), "MaxActive", "the cap holds for rolled beasts")
+		assert(Director.summon(other, 1, "AbejaReina", meadow, 0), "a summoned beast beside two rolled ones")
+		-- the Scuttler still hunts alone
+		local alone = Director.new({ random = always(0) })
+		assert(Director.reserve(alone, 1, "Scuttler", ctx(), 0, { force = true }), "Scuttler")
+		equal(select(2, Director.summon(alone, 1, "NubeGrunona", meadow, 0)), "Budget", "nothing beside the Scuttler")
+	end)
+
+	-- PF1: the refusal reason of a summon is returned, so the beast script can write it to Beast_lastSummonRefusal.
+	case("PF1: summon returns why it refused", function()
+		local dir = Director.new({ random = always(0) })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		assert(Director.summon(dir, 1, "Gomibu", meadow, 0))
+		local ok, why = Director.summon(dir, 1, "Gomibu", meadow, 0.25)
+		equal(ok, false); equal(why, "AlreadyActive")
+		local fresh = Director.new({ random = always(0) })
+		local _, g = Director.summon(fresh, 1, "Gomibu", meadow, 0)
+		Director.release(fresh, g.id, "Idle", 10)
+		equal(select(2, Director.summon(fresh, 1, "Gomibu", meadow, 11)), "SpeciesCooldown")
 	end)
 
 	case("KB-1: a summoned end sets no global cooldown; species 10 s, 60 s after Bostezo; respawn grace applies", function()

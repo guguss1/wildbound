@@ -413,7 +413,8 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		equal(select(2, Director.roar(dir, 1, "Viper", ctx, 101)), "NotRoarable")
 		equal(select(2, Director.roar(dir, 2, "Flanfuria", { alive = true, safe = true, biomes = { Meadow = true } }, 101)), "SafeZone", "never in a safe zone")
 		assert(Director.alarm(dir, 3, "Gomibu", ctx, 101) and Director.alarm(dir, 3, "Flanfuria", ctx, 101), "two on player 3")
-		equal(select(2, Director.alarm(dir, 3, "Tortidragon", ctx, 101)), "MaxActive", "an alarm still obeys the cap")
+		-- PF1 (odd/tasks/wildbound-caramelo-playfix.md): a points-0 guardian takes no MAX_ACTIVE slot, so a third alarm starts too
+		equal((Director.alarm(dir, 3, "Tortidragon", ctx, 101)), true, "an alarm is not held back by the cap any more")
 	end)
 
 	return result

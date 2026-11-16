@@ -799,6 +799,8 @@ local function summonPass(player, at)
 			ctx = ctx or contextFor(player, at)
 			local ok, value = Director.summon(director, player.UserId, kid.name, ctx, at)
 			if ok then safeStart(player, value, at) end
+			-- PF1: a refused summon is never silent (debugging aid; the same value is not re-sent by the engine)
+			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", kid.name .. ":" .. tostring(value)) end
 		end
 	end
 end
@@ -823,6 +825,7 @@ local function bossPass(at)
 		if c.userId == pick then
 			local ok, value = Director.summon(director, pick, "DonGlaseon", contextFor(c.player, at), at)
 			if ok then safeStart(c.player, value, at) end
+			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", "DonGlaseon:" .. tostring(value)) end
 		end
 	end
 end

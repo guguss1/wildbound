@@ -351,5 +351,15 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		assert(not string.find(service, "DuquesaBurbuja = {", 1, true), "the Duquesa stays scenery")
 	end)
 
+	-- PF1 (odd/tasks/wildbound-caramelo-playfix.md): a refused summon is no longer silent; its reason goes to telemetry.
+	case("PF1 wiring: summonPass writes every summon refusal to Beast_lastSummonRefusal", function()
+		local beasts = sources.beasts
+		assert(string.find(beasts, 'local ok, value = Director.summon(director, player.UserId, kid.name, ctx, at)', 1, true), "summonPass summons")
+		assert(string.find(beasts, 'telemetry:SetAttribute("Beast_lastSummonRefusal", kid.name .. ":" .. tostring(value))', 1, true),
+			"summonPass drops the refusal")
+		assert(string.find(beasts, 'telemetry:SetAttribute("Beast_lastSummonRefusal", "DonGlaseon:" .. tostring(value))', 1, true),
+			"bossPass drops the refusal")
+	end)
+
 	return result
 end

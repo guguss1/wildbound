@@ -110,6 +110,11 @@ end
 -- Every rule reserve applies, without booking or logging anything. Returns nil when the beast may start now, else the
 -- refusal reason. Shared by reserve (which books in the same call) and by the roll (which then does not roll at all).
 -- roar (DG6, Director.roar): Don Glaseon's guardians' roar may pass MAX_ACTIVE; every other rule stands.
+-- PF1: whether a beast stands outside MAX_ACTIVE (a summoned beast worth 0 points: the Pradera and Caramelo creatures).
+function Director.uncapped(name)
+	local beast = Config.BEASTS[name]
+	return Config.SUMMONED[name] == true and beast ~= nil and beast.points == 0
+end
 local function check(dir, userId, name, ctx, now, force, roar)
 	local beast = Config.BEASTS[name]
 	if type(userId) ~= "number" then return "InvalidPlayer" end
@@ -140,7 +145,16 @@ local function check(dir, userId, name, ctx, now, force, roar)
 		if now < ((dir.uniqueReadyAt or {})[name] or -math.huge) then return "BossResting" end
 	end
 	local _, count = Director.budget(dir, userId)
-	if count >= D.MAX_ACTIVE and roar ~= true then return "MaxActive" end
+	-- PF1 (odd/tasks/wildbound-caramelo-playfix.md): a summoned points-0 beast stands outside MAX_ACTIVE; the cap counts
+	-- and refuses only the other (rolled) beasts.
+	if not Director.uncapped(name) and roar ~= true then
+		local capped = 0
+		for _, id in pairs(player.active) do
+			local other = dir.encounters[id]
+			if other and not Director.uncapped(other.beast) then capped += 1 end
+		end
+		if capped >= D.MAX_ACTIVE then return "MaxActive" end
+	end
 	if player.points + beast.points > D.MAX_POINTS then return "Budget" end
 	-- A beast that fills the whole budget (Scuttler, 3 points) hunts alone: a 0-point summoned kids beast never starts
 	-- beside it, and it never starts beside one (docs/design/wildbound-scuttler-plan.md, "only alone").
@@ -198,9 +212,10 @@ function Director.release(dir, id, reason, now)
 end
 
 -- Kids biome (odd/tasks/wildbound-kids-beasts.md): the presence spawn of the Pradera beasts. Only Config.SUMMONED beasts
--- (never rolled, never in ORDER); the same rules as reserve (placeBlock keeps them in their Meadow home, budget 0 points
--- but MAX_ACTIVE and AlreadyActive count, species cooldown, respawn grace, safe zone, death, Silueta), except the global
--- cooldown. A refusal is returned without a log entry: the beast script asks every poll while the player stays near.
+-- (never rolled, never in ORDER); the same rules as reserve (placeBlock keeps them in their Meadow home, budget 0 points,
+-- AlreadyActive, species cooldown, respawn grace, safe zone, death, Silueta), except the global cooldown and (PF1)
+-- MAX_ACTIVE. A refusal is returned without a log entry: the beast script asks every poll while the player stays near
+-- and writes the reason to telemetry (Beast_lastSummonRefusal).
 function Director.summon(dir, userId, name, ctx, now, opts)
 	if not Config.SUMMONED[name] then return false, "NotSummoned" end
 	local force = type(opts) == "table" and opts.force == true
