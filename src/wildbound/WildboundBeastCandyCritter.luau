@@ -23,6 +23,23 @@
 -- Threat: damage 0. A hit carries a slow (SlowMultiplier, SlowSeconds) and, when PushStuds > 0, a push away from the
 -- shape (event.push, applied by the server); the egg stays (keepsEgg: the beast script skips BeastHit). After a strike
 -- it opens no other attack for CooldownSeconds (counted from the strike, the recovery included).
+-- A2 (odd/tasks/wildbound-caramelo-playfix.md): the "Otras habilidades" of each creature sheet, as data on its tuning
+-- (tuning.Extras), all with damage 0:
+--   Puddle (Mochimiau) a patch of RadiusStuds where its leap lands, for LifeSeconds.
+--   Trail  (Canelin on its roll, Phase "Release"; Flanin and Mielita while chasing, Phase "Chase") a patch every
+--          SpacingStuds along its way.
+--   Follow (Mochimiau's second hop, Flanin's bounces) up to Max more attacks right after the recovery, each with its
+--          full tell, while the target stays within RangeStuds; then CooldownSeconds from the chain's last strike.
+--   Swarm  (Mielita) every EverySeconds of a chase (the first FirstSeconds after it starts), Puffs pollen circles
+--          OffsetStuds beside the target, locked at once; a puff slows (an Afflict), never pushes.
+--   Gift   (GatoRepartidor) one encounter in Every (by its number, "beast:<n>"): it walks up to HandStuds, stands
+--          "Deliver" for HandSeconds, hands a golden order (a "Gift" event: the server raises the walk speed by
+--          Multiplier for Seconds) and walks home ("Delivered"). It never attacks in that encounter.
+--   Call   (GatoRepartidor) every EverySeconds of a chase a helper Gato appears RingStuds beside the target (a "Helper"
+--          event the server draws), throws fries once on the target (a circle locked at once) and leaves.
+-- Patches are "Patch" events (the beast server lays a fading flat part every player sees); the slow is the server's:
+-- while the target stands in a live patch the brain emits an Afflict (applySlow: clamped by WildboundBeastChase.EFFECTS
+-- and never stacked), at most once per SlowSeconds + PATCH_GAP.
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
@@ -32,6 +49,12 @@ local flat, unit = Config.flat, Config.unit
 local copy = Attack.copy
 local GOLDEN = math.pi * (3 - math.sqrt(5)) -- the patrol's next heading: spread round home without a random source
 local LEASH_EDGE = 0.05 -- studs: this close to LeashStuds from home counts as held at the leash
+local PATCH_GAP = 0.3 -- seconds between the end of one patch slow and the next (applySlow restores by a delayed task)
+local PATCH_MAX = 16 -- live patches kept per encounter (the oldest goes first)
+local GIFT_SLACK = 3 -- studs: the order is handed over if the target is still this close past HandStuds
+local NONE = table.freeze({})
+
+local function extras(T) return T.Extras or NONE end
 
 function Critter.tellSeconds(A)
 	return math.max(A.TelegraphSeconds, Config.MIN_TELL)
@@ -55,6 +78,10 @@ function Critter.init(e)
 	if e.hover then e.pos.y += C.tuning.HoverStuds or 0 end
 	e.readyAt = -math.huge
 	e.patrolIndex = 0
+	-- A2: a gift encounter (the Gato, one in Gift.Every by the encounter's number)
+	local G = C and C.tuning.Extras and C.tuning.Extras.Gift
+	local number = tonumber(string.match(tostring(e.id), "(%d+)$"))
+	e.gift = (G ~= nil and number ~= nil and number % G.Every == 0) or nil
 end
 
 function Critter.sees(e, target, T)
@@ -120,7 +147,107 @@ end
 
 local function closeAttack(e, world)
 	Attack.closeAll(e, world)
-	e.attack = nil
+	e.attack, e.side = nil, nil
+end
+
+-- A2: a patch (puddle or trail piece) on the ground at (x, y, z), live for P.LifeSeconds.
+local function lay(events, e, now, P, x, y, z)
+	e.patches = e.patches or {}
+	if #e.patches >= PATCH_MAX then table.remove(e.patches, 1) end
+	local patch = { x = x, y = y, z = z, r = P.RadiusStuds, untilAt = now + P.LifeSeconds, slow = P.SlowMultiplier,
+		seconds = P.SlowSeconds }
+	table.insert(e.patches, patch)
+	Attack.emit(events, e, "Patch", now, { x = x, y = y, z = z, r = P.RadiusStuds, life = P.LifeSeconds, untilAt = patch.untilAt })
+end
+
+-- A2: a trail piece where the creature stands, once it is SpacingStuds past the last one.
+local function trail(events, e, now, T, P)
+	local last = e.trailLast
+	if last and flat(e.pos.x, e.pos.z, last.x, last.z) < P.SpacingStuds - 1e-6 then return end
+	e.trailLast = { x = e.pos.x, z = e.pos.z }
+	lay(events, e, now, P, e.pos.x, e.pos.y - hover(e, T), e.pos.z)
+end
+
+-- A2: the server's slow on a target standing in a live patch (never stacked: one per SlowSeconds + PATCH_GAP).
+local function stickyPatches(events, e, now, target, C)
+	local patches = e.patches
+	if not patches then return end
+	for i = #patches, 1, -1 do
+		if now >= patches[i].untilAt then table.remove(patches, i) end
+	end
+	if now < (e.slowFreeAt or -math.huge) or target.safe == true then return end
+	for _, p in ipairs(patches) do
+		if flat(target.x, target.z, p.x, p.z) <= p.r and math.abs(target.y - p.y) <= C.hitHeight then
+			e.slowFreeAt = now + p.seconds + PATCH_GAP
+			Attack.emit(events, e, "Afflict", now, { slow = p.slow, slowSeconds = p.seconds, patch = true })
+			return
+		end
+	end
+end
+
+-- A2: a side attack (Swarm, Call) beside the main one: its shape is locked at once, its strike at least MIN_TELL later.
+local function sideOpen(events, e, world, now, key, shape, tell)
+	local attack = Attack.open(events, e, world, { key = key, startAt = now, strikeAt = now + math.max(tell, Config.MIN_TELL),
+		dodgeable = false, damage = 0, lockAt = now, shape = shape })
+	if attack then Attack.lock(events, e, attack, nil, now) end
+	return attack
+end
+
+-- A2: settles the side attack on the step its strike comes, whatever phase the creature is in.
+local function sideSettle(events, e, world, now, target, C)
+	local side = e.side
+	if not side or now < side.attack.strikeAt then return end
+	e.side = nil
+	local attack, S = side.attack, side.spec
+	local shape = attack.shape
+	local floor = shape.kind == "multi" and shape.list[1].y or shape.y
+	if Attack.inside(shape, target, floor, C.hitHeight) and target.safe ~= true then
+		if side.kind == "swarm" then
+			Attack.afflict(events, e, world, attack, attack.strikeAt, { slow = S.SlowMultiplier, slowSeconds = S.SlowSeconds })
+		else
+			local kx, kz = unit(target.x - side.fromX, target.z - side.fromZ)
+			Attack.hit(events, e, world, attack, attack.strikeAt, {
+				slow = { multiplier = S.SlowMultiplier, seconds = S.SlowSeconds },
+				push = { dx = kx or e.dx, dz = kz or e.dz, studs = S.PushStuds, seconds = S.PushSeconds } })
+		end
+	else
+		Attack.miss(events, e, world, attack, attack.strikeAt)
+	end
+	e[side.kind .. "At"] = attack.strikeAt + S.EverySeconds
+end
+
+-- A2: opens the Swarm or the Call when its clock is due and the target is in reach (Chase only).
+local function sideAttacks(events, e, world, now, target, T)
+	if e.side then return end
+	local X = extras(T)
+	local distance = Attack.distance(e, target)
+	local fx, fz = unit(target.x - e.pos.x, target.z - e.pos.z)
+	if not fx then fx, fz = e.dx or 0, e.dz or 1 end
+	local px, pz = -fz, fx -- across the creature's line to the target
+	local groundY = Attack.groundAt(world, target.x, target.z, target.y - 3)
+	local S = X.Swarm
+	if S and now >= (e.swarmAt or math.huge) and distance <= S.RangeStuds then
+		local list = {}
+		for i = 1, S.Puffs do
+			local away = S.OffsetStuds * math.ceil(i / 2) * (i % 2 == 1 and 1 or -1)
+			table.insert(list, { kind = "circle", x = target.x + px * away, y = groundY, z = target.z + pz * away, r = S.RadiusStuds })
+		end
+		local attack = sideOpen(events, e, world, now, "swarm", { kind = "multi", list = list }, S.TellSeconds)
+		if attack then e.side = { kind = "swarm", attack = attack, spec = S } end
+		return
+	end
+	local K = X.Call
+	if K and not e.gift and now >= (e.callAt or math.huge) and distance <= K.RangeStuds then
+		local hx, hz = target.x + px * K.RingStuds, target.z + pz * K.RingStuds
+		local attack = sideOpen(events, e, world, now, "call",
+			{ kind = "circle", x = target.x, y = groundY, z = target.z, r = K.RadiusStuds }, K.TellSeconds)
+		if attack then
+			e.side = { kind = "call", attack = attack, spec = K, fromX = hx, fromZ = hz }
+			local dx, dz = unit(target.x - hx, target.z - hz)
+			Attack.emit(events, e, "Helper", now, { x = hx, y = Attack.groundAt(world, hx, hz, target.y - 3), z = hz,
+				dx = dx, dz = dz, throwAt = attack.strikeAt, untilAt = now + K.StaySeconds })
+		end
+	end
 end
 
 -- PF3 (odd/tasks/wildbound-caramelo-playfix.md): every calm ending walks home first (Return, a calm phase) and the
@@ -141,6 +268,12 @@ local function openAttack(events, e, now, target, world, C, T, A)
 		dodgeable = false, damage = C.damage, lockAt = lockAt, shape = shape })
 	if not attack then return false end
 	e.attack, e.releaseAt, e.lockAt = attack, release, lockAt
+	-- A2 Follow: a fresh attack starts a chain of up to Max follow-ups; a follow-up uses one
+	local F = extras(T).Follow
+	if F then
+		if e.following then e.followLeft -= 1 else e.followLeft = F.Max end
+		e.following = false
+	end
 	if A.kind == "burst" then Attack.lock(events, e, attack, nil, now) end
 	Attack.face(e, target)
 	Attack.phase(events, e, "Telegraph", now, release)
@@ -168,7 +301,18 @@ local function strike(events, e, target, world, C, T, A)
 		Attack.miss(events, e, world, attack, at)
 	end
 	e.attack = nil
-	e.readyAt = at + A.CooldownSeconds
+	-- A2 Puddle: where the leap lands, hit or miss
+	local X = extras(T)
+	if X.Puddle and shape.kind == "circle" then lay(events, e, at, X.Puddle, shape.x, shape.y, shape.z) end
+	-- A2 Follow: another attack right after the recovery while follow-ups are left; else the cooldown
+	e.lastStrikeAt = at
+	if X.Follow and (e.followLeft or 0) > 0 then
+		e.following = true
+		e.readyAt = at + A.RecoverSeconds
+	else
+		e.following = false
+		e.readyAt = at + A.CooldownSeconds
+	end
 	Attack.phase(events, e, "Recover", at, at + A.RecoverSeconds)
 end
 
@@ -197,9 +341,11 @@ function Critter.step(events, e, now, target, world, dt)
 	local T = C.tuning
 	local A = T.Attack
 	if Attack.guard(events, e, now, target, {}) then
-		if e.done then e.attack = nil end
+		if e.done then e.attack, e.side = nil, nil end
 		return
 	end
+	local X = extras(T)
+	stickyPatches(events, e, now, target, C) -- A2: a live puddle or trail slows even while it walks home
 	-- PF3: walking home (nothing about the target matters any more); the encounter ends at its post, with no fade
 	if e.phase == "Return" then
 		local speed = T.ReturnSpeedStudsPerSecond or T.ChaseSpeedStudsPerSecond * 0.75
@@ -209,6 +355,7 @@ function Critter.step(events, e, now, target, world, dt)
 		end
 		return
 	end
+	sideSettle(events, e, world, now, target, C) -- A2: the swarm's puffs or the helper's fries land on their own clock
 	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
@@ -238,7 +385,27 @@ function Critter.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Notice" then
 		Attack.face(e, target)
-		if now - e.phaseAt >= T.AlertSeconds then Attack.phase(events, e, "Chase", e.phaseAt + T.AlertSeconds) end
+		if now - e.phaseAt >= T.AlertSeconds then
+			local at = e.phaseAt + T.AlertSeconds
+			-- A2: the side attacks' first clocks start with the chase
+			if X.Swarm and not e.swarmAt then e.swarmAt = at + X.Swarm.FirstSeconds end
+			if X.Call and not e.callAt then e.callAt = at + X.Call.FirstSeconds end
+			Attack.phase(events, e, "Chase", at)
+		end
+		return
+	end
+	-- A2 Gift: it stands with the order for HandSeconds, hands it over and walks home
+	if e.phase == "Deliver" then
+		local G = X.Gift
+		Attack.face(e, target)
+		if now - e.phaseAt < G.HandSeconds then return end
+		if Attack.distance(e, target) <= G.HandStuds + GIFT_SLACK then
+			Attack.emit(events, e, "Gift", now, { multiplier = G.Multiplier, seconds = G.Seconds })
+			e.gift = nil
+			goHome(events, e, world, now, "Delivered")
+		else
+			Attack.phase(events, e, "Chase", now)
+		end
 		return
 	end
 	if e.phase == "Chase" then
@@ -257,6 +424,23 @@ function Critter.step(events, e, now, target, world, dt)
 		else
 			e.pinnedSince = nil
 		end
+		-- A2 Gift: walk up to the target and hand the order over; no attack in this encounter
+		if e.gift then
+			if distance <= X.Gift.HandStuds then
+				Attack.face(e, target)
+				Attack.phase(events, e, "Deliver", now, now + X.Gift.HandSeconds)
+				return
+			end
+			local x, z = leashed(e, T, target.x, target.z)
+			walkTo(e, world, T, x, z, T.ChaseSpeedStudsPerSecond, dt)
+			return
+		end
+		-- A2 Follow: out of reach, the chain ends and the cooldown counts from its last strike
+		if e.following and X.Follow and distance > X.Follow.RangeStuds then
+			e.following = false
+			e.readyAt = e.lastStrikeAt + A.CooldownSeconds
+		end
+		sideAttacks(events, e, world, now, target, T)
 		if distance <= A.RangeStuds and now >= e.readyAt then
 			if openAttack(events, e, now, target, world, C, T, A) then
 				e.pinnedSince = nil
@@ -269,6 +453,7 @@ function Critter.step(events, e, now, target, world, dt)
 			walkTo(e, world, T, x, z, T.ChaseSpeedStudsPerSecond, dt)
 			local lx, lz = leashed(e, T, e.pos.x, e.pos.z)
 			if lx ~= e.pos.x or lz ~= e.pos.z then settle(e, world, T, lx, lz) end
+			if X.Trail and X.Trail.Phase == "Chase" then trail(events, e, now, T, X.Trail) end -- A2
 		else
 			Attack.face(e, target)
 		end
@@ -285,6 +470,7 @@ function Critter.step(events, e, now, target, world, dt)
 		if now >= e.releaseAt then
 			Attack.lock(events, e, attack, nil, e.lockAt)
 			e.from = copy(e.pos)
+			if X.Trail and X.Trail.Phase == "Release" then e.trailLast = nil end -- A2: a roll's trail starts where it starts
 			Attack.phase(events, e, "Release", e.releaseAt, attack.strikeAt)
 		end
 		return
@@ -300,6 +486,7 @@ function Critter.step(events, e, now, target, world, dt)
 			settle(e, world, T, shape.ox + shape.dx * along, shape.oz + shape.dz * along)
 			e.dx, e.dz = shape.dx, shape.dz
 		end
+		if X.Trail and X.Trail.Phase == "Release" then trail(events, e, now, T, X.Trail) end -- A2
 		if now >= attack.strikeAt then strike(events, e, target, world, C, T, A) end
 		return
 	end

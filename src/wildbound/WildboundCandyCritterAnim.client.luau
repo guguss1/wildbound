@@ -131,6 +131,12 @@ local function setup(model, live)
 			onPhase()
 		else
 			play(state, state.spec.idle, os.clock())
+			-- A2 (odd/tasks/wildbound-caramelo-playfix.md): a server cue "<clip>:<serial>" plays that one-shot now, then the
+			-- loop comes back (La Duquesa's Charge and Whip when she throws her bubbles from the summit).
+			state.connection = model:GetAttributeChangedSignal("WildboundCritterCue"):Connect(function()
+				local clip = string.match(tostring(model:GetAttribute("WildboundCritterCue")), "^(%a+):")
+				if clip and clips.CLIPS[clip] then play(state, clip, os.clock()) end
+			end)
 		end
 	end)
 end

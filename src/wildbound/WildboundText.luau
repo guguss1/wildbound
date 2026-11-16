@@ -421,7 +421,8 @@ return freeze({
 		Mielita = { warn = "¡Nube de polen! Sal del círculo", hit = "¡Achís! Polen dulce",
 			phases = { Notice = "Mielita te vio", Chase = "¡Mielita te sigue zumbando!", Telegraph = "¡Nube de polen! Sal del círculo" } },
 		GatoRepartidor = { warn = "¡Lluvia de papas! Sal del círculo", hit = "¡Papas por todos lados!",
-			phases = { Notice = "El Gato Repartidor te vio", Chase = "¡El Gato Repartidor te sigue!", Telegraph = "¡Lluvia de papas! Sal del círculo" } },
+			phases = { Notice = "El Gato Repartidor te vio", Chase = "¡El Gato Repartidor te sigue!", Telegraph = "¡Lluvia de papas! Sal del círculo",
+				Deliver = "¡El Gato Repartidor te trae un pedido!" } },
 		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
 			phases = {
 				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",
@@ -440,6 +441,8 @@ return freeze({
 		object = "Torta de caramelo",
 		rush = "¡Subidón de azúcar! Corres más rápido",
 		eaten = "Ya comiste de esta torta",
+		-- A2: the Gato Repartidor's golden order (shown by the same client line as a slice's rush)
+		order = "¡Pedido dorado! Corres más rápido",
 	},
 	-- Arrullo (decision Q2b, docs/mechanics/wildbound-new-mechanics.md section 1): the rare-egg lullaby meter. The title,
 	-- hint, won, lost and timeout lines are WildboundArrullo.TEXT's; hold and holdKey label the hold button (touch, and

@@ -703,6 +703,65 @@ function world.roarSummon(entry, event, at)
 	telemetry:SetAttribute("Beast_roarSummons", (telemetry:GetAttribute("Beast_roarSummons") or 0) + 1)
 end
 
+-- A2 (odd/tasks/wildbound-caramelo-playfix.md): the candy critters' extras (WildboundBeastCandyCritter). Server-made, so
+-- every player sees them; the slow of a patch is the brain's own Afflict, not these parts. Kept on `world` (no new local).
+--   Patch  a flat disc in the creature's colour on the ground, faded out over its life, then removed.
+--   Helper a short-lived anchored copy of the Gato facing the target, gone at untilAt.
+--   Gift   the Gato's golden order: WildboundCandyOrderUntil (WildboundServer.applyCarry, +15 %) and the client line.
+world.PATCH_COLOR = { Mochimiau = Color3.fromRGB(255, 246, 232), Canelin = Color3.fromRGB(205, 128, 62),
+	Flanin = Color3.fromRGB(232, 154, 40), Mielita = Color3.fromRGB(255, 222, 70) }
+function world.candyFolder()
+	local folder = workspace:FindFirstChild("WildboundCandyExtras")
+	if not folder then
+		folder = Instance.new("Folder")
+		folder.Name = "WildboundCandyExtras"
+		folder.Parent = workspace
+	end
+	return folder
+end
+function world.candyPatch(entry, event)
+	if not (Config.finite(event.x) and Config.finite(event.y) and Config.finite(event.z) and Config.finite(event.r)) then return end
+	local part = Instance.new("Part")
+	part.Name = "Patch_" .. tostring(entry.e.beast)
+	part.Shape = Enum.PartType.Cylinder
+	part.Size = Vector3.new(0.12, event.r * 2, event.r * 2)
+	part.CFrame = CFrame.new(event.x, event.y + 0.1, event.z) * CFrame.Angles(0, 0, math.pi / 2)
+	part.Color = world.PATCH_COLOR[entry.e.beast] or Color3.fromRGB(255, 200, 220)
+	part.Material = Enum.Material.SmoothPlastic
+	part.Transparency = 0.15
+	part.Anchored, part.CanCollide, part.CanTouch, part.CanQuery, part.CastShadow = true, false, false, false, false
+	part:SetAttribute("UntilAt", event.untilAt)
+	part.Parent = world.candyFolder()
+	local life = math.clamp(Config.finite(event.life) and event.life or 2, 0.2, 5)
+	game:GetService("TweenService"):Create(part, TweenInfo.new(life, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Transparency = 1 }):Play()
+	game:GetService("Debris"):AddItem(part, life + 0.1)
+end
+function world.candyHelper(entry, event)
+	local beasts = ReplicatedStorage:FindFirstChild("WildboundBeasts")
+	local models = beasts and beasts:FindFirstChild("Models")
+	local source = models and models:FindFirstChild(entry.e.beast)
+	if not source or not (Config.finite(event.x) and Config.finite(event.y) and Config.finite(event.z)) then return end
+	local helper = source:Clone()
+	helper.Name = "Helper_" .. entry.e.beast
+	for _, d in ipairs(helper:GetDescendants()) do
+		if d:IsA("BasePart") then d.Anchored, d.CanCollide, d.CanTouch, d.CanQuery = true, false, false, false end
+	end
+	local at = Vector3.new(event.x, event.y, event.z)
+	local look = Vector3.new(Config.finite(event.dx) and event.dx or 0, 0, Config.finite(event.dz) and event.dz or 1)
+	helper:PivotTo(CFrame.lookAt(at, at + (look.Magnitude > 1e-3 and look or Vector3.zAxis)))
+	helper.Parent = world.candyFolder()
+	task.delay(math.clamp((Config.finite(event.untilAt) and event.untilAt or 0) - now(), 0.5, 5), function() helper:Destroy() end)
+end
+function world.candyGift(entry, event)
+	local player = entry.player
+	local seconds = math.clamp(Config.finite(event.seconds) and event.seconds or 10, 0, 15)
+	player:SetAttribute("WildboundCandyOrderUntil", now() + seconds)
+	world.giftSerial = (world.giftSerial or 0) + 1
+	player:SetAttribute("WildboundCandyCakeSaid", "order:" .. world.giftSerial)
+	telemetry:SetAttribute("Beast_candyGifts", (telemetry:GetAttribute("Beast_candyGifts") or 0) + 1)
+end
+
 local function stepEncounter(id, entry, at)
 	local target = targetOf(entry)
 	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
@@ -728,6 +787,10 @@ local function stepEncounter(id, entry, at)
 			-- DG6: deferred, so no encounter starts while the step loop walks the live table
 			if event.type == "Summon" then task.defer(world.roarSummon, entry, event, at) end
 			if event.type == "Afflict" then afflict(entry, event) end
+			-- A2: the candy critters' patches, helper Gato and golden order
+			if event.type == "Patch" then world.candyPatch(entry, event) end
+			if event.type == "Helper" then world.candyHelper(entry, event) end
+			if event.type == "Gift" then world.candyGift(entry, event) end
 			logEvent(id, event.type, event.at, event.reason or event.hit)
 			send(entry.player, event)
 			sendBystanders(id, event)

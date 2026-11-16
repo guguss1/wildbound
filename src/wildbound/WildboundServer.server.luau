@@ -412,6 +412,8 @@ local function applyCarry(player)
 	-- DG7: a trap-cake slice's sugar rush (WildboundCandyTrapCakeService writes it; WildboundCandyTrapCake.rushSpeed).
 	local rush = player:GetAttribute("WildboundCandyRushUntil")
 	if type(rush) == "number" and rush > workspace:GetServerTimeNow() then speed = math.max(speed, math.min(speed * 1.25, 26)) end
+	-- A2: the Gato Repartidor's golden order (WildboundBeasts writes it): +15 % for its seconds, capped at 26 like the rush.
+	if (tonumber(player:GetAttribute("WildboundCandyOrderUntil")) or 0) > workspace:GetServerTimeNow() then speed = math.max(speed, math.min(speed * 1.15, 26)) end
 	-- Q4 (was the NP4 stumble): a knocked player is down for the ragdoll and cannot walk.
 	if Heist.Knock.ragdolled(Heist.knocks, player.UserId, workspace:GetServerTimeNow()) then speed = 0 end
 	-- SistemaSonriente: caps, slows and stuns (a server ragdoll is a stun) on top of everything above.
@@ -2391,6 +2393,25 @@ do
 	end
 	Players.PlayerAdded:Connect(watchRush)
 	for _, player in ipairs(Players:GetPlayers()) do watchRush(player) end
+end
+
+-- A2 (odd/tasks/wildbound-caramelo-playfix.md): the Gato Repartidor's golden order re-applies the walk speed when it
+-- starts and once it ends, like the rush above. Kept in a do block: this script is at Luau's 200-local limit (NH-W13).
+do
+	local function watchOrder(player)
+		player:GetAttributeChangedSignal("WildboundCandyOrderUntil"):Connect(function()
+			if not records[player] then return end
+			applyCarry(player)
+			local untilAt = player:GetAttribute("WildboundCandyOrderUntil")
+			if type(untilAt) == "number" then
+				task.delay(math.max(0, untilAt - workspace:GetServerTimeNow()) + 0.05, function()
+					if records[player] then applyCarry(player) end
+				end)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(watchOrder)
+	for _, player in ipairs(Players:GetPlayers()) do watchOrder(player) end
 end
 
 -- Caramelo v2 (DG4): a slip on Don Glaseon's glaze. The skating client asks (no argument is read); the server checks

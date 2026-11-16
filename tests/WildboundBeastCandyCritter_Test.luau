@@ -590,7 +590,9 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			assert(gap >= A.CooldownSeconds - 1e-6, name .. " chained more than " .. F.Max .. " follow-ups (" .. gap .. " s)")
 			-- out of reach after the first strike: no follow-up, the plain cooldown
 			local e2, w2, tgt2, _, tell2 = telegraphing(name, "nofollow")
-			local after = run(e2, w2, tgt2, 1.55, 25, function(t, tg) if t > tell2.strikeAt + 0.02 then tg.x = F.RangeStuds + 6 end end)
+			local after = run(e2, w2, tgt2, 1.55, 25, function(t, tg)
+				if t > tell2.strikeAt + 0.02 then tg.x = close(name) + F.RangeStuds + 6 end
+			end)
 			for _, ev in ipairs(each(after, "Tell")) do
 				if ev.tell ~= tell2.tell and mainTell(ev, A) then
 					assert(ev.startAt >= tell2.strikeAt + A.CooldownSeconds - 1e-6, name .. " followed a target out of reach")
@@ -658,7 +660,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 
 	case("A2 Mielita: every 18 s of a chase, two pollen puffs beside the target with a fair tell; slows -15 %", function()
 		local S = tuning("Mielita").Extras.Swarm
-		local e, w, tgt = spawn("Mielita", "swarm"), fakeWorld(), target(close("Mielita"), 0)
+		local e, w, tgt = spawn("Mielita", "puffs"), fakeWorld(), target(close("Mielita"), 0)
 		local swarms = {}
 		local all = drive(e, w, tgt, 0, 30, function(t)
 			local first = swarms[1]
@@ -691,7 +693,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 
 	case("A2 Gato: every 20 s a helper Gato appears beside the target, throws fries once (a fair tell) and leaves", function()
 		local K = tuning("GatoRepartidor").Extras.Call
-		local e, w, tgt = spawn("GatoRepartidor", "call"), fakeWorld(), target(close("GatoRepartidor"), 0)
+		local e, w, tgt = spawn("GatoRepartidor", "helper"), fakeWorld(), target(close("GatoRepartidor"), 0)
 		local calls, helpers = {}, {}
 		local all = drive(e, w, tgt, 0, 30, nil, function(ev)
 			if ev.type == "Tell" and string.find(ev.tell, ":call:", 1, true) and (#calls == 0 or calls[#calls].tell ~= ev.tell) then

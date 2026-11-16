@@ -12,10 +12,12 @@ Spec.PREVIEW_FOLDER = "WildboundNewCandyPreview"
 Spec.BEASTS_FOLDER = "WildboundBeastsLocal"
 
 -- Phases that play the idle loop unless a creature maps them to something else.
-Spec.CALM = { "Spawn", "Calm", "Dormant", "Patrol", "Guard", "Wake", "Return", "Disengage", "Ended", "GiveUp", "Recover" }
+-- A2: Deliver (the Gato's golden order) plays the idle loop for the others.
+Spec.CALM = { "Spawn", "Calm", "Dormant", "Patrol", "Guard", "Wake", "Return", "Disengage", "Ended", "GiveUp", "Recover",
+	"Deliver" }
 -- Every phase the shared brain WildboundBeastCandyCritter emits (PF2: Calm while it pauses on its patrol, Return on the
--- walk home that ends an encounter).
-Spec.BRAIN_PHASES = { "Spawn", "Patrol", "Calm", "Notice", "Chase", "Telegraph", "Release", "Recover", "Return" }
+-- walk home that ends an encounter; A2: Deliver while the Gato hands over its golden order).
+Spec.BRAIN_PHASES = { "Spawn", "Patrol", "Calm", "Notice", "Chase", "Telegraph", "Release", "Recover", "Return", "Deliver" }
 
 local function phases(idle, map)
 	local out = {}
@@ -34,8 +36,9 @@ Spec.SPEC = {
 		Notice = "Bounce", Chase = "Trot", Telegraph = "Charge", Release = "Bounce", Strike = "Bounce", Jump = "Bounce",
 		Patrol = "Walk", Return = "Walk",
 	}) },
+	-- A2: it spins in place on the tell (Telegraph), then rolls (Release).
 	Canelin = { idle = "Idle", extras = { "Alert" }, phase = phases("Idle", {
-		Notice = "Alert", Chase = "Walk", Telegraph = "Charge", Release = "Spin", Strike = "Spin", Patrol = "Walk", Return = "Walk",
+		Notice = "Alert", Chase = "Walk", Telegraph = "Spin", Release = "Spin", Strike = "Spin", Patrol = "Walk", Return = "Walk",
 	}) },
 	Flanin = { idle = "Idle", extras = { "Wave" }, phase = phases("Idle", {
 		Notice = "Wave", Chase = "Walk", Telegraph = "Charge", Release = "Jump", Jump = "Jump", Strike = "Land",
@@ -47,6 +50,7 @@ Spec.SPEC = {
 	}) },
 	GatoRepartidor = { idle = "Idle", extras = { "Call" }, phase = phases("Idle", {
 		Notice = "Surprised", Chase = "Run", Telegraph = "Call", Release = "Throw", Strike = "Throw", Patrol = "Walk", Return = "Walk",
+		Deliver = "Deliver",
 	}) },
 }
 

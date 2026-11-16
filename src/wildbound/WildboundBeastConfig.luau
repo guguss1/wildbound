@@ -395,6 +395,12 @@ Config.BEASTS = table.freeze({
 			Attack = table.freeze({ kind = "leap", RangeStuds = 9, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
 				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
 				SlowMultiplier = 0.7, SlowSeconds = 2.5 }),
+			-- A2 (odd/tasks/wildbound-caramelo-playfix.md, sheet "Otras habilidades"): Salpicadura de crema, a puddle where
+			-- the leap lands (2 s, -25 %); Comportamiento social, one more hop right after the recovery if still in reach.
+			Extras = table.freeze({
+				Puddle = table.freeze({ RadiusStuds = 4, LifeSeconds = 2, SlowMultiplier = 0.75, SlowSeconds = 2 }),
+				Follow = table.freeze({ Max = 1, RangeStuds = 9 }),
+			}),
 		}),
 	}),
 	Canelin = table.freeze({ -- rolls along a lane forward from itself: a push and a 30 % slow
@@ -409,6 +415,11 @@ Config.BEASTS = table.freeze({
 			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
 				SlowMultiplier = 0.7, SlowSeconds = 2.5 }),
+			-- A2: its roll leaves a sticky glaze trail along the lane (-20 %, each patch 2 s); it spins in place on the tell.
+			Extras = table.freeze({
+				Trail = table.freeze({ Phase = "Release", SpacingStuds = 2.5, RadiusStuds = 2.5, LifeSeconds = 2,
+					SlowMultiplier = 0.8, SlowSeconds = 2 }),
+			}),
 		}),
 	}),
 	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a short shove and a 30 % slow
@@ -423,6 +434,13 @@ Config.BEASTS = table.freeze({
 			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1, LockSeconds = 0, TravelSeconds = 0.25,
 				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
+			-- A2: Charco de caramelo, a caramel trail while it hops after a player (-20 %, each patch 2 s); Rebote
+			-- continuo, up to two more bounces right after the recovery while the target stays in reach.
+			Extras = table.freeze({
+				Trail = table.freeze({ Phase = "Chase", SpacingStuds = 3, RadiusStuds = 2, LifeSeconds = 2,
+					SlowMultiplier = 0.8, SlowSeconds = 2 }),
+				Follow = table.freeze({ Max = 2, RangeStuds = 7 }),
+			}),
 		}),
 	}),
 	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a puff and a 30 % slow
@@ -437,6 +455,14 @@ Config.BEASTS = table.freeze({
 			Attack = table.freeze({ kind = "lob", RangeStuds = 14, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
+			-- A2: Ruta de polen, a pollen trail while it flies after a player (-15 %, each patch 2 s); Enjambre, every 18 s
+			-- of a chase two pollen puffs beside the target (a fair tell, locked at once).
+			Extras = table.freeze({
+				Trail = table.freeze({ Phase = "Chase", SpacingStuds = 3, RadiusStuds = 2.5, LifeSeconds = 2,
+					SlowMultiplier = 0.85, SlowSeconds = 2 }),
+				Swarm = table.freeze({ EverySeconds = 18, FirstSeconds = 3, RangeStuds = 16, Puffs = 2, OffsetStuds = 5,
+					RadiusStuds = 3.5, TellSeconds = 1, SlowMultiplier = 0.85, SlowSeconds = 2 }),
+			}),
 		}),
 	}),
 	GatoRepartidor = table.freeze({ -- the friendliest: the shortest sight and leash; throws fries on the target
@@ -452,6 +478,14 @@ Config.BEASTS = table.freeze({
 			Attack = table.freeze({ kind = "lob", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 8, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.8, SlowSeconds = 2 }),
+			-- A2: Entrega especial, one encounter in four (by its number) it walks up and hands the player a golden order
+			-- (+15 % walk speed for 10 s; WildboundServer.applyCarry) instead of attacking; Llamado de repartidores, every
+			-- 20 s of a chase a helper Gato appears beside the target, throws fries once and leaves.
+			Extras = table.freeze({
+				Gift = table.freeze({ Every = 4, HandStuds = 4, HandSeconds = 1.5, Multiplier = 1.15, Seconds = 10 }),
+				Call = table.freeze({ EverySeconds = 20, FirstSeconds = 4, RangeStuds = 14, RingStuds = 10, RadiusStuds = 4,
+					TellSeconds = 1, StaySeconds = 2.5, PushStuds = 6, PushSeconds = 0.3, SlowMultiplier = 0.8, SlowSeconds = 2 }),
+			}),
 		}),
 	}),
 	-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the

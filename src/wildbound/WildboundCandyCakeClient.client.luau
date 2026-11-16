@@ -84,7 +84,8 @@ player:GetAttributeChangedSignal("WildboundCandyCakeSaid"):Connect(function()
 	local words = what and Text.CANDY_CAKE[what]
 	if not words then return end
 	show(words)
-	if what == "rush" then
+	-- A2: the Gato Repartidor's golden order ("order:<n>", set by the beast server) chimes and sparkles like a rush
+	if what == "rush" or what == "order" then
 		chime()
 		sparkle()
 	end
