@@ -151,7 +151,14 @@ SPECS["WildboundBeastTortidragon_Test"] = {
 SPECS["WildboundBeastCandyCritter_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastCandyCritter", "mod:WildboundBeastConfig", "mod:WildboundPortal",
 	{ beasts = "src:WildboundBeasts", service = "src:WildboundCandyCritterService", client = "src:WildboundBeastsClient",
-		resting = "src:WildboundCandyRestingService", restingClient = "src:WildboundCandyRestingClient" },
+		resting = "src:WildboundCandyRestingService", restingClient = "src:WildboundCandyRestingClient",
+		server = "src:WildboundServer", cake = "src:WildboundCandyCakeClient", text = "mod:WildboundText",
+		spec = "mod:WildboundCandyCritterAnimSpec" },
+	"mod:WildboundBeastChase",
+}
+SPECS["WildboundCandyDuquesa_Test"] = {
+	"mod:WildboundCandyDuquesa", "mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout",
+	{ service = "src:WildboundCandyDuquesaService", anim = "src:WildboundCandyCritterAnim" },
 	"mod:WildboundBeastChase",
 }
 SPECS["WildboundCandyDonGlaseon_Test"] = { "mod:WildboundCandyDonGlaseon", "inst:ServerStorage.WildboundAssets.DonGlaseon" }

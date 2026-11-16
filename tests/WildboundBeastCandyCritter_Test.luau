@@ -1,8 +1,9 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastCandyCritterClone),
 -- require(freshBeastConfigClone), require(freshPortalClone), { beasts = WildboundBeasts.Source,
 -- service = WildboundCandyCritterService.Source, client = WildboundBeastsClient.Source,
--- resting = WildboundCandyRestingService.Source, restingClient = WildboundCandyRestingClient.Source },
--- require(freshBeastChaseClone)).
+-- resting = WildboundCandyRestingService.Source, restingClient = WildboundCandyRestingClient.Source,
+-- server = WildboundServer.Source, cake = WildboundCandyCakeClient.Source, text = require(freshTextClone),
+-- spec = require(freshCandyCritterAnimSpecClone) }, require(freshBeastChaseClone)).
 -- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1-CC3): the five small candy creatures (Mochimiau, Canelin,
 -- Flanin, Mielita, GatoRepartidor) share one data-driven brain, WildboundBeastCandyCritter, which reads
 -- Config.BEASTS[name].tuning (and its Attack table). Pure, on the harness of WildboundBeastGomibu_Test: a fake world with
@@ -268,13 +269,19 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		end
 	end)
 
+	-- Deliberately changed (A2, odd/tasks/wildbound-caramelo-playfix.md): Mochimiau's second hop and Flanin's bounces
+	-- (Extras.Follow) come right after the recovery; their cooldown rule is checked by the A2 Follow case instead.
 	case("CC3: it waits its cooldown after a strike before the next tell", function()
 		for _, name in ipairs(NAMES) do
+			if tuning(name).Extras and tuning(name).Extras.Follow then continue end
 			local A = tuning(name).Attack
 			local e, w, tgt, events, tell = telegraphing(name, "cooldown")
 			local later = run(e, w, tgt, 1.55, tell.strikeAt + A.CooldownSeconds + 3)
 			local second
-			for _, ev in ipairs(each(later, "Tell")) do if ev.tell ~= tell.tell then second = second or ev end end
+			-- A2: only its own attack counts (Mielita's swarm and the Gato's helper are side attacks with their own clocks)
+			for _, ev in ipairs(each(later, "Tell")) do
+				if ev.tell ~= tell.tell and string.find(ev.tell, ":" .. A.kind .. ":", 1, true) then second = second or ev end
+			end
 			assert(second, name .. " never attacked again")
 			assert(second.startAt >= tell.strikeAt + A.CooldownSeconds - 1e-6,
 				name .. " attacked again " .. (second.startAt - tell.strikeAt) .. " s after the strike")
@@ -463,6 +470,295 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			"summonPass drops the refusal")
 		assert(string.find(beasts, 'telemetry:SetAttribute("Beast_lastSummonRefusal", "DonGlaseon:" .. tostring(value))', 1, true),
 			"bossPass drops the refusal")
+	end)
+
+	-- A2 (odd/tasks/wildbound-caramelo-playfix.md): the "Otras habilidades" of each creature sheet (pack 6), as data on its
+	-- tuning (Extras) read by the same brain. Damage stays 0. Patches (puddles and trails) are "Patch" events the server
+	-- lays as fading parts; their slow is the brain's own Afflict while the target's root is inside one, never stacked.
+	local EXTRAS = {
+		Mochimiau = { Puddle = { life = 2, slow = 0.75 }, Follow = 1 },
+		Canelin = { Trail = { phase = "Release", slow = 0.8 } },
+		Flanin = { Trail = { phase = "Chase", slow = 0.8 }, Follow = 2 },
+		Mielita = { Trail = { phase = "Chase", slow = 0.85 }, Swarm = true },
+		GatoRepartidor = { Gift = true, Call = true },
+	}
+	local function mainTell(ev, A) return string.find(ev.tell, ":" .. A.kind .. ":", 1, true) ~= nil end
+	-- Steps one creature by hand: before(t) runs before each step, and every event goes to onEvent(ev).
+	local function drive(e, w, tgt, from, to, before, onEvent)
+		local all = {}
+		for i = 0, math.floor((to - from) / 0.05 + 1e-6) do
+			local t = from + i * 0.05
+			if before then before(t) end
+			for _, ev in ipairs(Enc.step(e, t, tgt, w)) do
+				table.insert(all, ev)
+				if onEvent then onEvent(ev) end
+			end
+		end
+		return all
+	end
+
+	case("A2 config: each sheet's extra abilities are frozen data on its tuning, inside the server's slow caps", function()
+		for _, name in ipairs(NAMES) do
+			local T, want = tuning(name), EXTRAS[name]
+			local X = T.Extras
+			assert(type(X) == "table" and table.isfrozen(X), name .. " has no frozen Extras")
+			local function slowOk(S, label)
+				assert(type(S) == "table" and table.isfrozen(S), label .. " missing or not frozen")
+				assert(S.SlowMultiplier >= Chase.EFFECTS.slowMinMultiplier and S.SlowMultiplier < 1, label .. " slow multiplier")
+				assert(S.SlowSeconds > 0 and S.SlowSeconds <= Chase.EFFECTS.slowMaxSeconds, label .. " slow seconds")
+			end
+			if want.Puddle then
+				slowOk(X.Puddle, name .. " Puddle")
+				equal(X.Puddle.LifeSeconds, want.Puddle.life, name .. " puddle life")
+				equal(X.Puddle.SlowMultiplier, want.Puddle.slow, name .. " puddle slow")
+				assert(X.Puddle.RadiusStuds >= 2, name .. " puddle radius")
+			else equal(X.Puddle, nil, name .. " Puddle") end
+			if want.Trail then
+				slowOk(X.Trail, name .. " Trail")
+				equal(X.Trail.Phase, want.Trail.phase, name .. " trail phase")
+				equal(X.Trail.LifeSeconds, 2, name .. " trail life")
+				equal(X.Trail.SlowMultiplier, want.Trail.slow, name .. " trail slow")
+				equal(X.Trail.SlowSeconds, 2, name .. " trail slow seconds")
+				assert(X.Trail.SpacingStuds >= 1.5 and X.Trail.RadiusStuds >= 1.5, name .. " trail spacing and radius")
+			else equal(X.Trail, nil, name .. " Trail") end
+			if want.Follow then
+				equal(X.Follow and X.Follow.Max, want.Follow, name .. " follow-ups")
+				assert(table.isfrozen(X.Follow) and X.Follow.RangeStuds > 0, name .. " follow range")
+			else equal(X.Follow, nil, name .. " Follow") end
+			if want.Swarm then
+				slowOk(X.Swarm, name .. " Swarm")
+				equal(X.Swarm.EverySeconds, 18, name .. " swarm every"); equal(X.Swarm.Puffs, 2, name .. " puffs")
+				assert(X.Swarm.TellSeconds >= Config.MIN_TELL, name .. " swarm tell")
+				assert(X.Swarm.OffsetStuds > X.Swarm.RadiusStuds, name .. " the puffs land beside the target, not on it")
+			else equal(X.Swarm, nil, name .. " Swarm") end
+			if want.Gift then
+				assert(type(X.Gift) == "table" and table.isfrozen(X.Gift), name .. " Gift")
+				equal(X.Gift.Every, 4, name .. " one encounter in four"); equal(X.Gift.Multiplier, 1.15, name .. " +15 %")
+				equal(X.Gift.Seconds, 10, name .. " for 10 s")
+			else equal(X.Gift, nil, name .. " Gift") end
+			if want.Call then
+				slowOk(X.Call, name .. " Call")
+				equal(X.Call.EverySeconds, 20, name .. " call every")
+				assert(X.Call.TellSeconds >= Config.MIN_TELL, name .. " call tell")
+				assert(X.Call.PushStuds > 0 and X.Call.PushStuds <= 8, name .. " call push")
+			else equal(X.Call, nil, name .. " Call") end
+		end
+	end)
+
+	case("A2 Mochimiau: its leap leaves a cream puddle for 2 s that slows whoever stands in it, never stacked", function()
+		local P = tuning("Mochimiau").Extras.Puddle
+		local e, w, tgt, events, tell = telegraphing("Mochimiau", "puddle")
+		local later = run(e, w, tgt, 1.55, tell.strikeAt + 8)
+		local patches = each(later, "Patch")
+		local patch = patches[1]
+		assert(patch, "no puddle after the leap")
+		near(patch.at, tell.strikeAt, "the puddle comes with the landing", 1e-6)
+		near(patch.x, close("Mochimiau"), "the puddle lies where it landed", 1e-6); near(patch.z, 0, "puddle z", 1e-6)
+		near(patch.y, 0, "on the ground"); equal(patch.r, P.RadiusStuds, "radius")
+		near(patch.untilAt, tell.strikeAt + P.LifeSeconds, "life", 1e-6)
+		equal(patch.damage, nil, "a puddle never damages")
+		local lastEnd = 0
+		for _, p in ipairs(patches) do lastEnd = math.max(lastEnd, p.untilAt) end
+		local slows = {}
+		for _, ev in ipairs(each(later, "Afflict")) do if ev.patch then table.insert(slows, ev) end end
+		assert(#slows >= 1, "standing in the puddle never slowed")
+		equal(slows[1].slow, P.SlowMultiplier, "-25 %"); equal(slows[1].slowSeconds, P.SlowSeconds, "slow time")
+		for i, ev in ipairs(slows) do
+			assert(ev.at <= lastEnd + 1e-6, "a puddle slowed after it dried")
+			if i > 1 then assert(ev.at - slows[i - 1].at >= P.SlowSeconds - 1e-6, "puddle slows stacked") end
+		end
+	end)
+
+	case("A2 Follow: Mochimiau hops once more, Flanin bounces twice more, right after the recovery; then the cooldown", function()
+		for _, name in ipairs({ "Mochimiau", "Flanin" }) do
+			local A, F = tuning(name).Attack, tuning(name).Extras.Follow
+			local e, w, tgt, events, tell = telegraphing(name, "follow")
+			local later = run(e, w, tgt, 1.55, 30)
+			local mine, seen = {}, {}
+			for _, list in ipairs({ events, later }) do
+				for _, ev in ipairs(each(list, "Tell")) do
+					if mainTell(ev, A) and not seen[ev.tell] then seen[ev.tell] = true; table.insert(mine, ev) end
+				end
+			end
+			assert(#mine >= F.Max + 2, name .. " only " .. #mine .. " attacks in 30 s")
+			for i = 2, F.Max + 1 do
+				local gap = mine[i].startAt - mine[i - 1].strikeAt
+				assert(gap >= A.RecoverSeconds - 1e-6 and gap <= A.RecoverSeconds + 0.2, name .. " follow-up " .. (i - 1) .. " came " .. gap .. " s after the strike")
+				assert(mine[i].strikeAt - mine[i].startAt >= Config.MIN_TELL - 1e-9, name .. " a follow-up skipped the tell")
+			end
+			local gap = mine[F.Max + 2].startAt - mine[F.Max + 1].strikeAt
+			assert(gap >= A.CooldownSeconds - 1e-6, name .. " chained more than " .. F.Max .. " follow-ups (" .. gap .. " s)")
+			-- out of reach after the first strike: no follow-up, the plain cooldown
+			local e2, w2, tgt2, _, tell2 = telegraphing(name, "nofollow")
+			local after = run(e2, w2, tgt2, 1.55, 25, function(t, tg) if t > tell2.strikeAt + 0.02 then tg.x = F.RangeStuds + 6 end end)
+			for _, ev in ipairs(each(after, "Tell")) do
+				if ev.tell ~= tell2.tell and mainTell(ev, A) then
+					assert(ev.startAt >= tell2.strikeAt + A.CooldownSeconds - 1e-6, name .. " followed a target out of reach")
+				end
+			end
+		end
+	end)
+
+	case("A2 Canelin: it spins before rolling; the roll leaves a glaze trail along its lane that slows -20 % for 2 s", function()
+		local A, X = tuning("Canelin").Attack, tuning("Canelin").Extras.Trail
+		local e, w, tgt, events, tell = telegraphing("Canelin", "trail")
+		local later = run(e, w, tgt, 1.55, tell.strikeAt + 3)
+		local releaseAt = tell.strikeAt - A.TravelSeconds
+		local patches = {}
+		for _, list in ipairs({ events, later }) do
+			for _, ev in ipairs(each(list, "Patch")) do table.insert(patches, ev) end
+		end
+		assert(#patches >= 3, "the roll left " .. #patches .. " glaze patches")
+		for i, p in ipairs(patches) do
+			assert(p.at >= releaseAt - 1e-6 and p.at <= tell.strikeAt + 1e-6, "a glaze patch outside the roll at " .. p.at)
+			near(p.z, 0, "on the lane", 1e-6); assert(p.x >= -1e-6 and p.x <= A.LengthStuds + 1e-6, "on the lane: x " .. p.x)
+			near(p.untilAt - p.at, X.LifeSeconds, "life"); equal(p.r, X.RadiusStuds, "radius")
+			if i > 1 then
+				local d = math.abs(p.x - patches[i - 1].x)
+				assert(d >= X.SpacingStuds - 1e-6 and d <= X.SpacingStuds + 1.5, "spacing " .. d)
+			end
+		end
+		local slowed
+		for _, ev in ipairs(each(later, "Afflict")) do if ev.patch then slowed = slowed or ev end end
+		assert(slowed, "standing on the glaze never slowed")
+		equal(slowed.slow, X.SlowMultiplier, "-20 %"); equal(slowed.slowSeconds, X.SlowSeconds, "2 s")
+	end)
+
+	case("A2 Flanin and Mielita: a trail while they chase that slows; nobody leaves one on a quiet patrol", function()
+		for _, name in ipairs({ "Flanin", "Mielita" }) do
+			local X = tuning(name).Extras.Trail
+			local e, w, tgt = spawn(name, "chasetrail"), fakeWorld(), target(30, 0)
+			local events = run(e, w, tgt, 0, 4)
+			local patches = each(events, "Patch")
+			assert(#patches >= 2, name .. " left no trail while chasing (phases " .. phases(events) .. ")")
+			for i, p in ipairs(patches) do
+				near(p.y, 0, name .. " the trail lies on the ground")
+				near(p.untilAt - p.at, X.LifeSeconds, name .. " life")
+				if i > 1 then
+					local d = math.sqrt((p.x - patches[i - 1].x) ^ 2 + (p.z - patches[i - 1].z) ^ 2)
+					assert(d >= X.SpacingStuds - 1e-6 and d <= X.SpacingStuds + 1.5, name .. " spacing " .. d)
+				end
+			end
+			-- the target steps onto the first patch as it is laid: the server's slow
+			local e2, w2, tgt2 = spawn(name, "steptrail"), fakeWorld(), target(30, 0)
+			local first
+			local all = drive(e2, w2, tgt2, 0, 5, function()
+				if first then tgt2.x, tgt2.z = first.x, first.z end
+			end, function(ev) if ev.type == "Patch" then first = first or ev end end)
+			local slowed
+			for _, ev in ipairs(each(all, "Afflict")) do if ev.patch then slowed = slowed or ev end end
+			assert(slowed, name .. " its trail never slowed")
+			equal(slowed.slow, X.SlowMultiplier, name .. " trail slow"); equal(slowed.slowSeconds, X.SlowSeconds, name)
+		end
+		for _, name in ipairs(NAMES) do
+			local e, w, tgt = spawn(name, "quiet"), fakeWorld(), target(FAR, 0)
+			equal(#each(run(e, w, tgt, 0, 12), "Patch"), 0, name .. " left patches on a quiet patrol")
+		end
+	end)
+
+	case("A2 Mielita: every 18 s of a chase, two pollen puffs beside the target with a fair tell; slows -15 %", function()
+		local S = tuning("Mielita").Extras.Swarm
+		local e, w, tgt = spawn("Mielita", "swarm"), fakeWorld(), target(close("Mielita"), 0)
+		local swarms = {}
+		local all = drive(e, w, tgt, 0, 30, function(t)
+			local first = swarms[1]
+			if first and t > first.startAt and t < first.strikeAt then
+				tgt.x, tgt.z = first.shape.list[1].x, first.shape.list[1].z
+			end
+		end, function(ev)
+			if ev.type == "Tell" and string.find(ev.tell, ":swarm:", 1, true) and (#swarms == 0 or swarms[#swarms].tell ~= ev.tell) then
+				table.insert(swarms, ev)
+			end
+		end)
+		local first = swarms[1]
+		assert(first, "no swarm in 30 s of chase")
+		equal(first.shape.kind, "multi", "puffs"); equal(#first.shape.list, S.Puffs, "two puffs")
+		for _, puff in ipairs(first.shape.list) do
+			equal(puff.r, S.RadiusStuds, "puff radius")
+			near(math.sqrt((puff.x - close("Mielita")) ^ 2 + puff.z ^ 2), S.OffsetStuds, "beside the target", 1e-6)
+		end
+		near(first.lockAt, first.startAt, "locked at once", 1e-9)
+		assert(first.strikeAt - first.startAt >= Config.MIN_TELL - 1e-9, "the swarm's tell is under MIN_TELL")
+		local slowed
+		for _, ev in ipairs(each(all, "Afflict")) do if ev.attack == first.tell then slowed = ev end end
+		assert(slowed, "a target inside a puff was not slowed")
+		near(slowed.at, first.strikeAt, "at the pop", 1e-6)
+		equal(slowed.slow, S.SlowMultiplier, "-15 %"); equal(slowed.slowSeconds, S.SlowSeconds, "slow time")
+		assert(swarms[2], "no second swarm")
+		assert(swarms[2].startAt >= first.strikeAt + S.EverySeconds - 1e-6, "swarms closer than EverySeconds")
+		for _, ev in ipairs(each(all, "Hit")) do equal(ev.damage, 0, "damage") end
+	end)
+
+	case("A2 Gato: every 20 s a helper Gato appears beside the target, throws fries once (a fair tell) and leaves", function()
+		local K = tuning("GatoRepartidor").Extras.Call
+		local e, w, tgt = spawn("GatoRepartidor", "call"), fakeWorld(), target(close("GatoRepartidor"), 0)
+		local calls, helpers = {}, {}
+		local all = drive(e, w, tgt, 0, 30, nil, function(ev)
+			if ev.type == "Tell" and string.find(ev.tell, ":call:", 1, true) and (#calls == 0 or calls[#calls].tell ~= ev.tell) then
+				table.insert(calls, ev)
+			elseif ev.type == "Helper" then
+				table.insert(helpers, ev)
+			end
+		end)
+		local first = calls[1]
+		assert(first, "no call in 30 s of chase")
+		assert(helpers[1], "no helper Gato")
+		near(helpers[1].at, first.startAt, "the helper comes with the throw's tell", 1e-6)
+		near(math.sqrt((helpers[1].x - tgt.x) ^ 2 + (helpers[1].z - tgt.z) ^ 2), K.RingStuds, "the helper stands RingStuds away", 1e-6)
+		assert(helpers[1].untilAt > first.strikeAt, "the helper leaves before it throws")
+		equal(first.shape.kind, "circle", "fries circle"); equal(first.shape.r, K.RadiusStuds, "radius")
+		near(first.shape.x, close("GatoRepartidor"), "on the target", 1e-6)
+		near(first.lockAt, first.startAt, "locked at once", 1e-9)
+		assert(first.strikeAt - first.startAt >= Config.MIN_TELL - 1e-9, "the call's tell is under MIN_TELL")
+		local hit
+		for _, ev in ipairs(each(all, "Hit")) do if ev.attack == first.tell then hit = ev end end
+		assert(hit, "the helper's fries never landed on a target standing still")
+		equal(hit.damage, 0, "damage"); equal(hit.push.studs, K.PushStuds, "push"); equal(hit.slow.multiplier, K.SlowMultiplier, "slow")
+		assert(calls[2], "no second call")
+		assert(calls[2].startAt >= first.strikeAt + K.EverySeconds - 1e-6, "calls closer than EverySeconds")
+	end)
+
+	case("A2 Gato: one encounter in four it walks up, hands a golden order (+15 % for 10 s) and walks home, no attack", function()
+		local G = tuning("GatoRepartidor").Extras.Gift
+		local e, w, tgt = spawn("GatoRepartidor", "8"), fakeWorld(), target(20, 0)
+		local events = run(e, w, tgt, 0, 20)
+		local list = phases(events)
+		assert(string.find(list, "Notice,Chase,Deliver", 1, true), "phases " .. list)
+		local gift = each(events, "Gift")[1]
+		assert(gift, "no golden order (phases " .. list .. ")")
+		equal(gift.multiplier, G.Multiplier, "+15 %"); equal(gift.seconds, G.Seconds, "10 s")
+		equal(#each(events, "Tell"), 0, "a delivering Gato never attacks")
+		equal(#each(events, "Hit"), 0, "a delivering Gato never hits")
+		local deliver
+		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "Deliver" then deliver = deliver or ev end end
+		near(gift.at - deliver.at, G.HandSeconds, "it hands the order over after HandSeconds", 0.051)
+		quietEnd("GatoRepartidor", events, "Delivered", e)
+		local e2, w2, tgt2 = spawn("GatoRepartidor", "7"), fakeWorld(), target(close("GatoRepartidor"), 0)
+		local others = run(e2, w2, tgt2, 0, 3)
+		equal(#each(others, "Gift"), 0, "only one encounter in four delivers")
+		assert(#each(others, "Tell") >= 1, "an ordinary Gato stopped attacking")
+	end)
+
+	case("A2 wiring: the server lays the patches, the helper and the golden order; the client shows the order", function()
+		local beasts, server, cake, Text, Spec = sources.beasts, sources.server, sources.cake, sources.text, sources.spec
+		assert(type(server) == "string" and type(cake) == "string" and type(Text) == "table" and type(Spec) == "table",
+			"pass server, cake, text and spec")
+		local function has(src, text, label) assert(string.find(src, text, 1, true), label .. " (" .. text .. ")") end
+		has(beasts, 'if event.type == "Patch" then world.candyPatch(entry, event) end', "the beast server lays patches")
+		has(beasts, 'if event.type == "Helper" then world.candyHelper(entry, event) end', "the helper Gato")
+		has(beasts, 'if event.type == "Gift" then world.candyGift(entry, event) end', "the golden order")
+		has(beasts, "{ Transparency = 1 }", "a patch fades out")
+		has(beasts, 'player:SetAttribute("WildboundCandyOrderUntil"', "the order's clock")
+		has(beasts, '"order:"', "the order line cue")
+		has(server, 'GetAttribute("WildboundCandyOrderUntil")', "applyCarry reads the order")
+		has(server, "speed * 1.15", "the order is +15 %")
+		has(server, 'GetAttributeChangedSignal("WildboundCandyOrderUntil")', "the walk speed is re-applied when it starts and ends")
+		has(cake, 'what == "order"', "the client shows the order with the rush's chime")
+		assert(type(Text.CANDY_CAKE.order) == "string", "Text.CANDY_CAKE.order")
+		assert(type(Text.BEAST.GatoRepartidor.phases.Deliver) == "string", "the Deliver line")
+		equal(Spec.SPEC.Canelin.phase.Telegraph, "Spin", "Canelín spins in place before rolling")
+		equal(Spec.SPEC.GatoRepartidor.phase.Deliver, "Deliver", "the Gato's hand-over clip")
+		assert(table.find(Spec.BRAIN_PHASES, "Deliver"), "Deliver is a brain phase")
 	end)
 
 	return result
