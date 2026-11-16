@@ -278,6 +278,8 @@ Summoned by presence at their sites (`WildboundPraderaSites`, `Director.summon`)
 | **Flanfuria** | Caramelo, post `candyNestR1` | Done (solo Play, CA1, `1de89f3`) |
 | **Tortidragon** | Caramelo, post `candyNestC3` (510, -143) | Done (solo Play, CA2, `fed4228`); moves in its rest pose (clips unpublished) |
 | **Don Glaseon** (boss) | BossHome (578, -3), territory r 62 around (612, -3); one per server, rare-egg carrier first | Done (solo Play, CA3, CF3); target switching needs two players; rest pose until the clips are published |
+| **Mochimiau, Canelin, Flanin, Mielita, Gato Repartidor** (candy critters, one shared brain) | Caramelo posts beside free nests R2, R3, R4, C4, C2 | Done (solo Play, CC6, 2026-11-16): summoned, Notice, Chase, one telegraphed attack each (leap, dash, burst, lob, lob), slow and push seen, damage 0; tells still fall back to red (CC7); `odd/tasks/wildbound-candy-critters.md` |
+| **Duquesa Burbuja** | Seated scenery on the Gran Torta top (`Workspace.WildboundNewCandyPreview`) | Design only as a creature: no brain, never summoned |
 
 The kids rule from the design (a hit parks one item for 120 s, a second hit is a 3 s gust) is only partly built: a hit knocks a carried egg loose and sets a mark; parking a bag item is out of scope (`odd/tasks/wildbound-kids-beasts.md`).
 
@@ -567,6 +569,8 @@ Every Done is **solo Play only** (no two-player, phone or real DataStore record 
 | Flanfuria | Done (solo Play, CA1) | Same (CA1) |
 | Tortidragon | Done (solo Play, CA2) except its animation: 11 clips built, **not published** (owner action) | Same (CA2) |
 | Don Glaseon (boss, one per server, bat immune, sleeping copy pass-through) | Done (solo Play, CA3, CF3) except its animation: 11 clips **not published**; target switching and the egg drop in his lane not seen in Play | Same (CA3, CF3) |
+| Candy critters Mochimiau, Canelin, Flanin, Mielita, Gato Repartidor (shared brain `WildboundBeastCandyCritter`, model service `WildboundCandyCritterService`) | Done (solo Play, CC6) except tell colours (CC7) and text lines (CC8); live animation is another task; place not saved | `odd/tasks/wildbound-candy-critters.md` |
+| Duquesa Burbuja | Seated scenery only (no brain) | Same |
 | Caramelo nests (11 live: C1-C5 Gomibu, R1-R4 Tortidragon, E1-E2 Flanfuria; L1 event-only, off) | Done (solo Play, CE1); session-only switch, restore with `Builder.syncNests` if the place is reopened unsaved | Same (CE1) |
 | Caramelo pets (farm-only, rarity hatch 15 / 45 / 60 s, scaled rig, FarmIdle and walk clips) | Done (solo Play with Gomibu, CE2); Flanfuria and Tortidragon farm models suite only | Same (CE2) |
 | Candy egg looks (nest, backpack, cradle, Gomibu bob) | Done (solo Play, CG1); a Flanfuria egg in the pack or cradle and a dropped candy egg not seen in Play | Same (CG1) |
