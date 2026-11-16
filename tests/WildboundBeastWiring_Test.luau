@@ -531,7 +531,9 @@ return function(sources, Proxies)
 	-- the kids (damage 0) and any hit inside the Pradera still never do.
 	case("KB-4: damage 0 for the kids and in the Pradera; forest beasts are closed on entering it", function()
 		local beasts = sources.beasts
-		has(beasts, "if (Config.SUMMONED[entry.e.beast] and not hurts) or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end")
+		-- OF2 walked Play: the Caramelo biome lies inside the "Meadow" tag, so a candy creature's own damage is not zeroed there
+		has(beasts, "if (Config.SUMMONED[entry.e.beast] and not hurts) or (not candy and body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end")
+		has(beasts, "local candy = Config.SUMMONED[entry.e.beast] == true and hurts")
 		has(beasts, "local hurts = kept ~= nil and Config.finite(kept.damage) and kept.damage > 0")
 		has(beasts, "if keep and not (Config.finite(event.damage) and event.damage > 0) then")
 		has(beasts, 'if event.type == "Afflict" and Config.finite(event.damage) and event.damage > 0 then landHit(entry, { damage = event.damage }) end',
