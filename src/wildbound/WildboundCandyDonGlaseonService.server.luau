@@ -56,7 +56,10 @@ sleeper:PivotTo(CFrame.lookAt(ground, ground + Vector3.new(-1, 0, 0)))
 
 local function refresh()
 	local awake = telemetry and telemetry:GetAttribute("Beast_bossAwake") == true
-	sleeper.Parent = (not awake) and workspace or nil
+	-- DG7: while he is out as a trap cake (WildboundCandyTrapCakeService), his bed is empty
+	local disguised = telemetry and telemetry:GetAttribute("Candy_bossDisguised") == true
+	sleeper.Parent = (not awake and not disguised) and workspace or nil
 end
 if telemetry then telemetry:GetAttributeChangedSignal("Beast_bossAwake"):Connect(refresh) end
+if telemetry then telemetry:GetAttributeChangedSignal("Candy_bossDisguised"):Connect(refresh) end
 refresh()

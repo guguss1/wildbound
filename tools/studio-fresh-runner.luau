@@ -157,6 +157,10 @@ SPECS["WildboundCandyDonGlaseonAttack_Test"] = { "mod:WildboundCandyDonGlaseonAt
 SPECS["WildboundCandyDonGlaseonVacuum_Test"] = { "mod:WildboundCandyDonGlaseonVacuum" }
 SPECS["WildboundCandyDonGlaseonWall_Test"] = { "mod:WildboundCandyDonGlaseonWall" }
 SPECS["WildboundCandyDonGlaseonAnger_Test"] = { "mod:WildboundCandyDonGlaseonAnger" }
+SPECS["WildboundCandyTrapCake_Test"] = {
+	"mod:WildboundCandyTrapCake", "mod:WildboundCandyLayout",
+	{ service = "src:WildboundCandyTrapCakeService", server = "src:WildboundServer", bossService = "src:WildboundCandyDonGlaseonService" },
+}
 SPECS["WildboundBossRobustness_Test"] = {
 	"mod:WildboundBat", "mod:WildboundBatKnock", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseon",
 	"inst:ServerStorage.WildboundAssets.DonGlaseon",

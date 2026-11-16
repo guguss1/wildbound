@@ -553,6 +553,10 @@ class DefaultMappingTests(unittest.TestCase):
         # DG5 Rabia creciente
         "tools/WildboundCandyDonGlaseonAnger.luau": "ServerStorage.WildboundCandyDonGlaseonAnger",
         "tests/WildboundCandyDonGlaseonAnger_Test.luau": "ServerStorage.WildboundCandyDonGlaseonAnger_Test",
+        # DG7 Torta trampa
+        "tools/WildboundCandyTrapCake.luau": "ServerStorage.WildboundCandyTrapCake",
+        "tests/WildboundCandyTrapCake_Test.luau": "ServerStorage.WildboundCandyTrapCake_Test",
+        "src/wildbound/WildboundCandyTrapCakeService.server.luau": "ServerScriptService.WildboundCandyTrapCakeService",
         "tools/WildboundCandyDonGlaseonClips.luau": "ServerStorage.WildboundCandyDonGlaseonClips",
         "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
         "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",

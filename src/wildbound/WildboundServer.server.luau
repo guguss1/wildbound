@@ -409,6 +409,9 @@ local function applyCarry(player)
 	speed = Stamina.speed(speed, record.stamina and record.stamina.stance or "walk")
 	-- Q3b (replaces the NH4 Burst): a perfect dodge's boost, x1.35 of the current speed for 1 s, capped at 26.
 	speed = Heist.DodgeService.speed(player, speed, workspace:GetServerTimeNow())
+	-- DG7: a trap-cake slice's sugar rush (WildboundCandyTrapCakeService writes it; WildboundCandyTrapCake.rushSpeed).
+	local rush = player:GetAttribute("WildboundCandyRushUntil")
+	if type(rush) == "number" and rush > workspace:GetServerTimeNow() then speed = math.max(speed, math.min(speed * 1.25, 26)) end
 	-- Q4 (was the NP4 stumble): a knocked player is down for the ragdoll and cannot walk.
 	if Heist.Knock.ragdolled(Heist.knocks, player.UserId, workspace:GetServerTimeNow()) then speed = 0 end
 	-- SistemaSonriente: caps, slows and stuns (a server ragdoll is a stun) on top of everything above.
@@ -2369,6 +2372,25 @@ do
 		return { eggDropped = eggDropped, damage = hurt }
 	end
 	beastHit.Parent = network
+end
+
+-- Caramelo v2 (DG7): a trap-cake slice's rush re-applies the walk speed when it starts and once it ends. Kept in a do
+-- block: this script is at Luau's 200-local limit (NH-W13).
+do
+	local function watchRush(player)
+		player:GetAttributeChangedSignal("WildboundCandyRushUntil"):Connect(function()
+			if not records[player] then return end
+			applyCarry(player)
+			local untilAt = player:GetAttribute("WildboundCandyRushUntil")
+			if type(untilAt) == "number" then
+				task.delay(math.max(0, untilAt - workspace:GetServerTimeNow()) + 0.05, function()
+					if records[player] then applyCarry(player) end
+				end)
+			end
+		end)
+	end
+	Players.PlayerAdded:Connect(watchRush)
+	for _, player in ipairs(Players:GetPlayers()) do watchRush(player) end
 end
 
 -- Nest Heist (NH5): drop and pickup. A dropped egg lands on the ground under its carrier (a downward ray that ignores
