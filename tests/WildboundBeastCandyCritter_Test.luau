@@ -1,6 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastCandyCritterClone),
 -- require(freshBeastConfigClone), require(freshPortalClone), { beasts = WildboundBeasts.Source,
--- service = WildboundCandyCritterService.Source, client = WildboundBeastsClient.Source }, require(freshBeastChaseClone)).
+-- service = WildboundCandyCritterService.Source, client = WildboundBeastsClient.Source,
+-- resting = WildboundCandyRestingService.Source, restingClient = WildboundCandyRestingClient.Source },
+-- require(freshBeastChaseClone)).
 -- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1-CC3): the five small candy creatures (Mochimiau, Canelin,
 -- Flanin, Mielita, GatoRepartidor) share one data-driven brain, WildboundBeastCandyCritter, which reads
 -- Config.BEASTS[name].tuning (and its Attack table). Pure, on the harness of WildboundBeastGomibu_Test: a fake world with
@@ -420,6 +422,28 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		-- the guarded clip line (WildboundCandyTortidragonService): an empty IDS never asserts
 		assert(string.find(service, 'if Clips.IDS[clip] then model:SetAttribute("Clip_" .. clip, animationId(Clips, clip)) end', 1, true), "unguarded clip ids")
 		assert(not string.find(service, "DuquesaBurbuja = {", 1, true), "the Duquesa stays scenery")
+	end)
+
+	-- PF3 (odd/tasks/wildbound-caramelo-playfix.md): between encounters each critter (and Gomibu, Flanfuria, Tortidragon)
+	-- rests at its post as a client copy, so a creature never appears from nothing or vanishes into nothing. The server
+	-- publishes each post (ground point, plus the hover of a flier) on ReplicatedStorage.WildboundBeasts; each client
+	-- keeps a resting clone of Models.<name> there (in WildboundBeastsLocal, phase Calm, so the existing animators play
+	-- its idle) and drops it while a live view of that beast exists.
+	case("PF3 wiring: resting copies at the posts, hidden while that beast's live view exists", function()
+		local server, client = sources.resting, sources.restingClient
+		assert(type(server) == "string" and type(client) == "string", "pass the resting service and client sources")
+		for _, name in ipairs({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }) do
+			assert(string.find(server, '"' .. name .. '"', 1, true), name .. " has no resting post")
+		end
+		assert(not string.find(server, '"DonGlaseon"', 1, true), "Don Glaseon keeps his own dormant copy")
+		assert(string.find(server, "Sites.world(nil, Sites.HOME[name])", 1, true), "the post is the beast's own home site")
+		assert(string.find(server, 'SetAttribute("RestingPost_" .. name', 1, true), "the post is published")
+		assert(string.find(server, "HoverStuds", 1, true), "a flier rests at its hover height")
+		assert(string.find(client, 'GetAttribute("RestingPost_" .. name)', 1, true), "the client reads the post")
+		assert(string.find(client, 'WaitForChild("WildboundBeastsLocal"', 1, true), "the copy lives with the live views")
+		assert(string.find(client, 'SetAttribute("WildboundResting", true)', 1, true), "the copy is tagged")
+		assert(string.find(client, 'SetAttribute("BeastPhase", "Calm")', 1, true), "the copy idles")
+		assert(string.find(client, 'child:GetAttribute("WildboundResting") ~= true', 1, true), "a live view is told apart")
 	end)
 
 	-- PF2: the target's client shows the beast's own hit line (Text.BEAST[beast].hit) when the Hit carries no line of its

@@ -467,6 +467,9 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyEggArt.luau", "ReplicatedStorage.WildboundCandyEggArt"),
     ("tests/WildboundCandyEggArt_Test.luau", "ServerStorage.WildboundCandyEggArt_Test"),
     ("src/wildbound/WildboundCandyEggBob.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyEggBob"),
+    # PF3 (odd/tasks/wildbound-caramelo-playfix.md): the resting copies of the Caramelo creatures at their posts
+    ("src/wildbound/WildboundCandyRestingService.server.luau", "ServerScriptService.WildboundCandyRestingService"),
+    ("src/wildbound/WildboundCandyRestingClient.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyRestingClient"),
 ]
 
 
