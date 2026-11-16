@@ -7,6 +7,10 @@
 -- draws with. No hit is ever decided by contact events or by the client.
 local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
 	:WaitForChild("WildboundBeastConfig"))
+-- Beast revision BR0 (odd/tasks/wildbound-beast-revision.md): Viper and Pouncer chase persistently (death or a safe zone
+-- ends them; no escape, timeout, attack count, NoApproach or NoLanding exit) and catch up when far behind.
+local Chase = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
+	:WaitForChild("WildboundBeastChase"))
 local Enc = {}
 
 local finite, flat, unit = Config.finite, Config.flat, Config.unit
@@ -72,6 +76,7 @@ end
 local function walk(e, target, speed, sign, dt, world)
 	local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
 	if not dx then dx, dz = e.dx, e.dz end
+	speed = Chase.walkSpeed(e.beast, speed, flat(e.pos.x, e.pos.z, target.x, target.z), sign)
 	local stepX, stepZ = dx * speed * dt * sign, dz * speed * dt * sign
 	e.pos.x += stepX
 	e.pos.z += stepZ
@@ -81,15 +86,13 @@ end
 
 -- Shared end checks. Returns true when the encounter is over or retreating for good.
 local function guard(events, e, now, target, C, busy)
-	if not target or target.alive ~= true then
-		table.insert(events, Enc.finish(e, "Death", now))
-		return true
-	end
-	if target.safe == true then
-		table.insert(events, Enc.finish(e, "SafeZone", now))
+	local ended = Chase.ended(target)
+	if ended then
+		table.insert(events, Enc.finish(e, ended, now))
 		return true
 	end
 	if e.phase == "Disengage" then return false end
+	if Chase.persistent(e.beast) then return false end
 	local distance = flat(e.pos.x, e.pos.z, target.x, target.z)
 	if distance > C.escapeDistance then
 		e.farSince = e.farSince or now
@@ -145,7 +148,11 @@ local function stepViper(events, e, now, target, world, dt)
 			local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
 			local wall = dx and world.castLane and world.castLane(e.pos.x, e.pos.y, e.pos.z, dx, dz, math.min(distance, C.laneLength))
 			e.inRangeSince = e.inRangeSince or now
-			if not finite(wall) or now - e.inRangeSince >= C.clearSearch then
+			if now < (e.dashReadyAt or -math.huge) then
+				-- BR1: the dash cooldown runs; it holds its range and faces the target.
+				e.inRangeSince = nil
+				if dx then e.dx, e.dz = dx, dz end
+			elseif not finite(wall) or now - e.inRangeSince >= C.clearSearch then
 				e.inRangeSince = nil
 				viperWindup(events, e, now, target, C)
 			elseif dx then
@@ -155,9 +162,9 @@ local function stepViper(events, e, now, target, world, dt)
 				e.pos.y = groundAt(world, e.pos.x, e.pos.z, e.pos.y)
 				e.dx, e.dz = dx, dz
 			end
-		elseif now - e.phaseAt >= C.stalkSeconds then
+		elseif now - e.phaseAt >= C.stalkSeconds and now >= (e.dashReadyAt or -math.huge) then
 			if distance <= C.laneLength then viperWindup(events, e, now, target, C)
-			else disengage(events, e, "NoApproach", now) end
+			elseif not Chase.persistent(e.beast) then disengage(events, e, "NoApproach", now) end
 		end
 	end
 	if e.phase == "Windup" then
@@ -175,6 +182,7 @@ local function stepViper(events, e, now, target, world, dt)
 		end
 		if e.locked and now >= e.dashAt then
 			setPhase(e, "Dash", e.dashAt)
+			e.dashReadyAt = e.dashAt + (C.dashCooldown or 0)
 			emit(events, e, "Dash", e.dashAt, { dx = e.dx, dz = e.dz, length = e.length, speed = C.dashSpeed,
 				endAt = e.dashAt + e.length / C.dashSpeed })
 		end
@@ -188,7 +196,10 @@ local function stepViper(events, e, now, target, world, dt)
 		if not e.hitThisDash and travelled > e.swept - 1e-9 and math.abs(target.y - e.pos.y) <= C.hitHeight
 			and Config.inLane(target.x, target.z, e.origin.x, e.origin.z, e.dx, e.dz, e.swept, travelled, C.laneWidth) then
 			e.hitThisDash = true
-			emit(events, e, "Hit", now, { damage = C.damage, attack = e.attacks + 1 })
+			-- BR1: a confirmed hit carries the slow (the beast script applies it once, never stacked; a perfect dodge
+			-- drops the whole Hit before it is applied).
+			emit(events, e, "Hit", now, { damage = C.damage, attack = e.attacks + 1,
+				slow = C.slowMultiplier and { multiplier = C.slowMultiplier, seconds = C.slowSeconds } or nil })
 		end
 		e.swept = travelled
 		if travelled >= e.length - 1e-9 then
@@ -200,7 +211,7 @@ local function stepViper(events, e, now, target, world, dt)
 		end
 	end
 	if e.phase == "Recover" and now >= e.recoverUntil then
-		if e.attacks < C.maxAttacks and now - e.startedAt < C.maxSeconds then
+		if Chase.persistent(e.beast) or (e.attacks < C.maxAttacks and now - e.startedAt < C.maxSeconds) then
 			setPhase(e, "Stalk", e.recoverUntil)
 			emit(events, e, "Stalk", e.phaseAt)
 		else
@@ -233,7 +244,8 @@ local function pouncerChoose(events, e, now, target, world, C)
 	if not center then
 		e.skips += 1
 		emit(events, e, "Cancel", now, { reason = "NoLanding" })
-		if e.skips >= C.maxSkips then disengage(events, e, "NoLanding", now) else e.retryAt = now + 0.5 end
+		if e.skips >= C.maxSkips and not Chase.persistent(e.beast) then disengage(events, e, "NoLanding", now)
+		else e.retryAt = now + 0.5 end
 		return
 	end
 	setPhase(e, "Telegraph", now)
@@ -270,7 +282,7 @@ local function stepPouncer(events, e, now, target, world, dt)
 			pouncerChoose(events, e, now, target, world, C)
 		elseif now - e.phaseAt >= C.huntSeconds then
 			if ready and distance <= C.attackMax + 6 then pouncerChoose(events, e, now, target, world, C)
-			elseif distance > C.attackMax + 6 then disengage(events, e, "NoApproach", now) end
+			elseif distance > C.attackMax + 6 and not Chase.persistent(e.beast) then disengage(events, e, "NoApproach", now) end
 		end
 	end
 	if e.phase == "Telegraph" then
@@ -308,13 +320,47 @@ local function stepPouncer(events, e, now, target, world, dt)
 			e.jumps += 1
 			emit(events, e, "Land", e.landAt, { hit = hit, center = copy(e.center) })
 			if hit then emit(events, e, "Hit", e.landAt, { damage = C.damage, attack = e.jumps }) end
-			setPhase(e, "Recover", e.landAt)
 			e.recoverUntil = e.landAt + C.recover
-			emit(events, e, "Recover", e.landAt, { untilAt = e.recoverUntil })
+			-- BR2: the landing is confirmed (the encounter is still live: the guard ran this step), so the web throw starts.
+			-- One per landing: the throw belongs to this jump number and nothing else can start one.
+			e.throwAt, e.throwFor = e.landAt + (C.webDelay or 0), e.jumps
+			setPhase(e, "Throw", e.landAt)
+			emit(events, e, "Throw", e.landAt, { throwAt = e.throwAt })
+		end
+	end
+	if e.phase == "Throw" and now >= e.throwAt then
+		-- BR2: the ball leaves from the spider's body toward where the target is now, in a straight flat line.
+		local from = { x = e.pos.x, y = e.pos.y + 2, z = e.pos.z }
+		local dx, dz = unit(target.x - from.x, target.z - from.z)
+		if not dx then dx, dz = e.dx, e.dz end
+		e.dx, e.dz = dx, dz
+		e.web = { id = ("%s:web:%d"):format(e.id, e.throwFor), from = from, dx = dx, dz = dz, at = e.throwAt, swept = 0 }
+		emit(events, e, "Web", e.throwAt, { web = e.web.id, from = copy(from), dx = dx, dz = dz, speed = C.webSpeed,
+			range = C.webRange, radius = C.webRadius })
+		setPhase(e, "Recover", e.throwAt)
+		emit(events, e, "Recover", e.throwAt, { untilAt = e.recoverUntil })
+	end
+	if e.web then
+		-- BR2: the ball's swept hit check, the same way as Viper's lane: the part of its line it crossed since the last step.
+		local web = e.web
+		local travelled = math.clamp((now - web.at) * C.webSpeed, 0, C.webRange)
+		local rx, rz = target.x - web.from.x, target.z - web.from.z
+		local along = rx * web.dx + rz * web.dz
+		local across = math.abs(rx * -web.dz + rz * web.dx)
+		if along >= web.swept - C.webRadius and along <= travelled + C.webRadius and across <= C.webRadius
+			and math.abs(target.y - web.from.y) <= C.webHitHeight then
+			e.web = nil
+			emit(events, e, "Afflict", now, { attack = web.id, root = C.webRootSeconds, web = true })
+			emit(events, e, "WebEnd", now, { web = web.id, hit = true })
+		elseif travelled >= C.webRange - 1e-9 then
+			e.web = nil
+			emit(events, e, "WebEnd", web.at + C.webRange / C.webSpeed, { web = web.id, hit = false })
+		else
+			web.swept = travelled
 		end
 	end
 	if e.phase == "Recover" and now >= e.recoverUntil then
-		if e.jumps < math.min(C.jumps, C.maxJumps) and now - e.startedAt < C.maxSeconds then
+		if Chase.persistent(e.beast) or (e.jumps < math.min(C.jumps, C.maxJumps) and now - e.startedAt < C.maxSeconds) then
 			setPhase(e, "Hunt", e.recoverUntil)
 			e.retryAt = nil
 			emit(events, e, "Hunt", e.phaseAt)

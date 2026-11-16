@@ -19,15 +19,16 @@ check, a stable target, fair readable attacks, capped status effects.
 ## Checklist (stable IDs)
 
 - [x] BR-A Phase 1 audit (this file, "Audit" below). Commit: see BR-A row in Evidence.
-- [ ] BR0 Shared chase rules: `WildboundBeastChase` + the persistent chase in `Attack.guard`, `Attack.walk` and the
-  Viper/Pouncer guard in `WildboundBeastEncounters`.
-- [ ] BR1 Viper: scale, clips, faster/longer dash with the same tell, slow on a confirmed hit.
-- [ ] BR2 Pouncer: tarantula model, bigger landing radius, one web ball per valid landing, 1 s root.
-- [ ] BR3 Screamer: display rename, statue -> harmless scream/true form -> very fast chase, validated teleport.
-- [ ] BR4 Root: brown and bigger, organic roots with longer reach, faster enclosure that stays escapable, burrow chase.
-- [ ] BR5 Gaze: big and black, 3 s accumulated look with line of sight = one instant defeat per encounter.
-- [ ] BR6 Lurker: no early appearance/attack warnings, mechanic and persistent chase kept.
-- [ ] BR7 Final pass: section 10 deliverables, Studio == repo for every touched script, all commits pushed.
+- [x] BR0 Shared chase rules: `WildboundBeastChase` + the persistent chase in `Attack.guard`, `Attack.walk` and the
+  Viper/Pouncer guard in `WildboundBeastEncounters`. Commit `98c9f16` (+ the Encounters half in the BR1-BR6 commit).
+- [x] BR1 Viper: scale, clips, faster/longer dash with the same tell, slow on a confirmed hit.
+- [x] BR2 Pouncer: tarantula model, bigger landing radius, one web ball per valid landing, 1 s root.
+- [x] BR3 Screamer: display rename, statue -> harmless scream/true form -> very fast chase, validated teleport.
+- [x] BR4 Root: brown and bigger, organic roots with longer reach, faster enclosure that stays escapable, burrow chase.
+- [x] BR5 Gaze: big and black, 3 s accumulated look with line of sight = one instant defeat per encounter.
+- [x] BR6 Lurker: no early appearance/attack warnings, mechanic and persistent chase kept.
+- [x] BR7 Final pass: section 10 deliverables below, Studio == repo for every touched script, commits pushed.
+  Status words (overview convention): Done in solo Play; NOT tested with two players or on a phone.
 
 ## Audit (Phase 1)
 
@@ -152,6 +153,29 @@ and lives in Config, so it can be tuned.
 - BR-D10 No change: La Silueta and a beast can overlap, as before; the STRIKE_SEPARATION stagger still spaces their
   telegraphed strikes.
 
+- BR-D11 Lurker keeps its perfect-dodge registration (its overrun stun is part of the mechanic the owner wants kept),
+  so the shared dodge button still lights within 1.5 s of the strike; the landing circle, the footprints, the phase
+  lines and the approach/windup sounds are gone; the crouch animation stays as the one body cue.
+- BR-D12 The Screamer's threat when it reaches the player is a grab: a 0.8 s dodgeable circle that follows the target
+  until 0.3 s before the strike, then one BeastHit (28, the old rush damage). The spec forbids a rush and a harmful
+  scream but says the threat is "to reach the player"; a grab is the smallest readable way to make reaching matter.
+- BR-D13 Root follows a far target underground (burrowReach 42 -> 24 studs away) instead of walking, so the persistent
+  chase works for a beast with no walk cycle.
+- BR-D14 Large script and clip sources are moved into Studio as uploaded rbxmx Models (receipts in
+  `assets/exports/caramelo/upload-receipts.md`), inserted, copied into the live scripts and destroyed; shared scripts
+  are still written with exact replacements.
+- BR-D15 Gaze keeps a faint red PointLight on each eye bone so its black silhouette stays barely findable in the dark.
+- BR-D16 BR1-BR6 land in one commit: every beast touches the same shared files (Config, client, Text, AnimPlan,
+  Encounters), and Studio sat in other sessions' Play most of the time, so the six were deployed and checked together.
+- BR-D17 The Screamer's statue appears 30-50 studs ahead of the player and wakes at 22 studs (distance only, no line of
+  sight needed, as the spec asks); its true form is a dark-flesh recolour of the same rig (no new mesh), the statue a
+  stone (Slate, grey) recolour.
+- BR-D18 Root's brown look and Gaze's black look are recolours and rescales of their existing rigs (Root x1.45,
+  Gaze x1.6; Viper x1.5); only Pouncer got a new mesh (the tarantula). Gaze's eye height grew with its scale (9.8).
+- BR-D19 Root, when it follows underground, only rises on the target's level: in Play a Root standing on a relief ridge
+  9 studs above the player missed every attack (its lanes and whip are checked against its own feet, a pre-existing
+  design kept as is).
+
 ## Evidence
 
 | ID | Commit | Checks |
@@ -159,6 +183,94 @@ and lives in Config, so it can be tuned.
 | BR-A | `f6e2f99` | audit only; Studio fingerprints of the 23 beast scripts equal repo HEAD at start |
 | BR0 | (BR0 commit) | RED: Chase_Test missing module, Attack 2, Encounters 4, Gaze 1, Streamer 1 failing. GREEN (fresh runner, Edit): Chase 6/0, Attack 15/0, Encounters 24/0, Streamer 8/0, Gaze 7/0, Root 9/0, Lurker 7/0, Scuttler 42/0, Gomibu 9/0, Flanfuria 10/0, Tortidragon 9/0, Nube 11/0, Abeja 10/0, Director 48/0, DonGlaseon 18/0, CandyCritter 13/0. Studio == repo for Chase, Chase_Test, Attack, Attack_Test, Gaze, Gaze_Test, Root, Streamer_Test. The Encounters (Viper/Pouncer) half of BR0 lands with BR1 (same files). Solo Play check: with BR1 |
 
+| BR1-BR6 | (BR1-BR6 commit) | RED in Studio before each source change (Encounters 11 failing, AnimPlan 3, Streamer 11, Gaze 6, Root 6, Lurker 1). GREEN (fresh runner, Edit): Chase 6/0, Attack 15/0, Encounters 30/0, Streamer 12/0, Gaze 10/0, Root 12/0, Lurker 8/0, AnimPlan 16/0, Audience 17/0, Wiring 52/0, Director 48/0, Scuttler 42/0, Gomibu 9/0, DonGlaseon 20/0, Text 22/0, Dodge 14/0. CandyCritter 13/1: its new CC1 case expects a WildboundBeastChase argument the parent session added to its own suite (not run with that spec here; not caused by this change). Studio == repo (length + Adler-32) for all 23 touched scripts. Solo Play (Studio, private damage mode, a ForceField except for Gaze): see "Play checks" |
+
+### Play checks (solo, 2026-11-16, `WildboundPlayLock` = beast-revision-BR, cleared after)
+
+- Persistence and safe zone: a Viper kept chasing after the player jumped 150 studs away (phase Stalk), and ended at
+  once with reason SafeZone when the player stepped into the camp.
+- Viper: drawn 12.4 studs tall (player 5.5); windup 1.15 s before each dash (unchanged), dash 84 / 46; the second
+  windup waited the 2.6 s cooldown; each confirmed hit dropped WalkSpeed 16 -> 10.4 (x0.65) for 2 s; the clips play
+  (Windup, Dash, Recover; fit error 0.001 at scale 1.5).
+- Pouncer (tarantula): 14.7 x 8.2 x 13.5 studs, Stalk/Windup/Leap clips play (fit error 0.000, 29 bones); every landing
+  threw exactly one web 0.3 s later; a web hit held the player for 1.00 s (LinearVelocity hold); two landings, two webs,
+  two roots. On a relief ridge corner it cancels every landing (NoLanding: `world.landing` sees the ridge part as a
+  blocker): pre-existing, see "Problems".
+- Screamer: stone statue (Slate, grey), never moved for 5 s; woke at 20.1 studs, a 1.4 s scream with no hit, then its
+  true colours (SmoothPlastic, dark flesh) and the chase; grabs every ~4 s with a 0.8 s tell; after the player was
+  moved 60 studs away it blinked next to them at once and its next grab waited 1.2 s.
+- Root: trap tell 0.9 s, walls 0.85 s, whip 0.45 s after the walls with a 0.8 s tell, 2.8 s cooldown (all measured).
+- Gaze: 12.4 tall, black; with the camera on its eyes the count rose at 1 per second; after 1.0 s of looking and 3 s
+  away it stayed at 1.00 (paused, not reset); 3 s of continuous looking gave one Hit at 2.99 s and the encounter ended
+  as Death (Studio = private damage mode, lethal player).
+- Lurker: leapt and hit with no landing circle drawn, no footprints and no warning line on the client.
+- No "Wildbound beasts" errors in the console during the run.
+
+## Section 10 deliverables
+
+### 1. Files changed
+
+| File | Change |
+|---|---|
+| `src/wildbound/WildboundBeastChase.luau` (new) | the shared rules: PERSISTENT set, one end check, catch-up walk, effect caps, teleport spot validation |
+| `src/wildbound/WildboundBeastAttack.luau` | persistent guard, catch-up walk, hidden tells |
+| `src/wildbound/WildboundBeastEncounters.luau` | Viper/Pouncer persistent chase; Viper dash cooldown + slow on hit; Pouncer throw phase, web ball, root |
+| `src/wildbound/WildboundBeastStreamer.luau` | rewritten: statue, harmless scream, very fast chase, grab, validated teleport |
+| `src/wildbound/WildboundBeastRoot.luau` | revised timings and reach, burrow chase on the target's level |
+| `src/wildbound/WildboundBeastGaze.luau` | rewritten: accumulated 3 s look, pause not reset, one defeat per encounter, persistent reposition |
+| `src/wildbound/WildboundBeastLurker.luau` | hidden leap tell |
+| `src/wildbound/WildboundBeastConfig.luau` | the six beasts' new values (see the table above) |
+| `src/wildbound/WildboundBeastProxies.luau` | LOOKS (scale, colours, Screamer statue, Gaze eye lights) applied when templates are adopted |
+| `src/wildbound/WildboundBeasts.server.luau` | web root (applyRoot), Screamer spawn ahead, `nearSpot` teleport candidates |
+| `src/wildbound/WildboundBeasts.client.luau` | Viper/Pouncer phases, web ball, Screamer true form, organic roots, Gaze paused meter, Lurker cues off |
+| `src/wildbound/WildboundBeastAnim.client.luau` | accepts rigs whose bones sit under a plain Part (the Viper/Pouncer FBX imports) |
+| `src/wildbound/WildboundBeastAnimPlan.luau` | Viper and Pouncer plans, Screamer statue (freeze step), Root Burrow, Gaze Kill |
+| `src/wildbound/WildboundBeastAnimViper.luau`, `WildboundBeastAnimPouncer.luau` (new) | baked clips |
+| `src/wildbound/WildboundBeastAudience.luau` | Throw/Web/WebEnd seen by nearby players |
+| `src/wildbound/WildboundText.luau` | "Screamer", web line, Gaze and Lurker lines |
+| `tests/WildboundBeast{Chase,Attack,Encounters,Streamer,Root,Gaze,Lurker,AnimPlan}_Test.luau` | RED/GREEN suites |
+| `tools/beast_rig/blend_to_anim_luau.py` (new) | bakes a .blend's actions into a WildboundBeastAnim module |
+| `assets/models/beasts/src/build_pouncer_tarantula.py`, `pouncer_tarantula.blend`, previews (new) | the tarantula |
+| `assets/exports/caramelo/pouncer-tarantula*.fbx`, `beast-revision-*.rbxmx`, `upload-receipts.md` | exports and upload receipts |
+| `tools/studio-fresh-runner.luau` | SPECS for the Chase suite and the Viper/Pouncer clip data |
+
+Studio-only: `ServerStorage.WildboundAssets.Beasts.Pouncer` is now the tarantula (asset 136993159368939); the old one is
+in `ServerStorage.WildboundAssets.BeastsBackup_20261116`. `ReplicatedStorage.WildboundBeastAnimViper/Pouncer` exist.
+The place is not saved by agents: the owner must save (Ctrl+S) to keep all of this.
+
+### 2. Values
+
+The "Current vs proposed values" table above is the delivered table (every proposed value is now live), plus the Pouncer
+web (delay 0.3, speed 45, range 32, radius 2.5, root 1 s) and the Screamer grab lock (0.3 s before the strike).
+
+### 3. Animations
+
+| Beast | Reused | Created | Pending |
+|---|---|---|---|
+| Viper | Idle, Slither, Windup, Dash, Crash, Recover from `viper.blend` (made in EV-W3, never played before): now baked and wired | the bake tool | a distinct "hit" clip (a hit uses Recover; a wall uses Crash) |
+| Pouncer | Idle, Stalk, Windup, Leap, Land, Recover (rebuilt on the tarantula mesh) | Throw (web throw, 0.6 s) | none |
+| Screamer | ScreamCharge, ScreamPulse, Pursue, Idle, RushTelegraph, Rush, Crash; Warn frame 0 held as the statue pose | the freeze plan step | a real statue pose and a transformation clip (needs a Blender pass on the rig source, not in the repo) |
+| Root | all existing; Collapse + Emerge reused for the burrow | none | none |
+| Gaze | all existing; Pulse for the defeat | none | none |
+| Lurker | all existing (its crouch is now the only cue) | none | none |
+
+### 4. Tests and results
+
+See the BR0 and BR1-BR6 evidence rows and the Play checks above.
+
+### 5. Problems, decisions and manual steps
+
+- Decisions: BR-D1..BR-D19 above.
+- Not tested: two players (bystanders seeing the web ball, the Screamer true form for a late joiner: a bystander who
+  joins after the scream sees the stone colours until the next phase change), a phone, normal (non-private) damage mode
+  on a live server (Gaze's defeat then only knocks the egg out, by design BR-D6).
+- Viper's slow uses the existing `applySlow`, which ends early whenever `WildboundServer.applyCarry` recomputes the walk
+  speed (pre-existing; a lasting fix belongs in the teammate's SistemaSonriente Velocidad module).
+- Pouncer cannot land on some relief ridge parts (`world.landing` overlap check, pre-existing); it now keeps retrying
+  every 0.5 s instead of leaving (persistent chase).
+- Root's lanes and whip are checked and drawn at its own height; on very uneven relief they can miss (pre-existing).
+- Owner: save the place in Studio to keep the tarantula template, the clip modules and every script change.
+
 ## Next step
 
-BR0 shared chase rules, then BR1-BR6 beast by beast.
+Two-player and phone playtest of the six beasts (owner), then tuning of the PROPUESTA values from that playtest.

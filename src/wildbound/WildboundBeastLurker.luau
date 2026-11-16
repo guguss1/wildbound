@@ -49,8 +49,9 @@ end
 local function startLeap(events, e, now, target, world, C, T)
 	local dest = { x = target.x, y = Attack.groundAt(world, target.x, target.z, target.y - 3), z = target.z }
 	local strikeAt = now + T.LeapTelegraphSeconds + T.LeapTravelSeconds
+	-- BR6 (odd/tasks/wildbound-beast-revision.md): the landing circle is hidden (never drawn); the crouch is the only cue.
 	local attack = Attack.open(events, e, world, { key = "leap", startAt = now, strikeAt = strikeAt, dodgeable = true,
-		damage = T.LeapDamage, lockAt = now + T.LeapTelegraphSeconds, shape = landingCircle(dest, C) })
+		damage = T.LeapDamage, lockAt = now + T.LeapTelegraphSeconds, shape = landingCircle(dest, C), hidden = C.hideTells })
 	if not attack then return false end
 	e.leap, e.dest, e.leapAt = attack, dest, now + T.LeapTelegraphSeconds
 	Attack.face(e, target)

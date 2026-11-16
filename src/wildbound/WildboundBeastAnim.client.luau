@@ -28,10 +28,25 @@ local function dataFor(beast)
 	return dataCache[beast] or nil
 end
 
+local function rigOnPart(model)
+	for _, item in ipairs(model:GetDescendants()) do
+		if item:IsA("BasePart") and item:FindFirstChildWhichIsA("Bone") then
+			local bones = {}
+			for _, bone in ipairs(item:GetDescendants()) do
+				if bone:IsA("Bone") then bones[bone.Name] = bone end
+			end
+			return { mesh = item, bones = bones }
+		end
+	end
+	return nil
+end
+
 local function setup(model)
 	if active[model] or not model:IsA("Model") or not model.Parent then return end
 	if not Plan.PLANS[model.Name] then return end
-	local rig = Rig.find(model)
+	-- BR1/BR2 (odd/tasks/wildbound-beast-revision.md): the uploaded Viper and Pouncer FBX imports keep their bones under
+	-- the plain "RootPart" Part (their MeshParts are skinned to those bones), not under a MeshPart: accept that holder too.
+	local rig = Rig.find(model) or rigOnPart(model)
 	if not rig then return end -- a proxy: nothing to animate
 	local data = dataFor(model.Name)
 	if not data then

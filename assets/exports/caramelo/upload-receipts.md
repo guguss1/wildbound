@@ -32,3 +32,9 @@
 - 2026-11-16 Duquesa Burbuja v2 (duquesa-burbuja-v2.fbx; user: "subi los modelos"): POST -> 200
   {"operationId":"104dc5af-0dec-4179-9e13-ab1b66e4caa4","done":false}
   done: assetId 104188536887852 (Model, Approved, revision 1). v1 (76476884029771) is no longer used in the preview.
+
+- 2026-11-16 beast revision BR1/BR2 (user authorised model uploads for this work; creator user 11952612439), POST /assets/v1/assets:
+  - Pouncer tarantula (pouncer-tarantula.fbx, Model): -> 200 {"operationId":"2ce7c2fd-1028-440b-8ee5-70b6968f94b1","done":false}
+  - Viper + Pouncer clip data modules (beast-revision-anim-data-v1.rbxmx, Model): -> 200 {"operationId":"3242a775-2d44-4b4e-a246-3564f8689d20","done":false}  - done (polled once, Model, Approved, revision 1): Pouncer tarantula 136993159368939, clip data modules 110244231107381.
+  - Script sources for the Studio sync (beast-revision-scripts-v1.rbxmx, Model): -> 200 {"operationId":"a592db86-0d7d-4f7d-a172-4b81916747c1","done":false}
+  - done (polled once, Model, Approved, revision 1): script sources 104898638172426 (a transport only: inserted, copied into the scripts, destroyed).

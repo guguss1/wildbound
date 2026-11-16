@@ -57,13 +57,13 @@ return function(Enc, source, Config, configSource)
 		assert(V.windup >= Config.MIN_TELL, "Viper windup")
 		assert(V.windup - V.lockLead >= 0.5, "the lane follows the target for a while")
 		near(V.lockLead, 0.45, "angle locked for the last 0.45 s")
-		equal(V.laneLength, 32); equal(V.laneWidth, 4.5); equal(V.dashSpeed, 60); equal(V.damage, 35)
+		equal(V.laneLength, 46); equal(V.laneWidth, 6); equal(V.dashSpeed, 84); equal(V.damage, 35)
 		local dash = V.laneLength / V.dashSpeed
 		assert(dash >= 0.45 and dash <= 0.75, "dash lasts 0.45 to 0.75 s: " .. dash)
 		equal(V.maxAttacks, 3); equal(V.maxSeconds, 32); equal(V.escapeDistance, 100); equal(V.escapeSeconds, 4)
 		assert(P.telegraph >= Config.MIN_TELL, "Pouncer telegraph")
 		assert(P.telegraph - P.freezeAfter + P.flight >= 1, "at least 1 s from the frozen circle to the landing")
-		equal(P.radius, 6.5); equal(P.flight, 0.75); equal(P.arcHeight, 10); equal(P.damage, 40); equal(P.recover, 1.2)
+		equal(P.radius, 9); equal(P.flight, 0.75); equal(P.arcHeight, 10); equal(P.damage, 40); equal(P.recover, 1.2)
 		equal(P.jumps, 2); equal(P.maxJumps, 3); equal(P.maxSeconds, 33); equal(P.escapeDistance, 105)
 	end)
 
@@ -99,11 +99,11 @@ return function(Enc, source, Config, configSource)
 		assert(count(by, "Windup") >= 1, "a windup")
 		local w = by.Windup[1]
 		local d = Config.flat(w.origin.x, w.origin.z, 0, 0)
-		assert(d >= V.attackMin - 1e-6 and d <= V.attackMax + 1e-6, "windup from 18 to 30 studs, got " .. d)
+		assert(d >= V.attackMin - 1e-6 and d <= V.attackMax + 1e-6, "windup from 18 to 38 studs, got " .. d)
 		assert(w.at >= V.spawnSeconds, "never during the spawn")
 		near(w.dashAt - w.at, V.windup, "tell")
 		near(w.lockAt - w.at, V.windup - V.lockLead, "lock")
-		equal(w.length, 32); equal(w.width, 4.5)
+		equal(w.length, 46); equal(w.width, 6)
 		assert(by.Dash and by.Dash[1].at >= w.dashAt - 1e-6, "the dash starts at the end of the tell")
 		if by.Hit then assert(by.Hit[1].at >= w.dashAt - 1e-6, "no damage before the tell ends") end
 	end)
@@ -139,15 +139,46 @@ return function(Enc, source, Config, configSource)
 		near(e.dx, dx, "aims at the target", 1e-3); near(e.dz, dz, nil, 1e-3)
 	end)
 
-	case("NB3 Viper: the server hit uses the drawn width: 2.2 studs to the side is hit, 2.3 is not", function()
-		for _, side in ipairs({ 2.2, 2.3 }) do
+	case("BR1 Viper: the server hit uses the drawn width: 2.9 studs to the side is hit, 3.1 is not", function()
+		for _, side in ipairs({ 2.9, 3.1 }) do
 			local e = viperInRange()
 			local lockAt = V.spawnSeconds + V.windup - V.lockLead
 			local _, by = run(e, 0, 3, standing(0, 0, function(now)
 				if now >= lockAt + 0.01 then return side, 0 end
 			end))
-			equal(count(by, "Hit"), side == 2.2 and 1 or 0, "side " .. side)
+			equal(count(by, "Hit"), side == 2.9 and 1 or 0, "side " .. side)
 		end
+	end)
+
+	case("BR1 Viper: the tell is the same 1.15 s; the dash is faster (84) and longer (46) than before (60, 32)", function()
+		near(V.windup, 1.15, "windup kept"); near(V.lockLead, 0.45, "lock kept")
+		assert(V.dashSpeed > 60 and V.laneLength > 32, "faster and longer")
+		local e = viperInRange()
+		local _, by = run(e, 0, 3, standing(0, 0))
+		local w, d = by.Windup[1], by.Dash[1]
+		near(d.at - w.at, 1.15, "reaction window unchanged")
+		equal(d.speed, 84); equal(d.length, 46)
+		near(d.endAt - d.at, 46 / 84, "dash time")
+	end)
+
+	case("BR1 Viper: a confirmed hit carries the slow; a sidestep (miss) carries nothing", function()
+		local e = viperInRange()
+		local _, by = run(e, 0, 3, standing(0, 0))
+		local hit = by.Hit[1]
+		assert(type(hit.slow) == "table", "a slow on the hit")
+		near(hit.slow.multiplier, V.slowMultiplier); near(hit.slow.seconds, V.slowSeconds)
+		assert(V.slowMultiplier >= 0.5 and V.slowMultiplier < 1 and V.slowSeconds <= 3, "inside the shared caps")
+		local lockAt = V.spawnSeconds + V.windup - V.lockLead
+		local e2 = viperInRange()
+		local _, by2 = run(e2, 0, 3, standing(0, 0, function(now) if now >= lockAt + 0.1 then return 8, 0 end end))
+		equal(count(by2, "Hit"), 0, "a miss: no hit, so no slow")
+	end)
+
+	case("BR1 Viper: the next windup waits for the dash cooldown, counted from the dash start", function()
+		local e = viperInRange()
+		local _, by = run(e, 0, 9, standing(0, 0))
+		assert(count(by, "Dash") >= 2, "two dashes")
+		assert(by.Windup[2].at >= by.Dash[1].at + V.dashCooldown - 1e-6, "cooldown respected")
 	end)
 
 	case("NB3 Viper: a wall cuts the dash: the lane is shortened at the lock, nothing is hit beyond it, longer recovery", function()
@@ -168,7 +199,7 @@ return function(Enc, source, Config, configSource)
 		local w = by.Windup and by.Windup[1]
 		assert(w, "a windup")
 		assert(math.abs(w.origin.x) >= 6, "it moved out of the trunk's shadow, x = " .. w.origin.x)
-		near(by.Lock[1].length, 32, "a clear lane")
+		near(by.Lock[1].length, 46, "a clear lane")
 		assert(w.at <= V.spawnSeconds + V.clearSearch + 1e-6, "the search is short")
 		local d = Config.flat(w.origin.x, w.origin.z, 0, 0)
 		assert(d >= V.attackMin and d <= V.attackMax, "still in range: " .. d)
@@ -183,27 +214,21 @@ return function(Enc, source, Config, configSource)
 		near(e.pos.y, 10, "the head climbed onto the ridge")
 	end)
 
-	case("NB3 Viper: at most 3 attacks, then it disengages and ends", function()
+	case("BR0 Viper: the persistent chase keeps attacking past the old 3-dash cap, with no retreat", function()
 		local e = viperInRange()
-		local events, by = run(e, 0, 20, standing(0, 0))
-		equal(count(by, "Dash"), 3)
-		equal(count(by, "Hit"), 3, "one per dash")
-		equal(by.Disengage[1].reason, "Done")
-		equal(count(by, "End"), 1)
-		equal(events[#events].type, "End")
-		equal(#Enc.step(e, 21, standing(0, 0)(21), OPEN), 0, "nothing after the end")
+		local _, by = run(e, 0, 20, standing(0, 0))
+		assert(count(by, "Dash") >= 4, "more than 3 dashes in 20 s, got " .. count(by, "Dash"))
+		equal(count(by, "Hit"), count(by, "Dash"), "one hit per dash")
+		equal(count(by, "Disengage"), 0); equal(count(by, "End"), 0)
 	end)
 
-	case("NB3 Viper: escape at 100 studs for 4 s, and the 32 s limit", function()
+	case("BR0 Viper: never gives up for distance or time; far behind it closes in at the catch-up speed", function()
 		local e = Enc.new("Viper", "beast:1", 1, 0, { x = 0, y = 3, z = 25 })
-		local _, by = run(e, 0, 6, standing(0, 300))
-		equal(by.Disengage and by.Disengage[1].reason, "Escape")
-		assert(by.Disengage[1].at >= 4 - 1e-6, "after 4 s away")
-		-- A target the beast never reaches: stalking ends, and at worst the clock ends the encounter.
-		local slow = Enc.new("Viper", "beast:2", 1, 0, { x = 0, y = 3, z = 25 })
-		local _, by2 = run(slow, 0, 40, standing(0, 0, function(now) return 0, -now * 0.1 end), { castLane = function() return 0.2 end })
-		assert(by2.End, "it ends")
-		assert(by2.End[1].at <= V.maxSeconds + V.disengage + 2 * DT, "within the 32 s limit plus the retreat")
+		local _, by = run(e, 0, 40, standing(0, 600))
+		equal(count(by, "Disengage"), 0, "no Escape, NoApproach or Timeout"); equal(count(by, "End"), 0)
+		-- 575 studs to cover: 40 s minus the spawn at 20 studs/s is about 785 studs, so it has reached its range.
+		local d = Config.flat(e.pos.x, e.pos.z, 0, 600)
+		assert(d <= V.attackMax + 25, "it caught up, distance " .. d)
 	end)
 
 	case("NB3 Viper: entering a safe zone or dying ends it at once, with no late hit", function()
@@ -228,23 +253,23 @@ return function(Enc, source, Config, configSource)
 		equal(#Enc.step(e, 3, standing(0, 0)(3), OPEN), 0)
 	end)
 
-	case("NB3 Pouncer: a 6.5-stud circle, its centre frozen after 0.25 s, a 1.3 s telegraph then a 0.75 s leap", function()
+	case("BR2 Pouncer: a 9-stud circle, its centre frozen after 0.25 s, a 1.3 s telegraph then a 0.75 s leap", function()
 		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
 		local _, by = run(e, 0, 1.2, standing(0, 0))
 		equal(count(by, "Telegraph"), 1)
 		local t = by.Telegraph[1]
-		equal(t.radius, 6.5)
+		equal(t.radius, 9)
 		near(t.freezeAt - t.at, 0.25); near(t.leapAt - t.at, 1.3); near(t.landAt - t.leapAt, 0.75)
 		equal(count(by, "Freeze"), 1)
 		-- After the freeze the target walks away: the centre stays.
 		local f = by.Freeze[1]
 		local e2 = Enc.new("Pouncer", "beast:4", 1, 0, { x = 0, y = 3, z = 25 })
 		local _, by2 = run(e2, 0, 3, standing(0, 0, function(now)
-			if now >= f.at + 0.1 then return 9, 0 end
+			if now >= f.at + 0.1 then return 11, 0 end
 		end))
 		near(by2.Leap[1].to.x, by2.Freeze[1].center.x, "the leap aims at the frozen centre"); near(by2.Leap[1].to.z, by2.Freeze[1].center.z)
 		near(e2.center.x, by2.Freeze[1].center.x, "never recentred")
-		equal(count(by2, "Hit"), 0, "9 studs out of a 6.5 circle: no damage")
+		equal(count(by2, "Hit"), 0, "11 studs out of a 9 circle: no damage")
 		equal(by2.Land[1].hit, false)
 	end)
 
@@ -280,8 +305,8 @@ return function(Enc, source, Config, configSource)
 		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
 		local _, by = run(e, 0, 6, standing(0, 0), world)
 		equal(count(by, "Telegraph"), 0)
-		assert(count(by, "Cancel") >= 1, "a cancelled choice")
-		equal(by.Disengage and by.Disengage[1].reason, "NoLanding")
+		assert(count(by, "Cancel") >= 4, "it keeps trying past the old 3-skip cap")
+		equal(count(by, "Disengage"), 0, "BR0: no NoLanding retreat while it chases")
 		local blocked = { arcClear = function() return false end }
 		local e2 = Enc.new("Pouncer", "beast:4", 1, 0, { x = 0, y = 3, z = 25 })
 		local _, by2 = run(e2, 0, 6, standing(0, 0), blocked)
@@ -299,14 +324,12 @@ return function(Enc, source, Config, configSource)
 		equal(count(by, "Disengage"), 0)
 	end)
 
-	case("NB3 Pouncer: two jumps, a recovery between them, then it leaves", function()
+	case("BR0 Pouncer: keeps leaping past the old 2-jump cap, a recovery between jumps, no retreat", function()
 		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
-		local events, by = run(e, 0, 15, standing(0, 0))
-		equal(count(by, "Leap"), 2)
-		equal(count(by, "Hit"), 2, "one per jump")
+		local _, by = run(e, 0, 15, standing(0, 0))
+		assert(count(by, "Leap") >= 3, "more than 2 leaps, got " .. count(by, "Leap"))
 		assert(by.Telegraph[2].at >= by.Land[1].at + P.recover - 1e-6, "the second circle waits for the recovery")
-		equal(by.Disengage[1].reason, "Done")
-		equal(events[#events].type, "End")
+		equal(count(by, "Disengage"), 0); equal(count(by, "End"), 0)
 	end)
 
 	case("NB3 Pouncer: a safe zone before the landing cancels the hit and ends it", function()
@@ -316,6 +339,45 @@ return function(Enc, source, Config, configSource)
 		end))
 		equal(count(by, "Hit"), 0)
 		equal(by.End[1].reason, "SafeZone")
+		equal(count(by, "Web"), 0, "BR2: no web ball when the landing never happened")
+	end)
+
+	case("BR2 Pouncer: every valid landing throws exactly one web ball, after the landing, at the target", function()
+		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
+		local _, by = run(e, 0, 12.5, standing(0, 0))
+		assert(count(by, "Land") >= 2, "two landings")
+		equal(count(by, "Web"), count(by, "Land"), "one ball per landing")
+		for i, web in ipairs(by.Web) do
+			assert(web.at >= by.Land[i].at + P.webDelay - 1e-6, "thrown after the landing is confirmed")
+			equal(web.speed, P.webSpeed); equal(web.range, P.webRange); equal(web.radius, P.webRadius)
+		end
+		equal(count(by, "Throw"), count(by, "Land"), "the throw phase (its animation) per landing")
+		local ids = {}
+		for _, web in ipairs(by.Web) do assert(not ids[web.web], "a unique ball id"); ids[web.web] = true end
+	end)
+
+	case("BR2 Pouncer: a web hit roots the target for exactly 1 s (an Afflict, never damage)", function()
+		equal(P.webRootSeconds, 1)
+		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
+		local _, by = run(e, 0, 3.6, standing(0, 0))
+		equal(count(by, "Afflict"), 1, "the ball hit")
+		local a = by.Afflict[1]
+		equal(a.root, 1); equal(a.web, true); equal(a.damage, nil, "no damage")
+		equal(by.WebEnd[1].hit, true)
+	end)
+
+	case("BR2 Pouncer: a web that misses roots nobody and ends at its range", function()
+		local e = Enc.new("Pouncer", "beast:3", 1, 0, { x = 0, y = 3, z = 25 })
+		local throwSeen
+		local _, by = run(e, 0, 4.5, standing(0, 0, function(now)
+			if e.phase == "Telegraph" and e.frozen and not throwSeen then return 13, 0 end
+			if e.web and not throwSeen then throwSeen = now end
+			if throwSeen then return 13, 8 end
+		end))
+		equal(count(by, "Web"), 1)
+		equal(count(by, "Afflict"), 0, "no root on a miss")
+		equal(by.WebEnd[1].hit, false)
+		near(by.WebEnd[1].at - by.Web[1].at, P.webRange / P.webSpeed, "ends at its range", 1e-6)
 	end)
 
 	case("NB3: the state machines and the geometry are pure", function()

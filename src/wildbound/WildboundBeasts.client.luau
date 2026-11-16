@@ -299,6 +299,9 @@ local OWN_PHASE_SOUND = {
 		PunishTell = { "stinger", 1.2 }, Charge = { "dirt", 1.5 }, Snap = { "snap", 1 }, PulseCharge = { "unease", 0.7 },
 		Pulse = { "roar", 1.1 }, Fallen = { "softStinger", 1 }, ["Fallen:Crash"] = { "crack", 0.9 },
 	},
+	-- BR6 (odd/tasks/wildbound-beast-revision.md): Lurker gives no early warning: no steps while it closes in, no whisper
+	-- before its leap; only the overrun after a perfect dodge still cracks.
+	Lurker = { OverrunStunned = { "crack", 0.9 } },
 }
 local SPAWN_SOUND = { Scuttler = "dirt" } -- the rise out of the ground
 local STAR_HEIGHT = { Scuttler = 15 } -- dizzy stars over a tall body (others: 6 studs)
@@ -364,6 +367,35 @@ local function hatch(model, shape, color)
 	end
 end
 
+-- BR4 (odd/tasks/wildbound-beast-revision.md): an erupted Root lane drawn as a real root: a winding, tapering trunk
+-- that arches out of the ground and back, with side roots diving into the soil. It winds inside the lane's width, so
+-- what is seen stays inside the hit volume. Lighter than Root's brown body so it reads against the beast and the forest.
+local ROOT_COLOR = Color3.fromRGB(140, 96, 58)
+local function organicRoot(model, lane, index)
+	local n = math.max(4, math.floor(lane.length / 3))
+	local px, pz = -lane.dz, lane.dx
+	local amp = math.min(lane.width * 0.3, 1.2)
+	local seed = index * 1.7
+	local previous
+	for i = 0, n do
+		local t = i / n
+		local along = t * lane.length
+		local side = math.sin(t * math.pi * 3 + seed) * amp
+		local rise = 0.4 + 1.8 * math.sin(t * math.pi)
+		local point = Vector3.new(lane.ox + lane.dx * along + px * side, lane.oy + rise, lane.oz + lane.dz * along + pz * side)
+		if previous then
+			local thick = 1.7 - 1.0 * t
+			bar(model, ("Root%dSeg%d"):format(index, i), previous, point, thick, ROOT_COLOR, 0, thick)
+			if i % 3 == 0 then
+				local out = side >= 0 and 1 or -1
+				local tip = point + Vector3.new(px * out * 1.4, -rise - 0.4, pz * out * 1.4)
+				bar(model, ("Root%dBranch%d"):format(index, i), point, tip, thick * 0.5, ROOT_COLOR, 0, thick * 0.5)
+			end
+		end
+		previous = point
+	end
+end
+
 local function rotate(gx, gz, angle)
 	local c, s = math.cos(angle), math.sin(angle)
 	return gx * c - gz * s, gx * s + gz * c
@@ -418,6 +450,10 @@ local function drawShape(model, shape, color, raised)
 		end
 		for l, lane in ipairs(shape.list or {}) do
 			if lane.kind ~= "lane" then continue end
+			if raised and shape.segments then
+				organicRoot(model, lane, l)
+				continue
+			end
 			local step = lane.length / segments
 			for s = 1, segments do
 				local a = Vector3.new(lane.ox + lane.dx * (s - 1) * step, lane.oy, lane.oz + lane.dz * (s - 1) * step)
@@ -489,6 +525,7 @@ local function finishView(id)
 	clearCircle(view)
 	clearTells(view)
 	if view.extras then view.extras:Destroy() end
+	if view.webBall then view.webBall:Destroy() end -- BR2: a ball in flight goes with its encounter
 	if view.model then view.model:Destroy() end
 end
 
@@ -563,8 +600,13 @@ function handlers.Spawn(ev)
 		end
 		return
 	end
+	-- BR1/BR2 (odd/tasks/wildbound-beast-revision.md): Viper and Pouncer publish their phases too, so their rigs play
+	-- the baked clips (WildboundBeastAnimViper / Pouncer through WildboundBeastAnimPlan).
+	publishPhase(view, "Spawn", ev.at, ev.at)
 	play(ev.beast == "Viper" and "dirt" or "steps", rootOf(view), ev.beast == "Viper" and 0.8 or 1.25, 0.6)
 end
+function handlers.Stalk(ev, view) publishPhase(view, "Stalk", ev.at, ev.at) end
+function handlers.Hunt(ev, view) publishPhase(view, "Hunt", ev.at, ev.at) end
 function handlers.Snap(ev, view)
 	table.insert(view.snaps, { at = ev.at, x = ev.x, y = ev.y, z = ev.z, dx = ev.dx, dz = ev.dz })
 	if #view.snaps > 12 then table.remove(view.snaps, 1) end
@@ -578,6 +620,7 @@ function handlers.Windup(ev, view)
 	view.laneSpec = { ox = ev.origin.x, oy = ev.origin.y, oz = ev.origin.z, dx = ev.dx, dz = ev.dz, length = ev.length,
 		width = ev.width, locked = false }
 	view.mode = "windup"
+	publishPhase(view, "Windup", ev.at, ev.dashAt)
 	drawLane(view)
 	showWarning("Viper", ev.dashAt)
 	play("whisper", rootOf(view), 1.7, 0.9)
@@ -591,16 +634,20 @@ end
 function handlers.Dash(ev, view)
 	view.mode = "dash"
 	view.dash = { at = ev.at, endAt = ev.endAt, dx = ev.dx, dz = ev.dz, speed = ev.speed, length = ev.length }
+	publishPhase(view, "Dash", ev.at, ev.endAt)
 	play("dirt", rootOf(view), 1.5, 1)
 end
-function handlers.Recover(_, view)
+function handlers.Recover(ev, view)
 	-- The snapshots sent during the dash already follow it, so the body stays where the dash ended.
 	view.mode = "snap"
+	publishPhase(view, "Recover", ev.at, ev.untilAt)
+	if ev.crashed then publishVariant(view, "Crash") end
 	task.delay(0.15, function() clearLane(view) end)
 end
 function handlers.Telegraph(ev, view)
 	view.circleSpec = { x = ev.center.x, y = ev.center.y, z = ev.center.z, radius = ev.radius, frozen = false,
 		startAt = ev.at, landAt = ev.landAt }
+	publishPhase(view, "Telegraph", ev.at, ev.leapAt)
 	drawCircle(view)
 	showWarning("Pouncer", ev.landAt)
 	play("snap", rootOf(view), 1.2, 0.9)
@@ -614,6 +661,7 @@ end
 function handlers.Leap(ev, view)
 	view.mode = "leap"
 	view.leap = { at = ev.at, landAt = ev.landAt, from = ev.from, to = ev.to, height = ev.height }
+	publishPhase(view, "Leap", ev.at, ev.landAt)
 end
 function handlers.Land(ev, view)
 	view.mode = "snap"
@@ -657,11 +705,28 @@ local PHASE_SOUND = {
 	WhipWindup = { "whisper", 0.7 },
 	Manifest = { "unease", 1 }, ExposureBuild = { "heartbeat", 1 }, ChargeZone = { "pulse", 1.2 },
 	Presence = { "steps", 0.8 }, CoverApproach = { "steps", 1.1 }, LeapWindup = { "whisper", 1.4 }, OverrunStunned = { "crack", 0.9 },
+	-- BR3: the Screamer's scream and grab.
+	Scream = { "groan", 1.0 }, CatchTell = { "snap", 1.2 },
 }
+-- BR3 (odd/tasks/wildbound-beast-revision.md): the Screamer drops its stone look at the scream (the colours and
+-- material WildboundBeastProxies.dress kept on each MeshPart as TrueColor / TrueMaterial).
+local function trueForm(view)
+	if not view.model or view.trueForm then return end
+	view.trueForm = true
+	for _, d in ipairs(view.model:GetDescendants()) do
+		local color, material = d:GetAttribute("TrueColor"), d:GetAttribute("TrueMaterial")
+		if d:IsA("BasePart") and typeof(color) == "Color3" then
+			d.Color = color
+			if type(material) == "string" then pcall(function() d.Material = Enum.Material[material] end) end
+		end
+	end
+	if view.model.PrimaryPart and not muting then dust(view.model.PrimaryPart.Position + Vector3.new(0, 2, 0)) end
+end
 function handlers.Phase(ev, view)
 	if not view.wave2 then return end
 	view.phase, view.phaseAt, view.phaseUntil = ev.phase, ev.at, ev.untilAt
 	publishPhase(view, ev.phase, ev.at, ev.untilAt)
+	if view.beast == "Streamer" and ev.phase ~= "Statue" then trueForm(view) end
 	publishVariant(view, ev.fall)
 	-- A move ends at the first phase that starts after it.
 	if view.move and ev.at >= (view.move.endAt or math.huge) - 1e-3 then view.move = nil end
@@ -684,6 +749,7 @@ function handlers.Phase(ev, view)
 end
 function handlers.Tell(ev, view)
 	if not view.wave2 or type(ev.shape) ~= "table" or type(ev.tell) ~= "string" then return end
+	if ev.hidden == true then return end -- BR6: a hidden tell (Lurker's leap) is never drawn
 	local item = view.tells[ev.tell]
 	if not item then
 		local model = Instance.new("Model")
@@ -742,8 +808,41 @@ function handlers.Move(ev, view)
 end
 -- SC8: a landed pulse (Afflict) on this player. The server already applied the slow; the client only adds a short
 -- shake and a brief desaturation, both left out by Efectos suaves. A bystander never receives Afflict.
+-- BR2 (odd/tasks/wildbound-beast-revision.md): Pouncer's web throw (its own animation phase) and the ball, drawn on the
+-- server's timeline as a white sticky ball flying straight; the hit is the server's (an Afflict with root).
+function handlers.Throw(ev, view)
+	publishPhase(view, "Throw", ev.at, ev.throwAt)
+	play("snap", rootOf(view), 1.6, 0.8)
+end
+function handlers.Web(ev, view)
+	if view.webBall then view.webBall:Destroy() end
+	if type(ev.from) ~= "table" or not Config.finite(ev.speed) or not Config.finite(ev.range) then return end
+	local ball = Instance.new("Part")
+	ball.Name, ball.Shape, ball.Anchored = "WebBall", Enum.PartType.Ball, true
+	ball.Size = Vector3.one * math.clamp((ev.radius or 2.5) * 0.8, 1, 3)
+	ball.Material, ball.Color = Enum.Material.Neon, Color3.fromRGB(240, 240, 232)
+	quiet(ball)
+	local from, dir = Vector3.new(ev.from.x, ev.from.y, ev.from.z), Vector3.new(ev.dx, 0, ev.dz)
+	local total = ev.range / math.max(ev.speed, 1e-3)
+	local late = math.clamp(workspace:GetServerTimeNow() - ev.at, 0, total)
+	ball.Position = from + dir * ev.speed * late
+	ball.Parent = folder
+	view.webBall = ball
+	game:GetService("TweenService"):Create(ball, TweenInfo.new(math.max(total - late, 0.05), Enum.EasingStyle.Linear),
+		{ Position = from + dir * ev.range }):Play()
+	play("whisper", rootOf(view), 1.8, 0.7)
+end
+function handlers.WebEnd(ev, view)
+	local ball = view.webBall
+	view.webBall = nil
+	if not ball then return end
+	if ev.hit then dust(ball.Position) end
+	ball:Destroy()
+end
 function handlers.Afflict(ev, view)
 	if view.bystander then return end
+	local pouncer = Text.BEAST.Pouncer
+	if ev.web and pouncer and pouncer.webbed then showLine(pouncer.webbed, ev.at + 1) end
 	if ev.shake ~= true or reduced() then return end
 	shake(0.45)
 	desaturate(0.45)
@@ -806,11 +905,14 @@ function handlers.Anger(ev, view)
 	view.model:SetAttribute("BossRage", ev.rage == true)
 end
 function handlers.Exposure(ev, view)
-	if view.wave2 and not view.bystander and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
+	if view.wave2 and not view.bystander and Config.finite(ev.value) then
+		view.exposure = math.clamp(ev.value, 0, 1)
+		view.exposurePaused = ev.paused == true -- BR5: looking away pauses the count (it never goes back down)
+	end
 end
 function handlers.SightBreak(ev, view)
 	if not view.wave2 or view.bystander then return end
-	view.exposure = 0
+	view.exposurePaused = true -- BR5: the count pauses, it is not reset
 	local words = Text.BEAST.Gaze
 	if words and words.broken then showLine(words.broken, ev.at + 1) end
 	play("softStinger", rootOf(view), 1.2, 0.5)
@@ -1082,7 +1184,7 @@ local lastObserve = 0
 -- beast keeps its place and the warning still clears; the parts are anchored and client-only either way.
 RunService.Heartbeat:Connect(function()
 	local at = serverNow()
-	local exposure, observing = 0, false
+	local exposure, observing, gazePaused = 0, false, false
 	for _, view in pairs(views) do
 		local x, y, z, dx, dz = placeOf(view, at)
 		if x and view.model then
@@ -1096,7 +1198,9 @@ RunService.Heartbeat:Connect(function()
 		end
 		if view.wave2 then
 			if Config.OBSERVERS[view.beast] and not view.bystander then observing = true end
-			if view.beast == "Gaze" then exposure = math.max(exposure, view.exposure or 0) end
+			if view.beast == "Gaze" and (view.exposure or 0) >= exposure then
+				exposure, gazePaused = view.exposure or 0, view.exposurePaused == true
+			end
 			-- Root's walls rise at their scheduled time and hold this player back on this client only.
 			for _, item in pairs(view.tells) do
 				if item.shape and item.shape.kind == "walls" and not item.raised and item.strikeAt and at >= item.strikeAt then
@@ -1111,7 +1215,9 @@ RunService.Heartbeat:Connect(function()
 					if not view.bystander then play("creak", rootOf(view), 1.4, 1) end
 				end
 			end
-			if x and view.beast == "Lurker" and (view.phase == "Presence" or view.phase == "CoverApproach") then
+			-- BR6: Lurker leaves no glowing footprints any more (they announced it); Config.BEASTS.Lurker.hideTells.
+			if x and view.beast == "Lurker" and not Config.BEASTS.Lurker.hideTells
+				and (view.phase == "Presence" or view.phase == "CoverApproach") then
 				local lastPrint = view.lastPrint
 				if not lastPrint or (Vector3.new(x, 0, z) - lastPrint).Magnitude >= 1.6 then
 					view.lastPrint = Vector3.new(x, 0, z)
@@ -1145,12 +1251,14 @@ RunService.Heartbeat:Connect(function()
 	vignette.Visible = exposure > 0.01
 	meter.Visible = exposure > 0.01
 	if exposure > 0.01 then
-		for _, edge in ipairs(edges) do edge.BackgroundTransparency = 1 - 0.55 * exposure end
+		-- BR5: a paused count keeps the meter where it stopped but softens the edges and drops the blur.
+		local strength = gazePaused and 0.5 or 1
+		for _, edge in ipairs(edges) do edge.BackgroundTransparency = 1 - 0.55 * exposure * strength end
 		meterFill.Size = UDim2.fromScale(exposure, 1)
 		local words = Text.BEAST.Gaze
-		meter.Text = words and words.meter or ""
+		meter.Text = words and (gazePaused and words.meterPaused or words.meter) or ""
 	end
-	local wantBlur = exposure > 0.01 and not reduced()
+	local wantBlur = exposure > 0.01 and not gazePaused and not reduced()
 	blur.Parent = wantBlur and workspace.CurrentCamera or nil
 	blur.Enabled = wantBlur
 	blur.Size = wantBlur and math.min(GAZE.MaxScreenBlurSize, GAZE.MaxScreenBlurSize * exposure) or 0

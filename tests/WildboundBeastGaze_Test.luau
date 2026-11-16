@@ -1,8 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastGazeClone),
 -- require(freshBeastConfigClone), freshBeastGazeClone.Source).
--- Wave 2 (odd/tasks/wildbound-beasts-wave2.md, BW2-5): Gaze's state machine, pure. target.observe stands in for the
--- beast script's validated observation (WildboundBeastSight plus the server raycast); each case says when the target
--- looks. A fake world (flat ground at y 0) and a fake dodge.
+-- Beast revision BR5 (odd/tasks/wildbound-beast-revision.md): Gaze's accumulated-look defeat, pure. target.observe stands
+-- in for the beast script's validated observation (WildboundBeastSight plus the server raycast line of sight); each
+-- case says when the target looks (a wall is "observe returns false": the server raycast is part of observe).
 return function(Enc, Gaze, Config, source)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -24,17 +24,11 @@ return function(Enc, Gaze, Config, source)
 	local T = C.tuning
 
 	local function fakeWorld()
-		local w = { telegraphs = {}, resolved = {}, cancelled = {}, verdict = "Hit" }
+		local w = { spots = 0 }
 		function w.ground() return 0 end
-		function w.telegraph(id, beast, startAt, strikeAt)
-			table.insert(w.telegraphs, { id = id, beast = beast, startAt = startAt, strikeAt = strikeAt })
-			return true
-		end
-		function w.resolve(id) table.insert(w.resolved, id); return w.verdict end
-		function w.cancel(id) table.insert(w.cancelled, id) end
+		function w.reposition() w.spots += 1; return { x = 0, y = 0, z = -40 } end
 		return w
 	end
-	-- looking(t) says whether the target observes Gaze at time t; the arguments of every call are kept.
 	local function target(looking)
 		local tgt = { x = 0, y = 3, z = 0, alive = true, safe = false, biomes = {}, calls = {}, now = 0 }
 		tgt.observe = function(point, halfAngle, maxDist, favour)
@@ -59,98 +53,114 @@ return function(Enc, Gaze, Config, source)
 		end
 		return nil
 	end
+	local function count(events, kind)
+		local n = 0
+		for _, ev in ipairs(events) do if ev.type == kind then n += 1 end end
+		return n
+	end
 	local function always(value) return function() return value end end
+	local M = C.manifestSeconds
 
-	case("BW2 Gaze: manifests for a while with no tell, then builds exposure only while observed", function()
-		local w = fakeWorld()
-		local tgt = target(always(true))
+	case("BR5 Gaze: the threshold is 3 s (configurable) and the result is one 100-damage defeat", function()
+		equal(C.killSeconds, 3); equal(C.killDamage, 100)
+	end)
+
+	case("BR5 Gaze: manifests first (nothing counts), then counts only while really observed, through the eyes", function()
+		local w, tgt = fakeWorld(), target(always(true))
 		local e = Enc.new("Gaze", "beast:1", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, C.manifestSeconds)
-		local manifest = find(events, "Phase", "phase", "Manifest")
-		near(manifest.untilAt - manifest.at, C.manifestSeconds)
-		equal(find(events, "Tell"), nil, "no tell while manifesting")
-		equal(#tgt.calls, 0, "the observation is not read while it manifests")
-		run(e, w, tgt, C.manifestSeconds + 0.05, C.manifestSeconds + 1)
+		local events = run(e, w, tgt, 0, M)
+		equal(#tgt.calls, 0, "not read while it manifests")
+		equal(count(events, "Hit"), 0)
+		run(e, w, tgt, M + 0.05, M + 1)
 		local call = tgt.calls[1]
 		equal(call.halfAngle, T.SightConeDegrees); equal(call.maxDist, T.MaxViewDistanceStuds)
-		equal(call.favour, false, "lag never builds exposure")
+		equal(call.favour, false, "lag never counts")
 		near(call.point.y, C.eyeHeight, "the cone aims at the eyes")
-		assert(e.exposure > 0.9 and e.exposure < 1.1, "about 1 s of exposure: " .. e.exposure)
+		near(e.exposure, 1, "about 1 s", 0.06)
 	end)
 
-	case("BW2 Gaze: 3.5 s of exposure fixes a 7-stud zone on the target, 1.25 s, dodgeable; one hit", function()
-		local w = fakeWorld()
-		local tgt = target(always(true))
+	case("BR5 Gaze: 3 s of continuous looking is exactly one instant defeat", function()
+		local w, tgt = fakeWorld(), target(always(true))
 		local e = Enc.new("Gaze", "beast:2", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, 8)
-		local tell = find(events, "Tell")
-		assert(tell, "the zone")
-		equal(tell.shape.kind, "circle"); equal(tell.shape.r, T.ZoneRadiusStuds)
-		near(tell.shape.x, 0); near(tell.shape.z, 0)
-		near(tell.at, C.manifestSeconds + T.ExposureToAttackSeconds, "after 3.5 s of exposure", 0.11)
-		near(tell.strikeAt - tell.startAt, T.ZoneTelegraphSeconds)
-		equal(w.telegraphs[1].beast, "Gaze")
-		local hits = 0
-		for _, ev in ipairs(events) do
-			if ev.type == "Hit" then hits += 1; equal(ev.damage, T.ZoneDamage) end
-		end
-		equal(hits, 1)
-		local exposure = find(events, "Exposure")
-		assert(exposure and exposure.value >= 0 and exposure.value <= 1, "a 0 to 1 meter")
+		local events = run(e, w, tgt, 0, M + 10)
+		equal(count(events, "Hit"), 1, "once per encounter")
+		local hit = find(events, "Hit")
+		equal(hit.damage, C.killDamage); equal(hit.kill, true)
+		near(hit.at, M + C.killSeconds, "at 3 s of looking", 0.06)
+		equal(count(events, "Tell"), 0, "no zone, no gradual damage")
 	end)
 
-	case("BW2 Gaze: looking away before the charge cancels it after the grace; no zone", function()
+	case("BR5 Gaze: two separate looks add up; looking away pauses (never resets) the count", function()
 		local w = fakeWorld()
-		local tgt = target(function(t) return t < 4 end)
+		-- 2 s looking, 3 s away, then looking again: the defeat comes 1 s into the second look.
+		local tgt = target(function(t) return (t >= M and t < M + 2) or t >= M + 5 end)
 		local e = Enc.new("Gaze", "beast:3", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, 7)
-		equal(find(events, "Tell"), nil, "no zone")
-		local broken = find(events, "SightBreak")
-		assert(broken, "the link breaks")
-		-- About 2 s of exposure decays at 1.8 per second after the 0.25 s grace.
-		near(broken.at, 4 + T.SightBreakGraceSeconds + 2 / T.ExposureDecayPerSecond, "decay time", 0.15)
+		local events = run(e, w, tgt, 0, M + 4.9)
+		near(e.exposure, 2, "held while away", 0.06)
+		equal(count(events, "Hit"), 0)
+		local paused = find(events, "Exposure", "paused", true)
+		assert(paused and math.abs(paused.value - 2 / 3) < 0.05, "the meter shows a paused count")
+		local later = run(e, w, tgt, M + 4.95, M + 8)
+		local hit = find(later, "Hit")
+		assert(hit, "the second look completes it")
+		near(hit.at, M + 6, "2 s + 1 s", 0.06)
 	end)
 
-	case("BW2 Gaze: a committed zone still strikes when the target looks away; leaving the circle avoids it", function()
-		local w = fakeWorld()
-		local looking = true
-		local tgt = target(function() return looking end)
+	case("BR5 Gaze: a wall (no line of sight, observe false) never counts", function()
+		local w, tgt = fakeWorld(), target(always(false))
 		local e = Enc.new("Gaze", "beast:4", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, 8, function() if e.phase == "ChargeZone" then looking = false end end)
-		local tell = find(events, "Tell")
-		assert(find(events, "Hit"), "looking away does not erase the zone")
-		local w2 = fakeWorld()
-		local tgt2 = target(always(true))
-		local e2 = Enc.new("Gaze", "beast:5", 1, 0, { x = 0, y = 0, z = -40 })
-		local events2 = run(e2, w2, tgt2, 0, 8, function(_, tg) if e2.phase == "ChargeZone" then tg.x = 8 end end)
-		equal(find(events2, "Hit"), nil, "8 studs out of a 7-stud circle")
-		equal(w2.cancelled[1], w2.telegraphs[1].id)
-		assert(tell and find(events2, "Phase", "phase", "Dissipate"), "it dissipates after the discharge")
+		local events = run(e, w, tgt, 0, M + 20)
+		near(e.exposure, 0, "nothing through the wall")
+		equal(count(events, "Hit"), 0)
 	end)
 
-	case("BW2 Gaze: a perfect dodge cancels the zone's damage", function()
+	case("BR5 Gaze: progressive feedback: the meter rises while looked at and says paused when not", function()
 		local w = fakeWorld()
-		w.verdict = "Dodged"
-		local tgt = target(always(true))
+		local tgt = target(function(t) return t < M + 1.5 end)
+		local e = Enc.new("Gaze", "beast:5", 1, 0, { x = 0, y = 0, z = -40 })
+		local events = run(e, w, tgt, 0, M + 2.5)
+		local last = -1
+		for _, ev in ipairs(events) do
+			if ev.type == "Exposure" and not ev.paused then
+				assert(ev.value >= last - 1e-9, "never goes down"); last = ev.value
+				assert(ev.value >= 0 and ev.value <= 1, "0 to 1")
+			end
+		end
+		assert(last > 0.4, "it rose")
+		assert(find(events, "Exposure", "paused", true), "paused once the look stopped")
+		assert(find(events, "Phase", "phase", "ExposureBuild") and find(events, "SightBreak"), "posture and break cues")
+	end)
+
+	case("BR5 Gaze: spent after the defeat (normal mode keeps the target alive): no second strike, no exit", function()
+		local w, tgt = fakeWorld(), target(always(true))
 		local e = Enc.new("Gaze", "beast:6", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, 8)
-		equal(find(events, "Hit"), nil)
-		equal(find(events, "Strike").dodged, true)
+		local events = run(e, w, tgt, 0, M + 60)
+		equal(count(events, "Hit"), 1)
+		equal(find(events, "Disengage"), nil); equal(find(events, "End"), nil)
 	end)
 
-	case("BR0 Gaze: never observed it stays (persistent chase: no Unseen or Timeout exit)", function()
-		local w = fakeWorld()
-		local tgt = target(always(false))
+	case("BR5 Gaze: a new encounter starts the count from zero; a safe zone ends it at once", function()
+		local w, tgt = fakeWorld(), target(always(true))
 		local e = Enc.new("Gaze", "beast:7", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, T.EncounterTimeoutSeconds + 5)
-		equal(find(events, "Disengage"), nil, "no Unseen or Timeout retreat")
-		equal(find(events, "End"), nil)
-		-- Pack: never a zone wider than a normal player can leave during its warning (16 studs per second walking).
-		assert(T.ZoneRadiusStuds / T.ZoneTelegraphSeconds <= 16, "zone fairness")
-		assert(T.MaxScreenBlurSize <= 4, "light blur only")
+		run(e, w, tgt, 0, M + 2)
+		tgt.safe = true
+		equal(find(Enc.step(e, M + 2.05, tgt, w), "End").reason, "SafeZone")
+		local e2 = Enc.new("Gaze", "beast:8", 1, 0, { x = 0, y = 0, z = -40 })
+		equal(e2.exposure, 0, "fresh count")
 	end)
 
-	case("BW2 Gaze: the module is pure and server-only", function()
+	case("BR5 Gaze: unobserved and out of view range it reappears in range (persistent), at most every 3 s", function()
+		local w, tgt = fakeWorld(), target(always(false))
+		local e = Enc.new("Gaze", "beast:9", 1, 0, { x = 0, y = 0, z = -40 })
+		run(e, w, tgt, 0, M + 0.1)
+		tgt.z = 200
+		local events = run(e, w, tgt, M + 0.15, M + 7, function(_, tg) tg.z = 200 end)
+		local blinks = count(events, "Move")
+		assert(blinks >= 1 and blinks <= 3, "repositioned, throttled: " .. blinks)
+		equal(find(events, "Disengage"), nil, "never gives up")
+	end)
+
+	case("BR5 Gaze: the module is pure and server-only", function()
 		for _, banned in ipairs({ "workspace", "game:", "task.", "os.clock", "math.random", "Random.new", "Touched", "FireClient" }) do
 			assert(not source:find(banned, 1, true), "source uses " .. banned)
 		end

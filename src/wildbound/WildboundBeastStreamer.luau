@@ -1,25 +1,28 @@
--- Wave 2 (odd/tasks/wildbound-beasts-wave2.md, BW2-5): Streamer, the screaming rusher (pack 02_BESTIAS/STREAMER).
--- Server only and pure, stepped by WildboundBeastEncounters through Enc.register. State machine (pack names):
---   Spawn -> Dormant (walks in until the target is within AggroRadius with a clear line of sight)
---   -> Warn (WarningSeconds, no damage, target fixed) -> ScreamCharge (ScreamWindupSeconds, the ring shows the real radius)
---   -> ScreamPulse (one radial hit, ScreamDamage and a light push, once per target) -> Pursue (WalkSpeed)
---   -> RushTelegraph (the lane follows the target until lockLead before the commit, then never moves; registered with
---      the perfect dodge) -> RushCommit (a straight swept lane at RushSpeed, at most RushMaxRange, cut at a wall; no
---      homing) -> Recovery (RushMissRecoverySeconds) or Stunned (PerfectDodgeStunSeconds, when a validated perfect dodge
---      held the window at the moment of contact) -> Pursue ... -> Disengage (escape, timeout) -> End.
--- Authority: the server for every transition; the client only draws Phase and Tell events. Cleanup: an attack still
--- open at the end is cancelled by the beast script (WildboundBeastAttack.closeAll); nothing physical exists on the
--- server. Every number is Config.BEASTS.Streamer (tuning = PROPUESTA DE BALANCE).
+-- Beast revision BR3 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): the Screamer (internal id "Streamer",
+-- kept so the director, the config, the rig data and the saved place keep working; players only ever read "Screamer",
+-- WildboundText). Server only and pure, stepped by WildboundBeastEncounters through Enc.register. State machine:
+--   Spawn -> Statue (A: it never moves and never attacks; the client draws it in stone) until the target comes within
+--   activationDistance -> Scream (B: screamSeconds of a harmless scream: no damage, no push, no tell; the client reveals
+--   the true form) -> Pursue (C: chaseSpeed, very fast; the persistent chase of WildboundBeastChase applies from here)
+--   -> CatchTell (within catchRange: a catchTell-long grab circle on the target, following it until catchLockLead before
+--   the strike, then fixed; registered with the perfect dodge) -> Recovery (catchRecover) -> Pursue ...
+-- Teleport repositioning, only in Pursue: when the target is farther than teleportFar, or out of its line of sight for
+-- teleportUnseenSeconds, and the cooldown is over, it asks world.nearSpot for a point teleportMin..teleportMax from the
+-- target and accepts it only through WildboundBeastChase.validSpot (grounded, out of every safe zone, never within
+-- teleportClearance of the target). A refused point cancels that try (a short retry) and the chase goes on; after a jump
+-- the grab waits teleportGrabBlock, so a teleport can never land a hit by itself. It never changes the target.
+-- An unwoken statue ends quietly after statueSeconds ("Unwoken"): the chase rule starts at the scream.
+-- Every number is Config.BEASTS.Streamer (the BR3 fields; the pack's `tuning` table stays for reference only).
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
+local Chase = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastChase"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
 local Streamer = {}
 
-local finite, unit = Config.finite, Config.unit
 local copy, emit = Attack.copy, Attack.emit
 
 function Streamer.init(e)
-	e.rushReadyAt = -math.huge
+	e.catchReadyAt, e.teleportReadyAt, e.unseenSince, e.teleports, e.teleportRefused = -math.huge, -math.huge, nil, 0, 0
 end
 
 local function lineOfSight(world, e, target)
@@ -27,133 +30,103 @@ local function lineOfSight(world, e, target)
 	return world.lineOfSight(e.pos, target) == true
 end
 
-local function laneShape(e, C)
-	return { kind = "lane", ox = e.origin.x, oy = e.origin.y, oz = e.origin.z, dx = e.dx, dz = e.dz,
-		length = e.length, width = C.laneWidth }
+-- One teleport try. Returns true when it moved.
+function Streamer.teleport(events, e, now, target, world, C)
+	local spot = world.nearSpot and world.nearSpot(target, C.teleportMin, C.teleportMax) or nil
+	local ok, why = Chase.validSpot(spot, target, { min = C.teleportMin, max = C.teleportMax,
+		clearance = C.teleportClearance, safe = world.safe })
+	if not ok then
+		e.teleportRefused += 1
+		e.teleportReadyAt = now + C.teleportRetry
+		emit(events, e, "TeleportRefused", now, { reason = why })
+		return false
+	end
+	emit(events, e, "Move", now, { kind = "blink", from = copy(e.pos), to = copy(spot) })
+	e.pos.x, e.pos.y, e.pos.z = spot.x, spot.y, spot.z
+	Attack.face(e, target)
+	e.teleports += 1
+	e.teleportReadyAt = now + C.teleportCooldown
+	e.catchReadyAt = math.max(e.catchReadyAt, now + C.teleportGrabBlock)
+	e.unseenSince = nil
+	return true
 end
 
-local function startScream(events, e, now, C, T)
-	Attack.phase(events, e, "ScreamCharge", now, now + T.ScreamWindupSeconds)
-	-- The ring is drawn from the charge's start at the real radius; it is not dodgeable (0.75 s is under the 0.8 s
-	-- dodge floor): the warning plus the charge (1.75 s) is the time to step out, as the pack asks.
-	e.scream = Attack.open(events, e, {}, { key = "scream", startAt = now, strikeAt = now + T.ScreamWindupSeconds,
-		dodgeable = false, damage = T.ScreamDamage,
-		shape = { kind = "circle", x = e.pos.x, y = e.pos.y, z = e.pos.z, r = T.ScreamRadiusStuds } })
-end
-
-local function startRush(events, e, now, target, world, C, T)
-	local opened = { x = e.pos.x, y = e.pos.y, z = e.pos.z }
-	local dx, dz = unit(target.x - opened.x, target.z - opened.z)
-	if dx then e.dx, e.dz = dx, dz end
-	local distance = math.min(Attack.distance(e, target), T.RushMaxRangeStuds)
-	local commitAt = now + T.RushTelegraphSeconds
-	-- The dodge's strike instant: the commit plus the time the head needs to reach the target's distance.
-	local strikeAt = commitAt + distance / T.RushSpeedStudsPerSecond
-	e.origin, e.length = opened, T.RushMaxRangeStuds
-	local attack = Attack.open(events, e, world, { key = "rush", startAt = now, strikeAt = strikeAt, dodgeable = true,
-		damage = T.RushDamage, lockAt = commitAt - C.lockLead, shape = laneShape(e, C) })
+local function startCatch(events, e, now, target, world, C)
+	local strikeAt = now + C.catchTell
+	local attack = Attack.open(events, e, world, { key = "catch", startAt = now, strikeAt = strikeAt, dodgeable = true,
+		damage = C.catchDamage, shape = { kind = "circle", x = target.x, y = Attack.groundAt(world, target.x, target.z, target.y - 3),
+			z = target.z, r = C.catchRadius } })
 	if not attack then return false end
-	e.rush, e.commitAt, e.lockAt, e.swept, e.crashed = attack, commitAt, commitAt - C.lockLead, 0, false
-	Attack.phase(events, e, "RushTelegraph", now, commitAt)
+	e.catch = attack
+	Attack.face(e, target)
+	Attack.phase(events, e, "CatchTell", now, strikeAt)
 	return true
 end
 
 function Streamer.step(events, e, now, target, world, dt)
 	local C = Config.BEASTS.Streamer
-	local T = C.tuning
-	local busy = e.phase == "RushCommit" or e.phase == "ScreamCharge" or e.phase == "RushTelegraph"
-	if Attack.guard(events, e, now, target, { timeout = T.EncounterTimeoutSeconds, escapeDistance = C.escapeDistance,
-		escapeSeconds = C.escapeSeconds, busy = busy, disengage = C.disengage }) then return end
+	if Attack.guard(events, e, now, target, { busy = e.phase == "CatchTell", disengage = C.disengage }) then return end
 
-	if e.phase == "Spawn" and now - e.phaseAt >= C.spawnSeconds then
-		Attack.phase(events, e, "Dormant", e.phaseAt + C.spawnSeconds)
+	if e.phase == "Spawn" then
+		Attack.phase(events, e, "Statue", e.phaseAt)
 	end
-	if e.phase == "Dormant" then
-		-- Fase 1 trigger: inside the aggro radius with a clear line; until then it walks in, no damage.
-		local distance = Attack.distance(e, target)
-		if distance <= T.AggroRadiusStuds and lineOfSight(world, e, target) then
+	if e.phase == "Statue" then
+		-- A: still as stone. Only the distance wakes it.
+		if Attack.distance(e, target) <= C.activationDistance then
 			Attack.face(e, target)
-			Attack.phase(events, e, "Warn", now, now + T.WarningSeconds)
-		else
-			Attack.walk(e, target, T.WalkSpeedStudsPerSecond, 1, dt, world)
+			Attack.phase(events, e, "Scream", now, now + C.screamSeconds)
+		elseif now - e.phaseAt >= C.statueSeconds then
+			Attack.disengage(events, e, "Unwoken", now, C.disengage)
 		end
+		return
 	end
-	if e.phase == "Warn" then
+	if e.phase == "Scream" then
+		-- B: the scream is the transformation, never an attack.
 		Attack.face(e, target)
-		if now - e.phaseAt >= T.WarningSeconds then startScream(events, e, e.phaseAt + T.WarningSeconds, C, T) end
-	end
-	if e.phase == "ScreamCharge" and e.scream and now >= e.scream.strikeAt then
-		-- Fase 2: one radial check at the pulse, against the ring that was drawn.
-		local attack = e.scream
-		local at = attack.strikeAt
-		if Attack.inside(attack.shape, target, attack.shape.y, C.hitHeight) then
-			local kx, kz = unit(target.x - attack.shape.x, target.z - attack.shape.z)
-			Attack.hit(events, e, world, attack, at, { knock = { dx = kx or e.dx, dz = kz or e.dz,
-				speed = T.ScreamKnockbackStudsPerSecond } })
-		else
-			Attack.miss(events, e, world, attack, at)
-		end
-		e.scream = nil
-		-- The first rush waits one recovery after the pulse, so the push never chains into a rush.
-		e.rushReadyAt = at + T.RushMissRecoverySeconds
-		Attack.phase(events, e, "Pursue", at)
+		if now - e.phaseAt >= C.screamSeconds then Attack.phase(events, e, "Pursue", e.phaseAt + C.screamSeconds) end
 	end
 	if e.phase == "Pursue" then
 		local distance = Attack.distance(e, target)
-		if now >= e.rushReadyAt and distance <= T.RushMaxRangeStuds and lineOfSight(world, e, target) then
-			if not startRush(events, e, now, target, world, C, T) then Attack.face(e, target) end
-		elseif distance > T.ScreamRadiusStuds then
-			-- It closes in at a trot but stops at its scream radius (PROPUESTA): the rush needs a lane to read.
-			Attack.walk(e, target, T.WalkSpeedStudsPerSecond, 1, dt, world)
+		local seen = lineOfSight(world, e, target)
+		if seen then e.unseenSince = nil else e.unseenSince = e.unseenSince or now end
+		local lost = distance > C.teleportFar or (e.unseenSince ~= nil and now - e.unseenSince >= C.teleportUnseenSeconds)
+		if lost and now >= e.teleportReadyAt and Streamer.teleport(events, e, now, target, world, C) then
+			return
+		end
+		if distance <= C.catchRange and now >= e.catchReadyAt then
+			if not startCatch(events, e, now, target, world, C) then Attack.face(e, target) end
+		elseif distance > C.catchRange * 0.8 then
+			Attack.walk(e, target, C.chaseSpeed, 1, dt, world)
 		else
 			Attack.face(e, target)
 		end
 	end
-	if e.phase == "RushTelegraph" then
-		local attack = e.rush
-		if now < e.lockAt then
-			-- The lane follows the target until the lock (never in the last lockLead seconds).
-			local dx, dz = unit(target.x - e.origin.x, target.z - e.origin.z)
-			if dx then e.dx, e.dz = dx, dz end
-			Attack.aim(events, e, attack, laneShape(e, C), now)
-		elseif not attack.locked then
-			local wall = world.castLane and world.castLane(e.origin.x, e.origin.y, e.origin.z, e.dx, e.dz, T.RushMaxRangeStuds)
-			if finite(wall) and wall < T.RushMaxRangeStuds then e.length, e.crashed = math.max(0, wall - 0.5), true end
-			Attack.lock(events, e, attack, laneShape(e, C), e.lockAt)
-		end
-		if attack.locked and now >= e.commitAt then
-			Attack.phase(events, e, "RushCommit", e.commitAt, e.commitAt + e.length / T.RushSpeedStudsPerSecond)
-			emit(events, e, "Move", e.commitAt, { kind = "dash", from = copy(e.origin), dx = e.dx, dz = e.dz,
-				speed = T.RushSpeedStudsPerSecond, length = e.length })
+	if e.phase == "CatchTell" and now < e.catch.strikeAt then
+		-- The grab circle follows the target until catchLockLead before the strike, then never moves; it keeps running
+		-- behind the target meanwhile (a perfect dodge or a sidestep after the lock escapes it).
+		local attack = e.catch
+		Attack.walk(e, target, C.chaseSpeed, 1, dt, world)
+		if now < attack.strikeAt - C.catchLockLead then
+			Attack.aim(events, e, attack, { kind = "circle", x = target.x,
+				y = Attack.groundAt(world, target.x, target.z, target.y - 3), z = target.z, r = C.catchRadius }, now)
+		elseif not attack.lockedNow then
+			attack.lockedNow = true
+			Attack.lock(events, e, attack, nil, attack.strikeAt - C.catchLockLead)
 		end
 	end
-	if e.phase == "RushCommit" then
-		local attack = e.rush
-		local travelled = math.min(e.length, (now - e.commitAt) * T.RushSpeedStudsPerSecond)
-		e.pos.x, e.pos.z = e.origin.x + e.dx * travelled, e.origin.z + e.dz * travelled
-		e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
-		-- Swept volume: the part of the drawn lane the head crossed since the last step. One outcome per rush.
-		if not attack.done and math.abs(target.y - e.pos.y) <= C.hitHeight
-			and Config.inLane(target.x, target.z, e.origin.x, e.origin.z, e.dx, e.dz, e.swept, travelled, C.laneWidth) then
-			e.rushResult = Attack.hit(events, e, world, attack, now)
+	if e.phase == "CatchTell" and now >= e.catch.strikeAt then
+		local attack = e.catch
+		if Attack.inside(attack.shape, target, attack.shape.y, C.hitHeight) then
+			Attack.hit(events, e, world, attack, attack.strikeAt)
+		else
+			Attack.miss(events, e, world, attack, attack.strikeAt)
 		end
-		e.swept = travelled
-		if travelled >= e.length - 1e-9 then
-			local endAt = e.commitAt + e.length / T.RushSpeedStudsPerSecond
-			if not attack.done then e.rushResult = Attack.miss(events, e, world, attack, endAt) end
-			e.rushReadyAt = e.commitAt + T.RushCooldownSeconds
-			if e.rushResult == "Dodged" then
-				-- Fase 4: a validated perfect dodge at the contact: the long stun.
-				Attack.phase(events, e, "Stunned", endAt, endAt + T.PerfectDodgeStunSeconds, { crashed = e.crashed })
-				e.recoverUntil = endAt + T.PerfectDodgeStunSeconds
-			else
-				Attack.phase(events, e, "Recovery", endAt, endAt + T.RushMissRecoverySeconds, { crashed = e.crashed })
-				e.recoverUntil = endAt + T.RushMissRecoverySeconds
-			end
-			e.rush, e.rushResult = nil, nil
-		end
+		e.catch = nil
+		e.catchReadyAt = attack.strikeAt + C.catchCooldown
+		e.recoverUntil = attack.strikeAt + C.catchRecover
+		Attack.phase(events, e, "Recovery", attack.strikeAt, e.recoverUntil)
 	end
-	if (e.phase == "Recovery" or e.phase == "Stunned") and now >= e.recoverUntil then
+	if e.phase == "Recovery" and now >= e.recoverUntil then
 		Attack.phase(events, e, "Pursue", e.recoverUntil)
 	end
 end

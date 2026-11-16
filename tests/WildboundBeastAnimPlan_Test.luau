@@ -1,5 +1,5 @@
 -- Invoke with require(freshTestClone)(require(freshPlanClone), { Streamer = require(dataClone), Root = ..., Gaze = ...,
--- Lurker = ... }, beastsClientSource, animClientSource).
+-- Lurker = ..., Viper = ..., Pouncer = ... }, beastsClientSource, animClientSource).
 -- Wave 2 rigs (odd/tasks/wildbound-beasts-wave2.md, BW2-10): the phase-to-clip plans, the baked data they name, and
 -- the client contract (the beast client publishes the phase; the anim client leaves bone-less proxies alone). Pure.
 return function(Plan, datas, beastsClient, animClient)
@@ -108,7 +108,7 @@ return function(Plan, datas, beastsClient, animClient)
 		equal(first("Lurker", nil, "OverrunStunned"), "Stun")
 		equal(first("Lurker", nil, "Disengage"), "Retreat")
 		equal(first("Root", nil, "Unknown"), "TreeIdle", "default")
-		equal(Plan.steps("Viper", nil, "Warn"), nil, "no plan for the old beasts")
+		equal(Plan.steps("Gargoyle", nil, "Warn"), nil, "no plan for a beast without clips (BR1 gave Viper one)")
 	end)
 
 	case("BW2-10 plan: fit steps fill the phase, clamped; others play at rate 1", function()
@@ -222,6 +222,66 @@ return function(Plan, datas, beastsClient, animClient)
 		has(beastsClient, 'view.model:SetAttribute("BeastPhaseVariant", variant)', "the variant attribute")
 		has(beastsClient, "publishVariant(view, ev.fall)", "Fallen's fall (Crash or Stumble)")
 		has(animClient, 'Plan.steps(entry.beast, previous, phase, model:GetAttribute("BeastPhaseVariant"))', "the anim client")
+	end)
+
+	-- BR1 (odd/tasks/wildbound-beast-revision.md): Viper's clips, baked from assets/models/beasts/viper.blend.
+	case("BR1 Viper: every phase (rest/move, windup, dash, impact or miss, recovery) has a baked clip", function()
+		local data = datas.Viper
+		assert(type(data) == "table" and data.actions, "Viper data")
+		equal(data.beast, "Viper", "data beast")
+		for _, clip in ipairs(Plan.clips("Viper")) do
+			local action = data.actions[clip]
+			assert(action, "Viper lacks " .. clip)
+			near(action.keys[1].t, 0, clip .. " first key")
+			near(action.keys[#action.keys].t, action.length, clip .. " last key")
+		end
+		local function first(previous, phase, variant)
+			local s = Plan.steps("Viper", previous, phase, variant)[1]
+			return s.clip or s.moving
+		end
+		equal(first(nil, "Stalk"), "Slither", "moves")
+		equal(Plan.steps("Viper", nil, "Stalk")[1].still, "Idle", "rests")
+		equal(first(nil, "Windup"), "Windup"); assert(Plan.steps("Viper", nil, "Windup")[1].fit, "the windup fills the tell")
+		equal(first(nil, "Dash"), "Dash"); assert(Plan.steps("Viper", nil, "Dash")[1].loop, "the dash loops while it travels")
+		equal(first(nil, "Recover"), "Recover", "a hit or a miss")
+		equal(first(nil, "Recover", "Crash"), "Crash", "a wall")
+	end)
+
+	case("BR1 client: Viper's events publish the phase the anim client reads", function()
+		for _, needle in ipairs({ 'publishPhase(view, "Windup", ev.at, ev.dashAt)', 'publishPhase(view, "Dash", ev.at, ev.endAt)',
+			'publishPhase(view, "Recover", ev.at, ev.untilAt)', 'publishVariant(view, "Crash")', 'function handlers.Stalk(ev, view)' }) do
+			has(beastsClient, needle, "Viper phase")
+		end
+	end)
+
+	-- BR2: the tarantula Pouncer's clips (pouncer_tarantula.blend), with the new web throw.
+	case("BR2 Pouncer: preparation, leap, landing, web throw and recovery each have a baked clip", function()
+		local data = datas.Pouncer
+		assert(type(data) == "table" and data.actions, "Pouncer data")
+		equal(data.beast, "Pouncer", "data beast")
+		for _, clip in ipairs(Plan.clips("Pouncer")) do
+			local action = data.actions[clip]
+			assert(action, "Pouncer lacks " .. clip)
+			near(action.keys[#action.keys].t, action.length, clip .. " last key")
+		end
+		equal(Plan.steps("Pouncer", nil, "Telegraph")[1].clip, "Windup")
+		equal(Plan.steps("Pouncer", nil, "Leap")[1].clip, "Leap")
+		equal(Plan.steps("Pouncer", nil, "Throw")[1].clip, "Land", "the landing first")
+		equal(Plan.steps("Pouncer", nil, "Throw")[2].clip, "Throw", "then the throw")
+		has(beastsClient, 'publishPhase(view, "Throw", ev.at, ev.throwAt)', "the throw phase is published")
+	end)
+
+	-- BR3: the Screamer's statue is a still pose; the scream and the grab have their clips.
+	case("BR3 Screamer: the statue holds one still pose; the scream, chase and grab have clips", function()
+		local statue = Plan.steps("Streamer", nil, "Statue")[1]
+		equal(statue.clip, "Warn"); equal(statue.freeze, true)
+		local run = Plan.start({ statue }, nil, { Warn = 1 })
+		local clip, time, oneShot = Plan.advance(run, 5, 0, { Warn = 1 })
+		equal(clip, "Warn"); near(time, 0, "never moves"); equal(oneShot, true)
+		equal(Plan.steps("Streamer", nil, "Scream")[1].clip, "ScreamCharge")
+		equal(Plan.steps("Streamer", "Scream", "Pursue")[1].clip, "ScreamPulse")
+		equal(Plan.steps("Streamer", nil, "CatchTell")[1].clip, "RushTelegraph")
+		has(beastsClient, "trueForm(view)", "the client reveals the true form at the scream")
 	end)
 
 	return result

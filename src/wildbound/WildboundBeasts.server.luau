@@ -349,6 +349,10 @@ local function spawnSpec(beast)
 	if beast == "Scuttler" then
 		return { min = C.spawnMin, max = C.spawnMax, visible = false }
 	end
+	-- BR3: the Screamer's statue stands ahead of the player, in plain sight, so it is likely to be walked past.
+	if beast == "Streamer" then
+		return { min = C.statueSpawnMin, max = C.statueSpawnMax, visible = true, ahead = math.rad(C.statueAheadDegrees) }
+	end
 	return { min = C.spawnMin, max = C.spawnMax, visible = beast == "Gaze", biome = Config.homeBiome(beast) }
 end
 
@@ -368,6 +372,7 @@ local function spawnPoint(beast, root)
 	local fallback
 	for _ = 1, 16 do
 		local angle = spec.behind and behind + (rng:NextNumber() - 0.5) * math.rad(120) or rng:NextNumber() * math.pi * 2
+		if spec.ahead then angle = behind + math.pi + (rng:NextNumber() * 2 - 1) * spec.ahead end
 		local distance = spec.min + rng:NextNumber() * (spec.max - spec.min)
 		local x, z = from.X + math.cos(angle) * distance, from.Z + math.sin(angle) * distance
 		local y = world.landing(x, z, from.Y)
@@ -421,6 +426,22 @@ local function worldFor(player)
 	function w.reposition(e)
 		local _, _, root = bodyOf(player)
 		return root and spawnPoint(e.beast, root) or nil
+	end
+	-- BR3: a candidate teleport point min..max studs from the target, ahead of it first, on ground with no safe zone and
+	-- no solid part (world.landing), on the target's level. The Screamer validates it again (WildboundBeastChase).
+	function w.nearSpot(target, min, max)
+		local _, _, root = bodyOf(player)
+		if not root or not Config.finite(min) or not Config.finite(max) then return nil end
+		local look = root.CFrame.LookVector
+		local facing = math.atan2(look.Z, look.X)
+		for i = 0, 9 do
+			local angle = facing + (i % 2 == 0 and 1 or -1) * math.ceil(i / 2) * math.rad(35)
+			local distance = min + rng:NextNumber() * (max - min)
+			local x, z = target.x + math.cos(angle) * distance, target.z + math.sin(angle) * distance
+			local y = world.landing(x, z, target.y)
+			if y and math.abs(y - (target.y - 3)) <= 12 then return { x = x, y = y, z = z } end
+		end
+		return nil
 	end
 	-- SC7 Scuttler: the last dodge press (WildboundDodgeService writes WildboundDash on the server, the same
 	-- GetServerTimeNow clock as the encounter) and a server-side roll for the feint.
@@ -553,9 +574,34 @@ end
 
 -- SC7: Scuttler's landed pulse (Attack.afflict). Only the slow, clamped and never stacked by applySlow; the shake rides
 -- on the event to the target's client. Never BeastHit: no damage and no egg drop.
+-- BR2 (odd/tasks/wildbound-beast-revision.md): Pouncer's web root. A short LinearVelocity hold (zero flat velocity) on
+-- the character's root, like Gomibu's push, so WildboundServer.applyCarry (the one WalkSpeed writer) cannot undo it and
+-- nothing has to put a speed back. Clamped by WildboundBeastChase.EFFECTS, never stacked (one hold at a time).
+local BeastChase = require(ReplicatedStorage:WaitForChild("WildboundBeastChase"))
+local function applyRoot(player, seconds)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	seconds = BeastChase.clampRoot(seconds)
+	if not root or not seconds or seconds <= 0 or root:FindFirstChild("WildboundBeastRoot") then return end
+	local attachment = Instance.new("Attachment")
+	attachment.Name = "WildboundBeastRoot"
+	attachment.Parent = root
+	local hold = Instance.new("LinearVelocity")
+	hold.Attachment0 = attachment
+	hold.RelativeTo = Enum.ActuatorRelativeTo.World
+	hold.VelocityConstraintMode = Enum.VelocityConstraintMode.Plane
+	hold.PrimaryTangentAxis, hold.SecondaryTangentAxis = Vector3.xAxis, Vector3.zAxis
+	hold.PlaneVelocity = Vector2.zero
+	hold.MaxForce = 1e5
+	hold.Parent = attachment
+	local humanoid = player.Character:FindFirstChildOfClass("Humanoid")
+	if humanoid then humanoid:SetAttribute("WildboundBeastRootUntil", now() + seconds) end
+	task.delay(seconds, function() attachment:Destroy() end)
+end
+
 local function afflict(entry, event)
 	count("afflicted")
 	applySlow(entry.player, event.slow, event.slowSeconds)
+	if Config.finite(event.root) then applyRoot(entry.player, event.root) end
 end
 
 -- Caramelo biome: Gomibu's push. The target is moved 'studs' away over 'seconds' by a short-lived LinearVelocity on the

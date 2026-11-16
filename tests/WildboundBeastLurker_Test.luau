@@ -21,6 +21,7 @@ return function(Enc, Lurker, Config, source)
 	Enc.register("Lurker", Lurker)
 	local C = Config.BEASTS.Lurker
 	local T = C.tuning
+	local LEAP_TELL = 0.8 -- the pack's LeapTelegraphSeconds before the revision (BR6 keeps it)
 
 	local function fakeWorld()
 		local w = { telegraphs = {}, resolved = {}, cancelled = {}, verdict = "Hit" }
@@ -163,6 +164,22 @@ return function(Enc, Lurker, Config, source)
 			end
 		end)
 		equal(e2.endReason, "SafeZone")
+	end)
+
+	case("BR6 Lurker: the leap's landing circle is hidden (never drawn) but the mechanic and the dodge are unchanged", function()
+		equal(C.hideTells, true)
+		local w = fakeWorld()
+		local tgt = target(always(false))
+		local e = Enc.new("Lurker", "beast:9", 1, 0, { x = 0, y = 0, z = -T.InitialSpawnDistanceStuds })
+		local events = run(e, w, tgt, 0, 9)
+		local tells = 0
+		for _, ev in ipairs(events) do
+			if ev.type == "Tell" then tells += 1; equal(ev.hidden, true, "every leap tell is hidden") end
+		end
+		assert(tells >= 1, "the leap still exists")
+		assert(find(events, "Hit"), "it still lands")
+		equal(w.telegraphs[1].beast, "Lurker", "still a perfect-dodge registration")
+		near(LEAP_TELL, T.LeapTelegraphSeconds, "same windup timing")
 	end)
 
 	case("BW2 Lurker: the module is pure and server-only", function()

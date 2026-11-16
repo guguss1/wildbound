@@ -348,14 +348,14 @@ return freeze({
 	BEAST = {
 		hit = "¡Una bestia te golpeó!",
 		Viper = { warn = "¡Una víbora va a embestir! Sal de la línea roja.", hit = "¡La víbora te embistió!" },
-		Pouncer = { warn = "¡Una araña va a saltar! Sal del círculo rojo.", hit = "¡La araña te cayó encima!" },
+		Pouncer = { warn = "¡Una araña va a saltar! Sal del círculo rojo.", hit = "¡La araña te cayó encima!",
+			webbed = "¡Te atrapó la telaraña!" },
 		-- Wave 2 (odd/tasks/wildbound-beasts-wave2.md): the pack's names; phases holds one line per telegraphed phase.
-		Streamer = { warn = "¡El Streamer va a embestir! Sal del carril.", hit = "¡El Streamer te alcanzó!",
+		-- BR3 (odd/tasks/wildbound-beast-revision.md): the player-facing name is "Screamer" (the key stays Streamer).
+		Streamer = { name = "Screamer", warn = "¡El Screamer te va a atrapar! Esquiva.", hit = "¡El Screamer te alcanzó!",
 			phases = {
-				Warn = "¡Algo tiembla cerca! Aléjate antes del grito.",
-				ScreamCharge = "¡Va a gritar! Sal de los anillos.",
-				RushTelegraph = "¡Va a embestir! Sal del carril.",
-				Stunned = "¡Se estrelló! Escapa ahora.",
+				Scream = "¡La estatua grita! Era el Screamer: corre a una zona segura.",
+				CatchTell = "¡Te va a atrapar! Esquiva hacia un lado.",
 			} },
 		Root = { warn = "¡Raíces bajo el barro! Sal de las líneas.", hit = "¡Las raíces te golpearon!",
 			phases = {
@@ -364,18 +364,17 @@ return freeze({
 				TelegraphWalls = "¡Muros de raíces! Sal por la abertura blanca.",
 				WhipWindup = "¡Látigo! Sal por la abertura.",
 			} },
-		Gaze = { warn = "¡Sal del círculo violeta!", hit = "¡La mirada te alcanzó!", meter = "Mirada",
-			broken = "Rompiste la mirada.",
+		-- BR5 (odd/tasks/wildbound-beast-revision.md): looking at Gaze for 3 s in total kills; looking away pauses the count.
+		Gaze = { warn = "¡No lo mires!", hit = "Lo miraste demasiado.", meter = "Mirada", meterPaused = "Mirada (en pausa)",
+			broken = "Apartaste la vista: la cuenta se detiene, pero no vuelve a cero.",
 			phases = {
 				Manifest = "Sientes una mirada.",
-				ExposureBuild = "No lo mires tanto: aparta la vista o escóndete.",
-				ChargeZone = "¡Sal del círculo violeta!",
+				ExposureBuild = "¡No lo mires! Si lo miras demasiado, te mata.",
 			} },
 		Lurker = { warn = "¡El Lurker va a saltar! Esquiva hacia un lado.", hit = "¡El Lurker te cayó encima!",
+			-- BR6 (odd/tasks/wildbound-beast-revision.md): no lines announce its arrival or its leap any more.
 			phases = {
-				Presence = "Algo te sigue. Revisa tu espalda.",
 				StalkObserved = "Se quedó quieto: lo estás mirando.",
-				LeapWindup = "¡Va a saltar! Esquiva hacia un lado.",
 				OverrunStunned = "¡Se pasó de largo! Aprovecha.",
 			} },
 		-- Scuttler (docs/design/wildbound-scuttler-plan.md section 9, SC8). The feint's line opens like a real charge's on

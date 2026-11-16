@@ -7,6 +7,7 @@
 --   { clip = "Warn", loop = true }              loops until the phase changes
 --   { clip = "ScreamCharge", fit = true }       one shot; all fit steps together are stretched to the phase's length
 --   { clip = "Crash" }                          one shot at rate 1; the last one-shot step holds its final pose
+--   { clip = "Warn", freeze = true }            holds the clip's first frame, still (BR3: the Screamer's statue)
 --   { moving = "Pursue", still = "Idle", ref = 12, reverse = true }
 --                                               loops; the moving clip while the body moves (rate = speed / ref),
 --                                               the still clip otherwise; reverse plays it backwards when backing off
@@ -27,6 +28,8 @@ end
 local function loop(clip) return { clip = clip, loop = true } end
 local function fit(clip) return { clip = clip, fit = true } end
 local function once(clip) return { clip = clip } end
+-- BR3: a pose held still on the clip's first frame (the Screamer's statue).
+local function freeze(clip) return { clip = clip, freeze = true } end
 
 -- Phase names are the ones the behaviour modules send (Attack.phase), plus "Spawn" before the first one and
 -- "Disengage" when the beast leaves. "A>B" entries apply when phase B follows phase A.
@@ -34,7 +37,14 @@ Plan.PLANS = table.freeze({
 	Streamer = {
 		default = { walk("Pursue", "Idle", 12) },
 		phases = {
-			Spawn = { walk("Pursue", "Idle", 12) },
+			-- BR3 (odd/tasks/wildbound-beast-revision.md): the Screamer stands frozen as a statue (the first frame of Warn, a
+			-- hunched pose), screams (ScreamCharge into the pulse) and chases fast; its grab reuses the rush tell and crash.
+			Statue = { freeze("Warn") },
+			Scream = { fit("ScreamCharge") },
+			["Scream>Pursue"] = { once("ScreamPulse"), walk("Pursue", "Idle", 20) },
+			CatchTell = { fit("RushTelegraph") },
+			["CatchTell>Recovery"] = { once("Rush"), fit("Crash") },
+			Spawn = { freeze("Warn") },
 			Dormant = { walk("Pursue", "Idle", 12) },
 			Warn = { loop("Warn") },
 			ScreamCharge = { fit("ScreamCharge") },
@@ -53,6 +63,8 @@ Plan.PLANS = table.freeze({
 		phases = {
 			Spawn = { fit("Emerge"), loop("TreeIdle") },
 			Rise = { fit("Emerge"), loop("TreeIdle") },
+			-- BR4: following underground: it sinks and rises nearer the target.
+			Burrow = { fit("Collapse"), fit("Emerge") },
 			SelectAttack = { loop("TreeIdle") },
 			TelegraphTrap = { fit("HandsToGround") },
 			Erupt = { once("SummonRoots") },
@@ -76,6 +88,8 @@ Plan.PLANS = table.freeze({
 			Watch = { loop("HeadTurn") },
 			ExposureBuild = { once("EyesOpen"), once("HandsFrame") },
 			ChargeZone = { fit("ChargeZone") },
+			-- BR5: the 3 s look completed: its eyes flare once (the defeat), then it just stands there.
+			Kill = { once("Pulse"), loop("Idle") },
 			Dissipate = { once("Pulse"), loop("Idle") },
 			Disengage = { fit("Dissolve") },
 		},
@@ -96,6 +110,35 @@ Plan.PLANS = table.freeze({
 			["LeapCommit>StalkObserved"] = { once("LandSkid"), walk("Stalk", "Idle", 6, true) },
 			OverrunStunned = { fit("Stun") },
 			Disengage = { fit("Retreat") },
+		},
+	},
+	-- BR1 (odd/tasks/wildbound-beast-revision.md): Viper's clips, the actions of assets/models/beasts/viper.blend baked by
+	-- tools/beast_rig/blend_to_anim_luau.py. Its phases are its own events (Stalk, Windup, Dash, Recover), which the beast
+	-- client publishes like the wave 2 phases; "Recover:Crash" is a dash that ended on a wall.
+	Viper = {
+		default = { walk("Slither", "Idle", 14) },
+		phases = {
+			Spawn = { walk("Slither", "Idle", 14) },
+			Stalk = { walk("Slither", "Idle", 14) },
+			Windup = { fit("Windup") },
+			Dash = { loop("Dash") },
+			Recover = { fit("Recover"), walk("Slither", "Idle", 14) },
+			["Recover:Crash"] = { once("Crash"), fit("Recover"), walk("Slither", "Idle", 14) },
+			Disengage = { walk("Slither", "Idle", 14) },
+		},
+	},
+	-- BR2: the tarantula Pouncer (assets/models/beasts/pouncer_tarantula.blend): preparation (Windup fills the telegraph),
+	-- leap, landing, then the web throw, then the recovery.
+	Pouncer = {
+		default = { walk("Stalk", "Idle", 16) },
+		phases = {
+			Spawn = { walk("Stalk", "Idle", 16) },
+			Hunt = { walk("Stalk", "Idle", 16) },
+			Telegraph = { fit("Windup") },
+			Leap = { fit("Leap") },
+			Throw = { once("Land"), once("Throw") },
+			Recover = { once("Throw"), fit("Recover"), walk("Stalk", "Idle", 16) },
+			Disengage = { walk("Stalk", "Idle", 16) },
 		},
 	},
 	-- Scuttler (docs/design/wildbound-scuttler-plan.md section 9, SC8): the clips its rig bakes in SC9. Fallen carries the
@@ -213,6 +256,10 @@ function Plan.advance(run, dt, speed, lengths)
 		end
 		run.time += dt * rate
 		return run.clip, run.time, false
+	end
+	if step.freeze then
+		run.clip, run.time = step.clip, 0
+		return run.clip, 0, true
 	end
 	if step.loop then
 		run.clip = step.clip

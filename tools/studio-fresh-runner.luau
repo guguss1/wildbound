@@ -107,12 +107,14 @@ SPECS["WildboundBeastAnimPlan_Test"] = {
 	{
 		Streamer = "mod:WildboundBeastAnimStreamer", Root = "mod:WildboundBeastAnimRoot",
 		Gaze = "mod:WildboundBeastAnimGaze", Lurker = "mod:WildboundBeastAnimLurker",
+		Viper = "mod:WildboundBeastAnimViper", Pouncer = "mod:WildboundBeastAnimPouncer", -- BR1/BR2
 	},
 	"src:WildboundBeastsClient",
 	"src:WildboundBeastAnim",
 }
 SPECS["WildboundBeastAudience_Test"] = { "mod:WildboundBeastAudience", "mod:WildboundBeastConfig" }
 SPECS["WildboundBeastAttack_Test"] = { "mod:WildboundBeastAttack", "mod:WildboundBeastConfig", "src:WildboundBeastAttack" }
+SPECS["WildboundBeastChase_Test"] = { "mod:WildboundBeastChase", "src:WildboundBeastChase" }
 SPECS["WildboundBeastDirector_Test"] = { "mod:WildboundBeastDirector", "src:WildboundBeastDirector", "mod:WildboundBeastConfig" }
 SPECS["WildboundBeastEncounters_Test"] = {
 	"mod:WildboundBeastEncounters", "src:WildboundBeastEncounters", "mod:WildboundBeastConfig", "src:WildboundBeastConfig",

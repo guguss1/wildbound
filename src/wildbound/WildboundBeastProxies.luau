@@ -416,6 +416,64 @@ end
 -- the head along its LookVector (the proxies' convention); the copy is an inert visual: every part anchored, never
 -- colliding, queried or touched. The template itself is never changed. Animations are not uploaded yet, so the model
 -- moves in its rest pose.
+-- Beast revision (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): the look of each revised beast, applied to
+-- the adopted template (and to the proxy) once, in ReplicatedStorage, so every client draws the same size and colours.
+--   scale   the model's size against its imported size (Model:ScaleTo; bones and attachments scale with it). The hit
+--           volumes are WildboundBeastConfig's numbers, enlarged to match where the owner asked (Viper's lane).
+--   colors  MeshPart name -> Color3 (FBX meshes import grey); material optional.
+--   lights  bone name -> Color3: a faint PointLight on that bone (Gaze's eyes stay barely visible in the dark).
+--   statue  Screamer's first form: every MeshPart in stone (material + colour), stored as attributes so the client can
+--           switch to the true form (TrueColor/TrueMaterial) at the scream.
+Proxies.LOOKS = table.freeze({
+	Viper = table.freeze({ scale = 1.5 }),
+	-- BR2: the tarantula template (assets/exports/caramelo/pouncer-tarantula.fbx) is built at its final size (7.2 tall,
+	-- 14.7 across); its MeshParts import grey and take the build script's palette here.
+	Pouncer = table.freeze({ scale = 1,
+		colors = table.freeze({ Pouncer_Body = Color3.fromRGB(58, 42, 33), Pouncer_Abdomen = Color3.fromRGB(43, 31, 26),
+			Pouncer_Legs = Color3.fromRGB(30, 22, 19), Pouncer_Bands = Color3.fromRGB(214, 110, 44),
+			Pouncer_Hair = Color3.fromRGB(140, 86, 54), Pouncer_Eyes = Color3.fromRGB(255, 63, 192),
+			Pouncer_Fangs = Color3.fromRGB(217, 200, 168) }),
+		neon = table.freeze({ Pouncer_Eyes = true }) }),
+	Streamer = table.freeze({ scale = 1.15,
+		colors = table.freeze({ Streamer_Mesh = Color3.fromRGB(92, 40, 54) }), material = Enum.Material.SmoothPlastic,
+		statue = table.freeze({ color = Color3.fromRGB(138, 136, 128), material = Enum.Material.Slate }) }),
+	Root = table.freeze({ scale = 1.45,
+		colors = table.freeze({ Root_Mesh = Color3.fromRGB(96, 64, 40) }), material = Enum.Material.Wood }),
+	Gaze = table.freeze({ scale = 1.6,
+		colors = table.freeze({ Gaze_Mesh = Color3.fromRGB(16, 14, 20) }), material = Enum.Material.SmoothPlastic,
+		lights = table.freeze({ Eye_L = Color3.fromRGB(150, 30, 60), Eye_R = Color3.fromRGB(150, 30, 60) }) }),
+})
+
+-- Applies Proxies.LOOKS[beast] to a model (a clone, never a template). Idempotent through the "Dressed" attribute.
+function Proxies.dress(model, beast)
+	local look = Proxies.LOOKS[beast]
+	if not look or typeof(model) ~= "Instance" or not model:IsA("Model") or model:GetAttribute("Dressed") then return model end
+	if type(look.scale) == "number" and look.scale > 0 and math.abs(look.scale - 1) > 1e-3 then
+		model:ScaleTo(model:GetScale() * look.scale)
+	end
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("MeshPart") and look.colors and look.colors[d.Name] then
+			d.Color = look.colors[d.Name]
+			if look.material then d.Material = look.material end
+			if look.neon and look.neon[d.Name] then d.Material = Enum.Material.Neon end
+			if look.statue then
+				d:SetAttribute("TrueColor", d.Color)
+				d:SetAttribute("TrueMaterial", d.Material.Name)
+				d:SetAttribute("StatueColor", look.statue.color)
+				d:SetAttribute("StatueMaterial", look.statue.material.Name)
+				d.Color, d.Material = look.statue.color, look.statue.material
+			end
+		elseif d:IsA("Bone") and look.lights and look.lights[d.Name] then
+			local light = Instance.new("PointLight")
+			light.Name = "EyeGlow"
+			light.Color, light.Brightness, light.Range, light.Shadows = look.lights[d.Name], 1.2, 5, false
+			light.Parent = d
+		end
+	end
+	model:SetAttribute("Dressed", true)
+	return model
+end
+
 function Proxies.adopt(template, beast)
 	if typeof(template) ~= "Instance" or not template:IsA("Model") or type(beast) ~= "string" then return nil end
 	local root = template:FindFirstChild("Root")
@@ -432,7 +490,7 @@ function Proxies.adopt(template, beast)
 	end
 	model:SetAttribute("Beast", beast)
 	model:SetAttribute("Proxy", false)
-	return model
+	return Proxies.dress(model, beast)
 end
 
 -- Builds ReplicatedStorage.WildboundBeasts.Models and the missing proxies (always kept as the fallback), and adopts the
@@ -451,7 +509,13 @@ function Proxies.ensure(replicated, templates)
 		models.Parent = root
 	end
 	for beast, build in pairs(Proxies.BUILDERS) do
-		if not models:FindFirstChild(beast .. "Proxy") then build().Parent = models end
+		if not models:FindFirstChild(beast .. "Proxy") then
+			local proxy = build()
+			-- BR1-BR5: a proxy keeps its own colours, but takes the revised size.
+			local look = Proxies.LOOKS[beast]
+			if look and type(look.scale) == "number" and math.abs(look.scale - 1) > 1e-3 then proxy:ScaleTo(proxy:GetScale() * look.scale) end
+			proxy.Parent = models
+		end
 		if typeof(templates) == "Instance" and not models:FindFirstChild(beast) then
 			local real = Proxies.adopt(templates:FindFirstChild(beast), beast)
 			if real then real.Parent = models end

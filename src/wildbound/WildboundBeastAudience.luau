@@ -19,6 +19,9 @@ Audience.PERSONAL = table.freeze({ Silueta = true })
 Audience.VISUAL = table.freeze({ Spawn = true, Snap = true, Phase = true, Tell = true, TellEnd = true, Strike = true,
 	Move = true, Windup = true, Lock = true, Dash = true, Recover = true, Telegraph = true, Freeze = true, Leap = true,
 	Land = true, Cancel = true, Disengage = true, End = true, Stalk = true, Hunt = true,
+	-- BR2 (odd/tasks/wildbound-beast-revision.md): Pouncer's web throw and ball are seen by nearby players (the root, an
+	-- Afflict, stays with the target).
+	Throw = true, Web = true, WebEnd = true,
 	-- DG5 (odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's anger tint, seen by every nearby player.
 	Anger = true })
 

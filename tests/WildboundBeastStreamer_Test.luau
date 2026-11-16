@@ -1,8 +1,8 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastStreamerClone),
 -- require(freshBeastConfigClone), freshBeastStreamerClone.Source).
--- Wave 2 (odd/tasks/wildbound-beasts-wave2.md, BW2-5): Streamer's state machine, pure. A fake world (flat ground at
--- y 0, open lines unless a case closes them) and a fake dodge (world.resolve answers what the case sets) stand in for
--- the beast script; the target is a table moved by each case. No world is touched.
+-- Beast revision BR3 (odd/tasks/wildbound-beast-revision.md): the Screamer (internal id Streamer), pure. A fake world
+-- (flat ground at y 0, open lines unless a case closes them, nearSpot and safe answered by the case) and a fake dodge
+-- stand in for the beast script; the target is a table moved by each case. No world is touched.
 return function(Enc, Streamer, Config, source)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -21,12 +21,13 @@ return function(Enc, Streamer, Config, source)
 	end
 	Enc.register("Streamer", Streamer)
 	local C = Config.BEASTS.Streamer
-	local T = C.tuning
 
 	local function fakeWorld()
-		local w = { telegraphs = {}, resolved = {}, cancelled = {}, verdict = "Hit", los = true }
+		local w = { telegraphs = {}, resolved = {}, cancelled = {}, verdict = "Hit", los = true, spot = nil, safeX = math.huge }
 		function w.ground() return 0 end
 		function w.lineOfSight() return w.los end
+		function w.nearSpot() return w.spot end
+		function w.safe(x) return x >= w.safeX end
 		function w.telegraph(id, beast, startAt, strikeAt)
 			table.insert(w.telegraphs, { id = id, beast = beast, startAt = startAt, strikeAt = strikeAt })
 			return strikeAt - startAt >= 0.8 - 1e-9
@@ -36,10 +37,8 @@ return function(Enc, Streamer, Config, source)
 		return w
 	end
 	local function target(x, z) return { x = x, y = 3, z = z, vx = 0, vz = 0, alive = true, safe = false } end
-	-- Steps from `from` to `to` at 20 Hz; move(t, tgt) may change the target. Returns every event.
 	local function run(e, w, tgt, from, to, move)
 		local all = {}
-		-- Times from a step index, so 0.05 s steps never drift.
 		for i = 0, math.floor((to - from) / 0.05 + 1e-6) do
 			local t = from + i * 0.05
 			if move then move(t, tgt) end
@@ -60,148 +59,176 @@ return function(Enc, Streamer, Config, source)
 		end
 		return n
 	end
+	-- A Screamer woken at the origin: the target steps in at 10 studs, then the scream runs out.
+	local function woken(w, tgt, id)
+		local e = Enc.new("Streamer", id, 1, 0, { x = 0, y = 0, z = -10 })
+		run(e, w, tgt, 0, C.screamSeconds + 0.1)
+		equal(e.phase, "Pursue", "chasing after the scream")
+		return e
+	end
 
-	case("BW2 Streamer: walks in, warns at the aggro radius, then screams; no damage before the pulse", function()
+	case("BR3 Screamer: the display name is Screamer; the internal id stays Streamer", function()
+		equal(C.displayName, "Screamer")
+		assert(Config.PLAYABLE.Streamer and Config.WAVE2.Streamer, "the id still plugs in")
+	end)
+
+	case("BR3 Screamer: a statue until the activation distance: it never moves, tells or hits", function()
 		local w = fakeWorld()
 		local tgt = target(0, 0)
 		local e = Enc.new("Streamer", "beast:1", 1, 0, { x = 0, y = 0, z = -40 })
-		local events = run(e, w, tgt, 0, 6)
-		local warn = find(events, "Phase", "phase", "Warn")
-		assert(warn, "Warn")
-		local dormant = find(events, "Phase", "phase", "Dormant")
-		near(dormant.at, C.spawnSeconds, "dormant after the rise")
-		-- It walked at WalkSpeed from 40 to the 17-stud radius: about 23 / 12 s after the rise.
-		near(warn.at, C.spawnSeconds + (40 - T.AggroRadiusStuds) / T.WalkSpeedStudsPerSecond, "warn time", 0.1)
-		local charge = find(events, "Phase", "phase", "ScreamCharge")
-		near(charge.at - warn.at, T.WarningSeconds, "1.0 s of warning")
-		local tell = find(events, "Tell", "dodgeable", false)
-		assert(tell and tell.shape.kind == "circle", "the scream ring")
-		equal(tell.shape.r, T.ScreamRadiusStuds)
-		near(tell.strikeAt - tell.startAt, T.ScreamWindupSeconds)
-		for _, ev in ipairs(events) do
-			if ev.type == "Hit" then assert(ev.at >= tell.strikeAt - 1e-9, "a hit before the pulse") end
-		end
-		local strike = find(events, "Strike", "tell", tell.tell)
-		assert(strike and strike.hit == false, "17 studs away: outside the 10-stud ring")
+		local events = run(e, w, tgt, 0, 20)
+		equal(e.phase, "Statue")
+		near(e.pos.z, -40, "did not move"); near(e.pos.x, 0)
+		equal(count(events, "Tell"), 0); equal(count(events, "Hit"), 0); equal(count(events, "Move"), 0)
+		assert(C.activationDistance > 0, "configurable activation distance")
 	end)
 
-	case("BW2 Streamer: the scream hits once inside the ring, with a light push away from it", function()
+	case("BR3 Screamer: within the activation distance it screams (harmless), then chases", function()
 		local w = fakeWorld()
 		local tgt = target(0, 0)
 		local e = Enc.new("Streamer", "beast:2", 1, 0, { x = 0, y = 0, z = -40 })
-		-- The target steps toward it once warned, so the pulse catches it at 8 studs.
-		local events = run(e, w, tgt, 0, 6, function(_, t)
-			if e.phase == "Warn" or e.phase == "ScreamCharge" then t.z = e.pos.z + 8 end
+		local events = run(e, w, tgt, 0, 8, function(t, tg)
+			if t >= 2 then tg.z = -40 + C.activationDistance - 1 end
+			if e.phase == "Scream" then tg.z = e.pos.z + 1 end -- right on top of it during the scream
 		end)
-		local tell = find(events, "Tell", "dodgeable", false)
-		local hits = 0
+		local scream = find(events, "Phase", "phase", "Scream")
+		assert(scream, "it screams")
+		near(scream.untilAt - scream.at, C.screamSeconds)
+		local pursue = find(events, "Phase", "phase", "Pursue")
+		near(pursue.at, scream.at + C.screamSeconds, "then chases")
 		for _, ev in ipairs(events) do
-			if ev.type == "Hit" and ev.attack == tell.tell then
-				hits += 1
-				equal(ev.damage, T.ScreamDamage)
-				assert(type(ev.knock) == "table", "a push")
-				equal(ev.knock.speed, T.ScreamKnockbackStudsPerSecond)
-				assert(ev.knock.dz > 0.9, "away from the beast")
+			if ev.at < pursue.at then
+				assert(ev.type ~= "Hit" and ev.type ~= "Tell", "the scream never hurts or tells: " .. ev.type)
 			end
 		end
-		equal(hits, 1, "one hit per scream")
-		for _, reg in ipairs(w.telegraphs) do
-			assert(reg.id ~= tell.tell, "the scream is not a dodge registration (0.75 s is under the floor)")
+	end)
+
+	case("BR3 Screamer: the chase is very fast (chaseSpeed) and no rush exists", function()
+		assert(C.chaseSpeed > 24, "faster than a trained runner")
+		local w = fakeWorld()
+		local tgt = target(0, 0)
+		local e = woken(w, tgt, "beast:3")
+		tgt.z = 30
+		local z0 = e.pos.z
+		run(e, w, tgt, 1.5, 2.0)
+		near(e.pos.z - z0, C.chaseSpeed * 0.5, "26 studs a second", 0.6)
+		local events = run(e, w, tgt, 2.05, 8)
+		equal(find(events, "Move", "kind", "dash"), nil, "no rush")
+	end)
+
+	case("BR3 Screamer: reaching the target opens a dodgeable 0.8 s grab; standing still is one 28-damage hit", function()
+		local w = fakeWorld()
+		local tgt = target(0, 0)
+		local e = woken(w, tgt, "beast:4")
+		local events = run(e, w, tgt, 1.5, 5)
+		local tell = find(events, "Tell")
+		assert(tell and tell.shape.kind == "circle", "the grab circle")
+		equal(tell.shape.r, C.catchRadius)
+		near(tell.strikeAt - tell.startAt, C.catchTell)
+		assert(C.catchTell >= Config.MIN_TELL, "never under the 0.8 s floor")
+		equal(w.telegraphs[1].beast, "Streamer", "registered with the dodge")
+		equal(count(events, "Hit"), 1)
+		equal(find(events, "Hit").damage, C.catchDamage)
+		assert(find(events, "Phase", "phase", "Recovery"), "a recovery after the grab")
+	end)
+
+	case("BR3 Screamer: stepping out after the grab locks is a miss", function()
+		local w = fakeWorld()
+		local tgt = target(0, 0)
+		local e = woken(w, tgt, "beast:5")
+		local events = run(e, w, tgt, 1.5, 5, function(_, tg)
+			if e.catch and e.catch.lockedNow then tg.x = 9 end
+		end)
+		equal(count(events, "Hit"), 0)
+		equal(w.cancelled[1], w.telegraphs[1].id, "the dodge registration is cancelled")
+	end)
+
+	case("BR3 Screamer: lost far away it teleports to a valid spot near the target, then waits the cooldown", function()
+		local w = fakeWorld()
+		local tgt = target(0, 0)
+		local e = woken(w, tgt, "beast:6")
+		tgt.z = 200
+		w.spot = { x = 0, y = 0, z = 200 - 18 }
+		local events = run(e, w, tgt, 1.5, 1.6)
+		local blink = find(events, "Move", "kind", "blink")
+		assert(blink, "a teleport")
+		near(blink.to.z, 182)
+		near(e.pos.z, 182, "it moved there (then ran on a step or two)", 3)
+		equal(count(events, "Hit"), 0, "a teleport never hits")
+		assert(e.catchReadyAt >= blink.at + C.teleportGrabBlock - 1e-6, "the grab waits after a jump")
+		-- Far again at once: no second jump before the cooldown.
+		tgt.z = 600
+		w.spot = { x = 0, y = 0, z = 600 - 18 }
+		local later = run(e, w, tgt, 1.65, 1.5 + C.teleportCooldown - 0.2)
+		equal(count(later, "Move", "kind", "blink"), 0, "cooldown")
+	end)
+
+	case("BR3 Screamer: no teleport into a safe zone, onto the target, under the map or with no spot; the chase goes on", function()
+		for _, spec in ipairs({
+			{ spot = { x = 0, y = 0, z = 182 }, safeX = -1, why = "Safe" },
+			{ spot = { x = 0, y = 0, z = 198 }, why = "Near" },
+			{ spot = { x = 0, y = 0 / 0, z = 182 }, why = "NoSpot" },
+			{ spot = nil, why = "NoSpot" },
+		}) do
+			local w = fakeWorld()
+			local tgt = target(0, 0)
+			local e = woken(w, tgt, "beast:7" .. spec.why)
+			tgt.z = 200
+			w.spot, w.safeX = spec.spot, spec.safeX or math.huge
+			local z0 = e.pos.z
+			local events = run(e, w, tgt, 1.5, 3)
+			equal(count(events, "Move", "kind", "blink"), 0, spec.why .. ": no jump")
+			equal(find(events, "TeleportRefused").reason, spec.why)
+			assert(e.pos.z > z0 + 10, spec.why .. ": it kept running")
+			equal(e.phase, "Pursue")
 		end
 	end)
 
-	local function toRush(w, tgt, id)
-		local e = Enc.new("Streamer", id, 1, 0, { x = 0, y = 0, z = -20 })
-		local events = run(e, w, tgt, 0, 3)
-		assert(e.phase == "Pursue" or e.phase == "RushTelegraph", "pursuing after the scream: " .. e.phase)
-		return e, events
-	end
-
-	case("BW2 Streamer: the rush lane follows until 0.25 s before the commit, then never moves; one hit", function()
+	case("BR3 Screamer: out of sight for 2 s it may reposition; never before it is chasing", function()
 		local w = fakeWorld()
+		w.los = false
+		w.spot = { x = 0, y = 0, z = -40 }
 		local tgt = target(0, 0)
-		local e = toRush(w, tgt, "beast:3")
-		local lockSeen, dirAtLock
-		local events = run(e, w, tgt, 3.05, 8, function(t, tg)
-			if e.phase == "RushTelegraph" and e.rush and e.rush.locked and not lockSeen then
-				lockSeen, dirAtLock = t, { e.dx, e.dz }
-			end
-			if e.phase == "RushCommit" then
-				-- Too late to aim: the lane stays where it was locked.
-				near(e.dx, dirAtLock[1], "dx held"); near(e.dz, dirAtLock[2], "dz held")
-			end
-		end)
-		local rush = w.telegraphs[1]
-		assert(rush and rush.beast == "Streamer", "the rush is registered with the dodge")
-		assert(rush.strikeAt - rush.startAt >= T.RushTelegraphSeconds - 1e-9, "strike after the 0.9 s telegraph")
-		local tell = find(events, "Tell", "tell", rush.id)
-		near(tell.lockAt, tell.startAt + T.RushTelegraphSeconds - C.lockLead, "lock 0.25 s before the commit")
-		equal(tell.shape.width, C.laneWidth)
-		equal(count(events, "Hit", "attack", rush.id), 1, "one hit per rush")
-		local hit = find(events, "Hit", "attack", rush.id)
-		equal(hit.damage, T.RushDamage)
-		assert(find(events, "Phase", "phase", "Recovery"), "recovery after the rush")
-		assert(find(events, "Move", "kind", "dash"), "the dash move for the client")
+		local e = Enc.new("Streamer", "beast:8", 1, 0, { x = 0, y = 0, z = -60 })
+		local statue = run(e, w, tgt, 0, 5)
+		equal(count(statue, "Move"), 0, "a statue never teleports")
+		tgt.z = -60 + 10
+		run(e, w, tgt, 5.05, 5.05 + C.screamSeconds + 0.1)
+		tgt.z = -60 + 20
+		w.spot = { x = 0, y = 0, z = tgt.z - 16 }
+		local events = run(e, w, tgt, 6.6, 6.6 + C.teleportUnseenSeconds + 0.3, function(_, tg) tg.z = e.pos.z + 20; w.spot = { x = 0, y = 0, z = tg.z - 16 } end)
+		assert(find(events, "Move", "kind", "blink"), "repositioned after 2 s unseen")
 	end)
 
-	case("BW2 Streamer: stepping out of the locked lane is a miss and a 1.2 s recovery", function()
+	case("BR3 Screamer: an unwoken statue ends quietly; a woken one never times out (persistent chase)", function()
 		local w = fakeWorld()
 		local tgt = target(0, 0)
-		local e = toRush(w, tgt, "beast:4")
-		local events = run(e, w, tgt, 3.05, 8, function(_, tg)
-			if e.rush and e.rush.locked then tg.x = 12 end -- sideways, out of the 4.5-stud lane
-		end)
-		local rush = w.telegraphs[1]
-		equal(count(events, "Hit", "attack", rush.id), 0)
-		equal(w.cancelled[1], rush.id, "the dodge registration is cancelled")
-		local recovery = find(events, "Phase", "phase", "Recovery")
-		near(recovery.untilAt - recovery.at, T.RushMissRecoverySeconds)
+		local e = Enc.new("Streamer", "beast:9", 1, 0, { x = 0, y = 0, z = -60 })
+		local events = run(e, w, tgt, 0, C.statueSeconds + 2)
+		equal(find(events, "Disengage").reason, "Unwoken")
+		assert(find(events, "End"), "it ends")
+		local w2 = fakeWorld()
+		local tgt2 = target(0, 0)
+		local e2 = woken(w2, tgt2, "beast:10")
+		local later = run(e2, w2, tgt2, 1.5, 100, function(_, tg) tg.z = e2.pos.z + 30 end)
+		equal(find(later, "Disengage"), nil); equal(find(later, "End"), nil)
 	end)
 
-	case("BW2 Streamer: a validated perfect dodge at contact: no damage and a 2.1 s stun", function()
-		local w = fakeWorld()
-		w.verdict = "Dodged"
-		local tgt = target(0, 0)
-		local e = toRush(w, tgt, "beast:5")
-		local events = run(e, w, tgt, 3.05, 8)
-		local rush = w.telegraphs[1]
-		equal(count(events, "Hit", "attack", rush.id), 0, "no damage")
-		local strike = find(events, "Strike", "tell", rush.id)
-		equal(strike.dodged, true)
-		local stun = find(events, "Phase", "phase", "Stunned")
-		assert(stun, "stunned")
-		near(stun.untilAt - stun.at, T.PerfectDodgeStunSeconds)
-		equal(#w.resolved, 1, "asked once")
-	end)
-
-	case("BW2 Streamer: a safe zone or a death ends it at once; open attacks are left for closeAll", function()
+	case("BR3 Screamer: a safe zone or a death ends it at once; open attacks are left for closeAll", function()
 		local w = fakeWorld()
 		local tgt = target(0, 0)
-		local e = toRush(w, tgt, "beast:6")
-		run(e, w, tgt, 3.05, 4.2)
-		equal(e.phase, "RushTelegraph", "mid-telegraph")
-		assert(next(e.open) ~= nil, "the rush is open")
+		local e = woken(w, tgt, "beast:11")
+		run(e, w, tgt, 1.5, 1.7)
+		equal(e.phase, "CatchTell", "mid-grab")
 		tgt.safe = true
-		local events = Enc.step(e, 4.25, tgt, w)
-		local ending = find(events, "End")
-		equal(ending.reason, "SafeZone")
+		local events = Enc.step(e, 1.75, tgt, w)
+		equal(find(events, "End").reason, "SafeZone")
 		equal(count(events, "Hit"), 0, "no hit on the way out")
-		equal(#Enc.step(e, 4.3, target(0, 0), w), 0, "nothing after the end")
-		local e2 = Enc.new("Streamer", "beast:7", 1, 0, { x = 0, y = 0, z = -20 })
+		local e2 = Enc.new("Streamer", "beast:12", 1, 0, { x = 0, y = 0, z = -20 })
 		equal(find(Enc.step(e2, 0.05, nil, w), "End").reason, "Death", "no body: death")
 	end)
 
-	case("BR0 Streamer: no timeout and no escape: the chase only ends at death or a safe zone", function()
-		local w = fakeWorld()
-		w.los = false
-		local tgt = target(0, 0)
-		local e = Enc.new("Streamer", "beast:8", 1, 0, { x = 0, y = 0, z = -60 })
-		local events = run(e, w, tgt, 0, T.EncounterTimeoutSeconds + 10, function(_, tg) tg.z = e.pos.z + 150 end)
-		equal(find(events, "Disengage"), nil, "no Timeout or Escape retreat")
-		equal(find(events, "End"), nil)
-	end)
-
-	case("BW2 Streamer: the module is pure and server-only", function()
+	case("BR3 Screamer: the module is pure and server-only", function()
 		for _, banned in ipairs({ "workspace", "game:", "task.", "os.clock", "math.random", "Random.new", "Touched", "FireClient" }) do
 			assert(not source:find(banned, 1, true), "source uses " .. banned)
 		end

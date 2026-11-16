@@ -87,10 +87,16 @@ Config.BEASTS = table.freeze({
 		category = "Global", riskModifier = 1,
 		points = 1, chance10 = VIPER_CHANCE10, chance = Config.perRoll(VIPER_CHANCE10), cooldown = 35, biome = nil, damage = 35,
 		spawnMin = 35, spawnMax = 70, spawnSeconds = 0.75,
-		stalkSeconds = 4, stalkSpeed = 14, attackMin = 18, attackMax = 30,
+		-- BR1 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): a bigger Viper whose dash is faster and longer
+		-- while the tell (windup, lockLead) stays exactly as it was; a confirmed hit slows (never stacked, Chase.EFFECTS
+		-- caps it). Was attackMax 30, laneLength 32, laneWidth 4.5, dashSpeed 60, hitHeight 5; dashCooldown and slow are
+		-- new; the model's size is WildboundBeastProxies.LOOKS. maxAttacks and maxSeconds no longer end it (BR0) but stay.
+		stalkSeconds = 4, stalkSpeed = 14, attackMin = 18, attackMax = 38,
 		clearSearch = 1.5, strafeSpeed = 7, -- in range but a trunk in the way: sidestep this long for a clear lane
 		windup = 1.15, lockLead = 0.45, -- the lane follows the target for 0.7 s, then its angle is locked for 0.45 s
-		laneLength = 32, laneWidth = 4.5, dashSpeed = 60, hitHeight = 5,
+		laneLength = 46, laneWidth = 6, dashSpeed = 84, hitHeight = 7,
+		dashCooldown = 2.6, -- seconds from one dash's start before the next windup may begin
+		slowMultiplier = 0.65, slowSeconds = 2, -- a confirmed hit (a miss or a perfect dodge never slows)
 		recover = 1.25, recoverCrash = 1.8, maxAttacks = 3, maxSeconds = 32,
 		escapeDistance = 100, escapeSeconds = 4, disengage = 0.9,
 	}),
@@ -99,7 +105,12 @@ Config.BEASTS = table.freeze({
 		points = 1, chance10 = 1 / 55, chance = Config.perRoll(1 / 55), cooldown = 40, biome = nil, damage = 40,
 		spawnMin = 35, spawnMax = 75, spawnSeconds = 0.8,
 		huntSeconds = 5, huntSpeed = 16, attackMin = 20, attackMax = 34, predictSeconds = 0.3,
-		telegraph = 1.3, freezeAfter = 0.25, radius = 6.5, flight = 0.75, arcHeight = 10, hitHeight = 6, maxStep = 12,
+		-- BR2 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): the tarantula's landing circle grows from 6.5 to 9
+		-- (drawn and checked with the same radius), and every valid landing throws ONE web ball at the target: it leaves
+		-- webDelay after the landing, flies straight at webSpeed for at most webRange, hits within webRadius (and
+		-- webHitHeight of its line), and a hit roots the target for webRootSeconds (owner: exactly 1 s). A miss does nothing.
+		telegraph = 1.3, freezeAfter = 0.25, radius = 9, flight = 0.75, arcHeight = 10, hitHeight = 6, maxStep = 12,
+		webDelay = 0.3, webSpeed = 45, webRange = 32, webRadius = 2.5, webHitHeight = 4, webRootSeconds = 1,
 		recover = 1.2, jumps = 2, maxJumps = 3, maxSkips = 3, maxSeconds = 33,
 		escapeDistance = 105, escapeSeconds = 4, disengage = 0.9,
 	}),
@@ -121,6 +132,18 @@ Config.BEASTS = table.freeze({
 		laneWidth = 4.5, hitHeight = 5, -- PROPUESTA (Viper's lane): the pack draws the rush lane "as wide as the hitbox"
 		lockLead = 0.25, -- pack: the lane never changes in the last 0.25 s of the rush telegraph
 		escapeDistance = 100, escapeSeconds = 4, disengage = 0.9, -- PROPUESTA (Viper's)
+		-- BR3 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): the Screamer. A statue that appears ahead of the
+		-- player (statueSpawnMin..Max studs, inside statueAheadDegrees of their facing) and wakes at activationDistance,
+		-- a harmless scream that reveals its true form, a very fast chase, a grab when it reaches the target, and validated
+		-- teleport repositioning. The pack's scream damage and rush (in `tuning`) are no longer used. Every value PROPUESTA.
+		displayName = "Screamer",
+		statueSpawnMin = 30, statueSpawnMax = 50, statueAheadDegrees = 60, statueSeconds = 75,
+		activationDistance = 22, screamSeconds = 1.4,
+		chaseSpeed = 26,
+		catchRange = 5, catchTell = 0.8, catchLockLead = 0.3, catchRadius = 5, catchDamage = 28, catchRecover = 1.0,
+		catchCooldown = 3,
+		teleportCooldown = 7, teleportMin = 14, teleportMax = 24, teleportClearance = 9, teleportFar = 34,
+		teleportUnseenSeconds = 2, teleportGrabBlock = 1.2, teleportRetry = 1,
 		tuning = table.freeze({ -- PROPUESTA DE BALANCE (pack TuningProposal)
 			AggroRadiusStuds = 17, WarningSeconds = 1.0, ScreamWindupSeconds = 0.75, ScreamRadiusStuds = 10,
 			ScreamDamage = 8, ScreamKnockbackStudsPerSecond = 19, WalkSpeedStudsPerSecond = 12,
@@ -139,9 +162,17 @@ Config.BEASTS = table.freeze({
 		trapLanes = 3, trapSegments = 4, -- PROPUESTA (derived: 3 x 4 = tuning.MaxActiveRootSegments 12)
 		trapSpread = 20, -- PROPUESTA: degrees between two lanes
 		trapActiveSeconds = 0.5, -- pack: "ventana activa corta ~0.5 s"
-		enclosureRadius = 9, -- PROPUESTA (derived: the gap, tuning.SafeGapMinimumStuds, fits the ring)
-		whipRange = 16, -- PROPUESTA (derived: 2 x enclosureRadius - 2, so the gap side stays out of reach)
-		whipDelay = 1.0, -- PROPUESTA: seconds of WallHold before the whip winds up
+		-- BR4 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): a bigger, brown Root whose roots reach farther
+		-- and whose enclosure resolves faster while staying escapable (the gap, SafeGapMinimumStuds 9, is unchanged; from
+		-- walls up to the whip there is whipDelay + whipTelegraph = 1.25 s, a 0.7 s walk out of a 10-stud ring). These
+		-- replace the pack's TrapTelegraph 1.15, WallTelegraph 1.25, WallHold 3.2, WhipTelegraph 0.85, AttackCooldown 3.5
+		-- and reach 34 (DetectionRadius). Was enclosureRadius 9, whipRange 16, whipDelay 1.0. A target beyond burrowReach
+		-- is followed underground to burrowTo studs (the persistent chase). Every value PROPUESTA.
+		trapReach = 46, trapTelegraph = 0.9, wallTelegraph = 0.85, wallHold = 2.6, whipTelegraph = 0.8, attackCooldown = 2.8,
+		burrowReach = 42, burrowTo = 24, burrowSeconds = 1.0,
+		enclosureRadius = 10, -- derived: the gap, tuning.SafeGapMinimumStuds, fits the ring
+		whipRange = 18, -- derived: 2 x enclosureRadius - 2, so the gap side stays out of reach
+		whipDelay = 0.45, -- seconds of WallHold before the whip winds up
 		hitHeight = 6, -- PROPUESTA (Pouncer's)
 		escapeSeconds = 4, disengage = 0.9, -- PROPUESTA (Viper's); escape distance is tuning.DetectionRadiusStuds
 		tuning = table.freeze({ -- PROPUESTA DE BALANCE (pack TuningProposal)
@@ -160,7 +191,11 @@ Config.BEASTS = table.freeze({
 		manifestSeconds = 2, -- PROPUESTA: "time to discover it before any exposure"
 		dissipateSeconds = 1, -- PROPUESTA: the pause after a discharge before it watches again
 		hitHeight = 6, -- PROPUESTA (Pouncer's)
-		eyeHeight = 6.1, -- studs over its feet where the eyes are (the rig's Eye bones, assets/bestias_rig/gaze); the gaze cone aims there
+		-- BR5 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): 3 s of ACCUMULATED looking (it pauses, never
+		-- decays or resets, inside one encounter) is one instant defeat through BeastHit (killDamage 100 = MaxHealth).
+		-- eyeHeight follows the model's scale (WildboundBeastProxies.LOOKS.Gaze.scale 1.6: was 6.1 at scale 1).
+		killSeconds = 3, killDamage = 100, repositionSeconds = 3,
+		eyeHeight = 9.8, -- studs over its feet where the eyes are (the rig's Eye bones x the 1.6 scale); the gaze cone aims there
 		disengage = 0.9, -- PROPUESTA (Viper's)
 		-- SightConeDegrees is read as the largest angle between the view and the line to Gaze (a half-angle).
 		tuning = table.freeze({ -- PROPUESTA DE BALANCE (pack TuningProposal)
@@ -180,6 +215,10 @@ Config.BEASTS = table.freeze({
 		observeHysteresis = 0.25, -- PROPUESTA (Gaze's SightBreakGraceSeconds reused): no flicker on small turns
 		burstSeconds = 1.2, pauseSeconds = 0.4, -- PROPUESTA: the approach "en ráfagas con pequeñas pausas"
 		leapRadius = 6.5, arcHeight = 6, hitHeight = 6, -- PROPUESTA (Pouncer's landing circle; a lower arc)
+		-- BR6 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): no early warnings. The leap's landing circle is
+		-- never drawn (hideTells), and the client drops the footprints, the phase lines and sounds of its approach and
+		-- windup. The mechanic, its timing (LeapTelegraphSeconds 0.8 + travel 0.55) and the perfect dodge are unchanged.
+		hideTells = true,
 		escapeDistance = 100, escapeSeconds = 4, disengage = 0.9, -- PROPUESTA (Viper's)
 		tuning = table.freeze({ -- PROPUESTA DE BALANCE (pack TuningProposal)
 			InitialSpawnDistanceStuds = 44, ObservedPauseSeconds = 1.4, UnobservedApproachSpeedStudsPerSecond = 15,

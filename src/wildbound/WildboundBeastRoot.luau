@@ -61,8 +61,9 @@ function Root.gapFor(e, center, world, C)
 end
 
 local function startTrap(events, e, now, target, world, C, T)
+	-- BR4: the roots reach trapReach (was DetectionRadiusStuds 34).
 	local shape = Config.rootLanes(e.pos.x, e.pos.y, e.pos.z, target.x, target.z, C.trapLanes, C.trapSpread,
-		T.TrapLaneWidthStuds, T.DetectionRadiusStuds)
+		T.TrapLaneWidthStuds, C.trapReach)
 	if not shape then return false end
 	local kept = {}
 	for _, lane in ipairs(shape.list) do
@@ -72,7 +73,7 @@ local function startTrap(events, e, now, target, world, C, T)
 	if #kept == 0 then return false end
 	shape.list = kept
 	shape.segments = C.trapSegments
-	local strikeAt = now + T.TrapTelegraphSeconds
+	local strikeAt = now + C.trapTelegraph
 	local attack = Attack.open(events, e, world, { key = "trap", startAt = now, strikeAt = strikeAt, dodgeable = true,
 		damage = T.TrapDamage, shape = shape })
 	if not attack then return false end
@@ -93,13 +94,13 @@ local function startWalls(events, e, now, target, world, C, T)
 	if not finite(by) then return false end
 	local walls = Config.enclosure(center.x, center.y, center.z, gx, gz, C.enclosureRadius, T.SafeGapMinimumStuds)
 	if not walls then return false end
-	local upAt = now + T.WallTelegraphSeconds
-	e.walls = { shape = walls, upAt = upAt, downAt = upAt + T.WallHoldSeconds, up = false }
+	local upAt = now + C.wallTelegraph
+	e.walls = { shape = walls, upAt = upAt, downAt = upAt + C.wallHold, up = false }
 	-- The walls never hit: they are a tell (and, on the target's client, a barrier), not an attack.
 	emit(events, e, "Tell", now, { tell = e.id .. ":walls", shape = walls, startAt = now, strikeAt = upAt,
 		dodgeable = false, locked = true })
 	emit(events, e, "Move", now, { kind = "burrow", from = copy(e.pos), to = { x = bx, y = by, z = bz },
-		untilAt = now + math.min(1, T.WallTelegraphSeconds) })
+		untilAt = now + math.min(1, C.wallTelegraph) })
 	e.pos.x, e.pos.y, e.pos.z = bx, by, bz
 	e.dx, e.dz = gx, gz
 	Attack.phase(events, e, "TelegraphWalls", now, upAt)
@@ -110,7 +111,7 @@ local function startWhip(events, e, now, world, C, T)
 	local w = e.walls.shape
 	local dx, dz = unit(w.x - e.pos.x, w.z - e.pos.z)
 	if not dx then dx, dz = e.dx, e.dz end
-	local strikeAt = now + T.WhipTelegraphSeconds
+	local strikeAt = now + C.whipTelegraph
 	local attack = Attack.open(events, e, world, { key = "whip", startAt = now, strikeAt = strikeAt, dodgeable = true,
 		damage = T.WhipDamage, shape = { kind = "sector", x = e.pos.x, y = e.pos.y, z = e.pos.z, dx = dx, dz = dz,
 			r = C.whipRange, arc = T.WhipArcDegrees } })
@@ -122,8 +123,26 @@ local function startWhip(events, e, now, world, C, T)
 end
 
 local function recover(events, e, at, T)
-	e.recoverUntil = at + T.AttackCooldownSeconds
+	e.recoverUntil = at + Config.BEASTS.Root.attackCooldown
 	Attack.phase(events, e, "Recovery", at, e.recoverUntil)
+end
+
+-- BR4: a target beyond burrowReach is followed underground: Root sinks and rises burrowTo studs from it (toward its
+-- old spot, on valid ground), then attacks. With no valid ground there it walks (the shared catch-up speed applies).
+local function burrowCloser(events, e, now, target, world, C)
+	local dx, dz = unit(e.pos.x - target.x, e.pos.z - target.z)
+	if not dx then return false end
+	local bx, bz = target.x + dx * C.burrowTo, target.z + dz * C.burrowTo
+	local by = world.landing and world.landing(bx, bz, e.pos.y) or Attack.groundAt(world, bx, bz, e.pos.y)
+	-- It rises on the target's level (never on a ridge above it), so its lanes and whip, checked against its own feet,
+	-- can reach the target.
+	if not finite(by) or math.abs(by - (target.y - 3)) > C.hitHeight - 1 then return false end
+	emit(events, e, "Move", now, { kind = "burrow", from = copy(e.pos), to = { x = bx, y = by, z = bz },
+		untilAt = now + C.burrowSeconds })
+	e.pos.x, e.pos.y, e.pos.z = bx, by, bz
+	Attack.face(e, target)
+	Attack.phase(events, e, "Burrow", now, now + C.burrowSeconds)
+	return true
 end
 
 function Root.step(events, e, now, target, world, dt)
@@ -150,6 +169,12 @@ function Root.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Rise" and now - e.phaseAt >= C.spawnSeconds then
 		Attack.phase(events, e, "SelectAttack", e.phaseAt + C.spawnSeconds)
+	end
+	if e.phase == "Burrow" and now - e.phaseAt >= C.burrowSeconds then
+		Attack.phase(events, e, "SelectAttack", e.phaseAt + C.burrowSeconds)
+	end
+	if e.phase == "SelectAttack" and Attack.distance(e, target) > C.burrowReach then
+		if not burrowCloser(events, e, now, target, world, C) then Attack.walk(e, target, 10, 1, dt, world) end
 	end
 	if e.phase == "SelectAttack" then
 		Attack.face(e, target)
@@ -187,7 +212,7 @@ function Root.step(events, e, now, target, world, dt)
 		-- The first try starts on the planned instant; a staggered retry starts now. A whip that could no longer strike
 		-- before the walls drop is skipped (never a strike after the enclosure is gone).
 		local startAt = math.max(now - 0.05, e.phaseAt + C.whipDelay)
-		local fits = startAt + T.WhipTelegraphSeconds <= e.walls.downAt
+		local fits = startAt + C.whipTelegraph <= e.walls.downAt
 		if not (fits and startWhip(events, e, startAt, world, C, T)) and (not fits or now >= e.walls.downAt) then
 			emit(events, e, "TellEnd", now, { tell = e.id .. ":walls" })
 			e.walls = nil

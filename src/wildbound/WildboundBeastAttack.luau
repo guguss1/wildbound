@@ -121,7 +121,10 @@ function Attack.open(events, e, world, spec)
 		return nil, "Stagger"
 	end
 	local attack = { id = id, key = spec.key, startAt = spec.startAt, strikeAt = spec.strikeAt, shape = spec.shape,
-		dodgeable = spec.dodgeable == true, damage = spec.damage, done = false, sentAt = spec.startAt, locked = false }
+		dodgeable = spec.dodgeable == true, damage = spec.damage, done = false, sentAt = spec.startAt, locked = false,
+		-- BR6: a hidden attack's tell is never drawn by the client (Lurker: no landing circle); its volume, timing and
+		-- dodge registration are unchanged, so the server still decides the hit exactly the same way.
+		hidden = spec.hidden == true or nil }
 	if attack.dodgeable and world.telegraph then
 		-- A refusal (a telegraph under 0.8 s) leaves the attack undodgeable; it still lands only where it was drawn.
 		attack.registered = world.telegraph(id, e.beast, spec.startAt, spec.strikeAt) == true
@@ -129,7 +132,7 @@ function Attack.open(events, e, world, spec)
 	e.open = e.open or {}
 	e.open[id] = attack
 	Attack.emit(events, e, "Tell", spec.startAt, { tell = id, shape = spec.shape, startAt = spec.startAt,
-		strikeAt = spec.strikeAt, lockAt = spec.lockAt, dodgeable = attack.dodgeable, locked = false })
+		strikeAt = spec.strikeAt, lockAt = spec.lockAt, dodgeable = attack.dodgeable, locked = false, hidden = attack.hidden })
 	return attack
 end
 
@@ -140,7 +143,7 @@ function Attack.aim(events, e, attack, shape, now)
 	if now - attack.sentAt >= Attack.TELL_RATE then
 		attack.sentAt = now
 		Attack.emit(events, e, "Tell", now, { tell = attack.id, shape = shape, startAt = attack.startAt,
-			strikeAt = attack.strikeAt, dodgeable = attack.dodgeable, locked = false })
+			strikeAt = attack.strikeAt, dodgeable = attack.dodgeable, locked = false, hidden = attack.hidden })
 	end
 end
 
@@ -150,7 +153,7 @@ function Attack.lock(events, e, attack, shape, at)
 	attack.locked = true
 	if shape then attack.shape = shape end
 	Attack.emit(events, e, "Tell", at, { tell = attack.id, shape = attack.shape, startAt = attack.startAt,
-		strikeAt = attack.strikeAt, dodgeable = attack.dodgeable, locked = true })
+		strikeAt = attack.strikeAt, dodgeable = attack.dodgeable, locked = true, hidden = attack.hidden })
 end
 
 local function close(e, attack)
