@@ -320,9 +320,12 @@ Config.BEASTS = table.freeze({
 		grounded = true,
 		hitHeight = 8,
 		disengage = 0.9,
+		-- PF4 (odd/tasks/wildbound-caramelo-playfix.md): sight 16 -> 24, abandon 25 -> 36, and a slow patrol round the nest
+		-- while calm (PatrolSpeed 7 -> 4, it was unused; PatrolRadiusStuds 8, PatrolPauseSeconds 1.5 new).
 		tuning = table.freeze({
-			WakeRadiusStuds = 40, PerceptionStuds = 16, AbandonStuds = 25, LeashStuds = 30,
-			PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 12, AlertSeconds = 0.7,
+			WakeRadiusStuds = 40, PerceptionStuds = 24, AbandonStuds = 36, LeashStuds = 30,
+			PatrolSpeedStudsPerSecond = 4, PatrolRadiusStuds = 8, PatrolPauseSeconds = 1.5,
+			ChaseSpeedStudsPerSecond = 12, AlertSeconds = 0.7,
 			-- CF (user, 2026-11-15): a faster cast (was tell 0.9, lock 0.55, recover 0.7, cooldown 5.5).
 			JumpRangeStuds = 10, TelegraphSeconds = 0.8, LockSeconds = 0.45, JumpSeconds = 0.45, RadiusStuds = 4.5,
 			RecoverSeconds = 0.5, AttackCooldownSeconds = 3.5,

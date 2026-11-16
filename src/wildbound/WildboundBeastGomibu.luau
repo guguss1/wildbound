@@ -1,13 +1,16 @@
 -- Caramelo biome (pack 03_PERSONAJES/01_GOMIBU.md): Gomibu, the gummy bear that guards a candy nest. Server only and
 -- pure, stepped by WildboundBeastEncounters through Enc.register, on the WildboundBeastNube pattern. It is summoned at
 -- its nest (Director.summon, points 0) and lives there; e.pos is the ground under it. State machine:
---   Calm (waits at the nest) -> Notice (Alert: AlertSeconds still, after the target comes within PerceptionStuds)
+--   Calm (PF4: a slow patrol round the nest within PatrolRadiusStuds) -> Notice (Alert: AlertSeconds still, after the
+--   target comes within PerceptionStuds)
 --   -> Chase (bounces after it at ChaseSpeed, never past LeashStuds from the nest)
 --   -> Telegraph (Golpe de Goma within JumpRange: a circle of RadiusStuds on the target that follows it until
 --      LockSeconds and never again; TelegraphSeconds, never under Config.MIN_TELL)
 --   -> Jump (one straight arc of JumpSeconds from where it stood to the locked circle; the strike is the landing)
---   -> Recover (RecoverSeconds) -> Chase ... -> GiveUp (the target past AbandonStuds).
---   Escape: the target outside EscapeDistance of the nest for EscapeSeconds. Death and the safe zone end it (Attack.guard).
+--   -> Recover (RecoverSeconds) -> Chase ... -> GiveUp (the target past AbandonStuds; GiveUpSeconds standing)
+--   -> Return (PF3: walks back to the nest; the encounter ends there with no fade, where its resting copy stands).
+--   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
+--   end it at once (Attack.guard).
 -- Threat: damage 0. A hit slows (event.slow) and pushes away from the circle (event.push, applied by the server: a
 -- client-side knock barely moves a standing player); the egg stays (the beast
 -- script skips BeastHit for a keepsEgg beast). After a jump it cannot open another for AttackCooldownSeconds.
@@ -57,11 +60,49 @@ local function leash(e, T)
 	end
 end
 
+-- PF3/PF4 (odd/tasks/wildbound-caramelo-playfix.md): a calm ending never fades out where it stands. It may stand a
+-- moment first (GiveUp, for `seconds`), then walks back to its nest (Return) and the encounter ends there, where its
+-- resting copy stands between encounters.
 local function retreat(events, e, world, now, phase, reason, seconds)
 	Attack.closeAll(e, world)
 	e.jump = nil
-	if phase then Attack.phase(events, e, phase, now, now + seconds) end
-	Attack.disengage(events, e, reason, now, seconds)
+	e.returnReason = reason
+	if phase then
+		Attack.phase(events, e, phase, now, now + seconds)
+		e.returnAt = now + seconds
+	else
+		Attack.phase(events, e, "Return", now, nil, { reason = reason })
+	end
+end
+
+-- Moves toward (x, z) at speed for dt on the ground; returns true on arrival.
+local function walkTo(e, world, x, z, speed, dt)
+	local distance = flat(e.pos.x, e.pos.z, x, z)
+	if distance <= 1e-3 then return true end
+	local dx, dz = unit(x - e.pos.x, z - e.pos.z)
+	local step = math.min(speed * dt, distance)
+	e.pos.x += dx * step
+	e.pos.z += dz * step
+	e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+	e.dx, e.dz = dx, dz
+	return step >= distance - 1e-6
+end
+
+-- PF4: a slow loop round the nest while calm (it used to stand still): points within PatrolRadiusStuds, a pause at each.
+local GOLDEN = math.pi * (3 - math.sqrt(5))
+local function patrol(e, now, world, T, dt)
+	if e.waitUntil and now < e.waitUntil then return end
+	e.waitUntil = nil
+	if not e.waypoint then
+		e.patrolIndex = (e.patrolIndex or 0) + 1
+		local angle = e.patrolIndex * GOLDEN
+		local radius = T.PatrolRadiusStuds * (0.5 + 0.5 * ((e.patrolIndex * 0.618) % 1))
+		e.waypoint = { x = e.home.x + math.cos(angle) * radius, z = e.home.z + math.sin(angle) * radius }
+	end
+	if walkTo(e, world, e.waypoint.x, e.waypoint.z, T.PatrolSpeedStudsPerSecond, dt) then
+		e.waypoint = nil
+		e.waitUntil = now + (T.PatrolPauseSeconds or 1.5)
+	end
 end
 
 local function openJump(events, e, now, target, world, C, T)
@@ -97,22 +138,37 @@ function Gomibu.step(events, e, now, target, world, dt)
 	local C = Config.BEASTS.Gomibu
 	local T = C.tuning
 	if Attack.guard(events, e, now, target, {}) then return end
+	-- PF4: standing a moment after giving up, then the walk home; the encounter ends at the nest with no fade
+	if e.phase == "GiveUp" then
+		if now >= (e.returnAt or now) then Attack.phase(events, e, "Return", now, nil, { reason = e.returnReason }) end
+		return
+	end
+	if e.phase == "Return" then
+		if walkTo(e, world, e.home.x, e.home.z, T.ChaseSpeedStudsPerSecond * 0.6, dt) then
+			e.dx, e.dz = 0, 1 -- the resting copy's facing
+			table.insert(events, Attack.finish(e, e.returnReason or "Done", now))
+		end
+		return
+	end
 	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
 	end
 	if e.farSince and now - e.farSince >= T.EscapeSeconds then
-		retreat(events, e, world, now, nil, "Escape", C.disengage)
+		retreat(events, e, world, now, nil, "Escape")
 		return
 	end
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
 		if Gomibu.sees(e, target, T) then
+			e.waypoint, e.waitUntil = nil, nil
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
+			return
 		end
+		patrol(e, now, world, T, dt)
 		return
 	end
 	if e.phase == "Notice" then

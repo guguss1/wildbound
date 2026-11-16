@@ -79,21 +79,35 @@ return function(Enc, Gomibu, Config)
 		-- lock to the landing), recover 0.7 -> 0.5, cooldown 5.5 -> 3.5.
 		equal(T.TelegraphSeconds, 0.8); equal(T.LockSeconds, 0.45); equal(T.JumpSeconds, 0.45); equal(T.RadiusStuds, 4.5)
 		equal(T.RecoverSeconds, 0.5); equal(T.AttackCooldownSeconds, 3.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
-		equal(T.PerceptionStuds, 16); equal(T.AbandonStuds, 25); equal(T.PatrolSpeedStudsPerSecond, 7); equal(T.ChaseSpeedStudsPerSecond, 12)
+		-- Deliberately changed (PF4, odd/tasks/wildbound-caramelo-playfix.md): sight 16 -> 24 and abandon 25 -> 36 for a
+		-- walking player; a slow patrol (4 studs/s, was 7 and unused) round its nest within PatrolRadiusStuds 8.
+		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 12)
+		equal(T.PatrolRadiusStuds, 8)
+		assert(T.PatrolRadiusStuds < T.LeashStuds and T.PerceptionStuds < T.AbandonStuds, "patrol inside the leash, sight inside abandon")
 		assert(Gomibu.tellSeconds(T) >= Config.MIN_TELL, "tell under the fairness floor")
 		-- the two kids keep their own flags: nothing here leaks onto them
 		equal(Config.BEASTS.NubeGrunona.keepsEgg, nil); equal(Config.BEASTS.AbejaReina.grounded, nil)
 	end)
 
-	case("it waits at its nest until the target is within 16 studs, alerts for 0.7 s, then chases", function()
-		local e, w, tgt = bear("calm"), fakeWorld(), target(30, 0)
-		equal(phases(run(e, w, tgt, 0, 1)), "Calm", "far target")
-		equal(e.pos.x, 0, "moved while calm")
-		tgt.x = 15.9
-		local events = run(e, w, tgt, 1.05, 2.2)
-		local list = each(events, "Phase")
-		equal(list[1].phase, "Notice"); equal(list[2].phase, "Chase")
-		near(list[2].at - list[1].at, T.AlertSeconds, "alert time", 1e-6)
+	-- Deliberately changed (PF4): Gomibu used to stand perfectly still at its nest until a player came within 16 studs, so
+	-- a player passing by saw a statue. Now it patrols slowly round the nest while calm and notices at 24 studs.
+	case("PF4: calm, it patrols slowly round its nest (never past PatrolRadiusStuds), and notices within 24 studs", function()
+		local e, w, tgt = bear("calm"), fakeWorld(), target(50, 0)
+		local farthest, moved, last = 0, 0, { x = 0, z = 0 }
+		local list = phases(run(e, w, tgt, 0, 12, nil, function(_, b)
+			farthest = math.max(farthest, math.sqrt(b.pos.x ^ 2 + b.pos.z ^ 2))
+			moved += math.sqrt((b.pos.x - last.x) ^ 2 + (b.pos.z - last.z) ^ 2)
+			last = { x = b.pos.x, z = b.pos.z }
+		end))
+		equal(list, "Calm", "far target: calm phases only")
+		assert(moved > 6, "it stood still while calm (" .. moved .. " studs)")
+		assert(farthest <= T.PatrolRadiusStuds + 1e-6, "it wandered " .. farthest .. " studs from its nest")
+		assert(moved <= T.PatrolSpeedStudsPerSecond * 12 + 1e-6, "faster than its patrol speed")
+		tgt.x, tgt.z = e.pos.x + T.PerceptionStuds - 0.2, e.pos.z
+		local events = run(e, w, tgt, 12.05, 13.2)
+		local seen = each(events, "Phase")
+		equal(seen[1] and seen[1].phase, "Notice"); equal(seen[2] and seen[2].phase, "Chase")
+		near(seen[2].at - seen[1].at, T.AlertSeconds, "alert time", 1e-6)
 	end)
 
 	case("it chases at 12 studs per second and never goes past its leash, not even with a jump", function()
@@ -191,13 +205,33 @@ return function(Enc, Gomibu, Config)
 		assert(second.startAt <= tell.strikeAt + T.RecoverSeconds + T.AttackCooldownSeconds + 0.11, "it waited too long")
 	end)
 
-	case("it gives up when the target is 25 studs away", function()
+	case("it gives up when the target is past its abandon distance", function()
 		local e, w, tgt = bear("giveup"), fakeWorld(), target(15, 0)
 		run(e, w, tgt, 0, 0.9)
 		tgt.x = e.pos.x + T.AbandonStuds + 1
 		local later = run(e, w, tgt, 0.95, 1.5)
 		assert(string.find(phases(later), "GiveUp", 1, true), "phases " .. phases(later))
 		equal(#each(later, "Tell"), 0, "it attacked while giving up")
+	end)
+
+	-- PF3/PF4 (odd/tasks/wildbound-caramelo-playfix.md): after giving up (or when the target escapes) it walks back to its
+	-- nest and the encounter ends there with no fade (no Disengage), where its resting copy stands between encounters.
+	case("PF4: after giving up it walks home and ends at its nest without fading out", function()
+		for _, how in ipairs({ "GiveUp", "Escape" }) do
+			-- GiveUp: a chase whose target ran off; Escape: a calm bear whose visitor went far away
+			local e, w, tgt = bear("home" .. how), fakeWorld(), target(how == "GiveUp" and 15 or 33, 0)
+			run(e, w, tgt, 0, 0.9)
+			tgt.x = how == "GiveUp" and e.pos.x + T.AbandonStuds + 1 or T.EscapeDistanceStuds + 5
+			local later = run(e, w, tgt, 0.95, 15)
+			local list = phases(later)
+			assert(string.find(list, "Return", 1, true), how .. ": phases " .. list)
+			equal(#each(later, "Disengage"), 0, how .. ": it faded out")
+			local over = each(later, "End")[1]
+			assert(over, how .. ": never ended (phases " .. list .. ")")
+			equal(over.reason, how, how .. ": the reason")
+			assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, how .. ": ended away from its nest")
+			equal(#each(later, "Tell"), 0, how .. ": it attacked on the way home")
+		end
 	end)
 
 	return result
