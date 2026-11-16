@@ -340,16 +340,22 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		end
 		for path in pairs(listed) do
 			for _, kept in ipairs({ "Candy_Bioma_v1", "WildboundP0", "WildboundPradera", "WildboundHub", "SistemaSonriente",
-				"WildboundBeastGallery", "PatioEntrenamiento", "Road_living-forest_1", "Road_living-forest_2",
-				"Road_cryptic-ruins_1", "Road_pradera_1", "Road_volcanic-lands_", "Gate_forest", "Gate_pradera" }) do
+				"WildboundBeastGallery", "PatioEntrenamiento", "Road_living-forest_1",
+				"Road_cryptic-ruins_1", "Road_pradera_1", "Gate_forest", "Gate_pradera" }) do
 				assert(not string.find(path, kept, 1, true), path .. " is a kept item (" .. kept .. ")")
 			end
+		end
+		-- Owner feedback 3 (symmetric big4): the classic diagonal trunk legs are replaced by straight big4 roads.
+		for _, path in ipairs({ "WildboundOpenWorldRoads/living-forest/Road_living-forest_2",
+			"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_1", "WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_2",
+			"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_3", "WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_4" }) do
+			assert(listed[path], path .. " listed")
 		end
 		equal(Switch.ATTRIBUTE, Biomes.MODE_ATTRIBUTE); equal(Switch.ATTRIBUTE, BiomeLight.MODE_ATTRIBUTE)
 		equal(Switch.ROOT_ATTRIBUTE, Annex.ROOT_ATTRIBUTE)
 	end)
 
-	case("BIG4 geometry: the scaled clones fill exactly the Montañas and Volcán big4 squares, corners fixed", function()
+	case("BIG4 geometry: the scaled clones fill exactly the Montañas and Volcán big4 squares, moved to their centres", function()
 		local byName = {}
 		for _, spec in ipairs(Annex.SCALED) do byName[spec.source] = spec end
 		local frozen, volcanic = byName.WildboundFrozenMountains, byName.WildboundVolcanicLands
@@ -357,15 +363,37 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		same(Annex.scaledSquare(volcanic), square(Biomes.AREAS_BIG4, "Volcanic"), "Volcán")
 		same(frozen.square, square(Biomes.AREAS, "Mountains"), "the classic Montañas square")
 		same(volcanic.square, square(Biomes.AREAS, "Volcanic"), "the classic Volcán square")
-		local x, z = Annex.scaledPoint(frozen.corner.x, frozen.corner.z, frozen)
-		near(x, frozen.corner.x, "corner x"); near(z, frozen.corner.z, "corner z")
+		near(frozen.factor, 1.2, "frozen factor"); near(volcanic.factor, 1.5, "volcanic factor")
+		local x, z = Annex.scaledPoint(772, -493, frozen)
+		near(x, frozen.centre.x, "frozen centre x"); near(z, frozen.centre.z, "frozen centre z")
 		x, z = Annex.scaledPoint(frozen.gate.x, frozen.gate.z, frozen)
-		near(x, 285.75, "frozen gate x"); near(z, -336, "frozen gate z")
+		near(x, 27, "frozen gate x"); near(z, -415, "frozen gate z")
 		x, z = Annex.scaledPoint(volcanic.gate.x, volcanic.gate.z, volcanic)
-		near(x, 73, "volcanic gate x"); near(z, 370, "volcanic gate z")
+		near(x, 582, "volcanic gate x"); near(z, 442, "volcanic gate z")
 	end)
 
-	case("BIG4 geometry: each road runs from a kept road end outside the biome to its scaled gate inside", function()
+	-- Owner feedback 3: "deberían ser los 4 iguales con la base al centro".
+	case("BIG4 symmetry: four equal 600-stud squares in a plus around the hub, mirrored about x 297 and z -3", function()
+		local w, e = square(Biomes.AREAS_BIG4, "Forest"), square(Biomes.AREAS_BIG4, "Meadow")
+		local n, s = square(Biomes.AREAS_BIG4, "Mountains"), square(Biomes.AREAS_BIG4, "Volcanic")
+		for _, q in ipairs({ w, e, n, s }) do
+			near(q.maxX - q.minX, 600, q.tag .. " width"); near(q.maxZ - q.minZ, 600, q.tag .. " depth")
+			assert(q.minX >= -1024 and q.maxX <= 1024 and q.minZ >= -1024 and q.maxZ <= 1024, q.tag .. " on the baseplate")
+		end
+		near(w.maxX, 182, "the forest's east edge is WildboundP0's"); near(e.minX, 412, "Caramelo's west edge is its plot's")
+		near(297 - w.maxX, e.minX - 297, "W and E the same distance from x 297")
+		near((w.minZ + w.maxZ) / 2, -3, "W centred on the hub row"); near((e.minZ + e.maxZ) / 2, -3, "E centred on the hub row")
+		near((n.minX + n.maxX) / 2, 297, "N centred"); near((s.minX + s.maxX) / 2, 297, "S centred")
+		near(-3 - n.maxZ, s.minZ + 3, "N and S the same distance from z -3")
+		assert(n.maxZ <= w.minZ - 40 and s.minZ >= w.maxZ + 40, "40-stud gaps between the plus arms")
+		-- Equal sizes on the ground too: each annex plus its kept plot is the square (the next case), and the scaled clones
+		-- fill theirs (the previous case).
+		local big = 0
+		for _, q in ipairs(Biomes.AREAS_BIG4) do if q.kind == "square" then big += 1 end end
+		equal(big, 4, "four squares")
+	end)
+
+	case("BIG4 geometry: N and S roads have equal length, run axis-aligned outside the biomes, and end at the gates", function()
 		local gates = {}
 		for _, spec in ipairs(Annex.SCALED) do
 			local gx, gz = Annex.scaledPoint(spec.gate.x, spec.gate.z, spec)
@@ -374,13 +402,34 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		local byBiome = {}
 		for _, road in ipairs(Annex.ROADS) do byBiome[road.biome] = road end
 		local frozen, volcanic = byBiome["frozen-mountains"], byBiome["volcanic-lands"]
-		near(frozen.to.x, gates.WildboundFrozenMountains.x, "frozen road end x")
-		near(frozen.to.z, gates.WildboundFrozenMountains.z, "frozen road end z")
-		near(volcanic.to.x, gates.WildboundVolcanicLands.x, "volcanic road end x")
-		near(volcanic.to.z, gates.WildboundVolcanicLands.z, "volcanic road end z")
-		equal(Biomes.has(frozen.from.x, frozen.from.z, "Mountains", "big4"), false, "the N trunk node is outside")
-		equal(Biomes.has(frozen.to.x, frozen.to.z, "Mountains", "big4"), true, "the frozen gate is inside")
-		equal(Biomes.has(volcanic.to.x, volcanic.to.z, "Volcanic", "big4"), true, "the volcanic gate is inside")
+		assert(frozen and volcanic and type(frozen.points) == "table", "polyline roads")
+		local function last(road) return road.points[#road.points] end
+		near(last(frozen).x, gates.WildboundFrozenMountains.x, "frozen road end x")
+		near(last(frozen).z, gates.WildboundFrozenMountains.z, "frozen road end z")
+		near(last(volcanic).x, gates.WildboundVolcanicLands.x, "volcanic road end x")
+		near(last(volcanic).z, gates.WildboundVolcanicLands.z, "volcanic road end z")
+		-- They start at the kept hub trunk ends (Road_living-forest_1 north end, Road_cryptic-ruins_1 south end).
+		near(frozen.points[1].x, 282); near(frozen.points[1].z, -124)
+		near(volcanic.points[1].x, 282); near(volcanic.points[1].z, 118)
+		near(Annex.roadLength(frozen), Annex.roadLength(volcanic), "equal road lengths")
+		for _, road in ipairs({ frozen, volcanic }) do
+			for index = 1, #road.points - 1 do
+				local a, b = road.points[index], road.points[index + 1]
+				assert(a.x == b.x or a.z == b.z, road.biome .. " leg " .. index .. " axis-aligned")
+				if index < #road.points - 1 then
+					for _, q in ipairs(Biomes.AREAS_BIG4) do
+						if q.kind == "square" then
+							local half = Annex.ROAD_WIDTH / 2
+							local clear = math.max(a.x, b.x) + half < q.minX or math.min(a.x, b.x) - half > q.maxX
+								or math.max(a.z, b.z) + half < q.minZ or math.min(a.z, b.z) - half > q.maxZ
+							assert(clear, road.biome .. " leg " .. index .. " crosses " .. q.tag)
+						end
+					end
+				end
+			end
+		end
+		equal(Biomes.has(last(frozen).x, last(frozen).z, "Mountains", "big4"), true, "the frozen gate is inside")
+		equal(Biomes.has(last(volcanic).x, last(volcanic).z, "Volcanic", "big4"), true, "the volcanic gate is inside")
 		local cx, cz, length, yaw = Annex.slab({ x = 0, z = 0 }, { x = 0, z = -10 })
 		near(cx, 0, "centre x"); near(cz, -5, "centre z"); near(length, 10 + Annex.ROAD_WIDTH, "length"); near(yaw, 0, "yaw north")
 		local _, _, _, east = Annex.slab({ x = 0, z = 0 }, { x = 10, z = 0 })
@@ -444,8 +493,8 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 	case("BIG4 map: the Caramelo plot, entrance and portal, and the forest portal stay inside their big4 biomes", function()
 		local meadow = square(Biomes.AREAS_BIG4, "Meadow")
 		near(meadow.minX, Layout.CENTRE.x - Layout.HALF, "the Caramelo west edge (its entrance) is unchanged")
-		near(meadow.minZ, Layout.CENTRE.z - Layout.HALF, "the Caramelo north edge is unchanged")
-		assert(meadow.maxX >= Layout.CENTRE.x + Layout.HALF and meadow.maxZ >= Layout.CENTRE.z + Layout.HALF, "contains the plot")
+		near((meadow.minZ + meadow.maxZ) / 2, Layout.CENTRE.z, "the Caramelo square is centred on its plot's row")
+		assert(meadow.minZ <= Layout.CENTRE.z - Layout.HALF and meadow.maxX >= Layout.CENTRE.x + Layout.HALF and meadow.maxZ >= Layout.CENTRE.z + Layout.HALF, "contains the plot")
 		equal(Biomes.has(Layout.CENTRE.x + Layout.ENTRANCE.x, Layout.CENTRE.z + Layout.ENTRANCE.z, "Meadow", "big4"), true)
 		for _, station in ipairs(Portal.STATIONS) do
 			local tag = station.id == "caramelo" and "Meadow" or "Forest"

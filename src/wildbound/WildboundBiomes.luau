@@ -24,14 +24,15 @@ Biomes.AREAS = table.freeze({
 	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
 })
 
--- Big4 map experiment (odd/tasks/wildbound-big4-map.md): four larger biomes only. Forest and Caramelo keep their plots
--- and grow by annexes; Montañas and Volcán are scaled clones pinned at the corner nearest the hub. Pantano, Cementerio,
--- Cuevas and Abismo are archived, so their squares read as no biome (the hub's day). The I3 swamp circle stays.
+-- Big4 map experiment (odd/tasks/wildbound-big4-map.md): four larger biomes only, four equal 600-stud squares in a plus
+-- around the hub (forest W, Caramelo E, Montañas N, Volcán S; mirrored about x 297 and z -3). Forest and Caramelo keep
+-- their plots and grow by annexes; Montañas and Volcán are scaled clones moved to their squares. Pantano, Cementerio,
+-- Cuevas and Abismo are archived; land between the arms reads as no biome (the hub's day). The I3 swamp circle stays.
 Biomes.AREAS_BIG4 = table.freeze({
-	square("Forest", "forest", -618, 182, -563, 197),
-	square("Meadow", "pradera", 412, 1012, -203, 537),
-	square("Mountains", "frozen-mountains", 247, 1022, -1018, -243),
-	square("Volcanic", "volcanic-lands", -668, 92, 237, 997),
+	square("Forest", "forest", -418, 182, -303, 297),
+	square("Meadow", "pradera", 412, 1012, -303, 297),
+	square("Mountains", "frozen-mountains", -3, 597, -943, -343),
+	square("Volcanic", "volcanic-lands", -3, 597, 337, 937),
 	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
 })
 

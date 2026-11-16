@@ -34,12 +34,12 @@ BiomeLight.AREAS = freeze({
 	square("Caves", 472, 772, 237, 537),
 })
 -- Big4 map experiment (odd/tasks/wildbound-big4-map.md): the same numbers as WildboundBiomes.AREAS_BIG4 (a suite keeps
--- them equal). Only four biomes, each larger; the archived biomes' squares read as the hub's day.
+-- them equal). Only four biomes, four equal 600-stud squares in a plus around the hub; the rest reads as the hub's day.
 BiomeLight.AREAS_BIG4 = freeze({
-	square("Forest", -618, 182, -563, 197),
-	square("Meadow", 412, 1012, -203, 537),
-	square("Mountains", 247, 1022, -1018, -243),
-	square("Volcanic", -668, 92, 237, 997),
+	square("Forest", -418, 182, -303, 297),
+	square("Meadow", 412, 1012, -303, 297),
+	square("Mountains", -3, 597, -943, -343),
+	square("Volcanic", -3, 597, 337, 937),
 })
 
 -- The map mode: the replicated Workspace attribute WildboundMapMode ("big4"; absent or anything else = "classic").

@@ -41,12 +41,14 @@ absent or "classic".
 
 ## Bounds (world x east, z south)
 
+Current (Owner feedback 3, symmetric plus; the first big4 squares are in brackets):
+
 | Biome | Classic square | Big4 square |
 | --- | --- | --- |
-| Forest | -218..182, -203..197 | -618..182, -563..197 |
-| Meadow (Caramelo) | 412..812, -203..197 | 412..1012, -203..537 |
-| Mountains | 522..1022, -743..-243 | 247..1022, -1018..-243 |
-| Volcanic | -308..92, 237..637 | -668..92, 237..997 |
+| Forest | -218..182, -203..197 | -418..182, -303..297 (was -618..182, -563..197) |
+| Meadow (Caramelo) | 412..812, -203..197 | 412..1012, -303..297 (was 412..1012, -203..537) |
+| Mountains | 522..1022, -743..-243 | -3..597, -943..-343 (was 247..1022, -1018..-243) |
+| Volcanic | -308..92, 237..637 | -3..597, 337..937 (was -668..92, 237..997) |
 
 All inside the 2048 x 2048 baseplate (no extra ground needed), 40+ studs apart, the hub disc (282, -3) r 90 clear.
 
@@ -211,3 +213,79 @@ Decisions taken for the user:
 - Basalt apron coloured dark red-brown, not grey, because the owner asked for no grey.
 - The fuller cotton trees in `Candy_Bioma_v1` show in both modes (that plot is shared); the classic hash above already
   includes them.
+
+## Owner feedback 3: four equal biomes with the base in the centre (2026-11-16)
+
+Owner, looking at a top view of big4: "es rara la distribución de los biomas, deberían ser los 4 iguales con la base al
+centro".
+
+En castellano: ahora los cuatro biomas miden lo mismo (600 x 600) y forman una cruz alrededor de la base: el bosque a la
+izquierda (oeste), el Reino Caramelo a la derecha (este), las Montañas Heladas arriba (norte) y el Volcán abajo (sur).
+Los caminos a las Montañas y al Volcán salen recto de la base y miden lo mismo. Volver al mapa de antes sigue siendo la
+misma línea `apply("classic")`.
+
+Layout: a plus of four equal 600 x 600 squares, mirrored about x 297 (halfway between `WildboundP0` and
+`Candy_Bioma_v1`) and z -3 (the hub row); 40-stud gaps between the arms; all on the baseplate.
+
+| Biome | Big4 square | How |
+| --- | --- | --- |
+| Forest (W) | -418..182, -303..297 | P0 kept; annex slabs W (200), N (100) and S (100); 150 ForestKit props (was 330) |
+| Caramelo (E) | 412..1012, -303..297 | plot kept; annex slabs E (200), N (100) and S (100); 120 CandyKit props (was 170), cotton trees fluffed |
+| Montañas (N) | -3..597, -943..-343 | clone scale 1.2 (was 1.55 about its SE corner), centre (297, -643) |
+| Volcán (S) | -3..597, 337..937 | clone scale 1.5 (was 1.9 about its NE corner), centre (297, 637) |
+
+Roads (`WildboundBig4Roads`, one slab per axis-aligned leg, width 14, classic style), both 694 studs (centre line):
+- N: Road_living-forest_1 end (282, -124) -> (282, -323) -> along the N gap to (-47, -323) -> (-47, -415) -> gate (27,
+  -415), entered from the west like the classic gate.
+- S: Road_cryptic-ruins_1 end (282, 118) -> (282, 317) -> along the S gap to (617, 317) -> (617, 442) -> gate (582, 442),
+  entered from the east like the classic gate.
+- W and E unchanged: the hub's W trail meets P0 at (182, 17); `Road_pradera_1` meets Caramelo at (412, -3).
+- In big4 the switch now also archives the classic diagonal trunk legs `Road_living-forest_2` and
+  `Road_volcanic-lands_1..4` (CLASSIC_ONLY 23 -> 28 items); they come back in classic.
+- Ground aprons follow the new squares automatically (`groundSlabs()` reads the same data).
+
+Decisions taken for the user:
+- Plus, not 2x2. P0 and Candy_Bioma_v1 both straddle the hub row (z -203..197) on either side of the hub, so in a 2x2
+  the hub would have to move about 315 studs to a corner. Moving the hub is not possible "in big4 only": its safe disc
+  is `Rules.HUB_X/HUB_Z` (WildboundWorldRules, read by `Rules.zone`, `farFromBase`, the hub script, WildboundServer,
+  WildboundBeasts, BeastConfig and HudView). The plus keeps the hub, spawn (298, -3), portals and safe zone exactly
+  where they are: nothing outside this branch's files changes.
+- Equal squares, not equal distances. With P0 and Caramelo fixed 230 studs apart, the W and E arms sit 115 studs from x
+  297; N and S must clear their 600-stud width, so they sit 340 from z -3. The plus is mirror-symmetric on both axes.
+- Equal road lengths for N and S (694 each). W and E stay the short existing links (P0 and Caramelo touch the hub area);
+  they cannot be lengthened without moving the two hand-built plots, which the brief forbids.
+- 600 studs: the largest equal size that fits on the 2048 baseplate (x 182 - S >= -1024 and z -3 - 1.5 S - 40 >= -1024
+  give S <= 612), so no extra ground part is needed.
+- No rotation of the clones: each gate keeps its classic approach side (Montañas from the west, Volcán from the east),
+  point-symmetric about the centre; the N side leg runs 20 studs farther out than the S one to even the lengths.
+- The first big4 roots are not destroyed: they wait in `ServerStorage.WildboundMapArchive.Retired_Big4_v1_20261116`
+  (six roots) and can be deleted by the owner once this layout is kept.
+- The hub's bounding box (x 166..387) already overlaps P0's east edge by 16 studs in classic; unchanged.
+
+Checks:
+- Studio == repo HEAD before writing (all eight sources, length + Adler-32).
+- RED (fresh loadstring+setfenv loader in a temporary ServerStorage StringValue, destroyed after; only the Big4Map,
+  BiomeLight, PlacePhase and BeastSight suites; WildboundFreshRunnerLock set and cleared): 38 passed, 7 failed, all
+  new cases (symmetry, factors, polyline roads, new sample points). PlacePhase was already green: its new points read
+  the same phases in both layouts.
+- GREEN: Big4Map 18/0, BiomeLight 10/0, PlacePhase 9/0, BeastSight 8/0 = 45 passed, 0 failed.
+- Studio == repo after writing: WildboundBiomes 4310 1757703428; WildboundBiomeLight 8431 3935279600;
+  WildboundMapModeSwitch 10783 3046062213; WildboundBig4Annex 24329 3998718749; WildboundBig4Map_Test 26972 4000307929;
+  WildboundBiomeLight_Test 11330 4157857190; WildboundPlacePhase_Test 9889 4213335406; WildboundBeastSight_Test 7703
+  434186860.
+- Rebuild (Edit, locks nil): `apply("classic")` (moved 29) -> classic hash 6051 parts 99d13bf3 -> old roots retired ->
+  `build()`: Frozen_Big4 553, Volcanic_Big4 440, ForestOuter_Big4 463 (150 props), CandyAnnex_Big4 719 (120 props),
+  Roads 10, Ground 5. Clone grounds measured exactly -3..597 x -943..-343 and -3..597 x 337..937; gate markers at
+  (27, -415) and (582, 442).
+- Round trip: big4 4923 parts 549c22bb -> classic 6051 99d13bf3 (equal to before) -> big4 4923 549c22bb (equal). Moved 34
+  each way, missing 0. Final status: big4, classicArchived 28, big4InPlace 6. Big4 total 4923 BaseParts (was 5657;
+  budget 6000).
+- Road overlap scan: every leg outside the biomes is clear; the last legs touch only the clones' own trail `Path1_1`
+  and, for Montañas, its gate `SignBoard`.
+- Walked Play (WildboundPlayLock "claude-big4-sym", both locks nil before, cleared after; character_navigation only):
+  spawn (298, -3) Hub -> N road (282, -323) -> (-47, -323) -> (-47, -415) -> into Montañas (39, -440) Mountains, floor
+  Snow, health 100 -> deeper (250, -620) Mountains, clock 13. Back to the hub -> S road (282, 317) -> (617, 317) ->
+  (617, 442) -> Volcán (401, 640) Volcanic, floor Basalt, clock 19. Hub -> Caramelo NE annex (949, -250) Caramelo, clock
+  14. -> outer forest SW (-349, 250) Forest, floor Grass, clock 24 (Night). No script errors (only the usual asset /
+  TexturePack upload noise and the DataStore Studio notice).
+- Not verified: a top-down picture (`screen_capture` from (297, 1900, 20) still renders a blank white view, as before).

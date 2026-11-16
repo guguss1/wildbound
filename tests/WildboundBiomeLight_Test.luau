@@ -58,24 +58,27 @@ return function(BiomeLight, source, sources)
 	case("BIG4: the preset follows the four larger biomes, and the archived squares read as the hub", function()
 		assert(type(BiomeLight.AREAS_BIG4) == "table" and table.isfrozen(BiomeLight.AREAS_BIG4), "frozen AREAS_BIG4")
 		equal(#BiomeLight.AREAS_BIG4, 4, "four squares")
+		-- Owner feedback 3: four equal 600-stud squares in a plus around the hub (odd/tasks/wildbound-big4-map.md).
 		for _, sample in ipairs({ { 620, -7, "Caramelo" }, { 452, -21, "Caramelo" }, { 0, -85, "Forest" },
-			{ -140, 140, "Forest" }, { -500, -400, "Forest" }, { 100, -500, "Forest" }, { 900, 0, "Caramelo" },
-			{ 600, 450, "Caramelo" }, { 1000, 530, "Caramelo" }, { 772, -493, "Mountains" }, { 300, -900, "Mountains" },
-			{ 286, -336, "Mountains" }, { -108, 437, "Volcanic" }, { -600, 900, "Volcanic" }, { 73, 370, "Volcanic" },
-			{ 282, -3, "Hub" }, { 282, 387, "Hub" }, { 115, 15, "Forest" }, { 5000, 5000, "Hub" },
-			{ 200, 400, "Hub" }, { 200, -150, "Hub" } }) do
+			{ -140, 140, "Forest" }, { -400, -290, "Forest" }, { 100, -250, "Forest" }, { 100, 280, "Forest" },
+			{ 900, 0, "Caramelo" }, { 600, 250, "Caramelo" }, { 1000, -290, "Caramelo" }, { 297, -643, "Mountains" },
+			{ 0, -940, "Mountains" }, { 27, -415, "Mountains" }, { 297, 637, "Volcanic" }, { 590, 930, "Volcanic" },
+			{ 582, 442, "Volcanic" }, { 282, -3, "Hub" }, { 282, -323, "Hub" }, { 282, 317, "Hub" }, { 115, 15, "Forest" },
+			{ 5000, 5000, "Hub" }, { -500, 0, "Hub" }, { 900, -500, "Hub" }, { -47, -400, "Hub" }, { 617, 400, "Hub" },
+			{ 200, -150, "Hub" } }) do
 			local name, preset = BiomeLight.presetAt(sample[1], sample[2], "big4")
 			equal(name, sample[3], ("big4 at %d, %d"):format(sample[1], sample[2]))
 			equal(preset, BiomeLight.PRESETS[sample[3]])
 		end
 		-- The old Pantano, Cementerio, Abismo and Cuevas centres: Hub, or swallowed by a grown neighbour.
 		equal((BiomeLight.presetAt(282, -443, "big4")), "Mountains", "old Pantano centre is now inside Montañas")
-		equal((BiomeLight.presetAt(-108, -393, "big4")), "Forest", "old Abismo centre is now outer forest")
-		equal((BiomeLight.presetAt(622, 387, "big4")), "Caramelo", "old Cuevas centre is now the Caramelo annex")
+		equal((BiomeLight.presetAt(-108, -393, "big4")), "Hub", "old Abismo centre is between the plus arms")
+		equal((BiomeLight.presetAt(622, 387, "big4")), "Hub", "old Cuevas centre is between the plus arms")
+		equal((BiomeLight.presetAt(282, 387, "big4")), "Volcanic", "old Cementerio centre is now inside Volcán")
 		equal((BiomeLight.presetAt(0 / 0, 0, "big4")), "Hub", "a bad point")
-		equal((BiomeLight.phaseAt(-500, -400, "big4")), "Night", "the outer forest plays by Night rules")
-		equal((BiomeLight.phaseAt(900, 400, "big4")), "Day", "the Caramelo annex plays by Day rules")
-		equal((BiomeLight.phaseAt(-600, 900, "big4")), "Day", "Volcán keeps Day rules")
+		equal((BiomeLight.phaseAt(-400, -290, "big4")), "Night", "the outer forest plays by Night rules")
+		equal((BiomeLight.phaseAt(900, 250, "big4")), "Day", "the Caramelo annex plays by Day rules")
+		equal((BiomeLight.phaseAt(590, 930, "big4")), "Day", "Volcán keeps Day rules")
 	end)
 
 	case("BIG4: an unknown mode reads as classic, and areasFor picks the table", function()

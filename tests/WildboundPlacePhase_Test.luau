@@ -49,11 +49,12 @@ return function(BiomeLight, deps, sources)
 
 	case("BIG4: the four larger biomes keep their phases, and the forest's islands and home stay Night", function()
 		for _, place in ipairs({
-			{ "forest", FOREST_X, FOREST_Z, "Night" }, { "outer forest west", -500, 0, "Night" },
-			{ "outer forest north", 0, -450, "Night" }, { "swamp island in the forest", 115, 15, "Night" },
+			{ "forest", FOREST_X, FOREST_Z, "Night" }, { "outer forest west", -400, 0, "Night" },
+			{ "outer forest north", 0, -280, "Night" }, { "swamp island in the forest", 115, 15, "Night" },
 			{ "caramelo", CARAMELO_X, CARAMELO_Z, "Day" }, { "caramelo annex east", 950, 0, "Day" },
-			{ "caramelo annex south", 600, 450, "Day" }, { "hub", 282, -3, "Day" }, { "montanas", 400, -800, "Day" },
-			{ "volcan", -500, 800, "Day" }, { "old cementerio", 282, 387, "Day" }, { "bad point", 0 / 0, 5, "Day" },
+			{ "caramelo annex south", 600, 280, "Day" }, { "hub", 282, -3, "Day" }, { "montanas", 400, -800, "Day" },
+			{ "volcan", 400, 800, "Day" }, { "old cementerio, now volcan", 282, 387, "Day" },
+			{ "between the arms", -500, 500, "Day" }, { "bad point", 0 / 0, 5, "Day" },
 		}) do
 			local phase, clock = BiomeLight.phaseAt(place[2], place[3], "big4")
 			equal(phase, place[4], "big4 " .. place[1])

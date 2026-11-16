@@ -52,6 +52,12 @@ Switch.CLASSIC_ONLY = table.freeze({
 	"WildboundOpenWorldRoads/frozen-mountains/Road_frozen-mountains_1",
 	"WildboundOpenWorldRoads/frozen-mountains/Road_frozen-mountains_2",
 	"WildboundOpenWorldRoads/frozen-mountains/Road_frozen-mountains_3",
+	-- Owner feedback 3 (symmetric big4): the diagonal N and S trunk legs give way to straight big4 roads.
+	"WildboundOpenWorldRoads/living-forest/Road_living-forest_2",
+	"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_1",
+	"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_2",
+	"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_3",
+	"WildboundOpenWorldRoads/volcanic-lands/Road_volcanic-lands_4",
 	"WildboundOpenWorldRoads/Gates/Gate_living-forest",
 	"WildboundOpenWorldRoads/Gates/Gate_cryptic-ruins",
 	"WildboundOpenWorldRoads/Gates/Gate_rock-caves",

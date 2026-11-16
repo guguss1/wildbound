@@ -5,13 +5,18 @@
 -- in big4 mode, or when a big4 root already exists.
 --
 -- The roots (each with attribute MapMode = "big4"):
---   WildboundFrozenMountains_Big4  a clone of WildboundFrozenMountains scaled 1.55 about its SE corner (1022, -243)
---   WildboundVolcanicLands_Big4    a clone of WildboundVolcanicLands scaled 1.9 about its NE corner (92, 237)
---   WildboundForestOuter_Big4      forest floor slabs west and north of WildboundP0, with a seeded scatter of the
---                                  forest's own dressed kit trees (WildboundP0.Decorations.ForestKit)
---   WildboundCandyAnnex_Big4       candy floor slabs east and south of Candy_Bioma_v1, with a seeded scatter of
+-- Layout (owner feedback 3, "los 4 iguales con la base al centro"): four equal 600 x 600 squares in a plus around the
+-- hub, mirrored about x 297 (halfway between WildboundP0 and Candy_Bioma_v1, which never move) and z -3 (the hub row):
+-- forest W (-418..182, -303..297), Caramelo E (412..1012, -303..297), Montañas N (-3..597, -943..-343), Volcán S
+-- (-3..597, 337..937).
+--   WildboundFrozenMountains_Big4  a clone of WildboundFrozenMountains scaled 1.2 and moved to the N square
+--   WildboundVolcanicLands_Big4    a clone of WildboundVolcanicLands scaled 1.5 and moved to the S square
+--   WildboundForestOuter_Big4      forest floor slabs west, north and south of WildboundP0, with a seeded scatter of
+--                                  the forest's own dressed kit trees (WildboundP0.Decorations.ForestKit)
+--   WildboundCandyAnnex_Big4       candy floor slabs east, north and south of Candy_Bioma_v1, with a seeded scatter of
 --                                  ServerStorage.WildboundAssets.CandyKit props
---   WildboundBig4Roads             two road slabs to the moved Frozen and Volcanic gates, and their gate markers
+--   WildboundBig4Roads             two equal-length axis-aligned roads from the hub's N and S trunks to the moved
+--                                  Frozen and Volcanic gates, and their gate markers
 --   WildboundBig4Ground            visual-only ground cover over the grey Baseplate: a meadow and four themed aprons
 --                                  (forest grass, volcanic basalt, snow, candy pink); WildboundCandyAnnex_Big4's cotton
 --                                  trees also get WildboundCandyKit.fluff canopy blobs
@@ -27,17 +32,19 @@ local function rect(minX, maxX, minZ, maxZ)
 end
 Annex.rect = rect
 
--- Scaled clones: the corner nearest the hub stays put, everything else grows away from it.
+-- Scaled clones: the classic square (spec.square) is scaled by spec.factor and its centre moved to spec.centre, with no
+-- rotation (each gate keeps its classic approach side: Montañas from the west, Volcán from the east).
 Annex.SCALED = table.freeze({
-	table.freeze({ source = "WildboundFrozenMountains", name = "WildboundFrozenMountains_Big4", factor = 1.55,
-		corner = table.freeze({ x = 1022, z = -243 }), square = rect(522, 1022, -743, -243), gate = table.freeze({ x = 547, z = -303 }) }),
-	table.freeze({ source = "WildboundVolcanicLands", name = "WildboundVolcanicLands_Big4", factor = 1.9,
-		corner = table.freeze({ x = 92, z = 237 }), square = rect(-308, 92, 237, 637), gate = table.freeze({ x = 82, z = 307 }) }),
+	table.freeze({ source = "WildboundFrozenMountains", name = "WildboundFrozenMountains_Big4", factor = 1.2,
+		centre = table.freeze({ x = 297, z = -643 }), square = rect(522, 1022, -743, -243), gate = table.freeze({ x = 547, z = -303 }) }),
+	table.freeze({ source = "WildboundVolcanicLands", name = "WildboundVolcanicLands_Big4", factor = 1.5,
+		centre = table.freeze({ x = 297, z = 637 }), square = rect(-308, 92, 237, 637), gate = table.freeze({ x = 82, z = 307 }) }),
 })
 
--- scaledPoint(x, z, spec) -> x, z after the clone is scaled about spec.corner.
+-- scaledPoint(x, z, spec) -> x, z of a classic point in the scaled, moved clone.
 function Annex.scaledPoint(x, z, spec)
-	return spec.corner.x + spec.factor * (x - spec.corner.x), spec.corner.z + spec.factor * (z - spec.corner.z)
+	local cx, cz = (spec.square.minX + spec.square.maxX) / 2, (spec.square.minZ + spec.square.maxZ) / 2
+	return spec.centre.x + spec.factor * (x - cx), spec.centre.z + spec.factor * (z - cz)
 end
 
 function Annex.scaledSquare(spec)
@@ -49,10 +56,10 @@ end
 -- Annexes. floors: the slabs (their union with the kept plot is the big4 square). props: where scatter may land
 -- (12+ studs inside the slab edges, 20+ studs from the kept plot so its own props and posts stay clear).
 Annex.FOREST = table.freeze({
-	name = "WildboundForestOuter_Big4", seed = 41, spacing = 26, target = 330,
+	name = "WildboundForestOuter_Big4", seed = 41, spacing = 26, target = 150,
 	floorFrom = "WildboundP0/Floor",
-	floors = table.freeze({ rect(-618, -218, -563, 197), rect(-218, 182, -563, -203) }),
-	props = table.freeze({ rect(-606, -230, -551, 185), rect(-206, 170, -551, -223) }),
+	floors = table.freeze({ rect(-418, -218, -303, 297), rect(-218, 182, -303, -203), rect(-218, 182, 197, 297) }),
+	props = table.freeze({ rect(-406, -230, -291, 285), rect(-206, 170, -291, -215), rect(-206, 170, 209, 285) }),
 	kept = rect(-218, 182, -203, 197),
 	-- name in WildboundP0.Decorations.ForestKit (a dressed exemplar, with its trunk core), weight, scale range
 	weights = table.freeze({
@@ -62,10 +69,10 @@ Annex.FOREST = table.freeze({
 	}),
 })
 Annex.CANDY = table.freeze({
-	name = "WildboundCandyAnnex_Big4", seed = 77, spacing = 22, target = 170,
+	name = "WildboundCandyAnnex_Big4", seed = 77, spacing = 22, target = 120,
 	floorFrom = "Candy_Bioma_v1/Ground/Floor",
-	floors = table.freeze({ rect(812, 1012, -203, 197), rect(412, 1012, 197, 537) }),
-	props = table.freeze({ rect(832, 1000, -191, 185), rect(424, 1000, 217, 525) }),
+	floors = table.freeze({ rect(812, 1012, -303, 297), rect(412, 812, -303, -203), rect(412, 812, 197, 297) }),
+	props = table.freeze({ rect(832, 1000, -291, 285), rect(424, 800, -291, -215), rect(424, 800, 209, 285) }),
 	kept = rect(412, 812, -203, 197),
 	-- name in ServerStorage.WildboundAssets.CandyKit, weight, scale range
 	weights = table.freeze({
@@ -79,17 +86,29 @@ Annex.CANDY = table.freeze({
 	}),
 })
 
--- Roads to the moved gates (from an existing road end to the scaled gate), with the classic slab style.
+-- Roads to the moved gates, with the classic slab style: polylines of axis-aligned legs (one slab per leg) from the
+-- kept hub trunk ends (Road_living-forest_1 at z -124, Road_cryptic-ruins_1 at z 118, mirrored about z -3) straight
+-- out along x 282, then along the 40-stud gap between the plus arms, round the biome's outside to its gate's classic
+-- approach side, and in. Both are 694 studs long (the frozen side leg runs 20 studs farther out to even them up).
 Annex.ROADS_NAME = "WildboundBig4Roads"
 Annex.ROAD_WIDTH, Annex.ROAD_THICK, Annex.ROAD_Y = 14, 0.12, 0.56
+local function p(x, z) return table.freeze({ x = x, z = z }) end
 Annex.ROADS = table.freeze({
-	-- the end of Road_living-forest_2 (the N trunk node) to the scaled Frozen gate
-	table.freeze({ name = "Road_big4_frozen-mountains_1", biome = "frozen-mountains", from = table.freeze({ x = 352, z = -223 }),
-		to = table.freeze({ x = 285.75, z = -336 }) }),
-	-- the classic Volcanic gate (end of Road_volcanic-lands_4) to the scaled Volcanic gate
-	table.freeze({ name = "Road_big4_volcanic-lands_1", biome = "volcanic-lands", from = table.freeze({ x = 82, z = 307 }),
-		to = table.freeze({ x = 73, z = 370 }) }),
+	table.freeze({ name = "Road_big4_frozen-mountains", biome = "frozen-mountains",
+		points = table.freeze({ p(282, -124), p(282, -323), p(-47, -323), p(-47, -415), p(27, -415) }) }),
+	table.freeze({ name = "Road_big4_volcanic-lands", biome = "volcanic-lands",
+		points = table.freeze({ p(282, 118), p(282, 317), p(617, 317), p(617, 442), p(582, 442) }) }),
 })
+
+-- roadLength(road) -> the sum of its legs' lengths (centre line).
+function Annex.roadLength(road)
+	local total = 0
+	for index = 1, #road.points - 1 do
+		local a, b = road.points[index], road.points[index + 1]
+		total += math.sqrt((b.x - a.x) ^ 2 + (b.z - a.z) ^ 2)
+	end
+	return total
+end
 
 -- Ground cover (owner, 2026-11-16: no grey parts on the map): the place's grey 2048-stud Baseplate shows wherever no
 -- biome floor lies (around the hub, between the biomes, the gaps of the archived classic biomes). WildboundBig4Ground
@@ -318,7 +337,10 @@ function Annex.buildScaled(spec)
 	task.wait()
 	local pivot = root:GetPivot()
 	root:ScaleTo(root:GetScale() * spec.factor)
-	local shift = Vector3.new((1 - spec.factor) * (spec.corner.x - pivot.X), 0, (1 - spec.factor) * (spec.corner.z - pivot.Z))
+	-- ScaleTo keeps the pivot: a point q lands on pivot + f (q - pivot); move the square's centre to spec.centre.
+	local cx, cz = (spec.square.minX + spec.square.maxX) / 2, (spec.square.minZ + spec.square.maxZ) / 2
+	local shift = Vector3.new(spec.centre.x - pivot.X - spec.factor * (cx - pivot.X), 0,
+		spec.centre.z - pivot.Z - spec.factor * (cz - pivot.Z))
 	root:PivotTo(root:GetPivot() + shift)
 	return root, countParts(root)
 end
@@ -394,19 +416,22 @@ function Annex.buildRoads()
 	assert(styleRoad and styleGate, "WildboundOpenWorldRoads style slabs missing")
 	local root = newRoot(Annex.ROADS_NAME, big4)
 	for _, road in ipairs(Annex.ROADS) do
-		local x, z, length, yaw = Annex.slab(road.from, road.to)
-		local slab = styleRoad:Clone()
-		slab:ClearAllChildren()
-		slab.Name = road.name
-		slab:SetAttribute("Biome", road.biome)
-		slab.Size = Vector3.new(Annex.ROAD_WIDTH, Annex.ROAD_THICK, length)
-		slab.CFrame = CFrame.new(x, Annex.ROAD_Y, z) * CFrame.Angles(0, math.rad(yaw), 0)
-		slab.Parent = root
+		for index = 1, #road.points - 1 do
+			local x, z, length, yaw = Annex.slab(road.points[index], road.points[index + 1])
+			local slab = styleRoad:Clone()
+			slab:ClearAllChildren()
+			slab.Name = road.name .. "_" .. index
+			slab:SetAttribute("Biome", road.biome)
+			slab.Size = Vector3.new(Annex.ROAD_WIDTH, Annex.ROAD_THICK, length)
+			slab.CFrame = CFrame.new(x, Annex.ROAD_Y, z) * CFrame.Angles(0, math.rad(yaw), 0)
+			slab.Parent = root
+		end
+		local to = road.points[#road.points]
 		local gate = styleGate:Clone()
 		gate:ClearAllChildren()
 		gate.Name = "Gate_big4_" .. road.biome
 		gate:SetAttribute("Biome", road.biome)
-		gate.CFrame = CFrame.new(road.to.x, styleGate.Position.Y, road.to.z)
+		gate.CFrame = CFrame.new(to.x, styleGate.Position.Y, to.z)
 		gate.Parent = root
 	end
 	return root, countParts(root)
