@@ -31,8 +31,12 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		for _, k in ipairs({ "minX", "maxX", "minZ", "maxZ" }) do near(a[k], b[k], label .. " " .. k) end
 	end
 
+	-- The five roots the big4 builder makes (WildboundBig4Annex); the switch refuses big4 without all of them.
+	local BIG4_ROOTS = { "WildboundFrozenMountains_Big4", "WildboundVolcanicLands_Big4", "WildboundForestOuter_Big4",
+		"WildboundCandyAnnex_Big4", "WildboundBig4Roads" }
+
 	-- A stand-in Workspace with every classic-only path, two shared road slabs and a kept root; a stand-in ServerStorage
-	-- with two big4 roots already archived.
+	-- with the five big4 roots already archived.
 	local function fixture()
 		local ws, storage = Instance.new("Folder"), Instance.new("Folder")
 		ws.Name, storage.Name = "FakeWorkspace", "FakeServerStorage"
@@ -84,7 +88,7 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		local big4 = Instance.new("Folder")
 		big4.Name = Switch.BIG4_FOLDER
 		big4.Parent = archive
-		for _, name in ipairs({ "WildboundFrozenMountains_Big4", "WildboundBig4Roads" }) do
+		for _, name in ipairs(BIG4_ROOTS) do
 			local root = Instance.new("Model")
 			root.Name = name
 			root:SetAttribute(Switch.ROOT_ATTRIBUTE, "big4")
@@ -123,7 +127,7 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		local before = cavesFloor.Position
 		local report = Switch.apply("big4", env)
 		equal(report.mode, "big4"); equal(#report.missing, 0, "nothing missing")
-		equal(report.moved, #Switch.CLASSIC_ONLY + 2, "every classic-only item and both big4 roots")
+		equal(report.moved, #Switch.CLASSIC_ONLY + #BIG4_ROOTS, "every classic-only item and every big4 root")
 		equal(ws:GetAttribute(Switch.ATTRIBUTE), "big4", "the replicated mode attribute")
 		local classic = storage[Switch.ARCHIVE][Switch.CLASSIC_FOLDER]
 		for _, path in ipairs(Switch.CLASSIC_ONLY) do
@@ -142,7 +146,7 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		equal(again.moved, 0, "a second big4 apply moves nothing"); equal(#again.missing, 0)
 		local status = Switch.status(env)
 		equal(status.mode, "big4"); equal(status.classicInPlace, 0); equal(status.classicArchived, #Switch.CLASSIC_ONLY)
-		equal(status.big4InPlace, 2); equal(status.big4Archived, 0)
+		equal(status.big4InPlace, #BIG4_ROOTS); equal(status.big4Archived, 0)
 		ws:Destroy(); storage:Destroy()
 	end)
 
@@ -163,10 +167,10 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		assert(snapshot() ~= original, "big4 changes the tree")
 		local report = Switch.apply("classic", env)
 		equal(report.mode, "classic"); equal(#report.missing, 0)
-		equal(report.moved, #Switch.CLASSIC_ONLY + 2)
+		equal(report.moved, #Switch.CLASSIC_ONLY + #BIG4_ROOTS)
 		equal(ws:GetAttribute(Switch.ATTRIBUTE), nil, "absent, as the place was")
 		equal(snapshot(), original, "the same names, parents and positions")
-		equal(#storage[Switch.ARCHIVE][Switch.BIG4_FOLDER]:GetChildren(), 2, "big4 roots back in the archive")
+		equal(#storage[Switch.ARCHIVE][Switch.BIG4_FOLDER]:GetChildren(), #BIG4_ROOTS, "big4 roots back in the archive")
 		equal(#storage[Switch.ARCHIVE][Switch.CLASSIC_FOLDER]:GetChildren(), 0, "the classic archive is empty again")
 		Switch.apply("big4", env); Switch.apply("classic", env)
 		equal(snapshot(), original, "a second round trip too")
@@ -174,14 +178,93 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		ws:Destroy(); storage:Destroy()
 	end)
 
-	case("BIG4 switch: an item gone from both places is reported, never invented", function()
+	-- Counts what sits where, to prove a refused apply changed nothing.
+	local function layout(ws, storage)
+		local archive = storage:FindFirstChild(Switch.ARCHIVE)
+		local classic = archive and archive:FindFirstChild(Switch.CLASSIC_FOLDER)
+		local big4 = archive and archive:FindFirstChild(Switch.BIG4_FOLDER)
+		local inPlace = 0
+		for _, path in ipairs(Switch.CLASSIC_ONLY) do
+			if find(ws, path) then inPlace += 1 end
+		end
+		local rootsIn = 0
+		for _, child in ipairs(ws:GetChildren()) do
+			if child:GetAttribute(Switch.ROOT_ATTRIBUTE) == "big4" then rootsIn += 1 end
+		end
+		return ("mode=%s classicIn=%d classicArchived=%d big4In=%d big4Archived=%d"):format(
+			tostring(ws:GetAttribute(Switch.ATTRIBUTE)), inPlace, classic and #classic:GetChildren() or 0, rootsIn,
+			big4 and #big4:GetChildren() or 0)
+	end
+
+	case("BIG4 switch: the expected big4 roots are the five the builder makes", function()
+		assert(type(Switch.BIG4_ROOTS) == "table", "Switch.BIG4_ROOTS is a list")
+		equal(#Switch.BIG4_ROOTS, #BIG4_ROOTS, "five roots")
+		for index, name in ipairs(BIG4_ROOTS) do equal(Switch.BIG4_ROOTS[index], name, "root " .. index) end
+		equal(Switch.BIG4_ROOTS[1], Annex.SCALED[1].name); equal(Switch.BIG4_ROOTS[2], Annex.SCALED[2].name)
+		equal(Switch.BIG4_ROOTS[5], Annex.ROADS_NAME)
+	end)
+
+	case("BIG4 switch: big4 with no big4 roots anywhere refuses and keeps every classic biome in place", function()
+		local ws, storage, env = fixture()
+		for _, root in ipairs(storage[Switch.ARCHIVE][Switch.BIG4_FOLDER]:GetChildren()) do root:Destroy() end
+		local before = layout(ws, storage)
+		local ok, problem = pcall(Switch.apply, "big4", env)
+		equal(ok, false, "refused")
+		assert(string.find(tostring(problem), "big4 roots", 1, true), "says why: " .. tostring(problem))
+		equal(layout(ws, storage), before, "nothing moved")
+		assert(ws:FindFirstChild("WildboundLivingForest") and ws:FindFirstChild("WildboundRockCaves"), "biomes stay")
+		ws:Destroy(); storage:Destroy()
+	end)
+
+	case("BIG4 switch: big4 with one of the five roots missing refuses, names it and changes nothing", function()
+		local ws, storage, env = fixture()
+		storage[Switch.ARCHIVE][Switch.BIG4_FOLDER].WildboundCandyAnnex_Big4:Destroy()
+		-- A same-named model in Workspace without the MapMode tag does not count as a big4 root.
+		local impostor = Instance.new("Model")
+		impostor.Name = "WildboundCandyAnnex_Big4"
+		impostor.Parent = ws
+		local before = layout(ws, storage)
+		local ok, problem = pcall(Switch.apply, "big4", env)
+		equal(ok, false, "refused")
+		assert(string.find(tostring(problem), "WildboundCandyAnnex_Big4", 1, true), "names the root: " .. tostring(problem))
+		equal(layout(ws, storage), before, "nothing moved")
+		ws:Destroy(); storage:Destroy()
+	end)
+
+	case("BIG4 switch: big4 counts roots already in Workspace as available", function()
+		local ws, storage, env = fixture()
+		local big4 = storage[Switch.ARCHIVE][Switch.BIG4_FOLDER]
+		big4.WildboundFrozenMountains_Big4.Parent = ws
+		big4.WildboundBig4Roads.Parent = ws
+		local report = Switch.apply("big4", env)
+		equal(report.moved, #Switch.CLASSIC_ONLY + 3, "the three archived roots and every classic item")
+		equal(Switch.status(env).big4InPlace, #BIG4_ROOTS)
+		ws:Destroy(); storage:Destroy()
+	end)
+
+	case("BIG4 switch: an item gone from both places is reported by big4, and classic refuses without it", function()
 		local ws, storage, env = fixture()
 		ws.WildboundDemonAbyss:Destroy()
 		local report = Switch.apply("big4", env)
 		equal(#report.missing, 1); equal(report.missing[1], "WildboundDemonAbyss")
-		report = Switch.apply("classic", env)
-		equal(#report.missing, 1, "still missing on the way back")
-		equal(ws:FindFirstChild("WildboundDemonAbyss"), nil)
+		local before = layout(ws, storage)
+		local ok, problem = pcall(Switch.apply, "classic", env)
+		equal(ok, false, "classic refuses while a classic item is in neither place")
+		assert(string.find(tostring(problem), "WildboundDemonAbyss", 1, true), "names it: " .. tostring(problem))
+		equal(layout(ws, storage), before, "nothing moved: the big4 map stays whole")
+		equal(ws:GetAttribute(Switch.ATTRIBUTE), "big4")
+		ws:Destroy(); storage:Destroy()
+	end)
+
+	case("BIG4 switch: classic refuses when an archived item has no home folder to go back to", function()
+		local ws, storage, env = fixture()
+		Switch.apply("big4", env)
+		ws.WildboundOpenWorldRoads.Gates:Destroy()
+		local before = layout(ws, storage)
+		local ok, problem = pcall(Switch.apply, "classic", env)
+		equal(ok, false, "refused")
+		assert(string.find(tostring(problem), "Gate_rock-caves", 1, true), "names it: " .. tostring(problem))
+		equal(layout(ws, storage), before, "nothing moved")
 		ws:Destroy(); storage:Destroy()
 	end)
 

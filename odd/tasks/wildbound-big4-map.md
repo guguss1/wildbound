@@ -65,6 +65,11 @@ All inside the 2048 x 2048 baseplate (no extra ground needed), 40+ studs apart, 
 - [x] BIG4-6 Geometry built and big4 applied (S3).
 - [x] BIG4-7 Walked Play check (S4), see evidence.
 - [x] BIG4-8 Round trip big4 -> classic -> big4 (S5); place left in big4.
+- [x] BIG4-11 Switch guards (review fix): `apply("big4")` refuses, changing nothing, unless all five
+  `Switch.BIG4_ROOTS` are available (in the Big4 archive or under Workspace with `MapMode = "big4"`); before, an empty
+  Big4 archive would have archived every classic biome and left only the forest and Caramelo. `apply("classic")`
+  refuses, changing nothing, when a classic-only item is in neither Workspace nor the Classic archive or has no home
+  folder left; the error lists the paths. big4 still reports classic items already gone as `missing`. See evidence.
 - [ ] BIG4-9 Owner tries it and decides keep / revert / swap infierno (D1).
 - [ ] BIG4-10 Not done: phone FPS measurement; `docs/wildbound-game-overview.md` section 3 table; Python manifest tests
   (no Python on this PC).
@@ -128,6 +133,20 @@ WildboundPlacePhase_Test 9833 1989957072; WildboundBeastSight_Test 7544 63556604
   (82, 1.5, 307), RockCaves (622, 0.5, 387), Abyss (-108, 0.5, -393), Road_living-forest_3 (352, 0.56, -240.5),
   Gate_volcanic-lands (82, 1.5, 307), Road_frozen-mountains_2 (502, 0.56, -263), Candy portal (772, 0.5, -3)).
 - `apply("big4")` again: moved 28, missing 0, hashes identical to the first big4. Left in big4.
+
+### Switch guards (BIG4-11, 2026-11-16)
+
+- Before writing, Studio == repo HEAD: WildboundMapModeSwitch 7623 1345326414, WildboundBig4Map_Test 15895 4038590492.
+- Spec first: the fixture now archives the five real root names; new cases (BIG4_ROOTS list matches the builder; big4
+  with no roots refuses; big4 with one root missing, plus an untagged same-named impostor, refuses and names it; roots
+  already in Workspace count; classic refuses with an item in neither place; classic refuses with no home folder).
+  The old "gone from both places" case now expects classic to refuse instead of half-restoring.
+- RED (fresh loader, Big4Map spec only, temporary StringValue destroyed): 10 passed, 5 failed, exactly the new cases.
+- GREEN: WildboundBig4Map_Test 15 passed, 0 failed; no leaks; Workspace mode stayed big4.
+- After writing, Studio == repo: WildboundMapModeSwitch 10333 3756365835, WildboundBig4Map_Test 20239 1701286667.
+- The live map was not switched. Read-only `status()` afterwards: mode big4, classicInPlace 0, classicArchived 23,
+  big4InPlace 5, big4Archived 0. A read-only preflight with the same rules: classic would not refuse (all 23 items
+  archived with their home folders present), no big4 root unavailable.
 
 ## Studio objects
 

@@ -19,6 +19,16 @@ Switch.CLASSIC_FOLDER = "Classic"
 Switch.BIG4_FOLDER = "Big4"
 -- Every big4 root carries MapMode = "big4" and lives directly under Workspace while big4 is on.
 Switch.ROOT_ATTRIBUTE = "MapMode"
+-- The five roots WildboundBig4Annex builds. apply("big4") refuses unless every one is available, either archived in
+-- Big4 or already under Workspace with MapMode = "big4"; otherwise it would archive the classic biomes and leave
+-- only the forest and Caramelo.
+Switch.BIG4_ROOTS = table.freeze({
+	"WildboundFrozenMountains_Big4",
+	"WildboundVolcanicLands_Big4",
+	"WildboundForestOuter_Big4",
+	"WildboundCandyAnnex_Big4",
+	"WildboundBig4Roads",
+})
 Switch.LOCKS = { "WildboundPlayLock", "WildboundImportLock" }
 
 -- Workspace paths that belong to the classic map only ("/" separated, under Workspace). In big4 they wait in
@@ -119,8 +129,46 @@ function Switch.status(env)
 	return report
 end
 
+local function isBig4Root(item, name)
+	return item ~= nil and item.Name == name and item:GetAttribute(Switch.ROOT_ATTRIBUTE) == "big4"
+end
+
+-- The big4 roots that are neither in the Big4 archive nor tagged under Workspace.
+local function missingBig4Roots(root, storage)
+	local archive = storage:FindFirstChild(Switch.ARCHIVE)
+	local big4 = archive and archive:FindFirstChild(Switch.BIG4_FOLDER)
+	local missing = {}
+	for _, name in ipairs(Switch.BIG4_ROOTS) do
+		local found = false
+		for _, place in ipairs({ root, big4 }) do
+			for _, child in ipairs(place and place:GetChildren() or {}) do
+				if isBig4Root(child, name) then found = true break end
+			end
+			if found then break end
+		end
+		if not found then table.insert(missing, name) end
+	end
+	return missing
+end
+
+-- The classic-only paths classic cannot put back: in neither Workspace nor the Classic archive, or archived with no
+-- home folder left under Workspace.
+local function unrestorableClassic(root, storage)
+	local archive = storage:FindFirstChild(Switch.ARCHIVE)
+	local classic = archive and archive:FindFirstChild(Switch.CLASSIC_FOLDER)
+	local missing = {}
+	for _, path in ipairs(Switch.CLASSIC_ONLY) do
+		if not find(root, path) then
+			local archived = classic and classic:FindFirstChild(lastName(path))
+			if not archived or not parentOf(root, path) then table.insert(missing, path) end
+		end
+	end
+	return missing
+end
+
 -- apply(mode, env) -> report { mode, moved, missing = { path, ... } }. Errors (and changes nothing) on a bad mode,
--- during Play or under a lock.
+-- during Play, under a lock, for big4 when any of the BIG4_ROOTS is unavailable, and for classic when any classic-only
+-- item cannot be put back (the error lists them). big4 still reports classic items already gone as `missing`.
 function Switch.apply(mode, env)
 	if mode ~= "big4" and mode ~= "classic" then
 		error("WildboundMapModeSwitch.apply: mode must be \"big4\" or \"classic\", got " .. tostring(mode), 2)
@@ -132,6 +180,20 @@ function Switch.apply(mode, env)
 		if holder ~= nil then
 			error(("WildboundMapModeSwitch.apply: ServerStorage %s is set (%s); try again when it clears"):format(lock,
 				tostring(holder)), 2)
+		end
+	end
+	if mode == "big4" then
+		local absent = missingBig4Roots(root, storage)
+		if #absent > 0 then
+			error(("WildboundMapModeSwitch.apply: refusing big4, %d of %d big4 roots are in neither the Big4 archive nor "
+				.. "Workspace (%s); nothing was changed"):format(#absent, #Switch.BIG4_ROOTS, table.concat(absent, ", ")), 2)
+		end
+	else
+		local absent = unrestorableClassic(root, storage)
+		if #absent > 0 then
+			error(("WildboundMapModeSwitch.apply: refusing classic, %d classic item(s) cannot be put back (in neither "
+				.. "Workspace nor the Classic archive, or no home folder): %s; nothing was changed"):format(#absent,
+				table.concat(absent, ", ")), 2)
 		end
 	end
 	local recording = nil
