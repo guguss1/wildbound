@@ -206,16 +206,66 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		local dash = nil
 		local e, w = spawn("Mochimiau", "dodge"), fakeWorld({ lastDash = function() return dash end })
 		local tgt = target(30, 0)
-		run({ e }, w, tgt, 0, 0.9)
-		dash = 0.9
-		run({ e }, w, tgt, 0.95, 0.95)
+		-- Deliberately changed (OF3 review): it only reacts to a dodge pressed close by, so the dash comes once it is
+		-- within DODGE_REACT_STUDS (it was a dash at 0.9 s from 30 studs away).
+		local t = 0
+		while t < 3 and not dash do
+			Enc.step(e, t, tgt, w)
+			if e.phase == "Chase" and tgt.x - e.pos.x <= Smarts.DODGE_REACT_STUDS - 1 then dash = t end
+			t += 0.05
+		end
+		assert(dash, "it never came close while chasing")
+		run({ e }, w, tgt, t, t)
 		local x0 = e.pos.x
-		run({ e }, w, tgt, 1.0, 1.3)
+		run({ e }, w, tgt, t + 0.05, t + 0.3)
 		equal(e.pos.x, x0, "moved while reacting to the dodge")
-		run({ e }, w, tgt, 1.35, 1.6)
-		assert(e.pos.x > x0 + 1, "never set off again")
 		local p = Smarts.profile("Mochimiau")
 		within(p.dodgePause, 0.3, 0.8, "pause")
+	end)
+
+	case("OF3 review: a far dodge is ignored and spamming dodge cannot keep a creature frozen", function()
+		local dash = nil
+		local w = fakeWorld({ lastDash = function() return dash end })
+		local e = { beast = "Mochimiau", id = "spam", pos = { x = 0, y = 0, z = 0 } }
+		local far, near = target(Smarts.DODGE_REACT_STUDS + 5, 0), target(6, 0)
+		dash = 1
+		equal(Smarts.dodged(e, w, 1.05, far), false, "reacted to a dodge pressed far away")
+		dash = 2
+		equal(Smarts.dodged(e, w, 2.05, near), true, "ignored a dodge close by")
+		-- the server takes a missed dodge every 1.2 s: a second one inside the cooldown does nothing
+		dash = 3.2
+		equal(Smarts.dodged(e, w, 3.25, near), false, "frozen again inside the cooldown")
+		assert(Smarts.DODGE_COOLDOWN_SECONDS >= 2.5, "cooldown " .. Smarts.DODGE_COOLDOWN_SECONDS)
+		dash = 2 + Smarts.DODGE_COOLDOWN_SECONDS + 0.1
+		equal(Smarts.dodged(e, w, dash + 0.05, near), true, "never reacts again after the cooldown")
+		-- a press every 1.2 s for 12 s freezes it at most a small share of the time
+		local f = { beast = "Mochimiau", id = "share", pos = { x = 0, y = 0, z = 0 } }
+		local frozen, steps = 0, 0
+		for i = 0, 240 do
+			local now = i * 0.05
+			dash = math.floor(now / 1.2) * 1.2
+			if Smarts.dodged(f, w, now, near) then frozen += 1 end
+			steps += 1
+		end
+		assert(frozen / steps <= 0.2, "frozen " .. math.floor(frozen / steps * 100) .. " % of the time")
+	end)
+
+	case("OF3 review: chase and sprint keep up with a trained walker, within caps", function()
+		local e = { beast = "Mochimiau", id = "scale", pos = { x = 0, y = 0, z = 0 } }
+		local P = Smarts.profile("Mochimiau")
+		equal(Smarts.speed(e, 0, 21, target(0, 0, { walk = 16 })), P.sprint, "untrained: its own sprint")
+		equal(Smarts.speed(e, 5, 21, target(0, 0, { walk = 16 })), 21, "untrained: its own chase")
+		equal(Smarts.speed(e, 5, 21, target(0, 0)), 21, "no walk speed known: its own chase")
+		local e2 = { beast = "Mochimiau", id = "scale2", pos = { x = 0, y = 0, z = 0 } }
+		local s = Smarts.speed(e2, 0, 21, target(0, 0, { walk = 28 }))
+		assert(s > 28, "the sprint does not beat a level-6 walker: " .. s)
+		local c = Smarts.speed(e2, 5, 21, target(0, 0, { walk = 28 }))
+		within(c, 0.85 * 28, 28, "chase against a level-6 walker")
+		local capped = Smarts.speed(e2, 5, 21, target(0, 0, { walk = 50 }))
+		equal(capped, Smarts.CHASE_CAP, "chase cap")
+		local e3 = { beast = "Mochimiau", id = "scale3", pos = { x = 0, y = 0, z = 0 } }
+		equal(Smarts.speed(e3, 0, 21, target(0, 0, { walk = 50 })), Smarts.SPRINT_CAP, "sprint cap")
+		assert(Smarts.SPRINT_CAP >= Smarts.CHASE_CAP, "caps")
 	end)
 
 	case("OF3-2e: a guardian notices a target near its nest past its sight; a creature calls its calm allies", function()
@@ -331,6 +381,24 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		assert(#slips >= 1 and #slips <= 3, "slips " .. #slips)
 		local rx, rz = radial(s.x, s.z)
 		assert(slips[1].dx * rx + slips[1].dz * rz >= 0.5, "the slip is not outward")
+		-- OF3 review: a trained walker (walk 22) walking at its own speed is safe; a sprinting one slips at any speed
+		local trained = Frut.new(0, summit)
+		local n = 0
+		for i = 0, 60 do
+			n += #Frut.glazeStep(trained, i * 0.05, { player(4, s.x, s.y + 3, s.z, { vx = 22, vz = 0, walk = 22, stance = "walk" }) }, path, summit)
+		end
+		equal(n, 0, "a trained walker slipped")
+		for i = 61, 120 do
+			n += #Frut.glazeStep(trained, i * 0.05, { player(4, s.x, s.y + 3, s.z, { vx = 16, vz = 0, walk = 22, stance = "sprint" }) }, path, summit)
+		end
+		assert(n >= 1, "a sprinting climber never slipped")
+		-- a dash (a spike well above its own walk) still slips
+		local dashing = Frut.new(0, summit)
+		n = 0
+		for i = 0, 10 do
+			n += #Frut.glazeStep(dashing, i * 0.05, { player(6, s.x, s.y + 3, s.z, { vx = 40, vz = 0, walk = 22, stance = "walk" }) }, path, summit)
+		end
+		assert(n >= 1, "a dash over the glaze never slipped")
 	end)
 
 	case("OF3-3: La Duquesa throws at the upper tiers too, more often, ahead of a runner", function()
