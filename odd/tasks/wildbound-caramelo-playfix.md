@@ -1012,3 +1012,40 @@ attack shape stays as it is. Map, economy and UI files untouched.
 - Not done: the summit was not reached on foot (navigation cannot jump the seeds and patrol drops, which a player can);
   La Duquesa's upper-tier volleys and Frutillon's faster roll not seen in Play (specs only); the dodge pause was not
   walked (no Z press through character_navigation); no two-player check.
+### OF3 review fixes (2026-11-16)
+
+Reviewer findings and what was done:
+
+1. Repeated dodges froze every chasing creature (a missed dodge every 1.2 s held them about 37 % of the time). Fixed in
+   `WildboundCandySmarts.dodged(e, world, now, target)`: a dodge only counts within `DODGE_REACT_STUDS` 12 of the
+   creature, and each creature can be stopped again only after `DODGE_COOLDOWN_SECONDS` 3 (pause 0.45 s kept). A press
+   every 1.2 s now freezes a creature at most about 12 % of the time. All five brains pass the target.
+2. Glaze slipped trained walkers (absolute 18 studs/s limit). Fixed in `WildboundCandyFrutillon.glazeStep`: the service
+   now passes `walk = humanoid.WalkSpeed` and `stance = WildboundStance`; a `"sprint"` stance slips once moving faster
+   than 4 studs/s, a walker only above 1.2 x its own walk (a dash); without a walk the old 18 limit stays.
+3. Chases fell behind trained walk speed. Fixed in `Smarts.speed(e, now, base, target)`: `WildboundBeasts` puts
+   `target.walk` (WalkSpeed, divided by 1.45 while sprinting) in the target table; chase = max(base, min(0.92 x walk,
+   34)), sprint = max(profile sprint, min(1.1 x walk, 38)). Untrained players see the same 19-22 / 24-27 as before.
+
+Decisions taken for the user (OF3 review):
+
+- Dodge reaction range 12 studs (covers every melee and leap range; lobbers at 15-18 studs keep throwing) and a 3 s
+  cooldown per creature.
+- Chase caps 34 / sprint 38: a fully trained walker (up to 50) can still outrun creatures, so training stays worth it,
+  while levels 1-8 no longer leave candy creatures behind.
+- Not changed: La Duquesa keeping the 8 s upper cadence when a climber steps from tier 2 onto the summit (minor, keeps
+  the summit possible); `state.patrolHits` growth (one small key per hit, bounded by the session); the stair-base pushes
+  are the seeds' `onStair` 3-stud margin, by design.
+
+Evidence (OF3 review):
+
+- Commits f570fe2 (specs, red first) and be5133a (fix).
+- Fresh loader (loadstring + setfenv, temporary ServerStorage StringValue destroyed after, runner lock taken and cleared):
+  red CandySmarts 12/4 (the four new or changed cases), green CandySmarts 16/0 (also from the updated Studio spec module),
+  BeastCandyCritter 32/0, BeastGomibu 11/0, BeastFlanfuria 10/0, BeastTortidragon 9/0, BeastDonGlaseon 24/0,
+  CandyFrutillon 6/0, BeastWiring 53/0.
+- Fingerprints: Studio == repo HEAD before the writes and == the working tree after, for all nine sources and the spec.
+- Walked Play (lock held and cleared, character_navigation to (456, 10), server probe read-only): no script errors in
+  the output; HP fell 96 -> 68 -> 53 -> 4 near the Gomibu / Gato area while the walker was pushed west to x 408, but the
+  probe found no server-side creature model within 120 studs (candy creatures are drawn client-side), so speeds were
+  not measured this run. Trained-walk scaling and the dodge limit were not walked (no training purchase, no Z press).
