@@ -2352,13 +2352,14 @@ strikeEffect.Parent = network
 do
 	local beastHit = Instance.new("BindableFunction")
 	beastHit.Name = "BeastHit"
-	beastHit.OnInvoke = function(player, beast, damage)
+	-- OF2 (odd/tasks/wildbound-caramelo-playfix.md): keepEgg true (a keepsEgg candy creature) hurts with the egg kept.
+	beastHit.OnInvoke = function(player, beast, damage, keepEgg)
 		if typeof(player) ~= "Instance" or not player:IsA("Player") or not records[player] or type(beast) ~= "string"
 			or not Rules.finite(damage) or damage < 0 or damage > 100 then return nil end
 		if Heist.DodgeService.invulnerable(player, workspace:GetServerTimeNow()) then
 			return { eggDropped = false, damage = 0, dodged = true }
 		end
-		local eggDropped = Heist.dropEgg(player, "Hit") ~= nil
+		local eggDropped = keepEgg ~= true and Heist.dropEgg(player, "Hit") ~= nil
 		local hurt = 0
 		if damageMode == "private" and lethalPlayer(player) then
 			local humanoid = player.Character and player.Character:FindFirstChildOfClass("Humanoid")

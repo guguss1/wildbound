@@ -313,13 +313,16 @@ Config.BEASTS = table.freeze({
 		}),
 	}),
 	-- Caramelo biome (pack 03_PERSONAJES/01_GOMIBU.md): Gomibu guards a candy nest. Summoned like the kids: never rolled,
-	-- points 0, damage 0. keepsEgg: its hit never reaches BeastHit, so the carried egg stays. grounded: it walks, so the
+	-- points 0. keepsEgg: its hit reaches BeastHit only to hurt, with the carried egg kept. grounded: it walks, so the
 	-- client does not bob it like the Nube and the Abeja. Every number is the pack's proposal.
+	-- OF2 (odd/tasks/wildbound-caramelo-playfix.md, owner feedback 2): the candy creatures hurt and chase faster than a
+	-- walking player (16) yet slower than a running one (16 x 1.45 = 23.2). Gomibu: damage 0 -> 14, chase 12 -> 19; its
+	-- big jump (JumpRangeStuds 10, the longest leap of the guardians) is unchanged.
 	Gomibu = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 0,
+		damage = 14,
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
@@ -329,7 +332,7 @@ Config.BEASTS = table.freeze({
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 24, AbandonStuds = 36, LeashStuds = 30,
 			PatrolSpeedStudsPerSecond = 4, PatrolRadiusStuds = 8, PatrolPauseSeconds = 1.5,
-			ChaseSpeedStudsPerSecond = 12, AlertSeconds = 0.7,
+			ChaseSpeedStudsPerSecond = 19, AlertSeconds = 0.7,
 			-- CF (user, 2026-11-15): a faster cast (was tell 0.9, lock 0.55, recover 0.7, cooldown 5.5).
 			JumpRangeStuds = 10, TelegraphSeconds = 0.8, LockSeconds = 0.45, JumpSeconds = 0.45, RadiusStuds = 4.5,
 			RecoverSeconds = 0.5, AttackCooldownSeconds = 3.5,
@@ -339,61 +342,67 @@ Config.BEASTS = table.freeze({
 	}),
 	-- Caramelo biome (pack 03_PERSONAJES/02_FLANFURIA.md): Flanfuria guards a candy nest, summoned like Gomibu. Its one
 	-- attack, Onda de Caramelo, has its numbers in ServerStorage.WildboundCandyFlanfuriaAttack; both of its slows travel
-	-- as Afflict events (never BeastHit). Only where it lives and how it moves is tuned here.
+	-- as Afflict events; OF2: the ring's carries `damage`, which the beast script sends to BeastHit with the egg kept.
+	-- Only where it lives and how it moves is tuned here. OF2: damage 0 -> 15, chase 11 -> 17.
 	Flanfuria = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 0,
+		damage = 15,
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 20, AbandonStuds = 30, LeashStuds = 16,
-			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 11, AlertSeconds = 0.8,
+			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 17, AlertSeconds = 0.8,
 			CastRangeStuds = 7, StandOffStuds = 4, JumpClearStuds = 4.5,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
 	}),
 	-- Caramelo biome (pack 03_PERSONAJES/03_TORTIDRAGON.md): Tortidragon guards a candy nest, summoned like Gomibu. Its
 	-- one attack, Abanico de Confites, has its numbers in ServerStorage.WildboundCandyTortidragonAttack; a hit is a light
-	-- push and a short stagger on the Hit event, which never reaches BeastHit (keepsEgg). Only where it lives and how it
-	-- moves is tuned here: patrol 10, chase 16, sight 22, back home past 35 studs from its nest (the pack's numbers).
+	-- push and a short stagger on the Hit event, which reaches BeastHit only to hurt (keepsEgg). Only where it lives and how
+	-- it moves is tuned here: patrol 10, sight 22, back home past 35 studs from its nest (the pack's numbers). OF2: damage
+	-- 0 -> 12, chase 16 -> 20.
 	Tortidragon = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 0,
+		damage = 12,
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 22, AbandonStuds = 30, LeashStuds = 35,
-			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 16, TurnDegreesPerSecond = 240, AlertSeconds = 0.75,
+			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 20, TurnDegreesPerSecond = 240, AlertSeconds = 0.75,
 			CastRangeStuds = 10, StandOffStuds = 6,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
 	}),
 	-- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1): five small candy creatures, summoned at fixed posts
-	-- beside free nests like Gomibu (never rolled, points 0, damage 0, keepsEgg). One data-driven brain serves all five
+	-- beside free nests like Gomibu (never rolled, points 0, keepsEgg). One data-driven brain serves all five
 	-- (ServerScriptService.WildboundBeastCandyCritter): it reads this tuning and its Attack table (kind leap, dash, burst
 	-- or lob; the tell never under MIN_TELL and locked at least MIN_TELL before the strike; CooldownSeconds counted from
-	-- the strike). Speeds stay under the parents' 19 and near the other candy beasts. Numbers are a first proposal.
+	-- the strike). Numbers are a first proposal.
+	-- OF2 (odd/tasks/wildbound-caramelo-playfix.md, owner feedback 2): each hurts (BeastHit, the egg kept), chases between
+	-- a walking (16) and a running (23.2) player, and has its own personality. StandOffStuds (new, optional): a thrower
+	-- stops this far from its target and throws from there. Mochimiau: a fast, frequent short hopper (chase 13 -> 20, leap
+	-- range 9 -> 7, cooldown 6 -> 3.5, damage 8).
 	Mochimiau = table.freeze({ -- Rodada cremosa: hops onto the target's circle, a short push and a 25 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 8, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): retuned for a walking player (was wake 30, sight 14, abandon 22,
 		-- leash 14, patrol 6, chase 11, escape 50, give-up 2, push 5 / 0.3 s, slow 0.75). IdleSeconds: an unvisited patrol
 		-- walks home and ends quietly.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 50, LeashStuds = 34,
-			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 13,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 20,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
-			Attack = table.freeze({ kind = "leap", RangeStuds = 9, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
-				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
+			Attack = table.freeze({ kind = "leap", RangeStuds = 7, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
+				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 3.5, PushStuds = 8, PushSeconds = 0.35,
 				SlowMultiplier = 0.7, SlowSeconds = 2.5 }),
 			-- A2 (odd/tasks/wildbound-caramelo-playfix.md, sheet "Otras habilidades"): Salpicadura de crema, a puddle where
 			-- the leap lands (2 s, -25 %); Comportamiento social, one more hop right after the recovery if still in reach.
@@ -406,11 +415,12 @@ Config.BEASTS = table.freeze({
 	Canelin = table.freeze({ -- rolls along a lane forward from itself: a push and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 12, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 30, sight 14, abandon 24, leash 16, patrol 7, chase 12, escape 50, give-up 2, no push, slow 0.8 / 2 s.
+		-- OF2: the owner likes its roll as it is: the Attack and its trail are unchanged; only damage 0 -> 12, chase 14 -> 18.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 52, LeashStuds = 36,
-			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 14,
+			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 18,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
@@ -425,13 +435,14 @@ Config.BEASTS = table.freeze({
 	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a short shove and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 16, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 30, sight 14, abandon 20, leash 12, patrol 5, chase 9, escape 50, give-up 2, no push.
+		-- OF2: the slowest and heaviest: damage 0 -> 16, chase 12 -> 17, a longer wind-up (tell 1 -> 1.2).
 		tuning = table.freeze({
 			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 48, LeashStuds = 32,
-			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 12,
+			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 17,
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
-			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1, LockSeconds = 0, TravelSeconds = 0.25,
+			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1.2, LockSeconds = 0, TravelSeconds = 0.25,
 				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 			-- A2: Charco de caramelo, a caramel trail while it hops after a player (-20 %, each patch 2 s); Rebote
@@ -447,14 +458,16 @@ Config.BEASTS = table.freeze({
 	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a puff and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 10, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 32, sight 16, abandon 24, leash 14, patrol 7, chase 13, escape 50, give-up 2, no push, slow 0.75.
+		-- OF2: flies fast and throws from range: damage 0 -> 10, chase 14 -> 19, range 14 -> 18, cooldown 9 -> 5, stand-off 10.
 		tuning = table.freeze({
 			WakeRadiusStuds = 48, PerceptionStuds = 42, AbandonStuds = 55, LeashStuds = 38, HoverStuds = 2.5,
-			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 14,
+			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 19,
+			StandOffStuds = 10,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
-			Attack = table.freeze({ kind = "lob", RangeStuds = 14, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
-				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9, PushStuds = 6, PushSeconds = 0.3,
+			Attack = table.freeze({ kind = "lob", RangeStuds = 18, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
+				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 5, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 			-- A2: Ruta de polen, a pollen trail while it flies after a player (-15 %, each patch 2 s); Enjambre, every 18 s
 			-- of a chase two pollen puffs beside the target (a fair tell, locked at once).
@@ -469,15 +482,18 @@ Config.BEASTS = table.freeze({
 	GatoRepartidor = table.freeze({ -- the friendliest: the shortest sight and leash; throws fries on the target
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 9, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 24, sight 8, abandon 14, leash 8, patrol 5, chase 9, escape 50, give-up 2, push 2 / 0.25 s,
 		-- slow 0.9 / 1.5 s. Still the friendliest (sight and leash under every other critter's), but it follows and throws.
+		-- OF2: keeps its distance and throws often: damage 0 -> 9, chase 12 -> 17.5, range 10 -> 15, tell 0.9 -> 1,
+		-- cooldown 8 -> 4.5, stand-off 8.
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 34, AbandonStuds = 45, LeashStuds = 30,
-			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 12,
+			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 17.5,
+			StandOffStuds = 8,
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4, IdleSeconds = 25,
-			Attack = table.freeze({ kind = "lob", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
-				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 8, PushStuds = 6, PushSeconds = 0.3,
+			Attack = table.freeze({ kind = "lob", RangeStuds = 15, TelegraphSeconds = 1, LockSeconds = 0.5, TravelSeconds = 0.6,
+				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 4.5, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.8, SlowSeconds = 2 }),
 			-- A2: Entrega especial, one encounter in four (by its number) it walks up and hands the player a golden order
 			-- (+15 % walk speed for 10 s; WildboundServer.applyCarry) instead of attacking; Llamado de repartidores, every
@@ -493,13 +509,14 @@ Config.BEASTS = table.freeze({
 	-- territorial boss of the Gran Torta, summoned like Gomibu but one per server (serverUnique: the director refuses a
 	-- second encounter while one lives and for switchSeconds after it ends). Its one attack, Latigo de Regaliz, has its
 	-- numbers in ServerStorage.WildboundCandyDonGlaseonAttack; its hit goes to BeastHit (not keepsEgg), so a carrier drops
-	-- the egg through the one drop path; damage stays 0. batImmune: the bat is player against player, never a beast.
+	-- the egg through the one drop path. batImmune: the bat is player against player, never a beast.
 	-- TerritoryRadiusStuds is the builder's BossTerritory marker (62), used instead of the pack's 110-stud leash.
+	-- OF2 (owner feedback 2): the boss hurts the most (damage 0 -> 25, never a one-shot) and chases faster (17 -> 21, the step of his live Chase_Run clip).
 	DonGlaseon = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 0,
+		damage = 25,
 		keepsEgg = false,
 		grounded = true,
 		hitHeight = 12,
@@ -510,7 +527,7 @@ Config.BEASTS = table.freeze({
 		tuning = table.freeze({
 			TerritoryRadiusStuds = 62, PerceptionStuds = 36, ChaseSightStuds = 54, NoiseStuds = 45, NoiseSpeedStuds = 14,
 			RareSightScale = 1.25, EyeHeightStuds = 20,
-			PatrolSpeedStudsPerSecond = 9, ChaseSpeedStudsPerSecond = 17, ReturnSpeedStudsPerSecond = 9, TurnDegreesPerSecond = 150,
+			PatrolSpeedStudsPerSecond = 9, ChaseSpeedStudsPerSecond = 21, ReturnSpeedStudsPerSecond = 9, TurnDegreesPerSecond = 150,
 			-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): patrol 12 -> 25 s, chase 15 -> 30 s, search 3 -> 5 s, so an
 			-- encounter lasts; LeftGraceSeconds (new): out of the territory this long in a row before he lets the target go.
 			DormantSeconds = 2, PatrolSeconds = 25, PatrolRadiusStuds = 10, NoticeSeconds = 0.8, RoarSeconds = 1.5,

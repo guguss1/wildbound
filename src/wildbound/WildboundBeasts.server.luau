@@ -631,15 +631,18 @@ local function landHit(entry, event)
 	count("hits")
 	beastHit = beastHit or network:FindFirstChild("BeastHit")
 	local ok, effect = false, nil
-	-- Kids rule (defence in depth): a summoned beast, or any hit on a target in the Pradera, never deals damage.
-	local _, _, body = bodyOf(entry.player)
-	if Config.SUMMONED[entry.e.beast] or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
-	-- Caramelo biome: a keepsEgg beast (Gomibu) never reaches BeastHit: no damage, and the carried egg stays.
+	-- Kids rule (defence in depth): a summoned beast with no damage of its own (the Nube, the Abeja), or any hit on a
+	-- target in the Pradera, never deals damage. OF2 (owner feedback 2): the candy creatures carry their own damage.
 	local kept = Config.BEASTS[entry.e.beast]
-	if kept and kept.keepsEgg == true then
+	local hurts = kept ~= nil and Config.finite(kept.damage) and kept.damage > 0
+	local _, _, body = bodyOf(entry.player)
+	if (Config.SUMMONED[entry.e.beast] and not hurts) or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
+	-- Caramelo biome: a keepsEgg beast (Gomibu, the critters) reaches BeastHit only to hurt, with the carried egg kept.
+	local keep = kept ~= nil and kept.keepsEgg == true
+	if keep and not (Config.finite(event.damage) and event.damage > 0) then
 		ok = true
 	elseif beastHit and beastHit:IsA("BindableFunction") then
-		ok, effect = pcall(function() return beastHit:Invoke(entry.player, entry.e.beast, event.damage) end)
+		ok, effect = pcall(function() return beastHit:Invoke(entry.player, entry.e.beast, event.damage, keep) end)
 	end
 	if not ok then telemetry:SetAttribute("Beast_hitFailed", (telemetry:GetAttribute("Beast_hitFailed") or 0) + 1) end
 	event.eggDropped = ok and type(effect) == "table" and effect.eggDropped == true or nil
@@ -787,6 +790,8 @@ local function stepEncounter(id, entry, at)
 			-- DG6: deferred, so no encounter starts while the step loop walks the live table
 			if event.type == "Summon" then task.defer(world.roarSummon, entry, event, at) end
 			if event.type == "Afflict" then afflict(entry, event) end
+			-- OF2: an affliction that carries damage (Flanfuria's ring) hurts through the same BeastHit path
+			if event.type == "Afflict" and Config.finite(event.damage) and event.damage > 0 then landHit(entry, { damage = event.damage }) end
 			-- A2: the candy critters' patches, helper Gato and golden order
 			if event.type == "Patch" then world.candyPatch(entry, event) end
 			if event.type == "Helper" then world.candyHelper(entry, event) end

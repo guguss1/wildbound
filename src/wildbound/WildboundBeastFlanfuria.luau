@@ -9,7 +9,7 @@
 --   From the end of the release a puddle of radius 4 lies where the flan stood for 3 s and slows whoever stands in it.
 --   Escape: the target outside EscapeDistance of the nest for EscapeSeconds. Death and the safe zone end it (Attack.guard).
 -- The attack's numbers and rules are WildboundCandyFlanfuriaAttack (one source); this module only walks it through the
--- shared attack layer. Threat: damage 0. Both slows travel as Afflict events, which the beast script applies with its
+-- shared attack layer. Threat (OF2): the ring's slow carries damage. Both slows travel as Afflict events, which the beast script applies with its
 -- non-stacking, self-expiring applySlow and never sends to BeastHit: no damage, and the carried egg stays.
 -- applySlow restores the speed by a delayed task, so no slow of this beast starts until SLOW_GAP_SECONDS after its
 -- last one ended (e.slowFreeAt): the puddle slow is a short pulse repeated while stood on, and its first pulse waits
@@ -144,7 +144,9 @@ function Flanfuria.step(events, e, now, target, world, dt)
 			local caught = Onda.sweep(e.cast, now, { seen(target, world, T) })[1]
 			if caught then
 				-- a perfect dodge leaves no slow, so only a landed one holds the next slow back
-				if Attack.afflict(events, e, world, e.wave, now, { slow = caught.slowFactor, slowSeconds = caught.slowSeconds, shake = true }) == "Afflicted" then
+				-- OF2: the ring's slow carries its damage (the beast script sends it to BeastHit with the egg kept)
+				if Attack.afflict(events, e, world, e.wave, now, { slow = caught.slowFactor, slowSeconds = caught.slowSeconds, shake = true,
+					damage = Config.BEASTS[e.beast].damage }) == "Afflicted" then
 					e.slowFreeAt = now + caught.slowSeconds + Onda.SLOW_GAP_SECONDS
 				end
 				e.wave = nil

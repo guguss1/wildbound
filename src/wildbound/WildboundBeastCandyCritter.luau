@@ -20,7 +20,8 @@
 --   dash  a lane LengthStuds x WidthStuds forward from the creature, aimed until LockSeconds; it rolls along it.
 --   burst a circle of RadiusStuds on the creature, locked at once; it stays put.
 --   lob   a circle of RadiusStuds on the target that follows it until LockSeconds; the creature stays put.
--- Threat: damage 0. A hit carries a slow (SlowMultiplier, SlowSeconds) and, when PushStuds > 0, a push away from the
+-- Threat (OF2): the hit carries Config.BEASTS[name].damage, which the beast script sends to BeastHit with the egg kept;
+-- the side attacks and patches never damage. A hit carries a slow (SlowMultiplier, SlowSeconds) and, when PushStuds > 0, a push away from the
 -- shape (event.push, applied by the server); the egg stays (keepsEgg: the beast script skips BeastHit). After a strike
 -- it opens no other attack for CooldownSeconds (counted from the strike, the recovery included).
 -- A2 (odd/tasks/wildbound-caramelo-playfix.md): the "Otras habilidades" of each creature sheet, as data on its tuning
@@ -449,9 +450,13 @@ function Critter.step(events, e, now, target, world, dt)
 				return
 			end
 		end
-		local stand = A.kind == "leap" and 3 or math.min(A.RangeStuds * 0.6, 4)
+		-- OF2: a thrower with StandOffStuds stops that far away and throws from there
+		local stand = T.StandOffStuds or (A.kind == "leap" and 3 or math.min(A.RangeStuds * 0.6, 4))
 		if distance > stand then
-			local x, z = leashed(e, T, target.x, target.z)
+			local gx, gz = target.x, target.z
+			local ax, az = unit(e.pos.x - target.x, e.pos.z - target.z)
+			if T.StandOffStuds and ax then gx, gz = target.x + ax * stand, target.z + az * stand end -- OF2: stop at the stand-off
+			local x, z = leashed(e, T, gx, gz)
 			walkTo(e, world, T, x, z, T.ChaseSpeedStudsPerSecond, dt)
 			local lx, lz = leashed(e, T, e.pos.x, e.pos.z)
 			if lx ~= e.pos.x or lz ~= e.pos.z then settle(e, world, T, lx, lz) end
