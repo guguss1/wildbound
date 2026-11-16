@@ -20,6 +20,8 @@
 -- { time, pose } clip modules to ReplicatedStorage.WildboundCandyCritterClips<Name>; Spec marks them legacy and
 -- Kit.fromLegacy converts them here. Spec.SCENERY models in Workspace (Don Glaseon's sleeping copy) follow their
 -- BeastPhase like a live clone. A streamed model is waited for until its bones arrive, however far the player starts.
+-- Run in place (Don Glaseon walk follow-up): each step measures a live model's root speed; a moving phase with a still
+-- root plays the stand clip (Spec.motionClip / Spec.isStill), published or live like any other clip.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -103,7 +105,7 @@ local function setup(model, live)
 		end
 		local state = {
 			model = model, name = name, spec = Spec.SPEC[name], clips = clips, bones = bones, live = live, buf = {},
-			tracks = {}, trackIds = {}, nextExtraAt = os.clock() + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2]),
+			tracks = {}, trackIds = {}, speed = 0, still = false, nextExtraAt = os.clock() + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2]),
 		}
 		states[model] = state
 		-- A3 review: a Bone that arrives later (its part streamed back in) means the cached list is out of date
@@ -112,8 +114,11 @@ local function setup(model, live)
 		end)
 		if live then
 			local function onPhase()
-				play(state, Spec.clipFor(name, model:GetAttribute("BeastPhase"), clips.CLIPS), os.clock())
+				local phase = model:GetAttribute("BeastPhase")
+				play(state, Spec.motionClip(name, phase, Spec.clipFor(name, phase, clips.CLIPS), clips.CLIPS, state.still),
+					os.clock())
 			end
+			state.onPhase = onPhase
 			state.connection = model:GetAttributeChangedSignal("BeastPhase"):Connect(onPhase)
 			onPhase()
 		else
@@ -172,6 +177,22 @@ local function step(state, now, cameraPosition)
 		local bones = Kit.readBones(model)
 		if not bones then return end
 		state.bones, state.stale, state.fading = bones, false, false
+	end
+	-- Run in place: a live clone's horizontal root speed, measured from its pivot and smoothed; in a moving phase a
+	-- still root plays the stand clip (Spec.motionClip), and the walk/run comes back when it moves.
+	if state.live then
+		local position = model:GetPivot().Position
+		if state.lastPosition and now > state.lastAt then
+			local dt = now - state.lastAt
+			local flat = Vector3.new(position.X - state.lastPosition.X, 0, position.Z - state.lastPosition.Z)
+			state.speed += (flat.Magnitude / dt - state.speed) * math.min(1, dt / Spec.SPEED_SMOOTH)
+		end
+		state.lastPosition, state.lastAt = position, now
+		local still = Spec.isStill(state.speed, state.still)
+		if still ~= state.still then
+			state.still = still
+			state.onPhase()
+		end
 	end
 	-- preview: a short one-shot every few seconds, then back to the loop
 	if not state.live then

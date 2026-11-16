@@ -381,5 +381,65 @@ return function(Kit, prefab, Clips, Spec, allClips, clientSource)
 		assert(not string.find(clientSource, "local function readBones", 1, true), "no local copy of readBones")
 	end)
 
+	-- Run in place (odd/tasks/wildbound-caramelo-playfix.md, Don Glaseon walk follow-up): Don Glaseon stops about 8 studs
+	-- from his target while still in Chase and kept playing Chase_Run on the spot. A live clone in a moving phase whose
+	-- measured root speed is near zero plays its stand clip instead, with hysteresis so it does not flicker.
+	case("RIP-1: isStill has hysteresis between STILL_SPEED and MOVE_SPEED", function()
+		assert(type(Spec.isStill) == "function", "Spec.isStill")
+		assert(type(Spec.STILL_SPEED) == "number" and type(Spec.MOVE_SPEED) == "number", "the two speeds")
+		assert(Spec.STILL_SPEED > 0 and Spec.STILL_SPEED < Spec.MOVE_SPEED and Spec.MOVE_SPEED <= 4, "0 < still < move <= 4")
+		assert(type(Spec.SPEED_SMOOTH) == "number" and Spec.SPEED_SMOOTH > 0 and Spec.SPEED_SMOOTH <= 0.3, "smoothing")
+		local between = (Spec.STILL_SPEED + Spec.MOVE_SPEED) / 2
+		equal(Spec.isStill(0, false), true, "stopped")
+		equal(Spec.isStill(between, false), false, "moving stays moving inside the band")
+		equal(Spec.isStill(between, true), true, "still stays still inside the band")
+		equal(Spec.isStill(Spec.MOVE_SPEED + 0.5, true), false, "moving again")
+		equal(Spec.isStill(9, false), false, "walking")
+	end)
+
+	case("RIP-2: a moving phase plays the stand clip when still; other phases and missing clips are kept", function()
+		assert(type(Spec.motionClip) == "function" and type(Spec.MOVING) == "table", "Spec.motionClip and Spec.MOVING")
+		for _, phase in ipairs({ "Chase", "Patrol", "Return", "Search", "Disengage", "GiveUp" }) do
+			equal(Spec.MOVING[phase], true, phase .. " is a moving phase")
+		end
+		for _, phase in ipairs({ "Calm", "Telegraph", "Release", "Attack", "Recover", "Stagger", "Notice" }) do
+			equal(Spec.MOVING[phase], nil, phase .. " is not a moving phase")
+		end
+		local DG = { Idle_Breath = {}, Chase_Run = {}, Patrol_Walk = {}, Search = {}, Attack_Release_Licorice = {} }
+		local function dg(phase, still) return Spec.motionClip("DonGlaseon", phase, Spec.clipFor("DonGlaseon", phase, DG), DG, still) end
+		equal(dg("Chase", true), "Idle_Breath", "Don Glaseon at the stand-off distance")
+		equal(dg("Chase", false), "Chase_Run", "Don Glaseon chasing")
+		equal(dg("Patrol", true), "Idle_Breath", "Patrol standing")
+		equal(dg("Search", true), "Idle_Breath", "Search at the last sighting")
+		equal(dg("Search", false), "Search", "Search walking")
+		equal(dg("Attack", true), "Attack_Release_Licorice", "an in-place phase keeps its clip")
+		equal(Spec.motionClip("DonGlaseon", "Chase", "Chase_Run", { Chase_Run = {} }, true), "Chase_Run",
+			"a stand clip the data lacks keeps the clip")
+		if allClips then
+			for name, data in pairs(allClips) do
+				local stand = Spec.SPEC[name].stand or Spec.SPEC[name].idle
+				assert(data.CLIPS[stand], name .. " has its stand clip " .. stand)
+				equal(Spec.motionClip(name, "Chase", Spec.clipFor(name, "Chase", data.CLIPS), data.CLIPS, true), stand, name .. " Chase still")
+				equal(Spec.motionClip(name, "Chase", Spec.clipFor(name, "Chase", data.CLIPS), data.CLIPS, false),
+					Spec.clipFor(name, "Chase", data.CLIPS), name .. " Chase moving")
+			end
+		end
+	end)
+
+	case("RIP-3: the client measures each live clone's root speed every step and picks the clip by motion", function()
+		assert(type(clientSource) == "string", "pass the client source")
+		local function at(text)
+			local index = string.find(clientSource, text, 1, true)
+			assert(index, "client must contain " .. text)
+			return index
+		end
+		at("Spec.motionClip(")
+		local measure = at("Spec.isStill(state.speed, state.still)")
+		at("Spec.SPEED_SMOOTH")
+		at("state.lastPosition")
+		-- measured before the published-clip return and the far-camera skip, so both paths follow the motion
+		assert(measure < at("if playPublished(state) then return end"), "measured before the published path")
+	end)
+
 	return result
 end

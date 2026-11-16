@@ -88,6 +88,29 @@ function Spec.clipFor(name, phase, CLIPS)
 	return clip
 end
 
+-- Run in place (odd/tasks/wildbound-caramelo-playfix.md, Don Glaseon walk follow-up): in a moving phase a live clone
+-- whose measured root speed (horizontal, smoothed over SPEED_SMOOTH s) is near zero plays its stand clip (spec.stand,
+-- else the idle loop) instead of the walk/run, e.g. Don Glaseon holding at his 8-stud attack range in Chase. Still
+-- below STILL_SPEED, moving again above MOVE_SPEED (studs/s; the band keeps it from flickering).
+Spec.MOVING = { Patrol = true, Chase = true, Return = true, Search = true, Disengage = true, GiveUp = true }
+Spec.STILL_SPEED = 1.5
+Spec.MOVE_SPEED = 3
+Spec.SPEED_SMOOTH = 0.15
+
+function Spec.isStill(speed, wasStill)
+	return speed < (wasStill and Spec.MOVE_SPEED or Spec.STILL_SPEED)
+end
+
+-- The clip to play for a phase given its resolved clip and whether the root is still; a stand clip the data lacks keeps
+-- the clip.
+function Spec.motionClip(name, phase, clip, CLIPS, still)
+	if not still or phase == nil or not Spec.MOVING[phase] then return clip end
+	local spec = Spec.SPEC[name]
+	local stand = spec.stand or spec.idle
+	if CLIPS and CLIPS[stand] == nil then return clip end
+	return stand
+end
+
 -- The published Animation id for a clip on this model ("Clip_<clip>", a non-empty string), or nil.
 function Spec.publishedId(model, clip)
 	local id = model:GetAttribute("Clip_" .. clip)

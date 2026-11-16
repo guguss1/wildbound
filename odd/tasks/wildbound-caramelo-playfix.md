@@ -829,6 +829,36 @@ the known background-window rendering issue (RenderStepped not firing); the blan
 scratchpad only. Not checked: the look on screen, two players, a phone, the run at 21 studs/s in Play (Config not yet in
 Studio).
 
+### Follow-up: no running in place (2026-11-16)
+
+In Chase he stops about 8 studs from the target (attack range) but kept playing `Chase_Run` on the spot. Fixed in the
+shared client player, so every live candy creature gets it (no config or brain edit):
+
+- `WildboundCandyCritterAnimSpec`: `MOVING` phases (Patrol, Chase, Return, Search, Disengage, GiveUp), `isStill(speed,
+  wasStill)` with hysteresis (still below `STILL_SPEED` 1.5 studs/s, moving again above `MOVE_SPEED` 3) and
+  `motionClip(name, phase, clip, CLIPS, still)`: a moving phase with a still root plays the stand clip (`spec.stand`,
+  else the idle loop; a stand clip the data lacks keeps the clip). In-place phases are never changed.
+- `WildboundCandyCritterAnim`: each step measures a live clone's horizontal root speed from its pivot (smoothed over
+  `SPEED_SMOOTH` 0.15 s) before the published-clip path, and replays the phase when still/moving flips; the clip
+  change cross-fades as before, and a published `Clip_<stand>` plays on the Animator like any clip.
+- [x] RIP1-RIP3 (`WildboundCandyClipKit_Test` RIP-1..3): hysteresis, the motion map (Don Glaseon and the six critters),
+  the client measuring speed before the published path.
+
+Decisions taken for the user: the stand clip is the idle loop (Don Glaseon `Idle_Breath`; no new clip, no upload);
+Search counts as moving (he walks it), so at the last sighting he now breathes instead of stepping in place; vertical
+motion is ignored (Mielita's bobbing never counts as moving).
+
+Evidence: fingerprints before writing, Studio == repo HEAD e66040e for Anim 11191 2305407264, Spec 5615 1045634621,
+ClipKit_Test 19251 1096985337 and `WildboundBeastConfig` 47105 3091779568 (so Studio has Chase 21; the Play sample
+below confirms 20-23 studs/s). Writes by `multi_edit`; after: Anim 12302 2715102267, Spec 6767 1957207852, ClipKit_Test
+23090 3670571940 (Studio == repo). Fresh loader (`execute_luau` loadstring + setfenv over Source, only this suite,
+`WildboundFreshRunnerLock` nil before, `rip@<time>` during, cleared): RED 15 passed, 3 failed (RIP-1..3); GREEN 18
+passed, 0 failed. Walked Play (`WildboundPlayLock = "rip-dg"`, both locks nil before, cleared after, big4 untouched,
+`character_navigation` to (530, -3) then (566, -20); he was out as a trap cake and came for the player). Client samples
+every 0.25 s of phase / measured speed / `WildboundCritterClip` / distance: Chase 22.7 studs/s `Chase_Run` 10.3 ->
+Chase 0 `Idle_Breath` 8.5 (held 2.5 s) -> Telegraph/Attack/Recover clips -> Chase 21.6 and 20.3 `Chase_Run`. No
+`WildboundCandyCritterAnim` warnings. Not checked: the look on screen, two players, a phone.
+
 ## Fuller cotton trees (2026-11-16)
 
 Owner: "quiero que los árboles del reino caramelo sean más frondosos".
