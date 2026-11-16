@@ -298,7 +298,8 @@ the trap re-arming 30 s after Don Glaseon sleeps again.
 
 - (Done in step A2 below: the extra mechanics on the creature sheets.)
 - Don Glaseon's clips: the owner still has to publish them to the group ("Save to Roblox", Creator = group) and fill
-  `WildboundCandyDonGlaseonClips.IDS`. Until then the live boss has no clips; only the sleeping copy breathes.
+  `WildboundCandyDonGlaseonClips.IDS`. Until then the live boss has no clips; only the sleeping copy breathes. (Step A3
+  below: until then he, his sleeping copy and Tortidragon play their clip data live.)
 - Flanfuria and Tortidragon still fade out where they give up (their brains were not changed); their resting copy then
   reappears at the post.
 - While one cake is Don Glaseon in disguise, his bed (BossHome) stays empty by design (DG7); at the start of a Play it
@@ -587,3 +588,117 @@ so in practice the spec is what covers it); the patch gate for Flanin, Mielita a
 same one-line gate and the specs); two players; a phone. Observation, not changed: a player standing within about
 3.3 studs of La Duquesa's seat is out of Frutillon's reach (ring 6.3, hit 3), so standing next to her is a safe spot
 from his rolls (pre-existing CT4 geometry).
+
+# Step A3: Tortidragon and Don Glaseon animate live
+
+## Objective
+
+Tortidragon and Don Glaseon played no animation: their clip ids (`WildboundCandyTortidragonClips.IDS`,
+`WildboundCandyDonGlaseonClips.IDS`) are empty because the owner cannot publish to the group yet, and their clients only
+played published ids. Make them animate live with no published asset, the way the six new critters do (the client
+writes `Bone.Transform` from the clip data), with as little duplication as possible. A published `Clip_<name>` id still
+wins when one exists. Gomibu and Flanfuria (published group clips) are left as they are.
+
+## Checklist
+
+- [x] A3-1 `WildboundCandyClipKit.fromLegacy`: the older `{ time, pose }` clip modules (Enum priority) become kit-format
+  clips (`Kit.define`), sampled by `Kit.sample` with the same cubic in-out easing their KeyframeSequences use. Poses are
+  shared, not copied; the source modules are unchanged.
+- [x] A3-2 Replicated data copy: `WildboundCandyTortidragonService` and `WildboundCandyDonGlaseonService` clone their
+  ServerStorage clip module into `ReplicatedStorage.WildboundCandyCritterClipsTortidragon` / `...DonGlaseon` at start
+  (one source of truth; no second copy in the repo or the place).
+- [x] A3-3 `WildboundCandyCritterAnimSpec`: entries `Tortidragon` (idle `Idle`) and `DonGlaseon` (idle `Idle_Breath`),
+  `legacy = true`, phase maps = the old clients' `CLIP` tables, plus Don Glaseon's `Stagger` -> `HitReact_ImmuneBat`.
+  New `Spec.SCENERY = { DonGlaseonDormant = "DonGlaseon" }`; `critterName` resolves it.
+- [x] A3-4 `WildboundCandyCritterAnim` (the shared live player): converts legacy data, animates `Spec.SCENERY` models
+  that are direct children of Workspace (Don Glaseon's sleeping copy, set up again each time the server puts it back),
+  and waits for a streamed model's bones for as long as the model exists (it gave up after 10 s before, which a player
+  walking in from the spawn could exceed). A clip module not yet replicated is no longer cached as missing.
+- [x] A3-5 `WildboundCandyTortidragonAnim` and `WildboundCandyDonGlaseonAnim` keep only their effects (the candy volley,
+  the licorice ribbon); they no longer load tracks, and PF5's chest sway is gone (the sleeping copy plays the whole
+  `Idle_Breath` clip now). One writer per rig.
+- [x] A3-6 The resting Tortidragon copy (A1, `WildboundBeastsLocal`, `BeastPhase = "Calm"`) plays `Idle` through the same
+  path; Don Glaseon has no resting copy besides the sleeping one.
+- [x] A3-7 Walked Play check (below). Commits 9b1bd95 (specs), f958585 (implementation).
+
+## Decisions taken for the user (A3)
+
+1. Least duplication: the services copy the existing ServerStorage modules to ReplicatedStorage at run time and the
+   client converts them with `Kit.fromLegacy`, instead of regenerating them in the critter data format or keeping a
+   second copy. The clip data stays in `tools/WildboundCandy*Clips.luau` and its suites and the publisher are unchanged.
+2. The shared `WildboundCandyCritterAnim` plays both (through `Spec`), rather than a sibling client: the published-id
+   rule, the cross-fade, the camera distance cut and the error retry come for free.
+3. The two old clients stopped playing published tracks: `WildboundCandyCritterAnim` already plays a `Clip_<name>` id on
+   the Animator, and two players on the same Animator would double the tracks once the owner publishes.
+4. The sleeping copy plays `Idle_Breath` (the clip set has no sleep clip); PF5's chest sway was replaced, not kept as a
+   fallback, so only one script writes its bones.
+5. Don Glaseon's `Stagger` (a bat bouncing off him) now plays `HitReact_ImmuneBat` (it was the idle loop).
+6. `WildboundCandyClipKit_Test` CK9 now expects 8 spec entries (deliberate); `WildboundBossRobustness_Test` PF5 now checks
+   that the Don Glaseon client no longer writes bones and keeps the ribbon.
+
+## Evidence (A3)
+
+Studio: place 122652861404212, instance db843df0-7649-423f-adb7-739088c9746a. Before any write, all nine touched
+scripts matched the repo HEAD b8c4289 (CRLF -> LF, trailing newlines stripped, bytes + Adler-32): ClipKit 6552
+527639b6, CritterAnimSpec 4267 397e608e, CritterAnim 10399 186291d9, TortidragonService 1629 73453c80,
+DonGlaseonService 4072 759e8fac, TortidragonAnim 5124 1207a30b, DonGlaseonAnim 6830 4817c91f, ClipKit_Test 14896
+bdcf218d, BossRobustness_Test 8474 373bd3eb. Writes by `multi_edit` exact replacements; the Don Glaseon client's tail
+(setup plus the old breathing code) by an anchored find-and-replace of `Source` in `execute_luau`; the new suite created
+with `multi_edit`. Read back after each batch.
+
+Final fingerprints (Studio == repo):
+
+| Script | Bytes | Adler-32 |
+|---|---|---|
+| WildboundCandyClipKit | 7414 | f79f5d08 |
+| WildboundCandyCritterAnimSpec | 5615 | 3e531e3d |
+| WildboundCandyCritterAnim | 11135 | c82f950d |
+| WildboundCandyTortidragonService | 2038 | 6a44cd41 |
+| WildboundCandyDonGlaseonService | 4518 | 79492cf8 |
+| WildboundCandyTortidragonAnim | 4120 | 421c5c32 |
+| WildboundCandyDonGlaseonAnim | 3978 | c04e2295 |
+| WildboundCandyLiveClips_Test (new) | 9395 | 1a61ce67 |
+| WildboundCandyClipKit_Test | 15055 | 431f58ce |
+| WildboundBossRobustness_Test | 8364 | 9cc1af48 |
+
+Runs: the engine of `tools/studio-fresh-runner.luau` (loader, clones, lock; shorter report, no leak scan) in a temporary
+ServerStorage StringValue `WildboundA3RunnerEngine` (destroyed at the end), only these SPECS, `WildboundFreshRunnerLock`
+respected (nil before and after).
+
+| Run | What | Result |
+|---|---|---|
+| ed2d4265 | RED: CandyLiveClips, CandyClipKit, BossRobustness, CandyClipPublish | 26 passed, 8 failed (6 new cases, CK9 count, PF5/A3) |
+| a022975e | GREEN, the same four suites (plus `loadstring` compiles of the five edited scripts) | 34 passed, 0 failed |
+| 0ee38e6a | Neighbours: BeastCandyCritter, CandyDuquesa, CandyTrapCake, CandyTortidragonClips, CandyDonGlaseonClips | 61 passed, 2 failed: the known "every clip is published" reds of the two clip suites (handoff section E) |
+
+`tools/studio-fresh-runner.luau` has the new SPECS entry; `tools/test_studio_fresh_runner.py` was not run (no Python on
+this machine).
+
+### Walked Play
+
+Lock `WildboundPlayLock = "A3-liveclips"` (both locks nil before); Play stopped and the lock cleared after. The character
+walked with `character_navigation` only: spawn (298, -3) -> (440, -40) -> (500, -120) -> Tortidragon's post (508, -134)
+-> (520, -30) -> into Don Glaseon's territory (565, -5) -> out to (470, -5). A read-only client sampler logged every 0.5 s
+the position and, for each Tortidragon / Don Glaseon model, its phase, `WildboundCritterClip`, how many bones had a
+non-identity Transform and how many changed since the previous sample.
+
+- Tortidragon's resting copy, from 225 studs away on the road: `Calm`, clip `Idle`, 9-13 of 24 bones posed and changing
+  every sample.
+- The live view replaced it at 32 studs (no pop: same spot), `Idle` animating; at 16 studs `Notice` -> `Alert`, then
+  `Telegraph` -> `Attack_Telegraph` (17 bones changing), `Release` -> `Attack_Release` (18), `Recover` ->
+  `Attack_Recover`, `Chase` -> `Run_Quadruped` (16 bones), and again in cycles. The candy volley folder
+  (`AbanicoDeConfites`, 3 parts) appeared on a Release. Walking off: `Disengage` -> `Walk_Quadruped` (moving), then the
+  resting copy back on the post, `Idle` animating.
+- Don Glaseon: his bed was empty at first (`Candy_bossDisguised = true`, DG7). Entering the territory: `Suspicious` ->
+  `Notice`, `Roar` -> `Roar_Visual` (17 of 29 bones), `Attack` -> `Attack_Release_Licorice` (19), `Recover`,
+  `Chase` -> `Chase_Run` (16), `Telegraph` -> `Attack_Telegraph_Licorice`, `LoseTarget` -> `LoseTarget`, `Return` ->
+  `Patrol_Walk`.
+- After he went home the sleeping copy came back on BossHome: `Dormant` -> `Idle_Breath`, 5-10 bones changing every
+  sample, seen from 50 to 107 studs; `Spine_Upper` rotated 0 -> 0.038 rad and rose up to 0.13 studs over one 3.6 s cycle.
+- Console: no error or warning from these scripts (only the known TexturePack, asset, EditableImage and DataStore noise).
+
+What was not checked: the licorice ribbon and the candy arcs on screen. In this Studio session `RunService.RenderStepped`
+does not fire (0 per second against 60 Heartbeats, the viewport is not rendering while the window is in the
+background); both effects run on RenderStepped (unchanged code), so the ribbon's links stayed invisible here. The bone
+animator runs on Heartbeat, which is why it could be checked. Also not checked: a published `Clip_<name>` id taking over
+(covered by the spec and the unchanged rule in the shared client), two players, a phone.
