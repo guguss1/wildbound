@@ -3,16 +3,18 @@
 -- WildboundBeastEncounters through Enc.register (one module, five names: it reads Config.BEASTS[e.beast]). Built on
 -- WildboundBeastAttack the way WildboundBeastGomibu is. Each one is summoned at its fixed post (Director.summon, points
 -- 0) and lives there; e.pos is the ground under it (Mielita: HoverStuds over it). State machine:
---   Patrol (wanders between points within PatrolRadiusStuds of home, pausing at each; a calm phase for the portal)
+--   Patrol / Calm (walks between points within PatrolRadiusStuds of home as Patrol, pausing at each as Calm; both calm
+--      phases for the portal; PF2: unvisited for IdleSeconds it walks home and ends "Idle")
 --   -> Notice (AlertSeconds still, after the target comes within PerceptionStuds)
 --   -> Chase (ChaseSpeed, never past LeashStuds from home)
 --   -> Telegraph (one attack within Attack.RangeStuds; tell never under Config.MIN_TELL, and the shape is locked at
 --      least MIN_TELL before the strike) -> Release (Attack.TravelSeconds: the hop, roll, wave or throw; the strike
 --      is its end) -> Recover (Attack.RecoverSeconds) -> Chase ...
 --   -> GiveUp: the target past AbandonStuds, or the creature held at its leash with the target out of attack range
---      for GiveUpSeconds. Like Gomibu it ends the encounter (Disengage "GiveUp" for GiveUpSeconds, then End), so an
---      idle critter never holds one of the director's MAX_ACTIVE slots; the next summon starts again at home in Patrol.
---   Escape: the target outside EscapeDistance of home for EscapeSeconds. Death and the safe zone end it (Attack.guard).
+--      for GiveUpSeconds. PF3 (odd/tasks/wildbound-caramelo-playfix.md): it walks home (Return, reason GiveUp) and the
+--      encounter ends at its post with no fade, where its resting copy stands; the next summon starts there in Patrol.
+--   Escape: the target outside EscapeDistance of home for EscapeSeconds: the same walk home (reason Escape). Death and
+--   the safe zone end it at once (Attack.guard).
 -- Attack kinds (tuning.Attack.kind):
 --   leap  a circle of RadiusStuds on the target that follows it until LockSeconds; the creature hops there.
 --   dash  a lane LengthStuds x WidthStuds forward from the creature, aimed until LockSeconds; it rolls along it.
@@ -121,9 +123,13 @@ local function closeAttack(e, world)
 	e.attack = nil
 end
 
-local function retreat(events, e, world, now, reason, seconds)
+-- PF3 (odd/tasks/wildbound-caramelo-playfix.md): every calm ending walks home first (Return, a calm phase) and the
+-- encounter ends there with no fade, where its resting copy stands between encounters (WildboundCandyResting).
+local function goHome(events, e, world, now, reason)
 	closeAttack(e, world)
-	Attack.disengage(events, e, reason, now, seconds)
+	e.returnReason = reason
+	e.waypoint, e.waitUntil, e.pinnedSince, e.farSince, e.patrolSince = nil, nil, nil, nil, nil
+	Attack.phase(events, e, "Return", now, nil, { reason = reason })
 end
 
 local function openAttack(events, e, now, target, world, C, T, A)
@@ -166,9 +172,13 @@ local function strike(events, e, target, world, C, T, A)
 	Attack.phase(events, e, "Recover", at, at + A.RecoverSeconds)
 end
 
-local function patrol(e, now, world, T, dt)
+-- PF2: it walks to a point ("Patrol": the walk clip) and stands there a moment ("Calm": the idle loop).
+local function patrol(events, e, now, world, T, dt)
 	if e.waitUntil and now < e.waitUntil then return end
-	e.waitUntil = nil
+	if e.waitUntil then
+		e.waitUntil = nil
+		Attack.phase(events, e, "Patrol", now)
+	end
 	if not e.waypoint then
 		e.patrolIndex += 1
 		local angle = e.patrolIndex * GOLDEN
@@ -178,6 +188,7 @@ local function patrol(e, now, world, T, dt)
 	if walkTo(e, world, T, e.waypoint.x, e.waypoint.z, T.PatrolSpeedStudsPerSecond, dt) then
 		e.waypoint = nil
 		e.waitUntil = now + (T.PatrolPauseSeconds or 1.5)
+		Attack.phase(events, e, "Calm", now, e.waitUntil)
 	end
 end
 
@@ -189,25 +200,40 @@ function Critter.step(events, e, now, target, world, dt)
 		if e.done then e.attack = nil end
 		return
 	end
+	-- PF3: walking home (nothing about the target matters any more); the encounter ends at its post, with no fade
+	if e.phase == "Return" then
+		local speed = T.ReturnSpeedStudsPerSecond or T.ChaseSpeedStudsPerSecond * 0.75
+		if walkTo(e, world, T, e.home.x, e.home.z, speed, dt) then
+			e.dx, e.dz = 0, 1 -- the resting copy's facing
+			table.insert(events, Attack.finish(e, e.returnReason or "Done", now))
+		end
+		return
+	end
 	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
 	end
 	if e.farSince and now - e.farSince >= T.EscapeSeconds then
-		retreat(events, e, world, now, "Escape", C.disengage)
+		goHome(events, e, world, now, "Escape")
 		return
 	end
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Patrol", e.phaseAt) end
-	if e.phase == "Patrol" then
+	if e.phase == "Patrol" or e.phase == "Calm" then
 		if Critter.sees(e, target, T) then
-			e.waypoint, e.waitUntil = nil, nil
+			e.waypoint, e.waitUntil, e.patrolSince = nil, nil, nil
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
 			return
 		end
-		patrol(e, now, world, T, dt)
+		-- PF2: nobody came near for IdleSeconds: home, quietly (the next summon starts it again)
+		e.patrolSince = e.patrolSince or now
+		if T.IdleSeconds and now - e.patrolSince >= T.IdleSeconds then
+			goHome(events, e, world, now, "Idle")
+			return
+		end
+		patrol(events, e, now, world, T, dt)
 		return
 	end
 	if e.phase == "Notice" then
@@ -218,14 +244,14 @@ function Critter.step(events, e, now, target, world, dt)
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
 		if distance > T.AbandonStuds then
-			retreat(events, e, world, now, "GiveUp", T.GiveUpSeconds)
+			goHome(events, e, world, now, "GiveUp")
 			return
 		end
 		-- held at the end of its leash with the target out of reach: GiveUpSeconds of that and it gives up
 		if distance > A.RangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - LEASH_EDGE then
 			e.pinnedSince = e.pinnedSince or now
 			if now - e.pinnedSince >= T.GiveUpSeconds then
-				retreat(events, e, world, now, "GiveUp", T.GiveUpSeconds)
+				goHome(events, e, world, now, "GiveUp")
 				return
 			end
 		else

@@ -1,6 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastCandyCritterClone),
 -- require(freshBeastConfigClone), require(freshPortalClone), { beasts = WildboundBeasts.Source,
--- service = WildboundCandyCritterService.Source }, require(freshBeastChaseClone)).
+-- service = WildboundCandyCritterService.Source, client = WildboundBeastsClient.Source }, require(freshBeastChaseClone)).
 -- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1-CC3): the five small candy creatures (Mochimiau, Canelin,
 -- Flanin, Mielita, GatoRepartidor) share one data-driven brain, WildboundBeastCandyCritter, which reads
 -- Config.BEASTS[name].tuning (and its Attack table). Pure, on the harness of WildboundBeastGomibu_Test: a fake world with
@@ -24,14 +24,17 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 
 	-- The creature sheet: attack kind, cooldown and the outcome the brief asked for (push studs or nil, slow multiplier,
 	-- slow seconds), and whether it flies.
+	-- Deliberately changed (PF2, odd/tasks/wildbound-caramelo-playfix.md): every hit must read for a walking player, so
+	-- each one now pushes 6-10 studs and slows to 0.7 (the Gato, the friendliest, 0.8) for 2-3 s; damage stays 0.
 	local SHEET = {
-		Mochimiau = { kind = "leap", cooldown = 6, push = true, slow = 0.75, slowSeconds = 2.5, flies = false },
-		Canelin = { kind = "dash", cooldown = 6, push = false, slow = 0.8, slowSeconds = 2, flies = false },
-		Flanin = { kind = "burst", cooldown = 7, push = false, slow = 0.7, slowSeconds = 3, radius = 10, flies = false },
-		Mielita = { kind = "lob", cooldown = 9, push = false, slow = 0.75, slowSeconds = 3, radius = 6, flies = true },
-		GatoRepartidor = { kind = "lob", cooldown = 8, pushStuds = 2, push = true, slow = 0.9, slowSeconds = 1.5, radius = 4,
+		Mochimiau = { kind = "leap", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false },
+		Canelin = { kind = "dash", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false },
+		Flanin = { kind = "burst", cooldown = 7, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 10, flies = false },
+		Mielita = { kind = "lob", cooldown = 9, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 6, flies = true },
+		GatoRepartidor = { kind = "lob", cooldown = 8, pushStuds = 6, push = true, slow = 0.8, slowSeconds = 2, radius = 4,
 			flies = false },
 	}
+	local FAR = 70 -- a target this far from home is never seen, yet still inside its escape distance
 	local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
 	for _, name in ipairs(NAMES) do
 		if Config.WAVE2[name] or Config.SUMMONED[name] then Enc.register(name, Critter) end
@@ -105,7 +108,20 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			equal(T.Attack.kind, sheet.kind, name .. " attack kind")
 			equal(T.Attack.CooldownSeconds, sheet.cooldown, name .. " cooldown")
 			assert(T.PatrolSpeedStudsPerSecond >= 5 and T.PatrolSpeedStudsPerSecond <= 8, name .. " patrol speed")
-			assert(T.ChaseSpeedStudsPerSecond >= 9 and T.ChaseSpeedStudsPerSecond <= 13, name .. " chase speed")
+			-- PF2: a bit faster, still under a walking player's 16
+			assert(T.ChaseSpeedStudsPerSecond >= 11 and T.ChaseSpeedStudsPerSecond <= 15, name .. " chase speed")
+			-- PF2 (walked Play: a moving player never triggered them): it sees about as far as it wakes, chases far,
+			-- holds on a few seconds, and only a long run away ends it
+			assert(T.WakeRadiusStuds >= 40 and T.WakeRadiusStuds <= 50, name .. " wake radius " .. T.WakeRadiusStuds)
+			assert(T.PerceptionStuds >= T.WakeRadiusStuds - 8, name .. " perception " .. T.PerceptionStuds .. " far under its wake radius")
+			assert(T.LeashStuds >= 30 and T.LeashStuds <= 40, name .. " leash " .. T.LeashStuds)
+			assert(T.AbandonStuds >= 45 and T.AbandonStuds <= 55, name .. " abandon " .. T.AbandonStuds)
+			assert(T.GiveUpSeconds >= 4 and T.GiveUpSeconds <= 5, name .. " give-up " .. T.GiveUpSeconds)
+			assert(T.EscapeDistanceStuds >= 85 and T.EscapeDistanceStuds <= 95, name .. " escape " .. T.EscapeDistanceStuds)
+			assert(T.PatrolRadiusStuds >= 8, name .. " patrols a visible loop round its post")
+			assert(type(T.IdleSeconds) == "number" and T.IdleSeconds >= 15, name .. " idle timeout")
+			assert(type(T.Attack.PushStuds) == "number" and T.Attack.PushStuds >= 6 and T.Attack.PushStuds <= 10, name .. " push 6-10")
+			assert(T.Attack.SlowMultiplier <= 0.8 and T.Attack.SlowSeconds >= 2 and T.Attack.SlowSeconds <= 3, name .. " slow")
 			assert(T.PerceptionStuds < T.AbandonStuds and T.PerceptionStuds < T.WakeRadiusStuds, name .. " sight inside wake and abandon")
 			assert(T.PatrolRadiusStuds <= T.LeashStuds, name .. " patrols inside its leash")
 			assert(Critter.tellSeconds(T.Attack) >= Config.MIN_TELL, name .. " tell under the fairness floor")
@@ -135,19 +151,28 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			equal(Portal.CALM_PHASES[phase], nil, phase .. " engaging")
 		end
 		for _, name in ipairs(NAMES) do
-			local e, w, tgt = spawn(name, "calm"), fakeWorld(), target(40, 0)
+			local e, w, tgt = spawn(name, "calm"), fakeWorld(), target(FAR, 0)
 			local events = run(e, w, tgt, 0, 6)
 			for _, ev in ipairs(each(events, "Phase")) do
 				equal(Portal.CALM_PHASES[ev.phase], true, name .. " idle phase " .. ev.phase)
 			end
-			equal(e.phase, "Patrol", name .. " patrols while nobody is near")
+			assert(e.phase == "Patrol" or e.phase == "Calm", name .. " patrols while nobody is near (" .. tostring(e.phase) .. ")")
+		end
+	end)
+
+	-- PF2: the patrol reads: it walks ("Patrol", the walk clip) between points and stands ("Calm", the idle loop) at each.
+	case("PF2: the patrol walks (Patrol) and pauses (Calm) in turn round its post", function()
+		for _, name in ipairs(NAMES) do
+			local e, w, tgt = spawn(name, "loop"), fakeWorld(), target(FAR, 0)
+			local list = phases(run(e, w, tgt, 0, 14))
+			assert(string.find(list, "Patrol,Calm,Patrol", 1, true), name .. " phases " .. list)
 		end
 	end)
 
 	case("CC2: it wanders near home while calm, never past its patrol radius", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
-			local e, w, tgt = spawn(name, "patrol"), fakeWorld(), target(40, 0)
+			local e, w, tgt = spawn(name, "patrol"), fakeWorld(), target(FAR, 0)
 			local farthest, moved = 0, 0
 			local last = { x = 0, z = 0 }
 			run(e, w, tgt, 0, 20, nil, function(_, c)
@@ -165,7 +190,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "notice"), fakeWorld(), target(T.PerceptionStuds + T.PatrolRadiusStuds + 2, 0)
 			run(e, w, tgt, 0, 0.5)
-			equal(e.phase, "Patrol", name .. " noticed a target outside its perception")
+			assert(e.phase == "Patrol" or e.phase == "Calm", name .. " noticed a target outside its perception")
 			tgt.x, tgt.z = e.pos.x + T.PerceptionStuds - 0.5, e.pos.z
 			local events = run(e, w, tgt, 0.55, 0.55 + T.AlertSeconds + 0.2)
 			local list = each(events, "Phase")
@@ -266,25 +291,73 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		end
 	end)
 
-	-- Review fix: giving up ends the encounter like Gomibu (Disengage "GiveUp" for GiveUpSeconds, then End), so an idle
-	-- critter never keeps one of the director's MAX_ACTIVE slots (which would block Don Glaseon or a guardian alarm).
-	case("CC2: past its abandon distance it gives up and the encounter ends, holding no beast slot", function()
+	-- Deliberately changed (PF3, odd/tasks/wildbound-caramelo-playfix.md): it used to fade out where it gave up (Disengage,
+	-- then End), so it vanished into nothing. Now it walks home (Return, a calm phase) and the encounter ends there with no
+	-- fade, where the resting copy of it stands between encounters. No beast slot is held either way (PF1).
+	local function quietEnd(name, events, reason, e)
+		local back
+		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "Return" then back = back or ev end end
+		assert(back, name .. " never walked home (phases " .. phases(events) .. ")")
+		equal(back.reason, reason, name .. " the Return's reason")
+		equal(#each(events, "Disengage"), 0, name .. " faded out instead of walking home")
+		local over = each(events, "End")[1]
+		equal(over and over.reason, reason, name .. " the encounter ends")
+		assert(over.at > back.at, name .. " ended before walking home")
+		equal(e.done, true, name .. " done")
+		assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, name .. " ended " .. math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) .. " studs from its post")
+		for _, ev in ipairs(each(events, "Tell")) do
+			assert(ev.startAt < back.at, name .. " opened an attack while walking home")
+		end
+		return back, over
+	end
+
+	case("CC2: past its abandon distance it gives up, walks home and the encounter ends there quietly", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "giveup"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			tgt.x = T.LeashStuds + T.AbandonStuds + 1 -- past the abandon distance even from the end of its leash
-			local later = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 8)
-			local off = each(later, "Disengage")[1]
-			equal(off and off.reason, "GiveUp", name .. " gives up (phases " .. phases(later) .. ")")
-			local over = each(later, "End")[1]
-			equal(over and over.reason, "GiveUp", name .. " the encounter ends")
-			near(over.at - off.at, T.GiveUpSeconds, name .. " the retreat lasts GiveUpSeconds", 1e-6)
-			equal(e.done, true, name .. " done")
-			for _, ev in ipairs(each(later, "Tell")) do
-				assert(ev.startAt < off.at, name .. " opened an attack while giving up")
-			end
-			assert(not string.find(phases(later), "Return", 1, true), name .. " walked home inside the encounter")
+			local later = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 12)
+			quietEnd(name, later, "GiveUp", e)
+		end
+	end)
+
+	-- PF2: nobody came near for IdleSeconds: it walks home and ends quietly (the resting copy takes over).
+	case("PF2: an idle patrol ends quietly at home after IdleSeconds", function()
+		for _, name in ipairs(NAMES) do
+			local T = tuning(name)
+			local e, w, tgt = spawn(name, "idle"), fakeWorld(), target(FAR, 0)
+			local events = run(e, w, tgt, 0, T.IdleSeconds + 8)
+			local back = quietEnd(name, events, "Idle", e)
+			assert(back.at >= T.IdleSeconds - 1e-6, name .. " left its patrol after " .. back.at .. " s")
+		end
+	end)
+
+	-- PF2: the walked Play check, as a pure case. A player walks (16 studs/s) from 60 studs straight at the post, stops
+	-- 12 studs from it for 6 s, then walks away. The critter notices well before the player arrives, chases, strikes at
+	-- least once (and the strike lands on a player who stands still), then walks home quietly when the player leaves.
+	case("PF2: a walking player is noticed early, chased, hit, and left with a quiet walk home", function()
+		for _, name in ipairs(NAMES) do
+			local T = tuning(name)
+			local e, w, tgt = spawn(name, "walk"), fakeWorld(), target(60, 0)
+			local noticedAt
+			local events = run(e, w, tgt, 0, 32, function(t, tg)
+				if t < 3 then tg.x = math.max(60 - 16 * t, 12)
+				elseif t < 9 then tg.x = 12
+				else tg.x = math.min(12 + 16 * (t - 9), 140) end
+			end, function(t, c)
+				if not noticedAt and c.phase == "Notice" then noticedAt = { t = t, x = tgt.x } end
+			end)
+			assert(noticedAt, name .. " never noticed the walking player (phases " .. phases(events) .. ")")
+			assert(noticedAt.x >= 24, name .. " noticed the player only " .. noticedAt.x .. " studs from its post")
+			assert(#each(events, "Tell") >= 1, name .. " never attacked")
+			local hits = each(events, "Hit")
+			assert(#hits >= 1, name .. " never hit a player standing 12 studs from its post")
+			equal(hits[1].damage, 0, name .. " damage")
+			assert(hits[1].push and hits[1].push.studs >= 6, name .. " the hit does not push")
+			local over = each(events, "End")[1]
+			assert(over, name .. " never ended after the player left (phases " .. phases(events) .. ")")
+			quietEnd(name, events, over.reason, e)
 		end
 	end)
 
@@ -299,18 +372,16 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			local e, w, tgt = spawn(name, "stall"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			local farthest = 0
-			local later = run(e, w, tgt, 0.95, 20, function(_, tg) tg.x = stand end,
+			local later = run(e, w, tgt, 0.95, 25, function(_, tg) tg.x = stand end,
 				function(_, c) farthest = math.max(farthest, math.sqrt(c.pos.x ^ 2 + c.pos.z ^ 2)) end)
-			local off = each(later, "Disengage")[1]
-			equal(off and off.reason, "GiveUp", name .. " never gave up at its leash (phases " .. phases(later) .. ")")
-			equal(e.done, true, name .. " done")
+			quietEnd(name, later, "GiveUp", e)
 			assert(farthest <= T.LeashStuds + 1e-6, name .. " went " .. farthest .. " studs from home")
 		end
 	end)
 
 	case("CC2: Mielita hovers HoverStuds over the ground; the others stand on it", function()
 		for _, name in ipairs(NAMES) do
-			local e, w, tgt = spawn(name, "hover"), fakeWorld(), target(40, 0)
+			local e, w, tgt = spawn(name, "hover"), fakeWorld(), target(FAR, 0)
 			run(e, w, tgt, 0, 2)
 			local expected = SHEET[name].flies and tuning(name).HoverStuds or 0
 			near(e.pos.y, expected, name .. " height")
@@ -349,6 +420,15 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		-- the guarded clip line (WildboundCandyTortidragonService): an empty IDS never asserts
 		assert(string.find(service, 'if Clips.IDS[clip] then model:SetAttribute("Clip_" .. clip, animationId(Clips, clip)) end', 1, true), "unguarded clip ids")
 		assert(not string.find(service, "DuquesaBurbuja = {", 1, true), "the Duquesa stays scenery")
+	end)
+
+	-- PF2: the target's client shows the beast's own hit line (Text.BEAST[beast].hit) when the Hit carries no line of its
+	-- own, on top of the hit sound and the shake it already played.
+	case("PF2 wiring: a landed hit shows the beast's hit line on the target's screen", function()
+		local client = sources.client
+		assert(type(client) == "string", "pass the beast client source")
+		assert(string.find(client, 'elseif said and type(said.hit) == "string" then showLine(said.hit, ev.at + 1.5) end', 1, true),
+			"the Hit handler never shows Text.BEAST[beast].hit")
 	end)
 
 	-- PF1 (odd/tasks/wildbound-caramelo-playfix.md): a refused summon is no longer silent; its reason goes to telemetry.

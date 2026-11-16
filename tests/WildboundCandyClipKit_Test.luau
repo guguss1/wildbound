@@ -259,6 +259,22 @@ return function(Kit, prefab, Clips, Spec, allClips, clientSource)
 		assert(ok, problem)
 	end)
 
+	-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): the brain now walks its patrol as "Patrol", stands at each point as
+	-- "Calm" and walks home as "Return"; walking plays a walk clip, standing the idle loop.
+	case("PF2: Patrol and Return play a walk clip, Calm the idle loop, for the five live critters", function()
+		assert(Spec and allClips, "pass the spec and the six clips modules")
+		local WALK = { Mochimiau = "Walk", Canelin = "Walk", Flanin = "Walk", Mielita = "Patrol", GatoRepartidor = "Walk" }
+		local brain = {}
+		for _, phase in ipairs(Spec.BRAIN_PHASES) do brain[phase] = true end
+		assert(brain.Calm and brain.Return, "the brain phases list Calm and Return")
+		for name, walk in pairs(WALK) do
+			local clips = allClips[name].CLIPS
+			equal(Spec.clipFor(name, "Patrol", clips), walk, name .. " Patrol")
+			equal(Spec.clipFor(name, "Return", clips), walk, name .. " Return")
+			equal(Spec.clipFor(name, "Calm", clips), Spec.SPEC[name].idle, name .. " Calm")
+		end
+	end)
+
 	case("CK11: the client player uses the spec, Kit.transform and plays published ids on the Animator", function()
 		assert(type(clientSource) == "string", "pass the client source")
 		local function has(text, label)

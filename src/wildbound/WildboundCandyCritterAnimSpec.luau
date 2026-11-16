@@ -13,8 +13,9 @@ Spec.BEASTS_FOLDER = "WildboundBeastsLocal"
 
 -- Phases that play the idle loop unless a creature maps them to something else.
 Spec.CALM = { "Spawn", "Calm", "Dormant", "Patrol", "Guard", "Wake", "Return", "Disengage", "Ended", "GiveUp", "Recover" }
--- Every phase the shared brain WildboundBeastCandyCritter emits.
-Spec.BRAIN_PHASES = { "Spawn", "Patrol", "Notice", "Chase", "Telegraph", "Release", "Recover" }
+-- Every phase the shared brain WildboundBeastCandyCritter emits (PF2: Calm while it pauses on its patrol, Return on the
+-- walk home that ends an encounter).
+Spec.BRAIN_PHASES = { "Spawn", "Patrol", "Calm", "Notice", "Chase", "Telegraph", "Release", "Recover", "Return" }
 
 local function phases(idle, map)
 	local out = {}
@@ -28,20 +29,24 @@ Spec.SPEC = {
 		Notice = "Surprised", Chase = "Glide", Telegraph = "Charge", Release = "Whip", Strike = "Whip", Attack = "Whip",
 		Recover = "Recover", Stagger = "Surprised",
 	}) },
+	-- PF2: Patrol and Return (walking) play the walk clip; Calm (standing on the patrol) keeps the idle loop.
 	Mochimiau = { idle = "Idle", extras = { "Bounce" }, phase = phases("Idle", {
 		Notice = "Bounce", Chase = "Trot", Telegraph = "Charge", Release = "Bounce", Strike = "Bounce", Jump = "Bounce",
+		Patrol = "Walk", Return = "Walk",
 	}) },
 	Canelin = { idle = "Idle", extras = { "Alert" }, phase = phases("Idle", {
-		Notice = "Alert", Chase = "Walk", Telegraph = "Charge", Release = "Spin", Strike = "Spin",
+		Notice = "Alert", Chase = "Walk", Telegraph = "Charge", Release = "Spin", Strike = "Spin", Patrol = "Walk", Return = "Walk",
 	}) },
 	Flanin = { idle = "Idle", extras = { "Wave" }, phase = phases("Idle", {
 		Notice = "Wave", Chase = "Walk", Telegraph = "Charge", Release = "Jump", Jump = "Jump", Strike = "Land",
+		Patrol = "Walk", Return = "Walk",
 	}) },
 	Mielita = { idle = "Fly", extras = { "Pollen" }, phase = phases("Fly", {
 		Notice = "Orbit", Chase = "Patrol", Telegraph = "Pollen", Release = "Dash", Strike = "Dash", Stagger = "Dizzy",
+		Patrol = "Patrol", Return = "Patrol",
 	}) },
 	GatoRepartidor = { idle = "Idle", extras = { "Call" }, phase = phases("Idle", {
-		Notice = "Surprised", Chase = "Run", Telegraph = "Call", Release = "Throw", Strike = "Throw",
+		Notice = "Surprised", Chase = "Run", Telegraph = "Call", Release = "Throw", Strike = "Throw", Patrol = "Walk", Return = "Walk",
 	}) },
 }
 

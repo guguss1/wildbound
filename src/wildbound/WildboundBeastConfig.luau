@@ -378,65 +378,73 @@ Config.BEASTS = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): retuned for a walking player (was wake 30, sight 14, abandon 22,
+		-- leash 14, patrol 6, chase 11, escape 50, give-up 2, push 5 / 0.3 s, slow 0.75). IdleSeconds: an unvisited patrol
+		-- walks home and ends quietly.
 		tuning = table.freeze({
-			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 22, LeashStuds = 14,
-			PatrolRadiusStuds = 6, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 11,
-			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 50, LeashStuds = 34,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 13,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "leap", RangeStuds = 9, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
-				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 6, PushStuds = 5, PushSeconds = 0.3,
-				SlowMultiplier = 0.75, SlowSeconds = 2.5 }),
+				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
+				SlowMultiplier = 0.7, SlowSeconds = 2.5 }),
 		}),
 	}),
-	Canelin = table.freeze({ -- rolls along a lane forward from itself: a 20 % slow
+	Canelin = table.freeze({ -- rolls along a lane forward from itself: a push and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		-- PF2: was wake 30, sight 14, abandon 24, leash 16, patrol 7, chase 12, escape 50, give-up 2, no push, slow 0.8 / 2 s.
 		tuning = table.freeze({
-			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 24, LeashStuds = 16,
-			PatrolRadiusStuds = 7, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 12,
-			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 52, LeashStuds = 36,
+			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 14,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
-				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6,
-				SlowMultiplier = 0.8, SlowSeconds = 2 }),
+				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
+				SlowMultiplier = 0.7, SlowSeconds = 2.5 }),
 		}),
 	}),
-	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a 30 % slow and no push
+	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a short shove and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		-- PF2: was wake 30, sight 14, abandon 20, leash 12, patrol 5, chase 9, escape 50, give-up 2, no push.
 		tuning = table.freeze({
-			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 20, LeashStuds = 12,
-			PatrolRadiusStuds = 5, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 9,
-			AlertSeconds = 0.8, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 48, LeashStuds = 32,
+			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 12,
+			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1, LockSeconds = 0, TravelSeconds = 0.25,
-				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7,
+				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7, PushStuds = 6, PushSeconds = 0.3,
 				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 		}),
 	}),
-	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a 25 % slow
+	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a puff and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = 10, damage = 0, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
+		-- PF2: was wake 32, sight 16, abandon 24, leash 14, patrol 7, chase 13, escape 50, give-up 2, no push, slow 0.75.
 		tuning = table.freeze({
-			WakeRadiusStuds = 32, PerceptionStuds = 16, AbandonStuds = 24, LeashStuds = 14, HoverStuds = 2.5,
-			PatrolRadiusStuds = 7, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 13,
-			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			WakeRadiusStuds = 48, PerceptionStuds = 42, AbandonStuds = 55, LeashStuds = 38, HoverStuds = 2.5,
+			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 14,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 14, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
-				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9,
-				SlowMultiplier = 0.75, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
+				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9, PushStuds = 6, PushSeconds = 0.3,
+				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 		}),
 	}),
-	GatoRepartidor = table.freeze({ -- friendly: short sight, short leash; throws fries on the target, a 2 stud push
+	GatoRepartidor = table.freeze({ -- the friendliest: the shortest sight and leash; throws fries on the target
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		-- PF2: was wake 24, sight 8, abandon 14, leash 8, patrol 5, chase 9, escape 50, give-up 2, push 2 / 0.25 s,
+		-- slow 0.9 / 1.5 s. Still the friendliest (sight and leash under every other critter's), but it follows and throws.
 		tuning = table.freeze({
-			WakeRadiusStuds = 24, PerceptionStuds = 8, AbandonStuds = 14, LeashStuds = 8,
-			PatrolRadiusStuds = 5, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 9,
-			AlertSeconds = 0.8, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			WakeRadiusStuds = 40, PerceptionStuds = 34, AbandonStuds = 45, LeashStuds = 30,
+			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 12,
+			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
-				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 8, PushStuds = 2, PushSeconds = 0.25,
-				SlowMultiplier = 0.9, SlowSeconds = 1.5 }),
+				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 8, PushStuds = 6, PushSeconds = 0.3,
+				SlowMultiplier = 0.8, SlowSeconds = 2 }),
 		}),
 	}),
 	-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the

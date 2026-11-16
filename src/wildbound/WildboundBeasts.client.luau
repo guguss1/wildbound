@@ -688,7 +688,9 @@ function handlers.Hit(ev, view)
 	if not kid then shake(0.5) end
 	-- Kids biome: the Ráfaga and Pegajoso lines ride on the Hit event (Text.BEAST[beast].phases[ev.line]).
 	local said = Text.BEAST[view.beast]
-	if type(ev.line) == "string" and said and said.phases and said.phases[ev.line] then showLine(said.phases[ev.line], ev.at + 1.5) end
+	if type(ev.line) == "string" and said and said.phases and said.phases[ev.line] then showLine(said.phases[ev.line], ev.at + 1.5)
+	-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): otherwise the beast's own hit line, so a no-damage hit still reads
+	elseif said and type(said.hit) == "string" then showLine(said.hit, ev.at + 1.5) end
 	-- Wave 2: Streamer's scream pushes lightly. This client owns its character, so it applies the push, never faster
 	-- than the configured speed and never a ragdoll.
 	local knock = ev.knock
