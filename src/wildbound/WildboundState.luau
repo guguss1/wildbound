@@ -765,6 +765,57 @@ function State:upgrade(key, name, alive, distance)
 	return true, name
 end
 
+-- Gold (odd/tasks/wildbound-gold.md): the second currency, saved as the `gold` count of the training map (like
+-- walkLaps: no record schema step; WildboundRecord already saves and checks every count there). Made on first earn.
+local function goldOf(player)
+	local value = type(player.training) == "table" and player.training.gold or nil
+	return finite(value) and value >= 0 and math.floor(value) or 0
+end
+local function setGold(player, amount)
+	player.training = player.training or {}
+	player.training.gold = amount
+end
+
+-- Adds earned gold (a whole positive amount). Returns true and the new total, or false and InvalidPlayer/InvalidAmount.
+function State:addGold(key, amount)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if not finite(amount) or amount < 1 or amount % 1 ~= 0 then return false, "InvalidAmount" end
+	setGold(player, goldOf(player) + amount)
+	return true, goldOf(player)
+end
+
+-- A camp upgrade paid with gold instead of its Esencia cost (`price` from WildboundGold.upgradePrice). Same rules as
+-- State:upgrade: at camp, once, prerequisite first. A refusal changes nothing.
+function State:upgradeWithGold(key, name, alive, distance, price)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local spec = type(name) == "string" and self.config.upgrades[name] or nil
+	if not spec or not finite(price) or price < 1 or price % 1 ~= 0 then return false, "UnknownUpgrade" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	if player.upgrades[name] then return false, "AlreadyOwned" end
+	if type(spec.requires) == "string" and player.upgrades[spec.requires] ~= true then return false, "NeedsPrerequisite" end
+	if goldOf(player) < price then return false, "CannotAffordGold" end
+	setGold(player, goldOf(player) - price)
+	player.upgrades[name] = true
+	return true, name
+end
+
+-- One walk training level paid with gold (`price` from WildboundGold.trainPrice). Same rules as State:train.
+function State:trainWithGold(key, alive, distance, price, maxLevel)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	local ok, reason = atCamp(self, alive, distance)
+	if not ok then return false, reason end
+	local level = player.training and player.training.walk or 0
+	if type(maxLevel) ~= "number" or level >= maxLevel or not finite(price) or price < 1 then return false, "AtLimit" end
+	if goldOf(player) < price then return false, "CannotAffordGold" end
+	setGold(player, goldOf(player) - price)
+	player.training.walk = level + 1
+	return true, level + 1
+end
+
 -- Nest Heist Phase 3 (NS5): one training level at the camp treadmill. The price and the cap come from the shared
 -- WildboundTraining rule (the server passes them); the level table is made on first use and saved (record schema 2).
 function State:train(key, kind, alive, distance, cost, maxLevel)
@@ -1204,6 +1255,7 @@ function State:snapshot(key)
 		sealCharges = player.consumables.seal,
 		carried = table.clone(player.carried), banked = table.clone(player.banked),
 		pouchCapacity = self.economy.pouchCapacity(self.config, player.upgrades), ember = player.ember,
+		gold = goldOf(player),
 		incubatorSlots = self.economy.incubatorSlots(self.config, player.upgrades),
 		hatchSpeedScale = self.economy.hatchSpeedScale(self.config, player.upgrades),
 		consumables = table.clone(player.consumables), upgrades = table.clone(player.upgrades),

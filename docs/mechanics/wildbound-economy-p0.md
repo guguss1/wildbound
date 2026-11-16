@@ -443,6 +443,19 @@ XP is pending until extraction and lost on defeat. Cap 40 per expedition. Equipp
 
 A bot that really walks the route is active play as far as the server can see. It is outside this contract, with no leaderboard or trade to protect.
 
+**Exception, Oro (2026-11-16, owner request, `odd/tasks/wildbound-gold.md`):** the second currency, Oro (gold), is deliberately a time-based income and does not follow AFK-1/AFK-2. It touches Esencia (Ember) and materials not at all. Rules and numbers live in `src/wildbound/WildboundGold.luau` (not in the generated tuning block below), the server step in `WildboundGoldService.luau`.
+
+| Source or sink | Value |
+| --- | --- |
+| Farm income, per creature in the own base farm, while the owner is in the game (no offline income) | Común 2/min, Rara 3/min, Épica 5/min, Legendaria 8/min (unknown species: Común) |
+| A creature registered (tamed) at the refuge or hatched | +5 once |
+| Treadmill, per completed 8 s lap | 1 + floor(level / 4) (level 17: 5), at most 6 per minute (anti-AFK cap) |
+| Quinto lugar de granja (`farmSlot5`) | 60 oro, besides 400 Esencia |
+| Sexto lugar de granja (`farmSlot6`, needs the fifth) | 150 oro, besides 900 Esencia |
+| Treadmill level L+1 | round(30 × 1.15^L) oro (30, 35, 40 … 281), besides the Esencia price at the treadmill |
+
+Gold is saved as the `gold` count inside the record's `training` map (no schema step), so a failed load can never invent it and the record validator already checks it is a whole count. It is never purchasable with Robux.
+
 ## Network
 
 Extend `Action` (`WildboundServer.server.luau:192-200`). Second argument remains one string of at most 128 bytes, and is looked up in a server table; unknown IDs are dropped silently. Existing rate limits apply.

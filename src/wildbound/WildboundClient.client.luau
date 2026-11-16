@@ -305,6 +305,7 @@ local lastRequest = 0
 local releaseAsk = { uid = nil, at = 0 } -- BP4a: the creature whose "Liberar" was tapped once, and when
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
 	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true }
+ECONOMY_ACTIONS.BuyGold = true -- Gold: a gold purchase also waits for the server's reply
 local function request(action, uid)
 	if not actionRemote then
 		showSticky(H.serverDown)
@@ -517,7 +518,26 @@ end
 
 local function campRows(snapshot)
 	local previous
-	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways })) do
+	-- Gold (odd/tasks/wildbound-gold.md): the gold prices the camp screen shows beside the Esencia ones.
+	local goldPrices
+	do
+		-- Gold earned between snapshots arrives on the player attribute; the rows read the live balance.
+		local liveGold = Players.LocalPlayer:GetAttribute("WildboundGold")
+		if type(liveGold) == "number" then
+			snapshot = table.clone(snapshot)
+			snapshot.gold = liveGold
+		end
+		local goldModule = ReplicatedStorage:FindFirstChild("WildboundGold")
+		local trainingModule = ReplicatedStorage:FindFirstChild("WildboundTraining")
+		if goldModule and trainingModule then
+			local Gold, Training = require(goldModule), require(trainingModule)
+			local level, top = Training.level(snapshot.training, "walk"), Training.live.MAX_LEVEL
+			goldPrices = { trainLevel = level, trainMax = top, train = Gold.trainPrice(level, top), trainEmber = Training.cost(level) }
+			for name, price in pairs(Gold.UPGRADE_PRICES) do goldPrices[name] = price end
+		end
+	end
+	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways,
+		goldPrices = goldPrices })) do
 		if spec.section ~= previous then
 			previous = spec.section
 			if Camp.showSectionHeaders(sideways) then
@@ -560,6 +580,10 @@ rebuild = function()
 	elseif tab == "eggs" then eggsRows(lastSnapshot)
 	else bagRows(lastSnapshot) end
 end
+-- Gold: an open camp tab follows the live gold balance.
+Players.LocalPlayer:GetAttributeChangedSignal("WildboundGold"):Connect(function()
+	if panel.Visible and tab == "camp" then rebuild() end
+end)
 local function render(snapshot)
 	lastSnapshot = snapshot
 	busy = false

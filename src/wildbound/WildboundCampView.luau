@@ -139,8 +139,10 @@ local UPGRADE_WORDS = table.freeze({
 		owned = "Sexto lugar de granja: comprado. Tu granja guarda 6 criaturas." }),
 })
 
-local function line(title, effect, cost, why)
-	local text = ("%s: %s. Precio: %s."):format(title, effect, View.costText(cost))
+-- Gold: a price that can also be paid with gold reads "400 de Esencia o 60 de oro".
+local function line(title, effect, cost, why, goldPrice)
+	local price = View.costText(cost) .. (finite(goldPrice) and (" o %d de oro"):format(goldPrice) or "")
+	local text = ("%s: %s. Precio: %s."):format(title, effect, price)
 	return why and why ~= "" and (text .. " " .. why .. ".") or text
 end
 
@@ -153,6 +155,17 @@ local function shortLine(title, cost, why)
 		return ("%s: %s."):format(title, why)
 	end
 	return ("%s: %s."):format(title, View.costText(cost))
+end
+
+-- Gold: one "pay with gold" row. Disabled with its reason (busy, away, a prerequisite, or the gold missing).
+local function goldRow(id, title, price, snapshot, ctx, argument, extra)
+	local have = amount(snapshot.gold)
+	local why = ctx.busy == true and "Espera un momento" or ctx.atCamp == false and "Ve al campamento" or extra
+		or have < price and ("Faltan %d de oro"):format(price - have) or nil
+	local made = row(id, "Upgrade", ("%s con oro: %d de oro (tienes %d).%s"):format(title, price, have,
+		why and (" " .. why .. ".") or ""), "BuyGold", argument, "Usar oro", why == nil, why)
+	made.short = ("%s: %s."):format(title, why or ("%d de oro"):format(price))
+	return made
 end
 
 -- Everything the Camp tab lists, in order: banked stock, crafts, arming, the upgrade, the skills and bond.
@@ -232,6 +245,8 @@ function View.campRows(config, economy, snapshot, ctx)
 		end
 	end
 	local upgrades = type(snapshot.upgrades) == "table" and snapshot.upgrades or {}
+	-- Gold: ctx.goldPrices = { [upgrade] = gold, train = gold|nil, trainEmber, trainLevel, trainMax } (from WildboundGold).
+	local goldPrices = type(ctx.goldPrices) == "table" and ctx.goldPrices or {}
 	local names = {}
 	for name in pairs(config.upgrades) do table.insert(names, name) end
 	table.sort(names, function(a, b) return (UPGRADE_WORDS[a] and UPGRADE_WORDS[a].order or 9) < (UPGRADE_WORDS[b] and UPGRADE_WORDS[b].order or 9) end)
@@ -245,9 +260,28 @@ function View.campRows(config, economy, snapshot, ctx)
 			local needs = type(spec.requires) == "string" and upgrades[spec.requires] ~= true and spec.requires or nil
 			local why = reason(ctx, snapshot, spec.cost,
 				needs and ("Requiere " .. (UPGRADE_WORDS[needs] and UPGRADE_WORDS[needs].title or needs)) or nil)
-			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why), "Upgrade", name, "Comprar",
-				why == nil, why)
+			local goldPrice = goldPrices[name]
+			local made = row("upgrade:" .. name, "Upgrade", line(words.title, words.effect, spec.cost, why, goldPrice), "Upgrade",
+				name, "Comprar", why == nil, why)
 			made.short = shortLine(words.title, spec.cost, why)
+			table.insert(rows, made)
+			-- Gold: the same upgrade paid with gold, right below (its own button).
+			if finite(goldPrice) then
+				table.insert(rows, goldRow("gold:" .. name, words.title, goldPrice, snapshot, ctx, name,
+					needs and ("Requiere " .. (UPGRADE_WORDS[needs] and UPGRADE_WORDS[needs].title or needs)) or nil))
+			end
+		end
+	end
+	-- Gold: the treadmill's next level, paid with gold here or with Esencia at the treadmill itself.
+	if finite(goldPrices.trainMax) then
+		local level, top = amount(goldPrices.trainLevel), amount(goldPrices.trainMax)
+		if level >= top or not finite(goldPrices.train) then
+			table.insert(rows, row("gold:train", "Upgrade", ("Caminadora al máximo (nivel %d de %d)."):format(level, top)))
+		else
+			local made = goldRow("gold:train", ("Caminadora nivel %d"):format(level + 1), goldPrices.train, snapshot, ctx, "train")
+			local esencia = finite(goldPrices.trainEmber) and (" o %d de Esencia en la caminadora"):format(goldPrices.trainEmber) or ""
+			made.text = ("Caminadora nivel %d de %d: caminas más rápido. Precio: %d de oro%s.%s"):format(level + 1, top,
+				goldPrices.train, esencia, made.why ~= "" and (" " .. made.why .. ".") or "")
 			table.insert(rows, made)
 		end
 	end

@@ -682,6 +682,18 @@ return freeze({
 		busy = "Alguien más está usando esta caminadora.",
 		noCarry = "Suelta lo que cargas antes de subirte a la caminadora.",
 	},
+	-- Gold (odd/tasks/wildbound-gold.md): the second currency, earned by farm creatures and the treadmill.
+	GOLD = {
+		counter = "Oro: %d",
+		popup = "+%d oro",
+		bought = "¡Comprado con oro! Te quedan %d de oro.",
+		trained = "¡Caminadora mejorada con oro! Nivel %d de %d. Te quedan %d de oro.",
+		short = "Te faltan %d de oro.",
+		maxed = "La caminadora ya está al máximo.",
+		owned = "Ya lo tienes.",
+		needsFirst = "Primero compra el quinto lugar de granja.",
+		farAway = "Ve al campamento o a tu base para comprar con oro.",
+	},
 	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
 	INCUBATOR = {
 		prompt = "Incubar huevo",

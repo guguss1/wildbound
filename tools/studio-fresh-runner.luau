@@ -309,6 +309,13 @@ SPECS["WildboundFearWiring_Test"] = {
 	{ fear = "src:WildboundFearClient", world = "src:WildboundWorldClient", audio = "src:WildboundAudioClient" },
 }
 SPECS["WildboundFunnel_Test"] = { "mod:WildboundFunnel", "mod:WildboundAnalytics" }
+SPECS["WildboundGold_Test"] = {
+	"mod:WildboundGold", "src:WildboundGold",
+	{ state = "mod:WildboundState", economy = "mod:WildboundEconomy", config = "mod:WildboundEconomyConfig",
+		record = "mod:WildboundRecord", campView = "mod:WildboundCampView", text = "mod:WildboundText",
+		service = "src:WildboundGoldService", server = "src:WildboundServer", client = "src:WildboundClient",
+		goldClient = "src:WildboundGoldClient" },
+}
 SPECS["WildboundGatherField_Test"] = {
 	"mod:WildboundGatherField", "mod:WildboundEconomyConfig", "mod:WildboundSpawn", "src:WildboundGatherField",
 	"src:WildboundGather", "src:WildboundServer",

@@ -599,6 +599,7 @@ local function stepIncubators(now)
 				if born.equipped then Heist.creatureToolbar:stow(player, born.uid) end
 				Heist.creatureToolbar:syncPlayer(player, state:snapshot(player.UserId))
 			end
+			if Heist.gold then Heist.gold:bonus(player) end
 			local spName = Text.CARD.species[born.species] or born.species
 			send(player, "Hatched", true, Text.LOOP.hatchTitle .. " " .. Text.LOOP.hatchStored:format(spName), nil,
 				{ uid = born.uid, species = born.species, ember = 0, isNew = born.isNew, repeated = false })
@@ -809,6 +810,7 @@ if refugeMarker then
 		end
 		if record then record.lastRegistered = uid end
 		analytics:registered(player.UserId)
+		if Heist.gold then Heist.gold:bonus(player) end
 		playDeposit(from, receipt.species)
 		-- K2: the card pays the first-steal bonus on its own line and names the next island to find.
 		local after = state:snapshot(player.UserId)
@@ -3204,7 +3206,8 @@ end)
 
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
-	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true }
+	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true,
+	BuyGold = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
 	if action == "CraftGear" then
@@ -3279,6 +3282,9 @@ local function economyAction(player, action, argument)
 		if ok and Heist.creatureToolbar then Heist.creatureToolbar:syncPlayer(player, state:snapshot(key)) end
 		reply(player, action, ok, result, ok and Text.HUD.released:format(
 			Text.CARD.species[result.species] or result.species, result.ember) or nil)
+	elseif action == "BuyGold" and Heist.gold then
+		-- Gold: the farm places and treadmill levels paid with gold (WildboundGoldService; State checks every rule).
+		Heist.gold:buy(player, argument)
 	end
 end
 
@@ -4128,6 +4134,7 @@ do
 			local need = Heist.Training.lapsFor(Heist.Training.level(before and before.training, "walk"))
 			local ok, res = state:trainByRunning(player.UserId, alive, distance, C.MAX_LEVEL, 5, need)
 			if not ok or type(res) ~= "table" then return nil end
+			res.gold = Heist.gold and Heist.gold:lap(player, res.level) or 0
 			player:SetAttribute("WildboundTreadmillBuffUntil", workspace:GetServerTimeNow() + 60)
 			-- PF2: a level-up lap names the new walk speed, so the treadmill visibly trains.
 			local after = state:snapshot(player.UserId)
@@ -4142,6 +4149,24 @@ do
 			return res
 		end,
 	}):start(network, Heist.treadmillBelt)
+end
+do
+	-- Gold (odd/tasks/wildbound-gold.md): farm and treadmill income, the tame/hatch bonus and the gold purchases.
+	local Gold = require(ReplicatedStorage:WaitForChild("WildboundGold"))
+	Heist.gold = require(script.Parent:WaitForChild("WildboundGoldService")).new({
+		state = state, Gold = Gold, Training = Heist.Training, Text = Text,
+		rarityOf = function(species) return Species.LOOKS[species] and Species.LOOKS[species].rarity end,
+		where = function(player)
+			local alive, distance = context(player, campCenter)
+			if Heist.hub then
+				distance = math.min(distance, Heist.hub:distance(player, "WildboundGloveStation"),
+					Heist.hub:distance(player, "WildboundTrainingStation"))
+			end
+			return alive, distance
+		end,
+		send = send,
+		tracked = function(player) return records[player] ~= nil end,
+	}):start(network)
 end
 do
 	local CreatureToolbar = require(script.Parent:WaitForChild("WildboundCreatureToolbar"))
