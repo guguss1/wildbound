@@ -1,0 +1,226 @@
+{
+ "slug": "gato-repartidor",
+ "bones": [
+  "Root",
+  "Hips",
+  "Torso",
+  "Head",
+  "Ear_L",
+  "Ear_R",
+  "Cap",
+  "Arm_L_Upper",
+  "Arm_L_Lower",
+  "Bag",
+  "Arm_R_Upper",
+  "Arm_R_Lower",
+  "Fries",
+  "Leg_L_Upper",
+  "Leg_L_Lower",
+  "Leg_R_Upper",
+  "Leg_R_Lower",
+  "Tail_01",
+  "Tail_02"
+ ],
+ "boneCount": 19,
+ "meshes": {
+  "Fur": {
+   "verts": 246,
+   "tris": 412,
+   "colour": "#FFC993",
+   "bones": [
+    "Hips",
+    "Torso",
+    "Root",
+    "Head",
+    "Ear_R",
+    "Ear_L",
+    "Arm_L_Upper",
+    "Arm_L_Lower",
+    "Arm_R_Upper",
+    "Arm_R_Lower",
+    "Leg_L_Upper",
+    "Leg_R_Upper",
+    "Tail_01",
+    "Tail_02"
+   ]
+  },
+  "Tabby": {
+   "verts": 204,
+   "tris": 301,
+   "colour": "#F5A768",
+   "bones": [
+    "Hips",
+    "Torso",
+    "Head",
+    "Arm_L_Upper",
+    "Arm_L_Lower",
+    "Arm_R_Upper",
+    "Arm_R_Lower",
+    "Leg_L_Upper",
+    "Leg_R_Upper",
+    "Tail_01",
+    "Tail_02"
+   ]
+  },
+  "Cream": {
+   "verts": 176,
+   "tris": 284,
+   "colour": "#FFF3E0",
+   "bones": [
+    "Hips",
+    "Torso",
+    "Head",
+    "Arm_L_Lower",
+    "Arm_R_Lower",
+    "Bag",
+    "Leg_L_Lower",
+    "Leg_R_Lower",
+    "Tail_02"
+   ]
+  },
+  "Eye": {
+   "verts": 108,
+   "tris": 196,
+   "colour": "#1D1422",
+   "bones": [
+    "Head"
+   ]
+  },
+  "White": {
+   "verts": 72,
+   "tris": 120,
+   "colour": "#FFFFFF",
+   "bones": [
+    "Head",
+    "Fries"
+   ]
+  },
+  "Blush": {
+   "verts": 28,
+   "tris": 44,
+   "colour": "#F48FA6",
+   "bones": [
+    "Head",
+    "Ear_R",
+    "Ear_L"
+   ]
+  },
+  "Mint": {
+   "verts": 50,
+   "tris": 92,
+   "colour": "#86E3C3",
+   "bones": [
+    "Cap",
+    "Bag"
+   ]
+  },
+  "MintDark": {
+   "verts": 36,
+   "tris": 56,
+   "colour": "#45B894",
+   "bones": [
+    "Cap",
+    "Bag"
+   ]
+  },
+  "Candy": {
+   "verts": 108,
+   "tris": 172,
+   "colour": "#FF5FA2",
+   "bones": [
+    "Cap",
+    "Fries",
+    "Bag"
+   ]
+  },
+  "Headset": {
+   "verts": 44,
+   "tris": 72,
+   "colour": "#3B3442",
+   "bones": [
+    "Head"
+   ]
+  },
+  "FryGold": {
+   "verts": 64,
+   "tris": 96,
+   "colour": "#F7C544",
+   "bones": [
+    "Fries"
+   ]
+  }
+ },
+ "verts": 1136,
+ "tris": 1845,
+ "heightStuds": 3.572,
+ "lowestZ": 0.0,
+ "clips": {
+  "Idle": {
+   "length": 2.5,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 5,
+   "lowestZ": 0.002
+  },
+  "Walk": {
+   "length": 1.0,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5,
+   "lowestZ": 0.002
+  },
+  "Run": {
+   "length": 0.6,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5,
+   "lowestZ": 0.101
+  },
+  "Deliver": {
+   "length": 2.5,
+   "loop": false,
+   "priority": "Action",
+   "keys": 8,
+   "lowestZ": 0.002
+  },
+  "Throw": {
+   "length": 0.8,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5,
+   "lowestZ": 0.002
+  },
+  "Call": {
+   "length": 1.2,
+   "loop": false,
+   "priority": "Action",
+   "keys": 6,
+   "lowestZ": 0.002
+  },
+  "Rest": {
+   "length": 3.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 5,
+   "lowestZ": 0.002
+  },
+  "Surprised": {
+   "length": 0.5,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5,
+   "lowestZ": 0.002
+  }
+ },
+ "fbx": "assets/exports/caramelo/gato-repartidor-v1.fbx",
+ "actions": [
+  "Gato_Idle",
+  "Gato_Walk",
+  "Gato_Run",
+  "Gato_Deliver",
+  "Gato_Throw",
+  "Gato_Call",
+  "Gato_Rest",
+  "Gato_Surprised"
+ ]
+}

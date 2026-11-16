@@ -1,0 +1,84 @@
+{
+ "slug": "flanin",
+ "bones": 12,
+ "boneNames": [
+  "Root",
+  "Base",
+  "Mid",
+  "Top",
+  "Cream",
+  "Cherry",
+  "Horn_L",
+  "Horn_R",
+  "Arm_L",
+  "Arm_R",
+  "Tail",
+  "Lids"
+ ],
+ "meshes": 8,
+ "meshNames": [
+  "Body",
+  "Caramel",
+  "Amber",
+  "Whip",
+  "Fruit",
+  "Eye",
+  "Shine",
+  "Blush"
+ ],
+ "verts": 992,
+ "tris": 1668,
+ "heightStuds": 8.013,
+ "lowestZ": 0.0,
+ "clips": {
+  "Idle": {
+   "length": 2.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 11
+  },
+  "Walk": {
+   "length": 0.8,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 6
+  },
+  "Jump": {
+   "length": 1.0,
+   "loop": false,
+   "priority": "Action",
+   "keys": 6
+  },
+  "Land": {
+   "length": 0.6,
+   "loop": false,
+   "priority": "Action",
+   "keys": 6
+  },
+  "Slide": {
+   "length": 0.8,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5
+  },
+  "Charge": {
+   "length": 0.6,
+   "loop": false,
+   "priority": "Action",
+   "keys": 10
+  },
+  "Wave": {
+   "length": 1.2,
+   "loop": false,
+   "priority": "Action",
+   "keys": 8
+  },
+  "Rest": {
+   "length": 3.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 5
+  }
+ },
+ "fbx": "assets/exports/caramelo/flanin-v1.fbx"
+}

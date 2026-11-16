@@ -1,0 +1,98 @@
+{
+ "slug": "mielita",
+ "bones": 16,
+ "boneNames": [
+  "Root",
+  "Body",
+  "Head",
+  "Abdomen",
+  "Antenna_L",
+  "Ear_L",
+  "Wing_L_Front",
+  "Wing_L_Back",
+  "Paw_FL",
+  "Paw_BL",
+  "Antenna_R",
+  "Ear_R",
+  "Wing_R_Front",
+  "Wing_R_Back",
+  "Paw_FR",
+  "Paw_BR"
+ ],
+ "meshes": 9,
+ "meshNames": [
+  "Fur",
+  "Honey",
+  "Band",
+  "WingPlate",
+  "WingGlass",
+  "Eye",
+  "Shine",
+  "Pink",
+  "Drop"
+ ],
+ "verts": 917,
+ "tris": 1538,
+ "heightStuds": 4.434,
+ "lowestZ": 1.5,
+ "highestZ": 5.934,
+ "lowestPawZ": 1.5,
+ "clips": {
+  "Fly": {
+   "length": 0.5,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 9
+  },
+  "Patrol": {
+   "length": 1.6,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 17
+  },
+  "Dash": {
+   "length": 0.4,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 9
+  },
+  "Pollen": {
+   "length": 0.9,
+   "loop": false,
+   "priority": "Action",
+   "keys": 8
+  },
+  "Orbit": {
+   "length": 0.8,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 9
+  },
+  "Rest": {
+   "length": 3.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 9
+  },
+  "Dizzy": {
+   "length": 0.8,
+   "loop": false,
+   "priority": "Action",
+   "keys": 9
+  }
+ },
+ "exported": "assets/exports/caramelo/mielita-v1.fbx",
+ "actions": [
+  "Mielita_Fly",
+  "Mielita_Patrol",
+  "Mielita_Dash",
+  "Mielita_Pollen",
+  "Mielita_Orbit",
+  "Mielita_Rest",
+  "Mielita_Dizzy"
+ ],
+ "renders": [
+  "mielita-turnaround.png",
+  "mielita-poses.png"
+ ]
+}

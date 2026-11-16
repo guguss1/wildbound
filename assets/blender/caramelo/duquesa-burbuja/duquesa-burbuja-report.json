@@ -1,0 +1,114 @@
+{
+ "slug": "duquesa-burbuja",
+ "bones": [
+  "Root",
+  "Hips",
+  "Torso",
+  "Head",
+  "HairBun",
+  "FloatBubble",
+  "Arm_L_Upper",
+  "Arm_L_Lower",
+  "Arm_R_Upper",
+  "Arm_R_Lower",
+  "Skirt_Front",
+  "Skirt_Back",
+  "Skirt_L",
+  "Skirt_R",
+  "Bow",
+  "Skirt_Core",
+  "Teacup"
+ ],
+ "boneCount": 17,
+ "meshes": [
+  "Skin",
+  "Hair",
+  "HairDark",
+  "DressA",
+  "DressB",
+  "DressC",
+  "Glove",
+  "Gold",
+  "Teal",
+  "Eye",
+  "Shine",
+  "Blush",
+  "CupCream",
+  "CupRim"
+ ],
+ "verts": 1398,
+ "tris": 2432,
+ "heightStuds": 18.57,
+ "lowestZ": 0.0,
+ "sitSeatPlaneZ": 0.0,
+ "sitCoreLowestZ": -0.35,
+ "clips": {
+  "Idle": {
+   "length": 3.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 5
+  },
+  "Walk": {
+   "length": 1.2,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5
+  },
+  "Glide": {
+   "length": 0.8,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5
+  },
+  "Charge": {
+   "length": 0.8,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5
+  },
+  "Whip": {
+   "length": 0.9,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5
+  },
+  "Wall": {
+   "length": 1.2,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5
+  },
+  "Recover": {
+   "length": 1.0,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5
+  },
+  "Surprised": {
+   "length": 0.6,
+   "loop": false,
+   "priority": "Action",
+   "keys": 5
+  },
+  "SitIdle": {
+   "length": 4.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 5
+  }
+ },
+ "previewActions": [
+  "Idle",
+  "Walk",
+  "Glide",
+  "Charge",
+  "Whip",
+  "Wall",
+  "Recover",
+  "Surprised",
+  "SitIdle"
+ ],
+ "fbx": "assets/exports/caramelo/duquesa-burbuja-v1.fbx",
+ "poseAxes": "Roblox model axes: X = creature's right, Y = up, -Z = front; degrees, Rx*Ry*Rz; Transform = rest:Inverse() * (T * R) * rest"
+}

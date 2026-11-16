@@ -1,0 +1,81 @@
+{
+ "slug": "mochimiau",
+ "bones": 13,
+ "boneNames": [
+  "Root",
+  "Body",
+  "Eyes",
+  "Lids",
+  "Ear_L",
+  "Ear_R",
+  "Cherry",
+  "Leg_FL",
+  "Leg_FR",
+  "Leg_BL",
+  "Leg_BR",
+  "Tail_01",
+  "Tail_02"
+ ],
+ "meshes": 9,
+ "meshNames": [
+  "Skin",
+  "Glaze",
+  "Whip",
+  "Berry",
+  "Stem",
+  "Eye",
+  "Shine",
+  "Rose",
+  "Mouth"
+ ],
+ "verts": 882,
+ "tris": 1510,
+ "heightStuds": 5.311,
+ "widthStuds": 5.086,
+ "lengthStuds": 6.763,
+ "exported": "assets/exports/caramelo/mochimiau-v1.fbx",
+ "clips": {
+  "Idle": {
+   "length": 2.5,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 9
+  },
+  "Walk": {
+   "length": 0.9,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5
+  },
+  "Trot": {
+   "length": 0.6,
+   "loop": true,
+   "priority": "Movement",
+   "keys": 5
+  },
+  "Bounce": {
+   "length": 0.7,
+   "loop": false,
+   "priority": "Action",
+   "keys": 6
+  },
+  "Roll": {
+   "length": 0.6,
+   "loop": true,
+   "priority": "Action",
+   "keys": 5
+  },
+  "Charge": {
+   "length": 0.6,
+   "loop": false,
+   "priority": "Action",
+   "keys": 8
+  },
+  "Rest": {
+   "length": 3.0,
+   "loop": true,
+   "priority": "Idle",
+   "keys": 6
+  }
+ }
+}
