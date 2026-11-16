@@ -115,7 +115,8 @@ return function(Schema, modules)
 			-- Items and totem (IT2): the luck totem.
 			"Gear.LUCK_SECONDS", "Gear.LUCK_RADIUS", "Gear.LUCK_NOISE_EVERY", "Gear.LUCK_LURE", "Gear.LUCK_CAMP",
 			-- Nest Heist (NH1): the steal holds.
-			"Eggs.STEAL_HOLD", "Eggs.RARE_HOLD",
+			-- Deliberately changed (EC, 2026-11-15): one hold per rarity replaces RARE_HOLD.
+			"Eggs.STEAL_HOLD", "Eggs.RARA_HOLD", "Eggs.EPICA_HOLD", "Eggs.LEGENDARIA_HOLD",
 			-- Hub follow-up (HF-T2): the server's steal-hold latency allowance.
 			"Eggs.HOLD_ALLOWANCE",
 			-- Nest Heist (NH3): the parents' charge and the immediate wake on an egg steal.
@@ -347,7 +348,8 @@ return function(Schema, modules)
 		equal(step.default, 2); assert(step.max >= 2, "step max")
 		equal(levels.default, 17); assert(levels.max >= 17, "level max")
 		equal(16 + step.default * levels.default, cap.default, "the top level reaches the cap exactly")
-		equal(Schema.find("Training", "COST_GROWTH").default, 1.2, "a gentler price over 17 levels")
+		-- Deliberately re-pinned (BP1-D4, balance pass 2026-11-15): the console growth went 1.2 -> 1.1.
+		equal(Schema.find("Training", "COST_GROWTH").default, 1.1, "a gentler price over 17 levels")
 	end)
 
 	return result

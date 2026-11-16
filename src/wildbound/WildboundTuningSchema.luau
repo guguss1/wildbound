@@ -271,8 +271,12 @@ Schema.SYSTEMS = table.freeze({
 	}) }),
 	-- Nest Heist (NH1 to NH8): stealing, carrying, dropping and picking up an egg.
 	table.freeze({ id = "Eggs", label = "Robo de huevos", entries = table.freeze({
-		value("STEAL_HOLD", "Robar un huevo normal: mantener (s)", "EggCarry", "STEAL_HOLD", 0.8, 0.6, 1, 0.05),
-		value("RARE_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARE_HOLD", 1, 0.6, 3, 0.05),
+		-- EC (2026-11-15): one hold per rarity; the defaults are the module's (this settles DT1, 0.8 vs 0.5).
+		value("STEAL_HOLD", "Robar un huevo común: mantener (s)", "EggCarry", "STEAL_HOLD", 0.5, 0.35, 1, 0.05),
+		value("RARA_HOLD", "Robar un huevo raro: mantener (s)", "EggCarry", "RARA_HOLD", 0.9, 0.35, 2.5, 0.05),
+		value("EPICA_HOLD", "Robar un huevo épico: mantener (s)", "EggCarry", "EPICA_HOLD", 1.3, 0.35, 2.5, 0.05),
+		value("LEGENDARIA_HOLD", "Robar un huevo legendario: mantener (s)", "EggCarry", "LEGENDARIA_HOLD", 1.8, 0.35, 2.5,
+			0.05),
 		-- Hub follow-up (HF-T2): the server accepts a steal this much shorter than the hold (latency).
 		value("HOLD_ALLOWANCE", "Robar: margen de latencia del mantener (s)", "EggCarry", "HOLD_ALLOWANCE", 0.35, 0.05, 0.5,
 			0.05),

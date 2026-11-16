@@ -94,7 +94,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [ ] CT3 Best egg at the top
 - [ ] CT4 Frutillón, the top guardian
 - [ ] IC Icons through rbxthumb
-- [ ] EC Steal hold by rarity, plus the economy options once the user picks them
+- [x] EC Steal hold by rarity: Común 0.5 s, Rara 0.9 s, Épica 1.3 s, Legendaria 1.8 s. Done 2026-11-15 (evidence below).
+- [ ] Economy options A-G, once the user picks them (not started on purpose).
 - [x] AR Remove the Arrullo minigame. It returns later, improved (user, 2026-11-15).
   - Épica (and Legendaria) eggs use a plain longer hold instead (1.3 s / 1.8 s per the EC scale).
   - Disable the minigame path and keep its module for later; do not delete it.
@@ -108,6 +109,11 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | AR-D1 | The switch is one flag, `WildboundArrulloService.ENABLED = false`, checked first in `Service.qualifies`. `WildboundServer` is not edited: its Arrullo branch stays in place and is simply never taken (`entry.arrullo` is false for every egg). | The server is at the 200-local limit and shared with the teammate; one flag brings the minigame back. |
 | AR-D2 | Until EC, a rare egg's hold is the existing `RARE_HOLD` (module 0.75 s; the place's tuning folder applies 1 s). | AR only removes the minigame; EC sets the per-rarity scale. |
 | AR-D3 | The Arrullo tuning rows, `Text.ARRULLO`, the client and the remote stay. The client panel never opens because the server never starts a session. | "Keep its module for later." |
+| EC-D1 | Four keys, one per rarity: `STEAL_HOLD` (Común, and any unknown tier), `RARA_HOLD`, `EPICA_HOLD`, `LEGENDARIA_HOLD`. `RARE_HOLD` is removed from the module and the tuning schema. The biome event's egg holds like a Legendaria (1.8 s) whatever its tier. | The old Épica/Legendaria pair no longer fits four values; the event egg is the Legendaria one (RW5). |
+| EC-D2 | Tuning keeps the order Común ≤ Rara ≤ Épica ≤ Legendaria and caps the three rare holds at `RARE_HOLD_MAX = 2.5` s (Común stays 0.35-1 s). The four schema rows take the module defaults and the same ranges. | A tuned value can never make a better egg quicker, and every hold stays under the server's 3 s `HOLD_GRACE`. |
+| EC-D3 | DT1 is settled for the steal holds only. The same case still fails on three older drifts it was hiding: `Eggs.PICKUP_DELAY` and `Eggs.PICKUP_HOLD` (schema 0.4, module 0.25) and `Incubator.HATCH_SECONDS` (schema 5, module 15). Live play uses the schema numbers (the place has no saved `Eggs` or `Incubator` tuning folder). Not changed: either side changes what players feel, so it waits for the user. | Out of EC's scope and a gameplay call. |
+| EC-D4 | The glove "Robo rápido" still shortens every hold down to the 0.35 s floor, rare eggs included. | Unchanged rule; the user asked only for the base scale. |
+| EC-D5 | `tools/wildbound_economy_sim_v2.py` was not edited: it still reads `RARE_HOLD` (gone) and models the Arrullo for Épica and Legendaria. Fix both with the BP4 rerun on a machine with Python. | No Python here; the simulator is not live code. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -122,3 +128,13 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - Solo Play (PlayLock `AR`, cleared after; Play stopped; memory saves): the egg prompts showed Común and Rara 0.8 s, Épica (6 eggs) and Legendaria (5) 1 s, all with `WildboundStealHold` set (before AR a rare egg's prompt had no hold). `HeistProbe` "steal" on island I4 (Épica): stolen (`Egg:10`, WalkSpeed 11 while carrying); the client's `WildboundArrulloUI` stayed disabled. No script errors from these scripts in the output (only the place's known texture-pack and DataStore lines).
 - Found: the live holds are the tuning folder's 0.8 / 1, not the module's 0.5 / 0.75 that the overview called live. EC settles it.
 - Not checked: a real held prompt by a person (the probe stands in for a completed hold), the event egg in Play, two players, a phone.
+
+### EC (2026-11-15)
+
+- Change: `WildboundEggCarry`: `RARE_HOLD` replaced by `RARA_HOLD 0.9`, `EPICA_HOLD 1.3`, `LEGENDARIA_HOLD 1.8` (`STEAL_HOLD 0.5` is the Común hold); `RARE_HOLD_MAX = 2.5`; `tune` keeps the order; `holdFor` picks the rarity's key, the event egg its Legendaria hold. `WildboundTuningSchema`: the `Eggs` rows `STEAL_HOLD` 0.5 (0.35-1), `RARA_HOLD`, `EPICA_HOLD`, `LEGENDARIA_HOLD` (0.35-2.5), `RARE_HOLD` gone. The server is unchanged (it already asks `EggCarry.holdFor(rarity, slot.special)`).
+- Suites: EggCarry's two NH1 cases re-pinned on purpose as EC cases, plus a new case on the tuning rows; Tuning's coverage list names the four keys.
+- Fingerprint rule: before writing, Studio equalled HEAD for EggCarry 14881/2061714670, EggCarry_Test 41801/2326244369 and TuningSchema 41284/3354955688. **Studio's `WildboundTuning_Test` differed** (21468 vs 21369): it held the BP1 re-pin of `COST_GROWTH` 1.1 that the repo lacked. Pulled into the repo first (then equal, 21468/2754302581). Exact replacements. After: Studio == repo, EggCarry 15624/2066359100, TuningSchema 41632/1344336212, EggCarry_Test 43940/717637582, Tuning_Test 21596/3582425013.
+- RED (tests pushed, sources unchanged), run `3fcc04d2`: EggCarry 37/3 ("Rara hold: expected 0.9, got nil", ...), Tuning 14/2 (DT1 STEAL_HOLD 0.8, "missing Eggs.RARA_HOLD").
+- GREEN, run `000a3ae2`: EggCarry 40/0, Bat 13/0, Gear 15/0, MechanicsWiring 10/0, NestRefill 5/0, TuningWiring 8/0. Red: Tuning 15/1, DT1 now on `Eggs.PICKUP_DELAY` (EC-D3; a direct scan listed the three drifts), WaveClock RW5 (known).
+- Solo Play (PlayLock `EC`, cleared after; Play stopped; memory saves): the egg prompts read Común 0.50 s (16 eggs), Rara 0.90 (8), Épica 1.30 (5), Legendaria 1.80 (5), each with the same `WildboundStealHold`; the runtime tuning folder `Eggs` held the four new values. `HeistProbe` "steal" on island I5 (Legendaria): stolen (`Egg:13`). No script errors from these scripts in the output.
+- Not checked: a person holding the prompt (the probe stands in for a full hold, so the server's measured-hold refusal at the new lengths is suite only), a glove's shorter hold on a rare egg, the event egg, two players, a phone. Python (the simulator) not run or edited (EC-D5).

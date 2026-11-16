@@ -1,13 +1,16 @@
 -- Nest Heist, phase 1 (docs/design/wildbound-combined-plan.md sections 1, 2 and 4): pure server rules for stealing an
 -- egg and carrying it in the arms. Positions, time and randomness are passed in; nothing here reads the world.
--- NH1 fast steal: a normal egg (Común or Rara) is taken with a short hold, STEAL_HOLD; a rare egg (Épica,
--- Legendaria) or the biome event's special egg keeps the slower hold it always had, RARE_HOLD. No egg has a ring.
--- Every number is a hypothesis to tune in play.
+-- NH1 fast steal, EC steal hold by rarity (user, 2026-11-15): the better the egg, the longer the hold. A Común egg is
+-- taken in STEAL_HOLD, a Rara one in RARA_HOLD, an Épica one in EPICA_HOLD and a Legendaria one, or the biome event's
+-- special egg, in LEGENDARIA_HOLD. No egg has a ring (and the Arrullo is off, AR). Every number is a hypothesis to
+-- tune in play.
 local EggCarry = {}
 
 EggCarry.CONSTANTS = table.freeze({
-	STEAL_HOLD = 0.5, -- seconds, fast frantic egg grab
-	RARE_HOLD = 0.75,
+	STEAL_HOLD = 0.5, -- seconds, a Común egg: the fast frantic grab
+	RARA_HOLD = 0.9,
+	EPICA_HOLD = 1.3,
+	LEGENDARIA_HOLD = 1.8, -- also the biome event's egg
 	-- NH5 drop and pickup: a dropped egg can be picked up by anyone after PICKUP_DELAY, with a PICKUP_HOLD hold within
 	-- PICKUP_RANGE studs; left alone for DROP_SECONDS it fades for DESPAWN_SECONDS and is gone. A drop lands on the
 	-- first ground found within LAND_DEPTH studs under the player, else on the relief.
@@ -23,6 +26,8 @@ EggCarry.CONSTANTS = table.freeze({
 	HOLD_ALLOWANCE = 0.35,
 })
 EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX = 0.35, 1
+-- EC: the Rara, Épica and Legendaria holds never pass this, so every hold stays under HOLD_GRACE (3 s).
+EggCarry.RARE_HOLD_MAX = 2.5
 EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX = 0.2, 0.5
 EggCarry.MAX_CARRY = 12
 -- Nest Heist phase 2 (NP1): State:takeEgg refuses a pickup beyond 10 studs, so the tunable reach never exceeds it.
@@ -34,7 +39,7 @@ EggCarry.HOLD_ALLOWANCE_MIN, EggCarry.HOLD_ALLOWANCE_MAX = 0.05, 0.5
 EggCarry.DROP_REASONS = table.freeze({ Death = true, Hit = true, Strike = true, Bat = true, Leave = true, Guardian = true,
 	Void = true })
 local SAFE_DROPS = table.freeze({ Death = true, Leave = true, Void = true })
-local RARE = table.freeze({ Epica = true, Legendaria = true })
+local HOLD_KEY = table.freeze({ Rara = "RARA_HOLD", Epica = "EPICA_HOLD", Legendaria = "LEGENDARIA_HOLD" })
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
@@ -57,7 +62,10 @@ function EggCarry.tune(overrides)
 		end
 	end
 	C.STEAL_HOLD = math.clamp(C.STEAL_HOLD, EggCarry.STEAL_HOLD_MIN, EggCarry.STEAL_HOLD_MAX)
-	C.RARE_HOLD = math.max(C.RARE_HOLD, C.STEAL_HOLD)
+	-- EC: each tier holds at least as long as the one below it, and at most RARE_HOLD_MAX.
+	C.RARA_HOLD = math.clamp(C.RARA_HOLD, C.STEAL_HOLD, EggCarry.RARE_HOLD_MAX)
+	C.EPICA_HOLD = math.clamp(C.EPICA_HOLD, C.RARA_HOLD, EggCarry.RARE_HOLD_MAX)
+	C.LEGENDARIA_HOLD = math.clamp(C.LEGENDARIA_HOLD, C.EPICA_HOLD, EggCarry.RARE_HOLD_MAX)
 	C.PICKUP_HOLD = math.clamp(C.PICKUP_HOLD, EggCarry.PICKUP_HOLD_MIN, EggCarry.PICKUP_HOLD_MAX)
 	C.PICKUP_DELAY = math.max(C.PICKUP_DELAY, 0)
 	C.PICKUP_RANGE = math.clamp(C.PICKUP_RANGE, 1, EggCarry.PICKUP_RANGE_MAX)
@@ -65,11 +73,12 @@ function EggCarry.tune(overrides)
 end
 EggCarry.tune(nil)
 
--- NH1: the prompt hold for an egg of this rarity tier ("Comun", "Rara", "Epica", "Legendaria"); special: the biome
--- event's egg. An unknown tier is a normal egg.
+-- NH1, EC: the prompt hold for an egg of this rarity tier ("Comun", "Rara", "Epica", "Legendaria"); special: the biome
+-- event's egg, which holds like a Legendaria one. An unknown tier is a Común egg.
 function EggCarry.holdFor(rarity, special)
-	if special == true or RARE[rarity] then return C.RARE_HOLD end
-	return C.STEAL_HOLD
+	if special == true then return C.LEGENDARIA_HOLD end
+	local key = HOLD_KEY[rarity]
+	return key and C[key] or C.STEAL_HOLD
 end
 
 -- NH2: one record per egg, keyed by a unique id (the server uses the egg's encounter id). States:
@@ -289,7 +298,7 @@ function EggCarry.landingY(fromY, hitY, fallbackY)
 end
 
 -- NH8: whether a spawn's prompt is being held. holders = { [player] = when the hold began }; a hold counts for at most
--- HOLD_GRACE seconds (every hold is 1 s or shorter), so a release that never arrived cannot pin a spawn.
+-- HOLD_GRACE seconds (every hold is RARE_HOLD_MAX, 2.5 s, or shorter), so a release that never arrived cannot pin a spawn.
 EggCarry.HOLD_GRACE = 3
 function EggCarry.holding(holders, now)
 	if type(holders) ~= "table" or not finite(now) then return false end
