@@ -190,4 +190,37 @@ function Kit.fromLegacy(legacy)
 	return Kit.define({ ORDER = legacy.ORDER, CLIPS = clips, IDS = legacy.IDS })
 end
 
+-- The model's bones for the client player, in chain order: { bone, name, rest, restInv, moved, last, from, mixed }, where
+-- rest is the bone's rest rotation relative to the model pivot, from the CFrame chain (any Transform ignored). nil when
+-- the model has no PrimaryPart or no bone under it (a streamed model whose parts are not there).
+function Kit.readBones(model)
+	local root = model.PrimaryPart
+	if not root then return nil end
+	local pivot = model:GetPivot()
+	local list = {}
+	local function walk(parent, parentWorld)
+		for _, child in ipairs(parent:GetChildren()) do
+			if child:IsA("Bone") then
+				local world = parentWorld * child.CFrame
+				local rest = pivot:ToObjectSpace(world).Rotation
+				table.insert(list, {
+					bone = child, name = child.Name, rest = rest, restInv = rest:Inverse(), moved = false,
+					last = table.create(6, 0), from = table.create(6, 0), mixed = table.create(6, 0),
+				})
+				walk(child, world)
+			end
+		end
+	end
+	walk(root, root.CFrame)
+	return #list > 0 and list or nil
+end
+
+-- A3 review (odd/tasks/wildbound-caramelo-playfix.md): true when a bone list from Kit.readBones no longer belongs to the
+-- model, e.g. its parts streamed out and back in while the Model stayed (new Bone instances) or a bone was destroyed.
+-- Cheap enough for every frame: only the first and the last bone are checked (a part streams with all its bones).
+function Kit.bonesStale(model, list)
+	if not list or #list == 0 then return true end
+	return not list[1].bone:IsDescendantOf(model) or not list[#list].bone:IsDescendantOf(model)
+end
+
 return Kit

@@ -7,7 +7,8 @@
 --     one-shot every few seconds, then back to the loop;
 --   * Workspace.WildboundBeastsLocal (the beast client's live clones): the clip follows the BeastPhase attribute
 --     through Spec.clipFor (unknown phase -> the idle loop).
--- Rest is read once per model from the bone CFrame chain (independent of any Transform already written). A clip change
+-- Rest is read per model from the bone CFrame chain (Kit.readBones, independent of any Transform already written), and
+-- read again when Kit.bonesStale says the bones are no longer the model's (parts streamed out and back in). A clip change
 -- cross-fades over Spec.FADE seconds from the pose last written, so a quick chain of changes never snaps. Models farther
 -- than Spec.FAR studs from the camera are skipped; a model is dropped when it leaves the DataModel.
 -- Published ids: when the model carries a "Clip_<clip>" string attribute for the current clip and has an Animator, this
@@ -42,29 +43,6 @@ end
 local states = {} -- [model] = state (false while pending)
 local failures = {} -- [model] = Heartbeat errors so far
 local random = Random.new()
-
--- Each bone's rest rotation relative to the model pivot, from the CFrame chain (Transform ignored).
-local function readBones(model)
-	local root = model.PrimaryPart
-	if not root then return nil end
-	local pivot = model:GetPivot()
-	local list = {}
-	local function walk(parent, parentWorld)
-		for _, child in ipairs(parent:GetChildren()) do
-			if child:IsA("Bone") then
-				local world = parentWorld * child.CFrame
-				local rest = pivot:ToObjectSpace(world).Rotation
-				table.insert(list, {
-					bone = child, name = child.Name, rest = rest, restInv = rest:Inverse(), moved = false,
-					last = table.create(6, 0), from = table.create(6, 0), mixed = table.create(6, 0),
-				})
-				walk(child, world)
-			end
-		end
-	end
-	walk(root, root.CFrame)
-	return #list > 0 and list or nil
-end
 
 local function findAnimator(model)
 	local controller = model:FindFirstChildOfClass("AnimationController") or model:FindFirstChildOfClass("Humanoid")
@@ -115,7 +93,7 @@ local function setup(model, live)
 		local clips = clipsOf(name)
 		local bones
 		while model:IsDescendantOf(game) and states[model] == false do -- streamed models may arrive before their bones
-			bones = readBones(model)
+			bones = Kit.readBones(model)
 			if bones then break end
 			task.wait(0.5)
 		end
@@ -128,6 +106,10 @@ local function setup(model, live)
 			tracks = {}, trackIds = {}, nextExtraAt = os.clock() + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2]),
 		}
 		states[model] = state
+		-- A3 review: a Bone that arrives later (its part streamed back in) means the cached list is out of date
+		state.boneConnection = model.DescendantAdded:Connect(function(descendant)
+			if descendant:IsA("Bone") then state.stale = true end
+		end)
 		if live then
 			local function onPhase()
 				play(state, Spec.clipFor(name, model:GetAttribute("BeastPhase"), clips.CLIPS), os.clock())
@@ -151,6 +133,7 @@ local function drop(model)
 	states[model] = nil
 	if not state then return end
 	if state.connection then state.connection:Disconnect() end
+	if state.boneConnection then state.boneConnection:Disconnect() end
 	pcall(stopTrack, state, 0)
 	if model:IsDescendantOf(game) then pcall(resetBones, state) end
 end
@@ -183,6 +166,13 @@ end
 
 local function step(state, now, cameraPosition)
 	local model = state.model
+	-- A3 review: the model's parts streamed out and back in (or a bone arrived later): the cached bones are detached
+	-- copies, so read them again; while the parts are away there is nothing to animate.
+	if state.stale or Kit.bonesStale(model, state.bones) then
+		local bones = Kit.readBones(model)
+		if not bones then return end
+		state.bones, state.stale, state.fading = bones, false, false
+	end
 	-- preview: a short one-shot every few seconds, then back to the loop
 	if not state.live then
 		if state.current == state.spec.idle and now >= state.nextExtraAt then
