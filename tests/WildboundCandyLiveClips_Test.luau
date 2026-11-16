@@ -67,6 +67,11 @@ return function(Kit, Spec, TortClips, DonClips, tortPrefab, donPrefab, sources)
 		near(Kit.sample(snap, 3).Head[4], 30, 1e-9, "a one-shot holds its last key")
 		equal(type(legacy.CLIPS.Bob.keys[1][1]), "number", "the source keeps its { time, pose } keys")
 		equal(legacy.CLIPS.Bob.priority, Enum.AnimationPriority.Idle, "the source keeps its Enum priority")
+		-- Don Glaseon walk: a legacy clip may ask for Linear keys (many keys, no stop at each one)
+		local linear = Kit.fromLegacy({ ORDER = { "Step" }, CLIPS = { Step = { length = 1, loop = true, easing = "Linear",
+			priority = Enum.AnimationPriority.Movement, keys = { { 0, {} }, { 1, { Thigh_L = { 0, 0, 0, 20 } } } } } } })
+		equal(linear.CLIPS.Step.easing, "Linear", "easing carried")
+		near(Kit.sample(linear.CLIPS.Step, 0.25).Thigh_L[4], 5, 1e-9, "linear a quarter of the way")
 	end)
 
 	case("A3-2: the real clip data converts; every clip samples to the legacy pose at each key", function()
