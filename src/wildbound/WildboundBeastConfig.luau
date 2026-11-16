@@ -34,7 +34,7 @@ Config.DIRECTOR = table.freeze({
 	-- Anti-frustration (pack 05_MATRIZ_COMBINACIONES): two telegraphed strikes on one player never land closer than this.
 	STRIKE_SEPARATION = 0.8,
 	MAX_MULTIPLIER = 4, -- product cap of the condition multipliers
-	GLOBAL_COOLDOWN = 15, -- seconds after any encounter of that player ends
+	GLOBAL_COOLDOWN = 10, -- seconds after any encounter of that player ends (PF7: was 15)
 	RESPAWN_GRACE = 10, -- no spawn this long after a respawn
 	FAR_FROM_BASE = 150, -- studs from both the camp's and the hub's centre that count as far from base (HF-T5)
 	LONG_EXPEDITION = 180, -- seconds continuously outside a safe zone that count as a long expedition
@@ -78,9 +78,13 @@ Config.BIOME_PREFERENCE = false
 
 -- Wave 2: the base chance of the four new beasts. The pack gives none ("REVISAR_CONFIG_EXISTENTE"); the owner asked for
 -- Viper's base chance (1/45 per 10 s roll, so 1 - (44/45)^2 = 89/2025, about 0.0440, per 20 s roll). PROPUESTA, open.
-local VIPER_CHANCE10 = 1 / 45
+-- PF7 (odd/tasks/wildbound-caramelo-playfix.md, owner: "more frequency of beasts"): a moderate raise, 1/45 -> 1/32
+-- (Pouncer 1/55 -> 1/40, Scuttler 1/60 -> 1/45 below); MAX_CHANCE, the multipliers and the strike rules are unchanged.
+local VIPER_CHANCE10 = 1 / 32
 -- Wave 2: the species cooldown of the four new beasts. The pack gives none; Viper's 35 s, PROPUESTA, open.
 local VIPER_COOLDOWN = 35
+-- PF7: the species rest of every summoned beast (the Pradera and Caramelo creatures), was 10 s (Don Glaseon 8 s).
+local SUMMONED_REST = 5
 
 Config.BEASTS = table.freeze({
 	Viper = table.freeze({
@@ -102,7 +106,7 @@ Config.BEASTS = table.freeze({
 	}),
 	Pouncer = table.freeze({
 		category = "Global", riskModifier = 1,
-		points = 1, chance10 = 1 / 55, chance = Config.perRoll(1 / 55), cooldown = 40, biome = nil, damage = 40,
+		points = 1, chance10 = 1 / 40, chance = Config.perRoll(1 / 40), cooldown = 40, biome = nil, damage = 40, -- PF7: was 1/55
 		spawnMin = 35, spawnMax = 75, spawnSeconds = 0.8,
 		huntSeconds = 5, huntSpeed = 16, attackMin = 20, attackMax = 34, predictSeconds = 0.3,
 		-- BR2 (odd/tasks/wildbound-beast-revision.md, owner 2026-11-16): the tarantula's landing circle grows from 6.5 to 9
@@ -235,7 +239,7 @@ Config.BEASTS = table.freeze({
 	-- (plan section 6), to be tuned in Studio.
 	Scuttler = table.freeze({
 		category = "Global", riskModifier = 1, points = 3, biome = nil,
-		chance10 = 1 / 60, chance = Config.perRoll(1 / 60), -- rarer than Viper (1/45): a boss-like event
+		chance10 = 1 / 45, chance = Config.perRoll(1 / 45), -- rarer than Viper (1/32): a boss-like event (PF7: was 1/60)
 		cooldown = 75, -- species cooldown, longer than Viper 35 s and Pouncer 40 s
 		damage = 30, -- the charge (tuning.ChargeDamage); private mode only (BeastHit rule)
 		spawnMin = 40, spawnMax = 75, spawnSeconds = 1.0, -- Viper's ring, a bit wider for the bigger body
@@ -273,7 +277,7 @@ Config.BEASTS = table.freeze({
 	NubeGrunona = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, -- PROPUESTA: species cooldown after any end
+		cooldown = SUMMONED_REST, -- PROPUESTA: species cooldown after any end
 		endCooldowns = table.freeze({ Yawn = 60 }), -- PROPUESTA: Bostezo, the nap after three roof losses
 		damage = 0, -- kids rule: never damage
 		hitHeight = 8, -- PROPUESTA: the bolt reaches the ground under the ring
@@ -293,7 +297,7 @@ Config.BEASTS = table.freeze({
 	AbejaReina = table.freeze({
 		category = "Event", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, -- PROPUESTA
+		cooldown = SUMMONED_REST, -- PROPUESTA
 		damage = 0, -- kids rule: never damage
 		hitHeight = 6, -- PROPUESTA (Pouncer's)
 		disengage = 0.9, -- PROPUESTA (Viper's), the Escape retreat
@@ -314,7 +318,7 @@ Config.BEASTS = table.freeze({
 	Gomibu = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10,
+		cooldown = SUMMONED_REST,
 		damage = 0,
 		keepsEgg = true,
 		grounded = true,
@@ -339,7 +343,7 @@ Config.BEASTS = table.freeze({
 	Flanfuria = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10,
+		cooldown = SUMMONED_REST,
 		damage = 0,
 		keepsEgg = true,
 		grounded = true,
@@ -359,7 +363,7 @@ Config.BEASTS = table.freeze({
 	Tortidragon = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10,
+		cooldown = SUMMONED_REST,
 		damage = 0,
 		keepsEgg = true,
 		grounded = true,
@@ -380,7 +384,7 @@ Config.BEASTS = table.freeze({
 	Mochimiau = table.freeze({ -- Rodada cremosa: hops onto the target's circle, a short push and a 25 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): retuned for a walking player (was wake 30, sight 14, abandon 22,
 		-- leash 14, patrol 6, chase 11, escape 50, give-up 2, push 5 / 0.3 s, slow 0.75). IdleSeconds: an unvisited patrol
 		-- walks home and ends quietly.
@@ -396,7 +400,7 @@ Config.BEASTS = table.freeze({
 	Canelin = table.freeze({ -- rolls along a lane forward from itself: a push and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 30, sight 14, abandon 24, leash 16, patrol 7, chase 12, escape 50, give-up 2, no push, slow 0.8 / 2 s.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 52, LeashStuds = 36,
@@ -410,7 +414,7 @@ Config.BEASTS = table.freeze({
 	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a short shove and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 30, sight 14, abandon 20, leash 12, patrol 5, chase 9, escape 50, give-up 2, no push.
 		tuning = table.freeze({
 			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 48, LeashStuds = 32,
@@ -424,7 +428,7 @@ Config.BEASTS = table.freeze({
 	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a puff and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, damage = 0, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 32, sight 16, abandon 24, leash 14, patrol 7, chase 13, escape 50, give-up 2, no push, slow 0.75.
 		tuning = table.freeze({
 			WakeRadiusStuds = 48, PerceptionStuds = 42, AbandonStuds = 55, LeashStuds = 38, HoverStuds = 2.5,
@@ -438,7 +442,7 @@ Config.BEASTS = table.freeze({
 	GatoRepartidor = table.freeze({ -- the friendliest: the shortest sight and leash; throws fries on the target
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
 		-- PF2: was wake 24, sight 8, abandon 14, leash 8, patrol 5, chase 9, escape 50, give-up 2, push 2 / 0.25 s,
 		-- slow 0.9 / 1.5 s. Still the friendliest (sight and leash under every other critter's), but it follows and throws.
 		tuning = table.freeze({
@@ -459,7 +463,7 @@ Config.BEASTS = table.freeze({
 	DonGlaseon = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = 8,
+		cooldown = SUMMONED_REST,
 		damage = 0,
 		keepsEgg = false,
 		grounded = true,

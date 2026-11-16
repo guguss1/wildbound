@@ -71,7 +71,7 @@ return function(Enc, Nube, Config, source, Sites)
 		assert(table.isfrozen(T), "tuning frozen")
 		equal(T.LeashStuds, 90); equal(T.BoltRadiusStuds, 6); equal(T.DetectionRadiusStuds, 40)
 		equal(T.NightDetectionRadiusStuds, 20); equal(T.EscapeDistanceStuds, 110); equal(C.endCooldowns.Yawn, 60)
-		equal(C.cooldown, 10)
+		equal(C.cooldown, 5, "PF7 (odd/tasks/wildbound-caramelo-playfix.md): 10 -> 5 s, like every summoned beast")
 	end)
 
 	case("KB-2 Nube: a notice needs open sky and range; a roof blocks it", function()

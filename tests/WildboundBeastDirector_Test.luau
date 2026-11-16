@@ -43,21 +43,25 @@ return function(Director, source, Config)
 	local OLD = { "Viper", "Pouncer" }
 	-- p20 = 1 - (1 - p10)^2: a 10 s base chance carried to the 20 s roll.
 	local function p20(p10) return 1 - (1 - p10) ^ 2 end
+	-- Deliberately changed (PF7, odd/tasks/wildbound-caramelo-playfix.md, "more frequency of beasts"): the rolled beasts'
+	-- base chances per 10 s went up moderately: Viper (and the wave 2 four, which use Viper's) 1/45 -> 1/32, Pouncer
+	-- 1/55 -> 1/40, Scuttler 1/60 -> 1/45 (still the rarest); MAX_CHANCE, the multipliers and the strike rules stay.
+	local V10, P10, S10 = 1 / 32, 1 / 40, 1 / 45
 
 	case("NB2 config: the pack's numbers (director, Viper, Pouncer, Gargoyle and Mire)", function()
 		local D = Config.DIRECTOR
 		equal(D.TICK_SECONDS, 20, "wave 2: 20 s"); equal(D.BEAST_OFFSET, 1); equal(D.MAX_POINTS, 3); equal(D.MAX_ACTIVE, 2)
 		equal(D.INITIAL_RISK, 1)
 		near(D.MAX_CHANCE, p20(0.20), "0.20 per 10 s carried to 20 s"); equal(D.MAX_MULTIPLIER, 4)
-		equal(D.GLOBAL_COOLDOWN, 15); equal(D.RESPAWN_GRACE, 10)
+		equal(D.GLOBAL_COOLDOWN, 10, "PF7: 15 -> 10"); equal(D.RESPAWN_GRACE, 10)
 		local M = D.MULTIPLIERS
 		equal(M.night, 2); near(M.farFromBase, 1.2); near(M.dangerousZone, 1.5); near(M.longExpedition, 1.3)
 		equal(M.storm, 1, "no weather system yet: storm stays x1")
 		near(M.egg, 1.2, "the egg step (a hypothesis to tune)")
 		equal(D.CONDITIONS.egg, "carryingEgg")
 		local V, P, G, Mi = Config.BEASTS.Viper, Config.BEASTS.Pouncer, Config.BEASTS.Gargoyle, Config.BEASTS.Mire
-		equal(V.points, 1); near(V.chance10, 1 / 45); near(V.chance, p20(1 / 45)); equal(V.cooldown, 35); equal(V.biome, nil)
-		equal(P.points, 1); near(P.chance10, 1 / 55); near(P.chance, p20(1 / 55)); equal(P.cooldown, 40); equal(P.biome, nil)
+		equal(V.points, 1); near(V.chance10, V10); near(V.chance, p20(V10)); equal(V.cooldown, 35); equal(V.biome, nil)
+		equal(P.points, 1); near(P.chance10, P10); near(P.chance, p20(P10)); equal(P.cooldown, 40); equal(P.biome, nil)
 		equal(G.points, 2); equal(G.biome, "Cemetery"); equal(Mi.points, 2); equal(Mi.biome, "Swamp")
 		near(G.chance, p20(1 / 100)); near(Mi.chance, p20(1 / 80))
 		equal(Config.ORDER[1], "Viper"); equal(Config.ORDER[2], "Pouncer"); equal(#Config.ORDER, 9, "SC1: Scuttler is ninth")
@@ -69,8 +73,8 @@ return function(Director, source, Config)
 			local B = Config.BEASTS[name]
 			assert(B, name)
 			equal(B.points, 2, name .. " points"); equal(B.riskModifier, 1, name)
-			near(B.chance10, 1 / 45, name .. " uses Viper's base chance (PROPUESTA)")
-			near(B.chance, 89 / 2025, name .. ": 1 - (44/45)^2")
+			near(B.chance10, V10, name .. " uses Viper's base chance (PROPUESTA)")
+			near(B.chance, p20(V10), name .. ": 1 - (1 - Viper's)^2")
 			equal(B.cooldown, 35, name .. " uses Viper's cooldown (PROPUESTA)")
 			equal(Config.PLAYABLE[name], true, name .. " is playable"); equal(Config.WAVE2[name], true)
 			assert(type(B.tuning) == "table" and table.isfrozen(B.tuning), name .. " tuning frozen")
@@ -240,10 +244,10 @@ return function(Director, source, Config)
 	end)
 
 	case("NB2: pEff = clamp(pBase x product, 0, MAX_CHANCE), per 20 s roll, never a percentage by mistake", function()
-		near(Director.chance("Viper", ctx()), p20(1 / 45))
-		near(Director.chance("Viper", ctx({ night = true })), 2 * p20(1 / 45))
+		near(Director.chance("Viper", ctx()), p20(V10))
+		near(Director.chance("Viper", ctx({ night = true })), 2 * p20(V10))
 		near(Director.chance("Pouncer", ctx({ night = true, farFromBase = true, dangerousZone = true, longExpedition = true })),
-			4 * p20(1 / 55))
+			4 * p20(P10))
 		equal(Director.chance("Nobody", ctx()), 0)
 		-- The cap (0.20 per 10 s carried to 0.36 per 20 s), through a hypothetical tuned base chance.
 		near(Director.chance("Viper", ctx({ night = true, farFromBase = true, dangerousZone = true, longExpedition = true }),
@@ -302,9 +306,9 @@ return function(Director, source, Config)
 		local points, count = Director.budget(dir, 3)
 		equal(points, 0, "the point came back once"); equal(count, 0)
 		equal(dir.counts.released, 1)
-		-- Global cooldown 15 s after the end (any beast), species cooldown 35 s for Viper.
-		equal(select(2, Director.reserve(dir, 3, "Pouncer", ctx(), 134.9)), "GlobalCooldown")
-		assert(Director.reserve(dir, 3, "Pouncer", ctx(), 135), "Pouncer after 15 s")
+		-- Global cooldown (PF7: 10 s, was 15) after the end (any beast), species cooldown 35 s for Viper.
+		equal(select(2, Director.reserve(dir, 3, "Pouncer", ctx(), 129.9)), "GlobalCooldown")
+		assert(Director.reserve(dir, 3, "Pouncer", ctx(), 130), "Pouncer after 10 s")
 		equal(select(2, Director.reserve(dir, 3, "Viper", ctx(), 154.9)), "SpeciesCooldown")
 		assert(Director.reserve(dir, 3, "Viper", ctx(), 155), "Viper after 35 s")
 	end)
@@ -421,9 +425,10 @@ return function(Director, source, Config)
 			return wins
 		end
 		local day, night = count(false, 4242), count(true, 4242)
-		-- Per 20 s roll: expected 44.0 by day (sd 6.5) and 87.9 by night (sd 9.0); 4 sd either side.
-		assert(day >= 18 and day <= 70, "day wins " .. day)
-		assert(night >= 52 and night <= 124, "night wins " .. night)
+		-- Per 20 s roll (PF7: Viper 1/32 per 10 s): expected 61.5 by day (sd 7.6) and 123.0 by night (sd 10.4); 4 sd
+		-- either side.
+		assert(day >= 31 and day <= 92, "day wins " .. day)
+		assert(night >= 81 and night <= 165, "night wins " .. night)
 		assert(night > day, ("night %d should beat day %d"):format(night, day))
 		result.messages.S05 = ("Viper wins in 1000 ticks: day %d, night %d"):format(day, night)
 	end)
@@ -439,15 +444,15 @@ return function(Director, source, Config)
 			equal(beast.category == "Biome", beast.biome ~= nil, name .. ": a biome beast has a biome, a global one none")
 		end
 		equal(Config.NO_GLOBAL_BIOMES.Meadow, true, "Pradera")
-		near(Director.chance("Viper", ctx()), p20(1 / 45), "riskModifier 1 changes nothing")
+		near(Director.chance("Viper", ctx()), p20(V10), "riskModifier 1 changes nothing")
 		near(Director.chance("Viper", ctx(), { chance = 0.01, riskModifier = 2 }), 0.02, "a tuned modifier scales the base")
 	end)
 
 	case("BS-P0: carrying an egg raises the chance by the egg step and never past MAX_MULTIPLIER or MAX_CHANCE", function()
 		local D = Config.DIRECTOR
 		near(Director.multiplier(ctx({ carryingEgg = true })), 1.2)
-		near(Director.chance("Viper", ctx({ carryingEgg = true })), 1.2 * p20(1 / 45))
-		near(Director.chance("Pouncer", ctx({ carryingEgg = true, night = true })), 2.4 * p20(1 / 55))
+		near(Director.chance("Viper", ctx({ carryingEgg = true })), 1.2 * p20(V10))
+		near(Director.chance("Pouncer", ctx({ carryingEgg = true, night = true })), 2.4 * p20(P10))
 		near(Director.multiplier(ctx({ carryingEgg = "yes" })), 1, "only true counts")
 		near(Director.multiplier(ctx({ egg = true })), 1, "the context field is carryingEgg")
 		local all = ctx({ carryingEgg = true, night = true, farFromBase = true, dangerousZone = true, longExpedition = true })
@@ -456,7 +461,7 @@ return function(Director, source, Config)
 			"2 x 1.2 x 1.5 x 1.2 = 4.32, capped at 4")
 		near(Director.chance("Viper", all, { chance = 0.12 }), D.MAX_CHANCE, "0.48 clamps to 0.36 with the egg")
 		near(Director.chance("Viper", ctx({ carryingEgg = true }), { chance = 0.34 }), D.MAX_CHANCE, "0.408 clamps to 0.36")
-		local dir = Director.new({ random = always(1.15 * p20(1 / 45)) })
+		local dir = Director.new({ random = always(1.15 * p20(V10)) })
 		equal(#Director.roll(dir, 1, ctx(), 0, OLD), 0, "without the egg a roll just over the base loses")
 		local started = Director.roll(dir, 2, ctx({ carryingEgg = true }), 0, OLD)
 		local viper = false
@@ -466,7 +471,7 @@ return function(Director, source, Config)
 
 	case("BS-P0: the dusk roll buff multiplies inside the cap, clamped to WildboundDusk's 1 to 1.5", function()
 		near(Director.multiplier(ctx({ duskRoll = 1.25 })), 1.25)
-		near(Director.chance("Viper", ctx({ duskRoll = 1.25 })), 1.25 * p20(1 / 45))
+		near(Director.chance("Viper", ctx({ duskRoll = 1.25 })), 1.25 * p20(V10))
 		near(Director.multiplier(ctx({ duskRoll = 1 })), 1, "x1 outside Dusk")
 		near(Director.multiplier(ctx({ duskRoll = 0.5 })), 1, "never a slowdown")
 		near(Director.multiplier(ctx({ duskRoll = 9 })), 1.5, "never a big buff")
@@ -584,6 +589,21 @@ return function(Director, source, Config)
 		equal(select(2, Director.summon(alone, 1, "NubeGrunona", meadow, 0)), "Budget", "nothing beside the Scuttler")
 	end)
 
+	-- PF7 (odd/tasks/wildbound-caramelo-playfix.md, "more frequency of beasts"): every summoned beast comes back after a
+	-- 5 s species rest (was 10 s; Don Glaseon 8 s); a reason-specific rest (the Nube's 60 s Bostezo nap) stays.
+	case("PF7: summoned beasts rest 5 s between encounters; the global cooldown is 10 s", function()
+		for name in pairs(Config.SUMMONED) do
+			equal(Config.BEASTS[name].cooldown, 5, name .. " species rest")
+		end
+		equal(Config.BEASTS.NubeGrunona.endCooldowns.Yawn, 60, "the nap stays")
+		local dir = Director.new({ random = always(0) })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		local _, g = Director.summon(dir, 1, "Mochimiau", meadow, 0)
+		Director.release(dir, g.id, "GiveUp", 10)
+		equal(select(2, Director.summon(dir, 1, "Mochimiau", meadow, 14.9)), "SpeciesCooldown")
+		assert(Director.summon(dir, 1, "Mochimiau", meadow, 15), "back after 5 s")
+	end)
+
 	-- PF1: the refusal reason of a summon is returned, so the beast script can write it to Beast_lastSummonRefusal.
 	case("PF1: summon returns why it refused", function()
 		local dir = Director.new({ random = always(0) })
@@ -597,7 +617,7 @@ return function(Director, source, Config)
 		equal(select(2, Director.summon(fresh, 1, "Gomibu", meadow, 11)), "SpeciesCooldown")
 	end)
 
-	case("KB-1: a summoned end sets no global cooldown; species 10 s, 60 s after Bostezo; respawn grace applies", function()
+	case("KB-1: a summoned end sets no global cooldown; species 5 s (PF7, was 10), 60 s after Bostezo; respawn grace applies", function()
 		local dir = Director.new({ random = always(0) })
 		local meadow = ctx({ biomes = { Meadow = true } })
 		local _, nube = Director.summon(dir, 1, "NubeGrunona", meadow, 0)
@@ -605,7 +625,7 @@ return function(Director, source, Config)
 		local started = Director.roll(dir, 1, ctx(), 101, { "Viper" })
 		equal(#started, 1, "no global cooldown after a summoned end")
 		assert(Director.summon(dir, 2, "AbejaReina", meadow, 0), "another player")
-		equal(select(2, Director.summon(dir, 1, "NubeGrunona", meadow, 105)), "SpeciesCooldown")
+		equal(select(2, Director.summon(dir, 1, "NubeGrunona", meadow, 104.9)), "SpeciesCooldown")
 		local again = Director.new({ random = always(0) })
 		local _, viper = Director.reserve(again, 1, "Viper", ctx(), 0)
 		Director.release(again, viper.id, "Done", 50)
@@ -634,7 +654,8 @@ return function(Director, source, Config)
 		assert(type(B) == "table" and table.isfrozen(B), "BEASTS.Scuttler frozen")
 		equal(B.category, "Global"); equal(B.biome, nil); equal(B.riskModifier, 1)
 		equal(B.points, 3, "fills the budget alone"); equal(B.points, Config.DIRECTOR.MAX_POINTS)
-		near(B.chance10, 1 / 60); near(B.chance, p20(1 / 60), "1 - (59/60)^2"); near(B.chance, Config.perRoll(1 / 60))
+		near(B.chance10, S10); near(B.chance, p20(S10), "1 - (1 - 1/45)^2"); near(B.chance, Config.perRoll(S10))
+		assert(B.chance10 < Config.BEASTS.Viper.chance10, "still rarer than Viper")
 		equal(B.cooldown, 75)
 		equal(B.spawnMin, 40); equal(B.spawnMax, 75); equal(B.spawnSeconds, 1.0)
 		equal(B.escapeDistance, 110); equal(B.escapeSeconds, 4); near(B.disengage, 1.2)
@@ -775,8 +796,8 @@ return function(Director, source, Config)
 		assert(not has(Director.due(dir, 5, 127.9), "Scuttler"), "not before anchor + 28")
 		assert(has(Director.due(dir, 5, 128), "Scuttler"), "anchor + 20 + 8 x 1 s")
 		equal(Director.nextSlot(dir, 5, "Scuttler", 128.1), 148)
-		near(Director.chance("Scuttler", ctx()), p20(1 / 60), "day in the open")
-		local roll = Director.new({ random = sequence({ p20(1 / 60) - 1e-6 }) })
+		near(Director.chance("Scuttler", ctx()), p20(S10), "day in the open")
+		local roll = Director.new({ random = sequence({ p20(S10) - 1e-6 }) })
 		local started = Director.roll(roll, 1, ctx(), 0, { "Scuttler" })
 		equal(#started, 1, "a roll just under the chance wins"); equal(started[1].beast, "Scuttler")
 		equal(started[1].points, 3)
