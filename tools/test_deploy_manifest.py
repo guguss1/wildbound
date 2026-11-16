@@ -322,6 +322,10 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundBiomeLight.luau": "ReplicatedStorage.WildboundBiomeLight",
         "tests/WildboundBiomeLight_Test.luau": "ServerStorage.WildboundBiomeLight_Test",
         "tests/WildboundPlacePhase_Test.luau": "ServerStorage.WildboundPlacePhase_Test",
+        # odd/tasks/wildbound-big4-map.md
+        "tools/WildboundMapModeSwitch.luau": "ServerStorage.WildboundMapModeSwitch",
+        "tools/WildboundBig4Annex.luau": "ServerStorage.WildboundBig4Annex",
+        "tests/WildboundBig4Map_Test.luau": "ServerStorage.WildboundBig4Map_Test",
         # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
         "src/wildbound/WildboundHide.luau": "ServerScriptService.WildboundHide",
         "tests/WildboundHide_Test.luau": "ServerStorage.WildboundHide_Test",

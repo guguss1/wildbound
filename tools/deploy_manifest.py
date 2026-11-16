@@ -141,6 +141,10 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundBiomeLight_Test.luau", "ServerStorage.WildboundBiomeLight_Test"),
     # CF1 (odd/tasks/wildbound-caramelo.md): the per-place gameplay phase.
     ("tests/WildboundPlacePhase_Test.luau", "ServerStorage.WildboundPlacePhase_Test"),
+    # odd/tasks/wildbound-big4-map.md: the never-destroy map mode switch and the big4 geometry builder (Edit tools)
+    ("tools/WildboundMapModeSwitch.luau", "ServerStorage.WildboundMapModeSwitch"),
+    ("tools/WildboundBig4Annex.luau", "ServerStorage.WildboundBig4Annex"),
+    ("tests/WildboundBig4Map_Test.luau", "ServerStorage.WildboundBig4Map_Test"),
     # Delivery D5: pure hiding rules (entry, discovery dwell, exit), server only
     ("src/wildbound/WildboundHide.luau", "ServerScriptService.WildboundHide"),
     ("tests/WildboundHide_Test.luau", "ServerStorage.WildboundHide_Test"),

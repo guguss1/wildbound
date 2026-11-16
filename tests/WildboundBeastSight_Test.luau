@@ -83,19 +83,53 @@ return function(Sight, source, Biomes)
 	end)
 
 	case("BW2 biomes: the Pantano, Pradera and Cementerio squares, the forest swamp island, nothing for a bad point", function()
-		equal(Biomes.has(282, -443, "Swamp"), true, "Pantano centre")
-		equal(Biomes.has(82, -243, "Swamp"), true, "Pantano corner")
-		equal(Biomes.has(81.9, -443, "Swamp"), false)
-		equal(Biomes.has(612, -3, "Meadow"), true, "Pradera centre")
-		equal(Biomes.has(282, 387, "Cemetery"), true, "Cementerio centre")
-		equal(Biomes.has(282, -3, "Swamp"), false, "the hub is no biome")
-		equal(next(Biomes.at(282, -3)), nil)
-		local island = Biomes.at(115, 15)
+		-- The classic map (odd/tasks/wildbound-big4-map.md: the place may be left in the big4 mode, so these pin it).
+		local C = "classic"
+		equal(Biomes.has(282, -443, "Swamp", C), true, "Pantano centre")
+		equal(Biomes.has(82, -243, "Swamp", C), true, "Pantano corner")
+		equal(Biomes.has(81.9, -443, "Swamp", C), false)
+		equal(Biomes.has(612, -3, "Meadow", C), true, "Pradera centre")
+		equal(Biomes.has(282, 387, "Cemetery", C), true, "Cementerio centre")
+		equal(Biomes.has(282, -3, "Swamp", C), false, "the hub is no biome")
+		equal(next(Biomes.at(282, -3, C)), nil)
+		local island = Biomes.at(115, 15, C)
 		equal(island.Swamp, true, "Pantano de los Juncos (I3)"); equal(island.Forest, true)
-		equal(Biomes.has(115, 32, "Swamp"), false, "outside the island floor")
-		equal(next(Biomes.at(0 / 0, 0)), nil); equal(next(Biomes.at(nil, 1)), nil)
-		local a, b = Biomes.at(282, -443), Biomes.at(282, -443)
+		equal(Biomes.has(115, 32, "Swamp", C), false, "outside the island floor")
+		equal(next(Biomes.at(0 / 0, 0, C)), nil); equal(next(Biomes.at(nil, 1, C)), nil)
+		local a, b = Biomes.at(282, -443, C), Biomes.at(282, -443, C)
 		assert(a ~= b, "a fresh table each call")
+	end)
+
+	case("BIG4 biomes: four larger squares, the I3 island kept, the archived biomes gone", function()
+		local B = "big4"
+		assert(type(Biomes.AREAS_BIG4) == "table" and table.isfrozen(Biomes.AREAS_BIG4), "frozen AREAS_BIG4")
+		equal(Biomes.has(-500, -400, "Forest", B), true, "outer forest (old Abismo slot)")
+		equal(Biomes.has(950, 0, "Meadow", B), true, "Caramelo east annex")
+		equal(Biomes.has(622, 387, "Meadow", B), true, "Caramelo south annex (old Cuevas slot)")
+		equal(Biomes.has(282, -443, "Mountains", B), true, "Montañas grew into the old Pantano slot")
+		equal(Biomes.has(282, -443, "Swamp", B), false, "no Pantano square")
+		equal(Biomes.has(-600, 900, "Volcanic", B), true, "Volcán grew west and south")
+		equal(next(Biomes.at(282, 387, B)), nil, "old Cementerio slot is no biome")
+		equal(next(Biomes.at(282, -3, B)), nil, "the hub is no biome")
+		local island = Biomes.at(115, 15, B)
+		equal(island.Swamp, true, "I3 kept"); equal(island.Forest, true)
+		for _, tag in ipairs({ "Cemetery", "Abyss", "Caves" }) do
+			for _, area in ipairs(Biomes.AREAS_BIG4) do assert(area.tag ~= tag, tag .. " is archived") end
+		end
+		equal(Biomes.areasFor(B), Biomes.AREAS_BIG4); equal(Biomes.areasFor("classic"), Biomes.AREAS)
+		equal(Biomes.areasFor("nonsense"), Biomes.AREAS, "an unknown mode is classic")
+		equal(next(Biomes.at(0 / 0, 0, B)), nil)
+		-- The big4 squares never overlap each other and keep the hub disc (282, -3) r 90 clear.
+		local squares = {}
+		for _, area in ipairs(Biomes.AREAS_BIG4) do if area.kind == "square" then table.insert(squares, area) end end
+		equal(#squares, 4)
+		for i, p in ipairs(squares) do
+			assert(p.minX > 282 + 90 or p.maxX < 282 - 90 or p.minZ > -3 + 90 or p.maxZ < -3 - 90, p.tag .. " clear of the hub")
+			for j = i + 1, #squares do
+				local q = squares[j]
+				assert(p.maxX < q.minX or q.maxX < p.minX or p.maxZ < q.minZ or q.maxZ < p.minZ, p.tag .. " vs " .. q.tag)
+			end
+		end
 	end)
 
 	case("BW2 sight: the validator is pure", function()

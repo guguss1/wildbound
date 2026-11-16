@@ -2,7 +2,8 @@
 -- light per biome, with no global day/night cycle. Caramelo is always day, the forest always night, the swamp a green
 -- dusk, the cemetery a violet twilight; the other biomes have their own look. Roblox has one sky per client, so
 -- each world client picks the preset of the biome its own character stands in and blends to it in about a second; the
--- server never changes anyone's light. Pure and shared (ReplicatedStorage): no services, no clock.
+-- server never changes anyone's light. Pure and shared (ReplicatedStorage): no services, no clock; the one read of the
+-- place is the map mode attribute (the MAPMODE block below, odd/tasks/wildbound-big4-map.md).
 local BiomeLight = {}
 
 local function freeze(value)
@@ -32,6 +33,37 @@ BiomeLight.AREAS = freeze({
 	square("Volcanic", -308, 92, 237, 637),
 	square("Caves", 472, 772, 237, 537),
 })
+-- Big4 map experiment (odd/tasks/wildbound-big4-map.md): the same numbers as WildboundBiomes.AREAS_BIG4 (a suite keeps
+-- them equal). Only four biomes, each larger; the archived biomes' squares read as the hub's day.
+BiomeLight.AREAS_BIG4 = freeze({
+	square("Forest", -618, 182, -563, 197),
+	square("Meadow", 412, 1012, -203, 537),
+	square("Mountains", 247, 1022, -1018, -243),
+	square("Volcanic", -668, 92, 237, 997),
+})
+
+-- The map mode: the replicated Workspace attribute WildboundMapMode ("big4"; absent or anything else = "classic").
+-- The module's one read of the place, inside a pcall, so a pure caller with no game reads "classic".
+BiomeLight.MODE_ATTRIBUTE = "WildboundMapMode"
+-- MAPMODE BEGIN
+local modeRoot
+function BiomeLight.mode()
+	if modeRoot == nil then
+		local ok, root = pcall(function() return game:GetService("Workspace") end)
+		modeRoot = ok and root or false
+	end
+	if not modeRoot then return "classic" end
+	local ok, value = pcall(modeRoot.GetAttribute, modeRoot, BiomeLight.MODE_ATTRIBUTE)
+	return (ok and value == "big4") and "big4" or "classic"
+end
+-- MAPMODE END
+
+-- areasFor(mode) -> the squares of a mode ("big4" or "classic"; nil reads the place's current mode).
+function BiomeLight.areasFor(mode)
+	if mode == nil then mode = BiomeLight.mode() end
+	return mode == "big4" and BiomeLight.AREAS_BIG4 or BiomeLight.AREAS
+end
+
 -- The preset of each biome tag (the Meadow square is the Caramelo biome now). Between biomes, the hub's day.
 BiomeLight.TAG_PRESET = freeze({
 	Forest = "Forest", Meadow = "Caramelo", Swamp = "Swamp", Cemetery = "Cemetery", Abyss = "Abyss",
@@ -63,11 +95,11 @@ BiomeLight.PRESETS = freeze({
 		tint = { 255, 255, 255 }, saturation = 0, contrast = 0, lift = 0 },
 })
 
--- presetAt(x, z) -> name, preset: the preset of the biome a flat point stands in; "Hub" between biomes or for a bad
--- point.
-function BiomeLight.presetAt(x, z)
+-- presetAt(x, z, mode?) -> name, preset: the preset of the biome a flat point stands in; "Hub" between biomes or for a
+-- bad point. mode is optional ("classic" or "big4"); without it the place's current mode is used.
+function BiomeLight.presetAt(x, z, mode)
 	if finite(x) and finite(z) then
-		for _, area in ipairs(BiomeLight.AREAS) do
+		for _, area in ipairs(BiomeLight.areasFor(mode)) do
 			if x >= area.minX and x <= area.maxX and z >= area.minZ and z <= area.maxZ then
 				local name = BiomeLight.TAG_PRESET[area.tag]
 				if name then return name, BiomeLight.PRESETS[name] end
@@ -89,9 +121,10 @@ BiomeLight.RULES = freeze({
 BiomeLight.RULES_CLOCK = freeze({ Day = 14, Night = 0 })
 
 -- phaseAt(x, z) -> phase, clockTime: the gameplay phase of the place a flat point stands in (the hub's Day between
--- biomes or for a bad point). Servers key it on the position of the player or entity a rule concerns.
-function BiomeLight.phaseAt(x, z)
-	local name = BiomeLight.presetAt(x, z)
+-- biomes or for a bad point). Servers key it on the position of the player or entity a rule concerns. mode as in
+-- presetAt.
+function BiomeLight.phaseAt(x, z, mode)
+	local name = BiomeLight.presetAt(x, z, mode)
 	local phase = BiomeLight.RULES[name] or "Day"
 	return phase, BiomeLight.RULES_CLOCK[phase]
 end

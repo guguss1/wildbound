@@ -24,6 +24,39 @@ Biomes.AREAS = table.freeze({
 	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
 })
 
+-- Big4 map experiment (odd/tasks/wildbound-big4-map.md): four larger biomes only. Forest and Caramelo keep their plots
+-- and grow by annexes; Montañas and Volcán are scaled clones pinned at the corner nearest the hub. Pantano, Cementerio,
+-- Cuevas and Abismo are archived, so their squares read as no biome (the hub's day). The I3 swamp circle stays.
+Biomes.AREAS_BIG4 = table.freeze({
+	square("Forest", "forest", -618, 182, -563, 197),
+	square("Meadow", "pradera", 412, 1012, -203, 537),
+	square("Mountains", "frozen-mountains", 247, 1022, -1018, -243),
+	square("Volcanic", "volcanic-lands", -668, 92, 237, 997),
+	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
+})
+
+-- The map mode: the replicated Workspace attribute WildboundMapMode ("big4"; absent or anything else = "classic", the
+-- place as it was). Read through the DataModel inside a pcall, so a pure caller with no game reads "classic".
+Biomes.MODE_ATTRIBUTE = "WildboundMapMode"
+-- MAPMODE BEGIN
+local modeRoot
+function Biomes.mode()
+	if modeRoot == nil then
+		local ok, root = pcall(function() return game:GetService("Workspace") end)
+		modeRoot = ok and root or false
+	end
+	if not modeRoot then return "classic" end
+	local ok, value = pcall(modeRoot.GetAttribute, modeRoot, Biomes.MODE_ATTRIBUTE)
+	return (ok and value == "big4") and "big4" or "classic"
+end
+-- MAPMODE END
+
+-- areasFor(mode) -> the area list of a mode ("big4" or "classic"; nil reads the place's current mode).
+function Biomes.areasFor(mode)
+	if mode == nil then mode = Biomes.mode() end
+	return mode == "big4" and Biomes.AREAS_BIG4 or Biomes.AREAS
+end
+
 local function finite(value)
 	return type(value) == "number" and value == value and value ~= math.huge and value ~= -math.huge
 end
@@ -35,18 +68,19 @@ local function inside(area, x, z)
 	return x >= area.minX and x <= area.maxX and z >= area.minZ and z <= area.maxZ
 end
 
--- The tags at a flat point, as a fresh table { [tag] = true } (empty between biomes and for a bad point).
-function Biomes.at(x, z)
+-- The tags at a flat point, as a fresh table { [tag] = true } (empty between biomes and for a bad point). mode is
+-- optional ("classic" or "big4"); without it the place's current mode is used.
+function Biomes.at(x, z, mode)
 	local tags = {}
 	if not finite(x) or not finite(z) then return tags end
-	for _, area in ipairs(Biomes.AREAS) do
+	for _, area in ipairs(Biomes.areasFor(mode)) do
 		if inside(area, x, z) then tags[area.tag] = true end
 	end
 	return tags
 end
 
-function Biomes.has(x, z, tag)
-	return Biomes.at(x, z)[tag] == true
+function Biomes.has(x, z, tag, mode)
+	return Biomes.at(x, z, mode)[tag] == true
 end
 
 return Biomes

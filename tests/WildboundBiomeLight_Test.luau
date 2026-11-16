@@ -45,13 +45,64 @@ return function(BiomeLight, source, sources)
 			{ -140, 140, "Forest" }, { 282, -3, "Hub" }, { 282, -443, "Swamp" }, { 282, 387, "Cemetery" },
 			{ -108, -393, "Abyss" }, { 772, -493, "Mountains" }, { -108, 437, "Volcanic" }, { 622, 387, "Caves" },
 			{ 115, 15, "Forest" }, { 5000, 5000, "Hub" } }) do
-			local name, preset = BiomeLight.presetAt(sample[1], sample[2])
+			local name, preset = BiomeLight.presetAt(sample[1], sample[2], "classic")
 			equal(name, sample[3], ("at %d, %d"):format(sample[1], sample[2]))
 			equal(preset, BiomeLight.PRESETS[sample[3]])
 		end
 		for _, bad in ipairs({ { 0 / 0, 0 }, { 0, math.huge }, { "1", 2 } }) do
-			equal((BiomeLight.presetAt(bad[1], bad[2])), "Hub", "a bad point")
+			equal((BiomeLight.presetAt(bad[1], bad[2], "classic")), "Hub", "a bad point")
 		end
+	end)
+
+	-- Big4 map experiment (odd/tasks/wildbound-big4-map.md): four larger biomes; the archived ones read as the hub.
+	case("BIG4: the preset follows the four larger biomes, and the archived squares read as the hub", function()
+		assert(type(BiomeLight.AREAS_BIG4) == "table" and table.isfrozen(BiomeLight.AREAS_BIG4), "frozen AREAS_BIG4")
+		equal(#BiomeLight.AREAS_BIG4, 4, "four squares")
+		for _, sample in ipairs({ { 620, -7, "Caramelo" }, { 452, -21, "Caramelo" }, { 0, -85, "Forest" },
+			{ -140, 140, "Forest" }, { -500, -400, "Forest" }, { 100, -500, "Forest" }, { 900, 0, "Caramelo" },
+			{ 600, 450, "Caramelo" }, { 1000, 530, "Caramelo" }, { 772, -493, "Mountains" }, { 300, -900, "Mountains" },
+			{ 286, -336, "Mountains" }, { -108, 437, "Volcanic" }, { -600, 900, "Volcanic" }, { 73, 370, "Volcanic" },
+			{ 282, -3, "Hub" }, { 282, 387, "Hub" }, { 115, 15, "Forest" }, { 5000, 5000, "Hub" },
+			{ 200, 400, "Hub" }, { 200, -150, "Hub" } }) do
+			local name, preset = BiomeLight.presetAt(sample[1], sample[2], "big4")
+			equal(name, sample[3], ("big4 at %d, %d"):format(sample[1], sample[2]))
+			equal(preset, BiomeLight.PRESETS[sample[3]])
+		end
+		-- The old Pantano, Cementerio, Abismo and Cuevas centres: Hub, or swallowed by a grown neighbour.
+		equal((BiomeLight.presetAt(282, -443, "big4")), "Mountains", "old Pantano centre is now inside Montañas")
+		equal((BiomeLight.presetAt(-108, -393, "big4")), "Forest", "old Abismo centre is now outer forest")
+		equal((BiomeLight.presetAt(622, 387, "big4")), "Caramelo", "old Cuevas centre is now the Caramelo annex")
+		equal((BiomeLight.presetAt(0 / 0, 0, "big4")), "Hub", "a bad point")
+		equal((BiomeLight.phaseAt(-500, -400, "big4")), "Night", "the outer forest plays by Night rules")
+		equal((BiomeLight.phaseAt(900, 400, "big4")), "Day", "the Caramelo annex plays by Day rules")
+		equal((BiomeLight.phaseAt(-600, 900, "big4")), "Day", "Volcán keeps Day rules")
+	end)
+
+	case("BIG4: an unknown mode reads as classic, and areasFor picks the table", function()
+		equal(BiomeLight.areasFor("classic"), BiomeLight.AREAS)
+		equal(BiomeLight.areasFor("big4"), BiomeLight.AREAS_BIG4)
+		equal(BiomeLight.areasFor("nonsense"), BiomeLight.AREAS)
+		equal((BiomeLight.presetAt(282, -443, "nonsense")), "Swamp")
+		equal(BiomeLight.MODE_ATTRIBUTE, "WildboundMapMode")
+		local mode = BiomeLight.mode()
+		assert(mode == "classic" or mode == "big4", "mode() is classic or big4, got " .. tostring(mode))
+	end)
+
+	case("BIG4: the big4 squares are the server's big4 squares (WildboundBiomes.AREAS_BIG4)", function()
+		local Biomes = sources.biomes
+		assert(type(Biomes) == "table" and type(Biomes.AREAS_BIG4) == "table", "biomes big4 not passed")
+		local want, total = {}, 0
+		for _, area in ipairs(Biomes.AREAS_BIG4) do
+			if area.kind == "square" then
+				want[area.tag] = ("%g,%g,%g,%g"):format(area.minX, area.maxX, area.minZ, area.maxZ)
+				total += 1
+			end
+		end
+		for _, area in ipairs(BiomeLight.AREAS_BIG4) do
+			equal(("%g,%g,%g,%g"):format(area.minX, area.maxX, area.minZ, area.maxZ), want[area.tag], area.tag)
+		end
+		equal(#BiomeLight.AREAS_BIG4, total, "one square per server square")
+		equal(Biomes.MODE_ATTRIBUTE, BiomeLight.MODE_ATTRIBUTE, "one attribute name")
 	end)
 
 	case("CA4: the squares are the server's biome squares (WildboundBiomes.AREAS)", function()
@@ -109,8 +160,22 @@ return function(BiomeLight, source, sources)
 
 	case("CA4: the module is pure", function()
 		assert(type(source) == "string" and #source > 0, "source")
+		-- BIG4: the one allowed read of the place is the map mode block, and it only reads the mode attribute.
+		local first, last = source:find("-- MAPMODE BEGIN", 1, true), source:find("-- MAPMODE END", 1, true)
+		local rest = source
+		if first then
+			assert(last and last > first, "the map mode block is closed")
+			local block = source:sub(first, last)
+			has(block, 'game:GetService("Workspace")', "the mode block reads Workspace")
+			has(block, "GetAttribute, modeRoot, BiomeLight.MODE_ATTRIBUTE", "the mode block reads only the attribute")
+			for _, banned in ipairs({ "SetAttribute", "task.", "os.", "Lighting", "Players", "Changed" }) do
+				assert(not block:find(banned, 1, true), "the mode block uses " .. banned)
+			end
+			assert(select(2, source:gsub("MAPMODE BEGIN", "")) == 1, "one mode block")
+			rest = source:sub(1, first - 1) .. source:sub(last + #"-- MAPMODE END")
+		end
 		for _, banned in ipairs({ "game:", "workspace", "task.", "os.time", "os.clock", "math.random", "tick(", "Lighting" }) do
-			assert(not source:find(banned, 1, true), "reads " .. banned)
+			assert(not rest:find(banned, 1, true), "reads " .. banned)
 		end
 	end)
 

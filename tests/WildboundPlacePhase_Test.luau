@@ -41,10 +41,29 @@ return function(BiomeLight, deps, sources)
 		{ "bad point", 0 / 0, 5, "Day" }, { "no point", nil, nil, "Day" },
 	}
 
+	-- The classic map (odd/tasks/wildbound-big4-map.md: the place may be left in the big4 mode, so these pin the mode).
 	local function phaseAt(x, z)
 		assert(type(BiomeLight) == "table" and type(BiomeLight.phaseAt) == "function", "BiomeLight.phaseAt missing")
-		return BiomeLight.phaseAt(x, z)
+		return BiomeLight.phaseAt(x, z, "classic")
 	end
+
+	case("BIG4: the four larger biomes keep their phases, and the forest's islands and home stay Night", function()
+		for _, place in ipairs({
+			{ "forest", FOREST_X, FOREST_Z, "Night" }, { "outer forest west", -500, 0, "Night" },
+			{ "outer forest north", 0, -450, "Night" }, { "swamp island in the forest", 115, 15, "Night" },
+			{ "caramelo", CARAMELO_X, CARAMELO_Z, "Day" }, { "caramelo annex east", 950, 0, "Day" },
+			{ "caramelo annex south", 600, 450, "Day" }, { "hub", 282, -3, "Day" }, { "montanas", 400, -800, "Day" },
+			{ "volcan", -500, 800, "Day" }, { "old cementerio", 282, 387, "Day" }, { "bad point", 0 / 0, 5, "Day" },
+		}) do
+			local phase, clock = BiomeLight.phaseAt(place[2], place[3], "big4")
+			equal(phase, place[4], "big4 " .. place[1])
+			assert(type(clock) == "number" and Island.sleepScale(clock) == 1, place[1] .. " clock outside the deep sleep")
+		end
+		for _, spec in ipairs(Layout.islands) do
+			equal((BiomeLight.phaseAt(spec.x, spec.z, "big4")), "Night", "big4 " .. spec.id)
+		end
+		equal((BiomeLight.phaseAt(Rules.HOME_X, Rules.HOME_Z, "big4")), "Night", "big4 La Silueta's home")
+	end)
 
 	case("CF1: the phase is per place, forest and dark biomes Night, Caramelo and the rest Day", function()
 		for _, place in ipairs(PLACES) do

@@ -76,6 +76,11 @@ SPECS["WildboundPlacePhase_Test"] = {
 	},
 	{ world = "src:WildboundWorld", server = "src:WildboundServer", beasts = "src:WildboundBeasts" },
 }
+-- Big4 map experiment (odd/tasks/wildbound-big4-map.md)
+SPECS["WildboundBig4Map_Test"] = {
+	"mod:WildboundMapModeSwitch", "mod:WildboundBig4Annex", "mod:WildboundBiomes", "mod:WildboundBiomeLight",
+	"mod:WildboundCandyLayout", "mod:WildboundPortal",
+}
 SPECS["WildboundRoulette_Test"] = { "mod:WildboundRoulette", "mod:WildboundBalance" }
 SPECS["WildboundRouletteService_Test"] = {
 	"mod:WildboundRouletteService", "mod:WildboundRoulette", "mod:WildboundState", "mod:WildboundEconomy",
