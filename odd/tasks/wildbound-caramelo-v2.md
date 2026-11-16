@@ -81,7 +81,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 
 - [x] DG1 Lash combo, faster. Done 2026-11-16 (evidence below).
 - [x] DG2 Vacuum mouth. Done 2026-11-16 (evidence below).
-- [ ] DG3 Chocolate wall
+- [x] DG3 Chocolate wall. Done 2026-11-16 (evidence below).
 - [ ] DG4 Slippery glaze with a slip-and-fall ragdoll
 - [ ] DG5 Rising anger (time + dodges)
 - [ ] DG6 Roar summons new guardians
@@ -132,6 +132,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | DG2-D4 | The target's own client applies the pull (it owns its character's physics): it shifts the character flat toward him, capped at 8 studs/s, only while the last `Pull` is valid. The `Pull` event is target-only (not in `Audience.VISUAL`). `WildboundBeasts.server` and `WildboundBeastConfig` were not edited. | The existing pattern for Streamer's knock; no new remote, no shared-server edit. A modified client could ignore its own pull (no damage or egg at stake). |
 | DG2-D5 | VFX: candy-coloured crumbs (a ParticleEmitter with Roblox's default particle, no upload) blow from the player toward him during the pull; "Efectos suaves" turns them off, not the pull. No new animation: the boss's clips are still unpublished (O2). | No asset upload. |
 | DG2-D6 | The vacuum never hits, never deals damage and never drops the egg. | The lash stays his only egg-drop attack (DG1). |
+| DG3-D1 | The wall is a ring of radius 9 around the spot the target runs to (0.5 s ahead, at most 8 studs), with one exit of 140 degrees (a 16.9-stud chord) sideways to the route, on the side away from him. Crack line 1.0 s, up 3 s, cooldown 14 s. | "Across the predicted route", "always an exit", "a crack line at least 0.8 s ahead". |
+| DG3-D2 | He raises it only on a runner: a target out of the lash's reach for 1 s, within 30 studs, moving at 10 studs/s or more and away from him (cosine at least 0.5). He keeps chasing while it rises. | It cuts an escape, not a standing player; it comes before the vacuum (2 s) on the same runner. |
+| DG3-D3 | It reuses the shared "walls" shape (Root's enclosure layout): the beast client draws it flat, raises it at its time, makes it solid on the target's client only and leaves open any piece that would rise inside the player. No client, server or Config edit. | The tested path; nobody is ever sealed in a wall piece. |
+| DG3-D4 | It never hits, never deals damage and never drops the egg. Other players never collide with it (as Root's walls). | Unchanged rules for walls; the lash stays the only egg drop. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -208,3 +212,12 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Walking away at 16 during the next vacuum: the distance grew 24.3 -> 31.1 studs in the first second, then the pulls stopped once past his 30-stud range (4 pulls in all); the crumbs were enabled. No script errors in the log.
 - Not checked: hiding behind a real wall by hand (only the cake case), a perfect dodge (nothing to dodge), how the cone and crumbs look to a person, two players (a bystander gets no Pull by construction, suite only), a phone.
 - Seen in passing, not changed: in his simulation the boss walks up the Gran Torta's tiers (his ground follows the raycast); the territory rule allows it.
+
+### DG3 (2026-11-16)
+
+- Change: new `tools/WildboundCandyDonGlaseonWall.luau` (ServerStorage; the pure rule); `WildboundBeastDonGlaseon` (`raiseWall` in the chase, the wall's own TellEnd at its time in any phase, `lose` clears it). Registered in the runner SPECS and the two manifest files (Python edited by hand, not run). No shared file was edited.
+- Suites: new `WildboundCandyDonGlaseonWall_Test` (5 cases: numbers, timeline, placement ahead on the route, the exit sideways and away from him and at least 16 studs, only on a runner); BeastDonGlaseon two new cases (a runner gets one wall: crack line 1.0 s, ahead of it, sideways exit, down after 3 s, at least 1 s into the chase; no wall for a target that does not run).
+- Fingerprint rule: before writing, Studio equalled HEAD `b6c90d6` for BeastDonGlaseon 16513/822813627 and BeastDonGlaseon_Test 18017/1210400504. Exact replacements. After: Studio == repo, Wall 3631/3519193033, Wall_Test 4470/3904662168, BeastDonGlaseon 18423/1729599941, BeastDonGlaseon_Test 20137/3509967721.
+- RED, run `d74ef6b5`: Wall suite "module not found", BeastDonGlaseon 17/1 ("no wall"). GREEN, run `13946ec4`: Wall 5/0, Vacuum 5/0, DonGlaseonAttack 7/0, BeastDonGlaseon 18/0, BossRobustness 8/0, BeastWiring 51/0, BeastEncounters 24/0.
+- Solo Play (PlayLock `DG3`, cleared after; Play stopped; memory saves): the player's client ran around the Gran Torta at walk speed (16) with him chasing. 5.2 s in, the wall's crack line appeared flat on the floor (24 pieces 0.12 studs high, two exit posts); 1 s later it stood solid (12 pieces colliding on this client); the scripted runner, which kept running into it instead of looking for the exit, stood still against it (speed 0) for the 3 s it stood, then ran on when it went down. No script errors.
+- Not checked: a person finding the exit by eye, the wall seen by a second player (never solid for them, by construction), how it reads on a phone. The look is Root's wall colours (no chocolate texture: no new asset).

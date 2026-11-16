@@ -17,6 +17,9 @@
 --   DG2 Boca aspiradora: a target that stays out of the lash's reach (but within the vacuum's range, in front) for
 --      Vacuum.CHASE_BEFORE_SECONDS gets Chase -> Inhale (a fixed cone, 0.9 s) -> Vacuum (2 s of Pull events toward him
 --      while the target is in the cone with a clear line) -> Recover -> Chase. Rules: WildboundCandyDonGlaseonVacuum.
+--   DG3 Muro de chocolate: while chasing, a target running away out of the lash's reach for Wall.OUT_OF_REACH_SECONDS
+--      gets a ring of wall around the spot it runs to (a Tell of the shared walls shape: a crack line, then up, then a
+--      TellEnd); the chase goes on. Rules: WildboundCandyDonGlaseonWall.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
 --   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
 -- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
@@ -27,6 +30,7 @@ local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("W
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
 local Latigo = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAttack"))
 local Vacuum = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonVacuum"))
+local Wall = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonWall"))
 local Boss = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -37,6 +41,7 @@ function Boss.init(e)
 	e.home = copy(e.pos)
 	e.readyAt = -math.huge
 	e.vacuumReadyAt = -math.huge
+	e.wallReadyAt = -math.huge
 	if not e.dx then e.dx, e.dz = 0, -1 end
 end
 
@@ -120,7 +125,8 @@ end
 local function lose(events, e, world, now, T, reason)
 	for _, lash in ipairs(e.lashes or {}) do Attack.drop(events, e, world, lash, now, reason) end
 	if e.vacuum then Attack.emit(events, e, "TellEnd", now, { tell = e.vacuumTell, reason = reason }) end
-	e.lashes, e.cast, e.lanes, e.vacuum = nil, nil, nil, nil
+	if e.wall then Attack.emit(events, e, "TellEnd", now, { tell = e.wall.tell, reason = reason }) end
+	e.lashes, e.cast, e.lanes, e.vacuum, e.wall = nil, nil, nil, nil, nil
 	e.lostReason = reason
 	Attack.phase(events, e, "LoseTarget", now, now + T.LoseTargetSeconds, { reason = reason })
 end
@@ -156,6 +162,21 @@ local function openVacuum(events, e, now)
 	Attack.emit(events, e, "Tell", now, { tell = e.vacuumTell, shape = Vacuum.cone(origin(e), e.dx, e.dz), startAt = now,
 		strikeAt = Vacuum.pullEndsAt(state), lockAt = now, dodgeable = false, locked = true })
 	Attack.phase(events, e, "Inhale", now, Vacuum.pullAt(state))
+	return true
+end
+
+-- DG3: a ring of chocolate wall around the spot a runner is heading to. It is a Tell with no strike (it never hits);
+-- the client raises it at strikeAt and it goes at its TellEnd. Returns true when a wall rose.
+local function raiseWall(events, e, now, target, world)
+	local shape = Wall.place(origin(e), target)
+	local state = shape and Wall.start(now, {})
+	if not state then return false end
+	shape.y = Attack.groundAt(world, shape.x, shape.z, e.pos.y)
+	e.wallCount = (e.wallCount or 0) + 1
+	e.wall = { state = state, tell = ("%s:wall:%d"):format(e.id, e.wallCount) }
+	e.wallReadyAt = Wall.downAt(state) + Wall.COOLDOWN_SECONDS
+	Attack.emit(events, e, "Tell", now, { tell = e.wall.tell, shape = shape, startAt = now, strikeAt = Wall.upAt(state),
+		lockAt = now, dodgeable = false, locked = true })
 	return true
 end
 
@@ -196,6 +217,11 @@ function Boss.step(events, e, now, target, world, dt)
 	end
 	if not target or target.alive ~= true then lose(events, e, world, now, T, "Death") return end
 	if target.safe == true then lose(events, e, world, now, T, "SafeZone") return end
+	-- DG3: a wall goes down on its own time, whatever he is doing
+	if e.wall and now >= Wall.downAt(e.wall.state) then
+		Attack.emit(events, e, "TellEnd", Wall.downAt(e.wall.state), { tell = e.wall.tell, reason = "Done" })
+		e.wall = nil
+	end
 
 	if e.phase == "Dormant" or e.phase == "Patrol" then
 		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
@@ -263,6 +289,11 @@ function Boss.step(events, e, now, target, world, dt)
 		end
 		-- DG2: a target that keeps out of the lash's reach is reeled in by the vacuum mouth
 		if distance <= T.CastRangeStuds then e.outOfReachSince = nil else e.outOfReachSince = e.outOfReachSince or now end
+		-- DG3: a runner out of reach gets a wall across its route; the chase goes on
+		if e.outOfReachSince and not e.wall and now - e.outOfReachSince >= Wall.OUT_OF_REACH_SECONDS
+			and distance <= Wall.RANGE_STUDS and now >= e.wallReadyAt then
+			raiseWall(events, e, now, target, world)
+		end
 		if e.outOfReachSince and now - e.outOfReachSince >= Vacuum.CHASE_BEFORE_SECONDS and distance <= Vacuum.RANGE_STUDS
 			and facing <= Vacuum.ARC_DEGREES / 2 and now >= e.vacuumReadyAt
 			and now - e.chaseAt + Vacuum.totalSeconds() <= T.ChaseSeconds then

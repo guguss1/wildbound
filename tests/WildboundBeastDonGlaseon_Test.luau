@@ -218,6 +218,36 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		assert(#each(events, "Pull") <= 1, "pulled behind cover: " .. #each(events, "Pull"))
 	end)
 
+	-- DG3 (user 2026-11-15): Muro de chocolate, for a target running away out of the lash's reach.
+	case("DG3: a runner out of reach gets a chocolate wall: a crack line, then a ring with a sideways exit, gone after 3 s", function()
+		local e, w, tgt = boss("g13"), fakeWorld(), target(0, 24, { vz = 15 })
+		local castAt, castZ
+		local events = run(e, w, tgt, 0, 9, function(_, target, en) target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55) end,
+			function(t, en) if en.wall and not castAt then castAt, castZ = t, tgt.z end end)
+		local wall
+		for _, ev in ipairs(each(events, "Tell")) do if ev.shape.kind == "walls" then wall = wall or ev end end
+		assert(wall, "no wall (phases " .. phases(events) .. ")")
+		equal(wall.dodgeable, false, "nothing to dodge"); near(wall.strikeAt - wall.startAt, 1.0, "the crack line shows 1.0 s")
+		near(wall.shape.r, 9, "radius"); assert(wall.shape.z > castZ, "the wall is not ahead of the runner")
+		assert(math.abs(wall.shape.gz) < 1e-6, "the exit is not sideways to the route")
+		assert(2 * wall.shape.r * math.sin(wall.shape.list[1].from) >= 16, "the exit is narrower than 16 studs")
+		local chase
+		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "Chase" then chase = chase or ev.at end end
+		assert(wall.startAt - chase >= 1 - 1e-6, "the wall came " .. (wall.startAt - chase) .. " s into the chase")
+		local ended
+		for _, ev in ipairs(each(events, "TellEnd")) do if ev.tell == wall.tell then ended = ended or ev end end
+		assert(ended, "the wall never went down"); near(ended.at - wall.strikeAt, 3, "up 3 s", 0.051)
+		local walls = 0
+		for _, ev in ipairs(each(events, "Tell")) do if ev.shape.kind == "walls" then walls += 1 end end
+		equal(walls, 1, "one wall per cooldown")
+	end)
+
+	case("DG3: no wall for a target that does not run away", function()
+		local e, w, tgt = boss("g14"), fakeWorld(), target(0, 24)
+		local events = run(e, w, tgt, 0, 9, function(_, target, en) target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55) end)
+		for _, ev in ipairs(each(events, "Tell")) do assert(ev.shape.kind ~= "walls", "a wall for a still target") end
+	end)
+
 	case("a safe zone stops it at once: the open lash is called off, nothing lands, it walks home (no vanishing)", function()
 		local e, w, tgt, _, tell = telegraphing("g7")
 		tgt.safe = true

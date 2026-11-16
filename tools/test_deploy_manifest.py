@@ -547,6 +547,9 @@ class DefaultMappingTests(unittest.TestCase):
         # DG2 Boca aspiradora
         "tools/WildboundCandyDonGlaseonVacuum.luau": "ServerStorage.WildboundCandyDonGlaseonVacuum",
         "tests/WildboundCandyDonGlaseonVacuum_Test.luau": "ServerStorage.WildboundCandyDonGlaseonVacuum_Test",
+        # DG3 Muro de chocolate
+        "tools/WildboundCandyDonGlaseonWall.luau": "ServerStorage.WildboundCandyDonGlaseonWall",
+        "tests/WildboundCandyDonGlaseonWall_Test.luau": "ServerStorage.WildboundCandyDonGlaseonWall_Test",
         "tools/WildboundCandyDonGlaseonClips.luau": "ServerStorage.WildboundCandyDonGlaseonClips",
         "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
         "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",
