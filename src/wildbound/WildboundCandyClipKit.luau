@@ -184,7 +184,7 @@ function Kit.fromLegacy(legacy)
 		local keys = table.create(#clip.keys)
 		for index, key in ipairs(clip.keys) do keys[index] = { t = key[1], pose = key[2] } end
 		local priority = clip.priority
-		clips[name] = { length = clip.length, loop = clip.loop == true, markers = clip.markers, keys = keys,
+		clips[name] = { length = clip.length, loop = clip.loop == true, markers = clip.markers, keys = keys, easing = clip.easing,
 			priority = typeof(priority) == "EnumItem" and priority.Name or priority }
 	end
 	return Kit.define({ ORDER = legacy.ORDER, CLIPS = clips, IDS = legacy.IDS })

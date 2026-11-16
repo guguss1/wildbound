@@ -49,6 +49,66 @@ local function licorice(whip, sway)
 	return { Licorice_01 = { 0, 0, 0, whip * 0.5, 0, sway }, Licorice_02 = { 0, 0, 0, whip * 0.3, 0, sway }, Licorice_03 = { 0, 0, 0, whip * 0.2, 0, sway } }
 end
 local REST = {}
+
+-- Don Glaseon walk (odd/tasks/wildbound-caramelo-playfix.md): the walking clips are a sampled gait, 16 Linear keys per
+-- step cycle. p in [0, 1) is the cycle: 0 = the left heel lands (left thigh fully forward), 0.5 = the right heel lands.
+-- The planted leg stays straight and its foot flat while the thigh sweeps back; the swinging leg bends its knee (the
+-- foot lifts) and its toes come up; the body drops on each landing (so the stretched leg still reaches the ground) and
+-- rocks over the planted leg, the hips and shoulders twist against each other, the arms swing against the legs and the
+-- licorice, the crown and the head follow a little late. Cadence: a planted foot travels 2 * HIP * sin(swing) per half
+-- cycle, so a cycle covers 4 * HIP * sin(swing) studs; the cycle length is that over his move speed (no sliding).
+local HIP = 7 -- the thigh joints over the soles, in studs (the prefab's Thigh_L/Thigh_R)
+local KEYS_PER_CYCLE = 16
+-- His move speeds (WildboundBeastConfig.BEASTS.DonGlaseon.tuning; the test checks they still match).
+Clips.WALK_SPEED, Clips.RUN_SPEED = 9, 21
+local TAU = 2 * math.pi
+local function cycleLength(speed, swing) return 4 * HIP * math.sin(math.rad(swing)) / speed end
+local WALK = { swing = 22, knee = 50, give = 0, toe = 10, drop = 1, bounce = 0, lean = -4, shift = 0.15, twist = 5, sway = 3,
+	arm = 14, spread = 4, elbow = 10, curl = 4, look = 0, nod = 1.5, jaw = 3, flap = 0, jiggle = 0.06, crown = 2, lash = 6 }
+local RUN = { swing = 32, knee = 80, give = 8, toe = 15, drop = 0.6, bounce = 0.25, lean = -16, shift = 0.2, twist = 8, sway = 4,
+	arm = 30, spread = 8, elbow = 25, curl = 15, look = 10, nod = 3, jaw = 12, flap = 4, jiggle = 0.12, crown = 4, lash = 10 }
+local function gait(p, g)
+	local c, s = math.cos(TAU * p), math.sin(TAU * p)
+	local thigh = g.swing * c
+	-- left: planted for p in [0, 0.5] (s >= 0), swinging after; the right leg half a cycle later
+	local kneeL = g.knee * math.max(0, -s) + g.give * math.max(0, s)
+	local kneeR = g.knee * math.max(0, s) + g.give * math.max(0, -s)
+	local dy = -HIP * (1 - math.cos(math.rad(g.swing * math.abs(c)))) * g.drop + g.bounce * math.abs(s)
+	local ca = math.cos(TAU * (p - 0.05)) -- the arms trail the legs a little
+	local function lag(d) return math.cos(TAU * (p - d)) end
+	return {
+		Pelvis = { 0, dy, 0 },
+		Spine_Lower = { -g.shift * s, 0, 0, g.lean, -g.twist * c, g.sway * s },
+		Spine_Upper = { 0, 0, 0, g.nod * 0.5 * math.cos(2 * TAU * p), g.twist * 1.6 * c, -g.sway * 0.5 * s },
+		Neck = { 0, 0, 0, g.look * 0.4, -g.twist * 0.6 * c, 0 },
+		Head = { 0, 0, 0, g.look * 0.6 + g.nod * math.cos(2 * TAU * (p - 0.06)), 0, -g.sway * 0.3 * s },
+		Jaw = { 0, 0, 0, -(g.jaw + g.flap * math.abs(s)) },
+		CandyCrown = { 0, g.jiggle * math.cos(2 * TAU * (p - 0.1)), 0, 0, 0, g.crown * math.sin(TAU * (p - 0.12)) },
+		Thigh_L = { 0, 0, 0, thigh }, Thigh_R = { 0, 0, 0, -thigh },
+		Shin_L = { 0, 0, 0, -kneeL }, Shin_R = { 0, 0, 0, -kneeR },
+		-- the sole stays level (it cancels the thigh and the knee), the toes rise while the leg swings
+		Foot_L = { 0, 0, 0, kneeL - thigh + g.toe * math.max(0, -s) }, Foot_R = { 0, 0, 0, kneeR + thigh + g.toe * math.max(0, s) },
+		UpperArm_L = { 0, 0, 0, -g.arm * ca, 0, -g.spread }, UpperArm_R = { 0, 0, 0, g.arm * ca, 0, g.spread },
+		Forearm_L = { 0, 0, 0, g.elbow * (1 + 0.5 * math.max(0, -ca)) }, Forearm_R = { 0, 0, 0, g.elbow * (1 + 0.5 * math.max(0, ca)) },
+		Finger_L1 = { 0, 0, 0, -g.curl }, Finger_L2 = { 0, 0, 0, -g.curl }, Finger_R1 = { 0, 0, 0, -g.curl }, Finger_R2 = { 0, 0, 0, -g.curl },
+		Licorice_01 = { 0, 0, 0, 0.4 * g.arm * lag(0.12), 0, g.lash * math.sin(TAU * (p - 0.15)) },
+		Licorice_02 = { 0, 0, 0, 0.3 * g.arm * lag(0.2), 0, g.lash * math.sin(TAU * (p - 0.23)) },
+		Licorice_03 = { 0, 0, 0, 0.2 * g.arm * lag(0.28), 0, g.lash * math.sin(TAU * (p - 0.31)) },
+	}
+end
+-- A looping clip of `cycles` step cycles at `speed`; extra(q) (q in [0, 1) over the whole clip) adds to each key.
+local function walking(g, speed, cycles, extra)
+	local length = cycleLength(speed, g.swing) * cycles
+	local total = KEYS_PER_CYCLE * cycles
+	local keys = {}
+	for i = 0, total do
+		local q = (i % total) / total -- the last key is the first again: the loop closes exactly
+		local pose = gait((q * cycles) % 1, g)
+		table.insert(keys, { length * i / total, extra and merge(pose, extra(q)) or pose })
+	end
+	return { length = length, loop = true, priority = Enum.AnimationPriority.Movement, easing = "Linear", cycles = cycles, keys = keys }
+end
+
 -- Latigo de Regaliz: the right arm high and back with the whip cocked, the jaw wide, the body twisted (the tell) ...
 local RAISED = merge({ Shoulder_R = { 0, 0.4, 0, 0, 0, 10 }, UpperArm_R = { 0, 0, 0, 150, 0, 15 }, Forearm_R = { 0, 0, 0, 40 },
 	Spine_Upper = { 0, 0, 0, 4, -14, 0 } }, licorice(-40, 10), jaw(30), head(10, -8), body(-0.3, 0, -3), legs(10, -8), arms(-10, 0, 10, 20))
@@ -63,28 +123,19 @@ Clips.CLIPS = {
 	Idle_Breath = { length = 3.0, loop = true, priority = Enum.AnimationPriority.Idle, keys = {
 		{ 0, REST }, { 1.0, merge(breath(1), jaw(4), arms(2, 2, 2, 4)) }, { 1.6, merge(breath(1.1), jaw(6), candies(2)) },
 		{ 2.4, merge(breath(0.3), jaw(2), candies(-1)) }, { 3.0, REST } } },
-	-- heavy steps: the body drops on each landing and rocks over the planted leg; the arms swing a little
-	Patrol_Walk = { length = 1.1, loop = true, priority = Enum.AnimationPriority.Movement, keys = {
-		{ 0, merge(legs(18, -18, 25), body(-0.35, -3, 3), arms(-8, 8)) },
-		{ 0.275, merge(legs(0, 0), body(0.15, -2, 0), candies(2, 0.05)) },
-		{ 0.55, merge(legs(-18, 18, 25), body(-0.35, -3, -3), arms(8, -8)) },
-		{ 0.825, merge(legs(0, 0), body(0.15, -2, 0), candies(-2, 0.05)) },
-		{ 1.1, merge(legs(18, -18, 25), body(-0.35, -3, 3), arms(-8, 8)) } } },
-	-- violent steps, the torso bent forward, the arms pumping, the jaw open
-	Chase_Run = { length = 0.75, loop = true, priority = Enum.AnimationPriority.Movement, keys = {
-		{ 0, merge(legs(30, -26, 40), body(-0.5, -16, 4), arms(-25, 25, 8, 15), jaw(14), head(10)) },
-		{ 0.1875, merge(legs(0, 0), body(0.4, -14, 0), arms(0, 0, 8, 15), jaw(10), head(8), candies(4, 0.1)) },
-		{ 0.375, merge(legs(-26, 30, 40), body(-0.5, -16, -4), arms(25, -25, 8, 15), jaw(14), head(10)) },
-		{ 0.5625, merge(legs(0, 0), body(0.4, -14, 0), arms(0, 0, 8, 15), jaw(10), head(8), candies(-4, 0.1)) },
-		{ 0.75, merge(legs(30, -26, 40), body(-0.5, -16, 4), arms(-25, 25, 8, 15), jaw(14), head(10)) } } },
+	-- heavy steps (Patrol, Return): the body drops on each landing and rocks over the planted leg; the arms swing a little
+	Patrol_Walk = walking(WALK, Clips.WALK_SPEED, 1),
+	-- violent steps (Chase), the torso bent forward, the knees high, the arms pumping, the jaw open
+	Chase_Run = walking(RUN, Clips.RUN_SPEED, 1),
 	-- it lifts its head and opens its eyes: the head snaps up and holds
 	Notice = { length = 0.8, loop = false, priority = Enum.AnimationPriority.Action, keys = {
 		{ 0, REST }, { 0.2, merge(head(18), jaw(10), breath(1), candies(5, 0.15)) }, { 0.5, merge(head(14, 6), jaw(6), candies(-3)) },
 		{ 0.8, merge(head(12), jaw(5)) } } },
-	-- looks around without turning the whole body
-	Search = { length = 1.6, loop = true, priority = Enum.AnimationPriority.Action, keys = {
-		{ 0, merge(head(4)) }, { 0.4, merge(head(4, 40), { Spine_Upper = { 0, 0, 0, 0, 10, 0 } }) },
-		{ 0.8, merge(head(0)) }, { 1.2, merge(head(4, -40), { Spine_Upper = { 0, 0, 0, 0, -10, 0 } }) }, { 1.6, merge(head(4)) } } },
+	-- walks to where it last saw the target (the brain moves it at the patrol speed), looking left and right as it goes
+	Search = walking(WALK, Clips.WALK_SPEED, 2, function(q)
+		local look = math.sin(TAU * q)
+		return merge(head(4, 40 * look), { Spine_Upper = { 0, 0, 0, 0, 10 * look, 0 } })
+	end),
 	-- Latigo de Regaliz, part 1: the asymmetric wind-up; only ever deeper, frozen from the lock (0.6 s)
 	Attack_Telegraph_Licorice = { length = 1.1, loop = false, priority = Enum.AnimationPriority.Action,
 		markers = { { 0, "TelegraphStart" }, { 0.6, "AttackCommit" } }, keys = {
@@ -141,7 +192,7 @@ function Clips.build(prefab, name)
 			if child:IsA("Bone") then
 				local item = Instance.new("Pose")
 				item.Name = child.Name
-				item.EasingStyle = Enum.PoseEasingStyle.Cubic
+				item.EasingStyle = clip.easing == "Linear" and Enum.PoseEasingStyle.Linear or Enum.PoseEasingStyle.Cubic
 				item.EasingDirection = Enum.PoseEasingDirection.InOut
 				local v = pose[child.Name]
 				if v then
