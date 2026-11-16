@@ -45,9 +45,9 @@ return function(Frut, Layout, sources)
 		near(Frut.PUSH_STUDS, 12); near(Frut.PUSH_SECONDS, 0.4)
 		assert(Frut.RING_STUDS - Frut.RADIUS_STUDS >= 3, "it rolls clear of La Duquesa's seat")
 		assert(Frut.RING_STUDS + Frut.RADIUS_STUDS <= summit.radius + 0.5, "it stays on the summit")
-		near(Frut.SEED_EVERY_SECONDS, 1.6) --[[ OF3: 2.5 -> 1.6 ]]; near(Frut.SEED_STEPS_PER_SECOND, 8); near(Frut.SEED_HIT_STUDS, 2)
-		-- Deliberately changed (OF3): seeds push harder (6 -> 9 studs, 0.3 -> 0.35 s) and up to 5 live at once
-		near(Frut.SEED_PUSH_STUDS, 9); near(Frut.SEED_PUSH_SECONDS, 0.35); equal(Frut.MAX_SEEDS, 5)
+		near(Frut.SEED_EVERY_SECONDS, 2) --[[ OF3: 2.5 -> 2 ]]; near(Frut.SEED_STEPS_PER_SECOND, 8); near(Frut.SEED_HIT_STUDS, 2)
+		-- Deliberately changed (OF3): seeds push harder (6 -> 9 studs, 0.3 -> 0.35 s) and up to 4 live at once
+		near(Frut.SEED_PUSH_STUDS, 9); near(Frut.SEED_PUSH_SECONDS, 0.35); equal(Frut.MAX_SEEDS, 4)
 		equal(Frut.DAMAGE, 0, "knockback only")
 		near(summit.top, Layout.FLOOR_TOP + Layout.TOWER.tiers[#Layout.TOWER.tiers].top, "the summit's floor")
 	end)

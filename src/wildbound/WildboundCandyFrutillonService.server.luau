@@ -160,7 +160,9 @@ RunService.Heartbeat:Connect(function(dt)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and humanoid and humanoid.Health > 0 then
-			table.insert(players, { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z })
+			local v = root.AssemblyLinearVelocity -- OF3: the glaze reads how fast a climber crosses it
+			table.insert(players, { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z,
+				vx = v.X, vz = v.Z })
 		end
 	end
 	play(Frut.step(state, now, players))

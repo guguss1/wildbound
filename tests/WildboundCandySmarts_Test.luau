@@ -259,7 +259,7 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 	end)
 
 	case("OF3-3: stair seeds come more often and knock a climber outward, off its tier", function()
-		within(Frut.SEED_EVERY_SECONDS, 1.5, 1.8, "seed every")
+		within(Frut.SEED_EVERY_SECONDS, 1.8, 2.2, "seed every")
 		assert(Frut.SEED_PUSH_STUDS >= 9, "seed push " .. Frut.SEED_PUSH_STUDS)
 		local state = Frut.new(0, summit)
 		local s = path[math.floor(#path / 2)]
@@ -315,8 +315,16 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		local s = path[glaze[1]]
 		local state = Frut.new(0, summit)
 		local slips = {}
+		-- walking over it (16 studs/s) is safe: the careful way up
 		for i = 0, 60 do
-			for _, ev in ipairs(Frut.glazeStep(state, i * 0.05, { player(3, s.x, s.y + 3, s.z) }, path, summit)) do
+			for _, ev in ipairs(Frut.glazeStep(state, i * 0.05, { player(3, s.x, s.y + 3, s.z, { vx = 16, vz = 0 }) }, path, summit)) do
+				table.insert(slips, ev)
+			end
+		end
+		equal(#slips, 0, "a walker slipped")
+		-- running over it (16 x 1.45) slips
+		for i = 61, 120 do
+			for _, ev in ipairs(Frut.glazeStep(state, i * 0.05, { player(3, s.x, s.y + 3, s.z, { vx = 23.2, vz = 0 }) }, path, summit)) do
 				table.insert(slips, ev)
 			end
 		end

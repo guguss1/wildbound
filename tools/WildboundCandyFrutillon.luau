@@ -10,7 +10,7 @@ local Frut = {}
 
 -- OF3 (odd/tasks/wildbound-caramelo-playfix.md, owner feedback 3: "sea dificil llegar a la cima de la torta"): a hard
 -- but possible climb. Frutillon gets up sooner (wake 2 -> 1.7 s) and rolls again sooner (recover 1 -> 0.7 s); the stair
--- seeds come more often (every 2.5 -> 1.6 s, up to 3 -> 5) and push harder and outward (6 -> 9 studs, off the step:
+-- seeds come more often (every 2.5 -> 2 s, up to 3 -> 4) and push harder and outward (6 -> 9 studs, off the step:
 -- the tier below); two sugar patrols walk stretches of the stair (pausing PATROL_PAUSE_SECONDS at each end, glowing
 -- for PATROL_TELL_SECONDS before setting off) and bump a climber outward; a few glaze steps make a climber slip
 -- outward. All knockback, damage 0, every tell >= MIN_TELL (0.8 s) and every hazard leaves a gap.
@@ -29,14 +29,14 @@ Frut.OVERSHOOT_RADIANS = 0.6
 Frut.HIT_STUDS = 3
 Frut.PUSH_STUDS = 12
 Frut.PUSH_SECONDS = 0.4
-Frut.SEED_EVERY_SECONDS = 1.6
+Frut.SEED_EVERY_SECONDS = 2 -- OF3 walked Play: 1.6 met a climber about every second; 2 leaves room to jump each
 Frut.SEED_STEPS_PER_SECOND = 8
 Frut.SEED_HIT_STUDS = 2
 Frut.SEED_PUSH_STUDS = 9
 Frut.SEED_PUSH_SECONDS = 0.35
 Frut.SEED_OUTWARD = 0.85 -- OF3: the share of a seed's push that goes outward, off the step (the rest down the stair)
 Frut.SEED_BOUNCE_STUDS = 1
-Frut.MAX_SEEDS = 5
+Frut.MAX_SEEDS = 4
 Frut.DAMAGE = 0
 -- OF3 patrols: two sugar drops, each on its stretch of the stair (fractions of the path from the top), out of phase.
 Frut.PATROL_STRETCHES = table.freeze({ table.freeze({ 0.12, 0.38 }), table.freeze({ 0.55, 0.82 }) })
@@ -46,8 +46,11 @@ Frut.PATROL_TELL_SECONDS = 0.8
 Frut.PATROL_HIT_STUDS = 2.2
 Frut.PATROL_PUSH_STUDS = 9
 Frut.PATROL_PUSH_SECONDS = 0.35
--- OF3 glaze: every GLAZE_EVERY-th step from GLAZE_FIRST (never the two top or bottom steps) is glazed; standing on one
--- slips the climber outward (once per GLAZE_COOLDOWN_SECONDS).
+-- OF3 glaze: every GLAZE_EVERY-th step from GLAZE_FIRST (never the two top or bottom steps) is glazed; crossing one
+-- faster than GLAZE_SAFE_SPEED (running, or a dash) slips the climber outward, off the stair (once per
+-- GLAZE_COOLDOWN_SECONDS). Walking over it (16) or jumping over it is safe: the careful way up (walked Play: a slip on
+-- every pass made the stair impossible for a walker).
+Frut.GLAZE_SAFE_SPEED = 18
 Frut.GLAZE_FIRST = 6
 Frut.GLAZE_EVERY = 7
 Frut.GLAZE_SLIP_STUDS = 5
@@ -305,13 +308,16 @@ function Frut.glazeSteps(path)
 	return list
 end
 
--- One step of the glaze. Events: Slip { step, id, dx, dz, studs, seconds } (once per GLAZE_COOLDOWN_SECONDS per player).
+-- One step of the glaze. players = { { id, alive, x, y, z, vx, vz } }. Events: Slip { step, id, dx, dz, studs, seconds }
+-- (once per GLAZE_COOLDOWN_SECONDS per player), only for a climber faster than GLAZE_SAFE_SPEED.
 function Frut.glazeStep(state, now, players, path, summit)
 	local events = {}
 	state.slipFree = state.slipFree or {}
 	state.glazed = state.glazed or Frut.glazeSteps(path)
 	for _, p in ipairs(players) do
-		if p.alive == true and type(p.x) == "number" and now >= (state.slipFree[p.id] or -math.huge) then
+		local speed = math.sqrt((tonumber(p.vx) or 0) ^ 2 + (tonumber(p.vz) or 0) ^ 2)
+		if p.alive == true and type(p.x) == "number" and speed > Frut.GLAZE_SAFE_SPEED
+			and now >= (state.slipFree[p.id] or -math.huge) then
 			for _, i in ipairs(state.glazed) do
 				local s = path[i]
 				if flat(p.x, p.z, s.x, s.z) <= Frut.GLAZE_HIT_STUDS and p.y >= s.y - 1 and p.y <= s.y + 5 then
