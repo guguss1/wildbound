@@ -283,6 +283,13 @@ local TELL_COLOR = {
 	Tortidragon = Color3.fromHex("FFD23F"),
 	-- CA3: Don Glaseon's licorice lane in deep plum, the darkest mark on the pink floor (never La Silueta's red).
 	DonGlaseon = Color3.fromHex("5B1A8C"),
+	-- CC7 (odd/tasks/wildbound-candy-critters.md): the five candy critters, each in a candy colour that reads on the pink
+	-- floor and none red.
+	Mochimiau = Color3.fromHex("FF7AC0"),
+	Canelin = Color3.fromHex("C98A3E"),
+	Flanin = Color3.fromHex("E8A23A"),
+	Mielita = Color3.fromHex("F8D23A"),
+	GatoRepartidor = Color3.fromHex("45C9A0"),
 }
 -- Kids biome: their own sounds (catalogue slots only; never chaseMusic, heartbeat, roar or stinger).
 local KIDS_PHASE_SOUND = {

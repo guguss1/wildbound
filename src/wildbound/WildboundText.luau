@@ -411,6 +411,17 @@ return freeze({
 			phases = { Suspicious = "Don Glaseón te vio", Roar = "¡Don Glaseón ruge!", Chase = "¡Don Glaseón te persigue!",
 				Search = "Don Glaseón te busca", Telegraph = "¡Látigo de Regaliz! Sal de la franja por un lado",
 				LoseTarget = "Don Glaseón te perdió", Return = "Don Glaseón vuelve a la Gran Torta" } },
+		-- CC8 (odd/tasks/wildbound-candy-critters.md): the five candy critters. Their tells are never red.
+		Mochimiau = { warn = "¡Mochimiau va a saltar! Sal del círculo", hit = "¡Rodada cremosa!",
+			phases = { Notice = "Mochimiau te vio", Chase = "¡Mochimiau te sigue!", Telegraph = "¡Mochimiau va a saltar! Sal del círculo" } },
+		Canelin = { warn = "¡Canelín va a rodar! Sal de la franja por un lado", hit = "¡Giro de canela!",
+			phases = { Notice = "Canelín te vio", Chase = "¡Canelín te sigue!", Telegraph = "¡Canelín va a rodar! Sal de la franja por un lado" } },
+		Flanin = { warn = "¡Onda cremosa! Aléjate de Flanín", hit = "¡Pegajoso!",
+			phases = { Notice = "Flanín te vio", Chase = "¡Flanín te sigue a saltitos!", Telegraph = "¡Onda cremosa! Aléjate de Flanín" } },
+		Mielita = { warn = "¡Nube de polen! Sal del círculo", hit = "¡Achís! Polen dulce",
+			phases = { Notice = "Mielita te vio", Chase = "¡Mielita te sigue zumbando!", Telegraph = "¡Nube de polen! Sal del círculo" } },
+		GatoRepartidor = { warn = "¡Lluvia de papas! Sal del círculo", hit = "¡Papas por todos lados!",
+			phases = { Notice = "El Gato Repartidor te vio", Chase = "¡El Gato Repartidor te sigue!", Telegraph = "¡Lluvia de papas! Sal del círculo" } },
 		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
 			phases = {
 				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",

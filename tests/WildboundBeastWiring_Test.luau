@@ -848,5 +848,22 @@ return function(sources, Proxies)
 		equal(sources.audience.VISUAL.Anger, true, "a bystander sees his colour")
 	end)
 
+	-- CC7/CC8 (odd/tasks/wildbound-candy-critters.md): the five candy critters draw their tells in candy colours (never
+	-- the red fallback La Silueta and the forest beasts use) and say short Spanish lines for each phase they publish.
+	case("CC7/CC8: candy critters have their own tell colour and their lines", function()
+		local client, T = sources.client, sources.text and sources.text.BEAST
+		assert(type(T) == "table", "Text.BEAST")
+		for _, name in ipairs({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }) do
+			has(client, "\t" .. name .. " = Color3.fromHex(", "TELL_COLOR." .. name)
+			local words = T[name]
+			assert(type(words) == "table" and type(words.warn) == "string" and type(words.hit) == "string", "Text.BEAST." .. name)
+			assert(type(words.phases) == "table", name .. " phases")
+			for _, phase in ipairs({ "Notice", "Chase", "Telegraph" }) do
+				assert(type(words.phases[phase]) == "string" and #words.phases[phase] <= 72, name .. " line for " .. phase)
+			end
+			assert(not words.warn:find("rojo", 1, true), name .. " never points at a red mark")
+		end
+	end)
+
 	return result
 end
