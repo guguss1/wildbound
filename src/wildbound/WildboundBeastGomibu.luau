@@ -199,7 +199,7 @@ function Gomibu.step(events, e, now, target, world, dt)
 		else
 			e.pinnedSince = nil
 		end
-		if Smarts.dodged(e, world, now) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
+		if Smarts.dodged(e, world, now, target) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
 		if distance <= T.JumpRangeStuds and now >= e.readyAt then
 			if openJump(events, e, now, target, world, C, T) then return end
 		end
@@ -208,7 +208,7 @@ function Gomibu.step(events, e, now, target, world, dt)
 			local gx, gz = Smarts.goal(e, world, now, target)
 			local dx, dz = Smarts.direction(e, world, gx, gz)
 			if dx then
-				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, flat(e.pos.x, e.pos.z, gx, gz))
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond, target) * dt, flat(e.pos.x, e.pos.z, gx, gz))
 				e.pos.x += dx * step
 				e.pos.z += dz * step
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)

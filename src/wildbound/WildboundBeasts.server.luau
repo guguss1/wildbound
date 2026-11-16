@@ -497,6 +497,8 @@ local function targetOf(entry)
 	local p, v = root.Position, root.AssemblyLinearVelocity
 	local _, safe = Rules.zone(p.X, p.Z)
 	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe, meadow = inMeadow(p.X, p.Z) }
+	-- OF3 review: the walk speed without the sprint (WildboundStamina SPRINT_MULTIPLIER 1.45), so candy chases scale with training
+	target.walk = humanoid.WalkSpeed / (entry.player:GetAttribute("WildboundStance") == "sprint" and 1.45 or 1)
 	if Config.SUMMONED[entry.e.beast] then
 		-- Kids biome: what the Nube sees (open sky, Night range) and what the Abeja hears (the server's speed and floor).
 		local night = phaseAt(p.X, p.Z) == "Night"

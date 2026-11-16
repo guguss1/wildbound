@@ -451,7 +451,7 @@ function Critter.step(events, e, now, target, world, dt)
 			e.readyAt = e.lastStrikeAt + A.CooldownSeconds
 		end
 		-- OF3: the target just dodged: it stands, faces it and re-aims before anything else
-		if Smarts.dodged(e, world, now) then
+		if Smarts.dodged(e, world, now, target) then
 			Attack.face(e, target)
 			return
 		end
@@ -472,7 +472,7 @@ function Critter.step(events, e, now, target, world, dt)
 			local x, z = leashed(e, T, gx, gz)
 			local dx, dz = Smarts.direction(e, world, x, z)
 			if dx then
-				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, flat(e.pos.x, e.pos.z, x, z))
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond, target) * dt, flat(e.pos.x, e.pos.z, x, z))
 				settle(e, world, T, e.pos.x + dx * step, e.pos.z + dz * step)
 				e.dx, e.dz = dx, dz
 			end

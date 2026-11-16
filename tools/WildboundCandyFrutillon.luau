@@ -51,6 +51,8 @@ Frut.PATROL_PUSH_SECONDS = 0.35
 -- GLAZE_COOLDOWN_SECONDS). Walking over it (16) or jumping over it is safe: the careful way up (walked Play: a slip on
 -- every pass made the stair impossible for a walker).
 Frut.GLAZE_SAFE_SPEED = 18
+Frut.GLAZE_WALK_SHARE = 1.2 -- OF3 review: a walker slips only above 1.2 x its own walk speed (a dash)
+Frut.GLAZE_MOVING_SPEED = 4 -- OF3 review: a sprint stance slips once it moves faster than this
 Frut.GLAZE_FIRST = 6
 Frut.GLAZE_EVERY = 7
 Frut.GLAZE_SLIP_STUDS = 5
@@ -316,7 +318,12 @@ function Frut.glazeStep(state, now, players, path, summit)
 	state.glazed = state.glazed or Frut.glazeSteps(path)
 	for _, p in ipairs(players) do
 		local speed = math.sqrt((tonumber(p.vx) or 0) ^ 2 + (tonumber(p.vz) or 0) ^ 2)
-		if p.alive == true and type(p.x) == "number" and speed > Frut.GLAZE_SAFE_SPEED
+		-- OF3 review: relative to the climber's own walk (p.walk, trained players walk faster): a sprint stance slips
+		-- once it moves, a walker only above GLAZE_WALK_SHARE of its walk (a dash); with no walk known, the old limit.
+		local walk = tonumber(p.walk)
+		local limit = walk and walk > 0 and walk * Frut.GLAZE_WALK_SHARE or Frut.GLAZE_SAFE_SPEED
+		local slips = (p.stance == "sprint" and speed > Frut.GLAZE_MOVING_SPEED) or speed > limit
+		if p.alive == true and type(p.x) == "number" and slips
 			and now >= (state.slipFree[p.id] or -math.huge) then
 			for _, i in ipairs(state.glazed) do
 				local s = path[i]

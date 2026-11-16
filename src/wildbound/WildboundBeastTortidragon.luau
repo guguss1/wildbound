@@ -147,14 +147,14 @@ function Tortidragon.step(events, e, now, target, world, dt)
 		if distance <= T.CastRangeStuds and now >= e.readyAt and Abanico.canCast(e.pos, e.dx, e.dz, target) then
 			if openFan(events, e, now, world, C) then return end
 		end
-		if Smarts.dodged(e, world, now) then turn(e, target, T, dt) return end -- OF3: a dodge: it stops and re-aims
+		if Smarts.dodged(e, world, now, target) then turn(e, target, T, dt) return end -- OF3: a dodge: it stops and re-aims
 		-- OF3: it turns toward the lead (or flank) point, sprints at first and side-steps what blocks its way
 		local gx, gz = Smarts.goal(e, world, now, target)
 		turn(e, { x = gx, z = gz }, T, dt)
 		if distance > T.StandOffStuds then
 			local mx, mz = Smarts.steer(e, world, e.dx, e.dz)
 			if mx then
-				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * (dt or 0), distance - T.StandOffStuds)
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond, target) * (dt or 0), distance - T.StandOffStuds)
 				e.pos.x += mx * step
 				e.pos.z += mz * step
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)

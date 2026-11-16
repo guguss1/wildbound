@@ -347,9 +347,9 @@ function Boss.step(events, e, now, target, world, dt)
 			if openVacuum(events, e, now) then return end
 		end
 		-- OF3: a dodge stops him a moment; else he runs (a sprint at first) for the lead or flank point
-		if Smarts.dodged(e, world, now) then turn(e, target, T, dt) return end
+		if Smarts.dodged(e, world, now, target) then turn(e, target, T, dt) return end
 		local gx, gz = Smarts.goal(e, world, now, target)
-		walk(e, { x = gx, z = gz }, Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond), dt, world, T, T.StandOffStuds)
+		walk(e, { x = gx, z = gz }, Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond, target), dt, world, T, T.StandOffStuds)
 		return
 	end
 	if (e.phase == "Inhale" or e.phase == "Vacuum") and e.vacuum then

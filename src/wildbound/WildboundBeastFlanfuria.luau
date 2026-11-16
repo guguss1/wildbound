@@ -122,7 +122,7 @@ function Flanfuria.step(events, e, now, target, world, dt)
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
 		end
-		if Smarts.dodged(e, world, now) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
+		if Smarts.dodged(e, world, now, target) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
 		if distance <= T.CastRangeStuds and now >= e.readyAt then
 			Attack.face(e, target)
 			if openWave(events, e, now, world, C) then return end
@@ -132,7 +132,7 @@ function Flanfuria.step(events, e, now, target, world, dt)
 			local gx, gz = Smarts.goal(e, world, now, target)
 			local dx, dz = Smarts.direction(e, world, gx, gz)
 			if dx then
-				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, distance - T.StandOffStuds)
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond, target) * dt, distance - T.StandOffStuds)
 				e.pos.x += dx * step
 				e.pos.z += dz * step
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)

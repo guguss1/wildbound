@@ -41,6 +41,15 @@ Smarts.DEFAULTS = DEFAULTS
 Smarts.PEER_SECONDS = 0.3
 Smarts.DASH_FRESH = 0.5
 Smarts.STEER_DEGREES = table.freeze({ 35, 70, 105, 140 })
+-- OF3 review: a dodge only counts within DODGE_REACT_STUDS, and a creature can be stopped again only after
+-- DODGE_COOLDOWN_SECONDS (the server takes a missed dodge every 1.2 s: spamming it must not freeze the chase).
+Smarts.DODGE_REACT_STUDS = 12
+Smarts.DODGE_COOLDOWN_SECONDS = 3
+-- OF3 review: chase and sprint scale with a trained walker (training adds 2 studs/s per level), within caps.
+Smarts.CHASE_SHARE = 0.92
+Smarts.SPRINT_SHARE = 1.1
+Smarts.CHASE_CAP = 34
+Smarts.SPRINT_CAP = 38
 
 local NONE = profile({})
 local function flat(ax, az, bx, bz) return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2) end
@@ -65,11 +74,16 @@ local function board(world, userId)
 end
 
 -- The chase speed now: the sprint for sprintSeconds from the first chase step of the encounter, then `base`.
-function Smarts.speed(e, now, base)
+-- OF3 review: against a trained walker (target.walk, its walk speed without the sprint) the chase is at least
+-- CHASE_SHARE of that walk (up to CHASE_CAP) and the sprint at least SPRINT_SHARE of it (up to SPRINT_CAP).
+function Smarts.speed(e, now, base, target)
 	local P = Smarts.profile(e.beast)
+	local walk = target and finite(target.walk) and target.walk or 0
+	local chase = math.max(base, math.min(walk * Smarts.CHASE_SHARE, Smarts.CHASE_CAP))
+	local sprint = math.max(P.sprint, math.min(walk * Smarts.SPRINT_SHARE, Smarts.SPRINT_CAP))
 	e.sprintFrom = e.sprintFrom or now
-	if P.sprint > base and now - e.sprintFrom < P.sprintSeconds then return P.sprint end
-	return base
+	if P.sprint > 0 and sprint > chase and now - e.sprintFrom < P.sprintSeconds then return sprint end
+	return chase
 end
 
 -- Where the target will be in `seconds` (P.lead by default), at most maxLead studs ahead.
@@ -152,11 +166,16 @@ function Smarts.direction(e, world, x, z)
 end
 
 -- True while it reacts to the target's dodge (it stands and re-aims).
-function Smarts.dodged(e, world, now)
+-- Only a dodge pressed within DODGE_REACT_STUDS of the creature, once per DODGE_COOLDOWN_SECONDS.
+function Smarts.dodged(e, world, now, target)
 	local at = type(world) == "table" and type(world.lastDash) == "function" and world.lastDash() or nil
 	if finite(at) and at ~= e.dashSeen and now - at >= 0 and now - at <= Smarts.DASH_FRESH then
 		e.dashSeen = at
-		e.dazedUntil = at + Smarts.profile(e.beast).dodgePause
+		local near = not target or flat(e.pos.x, e.pos.z, target.x, target.z) <= Smarts.DODGE_REACT_STUDS
+		if near and at >= (e.dodgeReadyAt or -math.huge) then
+			e.dazedUntil = at + Smarts.profile(e.beast).dodgePause
+			e.dodgeReadyAt = at + Smarts.DODGE_COOLDOWN_SECONDS
+		end
 	end
 	return e.dazedUntil ~= nil and now < e.dazedUntil
 end
