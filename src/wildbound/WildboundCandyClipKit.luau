@@ -19,9 +19,10 @@ local ZERO = { 0, 0, 0, 0, 0, 0 }
 Kit.ZERO = ZERO
 
 -- A bone's Transform (or Pose.CFrame) for a model-axes value v, given the bone's rest rotation relative to the model
--- pivot (pivot:ToObjectSpace(bone.WorldCFrame).Rotation, read while every Transform is identity).
-function Kit.transform(rest, v)
-	return rest:Inverse() * (CFrame.new(v[1] or 0, v[2] or 0, v[3] or 0)
+-- pivot (pivot:ToObjectSpace(bone.WorldCFrame).Rotation, read while every Transform is identity). restInv (optional)
+-- is rest:Inverse(), passed by callers that cache it (the client player, every frame).
+function Kit.transform(rest, v, restInv)
+	return (restInv or rest:Inverse()) * (CFrame.new(v[1] or 0, v[2] or 0, v[3] or 0)
 		* CFrame.Angles(math.rad(v[4] or 0), math.rad(v[5] or 0), math.rad(v[6] or 0))) * rest
 end
 

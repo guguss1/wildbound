@@ -1,55 +1,28 @@
--- Live animation of the six Caramelo critters with NO published Animation asset (odd/tasks/wildbound-candy-critters.md).
--- It samples each creature's clip data (ReplicatedStorage.WildboundCandyCritterClips<Name>, via WildboundCandyClipKit)
--- and writes Bone.Transform every Heartbeat, the same live path WildboundBeastAnim uses for the wave-2 beasts.
+-- Live animation of the six Caramelo critters (odd/tasks/wildbound-candy-critters-anim.md).
+-- With no published Animation asset it samples each creature's clip data (ReplicatedStorage.WildboundCandyCritterClips
+-- <Name>, via WildboundCandyClipKit) and writes Bone.Transform every Heartbeat, the same live path WildboundBeastAnim
+-- uses for the wave-2 beasts. Which clip plays comes from WildboundCandyCritterAnimSpec.
 -- Models: any Model named after one of the six (or with attribute WildboundCritter = <name>) inside
 --   * Workspace.WildboundNewCandyPreview: a default loop (Duquesa SitIdle, Mielita Fly, the rest Idle) with a short
 --     one-shot every few seconds, then back to the loop;
---   * Workspace.WildboundBeastsLocal (the beast client's live clones): the clip comes from the BeastPhase attribute
---     through the per-creature PHASE map below (unknown phase -> the idle loop).
--- Rest is read once per model from the bone CFrame chain (independent of any Transform already written). Clips
--- cross-fade over FADE seconds. Models farther than FAR studs from the camera are skipped; a model is dropped when it
--- leaves the DataModel. If the model carries a "Clip_<name>" attribute (a published Animation id) for the clip it
--- should play, that clip is left to the Animator: its bones go back to rest here and nothing is written.
+--   * Workspace.WildboundBeastsLocal (the beast client's live clones): the clip follows the BeastPhase attribute
+--     through Spec.clipFor (unknown phase -> the idle loop).
+-- Rest is read once per model from the bone CFrame chain (independent of any Transform already written). A clip change
+-- cross-fades over Spec.FADE seconds from the pose last written, so a quick chain of changes never snaps. Models farther
+-- than Spec.FAR studs from the camera are skipped; a model is dropped when it leaves the DataModel.
+-- Published ids: when the model carries a "Clip_<clip>" string attribute for the current clip and has an Animator, this
+-- script plays that Animation on the Animator itself (loaded once per clip, Looped from the clip data, stopped on the
+-- next clip change or when the model is dropped) and puts the bones back to rest; clips without an id keep the live
+-- path. Without an Animator the live path is used even when an id exists.
+-- A Heartbeat error resets the model's bones, stops its tracks and retries the model after RETRY_DELAY (MAX_RETRIES).
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Kit = require(ReplicatedStorage:WaitForChild("WildboundCandyClipKit"))
+local Spec = require(ReplicatedStorage:WaitForChild("WildboundCandyCritterAnimSpec"))
 
-local FADE = 0.15
-local FAR = 250
-local PREVIEW_FOLDER = "WildboundNewCandyPreview"
-local BEASTS_FOLDER = "WildboundBeastsLocal"
-
--- idle: the default loop. extras: preview one-shots. phase: BeastPhase -> clip for live clones.
-local CALM = { "Spawn", "Calm", "Dormant", "Patrol", "Guard", "Wake", "Return", "Disengage", "Ended", "GiveUp", "Recover" }
-local function phases(idle, map)
-	local out = {}
-	for _, name in ipairs(CALM) do out[name] = idle end
-	for name, clip in pairs(map) do out[name] = clip end
-	return out
-end
-local SPEC = {
-	DuquesaBurbuja = { idle = "SitIdle", extras = { "Surprised" }, phase = phases("Idle", {
-		Notice = "Surprised", Chase = "Glide", Telegraph = "Charge", Release = "Whip", Strike = "Whip", Attack = "Whip",
-		Recover = "Recover", Stagger = "Surprised",
-	}) },
-	Mochimiau = { idle = "Idle", extras = { "Bounce" }, phase = phases("Idle", {
-		Notice = "Bounce", Chase = "Trot", Telegraph = "Charge", Release = "Bounce", Strike = "Bounce", Jump = "Bounce",
-	}) },
-	Canelin = { idle = "Idle", extras = { "Alert" }, phase = phases("Idle", {
-		Notice = "Alert", Chase = "Walk", Telegraph = "Charge", Release = "Spin", Strike = "Spin",
-	}) },
-	Flanin = { idle = "Idle", extras = { "Wave" }, phase = phases("Idle", {
-		Notice = "Wave", Chase = "Walk", Telegraph = "Charge", Release = "Jump", Jump = "Jump", Strike = "Land",
-	}) },
-	Mielita = { idle = "Fly", extras = { "Pollen" }, phase = phases("Fly", {
-		Notice = "Orbit", Chase = "Patrol", Telegraph = "Pollen", Release = "Dash", Strike = "Dash", Stagger = "Dizzy",
-	}) },
-	GatoRepartidor = { idle = "Idle", extras = { "Call" }, phase = phases("Idle", {
-		Notice = "Surprised", Chase = "Run", Telegraph = "Call", Release = "Throw", Strike = "Throw",
-	}) },
-}
-local EXTRA_EVERY = { 5, 9 } -- seconds between preview one-shots (random in this range)
+local FADE, FAR, EXTRA_EVERY = Spec.FADE, Spec.FAR, Spec.EXTRA_EVERY
+local RETRY_DELAY, MAX_RETRIES = 2, 3
 
 local clipModules = {}
 local function clipsOf(name)
@@ -60,15 +33,9 @@ local function clipsOf(name)
 	return clipModules[name] or nil
 end
 
-local states = {} -- [model] = state
+local states = {} -- [model] = state (false while pending)
+local failures = {} -- [model] = Heartbeat errors so far
 local random = Random.new()
-
-local function critterName(model)
-	local tagged = model:GetAttribute("WildboundCritter")
-	if type(tagged) == "string" and SPEC[tagged] then return tagged end
-	if SPEC[model.Name] then return model.Name end
-	return nil
-end
 
 -- Each bone's rest rotation relative to the model pivot, from the CFrame chain (Transform ignored).
 local function readBones(model)
@@ -81,7 +48,10 @@ local function readBones(model)
 			if child:IsA("Bone") then
 				local world = parentWorld * child.CFrame
 				local rest = pivot:ToObjectSpace(world).Rotation
-				table.insert(list, { bone = child, name = child.Name, rest = rest, restInv = rest:Inverse(), moved = false })
+				table.insert(list, {
+					bone = child, name = child.Name, rest = rest, restInv = rest:Inverse(), moved = false,
+					last = table.create(6, 0), from = table.create(6, 0), mixed = table.create(6, 0),
+				})
 				walk(child, world)
 			end
 		end
@@ -90,18 +60,9 @@ local function readBones(model)
 	return #list > 0 and list or nil
 end
 
-local function play(state, clipName, now)
-	local clip = state.clips.CLIPS[clipName]
-	if not clip then
-		clipName = state.spec.idle
-		clip = state.clips.CLIPS[clipName]
-	end
-	if not clip or state.current == clipName then return end
-	if state.currentClip then
-		state.previous, state.previousStart, state.fadeStart = state.currentClip, state.currentStart, now
-	end
-	state.current, state.currentClip, state.currentStart = clipName, clip, now
-	state.model:SetAttribute("WildboundCritterClip", clipName)
+local function findAnimator(model)
+	local controller = model:FindFirstChildOfClass("AnimationController") or model:FindFirstChildOfClass("Humanoid")
+	return controller and controller:FindFirstChildOfClass("Animator") or nil
 end
 
 local function resetBones(state)
@@ -110,12 +71,38 @@ local function resetBones(state)
 			item.bone.Transform = CFrame.identity
 			item.moved = false
 		end
+		for i = 1, 6 do item.last[i] = 0 end
 	end
 end
 
+local function stopTrack(state, fade)
+	if state.track then
+		state.track:Stop(fade)
+		state.track, state.trackClip = nil, nil
+	end
+end
+
+-- Starts a clip (or the idle loop when the name is unknown). The fade source is the pose last written.
+local function play(state, clipName, now)
+	local clip = state.clips.CLIPS[clipName]
+	if not clip then
+		clipName = state.spec.idle
+		clip = state.clips.CLIPS[clipName]
+	end
+	if not clip or state.current == clipName then return end
+	if state.current then
+		for _, item in ipairs(state.bones) do
+			for i = 1, 6 do item.from[i] = item.last[i] end
+		end
+		state.fading, state.fadeStart = true, now
+	end
+	state.current, state.currentClip, state.currentStart = clipName, clip, now
+	state.model:SetAttribute("WildboundCritterClip", clipName)
+end
+
 local function setup(model, live)
-	if states[model] or not model:IsA("Model") then return end
-	local name = critterName(model)
+	if states[model] ~= nil or not model:IsA("Model") then return end
+	local name = Spec.critterName(model)
 	if not name then return end
 	states[model] = false -- pending
 	task.spawn(function()
@@ -127,38 +114,64 @@ local function setup(model, live)
 			if bones then break end
 			task.wait(0.5)
 		end
-		if not clips or not bones or not model:IsDescendantOf(game) then
-			states[model] = nil
+		if not clips or not bones or not model:IsDescendantOf(game) or states[model] ~= false then
+			if states[model] == false then states[model] = nil end
 			return
 		end
 		local state = {
-			model = model, name = name, spec = SPEC[name], clips = clips, bones = bones, live = live,
-			bufA = {}, bufB = {}, nextExtraAt = os.clock() + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2]),
+			model = model, name = name, spec = Spec.SPEC[name], clips = clips, bones = bones, live = live, buf = {},
+			tracks = {}, trackIds = {}, nextExtraAt = os.clock() + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2]),
 		}
 		states[model] = state
-		local now = os.clock()
 		if live then
 			local function onPhase()
-				local phase = model:GetAttribute("BeastPhase")
-				play(state, phase and state.spec.phase[phase] or state.spec.idle, os.clock())
+				play(state, Spec.clipFor(name, model:GetAttribute("BeastPhase"), clips.CLIPS), os.clock())
 			end
 			state.connection = model:GetAttributeChangedSignal("BeastPhase"):Connect(onPhase)
 			onPhase()
 		else
-			play(state, state.spec.idle, now)
+			play(state, state.spec.idle, os.clock())
 		end
 	end)
 end
 
 local function drop(model)
 	local state = states[model]
-	if state and state.connection then state.connection:Disconnect() end
 	states[model] = nil
+	if not state then return end
+	if state.connection then state.connection:Disconnect() end
+	pcall(stopTrack, state, 0)
+	if model:IsDescendantOf(game) then pcall(resetBones, state) end
+end
+
+-- Plays the current clip's published Animation on the model's Animator. Returns false when the live path must run.
+local function playPublished(state)
+	local id = Spec.publishedId(state.model, state.current)
+	local animator = id and findAnimator(state.model)
+	if not animator then
+		stopTrack(state, 0)
+		return false
+	end
+	if state.trackClip ~= state.current then
+		stopTrack(state, FADE)
+		local track = state.tracks[state.current]
+		if not track or state.trackIds[state.current] ~= id then
+			local animation = Instance.new("Animation")
+			animation.AnimationId = id
+			track = animator:LoadAnimation(animation)
+			track.Looped = state.currentClip.loop == true
+			state.tracks[state.current] = track
+			state.trackIds[state.current] = id
+		end
+		track:Play(FADE)
+		state.track, state.trackClip = track, state.current
+		resetBones(state)
+	end
+	return true
 end
 
 local function step(state, now, cameraPosition)
 	local model = state.model
-	if (model:GetPivot().Position - cameraPosition).Magnitude > FAR then return end
 	-- preview: a short one-shot every few seconds, then back to the loop
 	if not state.live then
 		if state.current == state.spec.idle and now >= state.nextExtraAt then
@@ -169,35 +182,28 @@ local function step(state, now, cameraPosition)
 			state.nextExtraAt = now + random:NextNumber(EXTRA_EVERY[1], EXTRA_EVERY[2])
 		end
 	end
-	if type(model:GetAttribute("Clip_" .. state.current)) == "string" then
-		resetBones(state) -- a published id exists for this clip: the Animator owns it
-		return
-	end
-	local values = Kit.sample(state.currentClip, now - state.currentStart, state.bufA)
+	if playPublished(state) then return end
+	if (model:GetPivot().Position - cameraPosition).Magnitude > FAR then return end
+	local values = Kit.sample(state.currentClip, now - state.currentStart, state.buf)
 	local weight = 1
-	local other
-	if state.previous then
+	if state.fading then
 		weight = (now - state.fadeStart) / FADE
 		if weight >= 1 then
-			state.previous = nil
-			weight = 1
-		else
-			other = Kit.sample(state.previous, now - state.previousStart, state.bufB)
+			state.fading, weight = false, 1
 		end
 	end
 	local zero = Kit.ZERO
 	for _, item in ipairs(state.bones) do
 		local v = values[item.name] or zero
-		if other then
-			local p = other[item.name] or zero
-			local mixed = item.mixed or table.create(6, 0)
-			item.mixed = mixed
+		if state.fading then
+			local p, mixed = item.from, item.mixed
 			for i = 1, 6 do mixed[i] = p[i] + (v[i] - p[i]) * weight end
 			v = mixed
 		end
+		local last = item.last
+		for i = 1, 6 do last[i] = v[i] end
 		if v[1] ~= 0 or v[2] ~= 0 or v[3] ~= 0 or v[4] ~= 0 or v[5] ~= 0 or v[6] ~= 0 then
-			item.bone.Transform = item.restInv * (CFrame.new(v[1], v[2], v[3])
-				* CFrame.Angles(math.rad(v[4]), math.rad(v[5]), math.rad(v[6]))) * item.rest
+			item.bone.Transform = Kit.transform(item.rest, v, item.restInv)
 			item.moved = true
 		elseif item.moved then
 			item.bone.Transform = CFrame.identity
@@ -215,11 +221,19 @@ RunService.Heartbeat:Connect(function()
 		if state then
 			if not model:IsDescendantOf(game) then
 				drop(model)
+				failures[model] = nil
 			else
 				local ok, problem = pcall(step, state, now, cameraPosition)
 				if not ok then
 					warn("[WildboundCandyCritterAnim] " .. model.Name .. ": " .. tostring(problem))
 					drop(model)
+					local count = (failures[model] or 0) + 1
+					failures[model] = count
+					if count <= MAX_RETRIES then
+						task.delay(RETRY_DELAY, function()
+							if model:IsDescendantOf(game) then setup(model, state.live) end
+						end)
+					end
 				end
 			end
 		end
@@ -230,17 +244,20 @@ local function watch(folder, live)
 	for _, child in ipairs(folder:GetChildren()) do setup(child, live) end
 	folder.ChildAdded:Connect(function(child) setup(child, live) end)
 	folder.ChildRemoved:Connect(function(child)
-		if not child:IsDescendantOf(game) then drop(child) end
+		if not child:IsDescendantOf(game) then
+			drop(child)
+			failures[child] = nil
+		end
 	end)
 end
 
 local watched = {}
 local function consider(child)
 	if watched[child] then return end
-	if child.Name == PREVIEW_FOLDER then
+	if child.Name == Spec.PREVIEW_FOLDER then
 		watched[child] = true
 		watch(child, false)
-	elseif child.Name == BEASTS_FOLDER then
+	elseif child.Name == Spec.BEASTS_FOLDER then
 		watched[child] = true
 		watch(child, true)
 	end

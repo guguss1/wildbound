@@ -92,3 +92,7 @@ An independent review of `054a4dd` found three defects and one note; all four ar
 ### Next step
 
 Tell colours (CC7) and the text lines (CC8) in the beast client and `WildboundText`; then a tuning pass in Play with the live animation.
+
+### Live animation (separate record)
+
+The live animation of the five critters and Duquesa is recorded in `odd/tasks/wildbound-candy-critters-anim.md` (scripts `WildboundCandyCritterAnim`, `WildboundCandyCritterAnimSpec`, `WildboundCandyClipKit`, the six `WildboundCandyCritterClips<Name>` data modules). Since the review fixes it also plays a published `Clip_<clip>` id on the clone's Animator, so the ids for the five go into `CLIPS[<name>].IDS` in `WildboundCandyCritterService` (this session's file; the animation session did not edit it). Duquesa has no id path.

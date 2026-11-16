@@ -1,10 +1,14 @@
 -- Invoke with require(freshTestClone)(require(freshKitClone), ServerStorage.WildboundNewCandyImports.Canelin,
--- require(freshCanelinClipsClone)), where freshCanelinClipsClone is ReplicatedStorage.WildboundCandyCritterClipsCanelin
--- cloned next to a fresh WildboundCandyClipKit clone (it requires script.Parent.WildboundCandyClipKit).
--- Caramelo critters (odd/tasks/wildbound-candy-critters.md): the shared clip kit. define keeps the clip-module API,
+-- require(freshCanelinClipsClone), require(freshSpecClone), { [name] = require(freshClipsClone) } for the six critters,
+-- StarterPlayer.StarterPlayerScripts.WildboundCandyCritterAnim.Source), where each fresh clips clone is
+-- ReplicatedStorage.WildboundCandyCritterClips<Name> cloned next to a fresh WildboundCandyClipKit clone (it requires
+-- script.Parent.WildboundCandyClipKit) and freshSpecClone is ReplicatedStorage.WildboundCandyCritterAnimSpec.
+-- Caramelo critters (odd/tasks/wildbound-candy-critters-anim.md): the shared clip kit. define keeps the clip-module API,
 -- sample interpolates keys with the clip's easing (loops wrap, one-shots clamp), transform matches the Pose maths and
--- build makes one KeyframeSequence per clip on the real rig. Changes nothing (built sequences are destroyed).
-return function(Kit, prefab, Clips)
+-- build makes one KeyframeSequence per clip on the real rig. The spec maps every phase to a clip its data module has,
+-- and the client player uses the spec, Kit.transform and the Animator for published ids. Changes nothing (built
+-- sequences and probe models are destroyed).
+return function(Kit, prefab, Clips, Spec, allClips, clientSource)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -167,6 +171,9 @@ return function(Kit, prefab, Clips)
 			local rest = prefab:GetPivot():ToObjectSpace(pick.WorldCFrame).Rotation
 			local back = rest * pose.CFrame * rest:Inverse()
 			near((back.Position - Vector3.new(0.2, 0.1, -0.3)).Magnitude, 0, 1e-4, "round trip offset")
+			local want = CFrame.Angles(math.rad(10), math.rad(20), math.rad(-15))
+			local rx, ry, rz = back.Rotation:ToObjectSpace(want):ToEulerAnglesXYZ()
+			near(math.abs(rx) + math.abs(ry) + math.abs(rz), 0, 1e-4, "round trip rotation")
 			assert(not pcall(Kit.define(data).build, prefab, "Missing"), "an unknown clip errors")
 		end)
 		seq:Destroy()
@@ -198,6 +205,75 @@ return function(Kit, prefab, Clips)
 			assert(ok, problem)
 		end
 		equal(linearSeen, true, "Canelin has Linear clips (Spin, Charge)")
+	end)
+
+	local NAMES = { "DuquesaBurbuja", "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
+
+	case("CK9: the spec names only clips each data module has, and covers every brain phase", function()
+		assert(Spec and allClips, "pass the spec and the six clips modules")
+		local count = 0
+		for _ in pairs(Spec.SPEC) do count += 1 end
+		equal(count, #NAMES, "six critters in the spec")
+		for _, name in ipairs(NAMES) do
+			local spec, data = Spec.SPEC[name], allClips[name]
+			assert(spec, "spec for " .. name)
+			assert(data and data.CLIPS, "clips module for " .. name)
+			assert(data.CLIPS[spec.idle], name .. ": idle clip " .. tostring(spec.idle))
+			equal(data.CLIPS[spec.idle].loop, true, name .. ": idle loops")
+			for _, extra in ipairs(spec.extras) do assert(data.CLIPS[extra], name .. ": extra clip " .. extra) end
+			for phase, clip in pairs(spec.phase) do
+				assert(data.CLIPS[clip], name .. ": phase " .. phase .. " -> missing clip " .. tostring(clip))
+			end
+			for _, phase in ipairs(Spec.BRAIN_PHASES) do
+				assert(spec.phase[phase], name .. ": brain phase " .. phase .. " is not mapped")
+				equal(Spec.clipFor(name, phase, data.CLIPS), spec.phase[phase], name .. " " .. phase)
+			end
+		end
+	end)
+
+	case("CK10: clipFor falls back to idle; publishedId only takes a non-empty string Clip_ attribute", function()
+		assert(Spec and allClips, "pass the spec and the six clips modules")
+		local clips = allClips.Mielita.CLIPS
+		equal(Spec.clipFor("Mielita", "NoSuchPhase", clips), "Fly", "unknown phase")
+		equal(Spec.clipFor("Mielita", nil, clips), "Fly", "no phase")
+		equal(Spec.clipFor("Mielita", "Telegraph", clips), "Pollen", "mapped phase")
+		equal(Spec.clipFor("Mielita", "Telegraph", { Fly = clips.Fly }), "Fly", "a mapped clip the data lacks")
+		local probe = Instance.new("Model")
+		local ok, problem = pcall(function()
+			probe.Name = "Mochimiau"
+			equal(Spec.critterName(probe), "Mochimiau", "by name")
+			probe:SetAttribute("WildboundCritter", "Flanin")
+			equal(Spec.critterName(probe), "Flanin", "by attribute")
+			probe.Name = "Rock"
+			probe:SetAttribute("WildboundCritter", nil)
+			equal(Spec.critterName(probe), nil, "none of the six")
+			equal(Spec.publishedId(probe, "Idle"), nil, "no attribute")
+			probe:SetAttribute("Clip_Idle", "")
+			equal(Spec.publishedId(probe, "Idle"), nil, "empty string")
+			probe:SetAttribute("Clip_Idle", 123)
+			equal(Spec.publishedId(probe, "Idle"), nil, "a number is not an id")
+			probe:SetAttribute("Clip_Idle", "rbxassetid://123")
+			equal(Spec.publishedId(probe, "Idle"), "rbxassetid://123", "string id")
+		end)
+		probe:Destroy()
+		assert(ok, problem)
+	end)
+
+	case("CK11: the client player uses the spec, Kit.transform and plays published ids on the Animator", function()
+		assert(type(clientSource) == "string", "pass the client source")
+		local function has(text, label)
+			assert(string.find(clientSource, text, 1, true), "client must contain " .. label .. " (" .. text .. ")")
+		end
+		has('WaitForChild("WildboundCandyCritterAnimSpec")', "the spec require")
+		has("Spec.clipFor(", "the phase resolution from the spec")
+		has("Kit.transform(item.rest, v, item.restInv)", "the shared transform")
+		assert(not string.find(clientSource, "CFrame.Angles", 1, true), "no inline transform copy in the client")
+		assert(not string.find(clientSource, "local SPEC", 1, true), "no local copy of the spec")
+		has("Spec.publishedId(", "the Clip_ rule from the spec")
+		has(":LoadAnimation(", "loading the published Animation")
+		has("track:Play(FADE)", "playing it")
+		has("stopTrack(state", "stopping it on clip change and drop")
+		has("resetBones(state)", "resetting bones")
 	end)
 
 	return result
