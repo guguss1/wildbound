@@ -9,6 +9,9 @@ local Duq = {}
 
 Duq.EVERY_SECONDS = 10
 Duq.FIRST_SECONDS = 0.3 -- walked Play: Frutillon bumps a climber off the summit about 1.5 s after arriving
+-- A2 review: a short drop off the summit (a Frutillon bump) keeps the 10 s cadence; only REARM_SECONDS with nobody up
+-- there starts it again, so the next arrival gets a volley FIRST_SECONDS after arriving
+Duq.REARM_SECONDS = 5
 Duq.WINDUP_SECONDS = 0.6
 Duq.FLIGHT_SECONDS = 1.2
 Duq.BUBBLES = 3
@@ -49,8 +52,10 @@ function Duq.step(state, now, players, summit)
 		if Duq.onSummit(p, summit) then target = target or p end
 	end
 	if not target then
-		state.nextAt = nil
+		state.leftAt = state.leftAt or now
+		if now - state.leftAt >= Duq.REARM_SECONDS then state.nextAt = nil end
 	else
+		state.leftAt = nil
 		state.nextAt = state.nextAt or now + Duq.FIRST_SECONDS
 		if now >= state.nextAt and not state.pending then
 			state.volley += 1

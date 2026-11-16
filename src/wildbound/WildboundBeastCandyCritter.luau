@@ -176,6 +176,8 @@ local function stickyPatches(events, e, now, target, C)
 		if now >= patches[i].untilAt then table.remove(patches, i) end
 	end
 	if now < (e.slowFreeAt or -math.huge) or target.safe == true then return end
+	-- A2 review: never while its own attack is open (Canelin's first glaze piece pre-empted its roll's -30 %)
+	if e.attack then return end
 	for _, p in ipairs(patches) do
 		if flat(target.x, target.z, p.x, p.z) <= p.r and math.abs(target.y - p.y) <= C.hitHeight then
 			e.slowFreeAt = now + p.seconds + PATCH_GAP

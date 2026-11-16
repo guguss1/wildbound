@@ -11,6 +11,9 @@ local Frut = {}
 Frut.TELL_SECONDS = 0.8
 Frut.RECOVER_SECONDS = 1.0
 Frut.SLEEP_SECONDS = 6
+-- A2 review (walked Play): woken, he takes this long to get up before his first tell, so La Duquesa's first bubbles
+-- (FIRST + WINDUP + FLIGHT = 2.1 s after arriving) pop before his first roll can bump a climber off the summit
+Frut.WAKE_SECONDS = 2
 Frut.RADIUS_STUDS = 2
 Frut.RING_STUDS = 6.3
 Frut.REST_ANGLE = math.pi
@@ -92,9 +95,14 @@ function Frut.step(state, now, players, summitArg)
 	if state.phase == "Asleep" then
 		if target then
 			table.insert(events, { kind = "Wake", at = now })
-			telegraph(state, now, target, summit, events)
+			state.phase, state.wokeAt = "Waking", now + Frut.WAKE_SECONDS
 		end
 		return events
+	end
+	if state.phase == "Waking" then
+		if now < state.wokeAt then return events end
+		-- awake: the first tell if someone is up there, otherwise he waits (and sleeps again after SLEEP_SECONDS)
+		state.phase, state.recoverEndsAt = "Recover", state.wokeAt
 	end
 	if state.phase == "Telegraph" then
 		if now < state.rollAt then return events end
