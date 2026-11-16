@@ -166,6 +166,16 @@ SPECS["WildboundCandyClipPublish_Test"] = {
 	"inst:ServerStorage.WildboundAssets.Tortidragon", "inst:ServerStorage.WildboundAssets.DonGlaseon",
 	{ tortidragonService = "src:WildboundCandyTortidragonService", donGlaseonService = "src:WildboundCandyDonGlaseonService" },
 }
+SPECS["WildboundCandyClipKit_Test"] = {
+	"mod:WildboundCandyClipKit", "inst:ServerStorage.WildboundNewCandyImports.Canelin", "mod:WildboundCandyCritterClipsCanelin",
+	"mod:WildboundCandyCritterAnimSpec",
+	{
+		DuquesaBurbuja = "mod:WildboundCandyCritterClipsDuquesaBurbuja", Mochimiau = "mod:WildboundCandyCritterClipsMochimiau",
+		Canelin = "mod:WildboundCandyCritterClipsCanelin", Flanin = "mod:WildboundCandyCritterClipsFlanin",
+		Mielita = "mod:WildboundCandyCritterClipsMielita", GatoRepartidor = "mod:WildboundCandyCritterClipsGatoRepartidor",
+	},
+	"src:WildboundCandyCritterAnim",
+}
 SPECS["WildboundCandyNests_Test"] = {
 	"mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundPraderaSites", "mod:WildboundBeastConfig",
 	"mod:WildboundIsland", "mod:WildboundSpecies", "mod:WildboundCandyBuilder",
@@ -442,6 +452,13 @@ SPECS["WildboundWorldRules_Test"] = { "mod:WildboundWorldRules", "mod:WildboundI
 local SIBLINGS = {
 	WildboundRecord = { "WildboundTotemRecord", "WildboundFarmRecord", "WildboundRouletteRecord" },
 	WildboundCaptureView = { "WildboundText" }, -- require(script.Parent:WaitForChild("WildboundText")) would yield forever
+	-- The candy critter clip data modules require script.Parent.WildboundCandyClipKit.
+	WildboundCandyCritterClipsDuquesaBurbuja = { "WildboundCandyClipKit" },
+	WildboundCandyCritterClipsMochimiau = { "WildboundCandyClipKit" },
+	WildboundCandyCritterClipsCanelin = { "WildboundCandyClipKit" },
+	WildboundCandyCritterClipsFlanin = { "WildboundCandyClipKit" },
+	WildboundCandyCritterClipsMielita = { "WildboundCandyClipKit" },
+	WildboundCandyCritterClipsGatoRepartidor = { "WildboundCandyClipKit" },
 }
 local SUITE_TIMEOUT = 30 -- seconds; a suite still yielding after this is cancelled and reported as TIMEOUT
 local RUN_PREFIX = "WildboundFreshRunner_" -- each run's temporary folder is RUN_PREFIX .. run id
