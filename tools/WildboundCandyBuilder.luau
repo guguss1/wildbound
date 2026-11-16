@@ -431,6 +431,8 @@ function Builder.build(parent, layout, kit, library)
 				CFrame.new(world(x, math.max(low + 1.5, top + 7.5), z)) * CFrame.Angles(0, 0, math.rad(90)), palette.cotton)
 			roof.Transparency = 1
 			CollectionService:AddTag(roof, "WildboundRoof")
+			-- Fuller canopy: visual-only ball blobs around the crowns (Kit.fluff; no collision, rays pass through).
+			if Kit.fluff then created += Kit.fluff(model) end
 		end
 		scatter(22, -190, -10, 12, 8, tree)
 		scatter(10, 10, 190, 12, 8, tree)

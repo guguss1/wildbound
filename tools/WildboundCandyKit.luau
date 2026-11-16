@@ -93,6 +93,54 @@ function Kit.assemble(import, parent)
 	return library
 end
 
+-- Fuller cotton trees (odd/tasks/wildbound-caramelo-playfix.md, "Fuller cotton trees"): plain Ball canopy blobs
+-- around a tree's two crowns, laid out in the tree's own frame (so they follow its yaw and scale), visual only.
+-- FLUFF: { angle around the crown centre (degrees), out (fraction of the crown radius), up (fraction of the crown
+-- half-height), diameter (fraction of the crown radius), colour index into FLUFF_COLORS }.
+Kit.FLUFF_COLORS = { "#FF96BE", "#FFC3DC", "#FFADD0" }
+Kit.FLUFF = {
+	{ 20, 0.95, -0.25, 1.15, 1 }, { 110, 0.95, -0.1, 1.05, 2 }, { 200, 0.95, -0.3, 1.15, 3 }, { 290, 0.95, -0.05, 1.05, 1 },
+	{ 0, 0, 0.75, 1.2, 2 },
+}
+Kit.FLUFF_COUNT = #Kit.FLUFF
+
+-- fluff(model) -> blobs added (0 when the model has no CrownA/CrownB or already has its blobs).
+function Kit.fluff(model)
+	local crowns = {}
+	for _, name in ipairs({ "CrownA", "CrownB" }) do
+		local crown = model:FindFirstChild(name)
+		if crown and crown:IsA("BasePart") then table.insert(crowns, crown) end
+	end
+	if #crowns == 0 or model:FindFirstChild("Fluff_1") then return 0 end
+	local pivot = model:GetPivot()
+	local minV, maxV = Vector3.new(math.huge, math.huge, math.huge), Vector3.new(-math.huge, -math.huge, -math.huge)
+	for _, crown in ipairs(crowns) do
+		local at = pivot:PointToObjectSpace(crown.Position)
+		local half = crown.Size / 2
+		minV, maxV = minV:Min(at - half), maxV:Max(at + half)
+	end
+	local centre, size = (minV + maxV) / 2, maxV - minV
+	local radius, halfHeight = math.max(size.X, size.Z) / 2, size.Y / 2
+	for index, blob in ipairs(Kit.FLUFF) do
+		local angle = math.rad(blob[1])
+		local spot = centre + Vector3.new(math.cos(angle) * blob[2] * radius, blob[3] * halfHeight, math.sin(angle) * blob[2] * radius)
+		local part = Instance.new("Part")
+		part.Name = "Fluff_" .. index
+		part.Shape = Enum.PartType.Ball
+		part.Size = Vector3.one * blob[4] * radius
+		part.CFrame = pivot * CFrame.new(spot)
+		part.Color = Color3.fromHex(Kit.FLUFF_COLORS[blob[5]])
+		part.Material = Enum.Material.SmoothPlastic
+		part.Anchored = true
+		part.CanCollide = false
+		part.CanQuery = false
+		part.CanTouch = false
+		part.CastShadow = false
+		part.Parent = model
+	end
+	return #Kit.FLUFF
+end
+
 -- A detached clone of a prefab, scaled about its base and pivoted to the given CFrame.
 function Kit.place(library, name, cframe, scale)
 	local prefab = library:FindFirstChild(name)

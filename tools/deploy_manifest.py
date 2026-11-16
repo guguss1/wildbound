@@ -375,6 +375,7 @@ DEFAULT_MAPPINGS = [
     ("tests/WildboundCandyBeastSites_Test.luau", "ServerStorage.WildboundCandyBeastSites_Test"),
     ("tools/WildboundCandyKit.luau", "ServerStorage.WildboundCandyKit"),
     ("tests/WildboundCandyKit_Test.luau", "ServerStorage.WildboundCandyKit_Test"),
+    ("tests/WildboundCandyFluff_Test.luau", "ServerStorage.WildboundCandyFluff_Test"),
     ("tools/WildboundCandyGomibu.luau", "ServerStorage.WildboundCandyGomibu"),
     ("tests/WildboundCandyGomibu_Test.luau", "ServerStorage.WildboundCandyGomibu_Test"),
     ("tools/WildboundCandyGomibuClips.luau", "ServerStorage.WildboundCandyGomibuClips"),

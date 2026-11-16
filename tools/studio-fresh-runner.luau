@@ -132,6 +132,7 @@ SPECS["WildboundBeastScuttler_Test"] = {
 }
 SPECS["WildboundBeastGomibu_Test"] = { "mod:WildboundBeastEncounters", "mod:WildboundBeastGomibu", "mod:WildboundBeastConfig" }
 SPECS["WildboundCandyLayout_Test"] = { "mod:WildboundCandyLayout", "mod:WildboundBiomes" }
+SPECS["WildboundCandyFluff_Test"] = { "mod:WildboundCandyKit" }
 SPECS["WildboundCandyGomibu_Test"] = { "mod:WildboundCandyGomibu", "inst:ServerStorage.WildboundAssets.Gomibu" }
 SPECS["WildboundCandyGomibuClips_Test"] = { "mod:WildboundCandyGomibuClips", "inst:ServerStorage.WildboundAssets.Gomibu" }
 SPECS["WildboundCandyGomibuAttack_Test"] = { "mod:WildboundCandyGomibuAttack" }

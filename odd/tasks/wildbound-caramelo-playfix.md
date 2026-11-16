@@ -828,3 +828,26 @@ Screen capture: the 3D viewport rendered blank white both in Play and in Edit (a
 the known background-window rendering issue (RenderStepped not firing); the blank images are kept in the session
 scratchpad only. Not checked: the look on screen, two players, a phone, the run at 21 studs/s in Play (Config not yet in
 Studio).
+
+## Fuller cotton trees (2026-11-16)
+
+Owner: "quiero que los árboles del reino caramelo sean más frondosos".
+
+- `WildboundCandyKit.fluff(model)` (`FLUFF`, `FLUFF_COLORS`, `FLUFF_COUNT` = 5): around a cotton tree's CrownA/CrownB,
+  four side blobs (about 1.1 crown radii wide, just past the crown edge, slightly low) and one top blob, plain Ball
+  parts in the kit's pinks (#FF96BE, #FFC3DC, #FFADD0), SmoothPlastic, anchored, CanCollide/CanQuery/CanTouch/CastShadow
+  false, laid out in the tree's own frame (they follow yaw and scale). Once per tree (a second call adds nothing).
+  The canopy is about 50% wider and a little taller. La Nube's invisible `Roof` disc is unchanged.
+- `WildboundCandyBuilder`: `tree()` calls `Kit.fluff` after the roof, so a rebuild keeps the fuller trees.
+- Applied in Studio to the 32 `Candy_Bioma_v1.CottonTrees` (160 parts), and through `WildboundBig4Annex.fluffCandyAnnex`
+  to the 44 cotton trees of `WildboundCandyAnnex_Big4` (220 parts; see the big4 map task file).
+- Spec first: new `tests/WildboundCandyFluff_Test.luau` (SPECS `mod:WildboundCandyKit`, added to the runner and the
+  deploy manifest). RED with the fresh loader (engine in a temporary ServerStorage StringValue, destroyed after): 0
+  passed, 5 failed. GREEN: 5 passed, 0 failed, no leaks. Studio == repo after writing: `WildboundCandyKit` 14697
+  7d72fc5b, `WildboundCandyBuilder` 25203 fc76fb78, `WildboundCandyFluff_Test` 5299 330a6ca4.
+- Not checked: no screenshot (the 3D view captured blank white this session); `WildboundCandyBuilder_Test` and
+  `WildboundCandyKit_Test` are skipped by the fresh runner (they write into ServerStorage) and were not run.
+
+Decisions taken for the user: only the cotton trees get blobs (the lollipop, cookie and cream trees keep their own
+shapes); Ball parts instead of new meshes (no upload, no collision change on the paths); five blobs per tree to stay
+under the 6000-part big4 budget (big4 total 5657).
