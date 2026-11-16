@@ -23,12 +23,14 @@ return function(Gold, source, sources)
 	local function rarityOf(name) return RARITY[name] end
 
 	case("GD-1: a farm pays per creature, more for rarer ones; unknown species count as common", function()
-		equal(Gold.farmRate({ "Lumipol" }, rarityOf), 2)
-		equal(Gold.farmRate({ "Cestillo" }, rarityOf), 3)
-		equal(Gold.farmRate({ "Polvilla" }, rarityOf), 5)
-		equal(Gold.farmRate({ "Tizoncillo" }, rarityOf), 8)
-		equal(Gold.farmRate({ "Mielita" }, rarityOf), 2, "a candy critter")
-		equal(Gold.farmRate({ "Lumipol", "Lumipol", "Polvilla" }, rarityOf), 9)
+		-- Owner feedback 3: farm income about x3.5 (was 2/3/5/8).
+		equal(Gold.farmRate({ "Lumipol" }, rarityOf), 7)
+		equal(Gold.farmRate({ "Cestillo" }, rarityOf), 10)
+		equal(Gold.farmRate({ "Polvilla" }, rarityOf), 18)
+		equal(Gold.farmRate({ "Tizoncillo" }, rarityOf), 30)
+		equal(Gold.farmRate({ "Mielita" }, rarityOf), 7, "a candy critter")
+		equal(Gold.farmRate({ "Lumipol", "Lumipol", "Polvilla" }, rarityOf), 32)
+		equal(Gold.TAME_BONUS, 20, "tame/hatch bonus (was 5)")
 		equal(Gold.farmRate({}, rarityOf), 0); equal(Gold.farmRate(nil, rarityOf), 0)
 	end)
 
@@ -49,20 +51,21 @@ return function(Gold, source, sources)
 	end)
 
 	case("GD-3: a treadmill lap pays more at higher levels, capped per minute (anti-AFK)", function()
-		equal(Gold.lapGold(0), 1); equal(Gold.lapGold(3), 1); equal(Gold.lapGold(4), 2); equal(Gold.lapGold(17), 5)
+		-- Owner feedback 3: 2 per lap (was 1), cap 10 a minute (was 6).
+		equal(Gold.lapGold(0), 2); equal(Gold.lapGold(3), 2); equal(Gold.lapGold(4), 3); equal(Gold.lapGold(17), 6)
 		local window, paid = nil, 0
 		for lap = 1, 7 do
 			local got
 			got, window = Gold.capLap(window, lap * 8, Gold.lapGold(0))
 			paid += got
 		end
-		equal(paid, 6, "7 laps in under a minute pay the cap of 6")
+		equal(paid, 10, "7 laps in under a minute pay the cap of 10")
 		local got
-		got, window = Gold.capLap(window, 8 + 60, 5)
-		equal(got, 5, "a new minute opens a new window")
-		got = Gold.capLap(window, 70, 5)
-		equal(got, 1, "the rest of the cap")
-		equal(Gold.TREADMILL_CAP_PER_MINUTE, 6)
+		got, window = Gold.capLap(window, 8 + 60, 6)
+		equal(got, 6, "a new minute opens a new window")
+		got = Gold.capLap(window, 70, 6)
+		equal(got, 4, "the rest of the cap")
+		equal(Gold.TREADMILL_CAP_PER_MINUTE, 10)
 	end)
 
 	case("GD-4: gold prices for the farm places and the treadmill levels", function()
@@ -72,14 +75,14 @@ return function(Gold, source, sources)
 		equal(Gold.trainPrice(17, 17), nil); equal(Gold.trainPrice(-1, 17), nil)
 	end)
 
-	case("GD-5: the first gold purchase takes 5 to 10 minutes of normal play", function()
+	case("GD-5: the first gold purchase takes 1 to 5 minutes of normal play (owner feedback 3: was 5 to 10)", function()
 		-- Normal early play: two common creatures in the farm, one minute in five on the treadmill (lap cap), one tame
 		-- every ten minutes. The cheapest gold purchase is the first treadmill level.
 		local perMinute = Gold.farmRate({ "Lumipol", "Lumipol" }, rarityOf) + Gold.TREADMILL_CAP_PER_MINUTE / 5
 			+ Gold.TAME_BONUS / 10
 		local cheapest = math.min(Gold.trainPrice(0, 17), Gold.upgradePrice("farmSlot5"))
 		local minutes = cheapest / perMinute
-		assert(minutes >= 5 and minutes <= 10, ("first purchase after %.1f minutes"):format(minutes))
+		assert(minutes >= 1 and minutes <= 5, ("first purchase after %.1f minutes"):format(minutes))
 		local fifth = Gold.upgradePrice("farmSlot5") / (Gold.farmRate({ "Lumipol", "Lumipol", "Lumipol", "Lumipol" }, rarityOf)
 			+ Gold.TREADMILL_CAP_PER_MINUTE / 5)
 		assert(fifth <= 10, ("a full farm buys the fifth place in %.1f minutes"):format(fifth))
@@ -212,6 +215,96 @@ return function(Gold, source, sources)
 			equal(source:find(word, 1, true), nil, "source mentions " .. word)
 		end
 		equal(Config.monetization, "none")
+	end)
+
+	-- Owner feedback 3: "Vender" a creature for gold, by rarity and bond level.
+	case("GD-13: a creature's sale price by rarity and bond level", function()
+		equal(Gold.sellPrice("Comun", 1), 25); equal(Gold.sellPrice("Rara", 1), 60)
+		equal(Gold.sellPrice("Epica", 1), 150); equal(Gold.sellPrice("Legendaria", 1), 400)
+		equal(Gold.sellPrice(nil, 1), 25, "an unknown rarity sells as common")
+		equal(Gold.sellPrice("Comun", 3), 35, "+20% per bond level above 1")
+		equal(Gold.sellPrice("Rara", 0 / 0), 60); equal(Gold.sellPrice("Rara", -4), 60); equal(Gold.sellPrice("Rara"), 60)
+		equal(Gold.sellPrice("Comun", 1e9), Gold.sellPrice("Comun", Gold.SELL_MAX_LEVEL), "the level is capped")
+	end)
+
+	case("GD-14: State sells an owned creature for gold; never the companion, a farm creature or the last one", function()
+		local state, profile = fresh()
+		local function refused(reason, ok, why) equal(ok, false); equal(why, reason) end
+		profile.registered = { { uid = "a", species = "Lumipol" }, { uid = "b", species = "Cestillo" },
+			{ uid = "c", species = "Polvilla" } }
+		profile.discovered = { Lumipol = true, Cestillo = true, Polvilla = true }
+		profile.equippedUid = "a"
+		profile.farm = { "b" }
+		profile.bond = { c = { xp = 3, level = 2 } }
+		refused("InvalidPlayer", state:sellCreature("Bob", "c", true, 150))
+		refused("InvalidContext", state:sellCreature("Alice", "c", false, 150))
+		refused("NotOwnedPet", state:sellCreature("Alice", "zz", true, 150))
+		refused("IsCompanion", state:sellCreature("Alice", "a", true, 25))
+		refused("InFarm", state:sellCreature("Alice", "b", true, 60))
+		refused("InvalidPrice", state:sellCreature("Alice", "c", true, 0))
+		refused("InvalidPrice", state:sellCreature("Alice", "c", true, 1.5))
+		equal(#profile.registered, 3, "refusals change nothing"); equal(state:snapshot("Alice").gold, 0)
+		local ok, result = state:sellCreature("Alice", "c", true, 180)
+		equal(ok, true); equal(result.species, "Polvilla"); equal(result.gold, 180)
+		equal(#profile.registered, 2); equal(profile.bond.c, nil, "its bond goes with it")
+		equal(profile.discovered.Polvilla, true, "the species stays discovered")
+		equal(state:snapshot("Alice").gold, 180)
+		-- Down to one creature: it can never be sold, even when it is not the companion.
+		profile.farm = {}
+		profile.equippedUid = nil
+		equal(state:sellCreature("Alice", "b", true, 60), true)
+		refused("LastCreature", state:sellCreature("Alice", "a", true, 25))
+		equal(state:snapshot("Alice").gold, 240)
+	end)
+
+	case("GD-15: the panel offers Vender on every creature the server would sell", function()
+		local snapshot = { registered = { { uid = "a", species = "Lumipol" }, { uid = "b", species = "Cestillo" },
+			{ uid = "c", species = "Polvilla" } }, equippedUid = "a", farm = { "b" } }
+		local set = View.sellable(snapshot)
+		equal(set.a, nil, "not the companion"); equal(set.b, nil, "not a farm creature"); equal(set.c, true)
+		equal(next(View.sellable({ registered = { { uid = "x", species = "Lumipol" } } })), nil, "not the last one")
+		equal(next(View.sellable(nil)), nil)
+		equal(Text.GOLD.sell, "Vender"); equal(Text.GOLD.sellConfirm, "Confirmar")
+		assert(Text.GOLD.sellRow:format("Lumipol", 25):find("25 de oro", 1, true))
+		assert(Text.GOLD.sold:format("Lumipol", 25):find("+25 de oro", 1, true))
+		for _, why in ipairs({ "IsCompanion", "InFarm", "LastCreature" }) do
+			assert(type(Text.GOLD.sellRefused[why]) == "string", "refusal words for " .. why)
+		end
+	end)
+
+	case("GD-16: the base screens hide gloves, chest, incubator, crafts and skills; farm, treadmill and gold stay", function()
+		local hidden = View.HIDDEN
+		equal(hidden.eggsTab, true, "the Huevos (cofre/incubadora) tab is hidden")
+		equal(hidden.stations.chest, true); equal(hidden.stations.incubator, true); equal(hidden.stations.glove, true)
+		equal(hidden.stations.train, nil, "the treadmill prompt stays")
+		local rows = View.campRows(Config, Economy, { ember = 0, gold = 0, banked = {}, consumables = { seal = 1, totem = 1 },
+			upgrades = {}, skills = {}, bond = {}, gloves = {}, luckTotems = 0 }, { atCamp = true, goldPrices = prices })
+		local shown, ids = View.visibleRows(rows), {}
+		for _, item in ipairs(shown) do
+			ids[item.id] = true
+			assert(item.section ~= "Craft" and item.section ~= "Gear" and item.section ~= "Skills", "hidden row " .. item.id)
+		end
+		for _, id in ipairs({ "upgrade:incubatorSlot2", "upgrade:incubatorSlot3", "upgrade:fastIncubator", "gear:guantes",
+			"gear:totemSuerte", "craft:seal" }) do
+			equal(ids[id], nil, id .. " is hidden")
+		end
+		for _, id in ipairs({ "upgrade:farmSlot5", "gold:farmSlot5", "gold:train", "banked" }) do
+			equal(ids[id], true, id .. " stays")
+		end
+		assert(#shown < #rows, "something is hidden")
+		equal(#View.campRows(Config, Economy, {}, { atCamp = true }) > 0, true, "campRows itself still lists everything")
+	end)
+
+	case("GD-17: wiring: Vender reaches the gold service; the client hides what View.HIDDEN names", function()
+		local server, service, client = sources.server, sources.service, sources.client
+		assert(server:find("SellCreature = true", 1, true), "the server accepts SellCreature")
+		assert(server:find("Heist.gold:sell(player, argument)", 1, true), "SellCreature reaches the gold service")
+		assert(service:find("state:sellCreature", 1, true) and service:find("Gold.sellPrice", 1, true), "the service sells")
+		assert(client:find("SellCreature", 1, true) and client:find("Camp.sellable", 1, true), "the panel's Vender rows")
+		assert(client:find("Camp.visibleRows", 1, true), "the camp tab drops hidden rows")
+		assert(client:find("Camp.HIDDEN", 1, true), "the eggs tab and station prompts follow the flag")
+		assert(client:find("Camp.HIDDEN.sections.Craft", 1, true), "the Bag tab's seal buttons hide with the crafts")
+		assert(service:find('op == "creature"', 1, true), "the Studio-only probe gives a test creature for the sale check")
 	end)
 
 	return result
