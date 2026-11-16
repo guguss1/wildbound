@@ -175,7 +175,7 @@ Checklist:
 - [x] GF-4 Hatch/tame bonus 20 -> 10.
 - [x] GF-5 Rarer forest creature: found already in the game (violet Lumipol, Rara, in the far nests); the economy model was corrected instead (`tools/wildbound_economy_sim_v2.py`).
 - [x] GF-6 Simulator re-run, doc section updated with before and after; full Python suite.
-- [ ] GF-7 Deploy to Studio, run the suites with the fresh runner, and walk it in Play (the idle pause after 5 min still, the two new farm rows, the treadmill price 38 for level 2). **Not checked in Play yet.**
+- [x] GF-7 Deploy to Studio, run the suites with the fresh runner, and walk it in Play (the idle pause after 5 min still, the two new farm rows, the treadmill price 38 for level 2). Done 2026-11-16, evidence in "GF-7 deploy and walked check" below.
 
 Values, old -> new:
 
@@ -207,4 +207,52 @@ Where: `src/wildbound/WildboundGold.luau` (values, `watch`, `idle`), `WildboundG
 - Python: `test_wildbound_gold_sim` 21/0, `test_wildbound_economy_sim_v2` 62/0, `test_export_economy_config_luau` passes after the regeneration. Full suite 1239 run: only the two known failures (`test_lumipol_v2.V1IsKept`, `test_studio_fresh_runner.test_spec_tokens_name_deployed_scripts`).
 - Luau suites (Studio only, not run): WildboundGold_Test, WildboundCampView_Test, WildboundState_Test, WildboundEconomy_Test, WildboundRecord_Test, WildboundText_Test.
 
-Next step: the next Studio writer deploys the five changed scripts and `WildboundGold_Test` (fingerprint rule first), runs the suites above with `tools/studio-fresh-runner.luau`, and walks GF-7.
+Next step (done, see below): the next Studio writer deploys the five changed scripts and `WildboundGold_Test` (fingerprint rule first), runs the suites above with `tools/studio-fresh-runner.luau`, and walks GF-7.
+
+### GF-7 deploy and walked check (2026-11-16, Studio place 122652861404212)
+
+- [x] GF-7a Deploy of commit 6eb4184 (no reviewer fix commits on top). Before writing, Studio matched the repo version
+  before this change (commit dea6186) for all six scripts (normalised length + Adler-32): WildboundGold 5725/3342558319,
+  WildboundGoldService 7339/1454555240, WildboundCampView 31278/2019300731, WildboundText 42451/420562772,
+  WildboundEconomyConfig 9125/791629780, WildboundGold_Test 18105/795591590. Written with exact `multi_edit` replacements
+  only. After writing, Studio matched HEAD for each: 7554/2977873031, 8732/1999021577, 31754/1968550797,
+  42664/687247863, 9341/2075298634, 23155/4262076622. Place not saved; map left in big4 (`WildboundMapMode=big4`).
+- [x] GF-7b Fresh loader (the runner's loader code with only the 16 needed SPECS, `WildboundFreshRunnerLock` nil
+  before, set and cleared by the run, no leaks): Gold 20/0 (17 + GD-18..GD-20), CampView 24/0, Record 30/0, Text 23/0,
+  Training 13/0, Save 23/0, Gear 15/0, Persistence 31/0, CreatureToolbar 22/0, Incubator 7/0, Refuge 15/0,
+  RouletteService 9/0, TotemRecord 7/0. Known pre-existing reds only (handoff section (d)): State_Test 14 (bag size
+  drift), Economy ECO-20, EggLoop EL12.
+- [x] GF-7c Walked Play (`WildboundPlayLock = "gold-followup-gf7"`; Play and Import locks nil before, Play lock cleared
+  after, Play stopped). The player showed `WildboundSaveMode=Saved`, but the output said "Wildbound saves: memory -
+  Studio has no data store access (NoAccess); progress lives in memory for this Play only", so nothing reached the real
+  data store. The profile started empty (gold 0, no creatures).
+  - Farm rate, Común: the Studio probe gave one test Lumipol; after a respawn its hotbar tool was equipped on the own
+    Base1 pad and `Tool:Activate()` placed it in the farm (tool consumed). Gold sampled every 5 s: 0 at 0 s, 7 at
+    60.1 s, i.e. 7 a minute.
+  - Idle pause: the character then stood still on the pad. About 300 s after the last move `WildboundFarmPaused`
+    became true with gold at 34 (34 gold over the ~290 s it paid, about 7 a minute), and gold stayed at 34 for the next
+    45 s (nine samples). A server `Humanoid:MoveTo` of 10 studs cleared the pause within 1 s, and gold rose 35, 35, 36,
+    36, 37, 37 over the next 30 s. The one-time notice was not seen: by the time the client was read it had already
+    faded (only "Oro: 34" was on screen), so the notice text is checked by GD-20 only.
+  - Hatch bonus: HeistProbe "steal" took a forest egg (Egg:19); teleported home to the Base1 pad, it was banked and
+    auto-incubated and hatched a Gomibú 6 s later. Gold went 40 -> 41 (farm) -> 51 in the hatch step: +10, at the same
+    moment as `WildboundHasLumipol=true`.
+  - Prices in the buy UI (Taller tab, opened through the client's `OpenTab` test seam): rows for "Séptimo lugar de
+    granja ... Precio: 2000 de Esencia o 600 de oro" and "Octavo lugar de granja ... 4500 de Esencia o 1500 de oro",
+    each with its "con oro" row ("600 de oro (tienes 55)", "1500 de oro (tienes 55)"). Standing by the own glove bench,
+    a real mouse click on the treadmill row's "Usar oro" bought level 1 (gold 63 -> 33, notice "¡Caminadora mejorada
+    con oro! Nivel 1 de 17."), and the row then read "Caminadora nivel 2 de 17 ... Precio: 38 de oro o 22 de Esencia en
+    la caminadora. Faltan 5 de oro."
+  - Test data written, in memory only and gone when Play stopped: one probe Lumipol (uid wb:1) placed in the farm, one
+    stolen forest egg hatched into a Gomibú, about 65 gold earned, 30 of it spent on treadmill level 1.
+
+Decisions taken for the user:
+
+1. The hatch check used the Studio-only HeistProbe steal plus a teleport home instead of a walked heist, because the
+   bonus is paid by the hatch step whatever the route home was.
+2. The fresh run used the runner's own loader with only the 16 needed suite SPECS and a name set in place of FILTER
+   (one Lua pattern cannot match a list of names); nothing else in the runner logic changed.
+3. The click on "Usar oro" was the one gold purchase made, and only to show the level-2 price (38) in the real UI; with
+   saves in memory it left no lasting data.
+
+Not done: the pause notice seen on screen (GD-20 checks its words in the source); two players; a phone.
