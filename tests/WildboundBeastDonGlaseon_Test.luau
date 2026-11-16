@@ -77,14 +77,16 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 
 	case("config: one shared boss of the Caramelo, the pack's movement and senses, no damage, the egg drops (BeastHit)", function()
 		assert(C and T, "no DonGlaseon in the config")
-		equal(C.points, 0, "points"); equal(C.damage, 0, "damage"); equal(C.keepsEgg, false, "keepsEgg"); equal(C.grounded, true, "grounded")
+		-- Deliberately changed (OF2, owner feedback 2): the boss's lash hurts (25 of 100, never a one-shot) and he chases
+		-- faster than a walking player (17 -> 21).
+		equal(C.points, 0, "points"); equal(C.damage, 25, "damage"); equal(C.keepsEgg, false, "keepsEgg"); equal(C.grounded, true, "grounded")
 		equal(C.chance, 0, "never rolled"); equal(C.serverUnique, true, "one per server"); equal(C.batImmune, true, "the bat never stuns it")
 		equal(Config.SUMMONED.DonGlaseon, true, "summoned"); equal(Config.WAVE2.DonGlaseon, true, "behaviour module")
 		near(T.PerceptionStuds, 36, "sight"); near(T.NoiseStuds, 45, "noise"); near(T.PatrolSpeedStudsPerSecond, 9, "patrol")
 		-- Deliberately changed (PF5, odd/tasks/wildbound-caramelo-playfix.md): longer timers so a chase lasts (chase 15 -> 30 s,
 		-- search 3 -> 5 s, patrol before Bored 12 -> 25 s) and a 3 s grace before "Left" (a lash or a pull can shove the
 		-- target out of the territory for a moment).
-		near(T.ChaseSpeedStudsPerSecond, 17, "chase"); near(T.ChaseSeconds, 30, "chase time"); near(T.SearchSeconds, 5, "search")
+		near(T.ChaseSpeedStudsPerSecond, 21, "chase"); near(T.ChaseSeconds, 30, "chase time"); near(T.SearchSeconds, 5, "search")
 		near(T.PatrolSeconds, 25, "patrol"); near(T.LeftGraceSeconds, 3, "left grace")
 		near(T.LeftMarginStuds, 12, "PF5b: the ring past the edge that still counts as his (the lash's 12-stud shove)")
 		near(T.TerritoryRadiusStuds, 62, "the BossTerritory marker's radius")
@@ -156,7 +158,7 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		local hits = each(events, "Hit")
 		equal(#hits, 1, "hits")
 		local hit = hits[1]
-		near(hit.at, start + 1.85, "impact"); equal(hit.damage, 0, "damage")
+		near(hit.at, start + 1.85, "impact"); equal(hit.damage, C.damage, "damage (OF2)")
 		near(hit.push.studs, 12, "push"); assert(hit.push.dz > 0.9, "the push does not follow the lash")
 		near(hit.slow.multiplier, 0.85, "slow"); near(hit.slow.seconds, 0.7, "slow time")
 		assert(string.find(phases(events), "Attack,Recover,Chase", 1, true), "phases " .. phases(events))
@@ -180,9 +182,11 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 	end)
 
 	-- DG2 (user 2026-11-15): Boca aspiradora, for a target kept out of the lash's reach.
+	-- OF2: he chases at 21 now, so the target's cap moved 55 -> 68 (still inside the territory plus LeftMarginStuds) to
+	-- stay out of reach for the 2 s before the inhale.
 	case("DG2: a target kept out of the lash's reach is pulled: a fixed cone, Inhale 0.9 s, Vacuum 2 s, Pull toward him, then Recover", function()
 		local e, w, tgt = boss("g11"), fakeWorld(), target(0, 24)
-		local events = run(e, w, tgt, 0, 10, function(_, target, en) target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55) end)
+		local events = run(e, w, tgt, 0, 10, function(_, target, en) target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 68) end)
 		local cone
 		for _, ev in ipairs(each(events, "Tell")) do if ev.shape.kind == "sector" then cone = cone or ev end end
 		assert(cone, "no vacuum cone (phases " .. phases(events) .. ")")
@@ -216,7 +220,7 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		local blind = false
 		function w.lineOfSight() return not blind end
 		local events = run(e, w, tgt, 0, 10, function(_, target, en)
-			target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55)
+			target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 68)
 			if en.phase == "Vacuum" then blind = true end
 		end)
 		assert(string.find(phases(events), "Vacuum", 1, true), "phases " .. phases(events))

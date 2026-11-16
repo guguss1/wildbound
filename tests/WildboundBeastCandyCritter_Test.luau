@@ -28,14 +28,21 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 	-- The creature sheet: attack kind, cooldown and the outcome the brief asked for (push studs or nil, slow multiplier,
 	-- slow seconds), and whether it flies.
 	-- Deliberately changed (PF2, odd/tasks/wildbound-caramelo-playfix.md): every hit must read for a walking player, so
-	-- each one now pushes 6-10 studs and slows to 0.7 (the Gato, the friendliest, 0.8) for 2-3 s; damage stays 0.
+	-- each one now pushes 6-10 studs and slows to 0.7 (the Gato, the friendliest, 0.8) for 2-3 s.
+	-- Deliberately changed (OF2, owner feedback 2, odd/tasks/wildbound-caramelo-playfix.md): they hurt (damage through
+	-- BeastHit, the egg kept) and each has its own personality: chase speed, reach, cooldown, tell and damage. Canelin's
+	-- attack is the owner's favourite and stays exactly as it was (only its damage is new).
 	local SHEET = {
-		Mochimiau = { kind = "leap", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false },
-		Canelin = { kind = "dash", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false },
-		Flanin = { kind = "burst", cooldown = 7, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 10, flies = false },
-		Mielita = { kind = "lob", cooldown = 9, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 6, flies = true },
-		GatoRepartidor = { kind = "lob", cooldown = 8, pushStuds = 6, push = true, slow = 0.8, slowSeconds = 2, radius = 4,
-			flies = false },
+		Mochimiau = { kind = "leap", cooldown = 3.5, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
+			chase = 20, range = 7, tell = 0.8, damage = 8 },
+		Canelin = { kind = "dash", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
+			chase = 18, range = 10, tell = 0.9, damage = 12 },
+		Flanin = { kind = "burst", cooldown = 7, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 10, flies = false,
+			chase = 17, range = 7, tell = 1.2, damage = 16 },
+		Mielita = { kind = "lob", cooldown = 5, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 6, flies = true,
+			chase = 19, range = 18, tell = 0.9, damage = 10, standOff = 10 },
+		GatoRepartidor = { kind = "lob", cooldown = 4.5, pushStuds = 6, push = true, slow = 0.8, slowSeconds = 2, radius = 4,
+			flies = false, chase = 17.5, range = 15, tell = 1, damage = 9, standOff = 8 },
 	}
 	local FAR = 70 -- a target this far from home is never seen, yet still inside its escape distance
 	local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
@@ -93,7 +100,48 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		return e, w, tgt, events, tell
 	end
 
-	case("CC1 config: five summoned guardians that never damage, keep the egg and are never rolled", function()
+	-- OF2 (owner feedback 2): a walking player (16) is caught, a running one (16 x 1.45 = 23.2) still gets away; every hit
+	-- hurts a little (8-20 of 100, never a one-shot); no two creatures share a chase speed or a damage; Canelin's attack is
+	-- byte for byte the old one.
+	case("OF2: each creature has its own speed, reach, cooldown, tell and damage; Canelin's attack is unchanged", function()
+		local speeds, damages = {}, {}
+		for _, name in ipairs(NAMES) do
+			local C, sheet = Config.BEASTS[name], SHEET[name]
+			local T, A = C.tuning, C.tuning.Attack
+			equal(T.ChaseSpeedStudsPerSecond, sheet.chase, name .. " chase")
+			assert(sheet.chase > 16 and sheet.chase < 16 * 1.45, name .. " chase outside walk..run")
+			equal(A.RangeStuds, sheet.range, name .. " range"); equal(A.TelegraphSeconds, sheet.tell, name .. " tell")
+			equal(C.damage, sheet.damage, name .. " damage")
+			assert(C.damage >= 8 and C.damage <= 20, name .. " damage outside 8-20")
+			equal(T.StandOffStuds, sheet.standOff, name .. " stand-off")
+			assert(not speeds[sheet.chase], name .. " shares a chase speed"); speeds[sheet.chase] = true
+			assert(not damages[C.damage], name .. " shares a damage"); damages[C.damage] = true
+		end
+		local A = Config.BEASTS.Canelin.tuning.Attack
+		local was = { kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
+			LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
+			SlowMultiplier = 0.7, SlowSeconds = 2.5 }
+		for k, v in pairs(was) do equal(A[k], v, "Canelin " .. k) end
+		for k in pairs(A) do assert(was[k] ~= nil, "Canelin attack gained " .. k) end
+		local Tr = Config.BEASTS.Canelin.tuning.Extras.Trail
+		equal(Tr.Phase, "Release"); equal(Tr.SpacingStuds, 2.5); equal(Tr.SlowMultiplier, 0.8)
+	end)
+
+	-- OF2: a thrower stops StandOffStuds from its target and throws from there.
+	case("OF2: Mielita and the Gato keep their distance and throw from there", function()
+		for _, name in ipairs({ "Mielita", "GatoRepartidor" }) do
+			local T = tuning(name)
+			local e, w, tgt = spawn(name, "far"), fakeWorld(), target(30, 0)
+			local nearest = math.huge
+			local events = run(e, w, tgt, 0, 6, nil, function(_, c)
+				if c.phase == "Chase" then nearest = math.min(nearest, math.sqrt((c.pos.x - tgt.x) ^ 2 + c.pos.z ^ 2)) end
+			end)
+			assert(nearest >= T.StandOffStuds - 0.05, name .. " came " .. nearest .. " studs close")
+			assert(#each(events, "Hit") >= 1, name .. " never hit from its stand-off (phases " .. phases(events) .. ")")
+		end
+	end)
+
+	case("CC1 config: five summoned guardians that keep the egg and are never rolled", function()
 		equal(#Config.ORDER, 9, "ORDER keeps the rolled beasts only")
 		for _, name in ipairs(NAMES) do
 			local C, sheet = Config.BEASTS[name], SHEET[name]
@@ -103,7 +151,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			equal(Config.PLAYABLE[name], nil, name .. " never rolled")
 			for _, other in ipairs(Config.ORDER) do assert(other ~= name, name .. " in ORDER") end
 			equal(C.category, "Guardian", name); equal(C.biome, "Meadow", name); equal(C.chance, 0, name); equal(C.chance10, 0, name)
-			equal(C.points, 0, name); equal(C.damage, 0, name .. " damage"); equal(C.keepsEgg, true, name .. " keepsEgg")
+			equal(C.points, 0, name); equal(C.damage, sheet.damage, name .. " damage"); equal(C.keepsEgg, true, name .. " keepsEgg")
 			equal(C.grounded, not sheet.flies, name .. " grounded")
 			assert(type(C.hitHeight) == "number" and C.hitHeight > 0, name .. " hitHeight")
 			assert(type(C.disengage) == "number" and C.disengage > 0, name .. " disengage")
@@ -111,8 +159,8 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			equal(T.Attack.kind, sheet.kind, name .. " attack kind")
 			equal(T.Attack.CooldownSeconds, sheet.cooldown, name .. " cooldown")
 			assert(T.PatrolSpeedStudsPerSecond >= 5 and T.PatrolSpeedStudsPerSecond <= 8, name .. " patrol speed")
-			-- PF2: a bit faster, still under a walking player's 16
-			assert(T.ChaseSpeedStudsPerSecond >= 11 and T.ChaseSpeedStudsPerSecond <= 15, name .. " chase speed")
+			-- OF2: faster than a walking player's 16, slower than a running one's 23.2 (was 11-15, PF2)
+			assert(T.ChaseSpeedStudsPerSecond > 16 and T.ChaseSpeedStudsPerSecond < 23.2, name .. " chase speed")
 			-- PF2 (walked Play: a moving player never triggered them): it sees about as far as it wakes, chases far,
 			-- holds on a few seconds, and only a long run away ends it
 			assert(T.WakeRadiusStuds >= 40 and T.WakeRadiusStuds <= 50, name .. " wake radius " .. T.WakeRadiusStuds)
@@ -232,7 +280,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		end
 	end)
 
-	case("CC3: a target inside is slowed (and pushed when the sheet says so), with damage 0 and nothing else", function()
+	case("CC3: a target inside is slowed (and pushed when the sheet says so), with its damage and nothing else", function()
 		for _, name in ipairs(NAMES) do
 			local A, sheet = tuning(name).Attack, SHEET[name]
 			local e, w, tgt, events, tell = telegraphing(name, "hit")
@@ -242,7 +290,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			for _, ev in ipairs(each(later, "Hit")) do table.insert(hits, ev) end
 			equal(#hits, 1, name .. " hits")
 			local hit = hits[1]
-			near(hit.at, tell.strikeAt, name .. " hit time"); equal(hit.damage, 0, name .. " damage")
+			near(hit.at, tell.strikeAt, name .. " hit time"); equal(hit.damage, sheet.damage, name .. " damage (OF2)")
 			equal(hit.slow.multiplier, sheet.slow, name .. " slow"); equal(hit.slow.seconds, sheet.slowSeconds, name .. " slow time")
 			equal(A.SlowMultiplier, sheet.slow, name); equal(A.SlowSeconds, sheet.slowSeconds, name)
 			if sheet.push then
@@ -362,7 +410,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			assert(#each(events, "Tell") >= 1, name .. " never attacked")
 			local hits = each(events, "Hit")
 			assert(#hits >= 1, name .. " never hit a player standing 12 studs from its post")
-			equal(hits[1].damage, 0, name .. " damage")
+			equal(hits[1].damage, Config.BEASTS[name].damage, name .. " damage")
 			assert(hits[1].push and hits[1].push.studs >= 6, name .. " the hit does not push")
 			local over = each(events, "End")[1]
 			assert(over, name .. " never ended after the player left (phases " .. phases(events) .. ")")
@@ -708,7 +756,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		equal(slowed.slow, S.SlowMultiplier, "-15 %"); equal(slowed.slowSeconds, S.SlowSeconds, "slow time")
 		assert(swarms[2], "no second swarm")
 		assert(swarms[2].startAt >= first.strikeAt + S.EverySeconds - 1e-6, "swarms closer than EverySeconds")
-		for _, ev in ipairs(each(all, "Hit")) do equal(ev.damage, 0, "damage") end
+		for _, ev in ipairs(each(all, "Hit")) do equal(ev.damage, Config.BEASTS.Mielita.damage, "damage") end
 	end)
 
 	case("A2 Gato: every 20 s a helper Gato appears beside the target, throws fries once (a fair tell) and leaves", function()

@@ -87,11 +87,13 @@ return function(Enc, Flanfuria, Config, Onda)
 		assert(C, "no Flanfuria entry in WildboundBeastConfig")
 		equal(Config.SUMMONED.Flanfuria, true); equal(C.category, "Guardian"); equal(C.biome, "Meadow")
 		equal(Config.WAVE2.Flanfuria, true, "without it the client ignores its phases and draws no tell")
-		equal(C.damage, 0); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
+		-- Deliberately changed (OF2, owner feedback 2): its ring hurts (15, through BeastHit with the egg kept) and it
+		-- chases faster than a walking player (11 -> 17).
+		equal(C.damage, 15); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
 		equal(Config.PLAYABLE.Flanfuria, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Flanfuria", "not in ORDER") end
 		assert(table.isfrozen(T), "tuning frozen")
-		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 11)
+		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 17)
 		assert(T.CastRangeStuds < Onda.RING_TO_STUDS, "it casts at a target the ring cannot reach")
 		equal(T.PuddleSlowSeconds, nil, "the attack's numbers live in WildboundCandyFlanfuriaAttack only"); equal(T.PuddleRepeatSeconds, nil)
 		assert(Flanfuria.tellSeconds() >= Config.MIN_TELL, "tell under the fairness floor")
@@ -111,8 +113,9 @@ return function(Enc, Flanfuria, Config, Onda)
 		near(list[2].at - list[1].at, T.AlertSeconds, "alert time", 1e-6)
 		tgt.x = e.pos.x + 25
 		local x0 = e.pos.x
-		run(e, w, tgt, 2.45, 2.95)
-		near((e.pos.x - x0) / 0.5, T.ChaseSpeedStudsPerSecond, "chase speed", 1.2)
+		-- OF2: 17 studs/s now, so the speed is read over 5 steps (0.25 s) before its 16-stud leash stops it
+		run(e, w, tgt, 2.45, 2.65)
+		near((e.pos.x - x0) / 0.25, T.ChaseSpeedStudsPerSecond, "chase speed", 1.2)
 		local farthest = 0
 		run(e, w, tgt, 3, 12, function(t, tg, state) tg.x = math.min(state.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, state) farthest = math.max(farthest, state.pos.x) end)
@@ -136,14 +139,15 @@ return function(Enc, Flanfuria, Config, Onda)
 		near(list[1].at, tell.startAt + TELL, "release"); near(list[2].at, tell.startAt + PUDDLE_AT, "recover"); near(list[3].at, tell.startAt + ENDS, "chase again")
 	end)
 
-	case("the ring slows once, when its front reaches the target, and never damages or reaches BeastHit", function()
+	case("the ring slows once, when its front reaches the target, with its damage on the slow, never a Hit", function()
 		local e, w, tgt, events, tell = telegraphing("ring")
 		local later = run(e, w, tgt, 1.25, tell.startAt + 2.7)
 		local slows = ringSlows(later)
 		equal(#slows, 1, "ring slows")
 		-- the front is at 6 studs 0.356 s into the release, not at its start and not at its end
 		near(slows[1].at, tell.startAt + TELL + Onda.RELEASE_SECONDS * 4 / 9, "the front reaches 6 studs", 0.051)
-		equal(slows[1].slow, 0.65); equal(slows[1].slowSeconds, 1.5); equal(slows[1].damage, nil)
+		-- OF2: the ring's slow carries the damage; the beast script sends it to BeastHit with the egg kept
+		equal(slows[1].slow, 0.65); equal(slows[1].slowSeconds, 1.5); equal(slows[1].damage, C.damage)
 		equal(#each(later, "Hit"), 0, "a Hit event would reach BeastHit: damage and the egg drop")
 		local strikes = each(later, "Strike")
 		equal(#strikes, 1, "strikes"); equal(strikes[1].hit, true)

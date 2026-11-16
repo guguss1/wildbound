@@ -71,7 +71,10 @@ return function(Enc, Gomibu, Config)
 		equal(Config.SUMMONED.Gomibu, true); equal(C.category, "Guardian"); equal(C.biome, "Meadow")
 		equal(Config.WAVE2.Gomibu, true, "without it the client ignores its phases and draws no tell")
 		equal(T.PushStuds, 8, "push distance of the sheet")
-		equal(C.damage, 0); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
+		-- Deliberately changed (OF2, owner feedback 2): it hurts (14, through BeastHit with the egg kept), chases faster
+		-- than a walking player (12 -> 19); its 10-stud jump is unchanged.
+		equal(C.damage, 14); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
+		equal(T.JumpRangeStuds, 10)
 		equal(Config.PLAYABLE.Gomibu, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Gomibu", "not in ORDER") end
 		assert(table.isfrozen(T), "tuning frozen")
@@ -81,7 +84,7 @@ return function(Enc, Gomibu, Config)
 		equal(T.RecoverSeconds, 0.5); equal(T.AttackCooldownSeconds, 3.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
 		-- Deliberately changed (PF4, odd/tasks/wildbound-caramelo-playfix.md): sight 16 -> 24 and abandon 25 -> 36 for a
 		-- walking player; a slow patrol (4 studs/s, was 7 and unused) round its nest within PatrolRadiusStuds 8.
-		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 12)
+		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 19)
 		equal(T.PatrolRadiusStuds, 8)
 		assert(T.PatrolRadiusStuds < T.LeashStuds and T.PerceptionStuds < T.AbandonStuds, "patrol inside the leash, sight inside abandon")
 		assert(Gomibu.tellSeconds(T) >= Config.MIN_TELL, "tell under the fairness floor")
@@ -110,10 +113,11 @@ return function(Enc, Gomibu, Config)
 		near(seen[2].at - seen[1].at, T.AlertSeconds, "alert time", 1e-6)
 	end)
 
-	case("it chases at 12 studs per second and never goes past its leash, not even with a jump", function()
+	-- OF2: 19 studs/s now, so the target stands farther (30, was 24) to stay out of jump range for the whole 0.5 s
+	case("it chases at its chase speed and never goes past its leash, not even with a jump", function()
 		local e, w, tgt = bear("chase"), fakeWorld(), target(15, 0)
 		run(e, w, tgt, 0, 0.8)
-		tgt.x = 24 -- still within the abandon distance, outside the jump range
+		tgt.x = 30 -- still within the abandon distance, outside the jump range
 		local x0
 		run(e, w, tgt, 0.85, 1.35, nil, function(t, bearState) if not x0 then x0 = bearState.pos.x end end)
 		near((e.pos.x - x0) / 0.5, T.ChaseSpeedStudsPerSecond, "chase speed", 0.6)
@@ -171,7 +175,7 @@ return function(Enc, Gomibu, Config)
 		local hits = each(later, "Hit")
 		equal(#hits, 1, "hits")
 		local hit = hits[1]
-		near(hit.at, strikeAt, "hit time"); equal(hit.damage, 0, "damage")
+		near(hit.at, strikeAt, "hit time"); equal(hit.damage, C.damage, "damage (OF2)")
 		equal(hit.slow.multiplier, T.SlowMultiplier); equal(hit.slow.seconds, T.SlowSeconds)
 		-- the push is the server's (a knock on the client moved a standing player half a stud in Play)
 		equal(hit.knock, nil, "client-side knock")
