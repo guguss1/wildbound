@@ -942,3 +942,73 @@ stays as it is.
 - Not checked: Canelin, Flanin, Mielita, Tortidragon and Don Glaseon damage in Play (covered by the specs only); a
   running escape was not walked (character_navigation walks); `BeastHit` "BeastHit" message text not looked at on
   screen; no two-player check.
+
+## Owner feedback 3: smarter, faster creatures and a hard Gran Torta summit (OF3, 2026-11-16)
+
+Owner: "quiero que sean más inteligentes y te persigan más rápido y sea difícil llegar a la cima de la torta". Canelin's
+attack shape stays as it is. Map, economy and UI files untouched.
+
+- [x] OF3-1 Faster: base chase 19-22 plus a sprint of 24-27 studs/s for 1.5-2.5 s the first time a chase starts
+  (`WildboundCandySmarts.PROFILES`), so a running player (23.2) is matched for a moment and escaping needs dodging or
+  terrain. Tells unchanged (>= MIN_TELL), damages unchanged (never a one-shot).
+- [x] OF3-2 Smarter, in one shared pure module `ServerScriptService.WildboundCandySmarts` used by the critter brain,
+  Gomibu, Flanfuria, Tortidragon and Don Glaseon: (a) predictive pursuit: they run for the target's position plus 0.45 s
+  of its velocity (at most 7 studs ahead) and leaps, lobs, Gomibu's jump circle and Tortidragon's fan aim 0.35 s ahead
+  (Canelin's dash lane is not led); (b) flanking: with 2+ candy creatures on the same player, the first runs straight
+  and each other one runs for a point 8 studs beside the target at its own angle (100 degrees for two), closing in when
+  near; (c) anti-stuck: a 4-stud `world.castLane` look-ahead (2.5 studs over the ground, so low ledges never block) and
+  side-steps of 35/70/105/140 degrees, the same side first; (d) a dodge press (`world.lastDash`) stops them 0.45 s to
+  re-aim (no lead meanwhile); (e) Gomibu, Flanfuria and Tortidragon notice a target within 30/24/28 studs of their nest
+  past their sight, and a creature that notices calls its calm allies (same player, home within 70 studs).
+- [x] OF3-3 Hard summit (pure rules in `WildboundCandyFrutillon` / `WildboundCandyDuquesa`, drawn by their services).
+
+| Value | Old -> new |
+| --- | --- |
+| Chase Gomibu / Flanfuria / Tortidragon | 19 / 17 / 20 -> 21 / 19 / 22 |
+| Chase Mochimiau / Canelin / Flanin / Mielita / Gato | 20 / 18 / 17 / 19 / 17.5 -> 21 / 20 / 19 / 22 / 19.5 |
+| Don Glaseon chase | 21 (kept: his Chase_Run stride), sprint 25 for 1.5 s |
+| Sprint (new) | Mochimiau 26/2 s, Canelin 25/1.5, Flanin 24/1.5, Mielita 27/2, Gato 24/2, Gomibu 26/2, Flanfuria 24/1.5, Tortidragon 26/2 |
+| Frutillon wake / recover | 2 -> 1.7 s / 1 -> 0.7 s (tell 0.8 kept, bump 12 kept) |
+| Stair seeds every / max / push | 2.5 -> 2 s / 3 -> 4 / 6 -> 9 studs, 0.3 -> 0.35 s, 85 % outward (off the step) |
+| Stair patrols (new) | 2 sugar drops on steps 12-38 % and 55-82 % of the stair, 4 steps/s, 1.4 s pause at each end (glowing pink the last 0.8 s), bump 9 studs outward once per leg |
+| Glaze steps (new) | every 7th step from the 6th (5 steps), a runner faster than 18 studs/s slips 5 studs outward |
+| La Duquesa every | 10 -> 6 s on the summit; also every 8 s at a climber on tier 2 and up (rings on the climber's floor), aimed 0.5 s ahead (max 5 studs) |
+
+### Decisions taken for the user (OF3)
+
+- Creatures have no health, so "call an ally when hit" became: a creature that notices an intruder (by sight or at its
+  nest) calls its calm allies; a called creature never calls (no chain across the biome).
+- Base speeds stay under a running player (23.2); only the sprint burst beats it, once per encounter, so running still
+  escapes after the burst and the dodge pause rewards a well-timed Z.
+- Peers for flanking and calls are kept per base world table (weak keys): the beast script's per-encounter adapters share
+  it through their metatable, each test's fake world is its own (no cross-test leaks).
+- Canelin's dash lane is never led (its attack shape is the owner's favourite); its sprint and flanking are new.
+- Frutillon's wake is 1.7 s, not shorter: La Duquesa's first pop (2.1 s) must still land before his first roll (A2
+  review rule, its spec failed at 1.6 by one step).
+- Glaze only trips a runner: in the first walked climb a slip on every pass at walking speed made the stair impossible.
+  Walking (16) or jumping over a glaze step is the careful way up.
+- Seeds every 2 s, not 1.6: in the walked climb 1.6 met a climber about every second; 2 leaves room to jump each one.
+- The careful way up: walk (do not run) over glaze, jump seeds and the patrol drops (hit height 4 studs), climb a patrol
+  stretch right after its drop passes, and keep moving on the summit (Frutillon's line and La Duquesa's rings show
+  where; every tell >= 0.8 s). The summit nest (CT3) and Frutillon's roll (CT4) are unchanged.
+- Specs moved, not rules: Gomibu's and Flanfuria's measured chase speed is now the sprint (26 and 24; Flanfuria read over
+  0.1 s before its 16-stud leash), Don Glaseon's "no teleport" step bound uses the 25 sprint.
+
+### Evidence (OF3)
+
+- Commits a4a4cc3 (specs), 4a33158 (feature), 3b3f569 (walked-Play fix: glaze trips only runners, seeds every 2 s).
+- Fresh loader (loadstring + setfenv from a temporary ServerStorage StringValue, destroyed after; WildboundFreshRunnerLock
+  respected): red first (`WildboundCandySmarts_Test` 0/14), then CandySmarts 14/0, BeastCandyCritter 32/0, BeastGomibu
+  11/0, BeastFlanfuria 10/0, BeastTortidragon 9/0, BeastDonGlaseon 24/0, CandyFrutillon 6/0, CandyDuquesa 7/0,
+  BeastWiring 53/0 (166/0); after the walked fixes CandySmarts 14/0, CandyFrutillon 6/0, CandyDuquesa 7/0.
+- Fingerprints: Studio == repo for every touched source and spec after every write.
+- Walked Play (big4 map mode, WildboundPlayLock held and cleared, character_navigation only, server probe read-only):
+  walking to (456, 10) between Gomibu's nest and the Gato's post, Gomibu noticed at 25.5 studs from its nest (its sight
+  is 24: the nest guard) and the Gato joined; probe speeds Gomibu 26-30 then about 20-24, the Gato bursts of 24-26;
+  Gomibu closed from the south-west while the Gato threw from the north (flanking); HP 100 -> 91 and 96 -> 88 (the
+  Gato's 9 and 8 after regen). Climbing the stair on foot: first run (glaze tripping walkers) slipped off step 34 on
+  every pass; after the fix the walker passed the glaze, reached y 21.8 (tier-2 flight) and was bumped down 4 times by
+  the patrol drop / seeds around steps 25-27 (navigation cannot jump).
+- Not done: the summit was not reached on foot (navigation cannot jump the seeds and patrol drops, which a player can);
+  La Duquesa's upper-tier volleys and Frutillon's faster roll not seen in Play (specs only); the dodge pause was not
+  walked (no Z press through character_navigation); no two-player check.
