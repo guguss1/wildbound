@@ -84,7 +84,7 @@ return function(Enc, Gomibu, Config)
 		equal(T.RecoverSeconds, 0.5); equal(T.AttackCooldownSeconds, 3.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
 		-- Deliberately changed (PF4, odd/tasks/wildbound-caramelo-playfix.md): sight 16 -> 24 and abandon 25 -> 36 for a
 		-- walking player; a slow patrol (4 studs/s, was 7 and unused) round its nest within PatrolRadiusStuds 8.
-		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 19)
+		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 21) -- Deliberately changed (OF3): 19 -> 21
 		equal(T.PatrolRadiusStuds, 8)
 		assert(T.PatrolRadiusStuds < T.LeashStuds and T.PerceptionStuds < T.AbandonStuds, "patrol inside the leash, sight inside abandon")
 		assert(Gomibu.tellSeconds(T) >= Config.MIN_TELL, "tell under the fairness floor")
@@ -120,7 +120,8 @@ return function(Enc, Gomibu, Config)
 		tgt.x = 30 -- still within the abandon distance, outside the jump range
 		local x0
 		run(e, w, tgt, 0.85, 1.35, nil, function(t, bearState) if not x0 then x0 = bearState.pos.x end end)
-		near((e.pos.x - x0) / 0.5, T.ChaseSpeedStudsPerSecond, "chase speed", 0.6)
+		-- Deliberately changed (OF3): the first 2 s of a chase are WildboundCandySmarts' 26-stud sprint
+		near((e.pos.x - x0) / 0.5, 26, "chase speed (the sprint)", 0.6)
 		local farthest = 0
 		run(e, w, tgt, 1.4, 12, function(t, tg, bearState) tg.x = math.min(bearState.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, bearState) farthest = math.max(farthest, bearState.pos.x) end)

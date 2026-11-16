@@ -32,17 +32,19 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 	-- Deliberately changed (OF2, owner feedback 2, odd/tasks/wildbound-caramelo-playfix.md): they hurt (damage through
 	-- BeastHit, the egg kept) and each has its own personality: chase speed, reach, cooldown, tell and damage. Canelin's
 	-- attack is the owner's favourite and stays exactly as it was (only its damage is new).
+	-- Deliberately changed (OF3, owner feedback 3): every base chase raised again (19-22, still under a running player's
+	-- 23.2; the burst over it is WildboundCandySmarts' sprint).
 	local SHEET = {
 		Mochimiau = { kind = "leap", cooldown = 3.5, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
-			chase = 20, range = 7, tell = 0.8, damage = 8 },
+			chase = 21, range = 7, tell = 0.8, damage = 8 },
 		Canelin = { kind = "dash", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
-			chase = 18, range = 10, tell = 0.9, damage = 12 },
+			chase = 20, range = 10, tell = 0.9, damage = 12 },
 		Flanin = { kind = "burst", cooldown = 7, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 10, flies = false,
-			chase = 17, range = 7, tell = 1.2, damage = 16 },
+			chase = 19, range = 7, tell = 1.2, damage = 16 },
 		Mielita = { kind = "lob", cooldown = 5, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 6, flies = true,
-			chase = 19, range = 18, tell = 0.9, damage = 10, standOff = 10 },
+			chase = 22, range = 18, tell = 0.9, damage = 10, standOff = 10 },
 		GatoRepartidor = { kind = "lob", cooldown = 4.5, pushStuds = 6, push = true, slow = 0.8, slowSeconds = 2, radius = 4,
-			flies = false, chase = 17.5, range = 15, tell = 1, damage = 9, standOff = 8 },
+			flies = false, chase = 19.5, range = 15, tell = 1, damage = 9, standOff = 8 },
 	}
 	local FAR = 70 -- a target this far from home is never seen, yet still inside its escape distance
 	local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }

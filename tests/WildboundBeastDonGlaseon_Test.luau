@@ -307,7 +307,8 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 			last = { x = en.pos.x, z = en.pos.z }
 		end)
 		assert(furthest <= T.TerritoryRadiusStuds + 1e-6, "it went " .. furthest .. " studs from its territory's centre")
-		assert(jump <= T.ChaseSpeedStudsPerSecond * 0.05 + 1e-6, "it jumped " .. jump .. " studs in one step")
+		-- Deliberately changed (OF3): his chase opens with a 25 studs/s sprint (WildboundCandySmarts), still no teleport
+		assert(jump <= 25 * 0.05 + 1e-6, "it jumped " .. jump .. " studs in one step")
 		assert(string.find(phases(events), "LoseTarget,Return", 1, true), "phases " .. phases(events))
 		local ended = each(events, "End")[1]
 		assert(ended and ended.reason == "Return", "it never got home")

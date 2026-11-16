@@ -93,7 +93,7 @@ return function(Enc, Flanfuria, Config, Onda)
 		equal(Config.PLAYABLE.Flanfuria, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Flanfuria", "not in ORDER") end
 		assert(table.isfrozen(T), "tuning frozen")
-		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 17)
+		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 19) -- Deliberately changed (OF3): 17 -> 19
 		assert(T.CastRangeStuds < Onda.RING_TO_STUDS, "it casts at a target the ring cannot reach")
 		equal(T.PuddleSlowSeconds, nil, "the attack's numbers live in WildboundCandyFlanfuriaAttack only"); equal(T.PuddleRepeatSeconds, nil)
 		assert(Flanfuria.tellSeconds() >= Config.MIN_TELL, "tell under the fairness floor")
@@ -114,8 +114,10 @@ return function(Enc, Flanfuria, Config, Onda)
 		tgt.x = e.pos.x + 25
 		local x0 = e.pos.x
 		-- OF2: 17 studs/s now, so the speed is read over 5 steps (0.25 s) before its 16-stud leash stops it
-		run(e, w, tgt, 2.45, 2.65)
-		near((e.pos.x - x0) / 0.25, T.ChaseSpeedStudsPerSecond, "chase speed", 1.2)
+		-- Deliberately changed (OF3): the first 1.5 s of a chase are WildboundCandySmarts' 24-stud sprint, read over 2 steps
+		-- (0.1 s) before the leash
+		run(e, w, tgt, 2.45, 2.5)
+		near((e.pos.x - x0) / 0.1, 24, "chase speed (the sprint)", 1.2)
 		local farthest = 0
 		run(e, w, tgt, 3, 12, function(t, tg, state) tg.x = math.min(state.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, state) farthest = math.max(farthest, state.pos.x) end)

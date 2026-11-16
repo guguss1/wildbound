@@ -78,7 +78,7 @@ return function(Enc, Tortidragon, Config, Abanico)
 		-- faster than a walking player (16 -> 20).
 		equal(C.points, 0, "points"); equal(C.damage, 12, "damage"); equal(C.keepsEgg, true, "keepsEgg"); equal(C.grounded, true, "grounded")
 		equal(C.chance, 0, "never rolled"); equal(Config.SUMMONED.Tortidragon, true, "summoned"); equal(Config.WAVE2.Tortidragon, true, "behaviour module")
-		near(T.PatrolSpeedStudsPerSecond, 10, "patrol"); near(T.ChaseSpeedStudsPerSecond, 20, "chase")
+		near(T.PatrolSpeedStudsPerSecond, 10, "patrol"); near(T.ChaseSpeedStudsPerSecond, 22, "chase") -- Deliberately changed (OF3): 20 -> 22
 		near(T.PerceptionStuds, 22, "sight"); near(T.LeashStuds, 35, "leash")
 		assert(T.CastRangeStuds <= Abanico.RANGE_STUDS, "it casts at targets the fan cannot reach")
 		assert(Tortidragon.tellSeconds() >= Config.MIN_TELL, "the tell is shorter than the minimum")

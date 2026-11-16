@@ -37,16 +37,17 @@ return function(Frut, Layout, sources)
 
 	case("CT4: the numbers: tell 0.8 s, roll on a ring between La Duquesa and the edge, push 12 studs, seeds push 6", function()
 		near(Frut.TELL_SECONDS, 0.8); assert(Frut.TELL_SECONDS >= 0.8, "the fair-strike floor")
-		near(Frut.RECOVER_SECONDS, 1.0); near(Frut.SLEEP_SECONDS, 6)
+		near(Frut.RECOVER_SECONDS, 0.7) -- Deliberately changed (OF3, a hard summit): 1 -> 0.7; near(Frut.SLEEP_SECONDS, 6)
 		-- A2 review (walked Play): he rolled a climber off 0.8 s after arriving, before La Duquesa's first bubbles could
 		-- pop; he now takes WAKE_SECONDS to wake up before his first tell
-		near(Frut.WAKE_SECONDS, 2)
+		near(Frut.WAKE_SECONDS, 1.7) -- Deliberately changed (OF3): 2 -> 1.7, still after La Duquesa's first pop
 		near(Frut.ROLL_STUDS_PER_SECOND, 18); near(Frut.OVERSHOOT_RADIANS, 0.6); near(Frut.HIT_STUDS, 3)
 		near(Frut.PUSH_STUDS, 12); near(Frut.PUSH_SECONDS, 0.4)
 		assert(Frut.RING_STUDS - Frut.RADIUS_STUDS >= 3, "it rolls clear of La Duquesa's seat")
 		assert(Frut.RING_STUDS + Frut.RADIUS_STUDS <= summit.radius + 0.5, "it stays on the summit")
-		near(Frut.SEED_EVERY_SECONDS, 2.5); near(Frut.SEED_STEPS_PER_SECOND, 8); near(Frut.SEED_HIT_STUDS, 2)
-		near(Frut.SEED_PUSH_STUDS, 6); near(Frut.SEED_PUSH_SECONDS, 0.3); equal(Frut.MAX_SEEDS, 3)
+		near(Frut.SEED_EVERY_SECONDS, 1.6) --[[ OF3: 2.5 -> 1.6 ]]; near(Frut.SEED_STEPS_PER_SECOND, 8); near(Frut.SEED_HIT_STUDS, 2)
+		-- Deliberately changed (OF3): seeds push harder (6 -> 9 studs, 0.3 -> 0.35 s) and up to 5 live at once
+		near(Frut.SEED_PUSH_STUDS, 9); near(Frut.SEED_PUSH_SECONDS, 0.35); equal(Frut.MAX_SEEDS, 5)
 		equal(Frut.DAMAGE, 0, "knockback only")
 		near(summit.top, Layout.FLOOR_TOP + Layout.TOWER.tiers[#Layout.TOWER.tiers].top, "the summit's floor")
 	end)
@@ -133,7 +134,7 @@ return function(Frut, Layout, sources)
 			for _, e in ipairs(Frut.seedStep(s, t, { climber }, path)) do if e.kind == "SeedHit" and e.seed == 1 then table.insert(pushes, e) end end
 		end
 		equal(#pushes, 1, "seed 1 bumps the climber once")
-		near(pushes[1].studs, 6); near(pushes[1].seconds, 0.3); equal(pushes[1].damage, 0)
+		near(pushes[1].studs, 9); near(pushes[1].seconds, 0.35) -- Deliberately changed (OF3); equal(pushes[1].damage, 0)
 		local down = path[21]
 		local dx, dz = down.x - path[19].x, down.z - path[19].z
 		assert(pushes[1].dx * dx + pushes[1].dz * dz > 0, "pushed down the stair")

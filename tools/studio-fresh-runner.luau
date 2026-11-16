@@ -157,6 +157,11 @@ SPECS["WildboundBeastCandyCritter_Test"] = {
 		spec = "mod:WildboundCandyCritterAnimSpec" },
 	"mod:WildboundBeastChase",
 }
+SPECS["WildboundCandySmarts_Test"] = {
+	"mod:WildboundCandySmarts", "mod:WildboundBeastEncounters", "mod:WildboundBeastConfig", "mod:WildboundBeastCandyCritter",
+	"mod:WildboundBeastGomibu", "mod:WildboundBeastFlanfuria", "mod:WildboundBeastTortidragon", "mod:WildboundBeastDonGlaseon",
+	"mod:WildboundCandyFrutillon", "mod:WildboundCandyDuquesa", "mod:WildboundCandyLayout",
+}
 SPECS["WildboundCandyDuquesa_Test"] = {
 	"mod:WildboundCandyDuquesa", "mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout",
 	{ service = "src:WildboundCandyDuquesaService", anim = "src:WildboundCandyCritterAnim" },
