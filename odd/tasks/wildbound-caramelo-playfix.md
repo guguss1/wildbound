@@ -37,6 +37,9 @@ WildboundMapModeSwitch, geometry), `SistemaSonriente`, and the extra mechanics o
 - [x] PF5b (found in the walked Play) Don Glaseon: a ring of LeftMarginStuds 12 past the territory edge (his lash's
   shove) still counts as his ground.
 - [x] PF8 Walked Play check of every item (see Evidence), commit a32e320 and earlier.
+- [x] PF9 (independent review) The cake line's old fade no longer hides a newer line: a second bite 2.2-2.7 s after the
+  first left "Ya comiste de esta torta" invisible (the first line's 0.5 s fade tween kept running). Fixed test-first;
+  walked Play 3 (see Evidence).
 
 ## What changed (old -> new)
 
@@ -100,6 +103,8 @@ WildboundMapModeSwitch, geometry), `SistemaSonriente`, and the extra mechanics o
 - A bite sets the player attribute `WildboundCandyCakeSaid` ("rush:<n>" or "eaten:<n>"). The new client script shows
   `Text.CANDY_CAKE.rush` ("¡Subidón de azúcar! Corres más rápido") or `.eaten` ("Ya comiste de esta torta"). A rush also
   plays the catalogue's `eggBanked` bells and a burst of sparkles on the character.
+- PF9: `show()` keeps the delayed fade tween in a local `fade` and cancels it before showing a new line, so a fade
+  started for the previous line cannot set the new line's transparency back to 1.
 
 ### PF7 Frequency (`WildboundBeastConfig`)
 
@@ -136,6 +141,9 @@ MAX_POINTS 3, MAX_ACTIVE 2 for rolled beasts, the Nube's 60 s nap.
 12. PF4b and PF5b came out of the walked Play and were fixed test-first in the same step.
 13. The cake hold is triggered in the Play check with the prompt's own `InputHoldBegin`/`InputHoldEnd` (the same input
     as holding E), never by calling the server.
+14. Independent review: the cake-line race was accepted and fixed (PF9). Its three leftovers (Flanfuria's fade, the
+    two-player bystander End, the path cake inside the 74-stud ring) are not defects of this step and were left as they
+    are; the bystander case needs a two-player check before any change.
 
 ## Evidence
 
@@ -168,6 +176,8 @@ needed (the 23 suites below) and the `WildboundFreshRunnerLock` respected; the S
 | 65d0811e, dfccb68b | PF7 GREEN, 23 suites | 383 passed, 0 failed (65d0811e caught two stale numbers in the Director suite, updated as deliberate changes) |
 | 78b3ffb7, 7e427538 | PF4b/PF5b RED | 2 + 1 failed |
 | f6a3ac53 | PF4b/PF5b GREEN, 23 suites | 384 passed, 0 failed |
+| 7d9f76b2 | PF9 RED (CandyTrapCake only) | 9 passed, 1 failed ("the fade tween is kept") |
+| ede28033 | PF9 GREEN (CandyTrapCake only) | 10 passed, 0 failed |
 
 Suites: BeastAbeja, BeastAnimPlan, BeastAttack, BeastAudience, BeastCandyCritter, BeastDirector, BeastDonGlaseon,
 BeastEncounters, BeastFlanfuria, BeastGomibu, BeastNube, BeastTortidragon, BeastWiring, BossRobustness, CandyClipKit,
@@ -193,7 +203,7 @@ Final check, all 23 touched scripts equal (bytes, Adler-32):
 | WildboundBeastsClient | 60063 | a50d25e0 |
 | WildboundCandyTrapCakeService | 11016 | 1f518515 |
 | WildboundCandyTrapCake | 6761 | deb196c3 |
-| WildboundCandyTrapCake_Test | 12582 | 24e4f2c1 |
+| WildboundCandyTrapCake_Test | 12582 -> 13522 (PF9) | 24e4f2c1 -> 6b64288c |
 | WildboundText | 41118 | 32aa9cc6 |
 | WildboundCandyDonGlaseonAnim | 6830 | 4817c91f |
 | WildboundBeastNube_Test | 11037 | 43f66afd |
@@ -202,7 +212,10 @@ Final check, all 23 touched scripts equal (bytes, Adler-32):
 | WildboundCandyCritterAnimSpec | 4017 | a6e10f17 |
 | WildboundCandyRestingService (new) | 2393 | f8a842a0 |
 | WildboundCandyRestingClient (new) | 3294 | c89c6be8 |
-| WildboundCandyCakeClient (new) | 3449 | b7d78713 |
+| WildboundCandyCakeClient (new) | 3449 -> 3602 (PF9) | b7d78713 -> 8f81b99d |
+
+PF9: before writing, Studio matched the repo HEAD for both scripts (3449 b7d78713, 12582 24e4f2c1); after the
+`multi_edit` writes, Studio and the repo both read 3602 8f81b99d and 13522 6b64288c.
 
 ### Walked Play observations
 
@@ -256,6 +269,26 @@ Play 2 (after PF4b and PF5b):
   portal; the three cakes) and no prompt anywhere has a 3 s hold. The only "robar" words are the tutorial and HUD
   lines about stealing eggs. The owner's "robar porción" was most likely the old "Comer porción" prompt; it now reads
   "Comer una porción" / "Torta de caramelo".
+
+Play 3 (PF9, after the independent review; `WildboundPlayLock = "A1-playfix-review"`, both locks nil before, stopped
+and cleared after):
+
+- Walked from spawn (298, -3) with `character_navigation` (the first leg stopped at (368, -11); a second leg reached
+  (533, 5), 6.7 studs from the path cake). HP 100 throughout.
+- On arrival the cake folder was empty (all three had popped; the cause was not seen, the player had not gone near the
+  rareNest cake). They regrew by themselves a little later (the 90 s Regrow), all three back.
+- Path cake: hold -> "rush:1", walk speed 16 -> 20, line "¡Subidón de azúcar! Corres más rápido" (transparency 0);
+  hold again -> "eaten:2", "Ya comiste de esta torta" stayed visible (transparency 0) for the whole 2 s sampled, then
+  faded (1.00 at 6.4 s).
+- The race itself: a bite timed so its line came 2.38 s after the previous one (inside the old 2.2-2.7 s window) ->
+  "eaten:4", transparency 0.00 at +2.58, +2.80, +3.00, +3.22, +3.43, +3.63 s. Before PF9 the reviewer saw transparency 1
+  in this window.
+
+Review leftovers (no change, recorded): Flanfuria still fades (brain unchanged, see Not done); with two players a
+bystander who leaves audience range gets an End for the live view, so their resting copy may reappear at the post while
+the beast is out elsewhere (code read only, two players not checked); the path cake (72.4 studs from the centre) lies
+inside Don Glaseon's 74-stud "still his ground" ring (62 + 12) but outside his territory, so walking to it does not wake
+him.
 
 What was not checked: two players (the resting copies and the cap were seen by one player only); a phone; the Nube and
 the Abeja beyond seeing the Abeja wake; the rolled forest beasts' new frequency in Play (covered by the suites only);
