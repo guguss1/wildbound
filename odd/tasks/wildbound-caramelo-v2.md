@@ -84,7 +84,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] DG3 Chocolate wall. Done 2026-11-16 (evidence below).
 - [x] DG4 Slippery glaze with a slip-and-fall ragdoll. Done 2026-11-16 (evidence below).
 - [x] DG5 Rising anger (time + dodges). Done 2026-11-16 (evidence below; the full rage was seen in suites, not in Play).
-- [ ] DG6 Roar summons new guardians
+- [x] DG6 Roar summons new guardians. Done 2026-11-16 (evidence below).
 - [x] DG7 Trap cake with lures on the routes. Done 2026-11-16 (evidence below; the bite path through a real prompt hold is noted there).
 - [x] CF Faster casts for Gomibú, Flanfuria and Tortidragón:
   - tells down to the 0.8 s floor, shorter recovery;
@@ -160,6 +160,9 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | DG4-D2 | Skating runs on the player's own client (it owns its character): on glaze a flat `LinearVelocity` holds the slide, which turns toward the steering at 1.5 per second (0.5 with no input, losing almost no speed). It never slows the player below their walk. Another push in the beasts' slot wins while it lasts. | "It does not slow the player; they lose grip when turning"; the faster you enter, the more you slide. |
 | DG4-D3 | A slip is a turn of 75 degrees or more against the slide at 17 studs/s or more (above the 16 walk: a sprint or a trained walk). The client asks the server (`WildboundNetwork.CandyGlazeSlip`, no argument read); the server checks the body is on a puddle, its own flat speed is at least 13 (lag tolerance), it is not already down and 3 s passed since its last slip, then calls the shared server ragdoll (`SistemaSonriente` `Ragdoll.aplicar`, used, not edited) for 1 s, carried along the slide (0.8 of its speed, at most 25) with a small lift. No damage, the egg stays. | "Reuse the teammate's ragdoll path"; "about 1 s and readable"; the server never trusts the client's word alone. |
 | DG4-D4 | The server edit is one `do` block (no new top-level local; NH-W13 stays green). | The 200-local limit. |
+| DG6-D1 | The guardians' roar is his roar at a target carrying a Rara, Épica or Legendaria egg: the notice roar when the egg is already in the arms, or a new 1.5 s Roar mid-chase when the egg shows later; at most once per encounter. It emits a `Summon` event; `WildboundBeasts.server` wakes the three through `Director.roar`. | "At most once per chase, only on a player carrying a rare egg or better." |
+| DG6-D2 | `Director.roar` is `alarm` (timers skipped) that may pass the per-player `MAX_ACTIVE` (2), so the boss plus three guardians can be on one thief; it never makes a second of a kind on one player (a guardian already chasing that thief stays the only one of its species), never in a safe zone, and only for Gomibú, Flanfuria and Tortidragón. | "Fresh encounters, not the ones already present"; "maximum tension". Every cast keeps its telegraph and the wave-2 strike stagger; damage stays 0. |
+| DG6-D3 | They spawn on the ground on a ring of 12 studs round the thief (`reservation.near`; no ground there: their own post), and give up by their own leash and chase rules, measured from where they spawned. The summon is deferred one step so no encounter starts while the step loop walks the live table. | "Around the thief"; "they give up after their leash or chase time". |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -330,3 +333,13 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - The shared ragdoll at FALL_SECONDS: Physics at 0.02 s, GettingUp at 1.07 s, Running at 1.08 s.
   - No script errors from these scripts.
 - Not checked: a real sprint (the check set the walk speed on the client), how the skate feels by hand, a carrier slipping (the egg stays by construction), two players, a phone.
+
+### DG6 (2026-11-16)
+
+- Change: `WildboundBeastDonGlaseon` (`Boss.ROAR_SUMMONS`, the summon at the notice roar or a mid-chase Roar, once per encounter), `WildboundBeastDirector` (`Director.roar`, `check`'s roar flag past `MAX_ACTIVE`), `WildboundBeasts.server.luau` (`start` uses `reservation.near`; the `Summon` event, deferred, calls `world.roarSummon`). Registered the new suite in the runner SPECS and the manifests (Python edited by hand, not run).
+- Suites: `WildboundBeastDonGlaseon_Test` gains three DG6 cases (the summon at a rare carrier, once, with his roar; none for a common egg or no egg, once when a rare egg shows mid-chase; the director's roar reservation); new `WildboundCandyRoar_Test` (2 cases: the beast server's wiring).
+- Coordination: the beast-revision session had released every shared beast file ("done with"), after which "writing" was sent to both sessions; "done with" sent after.
+- Fingerprint rule: before writing, Studio equalled HEAD for WildboundBeasts 52351/1300231039, BeastDirector 15427/3587002150, BeastDonGlaseon 19528/4116056984, BeastDonGlaseon_Test 21796/1186522719 (and BeastDirector_Test, BeastWiring_Test, read only). Exact replacements. After: Studio == repo, WildboundBeasts 53855/2377312934, BeastDirector 16240/2753455028, BeastDonGlaseon 20714/101750338, BeastDonGlaseon_Test 24925/1444131760, CandyRoar_Test 2094/1049935529.
+- RED, run `afc778ce`: BeastDonGlaseon 20/3 ("Boss.ROAR_SUMMONS", "expected 1, got 0", `Director.roar` nil), CandyRoar 0/2. GREEN, run `1ef3a0f0`, 205 cases: BeastDonGlaseon 23/0, CandyRoar 2/0, BeastDirector 48/0, BeastWiring 53/0, BeastEncounters 30/0, BeastCandyCritter 14/0, BossRobustness 8/0, PortalService 15/0, CandyNests 12/0.
+- Solo Play (PlayLock `DG6`, cleared after; Play stopped; memory saves): `HeistProbe` "steal" on `CandyE1` (Épica) at (581, -23), inside his territory. 1.1 s later `Beast_roarSummons` = 1, `Beast_started` = 4 (him and the three), no refusal. A few seconds later the client showed Flanfuria (Chase) 20.8 studs and Tortidragón (Chase) 6.0 studs from the player; the summoned Gomibú had already given up (`Beast_ended` 2 by then: its short leash from its spawn point, the player having moved). Health 100. No script errors from these scripts.
+- Not checked: the mid-chase roar in Play (suite only), Gomibú's chase in Play (it ended at its leash first), how four beasts at once read to a person, two players, a phone.

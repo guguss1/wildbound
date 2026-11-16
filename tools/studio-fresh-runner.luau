@@ -162,6 +162,7 @@ SPECS["WildboundCandyTower_Test"] = {
 	{ nests = "src:WildboundCandyNests", client = "src:WildboundCandyTowerClient" },
 	"mod:WildboundCandyNests", "inst:ServerStorage.WildboundAssets.CandyKit",
 }
+SPECS["WildboundCandyRoar_Test"] = { { beasts = "src:WildboundBeasts" } }
 SPECS["WildboundCandyGlaze_Test"] = {
 	"mod:WildboundCandyGlaze", "mod:WildboundCandyLayout", "mod:WildboundCandyBuilder",
 	{ client = "src:WildboundCandyGlazeClient", server = "src:WildboundServer" },

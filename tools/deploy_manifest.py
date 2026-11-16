@@ -426,6 +426,8 @@ DEFAULT_MAPPINGS = [
     # CT1-CT2 Gran Torta tower
     ("tests/WildboundCandyTower_Test.luau", "ServerStorage.WildboundCandyTower_Test"),
     ("src/wildbound/WildboundCandyTower.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyTowerClient"),
+    # DG6 Rugido de guardianes
+    ("tests/WildboundCandyRoar_Test.luau", "ServerStorage.WildboundCandyRoar_Test"),
     # DG4 Glaseado resbaloso
     ("src/wildbound/WildboundCandyGlaze.luau", "ReplicatedStorage.WildboundCandyGlaze"),
     ("src/wildbound/WildboundCandyGlaze.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyGlazeClient"),

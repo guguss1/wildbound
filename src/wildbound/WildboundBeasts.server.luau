@@ -461,7 +461,7 @@ local function start(player, reservation, at)
 		return false, "NoBehaviour"
 	end
 	refreshFilter()
-	local point = character and spawnPoint(reservation.beast, root)
+	local point = character and (reservation.near or spawnPoint(reservation.beast, root))
 	if not point then
 		count("noSpawn")
 		close(reservation.id, "NoSpawn", at)
@@ -679,6 +679,30 @@ local function dodgeStep(entry, event)
 	return false
 end
 
+-- Caramelo v2 (DG6, odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's guardians' roar (his Summon event) wakes fresh
+-- candy guardians on the thief through the director's roar reservation (Director.roar: past the per-player cap, never a
+-- second of a kind), each on the ground on a ring round the thief (no ground there: its own post). They give up by
+-- their own leash and chase rules. A refusal only notes telemetry.
+function world.roarSummon(entry, event, at)
+	local player = entry.player
+	local _, _, root = bodyOf(player)
+	if not root or type(event.names) ~= "table" then return end
+	local ring = Config.finite(event.ring) and event.ring or 12
+	for i, name in ipairs(event.names) do
+		local angle = (i - 1) * 2 * math.pi / #event.names + rng:NextNumber() * 0.5
+		local x, z = root.Position.X + math.cos(angle) * ring, root.Position.Z + math.sin(angle) * ring
+		local y = world.landing(x, z, root.Position.Y)
+		local ok, value = Director.roar(director, player.UserId, name, contextFor(player, at), at)
+		if ok then
+			value.near = y and { x = x, y = y, z = z } or nil
+			safeStart(player, value, at)
+		else
+			telemetry:SetAttribute("Beast_lastRefusal", name .. ":" .. tostring(value))
+		end
+	end
+	telemetry:SetAttribute("Beast_roarSummons", (telemetry:GetAttribute("Beast_roarSummons") or 0) + 1)
+end
+
 local function stepEncounter(id, entry, at)
 	local target = targetOf(entry)
 	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
@@ -701,6 +725,8 @@ local function stepEncounter(id, entry, at)
 				claimStrike(entry.player, id, id .. ":leap:" .. tostring(event.at), event.landAt, true)
 			end
 			if event.type == "Hit" then landHit(entry, event) end
+			-- DG6: deferred, so no encounter starts while the step loop walks the live table
+			if event.type == "Summon" then task.defer(world.roarSummon, entry, event, at) end
 			if event.type == "Afflict" then afflict(entry, event) end
 			logEvent(id, event.type, event.at, event.reason or event.hit)
 			send(entry.player, event)

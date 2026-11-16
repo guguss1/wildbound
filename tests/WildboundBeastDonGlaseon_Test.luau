@@ -365,5 +365,56 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		equal(Sites.bossPick({ { userId = 1, ctx = at(612, 90) } }), nil, "nobody in the territory")
 	end)
 
+	-- DG6 (user 2026-11-15): Rugido de guardianes.
+	case("DG6: his roar at a rare-egg carrier summons fresh Gomibu, Flanfuria and Tortidragon round the thief, once", function()
+		assert(type(Boss.ROAR_SUMMONS) == "table", "Boss.ROAR_SUMMONS")
+		equal(table.concat(Boss.ROAR_SUMMONS, ","), "Gomibu,Flanfuria,Tortidragon")
+		local e, w = boss("dg6a"), fakeWorld()
+		local tgt = target(0, 14, { carryingEgg = true, eggRarity = "Epica" })
+		local events = run(e, w, tgt, 0, 8)
+		local summons = each(events, "Summon")
+		equal(#summons, 1, "one roar summon per chase")
+		local s = summons[1]
+		equal(table.concat(s.names, ","), "Gomibu,Flanfuria,Tortidragon")
+		near(s.x, tgt.x, "round the thief"); near(s.z, tgt.z)
+		assert(s.ring and s.ring >= 8 and s.ring <= 16, "a ring a few strides away")
+		local roar
+		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "Roar" then roar = roar or ev end end
+		assert(roar and math.abs(roar.at - s.at) < 1e-6, "with his roar")
+	end)
+
+	case("DG6: no summon for a common egg or no egg; a carrier who steals a rare egg mid-chase gets it once", function()
+		local e1, w1 = boss("dg6b"), fakeWorld()
+		equal(#each(run(e1, w1, target(0, 14, { carryingEgg = true, eggRarity = "Comun" }), 0, 6), "Summon"), 0, "a common egg")
+		local e2, w2 = boss("dg6c"), fakeWorld()
+		equal(#each(run(e2, w2, target(0, 14), 0, 6), "Summon"), 0, "no egg")
+		local e3, w3 = boss("dg6d"), fakeWorld()
+		local tgt = target(0, 14)
+		local events = run(e3, w3, tgt, 0, 10, function(t, g) if t >= 3 then g.carryingEgg, g.eggRarity = true, "Rara" end end)
+		local summons = each(events, "Summon")
+		equal(#summons, 1, "once, when the rare egg shows")
+		assert(summons[1].at >= 3, "after the steal")
+		local roars = 0
+		for _, ev in ipairs(each(events, "Phase")) do if ev.phase == "Roar" then roars += 1 end end
+		equal(roars, 2, "the notice roar, then the guardians' roar")
+	end)
+
+	case("DG6: the director's roar reservation: beyond the per-player cap, never a second of a kind, only the three", function()
+		local dir = Director.new()
+		local ctx = { alive = true, safe = false, biomes = { Meadow = true } }
+		local okBoss = Director.summon(dir, 1, "DonGlaseon", ctx, 100)
+		assert(okBoss, "the boss")
+		local first = Director.alarm(dir, 1, "Gomibu", ctx, 100)
+		assert(first, "a guardian already on the thief")
+		local okF, f = Director.roar(dir, 1, "Flanfuria", ctx, 101)
+		equal(okF, true, "past MAX_ACTIVE (" .. tostring(f) .. ")")
+		equal((Director.roar(dir, 1, "Tortidragon", ctx, 101)), true, "and the third")
+		equal(select(2, Director.roar(dir, 1, "Gomibu", ctx, 101)), "AlreadyActive", "the one already present stays the only one")
+		equal(select(2, Director.roar(dir, 1, "Viper", ctx, 101)), "NotRoarable")
+		equal(select(2, Director.roar(dir, 2, "Flanfuria", { alive = true, safe = true, biomes = { Meadow = true } }, 101)), "SafeZone", "never in a safe zone")
+		assert(Director.alarm(dir, 3, "Gomibu", ctx, 101) and Director.alarm(dir, 3, "Flanfuria", ctx, 101), "two on player 3")
+		equal(select(2, Director.alarm(dir, 3, "Tortidragon", ctx, 101)), "MaxActive", "an alarm still obeys the cap")
+	end)
+
 	return result
 end

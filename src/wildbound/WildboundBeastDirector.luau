@@ -109,7 +109,8 @@ end
 -- biome, Pradera for a global beast, a safe zone, death or an active Silueta.
 -- Every rule reserve applies, without booking or logging anything. Returns nil when the beast may start now, else the
 -- refusal reason. Shared by reserve (which books in the same call) and by the roll (which then does not roll at all).
-local function check(dir, userId, name, ctx, now, force)
+-- roar (DG6, Director.roar): Don Glaseon's guardians' roar may pass MAX_ACTIVE; every other rule stands.
+local function check(dir, userId, name, ctx, now, force, roar)
 	local beast = Config.BEASTS[name]
 	if type(userId) ~= "number" then return "InvalidPlayer" end
 	if not beast then return "UnknownBeast" end
@@ -139,7 +140,7 @@ local function check(dir, userId, name, ctx, now, force)
 		if now < ((dir.uniqueReadyAt or {})[name] or -math.huge) then return "BossResting" end
 	end
 	local _, count = Director.budget(dir, userId)
-	if count >= D.MAX_ACTIVE then return "MaxActive" end
+	if count >= D.MAX_ACTIVE and roar ~= true then return "MaxActive" end
 	if player.points + beast.points > D.MAX_POINTS then return "Budget" end
 	-- A beast that fills the whole budget (Scuttler, 3 points) hunts alone: a 0-point summoned kids beast never starts
 	-- beside it, and it never starts beside one (docs/design/wildbound-scuttler-plan.md, "only alone").
@@ -153,7 +154,7 @@ end
 function Director.reserve(dir, userId, name, ctx, now, opts)
 	local beast = Config.BEASTS[name]
 	local force = type(opts) == "table" and opts.force == true
-	local why = check(dir, userId, name, ctx, now, force)
+	local why = check(dir, userId, name, ctx, now, force, type(opts) == "table" and opts.roar == true)
 	if why then return refuse(dir, userId, name, why, now) end
 	local player = record(dir, userId)
 	dir.nextId += 1
@@ -214,6 +215,15 @@ end
 function Director.alarm(dir, userId, name, ctx, now)
 	if not Config.SUMMONED[name] then return false, "NotSummoned" end
 	return Director.reserve(dir, userId, name, ctx, now, { force = true })
+end
+
+-- Caramelo v2 (DG6, odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's guardians' roar wakes a fresh candy guardian on
+-- the thief. Like alarm (the timers skipped) and past the per-player MAX_ACTIVE, but never a second of a kind on one
+-- player (the one already there stays the only one), never in a safe zone, only the three candy guardians.
+Director.ROAR = table.freeze({ Gomibu = true, Flanfuria = true, Tortidragon = true })
+function Director.roar(dir, userId, name, ctx, now)
+	if not Director.ROAR[name] then return false, "NotRoarable" end
+	return Director.reserve(dir, userId, name, ctx, now, { force = true, roar = true })
 end
 
 -- Wave 2: the calendar. The first call for a player sets their anchor; beast i of Config.ORDER has its slots at

@@ -23,6 +23,8 @@
 --   DG5 Rabia creciente: an anger meter rises while the target carries an egg in his territory and with each perfect
 --      dodge of his lash; full, he rages (cooldowns halved) for a while. Anger events tell the clients (a red tint).
 --      Rules: WildboundCandyDonGlaseonAnger.
+--   DG6 Rugido de guardianes: his roar at a carrier of a Rara egg or better (the notice roar, or a new Roar mid-chase
+--      when the egg shows later) emits Summon, once per chase; the beast script wakes fresh guardians round the thief.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
 --   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
 -- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
@@ -40,6 +42,15 @@ local Boss = {}
 local flat, unit = Config.flat, Config.unit
 local copy = Attack.copy
 local RARE = { Rara = true, Epica = true, Legendaria = true }
+-- DG6 Rugido de guardianes: at most once per chase, a roar at a carrier of a Rara egg or better asks the beast script
+-- (a Summon event) for fresh candy guardians on a ring of ROAR_RING_STUDS round the thief (Director.roar).
+Boss.ROAR_SUMMONS = table.freeze({ "Gomibu", "Flanfuria", "Tortidragon" })
+Boss.ROAR_RING_STUDS = 12
+local function rareCarrier(target) return target.carryingEgg == true and RARE[target.eggRarity] == true end
+local function summon(events, e, at, target)
+	e.summoned = true
+	Attack.emit(events, e, "Summon", at, { names = Boss.ROAR_SUMMONS, x = target.x, z = target.z, ring = Boss.ROAR_RING_STUDS })
+end
 
 function Boss.init(e)
 	e.home = copy(e.pos)
@@ -261,6 +272,7 @@ function Boss.step(events, e, now, target, world, dt)
 			if not e.roared then
 				e.roared = true
 				Attack.phase(events, e, "Roar", at, at + T.RoarSeconds)
+				if rareCarrier(target) then summon(events, e, at, target) end
 			else
 				chase(events, e, at)
 			end
@@ -290,6 +302,12 @@ function Boss.step(events, e, now, target, world, dt)
 		end
 		if not seen then
 			Attack.phase(events, e, "Search", now, now + T.SearchSeconds)
+			return
+		end
+		-- DG6: a target who shows a rare egg mid-chase gets the guardians' roar, once per chase
+		if not e.summoned and rareCarrier(target) then
+			Attack.phase(events, e, "Roar", now, now + T.RoarSeconds)
+			summon(events, e, now, target)
 			return
 		end
 		local distance = Attack.distance(e, target)
