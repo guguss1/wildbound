@@ -1,0 +1,3 @@
+- [Explain questions plainly](explain-questions-plainly.md) — plain Spanish, no task codes/jargon in questions and summaries
+- [Wildbound env: git/python/worktrees](wildbound-env-git-python.md) — git only via GitHub Desktop path, no Python, repo worktree layout
+- [Lumipol rig pipeline](lumipol-rig-pipeline.md) — asset ownership blocks export; rig in Blender; sleep idle + walk/run anims

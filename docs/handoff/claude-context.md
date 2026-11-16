@@ -8,7 +8,8 @@ This file carries the working rules and preferences that Claude Code kept in its
 - **Agents:** run delegated agents and workflow agents on Opus at medium effort.
   - Use as many as the work needs: at most three concurrent agents that don't touch Studio, and only one Studio writer.
   - While the user is using the PC, agents run in the background only (no computer-use).
-- **Don't block on decisions:** in long batches, take product decisions yourself, record each one in the feature doc under "Decisions taken for the user", and list them at the end. Safety gates still apply (see below).
+- **Plain Spanish:** summaries and any question to the user explain every term in simple words, without internal task codes.
+- **Don't block on decisions:** the owner wants no questions (2026-11-16); in long batches, take product decisions yourself, record each one in the feature doc under "Decisions taken for the user", and list them at the end. Safety gates still apply (see below).
 - **Commits:** Conventional Commits with no AI attribution and no Co-Authored-By line. This is a user rule that overrides tool defaults.
 - **Commit scope:** commit only your own paths (`git commit -m "..." -- <paths>`). Several agents share one index, and staging the whole tree once swept another agent's files into the wrong commit.
 
@@ -22,7 +23,7 @@ This file carries the working rules and preferences that Claude Code kept in its
 
 ## Studio rules that prevent data loss
 
-- Target: Roblox Studio place `122652861404212` (universe `10774749224`, owned by group `465694015`). The Studio MCP instance id changes on every reconnect, so use `list_roblox_studios` and pick the one with this place id. Confirm the target with the user in each new session before writing.
+- Target: Roblox Studio place `122652861404212` (universe `10774749224`, owned by group `465694015`). The Studio MCP instance id changes on every reconnect, so use `list_roblox_studios` and pick the one with this place id. The owner confirmed this place as the target for agent work (2026-11-16 handoff prompt); re-check the place id each session.
 - **Fingerprint rule:** before writing any Studio `Source`, compare it with the repo HEAD file.
   - Normalise both first: CRLF→LF, strip trailing newlines, then compare byte length + Adler-32.
   - If Studio differs, Studio is the live truth: pull it into the repo first, read-only, then build on that.
@@ -68,9 +69,17 @@ The local Engram store mirrors the ODD feature docs under these topic keys (the 
 
 On a new machine, rebuild them from the docs if needed.
 
-## Tools on this Windows machine
+## Tools on the owner's Windows machine (updated 2026-11-16)
 
-- The Bash tool runs Git Bash. `rg` and `fd` are not on PATH there: use the Grep/Glob tools or PowerShell.
-- Python 3.11. Run tools with `python -I -B`.
-- If Python prints fail on cp1252, use `sys.stdout.reconfigure(encoding='utf-8')`.
-- Python tests: `python -I -B -m unittest discover -s tools -p "test_*.py"`. The known failure is `test_lumipol_v2.V1IsKept`.
+- The shell is Windows PowerShell 5.1 (no `&&`). `git` is not on PATH: use `%LOCALAPPDATA%\GitHubDesktop\app-<version>\resources\app\git\cmd\git.exe` (app-3.6.5 on 2026-11-16).
+- Python is NOT installed there, so the Python tools, tests and the economy simulator cannot run on that PC. Compute fingerprints in PowerShell or in Studio Luau.
+- On a machine with Python 3.11: run tools with `python -I -B`; tests with `python -I -B -m unittest discover -s tools -p "test_*.py"`. The known failure is `test_lumipol_v2.V1IsKept`. If prints fail on cp1252, use `sys.stdout.reconfigure(encoding='utf-8')`.
+- Blender 5.0: `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`.
+- Worktrees: `E:\juego roblox\wb-first-playable` (branch `codex/wildbound-first-playable`), `E:\juego roblox\wb-big4` (branch `agus/big4-map`).
+
+## Current handoff
+
+- Latest handoff: `docs/handoff/HANDOFF-2026-11-16.md`. Account switch guide and first prompt: `docs/handoff/SWITCH-ACCOUNT.md`. Sanitized memory copies: `docs/handoff/memory/`.
+- Studio locks: besides `WildboundPlayLock`, never start Play while `ServerStorage` attribute `WildboundImportLock` is set; suites honour `WildboundFreshRunnerLock`.
+- Map mode: leave the place in `big4` mode (`WildboundMapModeSwitch`); classic pieces are archived in `ServerStorage.WildboundMapArchive`.
+- Never upload code as assets (the two transport Models 104898638172426 and 110244231107381 are for the owner to archive). Never spend Robux.
