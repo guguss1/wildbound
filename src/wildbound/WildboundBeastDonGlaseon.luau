@@ -20,6 +20,9 @@
 --   DG3 Muro de chocolate: while chasing, a target running away out of the lash's reach for Wall.OUT_OF_REACH_SECONDS
 --      gets a ring of wall around the spot it runs to (a Tell of the shared walls shape: a crack line, then up, then a
 --      TellEnd); the chase goes on. Rules: WildboundCandyDonGlaseonWall.
+--   DG5 Rabia creciente: an anger meter rises while the target carries an egg in his territory and with each perfect
+--      dodge of his lash; full, he rages (cooldowns halved) for a while. Anger events tell the clients (a red tint).
+--      Rules: WildboundCandyDonGlaseonAnger.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
 --   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
 -- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
@@ -31,6 +34,7 @@ local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild(
 local Latigo = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAttack"))
 local Vacuum = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonVacuum"))
 local Wall = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonWall"))
+local Anger = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAnger"))
 local Boss = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -42,6 +46,7 @@ function Boss.init(e)
 	e.readyAt = -math.huge
 	e.vacuumReadyAt = -math.huge
 	e.wallReadyAt = -math.huge
+	e.anger = Anger.new()
 	if not e.dx then e.dx, e.dz = 0, -1 end
 end
 
@@ -174,7 +179,7 @@ local function raiseWall(events, e, now, target, world)
 	shape.y = Attack.groundAt(world, shape.x, shape.z, e.pos.y)
 	e.wallCount = (e.wallCount or 0) + 1
 	e.wall = { state = state, tell = ("%s:wall:%d"):format(e.id, e.wallCount) }
-	e.wallReadyAt = Wall.downAt(state) + Wall.COOLDOWN_SECONDS
+	e.wallReadyAt = Wall.downAt(state) + Wall.COOLDOWN_SECONDS * Anger.cooldownScale(e.anger, now)
 	Attack.emit(events, e, "Tell", now, { tell = e.wall.tell, shape = shape, startAt = now, strikeAt = Wall.upAt(state),
 		lockAt = now, dodgeable = false, locked = true })
 	return true
@@ -188,8 +193,13 @@ local function impact(events, e, target, world, C, i)
 	local landed = Latigo.impact(cast, lane, { { id = 1, x = target.x, z = target.z, alive = target.alive == true,
 		safe = target.safe == true or high, carrying = target.carryingEgg == true } }, i)[1]
 	if landed then
-		Attack.hit(events, e, world, attack, at, { push = { dx = landed.push.dx, dz = landed.push.dz, studs = landed.push.studs,
+		local verdict = Attack.hit(events, e, world, attack, at, { push = { dx = landed.push.dx, dz = landed.push.dz, studs = landed.push.studs,
 			seconds = landed.push.seconds }, slow = landed.slowFactor and { multiplier = landed.slowFactor, seconds = landed.slowSeconds } or nil })
+		-- DG5: a perfect dodge of a lash angers him
+		if verdict == "Dodged" then
+			local change = Anger.dodge(e.anger, at)
+			if change then Attack.emit(events, e, "Anger", at, { value = change.value, rage = change.rage, untilAt = e.anger.rageUntil }) end
+		end
 	else
 		Attack.miss(events, e, world, attack, at)
 	end
@@ -217,6 +227,9 @@ function Boss.step(events, e, now, target, world, dt)
 	end
 	if not target or target.alive ~= true then lose(events, e, world, now, T, "Death") return end
 	if target.safe == true then lose(events, e, world, now, T, "SafeZone") return end
+	-- DG5: the anger meter, for a target carrying an egg in his territory
+	local change = Anger.step(e.anger, now, target.carryingEgg == true and inTerritory(e, world, target, T))
+	if change then Attack.emit(events, e, "Anger", now, { value = change.value, rage = change.rage, untilAt = e.anger.rageUntil }) end
 	-- DG3: a wall goes down on its own time, whatever he is doing
 	if e.wall and now >= Wall.downAt(e.wall.state) then
 		Attack.emit(events, e, "TellEnd", Wall.downAt(e.wall.state), { tell = e.wall.tell, reason = "Done" })
@@ -320,7 +333,7 @@ function Boss.step(events, e, now, target, world, dt)
 			return
 		end
 		Attack.emit(events, e, "TellEnd", Vacuum.pullEndsAt(state), { tell = e.vacuumTell, reason = "Done" })
-		e.vacuumReadyAt = Vacuum.endsAt(state) + Vacuum.COOLDOWN_SECONDS
+		e.vacuumReadyAt = Vacuum.endsAt(state) + Vacuum.COOLDOWN_SECONDS * Anger.cooldownScale(e.anger, now)
 		Attack.phase(events, e, "Recover", Vacuum.pullEndsAt(state), Vacuum.endsAt(state))
 		return
 	end
@@ -356,7 +369,7 @@ function Boss.step(events, e, now, target, world, dt)
 		end
 		if e.lashIndex <= Latigo.LASHES then return end
 		e.lashes = nil
-		e.readyAt = Latigo.endsAt(e.cast) + Latigo.COOLDOWN_SECONDS
+		e.readyAt = Latigo.endsAt(e.cast) + Latigo.COOLDOWN_SECONDS * Anger.cooldownScale(e.anger, now)
 		Attack.phase(events, e, "Recover", Latigo.impactAt(e.cast), Latigo.endsAt(e.cast))
 		return
 	end

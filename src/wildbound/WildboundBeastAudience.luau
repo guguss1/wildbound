@@ -18,7 +18,9 @@ Audience.PERSONAL = table.freeze({ Silueta = true })
 -- target: a new event is private until it is listed here.
 Audience.VISUAL = table.freeze({ Spawn = true, Snap = true, Phase = true, Tell = true, TellEnd = true, Strike = true,
 	Move = true, Windup = true, Lock = true, Dash = true, Recover = true, Telegraph = true, Freeze = true, Leap = true,
-	Land = true, Cancel = true, Disengage = true, End = true, Stalk = true, Hunt = true })
+	Land = true, Cancel = true, Disengage = true, End = true, Stalk = true, Hunt = true,
+	-- DG5 (odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's anger tint, seen by every nearby player.
+	Anger = true })
 
 -- Fields that carry an effect or a target-only cue (the dodge verdict, a HUD line); never copied to a bystander.
 Audience.EFFECT_FIELDS = table.freeze({ "damage", "knock", "slow", "sticky", "mark", "eggDropped", "dodged", "line", "hit" })

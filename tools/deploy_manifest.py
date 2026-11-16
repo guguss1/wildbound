@@ -416,6 +416,9 @@ DEFAULT_MAPPINGS = [
     # DG3 Muro de chocolate
     ("tools/WildboundCandyDonGlaseonWall.luau", "ServerStorage.WildboundCandyDonGlaseonWall"),
     ("tests/WildboundCandyDonGlaseonWall_Test.luau", "ServerStorage.WildboundCandyDonGlaseonWall_Test"),
+    # DG5 Rabia creciente
+    ("tools/WildboundCandyDonGlaseonAnger.luau", "ServerStorage.WildboundCandyDonGlaseonAnger"),
+    ("tests/WildboundCandyDonGlaseonAnger_Test.luau", "ServerStorage.WildboundCandyDonGlaseonAnger_Test"),
     ("tools/WildboundCandyDonGlaseonClips.luau", "ServerStorage.WildboundCandyDonGlaseonClips"),
     ("tests/WildboundCandyDonGlaseonClips_Test.luau", "ServerStorage.WildboundCandyDonGlaseonClips_Test"),
     ("src/wildbound/WildboundBeastDonGlaseon.luau", "ServerScriptService.WildboundBeastDonGlaseon"),

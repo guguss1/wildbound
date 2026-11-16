@@ -248,6 +248,35 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		for _, ev in ipairs(each(events, "Tell")) do assert(ev.shape.kind ~= "walls", "a wall for a still target") end
 	end)
 
+	-- DG5 (decision taken for the user 2026-11-15): Rabia creciente, time carrying an egg in his territory plus dodges.
+	case("DG5: a target carrying an egg fills his anger in 10 s; raging, his lash cooldown is halved; the clients hear it", function()
+		local e, w, tgt = boss("g15"), fakeWorld(), target(0, 14, { carryingEgg = true })
+		local gaps = {}
+		local events = run(e, w, tgt, 0, 17, nil, function(t, en)
+			if en.phase == "Recover" and en.cast and not gaps[en.cast] then gaps[en.cast] = { at = t, gap = en.readyAt - Latigo.endsAt(en.cast) } end
+		end)
+		local reports = each(events, "Anger")
+		assert(#reports >= 5, "anger reports " .. #reports)
+		local rage
+		for _, r in ipairs(reports) do if r.rage == true then rage = rage or r end end
+		assert(rage, "he never raged"); near(rage.value, 1, "full"); near(rage.at, 10, "full after 10 s of carrying", 0.11)
+		local before, during = nil, nil
+		for _, g in pairs(gaps) do
+			if g.at < rage.at then before = g.gap else during = g.gap end
+		end
+		near(before, Latigo.COOLDOWN_SECONDS, "the normal cooldown before the rage", 1e-6)
+		near(during, Latigo.COOLDOWN_SECONDS * 0.5, "halved while raging", 1e-6)
+	end)
+
+	case("DG5: the meter empties when the target stops carrying an egg", function()
+		local e, w, tgt = boss("g16"), fakeWorld(), target(0, 14, { carryingEgg = true })
+		local events = run(e, w, tgt, 0, 6, function(t, target) target.carryingEgg = t < 5 end)
+		local last
+		for _, r in ipairs(each(events, "Anger")) do last = r end
+		assert(last, "no anger report"); equal(last.value, 0, "emptied"); equal(last.rage, false)
+		assert(last.at >= 5 - 1e-6, "emptied before the egg was gone")
+	end)
+
 	case("a safe zone stops it at once: the open lash is called off, nothing lands, it walks home (no vanishing)", function()
 		local e, w, tgt, _, tell = telegraphing("g7")
 		tgt.safe = true

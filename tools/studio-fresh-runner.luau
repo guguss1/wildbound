@@ -154,6 +154,7 @@ SPECS["WildboundCandyDonGlaseon_Test"] = { "mod:WildboundCandyDonGlaseon", "inst
 SPECS["WildboundCandyDonGlaseonAttack_Test"] = { "mod:WildboundCandyDonGlaseonAttack" }
 SPECS["WildboundCandyDonGlaseonVacuum_Test"] = { "mod:WildboundCandyDonGlaseonVacuum" }
 SPECS["WildboundCandyDonGlaseonWall_Test"] = { "mod:WildboundCandyDonGlaseonWall" }
+SPECS["WildboundCandyDonGlaseonAnger_Test"] = { "mod:WildboundCandyDonGlaseonAnger" }
 SPECS["WildboundBossRobustness_Test"] = {
 	"mod:WildboundBat", "mod:WildboundBatKnock", "mod:WildboundBeastConfig", "mod:WildboundCandyDonGlaseon",
 	"inst:ServerStorage.WildboundAssets.DonGlaseon",

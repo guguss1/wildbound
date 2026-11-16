@@ -83,7 +83,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] DG2 Vacuum mouth. Done 2026-11-16 (evidence below).
 - [x] DG3 Chocolate wall. Done 2026-11-16 (evidence below).
 - [ ] DG4 Slippery glaze with a slip-and-fall ragdoll
-- [ ] DG5 Rising anger (time + dodges)
+- [x] DG5 Rising anger (time + dodges). Done 2026-11-16 (evidence below; the full rage was seen in suites, not in Play).
 - [ ] DG6 Roar summons new guardians
 - [ ] DG7 Trap cake with lures on the routes
 - [x] CF Faster casts for Gomibú, Flanfuria and Tortidragón:
@@ -136,6 +136,9 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | DG3-D2 | He raises it only on a runner: a target out of the lash's reach for 1 s, within 30 studs, moving at 10 studs/s or more and away from him (cosine at least 0.5). He keeps chasing while it rises. | It cuts an escape, not a standing player; it comes before the vacuum (2 s) on the same runner. |
 | DG3-D3 | It reuses the shared "walls" shape (Root's enclosure layout): the beast client draws it flat, raises it at its time, makes it solid on the target's client only and leaves open any piece that would rise inside the player. No client, server or Config edit. | The tested path; nobody is ever sealed in a wall piece. |
 | DG3-D4 | It never hits, never deals damage and never drops the egg. Other players never collide with it (as Root's walls). | Unchanged rules for walls; the lash stays the only egg drop. |
+| DG5-D1 | The meter fills in 10 s of carrying an egg inside his territory (the doc said "over time"); a perfect dodge of a lash adds a quarter; full, he rages 10 s; it empties when the target stops carrying, leaves the territory, or after the rage. One meter per encounter (his current target). | A rage has to fit inside his 15 s chase. |
+| DG5-D2 | "Faster casts, shorter cooldowns" while raging: every cooldown is halved (lash 7 -> 3.5 s, vacuum 12 -> 6 s, wall 14 -> 7 s). The tells stay as they are (the lash is already at the 0.8 s floor). | Fair-strike floor; the cooldowns are what makes him feel faster. |
+| DG5-D3 | The meter is visible to everyone near: the clients tint him red with a Highlight (fill transparency 1 - 0.5 x the meter, 0.35 while raging), and `Anger` joins `WildboundBeastAudience.VISUAL`. No new asset. | "The meter is visible: his colour shifts toward red." |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -221,3 +224,13 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - RED, run `d74ef6b5`: Wall suite "module not found", BeastDonGlaseon 17/1 ("no wall"). GREEN, run `13946ec4`: Wall 5/0, Vacuum 5/0, DonGlaseonAttack 7/0, BeastDonGlaseon 18/0, BossRobustness 8/0, BeastWiring 51/0, BeastEncounters 24/0.
 - Solo Play (PlayLock `DG3`, cleared after; Play stopped; memory saves): the player's client ran around the Gran Torta at walk speed (16) with him chasing. 5.2 s in, the wall's crack line appeared flat on the floor (24 pieces 0.12 studs high, two exit posts); 1 s later it stood solid (12 pieces colliding on this client); the scripted runner, which kept running into it instead of looking for the exit, stood still against it (speed 0) for the 3 s it stood, then ran on when it went down. No script errors.
 - Not checked: a person finding the exit by eye, the wall seen by a second player (never solid for them, by construction), how it reads on a phone. The look is Root's wall colours (no chocolate texture: no new asset).
+
+### DG5 (2026-11-16)
+
+- Change: new `tools/WildboundCandyDonGlaseonAnger.luau` (ServerStorage; the pure meter); `WildboundBeastDonGlaseon` (the meter each step, a chunk on a dodged lash, `Anger` events, cooldowns scaled); `WildboundBeasts.client.luau` (`handlers.Anger`, the red Highlight); `WildboundBeastAudience` (`Anger` in VISUAL). Registered in the runner SPECS and the manifests (Python edited by hand, not run).
+- Coordination: "writing" sent to the parent and beast-revision sessions before the client, audience and wiring test were written. Studio was in another session's Play (lock `critter-brain`) and was waited out. The beast-revision session had uncommitted edits of its own in the repo's `WildboundBeasts.client.luau` (Viper and Pouncer phases); only the DG5 hunk was staged for this commit, and Studio holds HEAD plus DG5 only.
+- Suites: new `WildboundCandyDonGlaseonAnger_Test` (5 cases); BeastDonGlaseon two new cases (a carrier fills it in 10 s and the next lash cooldown is halved; it empties when the egg is gone); BeastWiring one new case (the tint handler; `Anger` visible to bystanders).
+- Fingerprint rule: before writing, Studio equalled the committed versions (BeastsClient 52992/433460321, BeastAudience 11067/2813954137, BeastWiring_Test 51083/1289257319, BeastDonGlaseon 18423/1729599941, BeastDonGlaseon_Test 20137/3509967721). After: Anger 2664/1106081784, Anger_Test 4200/1084172373, BeastDonGlaseon 19528/4116056984, BeastDonGlaseon_Test 21796/1186522719, BeastAudience 11183/4179930891, BeastWiring_Test 51698/3946662713, BeastsClient 53799/2312708310 (= HEAD plus the DG5 hunk; the repo file is larger only by the beast-revision session's uncommitted lines).
+- RED, run `5e03bd86`: Anger suite "module not found", BeastDonGlaseon 18/2 ("anger reports 0"), BeastWiring 51/1 ("missing function handlers.Anger"). GREEN, run `24f7fa2c`, 155 cases: Anger 5/0, Wall 5/0, Vacuum 5/0, DonGlaseonAttack 7/0, BeastDonGlaseon 20/0, BossRobustness 8/0, BeastWiring 52/0, BeastEncounters 24/0, BeastAudience 17/0, BeastAnimPlan 12/0. The client compiles.
+- Solo Play (PlayLock `DG5`, cleared after; Play stopped; memory saves): with a stolen Épica egg (`Egg:25`) and the client keeping the player 24 studs from him, his model's `BossAnger` rose 0.10 -> 0.93 in 9 s and the tint's fill transparency fell 0.95 -> 0.54; when the player drifted out of the territory the meter dropped to 0 and the tint cleared. A first try lost the egg to a lash before the loop started: the meter then also emptied. No script errors.
+- Not checked in Play: the full rage (the scripted orbit left the territory at 0.93; the rage and the halved cooldown are suite only), a perfect dodge adding a chunk, the tint seen by a second player.

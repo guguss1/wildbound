@@ -837,5 +837,16 @@ return function(sources, Proxies)
 		equal(Audience.VISUAL.Pull, nil, "the pull is the target's only")
 	end)
 
+	-- DG5: Don Glaseon's anger is a visual every nearby player sees: a red tint, full while he rages.
+	case("DG5: the clients tint him red with his anger; bystanders see it too", function()
+		local client = sources.client
+		local handler = body(client, "function handlers.Anger(ev, view)")
+		has(handler, "Instance.new(\"Highlight\")", "a tint, no new asset")
+		has(handler, "math.clamp(ev.value, 0, 1)", "the value is clamped")
+		has(handler, "ev.rage == true", "full red while he rages")
+		has(handler, "SetAttribute(\"BossRage\"")
+		equal(sources.audience.VISUAL.Anger, true, "a bystander sees his colour")
+	end)
+
 	return result
 end

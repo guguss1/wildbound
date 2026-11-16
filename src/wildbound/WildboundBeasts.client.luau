@@ -787,6 +787,24 @@ local function stepPull(dt)
 	crumbs.Enabled = true
 end
 RunService.Heartbeat:Connect(stepPull)
+-- DG5: Don Glaseon's rising anger shows as a red tint on his model, strong while he rages. Bystanders get it too
+-- (Anger is in WildboundBeastAudience.VISUAL). A Highlight, no new asset.
+function handlers.Anger(ev, view)
+	if not view.model or not Config.finite(ev.value) then return end
+	local value = math.clamp(ev.value, 0, 1)
+	local glow = view.model:FindFirstChild("WildboundAnger")
+	if not glow then
+		glow = Instance.new("Highlight")
+		glow.Name = "WildboundAnger"
+		glow.FillColor = Color3.fromRGB(230, 40, 40)
+		glow.OutlineTransparency = 1
+		glow.DepthMode = Enum.HighlightDepthMode.Occluded
+		glow.Parent = view.model
+	end
+	glow.FillTransparency = ev.rage == true and 0.35 or 1 - 0.5 * value
+	view.model:SetAttribute("BossAnger", value)
+	view.model:SetAttribute("BossRage", ev.rage == true)
+end
 function handlers.Exposure(ev, view)
 	if view.wave2 and not view.bystander and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
 end
