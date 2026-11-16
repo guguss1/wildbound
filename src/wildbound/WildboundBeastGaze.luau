@@ -14,6 +14,7 @@
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
+local Chase = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastChase")) -- BR0
 local Gaze = {}
 
 local finite = Config.finite
@@ -97,7 +98,7 @@ function Gaze.step(events, e, now, target, world, dt)
 			if not startZone(events, e, now, target, world, C, T) then
 				e.exposure = T.ExposureToAttackSeconds -- staggered: hold at the threshold and try on the next step
 			end
-		elseif not seen and now - e.lastSeenAt >= T.DisengageIfUnseenSeconds then
+		elseif not seen and now - e.lastSeenAt >= T.DisengageIfUnseenSeconds and not Chase.persistent(e.beast) then
 			Attack.disengage(events, e, "Unseen", now, C.disengage)
 			return
 		elseif not seen and e.exposure <= 0 and Attack.distance(e, target) > T.MaxViewDistanceStuds

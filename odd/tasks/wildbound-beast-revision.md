@@ -156,7 +156,8 @@ and lives in Config, so it can be tuned.
 
 | ID | Commit | Checks |
 |---|---|---|
-| BR-A | (this commit) | audit only; Studio fingerprints of the 23 beast scripts equal repo HEAD at start |
+| BR-A | `f6e2f99` | audit only; Studio fingerprints of the 23 beast scripts equal repo HEAD at start |
+| BR0 | (BR0 commit) | RED: Chase_Test missing module, Attack 2, Encounters 4, Gaze 1, Streamer 1 failing. GREEN (fresh runner, Edit): Chase 6/0, Attack 15/0, Encounters 24/0, Streamer 8/0, Gaze 7/0, Root 9/0, Lurker 7/0, Scuttler 42/0, Gomibu 9/0, Flanfuria 10/0, Tortidragon 9/0, Nube 11/0, Abeja 10/0, Director 48/0, DonGlaseon 18/0, CandyCritter 13/0. Studio == repo for Chase, Chase_Test, Attack, Attack_Test, Gaze, Gaze_Test, Root, Streamer_Test. The Encounters (Viper/Pouncer) half of BR0 lands with BR1 (same files). Solo Play check: with BR1 |
 
 ## Next step
 

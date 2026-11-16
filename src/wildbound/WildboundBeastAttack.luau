@@ -11,6 +11,10 @@
 -- later one waits (the state machine retries on its next step).
 local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
 	:WaitForChild("WildboundBeastConfig"))
+-- Beast revision BR0 (odd/tasks/wildbound-beast-revision.md): the shared chase rules (persistent chase, one end check,
+-- the catch-up walk).
+local Chase = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
+	:WaitForChild("WildboundBeastChase"))
 local Attack = {}
 
 local finite, flat, unit = Config.finite, Config.flat, Config.unit
@@ -42,6 +46,8 @@ end
 function Attack.walk(e, target, speed, sign, dt, world)
 	local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
 	if not dx then dx, dz = e.dx, e.dz end
+	-- BR0: a persistent beast far behind closes in at least at the catch-up speed.
+	speed = Chase.walkSpeed(e.beast, speed, flat(e.pos.x, e.pos.z, target.x, target.z), sign)
 	e.pos.x += dx * speed * dt * sign
 	e.pos.z += dz * speed * dt * sign
 	e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
@@ -74,18 +80,20 @@ end
 -- The end checks every wave 2 beast shares. opts = { timeout, escapeDistance, escapeSeconds, busy, disengage }.
 -- Death, a respawned body (the beast script passes nil) and a safe zone end the encounter at once; a long absence
 -- (escape), the timeout or a caller's reason (lost target) start the retreat. Returns true when nothing else may run.
+-- BR0: a persistent beast (WildboundBeastChase.PERSISTENT) skips escape and timeout: only death or a safe zone ends it.
 function Attack.guard(events, e, now, target, opts)
-	if not target or target.alive ~= true then
-		table.insert(events, Attack.finish(e, "Death", now))
-		return true
-	end
-	if target.safe == true then
-		table.insert(events, Attack.finish(e, "SafeZone", now))
+	local ended = Chase.ended(target)
+	if ended then
+		table.insert(events, Attack.finish(e, ended, now))
 		return true
 	end
 	if e.phase == "Disengage" then
 		if now >= e.disengageUntil then table.insert(events, Attack.finish(e, e.disengageReason or "Done", e.disengageUntil)) end
 		return true
+	end
+	if Chase.persistent(e.beast) then
+		e.farSince = nil
+		return false
 	end
 	if finite(opts.escapeDistance) then
 		if Attack.distance(e, target) > opts.escapeDistance then e.farSince = e.farSince or now else e.farSince = nil end

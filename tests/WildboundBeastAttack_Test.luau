@@ -125,18 +125,50 @@ return function(Attack, Config, source)
 		e, events = encounter("beast:8"), {}
 		equal(Attack.guard(events, e, 1, { x = 0, y = 0, z = 0, alive = true, safe = true }, {}), true)
 		equal(events[1].reason, "SafeZone")
+		-- Escape and timeout are for the non-persistent beasts (Scuttler here); BR0 covers the six persistent ones below.
 		e, events = encounter("beast:9"), {}
+		e.beast = "Scuttler"
 		local far = { x = 200, y = 0, z = 0, alive = true, safe = false }
 		equal(Attack.guard(events, e, 1, far, { escapeDistance = 100, escapeSeconds = 4 }), false)
 		equal(Attack.guard(events, e, 5, far, { escapeDistance = 100, escapeSeconds = 4 }), true)
 		equal(events[1].type, "Disengage"); equal(events[1].reason, "Escape")
 		e, events = encounter("beast:10"), {}
+		e.beast = "Scuttler"
 		local near0 = { x = 1, y = 0, z = 0, alive = true, safe = false }
 		equal(Attack.guard(events, e, 45, near0, { timeout = 45, busy = true }), false, "a busy phase finishes first")
 		equal(Attack.guard(events, e, 45.05, near0, { timeout = 45 }), true)
 		equal(events[1].reason, "Timeout")
 		equal(Attack.guard(events, e, 46, near0, { timeout = 45 }), true)
 		equal(events[#events].type, "End", "the retreat ends")
+	end)
+
+	case("BR0 attack: a persistent beast never escapes or times out; death and a safe zone still end it", function()
+		for _, name in ipairs({ "Streamer", "Root", "Gaze", "Lurker" }) do
+			local e, events = encounter("beast:p" .. name), {}
+			e.beast = name
+			local far = { x = 500, y = 0, z = 0, alive = true, safe = false }
+			for t = 0, 120, 5 do
+				equal(Attack.guard(events, e, t, far, { escapeDistance = 100, escapeSeconds = 4, timeout = 45 }), false, name .. " at " .. t)
+			end
+			equal(#events, 0, name .. ": no retreat")
+			far.safe = true
+			equal(Attack.guard(events, e, 121, far, { timeout = 45 }), true)
+			equal(events[1].type, "End"); equal(events[1].reason, "SafeZone")
+		end
+	end)
+
+	case("BR0 attack: a persistent beast far behind walks at the catch-up speed, a near one at its own", function()
+		local e = encounter("beast:walk")
+		local tgt = { x = 0, y = 0, z = 200 }
+		Attack.walk(e, tgt, 12, 1, 1, {})
+		assert(math.abs(e.pos.z - 20) < 1e-6, "20 studs in 1 s, got " .. e.pos.z)
+		e.pos.z = 190
+		Attack.walk(e, tgt, 12, 1, 0.5, {})
+		assert(math.abs(e.pos.z - 196) < 1e-6, "own 12 studs/s when near, got " .. e.pos.z)
+		local s = encounter("beast:walk2")
+		s.beast = "Scuttler"
+		Attack.walk(s, tgt, 12, 1, 1, {})
+		assert(math.abs(s.pos.z - 12) < 1e-6, "Scuttler keeps its own speed")
 	end)
 
 	case("BW2 shapes: sector, lanes and the enclosure are the drawn volumes", function()

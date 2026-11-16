@@ -191,16 +191,14 @@ return function(Enc, Streamer, Config, source)
 		equal(find(Enc.step(e2, 0.05, nil, w), "End").reason, "Death", "no body: death")
 	end)
 
-	case("BW2 Streamer: timeout disengages, then ends", function()
+	case("BR0 Streamer: no timeout and no escape: the chase only ends at death or a safe zone", function()
 		local w = fakeWorld()
-		w.los = false -- never sees the target: stays dormant, walking
+		w.los = false
 		local tgt = target(0, 0)
 		local e = Enc.new("Streamer", "beast:8", 1, 0, { x = 0, y = 0, z = -60 })
-		local events = run(e, w, tgt, 0, T.EncounterTimeoutSeconds + 2, function(_, tg) tg.z = e.pos.z + 30 end)
-		local dis = find(events, "Disengage")
-		equal(dis.reason, "Timeout")
-		near(dis.at, T.EncounterTimeoutSeconds, "at the timeout", 0.06)
-		assert(find(events, "End"), "ends after the retreat")
+		local events = run(e, w, tgt, 0, T.EncounterTimeoutSeconds + 10, function(_, tg) tg.z = e.pos.z + 150 end)
+		equal(find(events, "Disengage"), nil, "no Timeout or Escape retreat")
+		equal(find(events, "End"), nil)
 	end)
 
 	case("BW2 Streamer: the module is pure and server-only", function()

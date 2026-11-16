@@ -17,6 +17,7 @@
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
+local Chase = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastChase")) -- BR0
 local Root = {}
 
 local finite, unit = Config.finite, Config.unit
@@ -132,7 +133,8 @@ function Root.step(events, e, now, target, world, dt)
 	if Attack.guard(events, e, now, target, { timeout = T.EncounterTimeoutSeconds, escapeDistance = T.DetectionRadiusStuds,
 		escapeSeconds = C.escapeSeconds, busy = busy, disengage = C.disengage }) then return end
 	-- Out of its home biome (the Pantano, only while Config.BIOME_PREFERENCE is on) for escapeSeconds: it gives up.
-	local home = Config.homeBiome("Root")
+	-- BR0: the persistent chase overrides the biome exit (only death or a safe zone ends it).
+	local home = not Chase.persistent(e.beast) and Config.homeBiome("Root") or nil
 	if home and type(target.biomes) == "table" and target.biomes[home] ~= true then
 		e.outSince = e.outSince or now
 		if not busy and now - e.outSince >= C.escapeSeconds then
