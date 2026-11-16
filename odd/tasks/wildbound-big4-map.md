@@ -162,3 +162,52 @@ WildboundPlacePhase_Test 9833 1989957072; WildboundBeastSight_Test 7544 63556604
 The owner walks the big4 map and decides. To drop the experiment completely: `apply("classic")`, then (optional) delete
 the archive's Big4 folder and restore the two modules' sources from `codex/wildbound-first-playable` under the
 fingerprint rule (the mode-aware code is harmless in classic, so leaving it is fine).
+
+## Ground cover and fuller candy trees (2026-11-16)
+
+Owner, from a screenshot by the Reino de Caramelo arch on the hub road: "no quiero que el mapa se vea así con esas partes
+grises" and "quiero que los árboles del reino caramelo sean más frondosos".
+
+Cause: the place's `Workspace.Baseplate` (2048 x 16 x 2048, grey Plastic with a tiled Texture, top at y 0) is the only
+ground around the hub, between the biomes and in the gaps left by the archived Pantano, Cementerio, Cuevas and Abismo.
+
+Done:
+- `WildboundBig4Annex`: `GROUND` (name `WildboundBig4Ground`, baseplate rect, margin 24, thickness 0.4),
+  `groundSlabs()` (pure data), `buildGround()` (Edit only, classic mode, into the Big4 archive like the other roots),
+  `fluffCandyAnnex(root, kit)` (calls `WildboundCandyKit.fluff` on every `TreeCotton_*` prop; `build()` now runs it
+  and `buildGround()`).
+- `WildboundMapModeSwitch.BIG4_ROOTS`: sixth root `WildboundBig4Ground`.
+- Five slabs, all visual only (CanCollide, CanQuery, CanTouch, CastShadow false): `Meadow` over the whole baseplate
+  (Grass 124,168,92, top 0.2), `Apron_Forest` (Grass 96,138,78, top 0.27), `Apron_Volcanic` (Basalt 104,70,58, top
+  0.32), `Apron_Frozen` (Snow 232,241,248, top 0.37), `Apron_Candy` (SmoothPlastic 255,190,218, top 0.42). Each apron
+  is its big4 square plus 24 studs, clipped to the baseplate. Every biome floor and road top is 0.5 or more, and a
+  scan found no visible part with its top under 0.46 inside the baseplate, so nothing is covered.
+- `WildboundCandyAnnex_Big4`: its 44 cotton trees got 5 canopy blobs each (220 parts).
+
+Checks:
+- Spec first, `WildboundBig4Map_Test` (six roots; ground slabs: meadow = baseplate, aprons = squares + margin, distinct
+  tops in (0.1, 0.45], not grey, themed materials; `fluffCandyAnnex` only on cotton trees). RED with the fresh loader
+  (only the Big4Map and CandyFluff specs, engine in a temporary ServerStorage StringValue, destroyed after): 13 passed,
+  4 failed. GREEN: 17 passed, 0 failed, no leaks.
+- Studio == repo after writing: `WildboundMapModeSwitch` 10356 69939f95, `WildboundBig4Annex` 22626 137c926b,
+  `WildboundBig4Map_Test` 23757 112ff747 (length, Adler-32 hex).
+- Round trip: `apply("classic")` -> hash of every Workspace BasePart (sorted full name, position, colour, material):
+  6052 parts 7060b723 -> `buildGround()` (5 parts) -> big4: 5657 parts da8c2ede -> classic again: 6052 7060b723 (equal)
+  -> big4 again: 5657 da8c2ede (equal). Final `status()`: big4, classicArchived 23, big4InPlace 6, big4Archived 0.
+  Big4 total 5657 BaseParts (budget 6000).
+- Walked Play (WildboundPlayLock "claude-map-look", both locks nil before, cleared after; `character_navigation` only):
+  spawn (298, -3) -> the hub road by the Caramelo arch (372, -3), standing on the road (root part y 3.7) -> off-road
+  (395, 40): Humanoid.FloorMaterial Plastic, root part y 3.1 (the character still stands on the baseplate; the meadow
+  does not collide, so the feet sink 0.2 into the grass, not noticeable). `WildboundBig4Ground` replicated (5 parts).
+- Not verified visually: `screen_capture` returned a blank white 3D view in Play and in Edit in this session (HUD only),
+  so there is no picture of the new ground yet. The owner should look at the arch from the hub road.
+
+Decisions taken for the user:
+- A new big4 root (not recolouring the baseplate): the switch keeps its rule of only reparenting, classic is exactly
+  as before (hash above), and the themed aprons need separate parts anyway.
+- Visual-only slabs over the baseplate rather than solid ground: no physics, raycast or walking change anywhere.
+- Margin 24 studs: enough to show the theme at each biome edge without tinting the hub (hub east edge x 387, candy apron
+  starts at x 388).
+- Basalt apron coloured dark red-brown, not grey, because the owner asked for no grey.
+- The fuller cotton trees in `Candy_Bioma_v1` show in both modes (that plot is shared); the classic hash above already
+  includes them.

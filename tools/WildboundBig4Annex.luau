@@ -12,6 +12,9 @@
 --   WildboundCandyAnnex_Big4       candy floor slabs east and south of Candy_Bioma_v1, with a seeded scatter of
 --                                  ServerStorage.WildboundAssets.CandyKit props
 --   WildboundBig4Roads             two road slabs to the moved Frozen and Volcanic gates, and their gate markers
+--   WildboundBig4Ground            visual-only ground cover over the grey Baseplate: a meadow and four themed aprons
+--                                  (forest grass, volcanic basalt, snow, candy pink); WildboundCandyAnnex_Big4's cotton
+--                                  trees also get WildboundCandyKit.fluff canopy blobs
 -- Nothing is pinned inside the annexes: no nests, no eggs, no creature posts.
 local Annex = {}
 
@@ -87,6 +90,46 @@ Annex.ROADS = table.freeze({
 	table.freeze({ name = "Road_big4_volcanic-lands_1", biome = "volcanic-lands", from = table.freeze({ x = 82, z = 307 }),
 		to = table.freeze({ x = 73, z = 370 }) }),
 })
+
+-- Ground cover (owner, 2026-11-16: no grey parts on the map): the place's grey 2048-stud Baseplate shows wherever no
+-- biome floor lies (around the hub, between the biomes, the gaps of the archived classic biomes). WildboundBig4Ground
+-- lays big flat visual-only slabs over it: a meadow over the whole baseplate, and a themed apron (margin studs past
+-- each big4 square, clipped to the baseplate) around each biome. Tops are distinct (no z-fighting) and under every
+-- biome floor and road (tops 0.5 and up), so nothing that stands on the map is covered.
+Annex.GROUND = table.freeze({
+	name = "WildboundBig4Ground",
+	baseplate = rect(-1024, 1024, -1024, 1024),
+	margin = 24,
+	thick = 0.4,
+})
+
+local function forestBounds()
+	local all = table.clone(Annex.FOREST.floors)
+	table.insert(all, Annex.FOREST.kept)
+	return Annex.bounds(all)
+end
+
+-- groundSlabs() -> { { name, rect, top, material, color }, ... }: the meadow first, then the aprons.
+function Annex.groundSlabs()
+	local base, margin = Annex.GROUND.baseplate, Annex.GROUND.margin
+	local function apron(r)
+		return rect(math.max(base.minX, r.minX - margin), math.min(base.maxX, r.maxX + margin),
+			math.max(base.minZ, r.minZ - margin), math.min(base.maxZ, r.maxZ + margin))
+	end
+	local candy = table.clone(Annex.CANDY.floors)
+	table.insert(candy, Annex.CANDY.kept)
+	return {
+		{ name = "Meadow", rect = base, top = 0.2, material = Enum.Material.Grass, color = Color3.fromRGB(124, 168, 92) },
+		{ name = "Apron_Forest", rect = apron(forestBounds()), top = 0.27, material = Enum.Material.Grass,
+			color = Color3.fromRGB(96, 138, 78) },
+		{ name = "Apron_Volcanic", rect = apron(Annex.scaledSquare(Annex.SCALED[2])), top = 0.32,
+			material = Enum.Material.Basalt, color = Color3.fromRGB(104, 70, 58) },
+		{ name = "Apron_Frozen", rect = apron(Annex.scaledSquare(Annex.SCALED[1])), top = 0.37,
+			material = Enum.Material.Snow, color = Color3.fromRGB(232, 241, 248) },
+		{ name = "Apron_Candy", rect = apron(Annex.bounds(candy)), top = 0.42, material = Enum.Material.SmoothPlastic,
+			color = Color3.fromRGB(255, 190, 218) },
+	}
+end
 
 -- slab(from, to) -> centre x, z, length (the classic legs overlap by one road width), yaw (degrees, CFrame.lookAt).
 function Annex.slab(from, to)
@@ -369,6 +412,38 @@ function Annex.buildRoads()
 	return root, countParts(root)
 end
 
+-- buildGround() -> root, parts: the ground cover slabs (visual only: no collision, queries, touch or shadows).
+function Annex.buildGround()
+	local storage = game:GetService("ServerStorage")
+	checkEdit(storage)
+	local big4 = big4Folder(storage)
+	assert(not big4:FindFirstChild(Annex.GROUND.name), Annex.GROUND.name .. " already exists")
+	local root = newRoot(Annex.GROUND.name, big4)
+	for _, s in ipairs(Annex.groundSlabs()) do
+		local r = s.rect
+		local slab = Instance.new("Part")
+		slab.Name = s.name
+		slab.Size = Vector3.new(r.maxX - r.minX, Annex.GROUND.thick, r.maxZ - r.minZ)
+		slab.CFrame = CFrame.new((r.minX + r.maxX) / 2, s.top - Annex.GROUND.thick / 2, (r.minZ + r.maxZ) / 2)
+		slab.Material, slab.Color = s.material, s.color
+		slab.Anchored, slab.CanCollide, slab.CanQuery, slab.CanTouch, slab.CastShadow = true, false, false, false, false
+		slab.TopSurface, slab.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+		slab.Parent = root
+	end
+	return root, countParts(root)
+end
+
+-- fluffCandyAnnex(root, kit) -> blobs added: kit.fluff (WildboundCandyKit) on every TreeCotton_* prop of the candy
+-- annex, so the scattered cotton trees match Candy_Bioma_v1's fuller canopies.
+function Annex.fluffCandyAnnex(root, kit)
+	local added = 0
+	local props = root:FindFirstChild("Props")
+	for _, model in ipairs(props and props:GetChildren() or {}) do
+		if model:IsA("Model") and string.sub(model.Name, 1, 11) == "TreeCotton_" then added += kit.fluff(model) end
+	end
+	return added
+end
+
 -- build() -> report: every big4 root, into the archive's Big4 folder. Then run the switch's apply("big4").
 function Annex.build()
 	local Workspace = game:GetService("Workspace")
@@ -398,8 +473,12 @@ function Annex.build()
 	local candyKit = findPath(game:GetService("ServerStorage"), "WildboundAssets/CandyKit")
 	assert(candyKit, "ServerStorage.WildboundAssets.CandyKit missing")
 	root, parts, placed = Annex.buildAnnex(Annex.CANDY, candyKit, { avoid = avoid })
+	local kit = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyKit")
+	if kit then parts += Annex.fluffCandyAnnex(root, require(kit)) end
 	table.insert(report, root.Name .. " " .. parts .. " (" .. placed .. " props)")
 	root, parts = Annex.buildRoads()
+	table.insert(report, root.Name .. " " .. parts)
+	root, parts = Annex.buildGround()
 	table.insert(report, root.Name .. " " .. parts)
 	return report
 end

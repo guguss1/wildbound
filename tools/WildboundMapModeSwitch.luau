@@ -19,7 +19,7 @@ Switch.CLASSIC_FOLDER = "Classic"
 Switch.BIG4_FOLDER = "Big4"
 -- Every big4 root carries MapMode = "big4" and lives directly under Workspace while big4 is on.
 Switch.ROOT_ATTRIBUTE = "MapMode"
--- The five roots WildboundBig4Annex builds. apply("big4") refuses unless every one is available, either archived in
+-- The six roots WildboundBig4Annex builds. apply("big4") refuses unless every one is available, either archived in
 -- Big4 or already under Workspace with MapMode = "big4"; otherwise it would archive the classic biomes and leave
 -- only the forest and Caramelo.
 Switch.BIG4_ROOTS = table.freeze({
@@ -28,6 +28,7 @@ Switch.BIG4_ROOTS = table.freeze({
 	"WildboundForestOuter_Big4",
 	"WildboundCandyAnnex_Big4",
 	"WildboundBig4Roads",
+	"WildboundBig4Ground",
 })
 Switch.LOCKS = { "WildboundPlayLock", "WildboundImportLock" }
 

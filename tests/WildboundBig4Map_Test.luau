@@ -33,7 +33,7 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 
 	-- The five roots the big4 builder makes (WildboundBig4Annex); the switch refuses big4 without all of them.
 	local BIG4_ROOTS = { "WildboundFrozenMountains_Big4", "WildboundVolcanicLands_Big4", "WildboundForestOuter_Big4",
-		"WildboundCandyAnnex_Big4", "WildboundBig4Roads" }
+		"WildboundCandyAnnex_Big4", "WildboundBig4Roads", "WildboundBig4Ground" }
 
 	-- A stand-in Workspace with every classic-only path, two shared road slabs and a kept root; a stand-in ServerStorage
 	-- with the five big4 roots already archived.
@@ -196,12 +196,75 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 			big4 and #big4:GetChildren() or 0)
 	end
 
-	case("BIG4 switch: the expected big4 roots are the five the builder makes", function()
+	case("BIG4 switch: the expected big4 roots are the six the builder makes", function()
 		assert(type(Switch.BIG4_ROOTS) == "table", "Switch.BIG4_ROOTS is a list")
-		equal(#Switch.BIG4_ROOTS, #BIG4_ROOTS, "five roots")
+		equal(#Switch.BIG4_ROOTS, #BIG4_ROOTS, "six roots")
 		for index, name in ipairs(BIG4_ROOTS) do equal(Switch.BIG4_ROOTS[index], name, "root " .. index) end
 		equal(Switch.BIG4_ROOTS[1], Annex.SCALED[1].name); equal(Switch.BIG4_ROOTS[2], Annex.SCALED[2].name)
 		equal(Switch.BIG4_ROOTS[5], Annex.ROADS_NAME)
+		equal(Switch.BIG4_ROOTS[6], Annex.GROUND and Annex.GROUND.name, "the ground cover root")
+	end)
+
+	-- The ground cover (WildboundBig4Ground): big flat visual-only slabs over the grey baseplate, a meadow everywhere
+	-- and a themed apron around each big4 biome, all under the biome floors and roads (their tops are at 0.5 or more).
+	case("BIG4 ground: a meadow covers the whole baseplate and a themed apron rings each big4 biome", function()
+		assert(Annex.GROUND and type(Annex.groundSlabs) == "function", "Annex.GROUND and Annex.groundSlabs")
+		local base = Annex.GROUND.baseplate
+		same(base, { minX = -1024, maxX = 1024, minZ = -1024, maxZ = 1024 }, "baseplate")
+		local slabs = Annex.groundSlabs()
+		assert(#slabs >= 5 and #slabs <= 8, "a handful of big slabs, got " .. #slabs)
+		same(slabs[1].rect, base, "the meadow covers the baseplate")
+		local function clip(r, margin)
+			return { minX = math.max(base.minX, r.minX - margin), maxX = math.min(base.maxX, r.maxX + margin),
+				minZ = math.max(base.minZ, r.minZ - margin), maxZ = math.min(base.maxZ, r.maxZ + margin) }
+		end
+		local forest = table.clone(Annex.FOREST.floors); table.insert(forest, Annex.FOREST.kept)
+		local candy = table.clone(Annex.CANDY.floors); table.insert(candy, Annex.CANDY.kept)
+		local expected = {
+			{ "Apron_Forest", Annex.bounds(forest), Enum.Material.Grass },
+			{ "Apron_Volcanic", Annex.scaledSquare(Annex.SCALED[2]), Enum.Material.Basalt },
+			{ "Apron_Frozen", Annex.scaledSquare(Annex.SCALED[1]), Enum.Material.Snow },
+			{ "Apron_Candy", Annex.bounds(candy), Enum.Material.SmoothPlastic },
+		}
+		local byName, tops = {}, {}
+		for _, s in ipairs(slabs) do
+			byName[s.name] = s
+			assert(s.top > 0.1 and s.top <= 0.45, s.name .. " top under the floors and roads: " .. s.top)
+			assert(not tops[s.top], s.name .. " shares a top height (z-fighting)")
+			tops[s.top] = true
+			assert(s.rect.minX >= base.minX and s.rect.maxX <= base.maxX and s.rect.minZ >= base.minZ
+				and s.rect.maxZ <= base.maxZ, s.name .. " inside the baseplate")
+			local h, sat, v = s.color:ToHSV()
+			assert(sat >= 0.1 or v >= 0.88, s.name .. " is not grey")
+		end
+		for _, e in ipairs(expected) do
+			local s = byName[e[1]]
+			assert(s, e[1] .. " missing")
+			same(s.rect, clip(e[2], Annex.GROUND.margin), e[1] .. " rect")
+			equal(s.material, e[3], e[1] .. " material")
+		end
+		equal(byName.Meadow and byName.Meadow.material, Enum.Material.Grass, "meadow grass")
+		assert(byName.Apron_Candy.color.G < byName.Apron_Candy.color.R, "candy apron is pink")
+		assert(Annex.GROUND.margin >= 16 and Annex.GROUND.margin <= 40, "apron margin")
+		assert(type(Annex.buildGround) == "function", "Annex.buildGround")
+	end)
+
+	case("BIG4 candy: fluffCandyAnnex fluffs each cotton tree prop once through the kit and counts the blobs", function()
+		assert(type(Annex.fluffCandyAnnex) == "function", "Annex.fluffCandyAnnex")
+		local root = Instance.new("Model")
+		local props = Instance.new("Folder")
+		props.Name = "Props"
+		props.Parent = root
+		for _, name in ipairs({ "TreeCotton_S_B4_1", "TreeCookie_B4_2", "TreeCotton_L_B4_3", "RockSugar_B4_4" }) do
+			local m = Instance.new("Model")
+			m.Name = name
+			m.Parent = props
+		end
+		local seen = {}
+		local kit = { fluff = function(model) table.insert(seen, model.Name) return 5 end }
+		equal(Annex.fluffCandyAnnex(root, kit), 10, "blobs added")
+		equal(#seen, 2, "only cotton trees")
+		equal(seen[1] == "TreeCotton_S_B4_1" or seen[2] == "TreeCotton_S_B4_1", true, "the small cotton tree")
 	end)
 
 	case("BIG4 switch: big4 with no big4 roots anywhere refuses and keeps every classic biome in place", function()
@@ -237,7 +300,7 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		big4.WildboundFrozenMountains_Big4.Parent = ws
 		big4.WildboundBig4Roads.Parent = ws
 		local report = Switch.apply("big4", env)
-		equal(report.moved, #Switch.CLASSIC_ONLY + 3, "the three archived roots and every classic item")
+		equal(report.moved, #Switch.CLASSIC_ONLY + #BIG4_ROOTS - 2, "the archived roots and every classic item")
 		equal(Switch.status(env).big4InPlace, #BIG4_ROOTS)
 		ws:Destroy(); storage:Destroy()
 	end)
