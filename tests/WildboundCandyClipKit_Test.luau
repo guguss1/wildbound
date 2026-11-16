@@ -293,5 +293,93 @@ return function(Kit, prefab, Clips, Spec, allClips, clientSource)
 		has("resetBones(state)", "resetting bones")
 	end)
 
+	-- A3 review (odd/tasks/wildbound-caramelo-playfix.md): with streaming on, a model's parts can stream out and back in
+	-- while the Model stays. The bones read once are then detached copies and the model froze. Kit.bonesStale tells when
+	-- the cached bones are no longer the model's; the client then reads them again (Kit.readBones).
+	local function rig(boneNames)
+		local model = Instance.new("Model")
+		model.Name = "StaleProbe"
+		local root = Instance.new("Part")
+		root.Name = "RootPart"
+		root.Anchored = true
+		root.CFrame = CFrame.new(10, 5, -3) * CFrame.Angles(0, math.rad(30), 0)
+		root.Parent = model
+		model.PrimaryPart = root
+		local parent = root
+		for index, name in ipairs(boneNames) do
+			local bone = Instance.new("Bone")
+			bone.Name = name
+			bone.CFrame = CFrame.new(0, index, 0) * CFrame.Angles(math.rad(10 * index), 0, 0)
+			bone.Parent = parent
+			parent = bone
+		end
+		return model, root
+	end
+
+	case("A3R-1: readBones lists the bone chain with its rest; bonesStale is false while those bones are the model's", function()
+		assert(type(Kit.readBones) == "function" and type(Kit.bonesStale) == "function", "Kit.readBones and Kit.bonesStale")
+		local model = rig({ "Spine", "Head" })
+		local ok, problem = pcall(function()
+			local list = Kit.readBones(model)
+			assert(list, "bones read")
+			equal(#list, 2, "bone count")
+			equal(list[1].name, "Spine")
+			equal(list[2].name, "Head")
+			equal(list[2].bone, model.RootPart.Spine.Head, "the real bone")
+			local want = model:GetPivot():ToObjectSpace(model.RootPart.Spine.Head.WorldCFrame).Rotation
+			equal(list[2].rest:FuzzyEq(want, 1e-5), true, "rest relative to the pivot")
+			equal((list[2].rest * list[2].restInv):FuzzyEq(CFrame.identity, 1e-5), true, "restInv")
+			equal(#list[1].last, 6, "last buffer")
+			equal(list[1].moved, false, "moved")
+			equal(Kit.bonesStale(model, list), false, "fresh bones are not stale")
+			equal(Kit.readBones(Instance.new("Model")), nil, "no PrimaryPart: nil")
+		end)
+		model:Destroy()
+		assert(ok, problem)
+	end)
+
+	case("A3R-2: bones replaced (streamed out and back in) are stale, and a new read gives the new bones", function()
+		local model, root = rig({ "Spine", "Head" })
+		local ok, problem = pcall(function()
+			local list = Kit.readBones(model)
+			-- stream out: the root part (with its bones) leaves the model
+			root.Parent = nil
+			equal(Kit.bonesStale(model, list), true, "root part gone")
+			equal(Kit.readBones(model), nil, "nothing to read while streamed out")
+			-- stream in: a new copy of the rig's part and bones arrives
+			local copy = root:Clone()
+			copy.Parent = model
+			model.PrimaryPart = copy
+			root:Destroy()
+			equal(Kit.bonesStale(model, list), true, "old bones detached")
+			local again = Kit.readBones(model)
+			assert(again, "the new bones are read")
+			equal(again[1].bone, copy.Spine, "new Spine")
+			equal(again[2].bone, copy.Spine.Head, "new Head")
+			equal(Kit.bonesStale(model, again), false, "the new list is current")
+			-- only the bones replaced under a kept part
+			local fresh = Kit.readBones(model)
+			copy.Spine:Destroy()
+			local bone = Instance.new("Bone")
+			bone.Name = "Spine"
+			bone.Parent = copy
+			equal(Kit.bonesStale(model, fresh), true, "a destroyed bone is stale")
+			equal(Kit.bonesStale(model, nil), true, "no list is stale")
+			equal(Kit.bonesStale(model, {}), true, "an empty list is stale")
+		end)
+		model:Destroy()
+		assert(ok, problem)
+	end)
+
+	case("A3R-3: the client checks its bones every step and reads them again when stale", function()
+		assert(type(clientSource) == "string", "pass the client source")
+		assert(string.find(clientSource, "Kit.bonesStale(model, state.bones)", 1, true), "the client checks Kit.bonesStale each step")
+		assert(string.find(clientSource, "Kit.readBones(model)", 1, true), "the client reads bones through the kit")
+		-- a bone that arrives later (the count changed) marks the list stale too
+		assert(string.find(clientSource, "DescendantAdded", 1, true) and string.find(clientSource, "state.stale = true", 1, true),
+			"a Bone added to the model marks its bones stale")
+		assert(not string.find(clientSource, "local function readBones", 1, true), "no local copy of readBones")
+	end)
+
 	return result
 end
