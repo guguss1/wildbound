@@ -451,7 +451,9 @@ return function(Toolbar, source, sources)
 		toolbar:syncPlayer(player)
 		assert(type(Toolbar.ICONS) == "table", "Toolbar.ICONS")
 		local lumipol = tools(player, "c1")[1]
-		equal(lumipol.TextureId, "rbxassetid://121561289565386", "the Lumipol icon")
+		-- Deliberately changed (IC, 2026-11-16): the icon goes through the thumbnail form, which loads for a user-owned
+		-- image in a group game where the plain asset id fails (preload test in Play, odd/tasks/wildbound-caramelo-v2.md).
+		equal(lumipol.TextureId, "rbxthumb://type=Asset&id=121561289565386&w=150&h=150", "the Lumipol icon")
 		equal(lumipol.Name, "Lumipol", "the name stays (the tooltip and the backpack show it)")
 		local unknown = tools(player, "c2")[1]
 		equal(unknown.TextureId, "", "no icon for a species without one")
@@ -460,8 +462,10 @@ return function(Toolbar, source, sources)
 
 	-- CE2 (icons uploaded with the user's approval 2026-11-15): the three Caramelo pets show their own hotbar icon.
 	case("CT-18: CE2 Gomibu, Flanfuria and Tortidragon tools show their own hotbar icons", function()
-		local ICON = { Gomibu = "rbxassetid://130041727906990", Flanfuria = "rbxassetid://106158128076232",
-			Tortidragon = "rbxassetid://85016154045779" }
+		-- Deliberately changed (IC): the thumbnail form of the same three uploads.
+		local ICON = { Gomibu = "rbxthumb://type=Asset&id=130041727906990&w=150&h=150",
+			Flanfuria = "rbxthumb://type=Asset&id=106158128076232&w=150&h=150",
+			Tortidragon = "rbxthumb://type=Asset&id=85016154045779&w=150&h=150" }
 		local toolbar = fixture({ registered = { { uid = "g", species = "Gomibu" }, { uid = "f", species = "Flanfuria" },
 			{ uid = "t", species = "Tortidragon" } } })
 		local player = fakePlayer(7)
@@ -472,7 +476,22 @@ return function(Toolbar, source, sources)
 			equal(tool.TextureId, ICON[species], species .. " icon")
 			equal(tool.Name, Text.CARD.species[species], species .. " Spanish name")
 		end
-		equal(Toolbar.ICONS.Lumipol, "rbxassetid://121561289565386", "the Lumipol icon stays")
+		equal(Toolbar.ICONS.Lumipol, "rbxthumb://type=Asset&id=121561289565386&w=150&h=150", "the Lumipol icon stays")
+	end)
+
+	-- IC (user 2026-11-15: Claude handles the icons): every icon is the thumbnail form of one upload, never a plain asset
+	-- id (those fail with "Requester does not have permission" for a user-owned image in the group game).
+	case("IC: every hotbar icon is an rbxthumb Asset 150x150 of its upload id", function()
+		assert(type(Toolbar.ICON_IDS) == "table", "Toolbar.ICON_IDS")
+		local count = 0
+		for species, url in pairs(Toolbar.ICONS) do
+			count += 1
+			local id = Toolbar.ICON_IDS[species]
+			assert(type(id) == "number" and id > 0, species .. " upload id")
+			equal(url, "rbxthumb://type=Asset&id=" .. string.format("%d", id) .. "&w=150&h=150", species .. " icon")
+			assert(not url:find("rbxassetid", 1, true), species .. " uses a plain asset id")
+		end
+		equal(count, 4, "Lumipol and the three Caramelo pets")
 	end)
 
 	-- CE2: a Caramelo pet in the farm is the farm model builder's rig (feet on the pad top at its pivot), the prompt on

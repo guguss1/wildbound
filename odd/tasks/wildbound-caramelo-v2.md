@@ -94,7 +94,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [ ] CT2 Counter-rotating tiers
 - [ ] CT3 Best egg at the top
 - [ ] CT4 Frutillón, the top guardian
-- [ ] IC Icons through rbxthumb
+- [x] IC Icons through rbxthumb. Done 2026-11-16 (the thumbnail form loads; evidence below).
 - [x] EC Steal hold by rarity: Común 0.5 s, Rara 0.9 s, Épica 1.3 s, Legendaria 1.8 s. Done 2026-11-15 (evidence below).
 - [ ] Economy options A-G, once the user picks them (not started on purpose).
 - [x] AR Remove the Arrullo minigame. It returns later, improved (user, 2026-11-15).
@@ -120,6 +120,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | CF-D3 | Gomibú's live numbers are in `WildboundBeastConfig.Gomibu.tuning`; the rule module `WildboundCandyGomibuAttack` (ServerStorage, no live caller) carries the same numbers. Flanfuria and Tortidragón read their rule modules. | Keep the two Gomibú copies equal. |
 | CF-D4 | The clips keep their lengths (no new animation upload): the 0.9 / 1.0 s telegraph clips and the 0.7 / 0.85 s recover clips are cut at the phase change, so the last 0.1-0.25 s of each is not shown. Fitting the clip speed to the phase (`BeastPhaseAt` / `BeastPhaseUntil` are already on the client model) is a follow-up. | Re-baking the clips means re-publishing animations, an owner action. |
 | CF-D5 | The two beast suites (Flanfuria, Tortidragón) now read their times from the rule module instead of literals, and the Gomibú beast suite looks for its lock in the first window too (the lock now falls before 1.2 s). | The literals were the old timings; the rule suites pin the numbers. |
+| IC-D1 | `Toolbar.ICON_IDS` holds the four upload ids; `Toolbar.ICONS` is built from it as `rbxthumb://type=Asset&id=<id>&w=150&h=150`. No new upload, no change to who owns the images. | The form the plan named; one place to add an icon later. |
+| IC-D2 | The owner action U10 (re-upload or share the icons with the group) is no longer needed for the hotbar; it stays optional in the overview. | The images load as they are. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -158,3 +160,12 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Tortidragón (reached during the later steals): Telegraph 0.80, Release 0.65, Recover 0.60; next tell 4.53 s after.
   - Health stayed 100 (no damage). No script errors in the log (only the place's DataStore, texture-pack and material lines).
 - Not checked: how the cut clips look on screen (CF-D4), whether a person can still dodge each cast comfortably, a hit landing in Play, two players, a phone.
+
+### IC (2026-11-16)
+
+- Preload test first (Play, PlayLock `IC`, on the client, `ContentProvider:PreloadAsync`): for each of the four ids the plain `rbxassetid://` form returned `AssetFetchStatus.Failure`, the `rbxthumb://type=Asset&id=<id>&w=150&h=150` form `Success`.
+- Change: `WildboundCreatureToolbar`: `Toolbar.ICON_IDS` and `Toolbar.ICONS` built in the thumbnail form (IC-D1). Suite: CT-17 and CT-18 re-pinned on purpose to the thumbnail form; new case "IC: every hotbar icon is an rbxthumb Asset 150x150 of its upload id".
+- Fingerprint rule: before writing, Studio equalled HEAD (Toolbar 19587/4270695469, Toolbar_Test 27415/631083022). Exact replacements. After: Studio == repo, Toolbar 19984/3899794392, Toolbar_Test 28673/883761065.
+- RED, run `d3f5f902`: CreatureToolbar 19/3. GREEN, run `ebf195e3`: CreatureToolbar 22/0, CandyPets 8/0.
+- Solo Play (PlayLock `IC`, cleared after; Play stopped): four temporary tools with `Toolbar.ICONS` as `TextureId` were put in the Backpack; Roblox's own hotbar (`CoreGui.RobloxGui.Backpack.Hotbar` slots 1-4) showed each `Icon` with `IsLoaded = true` at 48 x 48. The tools were removed after. The Studio screen capture does not draw the CoreGui, so there is no picture of it.
+- Not checked: a real hatched creature's tool in Play (its `TextureId` comes from the same table, suite only), how the icons look to a person, a phone, a published server.

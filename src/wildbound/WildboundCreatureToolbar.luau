@@ -20,12 +20,19 @@ local DEPOSIT_REACH = 20 -- studs from the own pad when the base zone does not r
 -- PF7: hotbar icons by species (source assets/icons/lumipol-hotbar-icon-256.png). A missing species has no icon.
 -- CE2 (uploaded with the user's approval 2026-11-15): the Caramelo pets, from the pack's turnarounds
 -- (assets/icons/<species>-hotbar-icon-256.png).
-Toolbar.ICONS = {
-	Lumipol = "rbxassetid://121561289565386",
-	Gomibu = "rbxassetid://130041727906990",
-	Flanfuria = "rbxassetid://106158128076232",
-	Tortidragon = "rbxassetid://85016154045779",
+-- IC (2026-11-16): the uploads are user-owned and the game is the group's, so a plain rbxassetid image fails
+-- ("Requester does not have permission"). The thumbnail form loads (a preload test in Play), so ICONS are built from
+-- ICON_IDS in that form. A new icon is one more id here.
+Toolbar.ICON_IDS = {
+	Lumipol = 121561289565386,
+	Gomibu = 130041727906990,
+	Flanfuria = 106158128076232,
+	Tortidragon = 85016154045779,
 }
+Toolbar.ICONS = {}
+for species, id in pairs(Toolbar.ICON_IDS) do
+	Toolbar.ICONS[species] = "rbxthumb://type=Asset&id=" .. string.format("%d", id) .. "&w=150&h=150"
+end
 Toolbar.WALKING = "FarmWalking" -- CE2: farm model attribute, true while it walks
 
 -- PF6 (user playtest 2026-11-15): farm creatures walk around the whole own pad instead of standing still.
