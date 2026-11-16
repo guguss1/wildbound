@@ -19,3 +19,13 @@
   (sources assets/icons/, cropped from the pack's 3/4 turnaround views). User-owned: in Play the client gets "Requester does
   not have permission for Asset" for all three (and for the Lumipol icon 121561289565386), so the hotbar shows the name until
   the owner shares them with the group experience or re-uploads them to group 465694015.
+- 2026-11-16 six new creatures (user-approved "Sí, subilos"; creator user 11952612439, the Studio user on this machine),
+  POST /assets/v1/assets, Model from FBX:
+  - Duquesa Burbuja (duquesa-burbuja-v1.fbx): -> 200 {"operationId":"50c84a5d-be39-4ddd-885c-1215e3bd8139","done":false}
+  - Mochimiau (mochimiau-v1.fbx): -> 200 {"operationId":"e437d32c-b736-4f93-b45d-a3809fddc138","done":false}
+  - Canelin (canelin-v1.fbx): -> 200 {"operationId":"73ac783b-ae7d-4f3d-ae15-cbb6cd860c1b","done":false}
+  - Flanin (flanin-v1.fbx): -> 200 {"operationId":"a0938a88-9983-4c15-8276-9232fe5590ef","done":false}
+  - Mielita (mielita-v1.fbx): -> 200 {"operationId":"6eeee531-ec50-4463-9cca-607f3c5cfa87","done":false}
+  - Gato Repartidor (gato-repartidor-v1.fbx): -> 200 {"operationId":"b85ef30e-aa77-42e0-9907-a242a5de940a","done":false}
+  - done (all six polled once, Model, Approved, revision 1): Duquesa Burbuja 76476884029771, Mochimiau 137297061401898,
+    Canelin 122117998176252, Flanin 76726147412419, Mielita 110648390924313, Gato Repartidor 107176841220352.
