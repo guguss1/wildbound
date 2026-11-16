@@ -2393,6 +2393,33 @@ do
 	for _, player in ipairs(Players:GetPlayers()) do watchRush(player) end
 end
 
+-- Caramelo v2 (DG4): a slip on Don Glaseon's glaze. The skating client asks (no argument is read); the server checks
+-- the body is on a puddle, fast enough (its own velocity) and not already down, then ragdolls it through the shared
+-- server ragdoll for WildboundCandyGlaze.FALL_SECONDS, carried along its slide. No damage, the egg stays. Kept in a do
+-- block: this script is at Luau's 200-local limit (NH-W13).
+do
+	local Glaze = require(ReplicatedStorage:WaitForChild("WildboundCandyGlaze"))
+	local slip, lastSlip = Instance.new("RemoteEvent"), {}
+	slip.Name = "CandyGlazeSlip"
+	slip.OnServerEvent:Connect(function(player)
+		local root, now = rootOf(player), workspace:GetServerTimeNow()
+		local biome = workspace:FindFirstChild("Candy_Bioma_v1")
+		local folder = biome and biome:FindFirstChild("Tower") and biome.Tower:FindFirstChild("Glaze")
+		if not records[player] or not root or not folder then return end
+		local v, p = root.AssemblyLinearVelocity, root.Position
+		if not Glaze.serverAllows({ alive = context(player) == true, now = now, lastAt = lastSlip[player],
+			speed = Vector3.new(v.X, 0, v.Z).Magnitude, ragdolled = Heist.Ragdoll.activo(player) == true,
+			onGlaze = Glaze.inside(Glaze.read(folder), p.X, p.Y, p.Z) ~= nil }) then return end
+		lastSlip[player] = now
+		local push = Glaze.fallImpulse(v.X, v.Z)
+		Heist.Ragdoll.aplicar(player, Glaze.FALL_SECONDS, Vector3.new(push.x, push.y, push.z))
+		player:SetAttribute("WildboundGlazeSlip", now)
+		applyCarry(player)
+		task.delay(Glaze.FALL_SECONDS + 0.05, function() if records[player] then applyCarry(player) end end)
+	end)
+	slip.Parent = network
+end
+
 -- Nest Heist (NH5): drop and pickup. A dropped egg lands on the ground under its carrier (a downward ray that ignores
 -- characters and runtime visuals, else the relief), anchored and never colliding, so it neither falls through nor flies
 -- off. After PICKUP_DELAY anyone may pick it up with a PICKUP_HOLD hold: the first valid request wins (EggCarry and

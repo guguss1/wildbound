@@ -137,6 +137,21 @@ function Builder.syncTower(root, layout, kit, library)
 			spin.Parent = tower
 		end
 	end
+	-- DG4: the glaze puddles, flat glossy discs just over the plaza (decor: no collision, no ray); the glaze client and
+	-- the server read them by their Radius and Top attributes.
+	if T.glaze then
+		local glaze = Instance.new("Folder")
+		glaze.Name = "Glaze"
+		for i, g in ipairs(T.glaze) do
+			local surface = top + 0.09
+			local disc = part(glaze, "Glaze_" .. i, "decor", Enum.PartType.Cylinder, Vector3.new(0.06, g.r * 2, g.r * 2),
+				CFrame.new(L.CENTRE.x + g.x, surface + 0.03, L.CENTRE.z + g.z) * CFrame.Angles(0, 0, math.rad(90)), palette.icing)
+			disc.Material, disc.Reflectance, disc.Transparency = Enum.Material.Glass, 0.25, 0.15
+			disc:SetAttribute("Radius", g.r)
+			disc:SetAttribute("Top", surface + 0.06)
+		end
+		glaze.Parent = tower
+	end
 	local S = T.summit
 	local nests = root:FindFirstChild("Nests")
 	if S and nests and not nests:FindFirstChild("Nest_" .. S.id) then

@@ -560,6 +560,10 @@ class DefaultMappingTests(unittest.TestCase):
         # CT1-CT2 Gran Torta tower
         "tests/WildboundCandyTower_Test.luau": "ServerStorage.WildboundCandyTower_Test",
         "src/wildbound/WildboundCandyTower.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyTowerClient",
+        # DG4 Glaseado resbaloso
+        "src/wildbound/WildboundCandyGlaze.luau": "ReplicatedStorage.WildboundCandyGlaze",
+        "src/wildbound/WildboundCandyGlaze.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyGlazeClient",
+        "tests/WildboundCandyGlaze_Test.luau": "ServerStorage.WildboundCandyGlaze_Test",
         # CT4 Frutillon
         "tools/WildboundCandyFrutillon.luau": "ServerStorage.WildboundCandyFrutillon",
         "tests/WildboundCandyFrutillon_Test.luau": "ServerStorage.WildboundCandyFrutillon_Test",

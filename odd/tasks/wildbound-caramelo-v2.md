@@ -82,7 +82,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] DG1 Lash combo, faster. Done 2026-11-16 (evidence below).
 - [x] DG2 Vacuum mouth. Done 2026-11-16 (evidence below).
 - [x] DG3 Chocolate wall. Done 2026-11-16 (evidence below).
-- [ ] DG4 Slippery glaze with a slip-and-fall ragdoll
+- [x] DG4 Slippery glaze with a slip-and-fall ragdoll. Done 2026-11-16 (evidence below).
 - [x] DG5 Rising anger (time + dodges). Done 2026-11-16 (evidence below; the full rage was seen in suites, not in Play).
 - [ ] DG6 Roar summons new guardians
 - [x] DG7 Trap cake with lures on the routes. Done 2026-11-16 (evidence below; the bite path through a real prompt hold is noted there).
@@ -156,6 +156,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | CT4-D2 | It rolls on a ring of radius 6.3 round the summit's centre (its edge stays 4.3 studs from the centre, outside La Duquesa's 3-stud circle, and inside the 8.7-stud summit), toward the player on the summit nearest it and 0.6 rad past them, at 18 studs/s; tell 0.8 s (squash to 75 % and a red neon line along the arc), recovery 1 s; a player it rolls over (within 3 studs) is pushed 12 studs outward over 0.4 s, once per roll. Alone 6 s, it goes back to its rest spot (west) and sleeps. | "Rolls around the top tier", "telegraphs with a squash and a line", "bump players off the edge", never through her seat. |
 | CT4-D3 | Seeds: while anyone stands on the stair, one seed every 2.5 s (at most 3) starts at the top step and bounces down step by step at 8 steps/s; a climber within 2 studs is pushed 6 studs down the stair over 0.3 s, once per seed. | "Throws strawberry seeds that bounce down"; the 5 s trip makes each seed readable from below. |
 | CT4-D4 | Knockback only: damage 0, never the egg, all pushes in the beasts' `WildboundBeastPush` slot. Don Glaseón's climbing or roaring for a summit carrier is left to his existing territory rules (no new behaviour). | Candy beasts never damage; DG6 owns the roar. |
+| DG4-D1 | The glaze is three permanent puddles on his plaza (local (0, 36), (38, 6), (-30, 26), radius 6), laid by the Candy builder's `syncTower` as flat glossy decor, off the stair and at least 12 studs from any nest. He does not cast them during the fight. | "A puddle where the player skates"; permanent puddles are always readable, and a cast puddle would need a new beast phase and client art. |
+| DG4-D2 | Skating runs on the player's own client (it owns its character): on glaze a flat `LinearVelocity` holds the slide, which turns toward the steering at 1.5 per second (0.5 with no input, losing almost no speed). It never slows the player below their walk. Another push in the beasts' slot wins while it lasts. | "It does not slow the player; they lose grip when turning"; the faster you enter, the more you slide. |
+| DG4-D3 | A slip is a turn of 75 degrees or more against the slide at 17 studs/s or more (above the 16 walk: a sprint or a trained walk). The client asks the server (`WildboundNetwork.CandyGlazeSlip`, no argument read); the server checks the body is on a puddle, its own flat speed is at least 13 (lag tolerance), it is not already down and 3 s passed since its last slip, then calls the shared server ragdoll (`SistemaSonriente` `Ragdoll.aplicar`, used, not edited) for 1 s, carried along the slide (0.8 of its speed, at most 25) with a small lift. No damage, the egg stays. | "Reuse the teammate's ragdoll path"; "about 1 s and readable"; the server never trusts the client's word alone. |
+| DG4-D4 | The server edit is one `do` block (no new top-level local; NH-W13 stays green). | The 200-local limit. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -310,3 +314,19 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Seeds: the player held on step 4/2: a seed left the top step every 2.5 s (seeds 2, 3, 4 at 0.1, 2.6, 5.2 s) and the first one pushed the player down the stair (plane velocity (-7.2, 18.7), 20 studs/s = 6 studs over 0.3 s).
   - No script errors from these scripts in the output.
 - Not checked: how the roll and seeds read to a person, dodging a roll by hand, a seed bouncing off a moving climber, two players, a phone.
+
+### DG4 (2026-11-16)
+
+- Change: new `src/wildbound/WildboundCandyGlaze.luau` (ReplicatedStorage; the pure rules), new `src/wildbound/WildboundCandyGlaze.client.luau` (StarterPlayerScripts; the skate and the slip request), `tools/WildboundCandyLayout.luau` (`Layout.TOWER.glaze`), `tools/WildboundCandyBuilder.luau` (`syncTower` lays `Tower.Glaze`), `WildboundServer` (one `do` block: the `CandyGlazeSlip` remote, the check, the shared ragdoll). Registered in the runner SPECS and the manifests (Python edited by hand, not run).
+- Suites: new `WildboundCandyGlaze_Test` (6 cases: numbers, skating keeps speed and turns slowly, the slip rule, the server's check and the fall push, the builder's puddles on the plaza off the stair and nests, client and server wiring with no egg drop or damage).
+- Coordination: "writing WildboundServer / Layout / Builder" sent to the parent session first; the beast-revision session had released every shared beast file.
+- Fingerprint rule: before writing, Studio equalled HEAD for WildboundServer 219947/2038955413, CandyLayout 8223/2050365548, CandyBuilder 24287/3853704070. Exact replacements. After: Studio == repo, Glaze 4047/273557321, GlazeClient 3512/3052321404, Glaze_Test 6451/1758198345, CandyLayout 8485/3097716067, CandyBuilder 25042/3383674104, WildboundServer 221570/3444187812.
+- RED: "module not found: WildboundCandyGlaze". GREEN (a minimal loadstring loader that skips backup folders): Glaze 6/0, Tower 8/0, Frutillon 6/0, TrapCake 8/0, CandyLayout 14/0, MechanicsWiring 10/0 (NH-W13). A first loader picked `ServerStorage.WildboundAnimationRuntimeBackup_20261107.WildboundWorld` and showed a false W2 red; fixed in the loader, not in the game.
+- Solo Play (PlayLock `DG4`, cleared after; Play stopped twice; memory saves):
+  - The three puddles stood at (582, 23), (612, 33), (650, 3), radius 6, top 0.65.
+  - Found in Play: with streaming the client read the Glaze folder before its parts arrived (no puddles, no skating); the client now re-reads on every child change. After the fix:
+  - Walk 16 into puddle 2, then steer 90 degrees: skating on, the velocity turned slowly ((15, 1), (15, 1), (14, 2) over the first frames), no slip.
+  - Walk 22 (set on the client for the check) into it, then steer 90 degrees: the slip fired, the server ragdolled the player (state Physics), walk speed and Running came back after; health 100.
+  - The shared ragdoll at FALL_SECONDS: Physics at 0.02 s, GettingUp at 1.07 s, Running at 1.08 s.
+  - No script errors from these scripts.
+- Not checked: a real sprint (the check set the walk speed on the client), how the skate feels by hand, a carrier slipping (the egg stays by construction), two players, a phone.
