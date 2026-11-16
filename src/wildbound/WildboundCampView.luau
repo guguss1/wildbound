@@ -367,6 +367,46 @@ function View.releasable(snapshot)
 	return set
 end
 
+-- Owner feedback 3: the uids of the Bag tab's creatures that get a "Vender" button: any creature that is neither the
+-- companion nor in the farm, while the player has more than one. A set { [uid] = true }; the server
+-- (State:sellCreature) checks all of it again.
+function View.sellable(snapshot)
+	local set = {}
+	local registered = type(snapshot) == "table" and type(snapshot.registered) == "table" and snapshot.registered or nil
+	if not registered or #registered <= 1 then return set end
+	local farmed = {}
+	for _, uid in ipairs(type(snapshot.farm) == "table" and snapshot.farm or {}) do farmed[uid] = true end
+	for _, pet in ipairs(registered) do
+		if type(pet) == "table" and pet.uid ~= nil and pet.uid ~= snapshot.equippedUid and not farmed[pet.uid] then
+			set[pet.uid] = true
+		end
+	end
+	return set
+end
+
+-- Owner feedback 3 ("nada de eso sirve por ahora"): what the base screens hide for now. The systems, saves and server
+-- rules stay; empty these lists (or set eggsTab = false) to show them again. sections: Camp tab sections; upgrades:
+-- camp upgrades (their Esencia and gold rows); eggsTab: the Huevos tab (cofre and incubadora; eggs still go into the
+-- incubator on their own in the base); stations: the base prompts the client keeps off (WildboundHubStations kinds).
+View.HIDDEN = table.freeze({
+	sections = table.freeze({ Craft = true, Gear = true, Skills = true }),
+	upgrades = table.freeze({ incubatorSlot2 = true, incubatorSlot3 = true, fastIncubator = true }),
+	eggsTab = true,
+	stations = table.freeze({ chest = true, incubator = true, glove = true }),
+})
+
+-- The Camp tab rows the player sees: campRows minus what View.HIDDEN names.
+function View.visibleRows(rows)
+	local shown = {}
+	for _, item in ipairs(type(rows) == "table" and rows or {}) do
+		local name = type(item.id) == "string" and item.id:match("^%a+:(.+)$") or nil
+		if not View.HIDDEN.sections[item.section] and not (name and View.HIDDEN.upgrades[name]) then
+			table.insert(shown, item)
+		end
+	end
+	return shown
+end
+
 local function lossTotals(snapshot)
 	local preview = type(snapshot) == "table" and type(snapshot.riskPreview) == "table" and snapshot.riskPreview or {}
 	local items = amount(preview.loseItems)

@@ -693,6 +693,19 @@ return freeze({
 		owned = "Ya lo tienes.",
 		needsFirst = "Primero compra el quinto lugar de granja.",
 		farAway = "Ve al campamento o a tu base para comprar con oro.",
+		-- Owner feedback 3: "Vender" a creature for gold (two taps, like "Liberar").
+		sell = "Vender",
+		sellConfirm = "Confirmar",
+		sellRow = "Vender a %s por %d de oro.",
+		sellConfirmRow = "¿Vender a %s por %d de oro? No se puede deshacer.",
+		sold = "Vendiste a %s. +%d de oro.",
+		sellFailed = "No se pudo vender esa criatura.",
+		sellRefused = {
+			IsCompanion = "No puedes vender a tu compañero. Guárdalo primero.",
+			InFarm = "Saca la criatura de la granja antes de venderla.",
+			LastCreature = "No puedes vender tu última criatura.",
+			NotOwnedPet = "Esa criatura ya no es tuya.",
+		},
 	},
 	-- Next batch NB4 (delivery E, docs/mechanics/wildbound-incubator.md): the incubator's prompt, notices and Bag row.
 	INCUBATOR = {

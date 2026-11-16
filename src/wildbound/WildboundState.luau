@@ -816,6 +816,27 @@ function State:trainWithGold(key, alive, distance, price, maxLevel)
 	return true, level + 1
 end
 
+-- Owner feedback 3: "Vender" one owned creature for `price` gold (WildboundGold.sellPrice, from the server). The same
+-- rules as State:releaseCreature but any creature, not only a spare copy: never the companion, never a farm creature
+-- (take it out first) and never the last creature. Its bond goes with it; the species stays discovered. A refusal
+-- changes nothing.
+function State:sellCreature(key, uid, alive, price)
+	local player = profile(self, key)
+	if not player then return false, "InvalidPlayer" end
+	if alive ~= true then return false, "InvalidContext" end
+	local index, pet = find(player.registered, uid)
+	if not index then return false, "NotOwnedPet" end
+	if player.equippedUid == uid then return false, "IsCompanion" end
+	if farmIndex(player, uid) then return false, "InFarm" end
+	if #player.registered <= 1 then return false, "LastCreature" end
+	if not finite(price) or price < 1 or price % 1 ~= 0 then return false, "InvalidPrice" end
+	table.remove(player.registered, index)
+	if player.bond then player.bond[uid] = nil end
+	if player.expedition and player.expedition.pendingBond then player.expedition.pendingBond[uid] = nil end
+	setGold(player, goldOf(player) + price)
+	return true, { uid = uid, species = pet.species, gold = price, total = goldOf(player) }
+end
+
 -- Nest Heist Phase 3 (NS5): one training level at the camp treadmill. The price and the cap come from the shared
 -- WildboundTraining rule (the server passes them); the level table is made on first use and saved (record schema 2).
 function State:train(key, kind, alive, distance, cost, maxLevel)

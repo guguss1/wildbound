@@ -3207,7 +3207,7 @@ end)
 -- Camp sinks and protections (M5.5). Arguments are looked up in server tables; unknown ones are dropped.
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true, ArmTotem = true,
 	DisarmTotem = true, UseCapsule = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true,
-	BuyGold = true }
+	BuyGold = true, SellCreature = true }
 local function economyAction(player, action, argument)
 	local key = player.UserId
 	if action == "CraftGear" then
@@ -3285,6 +3285,11 @@ local function economyAction(player, action, argument)
 	elseif action == "BuyGold" and Heist.gold then
 		-- Gold: the farm places and treadmill levels paid with gold (WildboundGoldService; State checks every rule).
 		Heist.gold:buy(player, argument)
+	elseif action == "SellCreature" and Heist.gold then
+		-- Owner feedback 3: "Vender" a creature for gold (WildboundGoldService; State checks every rule).
+		if Heist.gold:sell(player, argument) and Heist.creatureToolbar then
+			Heist.creatureToolbar:syncPlayer(player, state:snapshot(key))
+		end
 	end
 end
 

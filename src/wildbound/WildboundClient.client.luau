@@ -257,7 +257,9 @@ local function applyLayout()
 		local rect = Camp.panel(size.X, size.Y, rects.chip)
 		panel.AnchorPoint = Vector2.new(0, 0)
 		place(panel, rect)
-		local header = Camp.headerWithEggs and Camp.headerWithEggs(rect.w) or Camp.header(rect.w)
+		-- Owner feedback 3: the Huevos tab (cofre, incubadora) is off while Camp.HIDDEN.eggsTab is set.
+		local header = Camp.headerWithEggs and not (Camp.HIDDEN and Camp.HIDDEN.eggsTab) and Camp.headerWithEggs(rect.w)
+			or Camp.header(rect.w)
 		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close); place(menuTab, header.menu)
 		if header.eggs then eggsTab.Visible = true; place(eggsTab, header.eggs) else eggsTab.Visible = false end
 		Style.header(panel, header.bottom + 4, "magenta")
@@ -306,6 +308,7 @@ local releaseAsk = { uid = nil, at = 0 } -- BP4a: the creature whose "Liberar" w
 local ECONOMY_ACTIONS = { Craft = true, Upgrade = true, Learn = true, ArmSeal = true, SealNewest = true,
 	ArmTotem = true, DisarmTotem = true, CraftGear = true, PlaceLuck = true, EquipGlove = true, ReleaseCreature = true }
 ECONOMY_ACTIONS.BuyGold = true -- Gold: a gold purchase also waits for the server's reply
+ECONOMY_ACTIONS.SellCreature = true -- Owner feedback 3: "Vender" too
 local function request(action, uid)
 	if not actionRemote then
 		showSticky(H.serverDown)
@@ -377,7 +380,8 @@ local function bagRows(snapshot)
 	local registered = snapshot.registered or {}
 	local seals = snapshot.consumables and snapshot.consumables.seal or snapshot.sealCharges or 0
 	addRow({ text = H.pendingBag:format(#pending, snapshot.capacity or 3, seals, snapshot.sealArmed and H.sealArmed or "") })
-	if campReady then
+	-- Owner feedback 3: the seal buttons hide with the crafts (Camp.HIDDEN.sections.Craft).
+	if campReady and not (Camp.HIDDEN and Camp.HIDDEN.sections.Craft) then
 		for _, spec in ipairs(Camp.quickRows(snapshot, { busy = busy })) do addRow(spec) end
 	end
 	-- B1: the carried creature has its own slot, apart from the bag, and its own ward button.
@@ -419,6 +423,10 @@ local function bagRows(snapshot)
 	-- The first tap only asks; a tap on the "Confirmar" it leaves sends. The question expires after 5 s (the row goes
 	-- back to "Liberar"). The server checks everything again.
 	local spare = campReady and Camp.releasable(snapshot) or {}
+	-- Owner feedback 3: "Vender" any creature but the companion, a farm one or the last one, for gold (two taps).
+	local sellable = campReady and Camp.sellable(snapshot) or {}
+	local goldModule = ReplicatedStorage:FindFirstChild("WildboundGold")
+	local goldRules = goldModule and require(goldModule) or nil
 	for _, creature in ipairs(registered) do
 		local equipped = snapshot.equippedUid == creature.uid
 		local creatureName = Text.CARD and Text.CARD.species and Text.CARD.species[creature.species] or creature.species
@@ -442,6 +450,31 @@ local function bagRows(snapshot)
 						task.delay(5, function()
 							if releaseAsk.uid == uid and releaseAsk.at == at then
 								releaseAsk.uid = nil
+								if rebuild then rebuild() end
+							end
+						end)
+						if rebuild then rebuild() end
+					end
+				end })
+		end
+		if sellable[creature.uid] and goldRules then
+			local uid, G = creature.uid, Text.GOLD
+			local look = speciesLooks and speciesLooks[creature.species]
+			local bond = type(snapshot.bond) == "table" and snapshot.bond[uid] or nil
+			local price = goldRules.sellPrice(look and look.rarity, type(bond) == "table" and bond.level or 1)
+			local asking = releaseAsk.sellUid == uid
+			addRow({ text = (asking and G.sellConfirmRow or G.sellRow):format(creatureName, price),
+				label = asking and G.sellConfirm or G.sell, action = "SellCreature", argument = uid,
+				enabled = not busy, onTap = function()
+					if asking then
+						releaseAsk.sellUid = nil
+						request("SellCreature", uid)
+					else
+						local at = os.clock()
+						releaseAsk.sellUid, releaseAsk.sellAt = uid, at
+						task.delay(5, function()
+							if releaseAsk.sellUid == uid and releaseAsk.sellAt == at then
+								releaseAsk.sellUid = nil
 								if rebuild then rebuild() end
 							end
 						end)
@@ -536,8 +569,9 @@ local function campRows(snapshot)
 			for name, price in pairs(Gold.UPGRADE_PRICES) do goldPrices[name] = price end
 		end
 	end
-	for _, spec in ipairs(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy, compact = sideways,
-		goldPrices = goldPrices })) do
+	-- Owner feedback 3: Camp.visibleRows drops what Camp.HIDDEN names (crafts, gloves, skills, incubator upgrades).
+	for _, spec in ipairs(Camp.visibleRows(Camp.campRows(Config, Economy, snapshot, { atCamp = atCamp, busy = busy,
+		compact = sideways, goldPrices = goldPrices }))) do
 		if spec.section ~= previous then
 			previous = spec.section
 			if Camp.showSectionHeaders(sideways) then
@@ -615,6 +649,7 @@ local function toggle(wanted)
 		return
 	end
 	if wanted == "camp" and not campReady then wanted = "bag" end
+	if wanted == "eggs" and campReady and Camp.HIDDEN and Camp.HIDDEN.eggsTab then wanted = "bag" end
 	if wanted and panel.Visible and tab == wanted then
 		panel.Visible = false
 		return
@@ -1043,8 +1078,13 @@ do
 			local hub = workspace:FindFirstChild("WildboundHub")
 			for _, item in ipairs(hub and hub:GetDescendants() or {}) do
 				if item:IsA("ProximityPrompt") and item:GetAttribute("WildboundHubStation") ~= nil then
-					local mine = ownerOf(item) == Players.LocalPlayer.UserId
+					-- Owner feedback 3: the stations Camp.HIDDEN names (cofre, incubadora, guantes) stay off for now.
+					local hidden = campReady and Camp.HIDDEN and Camp.HIDDEN.stations or {}
+					local mine = ownerOf(item) == Players.LocalPlayer.UserId and not hidden[item:GetAttribute("WildboundHubStation")]
 					if item.Enabled ~= mine then item.Enabled = mine end
+				elseif item:IsA("BillboardGui") and item.Name == "ChestBillboard" then
+					local on = not (campReady and Camp.HIDDEN and Camp.HIDDEN.stations.chest)
+					if item.Enabled ~= on then item.Enabled = on end
 				end
 			end
 			task.wait(1)

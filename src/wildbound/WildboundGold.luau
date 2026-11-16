@@ -11,12 +11,18 @@ local function finite(value)
 end
 
 -- Gold per minute for one creature in the farm, by its species' rarity (WildboundSpecies.LOOKS[...].rarity).
-Gold.FARM_PER_MINUTE = table.freeze({ Comun = 2, Rara = 3, Epica = 5, Legendaria = 8 })
+-- Owner feedback 3 (2026-11-16, "los bichos dan muy poco oro"): about x3.5 (was 2/3/5/8), tame bonus 20 (was 5), a
+-- lap 2 (was 1) and the treadmill cap 10 a minute (was 6).
+Gold.FARM_PER_MINUTE = table.freeze({ Comun = 7, Rara = 10, Epica = 18, Legendaria = 30 })
 Gold.DEFAULT_RARITY = "Comun" -- a species with no known rarity (the candy critters) counts as common
-Gold.TAME_BONUS = 5 -- one creature registered (tamed) or hatched
-Gold.LAP_BASE = 1 -- gold per completed treadmill lap at level 0..3
-Gold.LAP_LEVELS_PER_EXTRA = 4 -- +1 gold per lap for every 4 training levels (level 17: 5 per lap)
-Gold.TREADMILL_CAP_PER_MINUTE = 6 -- anti-AFK: the treadmill never pays more than this in one minute
+Gold.TAME_BONUS = 20 -- one creature registered (tamed) or hatched
+Gold.LAP_BASE = 2 -- gold per completed treadmill lap at level 0..3
+Gold.LAP_LEVELS_PER_EXTRA = 4 -- +1 gold per lap for every 4 training levels (level 17: 6 per lap)
+Gold.TREADMILL_CAP_PER_MINUTE = 10 -- anti-AFK: the treadmill never pays more than this in one minute
+-- Owner feedback 3: "Vender" a creature pays its rarity's price, +20% per bond level above 1 (capped at level 10).
+Gold.SELL_PRICES = table.freeze({ Comun = 25, Rara = 60, Epica = 150, Legendaria = 400 })
+Gold.SELL_LEVEL_BONUS = 0.2
+Gold.SELL_MAX_LEVEL = 10
 Gold.CAP_WINDOW = 60
 -- Gold prices, in addition to the Esencia ones (WildboundEconomyConfig upgrades, WildboundTraining.cost).
 Gold.UPGRADE_PRICES = table.freeze({ farmSlot5 = 60, farmSlot6 = 150 })
@@ -72,6 +78,13 @@ end
 function Gold.trainPrice(level, maxLevel)
 	if not finite(level) or level < 0 or not finite(maxLevel) or level >= maxLevel then return nil end
 	return math.floor(Gold.TRAIN_BASE * Gold.TRAIN_GROWTH ^ math.floor(level) + 0.5)
+end
+
+-- The gold a creature sells for: its rarity's price (an unknown rarity sells as common) and its bond level's bonus.
+function Gold.sellPrice(rarity, level)
+	local base = Gold.SELL_PRICES[rarity] or Gold.SELL_PRICES[Gold.DEFAULT_RARITY]
+	level = finite(level) and math.clamp(math.floor(level), 1, Gold.SELL_MAX_LEVEL) or 1
+	return math.floor(base * (1 + Gold.SELL_LEVEL_BONUS * (level - 1)) + 0.5)
 end
 
 -- Popup batching: earned gold is added to the buffer and shown at most once per POPUP_SECONDS.

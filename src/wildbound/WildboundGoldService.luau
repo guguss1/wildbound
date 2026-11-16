@@ -105,6 +105,35 @@ function Service:buy(player, argument)
 	deps.send(player, "BuyGold", ok == true, text)
 end
 
+-- Owner feedback 3: SellCreature. The uid is untrusted; the price comes from the server's own species rarity and bond
+-- level (Gold.sellPrice), State:sellCreature checks every rule. The "+N oro" popup shows at once. Returns ok.
+function Service:sell(player, uid)
+	local deps = self.deps
+	local Gold, T, state = deps.Gold, deps.Text.GOLD, deps.state
+	local key = player.UserId
+	local snapshot = state:snapshot(key)
+	if not snapshot or type(uid) ~= "string" then return false end
+	local species
+	for _, pet in ipairs(snapshot.registered or {}) do
+		if pet.uid == uid then species = pet.species end
+	end
+	local bond = type(snapshot.bond) == "table" and snapshot.bond[uid] or nil
+	local price = Gold.sellPrice(species and deps.rarityOf(species), type(bond) == "table" and bond.level or 1)
+	local ok, result = state:sellCreature(key, uid, (deps.where(player)), price)
+	if not ok then
+		deps.send(player, "SellCreature", false, T.sellRefused[result] or T.sellFailed)
+		return false
+	end
+	self.buffers[player] = Gold.batch(self.buffers[player], price)
+	self.buffers[player].shownAt = -math.huge
+	self:sync(player)
+	local shown = Gold.flush(self.buffers[player], os.clock())
+	if shown and self.remote then self.remote:FireClient(player, shown) end
+	local names = deps.Text.CARD and deps.Text.CARD.species or {}
+	deps.send(player, "SellCreature", true, T.sold:format(names[species] or species, price))
+	return true
+end
+
 function Service:start(network)
 	local remote = Instance.new("RemoteEvent")
 	remote.Name = "GoldPopup"
@@ -121,6 +150,18 @@ function Service:start(network)
 			local player = Players:GetPlayerByUserId(userId)
 			if op == "grant" and player then return self:earn(player, amount) end
 			if op == "read" then return self.deps.state:snapshot(userId) and self.deps.state:snapshot(userId).gold end
+			-- Owner feedback 3: one test creature of species `amount`, only to test a sale in a walked Studio check.
+			if op == "creature" and type(amount) == "string" then
+				local state = self.deps.state
+				for key, profile in pairs(state.players) do
+					if tostring(key):match("%f[%d]" .. tostring(userId) .. "$") and type(profile.registered) == "table" then
+						state.nextUid += 1
+						local uid = "wb:" .. state.nextUid
+						table.insert(profile.registered, { uid = uid, species = amount })
+						return uid
+					end
+				end
+			end
 			return nil
 		end
 		probe.Parent = game:GetService("ServerStorage")
