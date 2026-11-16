@@ -29,3 +29,6 @@
   - Gato Repartidor (gato-repartidor-v1.fbx): -> 200 {"operationId":"b85ef30e-aa77-42e0-9907-a242a5de940a","done":false}
   - done (all six polled once, Model, Approved, revision 1): Duquesa Burbuja 76476884029771, Mochimiau 137297061401898,
     Canelin 122117998176252, Flanin 76726147412419, Mielita 110648390924313, Gato Repartidor 107176841220352.
+- 2026-11-16 Duquesa Burbuja v2 (duquesa-burbuja-v2.fbx; user: "subi los modelos"): POST -> 200
+  {"operationId":"104dc5af-0dec-4179-9e13-ab1b66e4caa4","done":false}
+  done: assetId 104188536887852 (Model, Approved, revision 1). v1 (76476884029771) is no longer used in the preview.
