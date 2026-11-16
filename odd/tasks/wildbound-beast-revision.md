@@ -161,9 +161,11 @@ and lives in Config, so it can be tuned.
   scream but says the threat is "to reach the player"; a grab is the smallest readable way to make reaching matter.
 - BR-D13 Root follows a far target underground (burrowReach 42 -> 24 studs away) instead of walking, so the persistent
   chase works for a beast with no walk cycle.
-- BR-D14 Large script and clip sources are moved into Studio as uploaded rbxmx Models (receipts in
-  `assets/exports/caramelo/upload-receipts.md`), inserted, copied into the live scripts and destroyed; shared scripts
-  are still written with exact replacements.
+- BR-D14 (withdrawn) Large script and clip sources were moved into Studio as uploaded rbxmx Models (receipts in
+  `assets/exports/caramelo/upload-receipts.md`: 104898638172426 scripts, 110244231107381 clip data). That was outside
+  the user's model-upload authorisation; it is stopped (future writes: multi_edit or Source in chunks). Archiving them
+  through Open Cloud was refused (400, Models are not archivable there): manual step for the owner, archive or delete
+  both from the Creator Dashboard. The same sources are public in this repo already.
 - BR-D15 Gaze keeps a faint red PointLight on each eye bone so its black silhouette stays barely findable in the dark.
 - BR-D16 BR1-BR6 land in one commit: every beast touches the same shared files (Config, client, Text, AnimPlan,
   Encounters), and Studio sat in other sessions' Play most of the time, so the six were deployed and checked together.
@@ -270,6 +272,11 @@ See the BR0 and BR1-BR6 evidence rows and the Play checks above.
   every 0.5 s instead of leaving (persistent chase).
 - Root's lanes and whip are checked and drawn at its own height; on very uneven relief they can miss (pre-existing).
 - Owner: save the place in Studio to keep the tarantula template, the clip modules and every script change.
+- Owner: archive or delete the two transport Models 104898638172426 and 110244231107381 in the Creator Dashboard
+  (Open Cloud refused to archive them).
+- Candy guardians' suites after the final change set: Gomibu 9/0 and DonGlaseon 20/0 ran after every change;
+  Flanfuria 10/0 and Tortidragon 9/0 ran after BR0 (the later Attack change only adds an optional `hidden` field to
+  Attack.open; no signature or default changed for beasts outside the six).
 
 ## Next step
 
