@@ -11,8 +11,9 @@ local RunService = game:GetService("RunService")
 local folder = workspace:WaitForChild("WildboundBeastsLocal", 120)
 if not folder then return end
 
+-- B5 (odd/tasks/wildbound-caramelo-playfix.md): it hops home in Return (it used to fade out where it gave up).
 local CLIP = { Spawn = "Idle", Calm = "Idle", Notice = "Alert", Chase = "Hop_Move", Telegraph = "Attack_Telegraph",
-	Release = "Attack_Release", Recover = "Attack_Recover" }
+	Release = "Attack_Release", Recover = "Attack_Recover", Return = "Hop_Move" }
 local LOOPED = { Idle = true, Hop_Move = true }
 local CARAMEL, AMBER, EDGE = Color3.fromHex("#8A4B22"), Color3.fromHex("#F2A33A"), Color3.fromHex("#4A1608")
 local DOTS = 28
@@ -102,7 +103,7 @@ local function setup(model)
 				if stopWave then stopWave() end
 				stopWave = wave(model, at)
 			end
-		elseif (phase == "GiveUp" or phase == "Disengage") and stopWave then
+		elseif (phase == "GiveUp" or phase == "Return" or phase == "Disengage") and stopWave then
 			stopWave()
 			stopWave = nil
 		end

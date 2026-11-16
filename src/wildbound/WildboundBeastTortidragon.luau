@@ -8,8 +8,10 @@
 --   -> Telegraph (Abanico de Confites, only at a target inside its fan within CastRange: the fan follows the target
 --      until the lock at 0.60 s, then three circles freeze along that direction; 1.00 s)
 --   -> Release (0.65 s: the shots fly; at its end they land, the only moment anybody is hit) -> Recover (0.85 s)
---   -> Chase ... -> GiveUp (the target past AbandonStuds).
---   Escape: the target outside EscapeDistance of the nest for EscapeSeconds. Death and the safe zone end it (Attack.guard).
+--   -> Chase ... -> GiveUp (the target past AbandonStuds; GiveUpSeconds standing) -> Return (B5: walks back to the
+--   nest; the encounter ends there with no fade, facing +Z where its resting copy stands).
+--   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
+--   end it at once (Attack.guard).
 -- The attack's numbers and rules are WildboundCandyTortidragonAttack (one source). Threat: damage 0. A hit is a light
 -- push away from the dragon and a short stagger (event.push and event.slow on the Hit event); the egg stays (the beast
 -- script skips BeastHit for a keepsEgg beast). One hit per cast however many circles the target stands in.
@@ -63,11 +65,34 @@ local function leash(e, T)
 	end
 end
 
+-- B5 (odd/tasks/wildbound-caramelo-playfix.md): a calm ending never fades out where it stands (Gomibu's PF4 path). It
+-- may stand a moment first (GiveUp, for `seconds`), then walks back to its nest (Return) and the encounter ends there,
+-- where its resting copy stands between encounters.
 local function retreat(events, e, world, now, phase, reason, seconds)
 	Attack.closeAll(e, world)
 	e.fan, e.cast, e.shots = nil, nil, nil
-	if phase then Attack.phase(events, e, phase, now, now + seconds) end
-	Attack.disengage(events, e, reason, now, seconds)
+	e.returnReason = reason
+	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
+	e.farSince = nil
+	if phase then
+		Attack.phase(events, e, phase, now, now + seconds)
+		e.returnAt = now + seconds
+	else
+		Attack.phase(events, e, "Return", now, nil, { reason = reason })
+	end
+end
+
+-- Moves toward (x, z) at speed for dt on the ground, facing the way it walks; returns true on arrival.
+local function walkTo(e, world, x, z, speed, dt)
+	local distance = flat(e.pos.x, e.pos.z, x, z)
+	if distance <= 1e-3 then return true end
+	local dx, dz = unit(x - e.pos.x, z - e.pos.z)
+	local step = math.min(speed * (dt or 0), distance)
+	e.pos.x += dx * step
+	e.pos.z += dz * step
+	e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+	e.dx, e.dz = dx, dz
+	return step >= distance - 1e-6
 end
 
 local function origin(e) return { x = e.pos.x, y = e.pos.y, z = e.pos.z } end
@@ -112,6 +137,18 @@ function Tortidragon.step(events, e, now, target, world, dt)
 	local C = Config.BEASTS.Tortidragon
 	local T = C.tuning
 	if Attack.guard(events, e, now, target, {}) then return end
+	-- B5: standing a moment after giving up, then the walk home; the encounter ends at the nest with no fade
+	if e.phase == "GiveUp" then
+		if now >= (e.returnAt or now) then Attack.phase(events, e, "Return", now, nil, { reason = e.returnReason }) end
+		return
+	end
+	if e.phase == "Return" then
+		if walkTo(e, world, e.home.x, e.home.z, T.ChaseSpeedStudsPerSecond * 0.6, dt) then
+			e.dx, e.dz = 0, 1 -- the resting copy's facing
+			table.insert(events, Attack.finish(e, e.returnReason or "Done", now))
+		end
+		return
+	end
 	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else

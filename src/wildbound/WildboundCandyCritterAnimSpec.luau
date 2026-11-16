@@ -54,9 +54,9 @@ Spec.SPEC = {
 	}) },
 	-- A3 (odd/tasks/wildbound-caramelo-playfix.md): the two big candy beasts, from their older { time, pose } clip modules
 	-- (legacy = true: the client converts them with Kit.fromLegacy). The phase maps are their old clients' CLIP tables;
-	-- Don Glaseon's Stagger (the bat bounces off him) plays HitReact_ImmuneBat.
+	-- Don Glaseon's Stagger (the bat bounces off him) plays HitReact_ImmuneBat. B5: Tortidragon walks home in Return.
 	Tortidragon = { idle = "Idle", extras = { "Alert" }, legacy = true, phase = phases("Idle", {
-		Notice = "Alert", Chase = "Run_Quadruped", GiveUp = "Walk_Quadruped", Disengage = "Walk_Quadruped",
+		Notice = "Alert", Chase = "Run_Quadruped", GiveUp = "Walk_Quadruped", Disengage = "Walk_Quadruped", Return = "Walk_Quadruped",
 		Telegraph = "Attack_Telegraph", Release = "Attack_Release", Recover = "Attack_Recover",
 	}) },
 	DonGlaseon = { idle = "Idle_Breath", extras = { "Notice" }, legacy = true, phase = phases("Idle_Breath", {

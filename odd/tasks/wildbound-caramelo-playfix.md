@@ -300,11 +300,12 @@ the trap re-arming 30 s after Don Glaseon sleeps again.
 - Don Glaseon's clips: the owner still has to publish them to the group ("Save to Roblox", Creator = group) and fill
   `WildboundCandyDonGlaseonClips.IDS`. Until then the live boss has no clips; only the sleeping copy breathes. (Step A3
   below: until then he, his sleeping copy and Tortidragon play their clip data live.)
-- Flanfuria and Tortidragon still fade out where they give up (their brains were not changed); their resting copy then
-  reappears at the post.
+- (Done in step B5 at the end of this file, not checked in Play yet: Flanfuria and Tortidragon used to fade out where
+  they gave up; their resting copy then reappeared at the post.)
 - While one cake is Don Glaseon in disguise, his bed (BossHome) stays empty by design (DG7); at the start of a Play it
   was empty. Not changed here.
-- Gomibu's GiveUp line ("Gomibú volvió a su nido") shows while it still stands, before the walk home.
+- (Done in step B5 at the end of this file, not checked in Play yet: Gomibu's GiveUp line, "Gomibú volvió a su nido",
+  showed while it still stood, before the walk home; it now reads "Gomibú vuelve a su nido".)
 
 # Step A2: the creature sheets' extra abilities
 
@@ -1049,3 +1050,60 @@ Evidence (OF3 review):
   the output; HP fell 96 -> 68 -> 53 -> 4 near the Gomibu / Gato area while the walker was pushed west to x 408, but the
   probe found no server-side creature model within 120 studs (candy creatures are drawn client-side), so speeds were
   not measured this run. Trained-walk scaling and the dodge limit were not walked (no training purchase, no Z press).
+
+# Step B5: Flanfuria and Tortidragon walk home; the GiveUp line (2026-11-16)
+
+## Objective
+
+Close two small items of "Not done" above: Flanfuria and Tortidragon still faded out where they gave up a chase, and
+Gomibu's GiveUp line said it was already back at its nest while it still stood where it gave up. Repo only: nothing was
+written to Studio, no suite was run and nothing was checked in Play in this step (another agent deploys later). The two
+items the section leaves alone on purpose stay as they are: Don Glaseon's unpublished clips and his empty bed while one
+cake is him in disguise.
+
+## Checklist
+
+- [x] B5-1 (specs first) `WildboundBeastFlanfuria_Test` and `WildboundBeastTortidragon_Test`: after giving up it stands
+  GiveUpSeconds, walks home (phases "GiveUp,Return", a step between 25 % and 75 % of the way, no faster than its
+  chase) and the encounter ends at the nest with reason GiveUp and no Disengage; an escape walks home too (End
+  "Escape", no Disengage); Tortidragon ends facing +Z. `WildboundText_Test`: the three GiveUp lines read "... vuelve a
+  su nido". `WildboundCandyLiveClips_Test`: Tortidragon's Return plays `Walk_Quadruped`; Flanfuria's client hops home
+  (`Return = "Hop_Move"`) and clears its wave on Return. All of these fail on the old code. Written, not run.
+- [x] B5-2 `WildboundBeastFlanfuria`, `WildboundBeastTortidragon`: `retreat` takes Gomibu's PF4 path (GiveUp for
+  GiveUpSeconds, then Return; an escape goes straight to Return; the escape timer is cleared so the shared guard cannot
+  fade it on the way); Return walks home at 0.6 x chase speed and ends there facing +Z. Flanfuria's retreat also drops
+  its cast, so the puddle never slows anybody on the walk home. Written, not run in Studio, not checked in Play yet.
+- [x] B5-3 `WildboundCandyCritterAnimSpec`: Tortidragon `Return = "Walk_Quadruped"`. `WildboundCandyFlanfuriaAnim`:
+  `Return = "Hop_Move"`, and the wave picture is removed on Return as on GiveUp. Not checked in Play yet.
+- [x] B5-4 `WildboundText`: GiveUp lines "Gomibú / Flanfuria / Tortidragón vuelve a su nido" (were "volvió").
+- [x] B5-5 `tools/studio-fresh-runner.luau`: `WildboundCandyLiveClips_Test` also receives `flanAnim`
+  (`src:WildboundCandyFlanfuriaAnim`).
+- [ ] B5-6 Deploy the changed scripts to Studio, run the suites below with the fresh loader (red on the old Studio code,
+  green after), and walk a Play: Flanfuria and Tortidragon give up, walk home with their walk/hop clip, the view ends at
+  the post and the resting copy takes over with no fade; the GiveUp line reads "vuelve a su nido".
+
+Suites to run (SPECS names): WildboundBeastFlanfuria_Test, WildboundBeastTortidragon_Test, WildboundText_Test,
+WildboundCandyLiveClips_Test; neighbours: WildboundBeastGomibu_Test, WildboundCandySmarts_Test,
+WildboundBeastCandyCritter_Test.
+
+## Decisions taken for the user (B5)
+
+1. Flanfuria and Tortidragon copy Gomibu's give-up path (stand GiveUpSeconds, then walk home) rather than the critters'
+   (straight home): they are nest guardians like Gomibu, and Gomibu's path is the one already walked in Play (PF4b). No
+   shared helper was added to `WildboundBeastAttack`, so Gomibu and the critters are not touched.
+2. The walk home is 0.6 x the chase speed, as Gomibu's (Flanfuria 11.4, Tortidragon 13.2 studs/s). Tortidragon walks
+   straight home facing the way it walks (no turn-rate limit on the walk home), and both end facing +Z, the resting copy's
+   facing.
+3. The GiveUp line is rephrased to "vuelve a su nido" and stays on the GiveUp phase, for all three nest guardians.
+   Sending it on arrival would need a new line on the End event (the client shows phase lines only), and the creature
+   is visibly walking home while the line is up, so the present tense matches what the player sees. Don Glaseon
+   already says "vuelve a la Gran Torta" the same way.
+4. Flanfuria's client hops (`Hop_Move`) on the walk home instead of sliding in its idle loop; Tortidragon walks
+   (`Walk_Quadruped`), the clip its GiveUp and Disengage already used.
+
+## Evidence (B5)
+
+- Repo only. Python (Blender's bundled interpreter): `tools/test_deploy_manifest.py` 25/0; `tools/test_studio_fresh_runner.py`
+  15 run, 1 failure, the existing "spec tokens name deployed scripts" list (WildboundCandyCritterAnim, Duquesa,
+  GoldClient...), which does not include anything this step added.
+- Not run: the Luau suites (they need Studio); not checked in Play.

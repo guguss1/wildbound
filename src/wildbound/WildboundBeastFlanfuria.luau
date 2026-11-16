@@ -5,9 +5,12 @@
 --   -> Chase (hops after it at ChaseSpeed, never past LeashStuds from the nest)
 --   -> Telegraph (Onda de Caramelo within CastRange: a circle of radius 11 on the flan, fixed from the start; 0.80 s)
 --   -> Release (0.80 s: the ring front grows from radius 2 to 11; the target is slowed once, when the front passes it,
---      unless it is in the air) -> Recover (0.60 s) -> Chase ... -> GiveUp (the target past AbandonStuds).
+--      unless it is in the air) -> Recover (0.60 s) -> Chase ... -> GiveUp (the target past AbandonStuds; GiveUpSeconds
+--      standing) -> Return (B5: walks back to the nest; the encounter ends there with no fade, where its resting copy
+--      stands).
 --   From the end of the release a puddle of radius 4 lies where the flan stood for 3 s and slows whoever stands in it.
---   Escape: the target outside EscapeDistance of the nest for EscapeSeconds. Death and the safe zone end it (Attack.guard).
+--   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
+--   end it at once (Attack.guard).
 -- The attack's numbers and rules are WildboundCandyFlanfuriaAttack (one source); this module only walks it through the
 -- shared attack layer. Threat (OF2): the ring's slow carries damage. Both slows travel as Afflict events, which the beast script applies with its
 -- non-stacking, self-expiring applySlow and never sends to BeastHit: no damage, and the carried egg stays.
@@ -55,12 +58,35 @@ local function leash(e, T)
 end
 
 -- Leaving combat: the open tell, the ring and the puddle all go.
+-- B5 (odd/tasks/wildbound-caramelo-playfix.md): a calm ending never fades out where it stands (Gomibu's PF4 path). It
+-- may stand a moment first (GiveUp, for `seconds`), then walks back to its nest (Return) and the encounter ends there,
+-- where its resting copy stands between encounters.
 local function retreat(events, e, world, now, phase, reason, seconds)
 	Attack.closeAll(e, world)
 	if e.cast then Onda.cancel(e.cast) end
-	e.wave = nil
-	if phase then Attack.phase(events, e, phase, now, now + seconds) end
-	Attack.disengage(events, e, reason, now, seconds)
+	e.wave, e.cast = nil, nil
+	e.returnReason = reason
+	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
+	e.farSince = nil
+	if phase then
+		Attack.phase(events, e, phase, now, now + seconds)
+		e.returnAt = now + seconds
+	else
+		Attack.phase(events, e, "Return", now, nil, { reason = reason })
+	end
+end
+
+-- Moves toward (x, z) at speed for dt on the ground; returns true on arrival.
+local function walkTo(e, world, x, z, speed, dt)
+	local distance = flat(e.pos.x, e.pos.z, x, z)
+	if distance <= 1e-3 then return true end
+	local dx, dz = unit(x - e.pos.x, z - e.pos.z)
+	local step = math.min(speed * (dt or 0), distance)
+	e.pos.x += dx * step
+	e.pos.z += dz * step
+	e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+	e.dx, e.dz = dx, dz
+	return step >= distance - 1e-6
 end
 
 local function openWave(events, e, now, world, C)
@@ -80,6 +106,18 @@ function Flanfuria.step(events, e, now, target, world, dt)
 	local T = C.tuning
 	if Attack.guard(events, e, now, target, {}) then
 		if e.done and e.cast then Onda.cancel(e.cast) end
+		return
+	end
+	-- B5: standing a moment after giving up, then the walk home; the encounter ends at the nest with no fade
+	if e.phase == "GiveUp" then
+		if now >= (e.returnAt or now) then Attack.phase(events, e, "Return", now, nil, { reason = e.returnReason }) end
+		return
+	end
+	if e.phase == "Return" then
+		if walkTo(e, world, e.home.x, e.home.z, T.ChaseSpeedStudsPerSecond * 0.6, dt) then
+			e.dx, e.dz = 0, 1 -- the resting copy's facing
+			table.insert(events, Attack.finish(e, e.returnReason or "Done", now))
+		end
 		return
 	end
 	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
