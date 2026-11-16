@@ -175,4 +175,19 @@ function Kit.define(data)
 	return Clips
 end
 
+-- A3 (odd/tasks/wildbound-caramelo-playfix.md): the older clip modules (Tortidragon, Don Glaseon) key their clips as
+-- { time, pose } with an Enum priority. This returns the same clips in the kit format (Kit.define), so the client player
+-- samples them live. Poses and markers are shared, not copied; the source module is left as it is.
+function Kit.fromLegacy(legacy)
+	local clips = {}
+	for name, clip in pairs(legacy.CLIPS) do
+		local keys = table.create(#clip.keys)
+		for index, key in ipairs(clip.keys) do keys[index] = { t = key[1], pose = key[2] } end
+		local priority = clip.priority
+		clips[name] = { length = clip.length, loop = clip.loop == true, markers = clip.markers, keys = keys,
+			priority = typeof(priority) == "EnumItem" and priority.Name or priority }
+	end
+	return Kit.define({ ORDER = legacy.ORDER, CLIPS = clips, IDS = legacy.IDS })
+end
+
 return Kit

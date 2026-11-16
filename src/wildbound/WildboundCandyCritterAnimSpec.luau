@@ -52,14 +52,31 @@ Spec.SPEC = {
 		Notice = "Surprised", Chase = "Run", Telegraph = "Call", Release = "Throw", Strike = "Throw", Patrol = "Walk", Return = "Walk",
 		Deliver = "Deliver",
 	}) },
+	-- A3 (odd/tasks/wildbound-caramelo-playfix.md): the two big candy beasts, from their older { time, pose } clip modules
+	-- (legacy = true: the client converts them with Kit.fromLegacy). The phase maps are their old clients' CLIP tables;
+	-- Don Glaseon's Stagger (the bat bounces off him) plays HitReact_ImmuneBat.
+	Tortidragon = { idle = "Idle", extras = { "Alert" }, legacy = true, phase = phases("Idle", {
+		Notice = "Alert", Chase = "Run_Quadruped", GiveUp = "Walk_Quadruped", Disengage = "Walk_Quadruped",
+		Telegraph = "Attack_Telegraph", Release = "Attack_Release", Recover = "Attack_Recover",
+	}) },
+	DonGlaseon = { idle = "Idle_Breath", extras = { "Notice" }, legacy = true, phase = phases("Idle_Breath", {
+		Patrol = "Patrol_Walk", Suspicious = "Notice", Roar = "Roar_Visual", Chase = "Chase_Run", Search = "Search",
+		Telegraph = "Attack_Telegraph_Licorice", Attack = "Attack_Release_Licorice", Recover = "Attack_Recover_Licorice",
+		LoseTarget = "LoseTarget", Return = "Patrol_Walk", Disengage = "Patrol_Walk", Stagger = "HitReact_ImmuneBat",
+	}) },
 }
 
--- The critter a model is: its WildboundCritter attribute, else its name; nil when it is none of the six.
+-- A3: server scenery models, direct children of Workspace, animated like a live clone of the named beast (they carry a
+-- BeastPhase too): Don Glaseon's sleeping copy on BossHome.
+Spec.SCENERY = { DonGlaseonDormant = "DonGlaseon" }
+
+-- The creature a model is: its WildboundCritter attribute, else its name (or its scenery name); nil when it is none of
+-- the spec's.
 function Spec.critterName(model)
 	local tagged = model:GetAttribute("WildboundCritter")
 	if type(tagged) == "string" and Spec.SPEC[tagged] then return tagged end
 	if Spec.SPEC[model.Name] then return model.Name end
-	return nil
+	return Spec.SCENERY[model.Name]
 end
 
 -- The clip name for a BeastPhase (nil phase = idle). Falls back to the idle loop when the phase is unknown or its clip

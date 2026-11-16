@@ -15,6 +15,10 @@
 -- next clip change or when the model is dropped) and puts the bones back to rest; clips without an id keep the live
 -- path. Without an Animator the live path is used even when an id exists.
 -- A Heartbeat error resets the model's bones, stops its tracks and retries the model after RETRY_DELAY (MAX_RETRIES).
+-- A3 (odd/tasks/wildbound-caramelo-playfix.md): Tortidragon and Don Glaseon too. Their services copy their older
+-- { time, pose } clip modules to ReplicatedStorage.WildboundCandyCritterClips<Name>; Spec marks them legacy and
+-- Kit.fromLegacy converts them here. Spec.SCENERY models in Workspace (Don Glaseon's sleeping copy) follow their
+-- BeastPhase like a live clone. A streamed model is waited for until its bones arrive, however far the player starts.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
@@ -28,9 +32,11 @@ local clipModules = {}
 local function clipsOf(name)
 	if clipModules[name] == nil then
 		local module = ReplicatedStorage:WaitForChild("WildboundCandyCritterClips" .. name, 10)
-		clipModules[name] = module and require(module) or false
+		if not module then return nil end -- not there yet: the next model of this name tries again
+		local data = require(module)
+		clipModules[name] = Spec.SPEC[name].legacy and Kit.fromLegacy(data) or data
 	end
-	return clipModules[name] or nil
+	return clipModules[name]
 end
 
 local states = {} -- [model] = state (false while pending)
@@ -108,8 +114,7 @@ local function setup(model, live)
 	task.spawn(function()
 		local clips = clipsOf(name)
 		local bones
-		for _ = 1, 20 do -- streamed models may arrive before their bones
-			if not model:IsDescendantOf(game) then break end
+		while model:IsDescendantOf(game) and states[model] == false do -- streamed models may arrive before their bones
 			bones = readBones(model)
 			if bones then break end
 			task.wait(0.5)
@@ -266,6 +271,8 @@ local function consider(child)
 	elseif child.Name == Spec.BEASTS_FOLDER then
 		watched[child] = true
 		watch(child, true)
+	elseif Spec.SCENERY[child.Name] then
+		setup(child, true) -- A3: dropped by the Heartbeat when it leaves; set up again each time it comes back
 	end
 end
 for _, child in ipairs(workspace:GetChildren()) do consider(child) end

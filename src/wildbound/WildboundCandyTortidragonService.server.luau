@@ -7,6 +7,13 @@ local ServerStorage = game:GetService("ServerStorage")
 
 local Clips = require(ServerStorage:WaitForChild("WildboundCandyTortidragonClips"))
 local Abanico = require(ServerStorage:WaitForChild("WildboundCandyTortidragonAttack"))
+-- A3 (odd/tasks/wildbound-caramelo-playfix.md): a copy of the clip data for the clients, which play it live
+-- (WildboundCandyCritterAnim) while a clip has no published id.
+if not ReplicatedStorage:FindFirstChild("WildboundCandyCritterClipsTortidragon") then
+	local data = ServerStorage:WaitForChild("WildboundCandyTortidragonClips"):Clone()
+	data.Name = "WildboundCandyCritterClipsTortidragon"
+	data.Parent = ReplicatedStorage
+end
 local prefab = ServerStorage:WaitForChild("WildboundAssets"):WaitForChild("Tortidragon")
 local root = ReplicatedStorage:WaitForChild("WildboundBeasts", 60)
 local models = root and root:WaitForChild("Models", 60)
@@ -17,7 +24,7 @@ end
 if not models:FindFirstChild("Tortidragon") then
 	local model = prefab:Clone()
 	model.Name = "Tortidragon"
-	-- only published clips: until a clip has an id the client leaves the model in its rest pose for that phase
+	-- only published clips: until a clip has an id the client plays its data live (A3)
 	for _, name in ipairs(Clips.ORDER) do
 		if Clips.IDS[name] then model:SetAttribute("Clip_" .. name, Clips.animationId(name)) end
 	end

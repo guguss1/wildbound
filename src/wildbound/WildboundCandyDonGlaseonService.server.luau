@@ -17,10 +17,17 @@ local Latigo = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseonAttac
 local DonGlaseon = require(ServerStorage:WaitForChild("WildboundCandyDonGlaseon"))
 local Sites = require(ServerScriptService:WaitForChild("WildboundPraderaSites"))
 local prefab = ServerStorage:WaitForChild("WildboundAssets"):WaitForChild("DonGlaseon")
+-- A3 (odd/tasks/wildbound-caramelo-playfix.md): a copy of the clip data for the clients, which play it live
+-- (WildboundCandyCritterAnim) on the live clone and the sleeping copy while a clip has no published id.
+if not ReplicatedStorage:FindFirstChild("WildboundCandyCritterClipsDonGlaseon") then
+	local data = ServerStorage:WaitForChild("WildboundCandyDonGlaseonClips"):Clone()
+	data.Name = "WildboundCandyCritterClipsDonGlaseon"
+	data.Parent = ReplicatedStorage
+end
 
 local root = ReplicatedStorage:WaitForChild("WildboundBeasts", 60)
 local models = root and root:WaitForChild("Models", 60)
--- only published clips: until a clip has an id the client leaves the model in its rest pose for that phase
+-- only published clips: until a clip has an id the client plays its data live (A3)
 local function dress(model)
 	for _, name in ipairs(Clips.ORDER) do
 		if Clips.IDS[name] then model:SetAttribute("Clip_" .. name, Clips.animationId(name)) end

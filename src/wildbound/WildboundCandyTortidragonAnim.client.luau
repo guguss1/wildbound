@@ -1,18 +1,15 @@
--- Caramelo biome (odd/tasks/wildbound-caramelo.md, CA2): plays Tortidragon's clips and shows Abanico de Confites on
--- this client. WildboundBeastsClient draws every beast as a client-only clone in workspace.WildboundBeastsLocal and
--- publishes the server's phase on it (attributes BeastPhase and BeastPhaseAt, a server time). Tortidragon's clone
--- carries an Animator, the published clip ids (Clip_<name>) and the attack's numbers (Abanico_<name>), set by
--- WildboundCandyTortidragonService. This script plays the clip of the current phase (a trot while it moves slowly, a
--- gallop in the chase) and, from the Release phase, flies three big candies from its mouth to the three circles the
--- beast client drew (TortidragonExtras > TortidragonTell > Disc1..3). They are pictures of what the server decides;
--- nothing here hits anybody.
+-- Caramelo biome (odd/tasks/wildbound-caramelo.md, CA2): shows Tortidragon's Abanico de Confites on this client.
+-- WildboundBeastsClient draws every beast as a client-only clone in workspace.WildboundBeastsLocal and publishes the
+-- server's phase on it (attributes BeastPhase and BeastPhaseAt, a server time). Tortidragon's clone carries the attack's
+-- numbers (Abanico_<name>), set by WildboundCandyTortidragonService. From the Release phase this script flies three big
+-- candies from its mouth to the three circles the beast client drew (TortidragonExtras > TortidragonTell > Disc1..3).
+-- They are pictures of what the server decides; nothing here hits anybody.
+-- A3 (odd/tasks/wildbound-caramelo-playfix.md): its clips are played by the shared WildboundCandyCritterAnim (live
+-- from the clip data, or the published Clip_<name> on the Animator when one exists), so nothing here touches the rig.
 local RunService = game:GetService("RunService")
 local folder = workspace:WaitForChild("WildboundBeastsLocal", 120)
 if not folder then return end
 
-local CLIP = { Spawn = "Idle", Calm = "Idle", Notice = "Alert", Chase = "Run_Quadruped", GiveUp = "Walk_Quadruped",
-	Disengage = "Walk_Quadruped", Telegraph = "Attack_Telegraph", Release = "Attack_Release", Recover = "Attack_Recover" }
-local LOOPED = { Idle = true, Walk_Quadruped = true, Run_Quadruped = true }
 local CANDY = { Color3.fromHex("#3EC9D6"), Color3.fromHex("#F6C343"), Color3.fromHex("#E0263C") }
 local EDGE = Color3.fromHex("#4A1608")
 
@@ -82,37 +79,18 @@ end
 
 local function setup(model)
 	if not model:IsA("Model") or model.Name ~= "Tortidragon" then return end
-	local controller = model:FindFirstChildOfClass("AnimationController")
-	local animator = controller and controller:FindFirstChildOfClass("Animator")
-	if not animator then return end
-	local tracks, current, lastVolley, stopVolley = {}, nil, nil, nil
-	local function play()
-		local phase = model:GetAttribute("BeastPhase")
-		if phase == "Release" then
-			local at = model:GetAttribute("BeastPhaseAt")
-			if type(at) == "number" and at ~= lastVolley then
-				lastVolley = at
-				if stopVolley then stopVolley() end
-				stopVolley = volley(model, at)
-			end
+	local lastVolley, stopVolley = nil, nil
+	local function onPhase()
+		if model:GetAttribute("BeastPhase") ~= "Release" then return end
+		local at = model:GetAttribute("BeastPhaseAt")
+		if type(at) == "number" and at ~= lastVolley then
+			lastVolley = at
+			if stopVolley then stopVolley() end
+			stopVolley = volley(model, at)
 		end
-		local name = CLIP[phase] or "Idle"
-		if name == current then return end
-		if current and tracks[current] then tracks[current]:Stop(0.15) end
-		current = name
-		if not tracks[name] then
-			local id = model:GetAttribute("Clip_" .. name)
-			if type(id) ~= "string" then return end
-			local animation = Instance.new("Animation")
-			animation.AnimationId = id
-			tracks[name] = animator:LoadAnimation(animation)
-			tracks[name].Looped = LOOPED[name] == true
-		end
-		tracks[name]:Play(0.15)
-		model:SetAttribute("TortidragonClip", name)
 	end
-	model:GetAttributeChangedSignal("BeastPhase"):Connect(play)
-	play()
+	model:GetAttributeChangedSignal("BeastPhase"):Connect(onPhase)
+	onPhase()
 end
 
 folder.ChildAdded:Connect(setup)
