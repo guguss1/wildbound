@@ -296,9 +296,7 @@ the trap re-arming 30 s after Don Glaseon sleeps again.
 
 ## Not done
 
-- The extra mechanics on the creature sheets (pack 6): Mochimiau's cream puddle, Flanin's caramel trail and extra
-  bounces, Mielita's pollen trail and swarm, Canelin's glaze variants, the Gato's golden order (+15 % speed) and call for
-  backup. Recorded for a later step.
+- (Done in step A2 below: the extra mechanics on the creature sheets.)
 - Don Glaseon's clips: the owner still has to publish them to the group ("Save to Roblox", Creator = group) and fill
   `WildboundCandyDonGlaseonClips.IDS`. Until then the live boss has no clips; only the sleeping copy breathes.
 - Flanfuria and Tortidragon still fade out where they give up (their brains were not changed); their resting copy then
@@ -306,3 +304,200 @@ the trap re-arming 30 s after Don Glaseon sleeps again.
 - While one cake is Don Glaseon in disguise, his bed (BossHome) stays empty by design (DG7); at the start of a Play it
   was empty. Not changed here.
 - Gomibu's GiveUp line ("Gomibú volvió a su nido") shows while it still stands, before the walk home.
+
+# Step A2: the creature sheets' extra abilities
+
+## Objective
+
+Give the new candy creatures the special mechanics of the "Otras habilidades" box of their pack 6 sheets
+(`Pack_6_Criaturas_Rig_Animacion`; our own designs and names stay, the sheets give mechanics only), as data-driven extras
+of the generic brain `WildboundBeastCandyCritter` plus one small new module for La Duquesa Burbuja. Damage stays 0
+(push and slow only), every slow goes through the shared non-stacking slot and the `WildboundBeastChase.EFFECTS` caps,
+and every check in Play walks the character in like a player.
+
+## Checklist
+
+- [x] A2-1 Mochimiau: "Salpicadura de crema", a cream puddle where its leap lands (2 s, -25 % while inside);
+  "Comportamiento social", one more hop right after the recovery if the target is still within 9 studs (once per
+  cooldown).
+- [x] A2-2 Canelin: it spins in place on the tell (clip Spin) and its roll leaves a glaze trail along the lane (-20 %,
+  each patch 2 s).
+- [x] A2-3 Flanin: "Charco de caramelo", a caramel trail while it hops after a player (-20 %, each patch 2 s); "Rebote
+  continuo", up to two more bounces right after the recovery.
+- [x] A2-4 Mielita: "Ruta de polen", a pollen trail while it flies after a player (-15 %, each patch 2 s); "Enjambre",
+  every 18 s of a chase two pollen puffs beside the target (1 s tell, -15 % 2 s).
+- [x] A2-5 Gato Repartidor: "Entrega especial", one encounter in four it walks up and hands a golden order (+15 % walk
+  speed for 10 s, a line on screen, chime and sparkles) and walks home; "Llamado de repartidores", every 20 s of a chase
+  a helper Gato appears 10 studs beside the target, throws fries once (1 s tell) and leaves.
+- [x] A2-6 La Duquesa Burbuja: seated, but while a player stands on the Gran Torta's summit she throws "Bombas de
+  chicle" every 10 s: three slow bubbles that pop in small circles (-30 % 2 s, push 4, ring shown 1.8 s before the
+  pop), with her Charge and Whip clips. CT3's nest and CT4 Frutillon untouched.
+- [x] A2-7 (found in walked Play 1) Flanin's bounces never came: its burst pushed the player 6 studs out of a 7-stud
+  follow range. Follow range 16 (burst radius 10 + push 6), test-first.
+- [x] A2-8 (found in walked Play 1) La Duquesa never threw: Frutillon bumped the climber off the summit about 1.5 s
+  after arriving, before her first volley (1.5 s). First volley 0.3 s after arrival, test-first.
+- [x] A2-9 Walked Play checks of each (see Evidence); commits def6c83 (specs), 755027b (implementation), 04a6128
+  (walked-Play fixes).
+
+## What changed
+
+### Data (`WildboundBeastConfig`, `tuning.Extras` of each critter, all frozen)
+
+| Creature | Extra | Numbers |
+|---|---|---|
+| Mochimiau | Puddle | radius 4, life 2 s, slow 0.75 for 2 s |
+| Mochimiau | Follow | Max 1, range 9 |
+| Canelin | Trail (Phase Release) | every 2.5 studs, radius 2.5, life 2 s, slow 0.8 for 2 s |
+| Flanin | Trail (Phase Chase) | every 3 studs, radius 2, life 2 s, slow 0.8 for 2 s |
+| Flanin | Follow | Max 2, range 16 (was 7, A2-7) |
+| Mielita | Trail (Phase Chase) | every 3 studs, radius 2.5, life 2 s, slow 0.85 for 2 s |
+| Mielita | Swarm | every 18 s (first 3 s into a chase), range 16, 2 puffs 5 studs beside the target, radius 3.5, tell 1 s, slow 0.85 for 2 s |
+| GatoRepartidor | Gift | one encounter in 4 (by its number), hand-over at 4 studs after 1.5 s, x1.15 for 10 s |
+| GatoRepartidor | Call | every 20 s (first 4 s into a chase), range 14, helper 10 studs beside the target, fries radius 4, tell 1 s, push 6, slow 0.8 for 2 s, helper stays 2.5 s |
+
+### Brain (`WildboundBeastCandyCritter`)
+
+- Patches: a "Patch" event (x, y, z, r, life, untilAt) per puddle or trail piece; the brain keeps the live ones (at most
+  16) and, while the target's root is inside one, emits an `Afflict` (slow, slowSeconds, patch = true) at most once per
+  SlowSeconds + 0.3 s. The beast server applies it with `applySlow` (clamped by the EFFECTS caps, never stacked on a
+  slow already running). Patches keep slowing while the creature walks home.
+- Follow: a fresh attack starts a chain of up to Max follow-ups; after a strike with follow-ups left the next attack
+  may open right after the recovery (full tell each time); when the target leaves the follow range the chain ends and
+  the cooldown counts from its last strike.
+- Side attacks (Swarm, Call): opened only in Chase, locked at once, strike at least MIN_TELL later, settled on their own
+  clock whatever the phase; the Call emits a "Helper" event; the Swarm lands as an Afflict (no push), the helper's fries
+  as a Hit (push and slow, damage 0, keepsEgg).
+- Gift: `e.gift` from the encounter's number ("beast:<n>", n % 4 == 0). It chases without attacking, stands "Deliver"
+  for 1.5 s within 4 studs, emits "Gift" and walks home ("Delivered").
+
+### Server and clients
+
+- `WildboundBeasts` (on `world`, no new top-level local): `candyPatch` lays a flat disc in the creature's colour
+  (Mochimiau cream, Canelin cinnamon, Flanin caramel, Mielita pollen yellow) in `Workspace.WildboundCandyExtras`,
+  fades it over its life and removes it; `candyHelper` parks an anchored copy of the Gato model there until untilAt;
+  `candyGift` sets `WildboundCandyOrderUntil` and `WildboundCandyCakeSaid = "order:<n>"` and counts
+  `Beast_candyGifts`.
+- `WildboundServer` (two additive lines in applyCarry and one new `do ... end` block): x1.15 while the order lasts,
+  capped at 26 like the cake rush, re-applied when it starts and ends.
+- `WildboundCandyCakeClient`: "order" chimes and sparkles like a rush; `WildboundText.CANDY_CAKE.order` = "¡Pedido
+  dorado! Corres más rápido"; `Text.BEAST.GatoRepartidor.phases.Deliver` = "¡El Gato Repartidor te trae un pedido!".
+- `WildboundCandyCritterAnimSpec`: Canelin Telegraph -> Spin; Gato Deliver -> Deliver; Deliver is a brain phase (idle
+  for the others).
+- `WildboundCandyDuquesa` (new, ServerStorage, `tools/`) pure rules and `WildboundCandyDuquesaService` (new): rings,
+  bubbles and pops are server parts in `Workspace.WildboundCandyDuquesa`; her clips through the attribute
+  `WildboundCritterCue` ("Charge:<n>", "Whip:<n>"), which `WildboundCandyCritterAnim` plays as one-shots on the
+  preview model; slow through `WildboundBeastSlowUntil` with `Chase.clampSlow`, push through the `WildboundBeastPush`
+  slot (Frutillon's pattern).
+
+## Decisions taken for the user (A2)
+
+1. Patches are server-made parts (seen by every player, faded by a server tween), not a new client renderer: no new
+   remote, no change to the beast client.
+2. Every patch lives 2 s and slows for 2 s (the sheets' "2 s" read as both); a target standing in one is slowed once per
+   2.3 s at most, and never on top of a slow already running (the shared slot). Consequence seen in Play: a stronger
+   hit slow can be pre-empted by a weaker patch slow landing first (Canelin's roll: the glaze -20 % came 0.1 s before
+   the roll's -30 %), and a puddle under a player its hit just slowed does not add anything.
+3. Only the encounter's target is slowed by patches; other players only see them.
+4. Mochimiau's "Comportamiento social" (the sheet: several Mochimiau attack in sequence) is one more hop right after
+   the recovery while the target stays within 9 studs, once per cooldown, as the step asked.
+5. Flanin's follow range is 16 so a bounce reaches a player its own burst pushed (A2-7).
+6. The Gato's gift is chosen by the encounter's number (one in four), deterministic and testable; a gift encounter
+   never attacks and never calls a helper.
+7. The helper Gato is a static copy (no live animation: the critter animator only drives models in
+   `WildboundBeastsLocal` and the preview folder); it shows for 2.5 s.
+8. The swarm puffs land beside the target (not on it), so standing still is safe and a sidestep may not be.
+9. La Duquesa targets the first player found on the summit; her volley resolves even if that player leaves; she
+   throws 0.3 s after a player arrives (A2-8) and every 10 s after.
+10. Her slow and push are a copy of the beasts' rules inside her service (same attribute slot and caps), rather than a
+    refactor of `WildboundBeasts.applySlow`, to keep the shared beast server untouched there.
+11. The fresh runner used for the A2 runs is the engine of `tools/studio-fresh-runner.luau` (the same loader, clone and
+    lock code) with a shorter report and no Workspace leak scan, kept in a temporary ServerStorage StringValue
+    (`WildboundA2RunnerEngine`, destroyed at the end) with only the needed SPECS passed in each call.
+12. Two test mistakes found on the first GREEN run were fixed in the tests (no behaviour change): the encounter ids
+    "swarm" and "call" made every tell id contain ":swarm:" / ":call:", and the "out of reach" spot for Mochimiau's
+    follow test was inside its follow range. One real bug from the same run was fixed in the brain: a non-roll attack
+    reset the trail spacing (Mielita laid two pieces 2.1 studs apart).
+
+## Evidence (A2)
+
+Studio: place 122652861404212, instance db843df0-7649-423f-adb7-739088c9746a. Before the first write every touched
+script matched the repo HEAD (CRLF -> LF, trailing newlines stripped, length + Adler-32), so nothing was pulled. Writes
+by `multi_edit` exact replacements (new scripts created the same way), read back and compared after each batch.
+
+### Runs (fresh loader, `WildboundFreshRunnerLock` respected)
+
+| Run | What | Result |
+|---|---|---|
+| 54e3cd7d | RED, CandyCritter + CandyDuquesa | 20 passed, 9 failed; Duquesa suite: module missing |
+| ef5e2634 | first GREEN try | 30 passed, 4 failed (decision 12) |
+| b8eb0ed8 | GREEN, 15 beast suites (incl. CandyCritter 29, CandyDuquesa 5) | 297 passed, 0 failed |
+| 3cfc2888 | GREEN, 12 candy/text/portal suites | 121 passed, 0 failed |
+| ee29df73 | A2-7/A2-8 RED | 2 failed (Flanin follow range 7 under 16; first volley 1.5 s) |
+| 647956d3 | A2-7/A2-8 GREEN (CandyCritter, CandyDuquesa, Encounters, Director, Frutillon) | 121 passed, 0 failed |
+
+Also: `loadstring` compiles of WildboundServer (still under the local limit), WildboundBeasts, the Duquesa service and
+the two clients.
+
+### Fingerprints (Studio == repo, final)
+
+| Script | Bytes | Adler-32 |
+|---|---|---|
+| WildboundBeastConfig | 45611 | 35b9070e |
+| WildboundBeastCandyCritter | 23077 | 7f083f98 |
+| WildboundBeastCandyCritter_Test | 45711 | 235d9bdd |
+| WildboundBeasts | 57959 | af61499c |
+| WildboundServer | 222665 | 4e5d92e9 |
+| WildboundText | 41319 | 4733e094 |
+| WildboundCandyCakeClient | 3735 | bb53e5e3 |
+| WildboundCandyCritterAnim | 10399 | 186291d9 |
+| WildboundCandyCritterAnimSpec | 4267 | 397e608e |
+| WildboundCandyDuquesa (new) | 4478 | 6d3f85c6 |
+| WildboundCandyDuquesaService (new) | 7308 | 4cfa9c21 |
+| WildboundCandyDuquesa_Test (new) | 7717 | c3bcae2a |
+
+### Walked Play observations
+
+Two Plays (`WildboundPlayLock` "A2-extras" and "A2-extras-2", both locks nil before, Play stopped and the lock cleared
+after each). The character always walked with `character_navigation` from spawn (298, -3) along the road and through
+the biome, and up the Gran Torta's stair step by step; nothing was teleported. Read-only samplers: a server log every
+0.5 s (position, walk speed, slow and order timers, push slot, cake line attribute) plus new parts in
+`WildboundCandyExtras` / `WildboundCandyDuquesa` and La Duquesa's cue; a client log of the beast events
+(`BeastEvent.OnClientEvent`), the views' phases and clips, the on-screen line and the parts the client sees.
+
+Play 1:
+
+- Gato (beast:2): helper `Helper_GatoRepartidor` appeared 10 studs from the player (server and client), the fries hit:
+  push and 16 -> 12.8 (0.8) for 2 s.
+- Mochimiau: leap -> puddle at the landing (527.1, 40.1), hit (push 8, 0.7); 1.9 s later the second hop landed where the
+  push left the player (535.6, 38.8), second puddle and hit; the next attack 7.3 s later (cooldown). The puddle slow
+  was not seen applied: the hit's own slow was always running (decision 2).
+- Mielita: pollen trail pieces about 3.4 studs apart, seen by the client; swarm tells (`beast:5:swarm:14`, 1.00 s, two
+  circles) every ~21 s; walking back through the trail gave an `Afflict` patch = true, slow 0.85 (not applied: the lob's
+  slow was running).
+- Flanin: caramel trail while chasing (client saw each patch, transparency 0.17 fading); three hits 8.3 s apart and no
+  bounce: its push moved the player out of the follow range -> A2-7.
+- Canelin: Telegraph clip Spin, then the roll laid five glaze patches along the lane; the glaze slow was applied
+  (16 -> 12.8 for 2 s) and the roll's 0.7 hit 0.1 s later did not stack on it.
+- La Duquesa: the player reached the summit (607.4, 44.0, -7.7) and Frutillon bumped it off within 1.5 s, before her
+  first volley -> A2-8.
+
+Play 2 (after A2-7 and A2-8):
+
+- Gato (beast:2): call `beast:2:call:2` with helper, fries hit (0.8).
+- Flanin (beast:4): burst at 6131.3, bounce at 6134.0, bounce at 6136.7 (1.25 s tells): two more bounces, then the
+  cooldown.
+- La Duquesa: on arrival (6214.9) Charge cue, three rings, Whip 0.6 s later, three bubbles from her hands, three pops
+  1.9 s after the rings; the client saw her Charge and Whip clips and every part. Second climb: standing on the summit
+  at (609.8, 44.0, -5.3), the pop of volley 2 slowed 16 -> 11.2 for 2 s and pushed about 3.7 studs; volley 3 came
+  10.1 s later, hit again, then Frutillon bumped the player off the summit (CT4 still works).
+- Gato gift: walking in from the north-west (to meet the Gato before Gomibu), encounter beast:12 walked up, "Deliver",
+  `Gift`, line "¡Pedido dorado! Corres más rápido" on screen (transparency 0), walk speed 16 -> 18.4 for 10 s (back to
+  16 at the end), `Beast_candyGifts = 1`, Return "Delivered", End at its post. The next Gato encounter attacked and
+  called its helper as usual.
+- No script errors from these scripts in the console (only the known TexturePack, asset and DataStore noise).
+
+What was not checked: a patch slow applied while no other slow was running for Mochimiau's puddle and Flanin's or
+Mielita's trails (the brain's Afflict was seen; the shared slot was busy); two players (bystanders seeing the patches
+and the helper, a second player on the summit); a phone; the helper Gato's look from far away (it is a static pose);
+a Gato call staggered against another strike (claimStrike) in Play. Sheets read: 01 (Princesa Chicle, for La Duquesa);
+the other sheets' mechanics were taken from the step's own summary of their "Otras habilidades".
