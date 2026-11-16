@@ -480,6 +480,7 @@ Config.BEASTS = table.freeze({
 			-- encounter lasts; LeftGraceSeconds (new): out of the territory this long in a row before he lets the target go.
 			DormantSeconds = 2, PatrolSeconds = 25, PatrolRadiusStuds = 10, NoticeSeconds = 0.8, RoarSeconds = 1.5,
 			ChaseSeconds = 30, SearchSeconds = 5, LoseTargetSeconds = 1, HomeToleranceStuds = 1.5, LeftGraceSeconds = 3,
+			LeftMarginStuds = 12, -- PF5b: the ring past the territory's edge that still counts as his (the lash's shove)
 			CastRangeStuds = 18, CastHalfAngleDegrees = 20, StandOffStuds = 8,
 		}),
 	}),

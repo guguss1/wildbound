@@ -67,6 +67,8 @@ local function retreat(events, e, world, now, phase, reason, seconds)
 	Attack.closeAll(e, world)
 	e.jump = nil
 	e.returnReason = reason
+	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
+	e.farSince, e.pinnedSince = nil, nil
 	if phase then
 		Attack.phase(events, e, phase, now, now + seconds)
 		e.returnAt = now + seconds
@@ -181,6 +183,17 @@ function Gomibu.step(events, e, now, target, world, dt)
 		if distance > T.AbandonStuds then
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
+		end
+		-- PF4: held at the end of its leash with the target out of jump range for GiveUpSeconds, it gives up (it used to
+		-- chase there for ever while the target stood inside its abandon distance)
+		if distance > T.JumpRangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - 0.05 then
+			e.pinnedSince = e.pinnedSince or now
+			if now - e.pinnedSince >= T.GiveUpSeconds then
+				retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
+				return
+			end
+		else
+			e.pinnedSince = nil
 		end
 		if distance <= T.JumpRangeStuds and now >= e.readyAt then
 			if openJump(events, e, now, target, world, C, T) then return end

@@ -101,9 +101,11 @@ local function inTerritory(e, world, p, T)
 	return flat(c.x, c.z, p.x, p.z) <= T.TerritoryRadiusStuds
 end
 -- PF5 (odd/tasks/wildbound-caramelo-playfix.md): the target has left only after LeftGraceSeconds outside the territory
--- in a row, so the shove of his own lash (or a step over the edge) never ends the encounter in the same moment.
+-- in a row, so the shove of his own lash (or a step over the edge) never ends the encounter in the same moment. PF5b
+-- (walked Play): the ring of LeftMarginStuds past the edge (his lash's shove) still counts as his ground.
 local function left(e, world, target, T, now)
-	if inTerritory(e, world, target, T) then
+	local c = territory(e, world)
+	if flat(c.x, c.z, target.x, target.z) <= T.TerritoryRadiusStuds + (T.LeftMarginStuds or 0) then
 		e.outsideSince = nil
 		return false
 	end

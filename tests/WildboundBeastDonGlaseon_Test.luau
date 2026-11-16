@@ -86,6 +86,7 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		-- target out of the territory for a moment).
 		near(T.ChaseSpeedStudsPerSecond, 17, "chase"); near(T.ChaseSeconds, 30, "chase time"); near(T.SearchSeconds, 5, "search")
 		near(T.PatrolSeconds, 25, "patrol"); near(T.LeftGraceSeconds, 3, "left grace")
+		near(T.LeftMarginStuds, 12, "PF5b: the ring past the edge that still counts as his (the lash's 12-stud shove)")
 		near(T.TerritoryRadiusStuds, 62, "the BossTerritory marker's radius")
 		assert(T.CastRangeStuds < Latigo.LENGTH_STUDS, "it lashes at targets the lane cannot reach")
 		assert(Boss.tellSeconds() >= Config.MIN_TELL, "the tell is shorter than the minimum")
@@ -349,8 +350,18 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		for _, ev in ipairs(each(events, "Phase")) do
 			assert(ev.phase ~= "LoseTarget", "it let the target go at " .. ev.at .. " (" .. tostring(ev.reason) .. ")")
 		end
-		local outAt = 9.05
-		local later = run(e, w, tgt, outAt, outAt + T.LeftGraceSeconds + 1, function(_, target) target.z = T.TerritoryRadiusStuds + 6 end)
+		-- PF5b (walked Play): his lash shoves a target about 12 studs; one shoved just past the edge and standing there is
+		-- still his (the ring of LeftMarginStuds round the territory), however long it stays
+		local ring = run(e, w, tgt, 9.05, 9.05 + T.LeftGraceSeconds + 3, function(_, target)
+			target.z = T.TerritoryRadiusStuds + T.LeftMarginStuds - 2
+		end)
+		for _, ev in ipairs(each(ring, "Phase")) do
+			assert(ev.phase ~= "LoseTarget", "it let a target in the ring go at " .. ev.at .. " (" .. tostring(ev.reason) .. ")")
+		end
+		local outAt = 9.05 + T.LeftGraceSeconds + 3.05
+		local later = run(e, w, tgt, outAt, outAt + T.LeftGraceSeconds + 1, function(_, target)
+			target.z = T.TerritoryRadiusStuds + T.LeftMarginStuds + 4
+		end)
 		local lose
 		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "LoseTarget" then lose = lose or ev end end
 		assert(lose, "it never let a target that stayed outside go (phases " .. phases(later) .. ")")

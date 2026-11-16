@@ -234,5 +234,31 @@ return function(Enc, Gomibu, Config)
 		end
 	end)
 
+	-- PF4 (walked Play, odd/tasks/wildbound-caramelo-playfix.md): a player standing just past its leash, out of jump range
+	-- but inside the abandon distance, kept Gomibu chasing for ever at the end of its leash; and on the long walk home
+	-- from there the shared guard's escape timer (left set from the chase) faded it out halfway. Now it gives up after
+	-- GiveUpSeconds held at the leash, and the walk home is never cut short.
+	case("PF4: held at its leash out of reach it gives up, and the long walk home is never faded out", function()
+		local stand = T.LeashStuds + T.JumpRangeStuds + 2
+		assert(stand - T.LeashStuds < T.AbandonStuds, "test setup: the stall spot is inside the abandon distance")
+		for _, how in ipairs({ "pinned", "far" }) do
+			local e, w, tgt = bear(how), fakeWorld(), target(15, 0)
+			run(e, w, tgt, 0, 0.9)
+			local gone = false
+			local later = run(e, w, tgt, 0.95, 30, function(_, tg, b)
+				-- "far": once it is held at its leash the player runs off past its escape distance
+				if how == "far" and b.pos.x >= T.LeashStuds - 1 then gone = true end
+				tg.x = gone and T.EscapeDistanceStuds + 10 or math.min(b.pos.x + 20, stand) -- it leads it out to the spot
+			end)
+			local list = phases(later)
+			assert(string.find(list, "GiveUp,Return", 1, true), how .. ": phases " .. list)
+			equal(#each(later, "Disengage"), 0, how .. ": it faded out on the way home")
+			local over = each(later, "End")[1]
+			assert(over, how .. ": never ended (phases " .. list .. ")")
+			equal(over.reason, "GiveUp", how .. ": the reason")
+			assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, how .. ": ended away from its nest")
+		end
+	end)
+
 	return result
 end
