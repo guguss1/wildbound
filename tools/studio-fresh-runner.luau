@@ -160,6 +160,7 @@ SPECS["WildboundCandyDonGlaseonAnger_Test"] = { "mod:WildboundCandyDonGlaseonAng
 SPECS["WildboundCandyTower_Test"] = {
 	"mod:WildboundCandyLayout", "mod:WildboundCandyBuilder", "mod:WildboundCandyKit",
 	{ nests = "src:WildboundCandyNests", client = "src:WildboundCandyTowerClient" },
+	"mod:WildboundCandyNests", "inst:ServerStorage.WildboundAssets.CandyKit",
 }
 SPECS["WildboundCandyTrapCake_Test"] = {
 	"mod:WildboundCandyTrapCake", "mod:WildboundCandyLayout",

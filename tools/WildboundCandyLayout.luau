@@ -97,6 +97,9 @@ do
 		spinPeriodSeconds = 90,
 		spinDirections = table.freeze({ 1, -1, 1, 0 }),
 		stair = table.freeze({ width = 3.8, inset = 0.5, tread = 2.6, maxRise = 1, startDegrees = -100, landingDegrees = 15 }),
+		-- CT3: the best egg of the biome, a Legendaria nest (not event-only) on the summit, the kit's nest at 70 % so it
+		-- fits beside La Duquesa (who sits on the centre), across the summit from where the stair arrives.
+		summit = table.freeze({ id = "T1", rarity = "Legendaria", x = 0, z = 5.8, scale = 0.7 }),
 	})
 end
 

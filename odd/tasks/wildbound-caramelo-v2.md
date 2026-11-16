@@ -92,7 +92,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Done 2026-11-16 (Studio suites and solo Play in the evidence below).
 - [x] CT1 Spiral staircase on the Gran Torta. Done 2026-11-16 (evidence below).
 - [x] CT2 Counter-rotating tiers. Done 2026-11-16 (evidence below).
-- [ ] CT3 Best egg at the top
+- [x] CT3 Best egg at the top. Done 2026-11-16 (evidence below).
 - [ ] CT4 Frutillón, the top guardian
 - [x] IC Icons through rbxthumb. Done 2026-11-16 (the thumbnail form loads; evidence below).
 - [x] EC Steal hold by rarity: Común 0.5 s, Rara 0.9 s, Épica 1.3 s, Legendaria 1.8 s. Done 2026-11-15 (evidence below).
@@ -150,6 +150,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | CT-D3 | CT2: the kit's cake is one mesh across all tiers, so the tiers' look cannot turn. What turns: an invisible collision disc on each of the three lower tiers (anchored, with `AssemblyAngularVelocity`, which the physics uses to carry whoever stands on it) and a ring of 16 cream dollops on each rim that every client turns at the same rate from the server clock (`WildboundCandyTowerClient`). One turn in 90 s (about 1.8 studs/s at the widest rim), alternating sense. | Proper carrying with no moving physics parts and no jitter; slow and readable. |
 | CT-D4 | The top tier does not turn: it is the summit for the best egg (CT3), Frutillón (CT4) and La Duquesa Burbuja, whose seat at (612, 46, -3) stays where it is. | The parent session's scenery stays put; Frutillón's rolls stay readable on still ground. |
 | CT-D5 | The stair is static while the ledges turn, so a player standing on a ledge is carried slowly into the next flight's steps (a gentle bump). Accepted as part of the tower's feel. | No pinning at 1.8 studs/s; they can walk or jump. |
+| CT3-D1 | The summit holds a new nest T1, rarity Legendaria but not event-only, so the island system gives it what the Legendaria row already gives (a Flanfuria egg, reward tier Heart, the 1.8 s steal hold) and refills it on the 300 s wave like every other nest. No new `Huevo de la Gran Torta` species. | The doc allowed "the top Legendaria"; a new species would need art and economy numbers the user has not chosen. |
+| CT3-D2 | The nest is the kit's nest at 70 % (5.2 studs wide) at local (0, 5.8) on the summit (radius 8.7): clear of La Duquesa's 6-stud seat on the centre and across the summit from where the stair arrives (about 17 studs away). It is built by `syncTower` into the `Nests` folder, so `WildboundCandyNests` reads it like the others; it is not in `Layout.NESTS` (the floor nests). No guardian post binds it: CT4 Frutillón guards it. | The summit is small; the player must cross it past Frutillón. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -277,3 +279,16 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - The rings: the first client script used RenderStepped, which never fired in the Studio Play client (0 frames in 2 s), so the rings stood still; changed to Heartbeat, the three rings turned at -0.0698, +0.0698, -0.0698 rad/s in the client's angle measure, the same sense and rate as the carried player.
   - No script errors from these scripts in the output.
 - Not checked: how the turning reads to a person (motion comfort), a person climbing by hand, two players, a phone.
+
+### CT3 (2026-11-16)
+
+- Change: `tools/WildboundCandyLayout.luau` (`Layout.TOWER.summit`); `tools/WildboundCandyBuilder.luau` (`syncTower` lays `Nests.Nest_T1` on the summit, optional `kit` and `library` arguments). No server or island code changed: the island system already reads every live marker in the `Nests` folder and refills on the wave.
+- Suites: `WildboundCandyTower_Test` gains two cases (the summit spec: Legendaria, not event-only, on the still top tier, clear of La Duquesa, across from the stair's arrival; the built marker, read by `WildboundCandyNests.read` and turned into island `CandyT1`, Legendaria, Heart, one egg, no guardian post). Its spec gains `mod:WildboundCandyNests` and `inst:ServerStorage.WildboundAssets.CandyKit` (read only).
+- Fingerprint rule: before writing, Studio equalled the CT1/CT2 versions (CandyLayout 7913/3889673665, CandyBuilder 22730/361553883, Tower_Test 7804/2999829394). Exact replacements. After: Studio == repo, CandyLayout 8223/2050365548, CandyBuilder 24287/3853704070, Tower_Test 10220/2797851613.
+- RED, run `026431c5`: Tower 6/2 ("Layout.TOWER.summit", "Nest_T1 in the Nests folder"). GREEN, runs `b8275eaf` + `feb96876`: Tower 8/0, CandyLayout 14/0, CandyNests 12/0, CandyTrapCake 8/0.
+- Solo Play (PlayLock `CT3`, cleared after; Play stopped; memory saves):
+  - At start `Nest_T1` stood on the summit at (612, 41.7, 2.8), Enabled; the island system had egg `Egg:30` of island `CandyT1` in it.
+  - `HeistProbe` "steal" on `CandyT1`: stolen, the player stood on the summit at y 44.0, carrying a Legendaria egg, walk speed 11.
+  - The wave: at 301 s of game time `Wave` went 1 -> 2 and `CandyT1` had a new egg `Egg:53` in the nest (the candy egg art: flan body, gold glaze, at y 43.4 on the bowl) while the first one was still carried.
+  - No script errors from these scripts in the output.
+- Not checked: a person holding the prompt for 1.8 s on the summit, carrying the egg down the turning tiers, Don Glaseon's behaviour toward a summit carrier (his existing territory rules apply; not observed), two players, a phone.

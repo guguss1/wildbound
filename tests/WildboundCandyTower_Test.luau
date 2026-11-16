@@ -1,9 +1,11 @@
 -- Invoke with require(freshTestClone)(require(freshCandyLayoutClone), require(freshCandyBuilderClone),
---   require(freshCandyKitClone), { nests = <WildboundCandyNests Source>, client = <WildboundCandyTowerClient Source> }).
--- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT2): the Gran Torta as a tower. CT1 a spiral stair round the
--- tiers; CT2 three lower tiers that turn slowly, alternating, carrying whoever stands on them; the top stays still.
--- Builds only into detached models (never parented to a service). Changes nothing.
-return function(Layout, Builder, Kit, sources)
+--   require(freshCandyKitClone), { nests = <WildboundCandyNests Source>, client = <WildboundCandyTowerClient Source> },
+--   require(freshCandyNestsClone), ServerStorage.WildboundAssets.CandyKit (read only)).
+-- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT3): the Gran Torta as a tower. CT1 a spiral stair round the
+-- tiers; CT2 three lower tiers that turn slowly, alternating, carrying whoever stands on them; the top stays still;
+-- CT3 the best egg of the biome in a nest on the summit. Builds only into detached models (never parented to a
+-- service). Changes nothing.
+return function(Layout, Builder, Kit, sources, Nests, library)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -145,6 +147,45 @@ return function(Layout, Builder, Kit, sources)
 		has(client, "ring.rate * t", "rate x time"); has(client, "workspace:GetServerTimeNow()", "the server's clock")
 		assert(not string.find(client, "Turntable_", 1, true) or string.find(client, "never moved here", 1, true), "the discs stay")
 		has(sources.nests, "pcall(Builder.syncTower, root, Layout)", "applyFlags adds the tower before the nests are read")
+	end)
+
+	-- CT3: the best egg of the biome on the summit.
+	case("CT3: the summit nest: a Legendaria (not event-only) on the still top tier, clear of La Duquesa's seat", function()
+		local S = T.summit
+		assert(S, "Layout.TOWER.summit")
+		equal(S.id, "T1"); equal(S.rarity, "Legendaria")
+		local top = T.tiers[#T.tiers]
+		equal(T.spinDirections[#T.tiers], 0, "the summit never turns")
+		local half = 7.4 * S.scale / 2
+		local r = Layout.flat(S.x, S.z, Layout.TORTA.x, Layout.TORTA.z)
+		assert(r + half <= top.radius - 0.2, "the bowl stays on the summit: " .. r + half)
+		assert(r - half >= 3, "clear of La Duquesa, who sits on the centre (3 studs around it): " .. r - half)
+		local arrival = Layout.stairSteps()
+		arrival = arrival[#arrival]
+		assert(Layout.flat(S.x, S.z, arrival.x, arrival.z) >= 12, "across the summit from where the stair arrives")
+		for _, nest in ipairs(Layout.NESTS) do assert(nest.id ~= S.id, "a new id") end
+	end)
+
+	case("CT3: syncTower lays the summit nest as a live marker; the island system reads it as a Heart Legendaria", function()
+		local root = fakeBiome()
+		Builder.syncTower(root, Layout, Kit, library)
+		local nest = root.Nests:FindFirstChild("Nest_T1")
+		assert(nest and nest:IsA("Model"), "Nest_T1 in the Nests folder")
+		equal(nest:GetAttribute("NestId"), "T1"); equal(nest:GetAttribute("Rarity"), "Legendaria")
+		equal(nest:GetAttribute("EventOnly"), false, "not event-only"); equal(nest:GetAttribute("Enabled"), Layout.NESTS_ENABLED == true)
+		equal(nest:GetAttribute("Summit"), true)
+		assert(nest.PrimaryPart and nest.PrimaryPart.Name == "Collision_Bowl", "its bowl")
+		local markers = Nests.read(root)
+		equal(#markers, 1, "one marker")
+		local m = markers[1]
+		near(m.x, Layout.CENTRE.x + T.summit.x, "x", 0.05); near(m.z, Layout.CENTRE.z + T.summit.z, "z", 0.05)
+		local summitTop = Layout.FLOOR_TOP + T.tiers[#T.tiers].top
+		assert(m.top > summitTop and m.top < summitTop + 2.5, "the bowl's top stands on the summit: " .. m.top)
+		local island = Nests.islands(markers, {})[1]
+		assert(island, "an island entry")
+		equal(island.id, "CandyT1"); equal(island.rarity, "Legendaria"); equal(island.rewardTier, "Heart")
+		equal(island.eggs, 1); equal(island.guard, nil, "no guardian post up there")
+		root:Destroy()
 	end)
 
 	return result

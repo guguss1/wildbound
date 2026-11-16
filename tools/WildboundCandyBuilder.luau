@@ -76,8 +76,10 @@ end
 -- step's top. CT2: for each turning tier, an invisible collision disc on its top (Turntable_<k>, Role floor) whose
 -- AssemblyAngularVelocity carries whoever stands on it (anchored, it never moves; the physics treats it as a slow
 -- turntable), and a ring of cream dollops on its rim (Spin_<k>, decor) that WildboundCandyTowerClient turns on each
--- client at the same rate (attributes SpinRate, CentreX, CentreZ). Needs the GranTorta prop. Returns the parts added.
-function Builder.syncTower(root, layout)
+-- client at the same rate (attributes SpinRate, CentreX, CentreZ). CT3: the summit nest (Layout.TOWER.summit), the kit's
+-- Nest prefab on the top tier, added to the Nests folder as a live marker (NestId, Rarity, EventOnly false, Enabled from
+-- NESTS_ENABLED, Summit) for WildboundCandyNests to read like any other. Needs the GranTorta prop. Returns the parts added.
+function Builder.syncTower(root, layout, kit, library)
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
 	assert(typeof(root) == "Instance" and root:FindFirstChild("GranTorta"), "no Gran Torta")
 	if root:FindFirstChild("Tower") then return 0 end
@@ -134,6 +136,34 @@ function Builder.syncTower(root, layout)
 			end
 			spin.Parent = tower
 		end
+	end
+	local S = T.summit
+	local nests = root:FindFirstChild("Nests")
+	if S and nests and not nests:FindFirstChild("Nest_" .. S.id) then
+		local Kit = kit or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyKit"))
+		local prefabs = library or game:GetService("ServerStorage"):WaitForChild("WildboundAssets"):WaitForChild(Kit.LIBRARY_NAME)
+		local summitTop = top + T.tiers[#T.tiers].top
+		local nest = Kit.place(prefabs, "Nest", CFrame.new(L.CENTRE.x + S.x, summitTop, L.CENTRE.z + S.z), S.scale)
+		nest.Name = "Nest_" .. S.id
+		for _, d in ipairs(nest:GetChildren()) do
+			if d:IsA("MeshPart") then
+				d:SetAttribute("Role", "decor")
+			elseif d:IsA("Part") then
+				d:SetAttribute("Role", "solid")
+			end
+			if d:IsA("BasePart") then created += 1 end
+		end
+		nest.PrimaryPart = nest:FindFirstChild("Collision_Bowl")
+		local ring = nest:FindFirstChild("RarityRing")
+		if ring then ring.Color = RARITY_COLOR[S.rarity] or palette.orange end
+		nest:SetAttribute("NestId", S.id)
+		nest:SetAttribute("Rarity", S.rarity)
+		nest:SetAttribute("EventOnly", false)
+		nest:SetAttribute("Candidate", true)
+		nest:SetAttribute("Summit", true)
+		nest:SetAttribute("Enabled", L.NESTS_ENABLED == true)
+		CollectionService:AddTag(nest, "WildboundCandyNestCandidate")
+		nest.Parent = nests
 	end
 	tower:SetAttribute("GeneratedBy", "ServerStorage.WildboundCandyBuilder.syncTower")
 	tower.Parent = root
