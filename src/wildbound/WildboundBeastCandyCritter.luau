@@ -44,6 +44,8 @@
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
+-- OF3 (owner feedback 3): the sprint, the lead, flanking, side-steps, the dodge pause and the call to allies
+local Smarts = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundCandySmarts"))
 local Critter = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -111,9 +113,10 @@ local function walkTo(e, world, T, x, z, speed, dt)
 end
 
 -- Where a target circle goes: on the target, or RangeStuds away from the creature in its direction; never past the
--- leash for a leap (the creature lands there).
-local function aimPoint(e, target, T, A)
+-- leash for a leap (the creature lands there). OF3: a leap or a lob aims where the target will be (Smarts.lead).
+local function aimPoint(e, target, T, A, now)
 	local x, z = target.x, target.z
+	if now then x, z = Smarts.lead(e, target, now, Smarts.profile(e.beast).aimLead) end
 	local distance = flat(e.pos.x, e.pos.z, x, z)
 	if distance > A.RangeStuds then
 		local ux, uz = unit(x - e.pos.x, z - e.pos.z)
@@ -132,7 +135,7 @@ local function laneLength(e, T, A, dx, dz)
 	return math.clamp(reach, 0, A.LengthStuds)
 end
 
-local function shapeFor(e, target, world, T, A)
+local function shapeFor(e, target, world, T, A, now)
 	if A.kind == "dash" then
 		local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
 		if not dx then dx, dz = e.dx, e.dz end
@@ -142,7 +145,7 @@ local function shapeFor(e, target, world, T, A)
 	if A.kind == "burst" then
 		return { kind = "circle", x = e.pos.x, y = e.pos.y - hover(e, T), z = e.pos.z, r = A.RadiusStuds }
 	end
-	local x, z = aimPoint(e, target, T, A)
+	local x, z = aimPoint(e, target, T, A, now)
 	return { kind = "circle", x = x, y = Attack.groundAt(world, x, z, target.y - 3), z = z, r = A.RadiusStuds }
 end
 
@@ -263,7 +266,7 @@ local function goHome(events, e, world, now, reason)
 end
 
 local function openAttack(events, e, now, target, world, C, T, A)
-	local shape = shapeFor(e, target, world, T, A)
+	local shape = shapeFor(e, target, world, T, A, now)
 	if shape.kind == "lane" and shape.length < 2 then return false end -- at the end of its leash: no room to roll
 	local release = now + Critter.tellSeconds(A)
 	local lockAt = A.kind == "burst" and now or now + A.LockSeconds
@@ -371,7 +374,10 @@ function Critter.step(events, e, now, target, world, dt)
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Patrol", e.phaseAt) end
 	if e.phase == "Patrol" or e.phase == "Calm" then
-		if Critter.sees(e, target, T) then
+		-- OF3: it also notices a target near its post (Smarts.guards) or when a nearby ally calls; one that saw it calls
+		local saw = Critter.sees(e, target, T) or Smarts.guards(e, target)
+		if saw or Smarts.called(e, world, now) then
+			if saw then Smarts.alarm(e, world, now) end
 			e.waypoint, e.waitUntil, e.patrolSince = nil, nil, nil
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
@@ -397,6 +403,7 @@ function Critter.step(events, e, now, target, world, dt)
 		end
 		return
 	end
+	Smarts.track(e, world, now) -- OF3: hunting this player (flanking)
 	-- A2 Gift: it stands with the order for HandSeconds, hands it over and walks home
 	if e.phase == "Deliver" then
 		local G = X.Gift
@@ -443,6 +450,11 @@ function Critter.step(events, e, now, target, world, dt)
 			e.following = false
 			e.readyAt = e.lastStrikeAt + A.CooldownSeconds
 		end
+		-- OF3: the target just dodged: it stands, faces it and re-aims before anything else
+		if Smarts.dodged(e, world, now) then
+			Attack.face(e, target)
+			return
+		end
 		sideAttacks(events, e, world, now, target, T)
 		if distance <= A.RangeStuds and now >= e.readyAt then
 			if openAttack(events, e, now, target, world, C, T, A) then
@@ -453,11 +465,17 @@ function Critter.step(events, e, now, target, world, dt)
 		-- OF2: a thrower with StandOffStuds stops that far away and throws from there
 		local stand = T.StandOffStuds or (A.kind == "leap" and 3 or math.min(A.RangeStuds * 0.6, 4))
 		if distance > stand then
-			local gx, gz = target.x, target.z
-			local ax, az = unit(e.pos.x - target.x, e.pos.z - target.z)
-			if T.StandOffStuds and ax then gx, gz = target.x + ax * stand, target.z + az * stand end -- OF2: stop at the stand-off
+			-- OF3: run for the lead point (or a flank point when hunting with others), sprinting at first, round obstacles
+			local gx, gz = Smarts.goal(e, world, now, target)
+			local ax, az = unit(e.pos.x - gx, e.pos.z - gz)
+			if T.StandOffStuds and ax then gx, gz = gx + ax * stand, gz + az * stand end -- OF2: stop at the stand-off
 			local x, z = leashed(e, T, gx, gz)
-			walkTo(e, world, T, x, z, T.ChaseSpeedStudsPerSecond, dt)
+			local dx, dz = Smarts.direction(e, world, x, z)
+			if dx then
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, flat(e.pos.x, e.pos.z, x, z))
+				settle(e, world, T, e.pos.x + dx * step, e.pos.z + dz * step)
+				e.dx, e.dz = dx, dz
+			end
 			local lx, lz = leashed(e, T, e.pos.x, e.pos.z)
 			if lx ~= e.pos.x or lz ~= e.pos.z then settle(e, world, T, lx, lz) end
 			if X.Trail and X.Trail.Phase == "Chase" then trail(events, e, now, T, X.Trail) end -- A2
@@ -469,7 +487,7 @@ function Critter.step(events, e, now, target, world, dt)
 	if e.phase == "Telegraph" and e.attack then
 		local attack = e.attack
 		if now < e.lockAt then
-			Attack.aim(events, e, attack, shapeFor(e, target, world, T, A), now)
+			Attack.aim(events, e, attack, shapeFor(e, target, world, T, A, now), now)
 			Attack.face(e, target)
 		else
 			Attack.lock(events, e, attack, nil, e.lockAt) -- does nothing once locked

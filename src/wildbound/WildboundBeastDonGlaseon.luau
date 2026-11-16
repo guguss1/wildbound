@@ -38,6 +38,8 @@ local Latigo = require(DataModel:GetService("ServerStorage"):WaitForChild("Wildb
 local Vacuum = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonVacuum"))
 local Wall = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonWall"))
 local Anger = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAnger"))
+-- OF3 (owner feedback 3): a sprint, predictive pursuit (his lash faces where the runner will be), side-steps, the dodge
+local Smarts = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundCandySmarts"))
 local Boss = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -136,7 +138,8 @@ local function walk(e, point, speed, dt, world, T, stop)
 	turn(e, point, T, dt)
 	local step = math.min(speed * (dt or 0), math.max(0, distance - (stop or 0)))
 	if step <= 0 then return distance end
-	local ux, uz = unit(point.x - e.pos.x, point.z - e.pos.z)
+	local ux, uz = Smarts.direction(e, world, point.x, point.z) -- OF3: round what blocks his way
+	if not ux then return distance end
 	local nx, nz = e.pos.x + ux * step, e.pos.z + uz * step
 	local c = territory(e, world)
 	local out = flat(c.x, c.z, nx, nz)
@@ -343,7 +346,10 @@ function Boss.step(events, e, now, target, world, dt)
 			and now - e.chaseAt + Vacuum.totalSeconds() <= T.ChaseSeconds then
 			if openVacuum(events, e, now) then return end
 		end
-		walk(e, target, T.ChaseSpeedStudsPerSecond, dt, world, T, T.StandOffStuds)
+		-- OF3: a dodge stops him a moment; else he runs (a sprint at first) for the lead or flank point
+		if Smarts.dodged(e, world, now) then turn(e, target, T, dt) return end
+		local gx, gz = Smarts.goal(e, world, now, target)
+		walk(e, { x = gx, z = gz }, Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond), dt, world, T, T.StandOffStuds)
 		return
 	end
 	if (e.phase == "Inhale" or e.phase == "Vacuum") and e.vacuum then

@@ -318,6 +318,9 @@ Config.BEASTS = table.freeze({
 	-- OF2 (odd/tasks/wildbound-caramelo-playfix.md, owner feedback 2): the candy creatures hurt and chase faster than a
 	-- walking player (16) yet slower than a running one (16 x 1.45 = 23.2). Gomibu: damage 0 -> 14, chase 12 -> 19; its
 	-- big jump (JumpRangeStuds 10, the longest leap of the guardians) is unchanged.
+	-- OF3 (owner feedback 3): every candy chase raised again to 19-22 (Gomibu 19 -> 21, Flanfuria 17 -> 19, Tortidragon
+	-- 20 -> 22, Mochimiau 20 -> 21, Canelin 18 -> 20, Flanin 17 -> 19, Mielita 19 -> 22, Gato 17.5 -> 19.5; Don Glaseon
+	-- keeps 21), plus a 24-27 sprint for 1.5-2.5 s after noticing (ServerScriptService.WildboundCandySmarts.PROFILES).
 	Gomibu = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
@@ -332,7 +335,7 @@ Config.BEASTS = table.freeze({
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 24, AbandonStuds = 36, LeashStuds = 30,
 			PatrolSpeedStudsPerSecond = 4, PatrolRadiusStuds = 8, PatrolPauseSeconds = 1.5,
-			ChaseSpeedStudsPerSecond = 19, AlertSeconds = 0.7,
+			ChaseSpeedStudsPerSecond = 21, AlertSeconds = 0.7,
 			-- CF (user, 2026-11-15): a faster cast (was tell 0.9, lock 0.55, recover 0.7, cooldown 5.5).
 			JumpRangeStuds = 10, TelegraphSeconds = 0.8, LockSeconds = 0.45, JumpSeconds = 0.45, RadiusStuds = 4.5,
 			RecoverSeconds = 0.5, AttackCooldownSeconds = 3.5,
@@ -355,7 +358,7 @@ Config.BEASTS = table.freeze({
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 20, AbandonStuds = 30, LeashStuds = 16,
-			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 17, AlertSeconds = 0.8,
+			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 19, AlertSeconds = 0.8,
 			CastRangeStuds = 7, StandOffStuds = 4, JumpClearStuds = 4.5,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
@@ -376,7 +379,7 @@ Config.BEASTS = table.freeze({
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 22, AbandonStuds = 30, LeashStuds = 35,
-			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 20, TurnDegreesPerSecond = 240, AlertSeconds = 0.75,
+			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 22, TurnDegreesPerSecond = 240, AlertSeconds = 0.75,
 			CastRangeStuds = 10, StandOffStuds = 6,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
@@ -399,7 +402,7 @@ Config.BEASTS = table.freeze({
 		-- walks home and ends quietly.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 50, LeashStuds = 34,
-			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 20,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 21,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "leap", RangeStuds = 7, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
 				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 3.5, PushStuds = 8, PushSeconds = 0.35,
@@ -420,7 +423,7 @@ Config.BEASTS = table.freeze({
 		-- OF2: the owner likes its roll as it is: the Attack and its trail are unchanged; only damage 0 -> 12, chase 14 -> 18.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 52, LeashStuds = 36,
-			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 18,
+			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 20,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
@@ -440,7 +443,7 @@ Config.BEASTS = table.freeze({
 		-- OF2: the slowest and heaviest: damage 0 -> 16, chase 12 -> 17, a longer wind-up (tell 1 -> 1.2).
 		tuning = table.freeze({
 			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 48, LeashStuds = 32,
-			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 17,
+			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 19,
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1.2, LockSeconds = 0, TravelSeconds = 0.25,
 				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7, PushStuds = 6, PushSeconds = 0.3,
@@ -463,7 +466,7 @@ Config.BEASTS = table.freeze({
 		-- OF2: flies fast and throws from range: damage 0 -> 10, chase 14 -> 19, range 14 -> 18, cooldown 9 -> 5, stand-off 10.
 		tuning = table.freeze({
 			WakeRadiusStuds = 48, PerceptionStuds = 42, AbandonStuds = 55, LeashStuds = 38, HoverStuds = 2.5,
-			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 19,
+			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 22,
 			StandOffStuds = 10,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 18, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
@@ -489,7 +492,7 @@ Config.BEASTS = table.freeze({
 		-- cooldown 8 -> 4.5, stand-off 8.
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 34, AbandonStuds = 45, LeashStuds = 30,
-			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 17.5,
+			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 19.5,
 			StandOffStuds = 8,
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 15, TelegraphSeconds = 1, LockSeconds = 0.5, TravelSeconds = 0.6,

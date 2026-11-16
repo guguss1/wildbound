@@ -110,7 +110,7 @@ local function play(events)
 			drawLine(e.fromAngle, e.toAngle)
 		elseif e.kind == "Recover" or e.kind == "Sleep" then
 			clearLine()
-		elseif e.kind == "Hit" or e.kind == "SeedHit" then
+		elseif e.kind == "Hit" or e.kind == "SeedHit" or e.kind == "PatrolHit" or e.kind == "Slip" then
 			local player = Players:GetPlayerByUserId(e.id)
 			if player then push(player, e.dx, e.dz, e.studs, e.seconds) end
 		elseif e.kind == "Seed" then
@@ -119,6 +119,30 @@ local function play(events)
 			seeds[e.seed] = seed
 		elseif e.kind == "SeedGone" then
 			if seeds[e.seed] then seeds[e.seed]:Destroy() seeds[e.seed] = nil end
+		end
+	end
+end
+
+-- OF3 (owner feedback 3): the stair's sugar patrols (white drops, pink while they glow before setting off) and its glaze
+-- steps (glossy pale patches), all anchored, never colliding, never queried.
+local patrolParts = {}
+for _, def in ipairs(Frut.patrols(path)) do
+	local drop = part(folder, "StairPatrol_" .. def.id, Enum.PartType.Ball, Vector3.new(2.2, 1.6, 2.2), Color3.fromRGB(250, 246, 240))
+	drop.Material = Enum.Material.Glass
+	patrolParts[def.id] = drop
+end
+for _, i in ipairs(Frut.glazeSteps(path)) do
+	local s = path[i]
+	local patch = part(folder, "StairGlaze_" .. i, Enum.PartType.Cylinder, Vector3.new(0.08, 2.8, 2.8), Color3.fromRGB(214, 240, 255))
+	patch.Material, patch.Transparency, patch.CastShadow = Enum.Material.Glass, 0.15, false
+	patch.CFrame = CFrame.new(s.x, s.y + 0.05, s.z) * CFrame.Angles(0, 0, math.rad(90))
+end
+local function placePatrols(now)
+	for _, def in ipairs(state.patrolDefs or Frut.patrols(path)) do
+		local at, drop = Frut.patrolAt(def, now, path), patrolParts[def.id]
+		if drop then
+			drop.Position = Vector3.new(at.x, at.y, at.z)
+			drop.Color = at.tell and Color3.fromRGB(255, 120, 190) or Color3.fromRGB(250, 246, 240)
 		end
 	end
 end
@@ -140,7 +164,10 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 	end
 	play(Frut.step(state, now, players))
-	play(Frut.seedStep(state, now, players, path))
+	play(Frut.seedStep(state, now, players, path, summit))
+	play(Frut.patrolStep(state, now, players, path, summit)) -- OF3
+	play(Frut.glazeStep(state, now, players, path, summit)) -- OF3
+	placePatrols(now)
 	local turned = (state.angle - lastAngle + math.pi) % (2 * math.pi) - math.pi
 	if state.phase ~= "Asleep" then spin += math.abs(turned) * Frut.RING_STUDS / Frut.RADIUS_STUDS end
 	lastAngle = state.angle

@@ -17,6 +17,8 @@ local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
 local Abanico = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyTortidragonAttack"))
+-- OF3 (owner feedback 3): sprint, predictive aim, flanking, side-steps, the dodge pause, nest guard and the call
+local Smarts = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundCandySmarts"))
 local Tortidragon = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -122,7 +124,9 @@ function Tortidragon.step(events, e, now, target, world, dt)
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
-		if Tortidragon.sees(e, target, T) then
+		local saw = Tortidragon.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
+		if saw or Smarts.called(e, world, now) then
+			if saw then Smarts.alarm(e, world, now) end
 			turn(e, target, T, dt)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
 		end
@@ -143,12 +147,18 @@ function Tortidragon.step(events, e, now, target, world, dt)
 		if distance <= T.CastRangeStuds and now >= e.readyAt and Abanico.canCast(e.pos, e.dx, e.dz, target) then
 			if openFan(events, e, now, world, C) then return end
 		end
-		turn(e, target, T, dt)
+		if Smarts.dodged(e, world, now) then turn(e, target, T, dt) return end -- OF3: a dodge: it stops and re-aims
+		-- OF3: it turns toward the lead (or flank) point, sprints at first and side-steps what blocks its way
+		local gx, gz = Smarts.goal(e, world, now, target)
+		turn(e, { x = gx, z = gz }, T, dt)
 		if distance > T.StandOffStuds then
-			local step = math.min(T.ChaseSpeedStudsPerSecond * (dt or 0), distance - T.StandOffStuds)
-			e.pos.x += e.dx * step
-			e.pos.z += e.dz * step
-			e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+			local mx, mz = Smarts.steer(e, world, e.dx, e.dz)
+			if mx then
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * (dt or 0), distance - T.StandOffStuds)
+				e.pos.x += mx * step
+				e.pos.z += mz * step
+				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
+			end
 		end
 		leash(e, T)
 		return
@@ -157,8 +167,9 @@ function Tortidragon.step(events, e, now, target, world, dt)
 		local cast = e.cast
 		if not e.shots then
 			if now < Abanico.lockAt(cast) then
-				-- the fan follows the target until the lock
-				turn(e, target, T, dt)
+				-- the fan follows the target until the lock (OF3: where it will be)
+				local lx, lz = Smarts.lead(e, target, now, Smarts.profile(e.beast).aimLead)
+				turn(e, { x = lx, z = lz }, T, dt)
 				Attack.aim(events, e, e.fan, Abanico.fan(origin(e), e.dx, e.dz), now)
 				return
 			end

@@ -139,7 +139,9 @@ RunService.Heartbeat:Connect(function(dt)
 		local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
-			table.insert(players, { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z })
+			local v = root.AssemblyLinearVelocity -- OF3: she aims ahead of a runner
+			table.insert(players, { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z,
+				vx = v.X, vz = v.Z })
 		end
 	end
 	play(Duq.step(state, now, players, summit), now)

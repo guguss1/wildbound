@@ -18,6 +18,8 @@ local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
 local Onda = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyFlanfuriaAttack"))
+-- OF3 (owner feedback 3): sprint, predictive pursuit, flanking, side-steps, the dodge pause, nest guard and the call
+local Smarts = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundCandySmarts"))
 local Flanfuria = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -101,7 +103,9 @@ function Flanfuria.step(events, e, now, target, world, dt)
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
-		if Flanfuria.sees(e, target, T) then
+		local saw = Flanfuria.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
+		if saw or Smarts.called(e, world, now) then
+			if saw then Smarts.alarm(e, world, now) end
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
 		end
@@ -118,14 +122,17 @@ function Flanfuria.step(events, e, now, target, world, dt)
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
 		end
+		if Smarts.dodged(e, world, now) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
 		if distance <= T.CastRangeStuds and now >= e.readyAt then
 			Attack.face(e, target)
 			if openWave(events, e, now, world, C) then return end
 		end
 		if distance > T.StandOffStuds then
-			local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
+			-- OF3: for the lead (or flank) point, sprinting at first, round obstacles
+			local gx, gz = Smarts.goal(e, world, now, target)
+			local dx, dz = Smarts.direction(e, world, gx, gz)
 			if dx then
-				local step = math.min(T.ChaseSpeedStudsPerSecond * dt, distance - T.StandOffStuds)
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, distance - T.StandOffStuds)
 				e.pos.x += dx * step
 				e.pos.z += dz * step
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)

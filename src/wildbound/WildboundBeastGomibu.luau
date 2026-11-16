@@ -17,6 +17,8 @@
 local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
+-- OF3 (owner feedback 3): sprint, predictive aim, flanking, side-steps, the dodge pause, nest guard and the call
+local Smarts = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundCandySmarts"))
 local Gomibu = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -36,8 +38,8 @@ function Gomibu.tellSeconds(T)
 end
 
 -- Where the circle goes for a target: on it, or JumpRange away from Gomibu in its direction when it is further.
-local function aimPoint(e, target, T)
-	local x, z = target.x, target.z
+local function aimPoint(e, target, T, now)
+	local x, z = Smarts.lead(e, target, now, Smarts.profile(e.beast).aimLead) -- OF3: where it will be
 	local distance = flat(e.pos.x, e.pos.z, x, z)
 	if distance > T.JumpRangeStuds then
 		local ux, uz = unit(x - e.pos.x, z - e.pos.z)
@@ -108,7 +110,7 @@ local function patrol(e, now, world, T, dt)
 end
 
 local function openJump(events, e, now, target, world, C, T)
-	local x, z = aimPoint(e, target, T)
+	local x, z = aimPoint(e, target, T, now)
 	local y = Attack.groundAt(world, x, z, target.y - 3)
 	local takeOff = now + Gomibu.tellSeconds(T)
 	local attack = Attack.open(events, e, world, { key = "jump", startAt = now, strikeAt = takeOff + T.JumpSeconds, dodgeable = false,
@@ -164,7 +166,9 @@ function Gomibu.step(events, e, now, target, world, dt)
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
-		if Gomibu.sees(e, target, T) then
+		local saw = Gomibu.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
+		if saw or Smarts.called(e, world, now) then
+			if saw then Smarts.alarm(e, world, now) end
 			e.waypoint, e.waitUntil = nil, nil
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
@@ -195,13 +199,16 @@ function Gomibu.step(events, e, now, target, world, dt)
 		else
 			e.pinnedSince = nil
 		end
+		if Smarts.dodged(e, world, now) then Attack.face(e, target) return end -- OF3: a dodge: it stops and re-aims
 		if distance <= T.JumpRangeStuds and now >= e.readyAt then
 			if openJump(events, e, now, target, world, C, T) then return end
 		end
 		if distance > 3 then
-			local dx, dz = unit(target.x - e.pos.x, target.z - e.pos.z)
+			-- OF3: for the lead (or flank) point, sprinting at first, round obstacles
+			local gx, gz = Smarts.goal(e, world, now, target)
+			local dx, dz = Smarts.direction(e, world, gx, gz)
 			if dx then
-				local step = math.min(T.ChaseSpeedStudsPerSecond * dt, distance)
+				local step = math.min(Smarts.speed(e, now, T.ChaseSpeedStudsPerSecond) * dt, flat(e.pos.x, e.pos.z, gx, gz))
 				e.pos.x += dx * step
 				e.pos.z += dz * step
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
@@ -215,7 +222,7 @@ function Gomibu.step(events, e, now, target, world, dt)
 		local attack = e.jump
 		if now < e.lockAt then
 			-- the circle follows the target, never further than a jump from where Gomibu stands
-			local x, z = aimPoint(e, target, T)
+			local x, z = aimPoint(e, target, T, now)
 			Attack.aim(events, e, attack, { kind = "circle", x = x, y = attack.shape.y, z = z, r = T.RadiusStuds }, now)
 			Attack.face(e, target)
 		else
