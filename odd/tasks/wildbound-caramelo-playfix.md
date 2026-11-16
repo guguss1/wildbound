@@ -396,7 +396,8 @@ and every check in Play walks the character in like a player.
 2. Every patch lives 2 s and slows for 2 s (the sheets' "2 s" read as both); a target standing in one is slowed once per
    2.3 s at most, and never on top of a slow already running (the shared slot). Consequence seen in Play: a stronger
    hit slow can be pre-empted by a weaker patch slow landing first (Canelin's roll: the glaze -20 % came 0.1 s before
-   the roll's -30 %), and a puddle under a player its hit just slowed does not add anything.
+   the roll's -30 %), and a puddle under a player its hit just slowed does not add anything. (The pre-emption was fixed
+   after the review: A2-10.)
 3. Only the encounter's target is slowed by patches; other players only see them.
 4. Mochimiau's "Comportamiento social" (the sheet: several Mochimiau attack in sequence) is one more hop right after
    the recovery while the target stays within 9 studs, once per cooldown, as the step asked.
@@ -407,7 +408,7 @@ and every check in Play walks the character in like a player.
    `WildboundBeastsLocal` and the preview folder); it shows for 2.5 s.
 8. The swarm puffs land beside the target (not on it), so standing still is safe and a sidestep may not be.
 9. La Duquesa targets the first player found on the summit; her volley resolves even if that player leaves; she
-   throws 0.3 s after a player arrives (A2-8) and every 10 s after.
+   throws 0.3 s after a player arrives (A2-8) and every 10 s after (a short drop keeps that cadence: A2-12).
 10. Her slow and push are a copy of the beasts' rules inside her service (same attribute slot and caps), rather than a
     refactor of `WildboundBeasts.applySlow`, to keep the shared beast server untouched there.
 11. The fresh runner used for the A2 runs is the engine of `tools/studio-fresh-runner.luau` (the same loader, clone and
@@ -501,3 +502,88 @@ Mielita's trails (the brain's Afflict was seen; the shared slot was busy); two p
 and the helper, a second player on the summit); a phone; the helper Gato's look from far away (it is a static pose);
 a Gato call staggered against another strike (claimStrike) in Play. Sheets read: 01 (Princesa Chicle, for La Duquesa);
 the other sheets' mechanics were taken from the step's own summary of their "Otras habilidades".
+
+## A2 review fixes
+
+An independent review (walked Play, lock "review") found two defects. Both were real and both are fixed test-first.
+
+### Checklist
+
+- [x] A2-10 Canelin's own glaze pre-empted its roll's slow: the first glaze piece lies where the roll starts, next to
+  the player it rolls into, so the patch `Afflict` (0.8) took the one slow slot about 0.1 s before the roll's `Hit`
+  (0.7), and every roll hit landed as -20 % instead of -30 %. Fix: `stickyPatches` (WildboundBeastCandyCritter) never
+  slows while the creature's own attack is open (Telegraph or Release); the strike settles first. This covers every
+  critter with patches (Flanin's and Mielita's chase trails and Mochimiau's puddle too). Spec: "A2 Canelin: a target
+  on its lane gets the roll's -30 %, not its own glaze's -20 %, first".
+- [x] A2-11 La Duquesa's pops almost never reached a walking climber: Frutillon woke, told and rolled within about
+  0.8 s of arrival, while her first pop needs 0.3 + 0.6 + 1.2 = 2.1 s. Fix: Frutillon takes `WAKE_SECONDS = 2` to wake
+  up (new phase "Waking", no tell, no roll) before his first tell, so his first roll is at least 2.8 s after arrival.
+  If nobody is left when he has woken up he waits and sleeps again after `SLEEP_SECONDS` as before. CT4 specs updated
+  (Wake alone, then Telegraph at arrival + 2 s); new cross spec in WildboundCandyDuquesa_Test: a climber on
+  Frutillon's rest spot (his fastest bump) is hit by her first pop at least 0.3 s before his first roll starts.
+- [x] A2-12 Her cadence restarted on every climb (`state.nextAt = nil` as soon as nobody stood on the summit), so a
+  bumped player who climbed straight back got a volley 0.3 s later. Fix: `REARM_SECONDS = 5`; the 10 s cadence is kept
+  across a shorter absence and only 5 s with nobody up there starts it again. Spec: "A2 review: a short drop off the
+  summit keeps her 10 s cadence; a long absence starts it again".
+- [x] A2-13 Walked Play re-check of A2-10 and A2-11 (below). Commits f8003ed (specs) and 53d58d7 (fix).
+
+### Decisions taken for the user (A2 review)
+
+13. The patch fix gates the patch slow on the creature's open attack (the reviewer's first option) instead of tagging
+    patches by attack id: simpler, and it also stops a chase trail from pre-empting Flanin's burst or Mielita's lob.
+    A patch slow can still land right after the strike (it is refused by the shared slot while the hit's slow runs).
+14. For La Duquesa the fix is on Frutillon's side (a 2 s wake-up) rather than a faster first bubble: her ring keeps its
+    full 1.8 s tell (well over MIN_TELL), and Frutillon waking up slowly reads naturally. It makes the summit a little
+    friendlier for 2 s; Frutillon still bumps players off afterwards.
+15. A short drop keeps her cadence for 5 s (REARM_SECONDS); after that the next arrival is greeted at 0.3 s again.
+
+### Evidence
+
+Studio: place 122652861404212, instance db843df0-7649-423f-adb7-739088c9746a. Before the first write the six touched
+scripts matched the repo HEAD c501a4f (normalised length + Adler-32): WildboundBeastCandyCritter_Test 45711,
+WildboundCandyDuquesa_Test 7717, WildboundCandyFrutillon_Test 7624, WildboundBeastCandyCritter 23077,
+WildboundCandyDuquesa 4478, WildboundCandyFrutillon 8096. Writes by `multi_edit` exact replacements only.
+
+| Run | What | Result |
+|---|---|---|
+| 3c3172c8 | RED: CandyCritter, CandyDuquesa, CandyFrutillon | 38 passed, 5 failed (the 5 new or changed cases, for the expected reasons) |
+| 6eb01cb9 | GREEN: the same three suites | 43 passed, 0 failed |
+| 9938988a | GREEN: the same plus BeastEncounters_Test | 73 passed, 0 failed |
+
+Runner: the engine of `tools/studio-fresh-runner.luau` in a temporary ServerStorage StringValue
+(`WildboundA2ReviewRunnerEngine`, destroyed afterwards) with only these SPECS; `WildboundFreshRunnerLock` respected.
+
+Final fingerprints (Studio == repo):
+
+| Script | Bytes | Adler-32 |
+|---|---|---|
+| WildboundBeastCandyCritter | 23214 | c3706d8b |
+| WildboundCandyDuquesa | 4818 | 4ee1f5ec |
+| WildboundCandyFrutillon | 8618 | c186bae4 |
+| WildboundBeastCandyCritter_Test | 46690 | f2ced28d |
+| WildboundCandyDuquesa_Test | 10173 | 072ea86b |
+| WildboundCandyFrutillon_Test | 8537 | 1a4787f5 |
+
+Walked Play (lock "A2-review-fix", both locks nil before; Play stopped and the lock cleared after). The character
+walked with `character_navigation` only, from spawn (298, -3) east through the biome to Canelin, then up the Gran
+Torta's stair step by step to the summit; nothing was teleported. Samplers only read state: a server log every 0.1 s
+(walk speed, push slot, position), Frutillon's `BeastPhase` and new parts in `Workspace.WildboundCandyDuquesa`; a
+client log of `BeastEvent` (Tell, Phase, Patch, Hit, Afflict).
+
+- Canelin (beast:3), roll 1: Telegraph 7249.0, Release 7249.9, four glaze patches along the lane, `Hit` slow 0.7 at
+  7250.48, then the patch `Afflict` 0.8 at 7250.58 (after the hit, refused by the slot). Server: walk speed 16 -> 11.2
+  with the push at 7250.6, back to 16 at 7253.1 (2.5 s). Roll 2: the same (Hit 0.7 at 7258.01, Afflict at 7258.13,
+  16 -> 11.2 at 7258.1, back at 7260.6). Before the fix the same walk gave 12.8 on every roll hit.
+- La Duquesa and Frutillon: on the stair Don Glaseon (beast:4, 0.85) and Frutillon's seeds bumped the climber down
+  twice; the third climb reached the summit. Frutillon `Waking` at 7394.4 (arrival), her rings at 7394.9, bubbles
+  7395.5, Frutillon `Telegraph` only at 7396.4, her pops at 7396.7: walk speed 16 -> 11.2 and pushed about 4 studs
+  (608.8, -7.7 -> -3.7), back to 16 at 7398.8. Frutillon rolled at 7397.2, 7399.6, 7402.1 and 7404.4 without reaching
+  the player standing 3.3 studs from her seat. Volley 2 at 7404.9 (10.0 s later): pops at 7406.8, hit again (11.2).
+  Frutillon's roll at 7409.0 then bumped the player off the summit (CT4 still works); he slept at 7415.3.
+- Console: no errors from these scripts (only the known TexturePack, asset and DataStore noise).
+
+Not checked in Play: A2-12 (climbing back within 5 s after a bump: the walk back up the stair takes longer than 5 s,
+so in practice the spec is what covers it); the patch gate for Flanin, Mielita and Mochimiau in Play (covered by the
+same one-line gate and the specs); two players; a phone. Observation, not changed: a player standing within about
+3.3 studs of La Duquesa's seat is out of Frutillon's reach (ring 6.3, hit 3), so standing next to her is a safe spot
+from his rolls (pre-existing CT4 geometry).
