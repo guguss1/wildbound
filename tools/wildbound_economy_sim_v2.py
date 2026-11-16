@@ -75,6 +75,8 @@ ROULETTE = "src/wildbound/WildboundRoulette.luau"
 ISLAND_LAYOUT = "src/wildbound/WildboundIslandLayout.luau"
 
 RARITIES = ("Comun", "Rara", "Epica", "Legendaria")
+# EggCarry's steal hold per egg rarity (EC: one hold per tier; was STEAL_HOLD / RARE_HOLD).
+HOLD_KEY = {"Comun": "STEAL_HOLD", "Rara": "RARA_HOLD", "Epica": "EPICA_HOLD", "Legendaria": "LEGENDARIA_HOLD"}
 BASE_WALK = 16.0
 CARRY_LEG_SHARE = 0.5  # ASSUMED: the loaded leg is half of the trip
 STALL_SECONDS = 300  # the spec's stall rule: more than 5 min with nothing affordable
@@ -246,7 +248,7 @@ MIRRORED = {
     },
     "beast_tick_seconds": {"value": 20, "source": BEAST_CONFIG, "note": "Beast Director roll interval"},
     "beast_per_roll_cap_10s": {"value": 0.20, "source": BEAST_CONFIG, "note": "MAX_CHANCE = perRoll(0.20)"},
-    "beast_global_cooldown": {"value": 15, "source": BEAST_CONFIG, "note": "seconds after an encounter"},
+    "beast_global_cooldown": {"value": 10, "source": BEAST_CONFIG, "note": "seconds after an encounter (PF7: was 15)"},
     "eggs_per_nest": {"value": 3, "source": ISLAND, "note": "caps eggs_per_trip_target"},
     "egg_share": {"value": 0.4, "source": SPAWN_CLOCK,
                   "note": "EGG_SHARE 0.4 and every bough spawn is an egg; the trip model still counts nest eggs only"},
@@ -392,7 +394,7 @@ def load_numbers(repo=REPO, source="live", balance="proposed"):
     phases = {"fixed": fixed.group(1)}
     carry_text = _read(repo, EGG_CARRY)
     holds = {key: _number(carry_text, EGG_CARRY, r"^\s*" + key + r" = ([0-9.]+)")
-             for key in ("STEAL_HOLD", "RARE_HOLD", "PICKUP_HOLD")}
+             for key in ("STEAL_HOLD", "RARA_HOLD", "EPICA_HOLD", "LEGENDARIA_HOLD", "PICKUP_HOLD")}
     mirrors = {name: _read_mirror(name, _read(repo, e["source"]), e["source"]) for name, e in MIRRORED.items()}
 
     try:
@@ -969,7 +971,7 @@ def simulate_session(numbers, profile, minutes, seed, roulette_policy="free", ro
             rarity = rng.choices(RARITIES, weights=profile.rarity_mix)[0]
             if rng.random() < profile.steal_success:
                 eggs.append(rarity)
-                hold += (holds["STEAL_HOLD"] if rarity in ("Comun", "Rara") else holds["RARE_HOLD"]) + holds["PICKUP_HOLD"]
+                hold += holds[HOLD_KEY[rarity]] + holds["PICKUP_HOLD"]
         creatures = [rng.choices(RARITIES, weights=profile.rarity_mix)[0] for _ in range(profile.creature_items_per_trip)]
         walk = walk_speed(state, numbers)
         duration = max(1, int(round(trip_walk_seconds(profile, walk, carry_speed(numbers, len(eggs), walk)) + hold)))
@@ -1771,7 +1773,8 @@ def simulate_live_session(live, profile, route, minutes, seed):
     trip_seconds = []
     candy = [dict(n, left=n["eggs"]) for n in live["candy_nests"]]
     islands = [dict(i, left=i["eggs"]) for i in live["forest_islands"]]
-    slots, queue = [], []  # slots: end times; queue: [rarity, species, esencia]
+    slots, queue = [], []  # slots: (end time, rarity, species); queue: [rarity, species, esencia]
+    hatch_log, lap_log = [], []  # (time, rarity, species) per hatch; (time, level before the lap) per lap (gold layer)
     max_level = int(live["training"]["MAX_LEVEL"])
 
     prize, _, _ = roulette_sim.draw(rng.random(), roulette_sim.new_state(), live["roulette"])  # the free first spin
@@ -1785,6 +1788,7 @@ def simulate_live_session(live, profile, route, minutes, seed):
         # BP1: a lap counts toward the next level (laps_for); only a level-up lap pays; at the top a lap pays nothing.
         for _ in range(int(seconds_available // live["lap_seconds"])):
             state["t"] += live["lap_seconds"]
+            lap_log.append((state["t"], state["level"]))
             if state["level"] >= max_level:
                 continue
             state["laps"] += 1
@@ -1798,14 +1802,16 @@ def simulate_live_session(live, profile, route, minutes, seed):
 
     def advance_incubator(to_t):
         slots.sort()
-        while slots and slots[0] <= to_t:
-            end = slots.pop(0)
+        while slots and slots[0][0] <= to_t:
+            end, rarity, species = slots.pop(0)
+            hatch_log.append((end, rarity, species))
             state["hatched"] += 1
             out["hatches"] += 1
             if out["first_hatch_s"] is None:
                 out["first_hatch_s"] = end
             if queue:
-                slots.append(end + live["hatch_s"][queue.pop(0)[0]])
+                nxt = queue.pop(0)
+                slots.append((end + live["hatch_s"][nxt[0]], nxt[0], nxt[1]))
             slots.sort()
 
     def collection():
@@ -1873,7 +1879,7 @@ def simulate_live_session(live, profile, route, minutes, seed):
         advance_incubator(t)
         for egg in eggs:
             if len(slots) < live["base_slots"]:
-                slots.append(t + live["hatch_s"][egg[0]])
+                slots.append((t + live["hatch_s"][egg[0]], egg[0], egg[1]))
             else:
                 queue.append(list(egg))
         if profile.sell_duplicates and queue:  # State:sellDuplicateEggs keeps one banked egg per species
@@ -1889,7 +1895,8 @@ def simulate_live_session(live, profile, route, minutes, seed):
     return dict(out, minutes=minutes, route=route, esencia_total=round(sum(split.values()), 6),
                 split={k: round(v, 6) for k, v in split.items()}, walk_level=state["level"],
                 carry_1=live_carry(live, state["level"], 1),
-                mean_trip_s=statistics.fmean(trip_seconds) if trip_seconds else None, collection=collection())
+                mean_trip_s=statistics.fmean(trip_seconds) if trip_seconds else None, collection=collection(),
+                hatch_log=hatch_log, lap_log=lap_log)
 
 
 def run_live(live, profiles, minutes_list, seed=7, runs=200, routes=LIVE_ROUTES):

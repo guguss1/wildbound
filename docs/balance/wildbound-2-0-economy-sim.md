@@ -220,6 +220,95 @@ What changed in the findings:
 - Finding 9 (base bonus timing) is weaker: slower walks lengthen intermediate forest trips from 40 s to 54 s, past the 45 s threshold.
 - Eggs lost per hour rise with the slower walk (intermediate forest 9 -> 28, advanced mixed 11 -> 23 at 60 min).
 
+## Gold (Oro) results (2026-11-16, owner item O7)
+
+First run of the economy model with gold (`odd/tasks/wildbound-gold.md`, owner feedback 3 values). The new tool `tools/wildbound_gold_sim.py` replays each live session (the same live model as above, against today's code) with the gold rules read from `src/wildbound/WildboundGold.luau`: farm gold 7/10/18/30 per minute, hatch/tame bonus 20, 2 gold per lap (+1 per 4 levels) under a 10 per minute cap, sale 25/60/150/400 +20% per bond level above 1. It buys farm places 5 (60) and 6 (150) and the treadmill levels (30 to 281) as soon as they are affordable, cheapest first. A model with ASSUMED player choices, not measured play. No game value was changed.
+
+Before this run the live model no longer loaded: `WildboundEggCarry` now has one steal hold per rarity (`RARA_HOLD`, `EPICA_HOLD`, `LEGENDARIA_HOLD` replaced `RARE_HOLD`) and `BeastConfig.GLOBAL_COOLDOWN` went from 15 to 10 (PF7). The tool reads both now. The Esencia tables above were not regenerated (the hand-written BP sections would be lost), so they predate later changes such as the 1-slot base incubator (BP4b). The gold tables below use today's code.
+
+### Results in short
+
+- **Farm place 5**: bought at 3.4 to 8.4 min of play. **Farm place 6**: 10.6 to 24.4 min (a beginner does not reach it in 10 min).
+- **Treadmill level 1 for gold** (30): 3.4 to 7.5 min. The gold doc's pacing said about 1.7 min; the model is slower because the first hatch lands 2 to 4 min in and becomes the companion, which earns no farm gold.
+- **Every gold sink** (2164 gold: both places and all 17 treadmill levels): bought by 17 to 22 min for intermediate and advanced players, 30 to 32 min for a beginner in Caramelo, 43 min for a beginner in the forest.
+- **Gold per 60 min session**: beginner 3.1k (forest) to 5.3k (Caramelo), intermediate 6.2k to 10.7k, advanced 7.3k to 8.0k. That is 52 to 178 gold per minute at 60 min, rising through the session as the farm fills.
+- **Where it comes from** (60 min): the farm is 36 to 83%, the hatch bonus 16 to 30% (14 to 37 per minute), sales 0 to 36% (sellers only), the treadmill under 5%.
+- **Runaway: gold has nothing left to buy after 17 to 43 min.** At 60 min a player holds 1.0k to 8.7k unspent gold, and income keeps rising (the farm reaches 42 to 108 gold per minute). Gold becomes a dead currency in the first session.
+- **AFK**: the treadmill pays 10 gold per minute from level 0 (7.5 laps of 2, the cap binds at once). With a full farm of six Épica, standing still in the game pays 118 gold per minute (190 with six Legendaria), against 52 to 178 for an active 60 min session in the model: idling with a full farm pays about as well as playing.
+- **Route gap**: forest eggs all hatch as Lumipol (Común), so a forest farm tops out at 42 gold per minute against 108 in Caramelo (Épica Flanfuria). A beginner in the forest earns 52 per minute against 88 in Caramelo.
+- **Unused values**: no live egg hatches a Legendaria, so the 30 per minute farm rate and the 400 sale never come up.
+- **Selling**: once the farm is full, a spare creature earns nothing, so selling it is free money (25 for a Común is 3.6 min of its farm gold). There is no farm-or-sell choice while the farm is full; the choice exists only before places 5 and 6 are bought.
+- **Dead spot**: only the opening, 3.4 to 8 min before the first gold purchase. No mid-session stall was found before the sinks run out.
+
+### Follow-up risks and proposals (not applied)
+
+1. **Dead currency (highest)**: add gold sinks worth hours, not minutes. Options: farm places 7 and 8 (for example 600 and 1500), a steeper treadmill ladder (`TRAIN_GROWTH` 1.15 to 1.25 makes the ladder about 5200 instead of 1954), or a repeatable gold sink (gold roulette spin, cosmetics).
+2. **AFK farm**: the farm pays while the owner idles anywhere in the game. Consider pausing farm gold after a few minutes with no input, or a collect cap like the proposed 2.0 Esencia farm's 15 min cap.
+3. **Hatch bonus 20**: with the fast base incubator it is up to 37 gold per minute on its own. 10 would halve that and keep a hatch rewarding.
+4. **Forest vs Caramelo**: forest creatures are all Común. Either give forest hatches a rarer species (`Species.ONLY` is Lumipol) or accept that Caramelo is the gold route.
+5. **Rerun after any change**: `python -I -B tools/wildbound_gold_sim.py --minutes 10,30,60 --seed 7 --runs 200 --md`. The profiles and buy order are guesses; a real playtest of the farm and treadmill rates (not walked yet) should replace them.
+
+### Gold (Oro) model
+
+Regenerate: `python -I -B tools/wildbound_gold_sim.py --minutes 10,30,60 --seed 7 --runs 200 --md`
+
+Seed 7, 200 runs per cell. Each live session above is replayed with the gold rules from `src/wildbound/WildboundGold.luau`. A model with ASSUMED player choices (listed under the tables), not measured play.
+
+- Farm gold per minute: Comun 7, Rara 10, Epica 18, Legendaria 30. Tame/hatch bonus 20. Lap 2 (+1 per 4 levels), cap 10 per 60 s.
+- Sale: Comun 25, Rara 60, Epica 150, Legendaria 400 at bond level 1, +20% per level above 1 (cap level 10).
+- Sinks: farm places 60/150, treadmill levels 30 to 281 (17 levels, 1954 in all). Every gold sink: 2164 gold.
+
+| Profile | Route | Min | Sells | Gold/min | Farm | Tame | Treadmill | Sale | Gold per session | Farm place 5 | Farm place 6 | Treadmill level 1 | Gold levels | Every sink bought | Unspent at end | Farm gold/min at end | Hatches | Sold |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| beginner | caramelo | 10 | keep | 30.3 (21.2-37.8) | 16.6 | 12.9 | 0.8 | 0.0 | 303 | 8.2 (96%) | - | 3.4 | 4.2 | - | 33 | 46.2 | 6.4 | 0.0 |
+| beginner | caramelo | 30 | keep | 64.7 (58.7-70.6) | 50.4 | 14.1 | 0.3 | 0.0 | 1941 | 8.3 | 20.1 | 3.4 | 13.9 | 29.5 (14%) | 136 | 83.3 | 21.1 | 0.0 |
+| beginner | caramelo | 60 | keep | 88.3 (81.7-94.0) | 73.7 | 14.5 | 0.1 | 0.0 | 5300 | 8.3 | 20.1 | 3.4 | 15.0 | 31.7 | 3201 | 106.8 | 43.6 | 0.0 |
+| beginner | forest | 10 | keep | 28.6 (15.6-39.2) | 14.3 | 13.5 | 0.8 | 0.0 | 286 | 7.6 (82%) | - | 3.5 | 4.0 | - | 33 | 31.4 | 6.8 | 0.0 |
+| beginner | forest | 30 | keep | 44.9 (38.7-50.4) | 29.2 | 15.4 | 0.3 | 0.0 | 1346 | 8.4 | 24.3 (99%) | 3.5 | 11.4 | - | 95 | 41.9 | 23.1 | 0.0 |
+| beginner | forest | 60 | keep | 51.6 (48.2-55.0) | 35.6 | 15.9 | 0.1 | 0.0 | 3094 | 8.4 | 24.4 | 3.5 | 15.0 | 42.9 | 995 | 42.0 | 47.6 | 0.0 |
+| beginner | mixed | 10 | keep | 30.3 (21.2-37.8) | 16.6 | 12.9 | 0.8 | 0.0 | 303 | 8.2 (96%) | - | 3.4 | 4.2 | - | 33 | 46.2 | 6.4 | 0.0 |
+| beginner | mixed | 30 | keep | 64.7 (58.7-70.6) | 50.4 | 14.1 | 0.3 | 0.0 | 1941 | 8.3 | 20.1 | 3.4 | 13.9 | 29.5 (14%) | 136 | 83.3 | 21.1 | 0.0 |
+| beginner | mixed | 60 | keep | 88.3 (81.7-94.0) | 73.7 | 14.5 | 0.1 | 0.0 | 5300 | 8.3 | 20.1 | 3.4 | 15.0 | 31.7 | 3201 | 106.8 | 43.6 | 0.0 |
+| intermediate | caramelo | 10 | duplicates | 43.8 (25.0-67.2) | 19.4 | 16.0 | 2.3 | 6.2 | 438 | 5.0 (99%) | - | 6.5 (98%) | 4.1 | - | 52 | 61.2 | 8.0 | 2.1 |
+| intermediate | caramelo | 30 | duplicates | 135.4 (115.8-152.9) | 69.5 | 21.9 | 0.8 | 43.3 | 4061 | 5.0 | 13.1 | 6.6 | 12.0 | 19.7 | 2100 | 107.7 | 32.8 | 24.8 |
+| intermediate | caramelo | 60 | duplicates | 177.0 (165.4-189.8) | 88.7 | 23.3 | 0.4 | 64.6 | 10621 | 5.0 | 13.1 | 6.6 | 12.0 | 19.7 | 8660 | 108.0 | 69.8 | 61.8 |
+| intermediate | forest | 10 | duplicates | 59.8 (42.4-74.5) | 17.6 | 24.4 | 2.3 | 15.5 | 598 | 3.8 | - | 5.2 | 5.5 | - | 69 | 35.0 | 12.2 | 6.2 |
+| intermediate | forest | 30 | duplicates | 94.3 (84.3-103.5) | 33.1 | 29.4 | 0.8 | 30.9 | 2828 | 3.8 | 12.6 | 5.2 | 12.0 | 22.4 | 867 | 42.0 | 44.1 | 37.1 |
+| intermediate | forest | 60 | duplicates | 103.2 (96.6-109.4) | 37.6 | 30.3 | 0.4 | 35.0 | 6193 | 3.8 | 12.6 | 5.2 | 12.0 | 22.4 | 4232 | 42.0 | 90.9 | 83.9 |
+| intermediate | mixed | 10 | duplicates | 44.0 (25.0-67.2) | 19.4 | 16.2 | 2.3 | 6.1 | 440 | 5.0 (99%) | - | 6.5 (98%) | 4.1 | - | 54 | 61.3 | 8.1 | 2.1 |
+| intermediate | mixed | 30 | duplicates | 135.9 (118.1-152.2) | 69.3 | 22.7 | 0.8 | 43.2 | 4077 | 5.0 | 13.1 | 6.6 | 12.0 | 19.7 | 2116 | 107.7 | 34.0 | 25.2 |
+| intermediate | mixed | 60 | duplicates | 177.8 (166.2-190.3) | 88.6 | 24.2 | 0.4 | 64.6 | 10668 | 5.0 | 13.1 | 6.6 | 12.0 | 19.7 | 8707 | 108.0 | 72.5 | 63.5 |
+| advanced | caramelo | 10 | all | 33.9 (13.0-54.4) | 14.0 | 12.3 | 4.5 | 3.0 | 339 | 5.4 (96%) | 9.8 (3%) | 7.0 (90%) | 2.7 | - | 50 | 42.4 | 6.2 | 1.1 |
+| advanced | caramelo | 30 | all | 91.0 (66.5-113.1) | 49.9 | 15.9 | 5.6 | 19.6 | 2729 | 5.6 | 13.5 | 7.5 | 6.2 | 18.5 | 1636 | 85.2 | 23.8 | 16.8 |
+| advanced | caramelo | 60 | all | 132.7 (114.8-150.3) | 74.7 | 18.2 | 5.8 | 34.0 | 7964 | 5.6 | 13.5 | 7.5 | 6.2 | 18.5 | 6871 | 107.1 | 54.6 | 47.6 |
+| advanced | forest | 10 | all | 76.1 (61.7-88.8) | 19.7 | 30.5 | 3.0 | 22.9 | 761 | 3.4 | 9.6 (31%) | 4.7 | 6.4 | - | 67 | 35.5 | 15.2 | 9.2 |
+| advanced | forest | 30 | all | 110.0 (103.1-116.8) | 34.3 | 34.7 | 3.4 | 37.6 | 3301 | 3.4 | 10.6 | 4.7 | 10.0 | 16.6 | 1735 | 42.0 | 52.1 | 45.1 |
+| advanced | forest | 60 | all | 121.5 (117.1-126.0) | 38.1 | 36.7 | 3.7 | 42.9 | 7291 | 3.4 | 10.6 | 4.7 | 10.0 | 16.6 | 5725 | 42.0 | 110.1 | 103.1 |
+| advanced | mixed | 10 | all | 41.3 (20.2-60.0) | 15.8 | 16.8 | 2.3 | 6.4 | 413 | 5.3 | - | 6.8 (99%) | 3.9 | - | 44 | 46.9 | 8.4 | 2.5 |
+| advanced | mixed | 30 | all | 104.5 (82.4-123.4) | 49.1 | 25.6 | 0.8 | 29.1 | 3135 | 5.3 | 14.0 | 6.8 | 12.0 | 22.3 | 1174 | 77.0 | 38.4 | 31.4 |
+| advanced | mixed | 60 | all | 133.9 (115.2-152.8) | 67.4 | 27.8 | 0.4 | 38.4 | 8036 | 5.3 | 14.0 | 6.8 | 12.0 | 22.3 | 6075 | 94.1 | 83.3 | 76.3 |
+
+Times are session minutes (share of runs when under 100%; `-` never). Gold levels: treadmill levels bought with gold in the session.
+
+| Rarity | Farm gold/min | Sale bond 1 | Sale bond 5 | Sale bond 10 | Minutes of farm a bond 1 sale is worth |
+| --- | --- | --- | --- | --- | --- |
+| Comun | 7 | 25 | 45 | 70 | 3.6 |
+| Rara | 10 | 60 | 108 | 168 | 6.0 |
+| Epica | 18 | 150 | 270 | 420 | 8.3 |
+| Legendaria | 30 | 400 | 720 | 1120 | 13.3 |
+
+- AFK on the treadmill: 10 gold/min with an empty farm (the cap binds from level 0: 7.5 laps of 2), 118 with six Epica in the farm, 190 with six Legendaria.
+
+- ASSUMED `gold_policy`: {'beginner': 'keep', 'intermediate': 'duplicates', 'advanced': 'all'}
+- ASSUMED `companion`: the first hatched creature becomes the companion (State NS3) and never goes into the farm
+- ASSUMED `farm_fill`: every other hatch goes into a free farm place; a full farm swaps out its lowest rarity for a rarer one
+- ASSUMED `buy_order`: cheapest gold sink first, bought the moment it is affordable: farmSlot5, then farmSlot6, and the next treadmill level
+- ASSUMED `gold_training`: a gold-bought treadmill level adds to the lap level; it does not speed up the modelled trips
+- ASSUMED `bond_level`: every sold creature is at bond level 1 (fresh hatches); the +20% per level is shown as a table
+- ASSUMED `sellers_and_the_limit`: a player who sells is never stopped by the collection limit (a sale frees the place), so the duplicates and all policies run the live sessions with no collection limit
+- ASSUMED `sources`: hatches only: no refuge taming of wild creatures, no offline income, no Studio probe gold
+- ASSUMED `session`: the farm pays only during the session (owner in the game); nothing carries to the next session
+
 ## Proposed 2.0 balance model (T05b, WildboundBalance unwired)
 
 This model is unchanged from T05b: it plays the proposed farm income, sell prices, treadmill ladder (16-21) and incubation timers, none of which the live game uses.

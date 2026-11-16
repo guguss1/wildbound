@@ -118,6 +118,18 @@ Selling: `State:sellCreature(key, uid, alive, price)`, `WildboundGoldService:sel
   - A stray first click equipped Cestillo, after which its Vender row correctly disappeared (it was now the companion).
   - Vender on Lumipol showed "¿Vender a Lumipol por 25 de oro? No se puede deshacer." Confirmar then gave the notice "Vendiste a Lumipol. +25 de oro.", the counter "Oro: 25" and the popup "+25 oro". Cestillo, now the companion and the last creature, had no Vender row.
 
+### Economy simulation (owner item O7, 2026-11-16)
+
+- [x] O7-1 Gold model `tools/wildbound_gold_sim.py` (tests `tools/test_wildbound_gold_sim.py`, 14/0) over the live session model; results, risks and proposals in `docs/balance/wildbound-2-0-economy-sim.md`, section "Gold (Oro) results". Full Python suite 1232 run: only `test_lumipol_v2.V1IsKept` (known) and `test_studio_fresh_runner` spec tokens (scripts other agents have not deployed yet) fail.
+- Main finding: every gold sink (2164 gold) is bought within 17 to 43 min, then gold piles up with nothing to buy; a full farm pays about as much idle as an active session. Proposals only; no game value was changed.
+
+Decisions taken for the user:
+
+1. Gold is modelled as a replay of the live model's sessions (hatch and lap logs), not a new trip model, so gold and Esencia use the same sessions.
+2. Assumed behaviour: beginner never sells, intermediate sells duplicates, advanced sells every spare; cheapest gold purchase first, bought as soon as affordable; the first hatch is the companion and stays out of the farm.
+3. A seller runs with no collection limit (a sale frees the place).
+4. The simulator's broken inputs were fixed from the code (per-rarity steal holds, beast cooldown 10) instead of pinning old values; the older Esencia tables were not regenerated, to keep their hand-written balance-pass notes.
+
 ### Not done
 
 - Farm and treadmill income at the new rates were not walked (unit-tested only).
