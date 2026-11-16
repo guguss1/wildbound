@@ -106,5 +106,20 @@ return function(Glaze, Layout, Builder, sources)
 		assert(not string.find(block, "dropEgg", 1, true) and not string.find(block, "TakeDamage", 1, true), "no egg drop, no damage")
 	end)
 
+	case("DG4 security: the slip remote reads no argument, checks the caller's own body on glaze, cools down per player", function()
+		local server = sources.server
+		local block = string.match(server, "%(DG4%).-\nend\n") or ""
+		assert(#block > 0, "the DG4 block")
+		has(block, "slip.OnServerEvent:Connect(function(player)", "only the caller; no client argument is read")
+		has(block, "local root, now = rootOf(player), workspace:GetServerTimeNow()", "the caller's own body")
+		has(block, "local v, p = root.AssemblyLinearVelocity, root.Position", "the server's own position and speed")
+		has(block, "onGlaze = Glaze.inside(Glaze.read(folder), p.X, p.Y, p.Z) ~= nil", "the server's glaze check")
+		has(block, "lastAt = lastSlip[player]", "a per-player cooldown"); has(block, "lastSlip[player] = now")
+		has(block, "Heist.Ragdoll.aplicar(player,", "only the caller is ragdolled")
+		local _, ragdolls = string.gsub(block, "Ragdoll%.aplicar%(", "")
+		assert(ragdolls == 1, "one ragdoll call, on the caller")
+		assert(not string.find(block, "dropEgg", 1, true) and not string.find(block, "BeastHit", 1, true), "never an egg drop")
+	end)
+
 	return result
 end
