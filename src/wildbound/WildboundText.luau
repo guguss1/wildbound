@@ -691,8 +691,10 @@ return freeze({
 		short = "Te faltan %d de oro.",
 		maxed = "La caminadora ya está al máximo.",
 		owned = "Ya lo tienes.",
-		needsFirst = "Primero compra el quinto lugar de granja.",
+		needsFirst = "Primero compra el lugar de granja anterior.",
 		farAway = "Ve al campamento o a tu base para comprar con oro.",
+		-- Gold follow-up: the farm pauses after WildboundGold.IDLE_SECONDS without moving (said once per pause).
+		farmPaused = "Tu granja dejó de dar oro porque estás quieto. Muévete para que vuelva a dar oro.",
 		-- Owner feedback 3: "Vender" a creature for gold (two taps, like "Liberar").
 		sell = "Vender",
 		sellConfirm = "Confirmar",

@@ -13,9 +13,12 @@ end
 -- Gold per minute for one creature in the farm, by its species' rarity (WildboundSpecies.LOOKS[...].rarity).
 -- Owner feedback 3 (2026-11-16, "los bichos dan muy poco oro"): about x3.5 (was 2/3/5/8), tame bonus 20 (was 5), a
 -- lap 2 (was 1) and the treadmill cap 10 a minute (was 6).
+-- Legendaria (30/min, sale 400) is unused today: no live egg hatches a Legendaria species (kept for a later one).
 Gold.FARM_PER_MINUTE = table.freeze({ Comun = 7, Rara = 10, Epica = 18, Legendaria = 30 })
 Gold.DEFAULT_RARITY = "Comun" -- a species with no known rarity (the candy critters) counts as common
-Gold.TAME_BONUS = 20 -- one creature registered (tamed) or hatched
+-- Gold follow-up (owner OK 2026-11-16, economy sim O7): 10, was 20 (with the fast base incubator the bonus alone paid up
+-- to 37 gold a minute).
+Gold.TAME_BONUS = 10 -- one creature registered (tamed) or hatched
 Gold.LAP_BASE = 2 -- gold per completed treadmill lap at level 0..3
 Gold.LAP_LEVELS_PER_EXTRA = 4 -- +1 gold per lap for every 4 training levels (level 17: 6 per lap)
 Gold.TREADMILL_CAP_PER_MINUTE = 10 -- anti-AFK: the treadmill never pays more than this in one minute
@@ -25,11 +28,18 @@ Gold.SELL_LEVEL_BONUS = 0.2
 Gold.SELL_MAX_LEVEL = 10
 Gold.CAP_WINDOW = 60
 -- Gold prices, in addition to the Esencia ones (WildboundEconomyConfig upgrades, WildboundTraining.cost).
-Gold.UPGRADE_PRICES = table.freeze({ farmSlot5 = 60, farmSlot6 = 150 })
+-- Gold follow-up: farm places 7 and 8 and a steeper treadmill ladder (x1.25, was x1.15), so gold keeps something to buy
+-- (every gold sink: 7521, was 2164; docs/balance/wildbound-2-0-economy-sim.md "Gold (Oro) results").
+Gold.UPGRADE_PRICES = table.freeze({ farmSlot5 = 60, farmSlot6 = 150, farmSlot7 = 600, farmSlot8 = 1500 })
 Gold.TRAIN_BASE = 30 -- gold for training level 1
-Gold.TRAIN_GROWTH = 1.15 -- each next level costs this much more, rounded (the 17th level: 281)
+Gold.TRAIN_GROWTH = 1.25 -- each next level costs this much more, rounded (30, 38, 47 ... the 17th level: 1066)
 Gold.POPUP_SECONDS = 4 -- earned gold is shown as one "+N oro" at most this often
 Gold.TICK = 1 -- seconds between the server's gold steps
+-- Gold follow-up: the farm pays nothing while its owner has not moved IDLE_MOVE_STUDS across the ground for
+-- IDLE_SECONDS. The server reads the character's position itself (the client never reports idleness); standing on the
+-- treadmill counts as still, and the treadmill keeps its own per-minute cap.
+Gold.IDLE_SECONDS = 300
+Gold.IDLE_MOVE_STUDS = 6
 
 -- Gold per minute of a farm: `species` is a list of species names, `rarityOf(name)` returns a rarity word or nil.
 function Gold.farmRate(species, rarityOf)
@@ -67,6 +77,24 @@ function Gold.capLap(window, now, amount)
 	local paid = math.max(0, math.min(amount, Gold.TREADMILL_CAP_PER_MINUTE - window.paid))
 	window.paid += paid
 	return paid, window
+end
+
+-- Idle watch. track = { x, z, movedAt } (nil starts one at the first position). A move of IDLE_MOVE_STUDS or more across
+-- the ground from the last anchor resets the clock; a small shuffle or a jump in place does not. No position (no
+-- character) leaves the track as it is.
+function Gold.watch(track, x, z, now)
+	if not finite(x) or not finite(z) or not finite(now) then return track end
+	if type(track) ~= "table" or not finite(track.movedAt) then return { x = x, z = z, movedAt = now } end
+	local dx, dz = x - track.x, z - track.z
+	if dx * dx + dz * dz >= Gold.IDLE_MOVE_STUDS * Gold.IDLE_MOVE_STUDS then
+		track.x, track.z, track.movedAt = x, z, now
+	end
+	return track
+end
+
+-- Whether the farm is paused: the player has stood still for IDLE_SECONDS. No track yet is never idle.
+function Gold.idle(track, now)
+	return type(track) == "table" and finite(track.movedAt) and finite(now) and now - track.movedAt >= Gold.IDLE_SECONDS
 end
 
 -- The gold price of a camp upgrade, or nil when it cannot be bought with gold.

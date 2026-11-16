@@ -181,6 +181,16 @@ return freeze({
 			effects = { farmSlots = 6 },
 			requires = "farmSlot5",
 		},
+		farmSlot7 = {
+			cost = { ember = 2000 },
+			effects = { farmSlots = 7 },
+			requires = "farmSlot6",
+		},
+		farmSlot8 = {
+			cost = { ember = 4500 },
+			effects = { farmSlots = 8 },
+			requires = "farmSlot7",
+		},
 	},
 	totem = {
 		wardsExtraItems = 1,

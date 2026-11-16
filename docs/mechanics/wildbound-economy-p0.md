@@ -447,12 +447,15 @@ A bot that really walks the route is active play as far as the server can see. I
 
 | Source or sink | Value |
 | --- | --- |
-| Farm income, per creature in the own base farm, while the owner is in the game (no offline income) | Común 2/min, Rara 3/min, Épica 5/min, Legendaria 8/min (unknown species: Común) |
-| A creature registered (tamed) at the refuge or hatched | +5 once |
-| Treadmill, per completed 8 s lap | 1 + floor(level / 4) (level 17: 5), at most 6 per minute (anti-AFK cap) |
+| Farm income, per creature in the own base farm, while the owner is in the game (no offline income) | Común 7/min, Rara 10/min, Épica 18/min, Legendaria 30/min (unknown species: Común); paused after 300 s without moving 6 studs (server-side position, gold follow-up 2026-11-16) |
+| A creature registered (tamed) at the refuge or hatched | +10 once (was 20, at first 5) |
+| Treadmill, per completed 8 s lap | 2 + floor(level / 4) (level 17: 6), at most 10 per minute (anti-AFK cap) |
 | Quinto lugar de granja (`farmSlot5`) | 60 oro, besides 400 Esencia |
 | Sexto lugar de granja (`farmSlot6`, needs the fifth) | 150 oro, besides 900 Esencia |
-| Treadmill level L+1 | round(30 × 1.15^L) oro (30, 35, 40 … 281), besides the Esencia price at the treadmill |
+| Séptimo lugar de granja (`farmSlot7`, needs the sixth) | 600 oro, besides 2000 Esencia |
+| Octavo lugar de granja (`farmSlot8`, needs the seventh) | 1500 oro, besides 4500 Esencia |
+| Treadmill level L+1 | round(30 × 1.25^L) oro (30, 38, 47 … 1066), besides the Esencia price at the treadmill |
+| Sale of a creature | Común 25, Rara 60, Épica 150, Legendaria 400, +20% per bond level above 1 (cap level 10) |
 
 Gold is saved as the `gold` count inside the record's `training` map (no schema step), so a failed load can never invent it and the record validator already checks it is a whole count. It is never purchasable with Robux.
 
@@ -661,6 +664,16 @@ Stable schema read by `tools/economy_tuning.py` (formerly `tools/simulate_econom
       "cost": { "ember": 900 },
       "effects": { "farmSlots": 6 },
       "requires": "farmSlot5"
+    },
+    "farmSlot7": {
+      "cost": { "ember": 2000 },
+      "effects": { "farmSlots": 7 },
+      "requires": "farmSlot6"
+    },
+    "farmSlot8": {
+      "cost": { "ember": 4500 },
+      "effects": { "farmSlots": 8 },
+      "requires": "farmSlot7"
     }
   },
   "totem": {

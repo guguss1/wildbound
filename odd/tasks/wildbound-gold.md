@@ -162,3 +162,49 @@ Decisions taken for the user:
 ### Not done
 
 - A real phone (or a resized viewport) for the Bolsa tab; two players.
+
+## Gold follow-up: the O7 proposals applied (owner said yes, 2026-11-16)
+
+The owner approved the four proposals of the gold simulation (`docs/balance/wildbound-2-0-economy-sim.md`, "Gold (Oro) results", commit a0318e2). Repo only; nothing was written to Studio.
+
+Checklist:
+
+- [x] GF-1 Tests first. Python: `tools/test_wildbound_gold_sim.py` 14 -> 21 tests; the 6 that read the live module failed on the old values (no `IDLE_SECONDS`, bonus 20, x1.15, no farm places 7 and 8), then passed. Luau: `tests/WildboundGold_Test.luau` GD-1 (bonus 10) and GD-4 (places 7 and 8, x1.25) changed, GD-18 (idle rule), GD-19 (places 7 and 8, old saves), GD-20 (service wiring) new. The Luau suite only runs in Studio: **not run yet**.
+- [x] GF-2 Farm places 7 and 8 and the treadmill ladder x1.25 (both; why under the decisions).
+- [x] GF-3 The farm pauses for idle players (`Gold.watch`, `Gold.idle`, `WildboundGoldService:farmPaused`).
+- [x] GF-4 Hatch/tame bonus 20 -> 10.
+- [x] GF-5 Rarer forest creature: found already in the game (violet Lumipol, Rara, in the far nests); the economy model was corrected instead (`tools/wildbound_economy_sim_v2.py`).
+- [x] GF-6 Simulator re-run, doc section updated with before and after; full Python suite.
+- [ ] GF-7 Deploy to Studio, run the suites with the fresh runner, and walk it in Play (the idle pause after 5 min still, the two new farm rows, the treadmill price 38 for level 2). **Not checked in Play yet.**
+
+Values, old -> new:
+
+| Value | Old | New |
+|---|---|---|
+| Tame/hatch bonus | 20 | 10 |
+| Treadmill gold price per level | round(30 × 1.15^L): 30, 35 … 281 (1954 in all) | round(30 × 1.25^L): 30, 38, 47 … 1066 (5211 in all) |
+| Séptimo lugar de granja (`farmSlot7`, needs the sixth) | none | 600 oro or 2000 Esencia |
+| Octavo lugar de granja (`farmSlot8`, needs the seventh) | none | 1500 oro or 4500 Esencia |
+| Every gold sink | 2164 | 7521 |
+| Farm while idle | pays always | paused after 300 s without moving 6 studs |
+
+Where: `src/wildbound/WildboundGold.luau` (values, `watch`, `idle`), `WildboundGoldService.luau` (the pause in the farm step, attribute `WildboundFarmPaused`, one notice), `WildboundCampView.luau` (row words for places 7 and 8), `WildboundText.luau` (`GOLD.farmPaused`; `GOLD.needsFirst` now says "el lugar de granja anterior"), and the economy document's tuning block -> `WildboundEconomyConfig.luau` (regenerated with `tools/export_economy_config_luau.py --write`). `WildboundServer` and the client are unchanged: the server's `BuyGold` and the client's gold rows read `Gold.UPGRADE_PRICES`, so the new places reach the camp screen on their own.
+
+### Decisions taken for the user
+
+1. **Both sinks, not one.** The simulator (same seed, one change at a time) showed the steeper ladder alone still let intermediate Caramelo players buy everything by 37 min and advanced Caramelo players by 23 min (they level the treadmill with laps, so a pricier ladder takes less of their gold), and places 7 and 8 alone ended at 32 to 53 min while raising farm income. With both, beginners and intermediate forest players never run out within an hour, and the fastest profile moves from 18.5 to 34.6 min.
+2. **Prices of places 7 and 8**: 600 and 1500 oro, as proposed. Esencia prices 2000 and 4500 keep the x2.25 step of the fifth and sixth (400 -> 900); every upgrade needs an Esencia price in the tuning block, and the scope already sold farm places for both currencies.
+3. **Idle rule**: no AFK signal existed. The server reads the character's `HumanoidRootPart` each gold step: a move of 6 studs or more across the ground resets the clock; after 300 s (5 min) still, the farm pays nothing until the player moves. Jumping in place, turning the camera and standing on the treadmill count as still (the treadmill keeps its own 10-a-minute cap). Nothing from the client decides it. A player who never had a character is not idle. A bot that really walks around is not stopped (same stance as the economy's AFK rule).
+4. **Pause feedback**: the attribute `WildboundFarmPaused` (for a later HUD mark) and one notice per pause, "Tu granja dejó de dar oro porque estás quieto. Muévete para que vuelva a dar oro." The farm's carried fraction waits; nothing is lost.
+5. **Rarer forest creature: no new game code.** The live server already puts the violet Lumipol (Rara, keeps its own look) in the far nests I3, I4 and I5, with the nest's egg rarity (Rara, Épica, Legendaria hatch times), and a Rara or rarer wild egg is violet too. The first simulation was wrong to treat every forest egg as a common Lumipol; the model now reads both rules from `WildboundServer`. With it, the forest farm reaches 69 to 80 gold a minute (was 42) and the forest pays 64 to 92% of Caramelo at 60 min. A forest Épica would need a creature with its own look checked in Play, so it was left out of this repo-only pass.
+6. **Legendaria values stay unused on purpose**: nothing drops a Legendaria species today (the I5 egg is Legendaria in rarity but hatches a Rara violet Lumipol). The 30-a-minute farm rate and the 400 sale stay for a later Legendaria creature with its own model.
+7. **The economy doc's gold value table** (`docs/mechanics/wildbound-economy-p0.md`) was brought up to date (it still showed the first gold values).
+
+### Evidence (2026-11-16, repo only)
+
+- simBefore (commit a0318e2 values, the doc's first table reproduced exactly with seed 7, 200 runs): every sink 2164 gold, bought by 17 to 43 min; unspent at 60 min 1.0k to 8.7k; idle with a full farm about as good as playing.
+- simAfter (`python -I -B tools/wildbound_gold_sim.py --minutes 10,30,60 --seed 7 --runs 200 --md`): every sink 7521; bought within 60 min only by intermediate Caramelo/mixed (46 min) and advanced players (35 to 55 min); unspent at 60 min 0.27k to 4.7k; hatch bonus 6 to 12 a minute (was 14 to 37); an idle hour with eight Épica pays 1320 (was about 7080 with six).
+- Python: `test_wildbound_gold_sim` 21/0, `test_wildbound_economy_sim_v2` 62/0, `test_export_economy_config_luau` passes after the regeneration. Full suite 1239 run: only the two known failures (`test_lumipol_v2.V1IsKept`, `test_studio_fresh_runner.test_spec_tokens_name_deployed_scripts`).
+- Luau suites (Studio only, not run): WildboundGold_Test, WildboundCampView_Test, WildboundState_Test, WildboundEconomy_Test, WildboundRecord_Test, WildboundText_Test.
+
+Next step: the next Studio writer deploys the five changed scripts and `WildboundGold_Test` (fingerprint rule first), runs the suites above with `tools/studio-fresh-runner.luau`, and walks GF-7.

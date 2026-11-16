@@ -1,5 +1,6 @@
 -- Gold service (odd/tasks/wildbound-gold.md), server only. Pays gold from the rules in WildboundGold: the creatures in
--- each player's base farm every step while the player is in the game, a bonus per tamed or hatched creature, and the
+-- each player's base farm every step while the player is in the game and not idle (Gold.idle: still for IDLE_SECONDS,
+-- read from the server's character position), a bonus per tamed or hatched creature, and the
 -- treadmill per lap under the per-minute cap. It sells the farm places and treadmill levels for gold (State checks
 -- every rule; the client sends only the upgrade's name), mirrors the balance on the player attribute WildboundGold for
 -- the HUD counter, and sends one batched "+N oro" popup at most every Gold.POPUP_SECONDS through the GoldPopup remote.
@@ -12,7 +13,28 @@ local Service = {}
 Service.__index = Service
 
 function Service.new(deps)
-	return setmetatable({ deps = deps, carry = {}, windows = {}, buffers = {}, remote = nil }, Service)
+	return setmetatable({ deps = deps, carry = {}, windows = {}, buffers = {}, tracks = {}, remote = nil }, Service)
+end
+
+-- Gold follow-up: whether the farm is paused for this player now. The position is the server's view of the
+-- character's HumanoidRootPart (Gold.watch / Gold.idle); the client never reports idleness. The first step of a pause
+-- sets the player attribute WildboundFarmPaused and says so once; a move clears it.
+function Service:farmPaused(player, now)
+	local Gold = self.deps.Gold
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	if root and root:IsA("BasePart") then
+		self.tracks[player] = Gold.watch(self.tracks[player], root.Position.X, root.Position.Z, now)
+	end
+	local paused = Gold.idle(self.tracks[player], now)
+	if paused and player:GetAttribute("WildboundFarmPaused") ~= true then
+		player:SetAttribute("WildboundFarmPaused", true)
+		local words = self.deps.Text and self.deps.Text.GOLD
+		if words and words.farmPaused and self.deps.send then self.deps.send(player, "Notice", false, words.farmPaused) end
+	elseif not paused and player:GetAttribute("WildboundFarmPaused") ~= nil then
+		player:SetAttribute("WildboundFarmPaused", nil)
+	end
+	return paused
 end
 
 local function speciesInFarm(snapshot)
@@ -57,7 +79,8 @@ function Service:step(dt)
 	for _, player in ipairs(Players:GetPlayers()) do
 		local snapshot = (not self.deps.tracked or self.deps.tracked(player)) and state:snapshot(player.UserId) or nil
 		if snapshot then
-			local rate = Gold.farmRate(speciesInFarm(snapshot), self.deps.rarityOf)
+			-- Gold follow-up: an idle player's farm pays nothing (its carried fraction waits).
+			local rate = not self:farmPaused(player, now) and Gold.farmRate(speciesInFarm(snapshot), self.deps.rarityOf) or 0
 			local whole
 			whole, self.carry[player] = Gold.accrue(self.carry[player], rate, dt)
 			if whole > 0 then self:earn(player, whole) else self:sync(player) end
@@ -140,7 +163,7 @@ function Service:start(network)
 	remote.Parent = network
 	self.remote = remote
 	Players.PlayerRemoving:Connect(function(player)
-		self.carry[player], self.windows[player], self.buffers[player] = nil, nil, nil
+		self.carry[player], self.windows[player], self.buffers[player], self.tracks[player] = nil, nil, nil, nil
 	end)
 	-- Studio only: a probe the walked Play check uses to grant test gold for a purchase test. Never in a live server.
 	if RunService:IsStudio() then

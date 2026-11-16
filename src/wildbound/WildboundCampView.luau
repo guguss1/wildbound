@@ -137,6 +137,13 @@ local UPGRADE_WORDS = table.freeze({
 	farmSlot6 = table.freeze({ order = 8, title = "Sexto lugar de granja",
 		effect = "tu granja guarda 6 criaturas",
 		owned = "Sexto lugar de granja: comprado. Tu granja guarda 6 criaturas." }),
+	-- Gold follow-up: the seventh and eighth places (each needs the one before).
+	farmSlot7 = table.freeze({ order = 9, title = "Séptimo lugar de granja",
+		effect = "tu granja guarda 7 criaturas",
+		owned = "Séptimo lugar de granja: comprado. Tu granja guarda 7 criaturas." }),
+	farmSlot8 = table.freeze({ order = 10, title = "Octavo lugar de granja",
+		effect = "tu granja guarda 8 criaturas",
+		owned = "Octavo lugar de granja: comprado. Tu granja guarda 8 criaturas." }),
 })
 
 -- Gold: a price that can also be paid with gold reads "400 de Esencia o 60 de oro".
