@@ -19,8 +19,8 @@ Five new Caramelo creatures live in the candy biome with a behaviour, like Gomib
 - [x] **CC4** Posts (`WildboundPraderaSites`): five fixed posts beside free nests, and the hard-coded Gomibu/Flanfuria/Tortidragon wake check replaced by `name ~= "DonGlaseon" and Sites.FIXED[key]`. Evidence: `WildboundCandyBeastSites_Test` CC4 (11/0).
 - [x] **CC5** Registration and models: five KIDS rows in `WildboundBeasts.server` (module `WildboundBeastCandyCritter`), and `ServerScriptService.WildboundCandyCritterService` parks each rig in `ReplicatedStorage.WildboundBeasts.Models.<Name>`. Evidence: CC5 wiring case; Play (below).
 - [x] **CC6** Solo Play: each creature summoned at its post, Notice, Chase, a telegraphed attack, the slow and push observed, no script error. Evidence below.
-- [ ] **CC7** Tell colours for the five in `WildboundBeasts.client` `TELL_COLOR` (today they fall back to RED, the colour the kids and candy rule avoids). Not done: the beast client was out of this task's scope.
-- [ ] **CC8** `WildboundText.BEAST` lines for the five (optional; the client returns quietly without them).
+- [x] **CC7** Tell colours for the five in `WildboundBeasts.client` `TELL_COLOR`: Mochimiau FF7AC0, Canelin C98A3E, Flanin E8A23A, Mielita F8D23A, GatoRepartidor 45C9A0 (none red). Done 2026-11-16, commit 8e09a29.
+- [x] **CC8** `WildboundText.BEAST` lines for the five (warn, hit, Notice/Chase/Telegraph). Done 2026-11-16, commit 8e09a29. Evidence: Studio == repo before (Client 59527/2943580363, Text 39447/3484836833, Wiring_Test 51698/3946662713) and after (59864/2967855770, 40720/1920931165, 52795/3669469525); RED run ce3a2771 (Wiring 52/1, the new CC7/CC8 case), GREEN run cc8c0374 (Wiring 53/0, Text 22/0). Not checked in Play: the colours and lines on screen.
 
 ### The five creatures (first proposal, tune in play)
 
