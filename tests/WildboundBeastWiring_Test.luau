@@ -335,8 +335,12 @@ return function(sources, Proxies)
 		assert(shakeAt and dustAt, "shake and dust exist")
 		has(client:sub(shakeAt, shakeAt + 80), "if reduced() then return end", "shake")
 		has(client:sub(dustAt, dustAt + 80), "if reduced() then return end", "dust")
+		-- Deliberately changed (DG2, 2026-11-16): Efectos suaves also drops the vacuum's crumbs (the pull itself stays).
+		local pullAt = client:find("local function stepPull(dt)", 1, true)
+		assert(pullAt, "stepPull exists")
+		has(client:sub(pullAt, pullAt + 600), "if reduced() then return end", "the vacuum crumbs")
 		local _, guards = client:gsub("if reduced%(%) then return end", "")
-		equal(guards, 2, "only shake and dust are reduced")
+		equal(guards, 3, "only shake, dust and the vacuum crumbs are reduced")
 	end)
 
 	case("NB6: an imported model wins over the proxy, and every view is destroyed on End", function()
@@ -813,6 +817,24 @@ return function(sources, Proxies)
 		has(client, 'Scuttler = "dirt"', "the spawn rise")
 		local words = sources.text.BEAST.Scuttler
 		assert(type(words) == "table" and words.phases and words.phases.PulseCharge, "Text.BEAST.Scuttler")
+	end)
+
+	-- DG2 (odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's vacuum pull. The server sends a Pull event to the target only
+	-- (not in Audience.VISUAL); that player's client owns its character and moves it toward him, capped, while the last
+	-- Pull is valid. Walking away still wins (the rule's speed is under half a walk).
+	case("DG2: the target's client applies the vacuum pull: never a bystander, capped, only while the server keeps it valid", function()
+		local client = sources.client
+		local handler = body(client, "function handlers.Pull(ev, view)")
+		has(handler, "if view.bystander then return end", "a bystander is never pulled")
+		has(handler, "math.clamp(ev.speed, 0, PULL_CAP)", "the speed is capped")
+		has(handler, "serverNow() + PULL_LONGEST", "a pull never outlives its refresh by much")
+		has(client, "local PULL_CAP = 8", "the cap")
+		local step = body(client, "local function stepPull(dt)")
+		has(step, "pull.untilAt <= serverNow()", "it stops when the server stops refreshing it")
+		has(step, "root.CFrame += Vector3.new(pull.dx, 0, pull.dz) * pull.speed * math.min(dt, 0.1)", "flat, never lifts")
+		has(client, "RunService.Heartbeat:Connect(stepPull)")
+		local Audience = sources.audience
+		equal(Audience.VISUAL.Pull, nil, "the pull is the target's only")
 	end)
 
 	return result

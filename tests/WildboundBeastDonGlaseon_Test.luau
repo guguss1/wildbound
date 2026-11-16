@@ -174,6 +174,50 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		assert(#each(events, "Tell") >= 1, "no lash after the cooldown")
 	end)
 
+	-- DG2 (user 2026-11-15): Boca aspiradora, for a target kept out of the lash's reach.
+	case("DG2: a target kept out of the lash's reach is pulled: a fixed cone, Inhale 0.9 s, Vacuum 2 s, Pull toward him, then Recover", function()
+		local e, w, tgt = boss("g11"), fakeWorld(), target(0, 24)
+		local events = run(e, w, tgt, 0, 10, function(_, target, en) target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55) end)
+		local cone
+		for _, ev in ipairs(each(events, "Tell")) do if ev.shape.kind == "sector" then cone = cone or ev end end
+		assert(cone, "no vacuum cone (phases " .. phases(events) .. ")")
+		equal(cone.dodgeable, false, "nothing to dodge"); near(cone.shape.r, 30, "range"); near(cone.strikeAt - cone.startAt, 2.9, "the pull's end")
+		assert(string.find(phases(events), "Inhale,Vacuum,Recover,Chase", 1, true), "phases " .. phases(events))
+		local chase, inhale, vacuum
+		for _, ev in ipairs(each(events, "Phase")) do
+			if ev.phase == "Chase" then chase = chase or ev.at
+			elseif ev.phase == "Inhale" then inhale = inhale or ev.at
+			elseif ev.phase == "Vacuum" then vacuum = vacuum or ev.at end
+		end
+		assert(inhale - chase >= 2 - 1e-6, "it inhaled " .. (inhale - chase) .. " s into the chase")
+		near(vacuum - inhale, 0.9, "tell", 1e-6)
+		local pulls = each(events, "Pull")
+		assert(#pulls >= 6, "pulls " .. #pulls)
+		for _, p in ipairs(pulls) do
+			near(p.speed, 7, "speed"); assert(p.dz < -0.9, "the pull goes toward him")
+			assert(p.at >= vacuum - 1e-6 and p.at <= vacuum + 2 + 1e-6, "a pull outside the Vacuum phase")
+			assert(p.untilAt > p.at and p.untilAt <= vacuum + 2 + 1e-6, "a pull past the Vacuum phase")
+		end
+		for _, hit in ipairs(each(events, "Hit")) do
+			assert(hit.at < inhale or hit.at > vacuum + 2 + 1e-6, "the vacuum hit (a later lash may land)")
+		end
+		local cleared = false
+		for _, ev in ipairs(each(events, "TellEnd")) do if ev.tell == cone.tell then cleared = true end end
+		assert(cleared, "the cone was not cleared")
+	end)
+
+	case("DG2: behind cover the pull stops at once", function()
+		local e, w, tgt = boss("g12"), fakeWorld(), target(0, 24)
+		local blind = false
+		function w.lineOfSight() return not blind end
+		local events = run(e, w, tgt, 0, 10, function(_, target, en)
+			target.x = en.pos.x; target.z = math.min(en.pos.z + 24, 55)
+			if en.phase == "Vacuum" then blind = true end
+		end)
+		assert(string.find(phases(events), "Vacuum", 1, true), "phases " .. phases(events))
+		assert(#each(events, "Pull") <= 1, "pulled behind cover: " .. #each(events, "Pull"))
+	end)
+
 	case("a safe zone stops it at once: the open lash is called off, nothing lands, it walks home (no vanishing)", function()
 		local e, w, tgt, _, tell = telegraphing("g7")
 		tgt.safe = true

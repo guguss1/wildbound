@@ -14,6 +14,9 @@
 --      the lock at 0.35 s; 0.80 s) -> Attack (the three 0.35 s lashes back to back; each hits at its end, a target at
 --      most once) -> Recover (1.0 s) -> Chase ...
 --   Chase -> Search (the target out of sight: it walks to the last seen spot for SearchSeconds) -> Chase or LoseTarget.
+--   DG2 Boca aspiradora: a target that stays out of the lash's reach (but within the vacuum's range, in front) for
+--      Vacuum.CHASE_BEFORE_SECONDS gets Chase -> Inhale (a fixed cone, 0.9 s) -> Vacuum (2 s of Pull events toward him
+--      while the target is in the cone with a clear line) -> Recover -> Chase. Rules: WildboundCandyDonGlaseonVacuum.
 --   LoseTarget (stops and looks at the exit, LoseTargetSeconds) -> Return (walks home at ReturnSpeed) -> End "Return".
 --   The target dead, gone, in a safe zone or out of the territory: an open lash is called off and it goes LoseTarget.
 -- The attack's numbers and rules are WildboundCandyDonGlaseonAttack (one source). Damage 0: a hit is a Hit event, which
@@ -23,6 +26,7 @@ local DataModel = script:FindFirstAncestorOfClass("DataModel") :: any
 local Config = require(DataModel:GetService("ReplicatedStorage"):WaitForChild("WildboundBeastConfig"))
 local Attack = require(DataModel:GetService("ServerScriptService"):WaitForChild("WildboundBeastAttack"))
 local Latigo = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonAttack"))
+local Vacuum = require(DataModel:GetService("ServerStorage"):WaitForChild("WildboundCandyDonGlaseonVacuum"))
 local Boss = {}
 
 local flat, unit = Config.flat, Config.unit
@@ -32,6 +36,7 @@ local RARE = { Rara = true, Epica = true, Legendaria = true }
 function Boss.init(e)
 	e.home = copy(e.pos)
 	e.readyAt = -math.huge
+	e.vacuumReadyAt = -math.huge
 	if not e.dx then e.dx, e.dz = 0, -1 end
 end
 
@@ -114,7 +119,8 @@ end
 -- Gives up the target: an open lash is called off (no strike), then it stops and looks at the exit before walking home.
 local function lose(events, e, world, now, T, reason)
 	for _, lash in ipairs(e.lashes or {}) do Attack.drop(events, e, world, lash, now, reason) end
-	e.lashes, e.cast, e.lanes = nil, nil, nil
+	if e.vacuum then Attack.emit(events, e, "TellEnd", now, { tell = e.vacuumTell, reason = reason }) end
+	e.lashes, e.cast, e.lanes, e.vacuum = nil, nil, nil, nil
 	e.lostReason = reason
 	Attack.phase(events, e, "LoseTarget", now, now + T.LoseTargetSeconds, { reason = reason })
 end
@@ -137,6 +143,19 @@ local function openLash(events, e, now, world, C)
 	end
 	e.lashes, e.cast, e.lanes, e.lashIndex = lashes, cast, nil, 1
 	Attack.phase(events, e, "Telegraph", now, Latigo.releaseAt(cast))
+	return true
+end
+
+-- DG2: the vacuum's cone is a Tell with no strike (nothing to dodge, nothing lands); it is cleared with TellEnd.
+local function openVacuum(events, e, now)
+	local state = Vacuum.start(now, {})
+	if not state then return false end
+	e.vacuumCount = (e.vacuumCount or 0) + 1
+	e.vacuum, e.cast, e.nextPullAt = state, nil, now
+	e.vacuumTell = ("%s:vacuum:%d"):format(e.id, e.vacuumCount)
+	Attack.emit(events, e, "Tell", now, { tell = e.vacuumTell, shape = Vacuum.cone(origin(e), e.dx, e.dz), startAt = now,
+		strikeAt = Vacuum.pullEndsAt(state), lockAt = now, dodgeable = false, locked = true })
+	Attack.phase(events, e, "Inhale", now, Vacuum.pullAt(state))
 	return true
 end
 
@@ -242,7 +261,44 @@ function Boss.step(events, e, now, target, world, dt)
 			and now - e.chaseAt + Latigo.comboSeconds() <= T.ChaseSeconds then
 			if openLash(events, e, now, world, C) then return end
 		end
+		-- DG2: a target that keeps out of the lash's reach is reeled in by the vacuum mouth
+		if distance <= T.CastRangeStuds then e.outOfReachSince = nil else e.outOfReachSince = e.outOfReachSince or now end
+		if e.outOfReachSince and now - e.outOfReachSince >= Vacuum.CHASE_BEFORE_SECONDS and distance <= Vacuum.RANGE_STUDS
+			and facing <= Vacuum.ARC_DEGREES / 2 and now >= e.vacuumReadyAt
+			and now - e.chaseAt + Vacuum.totalSeconds() <= T.ChaseSeconds then
+			if openVacuum(events, e, now) then return end
+		end
 		walk(e, target, T.ChaseSpeedStudsPerSecond, dt, world, T, T.StandOffStuds)
+		return
+	end
+	if (e.phase == "Inhale" or e.phase == "Vacuum") and e.vacuum then
+		if not inTerritory(e, world, target, T) then lose(events, e, world, now, T, "Left") return end
+		local state = e.vacuum
+		if e.phase == "Inhale" then
+			if now < Vacuum.pullAt(state) then return end
+			Attack.phase(events, e, "Vacuum", Vacuum.pullAt(state), Vacuum.pullEndsAt(state))
+		end
+		if now < Vacuum.pullEndsAt(state) then
+			if now >= e.nextPullAt then
+				local pull = Vacuum.pull(state, now, origin(e), e.dx, e.dz, target, visible(e, target, world, T))
+				if pull then
+					e.nextPullAt = now + Vacuum.REFRESH_SECONDS
+					Attack.emit(events, e, "Pull", now, { dx = pull.dx, dz = pull.dz, speed = pull.speed, untilAt = pull.untilAt })
+				end
+			end
+			return
+		end
+		Attack.emit(events, e, "TellEnd", Vacuum.pullEndsAt(state), { tell = e.vacuumTell, reason = "Done" })
+		e.vacuumReadyAt = Vacuum.endsAt(state) + Vacuum.COOLDOWN_SECONDS
+		Attack.phase(events, e, "Recover", Vacuum.pullEndsAt(state), Vacuum.endsAt(state))
+		return
+	end
+	if e.phase == "Recover" and e.vacuum then
+		local endAt = Vacuum.endsAt(e.vacuum)
+		if now >= endAt then
+			e.vacuum, e.outOfReachSince = nil, nil
+			Attack.phase(events, e, "Chase", endAt)
+		end
 		return
 	end
 	if e.phase == "Telegraph" and e.lashes then

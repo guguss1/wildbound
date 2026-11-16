@@ -80,7 +80,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 ## Checklist
 
 - [x] DG1 Lash combo, faster. Done 2026-11-16 (evidence below).
-- [ ] DG2 Vacuum mouth
+- [x] DG2 Vacuum mouth. Done 2026-11-16 (evidence below).
 - [ ] DG3 Chocolate wall
 - [ ] DG4 Slippery glaze with a slip-and-fall ragdoll
 - [ ] DG5 Rising anger (time + dodges)
@@ -126,6 +126,12 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | DG1-D2 | Tell 0.8 s; the three lashes run back to back, 0.35 s each; recovery 1.0 s and cooldown 7 s unchanged (the whole combo takes 2.85 s, was 2.45 s for one lash). | The user asked for a faster tell and a combo, not a shorter rest; DG5 (anger) shortens the cooldown later. |
 | DG1-D3 | A player is hit at most once per combo; stepping into a lane whose lash already landed is safe. Each lash is its own dodge telegraph. | One egg drop per combo; it rewards reading the order. |
 | DG1-D4 | The licorice ribbon (client art) still unrolls once per combo, at the first lash; the lanes on the ground flash for each lash. The clips are still unpublished (O2). Three ribbons are a client follow-up. | No test harness for the client art; the ground lanes carry the information. |
+| DG2-D1 | Numbers: tell 0.9 s (mouth open, a fixed 70-degree cone of 30 studs drawn), pull 2 s at 7 studs/s toward him, no pull within 5 studs, recovery 0.6 s, cooldown 12 s. | The doc said "about 2 s" and "a velocity the client can fight"; 7 is under half a walk (16), so running away always wins. |
+| DG2-D2 | He uses it only on a target that stayed out of the lash's reach (18 studs) for 2 s, in front of him, within 30 studs, with time left in the chase. | It reels in a runner who keeps away; the lash stays the close-range attack. |
+| DG2-D3 | The pull is re-checked every server step: it needs the target in the cone, a clear line of sight (`world.lineOfSight`, the same as his sight) and the target alive and out of a safe zone. The server sends a `Pull` every 0.25 s, each valid 0.35 s, so cover stops it within about a third of a second. | "Break line of sight behind cover." |
+| DG2-D4 | The target's own client applies the pull (it owns its character's physics): it shifts the character flat toward him, capped at 8 studs/s, only while the last `Pull` is valid. The `Pull` event is target-only (not in `Audience.VISUAL`). `WildboundBeasts.server` and `WildboundBeastConfig` were not edited. | The existing pattern for Streamer's knock; no new remote, no shared-server edit. A modified client could ignore its own pull (no damage or egg at stake). |
+| DG2-D5 | VFX: candy-coloured crumbs (a ParticleEmitter with Roblox's default particle, no upload) blow from the player toward him during the pull; "Efectos suaves" turns them off, not the pull. No new animation: the boss's clips are still unpublished (O2). | No asset upload. |
+| DG2-D6 | The vacuum never hits, never deals damage and never drops the egg. | The lash stays his only egg-drop attack (DG1). |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -186,3 +192,19 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
   - Standing on a cake tier about 24 studs above him, no lash landed (the existing height rule, `hitHeight` 8).
   - No script errors in the log.
 - Not checked: dodging the side lanes by hand, the perfect dodge on a lash, how three lanes read on screen, two players, a phone.
+
+### DG2 (2026-11-16)
+
+- Change: new `tools/WildboundCandyDonGlaseonVacuum.luau` (ServerStorage; the pure rule); `WildboundBeastDonGlaseon` (Inhale and Vacuum phases, `Pull` events, the cone Tell and its TellEnd, `lose` clears it); `WildboundBeasts.client.luau` (`handlers.Pull`, `stepPull` on Heartbeat, the crumbs). Registered in `tools/studio-fresh-runner.luau` SPECS, `tools/deploy_manifest.py` and `tools/test_deploy_manifest.py` (the two Python files edited by hand, not run: no Python here).
+- Suites: new `WildboundCandyDonGlaseonVacuum_Test` (5 cases); BeastDonGlaseon two new cases (a target kept out of reach is pulled: cone, Inhale 0.9, Vacuum 2, Pulls toward him, Recover; behind cover the pull stops); BeastWiring one new case (the client handler: never a bystander, capped, ends with its refresh; Pull not in `Audience.VISUAL`) and NB6 re-pinned on purpose ("Efectos suaves" now also drops the crumbs: three guards, was two).
+- Coordination: the parent session was told before the shared client file and its test were written; it was not writing Studio then.
+- Fingerprint rule: before writing, Studio equalled HEAD for BeastWiring_Test 49464/1801545942, BeastsClient 51090/1666555114, BeastDonGlaseon 13490/3619965978 and BeastDonGlaseon_Test 15488/4155125277 (the two new modules did not exist). A replace-all edit did not apply in Studio (caught by the fingerprint: 28 bytes short) and was redone as two edits. After: Studio == repo, Vacuum 4564/2464343848, Vacuum_Test 5241/2859486905, BeastDonGlaseon 16513/822813627, BeastsClient 52992/433460321, BeastDonGlaseon_Test 18017/1210400504, BeastWiring_Test 51083/1289257319. The client compiles.
+- RED (tests pushed, sources missing or unchanged), run `18714698`: Vacuum suite "module not found", BeastDonGlaseon 14/2 ("no vacuum cone"), BeastWiring 50/1 ("missing function handlers.Pull").
+- Two test fixes before GREEN: the target in the boss test is held inside his territory (it left it 2.2 s into the chase), and the no-hit check is limited to the vacuum's own window (a later lash may land). NB6 re-pinned as above.
+- GREEN, run `70ac1dcc`: Vacuum 5/0, DonGlaseonAttack 7/0, BeastDonGlaseon 16/0, BeastWiring 51/0, BossRobustness 8/0, BeastEncounters 24/0, BeastAudience 17/0, BeastAnimPlan 12/0.
+- Solo Play (PlayLock `DG2`, cleared after; Play stopped; memory saves), the player's client kept the player 24 studs from him until he inhaled:
+  - Crossing the cake: he climbed it in his simulation (y 40.9 against 3.6), the cake blocked his line of sight, the cone Tell arrived and no `Pull` came (DG2-D3 working as designed).
+  - On the flat plaza, standing still: 7 `Pull` events (speed 7, direction toward him); the distance went 24.33 -> 10.80 studs in 1.95 s (about 6.9 studs/s).
+  - Walking away at 16 during the next vacuum: the distance grew 24.3 -> 31.1 studs in the first second, then the pulls stopped once past his 30-stud range (4 pulls in all); the crumbs were enabled. No script errors in the log.
+- Not checked: hiding behind a real wall by hand (only the cake case), a perfect dodge (nothing to dodge), how the cone and crumbs look to a person, two players (a bystander gets no Pull by construction, suite only), a phone.
+- Seen in passing, not changed: in his simulation the boss walks up the Gran Torta's tiers (his ground follows the raycast); the territory rule allows it.

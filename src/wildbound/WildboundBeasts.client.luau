@@ -748,6 +748,45 @@ function handlers.Afflict(ev, view)
 	shake(0.45)
 	desaturate(0.45)
 end
+-- DG2 (odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's vacuum mouth. The server sends Pull to the target only, every
+-- 0.25 s while it holds; this client owns its character, so it moves it toward him (flat, capped). Walking away still
+-- wins; a pull the server stops refreshing ends at its untilAt. Crumbs fly toward him unless Efectos suaves is on.
+local PULL_CAP = 8 -- studs per second, never faster whatever arrives
+local PULL_LONGEST = 0.5 -- seconds a single Pull may last
+local pull = { untilAt = 0, dx = 0, dz = 0, speed = 0 }
+function handlers.Pull(ev, view)
+	if view.bystander then return end
+	if not (Config.finite(ev.dx) and Config.finite(ev.dz) and Config.finite(ev.speed) and Config.finite(ev.untilAt)) then return end
+	local dx, dz = Config.unit(ev.dx, ev.dz)
+	if not dx then return end
+	pull.dx, pull.dz = dx, dz
+	pull.speed = math.clamp(ev.speed, 0, PULL_CAP)
+	pull.untilAt = math.min(ev.untilAt, serverNow() + PULL_LONGEST)
+end
+local function stepPull(dt)
+	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	local crumbs = root and root:FindFirstChild("WildboundVacuumCrumbs")
+	if pull.untilAt <= serverNow() or not root then
+		if crumbs then crumbs.Enabled = false end
+		return
+	end
+	root.CFrame += Vector3.new(pull.dx, 0, pull.dz) * pull.speed * math.min(dt, 0.1)
+	if reduced() then return end
+	if not crumbs then
+		crumbs = Instance.new("ParticleEmitter")
+		crumbs.Name = "WildboundVacuumCrumbs"
+		crumbs.Color = ColorSequence.new(Color3.fromRGB(255, 214, 160), Color3.fromRGB(255, 160, 200))
+		crumbs.Size = NumberSequence.new(0.25, 0)
+		crumbs.Lifetime = NumberRange.new(0.4, 0.7)
+		crumbs.Rate = 40
+		crumbs.Speed = NumberRange.new(2, 4)
+		crumbs.SpreadAngle = Vector2.new(60, 60)
+		crumbs.Parent = root
+	end
+	crumbs.Acceleration = Vector3.new(pull.dx, 0, pull.dz) * 40
+	crumbs.Enabled = true
+end
+RunService.Heartbeat:Connect(stepPull)
 function handlers.Exposure(ev, view)
 	if view.wave2 and not view.bystander and Config.finite(ev.value) then view.exposure = math.clamp(ev.value, 0, 1) end
 end
