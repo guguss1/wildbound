@@ -3,7 +3,8 @@
 -- campView = require(freshCampViewClone), text = require(freshTextClone), service = WildboundGoldService.Source,
 -- server = WildboundServer.Source, client = WildboundClient.Source, goldClient = WildboundGoldClient.Source }).
 -- Gold (owner request 2026-11-16, odd/tasks/wildbound-gold.md): farm creatures and the treadmill pay gold; gold buys the
--- farm's extra places and treadmill levels in addition to their Esencia prices.
+-- farm's extra places and treadmill levels in addition to their Esencia prices. GD-18..GD-20: the owner-approved
+-- follow-up (farm places 7 and 8, treadmill x1.25, hatch/tame bonus 10, the farm paused for idle players).
 return function(Gold, source, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -30,7 +31,7 @@ return function(Gold, source, sources)
 		equal(Gold.farmRate({ "Tizoncillo" }, rarityOf), 30)
 		equal(Gold.farmRate({ "Mielita" }, rarityOf), 7, "a candy critter")
 		equal(Gold.farmRate({ "Lumipol", "Lumipol", "Polvilla" }, rarityOf), 32)
-		equal(Gold.TAME_BONUS, 20, "tame/hatch bonus (was 5)")
+		equal(Gold.TAME_BONUS, 10, "tame/hatch bonus (gold follow-up: was 20, at first 5)")
 		equal(Gold.farmRate({}, rarityOf), 0); equal(Gold.farmRate(nil, rarityOf), 0)
 	end)
 
@@ -70,8 +71,11 @@ return function(Gold, source, sources)
 
 	case("GD-4: gold prices for the farm places and the treadmill levels", function()
 		equal(Gold.upgradePrice("farmSlot5"), 60); equal(Gold.upgradePrice("farmSlot6"), 150)
+		-- Gold follow-up (owner OK 2026-11-16): two more farm places and a steeper treadmill ladder (x1.25, was x1.15).
+		equal(Gold.upgradePrice("farmSlot7"), 600); equal(Gold.upgradePrice("farmSlot8"), 1500)
 		equal(Gold.upgradePrice("reinforcedPack"), nil, "only the farm places sell for gold")
-		equal(Gold.trainPrice(0, 17), 30); equal(Gold.trainPrice(1, 17), 35); equal(Gold.trainPrice(16, 17), 281)
+		equal(Gold.TRAIN_GROWTH, 1.25)
+		equal(Gold.trainPrice(0, 17), 30); equal(Gold.trainPrice(1, 17), 38); equal(Gold.trainPrice(16, 17), 1066)
 		equal(Gold.trainPrice(17, 17), nil); equal(Gold.trainPrice(-1, 17), nil)
 	end)
 
@@ -305,6 +309,76 @@ return function(Gold, source, sources)
 		assert(client:find("Camp.HIDDEN", 1, true), "the eggs tab and station prompts follow the flag")
 		assert(client:find("Camp.HIDDEN.sections.Craft", 1, true), "the Bag tab's seal buttons hide with the crafts")
 		assert(service:find('op == "creature"', 1, true), "the Studio-only probe gives a test creature for the sale check")
+	end)
+
+	-- Gold follow-up (owner OK 2026-11-16 to the O7 proposals, docs/balance/wildbound-2-0-economy-sim.md).
+	case("GD-18: the farm pauses for a player who has not moved for IDLE_SECONDS", function()
+		equal(Gold.IDLE_SECONDS, 300)
+		assert(Gold.IDLE_MOVE_STUDS > 0, "a move threshold")
+		local track = Gold.watch(nil, 0, 0, 100)
+		equal(Gold.idle(track, 100), false, "a new track is active")
+		track = Gold.watch(track, 1, 1, 200) -- a small shuffle is not a move
+		equal(Gold.idle(track, 100 + Gold.IDLE_SECONDS - 1), false)
+		equal(Gold.idle(track, 100 + Gold.IDLE_SECONDS), true, "still for IDLE_SECONDS: idle")
+		track = Gold.watch(track, Gold.IDLE_MOVE_STUDS + 1, 0, 500)
+		equal(Gold.idle(track, 500), false, "a real move wakes the farm")
+		equal(Gold.idle(track, 500 + Gold.IDLE_SECONDS - 1), false)
+		local same = Gold.watch(track, nil, nil, 9999)
+		equal(same, track, "no position (no character) changes nothing")
+		equal(Gold.idle(nil, 1e9), false, "no track yet: not idle")
+		equal(Gold.idle(Gold.watch(nil, 0 / 0, 0, 5), 1e9), false, "a bad position starts no track")
+		-- Jumping in place moves up, not across: still idle.
+		track = Gold.watch(nil, 10, 10, 0)
+		track = Gold.watch(track, 10, 10, 150)
+		equal(Gold.idle(track, Gold.IDLE_SECONDS), true)
+	end)
+
+	case("GD-19: farm places 7 and 8: Esencia or gold, each needs the one before; old saves load", function()
+		local up = Config.upgrades
+		equal(up.farmSlot7.effects.farmSlots, 7); equal(up.farmSlot7.requires, "farmSlot6")
+		equal(up.farmSlot8.effects.farmSlots, 8); equal(up.farmSlot8.requires, "farmSlot7")
+		equal(up.farmSlot7.cost.ember, 2000); equal(up.farmSlot8.cost.ember, 4500)
+		local state, profile = fresh()
+		profile.ember = 10000
+		local function refused(reason, ok, why) equal(ok, false); equal(why, reason) end
+		state:addGold("Alice", 5000)
+		refused("NeedsPrerequisite", state:upgradeWithGold("Alice", "farmSlot7", true, 0, 600))
+		equal(state:upgradeWithGold("Alice", "farmSlot5", true, 0, 60), true)
+		equal(state:upgradeWithGold("Alice", "farmSlot6", true, 0, 150), true)
+		refused("NeedsPrerequisite", state:upgradeWithGold("Alice", "farmSlot8", true, 0, 1500))
+		equal(state:upgradeWithGold("Alice", "farmSlot7", true, 0, 600), true)
+		equal(state:snapshot("Alice").farmSlots, 7)
+		equal(state:upgrade("Alice", "farmSlot8", true, 0), true, "the eighth with Esencia")
+		equal(state:snapshot("Alice").farmSlots, 8); equal(profile.ember, 5500)
+		equal(state:snapshot("Alice").gold, 5000 - 60 - 150 - 600)
+		-- A save made before these places existed has no farmSlot7/farmSlot8 key: it loads with both unbought.
+		local record = Record.fromProfile(profile, nil, nil, Economy, Config)
+		record.upgrades.farmSlot7, record.upgrades.farmSlot8 = nil, nil
+		equal(Record.validate(record, Economy, Config), true, "an older save is still valid")
+		local back = Record.toProfile(record, Economy, Config, 0)
+		equal(back.upgrades.farmSlot7, false); equal(back.upgrades.farmSlot8, false)
+		equal(back.upgrades.farmSlot6, true)
+		local other = State.new(Economy, Config)
+		other:loadPlayer("Alice", back)
+		equal(other:snapshot("Alice").farmSlots, 6)
+		-- The camp screen lists them with both prices, the seventh waiting for the sixth.
+		local rows = rowsOf({ gold = 999, upgrades = { farmSlot5 = true } }, { atCamp = true,
+			goldPrices = { farmSlot5 = 60, farmSlot6 = 150, farmSlot7 = 600, farmSlot8 = 1500 } })
+		assert(rows["upgrade:farmSlot7"].text:find("2000 de Esencia o 600 de oro", 1, true), rows["upgrade:farmSlot7"].text)
+		assert(rows["upgrade:farmSlot7"].text:find("Séptimo lugar de granja", 1, true), rows["upgrade:farmSlot7"].text)
+		equal(rows["gold:farmSlot7"].enabled, false)
+		assert(rows["gold:farmSlot7"].why:find("Sexto lugar de granja", 1, true), rows["gold:farmSlot7"].why)
+		assert(rows["upgrade:farmSlot8"].text:find("Octavo lugar de granja", 1, true), rows["upgrade:farmSlot8"].text)
+	end)
+
+	case("GD-20: wiring: the service watches each player's position on the server and skips the farm when idle", function()
+		local service = sources.service
+		assert(service:find("Gold.watch(", 1, true) and service:find("Gold.idle(", 1, true), "the service uses the idle rule")
+		assert(service:find("HumanoidRootPart", 1, true), "the position comes from the server's character")
+		assert(service:find("WildboundFarmPaused", 1, true), "the pause shows on a player attribute")
+		local _, remotes = service:gsub("Instance%.new%(\"RemoteEvent\"%)", "")
+		equal(remotes, 1, "no new remote: the client never reports idleness (only GoldPopup)")
+		equal(Text.GOLD.farmPaused ~= nil and type(Text.GOLD.farmPaused), "string", "the pause notice words")
 	end)
 
 	return result

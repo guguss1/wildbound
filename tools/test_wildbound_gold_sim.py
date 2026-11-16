@@ -47,6 +47,22 @@ class LoadingTests(unittest.TestCase):
             self.assertGreater(gold[key], 0)
         self.assertEqual(gold["species_rarity"]["Flanfuria"], "Epica")
         self.assertEqual(gold["species_rarity"]["Lumipol"], "Comun")
+        self.assertEqual(gold["species_rarity"]["LumipolVioleta"], "Rara")
+
+    def test_live_gold_follow_up_values(self):
+        # Owner approved the O7 proposals (2026-11-16): farm places 7 and 8, a steeper treadmill ladder, the hatch/tame
+        # bonus halved and the farm paused for idle players.
+        gold = sim.load_gold()
+        self.assertEqual(gold["upgrade_prices"], {"farmSlot5": 60, "farmSlot6": 150, "farmSlot7": 600, "farmSlot8": 1500})
+        self.assertEqual(sim.farm_slot_names(gold), ["farmSlot5", "farmSlot6", "farmSlot7", "farmSlot8"])
+        self.assertEqual(gold["TRAIN_GROWTH"], 1.25)
+        self.assertEqual(gold["TAME_BONUS"], 10)
+        self.assertEqual(gold["IDLE_SECONDS"], 300)
+        self.assertGreater(gold["IDLE_MOVE_STUDS"], 0)
+        ladder = sim.sink_ladder(gold, 17)
+        self.assertEqual(ladder["train"][:5], [30, 38, 47, 59, 73])
+        self.assertEqual(ladder["train"][-1], 1066)
+        self.assertEqual(ladder["total"], 2310 + 5211)
 
     def test_reads_a_changed_value_from_a_crafted_repo(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -105,6 +121,21 @@ class RuleTests(unittest.TestCase):
         gold = crafted_gold()
         self.assertEqual(sim.afk_gold_per_minute(gold, []), 10)
         self.assertEqual(sim.afk_gold_per_minute(gold, ["Epica"] * 6), 118)
+        # No idle pause: the farm pays the whole hour; with a 5 min pause it pays 5 minutes of it.
+        self.assertEqual(sim.afk_gold_per_hour(gold, ["Epica"] * 6), 600 + 108 * 60)
+        self.assertEqual(sim.afk_gold_per_hour(crafted_gold(IDLE_SECONDS=300), ["Epica"] * 6), 600 + 108 * 5)
+
+    def test_idle_spans_from_back_to_back_laps(self):
+        gold = crafted_gold(IDLE_SECONDS=300)
+        laps = [(8.0 * i, 0) for i in range(1, 51)]  # 400 s still on the belt from t=0
+        laps += [(1000.0 + 8.0 * i, 0) for i in range(1, 11)]  # a short 80 s run: never idle
+        self.assertEqual(sim.idle_spans(gold, laps), [(300.0, 400.0)])
+        self.assertEqual(sim.idle_spans(crafted_gold(), laps), [], "no idle rule, no pause")
+        self.assertEqual(sim.idle_spans(gold, []), [])
+
+    def test_farm_slot_names_follow_their_number(self):
+        gold = crafted_gold(upgrade_prices={"farmSlot10": 9, "farmSlot6": 2, "farmSlot5": 1, "other": 3})
+        self.assertEqual(sim.farm_slot_names(gold), ["farmSlot5", "farmSlot6", "farmSlot10"])
 
 
 class SessionTests(unittest.TestCase):
@@ -125,6 +156,30 @@ class SessionTests(unittest.TestCase):
         self.assertEqual(r["farm_slot_5_s"], 0.0)
         self.assertAlmostEqual(r["farm_slot_6_s"], 150 / 14 * 60.0)
         self.assertAlmostEqual(r["gold_end"], 14 * 11 - 150)
+
+    def test_farm_places_seven_and_eight_are_bought_in_order(self):
+        gold = crafted_gold(TRAIN_BASE=10 ** 6,
+                            upgrade_prices={"farmSlot5": 60, "farmSlot6": 150, "farmSlot7": 600, "farmSlot8": 1500})
+        hatches = [(0.0, "Comun", "Gomibu")] * 9  # companion + 8 creatures: the farm fills as places open
+        r = sim.gold_session(gold, hatches, [], 120, "keep", 4, 17)
+        times = r["farm_slots_s"]
+        self.assertTrue(all(times[k] is not None for k in times), times)
+        self.assertLess(times["farmSlot5"], times["farmSlot6"])
+        self.assertLess(times["farmSlot6"], times["farmSlot7"])
+        self.assertLess(times["farmSlot7"], times["farmSlot8"])
+        self.assertEqual(r["farm_size_end"], 8)
+        self.assertAlmostEqual(r["farm_rate_end"], 8 * 7)
+
+    def test_long_treadmill_run_pauses_the_farm(self):
+        gold = crafted_gold(TRAIN_BASE=10 ** 6, IDLE_SECONDS=300,
+                            upgrade_prices={"farmSlot5": 10 ** 6, "farmSlot6": 10 ** 6})
+        hatches = [(0.0, "Comun", "Gomibu")] * 2  # companion + one farm creature: 7 per minute
+        laps = [(8.0 * i, 0) for i in range(1, 76)]  # 600 s on the belt
+        r = sim.gold_session(gold, hatches, laps, 10, "keep", 4, 17)
+        self.assertAlmostEqual(r["farm_paused_s"], 300.0)
+        self.assertAlmostEqual(r["split"]["farm"], 7 * 5)  # only the first 5 minutes pay
+        active = sim.gold_session(gold, hatches, [], 10, "keep", 4, 17)
+        self.assertAlmostEqual(active["split"]["farm"], 7 * 10)
 
     def test_treadmill_laps_respect_the_cap(self):
         gold = crafted_gold(TRAIN_BASE=10 ** 6, upgrade_prices={"farmSlot5": 10 ** 6, "farmSlot6": 10 ** 6})
@@ -161,6 +216,22 @@ class SessionTests(unittest.TestCase):
         out = io.StringIO()
         with contextlib.redirect_stdout(out):
             self.assertEqual(sim.main(["--profile", "beginner", "--minutes", "10", "--runs", "2", "--md"]), 0)
+
+
+class ForestTests(unittest.TestCase):
+    def test_far_forest_nests_hold_the_violet_lumipol(self):
+        # The live server keeps the violet Lumipol (Rara) in I3, I4 and I5 with the nest's own egg rarity; the first gold
+        # run modelled every forest egg as a common Lumipol.
+        islands = {i["id"]: i for i in v2.load_live_game()["forest_islands"]}
+        self.assertEqual({k: (i["species"], i["rarity"]) for k, i in islands.items()}, {
+            "I1": ("Lumipol", "Comun"), "I2": ("Lumipol", "Comun"), "I3": ("LumipolVioleta", "Rara"),
+            "I4": ("LumipolVioleta", "Epica"), "I5": ("LumipolVioleta", "Legendaria")})
+
+    def test_forest_farm_earns_rara_gold(self):
+        live, gold = v2.load_live_game(), sim.load_gold()
+        profiles = {"intermediate": v2.default_live_profiles()["intermediate"]}
+        report = sim.run_gold(live, gold, profiles, [60], seed=7, runs=4, routes=("forest",))
+        self.assertGreater(report["cells"][0]["farm_rate_end"], 42.0)  # more than six common Lumipol
 
 
 class LiveLogTests(unittest.TestCase):

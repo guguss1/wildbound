@@ -1416,8 +1416,11 @@ LIVE_ASSUMPTIONS = [
     ("loss", "a loss drops every carried egg; the nest stays empty until the next wave; banked Esencia is never lost"),
     ("first_steal_bonus", "not paid for eggs (State pays it only when an island cria is registered)"),
     ("extract_base", "4 Esencia when a trip lasts 25 s or more (minExpeditionSeconds, BP3); every trip passes 60 studs"),
-    ("forest_eggs", "Species.ONLY rewrites forest eggs to Lumipol (Comun, 15 s hatch); Esencia by the island's tier"),
-    ("wild_eggs", "wild/bough pickups per forest trip by profile; rarity by SpawnClock MAX weights, Esencia by REWARD"),
+    ("forest_eggs", "I1 and I2 eggs are Lumipol (Species.ONLY, Comun, 15 s hatch); the far nests I3, I4, I5 hold violet "
+                    "Lumipol eggs of the nest's rarity (Rara, Epica, Legendaria hatch times, read from WildboundServer); "
+                    "Esencia by the island's tier"),
+    ("wild_eggs", "wild/bough pickups per forest trip by profile; rarity by SpawnClock MAX weights (a Rara or rarer one "
+                  "is a violet Lumipol), Esencia by REWARD"),
     ("incubation", "eggs start as soon as one of the 8 base slots frees (the owner is assumed near the base)"),
     ("roulette", "the free first spin only, drawn from Roulette.LIVE; paid spins are a separate sink table"),
     ("harvest_travel_seconds", HARVEST_TRAVEL),
@@ -1525,11 +1528,24 @@ def load_live_game(repo=REPO):
                                     r'rewardTier = "(\w+)", species = "(\w+)", adults = (\d+)', island_text, re.S)]
     if not islands:
         raise NumbersUnavailable(f"{ISLAND_LAYOUT}: islands not found")
+    # Gold follow-up (2026-11-16): the live server keeps the violet Lumipol (Species.KEEPS_OWN) in the far nests and
+    # gives their eggs the nest's own rarity (I3 Rara, I4 Epica, I5 Legendaria); Species.ONLY makes every other forest
+    # egg a common Lumipol. Read both rules from WildboundServer so the forest model follows the code.
+    server_text = _read(repo, SERVER)
+    violet = re.search(r'species = \(((?:spec\.id == "I\d"(?: or )?)+)\) and "(\w+)" or spec\.species', server_text)
+    nest_rarity = dict(re.findall(r'\(spec\.id == "(I\d)" and "(\w+)"\)', server_text))
+    if not violet or not nest_rarity:
+        raise NumbersUnavailable(f"{SERVER}: the far forest nests' species or rarity not found")
+    violet_ids = set(re.findall(r'"(I\d)"', violet.group(1)))
     for island in islands:
         island["esencia"] = egg_esencia[island["tier"]]
-        island["rarity"] = "Comun"  # Species.ONLY = "Lumipol"
-        island["hatch_s"] = hatch["Comun"]
-        island["species"] = "Lumipol"
+        if island["id"] in violet_ids:
+            island["species"] = violet.group(2)
+            island["rarity"] = nest_rarity.get(island["id"], "Rara")
+        else:
+            island["species"] = "Lumipol"  # Species.ONLY = "Lumipol"
+            island["rarity"] = "Comun"
+        island["hatch_s"] = hatch[island["rarity"]]
 
     world_text = _read(repo, WORLD_RULES)
     hub = re.search(r"Rules\.HUB_X, Rules\.HUB_Z, Rules\.HUB_RADIUS = (-?\d+), (-?\d+), (\d+)", world_text)
@@ -1869,7 +1885,10 @@ def simulate_live_session(live, profile, route, minutes, seed):
             out["eggs_lost"] += held
             continue
         eggs = [(n["rarity"], n["species"], n["esencia"]) for n in targets]
-        eggs += [("Comun", "Lumipol", live["egg_esencia"][live["reward_tier"][r]]) for r in wild]
+        # A wild egg keeps its rolled rarity; a Rara or rarer one is a violet Lumipol (spawnEncounter), a common one a
+        # Lumipol.
+        eggs += [(r, "Lumipol" if r == "Comun" else "LumipolVioleta", live["egg_esencia"][live["reward_tier"][r]])
+                 for r in wild]
         split["eggs"] += sum(e[2] for e in eggs)
         if seconds >= live["extract_min_seconds"]:
             split["base"] += live["extract_base"]
