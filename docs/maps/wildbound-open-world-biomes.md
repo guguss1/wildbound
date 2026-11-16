@@ -133,3 +133,26 @@ python -I -B -m unittest discover -s tools -p "test_*.py"
 | P3 | The forest's world position: resolved by measurement, the forest stays at (-18, -3) and the planner routes around it (`MEASURED_FOREST`) | Re-measure and pass `--forest X Z SIZE` if the forest is ever moved |
 | P4 | Optional upload of the six kits' FBX files (the forest kit's route) for mesh art instead of the fallback | Only with explicit approval; the builders pick templates up without a code change once they sit in `ServerStorage.WildboundAssets.<Kit>` |
 | P5 | `layout-v1.json`'s ring road (z +-212, hub radius 60 frame) crosses the north and south biomes at today's hub; it is not part of this placement | Retire it in favour of the per-biome roads |
+
+## 8. Big4 map experiment (four larger biomes, reversible)
+
+Feature doc: `odd/tasks/wildbound-big4-map.md`. The place can run a second map, "big4", with only four biomes, each
+larger. The switch is the Workspace attribute `WildboundMapMode` ("big4"; absent = the classic map above).
+
+| Biome | Workspace root(s) in big4 | Square (x, z) | How it grew |
+| --- | --- | --- | --- |
+| Bosque de la Silueta | `WildboundP0` (unchanged) + `WildboundForestOuter_Big4` | x -618..182, z -563..197 | two forest floor slabs west and north, 330 seeded clones of the forest's own kit trees |
+| Reino Caramelo | `Candy_Bioma_v1` (unchanged) + `WildboundCandyAnnex_Big4` | x 412..1012, z -203..537 | two candy floor slabs east and south, 170 seeded CandyKit props |
+| Montañas Heladas | `WildboundFrozenMountains_Big4` | x 247..1022, z -1018..-243 | clone scaled 1.55 about the SE corner (1022, -243); gate (285.75, -336) |
+| Tierras Volcánicas ("infierno") | `WildboundVolcanicLands_Big4` | x -668..92, z 237..997 | clone scaled 1.9 about the NE corner (92, 237); gate (73, 370) |
+
+- Roads: the hub N trunk (`Road_living-forest_1`, `_2`) continues with `Road_big4_frozen-mountains_1` from (352, -223)
+  to the Frozen gate; the S trunk (`Road_cryptic-ruins_1`, `Road_volcanic-lands_1..4`) continues with
+  `Road_big4_volcanic-lands_1` from (82, 307) to the Volcanic gate (both in `WildboundBig4Roads`).
+- Archived in big4 (`ServerStorage.WildboundMapArchive.Classic`, never destroyed): Pantano, Cementerio, Cuevas de Roca,
+  Abismo, the original Frozen and Volcanic roots, 11 road slabs and 6 gate markers (`WildboundMapModeSwitch.CLASSIC_ONLY`).
+- Code: `WildboundBiomes.AREAS_BIG4` and `WildboundBiomeLight.AREAS_BIG4`, `areasFor(mode)`, and `at`/`has`/`presetAt`/
+  `phaseAt` take an optional mode; without it they read the attribute. Classic tables are unchanged.
+- Tools: `tools/WildboundMapModeSwitch.luau` (`ServerStorage.WildboundMapModeSwitch`, `apply("big4" | "classic")`) and
+  `tools/WildboundBig4Annex.luau` (`ServerStorage.WildboundBig4Annex`, `build()` into the archive's Big4 folder).
+- Back to the classic map: `require(game.ServerStorage.WildboundMapModeSwitch).apply("classic")` in the Studio command bar.
