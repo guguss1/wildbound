@@ -1078,9 +1078,11 @@ cake is him in disguise.
 - [x] B5-4 `WildboundText`: GiveUp lines "Gomibú / Flanfuria / Tortidragón vuelve a su nido" (were "volvió").
 - [x] B5-5 `tools/studio-fresh-runner.luau`: `WildboundCandyLiveClips_Test` also receives `flanAnim`
   (`src:WildboundCandyFlanfuriaAnim`).
-- [ ] B5-6 Deploy the changed scripts to Studio, run the suites below with the fresh loader (red on the old Studio code,
+- [x] B5-6 Deploy the changed scripts to Studio, run the suites below with the fresh loader (red on the old Studio code,
   green after), and walk a Play: Flanfuria and Tortidragon give up, walk home with their walk/hop clip, the view ends at
-  the post and the resting copy takes over with no fade; the GiveUp line reads "vuelve a su nido".
+  the post and the resting copy takes over with no fade; the GiveUp line reads "vuelve a su nido". Deployed and green
+  (commits d78f761, 7870366); red-before was not re-run in Studio (the reviewer traced it). Walked in Play: see
+  "Evidence (B5-6 deploy and walked Play)". The clips themselves (hop, walk) were not looked at on screen.
 
 Suites to run (SPECS names): WildboundBeastFlanfuria_Test, WildboundBeastTortidragon_Test, WildboundText_Test,
 WildboundCandyLiveClips_Test; neighbours: WildboundBeastGomibu_Test, WildboundCandySmarts_Test,
@@ -1107,3 +1109,63 @@ WildboundBeastCandyCritter_Test.
   15 run, 1 failure, the existing "spec tokens name deployed scripts" list (WildboundCandyCritterAnim, Duquesa,
   GoldClient...), which does not include anything this step added.
 - Not run: the Luau suites (they need Studio); not checked in Play.
+
+## Evidence (B5-6 deploy and walked Play, 2026-11-16, place 122652861404212)
+
+- Deploy: before writing, Studio matched the pre-change repo version (d78f761~1) for all nine scripts (Flanfuria,
+  Tortidragon, CandyCritterAnimSpec, CandyFlanfuriaAnim, Text and the four suites), so nobody had changed Studio. Written
+  with exact `multi_edit` replacements; read back, all nine match HEAD 7870366 (length + Adler-32, CRLF->LF, trailing
+  newlines stripped), e.g. Flanfuria 10001 / 2706167144, Tortidragon 10417 / 531848168, Text 42451 / 420562772.
+- Fresh loader (the `tools/studio-fresh-runner.luau` engine with only the needed SPECS; runner lock set and cleared, no
+  leaks): 13 suites, 179 passed, 0 failed. BeastFlanfuria 12/0, BeastTortidragon 11/0, Text 23/0, CandyLiveClips 8/0,
+  BeastGomibu 11/0, CandySmarts 16/0, BeastCandyCritter 32/0, CandyClipKit 18/0, CandyFlanfuriaAttack 11/0,
+  CandyTortidragonAttack 7/0, CandyTrapCake 10/0, CandyNests 12/0, CandyPets 8/0. No new failures.
+- Walked Play (`WildboundPlayLock = "b5-play-checks-20261116"`, both locks nil before, cleared after, map left in big4,
+  place not saved). Client-side log of the BeastEvent remote, the drawn models in `Workspace.WildboundBeastsLocal`
+  (sampled every 0.1 s) and every PlayerGui text with the creature names; character_navigation only. Times are seconds
+  from the start of the log.
+  - Flanfuria (post 542, -41), walker led it out then went north to (540, 8): Phase GiveUp 181.20 with the line
+    "Flanfuria vuelve a su nido" at 181.20; it stood still at (540.6, -25.1) for 2 s; Phase Return 183.23; the drawn
+    model walked (540.8, -27.0) -> (541.8, -38.3) at about 11 studs/s (0.6 x 19 = 11.4); End reason GiveUp at 184.68;
+    no Disengage event; the resting copy appeared at (542, -41) at 184.73. A later calm encounter ended by escape the
+    same way (Return Escape 205.94, End Escape 206.01, no Disengage).
+  - Tortidragon (post 510, -143), walker fled west to (425, -135): GiveUp 226.56 with "Tortidragón vuelve a su nido";
+    stood 2 s at (477.1, -131.2); Return 228.58; the model walked (477.5, -131.3) -> (505.9, -141.5) at 11 to 15 studs/s
+    (0.6 x 22 = 13.2); End GiveUp 231.28; no Disengage; resting copy at (510, -143) at 231.31.
+  - Gomibu notice timing, walker went east out of its reach (not toward the base): GiveUp 137.61 and the line
+    "Gomibú vuelve a su nido" at 137.61, it stood 2 s, Return 139.68, walked (475.9, -13.0) -> (451.2, -14.7) at about
+    12.6 studs/s (0.6 x 21), End GiveUp 142.08, resting copy at the post. The line now says it is going back while it
+    stands and then walks, so it no longer claims it is already home.
+  - Seen, by design: when the walker fled from Gomibu into the base, the encounter ended with reason SafeZone 0.4 s after
+    GiveUp and the drawn Gomibu vanished at (416, -12) while its resting copy appeared at the post (the shared guard ends
+    an encounter at once in the safe zone). Gomibu's post is only about 75 studs from the base edge, so a player who
+    runs home sees this pop. Left as it is (B5 did not cover the safe-zone end); listed under "Not done (B5-6, B6)".
+
+## Step B6: chase speeds measured on the client (2026-11-16)
+
+- [x] B6-1 Measure the Caramelo creature chase speeds from the drawn models (they exist only on the client). Same Play
+  and log as B5-6. The walker had trained to walk speed 24 on the treadmill just before (Humanoid.WalkSpeed 24), so the
+  OF3 scaling applies: chase = max(config, 0.92 x 24 = 22.1), sprint = max(profile, 1.1 x 24 = 26.4).
+  - Gomibu (config 21, expected 22.1 now; sprint 26.4 for 2 s): first chase from the post 444.3 -> 427.1 in 0.67 s =
+    25.7 studs/s (sprint). After two casts (sprint over) it chased through its nest: (418.8, -15.9) -> (436.8, -20.3) in
+    0.86 s = 21.5 studs/s, single 0.2 s steps 19 to 24. Matches 22.1 within the client's smoothing.
+  - Tortidragon (config 22, sprint 26.4): first chase (509.2, -142.4) -> (495.6, -132.1) in 0.65 s = 26.2 studs/s
+    (sprint). Its later chase was cut by its 35-stud leash, so its base speed was not measured cleanly.
+  - Flanfuria (config 19): its leash is only 16 studs and every chase step logged ran along the leash edge (6 to 12
+    studs/s), so its chase speed was not measured.
+  - Seen: while the target stands within the stand-off or cast range the drawn model stays still in Chase for several
+    seconds between casts (Gomibu 2.4 studs away, Tortidragon 5 to 6 studs away). That is the stand-off rule, not a stall.
+
+## Decisions taken for the user (B6)
+
+1. Speeds are reported against the scaled values (trained walk 24) rather than the plain config values, because the
+   walker's training could not be undone inside the Play session and the scaling is the live rule.
+2. Flanfuria's chase speed is left unmeasured instead of widening its leash for a test: its 16-stud leash makes any
+   clean straight chase shorter than one second.
+
+## Not done (B5-6, B6)
+
+- A creature whose chase ends because the player reached the safe zone still pops back to its post (reason SafeZone,
+  no walk home). Seen with Gomibu; Flanfuria and Tortidragon use the same guard.
+- Flanfuria's chase speed and Tortidragon's base (post-sprint) chase speed on the client; the hop and walk clips on screen.
+- Two players, a phone.

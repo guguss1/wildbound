@@ -130,7 +130,35 @@ Decisions taken for the user:
 3. A seller runs with no collection limit (a sale frees the place).
 4. The simulator's broken inputs were fixed from the code (per-rarity steal holds, beast cooldown 10) instead of pinning old values; the older Esencia tables were not regenerated, to keep their hand-written balance-pass notes.
 
+### Walked income and phone layout (handoff B1, B2; 2026-11-16, place 122652861404212)
+
+- [x] GW-1 Farm income walked at the new rate. Play with `WildboundPlayLock = "b5-play-checks-20261116"` (both locks nil
+  before, cleared after, map left in big4, place not saved). The Studio probe gave one test Lumipol (Común); after a
+  respawn its hotbar tool appeared; the client equipped it on the own Base1 pad and `Tool:Activate()` placed it in the
+  farm (the tool was consumed). The server read the player attribute `WildboundGold` every 2.5 s: 12 at 0.0 s, 19 at
+  60.2 s (+1 about every 8.6 s), i.e. exactly 7 per minute.
+- [x] GW-2 Treadmill laps walked. The walker stood on the own belt and was mounted on its own; the client logged the
+  Treadmill remote's "lap" events: one every 8.0 s; laps 1 to 5 paid 2 each (balance 23, 26, 29, 32, 35, with the farm
+  still adding), laps 6 to 8 paid 0 (the cap of 10 in the 60 s window), and the first lap after the window reset paid
+  2 again; at training level 4 a lap paid 3 (2 + 1 per 4 levels), as designed. The walk speed rose to 24 from those laps.
+- [x] GW-3 Bolsa tab Vender/Liberar rows at phone size: COMPUTED, not seen on a phone (Studio's Play viewport cannot be
+  resized from here). In the Play client, with the game's own `WildboundHudLayout.compute` (touch), `WildboundCampView`
+  panel/listArea/rowHeight and the client's row geometry (98 x 44 button, description width = row - 118), each row text
+  was measured with `TextService:GetTextSize` (Gotham) for every species name and the four row texts (Liberar,
+  its Confirmar, Vender at 400 oro, its Confirmar):
+  - 375 x 812 (upright): panel 359 x 429 at (8, 54), compact rows, text size 13, text width 200. Every row fits; the
+    tightest ("¿Vender a Lumipol Violeta por 400 de oro? No se puede deshacer.") needs 43 px of a 60 px row. About 5.6
+    sell rows show without scrolling. Buttons: the widest label ("Confirmar") is 66 of 98 px.
+  - 812 x 375 (sideways): panel 470 x 313 at (171, 54), compact rows, text width 311. Every row fits (tightest 30 px of
+    48). About 5 rows show. The panel stays inside the screen in both.
+
+Decisions taken for the user:
+
+1. The farm check used the Studio-only probe creature (as the sale check did) instead of stealing and hatching an egg,
+   because the egg route needs a full heist and the income rule does not depend on how the creature was gained.
+2. The phone check is computed from the live modules and real text measurement rather than skipped, and is marked as
+   computed; a real phone stays with the owner (handoff O5).
+
 ### Not done
 
-- Farm and treadmill income at the new rates were not walked (unit-tested only).
-- No mobile layout check of the Bolsa tab with Vender rows.
+- A real phone (or a resized viewport) for the Bolsa tab; two players.
