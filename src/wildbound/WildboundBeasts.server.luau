@@ -632,11 +632,13 @@ local function landHit(entry, event)
 	beastHit = beastHit or network:FindFirstChild("BeastHit")
 	local ok, effect = false, nil
 	-- Kids rule (defence in depth): a summoned beast with no damage of its own (the Nube, the Abeja), or any hit on a
-	-- target in the Pradera, never deals damage. OF2 (owner feedback 2): the candy creatures carry their own damage.
+	-- target in the Pradera, never deals damage. OF2 (owner feedback 2): the candy creatures carry their own damage, also
+	-- inside the "Meadow" tag (the Caramelo biome and its big4 annex lie inside it); a forest beast still never hurts there.
 	local kept = Config.BEASTS[entry.e.beast]
 	local hurts = kept ~= nil and Config.finite(kept.damage) and kept.damage > 0
+	local candy = Config.SUMMONED[entry.e.beast] == true and hurts
 	local _, _, body = bodyOf(entry.player)
-	if (Config.SUMMONED[entry.e.beast] and not hurts) or (body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
+	if (Config.SUMMONED[entry.e.beast] and not hurts) or (not candy and body and inMeadow(body.Position.X, body.Position.Z)) then event.damage = 0 end
 	-- Caramelo biome: a keepsEgg beast (Gomibu, the critters) reaches BeastHit only to hurt, with the carried egg kept.
 	local keep = kept ~= nil and kept.keepsEgg == true
 	if keep and not (Config.finite(event.damage) and event.damage > 0) then
