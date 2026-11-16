@@ -34,14 +34,17 @@ constraint.MaxTextSize = 34
 constraint.Parent = line
 
 local shown = 0
+local fade -- the previous line's fade; a new line cancels it so it cannot hide the new words (PF6 review)
 local function show(words)
 	shown += 1
 	local mine = shown
+	if fade then fade:Cancel() end
 	line.Text = words
 	line.TextTransparency, line.TextStrokeTransparency = 0, 0.2
 	task.delay(2.2, function()
 		if shown ~= mine then return end
-		TweenService:Create(line, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 }):Play()
+		fade = TweenService:Create(line, TweenInfo.new(0.5), { TextTransparency = 1, TextStrokeTransparency = 1 })
+		fade:Play()
 	end)
 end
 

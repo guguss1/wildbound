@@ -166,6 +166,19 @@ return function(Trap, Layout, sources)
 		has(client, 'Catalog.SOUNDS.eggBanked', "a catalogue sound"); has(client, 'Instance.new("ParticleEmitter")', "a sparkle")
 	end)
 
+	-- PF6 review: a second bite 2.2-2.7 s after the first used to land while the first line's 0.5 s fade was still
+	-- playing, and that fade hid the new line ("Ya comiste de esta torta" never showed). A new line cancels the old fade.
+	case("PF6 review: a new line cancels the previous line's fade", function()
+		local client = sources.client
+		assert(type(client) == "string", "pass the cake client source")
+		has(client, "local fade", "the fade tween is kept")
+		has(client, "if fade then fade:Cancel() end", "a new line cancels the old fade")
+		has(client, "fade = TweenService:Create(line,", "the delayed fade is the kept tween")
+		local cancelAt = string.find(client, "if fade then fade:Cancel() end", 1, true)
+		local showAt = string.find(client, "line.TextTransparency, line.TextStrokeTransparency = 0, 0.2", 1, true)
+		assert(cancelAt and showAt and cancelAt < showAt, "the old fade is cancelled before the new line is shown")
+	end)
+
 	case("DG7 wiring: applyCarry applies the rush; the server re-applies when it starts and ends; the sleeper hides in disguise", function()
 		local server = sources.server
 		has(server, 'local rush = player:GetAttribute("WildboundCandyRushUntil")', "applyCarry reads the rush")
