@@ -9,7 +9,9 @@
 --   -> Telegraph (one attack within Attack.RangeStuds; tell never under Config.MIN_TELL, and the shape is locked at
 --      least MIN_TELL before the strike) -> Release (Attack.TravelSeconds: the hop, roll, wave or throw; the strike
 --      is its end) -> Recover (Attack.RecoverSeconds) -> Chase ...
---   -> GiveUp (the target past AbandonStuds: GiveUpSeconds still) -> Return (walks home, calm) -> Patrol.
+--   -> GiveUp: the target past AbandonStuds, or the creature held at its leash with the target out of attack range
+--      for GiveUpSeconds. Like Gomibu it ends the encounter (Disengage "GiveUp" for GiveUpSeconds, then End), so an
+--      idle critter never holds one of the director's MAX_ACTIVE slots; the next summon starts again at home in Patrol.
 --   Escape: the target outside EscapeDistance of home for EscapeSeconds. Death and the safe zone end it (Attack.guard).
 -- Attack kinds (tuning.Attack.kind):
 --   leap  a circle of RadiusStuds on the target that follows it until LockSeconds; the creature hops there.
@@ -27,6 +29,7 @@ local Critter = {}
 local flat, unit = Config.flat, Config.unit
 local copy = Attack.copy
 local GOLDEN = math.pi * (3 - math.sqrt(5)) -- the patrol's next heading: spread round home without a random source
+local LEASH_EDGE = 0.05 -- studs: this close to LeashStuds from home counts as held at the leash
 
 function Critter.tellSeconds(A)
 	return math.max(A.TelegraphSeconds, Config.MIN_TELL)
@@ -197,21 +200,14 @@ function Critter.step(events, e, now, target, world, dt)
 	end
 
 	if e.phase == "Spawn" then Attack.phase(events, e, "Patrol", e.phaseAt) end
-	if e.phase == "Patrol" or e.phase == "Return" then
+	if e.phase == "Patrol" then
 		if Critter.sees(e, target, T) then
 			e.waypoint, e.waitUntil = nil, nil
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
 			return
 		end
-		if e.phase == "Return" then
-			if walkTo(e, world, T, e.home.x, e.home.z, T.PatrolSpeedStudsPerSecond, dt) then
-				e.waitUntil = now + (T.PatrolPauseSeconds or 1.5)
-				Attack.phase(events, e, "Patrol", now)
-			end
-		else
-			patrol(e, now, world, T, dt)
-		end
+		patrol(e, now, world, T, dt)
 		return
 	end
 	if e.phase == "Notice" then
@@ -222,12 +218,24 @@ function Critter.step(events, e, now, target, world, dt)
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
 		if distance > T.AbandonStuds then
-			closeAttack(e, world)
-			Attack.phase(events, e, "GiveUp", now, now + T.GiveUpSeconds)
+			retreat(events, e, world, now, "GiveUp", T.GiveUpSeconds)
 			return
 		end
+		-- held at the end of its leash with the target out of reach: GiveUpSeconds of that and it gives up
+		if distance > A.RangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - LEASH_EDGE then
+			e.pinnedSince = e.pinnedSince or now
+			if now - e.pinnedSince >= T.GiveUpSeconds then
+				retreat(events, e, world, now, "GiveUp", T.GiveUpSeconds)
+				return
+			end
+		else
+			e.pinnedSince = nil
+		end
 		if distance <= A.RangeStuds and now >= e.readyAt then
-			if openAttack(events, e, now, target, world, C, T, A) then return end
+			if openAttack(events, e, now, target, world, C, T, A) then
+				e.pinnedSince = nil
+				return
+			end
 		end
 		local stand = A.kind == "leap" and 3 or math.min(A.RangeStuds * 0.6, 4)
 		if distance > stand then
@@ -237,13 +245,6 @@ function Critter.step(events, e, now, target, world, dt)
 			if lx ~= e.pos.x or lz ~= e.pos.z then settle(e, world, T, lx, lz) end
 		else
 			Attack.face(e, target)
-		end
-		return
-	end
-	if e.phase == "GiveUp" then
-		if now - e.phaseAt >= T.GiveUpSeconds then
-			e.waypoint, e.waitUntil = nil, nil
-			Attack.phase(events, e, "Return", e.phaseAt + T.GiveUpSeconds)
 		end
 		return
 	end

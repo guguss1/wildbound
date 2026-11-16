@@ -31,10 +31,12 @@ Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu
 -- CC4 (odd/tasks/wildbound-candy-critters.md): the five small candy creatures' posts, open floor 13 to 15 studs from a free
 -- nest on the side away from the routes: candyNestC2 (Gato Repartidor, the friendly one near the entrance), candyNestR2
 -- (Mochimiau), candyNestR3 (Canelin), candyNestR4 (Flanin) and candyNestC4 (Mielita, beside La Abeja's hive).
+-- candyNestR2 sits 86 studs from the boss territory centre: its leash, leap circle and push (14 + 4 + 5) stay off the
+-- 62-stud boss ground, so Mochimiau never shoves a player into Don Glaseon's territory.
 Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
 	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 578, z = -3 }),
 	bossTerritory = table.freeze({ x = 612, z = -3 }),
-	candyNestC2 = table.freeze({ x = 466, z = 34 }), candyNestR2 = table.freeze({ x = 546, z = 37 }),
+	candyNestC2 = table.freeze({ x = 466, z = 34 }), candyNestR2 = table.freeze({ x = 539, z = 43 }),
 	candyNestR3 = table.freeze({ x = 664, z = -101 }), candyNestR4 = table.freeze({ x = 664, z = 71 }),
 	candyNestC4 = table.freeze({ x = 542, z = 139 }) })
 

@@ -204,6 +204,11 @@ return function(Layout, Sites, Config, marker, biome)
 			assert(nearestNest(post) >= 8 and nearestNest(post) <= 16, name .. ": the post is " .. nearestNest(post) .. " studs from the nearest nest")
 			assert(Layout.depth(post.x, post.z) >= T.LeashStuds, name .. ": its leash leaves the plot")
 			assert(Layout.flat(centre.x, centre.z, w.x, w.z) >= boss + T.LeashStuds, name .. ": its leash reaches the boss ground")
+			-- review fix: nor can its attack carry the player there (a shape at the end of the leash, plus its push)
+			local A = T.Attack
+			local reach = T.LeashStuds + (A.RadiusStuds or A.WidthStuds or 0) + (A.PushStuds or 0)
+			assert(Layout.flat(centre.x, centre.z, w.x, w.z) >= boss + reach, name .. ": its attack and push reach the boss ground ("
+				.. Layout.flat(centre.x, centre.z, w.x, w.z) .. " < " .. boss + reach .. ")")
 			assert(Layout.routeDistance(post.x, post.z) >= T.PerceptionStuds + HALF_PATH, name .. ": a route passes " .. Layout.routeDistance(post.x, post.z) .. " studs from the post")
 			for _, off in ipairs({ { 0, 0 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 0, -4 } }) do
 				local hit = workspace:Raycast(Vector3.new(w.x + off[1], 120, w.z + off[2]), Vector3.new(0, -200, 0))

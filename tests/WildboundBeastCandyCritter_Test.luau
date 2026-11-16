@@ -1,11 +1,11 @@
 -- Invoke with require(freshTestClone)(require(freshBeastEncountersClone), require(freshBeastCandyCritterClone),
 -- require(freshBeastConfigClone), require(freshPortalClone), { beasts = WildboundBeasts.Source,
--- service = WildboundCandyCritterService.Source }).
+-- service = WildboundCandyCritterService.Source }, require(freshBeastChaseClone)).
 -- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1-CC3): the five small candy creatures (Mochimiau, Canelin,
 -- Flanin, Mielita, GatoRepartidor) share one data-driven brain, WildboundBeastCandyCritter, which reads
 -- Config.BEASTS[name].tuning (and its Attack table). Pure, on the harness of WildboundBeastGomibu_Test: a fake world with
 -- flat ground at y 0 and a target moved by the test.
-return function(Enc, Critter, Config, Portal, sources)
+return function(Enc, Critter, Config, Portal, sources, Chase)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -27,8 +27,8 @@ return function(Enc, Critter, Config, Portal, sources)
 	local SHEET = {
 		Mochimiau = { kind = "leap", cooldown = 6, push = true, slow = 0.75, slowSeconds = 2.5, flies = false },
 		Canelin = { kind = "dash", cooldown = 6, push = false, slow = 0.8, slowSeconds = 2, flies = false },
-		Flanin = { kind = "burst", cooldown = 7, push = false, slow = 0.7, slowSeconds = 3.5, radius = 10, flies = false },
-		Mielita = { kind = "lob", cooldown = 9, push = false, slow = 0.75, slowSeconds = 4, radius = 6, flies = true },
+		Flanin = { kind = "burst", cooldown = 7, push = false, slow = 0.7, slowSeconds = 3, radius = 10, flies = false },
+		Mielita = { kind = "lob", cooldown = 9, push = false, slow = 0.75, slowSeconds = 3, radius = 6, flies = true },
 		GatoRepartidor = { kind = "lob", cooldown = 8, pushStuds = 2, push = true, slow = 0.9, slowSeconds = 1.5, radius = 4,
 			flies = false },
 	}
@@ -109,6 +109,10 @@ return function(Enc, Critter, Config, Portal, sources)
 			assert(T.PerceptionStuds < T.AbandonStuds and T.PerceptionStuds < T.WakeRadiusStuds, name .. " sight inside wake and abandon")
 			assert(T.PatrolRadiusStuds <= T.LeashStuds, name .. " patrols inside its leash")
 			assert(Critter.tellSeconds(T.Attack) >= Config.MIN_TELL, name .. " tell under the fairness floor")
+			-- the server clamps every slow (WildboundBeastChase.EFFECTS, applySlow): the sheet never asks for more
+			assert(type(Chase) == "table" and type(Chase.EFFECTS) == "table", "no WildboundBeastChase given")
+			assert(T.Attack.SlowSeconds <= Chase.EFFECTS.slowMaxSeconds, name .. " slow " .. T.Attack.SlowSeconds .. " s is past the server's " .. Chase.EFFECTS.slowMaxSeconds .. " s cap")
+			assert(T.Attack.SlowMultiplier >= Chase.EFFECTS.slowMinMultiplier and T.Attack.SlowMultiplier < 1, name .. " slow multiplier outside the server's range")
 		end
 		-- the friendly one: short sight, short leash
 		local gato = tuning("GatoRepartidor")
@@ -262,21 +266,45 @@ return function(Enc, Critter, Config, Portal, sources)
 		end
 	end)
 
-	case("CC2: past its abandon distance it gives up, walks home and patrols again", function()
+	-- Review fix: giving up ends the encounter like Gomibu (Disengage "GiveUp" for GiveUpSeconds, then End), so an idle
+	-- critter never keeps one of the director's MAX_ACTIVE slots (which would block Don Glaseon or a guardian alarm).
+	case("CC2: past its abandon distance it gives up and the encounter ends, holding no beast slot", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "giveup"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			tgt.x = T.LeashStuds + T.AbandonStuds + 1 -- past the abandon distance even from the end of its leash
 			local later = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 8)
-			local list = phases(later)
-			assert(string.find(list, "GiveUp,Return,Patrol", 1, true), name .. " phases " .. list)
-			local gaveUpAt
-			for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "GiveUp" then gaveUpAt = gaveUpAt or ev.at end end
+			local off = each(later, "Disengage")[1]
+			equal(off and off.reason, "GiveUp", name .. " gives up (phases " .. phases(later) .. ")")
+			local over = each(later, "End")[1]
+			equal(over and over.reason, "GiveUp", name .. " the encounter ends")
+			near(over.at - off.at, T.GiveUpSeconds, name .. " the retreat lasts GiveUpSeconds", 1e-6)
+			equal(e.done, true, name .. " done")
 			for _, ev in ipairs(each(later, "Tell")) do
-				assert(ev.startAt < gaveUpAt, name .. " opened an attack while giving up")
+				assert(ev.startAt < off.at, name .. " opened an attack while giving up")
 			end
-			assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= T.PatrolRadiusStuds + 1e-6, name .. " never came home")
+			assert(not string.find(phases(later), "Return", 1, true), name .. " walked home inside the encounter")
+		end
+	end)
+
+	-- Review fix: a target standing past its leash plus its attack range (but inside its abandon distance from the end
+	-- of the leash) used to keep it in Chase for ever, clamped at the leash. Held there out of reach for GiveUpSeconds,
+	-- it gives up.
+	case("CC2: held at its leash with the target out of reach, it gives up instead of chasing for ever", function()
+		for _, name in ipairs(NAMES) do
+			local T, A = tuning(name), tuning(name).Attack
+			local stand = T.LeashStuds + A.RangeStuds + 2
+			assert(stand < T.LeashStuds + T.AbandonStuds - 1, name .. ": the stall spot is past the abandon distance (test setup)")
+			local e, w, tgt = spawn(name, "stall"), fakeWorld(), target(close(name), 0)
+			run(e, w, tgt, 0, 0.9)
+			local farthest = 0
+			local later = run(e, w, tgt, 0.95, 20, function(_, tg) tg.x = stand end,
+				function(_, c) farthest = math.max(farthest, math.sqrt(c.pos.x ^ 2 + c.pos.z ^ 2)) end)
+			local off = each(later, "Disengage")[1]
+			equal(off and off.reason, "GiveUp", name .. " never gave up at its leash (phases " .. phases(later) .. ")")
+			equal(e.done, true, name .. " done")
+			assert(farthest <= T.LeashStuds + 1e-6, name .. " went " .. farthest .. " studs from home")
 		end
 	end)
 
@@ -289,7 +317,7 @@ return function(Enc, Critter, Config, Portal, sources)
 		end
 	end)
 
-	case("CC2: a safe zone or death ends it at once; a long escape ends it", function()
+	case("CC2: a safe zone or death ends it at once; a target that runs far away ends it", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "safe"), fakeWorld(), target(close(name), 0)
@@ -302,7 +330,9 @@ return function(Enc, Critter, Config, Portal, sources)
 			tgt2.x = T.EscapeDistanceStuds + 5
 			local later = run(e2, w2, tgt2, 0.95, 0.95 + T.EscapeSeconds + 3)
 			local over = each(later, "End")
-			equal(over[1] and over[1].reason, "Escape", name .. " escape")
+			-- the abandon distance (GiveUp) usually comes first; Escape stays as the backstop for the attack phases
+			local reason = over[1] and over[1].reason
+			assert(reason == "Escape" or reason == "GiveUp", name .. " escape: expected Escape or GiveUp, got " .. tostring(reason))
 		end
 	end)
 

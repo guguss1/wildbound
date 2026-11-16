@@ -371,7 +371,7 @@ Config.BEASTS = table.freeze({
 			AlertSeconds = 0.8, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
 			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1, LockSeconds = 0, TravelSeconds = 0.25,
 				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7,
-				SlowMultiplier = 0.7, SlowSeconds = 3.5 }),
+				SlowMultiplier = 0.7, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 		}),
 	}),
 	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a 25 % slow
@@ -384,7 +384,7 @@ Config.BEASTS = table.freeze({
 			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 14, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9,
-				SlowMultiplier = 0.75, SlowSeconds = 4 }),
+				SlowMultiplier = 0.75, SlowSeconds = 3 }), -- 3 s: the server's slow cap (WildboundBeastChase.EFFECTS)
 		}),
 	}),
 	GatoRepartidor = table.freeze({ -- friendly: short sight, short leash; throws fries on the target, a 2 stud push
