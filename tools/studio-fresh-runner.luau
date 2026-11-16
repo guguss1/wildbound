@@ -146,6 +146,10 @@ SPECS["WildboundScuttlerClips_Test"] = { "mod:WildboundScuttlerClips", "mod:Wild
 SPECS["WildboundBeastTortidragon_Test"] = {
 	"mod:WildboundBeastEncounters", "mod:WildboundBeastTortidragon", "mod:WildboundBeastConfig", "mod:WildboundCandyTortidragonAttack",
 }
+SPECS["WildboundBeastCandyCritter_Test"] = {
+	"mod:WildboundBeastEncounters", "mod:WildboundBeastCandyCritter", "mod:WildboundBeastConfig", "mod:WildboundPortal",
+	{ beasts = "src:WildboundBeasts", service = "src:WildboundCandyCritterService" },
+}
 SPECS["WildboundCandyDonGlaseon_Test"] = { "mod:WildboundCandyDonGlaseon", "inst:ServerStorage.WildboundAssets.DonGlaseon" }
 SPECS["WildboundCandyDonGlaseonAttack_Test"] = { "mod:WildboundCandyDonGlaseonAttack" }
 SPECS["WildboundCandyDonGlaseonVacuum_Test"] = { "mod:WildboundCandyDonGlaseonVacuum" }

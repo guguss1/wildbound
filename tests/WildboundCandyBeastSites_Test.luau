@@ -176,5 +176,50 @@ return function(Layout, Sites, Config, marker, biome)
 	end)
 	end
 
+	-- CC4 (odd/tasks/wildbound-candy-critters.md): the five small candy creatures live at fixed posts beside free nests,
+	-- under the same rules as the guardians (T4, CA2, CA3), and are summoned by the data-driven fixed-post rule.
+	case("CC4: the candy critters' posts are fixed, open floor beside a nest, off the routes, off the boss ground and apart from every guardian", function()
+		assert(biome and biome:FindFirstChild("Ground"), "no live candy biome given")
+		local critters = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
+		local everyone = { "Gomibu", "Flanfuria", "Tortidragon" }
+		for _, name in ipairs(critters) do table.insert(everyone, name) end
+		local boss = Config.BEASTS.DonGlaseon.tuning.TerritoryRadiusStuds
+		local centre = Sites.world(nil, "bossTerritory")
+		for _, name in ipairs(critters) do
+			local key = Sites.HOME[name]
+			assert(key and Sites.FIXED[key], name .. " has no fixed post")
+			local w, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
+			equal(moved.x, w.x, name .. " post x moved with the origin"); equal(moved.z, w.z, name .. " post z moved with the origin")
+			local T = Config.BEASTS[name].tuning
+			local function wants(dx, extra)
+				local ctx = { alive = true, safe = false, meadow = true, x = w.x + dx, z = w.z, origin = origin }
+				for k, v in pairs(extra or {}) do ctx[k] = v end
+				return Sites.wants(name, ctx)
+			end
+			equal(wants(0), true, name .. " at its post"); equal(wants(T.WakeRadiusStuds - 0.5), true, name .. " inside the wake radius")
+			equal(wants(T.WakeRadiusStuds + 0.5), false, name .. " outside the wake radius")
+			equal(wants(0, { safe = true }), false, name .. " for a safe player"); equal(wants(0, { meadow = false }), false, name .. " outside the biome")
+			equal(wants(0, { alive = false }), false, name .. " for a dead player")
+			local post = { x = w.x - Layout.CENTRE.x, z = w.z - Layout.CENTRE.z }
+			assert(nearestNest(post) >= 8 and nearestNest(post) <= 16, name .. ": the post is " .. nearestNest(post) .. " studs from the nearest nest")
+			assert(Layout.depth(post.x, post.z) >= T.LeashStuds, name .. ": its leash leaves the plot")
+			assert(Layout.flat(centre.x, centre.z, w.x, w.z) >= boss + T.LeashStuds, name .. ": its leash reaches the boss ground")
+			assert(Layout.routeDistance(post.x, post.z) >= T.PerceptionStuds + HALF_PATH, name .. ": a route passes " .. Layout.routeDistance(post.x, post.z) .. " studs from the post")
+			for _, off in ipairs({ { 0, 0 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 0, -4 } }) do
+				local hit = workspace:Raycast(Vector3.new(w.x + off[1], 120, w.z + off[2]), Vector3.new(0, -200, 0))
+				assert(hit and hit.Instance == biome.Ground.Floor, name .. ": the post is under or inside " .. (hit and hit.Instance:GetFullName() or "nothing"))
+			end
+		end
+		for i = 1, #everyone do
+			for j = i + 1, #everyone do
+				local one, two = everyone[i], everyone[j]
+				assert(Sites.HOME[one] ~= Sites.HOME[two], one .. " and " .. two .. " share a post")
+				local a, b = Sites.world(nil, Sites.HOME[one]), Sites.world(nil, Sites.HOME[two])
+				local leashes = Config.BEASTS[one].tuning.LeashStuds + Config.BEASTS[two].tuning.LeashStuds
+				assert(Layout.flat(a.x, a.z, b.x, b.z) >= leashes, one .. " and " .. two .. " can reach each other's ground")
+			end
+		end
+	end)
+
 	return result
 end

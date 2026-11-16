@@ -19,7 +19,8 @@ Sites.OFFSETS = table.freeze({
 })
 -- Which site each summoned beast lives at.
 Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1",
-	Tortidragon = "candyNestC3", DonGlaseon = "bossHome" })
+	Tortidragon = "candyNestC3", DonGlaseon = "bossHome", Mochimiau = "candyNestR2", Canelin = "candyNestR3", Flanin = "candyNestR4",
+	Mielita = "candyNestC4", GatoRepartidor = "candyNestC2" })
 -- Caramelo biome: sites given in world coordinates, which never move with the sector origin. candyNest is the open
 -- floor beside candy nest C1 (the nest itself is at 452, -21), the first one past the biome entrance: Gomibu's post.
 -- candyNestR1 is open floor 11 studs from candy nest R1 (534, -33), away from the main path: Flanfuria's post.
@@ -27,9 +28,15 @@ Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu
 -- the 35-stud leash on the plot and off the boss ground: Tortidragon's post.
 -- CA3: bossHome is the Candy builder's BossHome marker (578, -3), where Don Glaseon sleeps; bossTerritory is the centre
 -- of its Boss.BossTerritory marker (612, -3, radius Config.BEASTS.DonGlaseon.tuning.TerritoryRadiusStuds = 62).
+-- CC4 (odd/tasks/wildbound-candy-critters.md): the five small candy creatures' posts, open floor 13 to 15 studs from a free
+-- nest on the side away from the routes: candyNestC2 (Gato Repartidor, the friendly one near the entrance), candyNestR2
+-- (Mochimiau), candyNestR3 (Canelin), candyNestR4 (Flanin) and candyNestC4 (Mielita, beside La Abeja's hive).
 Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
 	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 578, z = -3 }),
-	bossTerritory = table.freeze({ x = 612, z = -3 }) })
+	bossTerritory = table.freeze({ x = 612, z = -3 }),
+	candyNestC2 = table.freeze({ x = 466, z = 34 }), candyNestR2 = table.freeze({ x = 546, z = 37 }),
+	candyNestR3 = table.freeze({ x = 664, z = -101 }), candyNestR4 = table.freeze({ x = 664, z = 71 }),
+	candyNestC4 = table.freeze({ x = 542, z = 139 }) })
 
 -- The sector origin: the given pivot ({x, z} or a Vector3-like with X/Z) when finite, else the Meadow centre.
 function Sites.origin(pivot)
@@ -61,7 +68,8 @@ function Sites.wants(name, ctx)
 	if name == "NubeGrunona" then
 		return distance <= (ctx.night == true and T.NightWakeRadiusStuds or T.WakeRadiusStuds)
 	end
-	if name == "Gomibu" or name == "Flanfuria" or name == "Tortidragon" then return distance <= T.WakeRadiusStuds end
+	-- Caramelo biome: every beast at a fixed post (the candy guardians and critters) wakes within its WakeRadiusStuds.
+	if name ~= "DonGlaseon" and Sites.FIXED[key] then return distance <= T.WakeRadiusStuds end
 	if name == "DonGlaseon" then
 		local centre = Sites.world(ctx.origin, "bossTerritory")
 		return Config.flat(ctx.x, ctx.z, centre.x, centre.z) <= T.TerritoryRadiusStuds

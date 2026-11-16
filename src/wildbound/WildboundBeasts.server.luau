@@ -47,6 +47,9 @@ local Sites = require(script.Parent:WaitForChild("WildboundPraderaSites"))
 local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name = "AbejaReina", module = "WildboundBeastAbeja" },
 	{ name = "Gomibu", module = "WildboundBeastGomibu" }, { name = "Flanfuria", module = "WildboundBeastFlanfuria" },
 	{ name = "Tortidragon", module = "WildboundBeastTortidragon" }, -- Caramelo biome: the candy nest guardians
+	{ name = "Mochimiau", module = "WildboundBeastCandyCritter" }, { name = "Canelin", module = "WildboundBeastCandyCritter" },
+	{ name = "Flanin", module = "WildboundBeastCandyCritter" }, { name = "Mielita", module = "WildboundBeastCandyCritter" },
+	{ name = "GatoRepartidor", module = "WildboundBeastCandyCritter" }, -- CC: the five small candy creatures, one brain
 	{ name = "DonGlaseon", module = "WildboundBeastDonGlaseon", boss = true } } -- and its one boss per server (bossPass)
 for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.

@@ -330,6 +330,76 @@ Config.BEASTS = table.freeze({
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
 	}),
+	-- Caramelo biome (odd/tasks/wildbound-candy-critters.md, CC1): five small candy creatures, summoned at fixed posts
+	-- beside free nests like Gomibu (never rolled, points 0, damage 0, keepsEgg). One data-driven brain serves all five
+	-- (ServerScriptService.WildboundBeastCandyCritter): it reads this tuning and its Attack table (kind leap, dash, burst
+	-- or lob; the tell never under MIN_TELL and locked at least MIN_TELL before the strike; CooldownSeconds counted from
+	-- the strike). Speeds stay under the parents' 19 and near the other candy beasts. Numbers are a first proposal.
+	Mochimiau = table.freeze({ -- Rodada cremosa: hops onto the target's circle, a short push and a 25 % slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 22, LeashStuds = 14,
+			PatrolRadiusStuds = 6, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 11,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			Attack = table.freeze({ kind = "leap", RangeStuds = 9, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
+				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 6, PushStuds = 5, PushSeconds = 0.3,
+				SlowMultiplier = 0.75, SlowSeconds = 2.5 }),
+		}),
+	}),
+	Canelin = table.freeze({ -- rolls along a lane forward from itself: a 20 % slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 24, LeashStuds = 16,
+			PatrolRadiusStuds = 7, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 12,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
+				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6,
+				SlowMultiplier = 0.8, SlowSeconds = 2 }),
+		}),
+	}),
+	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a 30 % slow and no push
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 30, PerceptionStuds = 14, AbandonStuds = 20, LeashStuds = 12,
+			PatrolRadiusStuds = 5, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 9,
+			AlertSeconds = 0.8, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1, LockSeconds = 0, TravelSeconds = 0.25,
+				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7,
+				SlowMultiplier = 0.7, SlowSeconds = 3.5 }),
+		}),
+	}),
+	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a 25 % slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, damage = 0, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 32, PerceptionStuds = 16, AbandonStuds = 24, LeashStuds = 14, HoverStuds = 2.5,
+			PatrolRadiusStuds = 7, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 13,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			Attack = table.freeze({ kind = "lob", RangeStuds = 14, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
+				RadiusStuds = 6, RecoverSeconds = 0.6, CooldownSeconds = 9,
+				SlowMultiplier = 0.75, SlowSeconds = 4 }),
+		}),
+	}),
+	GatoRepartidor = table.freeze({ -- friendly: short sight, short leash; throws fries on the target, a 2 stud push
+		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = 10, damage = 0, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 24, PerceptionStuds = 8, AbandonStuds = 14, LeashStuds = 8,
+			PatrolRadiusStuds = 5, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 9,
+			AlertSeconds = 0.8, EscapeDistanceStuds = 50, EscapeSeconds = 2, GiveUpSeconds = 2,
+			Attack = table.freeze({ kind = "lob", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
+				RadiusStuds = 4, RecoverSeconds = 0.7, CooldownSeconds = 8, PushStuds = 2, PushSeconds = 0.25,
+				SlowMultiplier = 0.9, SlowSeconds = 1.5 }),
+		}),
+	}),
 	-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the
 	-- territorial boss of the Gran Torta, summoned like Gomibu but one per server (serverUnique: the director refuses a
 	-- second encounter while one lives and for switchSeconds after it ends). Its one attack, Latigo de Regaliz, has its
@@ -376,11 +446,12 @@ Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, 
 	Scuttler = true })
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
-	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true, Tortidragon = true, DonGlaseon = true })
+	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true, Tortidragon = true, DonGlaseon = true,
+	Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
 Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true, Flanfuria = true,
-	Tortidragon = true, DonGlaseon = true })
+	Tortidragon = true, DonGlaseon = true, Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
 
