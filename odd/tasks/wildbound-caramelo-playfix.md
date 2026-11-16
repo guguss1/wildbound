@@ -702,3 +702,47 @@ does not fire (0 per second against 60 Heartbeats, the viewport is not rendering
 background); both effects run on RenderStepped (unchanged code), so the ribbon's links stayed invisible here. The bone
 animator runs on Heartbeat, which is why it could be checked. Also not checked: a published `Clip_<name>` id taking over
 (covered by the spec and the unchanged rule in the shared client), two players, a phone.
+
+## A3 review fix: bones read again after a stream-out
+
+Defect: `WildboundCandyCritterAnim` read a model's bones once. With streaming on (Opportunistic stream-out, radius
+1024), a model's parts can stream out and back in while the Model stays; the state kept the old, detached Bone
+instances and the model froze (Don Glaseon's sleeping copy, a resting critter).
+
+- [x] A3R-1 `WildboundCandyClipKit.readBones` (moved from the client unchanged) and `Kit.bonesStale(model, list)`: true
+  when the list is empty or its first or last bone is no longer a descendant of the model (a part streams with all its
+  bones, so two checks per model per frame are enough).
+- [x] A3R-2 `WildboundCandyCritterAnim`: each step, when `state.stale` or `Kit.bonesStale(model, state.bones)`, it reads
+  the bones again (and their rest); while the parts are away (`readBones` nil) it skips the step and keeps the state.
+  A `DescendantAdded` hook on the model sets `state.stale = true` when a Bone arrives later (the count changed); it is
+  disconnected on drop.
+- [x] A3R-3 Specs A3R-1..3 in `WildboundCandyClipKit_Test` (a probe rig whose root part is removed, then replaced by a
+  copy with new bones; a destroyed bone; the client wiring). Commits bef15e2 (specs), ee47522 (fix).
+
+Fingerprints: before writing, Studio == repo HEAD 6a70bd1 for CritterAnim 11135 c82f950d, ClipKit 7414 f79f5d08,
+ClipKit_Test 15055 431f58ce. Writes by `multi_edit` exact replacements, read back. Final (Studio == repo): CritterAnim
+11191 8969b920, ClipKit 8974 8ffd6742, ClipKit_Test 19251 4162aaf9.
+
+Runs (engine of `tools/studio-fresh-runner.luau` in a temporary ServerStorage StringValue `WildboundA3RRunnerSource`
+with only the two SPECS, destroyed after; `WildboundFreshRunnerLock` nil before and after):
+
+| Run | What | Result |
+|---|---|---|
+| f7c4086d | RED: CandyClipKit, CandyLiveClips | 19 passed, 3 failed (the three new cases) |
+| a47d5ace | GREEN, the same two suites | 22 passed, 0 failed (ClipKit 15, LiveClips 7) |
+
+Walked Play (lock `WildboundPlayLock = "a3-review-bones"`, both locks nil before, cleared after; `character_navigation`
+only): spawn (298, -3) -> the breathing trap cake (526, -24), which sprang and pushed the character away -> (560, -3), where
+Don Glaseon woke and attacked -> (530, 30). Client samples (bones whose Transform changed in 0.6-0.8 s):
+
+- Resting copies in `WildboundBeastsLocal`: Mochimiau 10/13, Canelin 10/15, Flanin 11/12, Mielita 15/16 (`Fly`),
+  GatoRepartidor 11/19, Tortidragon 13/24 changing.
+- Stream-out stand-in on the client copy only: Mochimiau's root part removed for 0.5 s, then replaced by a copy (new
+  Bone instances): 10 of 13 bones changing again, clip `Trot`.
+- Don Glaseon's sleeping copy, back on BossHome (578, -3) after he went home: `Idle_Breath`, 11 of 29 bones changing;
+  the same root-part swap on the client's copy: new bones, 11 changing again.
+- Console: no warning from `WildboundCandyCritterAnim` (only the known TexturePack, asset, EditableImage and DataStore
+  noise).
+
+Not checked: a real stream-out by distance (the map does not reach the 1024-stud radius from the walked points); the
+part swap above is the stand-in.
