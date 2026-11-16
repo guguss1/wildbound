@@ -1,16 +1,18 @@
 -- Golpe de Goma, Gomibu's single attack (odd/tasks/caramelo-bioma.md, T3; pack 03_PERSONAJES/01_GOMIBU.md): a short
 -- jump that lands on a circle. Pure server rules: the caller passes the server time and flat positions and applies the
 -- effects it gets back. Animations and their markers only show it; nothing here waits for them.
--- Timeline from Attack.start: 0.90 s of tell, the circle following the target until 0.55 s and fixed after that; a
--- 0.45 s arc to the circle; the hit, measured here at the landing; 0.70 s of recovery; then 5.5 s of cooldown.
+-- Timeline from Attack.start: 0.80 s of tell, the circle following the target until 0.45 s and fixed after that; a
+-- 0.45 s arc to the circle; the hit, measured here at the landing; 0.50 s of recovery; then 3.5 s of cooldown.
+-- CF (user, 2026-11-15): a faster cast. The tell is at the 0.8 s fair-strike floor and the lock keeps 0.8 s from the
+-- lock to the landing (was tell 0.90, lock 0.55, recover 0.70, cooldown 5.5). WildboundBeastConfig.Gomibu mirrors it.
 -- A hit pushes 8 studs away from the centre and slows to x0.8 for 1 s. It never damages and never drops the egg.
 -- Every number is the pack's starting proposal. Rules: WildboundCandyGomibuAttack_Test.
 local Attack = {}
-Attack.TELEGRAPH_SECONDS = 0.9
-Attack.LOCK_SECONDS = 0.55
+Attack.TELEGRAPH_SECONDS = 0.8
+Attack.LOCK_SECONDS = 0.45
 Attack.JUMP_SECONDS = 0.45
-Attack.RECOVER_SECONDS = 0.7
-Attack.COOLDOWN_SECONDS = 5.5
+Attack.RECOVER_SECONDS = 0.5
+Attack.COOLDOWN_SECONDS = 3.5
 Attack.RADIUS_STUDS = 4.5
 Attack.PUSH_STUDS = 8
 Attack.SLOW_FACTOR = 0.8

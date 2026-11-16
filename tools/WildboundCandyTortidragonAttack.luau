@@ -1,19 +1,21 @@
 -- Abanico de Confites, Tortidragon's single attack (odd/tasks/wildbound-caramelo.md, CA2; pack
 -- 03_PERSONAJES/03_TORTIDRAGON.md): three big candy shots in a frontal fan. Pure server rules: the caller passes the
 -- server time and flat positions and applies the effects it gets back; animations and the flying candies only show it.
--- Timeline from Abanico.start: 1.00 s of aim (cheeks puff, a 55-degree fan of 12 studs shows in front); at 0.60 s the
--- direction locks and three small circles (radius 2.3) appear along it; at 1.00 s the shots fly for 0.65 s and land
--- on the circles (the impact, the only moment anybody is hit); 0.85 s of recovery; then 7 s of cooldown.
+-- Timeline from Abanico.start: 0.80 s of aim (cheeks puff, a 55-degree fan of 12 studs shows in front); at 0.45 s the
+-- direction locks and three small circles (radius 2.3) appear along it; at 0.80 s the shots fly for 0.65 s and land
+-- on the circles (the impact, the only moment anybody is hit); 0.60 s of recovery; then 4.5 s of cooldown.
+-- CF (user, 2026-11-15): a faster cast, the aim at the 0.8 s fair-strike floor and 1 s from the lock to the impact
+-- (was aim 1.00, lock 0.60, recover 0.85, cooldown 7).
 -- A player inside one or more circles at the impact is hit once (never three times): a light push away from the
 -- dragon and a short stagger (slow x0.85 for 0.8 s). No damage, and the carried egg stays.
 -- It never casts at a target behind it or outside the fan: stepping out of the fan sideways, after the lock, dodges it.
 -- Every number is the pack's starting proposal. Rules: WildboundCandyTortidragonAttack_Test.
 local Abanico = {}
-Abanico.TELEGRAPH_SECONDS = 1.0
-Abanico.LOCK_SECONDS = 0.6
+Abanico.TELEGRAPH_SECONDS = 0.8
+Abanico.LOCK_SECONDS = 0.45
 Abanico.RELEASE_SECONDS = 0.65
-Abanico.RECOVER_SECONDS = 0.85
-Abanico.COOLDOWN_SECONDS = 7
+Abanico.RECOVER_SECONDS = 0.6
+Abanico.COOLDOWN_SECONDS = 4.5
 Abanico.ARC_DEGREES = 55
 Abanico.RANGE_STUDS = 12
 Abanico.SHOTS = 3

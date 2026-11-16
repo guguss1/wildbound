@@ -25,9 +25,15 @@ return function(Abanico)
 		return p
 	end
 
-	case("the pack's numbers: aim 1.00 s, lock at 0.60 s, flight 0.65 s, recover 0.85 s, cooldown 7 s, 55 deg, 12 studs, r 2.3", function()
-		near(Abanico.TELEGRAPH_SECONDS, 1.0, "aim"); near(Abanico.LOCK_SECONDS, 0.6, "lock"); near(Abanico.RELEASE_SECONDS, 0.65, "flight")
-		near(Abanico.RECOVER_SECONDS, 0.85, "recover"); near(Abanico.COOLDOWN_SECONDS, 7, "cooldown")
+	-- Deliberately changed (CF, user 2026-11-15, odd/tasks/wildbound-caramelo-v2.md): a faster cast. The aim is at the
+	-- 0.8 s fair-strike floor, the lock moves so the sidestep still has 1 s, the recovery is shorter and the cooldown is
+	-- about 4.5 s. Was: aim 1.00, lock 0.60, recover 0.85, cooldown 7.
+	case("CF: the numbers: aim 0.80 s, lock at 0.45 s, flight 0.65 s, recover 0.60 s, cooldown 4.5 s, 55 deg, 12 studs, r 2.3", function()
+		near(Abanico.TELEGRAPH_SECONDS, 0.8, "aim"); near(Abanico.LOCK_SECONDS, 0.45, "lock"); near(Abanico.RELEASE_SECONDS, 0.65, "flight")
+		near(Abanico.RECOVER_SECONDS, 0.6, "recover"); near(Abanico.COOLDOWN_SECONDS, 4.5, "cooldown")
+		assert(Abanico.TELEGRAPH_SECONDS >= 0.8 - 1e-9, "the aim is never under the 0.8 s floor")
+		assert(Abanico.TELEGRAPH_SECONDS - Abanico.LOCK_SECONDS + Abanico.RELEASE_SECONDS >= 0.8 - 1e-9,
+			"the locked circles leave at least 0.8 s to step out")
 		near(Abanico.ARC_DEGREES, 55, "arc"); near(Abanico.RANGE_STUDS, 12, "range"); near(Abanico.SHOT_RADIUS_STUDS, 2.3, "radius")
 		equal(Abanico.SHOTS, 3, "shots")
 		assert(Abanico.TELEGRAPH_SECONDS + Abanico.RELEASE_SECONDS >= 0.8, "the impact comes less than 0.8 s after the tell")
@@ -36,10 +42,10 @@ return function(Abanico)
 
 	case("the timeline from start: Telegraph, Release, Recover, Done at the pack's times", function()
 		local s = Abanico.start(10, {})
-		near(Abanico.lockAt(s), 10.6, "lock"); near(Abanico.releaseAt(s), 11.0, "release"); near(Abanico.impactAt(s), 11.65, "impact")
-		near(Abanico.endsAt(s), 12.5, "end")
-		equal(Abanico.phase(s, 10), "Telegraph"); equal(Abanico.phase(s, 10.99), "Telegraph"); equal(Abanico.phase(s, 11), "Release")
-		equal(Abanico.phase(s, 11.64), "Release"); equal(Abanico.phase(s, 11.65), "Recover"); equal(Abanico.phase(s, 12.5), "Done")
+		near(Abanico.lockAt(s), 10.45, "lock"); near(Abanico.releaseAt(s), 10.8, "release"); near(Abanico.impactAt(s), 11.45, "impact")
+		near(Abanico.endsAt(s), 12.05, "end")
+		equal(Abanico.phase(s, 10), "Telegraph"); equal(Abanico.phase(s, 10.79), "Telegraph"); equal(Abanico.phase(s, 10.8), "Release")
+		equal(Abanico.phase(s, 11.44), "Release"); equal(Abanico.phase(s, 11.45), "Recover"); equal(Abanico.phase(s, 12.05), "Done")
 	end)
 
 	case("the fan: in front within 12 studs and 27.5 deg off the facing; never behind or to the side", function()
@@ -91,11 +97,11 @@ return function(Abanico)
 		equal(#Abanico.impact(s, shots, O, { player(1, 6.5, -8) }), 0, "out to the side")
 	end)
 
-	case("the farm pet refuses; cooldown 7 s from the end", function()
+	case("the farm pet refuses; cooldown 4.5 s from the end", function()
 		local s, why = Abanico.start(0, { pet = true })
 		equal(s, nil, "pet state"); equal(why, "Pet")
 		equal(Abanico.canStart(nil, 0), true, "first cast")
-		equal(Abanico.canStart(10, 16.9), false, "6.9 s after"); equal(Abanico.canStart(10, 17), true, "7 s after")
+		equal(Abanico.canStart(10, 14.4), false, "4.4 s after"); equal(Abanico.canStart(10, 14.5), true, "4.5 s after")
 	end)
 
 	return result

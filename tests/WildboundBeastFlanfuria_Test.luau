@@ -4,6 +4,11 @@
 -- Caramelo biome (odd/tasks/caramelo-bioma.md, T4; pack 03_PERSONAJES/02_FLANFURIA.md): Flanfuria's state machine,
 -- pure, on the harness of WildboundBeastGomibu_Test: a fake world with flat ground at y 0 and a target moved by the test.
 return function(Enc, Flanfuria, Config, Onda)
+	-- Deliberately changed (CF, user 2026-11-15): the cast times come from the rule (Onda) instead of literals, since
+	-- the tell, the recovery and the cooldown were shortened. The rule's own suite pins the numbers.
+	local TELL = Onda.TELEGRAPH_SECONDS
+	local PUDDLE_AT = TELL + Onda.RELEASE_SECONDS
+	local ENDS = PUDDLE_AT + Onda.RECOVER_SECONDS
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -114,21 +119,21 @@ return function(Enc, Flanfuria, Config, Onda)
 		assert(farthest <= T.LeashStuds + 1e-6, "went " .. farthest .. " studs from the nest")
 	end)
 
-	case("Onda de Caramelo: a fixed circle of radius 11 on the flan, 1.00 s of tell, and the flan stands still through it", function()
+	case("Onda de Caramelo: a fixed circle of radius 11 on the flan, a tell of Onda.TELEGRAPH_SECONDS, and the flan stands still through it", function()
 		local e, w, tgt, events, tell = telegraphing("tell")
 		equal(tell.shape.kind, "circle"); equal(tell.shape.r, 11); equal(tell.shape.x, 0); equal(tell.shape.z, 0)
-		near(tell.strikeAt - tell.startAt, 1, "the wave leaves 1.00 s after the tell")
+		near(tell.strikeAt - tell.startAt, TELL, "the wave leaves when the tell ends")
 		equal(tell.dodgeable, false)
 		local locked = false
 		for _, ev in ipairs(each(events, "Tell")) do if ev.locked == true then locked = true end end
 		assert(locked, "the circle is not locked from the start")
 		local later = run(e, w, tgt, 1.25, tell.startAt + 2.7, function(t, tg) tg.x, tg.z = 9, 5 end, function(t, state)
-			if t < tell.startAt + 2.6 then equal(state.pos.x, 0, "it moved during the cast at " .. t); equal(state.pos.z, 0) end
+			if t < tell.startAt + ENDS - 0.05 then equal(state.pos.x, 0, "it moved during the cast at " .. t); equal(state.pos.z, 0) end
 		end)
 		for _, ev in ipairs(each(later, "Tell")) do equal(ev.shape.x, 0, "the circle followed the target") end
 		local list = each(later, "Phase")
 		equal(list[1].phase, "Release"); equal(list[2].phase, "Recover"); equal(list[3].phase, "Chase")
-		near(list[1].at, tell.startAt + 1, "release"); near(list[2].at, tell.startAt + 1.8, "recover"); near(list[3].at, tell.startAt + 2.65, "chase again")
+		near(list[1].at, tell.startAt + TELL, "release"); near(list[2].at, tell.startAt + PUDDLE_AT, "recover"); near(list[3].at, tell.startAt + ENDS, "chase again")
 	end)
 
 	case("the ring slows once, when its front reaches the target, and never damages or reaches BeastHit", function()
@@ -137,7 +142,7 @@ return function(Enc, Flanfuria, Config, Onda)
 		local slows = ringSlows(later)
 		equal(#slows, 1, "ring slows")
 		-- the front is at 6 studs 0.356 s into the release, not at its start and not at its end
-		near(slows[1].at, tell.startAt + 1 + 0.8 * 4 / 9, "the front reaches 6 studs", 0.051)
+		near(slows[1].at, tell.startAt + TELL + Onda.RELEASE_SECONDS * 4 / 9, "the front reaches 6 studs", 0.051)
 		equal(slows[1].slow, 0.65); equal(slows[1].slowSeconds, 1.5); equal(slows[1].damage, nil)
 		equal(#each(later, "Hit"), 0, "a Hit event would reach BeastHit: damage and the egg drop")
 		local strikes = each(later, "Strike")
@@ -147,12 +152,12 @@ return function(Enc, Flanfuria, Config, Onda)
 	case("jumping the front, standing past radius 11 or standing in a safe zone is a miss", function()
 		local e, w, tgt, events, tell = telegraphing("jump")
 		local later = run(e, w, tgt, 1.25, tell.startAt + 2, function(t, tg)
-			tg.y = (t >= tell.startAt + 1.25 and t <= tell.startAt + 1.5) and 9 or 3
+			tg.y = (t >= tell.startAt + TELL + 0.25 and t <= tell.startAt + TELL + 0.5) and 9 or 3
 		end)
 		equal(#ringSlows(later), 0, "slowed in the air")
 		local strikes = each(later, "Strike")
 		equal(#strikes, 1, "strikes"); equal(strikes[1].hit, false)
-		near(strikes[1].at, tell.startAt + 1.8, "the miss is settled when the ring ends")
+		near(strikes[1].at, tell.startAt + PUDDLE_AT, "the miss is settled when the ring ends")
 		local e2, w2, tgt2, _, tell2 = telegraphing("away")
 		local away = run(e2, w2, tgt2, 1.25, tell2.startAt + 2, function(t, tg) tg.x = 11.6 end)
 		equal(#ringSlows(away), 0, "slowed past the ring's reach")
@@ -164,7 +169,7 @@ return function(Enc, Flanfuria, Config, Onda)
 
 	case("the puddle: radius 4 where the flan stood, 3 s from the end of the release, x0.8 in short repeats, only while stood on", function()
 		local e, w, tgt, events, tell = telegraphing("puddle")
-		local puddleAt = tell.startAt + 1.8
+		local puddleAt = tell.startAt + PUDDLE_AT
 		-- out of reach until the ring is over (stepping in as it ends would be crossing its front), then into the puddle,
 		-- then out of it again
 		local later = run(e, w, tgt, 1.25, puddleAt + 4, function(t, tg)
@@ -181,15 +186,15 @@ return function(Enc, Flanfuria, Config, Onda)
 		-- a dry puddle slows nobody
 		local e2, w2, tgt2, _, tell2 = telegraphing("dry")
 		local dry = run(e2, w2, tgt2, 1.25, tell2.startAt + 7, function(t, tg, state)
-			if t < tell2.startAt + 4.85 then tg.x = 11.6 else tg.x, tg.z = 0, 3 end
+			if t < tell2.startAt + PUDDLE_AT + Onda.PUDDLE_SECONDS + 0.05 then tg.x = 11.6 else tg.x, tg.z = 0, 3 end
 		end)
-		for _, ev in ipairs(puddleSlows(dry)) do assert(ev.at < tell2.startAt + 4.8, "the puddle outlived its 3 s") end
+		for _, ev in ipairs(puddleSlows(dry)) do assert(ev.at < tell2.startAt + PUDDLE_AT + Onda.PUDDLE_SECONDS, "the puddle outlived its 3 s") end
 		equal(#puddleSlows(dry), 0, "slowed by a dry puddle")
 	end)
 
 	case("the ring slows a target walking into it", function()
 		local e, w, tgt, events, tell = telegraphing("inward")
-		local rel = tell.startAt + 1
+		local rel = tell.startAt + TELL
 		local later = run(e, w, tgt, 1.25, tell.startAt + 2, function(t, tg)
 			tg.x = t < rel and 6.5 or math.max(6.5 - (t - rel) * 16, 0)
 		end)
@@ -210,20 +215,20 @@ return function(Enc, Flanfuria, Config, Onda)
 		end
 	end)
 
-	case("it cannot chain waves: 8 s of cooldown after the cast ends, so one puddle at most", function()
+	case("it cannot chain waves: Onda.COOLDOWN_SECONDS after the cast ends, so one puddle at most", function()
 		local e, w, tgt, events, tell = telegraphing("cooldown")
 		local later = run(e, w, tgt, 1.25, tell.startAt + 13, function(t, tg, state) tg.x, tg.z = state.pos.x + 5, state.pos.z end)
 		local second
 		for _, ev in ipairs(each(later, "Tell")) do if ev.tell ~= tell.tell then second = second or ev end end
 		assert(second, "it never attacked again")
-		assert(second.startAt >= tell.startAt + 2.65 + 8 - 1e-6, "second wave " .. (second.startAt - tell.startAt) .. " s after the first began")
-		assert(second.startAt <= tell.startAt + 2.65 + 8 + 0.11, "it waited too long")
-		assert(second.startAt > tell.startAt + 1.8 + 3, "the first puddle was still there")
+		assert(second.startAt >= tell.startAt + ENDS + Onda.COOLDOWN_SECONDS - 1e-6, "second wave " .. (second.startAt - tell.startAt) .. " s after the first began")
+		assert(second.startAt <= tell.startAt + ENDS + Onda.COOLDOWN_SECONDS + 0.11, "it waited too long")
+		assert(second.startAt > tell.startAt + PUDDLE_AT + Onda.PUDDLE_SECONDS, "the first puddle was still there")
 	end)
 
 	case("leaving combat removes the puddle: giving up, death and the safe zone end every slow", function()
 		local e, w, tgt, events, tell = telegraphing("giveup")
-		local puddleAt = tell.startAt + 1.8
+		local puddleAt = tell.startAt + PUDDLE_AT
 		-- the target leaves past the abandon distance as the cast recovers, then is put back on the puddle
 		local later = run(e, w, tgt, 1.25, puddleAt + 2.9, function(t, tg)
 			if t < puddleAt then tg.x = 11.6 elseif t < puddleAt + 1.2 then tg.x = T.AbandonStuds + 2 else tg.x, tg.z = 0, 2 end
@@ -232,7 +237,7 @@ return function(Enc, Flanfuria, Config, Onda)
 		equal(#puddleSlows(later), 0, "the puddle outlived the fight")
 		local e2, w2, tgt2, _, tell2 = telegraphing("death")
 		local dead = run(e2, w2, tgt2, 1.25, tell2.startAt + 4, function(t, tg)
-			if t >= tell2.startAt + 1.85 then tg.alive = false; tg.x, tg.z = 0, 2 else tg.x = 11.6 end
+			if t >= tell2.startAt + PUDDLE_AT + 0.05 then tg.alive = false; tg.x, tg.z = 0, 2 else tg.x = 11.6 end
 		end)
 		equal(#each(dead, "Afflict"), 0, "slowed after death")
 		assert(#each(dead, "End") == 1, "the encounter did not end on death")

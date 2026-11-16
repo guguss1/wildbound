@@ -1,8 +1,10 @@
 -- Onda de Caramelo, Flanfuria's single attack (odd/tasks/caramelo-bioma.md, T4; pack 03_PERSONAJES/02_FLANFURIA.md):
 -- zone control. A ring of caramel grows out of the flan and a sticky puddle stays under it. Pure server rules: the
 -- caller passes the server time and flat positions and applies the effects it gets back. Animations only show it.
--- Timeline from Attack.start: 1.00 s of tell (the flan stands still, the edge of radius 11 shows); 0.80 s of release,
--- the ring front growing from radius 2 to radius 11 at a steady pace; 0.85 s of recovery; then 8 s of cooldown.
+-- Timeline from Attack.start: 0.80 s of tell (the flan stands still, the edge of radius 11 shows); 0.80 s of release,
+-- the ring front growing from radius 2 to radius 11 at a steady pace; 0.60 s of recovery; then 5 s of cooldown.
+-- CF (user, 2026-11-15): a faster cast, the tell at the 0.8 s fair-strike floor (was tell 1.00, recover 0.85,
+-- cooldown 8).
 -- The ring hits a player once per cast, at the moment its front passes them: slow x0.65 for 1.5 s. A player in the air
 -- (jumping the front) is missed. When the release ends a puddle of radius 4 stays at the flan for 3 s and slows x0.8
 -- while stood on. It never damages and never drops the egg.
@@ -14,10 +16,10 @@
 -- speed never rewritten) for a server that owns the base speed; the beast script does not use it yet.
 -- Every number is the pack's starting proposal. Rules: WildboundCandyFlanfuriaAttack_Test.
 local Attack = {}
-Attack.TELEGRAPH_SECONDS = 1.0
+Attack.TELEGRAPH_SECONDS = 0.8
 Attack.RELEASE_SECONDS = 0.8
-Attack.RECOVER_SECONDS = 0.85
-Attack.COOLDOWN_SECONDS = 8
+Attack.RECOVER_SECONDS = 0.6
+Attack.COOLDOWN_SECONDS = 5
 Attack.RING_FROM_STUDS = 2
 Attack.RING_TO_STUDS = 11
 Attack.RING_SLOW_FACTOR = 0.65
@@ -117,8 +119,8 @@ end
 -- Leaving combat: the ring and the puddle are gone at once.
 function Attack.cancel(state) state.cancelled = true end
 
--- Whether a new cast may start: never before the cooldown since the last one ended. With an 8 s cooldown the old
--- puddle (gone 2.15 s after the cast ends) is always dry first: one puddle per Flanfuria at most.
+-- Whether a new cast may start: never before the cooldown since the last one ended. With a 5 s cooldown the old
+-- puddle (gone 2.4 s after the cast ends) is always dry first: one puddle per Flanfuria at most.
 function Attack.canStart(lastEndedAt, now)
 	return lastEndedAt == nil or now - lastEndedAt >= Attack.COOLDOWN_SECONDS - EPSILON
 end

@@ -284,8 +284,9 @@ Config.BEASTS = table.freeze({
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 16, AbandonStuds = 25, LeashStuds = 30,
 			PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 12, AlertSeconds = 0.7,
-			JumpRangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.55, JumpSeconds = 0.45, RadiusStuds = 4.5,
-			RecoverSeconds = 0.7, AttackCooldownSeconds = 5.5,
+			-- CF (user, 2026-11-15): a faster cast (was tell 0.9, lock 0.55, recover 0.7, cooldown 5.5).
+			JumpRangeStuds = 10, TelegraphSeconds = 0.8, LockSeconds = 0.45, JumpSeconds = 0.45, RadiusStuds = 4.5,
+			RecoverSeconds = 0.5, AttackCooldownSeconds = 3.5,
 			PushStuds = 8, PushSeconds = 0.35, SlowMultiplier = 0.8, SlowSeconds = 1,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),

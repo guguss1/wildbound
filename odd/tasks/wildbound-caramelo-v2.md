@@ -86,9 +86,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [ ] DG5 Rising anger (time + dodges)
 - [ ] DG6 Roar summons new guardians
 - [ ] DG7 Trap cake with lures on the routes
-- [ ] CF Faster casts for Gomibú, Flanfuria and Tortidragón:
+- [x] CF Faster casts for Gomibú, Flanfuria and Tortidragón:
   - tells down to the 0.8 s floor, shorter recovery;
   - cooldowns about 3.5 / 5 / 4.5 s.
+  - Done 2026-11-16 (Studio suites and solo Play in the evidence below).
 - [ ] CT1 Spiral staircase on the Gran Torta
 - [ ] CT2 Counter-rotating tiers
 - [ ] CT3 Best egg at the top
@@ -114,6 +115,11 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | EC-D3 | DT1 is settled for the steal holds only. The same case still fails on three older drifts it was hiding: `Eggs.PICKUP_DELAY` and `Eggs.PICKUP_HOLD` (schema 0.4, module 0.25) and `Incubator.HATCH_SECONDS` (schema 5, module 15). Live play uses the schema numbers (the place has no saved `Eggs` or `Incubator` tuning folder). Not changed: either side changes what players feel, so it waits for the user. | Out of EC's scope and a gameplay call. |
 | EC-D4 | The glove "Robo rápido" still shortens every hold down to the 0.35 s floor, rare eggs included. | Unchanged rule; the user asked only for the base scale. |
 | EC-D5 | `tools/wildbound_economy_sim_v2.py` was not edited: it still reads `RARE_HOLD` (gone) and models the Arrullo for Épica and Legendaria. Fix both with the BP4 rerun on a machine with Python. | No Python here; the simulator is not live code. |
+| CF-D1 | New timings. Gomibú: tell 0.9 -> 0.8, lock 0.55 -> 0.45, recover 0.7 -> 0.5, cooldown 5.5 -> 3.5. Flanfuria: tell 1.0 -> 0.8, recover 0.85 -> 0.6, cooldown 8 -> 5. Tortidragón: aim 1.0 -> 0.8, lock 0.6 -> 0.45, recover 0.85 -> 0.6, cooldown 7 -> 4.5. The jump (0.45), the ring (0.8) and the flight (0.65) are unchanged. | The user's numbers; "shorter recovery" was not given, so about 0.2 s less each. |
+| CF-D2 | Each lock moved with its tell, so the time from the lock to the hit stays as fair as before: Gomibú 0.8 s (was 0.8), Tortidragón 1.0 s (was 1.05). Suites assert at least 0.8 s. | A faster tell must not shorten the sidestep after the lock. |
+| CF-D3 | Gomibú's live numbers are in `WildboundBeastConfig.Gomibu.tuning`; the rule module `WildboundCandyGomibuAttack` (ServerStorage, no live caller) carries the same numbers. Flanfuria and Tortidragón read their rule modules. | Keep the two Gomibú copies equal. |
+| CF-D4 | The clips keep their lengths (no new animation upload): the 0.9 / 1.0 s telegraph clips and the 0.7 / 0.85 s recover clips are cut at the phase change, so the last 0.1-0.25 s of each is not shown. Fitting the clip speed to the phase (`BeastPhaseAt` / `BeastPhaseUntil` are already on the client model) is a follow-up. | Re-baking the clips means re-publishing animations, an owner action. |
+| CF-D5 | The two beast suites (Flanfuria, Tortidragón) now read their times from the rule module instead of literals, and the Gomibú beast suite looks for its lock in the first window too (the lock now falls before 1.2 s). | The literals were the old timings; the rule suites pin the numbers. |
 | AR-D4 | Fixed in passing: MechanicsWiring W1's stale pin (`canSteal` / `steal` without `maxCarry`, a known red since NH2) now pins the current calls. | The same case was being re-pinned; W1 leaves the known-red list. |
 
 ## Evidence
@@ -138,3 +144,17 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - GREEN, run `000a3ae2`: EggCarry 40/0, Bat 13/0, Gear 15/0, MechanicsWiring 10/0, NestRefill 5/0, TuningWiring 8/0. Red: Tuning 15/1, DT1 now on `Eggs.PICKUP_DELAY` (EC-D3; a direct scan listed the three drifts), WaveClock RW5 (known).
 - Solo Play (PlayLock `EC`, cleared after; Play stopped; memory saves): the egg prompts read Común 0.50 s (16 eggs), Rara 0.90 (8), Épica 1.30 (5), Legendaria 1.80 (5), each with the same `WildboundStealHold`; the runtime tuning folder `Eggs` held the four new values. `HeistProbe` "steal" on island I5 (Legendaria): stolen (`Egg:13`). No script errors from these scripts in the output.
 - Not checked: a person holding the prompt (the probe stands in for a full hold, so the server's measured-hold refusal at the new lengths is suite only), a glove's shorter hold on a rare egg, the event egg, two players, a phone. Python (the simulator) not run or edited (EC-D5).
+
+### CF (2026-11-15/16)
+
+- Change: `tools/WildboundCandyGomibuAttack.luau`, `tools/WildboundCandyFlanfuriaAttack.luau`, `tools/WildboundCandyTortidragonAttack.luau` (all in ServerStorage), `WildboundBeastConfig` (Gomibu tuning row), and the timing comment in `WildboundBeastFlanfuria` (CF-D1).
+- Suites re-pinned on purpose: the three attack suites (numbers, phases, cooldowns; Flanfuria's `begin` now starts so its release is at 101 whatever the tell) and the three beast suites (CF-D5).
+- Fingerprint rule: before any write, the 13 Studio scripts equalled the repo HEAD (the three attack modules and suites, BeastConfig, the three beast modules and suites). The first test edit was checked after the fact (Studio's edited copy equalled the repo's, so both started equal); every later write was checked before. Exact replacements. After: Studio == repo, GomibuAttack 5276/2592455810, FlanfuriaAttack 8453/3924361361, TortidragonAttack 6435/1454845756, BeastConfig 31770/1690292384, BeastFlanfuria 7476/1660655566, GomibuAttack_Test 6973/516961779, FlanfuriaAttack_Test 9253/3889046416, TortidragonAttack_Test 6441/3239426464, BeastGomibu_Test 11039/1727511876, BeastFlanfuria_Test 14213/3321472439, BeastTortidragon_Test 9853/2821800830.
+- RED (tests pushed, sources unchanged), run `91c84b8e`: GomibuAttack 2/8, FlanfuriaAttack 8/3, TortidragonAttack 4/3, BeastGomibu 8/1 ("expected 0.8, got 0.9"). The two beast suites reading the rule stayed green (they follow the rule).
+- First GREEN run `15de7aec` showed BeastGomibu's lock case looking only in the second window (CF-D5); fixed, run `30eb6020` 9/0. Green in `15de7aec`: the three attack suites, BeastFlanfuria 10/0, BeastTortidragon 9/0, BeastDirector 48/0, BeastEncounters 24/0, BeastAttack 13/0, BeastAudience 17/0, BeastWiring 50/0, BeastDonGlaseon 13/0, Gomibu and Flanfuria clips 8/0. Known red only: TortidragonClips "every clip is published" (owner action O2).
+- Solo Play (PlayLock `CF`, cleared after; Play stopped; memory saves). A recorder on the client's beast models logged each phase with its server start and end after `HeistProbe` steals on Caramelo nests:
+  - Gomibú (CandyC1): Telegraph 0.80 s, Jump 0.45, Recover 0.50; next tell 3.55 s after the recovery ended; three casts in a row.
+  - Flanfuria (CandyR1): Telegraph 0.80, Release 0.80, Recover 0.60; next tell 5.00 s after; four casts.
+  - Tortidragón (reached during the later steals): Telegraph 0.80, Release 0.65, Recover 0.60; next tell 4.53 s after.
+  - Health stayed 100 (no damage). No script errors in the log (only the place's DataStore, texture-pack and material lines).
+- Not checked: how the cut clips look on screen (CF-D4), whether a person can still dodge each cast comfortably, a hit landing in Play, two players, a phone.

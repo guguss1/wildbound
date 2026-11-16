@@ -18,7 +18,9 @@ return function(Attack)
 		assert(type(actual) == "number" and math.abs(actual - expected) <= tolerance,
 			(label and label .. ": " or "") .. "Expected about " .. tostring(expected) .. ", got " .. tostring(actual))
 	end
-	local function begin() return Attack.start(100, { x = 0, z = 0 }, {}) end
+	-- Deliberately changed (CF): a cast begins so its release is at 101 whatever the tell, so the ring and puddle cases
+	-- keep their times.
+	local function begin() return Attack.start(101 - Attack.TELEGRAPH_SECONDS, { x = 0, z = 0 }, {}) end
 	local function player(id, x, z, extra)
 		local p = { id = id, x = x, z = z, alive = true, safe = false, carrying = true }
 		for k, v in pairs(extra or {}) do p[k] = v end
@@ -38,21 +40,25 @@ return function(Attack)
 		return all
 	end
 
-	case("S6: the sheet's numbers: tell 1.00, release 0.80, ring 2 to 11, slow x0.65 for 1.5 s, puddle r4 for 3 s at x0.8, recover 0.85, cooldown 8", function()
-		equal(Attack.TELEGRAPH_SECONDS, 1); equal(Attack.RELEASE_SECONDS, 0.8); equal(Attack.RECOVER_SECONDS, 0.85)
+	-- Deliberately changed (CF, user 2026-11-15, odd/tasks/wildbound-caramelo-v2.md): a faster cast. The tell is at the
+	-- 0.8 s fair-strike floor, the recovery is shorter and the cooldown is about 5 s. Was: tell 1.00, recover 0.85,
+	-- cooldown 8.
+	case("CF: the sheet's numbers: tell 0.80, release 0.80, ring 2 to 11, slow x0.65 for 1.5 s, puddle r4 for 3 s at x0.8, recover 0.60, cooldown 5", function()
+		equal(Attack.TELEGRAPH_SECONDS, 0.8); equal(Attack.RELEASE_SECONDS, 0.8); equal(Attack.RECOVER_SECONDS, 0.6)
 		equal(Attack.RING_FROM_STUDS, 2); equal(Attack.RING_TO_STUDS, 11)
 		equal(Attack.RING_SLOW_FACTOR, 0.65); equal(Attack.RING_SLOW_SECONDS, 1.5)
 		equal(Attack.PUDDLE_RADIUS_STUDS, 4); equal(Attack.PUDDLE_SECONDS, 3); equal(Attack.PUDDLE_SLOW_FACTOR, 0.8)
-		equal(Attack.COOLDOWN_SECONDS, 8)
+		equal(Attack.COOLDOWN_SECONDS, 5)
 	end)
 
 	case("S6: phases by the server's clock", function()
 		local a = begin()
-		equal(Attack.phase(a, 100), "Telegraph"); equal(Attack.phase(a, 100.999), "Telegraph")
+		near(a.startedAt, 100.2, 1e-9, "the cast began 0.8 s before its release")
+		equal(Attack.phase(a, 100.2), "Telegraph"); equal(Attack.phase(a, 100.999), "Telegraph")
 		equal(Attack.phase(a, 101), "Release"); equal(Attack.phase(a, 101.799), "Release")
-		equal(Attack.phase(a, 101.8), "Recover"); equal(Attack.phase(a, 102.649), "Recover")
-		equal(Attack.phase(a, 102.65), "Done")
-		near(Attack.endsAt(a), 102.65, 1e-9, "end time")
+		equal(Attack.phase(a, 101.8), "Recover"); equal(Attack.phase(a, 102.399), "Recover")
+		equal(Attack.phase(a, 102.4), "Done")
+		near(Attack.endsAt(a), 102.4, 1e-9, "end time")
 	end)
 
 	case("S6: the ring is a front that grows from 2 to 11 in 0.8 s, not a full circle at once", function()
@@ -134,11 +140,11 @@ return function(Attack)
 		equal(#Attack.puddle(a, 103, { player(1, 1, 0) }), 0)
 	end)
 
-	case("S6: cooldown 8 s after the cast ends, so one puddle at most; the farm version never attacks", function()
+	case("CF: cooldown 5 s after the cast ends, so one puddle at most; the farm version never attacks", function()
 		local a = begin()
 		equal(Attack.canStart(nil, 0), true)
-		equal(Attack.canStart(Attack.endsAt(a), Attack.endsAt(a) + 7.99), false)
-		equal(Attack.canStart(Attack.endsAt(a), Attack.endsAt(a) + 8), true)
+		equal(Attack.canStart(Attack.endsAt(a), Attack.endsAt(a) + 4.99), false)
+		equal(Attack.canStart(Attack.endsAt(a), Attack.endsAt(a) + 5), true)
 		assert(Attack.puddleEndsAt(a) < Attack.endsAt(a) + Attack.COOLDOWN_SECONDS, "the old puddle must be dry before the next cast")
 		local state, reason = Attack.start(100, { x = 0, z = 0 }, { pet = true })
 		equal(state, nil); equal(reason, "Pet")

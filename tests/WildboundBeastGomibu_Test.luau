@@ -75,8 +75,10 @@ return function(Enc, Gomibu, Config)
 		equal(Config.PLAYABLE.Gomibu, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Gomibu", "not in ORDER") end
 		assert(table.isfrozen(T), "tuning frozen")
-		equal(T.TelegraphSeconds, 0.9); equal(T.LockSeconds, 0.55); equal(T.JumpSeconds, 0.45); equal(T.RadiusStuds, 4.5)
-		equal(T.RecoverSeconds, 0.7); equal(T.AttackCooldownSeconds, 5.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
+		-- Deliberately changed (CF, user 2026-11-15): tell 0.9 -> 0.8 (the floor), lock 0.55 -> 0.45 (still 0.8 s from the
+		-- lock to the landing), recover 0.7 -> 0.5, cooldown 5.5 -> 3.5.
+		equal(T.TelegraphSeconds, 0.8); equal(T.LockSeconds, 0.45); equal(T.JumpSeconds, 0.45); equal(T.RadiusStuds, 4.5)
+		equal(T.RecoverSeconds, 0.5); equal(T.AttackCooldownSeconds, 3.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
 		equal(T.PerceptionStuds, 16); equal(T.AbandonStuds, 25); equal(T.PatrolSpeedStudsPerSecond, 7); equal(T.ChaseSpeedStudsPerSecond, 12)
 		assert(Gomibu.tellSeconds(T) >= Config.MIN_TELL, "tell under the fairness floor")
 		-- the two kids keep their own flags: nothing here leaks onto them
@@ -108,7 +110,7 @@ return function(Enc, Gomibu, Config)
 		assert(farthest >= T.LeashStuds - 4, "never reached towards the leash: " .. farthest)
 	end)
 
-	case("Golpe de Goma: a 4.5 stud circle that follows the target until 0.55 s and never again", function()
+	case("Golpe de Goma: a 4.5 stud circle that follows the target until the lock and never again", function()
 		-- the target starts walking as soon as the circle is drawn
 		local e, w, tgt, events, tell = telegraphing("tell", function(t, tg, bearState) if bearState.phase == "Telegraph" then tg.x, tg.z = 8, 3 end end)
 		equal(tell.shape.kind, "circle"); equal(tell.shape.r, T.RadiusStuds); equal(tell.shape.x, 8); equal(tell.shape.z, 0)
@@ -121,6 +123,8 @@ return function(Enc, Gomibu, Config)
 		local followed, lock = false, nil
 		for _, ev in ipairs(each(events, "Tell")) do
 			if ev.locked ~= true and ev.shape.z == 3 then followed = true end
+			-- CF: with the 0.45 s lock the locked tell can fall inside telegraphing's first 1.2 s.
+			if ev.locked == true then lock = lock or ev end
 		end
 		for _, ev in ipairs(each(later, "Tell")) do
 			if ev.locked ~= true and ev.shape.z == 3 then followed = true end
@@ -176,7 +180,7 @@ return function(Enc, Gomibu, Config)
 		equal(#each(later, "Hit"), 0, "hit in a safe zone")
 	end)
 
-	case("it cannot chain jumps: after landing it recovers 0.7 s and waits 5.5 s more", function()
+	case("it cannot chain jumps: after landing it recovers and waits its cooldown", function()
 		local e, w, tgt, events, tell = telegraphing("cooldown")
 		local later = run(e, w, tgt, 1.25, tell.strikeAt + 9)
 		local second

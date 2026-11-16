@@ -3,9 +3,9 @@
 -- It is summoned at its nest (Director.summon, points 0) and lives there; e.pos is the ground under it. State machine:
 --   Calm (waits at the nest) -> Notice (Alert: AlertSeconds still, after the target comes within PerceptionStuds)
 --   -> Chase (hops after it at ChaseSpeed, never past LeashStuds from the nest)
---   -> Telegraph (Onda de Caramelo within CastRange: a circle of radius 11 on the flan, fixed from the start; 1.00 s)
+--   -> Telegraph (Onda de Caramelo within CastRange: a circle of radius 11 on the flan, fixed from the start; 0.80 s)
 --   -> Release (0.80 s: the ring front grows from radius 2 to 11; the target is slowed once, when the front passes it,
---      unless it is in the air) -> Recover (0.85 s) -> Chase ... -> GiveUp (the target past AbandonStuds).
+--      unless it is in the air) -> Recover (0.60 s) -> Chase ... -> GiveUp (the target past AbandonStuds).
 --   From the end of the release a puddle of radius 4 lies where the flan stood for 3 s and slows whoever stands in it.
 --   Escape: the target outside EscapeDistance of the nest for EscapeSeconds. Death and the safe zone end it (Attack.guard).
 -- The attack's numbers and rules are WildboundCandyFlanfuriaAttack (one source); this module only walks it through the

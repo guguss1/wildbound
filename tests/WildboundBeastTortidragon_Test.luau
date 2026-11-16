@@ -5,6 +5,11 @@
 -- machine, pure, on the harness of WildboundBeastFlanfuria_Test: a fake world with flat ground at y 0 and a target
 -- moved by the test. A new encounter faces +Z, so a target at +Z is in front of it.
 return function(Enc, Tortidragon, Config, Abanico)
+	-- Deliberately changed (CF, user 2026-11-15): the cast times come from the rule (Abanico) instead of literals, since
+	-- the aim, the lock, the recovery and the cooldown were shortened. The rule's own suite pins the numbers.
+	local LOCK = Abanico.LOCK_SECONDS
+	local IMPACT = Abanico.TELEGRAPH_SECONDS + Abanico.RELEASE_SECONDS
+	local ENDS = IMPACT + Abanico.RECOVER_SECONDS
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -77,12 +82,12 @@ return function(Enc, Tortidragon, Config, Abanico)
 		assert(Tortidragon.tellSeconds() >= Config.MIN_TELL, "the tell is shorter than the minimum")
 	end)
 
-	case("Calm -> Notice -> Chase -> Telegraph: the fan in front, 12 studs, 55 deg, undodgeable, impact at 1.65 s", function()
+	case("Calm -> Notice -> Chase -> Telegraph: the fan in front, 12 studs, 55 deg, undodgeable, impact when the aim and the flight end", function()
 		local e, _, _, events, tell = telegraphing("t1")
 		equal(string.sub(phases(events), 1, #"Calm,Notice,Chase,Telegraph"), "Calm,Notice,Chase,Telegraph", "phases")
 		equal(tell.shape.kind, "sector", "the aim is a fan")
 		near(tell.shape.r, 12, "range"); near(tell.shape.arc, 55, "arc"); assert(tell.shape.dz > 0.9, "the fan does not point at the target")
-		near(tell.strikeAt - tell.startAt, 1.65, "aim + flight"); near(tell.lockAt - tell.startAt, 0.6, "lock")
+		near(tell.strikeAt - tell.startAt, IMPACT, "aim + flight"); near(tell.lockAt - tell.startAt, LOCK, "lock")
 		equal(tell.dodgeable, false, "dodgeable"); equal(tell.locked, false, "locked at start")
 		equal(e.phase, "Telegraph")
 	end)
@@ -100,16 +105,16 @@ return function(Enc, Tortidragon, Config, Abanico)
 		assert(facingAtTell < -0.85, "it fired before facing the target: dz " .. facingAtTell)
 	end)
 
-	case("the lock at 0.60 s freezes three circles along the aim; moving afterwards never moves them", function()
+	case("the lock freezes three circles along the aim; moving afterwards never moves them", function()
 		local e, w, tgt, _, tell = telegraphing("t3")
 		local start = tell.startAt
 		local events = run(e, w, tgt, start + 0.05, start + 0.95, function(t, target)
-			if t > start + 0.62 then target.x = 3 end -- sidestep after the lock
+			if t > start + LOCK + 0.02 then target.x = 3 end -- sidestep after the lock
 		end)
 		local locked
 		for _, ev in ipairs(each(events, "Tell")) do if ev.locked then locked = locked or ev end end
 		assert(locked, "no locked tell")
-		near(locked.at, start + 0.6, "lock time", 0.051)
+		near(locked.at, start + LOCK, "lock time", 0.051)
 		equal(locked.shape.kind, "multi"); equal(#locked.shape.list, 3, "circles")
 		for _, c in ipairs(locked.shape.list) do near(c.r, 2.3, "radius") end
 		near(locked.shape.list[2].x, 0, "middle circle on the aim", 1e-3)
@@ -125,7 +130,7 @@ return function(Enc, Tortidragon, Config, Abanico)
 		local hits = each(events, "Hit")
 		equal(#hits, 1, "hits")
 		local hit = hits[1]
-		near(hit.at, start + 1.65, "impact time", 1e-6); equal(hit.damage, 0, "damage")
+		near(hit.at, start + IMPACT, "impact time", 1e-6); equal(hit.damage, 0, "damage")
 		near(hit.push.studs, Abanico.PUSH_STUDS, "push"); assert(hit.push.dz > 0, "the push does not go away from the dragon")
 		near(hit.slow.multiplier, 0.85, "stagger"); near(hit.slow.seconds, 0.8, "stagger time")
 		local after = phases(events)
@@ -137,21 +142,21 @@ return function(Enc, Tortidragon, Config, Abanico)
 		local e, w, tgt, _, tell = telegraphing("t5")
 		local start = tell.startAt
 		local events = run(e, w, tgt, start + 0.05, start + 1.8, function(t, target)
-			if t > start + 0.65 then target.x = 7 end
+			if t > start + LOCK + 0.05 then target.x = 7 end
 		end)
 		equal(#each(events, "Hit"), 0, "hits")
 		local strike = each(events, "Strike")[1]
 		assert(strike and strike.hit == false, "no missed strike")
 	end)
 
-	case("cooldown: no second fan until 7 s after the cast ended", function()
+	case("cooldown: no second fan until Abanico.COOLDOWN_SECONDS after the cast ended", function()
 		local e, w, tgt, _, tell = telegraphing("t6")
 		local start = tell.startAt
-		local events = run(e, w, tgt, start + 0.05, start + 2.5 + 6.9)
+		local events = run(e, w, tgt, start + 0.05, start + ENDS + Abanico.COOLDOWN_SECONDS - 0.1)
 		local opened = 0
 		for _, ev in ipairs(each(events, "Tell")) do if ev.tell ~= tell.tell then opened += 1 end end
 		equal(opened, 0, "a second fan inside the cooldown")
-		events = run(e, w, tgt, start + 2.5 + 6.95, start + 2.5 + 7.6)
+		events = run(e, w, tgt, start + ENDS + Abanico.COOLDOWN_SECONDS - 0.05, start + ENDS + Abanico.COOLDOWN_SECONDS + 0.6)
 		assert(#each(events, "Tell") >= 1, "no fan after the cooldown")
 	end)
 
