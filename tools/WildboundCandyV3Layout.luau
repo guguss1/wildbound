@@ -25,8 +25,14 @@ end
 -- bridge on every route leg it crosses (BRIDGES); the chocolate is 3.5 deep; the new trees are 35 % taller; three
 -- houses are built at 1.4; pink hills replace the yellow crystals; the edge band is filled and a backdrop stands
 -- outside the east edge. tools/wildbound-caramelo-v4-migrate.luau changes the live map (mark V4_MARK).
-V3.VERSION = 2
+-- Caramelo v5 (owner's third round 2026-11-17; odd/tasks/wildbound-caramelo-v2.md "Caramelo v5", V5-D3 to V5-D5;
+-- docs/design/wildbound-caramelo-v3-plan.md "Caramelo v5", V5-D10 on): VERSION 3. A wider river (24 on the open legs,
+-- narrower only where a nest or a post leaves no room), a bigger lake (two discs, as big as the nests, posts and the left
+-- route allow), longer Top and Bottom bridges, the docks on the new banks. tools/wildbound-caramelo-v5-migrate.luau
+-- changes the live map (mark V5_MARK).
+V3.VERSION = 3
 V3.V4_MARK = "CaramelV4"
+V3.V5_MARK = "CaramelV5"
 -- The root attribute the migration sets (tools/wildbound-caramelo-v3-migrate.luau) and the folder every v3 piece
 -- lives in (root.CaramelV3.<Piece folder>), so the whole batch can be archived in one move.
 V3.MARK = "CaramelV3"
@@ -77,13 +83,20 @@ V3.MOUNTAINS = freeze({
 -- the junction's east side (under the bridges of the right route's last leg, the main avenue and the left route's last
 -- leg, west of the cake's territory and of nest L1), wide past the docks into the lake, under the left route's bottom
 -- bridge and out at the south edge. The last point lies on the edge.
+-- V5-D3, V5-D10: 24 wide on the open legs. Narrower only where the clearances leave no room: 19 to 19.5 between post
+-- C11 and nest C7 (RIVER[2] stays where M1 faces), 16 then 10 by nest E3 into the junction arc (unchanged, 10 wide),
+-- 14 to 20 between nest L1 / post R10 and the lake. A width step gets its own point, because a leg is as wide as its
+-- wider end.
 V3.RIVER = freeze({
 	{ -8.36, 154.08, 12 }, -- M1's outlet (kit outlet x 0.45, turned to face RIVER[2])
-	{ -12, 138, 16 },
-	{ -11, 120, 16 }, -- under the right route's top bridge
-	{ -4, 102, 16 },
-	{ 8, 80, 16 },
-	{ 14, 60, 16 },
+	{ -12, 138, 19 }, -- between post C11 and nest C7 (M1 faces this point: it never moves)
+	{ -10, 131, 19.5 },
+	{ -9, 124, 24 }, -- under the right route's top bridge (z 120)
+	{ -3, 104, 24 }, -- east of nest R4
+	{ 5, 82, 24 }, -- west of post R11
+	{ 11, 62, 24 },
+	{ 13, 54, 24 },
+	{ 12, 50, 16 }, -- narrowing by nest E3
 	{ 12, 44, 10 }, -- narrow round the junction: east of nest E3
 	{ 11.25, 30.07, 10 },
 	{ 19.06, 23.82, 10 }, -- under the right route's last leg (30.5 studs from the junction, square to it)
@@ -93,12 +106,12 @@ V3.RIVER = freeze({
 	{ 19.31, -23.6, 10 }, -- under the left route's last leg, west of nest L1
 	{ 11.57, -29.93, 10 },
 	{ 12, -42, 14 },
-	{ 16, -58, 14 }, -- between nest L1 and post R10
-	{ 16, -78, 22 }, -- into the lake, the raft's open water
-	{ 22, -118, 18 },
-	{ 27, -140, 16 }, -- under the left route's bottom bridge
-	{ 29, -170, 16 },
-	{ 30, -200, 16 }, -- the south edge
+	{ 17, -58, 20 }, -- between nest L1 and post R10
+	{ 14, -90, 24 }, -- through the lake, the raft's open water
+	{ 24, -125, 24 },
+	{ 27, -140, 24 }, -- under the left route's bottom bridge
+	{ 29, -170, 24 }, -- between nest C6 and post C8
+	{ 30, -200, 24 }, -- the south edge
 })
 -- M1's waterfall pool (the kit's pool centre and radius x 0.45, at the kit's turn) and the waterfall: the kit's own
 -- sheet falls from the ledge (33.72 x 0.45 studs) into the pool; the builder adds streaks of lighter chocolate in front
@@ -109,9 +122,13 @@ V3.WATERFALL = freeze({ x = -6.62, z = 162.3, width = 7, top = 15.17, faceX = -7
 	flowSpeed = 12 }) -- review m8: top is studs over the floor (the kit ledge 33.72 x 0.45), not a world height
 -- The chocolate lake (V4-D1): a wide disc south of the junction where the river widens, the docks stand and the cookie
 -- platforms float, and a smaller one where it leaves towards the bottom bridge.
+-- V5-D3, V5-D11: disc 1 grows to r 34.5 at (8, -98) and disc 2 (r 18) becomes the lake's west lobe at (-14, -114). A
+-- 46 disc does not fit: the left route closes the lake on the south (z -140) and the east (its last leg), post R10 on
+-- the north and nest R3 / post R3 on the west, so no single disc passes r 37.7 (at (20, -95), which leaves no east bank
+-- for a dock). Open water for the raft's hull south of the junction: about 3700 square studs (was about 2800).
 V3.LAKE = freeze({
-	{ x = 4, z = -100, r = 30 },
-	{ x = 22, z = -118, r = 12 },
+	{ x = 8, z = -98, r = 34.5 },
+	{ x = -14, z = -114, r = 18 },
 })
 -- The bridges (V4-D1): one on every route leg the river crosses, each straight on that leg: { id, route, from, to (the
 -- leg's two route points), at (studs from `from` to the deck's centre), length (the deck), gaps (rail gaps, studs
@@ -121,13 +138,15 @@ V3.LAKE = freeze({
 -- every creature post). V4-D16: round the junction the river is an arc 30.5 studs from it, 10 wide, so the main
 -- avenue and the two last legs cross it square on short bridges (15 wide) that never touch; those three have no gaps
 -- (their side ramps would meet the next bridge; the walk round is short). V3.BRIDGES carries x, z (the deck centre) and ux, uz (along).
+-- V5-D12: over the 24-wide river the Top deck is 28 (was 22, at 31: x -9) and the Bottom deck 28 (was 24, at 76: x 26);
+-- the three junction bridges are unchanged.
 V3.BRIDGE_BUILD = freeze({ width = 15, deck = 4.1, ramp = 9, gapWidth = 8, sideRamp = 9 })
 local BRIDGE_ROWS = {
-	{ id = "Top", route = "right", from = { -40, 120 }, to = { 40, 120 }, at = 29, length = 22, gaps = { 0 } },
+	{ id = "Top", route = "right", from = { -40, 120 }, to = { 40, 120 }, at = 31, length = 28, gaps = { 0 } },
 	{ id = "RightLast", route = "right", from = { 80, 100 }, to = { 0, 0 }, at = 97.56, length = 11, gaps = {} },
 	{ id = "Main", route = "main", from = { 0, 0 }, to = { 56, 0 }, at = 30.5, length = 11, gaps = {} },
 	{ id = "LeftLast", route = "left", from = { 90, -110 }, to = { 0, 0 }, at = 111.63, length = 11, gaps = {} },
-	{ id = "Bottom", route = "left", from = { -50, -140 }, to = { 50, -140 }, at = 77, length = 24, gaps = { 0 } },
+	{ id = "Bottom", route = "left", from = { -50, -140 }, to = { 50, -140 }, at = 76, length = 28, gaps = { 0 } },
 }
 do
 	local list = {}
@@ -166,9 +185,11 @@ V3.HOUSE_PLACEHOLDER = freeze({ CV3_SweetHouse = { 24, 14 }, CV3_ChocoHouse = { 
 -- bridge and its bottom bridge: stand (on the bank, where a player boards and is set down) and tip (over the chocolate,
 -- where the raft waits; at least 6 studs inside it and 6 off every bridge). The rider steers the raft
 -- (WildboundCandyRaft); homeDock is where it respawns.
+-- V5-D3, V5-D13: A on the west lobe's west bank, B on the big disc's east bank (its ramp keeps 11 studs off the left
+-- route's last leg), 70 studs apart across the open lake.
 V3.DOCKS = freeze({
-	{ id = "A", standX = -30, standZ = -112, tipX = -14, tipZ = -108 },
-	{ id = "B", standX = 40, standZ = -110, tipX = 24, tipZ = -108 },
+	{ id = "A", standX = -38, standZ = -116, tipX = -22, tipZ = -114 },
+	{ id = "B", standX = 48, standZ = -104, tipX = 32, tipZ = -102 },
 })
 V3.RAFT = freeze({ asset = "CV3_BananaRaft", homeDock = 1 })
 -- A dock's build (review m5, m6): its deck stops tipGap studs short of the tip (the docked hull's room), its ramp

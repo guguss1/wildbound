@@ -627,6 +627,10 @@ class DefaultMappingTests(unittest.TestCase):
         # Caramelo v4: the house nests
         "tools/WildboundCandyHouseNests.luau": "ServerStorage.WildboundCandyHouseNests",
         "tests/WildboundCandyHouseNests_Test.luau": "ServerStorage.WildboundCandyHouseNests_Test",
+        # Caramelo v5: the candy hide spots and the creatures' hiding rules
+        "tools/WildboundCandyHideSpots.luau": "ServerStorage.WildboundCandyHideSpots",
+        "src/wildbound/WildboundCandyHiding.luau": "ServerScriptService.WildboundCandyHiding",
+        "tests/WildboundCandyHideSpots_Test.luau": "ServerStorage.WildboundCandyHideSpots_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

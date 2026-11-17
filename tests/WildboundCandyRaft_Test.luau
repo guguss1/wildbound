@@ -423,5 +423,36 @@ return function(Raft, V3, Layout, Text, sources)
 		assert(s.x == s.x and s.z == s.z and s.yaw == s.yaw, "no NaN in the state")
 	end)
 
+	-- V5-D5: a quarter faster, reverse by the same share. V5-D3: the area is the layout's, so it follows the wider river
+	-- and the bigger lake: both lake discs' centres and every 24-wide river point float a hull, and the open water
+	-- between the two dock tips is sailable in a straight line (the docks face each other across the lake).
+	case("RF15: SPEED 20 and REVERSE 7.5; the real area follows the v5 lake and river", function()
+		equal(Raft.SPEED, 20, "SPEED (V5-D5)")
+		near(Raft.REVERSE, 7.5, "REVERSE (V5-D5)")
+		near(Raft.REVERSE / Raft.SPEED, 6 / 16, "reverse keeps its share of SPEED")
+		local realArea = Raft.area(V3, Layout.CENTRE)
+		local C = Layout.CENTRE
+		for i, disc in ipairs(V3.LAKE) do
+			assert(realArea.inside(C.x + disc.x, C.z + disc.z, Raft.HULL), "lake disc " .. i .. "'s centre is not open water")
+		end
+		local wide = 0
+		for i, p in ipairs(V3.RIVER) do
+			if p[3] >= 24 and Layout.depth(p[1], p[2]) > p[3] then
+				wide += 1
+				if not V3.nearBridge(p[1], p[2], Raft.HULL) then
+					assert(realArea.inside(C.x + p[1], C.z + p[2], Raft.HULL), "river point " .. i .. " is not open water")
+				end
+			end
+		end
+		assert(wide >= 6, "the river is 24 wide on its open legs: " .. wide)
+		local real = Raft.docksFrom(V3, C)
+		for s = 1, 19 do
+			local x = real[1].x + (real[2].x - real[1].x) * s / 20
+			local z = real[1].z + (real[2].z - real[1].z) * s / 20
+			local nearTip = flat(x, z, real[1].x, real[1].z) <= Raft.ARM_STUDS or flat(x, z, real[2].x, real[2].z) <= Raft.ARM_STUDS
+			assert(realArea.inside(x, z, nearTip and 0 or Raft.HULL), ("the crossing is blocked at %.1f, %.1f"):format(x, z))
+		end
+	end)
+
 	return result
 end

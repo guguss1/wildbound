@@ -289,7 +289,9 @@ local function sample()
 			local wade = tonumber(player:GetAttribute("WildboundCandyWade"))
 			table.insert(list, { id = player.UserId, alive = humanoid.Health > 0, x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z,
 				groundY = g.y, safe = safeAt(p.X, p.Z), sheltered = Smarts.inHouse(p.X, p.Z, world.houses) ~= nil,
-				wading = wade ~= nil and wade < 1, carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil })
+				wading = wade ~= nil and wade < 1, carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil,
+				-- V5-D2: hidden in a hide spot (WildboundWorld's attribute): like a house for the bees
+				hidden = player:GetAttribute("WildboundHidden") ~= nil })
 		end
 	end
 	return list

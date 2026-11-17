@@ -251,3 +251,56 @@ where they disagree, this section wins.
    the live map.
 6. Clear the lock and Play solo: cross every bridge, wade the river (slow), sail between the docks, climb a turned
    tower's balcony, walk the east edge and look at the backdrop.
+
+## Caramelo v5: a real river (owner's third round, 2026-11-17; decisions V5-D1 to V5-D5 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+Status: **Prepared** (repo only; Luau suites not run; `tools/test_caramelo_v3.py` green). `V3.VERSION` is 3 and the live
+map gets it through `tools/wildbound-caramelo-v5-migrate.luau` (mark `CaramelV5`). This section covers the river, the
+lake, the bridges, the docks and the raft (V5-D3 to V5-D5); the hiding places (V5-D1, V5-D2) are another task. Where it
+disagrees with the v4 section, this one wins.
+
+### Layout (plot coordinates)
+
+- **River** (`V3.RIVER`, x, z, width): (-8.36, 154.08, 12) M1's outlet; (-12, 138, 19) and (-10, 131, 19.5) between post
+  C11 and nest C7; (-9, 124, 24) under the Top bridge; (-3, 104, 24) east of nest R4; (5, 82, 24) west of post R11;
+  (11, 62, 24); (13, 54, 24); (12, 50, 16) by nest E3; then the junction arc unchanged, 10 wide, from (12, 44) to
+  (11.57, -29.93); (12, -42, 14); (17, -58, 20) between nest L1 and post R10; (14, -90, 24) through the lake; (24, -125, 24);
+  (27, -140, 24) under the Bottom bridge; (29, -170, 24); (30, -200, 24) on the south edge. About 190 studs of it are 24
+  wide.
+- **Lake** (`V3.LAKE`): (8, -98) r 34.5 and the west lobe (-14, -114) r 18. Open water for the raft's 3-stud hull south of
+  the junction: about 3700 square studs (v4: about 2800). The cookie platforms did not move; all four are still inside a
+  disc and off every bridge.
+- **Bridges**: Top on the right route's top leg at 31 (x -9), deck 28 (was 22); Bottom on the left route's bottom leg at
+  76 (x 26), deck 28 (was 24); RightLast, Main and LeftLast unchanged (deck 11).
+- **Docks**: A stand (-38, -116), tip (-22, -114), on the west lobe's west bank; B stand (48, -104), tip (32, -102), on the
+  big disc's east bank. The tips are 55.3 studs apart across open water; the straight crossing between them floats the
+  hull all the way.
+- **Raft** (`WildboundCandyRaft`): `SPEED` 20 (was 16), `REVERSE` 7.5 (was 6). `Raft.area` and `Raft.docksFrom` read
+  `V3.liquidDistance`, `V3.nearBridge` and `V3.DOCKS`, so they follow the v5 lake and river with no code change.
+
+### Decisions taken for the user (V5, river, lake, bridges, docks)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V5-D10 | The river is 24 wide on its open legs. It is narrower where a nest or a creature post leaves no room: 19 to 19.5 between post C11 (-30, 138) and nest C7 (5, 142), whose gap allows about 21 (RIVER[2] stays at (-12, 138): M1 faces it, so moving it would turn the mountain); 16 by nest E3 into the junction arc (10, unchanged); 14 to 20 between nest L1 / post R10 and the lake. A width change gets its own point, because a leg is as wide as its wider end. | Nests and posts never move (V5-D3); every clearance rule is kept. |
+| V5-D11 | The lake is two discs: r 34.5 at (8, -98) and r 18 at (-14, -114) as its west lobe (the second disc was at the outflow, now inside the big one). A 46 disc does not fit anywhere: the left route closes the lake on the south (z -140) and the east (its last leg, 7 studs off the chocolate), post R10 on the north and nest R3 / post R3 on the west; the biggest single disc is r 37.7 at (20, -95), which leaves no east bank for a dock. | The most open water the fixed nests, posts and routes allow, with room for both docks. |
+| V5-D12 | The Top and Bottom decks grow to 28 and move to the river's new centre (at 31 and 76), so the deck spans the chocolate and its ramps land on dry ground; the three junction bridges stay 11. | The wider river needs longer bridges; the leg lengths leave room. |
+| V5-D13 | Dock A on the west lobe's west bank, dock B on the big disc's east bank, its ramp foot 11 studs off the left route's path edge. | V5-D3: the docks on the bigger lake's two banks. |
+| V5-D14 | The builder lays each river leg as wide as its wider end (was the narrower end), the width every rule and the raft's area read. | The raft never floats over a bank that looks dry; a narrow leg never shows a notch. |
+| V5-D15 | The v5 migration lays again only CaramelV3's River, Lake, Bridges and Docks (`V3Builder.layWater`), after archiving them and every tree, prop, hill or cookie tree now in the chocolate, on or by a bridge, or on a dock (`V3Builder.planV5`; the old kit's prop folders, CaramelV3.Trees, Filler and EdgeFill). Nothing is re-laid in their place (the filler and the edge fill are not run again). A raft model standing in the Edit place goes to its home dock; normally the raft service builds it there in Play. | The smallest change that gives the new water; nothing is destroyed. |
+
+### What the parent does in Studio, in order (v5)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyV3Layout` and `WildboundCandyV3Builder` (ServerStorage),
+   `WildboundCandyRaft` (ReplicatedStorage) and the suites `WildboundCandyV3Layout_Test`, `WildboundCandyV3Builder_Test`,
+   `WildboundCandyRaft_Test`.
+3. Run those suites with the fresh runner, then `WildboundCandyAmbience_Test` and `WildboundCandyWade_Test` (they read the
+   chocolate).
+4. Run `tools/wildbound-caramelo-v5-migrate.luau` with `DRY_RUN = true`; read `WildboundCaramelV5Summary` (`archived`,
+   `pieces`, `water` 4, `partsEstimate` under the cap, `overCap` false). Then `DRY_RUN = false`. Expected archive: the four
+   water folders plus roughly 8 to 15 trees and props (about 6 of the river's bank filler props stand within 3 studs of
+   the wider river, and some edge-fill trees and props stand on the 2400 square studs newly under chocolate).
+5. Re-run `WildboundCandyBeastSites_Test`, `WildboundCandyBuilder_Test` and the V3 suites on the live map.
+6. Clear the lock and Play solo: cross the Top and Bottom bridges, wade the wider river, sail from dock A to dock B and
+   along the river to both bridges, check the raft's top speed (20).

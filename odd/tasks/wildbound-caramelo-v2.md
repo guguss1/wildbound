@@ -524,6 +524,32 @@ Decisions taken for the user (V4):
 | V4-D14 | (owner: "proposals to get rid of the bees, they chase too much") The bees can be shaken off three ways: (1) entering a house (they cannot enter, V4-D12) makes the swarm give up after 3 s; (2) wading in the chocolate makes them lose you after 2 s (they will not dive into it); (3) without an egg they give up 70 studs from their hive. With an egg they stay relentless (RC) except for (1) and (2). Recorded proposals not taken: a smoke item, a flower that distracts them. | Three escapes that use the map itself; an egg keeps the stakes. |
 | V4-D15 | (owner: "the house balconies should face the biome, you climb up and see the caramel kingdom") The caramel towers (the only kit with a balcony, at +Z) are turned so the balcony faces the plot centre and the cake; their door then faces away, with a clear path round. The other houses still face the junction. | From the balcony you see the kingdom instead of the plot edge. |
 
+## Caramelo v5: hiding places and a real river (2026-11-17)
+
+Owner's words (2026-11-17): more hiding places ("the mountains or something should let you hide"); the river bigger, so
+the raft has room to sail; you can cross by bridge, on foot or on the raft; the raft a little faster. No questions.
+
+Decisions taken for the user (V5):
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V5-D1 | Hiding places in the kingdom, using the existing hide-spot system (the "Esconderse" prompt and the WildboundHidden attribute; max stay 45 s, cooldown 8 s): a hollow at the foot of each ice-cream mountain (M1..M6), on the side that faces the play area, plus big cotton-candy bushes and hollow cake stumps near the routes and the houses, about 14 spots in total, clear of the river, the paths, nests, posts and houses. They are built from existing kit pieces and plain parts, with no new asset upload. | The owner asked for the mountains or something to hide in; the game already has a hide rule that players know from the forest. |
+| V5-D2 | The candy creatures (critters, the bosses, the bees and La Duquesa) respect hiding: a hidden player is never acquired. A creature hunting them loses them and searches round the spot; it finds them only by standing within the hide rule's discover radius for its dwell time (the same rule as La Silueta). Carrying an egg is allowed, and the frenzy (V4-D13) still sends the hunters to search the area. | Hiding has to work against the creatures that actually chase you in Caramelo. |
+| V5-D3 | The river is wider: about 24 studs on its open legs (it was 12 to 16). The lake grows from a 30 to a 46 radius, and the second disc from 12 to 18. Round the junction it stays 10 wide, so those three bridges stay short. Nests and creature posts do not move; the river bends round them. Anything else now in the water is moved or archived by the v5 migration. The docks move to the bigger lake's two banks. | The raft needs open water to sail. |
+| V5-D4 | Three ways across: the bridges (unchanged), wading (60 % speed, V4-D2) and the raft. | The owner's three ways. |
+| V5-D5 | The raft goes from 16 to 20 studs/s at most (+25 %), and reverse grows by the same share. | "A little faster." |
+
+### Caramelo v6: the first four proposals (owner, 2026-11-17: "let's do the first 4 proposals, developed well, one by one")
+
+They come after v5 lands, in this order, each one loaded and checked in Play before the next one starts.
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D1 | Tall licorice grass: patches of tall black and red licorice blades (plain parts and existing kit pieces, no upload) in open meadows near the routes, clear of paths, water, nests, posts and houses. A player inside a patch who is not sprinting is seen by candy creatures only within 10 studs, instead of their normal sight. Sprinting inside it rustles the grass and gives you away as normal. The game has no crouch stance (only walk and sprint), so "crouched" becomes "not sprinting"; adding a crouch would need new animations and a change to the shared stance code. A hunt already under way loses the player only after the usual memory time. Bees and La Duquesa follow the same rule. | Proposal 1: a cheap, readable hiding mechanic that rewards moving carefully. |
+| V6-D2 | Crumbling cookie bridges: the two long outer bridges (Top and Bottom) become cookie bridges. When a player carrying an egg is being hunted, crossing one makes it crack: 2 s of visible cracks, crumbs and a sound, then the deck falls into the chocolate. Whoever is on it lands in the river and wades. It rebuilds after 45 s. The three short bridges round the junction never break, so there is always a way across. | Proposal 2: escaping with an egg forces a choice of route. |
+| V6-D3 | River current: the chocolate flows from the waterfall (north) to the south edge. The raft drifts with it at up to 4 studs/s on the river legs and 1.5 in the lake, so going upstream is slower and downstream faster. Waders feel a gentle push of 1.5 studs/s. Creatures are not pushed. | Proposal 3: the river feels alive and the raft has something to master. |
+| V6-D4 | An island in the big lake (radius about 9), away from the docks and the raft's main line, with one Epica egg nest (outside Layout.NESTS, like the house nests) and a few candy decorations. You reach it by raft or by wading slowly. It has no guardian post, so a steal raises the usual alarm and the frenzy. | Proposal 4: a rare prize that uses the bigger lake and the raft. |
+
 ### Evidence: Caramelo v4 deploy (2026-11-17)
 
 Studio db843df0, place 122652861404212, Edit only, locks set and cleared; place not saved (the owner saves).

@@ -104,6 +104,10 @@ F.TOWER_NO_GO_MARGIN_STUDS = 4 -- F.noGoZones: the tower's disc reaches past its
 --       given up ("Leash"). With an egg (or unknown: nil) they stay relentless (RC) except for (1) and (2).
 -- A sheltered or wading player never wakes a swarm.
 F.HOUSE_GIVEUP_SECONDS = 3
+-- V5-D2 (Caramelo v5): a target hidden in a hide spot (players[i].hidden, the world script's WildboundHidden) is
+-- treated like one in a house: never woken on, no new dive and no sting, and the swarm gives up after
+-- HIDE_GIVEUP_SECONDS ("Hidden"), egg or not.
+F.HIDE_GIVEUP_SECONDS = F.HOUSE_GIVEUP_SECONDS
 F.WADE_LOSE_SECONDS = 2
 F.NO_EGG_LEASH_STUDS = 70
 F.HOUSE_MARGIN_STUDS = 1.5
@@ -309,6 +313,7 @@ local function usable(world, p)
 	return p ~= nil and p.alive == true and finite(p.x) and finite(p.y) and finite(p.z) and p.safe ~= true
 		and inside(world.bounds, p.x, p.z) and not inNoGo(world, p.x, p.z)
 		and p.sheltered ~= true and p.wading ~= true -- V4-D14: never woken on a player in a house or in the chocolate
+		and p.hidden ~= true -- V5-D2: nor on a hidden one
 end
 
 -- V4-D12 / V4-D14: (x, z) kept outside every house disc of `discs` (grown by HOUSE_MARGIN_STUDS): a point inside one
@@ -353,6 +358,13 @@ local function lost(world, swarm, target, now)
 		else
 			swarm.wadeSince = nil
 		end
+		-- V5-D2: hidden in a hide spot, like a house
+		if target.hidden == true then
+			swarm.hideSince = swarm.hideSince or now
+			if now - swarm.hideSince >= F.HIDE_GIVEUP_SECONDS - 1e-9 then return "Hidden" end
+		else
+			swarm.hideSince = nil
+		end
 	end
 	if target.carryingEgg == false and flat(target.x, target.z, swarm.hive.x, swarm.hive.z) > F.NO_EGG_LEASH_STUDS then
 		return "Leash"
@@ -374,7 +386,7 @@ local function giveUp(swarm, now, reason, events)
 	end
 	table.insert(events, { kind = "GiveUp", at = now, swarm = swarm.id, id = swarm.target, reason = reason, vanish = far or nil })
 	swarm.phase, swarm.target, swarm.diving = far and "Vanish" or "Return", nil, nil
-	swarm.shelterSince, swarm.wadeSince = nil, nil
+	swarm.shelterSince, swarm.wadeSince, swarm.hideSince = nil, nil, nil
 	swarm.vanishUntil = far and now + F.VANISH_SECONDS or nil
 	swarm.cooldownUntil = now + F.COOLDOWN_SECONDS
 end
@@ -423,6 +435,7 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events, houses)
 		-- RC4: the dive's strike is booked in the shared strike ledger first (hooks.claim); refused, it waits a step
 		local strikeAt = now + F.DIVE_TELL_SECONDS + F.DIVE_SECONDS
 		if swarm.diving == nil and now >= swarm.nextDiveAt and flat(bug.x, bug.z, target.x, target.z) <= F.AIM_RANGE_STUDS
+			and target.hidden ~= true -- V5-D2: no dive at a hidden player
 			and (not (hooks and hooks.claim) or hooks.claim(target.id, swarm.id, strikeAt, now) ~= false) then
 			swarm.dives += 1
 			swarm.diving = bug.index
@@ -472,6 +485,7 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events, houses)
 		swarm.diving, swarm.nextDiveAt = nil, now + (swarm.stings >= F.MAX_STINGS and F.TIRED_DIVE_GAP_SECONDS or F.DIVE_GAP_SECONDS)
 		bug.markX, bug.markZ, bug.markY = nil, nil, nil
 		local reach = flat(target.x, target.z, bug.toX, bug.toZ) <= F.HIT_STUDS and math.abs(target.y - bug.toY) <= F.HIT_HEIGHT_STUDS
+			and target.hidden ~= true -- V5-D2: a dive told before the player hid lands on nothing
 		if not reach then
 			table.insert(events, { kind = "Miss", at = now, swarm = swarm.id, bug = bug.index, id = target.id, key = bug.key })
 			bug.phase, bug.recoverEndsAt = "Recover", now + F.RECOVER_SECONDS
@@ -497,7 +511,7 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events, houses)
 end
 
 -- One step of every swarm. players = { { id, alive, x, y, z (the server-side root), groundY (the root's last grounded
--- height, optional), vx, vz, safe, V4-D14: sheltered, wading, carryingEgg (each optional) } }; world.houses (optional):
+-- height, optional), vx, vz, safe, V4-D14: sheltered, wading, carryingEgg, V5-D2: hidden (each optional) } }; world.houses (optional):
 -- the house discs { { x, z, r } } (V4-D12). Events: Wake
 -- { swarm, id, chaseAt }, Chase, DiveTell { bug, id, key, startAt, strikeAt, x, y, z }, Dive { key, x, y, z }, Hit { id,
 -- key, damage, dx, dz, studs, seconds, keepsEgg }, Miss, Dodged, DiveCancel { key }, GiveUp { reason }, Home.
@@ -526,7 +540,7 @@ function F.step(world, now, players, hooks)
 			if target then
 				awake[target.id] = (awake[target.id] or 0) + 1
 				swarm.phase, swarm.target, swarm.stings = "Alert", target.id, 0
-				swarm.shelterSince, swarm.wadeSince = nil, nil
+				swarm.shelterSince, swarm.wadeSince, swarm.hideSince = nil, nil, nil
 				swarm.chaseAt = now + F.WAKE_TELL_SECONDS
 				table.insert(events, { kind = "Wake", at = now, swarm = swarm.id, id = target.id, chaseAt = swarm.chaseAt })
 			end

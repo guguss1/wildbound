@@ -41,6 +41,18 @@ local function houseDiscs(at)
 	return houses
 end
 
+-- V5-D2 (Caramelo v5, odd/tasks/wildbound-caramelo-v2.md): hiding. A player hidden in a hide spot (WildboundWorld's
+-- WildboundHidden) is never acquired: one who is not her thief is left out of her rules. Her thief who hides is
+-- searched for: the rules get a point that walks round the spot (WildboundCandyHiding.searchPoint) as the thief's place,
+-- marked hidden (no lunge, no bubbles, no hit), until the search runs out; then the thief is left out and she calms
+-- ("Gone") and floats home. Hovering within WildboundHide's discover radius of the spot for its dwell time she finds
+-- them (Hiding.finds) and tells the world script (HideFound), which pulls the thief out on her side.
+local Hiding = require(ServerScriptService:WaitForChild("WildboundCandyHiding"))
+local hideSearch, hideWatch = nil, nil
+local function hiddenNow(player)
+	return player:GetAttribute("WildboundHidden") ~= nil
+end
+
 local STEP = 0.1
 local BUBBLE, RING = Color3.fromRGB(255, 130, 205), Color3.fromRGB(255, 70, 170)
 local RAGE_RED, RAGE_BUBBLE = Color3.fromRGB(230, 40, 40), Color3.fromRGB(240, 60, 90)
@@ -227,6 +239,7 @@ local beastHit = nil
 local function landLunge(player, ev)
 	local body = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if body and Smarts.inHouse(body.Position.X, body.Position.Z, houseDiscs(workspace:GetServerTimeNow())) then return end -- V4-D12
+	if body and hiddenNow(player) then return end -- V5-D2: hidden in a hide spot
 	local network = ReplicatedStorage:FindFirstChild("WildboundNetwork")
 	beastHit = beastHit or (network and network:FindFirstChild("BeastHit"))
 	if beastHit and beastHit:IsA("BindableFunction") then
@@ -274,7 +287,7 @@ local function play(events, now)
 			Debris:AddItem(burst, 0.45)
 		elseif ev.kind == "Hit" then
 			local player = Players:GetPlayerByUserId(ev.id)
-			if player then
+			if player and not hiddenNow(player) then -- V5-D2
 				slow(player, ev.slow, ev.slowSeconds)
 				push(player, ev.dx, ev.dz, ev.studs, ev.seconds)
 			end
@@ -348,6 +361,12 @@ local function rootOfId(id)
 	local character = player and player.Character
 	return character and character:FindFirstChild("HumanoidRootPart")
 end
+-- V5-D2: her line, ring and gaze never point at a hidden thief
+local function seenRootOf(id)
+	local player = Players:GetPlayerByUserId(id)
+	if player and hiddenNow(player) then return nil end
+	return rootOfId(id)
+end
 
 local function yawOf(v) return math.atan2(-v.X, -v.Z) end
 
@@ -360,7 +379,7 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 		local current = duquesa:GetPivot().Position
 		local at = current:Lerp(target, math.min(1, dt * 10))
 		local rage = state.rage
-		local root = rage and rootOfId(rage.id)
+		local root = rage and seenRootOf(rage.id)
 		local look = root and (root.Position - at) or (seatPivot.Position - at)
 		local yaw = Vector3.new(look.X, 0, look.Z).Magnitude > 0.5 and yawOf(look) - yawOf(seatPivot.LookVector) or nil
 		local rotation = yaw and CFrame.Angles(0, yaw, 0) * seatPivot.Rotation or duquesa:GetPivot().Rotation
@@ -386,9 +405,38 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 				entry.carriesHerEgg = true
 				entry.safe = select(2, Rules.zone(root.Position.X, root.Position.Z)) == true
 			end
-			table.insert(players, entry)
+			-- V5-D2: hiding (see Hiding above)
+			local hidden = player:GetAttribute("WildboundHidden") ~= nil
+			local mine = state.rage ~= nil and state.rage.id == player.UserId
+			if mine and not hidden then hideSearch, hideWatch = nil, nil end
+			if hidden and mine and not hideSearch then
+				hideSearch = Hiding.newSearch(root.Position.X, root.Position.Z, now, "Duquesa:" .. player.UserId)
+				hideWatch = { dwell = Hiding.newWatch(), at = now }
+			end
+			local searching = hidden and mine and hideSearch ~= nil
+			if hidden and not searching then entry = nil end
+			if searching then
+				local her = Duq.position(state)
+				local dt = now - hideWatch.at
+				hideWatch.at = now
+				local d = her and math.sqrt((her.x - root.Position.X) ^ 2 + (her.z - root.Position.Z) ^ 2)
+				if d and Hiding.finds(hideWatch.dwell, dt, d, "Day") then
+					local network = ReplicatedStorage:FindFirstChild("WildboundNetwork")
+					local found = network and network:FindFirstChild("HideFound")
+					if found and found:IsA("BindableEvent") then found:Fire(player, her.x, her.z) end
+					entry.hidden = true -- released by the world script before her next step
+				elseif Hiding.expired(hideSearch, now) then
+					entry = nil -- the search ran out: she calms (Gone) and floats home
+				else
+					entry.x, entry.z = Hiding.searchPoint(hideSearch, now)
+					entry.vx, entry.vz = 0, 0
+					entry.hidden = true
+				end
+			end
+			if entry then table.insert(players, entry) end
 		end
 	end
+	if not state.rage then hideSearch, hideWatch = nil, nil end
 	local was = Duq.position(state)
 	local wasX, wasZ = was and was.x, was and was.z
 	local events = Duq.step(state, now, players, summit, resolve)
@@ -396,7 +444,7 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 	local her = Duq.position(state)
 	if her and wasX then her.x, her.z = Smarts.outsideHouses(wasX, wasZ, her.x, her.z, houseDiscs(now)) end
 	play(events, now)
-	drawMarker(rootOfId)
+	drawMarker(seenRootOf)
 	-- DR: her flying clip while she chases or floats home, cued again now and then (the preview player ends one-shots)
 	local phase = Duq.phase(state)
 	if duquesa then

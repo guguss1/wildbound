@@ -5,7 +5,9 @@
 -- platforms and the filler; and swaps the old trees for the three new kinds. Caramelo v4 (V4-D1 to V4-D17): the bridges
 -- of V3.BRIDGES, the deeper chocolate, the houses at their scale and turn (tagged overhead, V4-D12), the cookie
 -- platforms on pedestals, the pink hills at the crystal spots, the edge fill and the backdrop (layAll), and on a live
--- map planV4 (what the v4 migration archives) and refitTrees (the trees 35 % taller).
+-- map planV4 (what the v4 migration archives) and refitTrees (the trees 35 % taller). Caramelo v5 (V5-D3, V5-D14): on a
+-- live map planV5 (the water folders and whatever stands in the wider chocolate) and layWater (the river, lake,
+-- bridges and docks laid again into the live CaramelV3).
 -- Every piece comes from the Blender kit ServerStorage.WildboundAssets.CandyKitV3.<AssetName> when that Model is there:
 -- scaled about its pivot (the ground centre of its base, front -Z), its meshes coloured and made non-colliding, and its
 -- invisible Collision_ parts made from the kit spec (tools/WildboundCandyV3KitSpec.luau, generated from the kits'
@@ -476,7 +478,9 @@ local function layLiquid(ctx, into, poolFromKit)
 		local q = V3.RIVER[i + 1]
 		if q then
 			local a, b = ctx.world(p[1], top + depth / 2, p[2]), ctx.world(q[1], top + depth / 2, q[2])
-			liquid(block(ctx, river, "Choco_River_" .. i, "decor", Vector3.new(math.min(p[3], q[3]), depth, (b - a).Magnitude),
+			-- V5-D14: a leg is laid as wide as its wider end, the width every rule (V3.liquidDistance) and the raft's area
+			-- read, so the raft never floats over a bank that looks dry
+			liquid(block(ctx, river, "Choco_River_" .. i, "decor", Vector3.new(math.max(p[3], q[3]), depth, (b - a).Magnitude),
 				CFrame.lookAt((a + b) / 2, b), PALETTE.chocolate), V3)
 			-- a low crumble bank on each side (decor), the river's relief
 			local dir = (b - a).Unit
@@ -1535,6 +1539,94 @@ function V3Builder.refitTrees(root, deps, _archive, dryRun)
 		end
 	end
 	return report
+end
+
+-- Caramelo v5 on a live map ------------------------------------------------------------------------------------------
+
+-- The CaramelV3 folders the v5 migration lays again (V5-D3: the wider river, the bigger lake, the longer bridges and the
+-- docks on the new banks). The waterfall, the mountains, the houses and everything else stay.
+V3Builder.WATER_FOLDERS = { "River", "Lake", "Bridges", "Docks" }
+-- The CaramelV3 folders whose models planV5 checks against the new chocolate (with the old kit's PROP_FOLDERS).
+V3Builder.V5_CHECKED = { "Trees", "Filler", "EdgeFill" }
+
+-- planV5(root, L, V3) -> { archive = { { instance, why } }, kept, water }. Read only; deterministic. What the v5
+-- migration archives before it lays the water again: the WATER_FOLDERS of root.CaramelV3 ("laid again by v5"), and every
+-- tree, prop or hill (a model of PROP_FOLDERS with a KitAsset, of CaramelV3.Trees, Filler or EdgeFill) now standing in the
+-- wider chocolate, on or by a bridge, on a dock or on any other v5 piece or pink hill. A hill keeps its HillRadius as
+-- its reach. Never a nest (the Nests folder is not read), a creature post (not a map model), a house, a mountain, the
+-- cake, the licorice, the platforms, the waterfall or the edge hills: the layout keeps those off the chocolate.
+function V3Builder.planV5(root, L, V3)
+	local plan = { archive = {}, kept = 0, water = 0 }
+	local holder = root:FindFirstChild(V3.FOLDER)
+	local pieces = table.clone(V3.pieces())
+	for _, h in ipairs(V3.CRYSTAL_HILLS) do table.insert(pieces, { kind = "hill", id = h.id, x = h.x, z = h.z, r = h.r }) end
+	if holder and not forbidden(holder) then
+		for _, name in ipairs(V3Builder.WATER_FOLDERS) do
+			local f = holder:FindFirstChild(name)
+			if f and not forbidden(f) then
+				table.insert(plan.archive, { instance = f, why = "laid again by v5" })
+				plan.water += 1
+			end
+		end
+	end
+	local models = {}
+	for _, name in ipairs(V3Builder.PROP_FOLDERS) do
+		local f = root:FindFirstChild(name)
+		for _, c in ipairs(f and f:GetChildren() or {}) do
+			if c:IsA("Model") and type(c:GetAttribute("KitAsset")) == "string" and not forbidden(c) then table.insert(models, c) end
+		end
+	end
+	for _, name in ipairs(V3Builder.V5_CHECKED) do
+		local f = holder and holder:FindFirstChild(name)
+		for _, c in ipairs(f and f:GetChildren() or {}) do
+			if c:IsA("Model") and not forbidden(c) then table.insert(models, c) end
+		end
+	end
+	table.sort(models, function(a, b) return a:GetFullName() < b:GetFullName() end)
+	for _, m in ipairs(models) do
+		local measure = V3Builder.measureTree(m)
+		local hill = m:GetAttribute("HillRadius")
+		if type(hill) == "number" then
+			measure.trunk = math.max(measure.trunk, hill)
+			measure.canopy = 0
+		end
+		local p = m:GetPivot().Position
+		local why = displaced(L, V3, measure, p.X - L.CENTRE.x, p.Z - L.CENTRE.z, pieces)
+		if why then table.insert(plan.archive, { instance = m, why = why }) else plan.kept += 1 end
+	end
+	return plan
+end
+
+-- layWater(root, deps) -> report { parts }: lays the WATER_FOLDERS (river with its pool, lake, bridges, docks) of the
+-- current layout into the existing root.CaramelV3, which must hold none of them (the v5 migration archived them first).
+-- deps = { Layout, V3 }. Built detached, parented at the end; nothing else in CaramelV3 is touched. The pool is laid at
+-- the river's depth whether or not M1 is the kit (V4-D11).
+function V3Builder.layWater(root, deps)
+	assert(typeof(root) == "Instance", "root must be an Instance")
+	assert(not forbidden(root), "refusing to touch " .. FORBIDDEN)
+	local L, V3 = deps.Layout, deps.V3
+	assert(type(L) == "table" and L.VERSION == 3, "needs the Caramelo layout VERSION 3")
+	assert(type(V3) == "table" and V3.FOLDER, "needs WildboundCandyV3Layout")
+	local live = root:FindFirstChild(V3.FOLDER)
+	assert(live and live:IsA("Folder"), "layWater: no " .. V3.FOLDER .. " folder")
+	for _, name in ipairs(V3Builder.WATER_FOLDERS) do
+		assert(not live:FindFirstChild(name), "layWater: archive " .. V3.FOLDER .. "." .. name .. " first")
+	end
+	local ctx = context(L, V3, deps)
+	local staging = Instance.new("Folder")
+	local ok, failure = pcall(function()
+		layLiquid(ctx, staging, false)
+		layBridges(ctx, staging)
+		layDocks(ctx, staging)
+	end)
+	if not ok then
+		staging.Parent = nil
+		error(failure, 0)
+	end
+	for _, c in ipairs(staging:GetChildren()) do c.Parent = live end
+	live:SetAttribute("Version", V3.VERSION)
+	live:SetAttribute("PartCount", countParts(live))
+	return { parts = ctx.parts }
 end
 
 -- retagHouses(root, V3) -> count (V4-D12): the live houses lose the pass tag and become overhead (walls, never ground).

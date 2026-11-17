@@ -605,6 +605,41 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 			"no lunge lands inside a house")
 	end)
 
+	-- V5-D2 (odd/tasks/wildbound-caramelo-v2.md "Caramelo v5"): a thief hidden in a hide spot (players[i].hidden; the
+	-- service gives her the search point round the spot as the thief's place) never starts a rage, gets no lunge and no
+	-- bubbles, and is never hit, even by a lunge told before they hid. She keeps raging (she searches); the service ends
+	-- the search by leaving the thief out ("Gone").
+	case("V5-D2: a hidden thief: no rage, no lunge, no bubbles, never hit; the search ends as Gone", function()
+		equal(firstOf(steps(Duq.new(), 0, 2, { onFloor(40, { hidden = true }) }), "Rage"), nil, "never acquired while hidden")
+		local state = Duq.new()
+		local thief = onFloor(30)
+		steps(state, 0, 1.1, { thief })
+		equal(Duq.phase(state), "Chase", "raging")
+		-- hidden from now on, standing still: she follows the given point and never strikes
+		local hidden = onFloor(30, { hidden = true })
+		local events = steps(state, 1.2, 8, { hidden })
+		equal(firstOf(events, "Lunge"), nil, "no new lunge at a hidden thief")
+		equal(firstOf(events, "Charge"), nil, "no bubbles at a hidden thief")
+		equal(firstOf(events, "Strike", function(ev) return ev.outcome == "Hit" end), nil, "never hit")
+		equal(firstOf(events, "Hit"), nil, "no bubble hit")
+		equal(state.mode, "Rage", "she keeps searching")
+		-- a lunge told before the thief hid lands on nothing
+		local lunge = firstOf(steps(Duq.new(), 0, 6, { onFloor(30) }), "Lunge")
+		assert(lunge, "no lunge at a still thief")
+		local s3 = Duq.new()
+		assert(firstOf(steps(s3, 0, lunge.t, { onFloor(30) }), "Lunge"), "the same lunge again")
+		local strike = firstOf(steps(s3, lunge.t + 0.1, lunge.t + 2, { onFloor(30, { hidden = true }) }), "Strike")
+		assert(strike and strike.outcome ~= "Hit", "a lunge struck a hidden thief")
+		-- the service leaves the thief out when the search ends: she calms (Gone) and floats home
+		local calm = firstOf(steps(state, 8.1, 8.2, {}), "Calm")
+		assert(calm and calm.reason == "Gone", "the search ended")
+		local service = sources.service
+		has(service, 'local hidden = player:GetAttribute("WildboundHidden") ~= nil', "the world script's attribute")
+		has(service, "entry.hidden = true", "the rules know the thief is hidden")
+		has(service, "if hidden and not searching then entry = nil end", "a hidden player who is not her thief is not seen")
+		has(service, "if body and hiddenNow(player) then return end", "no lunge lands on a hidden thief")
+	end)
+
 	case("GT14: her descent keeps up with the bigger Torta", function()
 		local drop = summit.top - Layout.FLOOR_TOP
 		local across = (Layout.TOWER.tiers[1].radius + 1) / Duq.CHASE_SPEED

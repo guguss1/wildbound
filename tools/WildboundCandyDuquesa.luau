@@ -258,10 +258,11 @@ local function calm(state, now, events, reason)
 end
 
 -- DR: a carrier of her egg, alive, out of every safe zone, inside the plot, while she sits and her cooldown is over.
+-- V5-D2 (Caramelo v5): never a thief hidden in a hide spot (p.hidden).
 local function startRage(state, now, events, players, summit)
 	if state.mode ~= nil or now < (state.cooldownUntil or -math.huge) then return end
 	for _, p in ipairs(players) do
-		if p.carriesHerEgg == true and p.alive == true and type(p.x) == "number" and p.safe ~= true
+		if p.carriesHerEgg == true and p.alive == true and type(p.x) == "number" and p.safe ~= true and p.hidden ~= true
 			and Duq.plotDepth(summit, p.x, p.z) >= 0 then
 			state.mode, state.her, state.nextAt = "Rage", Duq.seat(summit), nil
 			state.rage = { id = p.id, startAt = now, phase = "Roar", phaseUntil = now + Duq.ROAR_SECONDS, lunges = 0 }
@@ -293,7 +294,7 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 	if r.phase == "Chase" then
 		fly(summit, her, p.x, ty, p.z, speed, Duq.HOLD_STUDS, dt)
 		if now >= (r.nextLungeAt or -math.huge) and flat(her.x, her.z, p.x, p.z) <= Duq.LUNGE_START_STUDS
-			and math.abs(her.y - ty) <= Duq.LUNGE_HIT_HEIGHT then
+			and math.abs(her.y - ty) <= Duq.LUNGE_HIT_HEIGHT and p.hidden ~= true then -- V5-D2: no lunge at a hidden thief
 			r.lunges += 1
 			r.lunge = { n = r.lunges, startAt = now, strikeAt = now + Duq.LUNGE_TELL_SECONDS }
 			r.phase = "Tell"
@@ -326,7 +327,9 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 			local reach = math.min(Duq.LUNGE_REACH_STUDS, flat(her.x, her.z, ax, az))
 			her.x, her.z = her.x + ux * reach, her.z + uz * reach
 			-- D-1: the thief is hit only where the dash ends (a sidestep after the lock leaves it there)
+			-- V5-D2: a lunge told before the thief hid lands on nothing
 			local inReach = flat(her.x, her.z, p.x, p.z) <= Duq.LUNGE_HIT_STUDS and math.abs(her.y - ty) <= Duq.LUNGE_HIT_HEIGHT
+				and p.hidden ~= true
 			-- the dodge is asked first: a perfect press stuns her even when its dash carried the thief out of reach
 			local dodged = resolve ~= nil and resolve(p.id, r.lunge.n, now) == "Dodged"
 			local outcome = dodged and "Dodged" or (inReach and "Hit" or "Miss")
@@ -343,7 +346,8 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 		end
 	end
 	-- her bubbles between lunges (never while she tells a lunge, roars or is stunned)
-	if (r.phase == "Chase" or r.phase == "Recover") and r.nextVolleyAt and now >= r.nextVolleyAt and not state.pending then
+	if (r.phase == "Chase" or r.phase == "Recover") and r.nextVolleyAt and now >= r.nextVolleyAt and not state.pending
+		and p.hidden ~= true then -- V5-D2: no bubbles at a hidden thief
 		throw(state, now, events, p, p.y - Duq.FEET_STUDS, her.x, her.z, true)
 		r.nextVolleyAt = now + Duq.RAGE_EVERY_SECONDS
 	end
@@ -373,7 +377,9 @@ local function homeStep(state, now, events, summit, dt)
 	end
 end
 
--- One step. players = { { id, alive, x, y, z, vx?, vz?, carriesHerEgg?, safe?, speed? } }; summit = Frut.summit(Layout).
+-- One step. players = { { id, alive, x, y, z, vx?, vz?, carriesHerEgg?, safe?, speed?, hidden? } }; summit = Frut.summit(Layout).
+-- V5-D2: a hidden player (hidden = true) never starts a rage and gets no lunge, no bubbles and no hit; her thief who
+-- hides is given by the service at the search point round the spot (WildboundCandyHiding), so she searches there.
 -- resolve(id, lunge, now) (optional, DR) answers "Dodged" for a lunge the thief perfect-dodged. Events (field kind):
 --   Charge { volley, spots = { { x, y, z } }, throwAt, popAt, rage? }   Throw { volley, spots, popAt }
 --   Pop { volley, index, x, y, z }   Hit { volley, id, dx, dz, studs, seconds, slow, slowSeconds }
@@ -390,12 +396,13 @@ function Duq.step(state, now, players, summit, resolve)
 	if state.mode == "Calm" or state.mode == "Return" then homeStep(state, now, events, summit, dt) end
 	if state.mode == nil then
 		local target, upper
+		-- V5-D2: never at a hidden player
 		for _, p in ipairs(players) do
-			if Duq.onSummit(p, summit) then target = target or p end
+			if p.hidden ~= true and Duq.onSummit(p, summit) then target = target or p end
 		end
 		if not target then
 			for _, p in ipairs(players) do
-				if Duq.onUpper(p, summit) then target, upper = target or p, true end
+				if p.hidden ~= true and Duq.onUpper(p, summit) then target, upper = target or p, true end
 			end
 		end
 		if not target then
@@ -422,7 +429,7 @@ function Duq.step(state, now, players, summit, resolve)
 			table.insert(events, { kind = "Pop", volley = pending.volley, index = index, x = s.x, y = s.y, z = s.z })
 		end
 		for _, p in ipairs(players) do
-			if p.alive == true and type(p.x) == "number" then
+			if p.alive == true and type(p.x) == "number" and p.hidden ~= true then -- V5-D2: a pop never reaches a hidden player
 				for _, s in ipairs(pending.spots) do
 					if flat(p.x, p.z, s.x, s.z) <= Duq.POP_RADIUS_STUDS and math.abs(p.y - s.y) <= Duq.HIT_HEIGHT_STUDS then
 						local dx, dz = unit(p.x - s.x, p.z - s.z)

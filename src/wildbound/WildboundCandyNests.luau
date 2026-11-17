@@ -128,7 +128,9 @@ end
 -- own sync steps (Builder.syncNests, Builder.syncPortal: attributes only, no part moved), so a reopened or published
 -- place has its nests and portal on without an Edit session. Each step is guarded: a missing Nests folder or Portal
 -- model, or no builder, changes nothing. Returns how many nests and portals changed.
-function Nests.applyFlags(root, Builder, Layout, HouseNests)
+-- Caramelo v5 (V5-D1): HideSpots (the fifth argument, nil = ServerStorage.WildboundCandyHideSpots, false = none) lays
+-- the candy kingdom's hiding places last, so they keep off the house nests too. A fifth value: the spots changed.
+function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
@@ -149,8 +151,18 @@ function Nests.applyFlags(root, Builder, Layout, HouseNests)
 		end
 	end
 	if type(H) == "table" and type(H.sync) == "function" then okHouse, house = pcall(H.sync, root, Layout) end
+	local okSpots, spots = false, 0
+	local S = HideSpots
+	if S == nil then
+		local module = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyHideSpots")
+		if module and module:IsA("ModuleScript") then
+			local okRequire, loaded = pcall(require, module)
+			S = okRequire and loaded or nil
+		end
+	end
+	if type(S) == "table" and type(S.sync) == "function" then okSpots, spots = pcall(S.sync, root, Layout) end
 	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0,
-		okHouse and tonumber(house) or 0
+		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.

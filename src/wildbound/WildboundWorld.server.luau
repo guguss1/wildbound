@@ -1096,7 +1096,8 @@ local function hideNotice(player, ok, key)
 	if type(words) == "string" then snapshot(player, "Hide", ok, words, key == "entered" and hideWords.short or words) end
 end
 
-local function releaseHide(player, reason, now)
+-- Caramelo v5 (V5-D2): fromX, fromZ (optional) is where another finder stands (a candy creature, through HideFound).
+local function releaseHide(player, reason, now, fromX, fromZ)
 	local record = records[player]
 	local hide = record and record.hide
 	if not hide then return end
@@ -1111,6 +1112,7 @@ local function releaseHide(player, reason, now)
 			-- A player who leaves steps out away from their hunter; a found one is pulled out on its side, in sight.
 			local h = hunters[player]
 			local gx, gz = h and h.body.Position.X or home.X, h and h.body.Position.Z or home.Z
+			if type(fromX) == "number" and type(fromZ) == "number" then gx, gz = fromX, fromZ end
 			if reason == "found" then gx, gz = 2 * hide.x - gx, 2 * hide.z - gz end
 			local point = Hide.exitPoint(hide.x, hide.z, gx, gz)
 			root.CFrame = CFrame.lookAt(Vector3.new(point.x, hide.y, point.z),
@@ -1221,7 +1223,9 @@ local function bindHideSpot(spot)
 	if id then hideSpotPoints[id] = { x = zone.Position.X, z = zone.Position.Z } end
 	prompt.ActionText = hideWords.prompt or "Esconderse"
 	local kinds = hideWords.kind
-	prompt.ObjectText = type(kinds) == "table" and kinds[spot:FindFirstChild("Hollow") and "log" or "bush"] or ""
+	-- Caramelo v5 (V5-D1): the candy kingdom's mountain hollows (a "Cave" child) have their own words
+	local kind = spot:FindFirstChild("Cave") and "cave" or spot:FindFirstChild("Hollow") and "log" or "bush"
+	prompt.ObjectText = type(kinds) == "table" and kinds[kind] or (kind == "cave" and "Hueco de helado") or ""
 	prompt.KeyboardKeyCode, prompt.GamepadKeyCode = Enum.KeyCode[Keys.HIDE.key], Enum.KeyCode[Keys.HIDE.pad]
 	prompt.HoldDuration, prompt.MaxActivationDistance = Hide.CONFIG.PROMPT_HOLD, Hide.CONFIG.PROMPT_DISTANCE
 	prompt.Exclusivity = Enum.ProximityPromptExclusivity.OneGlobally
@@ -1230,6 +1234,23 @@ local function bindHideSpot(spot)
 end
 for _, spot in ipairs(CollectionService:GetTagged("WildboundHideSpot")) do bindHideSpot(spot) end
 table.insert(connections, CollectionService:GetInstanceAddedSignal("WildboundHideSpot"):Connect(bindHideSpot))
+-- Caramelo v5 (odd/tasks/wildbound-caramelo-v2.md V5-D2): the candy creatures run in other server scripts
+-- (WildboundBeasts, La Duquesa). One that stood within the hide rule's discover radius of a hidden player's spot for its
+-- dwell time fires HideFound (player, its x, z): the player is found as by La Silueta, pulled out on the finder's side.
+-- Server to server only (a BindableEvent); a restarted script reuses the one already there.
+do
+	local hideFound = network:FindFirstChild("HideFound")
+	if not (hideFound and hideFound:IsA("BindableEvent")) then
+		hideFound = Instance.new("BindableEvent")
+		hideFound.Name = "HideFound"
+		hideFound.Parent = network
+	end
+	table.insert(connections, hideFound.Event:Connect(function(player, x, z)
+		if stopped or typeof(player) ~= "Instance" or not player:IsA("Player") then return end
+		if type(x) ~= "number" or type(z) ~= "number" or x ~= x or z ~= z then x, z = nil, nil end
+		releaseHide(player, "found", workspace:GetServerTimeNow(), x, z)
+	end))
+end
 
 -- Fix pass (FP2): one hunter, built like the single guardian used to be, bound to `player`. Its model carries the
 -- owner's user id as an attribute so each client can tell its own hunter from the others (the server never reads it).

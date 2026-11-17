@@ -505,6 +505,11 @@ DEFAULT_MAPPINGS = [
     # through WildboundCandyNests.applyFlags. tools/wildbound-caramelo-queen-seat.luau (V4-D10) is a one-shot tool.
     ("tools/WildboundCandyHouseNests.luau", "ServerStorage.WildboundCandyHouseNests"),
     ("tests/WildboundCandyHouseNests_Test.luau", "ServerStorage.WildboundCandyHouseNests_Test"),
+    # Caramelo v5 (odd/tasks/wildbound-caramelo-v2.md V5-D1, V5-D2): the candy hide spots, laid at server start through
+    # WildboundCandyNests.applyFlags, and the candy creatures' hiding rules.
+    ("tools/WildboundCandyHideSpots.luau", "ServerStorage.WildboundCandyHideSpots"),
+    ("src/wildbound/WildboundCandyHiding.luau", "ServerScriptService.WildboundCandyHiding"),
+    ("tests/WildboundCandyHideSpots_Test.luau", "ServerStorage.WildboundCandyHideSpots_Test"),
 ]
 
 

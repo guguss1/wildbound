@@ -652,5 +652,66 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		root:Destroy()
 	end)
 
+	-- V5 (V5-D3, V5-D14): what the v5 migration archives, and the water laid again into the live CaramelV3.
+	case("B19: planV5 archives the water folders and what stands in the wider chocolate; layWater lays them again", function()
+		local root = Instance.new("Model")
+		local holder3 = Instance.new("Folder")
+		holder3.Name = V3.FOLDER
+		holder3.Parent = root
+		for _, name in ipairs({ "River", "Lake", "Bridges", "Docks", "Mountains", "Houses", "Waterfall", "Platforms", "Trees", "Filler", "EdgeFill" }) do
+			local f = Instance.new("Folder")
+			f.Name = name
+			f.Parent = holder3
+		end
+		local dryTree = oldTree(holder3.Trees, "Tree_1", "CV3_TreeCotton", -150, 60, true)
+		-- a tree, a filler prop and an edge hill on spots the v4 river left dry and the v5 river covers
+		-- (the lake's new west lobe, the big disc's east side, the wider south leg)
+		local wetTree = oldTree(holder3.Trees, "Tree_2", "CV3_TreeCotton", -26, -118, false)
+		local wetProp = oldTree(holder3.Filler, "Filler_1", "GumdropBush_A", 38, -98, false)
+		local wetHill = oldTree(holder3.EdgeFill, "EdgeHill_1", "CV3_IceCreamMountain_M", -34, -120, false)
+		wetHill:SetAttribute("HillRadius", 7)
+		local cookies = Instance.new("Folder")
+		cookies.Name = "Sweets"
+		cookies.Parent = root
+		local wetCookie = oldTree(cookies, "Cookie_1", "TreeCookie", 40, -170, false)
+		local dock = oldTree(holder3.EdgeFill, "Edge_9", "ConfettiPile", V3.DOCKS[2].standX, V3.DOCKS[2].standZ, false)
+		local plan = V3Builder.planV5(root, Layout, V3)
+		local why = {}
+		for _, a in ipairs(plan.archive) do why[a.instance] = a.why end
+		for _, name in ipairs(V3Builder.WATER_FOLDERS) do
+			equal(why[holder3[name]], "laid again by v5", name)
+		end
+		equal(plan.water, #V3Builder.WATER_FOLDERS, "four water folders")
+		for _, name in ipairs({ "Mountains", "Houses", "Waterfall", "Platforms", "Trees", "Filler", "EdgeFill" }) do
+			equal(why[holder3[name]], nil, name .. " stays")
+		end
+		equal(why[wetTree], "in the chocolate", "the tree in the wider river")
+		equal(why[wetProp], "in the chocolate", "the filler prop in the wider river")
+		equal(why[wetHill], "in the chocolate", "the hill in the wider river")
+		equal(why[wetCookie], "in the chocolate", "the cookie tree in the wider river")
+		assert(why[dock] ~= nil, "the prop on the new dock goes")
+		equal(why[dryTree], nil, "the dry tree stays")
+		equal(wetTree.Parent, holder3.Trees, "the plan moves nothing")
+		-- layWater: refused while a water folder is left, then laid into the same folder
+		assert(not pcall(V3Builder.layWater, root, { Layout = Layout, V3 = V3 }), "a lay with the old river left was accepted")
+		for _, name in ipairs(V3Builder.WATER_FOLDERS) do holder3[name].Parent = nil end
+		local laid = V3Builder.layWater(root, { Layout = Layout, V3 = V3 })
+		assert(laid.parts > 0, "parts")
+		for _, name in ipairs(V3Builder.WATER_FOLDERS) do assert(holder3:FindFirstChild(name), name .. " laid") end
+		equal(#holder3.Bridges:GetChildren(), #V3.BRIDGES, "bridges")
+		equal(#holder3.Docks:GetChildren(), #V3.DOCKS, "docks")
+		equal(#holder3.Lake:GetChildren(), #V3.LAKE, "lake discs")
+		assert(holder3.River:FindFirstChild("Choco_Pool"), "the pool")
+		equal(dryTree.Parent, holder3.Trees, "the trees stay")
+		assert(holder3:FindFirstChild("Mountains") and holder3:FindFirstChild("Houses"), "the other pieces stay")
+		equal(holder3:GetAttribute("Version"), V3.VERSION, "version")
+		-- V5-D14: every river leg is laid as wide as its wider end
+		for i = 1, #V3.RIVER - 1 do
+			local leg = holder3.River:FindFirstChild("Choco_River_" .. i)
+			near(leg.Size.X, math.max(V3.RIVER[i][3], V3.RIVER[i + 1][3]), "leg " .. i .. " width", 0.01)
+		end
+		root:Destroy()
+	end)
+
 	return result
 end

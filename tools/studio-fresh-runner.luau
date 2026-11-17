@@ -208,6 +208,15 @@ SPECS["WildboundCandyHouseNests_Test"] = {
 	"mod:WildboundCandyHouseNests", "mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundCandyV3KitSpec",
 	"mod:WildboundCandyV3Layout", { nests = "src:WildboundCandyNests" },
 }
+-- Caramelo v5 (odd/tasks/wildbound-caramelo-v2.md V5-D1, V5-D2): the candy hide spots (detached fixtures, no kit) and
+-- the creatures' hiding rules with two real brains
+SPECS["WildboundCandyHideSpots_Test"] = {
+	"mod:WildboundCandyHideSpots", "mod:WildboundCandyHiding", "mod:WildboundHide", "mod:WildboundCandyLayout",
+	"mod:WildboundCandyV3Layout", "mod:WildboundBeastEncounters", "mod:WildboundBeastConfig", "mod:WildboundBeastCandyCritter",
+	"mod:WildboundBeastDonGlaseon",
+	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
+		world = "src:WildboundWorld", nests = "src:WildboundCandyNests" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

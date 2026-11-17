@@ -648,6 +648,36 @@ return function(F, Layout, Dodge, sources)
 		equal(kinds(F.step(idle, 0.1, { P(1, 10, 0, { wading = true }) })), "", "no wake on a wader")
 	end)
 
+	-- V5-D2 (odd/tasks/wildbound-caramelo-v2.md "Caramelo v5"): a player hidden in a hide spot (the world script's
+	-- WildboundHidden) is treated like one in a house: never woken on, never stung, and the swarm gives up after
+	-- HIDE_GIVEUP_SECONDS ("Hidden"), egg or not.
+	case("V5-D2: a hidden target: no dive, never stung, the swarm gives up after 3 s; never woken on a hidden player", function()
+		equal(F.HIDE_GIVEUP_SECONDS, F.HOUSE_GIVEUP_SECONDS, "like a house")
+		local world, t = chasing(10, 0)
+		local inAt = t + 0.5
+		local events = run(world, t, t + 6, 0.05, function(s)
+			return { P(1, 10, 0, { hidden = s >= inAt, carryingEgg = true }) }
+		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+		local g = giveUpOf(events)
+		assert(g and g.reason == "Hidden", "no Hidden give-up: " .. kinds(events))
+		near(g.at - inAt, F.HIDE_GIVEUP_SECONDS, "after 3 s hidden", 0.06)
+		for _, e in ipairs(only(events, "Hit")) do
+			assert(e.at < inAt, ("stung at %.2f s while hidden"):format(e.at - inAt))
+		end
+		for _, e in ipairs(only(events, "DiveTell")) do
+			assert(e.at < inAt, "a new dive at a hidden player")
+		end
+		-- out again before 3 s: the clock starts again
+		local w3, t3 = chasing(10, 0)
+		local ev3 = run(w3, t3, t3 + 5, 0.05, function(s)
+			return { P(1, 10, 0, { hidden = (s - t3) % 2.5 < 2 }) }
+		end, { resolve = hitAll })
+		equal(giveUpOf(ev3), nil, "short hides never shake them")
+		local idle = F.new({ hive("A", 0, 0) }, 0, BIG)
+		equal(kinds(F.step(idle, 0.1, { P(1, 10, 0, { hidden = true }) })), "", "no wake on a hidden player")
+		has(sources.service, 'hidden = player:GetAttribute("WildboundHidden") ~= nil', "the world script's attribute")
+	end)
+
 	case("V4-D14: without an egg they give up 70 studs from the hive; with one they follow on", function()
 		local world, t = chasing(10, 0)
 		local events = run(world, t, t + 10, 0.05, function(s)

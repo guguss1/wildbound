@@ -26,6 +26,7 @@ BIOMES_PATH = ROOT / "src" / "wildbound" / "WildboundBiomes.luau"
 TRAP_PATH = ROOT / "tools" / "WildboundCandyTrapCake.luau"
 TOOL_PATH = ROOT / "tools" / "wildbound-caramelo-v3-migrate.luau"
 TOOL_V4_PATH = ROOT / "tools" / "wildbound-caramelo-v4-migrate.luau"
+TOOL_V5_PATH = ROOT / "tools" / "wildbound-caramelo-v5-migrate.luau"
 BUILDER_PATH = ROOT / "tools" / "WildboundCandyV3Builder.luau"
 OLD_BUILDER_PATH = ROOT / "tools" / "WildboundCandyBuilder.luau"
 DECOR_JSON = ROOT / "assets" / "exports" / "caramelo-v3" / "decor" / "caramelo-v3-decor-spec.json"
@@ -551,6 +552,43 @@ class CarameloV3Layout(unittest.TestCase):
                 ez = max(minz - wz, 0, wz - maxz)
                 self.assertGreaterEqual(math.hypot(ex, ez), r, "%s reaches into the %s square" % (asset, tag))
 
+    # V5-D3, V5-D10 to V5-D13: a wider river, a bigger lake, longer Top and Bottom bridges, the docks on the new banks.
+    def test_v5_wider_river_bigger_lake_longer_bridges(self):
+        g = self.g
+        v3 = read(V3_PATH)
+        self.assertRegex(v3, r"(?m)^V3\.VERSION = 3$")
+        self.assertIn('V3.V5_MARK = "CaramelV5"', v3)
+        widths = [p[2] for p in g.river]
+        self.assertGreaterEqual(sum(1 for w in widths if w >= 24), 10, "24 wide on the open legs")
+        legs = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(g.river, g.river[1:]) if min(a[2], b[2]) >= 24)
+        self.assertGreaterEqual(legs, 180, "at least 180 studs of the river are 24 wide")
+        # the junction arc stays 10 wide (its three short bridges), and so does every river point near the junction
+        for p in g.river:
+            if math.hypot(p[0], p[1]) <= 31:
+                self.assertEqual(p[2], 10, "the junction arc at %s" % p[:2])
+        self.assertEqual(len(g.lake), 2)
+        self.assertGreaterEqual(g.lake[0][2], 34, "the big disc grew (was 30)")
+        self.assertGreaterEqual(g.lake[1][2], 18, "the second disc grew (was 12)")
+        open_water = sum(1 for x in range(-60, 80) for z in range(-150, -20)
+                         if g.liquid_distance(x + 0.5, z + 0.5) <= -3 and not g.near_bridge(x + 0.5, z + 0.5, 3))
+        self.assertGreaterEqual(open_water, 3500, "open water for the raft's hull (v4: about 2800)")
+        bridges = {b["id"]: b for b in g.bridges}
+        self.assertGreaterEqual(bridges["Top"]["length"], 28)
+        self.assertGreaterEqual(bridges["Bottom"]["length"], 28)
+        for bid in ("RightLast", "Main", "LeftLast"):
+            self.assertEqual(bridges[bid]["length"], 11, bid + " stays short")
+        # each long bridge's deck spans the chocolate on its leg with a stud to spare at each end
+        for bid in ("Top", "Bottom"):
+            b = bridges[bid]
+            for s in range(-int(b["length"] / 2) - 9, int(b["length"] / 2) + 10):
+                x, z = b["x"] + b["ux"] * s, b["z"] + b["uz"] * s
+                if g.liquid_distance(x, z) <= 1:
+                    self.assertLessEqual(abs(s), b["length"] / 2, "%s: chocolate past the deck at %s" % (bid, s))
+        (_, ax, az, atx, atz), (_, bx, bz, btx, btz) = g.docks
+        self.assertLess(ax, 0, "dock A on the west bank")
+        self.assertGreater(bx, 0, "dock B on the east bank")
+        self.assertGreaterEqual(math.hypot(btx - atx, btz - atz), 50, "the docks face each other across open water")
+
     def test_edge_fill_is_a_dense_band(self):
         e = self.g.edge
         self.assertLess(e["bandMin"], e["bandMax"])
@@ -587,6 +625,26 @@ class CarameloV3Sources(unittest.TestCase):
             self.assertIn(needle, tool)
         self.assertGreater(tool.index("TryBeginRecording"), tool.index("task.delay("))
         self.assertNotRegex(tool, r":Destroy\(\)")
+
+    def test_v5_migration_tool_starts_dry_backs_up_archives_and_never_destroys(self):
+        tool = read(TOOL_V5_PATH)
+        self.assertRegex(tool, r"(?m)^local DRY_RUN = true\b")
+        for needle in ("CaramelV5Backup", "CaramelV5Archived", "TryBeginRecording", "FinishRecordingOperation.Cancel",
+                       'FindFirstAncestor("SistemaSonriente")', "RunService:IsRunning()", "WildboundCaramelV5Summary",
+                       "V3.V4_MARK", "V3.V5_MARK", "V3.VERSION == 3", "V3Builder.planV5", "V3Builder.layWater",
+                       "summary.partsEstimate", "summary.overCap", "require(found:Clone())", "WildboundCandyRaft",
+                       "homeDock", "partsBefore = countParts(root)"):
+            self.assertIn(needle, tool)
+        self.assertGreater(tool.index("TryBeginRecording"), tool.index("task.delay("))
+        self.assertNotRegex(tool, r":Destroy\(\)")
+        builder = read(BUILDER_PATH)
+        for name in ("function V3Builder.planV5", "function V3Builder.layWater", "V3Builder.WATER_FOLDERS"):
+            self.assertIn(name, builder)
+
+    def test_v5_raft_is_a_quarter_faster(self):
+        raft = read(RAFT_PATHS[0])
+        self.assertRegex(raft, r"(?m)^Raft\.SPEED = 20\b")
+        self.assertRegex(raft, r"(?m)^Raft\.REVERSE = 7\.5\b")
 
     def test_builder_uses_the_layout_and_falls_back_to_placeholders(self):
         builder = read(BUILDER_PATH)

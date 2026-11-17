@@ -21,8 +21,9 @@ Raft.finite = finite
 
 Raft.FREE = true
 Raft.EVENT = "CandyRaftEvent" -- the RemoteEvent in ReplicatedStorage.WildboundNetwork
-Raft.SPEED = 16 -- studs/s ahead at most
-Raft.REVERSE = 6 -- studs/s astern at most
+-- V5-D5: 16 -> 20 (+25 %, "a little faster"); reverse 6 -> 7.5, the same share.
+Raft.SPEED = 20 -- studs/s ahead at most
+Raft.REVERSE = 7.5 -- studs/s astern at most
 Raft.ACCEL = 6 -- studs/s^2 speeding up
 Raft.BRAKE = 10 -- studs/s^2 against the throttle, and while adrift
 Raft.DRAG = 3 -- studs/s^2 with no throttle

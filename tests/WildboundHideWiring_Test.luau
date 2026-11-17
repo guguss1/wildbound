@@ -114,6 +114,20 @@ return function(worldSource, serverSource, clientSource)
 		has(worldSource, "stepHiding(now)", "stepped with the fixed step")
 	end)
 
+	-- Caramelo v5 (odd/tasks/wildbound-caramelo-v2.md V5-D2): the candy creatures run in other server scripts; one that
+	-- stood near a hidden player's spot for the dwell time reports it on the server-only HideFound event, and the player is
+	-- found as by La Silueta, pulled out on the finder's side. The candy kingdom's hollows read "cave".
+	case("V5-D2: other server scripts report a find (HideFound) and the player is found on the finder's side", function()
+		has(worldSource, 'local hideFound = network:FindFirstChild("HideFound")', "one event, reused by a restarted script")
+		has(worldSource, 'Instance.new("BindableEvent")', "server to server only")
+		has(worldSource, 'hideFound.Name = "HideFound"')
+		has(worldSource, "if stopped or typeof(player) ~= \"Instance\" or not player:IsA(\"Player\") then return end", "validated")
+		has(worldSource, 'releaseHide(player, "found", workspace:GetServerTimeNow(), x, z)', "found like by La Silueta")
+		local release = body(worldSource, "local function releaseHide(")
+		has(release, "if type(fromX) == \"number\" and type(fromZ) == \"number\" then gx, gz = fromX, fromZ end", "the finder's side")
+		has(worldSource, 'spot:FindFirstChild("Cave") and "cave"', "the candy hollows have their own words")
+	end)
+
 	case("D6: the prompt is server-bound, H, with the Spanish words", function()
 		has(worldSource, "CollectionService:GetTagged(\"WildboundHideSpot\")")
 		has(worldSource, "Keys.HIDE", "the prompt key comes from WildboundPromptKeys")

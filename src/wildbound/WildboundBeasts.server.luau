@@ -98,7 +98,7 @@ local players = {} -- [Player] = { respawnedAt, outsideSince, character }
 local live = {} -- [encounter id] = { e = encounter, player = Player, character = Model, world = per-encounter adapter }
 local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strike time } } (anti-frustration stagger)
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
-	observeDropped = 0, afflicted = 0, sheltered = 0 }
+	observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
 local AUDIENCE = Config.AUDIENCE
 local audience = Audience.new() -- SC0: which other players see which encounter
@@ -617,6 +617,8 @@ end
 local function afflict(entry, event)
 	-- V4-D12: a player inside a house is sheltered (world.sheltered, defined below; read at call time)
 	if world.sheltered and world.sheltered(entry.player) then count("sheltered") return end
+	-- V5-D2: nothing lands on a player hidden in a hide spot (world.hiddenNow, defined below)
+	if world.hiddenNow(entry.player) then count("hidden") return end
 	count("afflicted")
 	applySlow(entry.player, event.slow, event.slowSeconds)
 	if Config.finite(event.root) then applyRoot(entry.player, event.root) end
@@ -648,6 +650,7 @@ local beastHit = nil
 local function landHit(entry, event)
 	-- V4-D12: a player inside a house is sheltered: no damage, push, slow or egg drop lands there
 	if world.sheltered and world.sheltered(entry.player) then count("sheltered") return end
+	if world.hiddenNow(entry.player) then count("hidden") return end -- V5-D2: hidden in a hide spot
 	count("hits")
 	beastHit = beastHit or network:FindFirstChild("BeastHit")
 	local ok, effect = false, nil
@@ -824,6 +827,68 @@ function world.stealCheck(player, character, p, at, inside)
 	world.lastEgg[player] = id
 end
 
+-- V5-D2 (Caramelo v5, odd/tasks/wildbound-caramelo-v2.md): the candy creatures respect hiding. Kept on `world` (no new
+-- local). hiddenNow: the player sits in a hide spot (WildboundWorld's WildboundHidden attribute). hideView: what a
+-- candy brain is stepped with while its target hides (WildboundCandyHiding): a calm one never sees them, a hunter
+-- searches round the spot for SEARCH.seconds and then gives up ("Lost": it walks home, or fades out far from its post),
+-- Don Glaseon searches by his own rule. Each step a candy creature standing within WildboundHide's discover radius for
+-- its dwell time finds the player: the world script (HideFound) pulls them out on its side and the hunt goes on.
+-- Returns the view and the events of a give-up (or nil), which go before the brain's own events.
+function world.hiddenNow(player)
+	world.hiding = world.hiding or require(script.Parent:WaitForChild("WildboundCandyHiding"))
+	return typeof(player) == "Instance" and world.hiding.hidden(player:GetAttribute("WildboundHidden"))
+end
+function world.hideView(entry, target, at)
+	local e, player = entry.e, entry.player
+	world.hiding = world.hiding or require(script.Parent:WaitForChild("WildboundCandyHiding"))
+	world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
+	local H = world.hiding
+	local id = target and player:GetAttribute("WildboundHidden")
+	-- "none" for a creature that is not a candy one (the forest beasts keep their own rules)
+	local plan = world.hiding.plan(e, true, e.beast)
+	if plan == "none" or not H.hidden(id) then
+		entry.search, entry.hideWatch = nil, nil
+		return target, nil
+	end
+	local watch = entry.hideWatch
+	if not watch or watch.id ~= id then
+		watch = { id = id, dwell = H.newWatch(), at = at }
+		entry.hideWatch = watch
+	end
+	local dt = at - watch.at
+	watch.at = at
+	if world.hiding.finds(watch.dwell, dt, Config.flat(e.pos.x, e.pos.z, target.x, target.z), phaseAt(target.x, target.z)) then
+		count("hideFound")
+		local found = network:FindFirstChild("HideFound")
+		if found and found:IsA("BindableEvent") then found:Fire(player, e.pos.x, e.pos.z) end
+		entry.search, entry.hideWatch = nil, nil
+		-- found: it sees them from this step (the world script releases them; a strike before that is still kept off
+		-- by world.hiddenNow in landHit and afflict)
+		return target, nil
+	end
+	if plan ~= "search" then
+		entry.search = nil
+		return H.view(target, plan, e, nil, at), nil
+	end
+	entry.search = entry.search or H.newSearch(target.x, target.z, at, e.id)
+	if not H.expired(entry.search, at) then return H.view(target, plan, e, entry.search, at), nil end
+	-- the search ran out: it gives up like any other hunt ending (an open attack is called off first)
+	local pre = {}
+	for _, attackId in ipairs(Attack.openIds(e)) do Attack.drop(pre, e, entry.world or world, e.open[attackId], at, "Lost") end
+	e.attack, e.side, e.jump, e.cast = nil, nil, nil, nil
+	e.waypoint, e.waitUntil, e.pinnedSince, e.farSince, e.patrolSince = nil, nil, nil, nil, nil
+	e.returnReason = "Lost"
+	if world.smarts.farFromHome(e) then
+		local C = Config.BEASTS[e.beast]
+		Attack.disengage(pre, e, "Lost", at, C and C.disengage)
+	else
+		Attack.phase(pre, e, "Return", at, nil, { reason = "Lost" })
+	end
+	count("hideLost")
+	entry.search = nil
+	return H.view(target, "far", e, nil, at), pre
+end
+
 local function stepEncounter(id, entry, at)
 	local target = targetOf(entry)
 	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
@@ -832,7 +897,10 @@ local function stepEncounter(id, entry, at)
 		return
 	end
 	local px, pz = entry.e.pos and entry.e.pos.x, entry.e.pos and entry.e.pos.z
+	local pre
+	target, pre = world.hideView(entry, target, at) -- V5-D2: a hidden player is never acquired; a hunter searches
 	local events = Enc.step(entry.e, at, target, entry.world or world)
+	for i, event in ipairs(pre or {}) do table.insert(events, i, event) end
 	world.keepOut(entry.e, px, pz, at) -- V4-D12: never inside a house
 	for _, event in ipairs(events) do
 		if event.type == "End" then
@@ -940,6 +1008,9 @@ local function summonPass(player, at)
 		x = p.X, z = p.Z, origin = praderaOrigin() }
 	-- V4-D13: during the frenzy every candy post within its reach of the nest wakes (Sites.wants ctx.frenzy)
 	want.frenzy = world.smarts.frenzyAt(world, player.UserId, at)
+	-- V5-D2: a hidden player summons nobody, except the frenzy's call (the hunters come and search the area)
+	local hidden = world.hiddenNow(player)
+	if hidden and not want.frenzy then return end
 	local ctx
 	for _, kid in ipairs(KIDS) do
 		if not kid.boss and Sites.wants(kid.name, want) then
@@ -960,6 +1031,7 @@ local function summonPass(player, at)
 			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", extra.name .. "@" .. extra.key .. ":" .. tostring(value)) end
 		end
 	end
+	if hidden then return end -- V5-D2: no ambush on a hidden player
 	-- CH4 (owner request "more creatures that appear in a random way"): an ambush roll every Sites.AMBUSH.everySeconds per
 	-- player: a random candy critter on the ground near them (Sites.ambushRoll), through the director (post "ambush").
 	local A = Sites.AMBUSH
@@ -1001,7 +1073,8 @@ local function bossPass(at)
 	local candidates = {}
 	for _, player in ipairs(Players:GetPlayers()) do
 		local character, humanoid, root = bodyOf(player)
-		if character and humanoid.Health > 0 and inMeadow(root.Position.X, root.Position.Z) then
+		-- V5-D2: Don Glaseon never wakes for a hidden player
+		if character and humanoid.Health > 0 and inMeadow(root.Position.X, root.Position.Z) and not world.hiddenNow(player) then
 			local p = root.Position
 			local _, safe = Rules.zone(p.X, p.Z)
 			local egg = character:FindFirstChild("WildboundEggCarried")

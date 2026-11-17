@@ -48,8 +48,10 @@ return function(V3, Layout, Sites, Trap)
 
 	case("V3-1: the data is versioned, frozen and names its kit", function()
 		-- Deliberately changed (V4): VERSION 1 -> 2, and the v4 mark
-		equal(V3.VERSION, 2, "VERSION")
+		-- Deliberately changed (V5): VERSION 2 -> 3, and the v5 mark
+		equal(V3.VERSION, 3, "VERSION")
 		equal(V3.V4_MARK, "CaramelV4", "v4 mark")
+		equal(V3.V5_MARK, "CaramelV5", "v5 mark")
 		equal(V3.MARK, "CaramelV3", "mark")
 		equal(V3.KIT_FOLDER, "CandyKitV3", "kit folder")
 		assert(table.isfrozen(V3) and table.isfrozen(V3.RIVER) and table.isfrozen(V3.HOUSES), "frozen")
@@ -436,6 +438,43 @@ return function(V3, Layout, Sites, Trap)
 		assert(E.spacing <= 16 and E.maxTrees + E.maxProps >= 80, "dense")
 		assert(E.maxParts > 0 and V3.V4_PART_TARGET <= V3.BIOME_PART_CAP - 100, "budgets")
 		for _, asset in ipairs(E.trees) do assert(table.find(V3.ASSETS, asset), asset) end
+	end)
+
+	-- V5-D3, V5-D10 to V5-D13 (the clearances themselves are V3-4, V3-5, V3-6, V3-8 and V3-9, unchanged)
+	case("V3-17: v5: a 24-wide river on its open legs, the junction arc 10, a bigger lake, longer Top and Bottom bridges", function()
+		local wide, wideLength = 0, 0
+		for i, p in ipairs(V3.RIVER) do
+			if p[3] >= 24 then wide += 1 end
+			if flat(p[1], p[2], Layout.JUNCTION.x, Layout.JUNCTION.z) <= 31 then equal(p[3], 10, "junction arc point " .. i) end
+			local q = V3.RIVER[i + 1]
+			if q and math.min(p[3], q[3]) >= 24 then wideLength += flat(p[1], p[2], q[1], q[2]) end
+		end
+		assert(wide >= 10, "24-wide points: " .. wide)
+		assert(wideLength >= 180, "24-wide legs: " .. wideLength)
+		equal(#V3.LAKE, 2, "two lake discs")
+		assert(V3.LAKE[1].r >= 34 and V3.LAKE[2].r >= 18, "the lake grew")
+		local open = 0
+		for x = -60, 79 do
+			for z = -150, -21 do
+				if V3.liquidDistance(x + 0.5, z + 0.5) <= -3 and not V3.nearBridge(x + 0.5, z + 0.5, 3) then open += 1 end
+			end
+		end
+		assert(open >= 3500, "open water for the raft's hull: " .. open)
+		local byId = {}
+		for _, B in ipairs(V3.BRIDGES) do byId[B.id] = B end
+		assert(byId.Top.length >= 28 and byId.Bottom.length >= 28, "the long bridges grew")
+		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do equal(byId[id].length, 11, id .. " stays short") end
+		for _, id in ipairs({ "Top", "Bottom" }) do
+			local B = byId[id]
+			for s = -math.floor(B.length / 2) - 9, math.floor(B.length / 2) + 9 do
+				if V3.liquidDistance(B.x + B.ux * s, B.z + B.uz * s) <= 1 then
+					assert(math.abs(s) <= B.length / 2, id .. ": chocolate past the deck at " .. s)
+				end
+			end
+		end
+		local a, b = V3.DOCKS[1], V3.DOCKS[2]
+		assert(a.standX < 0 and b.standX > 0, "dock A west, dock B east")
+		assert(flat(a.tipX, a.tipZ, b.tipX, b.tipZ) >= 50, "the docks face each other across open water")
 	end)
 
 	return result
