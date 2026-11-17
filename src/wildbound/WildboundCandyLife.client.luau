@@ -80,7 +80,7 @@ local function newBird(color, phase)
 	local body = oval(newPart("GummyBird", Enum.PartType.Block, Vector3.new(1.8, 1.7, 2.6), color, holder))
 	local head = newPart("Head", Enum.PartType.Ball, Vector3.new(1.5, 1.5, 1.5), color, holder)
 	local beak = newPart("Beak", Enum.PartType.Block, Vector3.new(0.4, 0.35, 0.75), BEAK, holder)
-	local eyes = newPart("Eyes", Enum.PartType.Block, Vector3.new(1.56, 0.3, 0.3), EYES, holder)
+	local eyes = oval(newPart("Eyes", Enum.PartType.Block, Vector3.new(1.58, 0.34, 0.34), EYES, holder)) -- round dots each side
 	local tail = oval(newPart("Tail", Enum.PartType.Block, Vector3.new(1.3, 0.25, 1.5), wing, holder))
 	local bird = {
 		body = body,
