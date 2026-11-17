@@ -27,7 +27,9 @@ Grass.RADIUS = 9 -- the footprint that hides a player (WildboundCandyHiding.GRAS
 Grass.BLADES = 34 -- parts per patch (at most 40)
 Grass.LIQUID_MARGIN = 4 -- past the radius, off the chocolate's edge
 Grass.ROUTE_MARGIN = 2 -- past the radius, off the path's edge
-Grass.NEST_CLEAR = 12 -- past the radius, off a nest's centre
+-- past the radius, off a nest's centre. V6-D7 (2026-11-17): 12 laid only 5 to 7 of the 10 patches on the live map; 8
+-- lays all 10 (a patch's edge still 8 studs from a nest's centre, outside its bowl and ring)
+Grass.NEST_CLEAR = 8
 Grass.POST_CLEAR = 14 -- past the radius, off a creature post's centre (its patrol ring is 10)
 Grass.PIECE_MARGIN = 2 -- past the radius, off a house's or a v3 piece's footprint disc
 Grass.BRIDGE_MARGIN = 3

@@ -610,6 +610,25 @@ Studio b15ce60a, Edit only, with the import and Play locks cleared afterwards; t
   - An egg steal (frenzy), then a teleport into G162: the hunters, already chasing, kept the player for the 3 s memory, came within 10 studs and struck. Knockback also pushed the player out of the patch. So the grass does not shake off hunters already close; that matches V6-D1 and V6-D10.
 - **Not checked in Play:** a calm creature ignoring a walker in the grass, and the bees and La Duquesa. The suites cover these, including a real Mochimiau brain.
 
+### Evidence: V6-D4 lake island and V6-D7 more grass (2026-11-17)
+
+Studio b15ce60a, Edit only, locks cleared; the place is not saved. The runner StringValue was removed at the end.
+
+- **Island deploy:** committed as d2ee81a (decisions V6-D60..D66 in the plan doc). Hunks went into WildboundCandyV3Layout, WildboundCandyNests, WildboundCandyLife and WildboundCandyV3Layout_Test; WildboundCandyIsland and WildboundCandyIsland_Test are new. All 6 were fingerprint-checked equal to the repo.
+- **Tests:** all Candy suites: 476 passed, 3 failed.
+  - Two failures are the old unpublished clips.
+  - The third was Island IS5: on the exact waterline a 1e-16 flow from rounding. The test now samples up to just inside the waterline, and the suite passed 10/0.
+- **Solo Play, island:**
+  - LakeIsland_I1 and Nest_I1 (Epica, enabled) were laid at server start, with telemetry Island_CandyI1.
+  - Walking with W from the lake east of it, the character climbed the bank (root y from 3.6 to 8.5), crossed the top and went down the far side. Humanoid:MoveTo is overridden by the player controls, so only key input works for this check.
+  - Holding E at the nest took Egg:42, an Epica Flanfuria egg. Island_CandyI1 went to Alert and Beast_frenzies to 1.
+- **V6-D7, more grass:** Grass.NEST_CLEAR went from 12 to 8.
+  - An Edit-time plan on the live map gave 10 patches, against 7.
+  - At Play server start, 8 patches were laid, against 5 before. The traps re-laid all 8, the hide spots stayed at 14, the island was laid, and the biome had 2738 parts (cap 2800).
+  - The Grass, HideSpots, Hiding and Traps suites passed 50/0.
+- **Still not checked in Play:** the bees and La Duquesa against a hidden or covered player, the tower balcony view, the look of the life creatures, and a creature slowed in a puddle. Their suites cover the rules.
+- **Watch:** the biome is at 2738 of 2800 parts. A new map feature needs a part budget first.
+
 ### Evidence: V6-D3 river current, V6-D5 caramel traps, V6-D6 candy life deploy (2026-11-17)
 
 Studio b15ce60a, Edit only, locks cleared; the place is not saved.
