@@ -22,6 +22,7 @@ local Grass = {}
 
 Grass.TAG = "WildboundCandyGrass" -- WildboundCandyHiding.GRASS.tag
 Grass.FOLDER = "LicoriceGrass"
+Grass.ENABLED = false -- V7-D5 (owner request 2026-11-17, "take out the new grass"): off; Grass.sync removes the patches
 Grass.TARGET = 10
 Grass.RADIUS = 9 -- the footprint that hides a player (WildboundCandyHiding.GRASS radiusAttribute)
 Grass.BLADES = 34 -- parts per patch (at most 40)
@@ -273,11 +274,21 @@ end
 -- river is respected); opts = { posts, Sites, Spots } as WildboundCandyHideSpots.read takes them. Nothing happens
 -- without the v3 biome (root.CaramelV3). Returns how many patches changed (laid, moved, rebuilt, retagged or removed),
 -- the skipped notes, how many stand and their part count.
+-- V7-D5 (owner request 2026-11-17, "take out the new grass"): with Grass.ENABLED false (opts.enabled overrides it, for
+-- the suites) the sync lays nothing and removes the LicoriceGrass folder: its patches are the changes counted.
 function Grass.sync(root, L, V3, opts)
 	if typeof(root) ~= "Instance" then return 0, {}, 0, 0 end
+	opts = opts or {}
+	local enabled = opts.enabled
+	if enabled == nil then enabled = Grass.ENABLED end
+	if enabled ~= true then
+		local old = root:FindFirstChild(Grass.FOLDER)
+		local removed = old and #old:GetChildren() or 0
+		if old then old:Destroy() end
+		return removed, {}, 0, 0
+	end
 	L = L or lookup("WildboundCandyLayout")
 	V3 = V3 or lookup("WildboundCandyV3Layout")
-	opts = opts or {}
 	local Spots = opts.Spots or lookup("WildboundCandyHideSpots")
 	if type(L) ~= "table" or type(V3) ~= "table" or type(Spots) ~= "table" or not root:FindFirstChild(V3.FOLDER) then
 		return 0, {}, 0, 0

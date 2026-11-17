@@ -91,7 +91,8 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 		end
 		return root
 	end
-	local OPTS = { posts = {}, Spots = Spots }
+	-- Deliberately changed (V7-D5): the grass is off on the map (Grass.ENABLED false); the suite lays it with opts.enabled
+	local OPTS = { posts = {}, Spots = Spots, enabled = true }
 	local function patchesOf(root)
 		local folder = root:FindFirstChild(Grass.FOLDER)
 		local list = {}
@@ -294,6 +295,18 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 		assert(nests:find("pcall(G.sync, root, Layout)", 1, true) > nests:find("pcall(S.sync, root, Layout)", 1, true),
 			"after the hide spots (it keeps off them)")
 		has(nests, "okGrass and tonumber(grass) or 0", "a sixth value: the patches changed")
+	end)
+
+	-- V7-D5 (owner request 2026-11-17, "take out the new grass"): off on the map; a laid map loses its patches at start
+	case("V7-D5: the grass is off: the start's sync lays none and removes the patches already laid", function()
+		equal(Grass.ENABLED, false, "the grass is off")
+		local root, _, _, count = laid()
+		assert(count >= 1 and #patchesOf(root) == count, "laid with opts.enabled")
+		local removed, skipped, left, parts = Grass.sync(root, Layout, V3, { posts = {}, Spots = Spots })
+		equal(removed, count, "every patch removed is a change")
+		equal(left, 0); equal(parts, 0); equal(#skipped, 0)
+		equal(root:FindFirstChild(Grass.FOLDER), nil, "the folder is gone")
+		equal(select(1, Grass.sync(root, Layout, V3, { enabled = false })), 0, "a second sync: nothing to remove")
 	end)
 
 	-- A real brain --------------------------------------------------------------------------------------------------

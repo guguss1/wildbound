@@ -92,7 +92,8 @@ return function(Traps, Rules, Spots, Grass, Hiding, Layout, V3, Enc, Critter, Co
 		end
 		return root
 	end
-	local OPTS = { posts = {}, Spots = Spots }
+	-- Deliberately changed (V7-D5): the grass is off on the map (Grass.ENABLED false); the suite lays it with opts.enabled
+	local OPTS = { posts = {}, Spots = Spots, enabled = true }
 	local function trapsOf(root)
 		local folder = root:FindFirstChild(Traps.FOLDER)
 		local list = {}
