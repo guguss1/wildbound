@@ -80,7 +80,8 @@ On a new machine, rebuild them from the docs if needed.
 
 ## Current handoff
 
-- Latest handoff: `docs/handoff/HANDOFF-2026-11-16b.md` (paused tasks P1 and P2), after `docs/handoff/HANDOFF-2026-11-16.md`. Account switch guide and first prompt: `docs/handoff/SWITCH-ACCOUNT.md`. Sanitized memory copies: `docs/handoff/memory/`.
+- Latest handoff: `docs/handoff/HANDOFF-2026-11-17.md` (Caramelo harder: what is in Studio, the half-done cake-move and relentless-chase deploy with its mandatory order, later tasks), after `docs/handoff/HANDOFF-2026-11-16b.md` and `docs/handoff/HANDOFF-2026-11-16.md`.
+- One task at a time (owner, 2026-11-16), and tell the owner before deploying code so she does not press Play mid-deploy. Account switch guide and first prompt: `docs/handoff/SWITCH-ACCOUNT.md`. Sanitized memory copies: `docs/handoff/memory/`.
 - Studio locks: besides `WildboundPlayLock`, never start Play while `ServerStorage` attribute `WildboundImportLock` is set; suites honour `WildboundFreshRunnerLock`.
 - Map mode: leave the place in `big4` mode (`WildboundMapModeSwitch`); classic pieces are archived in `ServerStorage.WildboundMapArchive`.
 - Never upload code as assets (the two transport Models 104898638172426 and 110244231107381 are for the owner to archive). Never spend Robux.

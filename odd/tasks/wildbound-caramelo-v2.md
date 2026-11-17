@@ -363,7 +363,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] FL Zumbidulces, the flying bugs. Done 2026-11-16 (evidence below).
 - [x] DR La Duquesa's rage when her egg is stolen. Done 2026-11-16 (evidence below).
 - [x] AM Ambience: lights, sparkles, music bed. Done 2026-11-16 (evidence below; a cheerful track is still to be picked).
-- [ ] GT Gran Torta at the end of the biome and much bigger. Not started (second batch, after the rest is deployed and walked).
+- [ ] GT Gran Torta at the east end at 1.6x, 28 nests, 24 posts. Repo done and reviewed (commit `efb1f48` plus the review fixes); NOT deployed, no Luau suite run.
+- [ ] RC Relentless candy chases to the base, 8 hives and 24 bugs, five chasers at once. Repo done and reviewed; NOT deployed, no Luau suite run.
+- [ ] RL Map relief for Caramelo. Not started.
+- [ ] MU A cheerful music track for Caramelo. Not started (needs the owner's approval of the track).
 
 ### Decisions taken for the user (CH)
 
@@ -412,3 +415,10 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - Found, not fixed yet: hive H4 is 4.7 studs from creature post candyPostC10 and H2 8.6 from candyPostC8 (the hive rule does not read the posts); lollipop sparkles start inside the disc's outline and cotton sparkles 2.2 studs under the highest crown; one 6.5-stud snap of a bug in a single client frame at a dive.
 - Note: the owner started a Play while this deploy was halfway (tests, La Duquesa and audio in; flyers and ambience not yet), so that session showed no lights, sparkles or bugs.
 - Not checked: a perfect dodge of a bug in Play, how the lights read in daylight by eye, full frame rate (the Studio window was unfocused), two players, a phone.
+
+### GT and RC (2026-11-17): repo only, next step
+
+- Decisions (for the user): GT-D1 the cake goes to local (114, 0) with radius 42, the boss ground grows with it (plaza 58, territory 76), the three routes meet at a junction in the old centre and one avenue leads to the cake, the return portal stands by the junction; five nests and three posts moved; 8 more nests (28) and 8 more posts (24). GT-D2 the live map is migrated with `tools/wildbound-caramelo-cake-move.luau` (dry run, backup, archive instead of delete), not rebuilt. RC-D1 candy creatures, ambush critters, Zumbidulce swarms and La Duquesa no longer give up by leash or time: they stop only in a safe zone, on defeat, when the player leaves, or after a 180 s safety limit; far from home they fade instead of walking back. RC-D2 a second wind (the noticing sprint for 1.5 s) every 8 s of chase; base speeds unchanged. RC-D3 up to five candy chasers per player, ambush every 15 s with three alive, and at most two strikes from different attackers within 0.6 s. RC-D4 hives 5 -> 8, bugs 13 -> 24, three swarms per player, no hive within 15 studs of a creature post. Don Glaseon stays territorial.
+- Review: `odd/reviews/caramelo-gt-rc-review.md`. Fixed before any deploy: `syncTower` lays nothing round a cake of another layout even when no Tower exists (it would have built the new stair round empty floor at the first server start); Mochimiau's post `candyPostR10` moved to (608, -59), away from the return portal; `WildboundBeastAbeja_Test` pond re-pinned; the migration tool archives the old Tower and summit nest instead of letting `syncTower` destroy them. Minors m1-m9 are open.
+- Mandatory deploy order: code into Studio in Edit mode, then the cake-move tool (dry run, then real), then the suites, and only then Play. With v3 code on the v2 map the return portal is refused, the boss sleeps off his ground and La Duquesa expects a cake that has not moved.
+- Handoff: `docs/handoff/HANDOFF-2026-11-17.md`.
