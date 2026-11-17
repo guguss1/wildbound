@@ -19,7 +19,8 @@
 --                                  Frozen and Volcanic gates, and their gate markers
 --   WildboundBig4Ground            visual-only ground cover over the grey Baseplate: a meadow and four themed aprons
 --                                  (forest grass, volcanic basalt, snow, candy pink); WildboundCandyAnnex_Big4's cotton
---                                  trees also get WildboundCandyKit.fluff canopy blobs
+--                                  trees also get WildboundCandyKit.fluff canopy blobs, and its candy trees grow like
+--                                  Candy_Bioma_v1's (WildboundCandyBuilder.growTree, growCandyAnnex)
 -- Nothing is pinned inside the annexes: no nests, no eggs, no creature posts.
 local Annex = {}
 
@@ -469,6 +470,92 @@ function Annex.fluffCandyAnnex(root, kit)
 	return added
 end
 
+-- sonrienteAvoid(workspace) -> { x, z, r } per SistemaSonriente part (r: its half size + 12), read only; none without it.
+function Annex.sonrienteAvoid(workspace)
+	local avoid = {}
+	local sonriente = workspace:FindFirstChild("SistemaSonriente")
+	if sonriente then
+		for _, d in ipairs(sonriente:GetDescendants()) do
+			if d:IsA("BasePart") then
+				table.insert(avoid, { x = d.Position.X, z = d.Position.Z, r = math.max(d.Size.X, d.Size.Z) / 2 + 12 })
+			end
+		end
+	end
+	return avoid
+end
+
+-- CH (owner, 2026-11-16: the Caramelo trees leafier and bigger). candyTreeFits(x, z, m, avoid, rules) -> ok, reason: a
+-- candy annex tree measured m (WildboundCandyBuilder.measureTree, grown) at world (x, z), under the builder's
+-- TREE_CLEAR (rules): its trunk collider stays trunkMargin out of the kept plot and its canopy reaches at most
+-- KEPT_EDGE into it (the plot's own scatter keeps 10 studs off its edge); trunk and canopy keep the builder's route
+-- rule to the big4 roads; the canopy stays off every SistemaSonriente part (avoid r is its half size + 12).
+Annex.KEPT_EDGE = 10
+function Annex.candyTreeFits(x, z, m, avoid, rules)
+	local k = Annex.CANDY.kept
+	local ox, oz = math.max(k.minX - x, 0, x - k.maxX), math.max(k.minZ - z, 0, z - k.maxZ)
+	local out = math.sqrt(ox * ox + oz * oz)
+	if out < m.trunk + rules.trunkMargin or out < m.canopy - Annex.KEPT_EDGE then return false, "over the kept plot" end
+	local half = Annex.ROAD_WIDTH / 2
+	local need = math.max(m.trunk + rules.trunkMargin, m.canopy - (m.bottom >= rules.headroom and rules.overhang or 0))
+	for _, road in ipairs(Annex.ROADS) do
+		for index = 1, #road.points - 1 do
+			local a, b = road.points[index], road.points[index + 1]
+			local dx, dz = b.x - a.x, b.z - a.z
+			local t = math.clamp(((x - a.x) * dx + (z - a.z) * dz) / (dx * dx + dz * dz), 0, 1)
+			if math.sqrt((x - a.x - t * dx) ^ 2 + (z - a.z - t * dz) ^ 2) < half + need then return false, "by " .. road.name end
+		end
+	end
+	for _, p in ipairs(avoid or {}) do
+		if math.sqrt((x - p.x) ^ 2 + (z - p.z) ^ 2) < p.r - 12 + m.canopy then return false, "over SistemaSonriente" end
+	end
+	return true
+end
+
+-- growCandyAnnex(root, builder, avoid, dryRun) -> report { found, grown, already, reduced, blocked, minFactor, maxFactor,
+-- blockedList }: each tree prop of the candy annex (a Props child named "<asset>_B4_<n>" for an asset of
+-- builder.TREE_SCALE) that does not carry builder.TREE_ATTRIBUTE yet is measured on a detached clone grown by its
+-- factor, then grown (builder.growTree) to the largest factor down to TREE_CLEAR.minFactor that candyTreeFits where it
+-- stands; one that fits at none is left as it is and listed. dryRun: report only. Never moves a prop.
+function Annex.growCandyAnnex(root, builder, avoid, dryRun)
+	local report = { found = 0, grown = 0, already = 0, reduced = 0, blocked = 0, blockedList = {} }
+	local rules = builder.TREE_CLEAR
+	local props = root:FindFirstChild("Props")
+	for _, model in ipairs(props and props:GetChildren() or {}) do
+		local asset = model:IsA("Model") and string.match(model.Name, "^(.-)_B4_%d+$") or nil
+		local factor = asset and builder.TREE_SCALE[asset]
+		if factor then
+			report.found += 1
+			if model:GetAttribute(builder.TREE_ATTRIBUTE) ~= nil then
+				report.already += 1
+			else
+				local probe = model:Clone()
+				builder.growTree(probe, asset, factor)
+				local m = builder.measureTree(probe)
+				probe:Destroy()
+				local pivot = model:GetPivot()
+				local f, why = factor, nil
+				while f >= rules.minFactor - 1e-9 do
+					local ok, reason = Annex.candyTreeFits(pivot.X, pivot.Z, builder.scaleMeasure(m, f / factor), avoid, rules)
+					if ok then break end
+					why = why or reason
+					f = math.round((f - rules.step) * 1000) / 1000
+				end
+				if f < rules.minFactor - 1e-9 then
+					report.blocked += 1
+					table.insert(report.blockedList, model.Name .. ": " .. tostring(why))
+				else
+					if f < factor - 1e-6 then report.reduced += 1 end
+					report.grown += 1
+					report.minFactor = math.min(report.minFactor or f, f)
+					report.maxFactor = math.max(report.maxFactor or f, f)
+					if not dryRun then builder.growTree(model, asset, f) end
+				end
+			end
+		end
+	end
+	return report
+end
+
 -- build() -> report: every big4 root, into the archive's Big4 folder. Then run the switch's apply("big4").
 function Annex.build()
 	local Workspace = game:GetService("Workspace")
@@ -478,15 +565,7 @@ function Annex.build()
 		table.insert(report, root.Name .. " " .. parts)
 		task.wait()
 	end
-	local avoid = {}
-	local sonriente = Workspace:FindFirstChild("SistemaSonriente")
-	if sonriente then
-		for _, d in ipairs(sonriente:GetDescendants()) do
-			if d:IsA("BasePart") then
-				table.insert(avoid, { x = d.Position.X, z = d.Position.Z, r = math.max(d.Size.X, d.Size.Z) / 2 + 12 })
-			end
-		end
-	end
+	local avoid = Annex.sonrienteAvoid(Workspace)
 	local forestKit = findPath(Workspace, "WildboundP0/Decorations/ForestKit")
 	assert(forestKit, "WildboundP0.Decorations.ForestKit missing")
 	-- groundY: only exemplars standing on the forest's flat floor top (not on a relief hill) are cloned
@@ -500,6 +579,10 @@ function Annex.build()
 	root, parts, placed = Annex.buildAnnex(Annex.CANDY, candyKit, { avoid = avoid })
 	local kit = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyKit")
 	if kit then parts += Annex.fluffCandyAnnex(root, require(kit)) end
+	-- CH: the candy trees grow like Candy_Bioma_v1's, when the deployed builder has the tree rule (no part is added)
+	local builder = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyBuilder")
+	local candyBuilder = builder and require(builder)
+	if candyBuilder and type(candyBuilder.growTree) == "function" then Annex.growCandyAnnex(root, candyBuilder, avoid, false) end
 	table.insert(report, root.Name .. " " .. parts .. " (" .. placed .. " props)")
 	root, parts = Annex.buildRoads()
 	table.insert(report, root.Name .. " " .. parts)

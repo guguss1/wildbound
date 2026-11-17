@@ -267,6 +267,70 @@ return function(Switch, Annex, Biomes, BiomeLight, Layout, Portal)
 		equal(seen[1] == "TreeCotton_S_B4_1" or seen[2] == "TreeCotton_S_B4_1", true, "the small cotton tree")
 	end)
 
+	-- CH (owner, 2026-11-16: the Caramelo trees leafier and bigger): the annex's candy trees grow by the deployed
+	-- WildboundCandyBuilder's rule (a stand-in builder here: a tree measures trunk 1, canopy 20, bottom 10 at its factor).
+	local CLEAR = { trunkMargin = 1.5, headroom = 8, overhang = 4, minFactor = 1.5, step = 0.05 }
+	local function standInBuilder(grown)
+		return { TREE_SCALE = { TreeCotton_S = 1.7, TreeCookie = 1.6 }, TREE_ATTRIBUTE = "CaramelTreeScaleV2", TREE_CLEAR = CLEAR,
+			growTree = function(model, _, f)
+				if model.Parent then table.insert(grown, model.Name .. "@" .. f) end
+				model:SetAttribute("CaramelTreeScaleV2", f)
+				return true
+			end,
+			measureTree = function() return { trunk = 1, canopy = 20, roof = 0, bottom = 10 } end,
+			scaleMeasure = function(m, k) return { trunk = m.trunk * k, canopy = m.canopy * k, roof = m.roof, bottom = m.bottom * k } end }
+	end
+	local function annexWith(list)
+		local root, props = Instance.new("Model"), Instance.new("Folder")
+		props.Name = "Props"
+		props.Parent = root
+		for _, item in ipairs(list) do
+			local m = Instance.new("Model")
+			m.Name = item[1]
+			m.WorldPivot = CFrame.new(item[2], 0.5, item[3])
+			m.Parent = props
+		end
+		return root
+	end
+
+	case("CH-T6: candyTreeFits keeps a grown candy tree off the kept plot, the big4 roads and SistemaSonriente", function()
+		assert(type(Annex.candyTreeFits) == "function", "Annex.candyTreeFits")
+		local m = { trunk = 1, canopy = 20, roof = 0, bottom = 10 }
+		-- the kept plot ends at x 812: its own scatter keeps KEPT_EDGE studs off its edge, so a crown may reach that far in
+		equal((Annex.candyTreeFits(900, 0, m, {}, CLEAR)), true, "deep in the east annex")
+		equal((Annex.candyTreeFits(822, 0, m, {}, CLEAR)), true, "the crown reaches 10 studs into the plot edge")
+		equal((Annex.candyTreeFits(821, 0, m, {}, CLEAR)), false, "the crown reaches 11 studs into the plot")
+		equal((Annex.candyTreeFits(800, 0, m, {}, CLEAR)), false, "inside the kept plot")
+		-- Road_big4_volcanic-lands runs along z 317 from x 282 to 617: a high crown may overhang its 7-stud half by 4
+		equal((Annex.candyTreeFits(500, 340, m, {}, CLEAR)), true, "23 studs from the road")
+		equal((Annex.candyTreeFits(500, 332, m, {}, CLEAR)), false, "15 studs from the road")
+		equal((Annex.candyTreeFits(900, 0, m, { { x = 900, z = 40, r = 30 } }, CLEAR)), true, "a SistemaSonriente part 40 away, half size 18")
+		equal((Annex.candyTreeFits(900, 0, m, { { x = 900, z = 30, r = 30 } }, CLEAR)), false, "the crown over a SistemaSonriente part")
+	end)
+
+	case("CH-T7: growCandyAnnex grows each candy tree prop once, to the largest factor that fits, and reports", function()
+		assert(type(Annex.growCandyAnnex) == "function", "Annex.growCandyAnnex")
+		-- at 1.7 the crown reaches 20 studs, 10 of them may lie over the plot edge (x 812): from x 821 only 1.6 (18.82) fits;
+		-- from x 815 not even 1.5 (17.65)
+		local root = annexWith({ { "TreeCotton_S_B4_1", 900, 0 }, { "TreeCotton_S_B4_2", 821, 0 }, { "TreeCotton_S_B4_3", 815, 0 },
+			{ "TreeCookie_B4_4", 950, 100 }, { "RockSugar_B4_5", 900, 50 }, { "TreeCream_B4_6", 960, 0 } })
+		local grown = {}
+		local dry = Annex.growCandyAnnex(root, standInBuilder(grown), {}, true)
+		equal(#grown, 0, "a dry run grows nothing")
+		equal(dry.found, 4, "found (no rock; TreeCream is not in the stand-in's scale table)")
+		equal(dry.grown, 3, "would grow"); equal(dry.reduced, 1, "reduced"); equal(dry.blocked, 1, "blocked")
+		local report = Annex.growCandyAnnex(root, standInBuilder(grown), {}, false)
+		equal(report.grown, 3, "grown")
+		table.sort(grown)
+		equal(table.concat(grown, ";"), "TreeCookie_B4_4@1.6;TreeCotton_S_B4_1@1.7;TreeCotton_S_B4_2@1.6", "the trees grown and their factor")
+		equal(report.reduced, 1, "one tree had to stay smaller")
+		equal(report.blocked, 1, "one tree fits at no factor")
+		near(report.minFactor, 1.6, "min factor"); near(report.maxFactor, 1.7, "max factor")
+		local again = Annex.growCandyAnnex(root, standInBuilder(grown), {}, false)
+		equal(again.already, 3, "a second run leaves the grown trees alone")
+		equal(again.grown, 0, "a second run grows nothing")
+	end)
+
 	case("BIG4 switch: big4 with no big4 roots anywhere refuses and keeps every classic biome in place", function()
 		local ws, storage, env = fixture()
 		for _, root in ipairs(storage[Switch.ARCHIVE][Switch.BIG4_FOLDER]:GetChildren()) do root:Destroy() end
