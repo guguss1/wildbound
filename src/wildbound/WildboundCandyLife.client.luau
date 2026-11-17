@@ -63,17 +63,46 @@ local function ensureHolder()
 	flocks, sites, spots = {}, {}, {}
 end
 
+-- V7-D4: an oval (a sphere mesh stretched to the part's size), for the bird's round body, tail and wings
+local function oval(part)
+	local mesh = Instance.new("SpecialMesh")
+	mesh.MeshType = Enum.MeshType.Sphere
+	mesh.Parent = part
+	return part
+end
+
+-- V7-D4 (owner request 2026-11-17, "a better bird model"): a gummy bird of Life.PARTS.bird parts, facing -Z: a round
+-- body, a head, an orange beak, its eyes (one dark bar through the head, seen on both sides), a tail tipped up and
+-- two oval wings that flap from the shoulders. extras ride on the body's frame; the wings are placeWinged's.
+local BEAK, EYES = Color3.fromRGB(255, 168, 60), Color3.fromRGB(40, 24, 36)
+local function newBird(color, phase)
+	local wing = color:Lerp(Color3.new(1, 1, 1), 0.35)
+	local body = oval(newPart("GummyBird", Enum.PartType.Block, Vector3.new(1.8, 1.7, 2.6), color, holder))
+	local head = newPart("Head", Enum.PartType.Ball, Vector3.new(1.5, 1.5, 1.5), color, holder)
+	local beak = newPart("Beak", Enum.PartType.Block, Vector3.new(0.4, 0.35, 0.75), BEAK, holder)
+	local eyes = newPart("Eyes", Enum.PartType.Block, Vector3.new(1.56, 0.3, 0.3), EYES, holder)
+	local tail = oval(newPart("Tail", Enum.PartType.Block, Vector3.new(1.3, 0.25, 1.5), wing, holder))
+	local bird = {
+		body = body,
+		left = oval(newPart("WingL", Enum.PartType.Block, Vector3.new(2.6, 0.22, 1.5), wing, holder)),
+		right = oval(newPart("WingR", Enum.PartType.Block, Vector3.new(2.6, 0.22, 1.5), wing, holder)),
+		shoulder = CFrame.new(0, 0.35, -0.1),
+		extras = {
+			{ part = head, offset = CFrame.new(0, 0.75, -1.25) },
+			{ part = beak, offset = CFrame.new(0, 0.62, -2.2) * CFrame.Angles(math.rad(-8), 0, 0) },
+			{ part = eyes, offset = CFrame.new(0, 0.95, -1.6) },
+			{ part = tail, offset = CFrame.new(0, 0.3, 1.65) * CFrame.Angles(math.rad(20), 0, 0) },
+		},
+		phase = phase,
+	}
+	return bird
+end
+
 local function newFlock(flock)
 	local color = rgb(flock.color)
 	local entry = { flock = flock, birds = {} }
 	for k = 1, Life.FLOCK_SIZE do
-		entry.birds[k] = {
-			body = newPart("GummyBird", Enum.PartType.Ball, Vector3.new(2.4, 2.4, 2.4), color, holder),
-			left = newPart("WingL", Enum.PartType.Block, Vector3.new(3, 0.25, 1.6), color, holder),
-			right = newPart("WingR", Enum.PartType.Block, Vector3.new(3, 0.25, 1.6), color, holder),
-			phase = k * 0.27,
-		}
-		entry.birds[k].body.Transparency = 0.1
+		entry.birds[k] = newBird(color, k * 0.27)
 	end
 	return entry
 end
@@ -104,6 +133,7 @@ local function dropEntry(entry)
 	for _, list in ipairs({ entry.birds or {}, entry.flies or {} }) do
 		for _, c in ipairs(list) do
 			c.body:Destroy(); c.left:Destroy(); c.right:Destroy()
+			for _, extra in ipairs(c.extras or {}) do extra.part:Destroy() end
 		end
 	end
 	if entry.body then entry.body:Destroy() end
@@ -189,9 +219,11 @@ local function placeWinged(c, a, b, wingAngle, span)
 	local look = b - a
 	local cf = look.Magnitude > 1e-3 and CFrame.lookAt(a, b) or CFrame.new(a)
 	push(c.body, cf)
+	for _, extra in ipairs(c.extras or {}) do push(extra.part, cf * extra.offset) end
 	local half = c.left.Size.X / 2
-	push(c.left, cf * CFrame.Angles(0, 0, wingAngle) * CFrame.new(-half - span, 0, 0))
-	push(c.right, cf * CFrame.Angles(0, 0, -wingAngle) * CFrame.new(half + span, 0, 0))
+	local shoulder = cf * (c.shoulder or CFrame.identity) -- V7-D4: a bird's wings hinge at its shoulders
+	push(c.left, shoulder * CFrame.Angles(0, 0, wingAngle) * CFrame.new(-half - span, 0, 0))
+	push(c.right, shoulder * CFrame.Angles(0, 0, -wingAngle) * CFrame.new(half + span, 0, 0))
 end
 
 local function animate(t)
@@ -203,7 +235,7 @@ local function animate(t)
 		for k, c in ipairs(entry.birds) do
 			local a = world(Life.birdPosition(entry.flock, k, t))
 			local b = world(Life.birdPosition(entry.flock, k, t + 0.1))
-			placeWinged(c, a, b, Life.flap(t, 2.5, 35, c.phase), 0.9)
+			placeWinged(c, a, b, Life.flap(t, 2.5, 35, c.phase), 0.5)
 		end
 	end
 	for _, entry in pairs(sites) do

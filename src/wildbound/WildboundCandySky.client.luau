@@ -30,7 +30,8 @@ clouds.Parent = workspace.Terrain
 local originalDecay = nil
 local weight = 0 -- 0: the place's own sky, 1: Caramelo's
 
-RunService.RenderStepped:Connect(function(dt)
+-- Heartbeat, not RenderStepped (RenderStepped did not fire in Studio Play: V6-D6)
+RunService.Heartbeat:Connect(function(dt)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local inside = root ~= nil and BiomeLight.presetAt(root.Position.X, root.Position.Z) == SKY.preset

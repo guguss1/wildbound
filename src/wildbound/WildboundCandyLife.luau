@@ -47,8 +47,9 @@ Life.BUDGETS = freeze({
 	touch = { name = "touch", birds = 6, butterflies = 8, fish = 3 },
 	soft = { name = "soft", birds = 0, butterflies = 0, fish = 0 },
 })
--- Parts per creature: a bird is a body and two wings, a butterfly a body and two wings, a fish a body and a tail.
-Life.PARTS = freeze({ bird = 3, butterfly = 3, fish = 2 })
+-- Parts per creature: a butterfly is a body and two wings, a fish a body and a tail. V7-D4 (owner request 2026-11-17,
+-- "a better bird model"): a gummy bird is a round body, a head, an orange beak, its eyes, a tail and two oval wings.
+Life.PARTS = freeze({ bird = 7, butterfly = 3, fish = 2 })
 -- Flat studs from the camera within which a flock, a butterfly site or a fish spot is shown (picked at 2 Hz).
 Life.REACH = freeze({ birds = 320, butterflies = 120, fish = 150 })
 Life.PICK_SECONDS = 0.5

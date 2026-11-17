@@ -64,10 +64,11 @@ return function(Life, Ambience, V3, Layout, sources)
 			equal(row.birds % Life.FLOCK_SIZE, 0, row.name .. ": whole flocks")
 			equal(row.butterflies % Life.PER_SITE, 0, row.name .. ": whole butterfly groups")
 		end
-		-- a few parts each, and the whole effect under 100 moving parts
-		assert(Life.PARTS.bird <= 3 and Life.PARTS.butterfly <= 3 and Life.PARTS.fish <= 3, "a few parts per creature")
+		-- a few parts each, and the whole effect under 150 moving parts
+		-- Deliberately changed (V7-D4): the better bird takes 7 parts (3 before), so the cap is 150 (100 before)
+		assert(Life.PARTS.bird <= 7 and Life.PARTS.butterfly <= 3 and Life.PARTS.fish <= 3, "a few parts per creature")
 		local total = desktop.birds * Life.PARTS.bird + desktop.butterflies * Life.PARTS.butterfly + desktop.fish * Life.PARTS.fish
-		assert(total <= 100, "at most 100 parts on desktop: " .. total)
+		assert(total <= 150, "at most 150 parts on desktop: " .. total)
 		near(Life.PICK_SECONDS, 0.5, "re-picked at 2 Hz")
 	end)
 
@@ -282,6 +283,14 @@ return function(Life, Ambience, V3, Layout, sources)
 		has(client, "local function teardown()", "one cleanup")
 		has(client, "script.Destroying", "cleaned up when the script goes")
 		has(client, "workspace:BulkMoveTo(", "one bulk move per frame")
+		-- V7-D4: the better bird: Life.PARTS.bird parts (body, head, beak, eyes, tail, two oval wings), moved and dropped whole
+		for _, name in ipairs({ '"GummyBird"', '"Head"', '"Beak"', '"Eyes"', '"Tail"', '"WingL"', '"WingR"' }) do
+			has(client, "newPart(" .. name, "the bird's " .. name)
+		end
+		equal(Life.PARTS.bird, 7, "the bird's part count")
+		has(client, "mesh.MeshType = Enum.MeshType.Sphere", "round, oval parts")
+		has(client, "for _, extra in ipairs(c.extras or {}) do push(extra.part, cf * extra.offset) end", "the head and tail follow")
+		has(client, "for _, extra in ipairs(c.extras or {}) do extra.part:Destroy() end", "and go with the bird")
 		for _, banned in ipairs({ "FireServer", "InvokeServer", "RemoteEvent", "RemoteFunction", "WildboundNetwork",
 			"ServerStorage", "ServerScriptService", "DataStore", ":SetAttribute(", "Instance.new(\"Sound\")", "SoundId",
 			"rbxassetid", "CanCollide = true", "CanQuery = true", "CanTouch = true", "Touched" }) do

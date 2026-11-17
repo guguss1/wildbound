@@ -45,6 +45,8 @@ return function(Atmosphere, BiomeLight, sources)
 		has(client, 'preset = "Caramelo"', "Caramelo only")
 		has(client, "BiomeLight.presetAt(root.Position.X, root.Position.Z) == SKY.preset", "where the character stands")
 		has(client, "atmosphere.Decay = originalDecay:Lerp(SKY.decay, weight)", "the decay goes back outside")
+		has(client, "RunService.Heartbeat:Connect", "Heartbeat drives it")
+		assert(not client:find("RenderStepped:", 1, true), "RenderStepped did not fire in Studio Play")
 		assert(not client:find("RemoteEvent", 1, true) and not client:find("FireServer", 1, true), "no network")
 	end)
 
