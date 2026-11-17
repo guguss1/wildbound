@@ -342,8 +342,13 @@ return function(F, Layout, Dodge, sources)
 	case("FL9: they give up at a safe zone, death, a leave, the no-go zones and the hard limit", function()
 		local function reasonOf(events) local g = only(events, "GiveUp")[1] return g and g.reason end
 		local world, t = chasing(10, 0)
-		equal(reasonOf(F.step(world, t + 0.1, { P(1, F.LEASH_STUDS + 1, 0) })), nil, "no leash any more")
+		-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): past ZONE_STUDS from the
+		-- hive the swarm lets go ("Zone"), egg or not; inside it they keep chasing
+		equal(F.ZONE_STUDS, 110, "the swarm's zone")
+		equal(reasonOf(F.step(world, t + 0.1, { P(1, F.ZONE_STUDS - 1, 0) })), nil, "inside its zone it chases on")
 		equal(world.swarms[1].phase, "Chase")
+		world, t = chasing(10, 0)
+		equal(reasonOf(F.step(world, t + 0.1, { P(1, F.ZONE_STUDS + 1, 0) })), "Zone", "past its zone it lets go")
 		world, t = chasing(10, 0)
 		equal(reasonOf(F.step(world, t + 0.1, { P(1, 10, 0, { safe = true }) })), "SafeZone")
 		world, t = chasing(10, 0)
@@ -430,17 +435,19 @@ return function(F, Layout, Dodge, sources)
 
 	-- Deliberately changed (RC, relentless chases): the leash no longer ends a chase, so a passer-by is followed to its
 	-- base (a safe zone 300 studs on); the sting cap is now the swarm's tiredness, so it hurts but leaves the runner up.
-	case("FL10: escape math (RC): a sprinter passing a hive is chased to its base, hurt but standing; 0 stings dodging", function()
+	-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): the chase now ends where the
+	-- runner leaves the swarm's zone (ZONE_STUDS from the hive), well before its base 300 studs on.
+	case("FL10: escape math (V7-D6): a sprinter passing a hive is chased to the zone's edge, hurt but standing; 0 stings dodging", function()
 		local off = 16
 		local start = -math.sqrt((F.NOTICE_STUDS - 0.5) ^ 2 - off ^ 2)
 		local hits, reason = escape(off, start, 0, 1, "sprint", nil, 300)
-		equal(reason, "SafeZone", "the chase ends at the base")
-		assert(hits >= F.MAX_STINGS - 1 and hits * F.DAMAGE < 100, "an untrained sprinter chased to its base: " .. hits .. " stings")
+		equal(reason, "Zone", "the chase ends at the swarm's zone")
+		assert(hits * F.DAMAGE < 100, "an untrained sprinter chased to the zone's edge stands: " .. hits .. " stings")
 		hits, reason = escape(off, start, 0, 1, "sprint", function() return "Dodged" end, 300)
-		equal(hits, 0, "a sprinter who perfect-dodges every dive"); equal(reason, "SafeZone")
-		-- running straight away no longer breaks a leash: caught past the old 110 studs and stung, until the base
+		equal(hits, 0, "a sprinter who perfect-dodges every dive"); equal(reason, "Zone")
+		-- running straight away gets out of the zone
 		hits, reason = escape(F.NOTICE_STUDS - 0.5, 0, 1, 0, "sprint", nil, 300)
-		equal(reason, "SafeZone"); assert(hits >= 1, "a straight sprint away is caught: " .. hits)
+		equal(reason, "Zone", "a straight sprint away leaves the zone")
 	end)
 
 	case("FL11: caps: three swarms awake per player, eight hives and twenty-four bugs on the server", function()
@@ -472,18 +479,19 @@ return function(F, Layout, Dodge, sources)
 	end)
 
 	-- RC5 (owner request 2026-11-16: "more bugs ... all the creatures keep chasing you, and fast, until you reach the base")
-	case("RC5: a swarm chases past the old leash and the biome's edge, tires after MAX_STINGS, books its strikes", function()
-		-- a player 300 studs from the hive, outside a 50-stud biome: still chased, the swarm with it
+	-- Deliberately changed (V7-D6): the chase holds past the biome's edge and the old 14 s timer, inside the swarm's zone
+	case("RC5: a swarm chases past the biome's edge inside its zone, tires after MAX_STINGS, books its strikes", function()
+		-- a player 100 studs from the hive (inside the 110-stud zone), outside a 50-stud biome: still chased, the swarm with it
 		local world, t = chasing(10, 0, { x = 0, z = 0, half = 50 })
 		local px = 10
 		local events
-		events, t = run(world, t, t + 14, 0.05, function(at) px = math.min(10 + (at - t) * 22, 320) return { P(1, px, 0, { vx = 22 }) } end,
+		events, t = run(world, t, t + 16, 0.05, function(at) px = math.min(10 + (at - t) * 22, 100) return { P(1, px, 0, { vx = 22 }) } end,
 			{ resolve = hitAll })
-		equal(#only(events, "GiveUp"), 0, "no give-up by leash, edge or timer")
+		equal(#only(events, "GiveUp"), 0, "no give-up by the biome's edge or a timer")
 		equal(world.swarms[1].phase, "Chase")
 		local nearest = math.huge
 		for _, bug in ipairs(world.swarms[1].bugs) do nearest = math.min(nearest, flat(bug.x, bug.z, px, 0)) end
-		assert(px > F.LEASH_STUDS + 100 and nearest < 20, "the swarm keeps up past the old leash: " .. nearest)
+		assert(px >= 100 and nearest < 20, "the swarm keeps up past the biome's edge: " .. nearest)
 		-- tired: after MAX_STINGS stings the gap between its dives grows to TIRED_DIVE_GAP_SECONDS
 		world, t = chasing(10, 0)
 		events = run(world, t, t + 25, 0.05, function() return { P(1, 10, 0) } end, { resolve = hitAll })
@@ -510,12 +518,12 @@ return function(F, Layout, Dodge, sources)
 		assert(#only(events, "DiveTell") >= 1, "an allowed strike dives")
 	end)
 
+	-- Deliberately changed (V7-D6): a chase ends at the zone (110) before the fade distance (120), so the bugs are put
+	-- far out by hand to pin the vanish; a give-up at the zone's edge flies home (below)
 	case("RC5: far from the hive at a give-up the swarm vanishes and is back at its hive; near it, it flies home", function()
 		local world, t = chasing(10, 0)
-		local events
-		events, t = run(world, t, t + 12, 0.05, function(at) return { P(1, 10 + (at - t) * 20, 0, { vx = 20 }) } end,
-			{ resolve = function() return "Dodged" end })
-		local x = 10 + 12 * 20
+		local x = 250
+		for _, bug in ipairs(world.swarms[1].bugs) do bug.x, bug.z = x, 0 end
 		local gone = F.step(world, t + 0.05, { P(1, x, 0, { safe = true }) })
 		local g = only(gone, "GiveUp")[1]
 		assert(g and g.reason == "SafeZone" and g.vanish == true, "it vanishes far from home")
@@ -533,6 +541,15 @@ return function(F, Layout, Dodge, sources)
 		g = only(F.step(world, t + 0.1, { P(1, 10, 0, { safe = true }) }), "GiveUp")[1]
 		assert(g and g.vanish == nil, "no vanish near home"); equal(world.swarms[1].phase, "Return")
 		assert(F.FADE_STUDS >= 100 and F.FADE_STUDS <= 150, "fade distance " .. F.FADE_STUDS)
+		-- V7-D6: a swarm that followed its target to the zone's edge flies home (the zone is inside the fade distance)
+		assert(F.ZONE_STUDS < F.FADE_STUDS, "the zone's edge is nearer than the fade distance")
+		world, t = chasing(10, 0)
+		local events
+		events = run(world, t, t + 12, 0.05, function(at) return { P(1, 10 + (at - t) * 20, 0, { vx = 20, carryingEgg = true }) } end,
+			{ resolve = function() return "Dodged" end }, function(e) return e.kind == "GiveUp" end)
+		g = only(events, "GiveUp")[1]
+		assert(g and g.reason == "Zone" and g.vanish == nil, "at the zone's edge it flies home: " .. tostring(g and g.reason))
+		equal(world.swarms[1].phase, "Return")
 	end)
 
 	case("FL14: no hive on a candy creature's post (Studio run: H4 stood 4.7 studs from candyPostC10)", function()
@@ -689,12 +706,13 @@ return function(F, Layout, Dodge, sources)
 		equal(kinds(F.step(F.new({ hive("A", 0, 0) }, 0, BIG), 0.1, { P(1, 8, 0, { grassCover = true }) })), "Wake",
 			"a covered player 8 studs out is seen")
 		equal(kinds(F.step(F.new({ hive("A", 0, 0) }, 0, BIG), 0.1, { P(1, 20, 0) })), "Wake", "out of the grass, as usual")
-		-- the chase: the target (egg on the back) stands in the grass 200 studs away; the bugs need about 7 s to get there
+		-- the chase: the target (egg on the back) stands in the grass 105 studs away; the bugs need about 4 s to get there
+		-- Deliberately changed (V7-D6): 200 -> 105, inside the swarm's 110-stud zone
 		local world, t = chasing(10, 0)
 		local inAt = t + 0.5
 		local events = run(world, t, t + 6, 0.05, function(s)
 			if s < inAt then return { P(1, 10, 0, { carryingEgg = true }) } end
-			return { P(1, 200, 0, { grassCover = true, carryingEgg = true }) }
+			return { P(1, 105, 0, { grassCover = true, carryingEgg = true }) }
 		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
 		local g = giveUpOf(events)
 		assert(g and g.reason == "Grass", "no Grass give-up: " .. kinds(events))
@@ -708,7 +726,7 @@ return function(F, Layout, Dodge, sources)
 		-- the same far target out of the grass (or sprinting: the service's grassCover is false) is chased on
 		local w3, t3 = chasing(10, 0)
 		local ev3 = run(w3, t3, t3 + 6, 0.05, function(s)
-			return { P(1, s < t3 + 0.5 and 10 or 200, 0, { carryingEgg = true }) }
+			return { P(1, s < t3 + 0.5 and 10 or 105, 0, { carryingEgg = true }) }
 		end, { resolve = hitAll })
 		equal(giveUpOf(ev3), nil, "not covered: chased on")
 		local service = sources.service
@@ -727,13 +745,21 @@ return function(F, Layout, Dodge, sources)
 		assert(g and g.reason == "Leash", "no Leash give-up: " .. kinds(events))
 		local x = 10 + (g.at - t) * 16
 		assert(x > F.NO_EGG_LEASH_STUDS and x <= F.NO_EGG_LEASH_STUDS + 16 * 0.05 + 1e-6, "gave up at " .. x)
-		-- an egg carrier (or a target whose egg is unknown) is chased past it, RC
+		-- an egg carrier (or a target whose egg is unknown) is chased past it, RC, up to the swarm's zone (V7-D6)
 		for _, egg in ipairs({ true, "unknown" }) do
 			local w, t0 = chasing(10, 0)
-			local ev = run(w, t0, t0 + 15, 0.05, function(s)
+			local ev = run(w, t0, t0 + 6, 0.05, function(s)
 				return { P(1, 10 + (s - t0) * 16, 0, { carryingEgg = egg == true or nil }) }
 			end, { resolve = hitAll })
 			equal(giveUpOf(ev), nil, tostring(egg) .. ": gave up at " .. tostring(giveUpOf(ev) and giveUpOf(ev).reason))
+			-- Deliberately changed (V7-D6): past ZONE_STUDS it lets go ("Zone")
+			local zev = run(w, t0 + 6.05, t0 + 9, 0.05, function(s)
+				return { P(1, 10 + (s - t0) * 16, 0, { carryingEgg = egg == true or nil }) }
+			end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+			local z = giveUpOf(zev)
+			assert(z and z.reason == "Zone", tostring(egg) .. ": no Zone give-up")
+			local zx = 10 + (z.at - t0) * 16
+			assert(zx > F.ZONE_STUDS and zx <= F.ZONE_STUDS + 16 * 0.05 + 1e-6, "let go at " .. zx)
 		end
 	end)
 

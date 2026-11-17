@@ -301,7 +301,8 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		equal(endsWith(function() return { onFloor(60, { alive = false }) } end).reason, "Dead", "dead")
 		equal(endsWith(function() return {} end).reason, "Gone", "gone")
 		local outside = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
-		equal(endsWith(function() return { outside } end), nil, "past the edge she keeps chasing (RC6)")
+		-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): her zone is the plot again
+		equal(endsWith(function() return { outside } end).reason, "Left", "past the edge and its margin she lets go (V7-D6)")
 		local margin = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS + 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
 		equal(endsWith(function() return { margin } end), nil, "inside the margin she keeps chasing")
 		-- an open lunge is called off
@@ -437,7 +438,8 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 				local free = escape(speed, policy)
 				local label = speed .. " " .. policy
 				assert(not free.caught, label .. ": caught at lunge " .. tostring(free.lunge))
-				equal(free.reason, "Safe", label .. ": she follows it to the base")
+				-- Deliberately changed (V7-D6): she lets go past the plot's edge and its margin ("Left"), before the base
+				equal(free.reason, "Left", label .. ": she lets go past her zone")
 				assert(free.at < Duq.RAGE_SECONDS, label .. ": free at " .. free.at)
 				assert(free.dodged >= 5 and free.dodged <= 40, label .. ": K = " .. free.dodged)
 			end
@@ -504,24 +506,27 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		equal(Duq.DODGE_SOURCE, "DonGlaseon", "an existing WildboundDodge source")
 	end)
 
-	case("RC6: her rage lasts out of the plot to the base; there she calms, vanishes and is back on her seat at once", function()
+	-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): she no longer follows the thief
+	-- to the base: just outside the plot (inside the margin) she still chases; past the margin she lets go ("Left").
+	-- Calmed outside the plot she still vanishes and is back on her seat at once.
+	case("RC6/V7-D6: her rage holds just past the plot's edge, ends past its margin; outside she vanishes home at once", function()
 		local gate = Layout.world(Layout.ENTRANCE)
-		-- the thief stands 30 studs outside the plot's west edge (between the plot and the hub), then reaches the hub
+		-- the thief stands just outside the plot's west edge, inside the margin, then 30 studs out (past it)
+		local near_ = carrier(gate.x - Duq.LEAVE_MARGIN_STUDS + 4, Layout.FLOOR_TOP + 3, gate.z)
 		local outside = carrier(gate.x - 30, Layout.FLOOR_TOP + 3, gate.z)
 		assert(not select(2, Rules.zone(outside.x, outside.z)), "test setup: the spot outside the plot is not safe")
-		local hub = carrier(Rules.HUB_X + Rules.HUB_RADIUS - 5, Layout.FLOOR_TOP + 3, Rules.HUB_Z, { safe = true })
 		local state = Duq.new()
-		local events = steps(state, 0, 30, function(t)
+		local events = steps(state, 0, 8, function(t)
 			if t < 1 then return { onFloor(60) } end
-			return { outside }
+			return { near_ }
 		end, dodgeAll)
-		equal(firstOf(events, "Calm"), nil, "she never calmed outside the plot within 30 s")
+		equal(firstOf(events, "Calm"), nil, "inside the margin she keeps chasing")
 		equal(state.mode, "Rage", "still raging")
 		local her = Duq.position(state)
 		assert(Duq.plotDepth(summit, her.x, her.z) < 0, "she followed the thief out of the plot")
-		local last = steps(state, 30.1, 30.1, { hub }, dodgeAll)
+		local last = steps(state, 8.1, 8.1, { outside }, dodgeAll)
 		local calm = firstOf(last, "Calm")
-		assert(calm and calm.reason == "Safe", "the base ends it: " .. tostring(calm and calm.reason))
+		assert(calm and calm.reason == "Left", "past her zone she lets go: " .. tostring(calm and calm.reason))
 		local vanish, home = firstOf(last, "Vanish"), firstOf(last, "Home")
 		assert(vanish and home and home.vanished == true, "outside the plot she vanishes home at once")
 		near(vanish.x, her.x, "the vanish where she was", 1)

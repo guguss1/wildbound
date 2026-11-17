@@ -515,33 +515,51 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 	local CANDY = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }
 	local R = Smarts.RELENTLESS
 
-	case("RC1: a candy chase does not end by leash, abandon, escape or time, only by safe zone, defeat or leaving", function()
+	-- Deliberately changed (V7-D6, owner request 2026-11-17, "each creature has its zone and goes only so far"): the
+	-- relentless chase no longer runs to the base: it ends where the hunter passes its zone (Smarts.PROFILES zone), and the
+	-- creature walks home. The old leash, abandon and escape limits still do not end it inside the zone.
+	case("RC1/V7-D6: a candy chase ends at the edge of the creature's zone (it walks home), the base, defeat or time", function()
 		equal(R.hardSeconds, 180, "the safety end"); equal(R.fadeStuds, 120, "fade distance")
 		assert(not Smarts.profile("DonGlaseon").relentless, "Don Glaseon stays territorial")
+		assert(Smarts.profile("DonGlaseon").zone == nil, "Don Glaseon keeps his own territory")
 		for _, name in ipairs(CANDY) do
 			local T = Config.BEASTS[name].tuning
+			local zone = Smarts.profile(name).zone
 			assert(Smarts.profile(name).relentless, name .. " is not relentless")
+			assert(type(zone) == "number" and zone >= 70 and zone <= 100, name .. " zone " .. tostring(zone))
+			assert(zone < R.fadeStuds, name .. ": past its zone it walks home, never fades")
 			local e, w = spawn(name, "rc1"), fakeWorld()
 			local tgt = target(8, 0)
 			run({ e }, w, tgt, 0, 1)
 			assert(Smarts.hunting(e), name .. " does not hunt after noticing")
-			-- the target runs far past every old limit (leash, abandon, escape) for 30 s at 20 studs/s
-			local events = run({ e }, w, tgt, 1.05, 31, function(t) tgt.x, tgt.vx = 8 + (t - 1) * 20, 20 end)
-			equal(#each(events, "End"), 0, name .. " ended")
-			equal(#each(events, "Disengage"), 0, name .. " faded")
-			assert(not phaseAt(events, e.id, "Return") and not phaseAt(events, e.id, "GiveUp"), name .. " went home")
-			assert(e.pos.x > T.EscapeDistanceStuds + T.LeashStuds, name .. " stayed behind at " .. e.pos.x)
-			-- the safe zone ends it at once
-			tgt.safe = true
-			local over = each(run({ e }, w, tgt, 31.05, 31.1), "End")[1]
+			-- the target runs straight out at 20 studs/s, far past every old limit and the zone
+			local ended, endX
+			for i = 1, 600 do
+				local t = 1 + i * 0.05
+				tgt.x, tgt.vx = 8 + (t - 1) * 20, 20
+				local events = run({ e }, w, tgt, t, t)
+				if phaseAt(events, e.id, "Return") then ended, endX = t, e.pos.x break end
+				assert(#each(events, "End") == 0 and #each(events, "Disengage") == 0, name .. " ended before its zone")
+			end
+			assert(ended, name .. " never let go")
+			assert(endX > math.max(T.AbandonStuds, T.LeashStuds), name .. " let go inside its old leash at " .. endX)
+			-- (a leap or a roll in flight may carry it a few studs past the edge before the next step sees it)
+			assert(endX > zone and endX <= zone + 12, name .. " let go at " .. endX .. " (zone " .. zone .. ")")
+			-- the safe zone ends a hunt at once
+			local s, sw = spawn(name, "rc1s"), fakeWorld()
+			local st = target(8, 0)
+			run({ s }, sw, st, 0, 1)
+			st.safe = true
+			local over = each(run({ s }, sw, st, 1.05, 1.1), "End")[1]
 			assert(over and over.reason == "SafeZone", name .. " the base did not end it")
 			-- death (no body) too
 			local d, dw = spawn(name, "rc1d"), fakeWorld()
 			run({ d }, dw, target(8, 0), 0, 1)
 			over = each(run({ d }, dw, nil, 1.05, 1.1), "End")[1]
 			assert(over and over.reason == "Death", name .. " death did not end it")
-			-- the hard limit
-			assert(not Smarts.overtime(e, e.huntFrom + R.hardSeconds - 0.01) and Smarts.overtime(e, e.huntFrom + R.hardSeconds), name .. " hard limit")
+			-- the hard limit, inside the zone
+			assert(not Smarts.overtime(s, s.huntFrom + R.hardSeconds - 0.01) and Smarts.overtime(s, s.huntFrom + R.hardSeconds),
+				name .. " hard limit")
 		end
 	end)
 
