@@ -599,7 +599,8 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		has(service, "houses = Smarts.houseDiscs(workspace:FindFirstChild(Layout.ROOT_NAME))", "the live houses")
 		has(service, "if her and wasX then her.x, her.z = Smarts.outsideHouses(wasX, wasZ, her.x, her.z, houseDiscs(now)) end",
 			"after each step")
-		assert(service:find("Smarts.outsideHouses(wasX", 1, true) < service:find("play(events, now)", 1, true), "before the events play")
+		-- the call on its own line (the function is also named play(events, now))
+		assert(service:find("Smarts.outsideHouses(wasX", 1, true) < service:find("\n\tplay(events, now)", 1, true), "before the events play")
 		has(service, "if body and Smarts.inHouse(body.Position.X, body.Position.Z, houseDiscs(workspace:GetServerTimeNow())) then return end",
 			"no lunge lands inside a house")
 	end)

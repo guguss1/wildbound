@@ -570,12 +570,13 @@ local function layBridge(ctx, into, B)
 	end
 	table.insert(runs, { from, B.length / 2 })
 	for i, s in ipairs({ -1, 1 }) do
-		local railAcross = s * (B.width / 2 - 0.4)
+		-- V4: a 0.4 rail on the deck's edge, so a 15-wide deck keeps it off the 14-wide path (B3), with room to spare
+		local railAcross = s * (B.width / 2 - 0.2)
 		for k, run in ipairs(runs) do
 			local length = run[2] - run[1]
 			if length > 0.5 then
 				local mid = (run[1] + run[2]) / 2
-				block(ctx, m, "Rail_" .. i .. "_" .. k, "solid", Vector3.new(0.8, 2.2, length), frame(mid, railAcross, y + 1.1), PALETTE.chocolate)
+				block(ctx, m, "Rail_" .. i .. "_" .. k, "solid", Vector3.new(0.4, 2.2, length), frame(mid, railAcross, y + 1.1), PALETTE.chocolate)
 				ball(ctx, m, "Cap_" .. i .. "_" .. k, "decor", at(mid, railAcross, y + 2.6), 0.9, PALETTE.strawberry)
 			end
 		end

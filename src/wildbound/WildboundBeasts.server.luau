@@ -98,7 +98,7 @@ local players = {} -- [Player] = { respawnedAt, outsideSince, character }
 local live = {} -- [encounter id] = { e = encounter, player = Player, character = Model, world = per-encounter adapter }
 local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strike time } } (anti-frustration stagger)
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
-	observeDropped = 0, afflicted = 0 }
+	observeDropped = 0, afflicted = 0, sheltered = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
 local AUDIENCE = Config.AUDIENCE
 local audience = Audience.new() -- SC0: which other players see which encounter

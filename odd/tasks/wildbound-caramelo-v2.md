@@ -523,3 +523,42 @@ Decisions taken for the user (V4):
 | V4-D13 | (owner: "at first they must chase less, it progresses, and when you steal an egg it should rise a lot") Supersedes the numbers of V4-D9: before any steal the per-player chaser cap starts at 1 and rises by one every 20 s while hunted, up to 3; stealing an egg (any nest, house nests included) sets a frenzy for 60 s: cap 5 at once, the usual alarm, and every creature within 150 studs of the nest is called. After the frenzy the cap falls back to the calm ramp. Ambushes follow the cap. | Calm start, real pressure after a steal. |
 | V4-D14 | (owner: "proposals to get rid of the bees, they chase too much") The bees can be shaken off three ways: (1) entering a house (they cannot enter, V4-D12) makes the swarm give up after 3 s; (2) wading in the chocolate makes them lose you after 2 s (they will not dive into it); (3) without an egg they give up 70 studs from their hive. With an egg they stay relentless (RC) except for (1) and (2). Recorded proposals not taken: a smoke item, a flower that distracts them. | Three escapes that use the map itself; an egg keeps the stakes. |
 | V4-D15 | (owner: "the house balconies should face the biome, you climb up and see the caramel kingdom") The caramel towers (the only kit with a balcony, at +Z) are turned so the balcony faces the plot centre and the cake; their door then faces away, with a clear path round. The other houses still face the junction. | From the balcony you see the kingdom instead of the plot edge. |
+
+### Evidence: Caramelo v4 deploy (2026-11-17)
+
+Studio db843df0, place 122652861404212, Edit only, locks set and cleared; place not saved (the owner saves).
+
+- Code: the 27 v4 files of 1a190c6 were deployed and fingerprint-checked equal to the repo (WildboundText and WildboundServer
+  were patched by hunks because they carry another branch's work; WildboundServer was 228954 bytes after the patch).
+- Fixes found while testing, in the repo and Studio, all in the commit that follows 1a190c6:
+  - the Duquesa test now finds `"\n\tplay(events, now)"` (the function name `play` also appears elsewhere);
+  - V3Builder test B15 expects the overhead tag on houses (V4-D12);
+  - bridge rails are 0.4 thick at `width / 2 - 0.2`, so they stay off the 15-wide deck (B3);
+  - house nests keep their pivot on the floor spot when PrimaryPart is set (otherwise sync moved them every start);
+  - WildboundBeasts did not create the `sheltered` counter, so every hit blocked by a house ended its encounter with an
+    error (`WildboundBeasts:109`, seen twice in Play). The counter now exists, and the Nests test checks for it.
+- Tests: 445 passed and 1 failed on the live map. The failure is the old BeastSites CC4 ("Mochimiau: a route passes 22.9
+  studs from the post"), which was already failing before v4. After the counter fix, WildboundCandyNests_Test passed 21/0.
+- Map migration (`tools/wildbound-caramelo-v4-migrate.luau`):
+  - backup `ServerStorage.WildboundMapArchive.CaramelV4Backup`;
+  - 39 items archived (yellow crystals and old river pieces);
+  - parts went from 1735 to 2288;
+  - 33 trees refitted;
+  - edge fill: 46 trees, 37 props, 2 hills;
+  - 7 houses retagged as overhead;
+  - mark CaramelV4 = 1.
+  
+  The queen was moved onto the cake's summit at (726, 65.8, -3).
+- Solo Play:
+  - 7 house nests (Nest_H1..H7) carried eggs, and the raft sat at its dock with a VehicleSeat.
+  - Steering: W moved the raft and D turned it; it stopped at the bank.
+  - Wading: speed dropped from 16 to 9.6 in the chocolate and went back to 16 on dry ground.
+  - House refuge at H7: before the steal, a single creature chased (the ramp). It waited about 15 studs from the house
+    centre and never came in; the player inside stayed at 100 health.
+  - The steal: holding E at Nest_H7 took the egg, and telemetry Beast_frenzies went to 1. Five creatures then hunted
+    (the frenzy cap), all waiting 17.2 studs from the centre, outside the house. The player still had the egg and 100
+    health.
+  - Not checked in Play: the three bee escapes (covered by the Flyers tests), the balcony view, and a Play run after the
+    counter fix.
+- Still missing in WildboundText: `CANDY_RAFT.steer` and `CANDY_RAFT.steerTouch`. The raft client shows its built-in
+  Spanish text until another branch's text work lands there.

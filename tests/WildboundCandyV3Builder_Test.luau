@@ -564,7 +564,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		assert(#r.waiting > 0, "the rest waits for its kit")
 		local h1 = root[V3.FOLDER].Houses.House_H1
 		equal(h1:GetAttribute("Placeholder"), false, "the house is the kit now")
-		assert(CollectionService:HasTag(h1, V3.BEAST_PASS_TAG), "still tagged pass")
+		-- Deliberately changed (V4-D12): the houses are overhead (a refuge), no longer pass
+		assert(CollectionService:HasTag(h1, V3.BEAST_OVERHEAD_TAG), "still tagged overhead")
 		equal(h1:GetAttribute("HouseId"), "H1", "same house")
 		local kitTree = root[V3.FOLDER].Trees.Tree_1
 		equal(kitTree:GetAttribute("Placeholder"), false, "the tree is the kit now")

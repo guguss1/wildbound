@@ -531,6 +531,8 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		has(beasts, 'world.houses = world.smarts.houseDiscs(workspace:FindFirstChild("Candy_Bioma_v1"))', "the live houses")
 		local _, hits = beasts:gsub('if world.sheltered and world.sheltered%(entry.player%) then count%("sheltered"%) return end', "")
 		equal(hits, 2, "no hit and no affliction on a sheltered player")
+		-- count() adds to counts[key]: an unseeded key errors and ends the encounter (seen in Play 2026-11-17)
+		has(beasts, "observeDropped = 0, afflicted = 0, sheltered = 0 }", "the sheltered counter is seeded")
 	end)
 
 	-- CH1 wiring: the beast server summons each extra post through the director (one per post) and starts it on the ground

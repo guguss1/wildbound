@@ -137,7 +137,11 @@ local function dress(nest, id, rarity, house, live)
 			d:SetAttribute("Role", "solid")
 		end
 	end
-	nest.PrimaryPart = nest:FindFirstChild("Collision_Bowl")
+	-- keep the model's pivot on the floor spot (a PrimaryPart moves GetPivot to its own CFrame otherwise)
+	local pivot = nest:GetPivot()
+	local bowl = nest:FindFirstChild("Collision_Bowl")
+	nest.PrimaryPart = bowl
+	if bowl then bowl.PivotOffset = bowl.CFrame:ToObjectSpace(pivot) end
 	local ring = nest:FindFirstChild("RarityRing")
 	if ring and ring:IsA("BasePart") then ring.Color = RARITY_COLOR[rarity] or RARITY_COLOR.Rara end
 	nest.Name = "Nest_" .. id
