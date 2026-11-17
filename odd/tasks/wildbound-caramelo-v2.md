@@ -360,9 +360,9 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] CH4 Random ambushes inside the plot. Done 2026-11-16 (evidence below).
 - [x] CH5 More damage (+40-50 %). Done 2026-11-16 (Gomibu's hit seen in Play; the rest in suites).
 - [x] CH-T Trees 1.6-1.7x, fuller crowns, about 50 % more trees, live-map resize script. Done 2026-11-16 (evidence below).
-- [ ] FL Zumbidulces, the flying bugs. Repo done; Studio pending.
-- [ ] DR La Duquesa's rage when her egg is stolen. Repo done; Studio pending.
-- [ ] AM Ambience: lights, sparkles, music. Repo done and reviewed; Studio pending.
+- [x] FL Zumbidulces, the flying bugs. Done 2026-11-16 (evidence below).
+- [x] DR La Duquesa's rage when her egg is stolen. Done 2026-11-16 (evidence below).
+- [x] AM Ambience: lights, sparkles, music bed. Done 2026-11-16 (evidence below; a cheerful track is still to be picked).
 - [ ] GT Gran Torta at the end of the biome and much bigger. Not started (second batch, after the rest is deployed and walked).
 
 ### Decisions taken for the user (CH)
@@ -398,3 +398,17 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - Solo Play (PlayLock `CH-batch1`, cleared after; Play stopped; memory saves): no Wildbound script errors; 19 live floor nests plus T1, one egg in each of the 20 islands; 16 resting copies. Gomibu's extra post at (624, 130) woke with the player 22 studs away, only that post's copy hidden; one hit took 100 -> 80. First 0.5 s of its chase 27.9 studs/s. Standing 72 s away from posts: 2 ambushes (Canelin at 33.4 studs, Flanin at 34.1), never more than 2 alive, both ended. 26 s near the entrance: no ambush. Left and right routes walked end to end with nothing blocked. New nests reached from the route; C6 needs a jump over the bridge rail. Client 59-60 frames per second.
 - Not checked: a steady 23 studs/s after Gomibu's burst (it hops), Flanfuria and Tortidragon waking at their extra posts after a steal, two players, a phone.
 - Open: BeastSites CC4 (old red); nest C6 behind the bridge rail; Lollipop_3 not grown.
+
+### Evidence: FL, DR and AM (batch 2, 2026-11-16)
+
+- Change: commit `1be077f`. New `WildboundCandyFlyers` (rules, service, client, suite) and `WildboundCandyAmbience` (rules, client, suite); `WildboundCandyDuquesa` and its service and suite rewritten for the rage; `WildboundDodge` (one source row), `WildboundAudioMix`, the audio client and a catalog comment.
+- Reviews: `odd/reviews/caramelo-flyers-duquesa-review.md` (no blocker; three majors on La Duquesa, fixed: the lunge now locks 0.35 s before the strike so a sidestep beats it, no rage without her model, manifest rows) and `odd/reviews/caramelo-ambience-review.md` (one major, fixed: sparkles hidden inside crowns).
+- Fingerprint rule: before writing, the 7 existing Studio scripts equalled commit `c82c05b` and the 7 new ones did not exist; after, Studio == `1be077f`: Dodge 9272/505795319, CandyDuquesa 21213/351831592, DuquesaService 18807/473725863, Duquesa_Test 30444/357662077, AudioMix 10726/3301338883, AudioClient 21460/1198401600, AudioCatalog 4891/2700609842, CandyFlyers 22540/2898746434, FlyersService 15355/79224099, FlyersClient 6913/1303899370, Flyers_Test 28962/3103495543, CandyAmbience 13336/1538909929, AmbienceClient 19373/2174291771, Ambience_Test 19612/2837678554.
+- Baseline, run `53f9b75b`: 11 suites, 154 cases, 0 failed. RED, run `f9aab608`: Flyers and Ambience "module not found", Duquesa 7/10. GREEN, run `29e46e55`: 13 suites, 190 passed, 0 failed (Flyers 14/0, Ambience 12/0, Duquesa 17/0).
+- Solo Play (PlayLock `CH-batch2`, cleared after; Play stopped; memory saves). No Wildbound script errors.
+  - Flyers: 5 hives, 13 bugs at the expected spots. Wake tell 1.08 s, dive marker 1.33 s, cruise 25.0 studs/s about 6 studs over the floor, a sting takes 12 health and pushes, 3 stings then home, 12.07 s rest. Gave up at 110.7 studs from the hive and within 0.6 s of the player entering the boss plaza.
+  - La Duquesa: red highlight and sign at 0.05 s, roar 1.1 s, lunge marker 0.98 s, hit 100 -> 75 and the egg dropped, 3.05 s calm, back on her seat with no red left. No second rage during her rest. Chase 130 studs in 4.81 s (27 studs/s). A sidestep after the lock: she landed 6 studs away, no damage, egg kept. Entering the base's safe zone ended the rage in 0.2 s.
+  - Ambience: outside the plot the flag is false, no holder, safeMusic 0.15 / 1.0; inside, 12 lights, 10 emitters (60 particles per second), safeMusic 0.20 / 1.12, three lollipops swaying; after leaving, everything gone and the swayed parts back in place.
+- Found, not fixed yet: hive H4 is 4.7 studs from creature post candyPostC10 and H2 8.6 from candyPostC8 (the hive rule does not read the posts); lollipop sparkles start inside the disc's outline and cotton sparkles 2.2 studs under the highest crown; one 6.5-stud snap of a bug in a single client frame at a dive.
+- Note: the owner started a Play while this deploy was halfway (tests, La Duquesa and audio in; flyers and ambience not yet), so that session showed no lights, sparkles or bugs.
+- Not checked: a perfect dodge of a bug in Play, how the lights read in daylight by eye, full frame rate (the Studio window was unfocused), two players, a phone.
