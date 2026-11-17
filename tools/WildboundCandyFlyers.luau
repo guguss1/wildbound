@@ -95,7 +95,7 @@ F.TIRED_DIVE_GAP_SECONDS = 5 -- RC: a tired swarm's gap after a strike (DIVE_GAP
 F.FADE_STUDS = 120 -- RC3: farther than this from the hive at a give-up, they vanish instead of flying home
 F.VANISH_SECONDS = 1
 F.VANISH_RISE_STUDS_PER_SECOND = 8
-F.TOWER_NO_GO_MARGIN_STUDS = 4 -- F.noGoZones: the tower's disc reaches past its widest tier (the stair)
+F.TOWER_NO_GO_MARGIN_STUDS = 8 -- F.noGoZones: the tower's disc reaches past its widest tier (the stair; V7-D2: 4 -> 8, the stair twice as wide)
 -- V4-D14 (owner 2026-11-17: "proposals to get rid of the bees, they chase too much"): three ways to shake them off.
 --   (1) a target inside a house (players[i].sheltered) for HOUSE_GIVEUP_SECONDS: the swarm gives up ("House"); the bugs
 --       never enter a house (V4-D12: world.houses, footprint discs { x, z, r }, kept HOUSE_MARGIN_STUDS outside);

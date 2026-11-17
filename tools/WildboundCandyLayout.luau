@@ -128,14 +128,18 @@ do
 		-- GT: 90 -> 140 s, so the wider bottom rim still turns under 2 studs/s
 		spinPeriodSeconds = 140,
 		spinDirections = table.freeze({ 1, -1, 1, 0 }),
-		stair = table.freeze({ width = 3.8, inset = 0.5, tread = 2.6, maxRise = 1, startDegrees = -100, landingDegrees = 15 }),
+		-- V7-D2 (owner request 2026-11-17, "the cake's stairs twice as big"): width 3.8 -> 7.4 (7.6 would cover the next
+		-- tier's rim dollops: a ledge is 9.33 wide, the dollops take its outer 1.45), tread 2.6 -> 5.2; the rise stays 1
+		-- (walkable without jumping), so the step count (67) and the part count stay the same.
+		stair = table.freeze({ width = 7.4, inset = 0.45, tread = 5.2, maxRise = 1, startDegrees = -100, landingDegrees = 15 }),
 		-- CT3: the best egg of the biome, a Legendaria nest (not event-only) on the summit, beside La Duquesa (who sits on
 		-- the centre), across the summit from where the stair arrives. x, z are plot coordinates like every nest's. GT: the
 		-- kit's nest at full size (0.7 -> 1) on the wider summit, 9.4 studs from the centre.
 		summit = table.freeze({ id = "T1", rarity = "Legendaria", x = Layout.TORTA.x, z = Layout.TORTA.z + 9.4, scale = 1 }),
 		-- DG4: Don Glaseon's glaze puddles on his plaza, round the Torta, off the stair (south) and the nests.
 		glaze = table.freeze({
-			table.freeze({ x = 114, z = 52, r = 6 }), table.freeze({ x = 165, z = 8, r = 6 }), table.freeze({ x = 75, z = 34, r = 6 }),
+			-- V7-D2: puddle 2 (165, 8) -> (170, 9), 10.5 studs out from the wider stair's first flight
+			table.freeze({ x = 114, z = 52, r = 6 }), table.freeze({ x = 170, z = 9, r = 6 }), table.freeze({ x = 75, z = 34, r = 6 }),
 		}),
 	})
 end
