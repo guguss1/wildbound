@@ -127,8 +127,10 @@ local function hands()
 	-- DR: away from her seat the bubbles leave her hands where she flies
 	local her = Duq.position(state)
 	if her then return Vector3.new(her.x, her.y, her.z) end
-	local base = duquesa and duquesa.Parent and duquesa:GetPivot().Position or Vector3.new(summit.x, summit.top, summit.z)
-	return Vector3.new(base.X, summit.top + Duq.HANDS_STUDS, base.Z)
+	-- V7-D1: seated on the cake's cherry, her hands are HANDS_STUDS over her seated base, not over the summit floor
+	local seat = Duq.seatPivot(summit)
+	local base = duquesa and duquesa.Parent and duquesa:GetPivot().Position or Vector3.new(seat.x, seat.y, seat.z)
+	return Vector3.new(base.X, base.Y + Duq.HANDS_STUDS, base.Z)
 end
 
 -- The beasts' slow (WildboundBeasts applySlow): clamped, never stacked, put back only if nothing changed the speed.

@@ -42,7 +42,7 @@ Duq.SLOW_MULTIPLIER = 0.7
 Duq.SLOW_SECONDS = 2
 Duq.PUSH_STUDS = 4
 Duq.PUSH_SECONDS = 0.3
-Duq.HANDS_STUDS = 4 -- the bubbles leave her hands this far over the summit floor
+Duq.HANDS_STUDS = 4 -- the bubbles leave her hands this far over her seated base (V7-D1: on the cake's cherry)
 Duq.HIT_HEIGHT_STUDS = 8
 Duq.DAMAGE = 0
 
@@ -111,9 +111,14 @@ function Duq.herIsland(Layout)
 	return Duq.ISLAND_PREFIX .. Layout.TOWER.summit.id
 end
 
--- DR: her seat, as a point (world): HOVER_STUDS over the summit's centre.
+-- V7-D1 (owner request 2026-11-17, "the princess seated on top of the cake as before, now a red ball covers her"): the
+-- GranTorta mesh carries a big cherry on the summit's centre (no collision; its top 11.7 studs over the summit floor,
+-- radius about 5.5). She sits on that cherry: her seated base CHERRY_STUDS over the summit floor (her dress rests on it).
+Duq.CHERRY_STUDS = 11.4
+
+-- DR: her seat, as a point (world): HOVER_STUDS over her seated base on the cherry (V7-D1), on the summit's centre.
 function Duq.seat(summit)
-	return { x = summit.x, y = summit.top + Duq.HOVER_STUDS, z = summit.z }
+	return { x = summit.x, y = summit.top + Duq.CHERRY_STUDS + Duq.HOVER_STUDS, z = summit.z }
 end
 
 -- V4-D10 (owner request 2026-11-17, "the queen seated on top of the cake as before"; the GT cake move left her scenery

@@ -557,7 +557,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		local junction = { x = Layout.CENTRE.x + Layout.JUNCTION.x, z = Layout.CENTRE.z + Layout.JUNCTION.z }
 		local s = Duq.seatPivot(summit, junction)
 		local seat = Duq.seat(summit)
-		near(s.x, summit.x, "x"); near(s.z, summit.z, "z"); near(s.y, summit.top, "her base on the summit floor")
+		-- Deliberately changed (V7-D1): her base sits on the GranTorta's cherry, CHERRY_STUDS over the summit floor
+		near(s.x, summit.x, "x"); near(s.z, summit.z, "z"); near(s.y, summit.top + Duq.CHERRY_STUDS, "her base on the cherry")
+		assert(Duq.CHERRY_STUDS >= 11 and Duq.CHERRY_STUDS <= 11.7, "on the cherry's top (11.7 over the floor), not inside it")
 		near(seat.y - s.y, Duq.HOVER_STUDS, "her seat point HOVER_STUDS over her base (leaveSeat's offset)")
 		-- facing the junction (west of the cake): CFrame.Angles(0, yaw, 0)'s LookVector is (-sin, 0, -cos)
 		local lx, lz = -math.sin(s.yaw), -math.cos(s.yaw)
