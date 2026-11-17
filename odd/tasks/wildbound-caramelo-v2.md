@@ -446,3 +446,16 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | GT-D4 | `WildboundBeastDonGlaseon_Test` PF5b walks the target out to the ring at 16 studs/s instead of placing it there. | With the 76-stud territory the ring is 64 studs from where he stands, beyond his 54-stud chase sight; a shoved player is never that far from him in play. |
 | GT-D5 | La Duquesa may catch a straight sprinter with her first or second lunge (was: the first). Her numbers are unchanged. | The bigger cake's longer stair lets a sprinter outrun the first lunge; the second catches it at 5.8 s, so it must still dodge. |
 | RC-D5 | A swarm that vanished is placed back at its hive at once. | Otherwise its bugs reappear by the base until someone walks near the hive. |
+
+## Caramelo v3: the owner's reference pack (queued 2026-11-17, not started)
+
+Owner request 2026-11-17, with `E:\Wildbound_Caramelo_11_Referencias_3D.zip` (11 reference sheets, copied to `assets/reference/caramelo-v3/`; read `00_LEEME_Claude.md` there first): replace the trees with the three trees of the pack (cotton candy, ice-cream scoops, caramel apple); a big chocolate river with ice-cream mountains; a bridge and a rideable raft (Balsa Banana Split V2) to cross it (the owner wants it to cost Robux later; free for now); the houses (Casita Dulce San Valentin, Casita Chocolate, Torre Caramelo) in several places, with interiors; a giant rainbow licorice; the modular cake with a ramp and cookie platforms on the lake; a little less bright light overall and more sparkle particles; the creatures chase until the player reaches the base and use their attacks (done by RC, check again in Play); the map must not feel empty. No questions to the owner.
+
+Decisions taken for the user (V3):
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V3-D1 | Order: after the cheerful music track (MU). The map relief task (RL) is folded into V3: the river valley and the ice-cream mountains are the Caramelo relief. | Both rebuild the same ground; doing them apart would move the same props twice. |
+| V3-D2 | The sheets are art references, not 3D files. First choice: build every piece from Roblox parts in a builder module (like the Zumbidulces), no upload. A Blender model is uploaded only if the parts version looks clearly worse, and each upload is recorded. | No upload gate, scriptable, editable by tests. |
+| V3-D3 | The raft is free. No purchase, no Robux prompt and no monetization code: `monetization = "none"` stays until the owner approves a product. | Owner said free for now; the rules forbid monetization without explicit approval. |
+| V3-D4 | The live map is changed with a migration tool (dry run, backup, archive, never delete), as with the cake move. | Same safety as GT. |
