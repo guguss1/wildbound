@@ -9,7 +9,10 @@
 -- been ARM_STUDS away from every tip, it docks and the rider is set down. A rider who leaves near a dock leaves it
 -- docked there; mid-river it drifts, stops, and RESPAWN_SECONDS later is back at its home dock (or docks where it stops
 -- near a tip). A player at the other dock calls the empty raft: CALL_SECONDS later it is there. Riding is free: no
--- price, no product, no purchase. Shared (ReplicatedStorage), no services, no clock: every time is passed in.
+-- price, no product, no purchase. V6-D3 (Caramelo v6, the river current): while afloat (Sailing or Adrift) the raft
+-- also drifts with the current the area's flow gives (WildboundCandyCurrent), so it goes faster downstream and slower
+-- upstream; docked, boarding or called it stays put. Shared (ReplicatedStorage), no services, no clock: every time is
+-- passed in.
 -- Coordinates are world studs; yaw is radians about +Y, the model looking along -Z (look = (-sin yaw, -cos yaw)).
 -- Rules: WildboundCandyRaft_Test.
 local Raft = {}
@@ -40,6 +43,11 @@ Raft.DEPART_SECONDS = 1
 Raft.RESPAWN_SECONDS = 8
 Raft.CALL_SECONDS = 3
 Raft.REQUEST_GAP = 0.5 -- seconds between two accepted client requests of one player
+-- V6-D3, V6-D32: while afloat (Sailing or Adrift) the raft drifts with the river's current (area.flow, from
+-- WildboundCandyCurrent: 4 studs/s on the river legs, 1.5 in the lake) on top of its own speed through the water, by the
+-- same hull and bridge rule; docked, boarding or called it stays put. speed (and DOCK_SPEED) stays the speed through the
+-- water. CURRENT_MAX caps whatever a flow returns.
+Raft.CURRENT_MAX = 4
 Raft.BOB = table.freeze({ amplitude = 0.15, period = 2.4 })
 Raft.ACTIONS = table.freeze({ Leave = true })
 
@@ -63,9 +71,11 @@ function Raft.docksFrom(V3, centre)
 	return out
 end
 
--- area(V3, centre) -> { inside = function(x, z, r) }: whether a hull of reach r at world (x, z) is in the chocolate
--- (V3.liquidDistance <= -r, plot-local) and clear of every bridge (not V3.nearBridge).
-function Raft.area(V3, centre)
+-- area(V3, centre, flow) -> { inside = function(x, z, r), flow = function(x, z) or nil }: inside says whether a hull
+-- of reach r at world (x, z) is in the chocolate (V3.liquidDistance <= -r, plot-local) and clear of every bridge (not
+-- V3.nearBridge). V6-D3: flow (optional, WildboundCandyCurrent.flow: (V3, plotX, plotZ) -> vx, vz) gives the river's
+-- current at world (x, z), studs/s; without it the chocolate is still.
+function Raft.area(V3, centre, flow)
 	return {
 		inside = function(x, z, r)
 			if not finite(x) or not finite(z) then return false end
@@ -73,7 +83,21 @@ function Raft.area(V3, centre)
 			local lx, lz = x - centre.x, z - centre.z
 			return V3.liquidDistance(lx, lz) <= -r and not V3.nearBridge(lx, lz, r)
 		end,
+		flow = type(flow) == "function" and function(x, z)
+			return flow(V3, x - centre.x, z - centre.z)
+		end or nil,
 	}
+end
+
+-- drift(area, x, z) -> vx, vz: the current under a raft at world (x, z), studs/s; 0, 0 without a flow or for junk, and
+-- never more than CURRENT_MAX.
+function Raft.drift(area, x, z)
+	if type(area) ~= "table" or type(area.flow) ~= "function" or not finite(x) or not finite(z) then return 0, 0 end
+	local ok, vx, vz = pcall(area.flow, x, z)
+	if not ok or not finite(vx) or not finite(vz) then return 0, 0 end
+	local speed = math.sqrt(vx * vx + vz * vz)
+	if speed > Raft.CURRENT_MAX then vx, vz = vx / speed * Raft.CURRENT_MAX, vz / speed * Raft.CURRENT_MAX end
+	return vx, vz
 end
 
 -- new(docks, homeDock) -> state, or nil and why. The raft waits at its home dock's tip, looking out.
@@ -167,23 +191,22 @@ function Raft.moving(state)
 	return type(state) == "table" and (state.status == "Sailing" or state.status == "Adrift")
 end
 
--- One move of `distance` studs along the raft's look: whole if the hull fits, else a slide along x or z if that keeps
--- SLIDE_SHARE of the step, else none. Near a dock tip (ARM_STUDS) the hull may touch the bank (reach 0). Returns
--- "Moved", "Slid" or "Blocked".
-local function move(state, distance, area)
-	if distance == 0 then return "Moved" end
+-- One shift of (dx, dz) studs: whole if the hull fits, else a slide along x or z if that keeps SLIDE_SHARE of the
+-- step, else none. Near a dock tip (ARM_STUDS) the hull may touch the bank (reach 0). Returns "Moved", "Slid" or
+-- "Blocked". V6-D3: the current's drift goes through the same rule as the raft's own move.
+local function shift(state, dx, dz, area)
+	if dx == 0 and dz == 0 then return "Moved" end
 	if type(area) ~= "table" or type(area.inside) ~= "function" then return "Blocked" end
 	local function fits(x, z)
 		local reach = Raft.nearDock(state, x, z, Raft.ARM_STUDS) and 0 or Raft.HULL
 		return area.inside(x, z, reach) == true
 	end
-	local dx, dz = -math.sin(state.yaw) * distance, -math.cos(state.yaw) * distance
 	local nx, nz = state.x + dx, state.z + dz
 	if fits(nx, nz) then
 		state.x, state.z = nx, nz
 		return "Moved"
 	end
-	local least = Raft.SLIDE_SHARE * math.abs(distance)
+	local least = Raft.SLIDE_SHARE * math.sqrt(dx * dx + dz * dz)
 	if math.abs(dx) >= least and fits(nx, state.z) then
 		state.x = nx
 		return "Slid"
@@ -193,6 +216,19 @@ local function move(state, distance, area)
 		return "Slid"
 	end
 	return "Blocked"
+end
+
+-- One move of `distance` studs along the raft's look (its own speed through the water).
+local function move(state, distance, area)
+	if distance == 0 then return "Moved" end
+	return shift(state, -math.sin(state.yaw) * distance, -math.cos(state.yaw) * distance, area)
+end
+
+-- The current's drift for dt seconds, by the hull and bridge rule (a bank or a bridge stops it; it never changes the
+-- raft's own speed).
+local function drift(state, dt, area)
+	local vx, vz = Raft.drift(area, state.x, state.z)
+	return shift(state, vx * dt, vz * dt, area)
 end
 
 -- step(state, dt, now, input, seated, area) -> events: { { kind, rider, dock } } with kind "Depart", "Arrived" (docked
@@ -230,6 +266,7 @@ function Raft.step(state, dt, now, input, seated, area)
 		local moved = move(state, speed * dt, area)
 		if moved == "Blocked" then speed = 0 elseif moved == "Slid" then speed = toward(speed, 0, Raft.BRAKE * dt) end
 		state.speed = speed
+		drift(state, dt, area) -- V6-D3: the current carries it on top of its own speed
 		if not state.armed and not Raft.nearDock(state, state.x, state.z, Raft.ARM_STUDS) then state.armed = true end
 		local i = state.armed and math.abs(speed) <= Raft.DOCK_SPEED and Raft.nearDock(state, state.x, state.z, Raft.DOCK_STUDS)
 		if i then
@@ -241,6 +278,7 @@ function Raft.step(state, dt, now, input, seated, area)
 	elseif state.status == "Adrift" then
 		state.speed = toward(state.speed, 0, Raft.BRAKE * dt)
 		if move(state, state.speed * dt, area) == "Blocked" then state.speed = 0 end
+		drift(state, dt, area) -- V6-D3: an abandoned raft drifts downstream until it docks or respawns
 		local i = state.speed == 0 and Raft.nearDock(state, state.x, state.z, Raft.DOCK_STUDS)
 		if i then
 			dockAt(state, i)

@@ -79,6 +79,8 @@ return function(Wade, V3, Layout, sources)
 		assert(info.liquid < 0, "inside the fake chocolate at the plot centre")
 		near(info.feetY, 0.5, "R15: root - half its height - hip height")
 		near(info.surface, SURFACE, "the surface")
+		-- V6-D3: the root's plot point, where the current's push is read
+		near(info.x, 5, "plot x"); near(info.z, 5, "plot z")
 		local far = Wade.probe(fakeV3, CENTRE, 0.5, Vector3.new(612 + 40, 3.5, -3), 1, 2, false)
 		assert(far.liquid > 0, "outside")
 		local r6 = Wade.probe(fakeV3, CENTRE, 0.5, Vector3.new(612, 3.5, -3), 1, 0, true)
@@ -112,6 +114,8 @@ return function(Wade, V3, Layout, sources)
 		hasNot(service, "WalkSpeed =", "applyCarry is the one WalkSpeed writer")
 		hasNot(service, "SistemaSonriente", "never touches the teammate's folders")
 		hasNot(service, "OnServerEvent", "no client says it is wading")
+		-- V6-D3: the current's push rides on the same probe (WildboundCandyCurrent_Test holds its rules)
+		has(service, "Current.pushVector(true, Current.push(V3, info.x, info.z))", "the push only while wading")
 	end)
 
 	return result

@@ -6,7 +6,8 @@
 -- wildbound-caramelo-v2.md V4-D3): the pure steering rules (speed, turn, the chocolate area and its banks, never under
 -- a bridge, docking at either dock, boarding and leaving, one rider, adrift and respawn at the home dock, the call),
 -- the client request filter, the free rule, and source pins of the server and client wiring. The rules run against a
--- small fake river, so they do not depend on the exact layout; RF1 checks the real layout's docks. Changes nothing.
+-- small fake river, so they do not depend on the exact layout; RF1 checks the real layout's docks; RF16 runs a fake
+-- current (V6-D3; the real one is in WildboundCandyCurrent_Test). Changes nothing.
 return function(Raft, V3, Layout, Text, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -245,7 +246,8 @@ return function(Raft, V3, Layout, Text, sources)
 		has(service, "seat.SteerFloat", "the server reads the rider's steering")
 		has(service, "seat.Occupant == humanoid", "only the seated rider steers")
 		has(service, "Raft.step(state, dt, t, input, seated, area)", "the rules step every frame")
-		has(service, "Raft.area(V3, Layout.CENTRE)", "the chocolate and the bridges from the layout")
+		-- Deliberately changed (V6-D3): the area also carries the river's current (WildboundCandyCurrent.flow)
+		has(service, "Raft.area(V3, Layout.CENTRE, Current.flow)", "the chocolate, the bridges and the current from the layout")
 		has(service, "Raft.docksFrom(V3, Layout.CENTRE)", "the docks from the layout")
 		has(service, "model:PivotTo(", "the anchored raft moves")
 		has(service, "PlayerRemoving", "a leaving player frees the raft")
@@ -452,6 +454,53 @@ return function(Raft, V3, Layout, Text, sources)
 			local nearTip = flat(x, z, real[1].x, real[1].z) <= Raft.ARM_STUDS or flat(x, z, real[2].x, real[2].z) <= Raft.ARM_STUDS
 			assert(realArea.inside(x, z, nearTip and 0 or Raft.HULL), ("the crossing is blocked at %.1f, %.1f"):format(x, z))
 		end
+	end)
+
+	-- V6-D3: a current carries the raft while afloat (Sailing or Adrift) through the same bank and bridge rule; docked it
+	-- stays put. The fake river flows east at 4 studs/s; the real layout's current is WildboundCandyCurrent_Test's.
+	case("RF16: the current: drifts afloat, stops at the bridge, never moves a docked raft", function()
+		local flowing = { inside = area.inside, flow = function() return 4, 0 end }
+		equal((Raft.drift(area, 20, 20)), 0, "no flow, no drift")
+		local vx, vz = Raft.drift({ inside = area.inside, flow = function() return 30, 0 end }, 20, 20)
+		near(vx, Raft.CURRENT_MAX, "capped"); near(vz, 0)
+		vx, vz = Raft.drift({ inside = area.inside, flow = function() return 0 / 0, 0 end }, 20, 20)
+		equal(vx, 0, "junk is still"); equal(vz, 0)
+		vx = Raft.drift({ inside = area.inside, flow = function() error("boom") end }, 20, 20)
+		equal(vx, 0, "a failing flow is still")
+		local built = Raft.area(fakeV3, ORIGIN, function(_, x) return x > -1000 and 4 or 0, 0 end)
+		vx = Raft.drift(built, 20, 20)
+		near(vx, 4, "Raft.area passes the flow through")
+		-- docked: still
+		local d = Raft.new(docks(), 1)
+		for k = 1, 90 do Raft.step(d, 1 / 30, k / 30, nil, false, flowing) end
+		near(d.x, 10, "docked x"); near(d.z, 2, "docked z")
+		-- sailing with no throttle drifts east and stops short of the bridge
+		local s = Raft.new(docks(), 1)
+		s.status, s.rider, s.armed, s.x, s.z, s.speed = "Sailing", 2, true, 20, 20, 0
+		for k = 1, 30 do Raft.step(s, 1 / 30, k / 30, nil, true, flowing) end
+		near(s.x, 24, "4 studs in 1 s", 1e-6)
+		near(s.speed, 0, "the drift is not the raft's own speed")
+		for k = 31, 30 * 15 do Raft.step(s, 1 / 30, k / 30, nil, true, flowing) end
+		assert(s.x + Raft.HULL <= BRIDGE_X0 + 1e-6, "stopped before the bridge: " .. s.x)
+		-- full ahead with and against it
+		local down = Raft.new(docks(), 1)
+		down.status, down.rider, down.armed, down.x, down.z, down.yaw = "Sailing", 3, true, 5, 20, -math.pi / 2 -- looks +x
+		local up = Raft.new(docks(), 1)
+		up.status, up.rider, up.armed, up.x, up.z, up.yaw = "Sailing", 4, true, 40, 20, math.pi / 2 -- looks -x
+		for k = 1, 30 do
+			Raft.step(down, 1 / 30, k / 30, { throttle = 1, steer = 0 }, true, flowing)
+			Raft.step(up, 1 / 30, k / 30, { throttle = 1, steer = 0 }, true, flowing)
+		end
+		assert(down.x - 5 > 40 - up.x + 6, ("downstream %.2f, upstream %.2f"):format(down.x - 5, 40 - up.x))
+		-- adrift: carried, then back home after RESPAWN_SECONDS
+		local a = Raft.new(docks(), 1)
+		a.status, a.adriftAt, a.x, a.z, a.speed = "Adrift", 0, 20, 20, 0
+		local respawned
+		for k = 1, math.ceil((Raft.RESPAWN_SECONDS + 0.5) * 30) do
+			for _, e in ipairs(Raft.step(a, 1 / 30, k / 30, nil, false, flowing)) do if e.kind == "Respawn" then respawned = e end end
+		end
+		assert(respawned and a.status == "Docked", "respawned at home")
+		near(a.x, 10); near(a.z, 2)
 	end)
 
 	return result

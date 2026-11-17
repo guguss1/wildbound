@@ -3,7 +3,9 @@
 -- WildboundCandyWadeService, which every STEP seconds probes each player's root and sets or clears the server-only
 -- player attribute ATTRIBUTE (the factor while wading, nil otherwise); WildboundServer.applyCarry, the one WalkSpeed
 -- writer, multiplies its own freshly computed speed by it (Wade.speed is the same rule), so nothing stacks and leaving
--- the chocolate restores the speed exactly. Server only (ServerStorage), no services, no clock.
+-- the chocolate restores the speed exactly. V6-D3: the same probe and rule decide the current's push on a wader
+-- (WildboundCandyCurrent.push / pushVector, set by the service on WildboundCandyCurrent.PUSH_ATTRIBUTE). Server only
+-- (ServerStorage), no services, no clock.
 -- Rules: WildboundCandyWade_Test.
 local Wade = {}
 
@@ -23,14 +25,18 @@ function Wade.speed(speed, factor)
 	return speed * math.max(factor, Wade.MIN_FACTOR)
 end
 
--- probe(V3, centre, floorTop, rootPosition, rootHalfHeight, hipHeight, isR6) -> { liquid, feetY, surface }: the signed
--- distance to the chocolate at the root's plot point (negative inside), the feet's height (an R6 rig's legs are 2
--- studs under its root; an R15 rig stands HipHeight under it) and the chocolate's surface.
+-- probe(V3, centre, floorTop, rootPosition, rootHalfHeight, hipHeight, isR6) -> { liquid, feetY, surface, x, z }: the
+-- signed distance to the chocolate at the root's plot point (negative inside), the feet's height (an R6 rig's legs are
+-- 2 studs under its root; an R15 rig stands HipHeight under it), the chocolate's surface, and (V6-D3) the root's plot
+-- point x, z, where WildboundCandyCurrent.push reads the current.
 function Wade.probe(V3, centre, floorTop, rootPosition, rootHalfHeight, hipHeight, isR6)
 	local legs = isR6 and 2 or (finite(hipHeight) and hipHeight or 2)
 	local half = finite(rootHalfHeight) and rootHalfHeight or 1
+	local x, z = rootPosition.X - centre.x, rootPosition.Z - centre.z
 	return {
-		liquid = V3.liquidDistance(rootPosition.X - centre.x, rootPosition.Z - centre.z),
+		x = x,
+		z = z,
+		liquid = V3.liquidDistance(x, z),
 		feetY = rootPosition.Y - half - legs,
 		surface = V3.surfaceY(floorTop),
 	}

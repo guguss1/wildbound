@@ -16,6 +16,8 @@ local ServerStorage = game:GetService("ServerStorage")
 local RunService = game:GetService("RunService")
 
 local Raft = require(ReplicatedStorage:WaitForChild("WildboundCandyRaft"))
+-- V6-D3: the river's current (a pure flow field from the layout); the raft drifts with it while afloat
+local Current = require(ReplicatedStorage:WaitForChild("WildboundCandyCurrent"))
 local Text = require(ReplicatedStorage:WaitForChild("WildboundText"))
 local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
 local V3 = require(ServerStorage:WaitForChild("WildboundCandyV3Layout"))
@@ -31,7 +33,7 @@ end
 
 local surface = V3.surfaceY(Layout.FLOOR_TOP)
 local docks = assert(Raft.docksFrom(V3, Layout.CENTRE), "the layout's docks")
-local area = Raft.area(V3, Layout.CENTRE)
+local area = Raft.area(V3, Layout.CENTRE, Current.flow)
 local state = assert(Raft.new(docks, V3.RAFT.homeDock))
 local stands = {}
 for i, d in ipairs(docks) do
