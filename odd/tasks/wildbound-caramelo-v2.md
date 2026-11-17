@@ -539,6 +539,47 @@ Decisions taken for the user (V5):
 | V5-D4 | Three ways across: the bridges (unchanged), wading (60 % speed, V4-D2) and the raft. | The owner's three ways. |
 | V5-D5 | The raft goes from 16 to 20 studs/s at most (+25 %), and reverse grows by the same share. | "A little faster." |
 
+Decision taken in Play (V5):
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V5-D6 | Hunters searching for a hidden player walk a ring 7 to 14 studs from the spot (it was 3 to 11), each next point 55 degrees further round (the golden angle sent them across the spot on every move). A candy creature also needs twice WildboundHide's dwell inside the discover radius to find a hidden player (4 s by day). | In Play the frenzy's five hunters found a hidden player within 1 to 10 s, so hiding never held. With the change, a hidden egg carrier lasted 40 s untouched and two hunters gave up. |
+
+### Evidence: Caramelo v5 deploy (2026-11-17)
+
+Studio b15ce60a, place 122652861404212, Edit only, locks set and cleared; the place is not saved (the owner saves).
+
+- **Code.** The v5 code was committed as 2aa70d0, then deployed by hunks: 17 changed files plus 3 new ones (WildboundCandyHiding, WildboundCandyHideSpots, WildboundCandyHideSpots_Test). Every file was fingerprint-checked equal to the repo, except WildboundWorld. Studio's copy of WildboundWorld carries another branch's work, so it got only the 4 hunks; its size went from 90287 to 91715 bytes, exactly the hunks' growth.
+- **Tests, Candy and Hide suites.** 429 passed and 3 failed:
+  - the new Duquesa V5-D2 case placed the thief over the cake, where she never comes low enough to lunge. The test was fixed (60 studs out, like DR3 and DR4) and the suite then passed 24/0;
+  - DonGlaseonClips and TortidragonClips report clips that are not published. These are animation uploads, not touched by v5.
+- **Tests, full run.** 2407 passed and 28 failed. Every failure is in a suite v5 does not touch:
+  - WildboundServer-based wiring (Analytics, BaseZone, Bat, EggCarry, EggLoop, Hub, IslandWiring, Economy, WaveClock);
+  - WildboundState;
+  - Tuning (PICKUP_DELAY);
+  - unpublished clips (Scuttler, DonGlaseon, Tortidragon).
+  
+  Studio's WildboundServer carries another branch's work. After V5-D6, WildboundCandyHideSpots_Test passed 16/0.
+- **Map migration** (`tools/wildbound-caramelo-v5-migrate.luau`):
+  - dry run, then the real run;
+  - backup `ServerStorage.WildboundMapArchive.CaramelV5Backup`;
+  - 16 items archived into `CaramelV5Archived`:
+    - the 4 old water folders;
+    - 2 gumdrops and a filler prop that the wider chocolate now covers;
+    - 2 lollipops on the new bridges;
+    - 3 small hills, an edge rock and an edge tree that sat on the pink hills since v4;
+    - a tree inside house H3;
+    - 1 edge prop in the new west lobe;
+  - parts went from 2288 to 2188 (150 water parts laid);
+  - mark CaramelV5 = 1.
+- **Solo Play.**
+  - 14 hide spots laid at server start, with the "Esconderse" prompt: 6 mountain hollows (H51 to H56, "Hueco de helado"), 4 by houses and 4 by routes. HideFound exists.
+  - Hiding with no hunter worked (H53).
+  - With an egg and the frenzy, before V5-D6 the player was found within 1 to 10 s. After V5-D6 the player stayed hidden 40 s at H64 holding the egg, Beast_hideLost went to 2, and there were no hits.
+  - The raft waits at dock A at (590, -117), is boarded with its prompt, and reaches 20 studs/s with W. It crossed the lake to the east bank by dock B and stopped there.
+- **Not checked in Play:** La Duquesa and the bees against a hidden player (covered by their suites), and a picture of the new river (the camera capture came out blank in the fog).
+- **Missing in WildboundText:** `HIDE.kind.cave` (the code falls back to "Hueco de helado"), plus `CANDY_RAFT.steer` and `CANDY_RAFT.steerTouch` from v4.
+
 ### Caramelo v6: the first four proposals (owner, 2026-11-17: "let's do the first 4 proposals, developed well, one by one")
 
 They come after v5 lands, in this order, each one loaded and checked in Play before the next one starts.

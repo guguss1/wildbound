@@ -23,10 +23,16 @@ local Hiding = {}
 Hiding.Hide = Hide
 Hiding.SEARCH = table.freeze({
 	seconds = 15, -- a hunter searches this long round the spot, then gives up
-	ringMin = 3, ringMax = 11, -- the search points lie this far from the spot
+	-- the search points lie this far from the spot. V5-D6 (Play 2026-11-17): 3..11 let five frenzied hunters stand in the
+	-- 4-stud discover radius within a second or two, so hiding never held; 7..14 keeps them round it, passing near now
+	-- and then.
+	ringMin = 7, ringMax = 14,
 	holdSeconds = 2.5, -- each search point is kept this long, then the next
 	liftStuds = 40, -- the search point's height over the hidden player: every strike aimed there misses
 })
+-- V5-D6: a candy creature needs FIND_SLOWER times WildboundHide's dwell inside the radius to find a hidden player (its
+-- clock runs at 1 / FIND_SLOWER: with the Day rule, 4 s instead of 2 s), so a frenzy's crowd does not find them at once.
+Hiding.FIND_SLOWER = 2
 Hiding.FAR_STUDS = 4000
 Hiding.UNDER_STUDS = 60
 Hiding.BOSSES = table.freeze({ DonGlaseon = true })
@@ -34,7 +40,9 @@ Hiding.BOSSES = table.freeze({ DonGlaseon = true })
 Hiding.QUIET = table.freeze({ Spawn = true, Calm = true, Patrol = true, Return = true, GiveUp = true, Disengage = true,
 	Ended = true, Dormant = true, LoseTarget = true })
 
-local GOLDEN = math.pi * (3 - math.sqrt(5))
+-- V5-D6: each next search point turns STEP round the spot (the golden angle, 137 degrees, sent the hunters across the
+-- spot on every move, through the discover radius); at 55 degrees the walk between two points stays outside it.
+local STEP = math.rad(55)
 local function finite(v) return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge end
 
 -- Whether a WildboundHidden attribute value means hidden (WildboundWorld sets the spot id, and nil on the way out).
@@ -69,12 +77,12 @@ function Hiding.newSearch(x, z, now, seed)
 		turn = turn / 9973 * 2 * math.pi }
 end
 
--- The search point now: point i = floor(time / holdSeconds) on the golden-angle spiral, at a radius between ringMin and
+-- The search point now: point i = floor(time / holdSeconds), STEP further round the spot, at a radius between ringMin and
 -- ringMax. Returns x, z.
 function Hiding.searchPoint(s, now)
 	local S = Hiding.SEARCH
 	local i = math.max(0, math.floor(((finite(now) and now or s.startAt) - s.startAt) / S.holdSeconds))
-	local angle = s.turn + i * GOLDEN
+	local angle = s.turn + i * STEP
 	local radius = S.ringMin + (S.ringMax - S.ringMin) * (((i + 1) * 0.618034) % 1)
 	return s.x + math.cos(angle) * radius, s.z + math.sin(angle) * radius
 end
@@ -108,9 +116,10 @@ function Hiding.newWatch()
 end
 
 -- Whether a creature `distance` studs (flat) from the hidden player finds them this step (dt seconds), by WildboundHide's
--- rule in the "Search" mode for the place's `phase` (nil: Day, the candy kingdom's).
+-- rule in the "Search" mode for the place's `phase` (nil: Day, the candy kingdom's), its clock slowed by FIND_SLOWER.
 function Hiding.finds(watch, dt, distance, phase)
-	return Hide.discover(watch, { dt = dt, mode = "Search", distance = distance, phase = phase or "Day" }) == true
+	local slowed = type(dt) == "number" and dt / Hiding.FIND_SLOWER or dt
+	return Hide.discover(watch, { dt = slowed, mode = "Search", distance = distance, phase = phase or "Day" }) == true
 end
 
 return Hiding

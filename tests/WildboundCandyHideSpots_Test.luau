@@ -296,6 +296,16 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		local count = 0
 		for _ in pairs(seen) do count += 1 end
 		assert(count >= math.floor(S.seconds / S.holdSeconds) - 1, "several points round the spot: " .. count)
+		-- V5-D6: the walk from one point to the next never crosses the discover radius round the spot
+		local radius = Hide.CONFIG.DISCOVER.Day.radius
+		for i = 0, 5 do
+			local ax, az = Hiding.searchPoint(s, 10 + i * S.holdSeconds)
+			local bx, bz = Hiding.searchPoint(s, 10 + (i + 1) * S.holdSeconds)
+			for k = 0, 20 do
+				local x, z = ax + (bx - ax) * k / 20, az + (bz - az) * k / 20
+				assert(flat(x, z, 100, -50) > radius + 1, ("the walk from point %d crosses the spot (%.1f)"):format(i, flat(x, z, 100, -50)))
+			end
+		end
 		local other = Hiding.newSearch(100, -50, 10, "enc:2")
 		local ax = Hiding.searchPoint(s, 10)
 		local bx = Hiding.searchPoint(other, 10)
@@ -323,12 +333,15 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		local rule = Hide.CONFIG.DISCOVER.Day
 		local w = Hiding.newWatch()
 		local found, t = false, 0
-		while t < rule.dwell + 1 and not found do
+		while t < rule.dwell * 2 + 2 and not found do
 			t += 0.05
 			found = Hiding.finds(w, 0.05, rule.radius - 0.5, "Day")
 		end
 		assert(found, "never found standing inside the radius")
-		near(t, rule.dwell, "after the dwell time", 0.06)
+		-- V5-D6: FIND_SLOWER times the hide rule's dwell
+		assert(Hiding.FIND_SLOWER >= 2, "a crowd must not find a hidden player at once")
+		near(t, rule.dwell * Hiding.FIND_SLOWER, "after the slowed dwell time", 0.06)
+		assert(Hiding.SEARCH.ringMin > rule.radius + 2, "the search ring keeps the hunters out of the discover radius")
 		local w2 = Hiding.newWatch()
 		for _ = 1, 200 do assert(not Hiding.finds(w2, 0.05, rule.radius + 0.5, "Day"), "found from outside the radius") end
 		-- the numbers are WildboundHide's (tuning them there tunes the candy creatures too)
