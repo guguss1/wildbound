@@ -610,6 +610,25 @@ Studio b15ce60a, Edit only, with the import and Play locks cleared afterwards; t
   - An egg steal (frenzy), then a teleport into G162: the hunters, already chasing, kept the player for the 3 s memory, came within 10 studs and struck. Knockback also pushed the player out of the patch. So the grass does not shake off hunters already close; that matches V6-D1 and V6-D10.
 - **Not checked in Play:** a calm creature ignoring a walker in the grass, and the bees and La Duquesa. The suites cover these, including a real Mochimiau brain.
 
+### Evidence: V6-D3 river current, V6-D5 caramel traps, V6-D6 candy life deploy (2026-11-17)
+
+Studio b15ce60a, Edit only, locks cleared; the place is not saved.
+
+- **Code and deploy:**
+  - The current was committed as 1650d1d; the traps and the life as 35ccd74. Extra decisions are V6-D30..D34, V6-D40..D45 and V6-D50..D55 in docs/design/wildbound-caramelo-v3-plan.md.
+  - Changed scripts got hunks and new ones were created.
+  - All 19 instances were fingerprint-checked equal to the commits.
+- **Tests:** the Current, Raft and Wade suites passed 33/0. All Candy suites together: 371 passed, 2 failed. The two failures are the old unpublished-clip cases (DonGlaseon and Tortidragon clips).
+- **Solo Play:**
+  - **Traps:** all 8 puddles were laid (Trap_H11, H35, H67, R42, R100, R114, R145, R254), next to 5 grass patches and 14 hide spots.
+  - **Life:** the client's camera folder held 58 parts: 12 gummy birds, 4 butterflies with their wings, 5 fish with tails.
+  - **The current, measured carefully:**
+    - A wader in river leg 5 got the server push (0.5, 0, -1.4) and moved at 1.49 studs/s with the client script on, and 0 with it off.
+    - An earlier reading of 3.6 studs/s was taken right after a teleport, while the character was still settling.
+  - No game script errors. The `AssistantCommand` errors in the log came from my own probe code.
+- **Not checked in Play:** the raft drifting (CU5 to CU8 cover it), a creature slowed in a puddle (covered by a real Mochimiau brain in Traps_Test), and how the birds and fish look on screen.
+- **Missing text keys:** none.
+
 ### Evidence: V6-D2 cookie bridges deploy (2026-11-17)
 
 Studio b15ce60a, Edit only, locks cleared; the place is not saved.
