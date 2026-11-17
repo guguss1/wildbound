@@ -57,6 +57,11 @@ Catalog.SOUNDS = table.freeze({
 	-- for each lap.
 	treadmillSteps = slot("Impact", { 9114080709 }, { loop = true, pitch = 1.45 }),
 	treadmillLap = slot("Impact", { 9114826444 }),
+	-- Caramelo ambience (WildboundCandyAmbience): the Caramelo music bed. EMPTY ON PURPOSE: no candy track is approved
+	-- yet, and a slot without ids is refused here (WildboundAudioMix_Test D9). While it is absent, Caramelo plays the
+	-- calm bed (safeMusic) a little louder and sweeter. To turn the dedicated track on, add one line here with the
+	-- approved id (also listed in docs/audio, for tools/test_wildbound_audio_catalog.py):
+	--   carameloMusic = slot("Music", { <approved id> }, { loop = true }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.

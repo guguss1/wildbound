@@ -204,7 +204,10 @@ local function update(dt)
 	local phase = worldGui:GetAttribute("Phase")
 	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
 	local now = os.clock()
-	local targets = Mix.targets(level, phase, reduced)
+	-- Caramelo ambience: WildboundCandyAmbienceClient sets this local flag while the player is in the Caramelo plot.
+	local candy = worldGui:GetAttribute("CandyAmbience") == true
+	local candyTrack = Catalog.SOUNDS.carameloMusic ~= nil
+	local targets = Mix.targets(level, phase, reduced, candy, candyTrack)
 	local body = guardianBody()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -215,6 +218,13 @@ local function update(dt)
 		elseif slot ~= "steps" and slot ~= "giantSteps" and slot ~= "approach" and slot ~= "creak" then
 			setLayer(slot, volume, reduced)
 		end
+	end
+	-- Caramelo ambience: the calm bed eases to its sweeter pitch (and back) whenever the wanted pitch or the layer changes.
+	local musicPitch = Mix.musicPitch(candy, candyTrack)
+	local bed = layers.safeMusic
+	if bed and (bed ~= state.pitchedBed or musicPitch ~= state.bedPitch) then
+		state.pitchedBed, state.bedPitch = bed, musicPitch
+		TweenService:Create(bed, TweenInfo.new(Mix.CANDY.pitchSeconds), { PlaybackSpeed = Catalog.SOUNDS.safeMusic.pitch * musicPitch }):Play()
 	end
 	-- Chase pass (CP1): the player's own breath while sprinting or out of breath, on the same layer as hiding.
 	local stance = player:GetAttribute("WildboundStance")

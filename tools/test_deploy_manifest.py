@@ -567,10 +567,23 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundCandyGlaze.luau": "ReplicatedStorage.WildboundCandyGlaze",
         "src/wildbound/WildboundCandyGlaze.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyGlazeClient",
         "tests/WildboundCandyGlaze_Test.luau": "ServerStorage.WildboundCandyGlaze_Test",
+        # Caramelo ambience
+        "src/wildbound/WildboundCandyAmbience.luau": "ReplicatedStorage.WildboundCandyAmbience",
+        "src/wildbound/WildboundCandyAmbience.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyAmbienceClient",
+        "tests/WildboundCandyAmbience_Test.luau": "ServerStorage.WildboundCandyAmbience_Test",
         # CT4 Frutillon
         "tools/WildboundCandyFrutillon.luau": "ServerStorage.WildboundCandyFrutillon",
         "tests/WildboundCandyFrutillon_Test.luau": "ServerStorage.WildboundCandyFrutillon_Test",
         "src/wildbound/WildboundCandyFrutillonService.server.luau": "ServerScriptService.WildboundCandyFrutillonService",
+        # A2 / DR La Duquesa Burbuja
+        "tools/WildboundCandyDuquesa.luau": "ServerStorage.WildboundCandyDuquesa",
+        "tests/WildboundCandyDuquesa_Test.luau": "ServerStorage.WildboundCandyDuquesa_Test",
+        "src/wildbound/WildboundCandyDuquesaService.server.luau": "ServerScriptService.WildboundCandyDuquesaService",
+        # Caramelo flyers (the Zumbidulces)
+        "tools/WildboundCandyFlyers.luau": "ServerStorage.WildboundCandyFlyers",
+        "tests/WildboundCandyFlyers_Test.luau": "ServerStorage.WildboundCandyFlyers_Test",
+        "src/wildbound/WildboundCandyFlyersService.server.luau": "ServerScriptService.WildboundCandyFlyersService",
+        "src/wildbound/WildboundCandyFlyers.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyFlyersClient",
         "tools/WildboundCandyDonGlaseonClips.luau": "ServerStorage.WildboundCandyDonGlaseonClips",
         "tests/WildboundCandyDonGlaseonClips_Test.luau": "ServerStorage.WildboundCandyDonGlaseonClips_Test",
         "src/wildbound/WildboundBeastDonGlaseon.luau": "ServerScriptService.WildboundBeastDonGlaseon",

@@ -182,8 +182,16 @@ SPECS["WildboundCandyGlaze_Test"] = {
 	"mod:WildboundCandyGlaze", "mod:WildboundCandyLayout", "mod:WildboundCandyBuilder",
 	{ client = "src:WildboundCandyGlazeClient", server = "src:WildboundServer" },
 }
+SPECS["WildboundCandyAmbience_Test"] = {
+	"mod:WildboundCandyAmbience", "mod:WildboundAudioMix", "mod:WildboundAudioCatalog", "mod:WildboundBiomeLight",
+	{ client = "src:WildboundCandyAmbienceClient", audio = "src:WildboundAudioClient" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
+}
+SPECS["WildboundCandyFlyers_Test"] = {
+	"mod:WildboundCandyFlyers", "mod:WildboundCandyLayout", "mod:WildboundDodge",
+	{ service = "src:WildboundCandyFlyersService", client = "src:WildboundCandyFlyersClient" },
 }
 SPECS["WildboundCandyTrapCake_Test"] = {
 	"mod:WildboundCandyTrapCake", "mod:WildboundCandyLayout",

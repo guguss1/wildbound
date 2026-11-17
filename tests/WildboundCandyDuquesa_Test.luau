@@ -6,6 +6,8 @@
 -- in small circles (each ring drawn on the floor from her windup, at least MIN_TELL before the pop); whoever is inside
 -- a pop is slowed -30 % for 2 s and pushed 4 studs, once per volley. She plays her Charge and Whip clips. Damage 0.
 -- Pure rules plus source pins of the service and the client animator. Changes nothing.
+-- DR (owner request 2026-11-16): her rage when her own egg (the summit nest's) is stolen: red, a roar, a fast flying
+-- chase, dodgeable lunges that hurt and drop her egg, its end conditions, her cooldown, and the escape math.
 return function(Duq, Frut, Layout, sources, Chase)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -46,7 +48,8 @@ return function(Duq, Frut, Layout, sources, Chase)
 	end
 
 	case("A2 numbers: three bubbles every 10 s, a tell of at least MIN_TELL, slow -30 % for 2 s, push 4, damage 0", function()
-		equal(Duq.EVERY_SECONDS, 6, "every") -- Deliberately changed (OF3, a hard summit): 10 -> 6 s; equal(Duq.BUBBLES, 3, "bubbles"); equal(Duq.DAMAGE, 0, "damage")
+		equal(Duq.EVERY_SECONDS, 6, "every") -- Deliberately changed (OF3, a hard summit): 10 -> 6 s
+		equal(Duq.BUBBLES, 3, "bubbles"); equal(Duq.DAMAGE, 0, "damage")
 		near(Duq.SLOW_MULTIPLIER, 0.7, "slow"); near(Duq.SLOW_SECONDS, 2, "slow time"); near(Duq.PUSH_STUDS, 4, "push")
 		assert(Duq.WINDUP_SECONDS + Duq.FLIGHT_SECONDS >= 0.8, "the ring shows at least 0.8 s before the pop")
 		assert(Duq.FLIGHT_SECONDS >= 1, "the bubbles fly slowly")
@@ -159,8 +162,334 @@ return function(Duq, Frut, Layout, sources, Chase)
 		has(service, "Chase.clampSlow(", "the shared slow cap")
 		has(service, '"WildboundBeastSlowUntil"', "the one non-stacking slow slot")
 		has(service, '"WildboundBeastPush"', "the one push slot")
-		assert(not string.find(service, "TakeDamage", 1, true) and not string.find(service, "%.Health%s*[-=]"), "no damage")
+		-- Deliberately re-pinned (DR): her rage lunge hurts, but only through the inventory server's BeastHit (DR9)
+		assert(not string.find(service, "TakeDamage", 1, true) and not string.find(service, "%.Health%s*[-=]"), "no damage of its own")
 		has(anim, 'GetAttributeChangedSignal("WildboundCritterCue")', "the preview animator plays a cued one-shot")
+	end)
+
+	-- DR: her rage. Every position comes from the layout (the Torta may move).
+	local THIEF = 7
+	local nestX, nestZ = Layout.CENTRE.x + Layout.TOWER.summit.x, Layout.CENTRE.z + Layout.TOWER.summit.z
+	local function carrier(x, y, z, fields)
+		local p = { id = THIEF, alive = true, x = x, y = y, z = z, carriesHerEgg = true, speed = 11 }
+		for key, value in pairs(fields or {}) do p[key] = value end
+		return p
+	end
+	local function atNest() return carrier(nestX, summit.top + 3, nestZ) end
+	-- a carrier standing on the plot floor `west` studs west of the Torta
+	local function onFloor(west, fields) return carrier(summit.x - west, Layout.FLOOR_TOP + 3, summit.z, fields) end
+	-- steps every 0.1 s on whole tenths (t = i * 0.1), so consecutive calls never repeat a step
+	local function steps(state, from, to, players, resolve)
+		local all = {}
+		for i = math.floor(from / 0.1 + 0.5), math.floor(to / 0.1 + 0.5) do
+			local t = i * 0.1
+			local list = type(players) == "function" and players(t) or players
+			for _, ev in ipairs(Duq.step(state, t, list, summit, resolve)) do ev.t = t; table.insert(all, ev) end
+		end
+		return all
+	end
+	local function firstOf(events, kind, test)
+		for _, ev in ipairs(events) do
+			if ev.kind == kind and (not test or test(ev)) then return ev end
+		end
+		return nil
+	end
+	local function dodgeAll() return "Dodged" end
+
+	case("DR1: stealing her egg starts the rage against that thief only; never another egg, a safe or an outside carrier", function()
+		equal(Duq.herIsland(Layout), "CandyT1", "her island")
+		local state = Duq.new()
+		local rage = firstOf(steps(state, 0, 0, { atNest() }), "Rage")
+		assert(rage, "no rage after the steal")
+		equal(rage.id, THIEF, "the thief"); equal(Duq.phase(state), "Roar", "she roars first")
+		near(rage.chaseAt - rage.at, Duq.ROAR_SECONDS, "the roar")
+		-- one rage at a time: a second carrier (a refilled egg) is not chased while it lasts
+		local later = steps(state, 0.1, 0.5, { atNest(), onFloor(40, { id = 8 }) })
+		equal(firstOf(later, "Rage"), nil, "a second rage")
+		equal(state.rage.id, THIEF, "still the first thief")
+		equal(firstOf(steps(Duq.new(), 0, 1, { onFloor(40, { carriesHerEgg = false }) }), "Rage"), nil, "another egg")
+		equal(firstOf(steps(Duq.new(), 0, 1, { onFloor(40, { safe = true }) }), "Rage"), nil, "in a safe zone")
+		local outside = carrier(Layout.CENTRE.x - Layout.HALF - 2, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		equal(firstOf(steps(Duq.new(), 0, 1, { outside }), "Rage"), nil, "outside the plot")
+	end)
+
+	case("DR2: she turns red and roars on her seat for ROAR_SECONDS (a tell of at least 0.8 s), then leaves it", function()
+		assert(Duq.ROAR_SECONDS >= 0.8 and Duq.ROAR_SECONDS <= 1.5, "roar " .. Duq.ROAR_SECONDS)
+		equal(Duq.TEXT.furious, "¡La Duquesa está furiosa!", "the notice")
+		local state, seat = Duq.new(), Duq.seat(summit)
+		local thief = onFloor(60)
+		steps(state, 0, 0.9, { thief })
+		equal(Duq.phase(state), "Roar", "still roaring at 0.9 s")
+		local her = Duq.position(state)
+		near(her.x, seat.x, "on her seat"); near(her.z, seat.z, "z"); near(her.y, seat.y, "y")
+		steps(state, 1.0, 1.1, { thief })
+		equal(Duq.phase(state), "Chase", "she chases after the roar")
+		her = Duq.position(state)
+		assert(Layout.flat(her.x, her.z, seat.x, seat.z) > 1, "she left her seat")
+		local service = sources and sources.service
+		has(service, 'Instance.new("Highlight")', "the red tint"); has(service, "Duq.TEXT.furious", "the notice over her head")
+	end)
+
+	case("DR3: she flies faster than any untrained runner, a little faster against a trained one, up to a cap", function()
+		near(Duq.chaseSpeed(nil), Duq.CHASE_SPEED, "untrained")
+		assert(Duq.CHASE_SPEED > 23.2, "faster than an untrained sprint (23.2)")
+		for _, speed in ipairs({ 11, 16, 23.2, 26 }) do assert(Duq.chaseSpeed(speed) > speed, "she closes in on " .. speed) end
+		near(Duq.chaseSpeed(26), 26 * Duq.CHASE_SCALE, "scaled to a trained runner")
+		near(Duq.chaseSpeed(60), Duq.CHASE_CAP, "capped"); assert(Duq.CHASE_CAP <= 36, "cap " .. Duq.CHASE_CAP)
+		local state = Duq.new()
+		local thief = onFloor(60)
+		steps(state, 0, 1.1, { thief })
+		local a = table.clone(Duq.position(state))
+		steps(state, 1.2, 1.5, { thief })
+		local b = Duq.position(state)
+		near(Layout.flat(a.x, a.z, b.x, b.z), 4 * 0.1 * Duq.CHASE_SPEED, "CHASE_SPEED studs a second", 0.05)
+		-- she floats over the cake, then a few studs over the floor: 3 to 6 studs over the ground when she strikes
+		local strike = firstOf(steps(state, 1.6, 4.5, { thief }), "Strike")
+		assert(strike, "no lunge at a still thief")
+		local over = strike.y - Layout.FLOOR_TOP
+		assert(over >= 3 and over <= 6, "she strikes " .. over .. " studs over the floor")
+	end)
+
+	case("DR4: a lunge: a tell of at least 0.8 s, one hit per lunge, 25 damage (never a kill), a push, her egg drops", function()
+		assert(Duq.LUNGE_TELL_SECONDS >= 0.8, "the fair-strike floor")
+		assert(Duq.LUNGE_DAMAGE > 0 and Duq.LUNGE_DAMAGE < 100, "never a one-hit kill")
+		local state = Duq.new()
+		local thief = onFloor(60)
+		local events = steps(state, 0, 8, { thief })
+		local lunges, strikes = each(events, "Lunge"), each(events, "Strike")
+		assert(#lunges >= 2 and #strikes >= 2, "lunges " .. #lunges .. ", strikes " .. #strikes)
+		local seen = {}
+		for _, s in ipairs(strikes) do
+			assert(not seen[s.lunge], "lunge " .. s.lunge .. " struck twice")
+			seen[s.lunge] = true
+			local l = firstOf(lunges, "Lunge", function(ev) return ev.lunge == s.lunge end)
+			assert(l, "a strike without its lunge")
+			near(l.strikeAt - l.startAt, Duq.LUNGE_TELL_SECONDS, "tell")
+			assert(s.t >= l.strikeAt - 1e-6 and s.t <= l.strikeAt + 0.11, "struck at " .. s.t)
+			equal(s.outcome, "Hit", "a still thief is hit")
+			equal(s.damage, Duq.LUNGE_DAMAGE, "damage"); equal(s.drop, true, "her egg drops")
+			assert(s.studs >= 8, "a strong push"); near(math.sqrt(s.dx ^ 2 + s.dz ^ 2), 1, "a unit push")
+			assert(Layout.flat(s.x, s.z, thief.x, thief.z) <= Duq.LUNGE_HIT_STUDS, "she lands on the thief")
+		end
+		-- after a lunge she recovers, and the next lunge waits LUNGE_GAP_SECONDS from the strike (D-1)
+		assert(Duq.LUNGE_GAP_SECONDS >= Duq.RECOVER_SECONDS, "the gap covers the recovery")
+		near(lunges[2].startAt - strikes[1].t, Duq.LUNGE_GAP_SECONDS, "the escape window", 0.11)
+		-- her bubbles keep coming between lunges, faster than on the summit, rings on the thief's floor
+		local volleys = {}
+		for _, c in ipairs(each(events, "Charge")) do
+			if c.rage then table.insert(volleys, c) end
+		end
+		assert(#volleys >= 2, "her bubbles during the chase: " .. #volleys)
+		near(volleys[2].t - volleys[1].t, Duq.RAGE_EVERY_SECONDS, "every RAGE_EVERY_SECONDS", 0.11)
+		assert(Duq.RAGE_EVERY_SECONDS < Duq.EVERY_SECONDS, "faster than on the summit")
+		near(volleys[1].spots[1].y, thief.y - Duq.FEET_STUDS, "rings on the thief's floor")
+		-- a bubble never hurts nor touches the egg
+		for _, h in ipairs(each(events, "Hit")) do equal(h.damage, nil, "bubble damage"); equal(h.drop, nil, "bubble drop") end
+	end)
+
+	case("DR5: the rage ends: safe zone, death, gone, egg dropped (she calms first), past the plot's edge, or the time limit", function()
+		local function endsWith(change)
+			local events = steps(Duq.new(), 0, 2, function(t) return t >= 1.5 and change() or { onFloor(60) } end)
+			return firstOf(events, "Calm")
+		end
+		equal(endsWith(function() return { onFloor(60, { safe = true }) } end).reason, "Safe", "safe zone")
+		equal(endsWith(function() return { onFloor(60, { alive = false }) } end).reason, "Dead", "dead")
+		equal(endsWith(function() return {} end).reason, "Gone", "gone")
+		local outside = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		equal(endsWith(function() return { outside } end).reason, "Left", "past the edge")
+		local margin = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS + 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		equal(endsWith(function() return { margin } end), nil, "inside the margin she keeps chasing")
+		-- an open lunge is called off
+		local cut = steps(Duq.new(), 0, 3.3, function(t) return { onFloor(60, { safe = t >= 3.3 }) } end)
+		local cancel = firstOf(cut, "LungeCancel")
+		assert(cancel and cancel.lunge == 1, "an open lunge is called off")
+		equal(firstOf(cut, "Strike"), nil, "no strike")
+		-- her egg dropped: she hovers CALM_SECONDS where she is, then floats home and sits
+		local state = Duq.new()
+		local function list(t) return { onFloor(60, { carriesHerEgg = t < 1.5 }) } end
+		local calm = firstOf(steps(state, 0, 1.5, list), "Calm")
+		assert(calm and calm.reason == "Dropped", "dropped: " .. tostring(calm and calm.reason))
+		near(calm.returnAt - calm.at, Duq.CALM_SECONDS, "she calms first")
+		equal(Duq.phase(state), "Calm", "calm")
+		local held = table.clone(Duq.position(state))
+		steps(state, 1.6, 1.5 + Duq.CALM_SECONDS - 0.2, list)
+		local still = Duq.position(state)
+		near(still.x, held.x, "she hovers while she calms"); near(still.y, held.y, "y")
+		assert(firstOf(steps(state, 1.5 + Duq.CALM_SECONDS - 0.1, 12, list), "Home"), "she never got home")
+		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
+		-- the time limit (a thief who dodges every lunge)
+		assert(Duq.RAGE_SECONDS >= 20 and Duq.RAGE_SECONDS <= 30, "about 25 s")
+		local timed = steps(Duq.new(), 0, Duq.RAGE_SECONDS + 0.3, { onFloor(60) }, dodgeAll)
+		local over = firstOf(timed, "Calm")
+		assert(over and over.reason == "Timeout", "time limit: " .. tostring(over and over.reason))
+		assert(over.t >= Duq.RAGE_SECONDS - 1e-6 and over.t <= Duq.RAGE_SECONDS + 0.11, "ended at " .. over.t)
+		for _, ev in ipairs(timed) do
+			if ev.kind == "Strike" then assert(ev.t < over.t, "a strike after the end") end
+		end
+	end)
+
+	case("DR6: a perfect dodge stuns her STUN_SECONDS (no damage, the egg stays); otherwise she recovers RECOVER_SECONDS", function()
+		-- Deliberately re-pinned (D-1): the next lunge waits max(STUN_SECONDS, LUNGE_GAP_SECONDS) after the strike
+		assert(Duq.STUN_SECONDS > Duq.RECOVER_SECONDS, "a dodge buys more time than a hit")
+		local state = Duq.new()
+		local thief = onFloor(60)
+		local strike = firstOf(steps(state, 0, 3.9, { thief }, dodgeAll), "Strike")
+		assert(strike and strike.outcome == "Dodged", "dodged: " .. tostring(strike and strike.outcome))
+		equal(strike.damage, nil, "no damage"); equal(strike.drop, nil, "the egg stays")
+		equal(Duq.phase(state), "Stunned", "stunned")
+		local held = table.clone(Duq.position(state))
+		local dizzy = steps(state, 4.0, strike.t + Duq.STUN_SECONDS - 0.1, { thief }, dodgeAll)
+		equal(firstOf(dizzy, "Lunge"), nil, "a lunge while stunned")
+		near(Duq.position(state).x, held.x, "she stays where she landed"); near(Duq.position(state).z, held.z, "z")
+		local again = firstOf(steps(state, strike.t + Duq.STUN_SECONDS, strike.t + Duq.STUN_SECONDS + 1, { thief }, dodgeAll), "Lunge")
+		assert(again, "she lunges again after the stun")
+		near(again.startAt - strike.t, math.max(Duq.STUN_SECONDS, Duq.LUNGE_GAP_SECONDS), "after the stun", 0.11)
+		-- the dodge is asked for the thief and the lunge it was told
+		local asked
+		steps(Duq.new(), 0, 3.9, { onFloor(60) }, function(id, lunge) asked = { id, lunge }; return "Hit" end)
+		assert(asked and asked[1] == THIEF and asked[2] == 1, "resolve(id, lunge, now)")
+	end)
+
+	case("DR7: she floats home after the rage and cannot rage again for COOLDOWN_SECONDS after she sits", function()
+		assert(Duq.COOLDOWN_SECONDS >= 15, "cooldown " .. Duq.COOLDOWN_SECONDS)
+		local state = Duq.new()
+		local function list(t) return { onFloor(60, { safe = t >= 1.5 and t < 4 }) } end
+		local home = firstOf(steps(state, 0, 4, list), "Home")
+		assert(home, "she never got home")
+		local rage = firstOf(steps(state, 4.1, home.t + Duq.COOLDOWN_SECONDS + 0.5, list), "Rage")
+		assert(rage, "no rage after the cooldown")
+		local wait = rage.t - home.t
+		assert(wait >= Duq.COOLDOWN_SECONDS - 1e-6 and wait <= Duq.COOLDOWN_SECONDS + 0.11, "raged again " .. wait .. " s after sitting")
+	end)
+
+	-- DR8: an untrained carrier steals her egg on the summit and goes (11 studs/s: WildboundLumipolWild.carrySpeed with
+	-- one egg; 16 sprinting) down the stair (Frut.seedPath) and west across the plot past its edge. Her bubbles slow it as
+	-- in play; the dodge's own dash and boost are left out (that only makes it harder). Its velocity (vx, vz) is what it
+	-- moved in the last step. Policies (D-1): "never" keeps running straight and takes every lunge; "perfect" runs
+	-- straight and perfect-dodges every lunge; "side" never presses dodge but steps sideways from the lock to the strike.
+	-- K = the lunges a carrier avoided (dodged or missed) before it was free.
+	local function escape(speed, policy)
+		local path = { { x = nestX, y = summit.top + 3, z = nestZ } }
+		for _, s in ipairs(Frut.seedPath(Layout)) do table.insert(path, { x = s.x, y = s.y + 3, z = s.z }) end
+		table.insert(path, { x = Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 5, y = Layout.FLOOR_TOP + 3,
+			z = path[#path].z })
+		local state, thief = Duq.new(), carrier(path[1].x, path[1].y, path[1].z, { speed = speed, vx = 0, vz = 0 })
+		local leg, slowUntil, dodged = 1, -math.huge, 0
+		local sideX, sideZ, sideUntil = nil, nil, -math.huge
+		local function resolve() return policy == "perfect" and "Dodged" or "Hit" end
+		for i = 0, math.floor((Duq.RAGE_SECONDS + 2) / 0.1) do
+			local t = i * 0.1
+			if i > 0 then
+				local left = speed * (t < slowUntil and Duq.SLOW_MULTIPLIER or 1) * 0.1
+				local ox, oz = thief.x, thief.z
+				if sideX and t <= sideUntil + 1e-9 then
+					thief.x, thief.z, left = thief.x + sideX * left, thief.z + sideZ * left, 0
+				end
+				while left > 0 and leg < #path do
+					local to = path[leg + 1]
+					local d = math.sqrt((to.x - thief.x) ^ 2 + (to.y - thief.y) ^ 2 + (to.z - thief.z) ^ 2)
+					if d <= left then
+						thief.x, thief.y, thief.z, leg, left = to.x, to.y, to.z, leg + 1, left - d
+					else
+						thief.x += (to.x - thief.x) / d * left
+						thief.y += (to.y - thief.y) / d * left
+						thief.z += (to.z - thief.z) / d * left
+						left = 0
+					end
+				end
+				thief.vx, thief.vz = (thief.x - ox) / 0.1, (thief.z - oz) / 0.1
+			end
+			for _, ev in ipairs(Duq.step(state, t, { thief }, summit, resolve)) do
+				if ev.kind == "Hit" and ev.id == THIEF then slowUntil = t + ev.slowSeconds end
+				if ev.kind == "Lock" and policy == "side" then
+					local length = math.sqrt(thief.vx ^ 2 + thief.vz ^ 2)
+					if length > 1e-6 then sideX, sideZ = -thief.vz / length, thief.vx / length else sideX, sideZ = 1, 0 end
+					sideUntil = ev.strikeAt + 0.05
+				end
+				if ev.kind == "Strike" and (ev.outcome == "Dodged" or ev.outcome == "Miss") then dodged += 1 end
+				if ev.kind == "Strike" and ev.outcome == "Hit" then return { caught = true, at = t, lunge = ev.lunge, dodged = dodged } end
+				if ev.kind == "Calm" then return { caught = false, at = t, reason = ev.reason, dodged = dodged } end
+			end
+		end
+		return { caught = false, at = math.huge, reason = "none", dodged = dodged }
+	end
+
+	case("DR8: escape math: a carrier who never dodges is caught by her first lunge; one who dodges every lunge escapes", function()
+		local never = escape(11, "never")
+		assert(never.caught and never.lunge == 1, "a carrier who never dodges kept the egg past her first lunge")
+		assert(never.at <= Duq.ROAR_SECONDS + 3, "caught at " .. never.at)
+		local sprinter = escape(16, "never")
+		assert(sprinter.caught and sprinter.lunge == 1, "a sprinter running straight kept the egg past her first lunge")
+		for _, speed in ipairs({ 11, 16 }) do
+			for _, policy in ipairs({ "perfect", "side" }) do
+				local free = escape(speed, policy)
+				local label = speed .. " " .. policy
+				assert(not free.caught, label .. ": caught at lunge " .. tostring(free.lunge))
+				assert(free.reason == "Left" or free.reason == "Timeout", label .. ": ended by " .. tostring(free.reason))
+				assert(free.at <= Duq.RAGE_SECONDS + 0.11, label .. ": free at " .. free.at)
+				assert(free.dodged >= 3 and free.dodged <= 8, label .. ": K = " .. free.dodged)
+			end
+		end
+		-- hard: a walking carrier must avoid at least 5 lunges in a row (6 when tuned, by dodge or sidestep; sprinting all
+		-- the way, 4 dodges or 6 sidesteps)
+		assert(escape(11, "perfect").dodged >= 5, "K dodging = " .. escape(11, "perfect").dodged)
+		assert(escape(11, "side").dodged >= 5, "K sidestepping = " .. escape(11, "side").dodged)
+	end)
+
+	case("DR10: the aim follows the thief until LUNGE_LOCK_SECONDS before the strike, then the dash goes to the locked spot", function()
+		assert(math.abs(Duq.LUNGE_LOCK_SECONDS - 0.35) < 1e-6, "the lock opens the perfect dodge window")
+		assert(Duq.LUNGE_REACH_STUDS >= Duq.LUNGE_START_STUDS + 16 * Duq.LUNGE_LOCK_SECONDS, "the dash covers a sprinting carrier")
+		near(Duq.tellSpeed(nil), Duq.TELL_SPEED, "she slows during the tell"); assert(Duq.TELL_SPEED < Duq.CHASE_SPEED, "slower")
+		-- a carrier running north on the floor at 11; "side" turns west at the lock
+		local function runNorth(side)
+			local state, thief = Duq.new(), onFloor(60, { vx = 0, vz = 11 })
+			local turned, lock, lunge = false, nil, nil
+			for i = 0, 80 do
+				local t = i * 0.1
+				if i > 0 then
+					if turned then thief.x, thief.vx, thief.vz = thief.x - 1.1, -11, 0 else thief.z += 1.1 end
+				end
+				for _, ev in ipairs(Duq.step(state, t, { thief }, summit)) do
+					if ev.kind == "Lunge" then lunge = lunge or ev end
+					if ev.kind == "Lock" then
+						lock = lock or ev
+						lock.t, lock.tx, lock.tz = lock.t or t, lock.tx or thief.x, lock.tz or thief.z
+						turned = side
+					end
+					if ev.kind == "Strike" then return ev, lock, lunge, thief end
+				end
+			end
+			return nil, lock, lunge, thief
+		end
+		local strike, lock, lunge, thief = runNorth(false)
+		assert(strike and lock and lunge, "no lunge at a runner")
+		assert(lock.t >= lunge.strikeAt - Duq.LUNGE_LOCK_SECONDS - 1e-6 and lock.t <= lunge.strikeAt - Duq.LUNGE_LOCK_SECONDS + 0.11,
+			"locked at " .. lock.t)
+		near(lock.z - lock.tz, 11 * (lunge.strikeAt - lock.t), "aimed where a straight runner will be", 0.01)
+		equal(strike.outcome, "Hit", "running straight is hit")
+		assert(Layout.flat(strike.x, strike.z, lock.x, lock.z) < 0.01, "the dash goes to the locked spot")
+		local dodge, dlock = runNorth(true)
+		assert(dodge and dlock, "no lunge at the sidestepper")
+		equal(dodge.outcome, "Miss", "a sidestep after the lock beats it"); equal(dodge.damage, nil, "no damage")
+		assert(Layout.flat(dodge.x, dodge.z, dlock.x, dlock.z) < 0.01, "she still dashes to the locked spot")
+		local service = sources and sources.service
+		has(service, 'ev.kind == "Lock"', "the marker stays on the locked spot")
+	end)
+
+	case("DR9 wiring: the service knows her eggs, sends a landed lunge to BeastHit with the egg not kept, uses the shared dodge", function()
+		local service = sources and sources.service
+		has(service, "Duq.herIsland(Layout)", "her island from the layout")
+		has(service, '"EncounterId"', "her nest's egg ids"); has(service, '"WildboundEggCarried"', "the egg on a thief's back")
+		has(service, 'beastHit:Invoke(player, "DuquesaBurbuja", ev.damage, ev.drop ~= true)', "the one egg drop path")
+		has(service, "DodgeService.telegraph(player, lungeKey(ev.id, ev.lunge), Duq.DODGE_SOURCE, ev.startAt, ev.strikeAt)",
+			"a dodgeable lunge")
+		has(service, "DodgeService.resolve(player, lungeKey(id, lunge), now)", "the dodge decides")
+		has(service, "DodgeService.cancel(player, lungeKey(ev.id, ev.lunge))", "a called-off lunge")
+		has(service, 'WaitForChild("WildboundDodgeService")', "the shared dodge states")
+		has(service, "Rules.zone(", "the safe zones")
+		has(service, "Duq.step(state, now, players, summit, resolve)", "one throttled step")
+		assert(not string.find(service, "Raycast", 1, true), "no raycasts")
+		equal(Duq.DODGE_SOURCE, "DonGlaseon", "an existing WildboundDodge source")
 	end)
 
 	return result

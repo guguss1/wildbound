@@ -12,7 +12,8 @@ Mix.REDUCED_MASTER = 0.6
 
 local LEVEL = { Safe = true, Distant = true, Near = true, Chase = true }
 local TIME = { Day = "Day", Dusk = "Dusk", Dawn = "Dusk", Night = "Night" }
-local BEDS = { wind = true, birds = true, insectsDusk = true, insectsNight = true, safeMusic = true, nightBed = true }
+local BEDS = { wind = true, birds = true, insectsDusk = true, insectsNight = true, safeMusic = true, nightBed = true,
+	carameloMusic = true }
 local CHASE = { chaseMusic = true, pulse = true }
 local ONE_SHOTS = {
 	snap = { slot = "snap", volume = 0.25 }, dirt = { slot = "dirt", volume = 0.20 },
@@ -65,8 +66,20 @@ function Mix.master(reduced)
 	return reduced == true and Mix.REDUCED_MASTER or 1
 end
 
--- targets(level, time, reduced) -> { slot = volume } for every looping layer.
-function Mix.targets(level, time, reduced)
+-- Caramelo ambience (WildboundCandyAmbience, owner 2026-11-16 "music ... so it feels more alive"): inside the Caramelo
+-- plot the music bed turns sweeter. Until the catalog has a carameloMusic slot (no candy track is approved yet), the
+-- existing calm bed (safeMusic) plays a little louder and pitched up; once the slot exists, that track plays instead at
+-- `track`. Both are halved when something is Distant and silent when it is Near or in a chase.
+Mix.CANDY = table.freeze({ safeMusic = 0.2, pitch = 1.12, track = 0.18, pitchSeconds = 2 })
+
+-- PlaybackSpeed of the calm bed: sweeter in Caramelo while no dedicated track exists.
+function Mix.musicPitch(candy, candyTrack)
+	return (candy == true and candyTrack ~= true) and Mix.CANDY.pitch or 1
+end
+
+-- targets(level, time, reduced, candy, candyTrack) -> { slot = volume } for every looping layer. candy: the player is
+-- in the Caramelo plot; candyTrack: the catalog has a carameloMusic slot (only then is that key returned).
+function Mix.targets(level, time, reduced, candy, candyTrack)
 	level = LEVEL[level] and level or "Safe"
 	time = TIME[time] or "Day"
 	local night, dusk, day = time == "Night", time == "Dusk", time == "Day"
@@ -91,6 +104,16 @@ function Mix.targets(level, time, reduced)
 	if reduced == true then
 		t.chaseMusic = math.min(t.chaseMusic, 0.20)
 		t.breathing = math.min(t.breathing, 0.15)
+	end
+	if candyTrack == true then t.carameloMusic = 0 end
+	if candy == true then
+		local calm = level == "Safe" and 1 or (level == "Distant" and 0.5 or 0)
+		if candyTrack == true then
+			t.carameloMusic, t.safeMusic = Mix.CANDY.track * calm, 0
+		else
+			-- review follow-up: the same lift at every hour (0.15 -> CANDY.safeMusic by day), never a flat level
+			t.safeMusic = t.safeMusic * (Mix.CANDY.safeMusic / 0.15)
+		end
 	end
 	return t
 end

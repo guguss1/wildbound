@@ -5,11 +5,21 @@
 -- on the summit floor; on the Whip three bubbles leave her hands and fly slowly to the rings; on the pop each bubble
 -- bursts. A player inside a pop is slowed through the beasts' one non-stacking slow slot (WildboundBeastSlowUntil,
 -- clamped by WildboundBeastChase.EFFECTS) and pushed through the beasts' one push slot (WildboundBeastPush), like
--- Frutillon's bumps. Every part is server-made (seen by every player), anchored and never colliding. Damage 0, nothing
--- about the egg; CT3's summit nest and CT4 Frutillon are not touched.
+-- Frutillon's bumps. Every part is server-made (seen by every player), anchored and never colliding. The bubbles deal
+-- no damage and never touch the egg; CT3's summit nest and CT4 Frutillon are not touched.
+-- DR (owner request 2026-11-16): her rage. The server knows her eggs by the nest models of her island in
+-- WildboundP0.WildboundRuntime (attributes Island and EncounterId; the id stays on the carried egg's WildboundEggCarried
+-- model as EggId). A thief carrying one makes her roar and turn red (a server Highlight and a line over her head, seen by
+-- everybody), then she flies after the thief (her model is moved here, every frame, toward the rules' position; her
+-- parts stop colliding until she sits again). Each lunge draws a red line and ring (server parts; they follow the thief
+-- until the aim locks, then stay on the locked spot, D-1) and registers with the
+-- shared WildboundDodgeService (the perfect dodge stuns her); a lunge that lands goes to the inventory server's BeastHit
+-- with the egg NOT kept (the one egg drop path, also used by Don Glaseon's lash: damage only where the game allows it)
+-- and pushes the thief. Her rage bubbles are the ordinary volleys, bigger and redder.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
+local ServerScriptService = game:GetService("ServerScriptService")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Debris = game:GetService("Debris")
@@ -18,9 +28,12 @@ local Duq = require(ServerStorage:WaitForChild("WildboundCandyDuquesa"))
 local Frut = require(ServerStorage:WaitForChild("WildboundCandyFrutillon"))
 local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
 local Chase = require(ReplicatedStorage:WaitForChild("WildboundBeastChase"))
+local Rules = require(ServerScriptService:WaitForChild("WildboundWorldRules"))
+local DodgeService = require(ServerScriptService:WaitForChild("WildboundDodgeService"))
 
 local STEP = 0.1
 local BUBBLE, RING = Color3.fromRGB(255, 130, 205), Color3.fromRGB(255, 70, 170)
+local RAGE_RED, RAGE_BUBBLE = Color3.fromRGB(230, 40, 40), Color3.fromRGB(240, 60, 90)
 local summit = Frut.summit(Layout)
 local state = Duq.new()
 
@@ -31,6 +44,23 @@ folder.Parent = workspace
 local preview = workspace:WaitForChild("WildboundNewCandyPreview", 30)
 local duquesa = preview and preview:WaitForChild("DuquesaBurbuja", 30)
 if not duquesa then warn("WildboundCandyDuquesaService: no WildboundNewCandyPreview.DuquesaBurbuja; the bubbles leave the summit centre.") end
+
+-- DR: every egg that ever lay in her nest, by its encounter id (it keeps that id while carried or dropped).
+local herIsland, herEggs = Duq.herIsland(Layout), {}
+local function noteEgg(child)
+	local id = child:GetAttribute("EncounterId")
+	if child:GetAttribute("Island") == herIsland and type(id) == "string" then herEggs[id] = true end
+end
+task.spawn(function()
+	local map = workspace:WaitForChild("WildboundP0", 60)
+	local runtime = map and map:WaitForChild("WildboundRuntime", 60)
+	if not runtime then
+		warn("WildboundCandyDuquesaService: no WildboundP0.WildboundRuntime; La Duquesa never knows her egg was taken.")
+		return
+	end
+	runtime.ChildAdded:Connect(function(child) task.defer(noteEgg, child) end) -- its attributes come after the parent
+	for _, child in ipairs(runtime:GetChildren()) do noteEgg(child) end
+end)
 
 local function part(name, shape, size, color, transparency)
 	local p = Instance.new("Part")
@@ -47,6 +77,9 @@ local function cue(clip, volley)
 end
 
 local function hands()
+	-- DR: away from her seat the bubbles leave her hands where she flies
+	local her = Duq.position(state)
+	if her then return Vector3.new(her.x, her.y, her.z) end
 	local base = duquesa and duquesa.Parent and duquesa:GetPivot().Position or Vector3.new(summit.x, summit.top, summit.z)
 	return Vector3.new(base.X, summit.top + Duq.HANDS_STUDS, base.Z)
 end
@@ -66,11 +99,11 @@ local function slow(player, multiplier, seconds)
 	end)
 end
 
--- Frutillon's push: one at a time (the beasts' slot), flat, clamped.
+-- Frutillon's push: one at a time (the beasts' slot), flat, clamped (12 studs at most, the beasts' own clamp).
 local function push(player, dx, dz, studs, seconds)
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 	if not root or root:FindFirstChild("WildboundBeastPush") then return end
-	studs, seconds = math.clamp(studs, 0, 8), math.clamp(seconds, 0.1, 1)
+	studs, seconds = math.clamp(studs, 0, 12), math.clamp(seconds, 0.1, 1)
 	local attachment = Instance.new("Attachment")
 	attachment.Name = "WildboundBeastPush"
 	attachment.Parent = root
@@ -85,6 +118,101 @@ local function push(player, dx, dz, studs, seconds)
 	task.delay(seconds, function() attachment:Destroy() end)
 end
 
+-- DR: the rage look and her flight ----------------------------------------------------------------------------------
+local rageSerial, cueSerial = 0, 0
+local seatPivot, seatOffset, savedCollide = nil, nil, {}
+local marker = nil -- { line, ring, id } while a lunge is told
+
+local function rageCue(clip)
+	cueSerial += 1
+	cue(clip, "r" .. cueSerial)
+end
+
+local function setRed(on)
+	if not duquesa then return end
+	local glow = duquesa:FindFirstChild("WildboundDuquesaRage")
+	if on and not glow then
+		glow = Instance.new("Highlight")
+		glow.Name = "WildboundDuquesaRage"
+		glow.FillColor, glow.FillTransparency = RAGE_RED, 0.35
+		glow.OutlineColor, glow.OutlineTransparency = Color3.fromRGB(255, 90, 90), 0
+		glow.DepthMode = Enum.HighlightDepthMode.Occluded
+		glow.Parent = duquesa
+	elseif not on and glow then
+		glow:Destroy()
+	end
+	local body = duquesa.PrimaryPart or duquesa:FindFirstChildWhichIsA("BasePart", true)
+	local sign = body and body:FindFirstChild("WildboundDuquesaFurious")
+	if on and body and not sign then
+		sign = Instance.new("BillboardGui")
+		sign.Name = "WildboundDuquesaFurious"
+		sign.Size, sign.StudsOffsetWorldSpace = UDim2.fromOffset(280, 44), Vector3.new(0, 8, 0)
+		sign.AlwaysOnTop, sign.MaxDistance, sign.LightInfluence = true, 160, 0
+		local label = Instance.new("TextLabel")
+		label.Size, label.BackgroundTransparency = UDim2.fromScale(1, 1), 1
+		label.Text, label.TextScaled, label.Font = Duq.TEXT.furious, true, Enum.Font.GothamBlack
+		label.TextColor3, label.TextStrokeColor3, label.TextStrokeTransparency = Color3.fromRGB(255, 70, 70), Color3.new(1, 1, 1), 0.2
+		label.Parent = sign
+		sign.Parent = body
+	elseif not on and sign then
+		sign:Destroy()
+	end
+end
+
+-- her parts stop colliding while she flies (she would shove players), and come back as they were when she sits
+local function leaveSeat()
+	if not duquesa or seatPivot then return end
+	seatPivot = duquesa:GetPivot()
+	local seat = Duq.seat(summit)
+	seatOffset = seatPivot.Position - Vector3.new(seat.x, seat.y, seat.z)
+	for _, d in ipairs(duquesa:GetDescendants()) do
+		if d:IsA("BasePart") and d.CanCollide then
+			savedCollide[d] = true
+			d.CanCollide = false
+		end
+	end
+end
+
+local function sitDown()
+	if not duquesa or not seatPivot then return end
+	duquesa:PivotTo(seatPivot)
+	for d in pairs(savedCollide) do
+		if d.Parent then d.CanCollide = true end
+	end
+	seatPivot, seatOffset, savedCollide = nil, nil, {}
+end
+
+local function clearMarker()
+	if marker then
+		marker.line:Destroy()
+		marker.ring:Destroy()
+		marker = nil
+	end
+end
+
+local function lungeKey(id, lunge) return "Duquesa:" .. rageSerial .. ":" .. tostring(id) .. ":" .. lunge end
+
+-- A perfect press inside the lunge's window (WildboundDodgeService) is the only way to dodge it.
+local function resolve(id, lunge, now)
+	local player = Players:GetPlayerByUserId(id)
+	if not player then return "Unknown" end
+	return DodgeService.resolve(player, lungeKey(id, lunge), now)
+end
+
+-- The lunge that lands: the one egg drop path (BeastHit, the egg not kept), then the push. A dodge's dash (its brief
+-- invulnerability, which BeastHit checks first) cancels both.
+local beastHit = nil
+local function landLunge(player, ev)
+	local network = ReplicatedStorage:FindFirstChild("WildboundNetwork")
+	beastHit = beastHit or (network and network:FindFirstChild("BeastHit"))
+	if beastHit and beastHit:IsA("BindableFunction") then
+		local ok, effect = pcall(function() return beastHit:Invoke(player, "DuquesaBurbuja", ev.damage, ev.drop ~= true) end)
+		if ok and type(effect) == "table" and effect.dodged == true then return end
+		if not ok then warn("WildboundCandyDuquesaService: BeastHit failed: " .. tostring(effect)) end
+	end
+	push(player, ev.dx, ev.dz, ev.studs, ev.seconds)
+end
+
 local rings, bubbles = {}, {}
 local function play(events, now)
 	for _, ev in ipairs(events) do
@@ -92,7 +220,7 @@ local function play(events, now)
 			cue("Charge", ev.volley)
 			for i, s in ipairs(ev.spots) do
 				local ring = part("Ring_" .. ev.volley .. "_" .. i, Enum.PartType.Cylinder,
-					Vector3.new(0.1, Duq.POP_RADIUS_STUDS * 2, Duq.POP_RADIUS_STUDS * 2), RING, 0.45)
+					Vector3.new(0.1, Duq.POP_RADIUS_STUDS * 2, Duq.POP_RADIUS_STUDS * 2), ev.rage and RAGE_RED or RING, 0.45)
 				ring.Material = Enum.Material.Neon
 				ring.CFrame = CFrame.new(s.x, s.y + 0.08, s.z) * CFrame.Angles(0, 0, math.rad(90))
 				rings[ev.volley .. ":" .. i] = ring
@@ -100,8 +228,11 @@ local function play(events, now)
 		elseif ev.kind == "Throw" then
 			cue("Whip", ev.volley)
 			local from = hands()
+			local angry = Duq.position(state) ~= nil -- DR: bigger, redder bubbles in her rage
 			for i, s in ipairs(ev.spots) do
-				local bubble = part("Bubble_" .. ev.volley .. "_" .. i, Enum.PartType.Ball, Vector3.new(1.8, 1.8, 1.8), BUBBLE, 0.25)
+				local size = angry and 2.9 or 1.8
+				local bubble = part("Bubble_" .. ev.volley .. "_" .. i, Enum.PartType.Ball, Vector3.new(size, size, size),
+					angry and RAGE_BUBBLE or BUBBLE, 0.25)
 				bubble.Material = Enum.Material.Glass
 				bubble.Position = from
 				TweenService:Create(bubble, TweenInfo.new(math.max(ev.popAt - now, 0.1), Enum.EasingStyle.Sine,
@@ -123,12 +254,88 @@ local function play(events, now)
 				slow(player, ev.slow, ev.slowSeconds)
 				push(player, ev.dx, ev.dz, ev.studs, ev.seconds)
 			end
+		elseif ev.kind == "Rage" then
+			rageSerial += 1
+			leaveSeat()
+			setRed(true)
+			rageCue("Surprised")
+		elseif ev.kind == "Lunge" then
+			rageCue("Charge")
+			local player = Players:GetPlayerByUserId(ev.id)
+			if player then DodgeService.telegraph(player, lungeKey(ev.id, ev.lunge), Duq.DODGE_SOURCE, ev.startAt, ev.strikeAt) end
+			clearMarker()
+			local line = part("Lunge_" .. ev.lunge, Enum.PartType.Block, Vector3.new(0.35, 0.2, 1), RAGE_RED, 0.2)
+			line.Material = Enum.Material.Neon
+			local ring = part("LungeRing_" .. ev.lunge, Enum.PartType.Cylinder,
+				Vector3.new(0.12, Duq.LUNGE_HIT_STUDS * 2, Duq.LUNGE_HIT_STUDS * 2), RAGE_RED, 0.4)
+			ring.Material = Enum.Material.Neon
+			marker = { line = line, ring = ring, id = ev.id }
+		elseif ev.kind == "Lock" then
+			-- D-1: the ring sits on the locked spot (its centre FEET_STUDS over the floor, like a root)
+			if marker then marker.locked = Vector3.new(ev.x, ev.y + Duq.FEET_STUDS, ev.z) end
+		elseif ev.kind == "LungeCancel" then
+			local player = Players:GetPlayerByUserId(ev.id)
+			if player then DodgeService.cancel(player, lungeKey(ev.id, ev.lunge)) end
+			clearMarker()
+		elseif ev.kind == "Strike" then
+			clearMarker()
+			rageCue(ev.outcome == "Dodged" and "Surprised" or "Whip")
+			-- D-4: her model snaps to the strike point (the per-frame follow would arrive after the hit)
+			if duquesa and duquesa.Parent and seatPivot then
+				duquesa:PivotTo(CFrame.new(Vector3.new(ev.x, ev.y, ev.z) + seatOffset) * duquesa:GetPivot().Rotation)
+			end
+			local burst = part("Strike_" .. ev.lunge, Enum.PartType.Ball, Vector3.new(2, 2, 2), RAGE_RED, 0.3)
+			burst.Position = Vector3.new(ev.x, ev.y, ev.z)
+			TweenService:Create(burst, TweenInfo.new(0.3), { Size = Vector3.new(8, 8, 8), Transparency = 1 }):Play()
+			Debris:AddItem(burst, 0.4)
+			local player = ev.outcome == "Hit" and Players:GetPlayerByUserId(ev.id)
+			if player then task.spawn(landLunge, player, ev) end
+		elseif ev.kind == "Calm" then
+			clearMarker()
+			setRed(false)
+		elseif ev.kind == "Home" then
+			sitDown()
 		end
 	end
 end
 
-local clock = 0
-RunService.Heartbeat:Connect(function(dt)
+-- DR: the lunge's line from her to the thief and the ring on the thief's floor follow the thief until the lock (D-1),
+-- then stay on the locked spot until the strike.
+local function drawMarker(rootOf)
+	local her = Duq.position(state)
+	local root = marker and her and not marker.locked and rootOf(marker.id)
+	if not root and not (marker and her and marker.locked) then return end
+	local from = Vector3.new(her.x, her.y, her.z)
+	local to = marker.locked or root.Position
+	local length = math.max((to - from).Magnitude, 0.5)
+	marker.line.Size = Vector3.new(0.35, 0.2, length)
+	marker.line.CFrame = CFrame.lookAt(from:Lerp(to, 0.5), to)
+	marker.ring.CFrame = CFrame.new(to.X, to.Y - Duq.FEET_STUDS + 0.1, to.Z) * CFrame.Angles(0, 0, math.rad(90))
+end
+
+local function rootOfId(id)
+	local player = Players:GetPlayerByUserId(id)
+	local character = player and player.Character
+	return character and character:FindFirstChild("HumanoidRootPart")
+end
+
+local function yawOf(v) return math.atan2(-v.X, -v.Z) end
+
+local clock, lastPhase, glideAt = 0, "Seated", 0
+local heartbeat = RunService.Heartbeat:Connect(function(dt)
+	-- DR: while she is away from her seat her model follows the rules' position every frame (no raycast)
+	local her = Duq.position(state)
+	if her and duquesa and duquesa.Parent and seatPivot then
+		local target = Vector3.new(her.x, her.y, her.z) + seatOffset
+		local current = duquesa:GetPivot().Position
+		local at = current:Lerp(target, math.min(1, dt * 10))
+		local rage = state.rage
+		local root = rage and rootOfId(rage.id)
+		local look = root and (root.Position - at) or (seatPivot.Position - at)
+		local yaw = Vector3.new(look.X, 0, look.Z).Magnitude > 0.5 and yawOf(look) - yawOf(seatPivot.LookVector) or nil
+		local rotation = yaw and CFrame.Angles(0, yaw, 0) * seatPivot.Rotation or duquesa:GetPivot().Rotation
+		duquesa:PivotTo(CFrame.new(at) * rotation)
+	end
 	clock += dt
 	if clock < STEP then return end
 	clock = 0
@@ -140,9 +347,39 @@ RunService.Heartbeat:Connect(function(dt)
 		local root = character and character:FindFirstChild("HumanoidRootPart")
 		if root and humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then
 			local v = root.AssemblyLinearVelocity -- OF3: she aims ahead of a runner
-			table.insert(players, { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z,
-				vx = v.X, vz = v.Z })
+			local entry = { id = player.UserId, alive = true, x = root.Position.X, y = root.Position.Y, z = root.Position.Z,
+				vx = v.X, vz = v.Z, speed = humanoid.WalkSpeed }
+			-- DR: her egg on this player's back (WildboundServer's WildboundEggCarried model names the egg)
+			local arms = character:FindFirstChild("WildboundEggCarried")
+			-- D-2: no model, no rage (an invisible Duquesa never hits). D-5: only the newest carried egg is visible here.
+			if arms and duquesa and duquesa.Parent and herEggs[arms:GetAttribute("EggId")] then
+				entry.carriesHerEgg = true
+				entry.safe = select(2, Rules.zone(root.Position.X, root.Position.Z)) == true
+			end
+			table.insert(players, entry)
 		end
 	end
-	play(Duq.step(state, now, players, summit), now)
+	play(Duq.step(state, now, players, summit, resolve), now)
+	drawMarker(rootOfId)
+	-- DR: her flying clip while she chases or floats home, cued again now and then (the preview player ends one-shots)
+	local phase = Duq.phase(state)
+	if duquesa then
+		if phase ~= lastPhase then duquesa:SetAttribute("DuquesaPhase", phase) end
+		if (phase == "Chase" or phase == "Return") and (phase ~= lastPhase or now >= glideAt) then
+			rageCue("Glide")
+			glideAt = now + 1.5
+		end
+	end
+	lastPhase = phase
 end)
+
+-- D-6: a script stop mid-rage puts her back as she was (colour, collisions, seat) and removes the server parts.
+local function stop()
+	heartbeat:Disconnect()
+	clearMarker()
+	setRed(false)
+	sitDown()
+	folder:Destroy()
+end
+script.Destroying:Connect(stop)
+game:BindToClose(stop)
