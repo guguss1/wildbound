@@ -591,6 +591,17 @@ They come after v5 lands, in this order, each one loaded and checked in Play bef
 | V6-D3 | River current: the chocolate flows from the waterfall (north) to the south edge. The raft drifts with it at up to 4 studs/s on the river legs and 1.5 in the lake, so going upstream is slower and downstream faster. Waders feel a gentle push of 1.5 studs/s. Creatures are not pushed. | Proposal 3: the river feels alive and the raft has something to master. |
 | V6-D4 | An island in the big lake (radius about 9), away from the docks and the raft's main line, with one Epica egg nest (outside Layout.NESTS, like the house nests) and a few candy decorations. You reach it by raft or by wading slowly. It has no guardian post, so a steal raises the usual alarm and the frenzy. | Proposal 4: a rare prize that uses the bigger lake and the raft. |
 
+### Evidence: V6-D1 tall licorice grass deploy (2026-11-17)
+
+Studio b15ce60a, Edit only, with the import and Play locks cleared afterwards; the place is not saved. The code was committed as ff38255 and deployed by hunks plus 2 new modules (WildboundCandyGrass, WildboundCandyGrass_Test). All 12 files were fingerprint-checked equal to the repo. Extra decisions V6-D10 to V6-D16 are in docs/design/wildbound-caramelo-v3-plan.md.
+
+- **Tests:** WildboundCandyGrass_Test passed 11/0 after one test fix: it no longer bounds a patch's distance from the routes, because Layout.routeDistance does not measure every leg (Grass_G134). Candy D to N, Beast and Portal suites: all pass except the unpublished-clip cases (DonGlaseon and Tortidragon clips), which were already failing.
+- **Solo Play:**
+  - Only 5 patches fit on the live map (G12, G58, G95, G134, G162; 170 parts). The target was 10; nests, posts, props and the hide spots fill the rest of the meadows.
+  - No script errors.
+  - An egg steal (frenzy), then a teleport into G162: the hunters, already chasing, kept the player for the 3 s memory, came within 10 studs and struck. Knockback also pushed the player out of the patch. So the grass does not shake off hunters already close; that matches V6-D1 and V6-D10.
+- **Not checked in Play:** a calm creature ignoring a walker in the grass, and the bees and La Duquesa. The suites cover these, including a real Mochimiau brain.
+
 ### Evidence: Caramelo v4 deploy (2026-11-17)
 
 Studio db843df0, place 122652861404212, Edit only, locks set and cleared; place not saved (the owner saves).
