@@ -42,7 +42,7 @@ corners and the south band, so the river runs there.
   from the ledge (18.5 studs) into its pool (centre (156.9, -134.1), radius 6). The kit's numbers come from
   `caramelo-v3-decor-spec.json`; `tools/test_caramelo_v3.py` recomputes them.
 - **River** (polyline, width per point): outlet (152.7, -139.1) w14, (128, -168) w24, (96, -186) w20, (40, -187) w20,
-  (-6, -185) w20, (-24, -168) w24, (-24, -140) w24, (-14, -118) w24. About 330 studs: along the south band under nests
+  (-6, -185) w20, (-24, -168) w24, (-24, -140) w24, (-14, -118) w24. About 254 studs: along the south band under nests
   C13 and C8, then north between posts C10 and C6, under the left route's bridge and into the lake.
 - **Lake**: the old Laguna de Almibar's three discs, now chocolate, plus a disc of radius 30 at (0, -110).
 - **Depth**: 1.3 studs of walk-through chocolate (the kit's pool surface and the raft's draft). See V3-D6.
@@ -55,13 +55,17 @@ corners and the south band, so the river runs there.
 The left route's bottom leg (z = -140) crosses the river mouth and the lake. The old flat biscuit tiles are archived and
 a wafer bridge takes their place: deck from x -44 to 44, 16 wide, top 2.2 over the floor (over the 1.3 surface), a
 7-stud ramp at each end, chocolate rails outside the path. Every route point inside the chocolate is on the deck, and
-every route edge that touches it is on the deck or a ramp (suite V3-4).
+every route edge that touches it is on the deck or a ramp (suite V3-4). The rails open in three 8-stud gaps (x -30, 0
+and 30), each with a 6-stud side ramp down to the floor on both sides, so the lake is crossed north-south too (V3-D19).
 
 ### Raft and docks
 
 Two docks on the river's first leg below the waterfall: A, stand (123.6, -139.3), tip (135, -149) on the near bank (off
 the left route's bend), and B, stand (157.1, -167.9), tip (145.7, -158.1) on the far bank (the south-east corner with a
 chocolate house). The lane goes tip A, upstream towards the waterfall (148.5, -144), tip B: about 29 studs. Home dock A.
+Each dock's deck stops 5 studs short of its tip (room for the docked hull), its top 0.4 over the surface, with a ramp
+from 5 studs behind the stand; the layout models a dock as three discs (stand, ramp foot, deck middle). A "Llamar a la
+balsa" prompt on each stand calls the empty raft over from the other dock. A rider is set down on the deck's top.
 
 ### Houses (kit scale 1, doors 7 x 9.5)
 
@@ -72,7 +76,7 @@ chocolate house). The lane goes tip A, upstream towards the waterfall (148.5, -1
 | H3 | CV3_ChocoHouse | (-165, -160) south-west | 16 |
 | H4 | CV3_SweetHouse | (178, 100) north-east, south of La Nube's pond | 20 |
 | H5 | CV3_CaramelTower | (-180, 76) west | 15 |
-| H6 | CV3_ChocoHouse | (180, -172) far bank, south-east | 16 |
+| H6 | CV3_ChocoHouse | (182, -176) far bank, south-east, off dock B's ramp | 16 |
 | H7 | CV3_SweetHouse | (20, 172) north band | 20 |
 
 Each faces the junction. There is a house in every quarter of the plot.
@@ -99,20 +103,24 @@ stay. Trees standing in the chocolate or on a v3 piece are archived first.
 Old-kit candy props (gumdrops, cream mushrooms, confetti, chocolate rocks) every 22 studs along alternating river banks
 and three round each house, plus six small ice-cream hills (the medium mountain at scale 0.2) near the plot edges; seeded
 (V3.SEED), each on open ground (off routes, nests, posts, trap cakes, boss ground, portal, entrance, KEEP_CLEAR, the
-chocolate and every piece).
+chocolate and every piece) and off every prop already standing on the live map (`V3Builder.existingProps`: trees,
+lollipops, gumdrops, sweets, sugar hills, nests, the entrance and the portal, by their measured reach). A nudged new tree
+keeps off the filler.
 
 ### Clearances kept (suite V3-5, V3-6 and the Python mirror)
 
 - Nest centres at least 6 studs beyond the chocolate; creature posts 8; trap cakes 10; the boss territory, the stair, the
   portal (16) and the entrance (28) clear; La Nube's pond and La Abeja's hive clear.
 - Solid pieces: 8 from a nest centre, 6 from a post, 10 from a trap cake, 3 beyond a path edge, outside the boss
-  territory, 2 apart, houses and the cake 2 inside the plot edge (mountains may touch it).
+  territory, 2 apart, houses and the cake 2 inside the plot edge (mountains may touch it). A dock counts as its stand,
+  its ramp foot and its deck middle; props are planned off the bridge's deck, end ramps and side ramps by their reach.
 
 ### Part budget
 
-The v3 batch may add at most 1300 parts (`V3.MAX_NEW_PARTS`; about 300 with every placeholder, about 900 with both kits,
-whose colliders are separate parts); the tree swap replaces about 10 parts per old tree with about 5. The biome cap is
-2800 (`V3.BIOME_PART_CAP`; the live biome had 1298 after the cake move); the migration's summary reports `overCap`.
+The v3 batch may add at most 1300 parts (`V3.MAX_NEW_PARTS`; about 300 with every placeholder, about 900 to 1200 with
+both kits, whose colliders are separate parts); the tree swap replaces about 10 parts per old tree with about 5. The
+biome cap is 2800 (`V3.BIOME_PART_CAP`; the live biome had 1298 after the cake move). The migration's dry run builds the
+batch into a detached model and reports `partsEstimate` and `overCap` before anything changes.
 
 ## Decisions taken for the user (V3)
 
@@ -120,42 +128,58 @@ whose colliders are separate parts); the tree swap replaces about 10 parts per o
 | --- | --- | --- |
 | V3-D5 | The kit models (`CV3_*`, delivered by the two Blender agents) are used when present in `ServerStorage.WildboundAssets.CandyKitV3`; every missing one is a plain-part placeholder of the same footprint. Their meshes never collide; the `Collision_*` parts come from the generated `WildboundCandyV3KitSpec`. | Supersedes the "parts only" first choice of V3-D2 now that the models exist; the batch can be laid before the upload. |
 | V3-D6 | The chocolate (river, pool, lake) is a 1.3-stud, non-colliding, non-queried volume over the floor: players wade knee-deep, nobody swims or drowns, every ray and every creature still meets the floor. | No drowning, no change to the relentless chases, no new ground for the beast and hive rays. 1.3 is the kit's pool surface and the raft's draft. |
-| V3-D7 | The river runs from M1's outlet in the south-east corner along the south band into the lake, not straight across the middle. | The middle holds the routes, 28 nests and 26 posts; the south band and corners are the open ground. It still crosses most of the plot (about 330 studs). |
+| V3-D7 | The river runs from M1's outlet in the south-east corner along the south band into the lake, not straight across the middle. | The middle holds the routes, 28 nests and 26 posts; the south band and corners are the open ground. It runs about 254 studs, from the south-east corner to the lake. |
 | V3-D8 | The bridge is the left route's lake crossing, rebuilt as a raised wafer bridge over the river mouth and the lake; the old biscuit tiles and syrup discs are archived. | The only route the river meets; one bridge keeps every route walkable. |
 | V3-D9 | Tree rule as above; lollipops stay; a tree that does not fit keeps its old model; a cotton tree's Roof moves into the new tree. | "Replace the trees" without opening holes in the wood or losing La Nube's cover. The lollipop avenue is a path decoration and the ambience sways it. |
 | V3-D10 | Seven houses at kit scale 1, one or two in each quarter, each facing the junction; the tower's balcony and the houses' interiors come from the kit. | "Houses in several places with interiors"; scale 1 keeps the doors avatar-sized. |
 | V3-D11 | Filler of old-kit candy props along the banks and round the houses, and six small ice-cream hills by the edges. | "The map must not feel empty" without new uploads. |
-| V3-D12 | Part budget: v3 adds at most 1300 parts, biome cap 2800, reported by the migration. | The kits' colliders are separate parts; the cap leaves room for the tree swap. |
+| V3-D12 | Part budget: v3 adds at most 1300 parts, biome cap 2800, reported by the migration (estimated in the dry run). | The kits' colliders are separate parts; the cap leaves room for the tree swap. |
 | V3-D13 | The raft: one rider, boards from 12 studs of the docked raft, waits 1 s, sails at up to 14 studs/s (accel 6, brake 8) along a 29-stud lane past the waterfall, sets the rider down on the far dock; abandoned mid-way it drifts and respawns at its home dock after 8 s. Server-authoritative (prompt, seat, movement); the client may only ask to leave (validated, one request every 0.5 s). Free: no price, no product, no purchase code; `monetization = "none"` stays. Jumping works as getting off. | V3-D3 (free), the sheet's ride, and the security rules. |
 | V3-D14 | Light 20 % dimmer (every ambience PointLight: lollipop 2 -> 1.6, gumdrop 1.6 -> 1.3, nest 2.2 -> 1.75, egg nest 2.5 -> 2, cake and portal 2.4 -> 1.9); sparkles: desktop emitters 10 -> 16 and 60 -> 100 particles/s, touch 5 -> 8 and 30 -> 50; Efectos suaves unchanged (no sparkles). The day grading of `WildboundBiomeLight` (Caramelo lift 0.03) is left as it is. | "A little less bright and more sparkles", within the 15-25 % asked; the grading has its own pinned suite and is a separate call. |
 | V3-D15 | New ambience kinds: the chocolate shimmers, the waterfall mists at its foot and its streaks slide down on the client (not with Efectos suaves), the houses glow warm, the licorice glitters, the new trees sparkle like the old. | More sparkle where the new pieces are, with no server traffic and no texture uploads. |
 | V3-D16 | The live map is changed by `tools/wildbound-caramelo-v3-migrate.luau` (dry run, backup `CaramelV3Backup`, archive `CaramelV3Archived`, never destroy, mark `CaramelV3`, its own undo step in `task.delay`), only after the cake move. | Same safety as GT (V3-D4). |
 | V3-D17 | The raft and the houses do not stop the chases: the raft's parts never collide (only its seat holds the rider); a creature can follow a player through the chocolate. | "Creatures keep chasing until the base". |
+| V3-D18 | (review M1) Houses, the tower and the cake are tagged `WildboundBeastPass`; mountains, hills and the licorice `WildboundBeastOverhead`. `WildboundBeasts.server` refreshFilter leaves Pass models out of the beasts' ground rays, landing checks, lane casts and sight, and Overhead models out of the ground rays and sight only. A creature follows a player into a house along the floor (it may pass through a candy wall) instead of landing on the roof; nothing lands on a summit or the arch; a landing never ends inside a mountain. Tags, not `CanQuery = false`: Roblox ignores CanQuery on colliding parts, and the beasts' rays use RespectCanCollide. Known limit: a player on the tower's upper floor, its balcony or the cake top is out of a ground creature's reach until they come down. | The owner: "they chase you and use their attacks until the base". |
+| V3-D19 | (review M3) The bridge rails open in three 8-stud gaps (x -30, 0, 30) with walkable 6-stud side ramps (about 20 degrees) on both sides. | Egg runs from C6 and C10 and the chases cross the lake north-south without a 50-stud detour. |
+| V3-D20 | (review M2) A kit that arrives after a placeholder run is laid with the migration's MODE = "upgrade" (`V3Builder.upgradePlaceholders`): each placeholder piece with a kit model is laid again in place and archived; trees keep spot, height, attributes and La Nube's Roof; with M1, the placeholder sheet, lip and pool go. Idempotent. CaramelV3 is never archived and rebuilt. | The swapped trees and their Roof discs live in CaramelV3. |
+| V3-D21 | (review M4) The filler, the hills and nudged trees keep off every prop already on the map, by its measured reach. | No prop laid into a trunk, a gumdrop or a sugar hill. |
+| V3-D22 | (review m6) The raft's server model moves only while it sails or drifts (and once when it docks or respawns), so a docked raft sends nothing; it bobs only under way. Riders are set down on the dock deck's top. A "Llamar a la balsa" prompt on each dock brings the empty raft over. Each dock deck stops 5 studs short of the tip. | Smoother ride, no idle replication, nobody has to wade to fetch it, the hull floats free of the deck. |
+| V3-D23 | (review m8) The houses do not shelter from La Nube's sky ray (no `WildboundRoof` tag on their roofs). | La Nube's cover stays the cotton trees' Roof discs, as before. |
+| V3-D24 | (review m1-m5, m7, m8) The migration refuses unless the keep-out holds every creature post, estimates the parts in the dry run, warns about an older backup it keeps, and requires fresh clones of the modules. H6 moved to (182, -176) and dock ramps shortened to 5 studs, clear of the house. The waterfall's `top` is studs over the floor. | The live-map suites and the part cap are checked before any change. |
 
 ## Known limits and follow-ups
 
 - The kit models are unvalidated until imported; the importer must keep each Model's pivot at the ground centre of its
-  base (both kit READMEs say so). If an import moves it, the colliders will sit off the meshes: check one house and M1 in
-  Studio before the real migration.
+  base and the frame (X, Y, Z) = (-x, z, y) of Blender (both kit READMEs say so; a default forward -Z / up Y FBX export
+  would be 180 degrees off). If an import moves either, the colliders will sit off the meshes: check one house and M1 in
+  Studio **before** the real migration.
 - With the kit, M1's own pool surface sits at 1.3 x 0.55 = 0.7 studs, under the river's 1.3 at the outlet (a small step).
 - The kit trees' sway (crown about `sway.pivot`) is not animated yet; the hives (`WildboundCandyFlyers`) still read the old
   lake only and may hover over the river.
 - A player can wade across, so the raft is a fun shortcut, not the only way over (V3-D6).
+- A creature may pass through a house's wall (V3-D18); a player upstairs in the tower or on the cake top is out of a
+  ground creature's reach until they come down. Other services with their own rays (Flyers, Duquesa, resting copies) do
+  not read the tags; none of them walks into houses.
 
 ## What the parent does in Studio, in order
 
 1. Confirm the place (122652861404212) and that no Play is running; set `WildboundImportLock`.
 2. Upload and insert the kit FBX files (decor and buildings) into `ServerStorage.WildboundAssets.CandyKitV3` as Models
-   named exactly `CV3_*` (pivot at the ground centre). This step can wait: everything works with placeholders.
+   named exactly `CV3_*` (pivot at the ground centre), and check one house and M1 against their colliders. This step can
+   wait: everything works with placeholders, and MODE = "upgrade" lays the kit later.
 3. Deploy, by the fingerprint rule, the manifest rows of this batch: `WildboundCandyV3Layout`, `WildboundCandyV3KitSpec`,
    `WildboundCandyV3Builder` (ServerStorage), `WildboundCandyRaft` (ReplicatedStorage), `WildboundCandyRaftService`
    (ServerScriptService), `WildboundCandyRaftClient` (StarterPlayerScripts), the changed `WildboundCandyAmbience`,
-   `WildboundCandyAmbienceClient` and `WildboundText`, and the four suites.
+   `WildboundCandyAmbienceClient`, `WildboundText` and `WildboundBeasts` (server; the refreshFilter tags, V3-D18), and
+   the four suites.
 4. Run the suites with the fresh runner (`WildboundCandyV3Layout_Test`, `WildboundCandyV3Builder_Test`,
-   `WildboundCandyRaft_Test`, `WildboundCandyAmbience_Test`, `WildboundText_Test`).
-5. Run `tools/wildbound-caramelo-v3-migrate.luau` with `DRY_RUN = true`, read the summary, then with `DRY_RUN = false`;
-   read `ServerStorage` attribute `WildboundCaramelV3Summary` (check `overCap` and `kitMissing`).
+   `WildboundCandyRaft_Test`, `WildboundCandyAmbience_Test`, `WildboundText_Test`, and the beast suites that pin
+   `WildboundBeasts`).
+5. Run `tools/wildbound-caramelo-v3-migrate.luau` (MODE = "first") with `DRY_RUN = true` and read the summary
+   (`partsEstimate`, `overCap`, `keepOut`, `kitMissing`, `warning`), then with `DRY_RUN = false`; read `ServerStorage`
+   attribute `WildboundCaramelV3Summary`. When the kit arrives later: MODE = "upgrade", dry run, then real.
 6. Re-run `WildboundCandyBeastSites_Test`, `WildboundCandyBuilder_Test` and `WildboundCandyTower_Test` on the live map.
-7. Clear the import lock, then Play solo: wade the river, cross the bridge, ride the raft both ways and jump off mid-way
-   (it respawns at dock A after 8 s), enter a house, climb the cake, and run from a creature to the base across the
-   chocolate.
+7. Clear the import lock, then Play solo: wade the river, cross the bridge east-west and through a gap north-south, ride
+   the raft both ways, call it from the other dock, jump off mid-way (it respawns at dock A after 8 s), enter a house
+   with a creature chasing (it must follow and attack inside), climb the cake, and run from a creature to the base
+   across the chocolate.

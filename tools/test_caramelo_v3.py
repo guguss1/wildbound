@@ -74,6 +74,10 @@ class Geometry:
         self.docks = [(m[0],) + tuple(float(v) for v in m[1:]) for m in re.findall(
             r'id = "(\w+)", standX = %s, standZ = %s, tipX = %s, tipZ = %s' % (NUM, NUM, NUM, NUM), block(v3, "V3.DOCKS ="))]
         self.lane = [floats(m) for m in re.findall(r"\{ %s, %s \}" % (NUM, NUM), block(v3, "V3.RAFT ="))]
+        self.dock = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.DOCK ="))}
+        gaps = re.search(r"gaps = \{ ([^}]*) \}, gapWidth = %s, sideRamp = %s" % (NUM, NUM), v3)
+        self.bridge["gaps"] = [float(v) for v in gaps.group(1).split(",")]
+        self.bridge["gapWidth"], self.bridge["sideRamp"] = float(gaps.group(2)), float(gaps.group(3))
         lic = re.search(r"V3\.LICORICE = freeze\(\{ x = %s, z = %s, scale = %s, height = %s, span = %s" % ((NUM,) * 5), v3)
         self.licorice = dict(zip(("x", "z", "scale", "height", "span"), floats(lic.groups())))
         self.licorice["feet"] = [floats(m) for m in re.findall(r"offset = %s, r = %s" % (NUM, NUM), block(v3, "V3.LICORICE ="))]
@@ -148,7 +152,15 @@ class Geometry:
     def solid_pieces(self):
         out = [("mountain " + m[0], m[2], m[3], m[4]) for m in self.mountains]
         out += [("house " + h[0], h[2], h[3], h[4]) for h in self.houses]
-        out += [("dock " + d[0], d[1], d[2], 3.0) for d in self.docks]
+        for d in self.docks:
+            _, sx, sz, tx, tz = d
+            length = math.hypot(tx - sx, tz - sz)
+            ux, uz = (tx - sx) / length, (tz - sz) / length
+            deck_end = length - self.dock["tipGap"]
+            out.append(("dock " + d[0], sx, sz, 3.0))
+            out.append(("dock " + d[0] + " ramp", sx - ux * self.dock["rampBack"], sz - uz * self.dock["rampBack"],
+                        self.dock["deckWidth"] / 2 + 0.5))
+            out.append(("dock " + d[0] + " deck", sx + ux * deck_end / 2, sz + uz * deck_end / 2, self.dock["deckWidth"] / 2))
         lic = self.licorice
         out += [("licorice foot", lic["x"], lic["z"] + side * off * lic["scale"], fr * lic["scale"])
                 for off, fr in lic["feet"] for side in (-1, 1)]
@@ -216,7 +228,7 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertLess(math.hypot(ox - g.river[0][0], oz - g.river[0][1]), 0.5, "RIVER[1] is M1's outlet")
         self.assertLess(math.hypot(px - g.pool[0], pz - g.pool[1]), 0.5, "POOL is M1's pool")
         self.assertAlmostEqual(g.pool[2], water["pool_radius"] * scale, delta=0.1)
-        self.assertLess(abs(g.waterfall["top"] - (water["ledge_z"] * scale + 0.5)), 1, "the fall starts at the ledge")
+        self.assertLess(abs(g.waterfall["top"] - water["ledge_z"] * scale), 0.5, "the fall starts at the ledge (studs over the floor)")
         size = spec[asset]["size"]
         self.assertGreaterEqual(r, max(size[0], size[1]) / 2 * scale, "the footprint holds the kit")
         for m in g.mountains:
@@ -244,6 +256,18 @@ class CarameloV3Layout(unittest.TestCase):
                             and max(p[0], q[0]) >= b["x"] + b["length"] / 2 for p, q in zip(left, left[1:])),
                         "the deck lies on a straight leg of the left route")
         self.assertGreater(b["width"], g.path_half * 2)
+
+    def test_bridge_opens_for_north_south_crossings(self):
+        b = self.g.bridge
+        self.assertGreaterEqual(len(b["gaps"]), 3)
+        self.assertGreaterEqual(b["gapWidth"], 8)
+        for gx in b["gaps"]:
+            self.assertLessEqual(abs(gx) + b["gapWidth"] / 2, b["length"] / 2, "a gap past the deck")
+        for i, a in enumerate(b["gaps"]):
+            for c in b["gaps"][i + 1:]:
+                self.assertGreaterEqual(abs(a - c), b["gapWidth"] + 4, "gaps too close")
+        rise = b["deck"]
+        self.assertLessEqual(math.degrees(math.atan2(rise, b["sideRamp"])), 25, "side ramps walkable")
 
     def test_nests_posts_traps_boss_portal_entrance_stay_off_the_chocolate(self):
         g, c = self.g, self.g.clear
@@ -287,6 +311,8 @@ class CarameloV3Layout(unittest.TestCase):
             for b in pieces[i + 1:]:
                 if a[0].startswith("cake") and b[0].startswith("cake"):
                     continue  # the ramp is built against the base
+                if a[0].startswith("dock") and a[0].split()[:2] == b[0].split()[:2]:
+                    continue  # one dock's stand, ramp and deck
                 self.assertGreaterEqual(math.hypot(a[1] - b[1], a[2] - b[2]) - a[3] - b[3], c["pieceApart"], a[0] + " / " + b[0])
 
     def test_houses_several_places_with_three_kinds(self):
@@ -326,7 +352,7 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertGreaterEqual(lic["height"], 18)
         for asset, x, z, r in g.platforms:
             self.assertTrue(any(math.hypot(x - d[0], z - d[1]) + r <= d[2] for d in g.lake), asset + " inside the lake")
-            self.assertGreater(abs(z - g.bridge["z"]) - r, g.bridge["width"] / 2, asset + " under the bridge")
+            self.assertGreater(abs(z - g.bridge["z"]) - r, g.bridge["width"] / 2 + g.bridge["sideRamp"], asset + " on the bridge's side ramps")
         for i, a in enumerate(g.platforms):
             for b in g.platforms[i + 1:]:
                 self.assertGreaterEqual(math.hypot(a[1] - b[1], a[2] - b[2]) - a[3] - b[3], 2)
@@ -341,12 +367,19 @@ class CarameloV3Sources(unittest.TestCase):
                        "Layout.VERSION == 3", "V3.MARK"):
             self.assertIn(needle, tool)
         self.assertGreater(tool.index("TryBeginRecording"), tool.index("task.delay("))
+        # review M2 and m1-m4: the kit-upgrade mode, the post check, the dry-run estimate, the backup warning, fresh modules
+        self.assertRegex(tool, r'(?m)^local MODE = "first"')
+        for needle in ("V3Builder.upgradePlaceholders", "creature posts: refusing", "summary.partsEstimate", "summary.warning",
+                       "require(found:Clone())"):
+            self.assertIn(needle, tool)
+        self.assertNotIn("archiving CaramelV3 and running again", tool)
         self.assertNotRegex(tool, r":Destroy\(\)")
 
     def test_builder_uses_the_layout_and_falls_back_to_placeholders(self):
         builder = read(BUILDER_PATH)
         for name in ("function V3Builder.layAll", "function V3Builder.plan", "function V3Builder.swapTrees",
-                     "function V3Builder.kitModel", "Placeholder"):
+                     "function V3Builder.kitModel", "Placeholder", "function V3Builder.upgradePlaceholders",
+                     "function V3Builder.existingProps", "V3.BEAST_PASS_TAG", "V3.BEAST_OVERHEAD_TAG", "SideRamp_"):
             self.assertIn(name, builder)
         self.assertNotIn("SistemaSonriente\"", builder.replace('"SistemaSonriente"', ""))
 

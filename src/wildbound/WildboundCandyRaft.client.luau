@@ -14,7 +14,7 @@ if not remote then return end
 
 local player = Players.LocalPlayer
 local T = Text.CANDY_RAFT
-local REASON = { Busy = T.busy, Moving = T.moving, TooFar = T.tooFar, Dead = T.moving, Invalid = T.moving }
+local REASON = { Busy = T.busy, Moving = T.moving, TooFar = T.tooFar, Dead = T.moving, Invalid = T.moving, Here = T.here }
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundCandyRaftUI"
@@ -82,6 +82,8 @@ remote.OnClientEvent:Connect(function(payload)
 	elseif payload.kind == "Left" then
 		leave.Visible = false
 		show(T.left)
+	elseif payload.kind == "Called" then
+		show(T.called)
 	elseif payload.kind == "Refused" then
 		show(REASON[payload.reason] or T.moving)
 	end

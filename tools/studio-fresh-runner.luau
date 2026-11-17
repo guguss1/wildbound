@@ -193,6 +193,7 @@ SPECS["WildboundCandyV3Layout_Test"] = {
 SPECS["WildboundCandyV3Builder_Test"] = {
 	"mod:WildboundCandyV3Builder", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundCandyBuilder",
 	"mod:WildboundCandyV3KitSpec", "mod:WildboundCandyKit", "inst:ServerStorage.WildboundAssets.CandyKit",
+	{ beasts = "src:WildboundBeasts" },
 }
 SPECS["WildboundCandyRaft_Test"] = {
 	"mod:WildboundCandyRaft", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundText",

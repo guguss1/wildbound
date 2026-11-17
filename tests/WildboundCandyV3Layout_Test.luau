@@ -173,7 +173,8 @@ return function(V3, Layout, Sites, Trap)
 			for j = i + 1, #pieces do
 				local b = pieces[j]
 				-- the cake's ramp is built against its base
-				assert(a.kind == "cake" and b.kind == "cake" or flat(a.x, a.z, b.x, b.z) - a.r - b.r >= C.pieceApart, a.kind .. " " .. a.id .. " touches " .. b.kind .. " " .. b.id)
+				local sameDock = a.kind == "dock" and b.kind == "dock" and string.sub(a.id, 1, 1) == string.sub(b.id, 1, 1)
+				assert(a.kind == "cake" and b.kind == "cake" or sameDock or flat(a.x, a.z, b.x, b.z) - a.r - b.r >= C.pieceApart, a.kind .. " " .. a.id .. " touches " .. b.kind .. " " .. b.id)
 			end
 		end
 	end)
@@ -229,7 +230,8 @@ return function(V3, Layout, Sites, Trap)
 				if flat(pl.x, pl.z, disc.x, disc.z) + pl.r <= disc.r then inside = true end
 			end
 			assert(inside, "platform " .. i .. " leaves the lake")
-			assert(math.abs(pl.z - V3.BRIDGE.z) - pl.r > V3.BRIDGE.width / 2, "platform " .. i .. " under the bridge")
+			-- Deliberately changed (V3 review): the bridge now has side ramps, so a platform also keeps off them
+			assert(math.abs(pl.z - V3.BRIDGE.z) - pl.r > V3.BRIDGE.width / 2 + V3.BRIDGE.sideRamp, "platform " .. i .. " on the bridge")
 			for j = i + 1, #V3.PLATFORMS do
 				local other = V3.PLATFORMS[j]
 				assert(flat(pl.x, pl.z, other.x, other.z) - pl.r - other.r >= 2, "platforms " .. i .. " and " .. j .. " touch")
@@ -257,6 +259,38 @@ return function(V3, Layout, Sites, Trap)
 		ok = V3.clearOfPieces(-150, 60, 3)
 		assert(ok, "open ground in the west")
 		equal(V3.surfaceY(0.5), 0.5 + V3.LIQUID.depth, "surface height")
+	end)
+
+	-- V3 review M3: the bridge is no wall across the lake.
+	case("V3-12: the bridge's rails open in gaps with side ramps, so the lake is crossed north-south", function()
+		local B = V3.BRIDGE
+		assert(#B.gaps >= 3, "at least three gaps")
+		assert(B.gapWidth >= 8, "gaps at least 8 studs")
+		for i, gx in ipairs(B.gaps) do
+			assert(math.abs(gx) + B.gapWidth / 2 <= B.length / 2, "gap " .. i .. " past the deck")
+			for j = i + 1, #B.gaps do
+				assert(math.abs(gx - B.gaps[j]) >= B.gapWidth + 4, "gaps " .. i .. " and " .. j .. " run together")
+			end
+		end
+		assert(math.deg(math.atan2(B.deck, B.sideRamp)) <= 25, "side ramps are walkable")
+		assert(V3.nearBridge(B.x, B.z + B.width / 2 + B.sideRamp - 0.5, 0), "a side ramp is part of the bridge")
+		assert(not V3.nearBridge(B.x, B.z + B.width / 2 + B.sideRamp + 3, 1), "beyond the side ramps")
+	end)
+
+	-- V3 review M1 and m5.
+	case("V3-13: the creature tags, and the docks as stand, ramp and deck", function()
+		equal(V3.BEAST_PASS_TAG, "WildboundBeastPass", "pass tag")
+		equal(V3.BEAST_OVERHEAD_TAG, "WildboundBeastOverhead", "overhead tag")
+		local docks = 0
+		for _, p in ipairs(V3.pieces()) do if p.kind == "dock" then docks += 1 end end
+		equal(docks, #V3.DOCKS * 3, "three discs per dock")
+		for _, d in ipairs(V3.DOCKS) do
+			local foot, mid, dir, deckEnd = V3.dockPoints(d)
+			assert(V3.liquidDistance(foot.x, foot.z) > 0, d.id .. "'s ramp foot on land")
+			assert(deckEnd > 0 and math.abs(dir.x ^ 2 + dir.z ^ 2 - 1) < 1e-9, d.id .. " deck")
+			assert(flat(mid.x, mid.z, d.standX, d.standZ) < flat(d.tipX, d.tipZ, d.standX, d.standZ), d.id .. " deck middle")
+		end
+		assert(V3.DOCK.tipGap >= 4, "the docked hull has room")
 	end)
 
 	return result

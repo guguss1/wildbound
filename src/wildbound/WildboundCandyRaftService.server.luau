@@ -31,7 +31,8 @@ local lane = V3.raftLane(Layout.CENTRE)
 local state = assert(Raft.new(lane, V3.RAFT.homeDock))
 local stands = {}
 for i, d in ipairs(V3.DOCKS) do
-	stands[i] = Vector3.new(Layout.CENTRE.x + d.standX, Layout.FLOOR_TOP + 3, Layout.CENTRE.z + d.standZ)
+	-- review m6: on top of the dock deck (surface + deckOver), a root's height above it
+	stands[i] = Vector3.new(Layout.CENTRE.x + d.standX, surface + V3.DOCK.deckOver + 3, Layout.CENTRE.z + d.standZ)
 end
 
 -- The raft model --------------------------------------------------------------------------------------------------
@@ -111,13 +112,36 @@ local function buildModel()
 end
 
 local model, seat, prompt = buildModel()
+
+-- review m6: a call prompt on each dock's stand brings the empty raft over from the other dock
+local callPrompts = {}
+for i, stand in ipairs(stands) do
+	local post = Instance.new("Part")
+	post.Name = "CallPoint_" .. i
+	post.Size = Vector3.new(1, 1, 1)
+	post.Transparency = 1
+	post.CFrame = CFrame.new(stand)
+	quiet(post)
+	post.Parent = folder
+	local call = Instance.new("ProximityPrompt")
+	call.ActionText, call.ObjectText = Text.CANDY_RAFT.callPrompt, Text.CANDY_RAFT.object
+	call.HoldDuration = 0.3
+	call.MaxActivationDistance = Raft.BOARD_STUDS
+	call.RequiresLineOfSight = false
+	call.Enabled = false
+	call.Parent = post
+	callPrompts[i] = call
+end
 local yaw = select(3, Raft.pointAt(lane, state.s))
 
+-- review m6: the server moves the anchored raft only while it is under way (and once when it docks or respawns),
+-- so a docked raft sends nothing; the bob plays only while it sails.
 local function place(t)
 	local x, z, legYaw = Raft.pointAt(lane, state.s)
 	if state.dir < 0 then legYaw += math.pi end
-	if state.status == "Sailing" or state.status == "Adrift" then yaw = legYaw end
-	model:PivotTo(CFrame.new(x, surface + Raft.bob(t), z) * CFrame.Angles(0, yaw, 0))
+	if Raft.moving(state) then yaw = legYaw end
+	local bob = Raft.moving(state) and Raft.bob(t) or 0
+	model:PivotTo(CFrame.new(x, surface + bob, z) * CFrame.Angles(0, yaw, 0))
 end
 place(0)
 
@@ -171,6 +195,19 @@ prompt.Triggered:Connect(function(player)
 	tell(player, "Boarded")
 end)
 
+for i, call in ipairs(callPrompts) do
+	call.Triggered:Connect(function(player)
+		local humanoid, root = humanoidOf(player)
+		local stand = stands[i]
+		if not humanoid or (Vector3.new(root.Position.X, 0, root.Position.Z) - Vector3.new(stand.X, 0, stand.Z)).Magnitude > Raft.BOARD_STUDS then
+			tell(player, "Refused", "TooFar")
+			return
+		end
+		local ok, reason = Raft.call(state, i, now())
+		tell(player, ok and "Called" or "Refused", reason)
+	end)
+end
+
 if remote then
 	local lastRequest = {}
 	remote.OnServerEvent:Connect(function(player, payload)
@@ -194,6 +231,7 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- The step --------------------------------------------------------------------------------------------------------
+local wasMoving = false
 RunService.Heartbeat:Connect(function(dt)
 	local t = now()
 	local rider = state.rider and Players:GetPlayerByUserId(state.rider)
@@ -218,5 +256,9 @@ RunService.Heartbeat:Connect(function(dt)
 		end
 	end
 	prompt.Enabled = state.status == "Docked" and state.rider == nil
-	place(t)
+	for i, call in ipairs(callPrompts) do
+		call.Enabled = state.status == "Docked" and state.rider == nil and state.dock ~= i
+	end
+	if wasMoving or Raft.moving(state) then place(t) end
+	wasMoving = Raft.moving(state)
 end)

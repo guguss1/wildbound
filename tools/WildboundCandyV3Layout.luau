@@ -25,6 +25,12 @@ V3.VERSION = 1
 V3.MARK = "CaramelV3"
 V3.FOLDER = "CaramelV3"
 V3.SEED = 20261117
+-- V3-D18 (review M1): what the candy creatures make of the v3 pieces (WildboundBeasts.server refreshFilter). A model
+-- tagged PASS (houses, the tower, the cake) is not there for them: no ground, no wall, no cover, so a chase follows a
+-- player inside instead of landing on a roof. A model tagged OVERHEAD (mountains, hills, the licorice) is still a wall
+-- but never ground, so no creature lands on a summit or an arch.
+V3.BEAST_PASS_TAG = "WildboundBeastPass"
+V3.BEAST_OVERHEAD_TAG = "WildboundBeastOverhead"
 -- The kits the Blender agents deliver: ServerStorage.WildboundAssets.CandyKitV3.<AssetName>, one Model each, pivot at
 -- the ground centre of the base, front -Z, meshes that never collide (the builder makes the Collision_ parts from the
 -- kit spec). A missing model is replaced by a plain-part placeholder of the same footprint (WildboundCandyV3Builder).
@@ -71,8 +77,8 @@ V3.RIVER = freeze({
 -- of it that slide down on the client (WildboundCandyAmbienceClient reads their attributes). Without the kit, a
 -- placeholder sheet stands there.
 V3.POOL = freeze({ x = 156.9, z = -134.1, r = 6.05 })
-V3.WATERFALL = freeze({ x = 159.3, z = -131.3, width = 8, top = 19, faceX = 156.9, faceZ = -134.1, streaks = 5,
-	flowSpeed = 12 })
+V3.WATERFALL = freeze({ x = 159.3, z = -131.3, width = 8, top = 18.5, faceX = 156.9, faceZ = -134.1, streaks = 5,
+	flowSpeed = 12 }) -- review m8: top is studs over the floor (the kit ledge 33.72 x 0.55), not a world height
 -- The chocolate lake: the old Laguna de Almibar's three discs (now covered in chocolate) and a wider disc to the
 -- north, where the river ends and the cookie platforms float.
 V3.LAKE = freeze({
@@ -83,8 +89,11 @@ V3.LAKE = freeze({
 })
 -- The bridge: the left route's bottom leg crosses the river mouth and the lake here. A deck `deck` studs over the floor
 -- (above the liquid), `width` wide, from x - length/2 to x + length/2 along the route, and a ramp of `ramp` studs at
--- each end. It replaces the old flat biscuit tiles (the migration archives them).
-V3.BRIDGE = freeze({ x = 0, z = -140, length = 88, ramp = 7, width = 16, deck = 2.2, route = "left" })
+-- each end. It replaces the old flat biscuit tiles (the migration archives them). V3-D19 (review M3): the rails open in
+-- gaps of gapWidth studs centred at x + gaps[i], each with a walkable side ramp of sideRamp studs down to the floor on
+-- both sides, so a wader, an egg run or a creature crosses north-south without a detour.
+V3.BRIDGE = freeze({ x = 0, z = -140, length = 88, ramp = 7, width = 16, deck = 2.2, route = "left",
+	gaps = { -30, 0, 30 }, gapWidth = 8, sideRamp = 6 })
 
 -- The houses (enterable, with an interior, kit scale 1 so the 7 x 9.5 doors fit an avatar): { id, asset, x, z, r (the
 -- footprint disc round the kit's bounding box) }. Each faces the junction.
@@ -94,7 +103,7 @@ V3.HOUSES = freeze({
 	{ id = "H3", asset = "CV3_ChocoHouse", x = -165, z = -160, r = 16 },
 	{ id = "H4", asset = "CV3_SweetHouse", x = 178, z = 100, r = 20 },
 	{ id = "H5", asset = "CV3_CaramelTower", x = -180, z = 76, r = 15 },
-	{ id = "H6", asset = "CV3_ChocoHouse", x = 180, z = -172, r = 16 },
+	{ id = "H6", asset = "CV3_ChocoHouse", x = 182, z = -176, r = 16 }, -- review m5: off dock B's ramp
 	{ id = "H7", asset = "CV3_SweetHouse", x = 20, z = 172, r = 20 },
 })
 -- Placeholder sizes (side of the square, wall height) when a house model is missing.
@@ -108,6 +117,9 @@ V3.DOCKS = freeze({
 	{ id = "B", standX = 157.1, standZ = -167.9, tipX = 145.7, tipZ = -158.1 },
 })
 V3.RAFT = freeze({ asset = "CV3_BananaRaft", lane = { { 135, -149 }, { 148.5, -144 }, { 145.7, -158.1 } }, homeDock = 1 })
+-- A dock's build (review m5, m6): its deck stops tipGap studs short of the tip (the docked hull's room), its ramp
+-- starts rampBack studs behind the stand, deckWidth wide; its top stands deckOver studs over the chocolate's surface.
+V3.DOCK = freeze({ deckWidth = 6, tipGap = 5, rampBack = 5, deckOver = 0.4 })
 
 -- The rainbow licorice arch (CV3_LicoriceArch) over the main path, between the entrance and the fork, its span (the
 -- kit's X) across the path. The kit's ribbon meets the ground at four feet, feet = { |x| of the inner pair, of the
@@ -227,6 +239,16 @@ function V3.kitPoint(x, z, yaw, scale, X, Z)
 	return x + X * math.cos(yaw) + Z * math.sin(yaw), z - X * math.sin(yaw) + Z * math.cos(yaw)
 end
 
+-- A dock's ramp foot and the middle of its deck (plot coordinates).
+function V3.dockPoints(d)
+	local dx, dz = d.tipX - d.standX, d.tipZ - d.standZ
+	local length = math.sqrt(dx * dx + dz * dz)
+	local ux, uz = dx / length, dz / length
+	local deckEnd = length - V3.DOCK.tipGap
+	return { x = d.standX - ux * V3.DOCK.rampBack, z = d.standZ - uz * V3.DOCK.rampBack },
+		{ x = d.standX + ux * deckEnd / 2, z = d.standZ + uz * deckEnd / 2 }, { x = ux, z = uz }, deckEnd
+end
+
 -- Every solid footprint of the batch as discs: { kind, id, x, z, r }. The docks are their stand points, the
 -- licorice its four feet, the cake its base and its ramp.
 function V3.pieces()
@@ -234,7 +256,11 @@ function V3.pieces()
 	for _, m in ipairs(V3.MOUNTAINS) do table.insert(list, { kind = "mountain", id = m.id, x = m.x, z = m.z, r = m.r }) end
 	for _, h in ipairs(V3.HOUSES) do table.insert(list, { kind = "house", id = h.id, x = h.x, z = h.z, r = h.r }) end
 	for _, d in ipairs(V3.DOCKS) do
+		-- review m5/m7: the stand, the ramp's foot and the deck's middle, each as a disc of the deck's half width
+		local foot, mid = V3.dockPoints(d)
 		table.insert(list, { kind = "dock", id = d.id, x = d.standX, z = d.standZ, r = 3 })
+		table.insert(list, { kind = "dock", id = d.id .. "Ramp", x = foot.x, z = foot.z, r = V3.DOCK.deckWidth / 2 + 0.5 })
+		table.insert(list, { kind = "dock", id = d.id .. "Deck", x = mid.x, z = mid.z, r = V3.DOCK.deckWidth / 2 })
 	end
 	local Lc = V3.LICORICE
 	for i, foot in ipairs(Lc.feet) do
@@ -260,11 +286,15 @@ function V3.clearOfPieces(x, z, r, margin)
 	for _, p in ipairs(V3.pieces()) do
 		if flat(x, z, p.x, p.z) < p.r + r + margin then return false, "on " .. p.kind .. " " .. p.id end
 	end
-	local B = V3.BRIDGE
-	if math.abs(z - B.z) <= B.width / 2 + r + margin and math.abs(x - B.x) <= B.length / 2 + B.ramp + r + margin then
-		return false, "on the bridge"
-	end
+	if V3.nearBridge(x, z, r + margin) then return false, "on the bridge" end
 	return true
+end
+
+-- Whether something of the given reach at (x, z) touches the bridge: its deck, end ramps or side ramps (review m7).
+function V3.nearBridge(x, z, reach)
+	local B = V3.BRIDGE
+	reach = reach or 0
+	return math.abs(z - B.z) <= B.width / 2 + B.sideRamp + reach and math.abs(x - B.x) <= B.length / 2 + B.ramp + reach
 end
 
 -- The raft's lane in world coordinates for a plot centre { x, z }: a list of { x, z }.

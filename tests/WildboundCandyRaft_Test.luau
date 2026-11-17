@@ -176,7 +176,8 @@ return function(Raft, V3, Layout, Text, sources)
 		has(client, "ResetOnSpawn = false", "keeps its gui")
 		has(client, "Text.CANDY_RAFT", "words from WildboundText")
 		local T = Text.CANDY_RAFT
-		for _, key in ipairs({ "prompt", "object", "boarded", "arrived", "left", "busy", "moving", "tooFar", "leave" }) do
+		for _, key in ipairs({ "prompt", "object", "boarded", "arrived", "left", "busy", "moving", "tooFar", "leave", "callPrompt",
+			"called", "here" }) do
 			assert(type(T[key]) == "string" and #T[key] > 0 and #T[key] <= 64, key)
 		end
 		for _, english in ipairs({ "raft", "Raft", "Leave", "Board" }) do
@@ -193,6 +194,35 @@ return function(Raft, V3, Layout, Text, sources)
 		equal(Raft.dockedAt(s), 2, "home dock 2"); near(s.s, 70)
 		Raft.board(s, 1, 1, true, 0)
 		equal(Raft.dockedAt(s), nil, "boarding is not docked")
+	end)
+
+	-- V3 review m6: call the raft over, set the rider on the deck, move only while under way.
+	case("RF10: a player at the other dock calls the empty raft; it sails over with no rider", function()
+		local s = Raft.new(lane, 1)
+		local ok, why = Raft.call(s, 1, 0)
+		assert(not ok and why == "Here", "already here")
+		ok, why = Raft.call(s, 3, 0)
+		assert(not ok and why == "Invalid", "no third dock")
+		assert(Raft.call(s, 2, 0), "called to dock 2")
+		equal(s.status, "Sailing"); equal(Raft.moving(s), true, "under way")
+		ok, why = Raft.board(s, 1, 1, true, 0)
+		assert(not ok and why == "Moving", "nobody boards a raft under way")
+		local events = sail(s, 0, 60, false)
+		local arrived
+		for _, e in ipairs(events) do if e.kind == "Arrived" then arrived = e end end
+		assert(arrived and arrived.rider == nil, "arrived empty")
+		equal(s.dock, 2, "at dock 2"); equal(Raft.moving(s), false, "docked")
+		Raft.board(s, 9, 1, true, 100)
+		ok, why = Raft.call(s, 1, 100)
+		assert(not ok and why == "Busy", "a ridden raft cannot be called")
+	end)
+
+	case("RF11: service wiring for the call, the set-down height and the quiet docked raft", function()
+		has(service, "Raft.call(state, i, now())", "the server judges the call")
+		has(service, "Text.CANDY_RAFT.callPrompt", "the call prompt's words")
+		has(service, "surface + V3.DOCK.deckOver + 3", "the rider is set on the dock deck")
+		has(service, "if wasMoving or Raft.moving(state) then place(t) end", "a docked raft is not moved every frame")
+		has(client, "payload.kind == \"Called\"", "the client tells the caller")
 	end)
 
 	return result

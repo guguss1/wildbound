@@ -410,7 +410,41 @@ function V3Builder.openSpot(L, V3, x, z, reach, taken, keepOut)
 	return true
 end
 
+-- existingProps(root, L) -> { { x, z, reach } } (plot coordinates): every kit prop and nest already standing under root
+-- (the old map's trees, lollipops, gumdrops, sweets, sugar hills, nests, the entrance's pieces and the portal) and every
+-- v3 tree and filler prop laid so far, by its measured reach (colliders and Roof, or 70 % of its crown). The filler,
+-- the hills and the nudged trees keep off them (review M4).
+V3Builder.EXISTING_FOLDERS = { "Lollipops", "CottonTrees", "Gumdrops", "Sweets", "SugarHills", "Nests", "Entrance" }
+function V3Builder.existingProps(root, L)
+	local out = {}
+	local function add(m)
+		if not (m:IsA("Model") and not forbidden(m)) then return end
+		local ok, pivot = pcall(m.GetPivot, m)
+		if not ok then return end
+		local measure = V3Builder.measureTree(m)
+		local reach = math.max(measure.trunk, measure.roof, measure.canopy * 0.7, 1)
+		table.insert(out, { x = pivot.X - L.CENTRE.x, z = pivot.Z - L.CENTRE.z, reach = reach, name = m:GetFullName() })
+	end
+	for _, name in ipairs(V3Builder.EXISTING_FOLDERS) do
+		local f = root:FindFirstChild(name)
+		for _, c in ipairs(f and f:GetChildren() or {}) do add(c) end
+	end
+	local portal = root:FindFirstChild("Portal")
+	if portal then add(portal) end
+	local holder = root:FindFirstChild("CaramelV3")
+	for _, sub in ipairs({ "Trees", "Filler" }) do
+		local f = holder and holder:FindFirstChild(sub)
+		for _, c in ipairs(f and f:GetChildren() or {}) do add(c) end
+	end
+	return out
+end
+
 -- The pieces ------------------------------------------------------------------------------------------------------
+
+local function tag(m, name)
+	CollectionService:AddTag(m, name)
+	return m
+end
 
 local function layLiquid(ctx, into, poolFromKit)
 	local L, V3 = ctx.L, ctx.V3
@@ -449,26 +483,25 @@ end
 
 -- The waterfall: streaks of lighter chocolate in front of the fall that the client slides down (FlowTop and
 -- FlowBottom in world Y, FlowPhase), and a foam ring where it meets the pool; with no kit mountain, a placeholder sheet
--- and lip too.
+-- and lip too (named Sheet and Lip: an upgrade to the kit archives them).
 local function layWaterfall(ctx, into, sheetToo)
 	local V3 = ctx.V3
 	local W = V3.WATERFALL
 	local m = model(into, "Waterfall")
 	local surface = V3.surfaceY(ctx.top)
-	local height = W.top - surface
+	local height = ctx.top + W.top - surface -- review m8: W.top is studs over the floor
 	local base = ctx.world(W.x, surface, W.z)
 	local face = ctx.world(W.faceX, surface, W.faceZ)
 	local look = CFrame.lookAt(base, Vector3.new(face.X, base.Y, face.Z))
 	if sheetToo then
-		local sheet = liquid(block(ctx, m, "Sheet", "decor", Vector3.new(W.width, height, 1), look * CFrame.new(0, height / 2, 0),
+		liquid(block(ctx, m, "Sheet", "decor", Vector3.new(W.width, height, 1), look * CFrame.new(0, height / 2, 0),
 			PALETTE.chocolate), V3)
-		m.PrimaryPart = sheet
 		ball(ctx, m, "Lip", "decor", (look * CFrame.new(0, height, 0)).Position, W.width * 0.3, PALETTE.chocolateLight)
 	end
 	local foamAt = (look * CFrame.new(0, 0, -1.5)).Position
 	local foam = drum(ctx, m, "Foam", "decor", foamAt.X, foamAt.Z, surface - 0.2, W.width * 0.4, 0.4, PALETTE.foam)
 	foam.Transparency = 0.25
-	if not m.PrimaryPart then m.PrimaryPart = foam end
+	m.PrimaryPart = foam
 	local streakLength = height * 0.22
 	for i = 1, W.streaks do
 		local across = (i - 0.5) / W.streaks - 0.5
@@ -486,6 +519,8 @@ local function layWaterfall(ctx, into, sheetToo)
 	return m
 end
 
+-- The bridge (V3-D19): deck, end ramps, rails broken by gaps, and in each gap a side ramp down to the floor on both
+-- sides.
 local function layBridge(ctx, into)
 	local L, V3 = ctx.L, ctx.V3
 	local B = V3.BRIDGE
@@ -499,153 +534,188 @@ local function layBridge(ctx, into)
 		local edge = Vector3.new(cx + s * B.length / 2, y, cz)
 		local foot = Vector3.new(cx + s * (B.length / 2 + B.ramp), top, cz)
 		plank(ctx, m, "Ramp_" .. i, "floor", foot, edge, B.width, PALETTE.wafer)
-		block(ctx, m, "Rail_" .. i, "solid", Vector3.new(B.length, 2.2, 0.8), CFrame.new(cx, y + 1.1, cz + s * (B.width / 2 - 0.4)),
-			PALETTE.chocolate)
-		for k = 0, 2 do
-			local x = cx + (k - 1) * B.length / 2
-			ball(ctx, m, "Cap_" .. i .. "_" .. k, "decor", Vector3.new(x, y + 2.6, cz + s * (B.width / 2 - 0.4)), 0.9, PALETTE.strawberry)
+	end
+	-- the rail runs between the gaps: from -length/2 to the first gap, between gaps, from the last gap to +length/2
+	local cuts = {}
+	for _, gx in ipairs(B.gaps) do table.insert(cuts, gx) end
+	table.sort(cuts)
+	local runs, from = {}, -B.length / 2
+	for _, gx in ipairs(cuts) do
+		table.insert(runs, { from, gx - B.gapWidth / 2 })
+		from = gx + B.gapWidth / 2
+	end
+	table.insert(runs, { from, B.length / 2 })
+	for i, s in ipairs({ -1, 1 }) do
+		local railZ = cz + s * (B.width / 2 - 0.4)
+		for k, run in ipairs(runs) do
+			local length = run[2] - run[1]
+			if length > 0.5 then
+				local mid = cx + (run[1] + run[2]) / 2
+				block(ctx, m, "Rail_" .. i .. "_" .. k, "solid", Vector3.new(length, 2.2, 0.8), CFrame.new(mid, y + 1.1, railZ), PALETTE.chocolate)
+				ball(ctx, m, "Cap_" .. i .. "_" .. k, "decor", Vector3.new(mid, y + 2.6, railZ), 0.9, PALETTE.strawberry)
+			end
+		end
+		for k, gx in ipairs(cuts) do
+			local edgeZ = cz + s * B.width / 2
+			plank(ctx, m, "SideRamp_" .. i .. "_" .. k, "floor", Vector3.new(cx + gx, top, edgeZ + s * B.sideRamp),
+				Vector3.new(cx + gx, y, edgeZ), B.gapWidth, PALETTE.wafer)
 		end
 	end
 	m:SetAttribute("Route", B.route)
 	return m
 end
 
+-- The docks (review m5/m6): a deck from the stand to tipGap studs short of the tip, its top deckOver over the surface,
+-- a ramp from rampBack studs behind the stand, two posts by the tip.
 local function layDocks(ctx, into)
-	local V3 = ctx.V3
+	local L, V3 = ctx.L, ctx.V3
+	local D = V3.DOCK
 	local out = folder(into, "Docks")
 	local top = ctx.top
-	local y = V3.surfaceY(top) + 0.4
+	local y = V3.surfaceY(top) + D.deckOver
 	for _, d in ipairs(V3.DOCKS) do
 		local m = model(out, "Dock_" .. d.id)
+		local foot, _, dir, deckEnd = V3.dockPoints(d)
 		local stand = ctx.world(d.standX, y, d.standZ)
-		local tip = ctx.world(d.tipX, y, d.tipZ)
-		local dir = Vector3.new(tip.X - stand.X, 0, tip.Z - stand.Z).Unit
-		local deck = block(ctx, m, "Deck", "floor", Vector3.new(6, 0.4, (tip - stand).Magnitude + 3),
-			CFrame.lookAt((stand + tip) / 2 - Vector3.new(0, 0.2, 0), tip - Vector3.new(0, 0.2, 0)), PALETTE.wafer)
+		local dirV = Vector3.new(dir.x, 0, dir.z)
+		local stop = stand + dirV * deckEnd
+		local deck = block(ctx, m, "Deck", "floor", Vector3.new(D.deckWidth, 0.4, deckEnd + 1.5),
+			CFrame.lookAt((stand + stop) / 2 - dirV * 0.75 - Vector3.new(0, 0.2, 0), stop - Vector3.new(0, 0.2, 0)), PALETTE.wafer)
 		m.PrimaryPart = deck
-		plank(ctx, m, "Ramp", "floor", Vector3.new(stand.X, top, stand.Z) - dir * 7, stand - dir * 1.5, 6, PALETTE.wafer)
-		local side = Vector3.new(-dir.Z, 0, dir.X)
+		plank(ctx, m, "Ramp", "floor", ctx.world(foot.x, top, foot.z), stand - dirV * 1.5, D.deckWidth, PALETTE.wafer)
+		local side = Vector3.new(-dirV.Z, 0, dirV.X)
 		for k, s in ipairs({ -1, 1 }) do
-			local post = tip + side * s * 3.2
+			local post = stop + side * s * (D.deckWidth / 2 + 0.3)
 			drum(ctx, m, "Post_" .. k, "decor", post.X, post.Z, top, 0.5, y - top + 2, PALETTE.chocolate)
 		end
 		m:SetAttribute("DockId", d.id)
 		m:SetAttribute("StandX", stand.X)
 		m:SetAttribute("StandZ", stand.Z)
+		m:SetAttribute("DeckY", y)
 		CollectionService:AddTag(m, "WildboundCandyRaftDock")
 	end
 	return out
 end
 
--- returns the folder and whether M1 (the river's mountain) came from the kit
-local function layMountains(ctx, into, report)
+-- One piece each (shared by layAll and upgradePlaceholders). Each returns the model and whether it is a placeholder.
+local function mountainPiece(ctx, into, spec)
 	local L, V3 = ctx.L, ctx.V3
-	local out = folder(into, "Mountains")
-	local riverFromKit = false
-	for _, spec in ipairs(V3.MOUNTAINS) do
-		local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
-		local name = "Mountain_" .. spec.id
-		local yaw = V3.faceYaw(spec.x, spec.z, spec.faceX, spec.faceZ)
-		local m = fromKit(ctx, out, name, spec.asset, CFrame.new(x, ctx.top, z) * CFrame.Angles(0, yaw, 0), spec.scale, "solid")
-		if m then
-			if spec.river then riverFromKit = true end
-		else
-			m = placeholderMountain(ctx, out, name, spec.asset, x, ctx.top, z, spec.r, spec.height)
-			table.insert(report.placeholders, name)
-		end
-		m:SetAttribute("MountainId", spec.id)
-	end
-	return out, riverFromKit
+	local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
+	local name = "Mountain_" .. spec.id
+	local yaw = V3.faceYaw(spec.x, spec.z, spec.faceX, spec.faceZ)
+	local m = fromKit(ctx, into, name, spec.asset, CFrame.new(x, ctx.top, z) * CFrame.Angles(0, yaw, 0), spec.scale, "solid")
+	local placeholder = m == nil
+	if placeholder then m = placeholderMountain(ctx, into, name, spec.asset, x, ctx.top, z, spec.r, spec.height) end
+	m:SetAttribute("MountainId", spec.id)
+	tag(m, V3.BEAST_OVERHEAD_TAG)
+	return m, placeholder
 end
 
-local function layHouses(ctx, into, report)
+local function housePiece(ctx, into, spec)
 	local L, V3 = ctx.L, ctx.V3
-	local out = folder(into, "Houses")
-	for _, spec in ipairs(V3.HOUSES) do
-		local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
-		local yaw = V3.faceYaw(spec.x, spec.z, L.JUNCTION.x, L.JUNCTION.z)
-		local cf = CFrame.new(x, ctx.top, z) * CFrame.Angles(0, yaw, 0)
-		local name = "House_" .. spec.id
-		local m = fromKit(ctx, out, name, spec.asset, cf, 1, "solid")
-		if not m then
-			local size = V3.HOUSE_PLACEHOLDER[spec.asset]
-			m = placeholderHouse(ctx, out, name, spec.asset, cf, size[1], size[2])
-			table.insert(report.placeholders, name)
-		end
-		m:SetAttribute("HouseId", spec.id)
-		m:SetAttribute("Interior", true)
+	local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
+	local yaw = V3.faceYaw(spec.x, spec.z, L.JUNCTION.x, L.JUNCTION.z)
+	local cf = CFrame.new(x, ctx.top, z) * CFrame.Angles(0, yaw, 0)
+	local name = "House_" .. spec.id
+	local m = fromKit(ctx, into, name, spec.asset, cf, 1, "solid")
+	local placeholder = m == nil
+	if placeholder then
+		local size = V3.HOUSE_PLACEHOLDER[spec.asset]
+		m = placeholderHouse(ctx, into, name, spec.asset, cf, size[1], size[2])
 	end
-	return out
+	m:SetAttribute("HouseId", spec.id)
+	m:SetAttribute("Interior", true)
+	tag(m, V3.BEAST_PASS_TAG)
+	return m, placeholder
 end
 
-local function layLicorice(ctx, into, report)
+local function licoricePiece(ctx, into)
 	local L, V3 = ctx.L, ctx.V3
 	local S = V3.LICORICE
-	local out = folder(into, "Licorice")
 	-- the span (the kit's X) runs across the main path: a yaw of 90 degrees turns local X onto -Z
 	local cf = CFrame.new(L.CENTRE.x + S.x, ctx.top, L.CENTRE.z + S.z) * CFrame.Angles(0, math.rad(90), 0)
-	local m = fromKit(ctx, out, "LicoriceArch", "CV3_LicoriceArch", cf, S.scale, "solid")
-	if not m then
-		m = placeholderLicorice(ctx, out, "LicoriceArch", cf, S.span, S.height)
-		table.insert(report.placeholders, "LicoriceArch")
-	end
+	local m = fromKit(ctx, into, "LicoriceArch", "CV3_LicoriceArch", cf, S.scale, "solid")
+	local placeholder = m == nil
+	if placeholder then m = placeholderLicorice(ctx, into, "LicoriceArch", cf, S.span, S.height) end
 	m:SetAttribute("Height", S.height)
-	return out
+	tag(m, V3.BEAST_OVERHEAD_TAG)
+	return m, placeholder
 end
 
+local CAKE_ASSETS = { "CV3_CakeBase", "CV3_CakeTop", "CV3_CakeRamp" }
 -- The cake: CV3_CakeBase, CV3_CakeTop on its top_tier socket and CV3_CakeRamp with its high_end against the base's
 -- ramp_front socket (the ramp's +Z towards the centre); a placeholder unless all three are in the kit.
-local function layCake(ctx, into, report)
+local function cakePiece(ctx, into)
 	local L, V3 = ctx.L, ctx.V3
 	local K = V3.CAKE
-	local out = folder(into, "Cake")
 	local yaw = V3.faceYaw(K.x, K.z, K.faceX, K.faceZ)
 	local cf = CFrame.new(L.CENTRE.x + K.x, ctx.top, L.CENTRE.z + K.z) * CFrame.Angles(0, yaw, 0)
-	local spec = ctx.spec or {}
-	local kit = ctx.kit
-	local whole = kit and kit:FindFirstChild("CV3_CakeBase") and kit:FindFirstChild("CV3_CakeTop") and kit:FindFirstChild("CV3_CakeRamp")
-		and spec.CV3_CakeBase and spec.CV3_CakeRamp and spec.CV3_CakeBase.sockets and spec.CV3_CakeRamp.sockets
+	local spec, kit = ctx.spec or {}, ctx.kit
+	local whole = kit ~= nil and spec.CV3_CakeBase ~= nil and spec.CV3_CakeRamp ~= nil and spec.CV3_CakeBase.sockets ~= nil
+		and spec.CV3_CakeRamp.sockets ~= nil
+	for _, asset in ipairs(CAKE_ASSETS) do whole = whole and kit:FindFirstChild(asset) ~= nil end
+	local m
 	if whole then
 		local s = K.scale
 		local sockets, high = spec.CV3_CakeBase.sockets, spec.CV3_CakeRamp.sockets.high_end
-		local holder = model(out, "CakeModular")
-		fromKit(ctx, holder, "CakeBase", "CV3_CakeBase", cf, s, "floor")
+		m = model(into, "CakeModular")
+		fromKit(ctx, m, "CakeBase", "CV3_CakeBase", cf, s, "floor")
 		local topAt = sockets.top_tier
-		fromKit(ctx, holder, "CakeTop", "CV3_CakeTop", cf * CFrame.new(topAt[1] * s, topAt[2] * s, topAt[3] * s), s, "floor")
+		fromKit(ctx, m, "CakeTop", "CV3_CakeTop", cf * CFrame.new(topAt[1] * s, topAt[2] * s, topAt[3] * s), s, "floor")
 		local front = sockets.ramp_front
-		fromKit(ctx, holder, "CakeRamp", "CV3_CakeRamp", cf * CFrame.new((front[1] - high[1]) * s, 0, (front[3] - high[3]) * s), s, "floor")
-		holder:SetAttribute("Placeholder", false)
-		holder.WorldPivot = cf
+		fromKit(ctx, m, "CakeRamp", "CV3_CakeRamp", cf * CFrame.new((front[1] - high[1]) * s, 0, (front[3] - high[3]) * s), s, "floor")
+		m:SetAttribute("Placeholder", false)
+		m:SetAttribute("KitAsset", "CV3_CakeBase")
+		m.WorldPivot = cf
 	else
-		placeholderCake(ctx, out, "CakeModular", cf, K.r, K.height, K.rampReach)
-		table.insert(report.placeholders, "CakeModular")
+		m = placeholderCake(ctx, into, "CakeModular", cf, K.r, K.height, K.rampReach)
 	end
-	return out
+	tag(m, V3.BEAST_PASS_TAG)
+	return m, not whole
 end
 
-local function layPlatforms(ctx, into, report)
+local function platformPiece(ctx, into, i)
 	local L, V3 = ctx.L, ctx.V3
-	local out = folder(into, "Platforms")
-	for i, spec in ipairs(V3.PLATFORMS) do
-		local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
-		local name = "Platform_" .. i
-		local m = fromKit(ctx, out, name, spec.asset, CFrame.new(x, ctx.top, z) * CFrame.Angles(0, (i * 1.3) % (2 * math.pi), 0), 1, "floor")
-		if not m then
-			placeholderPlatform(ctx, out, name, spec.asset, x, z, V3.surfaceY(ctx.top) + 0.5, spec.r)
-			table.insert(report.placeholders, name)
-		end
+	local spec = V3.PLATFORMS[i]
+	local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
+	local name = "Platform_" .. i
+	local m = fromKit(ctx, into, name, spec.asset, CFrame.new(x, ctx.top, z) * CFrame.Angles(0, (i * 1.3) % (2 * math.pi), 0), 1, "floor")
+	local placeholder = m == nil
+	if placeholder then m = placeholderPlatform(ctx, into, name, spec.asset, x, z, V3.surfaceY(ctx.top) + 0.5, spec.r) end
+	m:SetAttribute("PlatformIndex", i)
+	return m, placeholder
+end
+
+local function hillPiece(ctx, into, name, wx, wz, yaw, r)
+	local V3 = ctx.V3
+	local m = fromKit(ctx, into, name, "CV3_IceCreamMountain_M", CFrame.new(wx, ctx.top, wz) * CFrame.Angles(0, yaw, 0),
+		V3.FILLER.hillScale, "solid")
+	local placeholder = m == nil
+	if placeholder then
+		m = placeholderMountain(ctx, into, name, "CV3_IceCreamMountain_M", wx, ctx.top, wz, r, r * 1.7)
+		m.WorldPivot = CFrame.new(wx, ctx.top, wz) * CFrame.Angles(0, yaw, 0)
 	end
-	return out
+	m:SetAttribute("Hill", true)
+	m:SetAttribute("HillRadius", r)
+	tag(m, V3.BEAST_OVERHEAD_TAG)
+	return m, placeholder
+end
+
+local function hillRadius(ctx)
+	local mSpec = ctx.spec and ctx.spec.CV3_IceCreamMountain_M
+	return mSpec and math.max(mSpec.size[1], mSpec.size[3]) / 2 * ctx.V3.FILLER.hillScale or 7
 end
 
 -- The filler: candy props of the old kit (Kit.place from library) along both banks every bankEvery studs, round each
--- house, and small ice-cream hills by the plot edge. Seeded; each on openSpot.
-local function layFiller(ctx, into, deps, report)
+-- house, and small ice-cream hills by the plot edge. Seeded; each on openSpot, off every prop already standing
+-- (deps.existing, or V3Builder.existingProps(root)).
+local function layFiller(ctx, into, deps, report, existing)
 	local L, V3 = ctx.L, ctx.V3
 	local F = V3.FILLER
 	local out = folder(into, "Filler")
 	local rng = Random.new(V3.SEED)
 	local taken = {}
+	for _, e in ipairs(existing) do table.insert(taken, { x = e.x, z = e.z, reach = e.reach }) end
 	local Kit, library = deps.Kit, deps.library
 	local count = 0
 	local function candy(x, z, reach)
@@ -692,8 +762,7 @@ local function layFiller(ctx, into, deps, report)
 	end
 	-- small ice-cream hills by the plot edge (the kit's medium mountain scaled down, or a placeholder)
 	local hills, tries = 0, 0
-	local mSpec = ctx.spec and ctx.spec.CV3_IceCreamMountain_M
-	local r = mSpec and math.max(mSpec.size[1], mSpec.size[3]) / 2 * F.hillScale or 7
+	local r = hillRadius(ctx)
 	while hills < F.hills and tries < 400 do
 		tries += 1
 		local edge = rng:NextInteger(1, 4)
@@ -706,12 +775,8 @@ local function layFiller(ctx, into, deps, report)
 		else x, z = along, -L.HALF + inset end
 		if V3Builder.openSpot(L, V3, x, z, r, taken, deps.keepOut) then
 			hills += 1
-			local name = "Hill_" .. hills
-			local wx, wz = L.CENTRE.x + x, L.CENTRE.z + z
-			local yaw = V3.faceYaw(x, z, 0, 0)
-			local m = fromKit(ctx, out, name, "CV3_IceCreamMountain_M", CFrame.new(wx, ctx.top, wz) * CFrame.Angles(0, yaw, 0),
-				F.hillScale, "solid")
-			if not m then placeholderMountain(ctx, out, name, "CV3_IceCreamMountain_M", wx, ctx.top, wz, r, r * 1.7) end
+			local _, placeholder = hillPiece(ctx, out, "Hill_" .. hills, L.CENTRE.x + x, L.CENTRE.z + z, V3.faceYaw(x, z, 0, 0), r)
+			if placeholder then table.insert(report.placeholders, "Hill_" .. hills) end
 			table.insert(taken, { x = x, z = z, reach = r })
 		end
 	end
@@ -721,7 +786,8 @@ end
 
 -- layAll(root, deps) -> report: lays every v3 piece into a new root.CaramelV3 folder (refused when one is there).
 -- deps = { Layout, V3, kitV3 (the CandyKitV3 folder or nil), kitSpec (WildboundCandyV3KitSpec or nil), Kit and library
--- (the old kit, for the filler; optional), keepOut (WildboundCandyBuilder.treeKeepOut; optional) }.
+-- (the old kit, for the filler; optional), keepOut (WildboundCandyBuilder.treeKeepOut; optional), existing (the props
+-- already standing, { x, z, reach }; default V3Builder.existingProps(root)) }.
 -- report = { parts, placeholders = { names }, filler, fillerSkipped, hills }.
 function V3Builder.layAll(root, deps)
 	assert(typeof(root) == "Instance", "root must be an Instance")
@@ -732,20 +798,36 @@ function V3Builder.layAll(root, deps)
 	assert(not root:FindFirstChild(V3.FOLDER), V3.FOLDER .. " already exists: archive it first")
 	local ctx = context(L, V3, deps)
 	local report = { parts = 0, placeholders = {}, filler = 0, fillerSkipped = 0, hills = 0 }
+	local existing = deps.existing or V3Builder.existingProps(root, L)
 	local holder = Instance.new("Folder")
 	holder.Name = V3.FOLDER
 	local ok, failure = pcall(function()
-		local _, riverFromKit = layMountains(ctx, holder, report)
+		local mountains = folder(holder, "Mountains")
+		local riverFromKit = false
+		for _, spec in ipairs(V3.MOUNTAINS) do
+			local m, placeholder = mountainPiece(ctx, mountains, spec)
+			if placeholder then table.insert(report.placeholders, m.Name) elseif spec.river then riverFromKit = true end
+		end
 		layLiquid(ctx, holder, riverFromKit)
 		layWaterfall(ctx, holder, not riverFromKit)
 		layBridge(ctx, holder)
 		layDocks(ctx, holder)
-		layHouses(ctx, holder, report)
-		layLicorice(ctx, holder, report)
-		layCake(ctx, holder, report)
-		layPlatforms(ctx, holder, report)
+		local houses = folder(holder, "Houses")
+		for _, spec in ipairs(V3.HOUSES) do
+			local m, placeholder = housePiece(ctx, houses, spec)
+			if placeholder then table.insert(report.placeholders, m.Name) end
+		end
+		local _, licoricePlaceholder = licoricePiece(ctx, folder(holder, "Licorice"))
+		if licoricePlaceholder then table.insert(report.placeholders, "LicoriceArch") end
+		local _, cakePlaceholder = cakePiece(ctx, folder(holder, "Cake"))
+		if cakePlaceholder then table.insert(report.placeholders, "CakeModular") end
+		local platforms = folder(holder, "Platforms")
+		for i in ipairs(V3.PLATFORMS) do
+			local m, placeholder = platformPiece(ctx, platforms, i)
+			if placeholder then table.insert(report.placeholders, m.Name) end
+		end
 		folder(holder, "Trees")
-		layFiller(ctx, holder, deps, report)
+		layFiller(ctx, holder, deps, report, existing)
 	end)
 	if not ok then
 		holder.Parent = nil
@@ -765,9 +847,10 @@ end
 V3Builder.PROP_FOLDERS = { "Lollipops", "CottonTrees", "Gumdrops", "Sweets", "SugarHills" }
 
 -- plan(root, L, V3) -> { archive = { { instance, why } }, kept }. Read only. Every kit prop (a Model with a KitAsset
--- attribute) of PROP_FOLDERS under root that stands in the chocolate, on the bridge or on a v3 piece (its colliders
--- and Roof by their reach, its crown by 70 % of its reach), and the old lake's syrup discs and biscuit bridge tiles,
--- which the chocolate lake and the v3 bridge replace. Deterministic (full-name order).
+-- attribute) of PROP_FOLDERS under root that stands in the chocolate, on or by the bridge (its ramps and side ramps,
+-- by its reach) or on a v3 piece (the docks as stand, ramp and deck; its colliders and Roof by their reach, its crown
+-- by 70 % of its reach), and the old lake's syrup discs and biscuit bridge tiles, which the chocolate lake and the v3
+-- bridge replace. Deterministic (full-name order).
 function V3Builder.plan(root, L, V3)
 	local plan = { archive = {}, kept = 0 }
 	local models = {}
@@ -786,7 +869,7 @@ function V3Builder.plan(root, L, V3)
 		local visual = math.max(solid, measure.canopy * 0.7)
 		local why
 		if V3.liquidDistance(x, z) < solid + 1 then why = "in the chocolate" end
-		if not why and V3.onBridge(x, z) then why = "on the bridge" end
+		if not why and V3.nearBridge(x, z, visual) then why = "on the bridge" end
 		for _, piece in ipairs(pieces) do
 			if not why and L.flat(x, z, piece.x, piece.z) < piece.r + visual + 1 then why = "on " .. piece.kind .. " " .. piece.id end
 		end
@@ -808,6 +891,14 @@ end
 
 -- Tree swap -----------------------------------------------------------------------------------------------------
 
+local function countParts(instance)
+	local n = 0
+	for _, d in ipairs(instance:GetDescendants()) do
+		if d:IsA("BasePart") then n += 1 end
+	end
+	return n
+end
+
 -- newTree(ctx, into, name, asset, x, y, z, yaw, height) -> model (kit or placeholder) standing at (x, y, z), and
 -- whether it is a placeholder.
 local function newTree(ctx, into, name, asset, x, y, z, yaw, height)
@@ -821,26 +912,47 @@ local function newTree(ctx, into, name, asset, x, y, z, yaw, height)
 	return p, true
 end
 
+-- A La Nube Roof disc into a tree, just inside its crown.
+local function seatRoof(roof, tree)
+	local pivot = tree:GetPivot()
+	local now = V3Builder.measureTree(tree)
+	roof.CFrame = CFrame.new(pivot.X, pivot.Y + math.max(now.bottom + 1.5, 7.5), pivot.Z) * CFrame.Angles(0, 0, math.rad(90))
+	roof.Parent = tree
+end
+
 -- swapTrees(root, deps, archive, dryRun) -> report { swapped = { "old -> new" }, kept = { "name: why" }, parts,
--- placeholders }. Every old tree of V3.TREES.map in CottonTrees and Sweets takes its new kind at the same spot and
--- turn, as tall as the old one (heightFactor), fitted by WildboundCandyBuilder.treeFits (deps.Builder) and off the v3
--- pieces: smaller down to minFactor, or nudged by one of nudges in eight directions; else the old tree stays. A cotton
--- tree's Roof disc moves into the new tree (La Nube's cover). The old model goes to archive(instance, why). dryRun:
--- only report. New trees go to root.CaramelV3.Trees (made when missing), marked V3.TREES.attribute = the old kind.
+-- placeholders, oldParts, newPartsEstimate }. Every old tree of V3.TREES.map in CottonTrees and Sweets takes its new
+-- kind at the same spot and turn, as tall as the old one (heightFactor), fitted by WildboundCandyBuilder.treeFits
+-- (deps.Builder), off the v3 pieces and off the filler already laid (review M4): smaller down to minFactor, or nudged
+-- by one of nudges in eight directions; else the old tree stays. A cotton tree's Roof disc moves into the new tree (La
+-- Nube's cover). The old model goes to archive(instance, why). dryRun: only report (newPartsEstimate from the
+-- prototypes). New trees go to root.CaramelV3.Trees (made when missing), marked V3.TREES.attribute = the old kind.
 function V3Builder.swapTrees(root, deps, archive, dryRun)
 	local L, V3, Builder = deps.Layout, deps.V3, deps.Builder
 	assert(Builder and type(Builder.treeFits) == "function", "needs WildboundCandyBuilder.treeFits")
 	local T = V3.TREES
 	local ctx = context(L, V3, deps)
-	local report = { swapped = {}, kept = {}, parts = 0, placeholders = 0 }
+	local protoCtx = context(L, V3, deps) -- review m8: the measured prototypes are not counted
+	local report = { swapped = {}, kept = {}, parts = 0, placeholders = 0, oldParts = 0, newPartsEstimate = 0 }
 	local holder = root:FindFirstChild(V3.FOLDER)
 	local trees = holder and holder:FindFirstChild("Trees")
 	if not dryRun then
 		if not holder then holder = folder(root, V3.FOLDER) end
 		trees = trees or folder(holder, "Trees")
 	end
+	-- the filler and hills already laid: a nudged tree keeps off them
+	local filler = {}
+	local fillerFolder = holder and holder:FindFirstChild("Filler")
+	for _, c in ipairs(fillerFolder and fillerFolder:GetChildren() or {}) do
+		if c:IsA("Model") then
+			local p = c:GetPivot().Position
+			local m = V3Builder.measureTree(c)
+			table.insert(filler, { x = p.X - L.CENTRE.x, z = p.Z - L.CENTRE.z,
+				reach = c:GetAttribute("HillRadius") or math.max(m.trunk, m.canopy * 0.7, 1) })
+		end
+	end
 	local scratch = Instance.new("Folder") -- detached: the measured prototypes
-	local measured = {}
+	local measured, protoParts = {}, {}
 	local olds = {}
 	for _, name in ipairs({ "CottonTrees", "Sweets" }) do
 		local f = root:FindFirstChild(name)
@@ -859,8 +971,9 @@ function V3Builder.swapTrees(root, deps, archive, dryRun)
 		local height = math.max(V3Builder.measureTree(old).height * T.heightFactor, 4)
 		-- the new kind measured once at 10 studs tall, then scaled to this tree's height
 		if not measured[asset] then
-			local proto = newTree(ctx, scratch, "Proto", asset, 0, 0, 0, 0, 10)
+			local proto = newTree(protoCtx, scratch, "Proto", asset, 0, 0, 0, 0, 10)
 			measured[asset] = V3Builder.measureTree(proto)
+			protoParts[asset] = countParts(proto)
 			proto.Parent = nil
 		end
 		local m = scaled(measured[asset], height / 10)
@@ -868,6 +981,9 @@ function V3Builder.swapTrees(root, deps, archive, dryRun)
 		local function fits(px, pz, f)
 			local s = scaled(m, f)
 			if not Builder.treeFits(L, px, pz, s, deps.keepOut or {}) then return false end
+			for _, e in ipairs(filler) do
+				if L.flat(px, pz, e.x, e.z) < e.reach + s.trunk + 1 then return false end
+			end
 			return V3.clearOfPieces(px, pz, math.max(s.trunk, s.canopy * 0.5), 1)
 		end
 		local best, bx, bz
@@ -895,17 +1011,15 @@ function V3Builder.swapTrees(root, deps, archive, dryRun)
 			table.insert(report.kept, old:GetFullName() .. ": no fit for " .. asset)
 		else
 			table.insert(report.swapped, ("%s -> %s x%.2f moved (%.2f, %.2f)"):format(old:GetFullName(), asset, best, bx, bz))
+			report.oldParts += countParts(old)
+			report.newPartsEstimate += protoParts[asset] + (old:FindFirstChild("Roof") and 1 or 0)
 			if not dryRun then
 				index += 1
 				local wx, wz = L.CENTRE.x + x + bx, L.CENTRE.z + z + bz
 				local tree, isPlaceholder = newTree(ctx, trees, "Tree_" .. index, asset, wx, pivot.Y, wz, yaw, height * best)
 				if isPlaceholder then report.placeholders += 1 end
 				local roof = old:FindFirstChild("Roof")
-				if roof and roof:IsA("BasePart") then
-					local now = V3Builder.measureTree(tree)
-					roof.CFrame = CFrame.new(wx, pivot.Y + math.max(now.bottom + 1.5, 7.5), wz) * CFrame.Angles(0, 0, math.rad(90))
-					roof.Parent = tree
-				end
+				if roof and roof:IsA("BasePart") then seatRoof(roof, tree) end
 				tree:SetAttribute(T.attribute, oldAsset)
 				tree:SetAttribute("V3Kind", V3Builder.TREE_KIND[asset])
 				tree:SetAttribute("CrownTop", V3Builder.measureTree(tree).height)
@@ -915,6 +1029,131 @@ function V3Builder.swapTrees(root, deps, archive, dryRun)
 	end
 	scratch.Parent = nil
 	report.parts = dryRun and 0 or ctx.parts
+	return report
+end
+
+-- Kit upgrade (review M2) ------------------------------------------------------------------------------------------
+
+-- upgradePlaceholders(root, deps, archive, dryRun) -> report { upgraded = { names }, waiting = { names }, parts }.
+-- On a map already laid (root.CaramelV3), every Placeholder piece whose kit model now exists in deps.kitV3 is laid
+-- again from the kit at the same spot, and the placeholder goes to archive(instance, why) (never destroyed): the
+-- mountains, houses, licorice, cake, platforms, hills and trees. A tree keeps its spot, turn, height and attributes,
+-- and its La Nube Roof moves into the kit tree. When M1 (the river's mountain) is upgraded, the placeholder waterfall
+-- sheet and lip and the placeholder pool go too (the kit brings its own). Idempotent: a second run finds no
+-- placeholder with a kit model. dryRun: only report.
+function V3Builder.upgradePlaceholders(root, deps, archive, dryRun)
+	local L, V3 = deps.Layout, deps.V3
+	local holder = root:FindFirstChild(V3.FOLDER)
+	assert(holder, "no " .. V3.FOLDER .. " folder: run the first migration first")
+	assert(not forbidden(holder), "refusing to touch " .. FORBIDDEN)
+	local ctx = context(L, V3, deps)
+	local report = { upgraded = {}, waiting = {}, parts = 0 }
+	local kit = deps.kitV3
+	local function has(asset) return kit ~= nil and kit:FindFirstChild(asset) ~= nil and (ctx.spec == nil or ctx.spec[asset] ~= nil) end
+	local function swap(old, why, build)
+		table.insert(report.upgraded, old:GetFullName())
+		if dryRun then return end
+		local parent = old.Parent
+		archive(old, why)
+		build(parent)
+	end
+	local function placeholders(folderName)
+		local f = holder:FindFirstChild(folderName)
+		local list = {}
+		for _, c in ipairs(f and f:GetChildren() or {}) do
+			if c:IsA("Model") and c:GetAttribute("Placeholder") == true and not forbidden(c) then table.insert(list, c) end
+		end
+		table.sort(list, function(a, b) return a.Name < b.Name end)
+		return list
+	end
+	for _, old in ipairs(placeholders("Mountains")) do
+		local id = old:GetAttribute("MountainId")
+		for _, spec in ipairs(V3.MOUNTAINS) do
+			if spec.id == id then
+				if has(spec.asset) then
+					swap(old, "upgraded to the kit", function(parent) mountainPiece(ctx, parent, spec) end)
+					if spec.river and not dryRun then
+						local fall = holder:FindFirstChild("Waterfall")
+						for _, name in ipairs({ "Sheet", "Lip" }) do
+							local piece = fall and fall:FindFirstChild(name)
+							if piece then archive(piece, "the kit mountain brings its own fall") end
+						end
+						local river = holder:FindFirstChild("River")
+						local pool = river and river:FindFirstChild("Choco_Pool")
+						if pool then archive(pool, "the kit mountain brings its own pool") end
+					end
+				else
+					table.insert(report.waiting, old.Name .. " (" .. spec.asset .. ")")
+				end
+			end
+		end
+	end
+	for _, old in ipairs(placeholders("Houses")) do
+		local id = old:GetAttribute("HouseId")
+		for _, spec in ipairs(V3.HOUSES) do
+			if spec.id == id then
+				if has(spec.asset) then
+					swap(old, "upgraded to the kit", function(parent) housePiece(ctx, parent, spec) end)
+				else
+					table.insert(report.waiting, old.Name .. " (" .. spec.asset .. ")")
+				end
+			end
+		end
+	end
+	for _, old in ipairs(placeholders("Licorice")) do
+		if has("CV3_LicoriceArch") then
+			swap(old, "upgraded to the kit", function(parent) licoricePiece(ctx, parent) end)
+		else
+			table.insert(report.waiting, old.Name)
+		end
+	end
+	for _, old in ipairs(placeholders("Cake")) do
+		if has("CV3_CakeBase") and has("CV3_CakeTop") and has("CV3_CakeRamp") then
+			swap(old, "upgraded to the kit", function(parent) cakePiece(ctx, parent) end)
+		else
+			table.insert(report.waiting, old.Name)
+		end
+	end
+	for _, old in ipairs(placeholders("Platforms")) do
+		local i = old:GetAttribute("PlatformIndex")
+		local spec = i and V3.PLATFORMS[i]
+		if spec and has(spec.asset) then
+			swap(old, "upgraded to the kit", function(parent) platformPiece(ctx, parent, i) end)
+		elseif spec then
+			table.insert(report.waiting, old.Name)
+		end
+	end
+	for _, old in ipairs(placeholders("Filler")) do
+		if old:GetAttribute("Hill") == true then
+			if has("CV3_IceCreamMountain_M") then
+				local pivot = old:GetPivot()
+				local _, yaw = pivot:ToOrientation()
+				swap(old, "upgraded to the kit", function(parent)
+					hillPiece(ctx, parent, old.Name, pivot.X, pivot.Z, yaw, old:GetAttribute("HillRadius") or hillRadius(ctx))
+				end)
+			else
+				table.insert(report.waiting, old.Name)
+			end
+		end
+	end
+	for _, old in ipairs(placeholders("Trees")) do
+		local asset = old:GetAttribute("KitAsset")
+		if has(asset) then
+			local pivot = old:GetPivot()
+			local _, yaw = pivot:ToOrientation()
+			local height = V3Builder.measureTree(old).height
+			swap(old, "upgraded to the kit", function(parent)
+				local tree = newTree(ctx, parent, old.Name, asset, pivot.X, pivot.Y, pivot.Z, yaw, height)
+				local roof = old:FindFirstChild("Roof")
+				if roof and roof:IsA("BasePart") then seatRoof(roof, tree) end
+				for _, key in ipairs({ V3.TREES.attribute, "V3Kind" }) do tree:SetAttribute(key, old:GetAttribute(key)) end
+				tree:SetAttribute("CrownTop", V3Builder.measureTree(tree).height)
+			end)
+		else
+			table.insert(report.waiting, old.Name)
+		end
+	end
+	report.parts = ctx.parts
 	return report
 end
 

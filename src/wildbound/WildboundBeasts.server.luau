@@ -136,7 +136,13 @@ local function refreshFilter()
 	for _, player in ipairs(Players:GetPlayers()) do
 		if player.Character then table.insert(exclude, player.Character) end
 	end
-	params.FilterDescendantsInstances = exclude
+	-- Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md V3-D18): a model tagged WildboundBeastPass (houses, the
+	-- cake) is no ground, wall or cover for the beasts, so a chase follows a player inside; one tagged
+	-- WildboundBeastOverhead (mountains, hills, the licorice) stays a wall but is never ground, so nothing lands on top.
+	for _, tagged in ipairs(CollectionService:GetTagged("WildboundBeastPass")) do table.insert(exclude, tagged) end
+	local ground = table.clone(exclude)
+	for _, tagged in ipairs(CollectionService:GetTagged("WildboundBeastOverhead")) do table.insert(ground, tagged) end
+	params.FilterDescendantsInstances = ground
 	overlap.FilterDescendantsInstances = exclude
 	local walls = table.clone(exclude)
 	if map:FindFirstChild("Relief") then table.insert(walls, map.Relief) end

@@ -456,6 +456,10 @@ return freeze({
 		moving = "Espera a que la balsa llegue al muelle",
 		tooFar = "Acércate más a la balsa",
 		leave = "Bajar",
+		-- review m6: calling the empty raft over from the other dock
+		callPrompt = "Llamar a la balsa",
+		called = "La balsa viene hacia ti",
+		here = "La balsa ya está aquí",
 	},
 	-- Arrullo (decision Q2b, docs/mechanics/wildbound-new-mechanics.md section 1): the rare-egg lullaby meter. The title,
 	-- hint, won, lost and timeout lines are WildboundArrullo.TEXT's; hold and holdKey label the hold button (touch, and

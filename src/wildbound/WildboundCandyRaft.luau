@@ -99,6 +99,24 @@ function Raft.leave(state, riderId, now)
 	return true
 end
 
+-- call(state, dock, now) -> ok, reason (review m6): a player at the other dock calls the empty, docked raft; it sails
+-- there with no rider. reason: "Here" (already there), "Busy", "Moving", "Invalid".
+function Raft.call(state, dock, now)
+	if type(state) ~= "table" or (dock ~= 1 and dock ~= 2) or not finite(now) then return false, "Invalid" end
+	if state.rider ~= nil then return false, "Busy" end
+	if state.status ~= "Docked" then return false, "Moving" end
+	if state.dock == dock then return false, "Here" end
+	state.status = "Sailing"
+	state.speed = 0
+	state.dir = dock == 2 and 1 or -1
+	return true
+end
+
+-- moving(state) -> whether the raft is under way (the server moves the model only then).
+function Raft.moving(state)
+	return type(state) == "table" and (state.status == "Sailing" or state.status == "Adrift")
+end
+
 -- step(state, dt, now, riderSeated) -> events: { { kind, rider } } with kind "Depart", "Arrived" (the rider to set down
 -- at the dock), "Left" (the rider got off), "Respawn". riderSeated: whether the rider still sits on the raft (the
 -- server's check of the seat); false makes the rider leave.
