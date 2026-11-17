@@ -33,15 +33,19 @@ end
 -- RC (owner request 2026-11-16, "all the creatures keep chasing you, and fast, until you reach the base"): relentless =
 -- true makes a creature that noticed a player hunt it until the player is safe (base or hub), defeated or gone; see
 -- Smarts.RELENTLESS. Don Glaseon stays territorial (no relentless flag).
+-- V7-D6 (owner request 2026-11-17, "each creature has its zone and goes only so far, so lots of creatures don't chase
+-- you all the time"): zone = the radius (studs) round its post or nest that a relentless hunt keeps to. Once the hunter
+-- itself is pulled past it, the hunt ends (Smarts.overtime, like the hard limit) and it walks home. The guards of the
+-- big nests keep a wider zone.
 Smarts.PROFILES = table.freeze({
-	Mochimiau = profile({ sprint = 30, sprintSeconds = 2, relentless = true }),
-	Canelin = profile({ sprint = 29, sprintSeconds = 1.5, relentless = true }),
-	Flanin = profile({ sprint = 28, sprintSeconds = 1.5, relentless = true }),
-	Mielita = profile({ sprint = 30, sprintSeconds = 2, relentless = true }),
-	GatoRepartidor = profile({ sprint = 28, sprintSeconds = 2, relentless = true }),
-	Gomibu = profile({ sprint = 29, sprintSeconds = 2, guard = 30, relentless = true }),
-	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24, relentless = true }),
-	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28, relentless = true }),
+	Mochimiau = profile({ sprint = 30, sprintSeconds = 2, relentless = true, zone = 80 }),
+	Canelin = profile({ sprint = 29, sprintSeconds = 1.5, relentless = true, zone = 80 }),
+	Flanin = profile({ sprint = 28, sprintSeconds = 1.5, relentless = true, zone = 75 }),
+	Mielita = profile({ sprint = 30, sprintSeconds = 2, relentless = true, zone = 85 }),
+	GatoRepartidor = profile({ sprint = 28, sprintSeconds = 2, relentless = true, zone = 85 }),
+	Gomibu = profile({ sprint = 29, sprintSeconds = 2, guard = 30, relentless = true, zone = 90 }),
+	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 90 }),
+	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28, relentless = true, zone = 100 }),
 	DonGlaseon = profile({ sprint = 25, sprintSeconds = 1.5 }),
 })
 -- RC: the relentless chase.
@@ -139,7 +143,15 @@ function Smarts.hunting(e)
 	return e.huntFrom ~= nil and Smarts.profile(e.beast).relentless == true
 end
 function Smarts.overtime(e, now)
-	return Smarts.hunting(e) and finite(now) and now - e.huntFrom >= Smarts.RELENTLESS.hardSeconds
+	if not Smarts.hunting(e) then return false end
+	if Smarts.outOfZone(e) then return true end -- V7-D6: past its zone's edge, the hunt ends there
+	return finite(now) and now - e.huntFrom >= Smarts.RELENTLESS.hardSeconds
+end
+-- V7-D6: whether the creature stands farther than its profile's zone from its post (false without a zone or a home).
+function Smarts.outOfZone(e)
+	local zone = Smarts.profile(e.beast).zone
+	if not finite(zone) or type(e.home) ~= "table" or type(e.pos) ~= "table" then return false end
+	return flat(e.pos.x, e.pos.z, e.home.x, e.home.z) > zone
 end
 -- RC3: farther than fadeStuds from its post: an ending fades out there instead of a long walk home.
 function Smarts.farFromHome(e)

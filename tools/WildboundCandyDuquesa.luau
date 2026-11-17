@@ -84,7 +84,7 @@ Duq.RAGE_FIRST_VOLLEY_SECONDS = 0.5 -- after she leaves her seat
 -- safety end now, and leaving the plot no longer ends the rage: she follows her egg's thief to the base (a safe zone).
 Duq.RAGE_SECONDS = 180
 Duq.CALM_SECONDS = 3 -- after her egg dropped, before she floats home
-Duq.LEAVE_MARGIN_STUDS = 12 -- RC6: no longer an end of the rage (it was: this far past the Caramelo plot's edge)
+Duq.LEAVE_MARGIN_STUDS = 12 -- V7-D6: an end of the rage again (RC6 had removed it): this far past the plot's edge
 Duq.RETURN_SPEED = 18
 Duq.COOLDOWN_SECONDS = 20 -- after she sits again
 Duq.DODGE_SOURCE = "DonGlaseon" -- an existing WildboundDodge source (the Caramelo boss family), so that module stays as is
@@ -285,7 +285,10 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 	elseif p.alive ~= true or type(p.x) ~= "number" then reason = "Dead"
 	elseif p.safe == true then reason = "Safe"
 	elseif p.carriesHerEgg ~= true then reason = "Dropped"
-	elseif now - r.startAt >= Duq.RAGE_SECONDS then reason = "Timeout" end -- RC6: no "Left" end at the plot's edge
+	-- V7-D6 (owner request 2026-11-17, "each creature has its zone"): her zone is the Caramelo plot again: a thief
+	-- LEAVE_MARGIN_STUDS past its edge ends the rage ("Left"; RC6 had taken that end out)
+	elseif Duq.plotDepth(summit, p.x, p.z) < -Duq.LEAVE_MARGIN_STUDS then reason = "Left"
+	elseif now - r.startAt >= Duq.RAGE_SECONDS then reason = "Timeout" end
 	if reason then
 		calm(state, now, events, reason)
 		return

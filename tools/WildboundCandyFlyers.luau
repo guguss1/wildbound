@@ -118,6 +118,10 @@ F.GRASS_SEE_STUDS = 10
 F.GRASS_MEMORY_SECONDS = 3
 F.WADE_LOSE_SECONDS = 2
 F.NO_EGG_LEASH_STUDS = 70
+-- V7-D6 (owner request 2026-11-17, "each creature has its zone and goes only so far"): every swarm's zone round its
+-- hive. A target farther than ZONE_STUDS from the hive is let go ("Zone"), with an egg too (NO_EGG_LEASH_STUDS stays the
+-- shorter leash without one).
+F.ZONE_STUDS = 110
 F.HOUSE_MARGIN_STUDS = 1.5
 -- FL10's untrained runner: WildboundStamina's pool 100 at DRAIN 25 a second, a 4 s sprint, then a walk.
 F.UNTRAINED_SPRINT_SECONDS = 4
@@ -387,9 +391,12 @@ local function lost(world, swarm, target, now)
 			swarm.grassSince = nil
 		end
 	end
-	if target.carryingEgg == false and flat(target.x, target.z, swarm.hive.x, swarm.hive.z) > F.NO_EGG_LEASH_STUDS then
+	local fromHive = flat(target.x, target.z, swarm.hive.x, swarm.hive.z)
+	if target.carryingEgg == false and fromHive > F.NO_EGG_LEASH_STUDS then
 		return "Leash"
 	end
+	-- V7-D6: an egg carrier too is let go past the swarm's zone
+	if fromHive > F.ZONE_STUDS then return "Zone" end
 	return nil
 end
 
