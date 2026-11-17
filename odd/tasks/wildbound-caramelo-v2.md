@@ -344,3 +344,57 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - Solo Play (PlayLock `DG6`, cleared after; Play stopped; memory saves): `HeistProbe` "steal" on `CandyE1` (Épica) at (581, -23), inside his territory. 1.1 s later `Beast_roarSummons` = 1, `Beast_started` = 4 (him and the three), no refusal. A few seconds later the client showed Flanfuria (Chase) 20.8 studs and Tortidragón (Chase) 6.0 studs from the player; the summoned Gomibú had already given up (`Beast_ended` 2 by then: its short leash from its spawn point, the player having moved). Health 100. No script errors from these scripts.
 - Not checked: the mid-chase roar in Play (suite only), Gomibú's chase in Play (it ended at its leash first), how four beasts at once read to a person, two players, a phone.
 - Follow-up (parent session's request): `WildboundCandyGlaze_Test` gains a security case pinning what the server already did: the slip remote reads no client argument, uses the caller's own root, checks glaze with the server's own position, keeps a per-player cooldown, ragdolls only the caller (one `Ragdoll.aplicar`) and never drops the egg. A pin of existing behaviour, so no RED step; Glaze 7/0, Studio == repo (Glaze_Test 7583/1214541793).
+
+## Caramelo harder (CH, owner requests of 2026-11-16)
+
+### Owner's words
+
+- First: more repeated creatures in Caramelo, faster, harder to be in the biome, more eggs, and leafier, bigger trees.
+- Second (same day): flying bugs that chase you; more creatures that appear at random, chase faster and do more damage; more eggs; more leafy, big trees; music, sparkles and lights so it feels alive; the cake with the princess at the end of the biome and much bigger; if you take her egg she gets very angry, turns red and chases you very fast.
+
+### Checklist
+
+- [x] CH1 Extra creature posts (8 -> 16). Done 2026-11-16 (evidence below).
+- [x] CH2 Faster chases and bursts, with the escape math pinned. Done 2026-11-16 (suites; the steady chase speed was not measured in Play).
+- [x] CH3 Eight new nests (12 -> 20 floor nests). Done 2026-11-16 (evidence below).
+- [x] CH4 Random ambushes inside the plot. Done 2026-11-16 (evidence below).
+- [x] CH5 More damage (+40-50 %). Done 2026-11-16 (Gomibu's hit seen in Play; the rest in suites).
+- [x] CH-T Trees 1.6-1.7x, fuller crowns, about 50 % more trees, live-map resize script. Done 2026-11-16 (evidence below).
+- [ ] FL Zumbidulces, the flying bugs. Repo done; Studio pending.
+- [ ] DR La Duquesa's rage when her egg is stolen. Repo done; Studio pending.
+- [ ] AM Ambience: lights, sparkles, music. Repo done and reviewed; Studio pending.
+- [ ] GT Gran Torta at the end of the biome and much bigger. Not started (second batch, after the rest is deployed and walked).
+
+### Decisions taken for the user (CH)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| CH-D1 | One extra post per candy creature (8 -> 16), each beside a new nest, near a route but off the path, at least 30 studs from any other post and 100 from the same creature's home post; none near the entrance, the lake or Don Glaseon's ground. Don Glaseon stays one per server. | "More repeated creatures", not in the base or on the boss floor. |
+| CH-D2 | Base chase raised but every creature stays under an untrained sprint (23.2): Gomibu 21 -> 23, Flanfuria 19 -> 22, Tortidragon 22 -> 23, Mochimiau 21 -> 22.5, Canelin 20 -> 22, Flanin 19 -> 21.5, Mielita 22 -> 23, Gato 19.5 -> 21.8. Sprint bursts +3 or +4 (28-30), same durations. Trained caps 34 -> 36 and 38 -> 40. | "Faster", but running or dodging must still work; a suite pins the escape math. |
+| CH-D3 | Eight new nests: Comun C6-C10, Rara R5-R7 (floor nests 12 -> 20, eggs per wave 12 -> 20). No new Epica or Legendaria. Gold and Esencia numbers unchanged, so income per hour rises with the eggs. | "More eggs"; the best eggs stay rare. |
+| CH-D4 | Random ambush: every 20 s a player inside the plot has a 0.75 chance that a random small critter appears 25-40 studs away (at most 2 at once per player; never near the entrance, the plot edge or the boss). The three guardians do not ambush. One tuning table, `Sites.AMBUSH`. | "Appear at random"; about three ambushes per crossing. |
+| CH-D5 | Damage +40-50 %, every hit under 35 of 100: Gomibu 14 -> 20, Flanfuria 15 -> 22, Tortidragon 12 -> 17, Mochimiau 8 -> 12, Canelin 12 -> 17, Flanin 16 -> 23, Mielita 10 -> 14, Gato 9 -> 13. Don Glaseon keeps 25. | "More damage", never a one-hit defeat. |
+| CH-D6 | Trees: cotton x1.7, lollipop, cookie and cream x1.6, crowns another x1.15; about 50 % more trees (cotton 32 -> 48, cookie and cream 5 -> 8 each, more avenue lollipops). A clearance rule keeps trunks off paths, nests, posts, trap cakes, the stair and the boss plaza; a tree that does not fit shrinks to 1.5, moves up to 8 studs, or is skipped. `MAX_PARTS` 900 -> 1300. | "More leafy and big trees" without covering routes, nests or the stair. |
+| CH-D7 | The live map is not rebuilt: `tools/wildbound-caramelo-tree-resize.luau` grows and adds trees in place, with a dry run first. The big4 annex trees only grow to fit. | A full rebuild would reshuffle the whole biome. |
+| CH-D8 | Flying bugs "Zumbidulces" (name chosen for the user): up to 5 hives beside the routes, 13 bugs, built from plain parts (no upload). They warn 1 s, fly at 25 studs/s, one dives at a time with a 0.8 s marker; a sting is 12 damage and a push, never the egg. They give up at 110 studs from the hive, in a safe zone, on the boss floor or the cake, after 14 s or 3 stings. At most 2 swarms on one player. | "Flying bugs that chase you"; two swarms cannot defeat a full-health player. |
+| CH-D9 | La Duquesa's rage: stealing the summit egg makes her roar 1 s (red, with a sign), then chase at 27 studs/s (cap 34). Her lunge (0.9 s tell) does 25 damage, pushes and makes the thief DROP her egg. A perfect dodge stuns her 2.5 s. It ends in a safe zone, on delivery, on defeat, outside the plot or after 25 s; 20 s rest. One rage at a time. | "Very angry, red, chases very fast, hard". The egg drop extends the old rule (only the lash dropped eggs) to her own egg only. A carrier who never dodges is caught; an untrained one must dodge about 6 lunges. |
+| CH-D10 | Music uses only sounds already in the game's catalog; a new track would be an upload and needs the owner's OK. | Upload gate. |
+| CH-D11 | Moving and enlarging the Gran Torta is a second batch, after this one is deployed and walked. | It moves the boss ground, the stair, nests, cakes and puddles; doing it with eight other changes in flight would hide which one broke. |
+
+### Review (CH)
+
+- `odd/reviews/caramelo-ch-review.md`: one blocker (a comment swallowed `hitHeight` and `disengage` on four critters) and three majors (an endless wait at server start in `addNest`, the part budget, the resize script running on old modules), all fixed before any Studio write; the minors were fixed too.
+
+### Evidence: CH1-CH5 and CH-T (batch 1, 2026-11-16)
+
+- Change (main): `WildboundBeastDirector` (`opts.post`), `WildboundPraderaSites` (8 `candyPost*` sites, `EXTRA_POSTS`, `AMBUSH`, `ambushRoll`), `WildboundCandyNests`, `WildboundBeasts.server` (`world.startAtPost`, the extra-post loop and the ambush roll in `summonPass`; no new top-level local), `WildboundCandyRestingService`, `WildboundCandyRestingClient`, `WildboundBeastConfig`, `WildboundCandySmarts`, `tools/WildboundCandyLayout.luau`, `tools/WildboundCandyBuilder.luau` (`addNest`, `syncNests`, the tree rule, `syncTrees`), new `tools/wildbound-caramelo-tree-resize.luau`. Big4 branch: `tools/WildboundBig4Annex.luau` (`growCandyAnnex`).
+- Fingerprint rule: before writing, all 23 Studio scripts equalled git HEAD; exact replacements only; after, Studio == repo. Sources (length/Adler-32): BeastDirector 17761/1492934625, PraderaSites 11809/625754208, CandyNests 8739/1662078406, WildboundBeasts 62102/2618530568, RestingService 3193/2254261377, RestingClient 5742/640068527, BeastConfig 48510/3636745397, CandySmarts 10424/146100440, CandyLayout 9359/1477997280, CandyBuilder 52324/3825489326, Big4Annex 28771/281423778. Suites: BeastDirector_Test 54840/1263144574, CandyNests_Test 29813/2093298215, CandyLayout_Test 10459/204524486, CandySmarts_Test 25148/3218206875, BeastGomibu_Test 15822/1027647468, BeastFlanfuria_Test 17790/1885211032, BeastTortidragon_Test 12855/240775108, BeastCandyCritter_Test 52422/3306810025, CandyTrapCake_Test 13994/4155423637, CandyBeastSites_Test 17047/1528462655, CandyBuilder_Test 30913/2608747711, Big4Map_Test 31111/549450193.
+- Baseline, run `2e48dfb9`: 17 suites green. Two reds that were already there and are not on the known list: BeastSites CC4 ("Mochimiau: its leash reaches the boss ground") and Builder S4 ("Fluff_1 has no role"; green after this change).
+- RED (tests pushed, sources old), run `256072fd`: CandyCritter 29/4, Director 51/1, Flanfuria 10/2, Gomibu 9/2, Tortidragon 10/1, Big4Map 18/2, BeastSites 10/2, Layout 13/2, Nests 10/8, Smarts 14/3, Builder 13/8, each for the expected reason.
+- GREEN, run `9d65498a`: 27 of 28 suites, 451 passed, 2 failed (BeastSites CC4, old; BeastSites CH1/CH3 until the live map was done). After the live-map step, run `ecbac1f6`: Tower 8/0, Nests 18/0, BeastSites 11/1 (CC4 only), Builder 21/0.
+- One test fix: `WildboundCandyBuilder_Test` CH-T2's `spread` helper measured a tilted lollipop on the world axes (up to 0.38 studs too wide); it now measures in the tree's own frame, as the builder does.
+- Live map (Edit, three undo steps): `syncNests` added the 8 nests (12 -> 20). Resize: 63 trees found, 62 grown at 1.5-1.7 (12 below their full factor), 6 moved by 2-8 studs (Lollipop_11 was standing on post candyPostC7), 1 blocked and left at its old size (Lollipop_3, canopy over a route); 29 trees added (16 cotton, 3 cookie, 3 cream, 7 lollipops); annex 80 grown. A third run changed nothing. Biome parts 896 -> 936 -> 1169. `Sweets.CreamMushroom_12` stood 2.2 studs from new nest R5 and was moved to (694.4, 122.1).
+- Clearance on the live map (92 trees): nearest tree part 1.52 studs outside a route edge, 0.8 beyond the 8 studs of a nest, 41 from the stair, 21.7 from the boss plaza, 1.81 beyond the 5 studs of a post.
+- Solo Play (PlayLock `CH-batch1`, cleared after; Play stopped; memory saves): no Wildbound script errors; 19 live floor nests plus T1, one egg in each of the 20 islands; 16 resting copies. Gomibu's extra post at (624, 130) woke with the player 22 studs away, only that post's copy hidden; one hit took 100 -> 80. First 0.5 s of its chase 27.9 studs/s. Standing 72 s away from posts: 2 ambushes (Canelin at 33.4 studs, Flanin at 34.1), never more than 2 alive, both ended. 26 s near the entrance: no ambush. Left and right routes walked end to end with nothing blocked. New nests reached from the route; C6 needs a jump over the bridge rail. Client 59-60 frames per second.
+- Not checked: a steady 23 studs/s after Gomibu's burst (it hops), Flanfuria and Tortidragon waking at their extra posts after a steal, two players, a phone.
+- Open: BeastSites CC4 (old red); nest C6 behind the bridge rail; Lollipop_3 not grown.
