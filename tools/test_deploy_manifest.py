@@ -634,6 +634,10 @@ class DefaultMappingTests(unittest.TestCase):
         # Caramelo v6: the tall licorice grass
         "tools/WildboundCandyGrass.luau": "ServerStorage.WildboundCandyGrass",
         "tests/WildboundCandyGrass_Test.luau": "ServerStorage.WildboundCandyGrass_Test",
+        # Caramelo v6: the crumbling cookie bridges
+        "src/wildbound/WildboundCandyCookieBridge.luau": "ServerStorage.WildboundCandyCookieBridge",
+        "src/wildbound/WildboundCandyCookieBridgeService.server.luau": "ServerScriptService.WildboundCandyCookieBridgeService",
+        "tests/WildboundCandyCookieBridge_Test.luau": "ServerStorage.WildboundCandyCookieBridge_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

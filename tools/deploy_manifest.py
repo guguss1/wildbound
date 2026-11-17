@@ -514,6 +514,11 @@ DEFAULT_MAPPINGS = [
     # WildboundCandyNests.applyFlags; its rule lives in WildboundCandyHiding.
     ("tools/WildboundCandyGrass.luau", "ServerStorage.WildboundCandyGrass"),
     ("tests/WildboundCandyGrass_Test.luau", "ServerStorage.WildboundCandyGrass_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D2): the crumbling cookie bridges (Top and Bottom): pure rules
+    # and the server service that cracks, drops and rebuilds the live Bridge_Top / Bridge_Bottom models.
+    ("src/wildbound/WildboundCandyCookieBridge.luau", "ServerStorage.WildboundCandyCookieBridge"),
+    ("src/wildbound/WildboundCandyCookieBridgeService.server.luau", "ServerScriptService.WildboundCandyCookieBridgeService"),
+    ("tests/WildboundCandyCookieBridge_Test.luau", "ServerStorage.WildboundCandyCookieBridge_Test"),
 ]
 
 

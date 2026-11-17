@@ -337,3 +337,37 @@ The patches are laid at server start by `tools/WildboundCandyGrass.luau` (Server
 4. Clear the lock and Play solo: the patches stand beside the routes; walk into one past a patrolling critter (it should
    not notice you farther than 10 studs), sprint in it (it should), and with an egg and the frenzy duck into one and
    walk: telemetry `Beast_grassLost` (through the beasts' counts) should grow when a hunter gives up.
+
+## Caramelo v6, proposal 2: crumbling cookie bridges (decision V6-D2 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+The pure rules are `src/wildbound/WildboundCandyCookieBridge.luau` (ServerStorage.WildboundCandyCookieBridge,
+ModuleScript): the state machine per bridge (Up, Cracking for 2 s, Down for 45 s, Up), the trigger rule, the deck
+footprint and the rebuild block, with time passed in. The server script is
+`src/wildbound/WildboundCandyCookieBridgeService.server.luau` (ServerScriptService.WildboundCandyCookieBridgeService,
+Script): it waits for the v3 mark, reads `Candy_Bioma_v1.CaramelV3.Bridges.Bridge_Top` and `Bridge_Bottom`, and steps
+the rules at 10 Hz. Suite: `WildboundCandyCookieBridge_Test`. No map migration: the live bridges stay as the v5
+migration laid them.
+
+### Decisions taken for the user (V6, cookie bridges)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D20 | "A player carrying an egg who is being hunted" means, on the server: the character has a `WildboundEggCarried` child, the humanoid is alive, and either a creature engaged the player within the last 3 s (`WildboundBeastEngagedAt`, the stamp WildboundBeasts and the bee swarms write every 0.5 s while a creature notices, chases or attacks, on `workspace:GetServerTimeNow()`) or La Silueta's published `WildboundThreatLevel` is Near or Chase (the return portal's rule). La Duquesa publishes no stamp of her own, so her rage alone does not crack a bridge; the frenzy's hunters after a steal stamp as usual. | The game already has these server stamps (the return portal uses them); 3 s covers the 0.5 s stamp rate and a short gap in a chase. |
+| V6-D21 | Only the deck counts: the player's root over the deck's footprint (`V3.bridgeFrame`, half length by half width of the layout bridge) with the feet no more than 1.5 studs under the deck's top. The end ramps and side ramps never trigger, nor does a wader under the deck. Once cracking starts it falls after 2 s even if the carrier has left; triggers while cracking or down change nothing. | "Crossing one" is being on the deck; a wader under it is not on the bridge. Running off in the 2 s is the escape the cracks warn about. |
+| V6-D22 | The whole bridge model falls (deck, end ramps, rails, caps and side ramps), so nothing hangs in the air. At the fall every part turns CanCollide, CanQuery and CanTouch off at once (whoever is on it drops 4 studs into the chocolate, no damage, and the wading rule slows them), then sinks 7 studs with a small tilt and fades out in 1.2 s. The rebuild cancels any running tween and puts back every part's recorded CFrame, Transparency, CanCollide, CanQuery and CanTouch exactly. | A ramp to nowhere would read as a bug; recording the laid state keeps the rebuild exact. |
+| V6-D23 | The rebuild waits, past the 45 s, while any live player stands within the deck's footprint plus 1.5 studs (at any height), then happens at once. | A deck reappearing round a wader's head would push or trap them. |
+| V6-D24 | Creatures: no tag change. The beasts' ground, wall and sight rays (WildboundBeasts `params`, RespectCanCollide true) skip parts that are not CanQuery, so over a fallen bridge they find the river floor and wade through the chocolate as everywhere else (V3-D6). The raft: no change. Its area (`WildboundCandyRaft`, `not V3.nearBridge`) is static, so the raft never passes under a bridge, up or fallen. | The smallest change that leaves no creature walking on air and keeps the raft's rule. |
+| V6-D25 | Feedback: nine thin dark crack lines appear on the deck over the 2 s (fixed spots), crumbs fall from under it (a ParticleEmitter with Roblox's built-in smoke texture, brown), and a burst of crumbs at the fall. The sound is the catalog's existing `crack` slot (`WildboundAudioCatalog.SOUNDS.crack`, 9126239755), played from the server on the deck at the crack and again lower at the fall (it does not go through the client's audio mix). A sign over the deck (a server BillboardGui, seen within 90 studs) shows `WildboundText.CANDY_BRIDGE.crack`, falling back to "¡El puente de galleta se rompe!" until that key is added. The bridge model's `CookieBridgePhase` attribute says Up, Cracking or Down. The effects live in `CaramelV3.CookieBridgeFx`, never collide and are never queried. | No upload, no client script, no new remote; the attribute lets a later client or a Play check read the state. |
+
+### What the parent does in Studio, in order (v6 cookie bridges)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyCookieBridge` (new ModuleScript, ServerStorage),
+   `WildboundCandyCookieBridgeService` (new Script, ServerScriptService) and `WildboundCandyCookieBridge_Test` (new
+   ModuleScript, ServerStorage). Nothing else changes; WildboundText and WildboundServer are not touched.
+3. Run `WildboundCandyCookieBridge_Test` with the fresh runner.
+4. Clear the lock and Play solo: cross the Top bridge with no egg (nothing), then steal an egg so the frenzy hunts you
+   and cross the Top deck: the cracks, crumbs, sound and sign for 2 s, then the bridge falls and you wade; the
+   junction bridges never crack; the Top bridge rebuilds 45 s later (step off its footprint); the raft still stops
+   short of both bridges.
+5. Missing in WildboundText: `CANDY_BRIDGE.crack` ("¡El puente de galleta se rompe!").

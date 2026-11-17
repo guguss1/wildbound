@@ -225,6 +225,11 @@ SPECS["WildboundCandyGrass_Test"] = {
 	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
 		nests = "src:WildboundCandyNests" },
 }
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D2): the crumbling cookie bridges (pure rules, real layout, wiring)
+SPECS["WildboundCandyCookieBridge_Test"] = {
+	"mod:WildboundCandyCookieBridge", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout",
+	{ service = "src:WildboundCandyCookieBridgeService" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }
