@@ -76,16 +76,18 @@ return function(Layout, Biomes)
 		equal(Layout.ROUTES.deep[2].z, Layout.PORTAL.z, "deep end z")
 	end)
 
-	case("S5: twelve candidate nests, 5 Comun, 4 Rara, 2 Epica, 1 Legendaria", function()
-		equal(#Layout.NESTS, 12, "nests")
+	-- Deliberately changed (CH3, owner request 2026-11-16 "more eggs too"): 8 more floor nests near the routes, 5 Comun
+	-- (C6-C10) and 3 Rara (R5-R7), no new Epica or Legendaria: 12 -> 20 (5 -> 10 Comun, 4 -> 7 Rara).
+	case("S5/CH3: twenty candidate nests, 10 Comun, 7 Rara, 2 Epica, 1 Legendaria", function()
+		equal(#Layout.NESTS, 20, "nests")
 		local count, ids = {}, {}
 		for _, nest in ipairs(Layout.NESTS) do
 			count[nest.rarity] = (count[nest.rarity] or 0) + 1
 			assert(type(nest.id) == "string" and not ids[nest.id], "duplicate or missing nest id")
 			ids[nest.id] = true
 		end
-		equal(count.Comun, 5, "Comun")
-		equal(count.Rara, 4, "Rara")
+		equal(count.Comun, 10, "Comun")
+		equal(count.Rara, 7, "Rara")
 		equal(count.Epica, 2, "Epica")
 		equal(count.Legendaria, 1, "Legendaria")
 	end)
@@ -133,6 +135,30 @@ return function(Layout, Biomes)
 				assert(flat(nest.x, nest.z, other.x, other.z) >= 20, nest.id .. " touches " .. other.id)
 			end
 		end
+	end)
+
+	-- CH3: every nest (the new ones too) stays out of the syrup and off the parked Pradera beasts' ground (KEEP_CLEAR); the
+	-- new ones lie outside Don Glaseon's territory and away from the hub entrance (the stair: WildboundCandyTower_Test).
+	case("CH3: nests stay out of the syrup and off KEEP_CLEAR; the new ones are outside the boss territory and past the entrance", function()
+		for _, nest in ipairs(Layout.NESTS) do
+			for _, disc in ipairs(Layout.LAKE) do
+				assert(flat(nest.x, nest.z, disc.x, disc.z) >= disc.r + 6, nest.id .. " in the syrup")
+			end
+			for _, spot in ipairs(Layout.KEEP_CLEAR) do
+				assert(flat(nest.x, nest.z, spot.x, spot.z) >= spot.r + 20, nest.id .. " on " .. spot.why)
+			end
+		end
+		local new = { C6 = true, C7 = true, C8 = true, C9 = true, C10 = true, R5 = true, R6 = true, R7 = true }
+		local found = 0
+		for _, nest in ipairs(Layout.NESTS) do
+			if new[nest.id] then
+				found += 1
+				equal(nest.eventOnly, false, nest.id .. " is live")
+				assert(flat(nest.x, nest.z, Layout.BOSS.x, Layout.BOSS.z) >= Layout.BOSS.territoryRadius + 20, nest.id .. " in the boss territory")
+				assert(flat(nest.x, nest.z, Layout.ENTRANCE.x, Layout.ENTRANCE.z) >= 80, nest.id .. " by the hub entrance")
+			end
+		end
+		equal(found, 8, "new nests")
 	end)
 
 	case("S4: the boss territory has limits inside the plot and holds the plaza", function()

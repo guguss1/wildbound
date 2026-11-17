@@ -63,18 +63,22 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 
 	case("CE1: each guardian's post is bound to the nest beside it, inside its wake radius and leash", function()
 		local posts = Nests.posts(Sites)
-		equal(#posts, 3, "posts")
+		-- Deliberately changed (CH1, owner request "more repeated creatures"): each guardian also stands at one extra post
+		-- (Sites.EXTRA_POSTS) beside a new nest, bound as "<name>@<post>" so a steal there wakes that copy (3 -> 6 posts).
+		equal(#posts, 6, "posts")
 		local binding = Nests.bind(markers(), posts)
-		local want = { C1 = "Gomibu", R1 = "Flanfuria", C3 = "Tortidragon" }
+		local want = { C1 = "Gomibu", R1 = "Flanfuria", C3 = "Tortidragon", C7 = "Gomibu@candyPostC7",
+			R6 = "Flanfuria@candyPostR6", C8 = "Tortidragon@candyPostC8" }
 		local bound = 0
 		for id, name in pairs(binding) do
 			bound += 1
 			equal(name, want[id], "guardian of " .. id)
 		end
-		equal(bound, 3, "bound nests")
+		equal(bound, 6, "bound nests")
 		for _, post in ipairs(posts) do
 			local nest
-			for _, m in ipairs(markers()) do if binding[m.id] == post.name then nest = m end end
+			for _, m in ipairs(markers()) do if binding[m.id] == (post.guard or post.name) then nest = m end end
+			assert(nest, (post.guard or post.name) .. " guards no nest")
 			local T = Config.BEASTS[post.name].tuning
 			local d = flat(nest.x, nest.z, post.x, post.z)
 			assert(d <= T.WakeRadiusStuds, post.name .. " wakes for a thief at its nest (" .. d .. ")")
@@ -265,8 +269,219 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		has(server, 'FindFirstChild("GuardAlarm")', "fires the beasts' server-only event")
 		has(beasts, 'alarm.Name = "GuardAlarm"', "the beasts own the event")
 		has(beasts, 'Instance.new("BindableEvent")', "a BindableEvent (never a remote)")
-		has(beasts, "Director.alarm(director, player.UserId, name, contextFor(player, at), at)", "through the director")
+		-- Deliberately changed (CH1): the alarm passes the extra post of an "<name>@<post>" binding (nil for a home post)
+		has(beasts, "Director.alarm(director, player.UserId, name, contextFor(player, at), at, key)", "through the director")
 		for _, name in ipairs(Nests.GUARDIANS) do equal(Config.SUMMONED[name], true, name .. " is a summoned guardian") end
+	end)
+
+	-- CH1 (owner request "more repeated creatures in the Caramelo kingdom, harder to be in that biome"): every candy
+	-- creature (the three guardians and the five critters) has one extra post, so a player crossing the biome meets about
+	-- twice as many. The same rules as the home posts (WildboundCandyBeastSites_Test T4, CC4: beside a nest, leash on the
+	-- plot, leash plus attack plus push off Don Glaseon's ground), except that an extra post stands near a route on
+	-- purpose: off the path, yet within its wake radius, so a walker wakes it. Never near the hub entrance.
+	case("CH1: one extra post per candy creature: fixed, beside its own nest, by a route, off the boss ground and the entrance", function()
+		local NAMES = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
+		assert(type(Sites.EXTRA_POSTS) == "table", "no Sites.EXTRA_POSTS")
+		equal(#Sites.EXTRA_POSTS, #NAMES, "one extra post per candy creature (8 -> 16 posts)")
+		local C = Layout.CENTRE
+		local count, keys, nestOf = {}, {}, {}
+		for _, extra in ipairs(Sites.EXTRA_POSTS) do
+			local name, key = extra.name, extra.key
+			assert(table.find(NAMES, name) and Config.SUMMONED[name], tostring(name) .. " is not a candy creature")
+			count[name] = (count[name] or 0) + 1
+			assert(type(key) == "string" and not keys[key], tostring(key) .. " used twice"); keys[key] = true
+			assert(string.match(key, "^%w+$"), key .. ": letters and digits only (an attribute name and a binding)")
+			assert(Sites.FIXED[key], key .. " is not a fixed site")
+			local w, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
+			equal(moved.x, w.x, key .. " x moved with the origin"); equal(moved.z, w.z, key .. " z moved with the origin")
+			local p = { x = w.x - C.x, z = w.z - C.z }
+			local T = Config.BEASTS[name].tuning
+			local nearest, nearestId = math.huge, nil
+			for _, spec in ipairs(Layout.NESTS) do
+				local d = flat(p.x, p.z, spec.x, spec.z)
+				if d < nearest then nearest, nearestId = d, spec.id end
+			end
+			assert(nearest >= 8 and nearest <= 16, key .. " is " .. nearest .. " studs from nest " .. tostring(nearestId))
+			assert(not nestOf[nearestId], key .. " shares nest " .. tostring(nearestId)); nestOf[nearestId] = key
+			local toRoute = Layout.routeDistance(p.x, p.z)
+			assert(toRoute >= Layout.PATH_WIDTH / 2 + 4, key .. " stands on a path (" .. toRoute .. ")")
+			assert(toRoute <= T.WakeRadiusStuds, key .. ": a route walker never wakes it (" .. toRoute .. ")")
+			assert(Layout.depth(p.x, p.z) >= T.LeashStuds, key .. ": its leash leaves the plot")
+			local A = T.Attack or {}
+			local reach = T.LeashStuds + (A.RadiusStuds or A.WidthStuds or 0) + (A.PushStuds or 0)
+			local toBoss = flat(p.x, p.z, Layout.BOSS.x, Layout.BOSS.z)
+			assert(toBoss >= Layout.BOSS.territoryRadius + reach, key .. " reaches the boss ground (" .. toBoss .. ")")
+			assert(flat(p.x, p.z, Layout.ENTRANCE.x, Layout.ENTRANCE.z) >= 30 + reach, key .. " reaches the entrance")
+			for _, disc in ipairs(Layout.LAKE) do assert(flat(p.x, p.z, disc.x, disc.z) >= disc.r + 2, key .. " in the syrup") end
+			for _, spot in ipairs(Layout.KEEP_CLEAR) do assert(flat(p.x, p.z, spot.x, spot.z) >= spot.r, key .. " on " .. spot.why) end
+			-- far from its own home post: each copy keeps its own ground, and a client tells their views apart by distance
+			local home = Sites.world(nil, Sites.HOME[name])
+			assert(flat(w.x, w.z, home.x, home.z) >= 100, key .. " is near " .. name .. "'s home post")
+			local function wants(dx, more)
+				local c = { alive = true, safe = false, meadow = true, x = w.x + dx, z = w.z }
+				for k, v in pairs(more or {}) do c[k] = v end
+				return Sites.wants(name, c, key)
+			end
+			equal(wants(0), true, key .. " at its post"); equal(wants(T.WakeRadiusStuds - 0.5), true, key .. " inside the wake radius")
+			equal(wants(T.WakeRadiusStuds + 0.5), false, key .. " outside the wake radius")
+			equal(wants(0, { safe = true }), false, key .. " for a safe player"); equal(wants(0, { meadow = false }), false, key .. " outside the biome")
+			equal(wants(0, { alive = false }), false, key .. " for a dead player")
+			equal(Sites.wants(name, { alive = true, safe = false, meadow = true, x = w.x, z = w.z }), false,
+				key .. ": without the post the home post's rule holds")
+		end
+		for _, name in ipairs(NAMES) do equal(count[name], 1, name .. " extra posts") end
+		local all = {}
+		for _, name in ipairs(NAMES) do table.insert(all, Sites.world(nil, Sites.HOME[name])) end
+		for _, extra in ipairs(Sites.EXTRA_POSTS) do table.insert(all, Sites.world(nil, extra.key)) end
+		equal(#all, 16, "posts in all")
+		for i = 1, #all do
+			for j = i + 1, #all do
+				assert(flat(all[i].x, all[i].z, all[j].x, all[j].z) >= 30, "posts " .. i .. " and " .. j .. " closer than 30 studs")
+			end
+		end
+	end)
+
+	-- CH3 (owner request "more eggs too"): 8 new floor nests (12 -> 20; 11 -> 19 live, the summit T1 apart), all live
+	-- one-egg island nests; the three beside an extra guardian post are guarded by that copy.
+	case("CH3: the new nests are live one-egg island nests; three are guarded by an extra guardian post", function()
+		local list = Nests.islands(markers(), Nests.posts(Sites))
+		equal(#list, 19, "live floor nests (11 -> 19)")
+		local byId = {}
+		for _, entry in ipairs(list) do byId[entry.nestId] = entry end
+		for _, id in ipairs({ "C6", "C7", "C8", "C9", "C10", "R5", "R6", "R7" }) do
+			local entry = byId[id]
+			assert(entry, id .. " is not a live nest")
+			equal(entry.id, "Candy" .. id, id .. " island id"); equal(entry.eggs, 1, id .. " one egg")
+			equal(entry.species, Nests.pick(entry.rarity).species, id .. " species")
+		end
+		equal(byId.C7.guard, "Gomibu@candyPostC7", "C7 guard"); equal(byId.R6.guard, "Flanfuria@candyPostR6", "R6 guard")
+		equal(byId.C8.guard, "Tortidragon@candyPostC8", "C8 guard")
+		for _, id in ipairs({ "C6", "C9", "C10", "R5", "R7" }) do equal(byId[id].guard, nil, id .. " has a critter beside it, no guard") end
+		equal(byId.C1.guard, "Gomibu", "the home guardians keep their nests")
+	end)
+
+	-- CH3: the live place was built before the new nests existed; the server's start step (applyFlags -> syncNests) places
+	-- a layout nest the build lacks, once, the way Builder.build does, so it is read as a live marker like any other.
+	case("CH3: syncNests places a layout nest missing from an older build, once, as a live marker", function()
+		local root = Instance.new("Model")
+		local folder = Instance.new("Folder")
+		folder.Name, folder.Parent = "Nests", root
+		local want
+		for _, spec in ipairs(Layout.NESTS) do
+			if spec.id == "C9" then want = spec else
+				local nest = Instance.new("Model")
+				nest.Name = "Nest_" .. spec.id
+				nest:SetAttribute("NestId", spec.id); nest:SetAttribute("Enabled", Builder.nestEnabled(spec, Layout))
+				nest.Parent = folder
+			end
+		end
+		assert(want, "no C9 in the layout")
+		local placed = {}
+		local kit = { LIBRARY_NAME = "CandyKit", place = function(library, name, cframe, scale)
+			table.insert(placed, { library = library, name = name, scale = scale })
+			local model = Instance.new("Model")
+			for _, partName in ipairs({ "Collision_Bowl", "RarityRing" }) do
+				local part = Instance.new("Part")
+				part.Name, part.Anchored, part.Parent = partName, true, model
+			end
+			model:PivotTo(cframe)
+			return model
+		end }
+		local library = Instance.new("Folder")
+		equal(Builder.syncNests(root, Layout, kit, library), 1, "one nest placed")
+		equal(#placed, 1, "one prefab"); equal(placed[1].name, "Nest", "the kit's Nest"); equal(placed[1].library, library, "library")
+		local nest = folder:FindFirstChild("Nest_C9")
+		assert(nest, "Nest_C9 not placed")
+		local p = nest:GetPivot().Position
+		assert(math.abs(p.X - (Layout.CENTRE.x + want.x)) < 1e-3 and math.abs(p.Z - (Layout.CENTRE.z + want.z)) < 1e-3, "position")
+		assert(math.abs(p.Y - Layout.FLOOR_TOP) < 1e-3, "on the floor")
+		equal(nest:GetAttribute("NestId"), "C9"); equal(nest:GetAttribute("Rarity"), "Comun")
+		equal(nest:GetAttribute("Enabled"), true, "live"); equal(nest:GetAttribute("EventOnly"), false, "not event-only")
+		equal(nest.PrimaryPart and nest.PrimaryPart.Name, "Collision_Bowl", "the bowl is the primary part")
+		local read
+		for _, m in ipairs(Nests.read(root)) do if m.id == "C9" then read = m end end
+		assert(read and read.enabled and read.rarity == "Comun", "read as a live marker")
+		equal(Builder.syncNests(root, Layout, kit, library), 0, "a second sync places nothing")
+		local broken = Instance.new("Model")
+		local empty = Instance.new("Folder")
+		empty.Name, empty.Parent = "Nests", broken
+		equal(Builder.syncNests(broken, Layout, { place = function() error("no prefab") end }, library), 0, "no kit: skipped, no error")
+		root:Destroy(); library:Destroy(); broken:Destroy()
+	end)
+
+	-- CH4 (owner request 2026-11-16, "more creatures that appear in a random way"): besides the posts, an ambush roll
+	-- every AMBUSH.everySeconds for each player inside the Caramelo plot starts a random candy critter on the ground near
+	-- them (Sites.ambushRoll picks the kind and the spot; the beast server checks the ground and summons it through the
+	-- director, post "ambush"). Never by the hub entrance, never on or near Don Glaseon's ground. A critter only: it sees
+	-- as far as it appears, so it notices (and tells) at once; the guardians stay at their nests.
+	case("CH4: the ambush roll: one tunable table, a random critter 25-40 studs away, never by the entrance or the boss ground", function()
+		local A = Sites.AMBUSH
+		assert(type(A) == "table" and type(Sites.ambushRoll) == "function", "no Sites.AMBUSH / Sites.ambushRoll")
+		equal(A.everySeconds, 20, "every"); equal(A.chance, 0.75, "chance"); equal(A.maxActive, 2, "at most two at once")
+		equal(A.minStuds, 25, "min"); equal(A.maxStuds, 40, "max"); equal(A.post, "ambush", "director post")
+		-- a crossing of the plot (about 90 s with a nest or two) meets about 90 / 20 x 0.75 = 3 rolls won
+		assert(90 / A.everySeconds * A.chance >= 2 and 90 / A.everySeconds * A.chance <= 4, "2-4 ambushes per crossing")
+		for _, name in ipairs(A.names) do
+			equal(Config.SUMMONED[name], true, name .. " summoned")
+			assert(Config.BEASTS[name].tuning.PerceptionStuds - 2 > A.minStuds, name .. " would not see the player it ambushes")
+			assert(not table.find(Nests.GUARDIANS, name), name .. ": the guardians stay at their nests")
+		end
+		local C, boss = Layout.CENTRE, Sites.world(nil, "bossTerritory")
+		local function check(lx, lz)
+			local spots, kinds = 0, {}
+			for k = 0, 9 do
+				for a = 0, 15 do
+					for d = 0, 4 do
+						local name, spot = Sites.ambushRoll(C.x + lx, C.z + lz, k / 10 + 0.05, a / 16, d / 4)
+						if name then
+							spots += 1
+							kinds[name] = true
+							assert(table.find(A.names, name), tostring(name) .. " is not an ambusher")
+							local far = math.min(A.maxStuds, Config.BEASTS[name].tuning.PerceptionStuds - 2)
+							local r = flat(spot.x, spot.z, C.x + lx, C.z + lz)
+							assert(r >= A.minStuds - 1e-6 and r <= far + 1e-6, name .. " appears " .. r .. " studs away")
+							local sx, sz = spot.x - C.x, spot.z - C.z
+							assert(Layout.depth(sx, sz) >= A.edgeStuds, "a spot on the plot edge")
+							assert(flat(sx, sz, Layout.ENTRANCE.x, Layout.ENTRANCE.z) >= A.entranceSpotStuds, "a spot by the entrance")
+							assert(flat(spot.x, spot.z, boss.x, boss.z) >= A.bossClearStuds, "a spot by the boss ground")
+						end
+					end
+				end
+			end
+			return spots, kinds
+		end
+		local spots, kinds = check(120, 100)
+		assert(spots > 0, "a player in the open plot is never ambushed")
+		for _, name in ipairs(A.names) do assert(kinds[name], name .. " never ambushes") end
+		check(-120, -60); check(60, 0); check(0, 150)
+		equal((check(-185, 0)), 0, "never in the first steps past the entrance")
+		equal((check(260, 0)), 0, "never outside the Caramelo plot")
+		equal((check(0, 30)), 0, "never on the boss plaza or the tower")
+		assert(flat(0, 0, -200, 0) > A.entranceSpotStuds and A.bossClearStuds >= Layout.BOSS.territoryRadius + 40, "clearances")
+		equal(Sites.ambushRoll(0 / 0, 0, 0.5, 0.5, 0.5), nil, "a bad position")
+		equal(Sites.ambushRoll(C.x + 120, C.z + 100, nil, 0.5, 0.5), nil, "no roll")
+	end)
+
+	case("CH4 wiring: the beast server rolls an ambush per player in Caramelo through the director", function()
+		local beasts = sources.beasts
+		has(beasts, "world.ambushAt = world.ambushAt or setmetatable({}, { __mode = \"k\" })", "a clock per player")
+		has(beasts, "Sites.ambushRoll(p.X, p.Z, rng:NextNumber(), rng:NextNumber(), rng:NextNumber())", "the pure pick")
+		has(beasts, "local y = spot and world.landing(spot.x, spot.z, p.Y)", "on the ground, out of safe zones and solid parts")
+		has(beasts, "Director.summon(director, player.UserId, name, ctx, at, { post = A.post })", "through the director")
+		has(beasts, "if active < A.maxActive and rng:NextNumber() < A.chance then", "the cap and the chance")
+	end)
+
+	-- CH1 wiring: the beast server summons each extra post through the director (one per post) and starts it on the ground
+	-- there; a steal at an extra guardian's nest wakes that copy at its post.
+	case("CH1 wiring: the beast server summons the extra posts and wakes an extra guardian at its post", function()
+		local beasts = sources.beasts
+		has(beasts, "for _, extra in ipairs(Sites.EXTRA_POSTS) do", "summonPass walks the extra posts")
+		has(beasts, "if Sites.wants(extra.name, want, extra.key) then", "the wake rule at that post")
+		has(beasts, "Director.summon(director, player.UserId, extra.name, ctx, at, { post = extra.key })", "one per post")
+		has(beasts, "function world.startAtPost(player, reservation, key, refY, at)", "started on the ground at the post")
+		has(beasts, "reservation.near = { x = site.x, y = y, z = site.z }", "never at the home post")
+		has(beasts, 'local key = string.match(name, "@(%w+)$")', "the alarm reads the post of the binding")
+		has(beasts, "world.startAtPost(player, value, key, body and body.Position.Y or 0, at)", "an extra guardian wakes at its post")
 	end)
 
 	return result

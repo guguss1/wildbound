@@ -72,6 +72,16 @@ return function(Trap, Layout, sources)
 		end
 	end)
 
+	-- CH3 (owner request "more eggs too"): the new nests never stand on a decoy cake (only the rare-nest decoy stands by
+	-- its own nest, R1, about 12 studs off).
+	case("CH3: every nest, the new ones too, stays at least 10 studs from every decoy cake", function()
+		for _, spot in ipairs(Trap.SPOTS) do
+			for _, n in ipairs(Layout.NESTS) do
+				assert(Layout.flat(n.x, n.z, spot.x, spot.z) >= 10, "nest " .. n.id .. " on the " .. spot.key .. " decoy")
+			end
+		end
+	end)
+
 	case("DG7: one decoy is him, only while he sleeps; waking unmasks it and it re-arms 30 s after he sleeps again", function()
 		local s = Trap.new(0, function(n) equal(n, 3, "picks among three") return 2 end)
 		equal(s.trapIndex, 2, "the server's pick"); equal(Trap.disguised(s, false, 0), true, "asleep: disguised")

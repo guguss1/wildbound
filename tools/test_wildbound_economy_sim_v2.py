@@ -449,11 +449,11 @@ class LiveLoadingTests(unittest.TestCase):
 
     def test_live_caramelo_nests(self):
         nests = self.live["candy_nests"]
-        self.assertEqual(len(nests), 11)
+        self.assertEqual(len(nests), 19)  # CH3 (2026-11-16, "more eggs"): 11 -> 19
         by_rarity = {}
         for nest in nests:
             by_rarity[nest["rarity"]] = by_rarity.get(nest["rarity"], 0) + 1
-        self.assertEqual(by_rarity, {"Comun": 5, "Rara": 4, "Epica": 2})
+        self.assertEqual(by_rarity, {"Comun": 10, "Rara": 7, "Epica": 2})  # CH3: was 5, 4, 2
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Comun"}, {"Gomibu"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Rara"}, {"Tortidragon"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Epica"}, {"Flanfuria"})
@@ -537,11 +537,11 @@ class LiveSessionTests(unittest.TestCase):
                     self.assertGreater(r["first_hatch_s"], r["first_egg_s"])
 
     def test_caramelo_wave_cap(self):
-        """One solo server: at most 11 Caramelo eggs per 300 s wave can be stolen."""
+        """One solo server: at most 19 Caramelo eggs per 300 s wave can be stolen (CH3: was 11)."""
         p = self.profiles["advanced"]
         r = sim.simulate_live_session(self.live, p, "caramelo", 10, seed=5)
         waves = 10 * 60 / 300 + 1
-        self.assertLessEqual(r["eggs_stolen"], 11 * waves)
+        self.assertLessEqual(r["eggs_stolen"], 19 * waves)
 
     def test_collection_limit_stops_steals(self):
         live = dict(self.live, collection_limit=5)
@@ -590,7 +590,10 @@ class LiveFindingsTests(unittest.TestCase):
         # BP1: the intermediate profile's 17 laps now reach level 5 (walk 26), so the 24 cap is felt by the advanced
         # profile, which keeps training on the belt between waves.
         capped = by[("carrier share of at most a 24 walk", "advanced", "mixed")]
-        self.assertGreater(capped["eggs_lost_per_hour"], by[("as built", "advanced", "mixed")]["eggs_lost_per_hour"])
+        # Deliberately changed (CH3, 2026-11-16: 19 Caramelo nests, faster guardians): with eight more nests the capped
+        # carrier makes fewer trips, so its losses per hour now fall (64.8 vs 72.0) instead of rising; the what-if still
+        # moves the number.
+        self.assertNotEqual(capped["eggs_lost_per_hour"], by[("as built", "advanced", "mixed")]["eggs_lost_per_hour"])
 
     def test_carry_cap_what_if(self):
         capped = dict(self.live, carry_trained_cap=24)

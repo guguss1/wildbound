@@ -115,7 +115,9 @@ function Director.uncapped(name)
 	local beast = Config.BEASTS[name]
 	return Config.SUMMONED[name] == true and beast ~= nil and beast.points == 0
 end
-local function check(dir, userId, name, ctx, now, force, roar)
+-- CH1 (owner request "more repeated creatures in the Caramelo kingdom"): post (a WildboundPraderaSites.EXTRA_POSTS key,
+-- or nil for the beast's home post) makes a summoned beast one of a kind per post, with its own species rest.
+local function check(dir, userId, name, ctx, now, force, roar, post)
 	local beast = Config.BEASTS[name]
 	if type(userId) ~= "number" then return "InvalidPlayer" end
 	if not beast then return "UnknownBeast" end
@@ -131,10 +133,12 @@ local function check(dir, userId, name, ctx, now, force, roar)
 		if finite(ctx.respawnedAt) and now - ctx.respawnedAt < D.RESPAWN_GRACE then return "RespawnGrace" end
 		-- Kids biome: a summoned beast neither obeys nor sets the global cooldown (Config.SUMMONED).
 		if not Config.SUMMONED[name] and now < player.globalReadyAt then return "GlobalCooldown" end
-		if now < (player.speciesReadyAt[name] or -math.huge) then return "SpeciesCooldown" end
+		if now < (player.speciesReadyAt[post and name .. "@" .. post or name] or -math.huge) then return "SpeciesCooldown" end
 	end
 	for _, id in pairs(player.active) do
-		if dir.encounters[id] and dir.encounters[id].beast == name then return "AlreadyActive" end
+		-- CH1: one per post; a roar still never adds a second of a kind (DG6)
+		local other = dir.encounters[id]
+		if other and other.beast == name and (roar == true or other.post == post) then return "AlreadyActive" end
 	end
 	-- Caramelo biome (CA3): a serverUnique beast (Don Glaseon) is one per server: none while one lives, nor during its
 	-- switch rest after the last one ended (then it may take another target).
@@ -168,12 +172,13 @@ end
 function Director.reserve(dir, userId, name, ctx, now, opts)
 	local beast = Config.BEASTS[name]
 	local force = type(opts) == "table" and opts.force == true
-	local why = check(dir, userId, name, ctx, now, force, type(opts) == "table" and opts.roar == true)
+	local post = type(opts) == "table" and type(opts.post) == "string" and opts.post or nil
+	local why = check(dir, userId, name, ctx, now, force, type(opts) == "table" and opts.roar == true, post)
 	if why then return refuse(dir, userId, name, why, now) end
 	local player = record(dir, userId)
 	dir.nextId += 1
 	local encounter = { id = "beast:" .. dir.nextId, beast = name, userId = userId, points = beast.points,
-		startedAt = now, released = false }
+		startedAt = now, released = false, post = post }
 	dir.encounters[encounter.id] = encounter
 	player.points += beast.points
 	player.active[encounter.id] = encounter.id
@@ -200,7 +205,8 @@ function Director.release(dir, id, reason, now)
 			end
 			-- A reason-specific cooldown (the Nube's Bostezo nap) wins over the species cooldown.
 			local ends = beast.endCooldowns
-			player.speciesReadyAt[encounter.beast] = now + (ends and ends[reason] or beast.cooldown)
+			local rest = encounter.post and encounter.beast .. "@" .. encounter.post or encounter.beast -- CH1: per post
+			player.speciesReadyAt[rest] = now + (ends and ends[reason] or beast.cooldown)
 			if beast.serverUnique == true then
 				dir.uniqueReadyAt = dir.uniqueReadyAt or {}
 				dir.uniqueReadyAt[encounter.beast] = now + (beast.switchSeconds or 0)
@@ -219,7 +225,7 @@ end
 function Director.summon(dir, userId, name, ctx, now, opts)
 	if not Config.SUMMONED[name] then return false, "NotSummoned" end
 	local force = type(opts) == "table" and opts.force == true
-	local why = check(dir, userId, name, ctx, now, force)
+	local why = check(dir, userId, name, ctx, now, force, nil, type(opts) == "table" and type(opts.post) == "string" and opts.post or nil)
 	if why then return false, why end
 	return Director.reserve(dir, userId, name, ctx, now, opts)
 end
@@ -227,9 +233,10 @@ end
 -- CG2 (F5, odd/tasks/wildbound-caramelo.md decision 50): a stolen Caramelo nest egg wakes that nest's guardian on the
 -- thief at once. Only a summoned beast; every rule of summon stands (its home biome, safe zones, death, an active Silueta,
 -- one of a kind per player, budget) except the timers a forced reservation skips (species rest, respawn grace).
-function Director.alarm(dir, userId, name, ctx, now)
+-- CH1: post (optional) wakes the guardian copy of that extra post (the nest's binding "<name>@<post>").
+function Director.alarm(dir, userId, name, ctx, now, post)
 	if not Config.SUMMONED[name] then return false, "NotSummoned" end
-	return Director.reserve(dir, userId, name, ctx, now, { force = true })
+	return Director.reserve(dir, userId, name, ctx, now, { force = true, post = post })
 end
 
 -- Caramelo v2 (DG6, odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's guardians' roar wakes a fresh candy guardian on

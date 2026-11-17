@@ -73,7 +73,7 @@ return function(Enc, Gomibu, Config)
 		equal(T.PushStuds, 8, "push distance of the sheet")
 		-- Deliberately changed (OF2, owner feedback 2): it hurts (14, through BeastHit with the egg kept), chases faster
 		-- than a walking player (12 -> 19); its 10-stud jump is unchanged.
-		equal(C.damage, 14); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
+		equal(C.damage, 20); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true) -- Deliberately changed (CH5, "more damage"): 14 -> 20
 		equal(T.JumpRangeStuds, 10)
 		equal(Config.PLAYABLE.Gomibu, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Gomibu", "not in ORDER") end
@@ -84,7 +84,7 @@ return function(Enc, Gomibu, Config)
 		equal(T.RecoverSeconds, 0.5); equal(T.AttackCooldownSeconds, 3.5); equal(T.SlowMultiplier, 0.8); equal(T.SlowSeconds, 1)
 		-- Deliberately changed (PF4, odd/tasks/wildbound-caramelo-playfix.md): sight 16 -> 24 and abandon 25 -> 36 for a
 		-- walking player; a slow patrol (4 studs/s, was 7 and unused) round its nest within PatrolRadiusStuds 8.
-		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 21) -- Deliberately changed (OF3): 19 -> 21
+		equal(T.PerceptionStuds, 24); equal(T.AbandonStuds, 36); equal(T.PatrolSpeedStudsPerSecond, 4); equal(T.ChaseSpeedStudsPerSecond, 23) -- Deliberately changed (OF3): 19 -> 21; (CH2): 21 -> 23
 		equal(T.PatrolRadiusStuds, 8)
 		assert(T.PatrolRadiusStuds < T.LeashStuds and T.PerceptionStuds < T.AbandonStuds, "patrol inside the leash, sight inside abandon")
 		assert(Gomibu.tellSeconds(T) >= Config.MIN_TELL, "tell under the fairness floor")
@@ -121,7 +121,8 @@ return function(Enc, Gomibu, Config)
 		local x0
 		run(e, w, tgt, 0.85, 1.35, nil, function(t, bearState) if not x0 then x0 = bearState.pos.x end end)
 		-- Deliberately changed (OF3): the first 2 s of a chase are WildboundCandySmarts' 26-stud sprint
-		near((e.pos.x - x0) / 0.5, 26, "chase speed (the sprint)", 0.6)
+		-- Deliberately changed (CH2): sprint 26 -> 29 (it ends about 11 studs from the target, still out of jump range)
+		near((e.pos.x - x0) / 0.5, 29, "chase speed (the sprint)", 0.6)
 		local farthest = 0
 		run(e, w, tgt, 1.4, 12, function(t, tg, bearState) tg.x = math.min(bearState.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, bearState) farthest = math.max(farthest, bearState.pos.x) end)

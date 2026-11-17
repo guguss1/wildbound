@@ -78,12 +78,14 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		return nil
 	end
 
-	case("OF3-1: base chase 19-22, a sprint of 24-27 for 1.5-2.5 s, never a one-shot, tells never under MIN_TELL", function()
+	-- Deliberately changed (CH2, owner request 2026-11-16 "make them go faster"): base chase 19-22 -> 21-23 (always under
+	-- an untrained sprint's 23.2), sprint 24-27 -> 28-30 (same durations); Don Glaseon keeps his.
+	case("OF3-1/CH2: base chase 21-23, a sprint of 28-30 for 1.5-2.5 s, never a one-shot, tells never under MIN_TELL", function()
 		for _, name in ipairs({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }) do
 			local C = Config.BEASTS[name]
-			within(C.tuning.ChaseSpeedStudsPerSecond, 19, 22, name .. " chase")
+			within(C.tuning.ChaseSpeedStudsPerSecond, 21, 23, name .. " chase")
 			local P = Smarts.profile(name)
-			within(P.sprint, 24, 27, name .. " sprint"); within(P.sprintSeconds, 1.5, 2.5, name .. " sprint seconds")
+			within(P.sprint, 28, 30, name .. " sprint"); within(P.sprintSeconds, 1.5, 2.5, name .. " sprint seconds")
 			assert(C.damage < 34, name .. " could one-shot")
 			if C.tuning.Attack then assert(Critter.tellSeconds(C.tuning.Attack) >= MIN_TELL, name .. " tell") end
 		end
@@ -98,8 +100,58 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		assert(chaseAt, "no chase")
 		local x0 = e.pos.x
 		run({ e }, w, tgt, 0.65, 1.1)
-		within(e.pos.x - x0, 26 * 0.5 - 1.5, 26 * 0.5 + 0.1, "studs in the first half second")
+		-- Deliberately changed (CH2): Mochimiau's sprint 26 -> 30
+		within(e.pos.x - x0, 30 * 0.5 - 1.5, 30 * 0.5 + 0.1, "studs in the first half second")
 		equal(Smarts.speed(e, chaseAt + 3, 21), 21, "after the burst")
+	end)
+
+	-- CH2 (owner request 2026-11-16: faster creatures, "it must still be possible to escape by running or by dodging"). The
+	-- escape, proved on the live numbers for every candy creature: an untrained player sprints 16 x 1.45 = 23.2 studs/s.
+	--   1. after its burst every creature is slower than that sprint, so a running player never loses ground again;
+	--   2. the burst's gain over the sprint ((sprint - 23.2) x sprintSeconds) never closes a sprinter it noticed at the
+	--      edge of its sight into its attack range (the alert time, which helps the player, is left out);
+	--   3. the leash bounds the chase: it never follows past LeashStuds from home, its leash plus its reach stays inside
+	--      its escape distance, and a sprinter is past that distance and safe within 8 s;
+	--   4. a dodge close by stops it for dodgePause, in which a sprinter gains more than a body length.
+	-- Against a trained walker (walk W, sprint 1.45 W) the chase (0.92 W, cap 36) stays under the sprint and the burst
+	-- (1.1 W, cap 40) gains no more than against an untrained one.
+	case("CH2: escape math, by running and by dodging, for every candy creature and a trained walker", function()
+		local SPRINT = 16 * 1.45
+		local REACH = { Gomibu = "JumpRangeStuds", Flanfuria = "CastRangeStuds", Tortidragon = "CastRangeStuds" }
+		for _, name in ipairs({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }) do
+			local T, P = Config.BEASTS[name].tuning, Smarts.profile(name)
+			local base = T.ChaseSpeedStudsPerSecond
+			-- 1
+			assert(base < SPRINT, name .. " chases at " .. base .. ", not under a sprint")
+			local e = { beast = name, id = "esc" .. name, pos = { x = 0, y = 0, z = 0 } }
+			local burst = Smarts.speed(e, 0, base, target(0, 0, { walk = 16 }))
+			equal(burst, P.sprint, name .. " burst against an untrained walker")
+			assert(Smarts.speed(e, P.sprintSeconds + 0.01, base, target(0, 0, { walk = 16 })) < SPRINT, name .. " after the burst")
+			-- 2
+			local range = T.Attack and T.Attack.RangeStuds or T[REACH[name]]
+			assert(type(range) == "number", name .. " has no attack range")
+			local gain = math.max(0, P.sprint - SPRINT) * P.sprintSeconds
+			assert(gain < 15, name .. " gains " .. gain .. " studs in its burst")
+			assert(T.PerceptionStuds - gain > range, name .. ": the burst closes a noticed sprinter into reach ("
+				.. T.PerceptionStuds .. " - " .. gain .. " <= " .. range .. ")")
+			-- 3
+			local A = T.Attack or {}
+			local reach = T.LeashStuds + range + (A.RadiusStuds or A.WidthStuds or T.RadiusStuds or 0) + (A.PushStuds or T.PushStuds or 0)
+			assert(reach < T.EscapeDistanceStuds, name .. ": its leash and reach (" .. reach .. ") pass its escape distance")
+			local chaseEnds = T.EscapeDistanceStuds / SPRINT + T.EscapeSeconds
+			assert(chaseEnds <= 8, name .. ": a sprinter is still chased after " .. chaseEnds .. " s")
+			-- 4
+			assert(P.dodgePause * SPRINT >= 8, name .. ": a dodge buys only " .. P.dodgePause * SPRINT .. " studs")
+			-- a trained walker
+			for _, walk in ipairs({ 16, 20, 24, 28, 34, 40, 50 }) do
+				local t = { beast = name, id = "esc" .. name .. walk, pos = { x = 0, y = 0, z = 0 } }
+				local sprinted = Smarts.speed(t, 0, base, target(0, 0, { walk = walk }))
+				local chased = Smarts.speed(t, P.sprintSeconds + 0.01, base, target(0, 0, { walk = walk }))
+				assert(chased < 1.45 * walk, name .. " outruns a sprinter with walk " .. walk)
+				assert(math.max(0, sprinted - 1.45 * walk) * P.sprintSeconds <= gain + 1e-9, name .. " gains more on walk " .. walk)
+			end
+		end
+		equal(Smarts.CHASE_CAP, 36, "trained chase cap (CH2: 34 -> 36)"); equal(Smarts.SPRINT_CAP, 40, "trained sprint cap (CH2: 38 -> 40)")
 	end)
 
 	case("OF3-2a: predictive aim, the lead point and a leap aimed ahead of a moving target", function()

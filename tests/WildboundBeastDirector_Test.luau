@@ -826,6 +826,43 @@ return function(Director, source, Config)
 			"SiluetaActive", "La Silueta still wins")
 	end)
 
+	-- CH1 (owner request "more repeated creatures in the Caramelo kingdom"): a candy creature may also stand at extra
+	-- posts (WildboundPraderaSites.EXTRA_POSTS). Each post is its own encounter: one of a kind per post (opts.post), its
+	-- own species rest; the home post is post nil, exactly as before. A roar still never adds a second of a kind.
+	case("CH1: a summoned beast at an extra post is its own encounter: one per post, its own rest; a roar stays one of a kind", function()
+		local dir = Director.new()
+		local meadow = ctx({ biomes = { Meadow = true } })
+		local ok, home = Director.summon(dir, 1, "Gomibu", meadow, 0)
+		equal(ok, true, "the home post"); equal(home.post, nil, "the home post has no key")
+		local ok2, extra = Director.summon(dir, 1, "Gomibu", meadow, 0, { post = "candyPostC7" })
+		equal(ok2, true, "a second Gomibu at its extra post (" .. tostring(extra) .. ")"); equal(extra.post, "candyPostC7", "post kept")
+		equal(select(2, Director.summon(dir, 1, "Gomibu", meadow, 0.5, { post = "candyPostC7" })), "AlreadyActive", "one per post")
+		equal(select(2, Director.summon(dir, 1, "Gomibu", meadow, 0.5)), "AlreadyActive", "the home post too")
+		local _, active = Director.budget(dir, 1)
+		equal(active, 2, "both live at once")
+		-- each post rests on its own
+		Director.release(dir, extra.id, "GiveUp", 10)
+		equal(select(2, Director.summon(dir, 1, "Gomibu", meadow, 12, { post = "candyPostC7" })), "SpeciesCooldown", "the extra post rests")
+		Director.release(dir, home.id, "GiveUp", 12)
+		assert(Director.summon(dir, 1, "Gomibu", meadow, 15, { post = "candyPostC7" }), "the extra post back after its 5 s")
+		equal(select(2, Director.summon(dir, 1, "Gomibu", meadow, 16)), "SpeciesCooldown", "the home post keeps its own rest")
+		assert(Director.summon(dir, 1, "Gomibu", meadow, 17), "the home post back after its 5 s")
+		-- a steal at an extra guardian's nest wakes that copy (Director.alarm with the post)
+		local thief = Director.new()
+		assert(Director.summon(thief, 1, "Tortidragon", meadow, 0), "the home Tortidragon is out")
+		local okA, alarmed = Director.alarm(thief, 1, "Tortidragon", meadow, 1, "candyPostC8")
+		equal(okA, true, "the extra guardian wakes beside the home one"); equal(alarmed.post, "candyPostC8", "at its post")
+		equal(select(2, Director.alarm(thief, 1, "Tortidragon", meadow, 2, "candyPostC8")), "AlreadyActive", "one at a time")
+		-- DG6: the roar never adds a second of a kind, whatever post the one already there came from
+		local roar = Director.new()
+		assert(Director.summon(roar, 1, "Gomibu", meadow, 0, { post = "candyPostC7" }), "an extra-post Gomibu")
+		equal(select(2, Director.roar(roar, 1, "Gomibu", meadow, 1)), "AlreadyActive", "the roar adds no second Gomibu")
+		-- a rolled beast is untouched by posts
+		local rolled = Director.new()
+		assert(Director.reserve(rolled, 1, "Viper", ctx(), 0, { force = true }), "Viper")
+		equal(select(2, Director.reserve(rolled, 1, "Viper", ctx(), 0, { force = true })), "AlreadyActive", "Viper still one")
+	end)
+
 	case("NB2: the director is pure: no world, no clock, no global random", function()
 		for _, banned in ipairs({ "game:", "workspace", "task.", "os.clock", "os.time", "math.random", "Random.new" }) do
 			assert(not source:find(banned, 1, true), "director source uses " .. banned)

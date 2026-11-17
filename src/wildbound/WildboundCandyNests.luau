@@ -49,6 +49,14 @@ function Nests.posts(Sites)
 		local site = key and Sites.world(nil, key)
 		if site and finite(site.x) and finite(site.z) then table.insert(list, { name = name, x = site.x, z = site.z }) end
 	end
+	-- CH1 (owner request "more repeated creatures"): the guardians' extra posts (Sites.EXTRA_POSTS), after the home ones;
+	-- each binds as "<name>@<post>" (guard), so a steal at its nest wakes that copy at its post.
+	for _, extra in ipairs(type(Sites.EXTRA_POSTS) == "table" and Sites.EXTRA_POSTS or {}) do
+		local site = table.find(Nests.GUARDIANS, extra.name) and Sites.world(nil, extra.key)
+		if site and finite(site.x) and finite(site.z) then
+			table.insert(list, { name = extra.name, x = site.x, z = site.z, guard = extra.name .. "@" .. extra.key })
+		end
+	end
 	return list
 end
 
@@ -64,7 +72,7 @@ function Nests.bind(markers, posts, radius)
 				if d <= radius and d < bestD then best, bestD = m.id, d end
 			end
 		end
-		if best then binding[best], taken[best] = post.name, true end
+		if best then binding[best], taken[best] = post.guard or post.name, true end
 	end
 	return binding
 end

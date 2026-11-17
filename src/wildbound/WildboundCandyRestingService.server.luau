@@ -37,3 +37,17 @@ for _, name in ipairs(NAMES) do
 		warn("WildboundCandyRestingService: no home site for " .. name)
 	end
 end
+
+-- CH1 (owner request "more repeated creatures"): each extra post (WildboundPraderaSites.EXTRA_POSTS) the same way, as
+-- RestingPost_<name>_<post>; the client hides only the copy of the post a live view started on.
+for _, extra in ipairs(Sites.EXTRA_POSTS) do
+	local beast = Config.BEASTS[extra.name]
+	local site = beast and Sites.world(nil, extra.key)
+	if site then
+		local hit = workspace:Raycast(Vector3.new(site.x, 200, site.z), Vector3.new(0, -400, 0), params)
+		local y = (hit and hit.Position.Y or 0) + (beast.grounded ~= true and beast.tuning.HoverStuds or 0)
+		root:SetAttribute("RestingPost_" .. extra.name .. "_" .. extra.key, Vector3.new(site.x, y, site.z))
+	else
+		warn("WildboundCandyRestingService: no extra post " .. tostring(extra.key) .. " for " .. tostring(extra.name))
+	end
+end

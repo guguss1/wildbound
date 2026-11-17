@@ -855,13 +855,27 @@ local function refreshAudience(at)
 	end
 end
 
+-- CH1: starts a reservation booked for an extra post (Director post) on the ground at that post; no ground there ends
+-- it at once (NoSpawn), so a copy never starts at the beast's home post. Kept on `world` (no new local).
+function world.startAtPost(player, reservation, key, refY, at)
+	local site = world.site(key)
+	local y = site and groundAt(site.x, site.z, refY)
+	if not y then
+		count("noSpawn")
+		close(reservation.id, "NoSpawn", at)
+		return false, "NoSpawn"
+	end
+	reservation.near = { x = site.x, y = y, z = site.z }
+	return safeStart(player, reservation, at)
+end
+
 -- Kids biome: presence instead of chance. Each poll, a player in the Pradera near the pond (or near La Colmena while
 -- the event window is open) summons that beast through the director (Director.summon: points 0, its own rules).
 local function summonPass(player, at)
 	local character, humanoid, root = bodyOf(player)
 	if not character or humanoid.Health <= 0 then return end
 	local p = root.Position
-	if not inMeadow(p.X, p.Z) then return end
+	if not inMeadow(p.X, p.Z) then if world.ambushAt then world.ambushAt[player] = nil end return end
 	local _, safe = Rules.zone(p.X, p.Z)
 	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(p.X, p.Z) == "Night", eventOpen = eventOpen(),
 		x = p.X, z = p.Z, origin = praderaOrigin() }
@@ -873,6 +887,46 @@ local function summonPass(player, at)
 			if ok then safeStart(player, value, at) end
 			-- PF1: a refused summon is never silent (debugging aid; the same value is not re-sent by the engine)
 			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", kid.name .. ":" .. tostring(value)) end
+		end
+	end
+	-- CH1 (owner request "more repeated creatures in the Caramelo kingdom"): the extra posts, one more copy of a candy
+	-- creature at each (Sites.EXTRA_POSTS), by the same wake rule at that post; its own encounter (Director post).
+	for _, extra in ipairs(Sites.EXTRA_POSTS) do
+		if Sites.wants(extra.name, want, extra.key) then
+			ctx = ctx or contextFor(player, at)
+			local ok, value = Director.summon(director, player.UserId, extra.name, ctx, at, { post = extra.key })
+			if ok then world.startAtPost(player, value, extra.key, p.Y, at) end
+			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", extra.name .. "@" .. extra.key .. ":" .. tostring(value)) end
+		end
+	end
+	-- CH4 (owner request "more creatures that appear in a random way"): an ambush roll every Sites.AMBUSH.everySeconds per
+	-- player: a random candy critter on the ground near them (Sites.ambushRoll), through the director (post "ambush").
+	local A = Sites.AMBUSH
+	world.ambushAt = world.ambushAt or setmetatable({}, { __mode = "k" })
+	world.ambushAt[player] = world.ambushAt[player] or at + A.everySeconds
+	if at >= world.ambushAt[player] then
+		world.ambushAt[player] = at + A.everySeconds
+		local active = 0
+		for _, enc in pairs(director.encounters) do
+			if enc.userId == player.UserId and enc.post == A.post then active += 1 end
+		end
+		if active < A.maxActive and rng:NextNumber() < A.chance then
+			for _ = 1, A.tries do
+				local name, spot = Sites.ambushRoll(p.X, p.Z, rng:NextNumber(), rng:NextNumber(), rng:NextNumber())
+				local y = spot and world.landing(spot.x, spot.z, p.Y)
+				if name and y and math.abs(y - (p.Y - 3)) <= 12 then
+					ctx = ctx or contextFor(player, at)
+					local ok, value = Director.summon(director, player.UserId, name, ctx, at, { post = A.post })
+					if ok then
+						value.near = { x = spot.x, y = y, z = spot.z }
+						safeStart(player, value, at)
+						telemetry:SetAttribute("Beast_ambushes", (telemetry:GetAttribute("Beast_ambushes") or 0) + 1)
+					else
+						telemetry:SetAttribute("Beast_lastSummonRefusal", name .. "@" .. A.post .. ":" .. tostring(value))
+					end
+					break
+				end
+			end
 		end
 	end
 end
@@ -1081,8 +1135,15 @@ do
 			return
 		end
 		local at = now()
-		local ok, value = Director.alarm(director, player.UserId, name, contextFor(player, at), at)
-		if ok then
+		-- CH1: an extra guardian's binding names its post ("Gomibu@candyPostC7", WildboundCandyNests.posts): that copy
+		-- wakes, on the ground at its post
+		local key = string.match(name, "@(%w+)$")
+		name = string.match(name, "^(%w+)") or name
+		local ok, value = Director.alarm(director, player.UserId, name, contextFor(player, at), at, key)
+		if ok and key then
+			local _, _, body = bodyOf(player)
+			world.startAtPost(player, value, key, body and body.Position.Y or 0, at)
+		elseif ok then
 			safeStart(player, value, at)
 		else
 			telemetry:SetAttribute("Beast_lastRefusal", name .. ":" .. tostring(value))

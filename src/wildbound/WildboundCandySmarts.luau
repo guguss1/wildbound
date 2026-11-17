@@ -24,17 +24,21 @@ local DEFAULTS = table.freeze({
 local function profile(t)
 	return table.freeze(setmetatable(t, { __index = DEFAULTS }))
 end
--- Base chase speeds stay in WildboundBeastConfig (19-22 now); the sprint matches or slightly beats a running player
+-- Base chase speeds stay in WildboundBeastConfig (21-23 now); the sprint matches or slightly beats a running player
 -- (16 x 1.45 = 23.2) for a short burst after noticing.
+-- CH2 (owner request 2026-11-16, "make them go faster"): every candy sprint +3 or +4 (24-27 -> 28-30), same durations,
+-- each as far as the escape allows: the burst never closes a sprinter noticed at the edge of its sight into its attack
+-- range, and gains under 15 studs (WildboundCandySmarts_Test CH2), so Gomibu, Mielita and Tortidragon get +3, the
+-- others +4. Don Glaseon keeps 25.
 Smarts.PROFILES = table.freeze({
-	Mochimiau = profile({ sprint = 26, sprintSeconds = 2 }),
-	Canelin = profile({ sprint = 25, sprintSeconds = 1.5 }),
-	Flanin = profile({ sprint = 24, sprintSeconds = 1.5 }),
-	Mielita = profile({ sprint = 27, sprintSeconds = 2 }),
-	GatoRepartidor = profile({ sprint = 24, sprintSeconds = 2 }),
-	Gomibu = profile({ sprint = 26, sprintSeconds = 2, guard = 30 }),
-	Flanfuria = profile({ sprint = 24, sprintSeconds = 1.5, guard = 24 }),
-	Tortidragon = profile({ sprint = 26, sprintSeconds = 2, guard = 28 }),
+	Mochimiau = profile({ sprint = 30, sprintSeconds = 2 }),
+	Canelin = profile({ sprint = 29, sprintSeconds = 1.5 }),
+	Flanin = profile({ sprint = 28, sprintSeconds = 1.5 }),
+	Mielita = profile({ sprint = 30, sprintSeconds = 2 }),
+	GatoRepartidor = profile({ sprint = 28, sprintSeconds = 2 }),
+	Gomibu = profile({ sprint = 29, sprintSeconds = 2, guard = 30 }),
+	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24 }),
+	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28 }),
 	DonGlaseon = profile({ sprint = 25, sprintSeconds = 1.5 }),
 })
 Smarts.DEFAULTS = DEFAULTS
@@ -48,8 +52,8 @@ Smarts.DODGE_COOLDOWN_SECONDS = 3
 -- OF3 review: chase and sprint scale with a trained walker (training adds 2 studs/s per level), within caps.
 Smarts.CHASE_SHARE = 0.92
 Smarts.SPRINT_SHARE = 1.1
-Smarts.CHASE_CAP = 34
-Smarts.SPRINT_CAP = 38
+Smarts.CHASE_CAP = 36 -- CH2: 34 -> 36
+Smarts.SPRINT_CAP = 40 -- CH2: 38 -> 40
 
 local NONE = profile({})
 local function flat(ax, az, bx, bz) return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2) end

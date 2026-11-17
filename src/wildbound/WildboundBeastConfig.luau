@@ -321,11 +321,18 @@ Config.BEASTS = table.freeze({
 	-- OF3 (owner feedback 3): every candy chase raised again to 19-22 (Gomibu 19 -> 21, Flanfuria 17 -> 19, Tortidragon
 	-- 20 -> 22, Mochimiau 20 -> 21, Canelin 18 -> 20, Flanin 17 -> 19, Mielita 19 -> 22, Gato 17.5 -> 19.5; Don Glaseon
 	-- keeps 21), plus a 24-27 sprint for 1.5-2.5 s after noticing (ServerScriptService.WildboundCandySmarts.PROFILES).
+-- CH2 (owner request 2026-11-16, "make them go faster ... harder"): every candy chase up again, each about +2 but always
+-- under an untrained sprint's 23.2, all five critters still distinct: Gomibu 21 -> 23, Flanfuria 19 -> 22, Tortidragon
+-- 22 -> 23, Mochimiau 21 -> 22.5, Canelin 20 -> 22, Flanin 19 -> 21.5, Mielita 22 -> 23, Gato 19.5 -> 21.8 (Don Glaseon
+-- keeps 21); the sprints +3/+4 (28-30). The escape math is WildboundCandySmarts_Test CH2.
+-- CH5 (owner request 2026-11-16, "do more damage"): every candy creature's hit about +40-50 %, each under 35 of 100 (never
+-- a one-hit kill), Don Glaseon unchanged: Gomibu 14 -> 20, Flanfuria 15 -> 22, Tortidragon 12 -> 17, Mochimiau 8 -> 12,
+-- Canelin 12 -> 17, Flanin 16 -> 23, Mielita 10 -> 14, Gato 9 -> 13.
 	Gomibu = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 14,
+		damage = 20, -- CH5: 14 -> 20
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
@@ -335,7 +342,7 @@ Config.BEASTS = table.freeze({
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 24, AbandonStuds = 36, LeashStuds = 30,
 			PatrolSpeedStudsPerSecond = 4, PatrolRadiusStuds = 8, PatrolPauseSeconds = 1.5,
-			ChaseSpeedStudsPerSecond = 21, AlertSeconds = 0.7,
+			ChaseSpeedStudsPerSecond = 23, AlertSeconds = 0.7, -- CH2: 21 -> 23
 			-- CF (user, 2026-11-15): a faster cast (was tell 0.9, lock 0.55, recover 0.7, cooldown 5.5).
 			JumpRangeStuds = 10, TelegraphSeconds = 0.8, LockSeconds = 0.45, JumpSeconds = 0.45, RadiusStuds = 4.5,
 			RecoverSeconds = 0.5, AttackCooldownSeconds = 3.5,
@@ -351,14 +358,14 @@ Config.BEASTS = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 15,
+		damage = 22, -- CH5: 15 -> 22
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 20, AbandonStuds = 30, LeashStuds = 16,
-			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 19, AlertSeconds = 0.8,
+			PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 22, AlertSeconds = 0.8, -- CH2: 19 -> 22
 			CastRangeStuds = 7, StandOffStuds = 4, JumpClearStuds = 4.5,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
@@ -372,14 +379,14 @@ Config.BEASTS = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
 		cooldown = SUMMONED_REST,
-		damage = 12,
+		damage = 17, -- CH5: 12 -> 17
 		keepsEgg = true,
 		grounded = true,
 		hitHeight = 8,
 		disengage = 0.9,
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 22, AbandonStuds = 30, LeashStuds = 35,
-			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 22, TurnDegreesPerSecond = 240, AlertSeconds = 0.75,
+			PatrolSpeedStudsPerSecond = 10, ChaseSpeedStudsPerSecond = 23, TurnDegreesPerSecond = 240, AlertSeconds = 0.75, -- CH2: 22 -> 23
 			CastRangeStuds = 10, StandOffStuds = 6,
 			EscapeDistanceStuds = 60, EscapeSeconds = 2, GiveUpSeconds = 2,
 		}),
@@ -396,13 +403,13 @@ Config.BEASTS = table.freeze({
 	Mochimiau = table.freeze({ -- Rodada cremosa: hops onto the target's circle, a short push and a 25 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 8, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 12, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9, -- CH5: damage 8 -> 12
 		-- PF2 (odd/tasks/wildbound-caramelo-playfix.md): retuned for a walking player (was wake 30, sight 14, abandon 22,
 		-- leash 14, patrol 6, chase 11, escape 50, give-up 2, push 5 / 0.3 s, slow 0.75). IdleSeconds: an unvisited patrol
 		-- walks home and ends quietly.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 50, LeashStuds = 34,
-			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 21,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 22.5, -- CH2: 21
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "leap", RangeStuds = 7, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
 				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 3.5, PushStuds = 8, PushSeconds = 0.35,
@@ -418,12 +425,12 @@ Config.BEASTS = table.freeze({
 	Canelin = table.freeze({ -- rolls along a lane forward from itself: a push and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 12, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 17, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9, -- CH5: damage 12 -> 17
 		-- PF2: was wake 30, sight 14, abandon 24, leash 16, patrol 7, chase 12, escape 50, give-up 2, no push, slow 0.8 / 2 s.
 		-- OF2: the owner likes its roll as it is: the Attack and its trail are unchanged; only damage 0 -> 12, chase 14 -> 18.
 		tuning = table.freeze({
 			WakeRadiusStuds = 45, PerceptionStuds = 40, AbandonStuds = 52, LeashStuds = 36,
-			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 20,
+			PatrolRadiusStuds = 11, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 7, ChaseSpeedStudsPerSecond = 22, -- CH2: 20
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
 				LengthStuds = 14, WidthStuds = 5, RecoverSeconds = 0.7, CooldownSeconds = 6, PushStuds = 8, PushSeconds = 0.35,
@@ -438,12 +445,12 @@ Config.BEASTS = table.freeze({
 	Flanin = table.freeze({ -- Onda cremosa: a wave round itself, a short shove and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 16, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 23, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9, -- CH5: damage 16 -> 23
 		-- PF2: was wake 30, sight 14, abandon 20, leash 12, patrol 5, chase 9, escape 50, give-up 2, no push.
 		-- OF2: the slowest and heaviest: damage 0 -> 16, chase 12 -> 17, a longer wind-up (tell 1 -> 1.2).
 		tuning = table.freeze({
 			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 48, LeashStuds = 32,
-			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 19,
+			PatrolRadiusStuds = 9, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 21.5, -- CH2: 19
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1.2, LockSeconds = 0, TravelSeconds = 0.25,
 				RadiusStuds = 10, RecoverSeconds = 0.8, CooldownSeconds = 7, PushStuds = 6, PushSeconds = 0.3,
@@ -461,12 +468,12 @@ Config.BEASTS = table.freeze({
 	Mielita = table.freeze({ -- flies HoverStuds up; throws a pollen cloud on the target: a puff and a 30 % slow
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 10, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 14, keepsEgg = true, grounded = false, hitHeight = 8, disengage = 0.9, -- CH5: damage 10 -> 14
 		-- PF2: was wake 32, sight 16, abandon 24, leash 14, patrol 7, chase 13, escape 50, give-up 2, no push, slow 0.75.
 		-- OF2: flies fast and throws from range: damage 0 -> 10, chase 14 -> 19, range 14 -> 18, cooldown 9 -> 5, stand-off 10.
 		tuning = table.freeze({
 			WakeRadiusStuds = 48, PerceptionStuds = 42, AbandonStuds = 55, LeashStuds = 38, HoverStuds = 2.5,
-			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 22,
+			PatrolRadiusStuds = 12, PatrolPauseSeconds = 1, PatrolSpeedStudsPerSecond = 8, ChaseSpeedStudsPerSecond = 23, -- CH2: 22
 			StandOffStuds = 10,
 			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 18, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.6,
@@ -485,14 +492,14 @@ Config.BEASTS = table.freeze({
 	GatoRepartidor = table.freeze({ -- the friendliest: the shortest sight and leash; throws fries on the target
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
 		chance10 = 0, chance = 0, -- never rolled
-		cooldown = SUMMONED_REST, damage = 9, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		cooldown = SUMMONED_REST, damage = 13, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9, -- CH5: damage 9 -> 13
 		-- PF2: was wake 24, sight 8, abandon 14, leash 8, patrol 5, chase 9, escape 50, give-up 2, push 2 / 0.25 s,
 		-- slow 0.9 / 1.5 s. Still the friendliest (sight and leash under every other critter's), but it follows and throws.
 		-- OF2: keeps its distance and throws often: damage 0 -> 9, chase 12 -> 17.5, range 10 -> 15, tell 0.9 -> 1,
 		-- cooldown 8 -> 4.5, stand-off 8.
 		tuning = table.freeze({
 			WakeRadiusStuds = 40, PerceptionStuds = 34, AbandonStuds = 45, LeashStuds = 30,
-			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 19.5,
+			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 21.8, -- CH2: 19.5
 			StandOffStuds = 8,
 			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4, IdleSeconds = 25,
 			Attack = table.freeze({ kind = "lob", RangeStuds = 15, TelegraphSeconds = 1, LockSeconds = 0.5, TravelSeconds = 0.6,

@@ -290,6 +290,276 @@ return function(Builder, Layout, Kit, library)
 		equal(signature(second), signature(root), "tree positions")
 	end)
 
+	-- CH (owner, 2026-11-16: the Caramelo trees leafier and bigger). Every tree of the build, found by its kit asset.
+	local TRUNK_MESH = { Trunk = true, StickA = true, StickB = true }
+	local function trees()
+		local list = {}
+		for _, d in ipairs(root:GetDescendants()) do
+			if d:IsA("Model") and type(Builder.TREE_SCALE) == "table" and Builder.TREE_SCALE[d:GetAttribute("KitAsset")] then
+				table.insert(list, d)
+			end
+		end
+		return list
+	end
+	-- Horizontal reach of a part from its centre: a mesh or a round part counts its wider half-side, a block its corner.
+	-- Measured in its tree's upright pivot frame, as the builder measures (a world-axis box of a turned, tilted part,
+	-- such as a tilted lollipop's stick, reads up to about 0.4 studs wider than the part reaches).
+	local function spread(p)
+		local cf, s = p.Parent:GetPivot().Rotation:ToObjectSpace(p.CFrame), p.Size
+		local r, u, l = cf.RightVector, cf.UpVector, cf.LookVector
+		local hx = (math.abs(r.X) * s.X + math.abs(u.X) * s.Y + math.abs(l.X) * s.Z) / 2
+		local hy = (math.abs(r.Y) * s.X + math.abs(u.Y) * s.Y + math.abs(l.Y) * s.Z) / 2
+		local hz = (math.abs(r.Z) * s.X + math.abs(u.Z) * s.Y + math.abs(l.Z) * s.Z) / 2
+		if p:IsA("Part") and p.Shape == Enum.PartType.Block then return math.sqrt(hx * hx + hz * hz), hy end
+		return math.max(hx, hz), hy
+	end
+
+	case("CH-T1: every Caramelo tree is grown 1.5 to 1.8 times about its foot, the leafy crowns a little more", function()
+		assert(type(Builder.TREE_SCALE) == "table", "no Builder.TREE_SCALE")
+		for asset, f in pairs(Builder.TREE_SCALE) do
+			assert(Kit.SPEC[asset], asset .. " is not a kit asset")
+			assert(f >= 1.5 and f <= 1.8, asset .. " factor " .. f)
+		end
+		assert(Builder.CANOPY_BOOST > 1 and Builder.CANOPY_BOOST <= 1.25, "canopy boost " .. tostring(Builder.CANOPY_BOOST))
+		local list, kinds = trees(), {}
+		assert(#list >= 24 + 10 + 2, "grown trees " .. #list)
+		for _, tree in ipairs(list) do
+			local asset = tree:GetAttribute("KitAsset")
+			kinds[asset] = true
+			local f = tree:GetAttribute(Builder.TREE_ATTRIBUTE)
+			assert(type(f) == "number" and f >= Builder.TREE_CLEAR.minFactor - 1e-6 and f <= Builder.TREE_SCALE[asset] + 1e-6,
+				tree:GetFullName() .. " factor " .. tostring(f))
+			-- the scale the builder gave it before growing: 1, the entrance pair 1.5, the cookie and cream trees 0.9 to 1.1
+			local base = tree:GetScale() / f
+			assert(base >= 0.9 - 1e-3 and base <= 1.5 + 1e-3, tree:GetFullName() .. " base scale " .. base)
+			near(tree:GetPivot().Y, top, tree:GetFullName() .. " foot on the floor")
+			local prefab = library:FindFirstChild(asset)
+			for _, piece in ipairs(tree:GetChildren()) do
+				local source = prefab:FindFirstChild(piece.Name)
+				if piece:IsA("BasePart") and source and source:IsA("BasePart") then
+					local crown = Builder.LEAFY[asset] and not TRUNK_MESH[piece.Name] and string.sub(piece.Name, 1, 10) ~= "Collision_"
+					near(piece.Size.X / source.Size.X, tree:GetScale() * (crown and Builder.CANOPY_BOOST or 1),
+						tree:GetFullName() .. "." .. piece.Name .. " growth", 2e-3)
+				end
+			end
+			local roof = tree:FindFirstChild("Roof")
+			if roof then
+				-- La Nube's cover keeps the blockout's width: only its height follows the crown
+				near(roof.Size.Y, Builder.ROOF_DIAMETER, tree.Name .. " roof width")
+				near(roof.Size.Z, Builder.ROOF_DIAMETER, tree.Name .. " roof depth")
+			end
+		end
+		for asset in pairs(Builder.TREE_SCALE) do assert(kinds[asset], "no grown " .. asset) end
+	end)
+
+	case("CH-T2: no tree trunk or roof on a route, a nest, the stair or the plaza, and no low crown over a route or a nest", function()
+		local keepOut, nests = Builder.treeKeepOut(Layout), Builder.treeNests(Layout)
+		assert(#nests >= #Layout.NESTS, "the clearance does not read Layout.NESTS")
+		for _, spec in ipairs(Layout.NESTS) do
+			local seen = false
+			for _, n in ipairs(nests) do if n.id == spec.id then seen = true end end
+			assert(seen, "nest " .. spec.id .. " is not cleared")
+		end
+		-- the boss plaza covers the whole stair, so a tree off the plaza is off the stair
+		local outer = 0
+		for _, s in ipairs(Layout.stairSteps()) do
+			outer = math.max(outer, Layout.flat(s.x, s.z, Layout.TORTA.x, Layout.TORTA.z) + Layout.TOWER.stair.width)
+		end
+		assert(outer < Layout.BOSS.plazaRadius, "the stair reaches past the plaza")
+		local C, half = Builder.TREE_CLEAR, Layout.PATH_WIDTH / 2
+		for _, tree in ipairs(trees()) do
+			local pivot = tree:GetPivot().Position
+			local ok, why = Builder.treeFits(Layout, pivot.X - centre.x, pivot.Z - centre.z, Builder.measureTree(tree), keepOut)
+			assert(ok, tree:GetFullName() .. ": " .. tostring(why))
+			-- the same rule part by part, without the builder's measure
+			for _, p in ipairs(tree:GetChildren()) do
+				if p:IsA("BasePart") then
+					local reach, halfY = spread(p)
+					local px, pz = p.Position.X - centre.x, p.Position.Z - centre.z
+					local low = p.Position.Y - halfY - top
+					local query = p.CanCollide or p.CanQuery
+					local road = Layout.routeDistance(px, pz) - reach
+					if p.CanCollide then
+						assert(road >= half + C.trunkMargin - 1e-3, p:GetFullName() .. " collides " .. road .. " studs from a route centre")
+					elseif not query then
+						local allowed = low >= C.headroom and C.overhang or 0
+						assert(road >= half - allowed - 1e-3, p:GetFullName() .. " hangs over a route (bottom " .. low .. ")")
+					end
+					for _, n in ipairs(nests) do
+						local d = Layout.flat(px, pz, n.x, n.z) - reach
+						if query then
+							assert(d >= C.nestTrunk - 1e-3, p:GetFullName() .. " is " .. d .. " studs from nest " .. n.id)
+						elseif low < C.nestHeadroom then
+							assert(d >= C.nestRadius - 1e-3, p:GetFullName() .. " hangs low over nest " .. n.id)
+						end
+					end
+					assert(Layout.flat(px, pz, Layout.BOSS.x, Layout.BOSS.z) - reach >= Layout.BOSS.plazaRadius - 1e-3,
+						p:GetFullName() .. " reaches over the boss plaza")
+					for _, spot in ipairs(Layout.KEEP_CLEAR or {}) do
+						assert(Layout.flat(px, pz, spot.x, spot.z) - reach >= spot.r - 1e-3, p:GetFullName() .. " in " .. spot.why)
+					end
+					if query then
+						for _, k in ipairs(keepOut) do
+							assert(Layout.flat(px, pz, k.x, k.z) - reach >= k.r - 1e-3, p:GetFullName() .. " on " .. tostring(k.why))
+						end
+					end
+				end
+			end
+		end
+	end)
+
+	case("CH-T3: growing adds no part; about +50 % trees, no tree lost for room, and the part growth stays moderate", function()
+		local fluff = Kit.fluff and Kit.FLUFF_COUNT or 0
+		local E = Builder.EXTRA_TREES
+		local count = { cotton = 0, TreeCookie = 0, TreeCream = 0 }
+		local base, extra, extraParts = 0, 0, 0
+		for _, tree in ipairs(trees()) do
+			local asset = tree:GetAttribute("KitAsset")
+			if tree:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE) then
+				extra += 1
+				for _, d in ipairs(tree:GetDescendants()) do if d:IsA("BasePart") then extraParts += 1 end end
+			else
+				base += 1
+			end
+			local parts, expected = 0, 0
+			for _, d in ipairs(tree:GetDescendants()) do if d:IsA("BasePart") then parts += 1 end end
+			for _, d in ipairs(library:FindFirstChild(asset):GetDescendants()) do if d:IsA("BasePart") then expected += 1 end end
+			if string.sub(asset, 1, 11) == "TreeCotton_" then
+				expected += 1 + fluff -- the Roof and the fluff blobs, as before the change
+				count.cotton += 1
+			elseif count[asset] then
+				count[asset] += 1
+			end
+			equal(parts, expected, tree:GetFullName() .. " parts")
+		end
+		equal(root:GetAttribute("TreesSkipped"), 0, "trees skipped for lack of room")
+		-- deliberately changed (owner: more trees): cotton 32 -> 48, cookie and cream 5 -> 8 each
+		equal(count.cotton, 32 + E.cottonLeft + E.cottonRight, "cotton trees")
+		equal(count.TreeCookie, 5 + E.TreeCookie, "cookie trees")
+		equal(count.TreeCream, 5 + E.TreeCream, "cream trees")
+		equal(#root.CottonTrees:GetChildren(), 32 + E.cottonLeft + E.cottonRight, "CottonTrees children")
+		assert(root.Entrance:FindFirstChild("GiantLollipop_1") and root.Entrance:FindFirstChild("GiantLollipop_2"), "the entrance pair")
+		equal(root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE), extra, "the root counts the added trees")
+		assert(extra >= base * 0.4 and extra <= base * 0.6, ("trees %d + %d: not +40-60 %%"):format(base, extra))
+		local total = root:GetAttribute("PartCount")
+		assert(extraParts <= 0.35 * (total - extraParts), ("the extra trees add %d parts to %d"):format(extraParts, total - extraParts))
+	end)
+
+	case("CH-T8: syncTrees adds nothing to a synced build, and a dry run only plans", function()
+		local before = #root:GetDescendants()
+		local report = Builder.syncTrees(root, Layout, Kit, library)
+		equal(report.already, true, "already synced")
+		equal(report.added, 0, "added on a second sync")
+		equal(#root:GetDescendants(), before, "instances after a second sync")
+		local marked = root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE)
+		root:SetAttribute(Builder.TREES_ADDED_ATTRIBUTE, nil)
+		local dry = Builder.syncTrees(root, Layout, Kit, library, true)
+		root:SetAttribute(Builder.TREES_ADDED_ATTRIBUTE, marked)
+		equal(#root:GetDescendants(), before, "instances after a dry run")
+		equal(#dry.planned, dry.added, "a planned line per tree")
+		equal(dry.parts, 0, "a dry run adds no part")
+		assert(not pcall(Builder.syncTrees, Instance.new("Folder"), Layout, Kit, library), "a root without tree folders is an error")
+	end)
+
+	case("CH-T9: a sync cut short only adds the missing trees, and a dry run plans the same lollipops as the real run", function()
+		-- review MINOR 5: one extra cotton tree lost and the root unmarked, as after a failure halfway
+		local marked = root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE)
+		local lost
+		for _, tree in ipairs(root.CottonTrees:GetChildren()) do
+			if tree:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE) then lost = tree end
+		end
+		assert(lost, "no extra cotton tree")
+		lost:Destroy()
+		root:SetAttribute(Builder.TREES_ADDED_ATTRIBUTE, nil)
+		local report = Builder.syncTrees(root, Layout, Kit, library)
+		equal(report.kept, marked - 1, "extras already standing")
+		assert(report.added <= 1, "a cut-short sync added " .. report.added .. " trees")
+		assert(#root.CottonTrees:GetChildren() <= 32 + Builder.EXTRA_TREES.cottonLeft + Builder.EXTRA_TREES.cottonRight, "cotton trees doubled")
+		equal(root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE), report.kept + report.added, "the root counts every extra")
+		-- review MINOR 4: on the second build with its extras forgotten, the dry plan's lollipops are the real run's
+		local second = again:FindFirstChild(Layout.ROOT_NAME)
+		assert(second, "no second build")
+		for _, d in ipairs(second:GetDescendants()) do
+			if d:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE) then d:SetAttribute(Builder.TREES_ADDED_ATTRIBUTE, nil) end
+		end
+		second:SetAttribute(Builder.TREES_ADDED_ATTRIBUTE, nil)
+		local function lollipopLines(r)
+			local list = {}
+			for _, line in ipairs(r.planned) do
+				if string.sub(line, 1, 10) == "Lollipops." then table.insert(list, line) end
+			end
+			return table.concat(list, ";")
+		end
+		local dry = Builder.syncTrees(second, Layout, Kit, library, true)
+		local real = Builder.syncTrees(second, Layout, Kit, library)
+		equal(lollipopLines(dry), lollipopLines(real), "dry and real lollipops")
+		equal(dry.added, real.added, "dry and real counts")
+	end)
+
+	case("CH-T4: the clearance refuses a trunk or a low crown on a route or a nest, and fitTree shrinks, then moves, then gives up", function()
+		-- a plain test layout: one straight route along x, one nest at (0, 40), the plaza far away
+		local plain = { PATH_WIDTH = 14, NESTS = { { id = "N", x = 0, z = 40 } }, TOWER = {}, KEEP_CLEAR = {},
+			BOSS = { x = 0, z = 1000, plazaRadius = 44 }, PORTAL = { x = 1000, z = 0 }, ENTRANCE = { x = -1000, z = 0 },
+			flat = Layout.flat, depth = function() return 100 end, routeDistance = function(_, z) return math.abs(z) end }
+		local high = { trunk = 2, canopy = 10, roof = 0, bottom = 13 }
+		local low = { trunk = 2, canopy = 10, roof = 0, bottom = 6 }
+		equal((Builder.treeFits(plain, 0, 10, high, {})), false, "trunk 1.5 studs past the path edge needs 10.5")
+		equal((Builder.treeFits(plain, 0, 14, high, {})), true, "a high crown may overhang the path by 4")
+		equal((Builder.treeFits(plain, 0, 14, low, {})), false, "a low crown never overhangs the path")
+		equal((Builder.treeFits(plain, 0, 28, high, {})), true, "a crown higher than 12 may cover the nest")
+		equal((Builder.treeFits(plain, 0, 28, low, {})), false, "a low crown 12 studs from the nest covers it")
+		equal((Builder.treeFits(plain, 0, 26, { trunk = 2, canopy = 10, roof = 6.5, bottom = 13 }, {})), false, "the roof edge 8 off the nest")
+		equal((Builder.treeFits(plain, 0, 28, high, { { x = 20, z = 28, r = 5 } })), true, "a keep-out disc 20 away")
+		equal((Builder.treeFits(plain, 0, 28, high, { { x = 5, z = 28, r = 5 } })), false, "the trunk on a keep-out disc")
+		plain.BOSS = { x = 0, z = 100, plazaRadius = 44 }
+		equal((Builder.treeFits(plain, 0, 60, high, {})), false, "the crown over the boss plaza")
+		plain.BOSS = { x = 0, z = 1000, plazaRadius = 44 }
+		-- measured at 1.7: canopy 10.2 needs 13.2 from the route; at 1.65 it needs 12.9
+		local m = { trunk = 2, canopy = 10.2, roof = 0, bottom = 12 }
+		local f, dx, dz = Builder.fitTree(plain, 0, 13, m, 1.7, {})
+		near(f, 1.65, "shrunk in place"); equal(dx, 0, "not moved x"); equal(dz, 0, "not moved z")
+		f, dx, dz = Builder.fitTree(plain, 0, 9, m, 1.7, {})
+		near(f, 1.65, "moved, then the largest factor that fits"); near(dx, 0, "moved straight off the route"); near(dz, 4, "4 studs")
+		equal((Builder.fitTree(plain, 0, 40, m, 1.7, {})), nil, "no fit on the nest")
+		local scaled = Builder.scaleMeasure({ trunk = 2, canopy = 10, roof = 6.5, bottom = 12 }, 0.5)
+		near(scaled.trunk, 1, "trunk scales"); near(scaled.canopy, 5, "canopy scales"); near(scaled.bottom, 6, "bottom scales")
+		near(scaled.roof, 6.5, "the roof keeps its width")
+	end)
+
+	case("CH-T5: growTree grows about the foot, boosts a leafy crown once, keeps the Roof, and a second run changes nothing", function()
+		local at = CFrame.new(centre.x, top, centre.z + 600) * CFrame.Angles(0, 0.7, 0)
+		local tree = Kit.place(library, "TreeCotton_M", at, 1)
+		local roof = Instance.new("Part")
+		roof.Name = "Roof"
+		roof.Size = Vector3.new(0.4, 13, 13)
+		roof.CFrame = at * CFrame.new(0, 8, 0) * CFrame.Angles(0, 0, math.rad(90))
+		roof.Parent = tree
+		if Kit.fluff then Kit.fluff(tree) end
+		local trunk0, crown0 = tree.Collision_Trunk.Size, tree.CrownA.Size
+		local before = Builder.measureTree(tree)
+		equal(Builder.growTree(tree, "TreeCotton_M", 1.7), true, "first grow")
+		near((tree:GetPivot().Position - at.Position).Magnitude, 0, "the foot stays")
+		near(tree.Collision_Trunk.Size.X / trunk0.X, 1.7, "trunk")
+		near(tree.CrownA.Size.X / crown0.X, 1.7 * Builder.CANOPY_BOOST, "crown")
+		near(roof.Size.Y, Builder.ROOF_DIAMETER, "roof width")
+		local after = Builder.measureTree(tree)
+		near(after.bottom, before.bottom * 1.7, "the canopy's bottom rises with the tree, never lower", 1e-2)
+		near(after.trunk, before.trunk * 1.7, "trunk reach", 1e-2)
+		assert(after.canopy > before.canopy * 1.7, "the canopy grows more than the tree")
+		equal(tree:GetAttribute(Builder.TREE_ATTRIBUTE), 1.7, "attribute")
+		local crownAt = tree.CrownA.Position
+		equal(Builder.growTree(tree, "TreeCotton_M", 1.7), false, "a second grow")
+		near((tree.CrownA.Position - crownAt).Magnitude, 0, "unchanged by a second grow")
+		equal(Builder.growTree(tree, "TreeCotton_M", 1.5), true, "a smaller factor later")
+		near(tree.CrownA.Size.X / crown0.X, 1.5 * Builder.CANOPY_BOOST, "rescaled from the recorded factor, boosted once")
+		local lolly = Kit.place(library, "TreeLollipop_Straight", at, 1)
+		local disc = lolly.DiscA.Size
+		Builder.growTree(lolly, "TreeLollipop_Straight", 1.6)
+		near(lolly.DiscA.Size.X / disc.X, 1.6, "a lollipop is not leafy")
+		tree:Destroy()
+		lolly:Destroy()
+	end)
+
 	scratch:Destroy()
 	again:Destroy()
 	return result

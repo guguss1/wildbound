@@ -34,17 +34,21 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 	-- attack is the owner's favourite and stays exactly as it was (only its damage is new).
 	-- Deliberately changed (OF3, owner feedback 3): every base chase raised again (19-22, still under a running player's
 	-- 23.2; the burst over it is WildboundCandySmarts' sprint).
+	-- Deliberately changed (CH2, owner request 2026-11-16 "make them go faster"): about +2 each, still distinct and under
+	-- 23.2: Mochimiau 21 -> 22.5, Canelin 20 -> 22, Flanin 19 -> 21.5, Mielita 22 -> 23, Gato 19.5 -> 21.8.
+	-- Deliberately changed (CH5, owner request "do more damage"): each hit about +40-50 %, still under 35 (never a
+	-- one-shot): Mochimiau 8 -> 12, Canelin 12 -> 17, Flanin 16 -> 23, Mielita 10 -> 14, Gato 9 -> 13.
 	local SHEET = {
 		Mochimiau = { kind = "leap", cooldown = 3.5, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
-			chase = 21, range = 7, tell = 0.8, damage = 8 },
+			chase = 22.5, range = 7, tell = 0.8, damage = 12 },
 		Canelin = { kind = "dash", cooldown = 6, push = true, pushStuds = 8, slow = 0.7, slowSeconds = 2.5, flies = false,
-			chase = 20, range = 10, tell = 0.9, damage = 12 },
+			chase = 22, range = 10, tell = 0.9, damage = 17 },
 		Flanin = { kind = "burst", cooldown = 7, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 10, flies = false,
-			chase = 19, range = 7, tell = 1.2, damage = 16 },
+			chase = 21.5, range = 7, tell = 1.2, damage = 23 },
 		Mielita = { kind = "lob", cooldown = 5, push = true, pushStuds = 6, slow = 0.7, slowSeconds = 3, radius = 6, flies = true,
-			chase = 22, range = 18, tell = 0.9, damage = 10, standOff = 10 },
+			chase = 23, range = 18, tell = 0.9, damage = 14, standOff = 10 },
 		GatoRepartidor = { kind = "lob", cooldown = 4.5, pushStuds = 6, push = true, slow = 0.8, slowSeconds = 2, radius = 4,
-			flies = false, chase = 19.5, range = 15, tell = 1, damage = 9, standOff = 8 },
+			flies = false, chase = 21.8, range = 15, tell = 1, damage = 13, standOff = 8 },
 	}
 	local FAR = 70 -- a target this far from home is never seen, yet still inside its escape distance
 	local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
@@ -114,7 +118,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			assert(sheet.chase > 16 and sheet.chase < 16 * 1.45, name .. " chase outside walk..run")
 			equal(A.RangeStuds, sheet.range, name .. " range"); equal(A.TelegraphSeconds, sheet.tell, name .. " tell")
 			equal(C.damage, sheet.damage, name .. " damage")
-			assert(C.damage >= 8 and C.damage <= 20, name .. " damage outside 8-20")
+			assert(C.damage >= 8 and C.damage < 35, name .. " damage outside 8-34 (CH5: was 8-20)")
 			equal(T.StandOffStuds, sheet.standOff, name .. " stand-off")
 			assert(not speeds[sheet.chase], name .. " shares a chase speed"); speeds[sheet.chase] = true
 			assert(not damages[C.damage], name .. " shares a damage"); damages[C.damage] = true
@@ -501,6 +505,24 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		assert(string.find(client, 'SetAttribute("WildboundResting", true)', 1, true), "the copy is tagged")
 		assert(string.find(client, 'SetAttribute("BeastPhase", "Calm")', 1, true), "the copy idles")
 		assert(string.find(client, 'child:GetAttribute("WildboundResting") ~= true', 1, true), "a live view is told apart")
+	end)
+
+	-- CH1 (owner request "more repeated creatures"): a creature also rests at its extra posts (WildboundPraderaSites
+	-- .EXTRA_POSTS), published as RestingPost_<name>_<post>. A live view hides only the copy of the post it started on
+	-- (the nearest post of its beast within BIND_STUDS), so the other copies of that creature stay at their posts.
+	case("CH1 wiring: resting copies at the extra posts too; a live view hides only its own post's copy", function()
+		local server, client = sources.resting, sources.restingClient
+		assert(type(server) == "string" and type(client) == "string", "pass the resting service and client sources")
+		assert(string.find(server, "for _, extra in ipairs(Sites.EXTRA_POSTS) do", 1, true), "the extra posts are published")
+		assert(string.find(server, 'root:SetAttribute("RestingPost_" .. extra.name .. "_" .. extra.key', 1, true), "as RestingPost_<name>_<post>")
+		assert(string.find(client, "local function postsOf(name)", 1, true), "the client reads every post of a beast")
+		assert(string.find(client, 'local prefix = "RestingPost_" .. name .. "_"', 1, true), "its extra posts by prefix")
+		assert(string.find(client, "bound[view] = best", 1, true), "a live view belongs to one post")
+		-- Deliberately changed (CH1 review, MINOR 2): 50 -> 12 studs, so an ambush critter or a roar copy near a post never
+		-- hides that post's copy; the first look waits 0.1 s for the beast client to place the new model
+		assert(string.find(client, "local BIND_STUDS, BIND_TRIES, BIND_SECONDS = 12, 8, 0.25", 1, true), "within 12 studs, a few tries")
+		assert(string.find(client, "task.delay(FIRST_SECONDS, bind, child, BIND_TRIES)", 1, true), "the first look after the model is placed")
+		assert(string.find(client, "root.AttributeChanged:Connect(", 1, true), "a post published later is shown")
 	end)
 
 	-- PF2: the target's client shows the beast's own hit line (Text.BEAST[beast].hit) when the Hit carries no line of its

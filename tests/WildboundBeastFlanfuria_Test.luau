@@ -89,11 +89,11 @@ return function(Enc, Flanfuria, Config, Onda)
 		equal(Config.WAVE2.Flanfuria, true, "without it the client ignores its phases and draws no tell")
 		-- Deliberately changed (OF2, owner feedback 2): its ring hurts (15, through BeastHit with the egg kept) and it
 		-- chases faster than a walking player (11 -> 17).
-		equal(C.damage, 15); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true)
+		equal(C.damage, 22); equal(C.points, 0); equal(C.keepsEgg, true); equal(C.grounded, true) -- Deliberately changed (CH5, "more damage"): 15 -> 22
 		equal(Config.PLAYABLE.Flanfuria, nil, "never rolled")
 		for _, name in ipairs(Config.ORDER) do assert(name ~= "Flanfuria", "not in ORDER") end
 		assert(table.isfrozen(T), "tuning frozen")
-		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 19) -- Deliberately changed (OF3): 17 -> 19
+		equal(T.PerceptionStuds, 20); equal(T.PatrolSpeedStudsPerSecond, 6); equal(T.ChaseSpeedStudsPerSecond, 22) -- Deliberately changed (OF3): 17 -> 19; (CH2): 19 -> 22
 		assert(T.CastRangeStuds < Onda.RING_TO_STUDS, "it casts at a target the ring cannot reach")
 		equal(T.PuddleSlowSeconds, nil, "the attack's numbers live in WildboundCandyFlanfuriaAttack only"); equal(T.PuddleRepeatSeconds, nil)
 		assert(Flanfuria.tellSeconds() >= Config.MIN_TELL, "tell under the fairness floor")
@@ -107,7 +107,9 @@ return function(Enc, Flanfuria, Config, Onda)
 		equal(phases(run(e, w, tgt, 0, 1)), "Calm", "far target")
 		equal(e.pos.x, 0, "moved while calm")
 		tgt.x = 19.9
-		local events = run(e, w, tgt, 1.05, 2.4)
+		-- Deliberately changed (CH2): the sprint is read earlier in the chase (from 2.0 s, was 2.4 s): at its 28 studs/s
+		-- (was 24; now 28) the old window reached the 16-stud leash and read the clamp instead of the speed
+		local events = run(e, w, tgt, 1.05, 2.0)
 		local list = each(events, "Phase")
 		equal(list[1].phase, "Notice"); equal(list[2].phase, "Chase")
 		near(list[2].at - list[1].at, T.AlertSeconds, "alert time", 1e-6)
@@ -116,8 +118,9 @@ return function(Enc, Flanfuria, Config, Onda)
 		-- OF2: 17 studs/s now, so the speed is read over 5 steps (0.25 s) before its 16-stud leash stops it
 		-- Deliberately changed (OF3): the first 1.5 s of a chase are WildboundCandySmarts' 24-stud sprint, read over 2 steps
 		-- (0.1 s) before the leash
-		run(e, w, tgt, 2.45, 2.5)
-		near((e.pos.x - x0) / 0.1, 24, "chase speed (the sprint)", 1.2)
+		-- Deliberately changed (CH2): sprint 24 -> 28
+		run(e, w, tgt, 2.05, 2.1)
+		near((e.pos.x - x0) / 0.1, 28, "chase speed (the sprint)", 1.2)
 		local farthest = 0
 		run(e, w, tgt, 3, 12, function(t, tg, state) tg.x = math.min(state.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, state) farthest = math.max(farthest, state.pos.x) end)

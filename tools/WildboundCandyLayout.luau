@@ -78,6 +78,17 @@ Layout.NESTS = table.freeze({
 	nest("E1", "Epica", -34, -20),
 	nest("E2", "Epica", 20, 36),
 	nest("L1", "Legendaria", 36, -22),
+	-- CH3 (owner request 2026-11-16, "more eggs too"): eight more floor nests near the routes, outside the boss territory
+	-- and past the entrance; C7, R6 and C8 are guarded by the guardians' extra posts, the other five have an extra candy
+	-- critter post beside them (WildboundPraderaSites.EXTRA_POSTS).
+	nest("C6", "Comun", 10, -162), -- south of the biscuit bridge (left route)
+	nest("C7", "Comun", 5, 142), -- north of the lollipop avenue (right route)
+	nest("C8", "Comun", 140, -70), -- by the left route's last leg, away from the portal
+	nest("C9", "Comun", -135, -62), -- west of the left route's first leg
+	nest("C10", "Comun", -60, -162), -- south-west of the bridge
+	nest("R5", "Rara", 88, 112), -- outside the right route's bend
+	nest("R6", "Rara", 96, -122), -- outside the left route's bend
+	nest("R7", "Rara", -116, 58), -- west of the right route's first leg
 })
 
 -- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT3): the Gran Torta as a tower. tiers are the kit cake's four

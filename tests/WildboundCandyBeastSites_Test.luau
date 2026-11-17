@@ -226,5 +226,28 @@ return function(Layout, Sites, Config, marker, biome)
 		end
 	end)
 
+	-- CH1 / CH3 (owner request 2026-11-16, "more creatures ... more eggs"): on the live biome, each extra post is open
+	-- candy floor (a resting copy and a spawn need ground, no prop on it), and each layout nest's spot has no scattered
+	-- prop on it (only floor, a path or the nest itself under four points round it), so a nest placed by syncNests on an
+	-- older build never sinks into a tree or a rock.
+	case("CH1/CH3: the extra posts are open floor and no prop stands on a nest's spot", function()
+		assert(biome and biome:FindFirstChild("Ground"), "no live candy biome given")
+		for _, extra in ipairs(Sites.EXTRA_POSTS) do
+			local w = Sites.world(nil, extra.key)
+			for _, off in ipairs({ { 0, 0 }, { 4, 0 }, { -4, 0 }, { 0, 4 }, { 0, -4 } }) do
+				local hit = workspace:Raycast(Vector3.new(w.x + off[1], 120, w.z + off[2]), Vector3.new(0, -200, 0))
+				assert(hit and hit.Instance == biome.Ground.Floor, extra.key .. " is under or inside " .. (hit and hit.Instance:GetFullName() or "nothing"))
+			end
+		end
+		for _, spec in ipairs(Layout.NESTS) do
+			for _, off in ipairs({ { 5, 0 }, { -5, 0 }, { 0, 5 }, { 0, -5 } }) do
+				local hit = workspace:Raycast(Vector3.new(Layout.CENTRE.x + spec.x + off[1], 120, Layout.CENTRE.z + spec.z + off[2]), Vector3.new(0, -200, 0))
+				local fine = hit and (hit.Instance:IsDescendantOf(biome.Ground) or (biome:FindFirstChild("Paths") and hit.Instance:IsDescendantOf(biome.Paths))
+					or (biome:FindFirstChild("Nests") and hit.Instance:IsDescendantOf(biome.Nests)))
+				assert(fine, "nest " .. spec.id .. ": a prop stands on its spot (" .. (hit and hit.Instance:GetFullName() or "nothing") .. ")")
+			end
+		end
+	end)
+
 	return result
 end
