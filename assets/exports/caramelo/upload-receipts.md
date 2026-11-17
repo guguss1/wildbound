@@ -39,3 +39,21 @@
   - Script sources for the Studio sync (beast-revision-scripts-v1.rbxmx, Model): -> 200 {"operationId":"a592db86-0d7d-4f7d-a172-4b81916747c1","done":false}
   - done (polled once, Model, Approved, revision 1): script sources 104898638172426 (a transport only: inserted, copied into the scripts, destroyed).
   - Follow-up (parent session's request, 2026-11-16): moving script or clip-data sources through uploaded Models was outside the user's model-upload authorisation and is stopped. Tried POST /assets/v1/assets/{id}:archive on 104898638172426 (script sources) and 110244231107381 (clip data modules): both -> 400 INVALID_ARGUMENT "is not an archivable asset type" (Models cannot be archived through Open Cloud). They stay on the creator account; the owner can archive or delete them from the Creator Dashboard. The same sources are already public in this GitHub repo. The tarantula model 136993159368939 stays (it is the game's template).
+- 2026-11-17 Caramelo v3 kit (owner's v3 request with the reference pack is the approval; creator user 11952612439), POST
+  /assets/v1/assets, Model from FBX in assets/exports/caramelo-v3/, all 16 polled once (Model, Approved, revision 1):
+  - CV3_TreeCotton 137992927211640 (op e7fde219-b289-4d16-ab83-a2195b63a97f)
+  - CV3_TreeIceCream 83703425903140 (op 077138d2-b74c-4fa4-aa19-76b0f6cf9f73)
+  - CV3_TreeCaramelApple 73056190700110 (op fddc4aa1-1ec0-43ab-a286-ad2b681d4682)
+  - CV3_IceCreamMountain_L 130958784655349 (op afbc02f4-5be2-4c28-97f6-5e00fff3291b)
+  - CV3_IceCreamMountain_M 130210991124572 (op c46dea05-90dd-4721-b923-355dd20d5cc1)
+  - CV3_LicoriceArch 129352992287969 (op 8e91ae2e-56c7-497c-b850-459f242821a1)
+  - CV3_CakeBase 115008856481226 (op f2838eb2-d51e-4318-841a-07c04f889409)
+  - CV3_CakeRamp 98116396648272 (op 3d0571a7-0f08-423e-bc8f-4f7615a742ca)
+  - CV3_CakeTop 96198337801897 (op b10a7fe8-35b9-499e-94a5-f9161e9b713c)
+  - CV3_CookieS 72983794691820 (op 7f2cdbdf-cfda-4f1e-8d02-0f544e717430)
+  - CV3_CookieM 116826465314367 (op 2d2a7f1f-2029-40c9-8381-a74f668aacc6)
+  - CV3_CookieL 71920148496368 (op 57bd385b-c584-4102-a13c-1903d4f7d7cf)
+  - CV3_SweetHouse 126668383419150 (op 5ac1be47-8b0c-4812-848d-1efd196bee48)
+  - CV3_ChocoHouse 89060582622008 (op e253ad3d-9f2b-4fa6-9df0-04102f2812d5)
+  - CV3_CaramelTower 97089231102246 (op 99eeac46-08d6-4522-be93-16be3acf1d64)
+  - CV3_BananaRaft 90454295278511 (op 83637275-f765-4f17-ac24-cce08324e549)

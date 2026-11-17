@@ -55,8 +55,9 @@ corners and the south band, so the river runs there.
 The left route's bottom leg (z = -140) crosses the river mouth and the lake. The old flat biscuit tiles are archived and
 a wafer bridge takes their place: deck from x -44 to 44, 16 wide, top 2.2 over the floor (over the 1.3 surface), a
 7-stud ramp at each end, chocolate rails outside the path. Every route point inside the chocolate is on the deck, and
-every route edge that touches it is on the deck or a ramp (suite V3-4). The rails open in three 8-stud gaps (x -30, 0
-and 30), each with a 6-stud side ramp down to the floor on both sides, so the lake is crossed north-south too (V3-D19).
+every route edge that touches it is on the deck or a ramp (suite V3-4). The rails open in three 8-stud gaps (x -30, 12
+and 30; V3-D25 moved the middle one off candyPostC6), each with a 6-stud side ramp down to the floor on both sides, so
+the lake is crossed north-south too (V3-D19).
 
 ### Raft and docks
 
@@ -146,6 +147,8 @@ batch into a detached model and reports `partsEstimate` and `overCap` before any
 | V3-D22 | (review m6) The raft's server model moves only while it sails or drifts (and once when it docks or respawns), so a docked raft sends nothing; it bobs only under way. Riders are set down on the dock deck's top. A "Llamar a la balsa" prompt on each dock brings the empty raft over. Each dock deck stops 5 studs short of the tip. | Smoother ride, no idle replication, nobody has to wade to fetch it, the hull floats free of the deck. |
 | V3-D23 | (review m8) The houses do not shelter from La Nube's sky ray (no `WildboundRoof` tag on their roofs). | La Nube's cover stays the cotton trees' Roof discs, as before. |
 | V3-D24 | (review m1-m5, m7, m8) The migration refuses unless the keep-out holds every creature post, estimates the parts in the dry run, warns about an older backup it keeps, and requires fresh clones of the modules. H6 moved to (182, -176) and dock ramps shortened to 5 studs, clear of the house. The waterfall's `top` is studs over the floor. | The live-map suites and the part cap are checked before any change. |
+| V3-D25 | (live map, 2026-11-17) The bridge's middle gap moved from x 0 to x 12: its south side ramp stood on candyPostC6 (Mielita's extra post; BeastSites CH1/CH3 failed after the migration). V3-12 and the Python bridge test now keep every side ramp 6 studs off every creature post. The live bridge was rebuilt in place (the old one archived). | A creature post stays open floor; the crossing keeps three gaps. |
+| V3-D26 | (solo Play, 2026-11-17) The raft sets its rider down on the far dock 0.3 s after the unseat, and again at 0.9 s if the rider is not within 6 studs of the stand. | A move deferred one frame was snapped back onto the raft by the client, still welded to the seat. |
 
 ## Known limits and follow-ups
 

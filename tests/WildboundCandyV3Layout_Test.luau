@@ -275,6 +275,21 @@ return function(V3, Layout, Sites, Trap)
 		assert(math.deg(math.atan2(B.deck, B.sideRamp)) <= 25, "side ramps are walkable")
 		assert(V3.nearBridge(B.x, B.z + B.width / 2 + B.sideRamp - 0.5, 0), "a side ramp is part of the bridge")
 		assert(not V3.nearBridge(B.x, B.z + B.width / 2 + B.sideRamp + 3, 1), "beyond the side ramps")
+		-- V3-D25 (live map, 2026-11-17): candyPostC6 stood at the foot of the middle gap's south ramp. Every side ramp's
+		-- footprint keeps pieceFromPost studs off every creature post (a post is probed 4 studs round its centre).
+		for _, gx in ipairs(B.gaps) do
+			for _, s in ipairs({ -1, 1 }) do
+				local x0, x1 = B.x + gx - B.gapWidth / 2, B.x + gx + B.gapWidth / 2
+				local zEdge, zFoot = B.z + s * B.width / 2, B.z + s * (B.width / 2 + B.sideRamp)
+				local z0, z1 = math.min(zEdge, zFoot), math.max(zEdge, zFoot)
+				for _, p in ipairs(posts()) do
+					local dx = math.max(x0 - p.x, 0, p.x - x1)
+					local dz = math.max(z0 - p.z, 0, p.z - z1)
+					assert(math.sqrt(dx * dx + dz * dz) >= C.pieceFromPost,
+						("the side ramp at gap %d (side %d) is on post %s"):format(gx, s, p.id))
+				end
+			end
+		end
 	end)
 
 	-- V3 review M1 and m5.

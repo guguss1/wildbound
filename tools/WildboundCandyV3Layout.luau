@@ -91,9 +91,10 @@ V3.LAKE = freeze({
 -- (above the liquid), `width` wide, from x - length/2 to x + length/2 along the route, and a ramp of `ramp` studs at
 -- each end. It replaces the old flat biscuit tiles (the migration archives them). V3-D19 (review M3): the rails open in
 -- gaps of gapWidth studs centred at x + gaps[i], each with a walkable side ramp of sideRamp studs down to the floor on
--- both sides, so a wader, an egg run or a creature crosses north-south without a detour.
+-- both sides, so a wader, an egg run or a creature crosses north-south without a detour. V3-D25 (live map): the middle
+-- gap sits at x + 12, not at x, because candyPostC6 (Mielita's extra post) stands at the foot of a centred south ramp.
 V3.BRIDGE = freeze({ x = 0, z = -140, length = 88, ramp = 7, width = 16, deck = 2.2, route = "left",
-	gaps = { -30, 0, 30 }, gapWidth = 8, sideRamp = 6 })
+	gaps = { -30, 12, 30 }, gapWidth = 8, sideRamp = 6 })
 
 -- The houses (enterable, with an interior, kit scale 1 so the 7 x 9.5 doors fit an avatar): { id, asset, x, z, r (the
 -- footprint disc round the kit's bounding box) }. Each faces the junction.

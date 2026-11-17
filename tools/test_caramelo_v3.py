@@ -268,6 +268,15 @@ class CarameloV3Layout(unittest.TestCase):
                 self.assertGreaterEqual(abs(a - c), b["gapWidth"] + 4, "gaps too close")
         rise = b["deck"]
         self.assertLessEqual(math.degrees(math.atan2(rise, b["sideRamp"])), 25, "side ramps walkable")
+        # V3-D25: no side ramp on a creature post (candyPostC6 stood at the middle gap's south ramp)
+        for gx in b["gaps"]:
+            for s in (-1, 1):
+                x0, x1 = b["x"] + gx - b["gapWidth"] / 2, b["x"] + gx + b["gapWidth"] / 2
+                za, zb = b["z"] + s * b["width"] / 2, b["z"] + s * (b["width"] / 2 + b["sideRamp"])
+                z0, z1 = min(za, zb), max(za, zb)
+                for pid, (px, pz) in self.g.posts.items():
+                    dx, dz = max(x0 - px, 0, px - x1), max(z0 - pz, 0, pz - z1)
+                    self.assertGreaterEqual(math.hypot(dx, dz), 6, "side ramp at gap %s on post %s" % (gx, pid))
 
     def test_nests_posts_traps_boss_portal_entrance_stay_off_the_chocolate(self):
         g, c = self.g, self.g.clear

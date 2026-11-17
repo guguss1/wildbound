@@ -447,7 +447,7 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 | GT-D5 | La Duquesa may catch a straight sprinter with her first or second lunge (was: the first). Her numbers are unchanged. | The bigger cake's longer stair lets a sprinter outrun the first lunge; the second catches it at 5.8 s, so it must still dodge. |
 | RC-D5 | A swarm that vanished is placed back at its hive at once. | Otherwise its bugs reappear by the base until someone walks near the hive. |
 
-## Caramelo v3: the owner's reference pack (queued 2026-11-17, not started)
+## Caramelo v3: the owner's reference pack (2026-11-17: deployed to Studio, live map migrated, solo Play checked)
 
 Owner request 2026-11-17, with `E:\Wildbound_Caramelo_11_Referencias_3D.zip` (11 reference sheets, copied to `assets/reference/caramelo-v3/`; read `00_LEEME_Claude.md` there first): replace the trees with the three trees of the pack (cotton candy, ice-cream scoops, caramel apple); a big chocolate river with ice-cream mountains; a bridge and a rideable raft (Balsa Banana Split V2) to cross it (the owner wants it to cost Robux later; free for now); the houses (Casita Dulce San Valentin, Casita Chocolate, Torre Caramelo) in several places, with interiors; a giant rainbow licorice; the modular cake with a ramp and cookie platforms on the lake; a little less bright light overall and more sparkle particles; the creatures chase until the player reaches the base and use their attacks (done by RC, check again in Play); the map must not feel empty. No questions to the owner.
 
@@ -459,3 +459,41 @@ Decisions taken for the user (V3):
 | V3-D2 | Superseded the same day by the owner ("generate the 3D models yourself with Blender, rig if needed; the chocolate river comes out of the ice-cream mountains as a waterfall; use several agents"): every piece is modelled in Blender from the sheets (no rig: decor only), exported to FBX and uploaded as Models through the Open Cloud route; the owner's request is the upload approval for these models, each upload recorded in assets/exports/caramelo/upload-receipts.md. Three agents in parallel: decor kit, buildings and raft kit, layout and raft code; the parent is the only Studio writer. | Owner's explicit instruction. |
 | V3-D3 | The raft is free. No purchase, no Robux prompt and no monetization code: `monetization = "none"` stays until the owner approves a product. | Owner said free for now; the rules forbid monetization without explicit approval. |
 | V3-D4 | The live map is changed with a migration tool (dry run, backup, archive, never delete), as with the cake move. | Same safety as GT. |
+
+Plan and later decisions (V3-D5 to V3-D26): `docs/design/wildbound-caramelo-v3-plan.md`.
+
+- [x] V3K Blender kits (16 FBX: 3 trees, 2 ice-cream mountains with waterfall, pool and outlet, licorice arch, cake base,
+  ramp and top, 3 cookies, sweet house, chocolate house, caramel tower, banana raft), Python suites green. Commit `6d9c036`.
+- [x] V3C Layout, builder, migration tool, free raft, dimmer light and more sparkles, beasts follow into houses. Commits
+  `6d9c036`, `2f065b7` (review fixes).
+- [x] V3U Upload the 16 models (receipts in assets/exports/caramelo/upload-receipts.md), insert into
+  `ServerStorage.WildboundAssets.CandyKitV3`.
+- [x] V3S Deploy, suites, migration, live-map suites, solo Play.
+
+### Evidence: Caramelo v3 deploy (2026-11-17)
+
+- Upload: 16 Model assets, all Approved (ids in the receipts). `LoadAsset` is refused in the group universe (user-owned
+  assets), so they came in through Studio's insert tool as packages; each inner Model was taken out of its package,
+  pivot set to the origin and put in `CandyKitV3`. All 16 bounding boxes match the kit spec within 0.05 studs, base at
+  y 0 (the raft 1.26 below: its 1.25 draft, by design). Studio warned about modified packages; the owner accepted.
+- Fingerprint before: WildboundBeasts, both Ambience files and Ambience_Test equal to `f5dae59`. WildboundText in
+  Studio carried another branch's lines (SG strike words, the SENT block): only the CANDY_RAFT hunk was inserted, so the
+  Studio copy (43710 bytes) is that version plus the raft words, not this branch's file. The 9 new files were absent.
+- Fingerprint after: every deployed file equal to HEAD (KitSpec 49033/3978303295, Builder 53991/225460176, ...).
+- Suites (fresh loader): V3Layout 13/0, V3Builder 15/0, Raft 11/0, Ambience 13/0; full run 412/1 (only the old CC4).
+- Migration `MODE = "first"`: dry run with every kit model (0 placeholders), 47 props to archive, 54 trees to swap,
+  estimate 1695 parts. Real run: backup `ServerStorage.WildboundMapArchive.CaramelV3Backup`, 871 parts laid, 41 trees
+  swapped (the rest were archived by the plan first), 88 instances archived into `CaramelV3Archived`, parts 1298 -> 1735
+  (cap 2800), mark `CaramelV3 = 1`.
+- Live-map run: BeastSites CH1/CH3 failed, candyPostC6 under the bridge's middle south side ramp (V3-D25). Fixed in the
+  layout (middle gap x 0 -> 12) with a new rule in V3-12 and the Python bridge test (both seen failing first), bridge
+  rebuilt in place (old one archived as `Bridge_gapAt0`, 25 parts), full run back to 412/1.
+- Solo Play: the kit raft is built at dock A, no script errors. Boarding with the prompt seats the rider; the raft bobs
+  and crosses A -> B in about 4 s. "Llamar a la balsa" at dock A brought the empty raft back. The rider was snapped back
+  onto the raft after the set-down (V3-D26); after the fix the rider stays on dock B's stand and sees "Llegaste a la
+  otra orilla". Creatures guarding the nests near the docks chased, struck and sent the player home several times. A
+  creature (beast:11, post C7) followed the player into house H7 (snaps inside at (632, 175), the house at (632, 169))
+  and struck twice there. Screenshot: the mountain with its chocolate waterfall, the river, the raft and docks, the
+  chocolate house, the cake and the new trees.
+- Not walked in Play: the licorice, the cookie platforms, every house, a full chase to the base this time (RC was
+  walked in the GT deploy). Place unsaved (the owner saves).

@@ -223,6 +223,10 @@ return function(Raft, V3, Layout, Text, sources)
 		has(service, "surface + V3.DOCK.deckOver + 3", "the rider is set on the dock deck")
 		has(service, "if wasMoving or Raft.moving(state) then place(t) end", "a docked raft is not moved every frame")
 		has(client, "payload.kind == \"Called\"", "the client tells the caller")
+		-- V3-D26 (Play 2026-11-17): a deferred move was snapped back onto the raft by the still-seated client; the rider
+		-- is set down once the unseat has replicated, and again if it did not stick
+		has(service, "task.delay(0.3, setDown)", "set down after the unseat replicates")
+		has(service, "(root.Position - stand).Magnitude > 6 then setDown() end", "set down again if it did not stick")
 	end)
 
 	return result

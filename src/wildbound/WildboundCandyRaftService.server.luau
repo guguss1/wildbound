@@ -245,8 +245,15 @@ RunService.Heartbeat:Connect(function(dt)
 			unseat(h)
 			local stand = stands[state.dock]
 			if character and stand then
-				task.defer(function()
+				-- V3-D26 (Play 2026-11-17): the client, still welded to the seat for a moment, snapped a deferred move
+				-- back onto the raft; set the rider down once the unseat has replicated, and again if it did not stick
+				local function setDown()
 					if character.Parent then character:PivotTo(CFrame.new(stand)) end
+				end
+				task.delay(0.3, setDown)
+				task.delay(0.9, function()
+					local root = character.Parent and character:FindFirstChild("HumanoidRootPart")
+					if root and (root.Position - stand).Magnitude > 6 then setDown() end
 				end)
 			end
 			tell(player, "Arrived")
