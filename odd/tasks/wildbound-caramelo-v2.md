@@ -701,3 +701,85 @@ Studio db843df0, place 122652861404212, Edit only, locks set and cleared; place 
     counter fix.
 - Still missing in WildboundText: `CANDY_RAFT.steer` and `CANDY_RAFT.steerTouch`. The raft client shows its built-in
   Spanish text until another branch's text work lands there.
+
+## Caramelo v7: the owner's third round (2026-11-17)
+
+Owner's words: "the princess seated on top of the cake as before, now a red ball covers her; the cake's stairs twice as
+big; proposals for the chocolate river's size and raft gameplay; a pink sky with clouds; a better bird model; take out
+the new grass; each creature with its zone, going only so far, so lots of creatures don't chase you all the time. One by
+one."
+
+| ID | Task | Status |
+|---|---|---|
+| V7-D1 | La Duquesa seated on the GranTorta's cherry | Done (e79430f) |
+| V7-D2 | The cake's stairs twice as big | Done (89521b8) |
+| V7-D3 | Pink sky with clouds in Caramelo | Done (9796e03, e2a91bb, 3f8ec8e) |
+| V7-D4 | A better gummy bird | Done (e2a91bb, ff82712) |
+| V7-D5 | The licorice grass taken out | Done (1754380) |
+| V7-D6 | A zone for each creature | Done (52671bf, 5716762, 3f8ec8e) |
+| V7-D7 | River and raft proposals | Answered in chat, not built |
+
+### Decisions taken for the user (v7)
+
+- **V7-D1.** The "red ball" is a cherry baked into the `GranTorta.Fruit` mesh, at the centre of the summit. It does not
+  collide; its top is 11.7 studs over the summit floor and its radius about 5.5. The mesh cannot lose one fruit, so she
+  sits on top of the cherry: `Duq.CHERRY_STUDS = 11.4`. Her seat, her hands (the bubbles) and her flight home all follow.
+  The edit copy was moved to (726, 77.23, -3).
+- **V7-D2.**
+  - Stair width 3.8 -> 7.4. 7.6 would cover the next tier's rim dollops: a ledge is 9.33 wide and the dollops take its
+    outer 1.45.
+  - Inset 0.5 -> 0.45. Tread 2.6 -> 5.2. Rise stays 1, so the stair is still walkable and keeps 67 steps (no new parts).
+  - Glaze puddle 2 moved from (165, 8) to (170, 9), off the wider first flight.
+  - Bees' tower no-go margin 4 -> 8.
+  - The 67 steps were resized in place.
+- **V7-D3.**
+  - The candy zone's air and fog are pink (`Atmosphere.ZONE_COLOURS`), and its haze goes 0.6 -> 1.6.
+  - `WildboundCandySkyClient` (LocalScript, Heartbeat) adds, while the player stands in Caramelo:
+    - local clouds (cover 0.62, pink-white);
+    - a pink `Atmosphere.Decay`;
+    - a pink skybox, `ReplicatedStorage.WildboundCandySkybox`, which replaces the place's Sky (put back outside).
+  - Play showed the air alone kept the sky blue, which is why the skybox swap exists.
+  - The skybox is free Creator Store asset 135304256583098. Only its bare Sky (6 textures) was kept; its bundled scripts
+    and GUI were destroyed unrun, and so was a second candidate (85316207957497).
+- **V7-D4.**
+  - The bird now has 7 parts:
+    - an oval body;
+    - a head;
+    - an orange beak;
+    - round eyes (one oval bar showing a dot on each side);
+    - an oval tail tipped up;
+    - two oval wings hinged at the shoulders.
+  - The Life cap goes 100 -> 150 moving parts (desktop total 144). These are client-only parts, outside the biome's
+    part budget.
+- **V7-D5.** `Grass.ENABLED = false`, and `Grass.sync` removes `LicoriceGrass` at start. The code stays, so it can come
+  back; the suites lay it with `opts.enabled`. This frees about 270 runtime parts. The traps re-plan without it.
+- **V7-D6.** The zones:
+  - Candy creatures (`Smarts.PROFILES.zone`, studs round their post): Mochimiau and Canelin 80, Flanin 75, Mielita and
+    GatoRepartidor 85, Gomibu and Flanfuria 90, Tortidragon 100.
+  - When the hunter itself passes its zone, `Smarts.overtime` ends the hunt and it walks home. The zone is under
+    fadeStuds 120, so it never fades.
+  - Don Glaseon keeps his own territory.
+  - Bees: `F.ZONE_STUDS = 110` round the hive, egg or not ("Zone"); without an egg the 70-stud leash stays.
+  - La Duquesa: her zone is the plot again. A thief `LEAVE_MARGIN_STUDS` (12) past its edge ends the rage ("Left"); she
+    vanishes home.
+  - The frenzy and the chaser ramp are unchanged.
+
+### Evidence (v7)
+
+- Studio b15ce60a, place 122652861404212. Every changed script was fingerprinted against its base commit before the
+  patch and against HEAD after it; all matched.
+- Edit-mode suites:
+  - Layout 22/0, Tower 9/0, Glaze 7/0, V3Layout 17/0, Frutillon 6/0;
+  - Grass 12/0, Traps 12/0, Island 10/0, Life 8/0, Sky 3/0;
+  - Atmosphere 12/0, BiomeLight 10/0.
+- In a fresh Play VM: Smarts 25/0, Flyers 23/0, Duquesa 25/0, Sky 3/0.
+  - Edit-mode clones gave three false Smarts failures, because the brains' cached Smarts differed from the suite's.
+- Solo Play:
+  - the pink skybox, the pink air and the clouds in Caramelo;
+  - the queen visible on the cherry;
+  - 12 birds with beaks, flapping;
+  - no LicoriceGrass;
+  - 8 traps;
+  - the wider stair seen from the plaza.
+- Not checked in Play: a creature walking home at its zone's edge (covered by Smarts RC1/V7-D6), the bees' Zone give-up,
+  and the queen's "Left".
