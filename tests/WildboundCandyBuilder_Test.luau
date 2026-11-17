@@ -127,7 +127,8 @@ return function(Builder, Layout, Kit, library)
 				swept += 1
 			end
 		end
-		equal(swept, 13, "route segments swept")
+		-- Deliberately changed (GT): 13 -> 14 segments (the main route gained the avenue to the Torta's plaza)
+		equal(swept, 14, "route segments swept")
 		local paved = 0
 		for _, p in ipairs(root.Paths:GetChildren()) do
 			equal(p:GetAttribute("Role"), "floor", p.Name .. " role")
@@ -413,9 +414,15 @@ return function(Builder, Layout, Kit, library)
 		local E = Builder.EXTRA_TREES
 		local count = { cotton = 0, TreeCookie = 0, TreeCream = 0 }
 		local base, extra, extraParts = 0, 0, 0
+		-- Deliberately changed (GT, cake move): the centre backfill's trees (Builder.syncCentre, CENTRE_ATTRIBUTE) are
+		-- counted apart, neither base nor extra trees
+		local centreCotton = 0
 		for _, tree in ipairs(trees()) do
 			local asset = tree:GetAttribute("KitAsset")
-			if tree:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE) then
+			local centreFill = tree:GetAttribute(Builder.CENTRE_ATTRIBUTE) ~= nil
+			if centreFill then
+				if string.sub(asset, 1, 11) == "TreeCotton_" then centreCotton += 1 end
+			elseif tree:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE) then
 				extra += 1
 				for _, d in ipairs(tree:GetDescendants()) do if d:IsA("BasePart") then extraParts += 1 end end
 			else
@@ -426,8 +433,8 @@ return function(Builder, Layout, Kit, library)
 			for _, d in ipairs(library:FindFirstChild(asset):GetDescendants()) do if d:IsA("BasePart") then expected += 1 end end
 			if string.sub(asset, 1, 11) == "TreeCotton_" then
 				expected += 1 + fluff -- the Roof and the fluff blobs, as before the change
-				count.cotton += 1
-			elseif count[asset] then
+				if not centreFill then count.cotton += 1 end
+			elseif count[asset] and not centreFill then
 				count[asset] += 1
 			end
 			equal(parts, expected, tree:GetFullName() .. " parts")
@@ -437,7 +444,7 @@ return function(Builder, Layout, Kit, library)
 		equal(count.cotton, 32 + E.cottonLeft + E.cottonRight, "cotton trees")
 		equal(count.TreeCookie, 5 + E.TreeCookie, "cookie trees")
 		equal(count.TreeCream, 5 + E.TreeCream, "cream trees")
-		equal(#root.CottonTrees:GetChildren(), 32 + E.cottonLeft + E.cottonRight, "CottonTrees children")
+		equal(#root.CottonTrees:GetChildren(), 32 + E.cottonLeft + E.cottonRight + centreCotton, "CottonTrees children")
 		assert(root.Entrance:FindFirstChild("GiantLollipop_1") and root.Entrance:FindFirstChild("GiantLollipop_2"), "the entrance pair")
 		equal(root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE), extra, "the root counts the added trees")
 		assert(extra >= base * 0.4 and extra <= base * 0.6, ("trees %d + %d: not +40-60 %%"):format(base, extra))
@@ -474,7 +481,13 @@ return function(Builder, Layout, Kit, library)
 		local report = Builder.syncTrees(root, Layout, Kit, library)
 		equal(report.kept, marked - 1, "extras already standing")
 		assert(report.added <= 1, "a cut-short sync added " .. report.added .. " trees")
-		assert(#root.CottonTrees:GetChildren() <= 32 + Builder.EXTRA_TREES.cottonLeft + Builder.EXTRA_TREES.cottonRight, "cotton trees doubled")
+		-- Deliberately changed (GT): the centre backfill's cotton trees come on top
+		local centreCotton = 0
+		for _, tree in ipairs(root.CottonTrees:GetChildren()) do
+			if tree:GetAttribute(Builder.CENTRE_ATTRIBUTE) ~= nil then centreCotton += 1 end
+		end
+		assert(#root.CottonTrees:GetChildren() <= 32 + Builder.EXTRA_TREES.cottonLeft + Builder.EXTRA_TREES.cottonRight + centreCotton,
+			"cotton trees doubled")
 		equal(root:GetAttribute(Builder.TREES_ADDED_ATTRIBUTE), report.kept + report.added, "the root counts every extra")
 		-- review MINOR 4: on the second build with its extras forgotten, the dry plan's lollipops are the real run's
 		local second = again:FindFirstChild(Layout.ROOT_NAME)
@@ -558,6 +571,230 @@ return function(Builder, Layout, Kit, library)
 		near(lolly.DiscA.Size.X / disc.X, 1.6, "a lollipop is not leafy")
 		tree:Destroy()
 		lolly:Destroy()
+	end)
+
+	-- GT (owner request 2026-11-16, "the cake with the princess at the end, and much bigger";
+	-- docs/design/wildbound-caramelo-cake-move-plan.md): the helpers the build and the live cake move share.
+	case("GT8: syncTower rebuilds a Tower laid for another Torta once the GranTorta carries this layout's key", function()
+		local key = Builder.layoutKey(Layout)
+		equal(key, ("%g,%g,%g"):format(Layout.TORTA.x, Layout.TORTA.z, Layout.TORTA.radius), "the key")
+		local function fake(tortaKey, towerKey)
+			local r = Instance.new("Model")
+			local torta = Instance.new("Model")
+			torta.Name = "GranTorta"
+			torta:SetAttribute("LayoutKey", tortaKey)
+			torta.Parent = r
+			local nests = Instance.new("Folder")
+			nests.Name = "Nests"
+			nests.Parent = r
+			local tower = Instance.new("Model")
+			tower.Name = "Tower"
+			tower:SetAttribute("LayoutKey", towerKey)
+			tower.Parent = r
+			local stale = Instance.new("Model")
+			stale.Name = "Nest_" .. Layout.TOWER.summit.id
+			stale.Parent = nests
+			return r, tower, stale
+		end
+		local r, tower, stale = fake(key, "0,0,26")
+		local added = Builder.syncTower(r, Layout, Kit, library)
+		assert(added > #Layout.stairSteps(), "rebuilt: " .. added .. " parts")
+		assert(tower.Parent == nil and stale.Parent == nil, "the stale tower and summit nest are gone")
+		local fresh = r:FindFirstChild("Tower")
+		assert(fresh and fresh ~= tower, "a new Tower")
+		equal(fresh:GetAttribute("LayoutKey"), key, "the new key")
+		equal(#fresh.Stair:GetChildren(), #Layout.stairSteps(), "the new stair")
+		local nest = r.Nests:FindFirstChild("Nest_" .. Layout.TOWER.summit.id)
+		assert(nest and nest ~= stale and nest:GetAttribute("Summit") == true, "a new summit nest")
+		near(nest:GetPivot().X, centre.x + Layout.TOWER.summit.x, "summit nest x", 0.05)
+		near(nest:GetPivot().Z, centre.z + Layout.TOWER.summit.z, "summit nest z", 0.05)
+		equal(Builder.syncTower(r, Layout, Kit, library), 0, "a second sync")
+		-- a v2 map under the v3 layout: the GranTorta has not moved yet, so the old tower stays
+		local old, oldTower, oldNest = fake(nil, nil)
+		equal(Builder.syncTower(old, Layout, Kit, library), 0, "left as it is")
+		equal(old:FindFirstChild("Tower"), oldTower, "the old tower stays")
+		equal(oldNest.Parent, old.Nests, "the old summit nest stays")
+		r:Destroy()
+		old:Destroy()
+	end)
+
+	case("GT9: the lay helpers lay what the build has; placeTorta scales the kit cake uniformly (its height too)", function()
+		local probe = Instance.new("Model")
+		local ground = Instance.new("Folder")
+		ground.Name = "Ground"
+		ground.Parent = probe
+		Builder.layPaths(probe, Layout)
+		Builder.layBoss(probe, Layout)
+		Builder.layMarkers(probe, Layout)
+		local function same(built, laid, label)
+			equal(#laid:GetChildren(), #built:GetChildren(), label .. " children")
+			for _, p in ipairs(built:GetChildren()) do
+				local q = laid:FindFirstChild(p.Name)
+				assert(q and q:IsA("BasePart"), label .. ": no " .. p.Name)
+				near((p.Position - q.Position).Magnitude, 0, label .. "." .. p.Name .. " position")
+				near((p.Size - q.Size).Magnitude, 0, label .. "." .. p.Name .. " size")
+				equal(q:GetAttribute("Role"), p:GetAttribute("Role"), label .. "." .. p.Name .. " role")
+			end
+		end
+		same(root.Paths, probe.Paths, "Paths")
+		same(root.Boss, probe.Boss, "Boss")
+		same(root.Markers, probe.Markers, "Markers")
+		near((root.Ground.Plaza.Position - probe.Ground.Plaza.Position).Magnitude, 0, "plaza")
+		near(probe.Ground.Plaza.Size.Y, Layout.BOSS.plazaRadius * 2, "plaza width")
+		equal(probe.Boss.BossTerritory:GetAttribute("Radius"), Layout.BOSS.territoryRadius, "territory radius")
+		assert(not pcall(Builder.layPaths, probe, Layout), "a second Paths folder is refused")
+		assert(not pcall(Builder.layBoss, probe, Layout), "a second plaza is refused")
+		probe:Destroy()
+		local torta = root.GranTorta
+		equal(torta:GetAttribute("LayoutKey"), Builder.layoutKey(Layout), "the GranTorta's key")
+		near(torta:GetScale(), Layout.TORTA.radius * 2 / Kit.PROXIES.CakeTower[1].size.Y, "one scale for the whole cake", 1e-4)
+		local highest = 0
+		for _, p in ipairs(torta:GetChildren()) do
+			if p:IsA("BasePart") then highest = math.max(highest, p.Position.Y + p.Size.Y / 2) end
+		end
+		local summit = Layout.TOWER.tiers[#Layout.TOWER.tiers].top
+		assert(highest - top >= summit - 0.5, ("the cake stands %.1f studs, its summit tier %.1f"):format(highest - top, summit))
+	end)
+
+	case("GT10: syncNestPositions slides each layout nest standing off its spot there, once; the summit nest is left alone", function()
+		local r = Instance.new("Model")
+		local folder = Instance.new("Folder")
+		folder.Name = "Nests"
+		folder.Parent = r
+		local function nest(name, x, z)
+			local m = Instance.new("Model")
+			m.Name = name
+			local p = Instance.new("Part")
+			p.Name, p.Anchored, p.Position = "Collision_Bowl", true, Vector3.new(x, top + 1.1, z)
+			p.Parent = m
+			m.PrimaryPart = p
+			m.Parent = folder
+			return m
+		end
+		local spec
+		for _, s in ipairs(Layout.NESTS) do if s.id == "C5" then spec = s end end
+		assert(spec, "no C5")
+		local stale = nest("Nest_C5", centre.x + 128, centre.z + 44)
+		nest("Nest_" .. Layout.NESTS[1].id, centre.x + Layout.NESTS[1].x, centre.z + Layout.NESTS[1].z)
+		local summit = nest("Nest_" .. Layout.TOWER.summit.id, centre.x + 1, centre.z + 1)
+		equal(table.concat(Builder.syncNestPositions(r, Layout), ","), "C5", "moved")
+		near(stale:GetPivot().X, centre.x + spec.x, "x"); near(stale:GetPivot().Z, centre.z + spec.z, "z")
+		near(stale:GetPivot().Y, top + 1.1, "its height kept")
+		near(summit:GetPivot().X, centre.x + 1, "the summit nest is syncTower's")
+		equal(#Builder.syncNestPositions(r, Layout), 0, "a second run moves none")
+		assert(not pcall(Builder.syncNestPositions, Instance.new("Model"), Layout), "no Nests folder: an error")
+		r:Destroy()
+	end)
+
+	case("GT11: the centre backfill is laid once (syncCentre) round the junction; a second run and a dry run add nothing", function()
+		local F = Builder.CENTRE_FILL
+		local marked = root:GetAttribute(Builder.CENTRE_ATTRIBUTE)
+		assert(type(marked) == "number" and marked > 0, "the root counts the centre props: " .. tostring(marked))
+		local found = 0
+		for _, d in ipairs(root:GetDescendants()) do
+			if d:IsA("Model") and d:GetAttribute(Builder.CENTRE_ATTRIBUTE) then
+				found += 1
+				local p = d:GetPivot().Position
+				local r = Layout.flat(p.X - centre.x, p.Z - centre.z, Layout.JUNCTION.x, Layout.JUNCTION.z)
+				assert(r <= F.radius + 8 and r >= F.clearing - 8, d:GetFullName() .. " is " .. r .. " studs from the junction")
+			end
+		end
+		equal(found, marked, "every centre prop marked")
+		equal(found + root:GetAttribute("CentreSkipped"), F.cotton + F.sweets + F.gumdrops + #F.lollipops * 2, "placed or skipped")
+		assert(root:GetAttribute("CentreSkipped") <= 2, "centre props skipped: " .. root:GetAttribute("CentreSkipped"))
+		local before = #root:GetDescendants()
+		local again = Builder.syncCentre(root, Layout, Kit, library)
+		equal(again.already, true, "already laid"); equal(again.added, 0, "added again")
+		equal(#root:GetDescendants(), before, "instances after a second run")
+		root:SetAttribute(Builder.CENTRE_ATTRIBUTE, nil)
+		local dry = Builder.syncCentre(root, Layout, Kit, library, true)
+		root:SetAttribute(Builder.CENTRE_ATTRIBUTE, marked)
+		equal(#root:GetDescendants(), before, "instances after a dry run")
+		equal(#dry.planned, dry.added, "a planned line per prop"); equal(dry.parts, 0, "a dry run adds no part")
+	end)
+
+	case("GT-A: a clear view of the Torta down the avenue: no visible tree part within 2 studs of its axis under 40 studs", function()
+		local main = Layout.ROUTES.main
+		local a, b = Layout.JUNCTION, main[#main]
+		for _, tree in ipairs(trees()) do
+			for _, p in ipairs(tree:GetChildren()) do
+				if p:IsA("BasePart") and p.Transparency < 1 then
+					local reach, halfY = spread(p)
+					local d = Layout.segmentDistance(p.Position.X - centre.x, p.Position.Z - centre.z, a, b) - reach
+					if d < 2 then
+						assert(p.Position.Y - halfY - top >= 40, p:GetFullName() .. " blocks the view of the Torta")
+					end
+				end
+			end
+		end
+	end)
+
+	case("GT12: cakeMovePlan on a v2 build: archives props on the new ground, refits a tree by a new leg, keeps the rest", function()
+		local fakeRoot = Instance.new("Model")
+		local folders = {}
+		for _, name in ipairs({ "Lollipops", "CottonTrees", "Gumdrops", "Sweets" }) do
+			local f = Instance.new("Folder")
+			f.Name = name
+			f.Parent = fakeRoot
+			folders[name] = f
+		end
+		-- a kit prop: a 2 x 2 trunk collider (reach 1.41) and, for a tree, a crown 8 x 8 (reach 5.66) from 10 to 14 up
+		local function prop(folder, name, asset, x, z, tree)
+			local m = Instance.new("Model")
+			m.Name = name
+			m:SetAttribute("KitAsset", asset)
+			local at = CFrame.new(centre.x + x, top, centre.z + z)
+			local trunk = Instance.new("Part")
+			trunk.Name, trunk.Anchored, trunk.Size, trunk.CFrame = "Collision_Trunk", true, Vector3.new(2, 6, 2), at * CFrame.new(0, 3, 0)
+			trunk.Parent = m
+			if tree then
+				local crown = Instance.new("Part")
+				crown.Name, crown.Anchored, crown.CanCollide = "CrownA", true, false
+				crown.Size, crown.CFrame = Vector3.new(8, 4, 8), at * CFrame.new(0, 12, 0)
+				crown.Parent = m
+				m:SetAttribute(Builder.TREE_ATTRIBUTE, Builder.TREE_SCALE[asset])
+			end
+			m.WorldPivot = at
+			m.Parent = folders[folder]
+			return m
+		end
+		local r4
+		for _, s in ipairs(Layout.NESTS) do if s.id == "R4" then r4 = s end end
+		local pond = Layout.KEEP_CLEAR[1]
+		local left = Layout.ROUTES.left
+		local legA, legB = left[#left - 1], left[#left]
+		local mx, mz = (legA.x + legB.x) / 2, (legA.z + legB.z) / 2
+		local length = Layout.flat(legA.x, legA.z, legB.x, legB.z)
+		local nx, nz = -(legB.z - legA.z) / length, (legB.x - legA.x) / length
+		if Layout.flat(mx + nx * 8, mz + nz * 8, Layout.BOSS.x, Layout.BOSS.z) < Layout.BOSS.territoryRadius + 14 then nx, nz = -nx, -nz end
+		prop("Gumdrops", "Gumdrop_1", "GumdropBush_A", (Layout.JUNCTION.x + Layout.ROUTES.main[#Layout.ROUTES.main].x) / 2, 0)
+		prop("Gumdrops", "Gumdrop_2", "GumdropBush_B", r4.x + 3, r4.z)
+		prop("Sweets", "RockChocolate_1", "RockChocolate", Layout.BOSS.x - 14, Layout.BOSS.z + 30)
+		prop("Sweets", "RockChocolate_2", "RockChocolate", -150, 160)
+		prop("CottonTrees", "CottonTree_1", "TreeCotton_M", pond.x, pond.z, true)
+		prop("CottonTrees", "CottonTree_2", "TreeCotton_M", mx + nx * 8, mz + nz * 8, true)
+		prop("CottonTrees", "CottonTree_3", "TreeCotton_M", -150, -150, true)
+		local plan = Builder.cakeMovePlan(fakeRoot, Layout, Builder.treeKeepOut(Layout))
+		local why = {}
+		for _, a in ipairs(plan.archive) do why[a.instance.Name] = a.why end
+		equal(why.Gumdrop_1, "on a route", "a gumdrop on the avenue")
+		equal(why.Gumdrop_2, "on nest R4", "a gumdrop on a moved nest")
+		equal(why.RockChocolate_1, "in the boss territory", "a rock on the new boss ground")
+		equal(why.CottonTree_1, "in " .. pond.why, "a tree in the moved pond")
+		equal(#plan.archive, 4, "archived")
+		equal(#plan.refit, 1, "refitted")
+		local refit = plan.refit[1]
+		equal(refit.instance.Name, "CottonTree_2", "the tree by the new left leg")
+		assert(refit.dx ~= 0 or refit.dz ~= 0 or refit.factor < Builder.TREE_SCALE.TreeCotton_M - 1e-6, "a refit changes something")
+		local moved = Builder.scaleMeasure(Builder.measureTree(refit.instance), refit.factor / Builder.TREE_SCALE.TreeCotton_M)
+		local p = refit.instance:GetPivot().Position
+		assert(Builder.treeFits(Layout, p.X - centre.x + refit.dx, p.Z - centre.z + refit.dz, moved, Builder.treeKeepOut(Layout)),
+			"the refit spot fits")
+		equal(plan.kept, 2, "kept")
+		for _, d in ipairs(fakeRoot:GetDescendants()) do
+			if d:IsA("Model") then assert(d.Parent and d.Parent.Parent == fakeRoot, "the plan moved nothing") end
+		end
+		fakeRoot:Destroy()
 	end)
 
 	scratch:Destroy()

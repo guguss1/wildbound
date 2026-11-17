@@ -19,6 +19,8 @@ local insects = okCatalog and type(Catalog) == "table" and Catalog.SOUNDS and Ca
 local BUZZ_ID = insects and insects.ids[1] and ("rbxassetid://" .. tostring(insects.ids[1])) or nil -- no catalog: silent
 local EXTRAPOLATE = 0.35 -- seconds past the last server update at most (review F-2: idle bugs update every ~0.25 s)
 local FAR_STUDS = 200 -- review F-9: no per-frame work for a bug this far from the camera
+local DIVE_EXTRAPOLATE = 0.1 -- seconds ahead at most while a bug pulls up or dives (its velocity turns sharply there)
+local VANISH_FADE = 0.8 -- RC3: seconds of the fade while a swarm vanishes (the rules climb it for 1 s first)
 local mixGroup = nil -- review F-8: the audio client's SoundGroup for this sound (SoundService.WildboundMix.<group>)
 local bugs = {} -- [Model] = record
 local hives = {} -- [Model] = { sound }
@@ -29,7 +31,11 @@ local function track(model)
 	if not (body and body:IsA("BasePart")) then return end
 	local wingL, wingR = body:FindFirstChild("Weld_WingL"), body:FindFirstChild("Weld_WingR")
 	local rec = { body = body, wingL = wingL, wingR = wingR, baseL = wingL and wingL.C0, baseR = wingR and wingR.C0,
-		look = Vector3.new(0, 0, -1), seed = math.random() * 10 }
+		look = Vector3.new(0, 0, -1), seed = math.random() * 10, parts = {}, alpha = 0 }
+	-- RC3: the parts this client fades out while the swarm vanishes (hive Phase "Vanish"), never touched on the server
+	for _, d in ipairs(model:GetDescendants()) do
+		if d:IsA("BasePart") then table.insert(rec.parts, d) end
+	end
 	local function refresh()
 		rec.at = model:GetAttribute("At")
 		local vel = model:GetAttribute("Vel")
@@ -96,7 +102,10 @@ RunService.RenderStepped:Connect(function()
 		if typeof(rec.at) == "Vector3" and rec.body.Parent and not (eye and (rec.at - eye).Magnitude > FAR_STUDS) then
 			local phase = model:GetAttribute("Phase")
 			local hivePhase = model.Parent and model.Parent:GetAttribute("Phase")
-			local pos = rec.at + rec.vel * math.min(t - rec.gotAt, EXTRAPOLATE)
+			-- Studio run 2026-11-16: a ~6.5-stud snap at a dive (0.35 s of the old velocity caught up at once); during the
+			-- pull-up and the dive the guess ahead is short (DIVE_EXTRAPOLATE), so the bug never runs far past its new path
+			local ahead = (phase == "Aim" or phase == "Dive") and DIVE_EXTRAPOLATE or EXTRAPOLATE
+			local pos = rec.at + rec.vel * math.min(t - rec.gotAt, ahead)
 			local flatVel = Vector3.new(rec.vel.X, 0, rec.vel.Z)
 			if flatVel.Magnitude > 0.5 then rec.look = flatVel.Unit end
 			local shake = CFrame.identity
@@ -110,6 +119,13 @@ RunService.RenderStepped:Connect(function()
 			local flap = math.sin(t * rate + rec.seed) * 0.6
 			if rec.wingL and rec.baseL then rec.wingL.C0 = rec.baseL * CFrame.Angles(0, 0, flap) end
 			if rec.wingR and rec.baseR then rec.wingR.C0 = rec.baseR * CFrame.Angles(0, 0, -flap) end
+			-- RC3: far from its hive at a give-up the swarm vanishes: fade it out over VANISH_FADE, back once it is home
+			if hivePhase == "Vanish" then rec.vanishFrom = rec.vanishFrom or t else rec.vanishFrom = nil end
+			local alpha = rec.vanishFrom and math.clamp((t - rec.vanishFrom) / VANISH_FADE, 0, 1) or 0
+			if alpha ~= rec.alpha then
+				rec.alpha = alpha
+				for _, p in ipairs(rec.parts) do p.LocalTransparencyModifier = alpha end
+			end
 		end
 	end
 end)

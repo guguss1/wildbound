@@ -46,7 +46,8 @@ class CarameloTreeResize(unittest.TestCase):
         self.assertEqual(extra["avenueEvery"], 60)  # one extra pair per two base pairs
         self.assertIn("plant(22, -190, -10, cotton, tree)", self.builder)
         self.assertIn("plant(10, 10, 190, cotton, tree)", self.builder)
-        self.assertLessEqual(int(re.search(r"Builder\.MAX_PARTS = (\d+)", self.builder).group(1)), 1300)
+        # GT (cake move): 1300 -> 1450 for the centre backfill and the GT2 nests (Builder.MAX_PARTS comment)
+        self.assertLessEqual(int(re.search(r"Builder\.MAX_PARTS = (\d+)", self.builder).group(1)), 1450)
 
     def test_resize_tool_reads_the_builder_and_starts_dry(self):
         self.assertRegex(self.resize, r"(?m)^local DRY_RUN = true\b")

@@ -172,30 +172,36 @@ return function(Enc, Tortidragon, Config, Abanico)
 		equal(#each(events, "Hit"), 0, "hits")
 	end)
 
-	case("leash: it never leaves 35 studs from its nest; a target past AbandonStuds makes it give up", function()
+	-- Deliberately changed (RC1, relentless chases): hunting, it follows past its old 35-stud leash and never gives up past
+	-- AbandonStuds (only the safe zone, death, a leave or the 180 s hard limit end it).
+	case("RC1: hunting, it goes past its old leash and keeps chasing a target past AbandonStuds", function()
 		local e, w, tgt = dragon("t8"), fakeWorld(), target(0, 8)
 		local furthest = 0
 		run(e, w, tgt, 0, 12, function(t, target) target.z = 8 + t * 4 end, function(_, en)
 			furthest = math.max(furthest, math.sqrt(en.pos.x ^ 2 + en.pos.z ^ 2))
 		end)
-		assert(furthest <= T.LeashStuds + 1e-6, "it went " .. furthest .. " studs from its nest")
+		assert(furthest > T.LeashStuds + 1, "held at its old leash: " .. furthest)
 		local e2, w2, tgt2 = dragon("t9"), fakeWorld(), target(0, 8)
 		run(e2, w2, tgt2, 0, 1)
 		local events = run(e2, w2, tgt2, 1.05, 4, function(_, target) target.z = 60 end)
-		assert(string.find(phases(events), "GiveUp", 1, true) or each(events, "Disengage")[1], "it never gave up")
+		assert(not string.find(phases(events), "GiveUp", 1, true) and not each(events, "Disengage")[1], "it gave up")
+		assert(e2.pos.z > 20, "it stopped chasing at " .. e2.pos.z)
 	end)
 
 	-- B5 (odd/tasks/wildbound-caramelo-playfix.md, "Not done"): like Gomibu and the critters, a calm ending walks it back
 	-- to its nest and the encounter ends there with no fade (no Disengage), facing +Z where its resting copy stands between
 	-- encounters. It used to fade out where it gave up, and the resting copy then popped in at the post.
+	-- Deliberately changed (RC1/RC3): the give-up is now the hard limit (180 s, reason Timeout); near home (under the
+	-- 120-stud fadeStuds) it is still the calm walk home with no fade.
 	case("B5: after giving up it walks home and ends at its nest without fading out", function()
+		local HARD = 180
 		local e, w, tgt = dragon("homeGiveUp"), fakeWorld(), target(0, 14)
-		-- it notices and is led out to the end of its leash, the target always just past its cast range in front of it
+		-- it notices and is led out past its old leash, the target always just past its cast range in front of it
 		run(e, w, tgt, 0, 4, function(_, tg, b) tg.x, tg.z = b.pos.x, b.pos.z + T.CastRangeStuds + 3 end)
 		local out = math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2)
-		assert(out >= T.LeashStuds - 1, "test setup: led out only " .. out .. " studs")
+		assert(out >= T.LeashStuds - 1 and out < 120, "test setup: led out " .. out .. " studs")
 		local midway, endedAt = false, nil
-		local later = run(e, w, tgt, 4.05, 14, function(_, tg) tg.x, tg.z = 0, T.LeashStuds + T.AbandonStuds + 2 end,
+		local later = run(e, w, tgt, HARD - 0.05, HARD + 14, function(_, tg, b) tg.x, tg.z = b.pos.x, b.pos.z + 40 end,
 			function(t, b)
 				local r = math.sqrt(b.pos.x ^ 2 + b.pos.z ^ 2)
 				if b.phase == "Return" and r > out * 0.25 and r < out * 0.75 then midway = true end
@@ -206,13 +212,15 @@ return function(Enc, Tortidragon, Config, Abanico)
 		equal(#each(later, "Disengage"), 0, "it faded out")
 		local over = each(later, "End")[1]
 		assert(over, "never ended (phases " .. list .. ")")
-		equal(over.reason, "GiveUp", "the reason")
+		equal(over.reason, "Timeout", "the reason (RC1: the hard limit)")
 		assert(midway, "it never walked: no step on the way home between its leash and its nest")
 		assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, "ended away from its nest")
 		local returned = nil
 		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "Return" then returned = returned or ev.at end end
 		assert(endedAt - returned >= (out - 1) / T.ChaseSpeedStudsPerSecond, "it got home faster than it chases")
-		equal(#each(later, "Tell"), 0, "it attacked on the way home")
+		local gaveUp = nil
+		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "GiveUp" then gaveUp = gaveUp or ev.at end end
+		for _, ev in ipairs(later) do assert(not (ev.type == "Tell" and ev.at > gaveUp), "it attacked on the way home") end
 		near(e.dx, 0, "the resting copy's facing (x)", 1e-6); near(e.dz, 1, "the resting copy's facing (z)", 1e-6)
 	end)
 

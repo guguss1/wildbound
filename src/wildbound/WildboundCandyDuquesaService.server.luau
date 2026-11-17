@@ -293,6 +293,12 @@ local function play(events, now)
 		elseif ev.kind == "Calm" then
 			clearMarker()
 			setRed(false)
+		elseif ev.kind == "Vanish" then
+			-- RC6: calmed outside the plot she vanishes in a pink burst there; the Home that follows sits her on her seat
+			local burst = part("Vanish", Enum.PartType.Ball, Vector3.new(3, 3, 3), BUBBLE, 0.2)
+			burst.Position = Vector3.new(ev.x, ev.y, ev.z)
+			TweenService:Create(burst, TweenInfo.new(0.5), { Size = Vector3.new(10, 10, 10), Transparency = 1 }):Play()
+			Debris:AddItem(burst, 0.6)
 		elseif ev.kind == "Home" then
 			sitDown()
 		end

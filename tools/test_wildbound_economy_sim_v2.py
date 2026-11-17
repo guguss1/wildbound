@@ -449,11 +449,11 @@ class LiveLoadingTests(unittest.TestCase):
 
     def test_live_caramelo_nests(self):
         nests = self.live["candy_nests"]
-        self.assertEqual(len(nests), 19)  # CH3 (2026-11-16, "more eggs"): 11 -> 19
+        self.assertEqual(len(nests), 27)  # CH3 (2026-11-16, "more eggs"): 11 -> 19; GT2 ("more eggs and creatures"): 27
         by_rarity = {}
         for nest in nests:
             by_rarity[nest["rarity"]] = by_rarity.get(nest["rarity"], 0) + 1
-        self.assertEqual(by_rarity, {"Comun": 10, "Rara": 7, "Epica": 2})  # CH3: was 5, 4, 2
+        self.assertEqual(by_rarity, {"Comun": 13, "Rara": 11, "Epica": 3})  # CH3: was 5, 4, 2; GT2: was 10, 7, 2
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Comun"}, {"Gomibu"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Rara"}, {"Tortidragon"})
         self.assertEqual({n["species"] for n in nests if n["rarity"] == "Epica"}, {"Flanfuria"})
@@ -537,11 +537,11 @@ class LiveSessionTests(unittest.TestCase):
                     self.assertGreater(r["first_hatch_s"], r["first_egg_s"])
 
     def test_caramelo_wave_cap(self):
-        """One solo server: at most 19 Caramelo eggs per 300 s wave can be stolen (CH3: was 11)."""
+        """One solo server: at most 27 Caramelo eggs per 300 s wave can be stolen (CH3: was 11; GT2: was 19)."""
         p = self.profiles["advanced"]
         r = sim.simulate_live_session(self.live, p, "caramelo", 10, seed=5)
         waves = 10 * 60 / 300 + 1
-        self.assertLessEqual(r["eggs_stolen"], 19 * waves)
+        self.assertLessEqual(r["eggs_stolen"], 27 * waves)
 
     def test_collection_limit_stops_steals(self):
         live = dict(self.live, collection_limit=5)

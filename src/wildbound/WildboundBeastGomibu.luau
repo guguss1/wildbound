@@ -11,6 +11,9 @@
 --   -> Return (PF3: walks back to the nest; the encounter ends there with no fade, where its resting copy stands).
 --   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
 --   end it at once (Attack.guard).
+--   RC (owner request 2026-11-16, WildboundCandySmarts.RELENTLESS): once it notices it hunts: no leash, abandon, pinned
+--   give-up or escape; only the safe zone, death, a leave or the hard limit (reason Timeout) end it, and an ending far
+--   from the nest fades out (Disengage) instead of the walk home.
 -- Threat: damage 0. A hit slows (event.slow) and pushes away from the circle (event.push, applied by the server: a
 -- client-side knock barely moves a standing player); the egg stays (the beast
 -- script skips BeastHit for a keepsEgg beast). After a jump it cannot open another for AttackCooldownSeconds.
@@ -45,9 +48,9 @@ local function aimPoint(e, target, T, now)
 		local ux, uz = unit(x - e.pos.x, z - e.pos.z)
 		x, z = e.pos.x + ux * T.JumpRangeStuds, e.pos.z + uz * T.JumpRangeStuds
 	end
-	-- and never lands past the leash from the nest
+	-- and never lands past the leash from the nest (RC1: no leash while it hunts)
 	local fromHome = flat(x, z, e.home.x, e.home.z)
-	if fromHome > T.LeashStuds then
+	if not Smarts.hunting(e) and fromHome > T.LeashStuds then
 		local ux, uz = unit(x - e.home.x, z - e.home.z)
 		x, z = e.home.x + ux * T.LeashStuds, e.home.z + uz * T.LeashStuds
 	end
@@ -71,6 +74,11 @@ local function retreat(events, e, world, now, phase, reason, seconds)
 	e.returnReason = reason
 	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
 	e.farSince, e.pinnedSince = nil, nil
+	-- RC3: a hunt that ended far from the nest fades out there (the shared Disengage fade); its resting copy is back home
+	if Smarts.farFromHome(e) then
+		Attack.disengage(events, e, reason, now, Config.BEASTS[e.beast].disengage)
+		return
+	end
 	if phase then
 		Attack.phase(events, e, phase, now, now + seconds)
 		e.returnAt = now + seconds
@@ -154,7 +162,13 @@ function Gomibu.step(events, e, now, target, world, dt)
 		end
 		return
 	end
-	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
+	-- RC1: a relentless hunt has one hard limit (Smarts.RELENTLESS.hardSeconds); it ends like a give-up
+	if Smarts.overtime(e, now) then
+		retreat(events, e, world, now, "GiveUp", "Timeout", T.GiveUpSeconds)
+		return
+	end
+	-- RC1: the escape distance only sends home a calm bear whose visitor walked away, never one that hunts
+	if not Smarts.hunting(e) and flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
@@ -167,7 +181,8 @@ function Gomibu.step(events, e, now, target, world, dt)
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
 		local saw = Gomibu.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
-		if saw or Smarts.called(e, world, now) then
+		-- RC4: it starts its hunt only while fewer than Smarts.RELENTLESS.maxChasers hunt this player
+		if (saw or Smarts.called(e, world, now)) and Smarts.engage(e, world, now) then
 			if saw then Smarts.alarm(e, world, now) end
 			e.waypoint, e.waitUntil = nil, nil
 			Attack.face(e, target)
@@ -184,13 +199,14 @@ function Gomibu.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
-		if distance > T.AbandonStuds then
+		local hunting = Smarts.hunting(e) -- RC1: no abandon distance and no leash while it hunts
+		if not hunting and distance > T.AbandonStuds then
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
 		end
 		-- PF4: held at the end of its leash with the target out of jump range for GiveUpSeconds, it gives up (it used to
 		-- chase there for ever while the target stood inside its abandon distance)
-		if distance > T.JumpRangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - 0.05 then
+		if not hunting and distance > T.JumpRangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - 0.05 then
 			e.pinnedSince = e.pinnedSince or now
 			if now - e.pinnedSince >= T.GiveUpSeconds then
 				retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
@@ -215,7 +231,7 @@ function Gomibu.step(events, e, now, target, world, dt)
 				e.dx, e.dz = dx, dz
 			end
 		end
-		leash(e, T)
+		if not hunting then leash(e, T) end
 		return
 	end
 	if e.phase == "Telegraph" and e.jump then

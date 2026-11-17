@@ -520,7 +520,8 @@ Config.BEASTS = table.freeze({
 	-- second encounter while one lives and for switchSeconds after it ends). Its one attack, Latigo de Regaliz, has its
 	-- numbers in ServerStorage.WildboundCandyDonGlaseonAttack; its hit goes to BeastHit (not keepsEgg), so a carrier drops
 	-- the egg through the one drop path. batImmune: the bat is player against player, never a beast.
-	-- TerritoryRadiusStuds is the builder's BossTerritory marker (62), used instead of the pack's 110-stud leash.
+	-- TerritoryRadiusStuds is the builder's BossTerritory marker (76; 62 before the GT cake move), used instead of the
+	-- pack's 110-stud leash.
 	-- OF2 (owner feedback 2): the boss hurts the most (damage 0 -> 25, never a one-shot) and chases faster (17 -> 21, the step of his live Chase_Run clip).
 	DonGlaseon = table.freeze({
 		category = "Guardian", riskModifier = 1, points = 0, biome = "Meadow",
@@ -535,7 +536,7 @@ Config.BEASTS = table.freeze({
 		switchSeconds = 4,
 		batImmune = true,
 		tuning = table.freeze({
-			TerritoryRadiusStuds = 62, PerceptionStuds = 36, ChaseSightStuds = 54, NoiseStuds = 45, NoiseSpeedStuds = 14,
+			TerritoryRadiusStuds = 76, PerceptionStuds = 36, ChaseSightStuds = 54, NoiseStuds = 45, NoiseSpeedStuds = 14,
 			RareSightScale = 1.25, EyeHeightStuds = 20,
 			PatrolSpeedStudsPerSecond = 9, ChaseSpeedStudsPerSecond = 21, ReturnSpeedStudsPerSecond = 9, TurnDegreesPerSecond = 150,
 			-- PF5 (odd/tasks/wildbound-caramelo-playfix.md): patrol 12 -> 25 s, chase 15 -> 30 s, search 3 -> 5 s, so an

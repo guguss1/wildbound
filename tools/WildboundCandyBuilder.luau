@@ -9,7 +9,10 @@
 local CollectionService = game:GetService("CollectionService")
 
 local Builder = {}
-Builder.MAX_PARTS = 1300 -- CH: was 900; the extra trees add about 270 parts (Builder.EXTRA_TREES), the 8 new nests 40
+-- CH: was 900; the extra trees add about 270 parts (Builder.EXTRA_TREES), the 8 new nests 40. GT (cake move): 1300 ->
+-- 1450, the centre backfill (Builder.CENTRE_FILL) adds about 130 parts, the 8 GT2 nests 40 and the avenue 2 (the bigger tower stair is laid
+-- by syncTower, outside this count: about 25 parts more on the live map).
+Builder.MAX_PARTS = 1450
 
 local YIELD_EVERY = 150
 local palette = {
@@ -33,6 +36,47 @@ local palette = {
 }
 local RARITY_COLOR = { Comun = palette.mint, Rara = palette.confetti, Epica = palette.grape, Legendaria = palette.orange }
 local SWEETS = { palette.mint, palette.confetti, palette.magenta, palette.grape, palette.strawberry, palette.biscuit }
+
+-- GT (cake move): one plain part with the builder's roles (the same rule as Builder.build's own part()), parented.
+local function makePart(into, name, role, shape, size, cframe, color)
+	local p = Instance.new("Part")
+	p.Name, p.Shape, p.Size, p.CFrame, p.Color = name, shape, size, cframe, color
+	p.Material = Enum.Material.SmoothPlastic
+	p.TopSurface, p.BottomSurface = Enum.SurfaceType.Smooth, Enum.SurfaceType.Smooth
+	p.Anchored, p.CanTouch = true, false
+	p.CanCollide = role == "floor" or role == "solid"
+	p.CanQuery = role == "floor" or role == "solid" or role == "canopy"
+	if role == "marker" then p.Transparency = 1 end
+	if role ~= "floor" and role ~= "solid" then p.CastShadow = false end
+	p:SetAttribute("Role", role)
+	p.Parent = into
+	return p
+end
+-- An upright cylinder of radius r and height h standing on y = bottom at the local point (x, z) of L's plot.
+local function makeDrum(L, into, name, role, x, z, bottom, r, h, color)
+	return makePart(into, name, role, Enum.PartType.Cylinder, Vector3.new(h, r * 2, r * 2),
+		CFrame.new(L.CENTRE.x + x, bottom + h / 2, L.CENTRE.z + z) * CFrame.Angles(0, 0, math.rad(90)), color)
+end
+-- A new Folder `name` under root; one already there must be archived first (never two of them).
+local function freshFolder(root, name)
+	assert(not root:FindFirstChild(name), name .. " already exists: archive it first")
+	local folder = Instance.new("Folder")
+	folder.Name = name
+	folder.Parent = root
+	return folder
+end
+-- The next free index of a folder's "<name>_<n>" children.
+local function nextIndex(folder)
+	local n = 0
+	for _, c in ipairs(folder:GetChildren()) do n = math.max(n, tonumber(string.match(c.Name, "_(%d+)$")) or 0) end
+	return n + 1
+end
+
+-- GT (cake move): the Gran Torta's layout key, "x,z,radius" (plot coordinates). placeTorta writes it on the GranTorta,
+-- syncTower on the Tower; a Tower whose key differs from the layout's is rebuilt once the GranTorta carries it.
+function Builder.layoutKey(L)
+	return ("%g,%g,%g"):format(L.TORTA.x, L.TORTA.z, L.TORTA.radius)
+end
 
 -- CE1: whether a nest marker is live: the layout's NESTS_ENABLED, never an event-only nest (decision 24).
 function Builder.nestEnabled(spec, layout)
@@ -118,10 +162,22 @@ end
 -- client at the same rate (attributes SpinRate, CentreX, CentreZ). CT3: the summit nest (Layout.TOWER.summit), the kit's
 -- Nest prefab on the top tier, added to the Nests folder as a live marker (NestId, Rarity, EventOnly false, Enabled from
 -- NESTS_ENABLED, Summit) for WildboundCandyNests to read like any other. Needs the GranTorta prop. Returns the parts added.
+-- GT (cake move): the Tower carries the layout key (Builder.layoutKey). A Tower laid for another Torta is destroyed with
+-- the summit nest and laid again, but only once the GranTorta itself carries this layout's key (placeTorta); until then
+-- (a v2 map under a v3 layout) both are left as they are and nothing is added.
 function Builder.syncTower(root, layout, kit, library)
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
-	assert(typeof(root) == "Instance" and root:FindFirstChild("GranTorta"), "no Gran Torta")
-	if root:FindFirstChild("Tower") then return 0 end
+	local torta = typeof(root) == "Instance" and root:FindFirstChild("GranTorta") or nil
+	assert(torta, "no Gran Torta")
+	local key = Builder.layoutKey(L)
+	local old = root:FindFirstChild("Tower")
+	if old then
+		if old:GetAttribute("LayoutKey") == key or torta:GetAttribute("LayoutKey") ~= key then return 0 end
+		old:Destroy()
+		local nests, S = root:FindFirstChild("Nests"), L.TOWER.summit
+		local stale = nests and S and nests:FindFirstChild("Nest_" .. S.id)
+		if stale then stale:Destroy() end
+	end
 	local T, top = L.TOWER, L.FLOOR_TOP
 	local cx, cz = L.CENTRE.x + L.TORTA.x, L.CENTRE.z + L.TORTA.z
 	local tower = Instance.new("Model")
@@ -220,6 +276,7 @@ function Builder.syncTower(root, layout, kit, library)
 		nest.Parent = nests
 	end
 	tower:SetAttribute("GeneratedBy", "ServerStorage.WildboundCandyBuilder.syncTower")
+	tower:SetAttribute("LayoutKey", key)
 	tower.Parent = root
 	return created
 end
@@ -685,6 +742,336 @@ function Builder.syncTrees(root, layout, kit, library, dryRun)
 	return report
 end
 
+-- GT (owner request 2026-11-16, "the cake with the princess at the end, and much bigger";
+-- docs/design/wildbound-caramelo-cake-move-plan.md). The pieces of the biome that follow the Gran Torta, laid by these
+-- helpers both in Builder.build and on the live map (tools/wildbound-caramelo-cake-move.luau). Each lays a new folder
+-- or model under root and refuses when one is already there (the live tool archives the old one first). Each returns
+-- the folder (or model) and the parts it added.
+
+-- layPaths(root, L): the Paths folder, a glaze joint on every route point and a block along every leg.
+function Builder.layPaths(root, L)
+	local top, paths, joints, count = L.FLOOR_TOP, freshFolder(root, "Paths"), {}, 0
+	for _, name in ipairs(L.ROUTE_ORDER) do
+		local points = L.ROUTES[name]
+		for i = 1, #points do
+			local a, b = points[i], points[i + 1]
+			local key = a.x .. "," .. a.z
+			if not joints[key] then
+				joints[key] = true
+				makeDrum(L, paths, "Joint_" .. name .. "_" .. i, "floor", a.x, a.z, top, L.PATH_WIDTH / 2, 0.12, palette.glaze)
+				count += 1
+			end
+			if b then
+				local from = Vector3.new(L.CENTRE.x + a.x, top + 0.05, L.CENTRE.z + a.z)
+				local to = Vector3.new(L.CENTRE.x + b.x, top + 0.05, L.CENTRE.z + b.z)
+				makePart(paths, "Path_" .. name .. "_" .. i, "floor", Enum.PartType.Block, Vector3.new(L.PATH_WIDTH, 0.1, (to - from).Magnitude),
+					CFrame.lookAt((from + to) / 2, to), palette.glaze)
+				count += 1
+			end
+		end
+	end
+	return paths, count
+end
+
+-- layBoss(root, L): the boss plaza (Ground.Plaza; needs the Ground folder) and the Boss folder: an invisible zone with
+-- the territory's radius, and a ring of posts that never collide.
+function Builder.layBoss(root, L)
+	local top, B = L.FLOOR_TOP, L.BOSS
+	local ground = root:FindFirstChild("Ground")
+	assert(ground, "no Ground folder")
+	assert(not ground:FindFirstChild("Plaza"), "Ground.Plaza already exists: archive it first")
+	makeDrum(L, ground, "Plaza", "floor", B.x, B.z, top, B.plazaRadius, 0.08, palette.biscuit)
+	local boss = freshFolder(root, "Boss")
+	local zone = makeDrum(L, boss, "BossTerritory", "marker", B.x, B.z, top, B.territoryRadius, 0.2, palette.magenta)
+	zone:SetAttribute("Boss", "DonGlaseon")
+	zone:SetAttribute("Radius", B.territoryRadius)
+	zone:SetAttribute("PlazaRadius", B.plazaRadius)
+	zone:SetAttribute("Enabled", false)
+	local count = 2
+	for i = 1, 12 do
+		local angle = math.rad(15 + 30 * (i - 1))
+		local x, z = B.x + math.cos(angle) * B.territoryRadius, B.z + math.sin(angle) * B.territoryRadius
+		makeDrum(L, boss, "LimitPost_" .. i, "decor", x, z, top, 0.6, 6, palette.icing)
+		makePart(boss, "LimitCap_" .. i, "decor", Enum.PartType.Ball, Vector3.new(2.2, 2.2, 2.2),
+			CFrame.new(L.CENTRE.x + x, top + 6.6, L.CENTRE.z + z), palette.magenta)
+		count += 2
+	end
+	return boss, count
+end
+
+-- layMarkers(root, L): the Markers folder, the stops of the walk test and the waypoints of both return routes.
+function Builder.layMarkers(root, L)
+	local markers, count = freshFolder(root, "Markers"), 0
+	local function marker(name, p)
+		makePart(markers, name, "marker", Enum.PartType.Block, Vector3.new(1, 1, 1),
+			CFrame.new(L.CENTRE.x + p.x, L.FLOOR_TOP + 1, L.CENTRE.z + p.z), palette.icing)
+		count += 1
+	end
+	local main = L.ROUTES.main
+	marker("Entrance", L.ENTRANCE)
+	marker("Fork", L.FORK)
+	marker("Junction", L.JUNCTION)
+	marker("FirstNest", L.NESTS[1])
+	marker("TortaPlaza", main[#main])
+	marker("BossHome", L.BOSS.home)
+	marker("Portal", L.PORTAL)
+	for _, name in ipairs(L.RETURN_ROUTES) do
+		local points = L.ROUTES[name]
+		for i = 2, #points - 1 do marker("Route_" .. name .. "_" .. (i - 1), points[i]) end
+	end
+	return markers, count
+end
+
+-- placeTorta(root, L, Kit, prefabs): the Gran Torta, the kit's CakeTower scaled uniformly (its height too) so that its
+-- bottom tier has the layout's radius; only the four tier cylinders collide. Marked with Builder.layoutKey(L).
+function Builder.placeTorta(root, L, Kit, prefabs)
+	assert(not root:FindFirstChild("GranTorta"), "GranTorta already exists: archive it first")
+	local scale = L.TORTA.radius * 2 / Kit.PROXIES.CakeTower[1].size.Y
+	local model, parts = kitProp(Kit, prefabs, root, "GranTorta", "CakeTower",
+		CFrame.new(L.CENTRE.x + L.TORTA.x, L.FLOOR_TOP, L.CENTRE.z + L.TORTA.z), scale)
+	model:SetAttribute("LayoutKey", Builder.layoutKey(L))
+	return model, parts
+end
+
+-- syncNestPositions(root, L) -> the ids moved: each layout nest already in root.Nests that stands off its layout spot
+-- (more than 0.05 studs) slides there, its height and turn kept. The summit nest is syncTower's. A second run moves none.
+function Builder.syncNestPositions(root, L)
+	local folder = typeof(root) == "Instance" and root:FindFirstChild("Nests") or nil
+	assert(folder, "no Nests folder")
+	local moved = {}
+	for _, spec in ipairs(L.NESTS) do
+		local nest = folder:FindFirstChild("Nest_" .. spec.id)
+		if nest and nest:IsA("Model") then
+			local pivot = nest:GetPivot()
+			local x, z = L.CENTRE.x + spec.x, L.CENTRE.z + spec.z
+			if math.abs(pivot.X - x) > 0.05 or math.abs(pivot.Z - z) > 0.05 then
+				nest:PivotTo(CFrame.new(x - pivot.X, 0, z - pivot.Z) * pivot)
+				table.insert(moved, spec.id)
+			end
+		end
+	end
+	return moved
+end
+
+-- The freed centre (the old Torta's ground, now the junction): a seeded backfill (Layout.SEED + 2) inside radius of the
+-- junction and outside its clearing: cotton trees, cookie and cream trees and gumdrops, under the tree rule (openGround,
+-- treeFits, spacing of TREE_SPACING), and a pair of lollipops at each of lollipops' x along the main path (side studs off
+-- it, facing the walker; fitTree may shrink or nudge one), framing the view of the Torta. The avenue itself is a route,
+-- so no trunk or low crown stands on it (treeFits).
+Builder.CENTRE_FILL = table.freeze({ cotton = 8, sweets = 2, gumdrops = 6, radius = 80, clearing = 20,
+	lollipops = table.freeze({ table.freeze({ x = -60, side = 13 }), table.freeze({ x = 30, side = 16 }) }) })
+Builder.CENTRE_ATTRIBUTE = "CaramelCentreFillV1"
+
+-- syncCentre(root, layout, kit, library, dryRun) -> report { added, parts, skipped, already, planned }: lays the centre
+-- backfill once into CottonTrees, Lollipops, Sweets and Gumdrops, around every kit prop already standing there; each new
+-- prop is marked CENTRE_ATTRIBUTE and the root is marked with the count, so a second run adds nothing (report.already).
+-- dryRun: only plans (report.planned).
+function Builder.syncCentre(root, layout, kit, library, dryRun)
+	local ServerStorage = game:GetService("ServerStorage")
+	local L = layout or require(ServerStorage:WaitForChild("WildboundCandyLayout"))
+	local Kit = kit or require(ServerStorage:WaitForChild("WildboundCandyKit"))
+	local prefabs = library or ServerStorage:WaitForChild("WildboundAssets"):WaitForChild(Kit.LIBRARY_NAME)
+	local report = { added = 0, parts = 0, skipped = 0, already = false, planned = {} }
+	assert(typeof(root) == "Instance", "root must be an Instance")
+	local cottonFolder, lollipopFolder = root:FindFirstChild("CottonTrees"), root:FindFirstChild("Lollipops")
+	local sweetsFolder, gumdropFolder = root:FindFirstChild("Sweets"), root:FindFirstChild("Gumdrops")
+	assert(cottonFolder and lollipopFolder and sweetsFolder and gumdropFolder, "no CottonTrees, Lollipops, Sweets or Gumdrops folder")
+	if root:GetAttribute(Builder.CENTRE_ATTRIBUTE) ~= nil then
+		report.already = true
+		return report
+	end
+	local F, C, J, top = Builder.CENTRE_FILL, L.CENTRE, L.JUNCTION, L.FLOOR_TOP
+	local rng, keepOut, cache, taken = Random.new(L.SEED + 2), Builder.treeKeepOut(L), {}, {}
+	for _, d in ipairs(root:GetDescendants()) do
+		local asset = d:IsA("Model") and d:GetAttribute("KitAsset")
+		if type(asset) == "string" and not d:FindFirstAncestor("Nests") then
+			local m, p = Builder.measureTree(d), d:GetPivot().Position
+			table.insert(taken, { x = p.X - C.x, z = p.Z - C.z,
+				reach = Builder.TREE_SCALE[asset] and m.canopy * Builder.TREE_SPACING or math.max(m.trunk, m.canopy) })
+		end
+	end
+	local sinceYield = 0
+	local function place(folder, prefix, asset, x, z, yaw, scale, factor)
+		local name = prefix .. nextIndex(folder)
+		if dryRun then name ..= "+" .. report.added end
+		report.added += 1
+		table.insert(report.planned, ("%s.%s %s (%.1f, %.1f)"):format(folder.Name, name, asset, x, z))
+		if dryRun then return end
+		local model, parts = kitProp(Kit, prefabs, folder, name, asset, CFrame.new(C.x + x, top, C.z + z) * CFrame.Angles(0, yaw, 0), scale)
+		if string.sub(asset, 1, 11) == "TreeCotton_" then parts += dressCotton(model, Kit, top) end
+		if factor then Builder.growTree(model, asset, factor) end
+		model:SetAttribute(Builder.CENTRE_ATTRIBUTE, true)
+		report.parts += parts
+		sinceYield += parts
+		if sinceYield >= YIELD_EVERY then
+			sinceYield = 0
+			task.wait()
+		end
+	end
+	local function inCentre(x, z)
+		local d = L.flat(x, z, J.x, J.z)
+		return d <= F.radius and d >= F.clearing
+	end
+	local function draw()
+		return math.round(J.x + rng:NextNumber(-F.radius, F.radius)), math.round(J.z + rng:NextNumber(-F.radius, F.radius))
+	end
+	-- the framing lollipops (fixed slots along +x from the junction), alternating like the avenue's
+	local main = L.ROUTES.main
+	local along = main[#main]
+	local length = L.flat(J.x, J.z, along.x, along.z)
+	local dx, dz = (along.x - J.x) / length, (along.z - J.z) / length
+	for _, slot in ipairs(F.lollipops) do
+		for _, side in ipairs({ -1, 1 }) do
+			local x, z = J.x + dx * slot.x - dz * slot.side * side, J.z + dz * slot.x + dx * slot.side * side
+			local asset = (report.added + nextIndex(lollipopFolder)) % 2 == 0 and "TreeLollipop_Straight" or "TreeLollipop_Tilted"
+			local function free(qx, qz) return Builder.openGround(L, qx, qz, 0, 3, taken) end
+			local f, mx, mz = Builder.fitTree(L, x, z, measureKind(Kit, prefabs, asset, 1, cache), Builder.TREE_SCALE[asset], keepOut, free)
+			if f then
+				table.insert(taken, { x = x + mx, z = z + mz, reach = 3 })
+				place(lollipopFolder, "Lollipop_", asset, x + mx, z + mz, math.atan2(-dx, -dz), 1, f)
+			else
+				report.skipped += 1
+			end
+		end
+	end
+	-- trees: a kind (and scale) first, then a spot its grown size fits
+	local function tree(folder, prefix, asset, scale)
+		local m = measureKind(Kit, prefabs, asset, scale, cache)
+		local reach = m.canopy * Builder.TREE_SPACING
+		for _ = 1, 400 do
+			local x, z = draw()
+			if inCentre(x, z) and Builder.openGround(L, x, z, 0, reach, taken) and Builder.treeFits(L, x, z, m, keepOut) then
+				table.insert(taken, { x = x, z = z, reach = reach })
+				place(folder, prefix, asset, x, z, rng:NextNumber(0, math.pi * 2), scale, Builder.TREE_SCALE[asset])
+				return
+			end
+		end
+		report.skipped += 1
+	end
+	for _ = 1, F.cotton do tree(cottonFolder, "CottonTree_", cottonKind(rng), 1) end
+	for k = 1, F.sweets do
+		local asset = k % 2 == 1 and "TreeCookie" or "TreeCream"
+		tree(sweetsFolder, asset .. "_", asset, rng:NextNumber(0.9, 1.1))
+	end
+	-- gumdrops: low walk-through props, as the build scatters them (9.5 studs off a route centre, reach 3)
+	for k = 1, F.gumdrops do
+		local placed = false
+		for _ = 1, 400 do
+			local x, z = draw()
+			if inCentre(x, z) and Builder.openGround(L, x, z, 9.5, 3, taken) then
+				table.insert(taken, { x = x, z = z, reach = 3 })
+				place(gumdropFolder, "Gumdrop_", k % 2 == 0 and "GumdropBush_A" or "GumdropBush_B", x, z, rng:NextNumber(0, math.pi * 2),
+					rng:NextNumber(0.8, 1.3))
+				placed = true
+				break
+			end
+		end
+		if not placed then report.skipped += 1 end
+	end
+	if not dryRun then root:SetAttribute(Builder.CENTRE_ATTRIBUTE, report.added) end
+	return report
+end
+
+-- The cake move on a live v2 map: which props must go and which trees only need a refit under the v3 rules.
+-- nests and posts: what moved (their new ground is checked for every prop; the unchanged ones keep their old clearance);
+-- folders: the scattered props looked at (the entrance, the sugar hills, the lake and the nests never move).
+Builder.CAKE_MOVE = table.freeze({
+	-- the five moved nests and the eight GT2 nests (placed by syncNests)
+	nests = table.freeze({ "C5", "C8", "E2", "R3", "R4", "E3", "R8", "R9", "R10", "R11", "C11", "C12", "C13" }),
+	posts = table.freeze({ "bossHome", "bossTerritory", "candyNestR3", "candyNestR4", "candyPostC8", "candyPostE3",
+		"candyPostR8", "candyPostR9", "candyPostR10", "candyPostC11", "candyPostC12", "candyPostC13", "candyPostR11" }),
+	folders = table.freeze({ "Lollipops", "CottonTrees", "Gumdrops", "Sweets" }),
+})
+
+-- cakeMovePlan(root, L, keepOut, opts) -> { archive = { { instance, why } }, refit = { { instance, asset, factor, dx, dz,
+-- why } }, kept }. Read only. Every kit prop (a Model with a KitAsset attribute) in opts.folders (default CAKE_MOVE)
+-- under root, measured where it stands (Builder.measureTree). Archived: a prop in the new boss territory (a tree's trunk
+-- collider; any other prop by openGround's margin, 4 studs plus its reach), at the portal (16 plus its reach), in a
+-- KEEP_CLEAR disc, on a moved post's keep-out disc (keepOut, Builder.treeKeepOut), and a prop that is not a tree on a
+-- moved nest (8 plus its reach) or on a route (half the path plus its reach). A tree that is not archived but fails
+-- Builder.treeFits (a new route leg, a nest, the plaza or the stair) is refitted by Builder.fitTree (smaller, or nudged
+-- onto open ground for its trunk), else archived. Deterministic (props in full-name order).
+function Builder.cakeMovePlan(root, L, keepOut, opts)
+	opts = opts or Builder.CAKE_MOVE
+	local plan = { archive = {}, refit = {}, kept = 0 }
+	local C, B, half = L.CENTRE, L.BOSS, L.PATH_WIDTH / 2
+	local movedNests, nestIds, postWhy, posts = {}, {}, {}, {}
+	for _, id in ipairs(opts.nests or {}) do nestIds[id] = true end
+	for _, spec in ipairs(L.NESTS) do
+		if nestIds[spec.id] then table.insert(movedNests, spec) end
+	end
+	for _, key in ipairs(opts.posts or {}) do postWhy["post " .. key] = true end
+	for _, k in ipairs(keepOut or {}) do
+		if postWhy[k.why] then table.insert(posts, k) end
+	end
+	local models = {}
+	for _, name in ipairs(opts.folders or Builder.CAKE_MOVE.folders) do
+		local folder = root:FindFirstChild(name)
+		for _, c in ipairs(folder and folder:GetChildren() or {}) do
+			if c:IsA("Model") and type(c:GetAttribute("KitAsset")) == "string" then table.insert(models, c) end
+		end
+	end
+	table.sort(models, function(a, b) return a:GetFullName() < b:GetFullName() end)
+	local taken, entryOf, measureOf = {}, {}, {}
+	for _, model in ipairs(models) do
+		local m, p = Builder.measureTree(model), model:GetPivot().Position
+		local entry = { x = p.X - C.x, z = p.Z - C.z,
+			reach = Builder.TREE_SCALE[model:GetAttribute("KitAsset")] and m.trunk or math.max(m.trunk, m.canopy) }
+		table.insert(taken, entry)
+		entryOf[model], measureOf[model] = entry, m
+	end
+	for _, model in ipairs(models) do
+		local asset, entry, m = model:GetAttribute("KitAsset"), entryOf[model], measureOf[model]
+		local x, z = entry.x, entry.z
+		local tree = Builder.TREE_SCALE[asset] ~= nil
+		local reach = tree and math.max(m.trunk, m.roof) or math.max(m.trunk, m.canopy)
+		local why
+		if L.flat(x, z, B.x, B.z) < B.territoryRadius + (tree and m.trunk or 4 + reach) then why = "in the boss territory" end
+		if not why and L.flat(x, z, L.PORTAL.x, L.PORTAL.z) < 16 + reach then why = "at the portal" end
+		for _, spot in ipairs(L.KEEP_CLEAR or {}) do
+			if not why and L.flat(x, z, spot.x, spot.z) < spot.r + reach then why = "in " .. tostring(spot.why) end
+		end
+		for _, k in ipairs(posts) do
+			if not why and L.flat(x, z, k.x, k.z) < k.r + reach then why = "on " .. tostring(k.why) end
+		end
+		if not tree then
+			for _, spec in ipairs(movedNests) do
+				if not why and L.flat(x, z, spec.x, spec.z) < 8 + reach then why = "on nest " .. spec.id end
+			end
+			if not why and L.routeDistance(x, z) < half + reach then why = "on a route" end
+		end
+		if why then
+			table.insert(plan.archive, { instance = model, why = why })
+		elseif not tree then
+			plan.kept += 1
+		else
+			local fits, reason = Builder.treeFits(L, x, z, m, keepOut)
+			if fits then
+				plan.kept += 1
+			else
+				local recorded = model:GetAttribute(Builder.TREE_ATTRIBUTE)
+				local factor = type(recorded) == "number" and recorded or Builder.TREE_SCALE[asset]
+				local others = {}
+				for _, other in ipairs(taken) do
+					if other ~= entry then table.insert(others, other) end
+				end
+				local function also(px, pz)
+					if px == x and pz == z then return true end
+					return Builder.openGround(L, px, pz, 0, m.trunk + 1, others)
+				end
+				local f, dx, dz = Builder.fitTree(L, x, z, m, factor, keepOut, also)
+				if f then
+					table.insert(plan.refit, { instance = model, asset = asset, factor = f, dx = dx, dz = dz, why = reason })
+					entry.x, entry.z, entry.reach = x + dx, z + dz, m.trunk * f / factor
+				else
+					table.insert(plan.archive, { instance = model, why = "no fit (" .. tostring(reason) .. ")" })
+				end
+			end
+		end
+	end
+	return plan
+end
+
 function Builder.build(parent, layout, kit, library)
 	assert(typeof(parent) == "Instance", "parent must be an Instance")
 	local L = layout or require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
@@ -761,41 +1148,11 @@ function Builder.build(parent, layout, kit, library)
 		-- Ground and paths. Thin layers at different heights so no two tops fight.
 		local ground = group("Folder", "Ground")
 		block(ground, "Floor", "floor", Vector3.new(L.HALF * 2, 1, L.HALF * 2), CFrame.new(world(0, top - 0.5, 0)), palette.floor)
-		drum(ground, "Plaza", "floor", L.BOSS.x, L.BOSS.z, top, L.BOSS.plazaRadius, 0.08, palette.biscuit)
-		local paths, joints = group("Folder", "Paths"), {}
-		for _, name in ipairs(L.ROUTE_ORDER) do
-			local points = L.ROUTES[name]
-			for i = 1, #points do
-				local a, b = points[i], points[i + 1]
-				local key = a.x .. "," .. a.z
-				if not joints[key] then
-					joints[key] = true
-					drum(paths, "Joint_" .. name .. "_" .. i, "floor", a.x, a.z, top, L.PATH_WIDTH / 2, 0.12, palette.glaze)
-				end
-				if b then
-					local from, to = world(a.x, top + 0.05, a.z), world(b.x, top + 0.05, b.z)
-					block(paths, "Path_" .. name .. "_" .. i, "floor", Vector3.new(L.PATH_WIDTH, 0.1, (to - from).Magnitude),
-						CFrame.lookAt((from + to) / 2, to), palette.glaze)
-				end
-			end
-		end
-
-		-- Gran Torta: the kit's cake scaled so its bottom tier has the layout's radius. Only the four tier cylinders collide.
-		prop(root, "GranTorta", "CakeTower", L.TORTA.x, L.TORTA.z, 0, L.TORTA.radius * 2 / Kit.PROXIES.CakeTower[1].size.Y)
-
-		-- Boss ground: an invisible zone with its radius, and a ring of posts that never collide.
-		local boss = group("Folder", "Boss")
-		local zone = drum(boss, "BossTerritory", "marker", L.BOSS.x, L.BOSS.z, top, L.BOSS.territoryRadius, 0.2, palette.magenta)
-		zone:SetAttribute("Boss", "DonGlaseon")
-		zone:SetAttribute("Radius", L.BOSS.territoryRadius)
-		zone:SetAttribute("PlazaRadius", L.BOSS.plazaRadius)
-		zone:SetAttribute("Enabled", false)
-		for i = 1, 12 do
-			local angle = math.rad(15 + 30 * (i - 1))
-			local x, z = L.BOSS.x + math.cos(angle) * L.BOSS.territoryRadius, L.BOSS.z + math.sin(angle) * L.BOSS.territoryRadius
-			drum(boss, "LimitPost_" .. i, "decor", x, z, top, 0.6, 6, palette.icing)
-			ball(boss, "LimitCap_" .. i, "decor", x, top + 6.6, z, 1.1, palette.magenta)
-		end
+		-- GT: the paths, the Gran Torta (scaled uniformly so its bottom tier has the layout's radius; only the four tier
+		-- cylinders collide), the plaza and the boss ground come from the helpers the live cake move uses too.
+		created += select(2, Builder.layPaths(root, L))
+		created += select(2, Builder.placeTorta(root, L, Kit, prefabs))
+		created += select(2, Builder.layBoss(root, L))
 
 		-- Laguna de Almibar: shallow syrup you can walk through, and the biscuit bridge of the left route.
 		local lake = group("Folder", "Lake")
@@ -990,23 +1347,13 @@ function Builder.build(parent, layout, kit, library)
 		portal:SetAttribute("ChannelSeconds", L.PORTAL.channelSeconds)
 		portal:SetAttribute("CooldownSeconds", L.PORTAL.cooldownSeconds)
 
-		-- Markers: the stops of the walk test and the waypoints of both return routes.
-		local markers = group("Folder", "Markers")
-		local function marker(name, p)
-			block(markers, name, "marker", Vector3.new(1, 1, 1), CFrame.new(world(p.x, top + 1, p.z)), palette.icing)
-		end
-		local main = L.ROUTES.main
-		marker("Entrance", L.ENTRANCE)
-		marker("Fork", L.FORK)
-		marker("Junction", L.JUNCTION)
-		marker("FirstNest", L.NESTS[1])
-		marker("TortaPlaza", main[#main])
-		marker("BossHome", L.BOSS.home)
-		marker("Portal", L.PORTAL)
-		for _, name in ipairs(L.RETURN_ROUTES) do
-			local points = L.ROUTES[name]
-			for i = 2, #points - 1 do marker("Route_" .. name .. "_" .. (i - 1), points[i]) end
-		end
+		-- GT: the centre backfill round the junction, by the same code the live cake move uses (Builder.syncCentre)
+		local centreFill = Builder.syncCentre(root, L, Kit, prefabs)
+		created += centreFill.parts
+		root:SetAttribute("CentreSkipped", centreFill.skipped)
+
+		-- Markers: the stops of the walk test and the waypoints of both return routes (GT: Builder.layMarkers).
+		created += select(2, Builder.layMarkers(root, L))
 		assert(created <= Builder.MAX_PARTS, "part budget exceeded: " .. created)
 	end)
 	if not ok then

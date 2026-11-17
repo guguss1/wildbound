@@ -1,6 +1,6 @@
 -- Invoke with require(freshTestClone)(require(freshCandyDuquesaClone), require(freshCandyFrutillonClone),
 --   require(freshCandyLayoutClone), { service = <WildboundCandyDuquesaService Source>,
---   anim = <WildboundCandyCritterAnim Source> }, require(freshBeastChaseClone)).
+--   anim = <WildboundCandyCritterAnim Source> }, require(freshBeastChaseClone), require(freshWorldRulesClone)).
 -- A2 (odd/tasks/wildbound-caramelo-playfix.md): La Duquesa Burbuja stays seated on the Gran Torta's summit, but while a
 -- player stands on the summit she throws "Bombas de chicle" (pack 6 sheet 01) every 10 s: three slow bubbles that pop
 -- in small circles (each ring drawn on the floor from her windup, at least MIN_TELL before the pop); whoever is inside
@@ -8,7 +8,10 @@
 -- Pure rules plus source pins of the service and the client animator. Changes nothing.
 -- DR (owner request 2026-11-16): her rage when her own egg (the summit nest's) is stolen: red, a roar, a fast flying
 -- chase, dodgeable lunges that hurt and drop her egg, its end conditions, her cooldown, and the escape math.
-return function(Duq, Frut, Layout, sources, Chase)
+-- RC6 (owner request 2026-11-16, "they keep chasing you until you reach the base"): her rage no longer ends at the plot's
+-- edge nor after 25 s; it lasts until the thief is safe (the hub, from WildboundWorldRules), dead, gone or without her
+-- egg, with a 180 s safety end, and calmed outside the plot she vanishes back to her seat.
+return function(Duq, Frut, Layout, sources, Chase, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -287,7 +290,8 @@ return function(Duq, Frut, Layout, sources, Chase)
 		for _, h in ipairs(each(events, "Hit")) do equal(h.damage, nil, "bubble damage"); equal(h.drop, nil, "bubble drop") end
 	end)
 
-	case("DR5: the rage ends: safe zone, death, gone, egg dropped (she calms first), past the plot's edge, or the time limit", function()
+	-- Deliberately changed (RC6): the plot's edge no longer ends the rage and the time limit is 180 s (a safety end).
+	case("DR5: the rage ends: safe zone, death, gone, egg dropped (she calms first), or the 180 s safety limit", function()
 		local function endsWith(change)
 			local events = steps(Duq.new(), 0, 2, function(t) return t >= 1.5 and change() or { onFloor(60) } end)
 			return firstOf(events, "Calm")
@@ -296,7 +300,7 @@ return function(Duq, Frut, Layout, sources, Chase)
 		equal(endsWith(function() return { onFloor(60, { alive = false }) } end).reason, "Dead", "dead")
 		equal(endsWith(function() return {} end).reason, "Gone", "gone")
 		local outside = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
-		equal(endsWith(function() return { outside } end).reason, "Left", "past the edge")
+		equal(endsWith(function() return { outside } end), nil, "past the edge she keeps chasing (RC6)")
 		local margin = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS + 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
 		equal(endsWith(function() return { margin } end), nil, "inside the margin she keeps chasing")
 		-- an open lunge is called off
@@ -318,7 +322,7 @@ return function(Duq, Frut, Layout, sources, Chase)
 		assert(firstOf(steps(state, 1.5 + Duq.CALM_SECONDS - 0.1, 12, list), "Home"), "she never got home")
 		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
 		-- the time limit (a thief who dodges every lunge)
-		assert(Duq.RAGE_SECONDS >= 20 and Duq.RAGE_SECONDS <= 30, "about 25 s")
+		equal(Duq.RAGE_SECONDS, 180, "the safety limit (RC6: 25 -> 180)")
 		local timed = steps(Duq.new(), 0, Duq.RAGE_SECONDS + 0.3, { onFloor(60) }, dodgeAll)
 		local over = firstOf(timed, "Calm")
 		assert(over and over.reason == "Timeout", "time limit: " .. tostring(over and over.reason))
@@ -371,8 +375,10 @@ return function(Duq, Frut, Layout, sources, Chase)
 	local function escape(speed, policy)
 		local path = { { x = nestX, y = summit.top + 3, z = nestZ } }
 		for _, s in ipairs(Frut.seedPath(Layout)) do table.insert(path, { x = s.x, y = s.y + 3, z = s.z }) end
-		table.insert(path, { x = Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 5, y = Layout.FLOOR_TOP + 3,
-			z = path[#path].z })
+		-- Deliberately changed (RC6): on through the plot's entrance to the hub (the base), where the rage ends ("Safe")
+		local gate = Layout.world(Layout.ENTRANCE)
+		table.insert(path, { x = gate.x, y = Layout.FLOOR_TOP + 3, z = gate.z })
+		table.insert(path, { x = Rules.HUB_X, y = Layout.FLOOR_TOP + 3, z = Rules.HUB_Z })
 		local state, thief = Duq.new(), carrier(path[1].x, path[1].y, path[1].z, { speed = speed, vx = 0, vz = 0 })
 		local leg, slowUntil, dodged = 1, -math.huge, 0
 		local sideX, sideZ, sideUntil = nil, nil, -math.huge
@@ -398,6 +404,7 @@ return function(Duq, Frut, Layout, sources, Chase)
 					end
 				end
 				thief.vx, thief.vz = (thief.x - ox) / 0.1, (thief.z - oz) / 0.1
+				thief.safe = select(2, Rules.zone(thief.x, thief.z)) == true
 			end
 			for _, ev in ipairs(Duq.step(state, t, { thief }, summit, resolve)) do
 				if ev.kind == "Hit" and ev.id == THIEF then slowUntil = t + ev.slowSeconds end
@@ -414,6 +421,8 @@ return function(Duq, Frut, Layout, sources, Chase)
 		return { caught = false, at = math.huge, reason = "none", dodged = dodged }
 	end
 
+	-- Deliberately changed (RC6): the escape is the base now (she followed past the plot's edge), so a dodging carrier
+	-- avoids more lunges on the way (K was 3 to 8 to the plot's edge).
 	case("DR8: escape math: a carrier who never dodges is caught by her first lunge; one who dodges every lunge escapes", function()
 		local never = escape(11, "never")
 		assert(never.caught and never.lunge == 1, "a carrier who never dodges kept the egg past her first lunge")
@@ -425,9 +434,9 @@ return function(Duq, Frut, Layout, sources, Chase)
 				local free = escape(speed, policy)
 				local label = speed .. " " .. policy
 				assert(not free.caught, label .. ": caught at lunge " .. tostring(free.lunge))
-				assert(free.reason == "Left" or free.reason == "Timeout", label .. ": ended by " .. tostring(free.reason))
-				assert(free.at <= Duq.RAGE_SECONDS + 0.11, label .. ": free at " .. free.at)
-				assert(free.dodged >= 3 and free.dodged <= 8, label .. ": K = " .. free.dodged)
+				equal(free.reason, "Safe", label .. ": she follows it to the base")
+				assert(free.at < Duq.RAGE_SECONDS, label .. ": free at " .. free.at)
+				assert(free.dodged >= 5 and free.dodged <= 40, label .. ": K = " .. free.dodged)
 			end
 		end
 		-- hard: a walking carrier must avoid at least 5 lunges in a row (6 when tuned, by dodge or sidestep; sprinting all
@@ -490,6 +499,60 @@ return function(Duq, Frut, Layout, sources, Chase)
 		has(service, "Duq.step(state, now, players, summit, resolve)", "one throttled step")
 		assert(not string.find(service, "Raycast", 1, true), "no raycasts")
 		equal(Duq.DODGE_SOURCE, "DonGlaseon", "an existing WildboundDodge source")
+	end)
+
+	case("RC6: her rage lasts out of the plot to the base; there she calms, vanishes and is back on her seat at once", function()
+		local gate = Layout.world(Layout.ENTRANCE)
+		-- the thief stands 30 studs outside the plot's west edge (between the plot and the hub), then reaches the hub
+		local outside = carrier(gate.x - 30, Layout.FLOOR_TOP + 3, gate.z)
+		assert(not select(2, Rules.zone(outside.x, outside.z)), "test setup: the spot outside the plot is not safe")
+		local hub = carrier(Rules.HUB_X + Rules.HUB_RADIUS - 5, Layout.FLOOR_TOP + 3, Rules.HUB_Z, { safe = true })
+		local state = Duq.new()
+		local events = steps(state, 0, 30, function(t)
+			if t < 1 then return { onFloor(60) } end
+			return { outside }
+		end, dodgeAll)
+		equal(firstOf(events, "Calm"), nil, "she never calmed outside the plot within 30 s")
+		equal(state.mode, "Rage", "still raging")
+		local her = Duq.position(state)
+		assert(Duq.plotDepth(summit, her.x, her.z) < 0, "she followed the thief out of the plot")
+		local last = steps(state, 30.1, 30.1, { hub }, dodgeAll)
+		local calm = firstOf(last, "Calm")
+		assert(calm and calm.reason == "Safe", "the base ends it: " .. tostring(calm and calm.reason))
+		local vanish, home = firstOf(last, "Vanish"), firstOf(last, "Home")
+		assert(vanish and home and home.vanished == true, "outside the plot she vanishes home at once")
+		near(vanish.x, her.x, "the vanish where she was", 1)
+		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
+		-- calmed inside the plot she still floats home (DR7 holds the cooldown)
+		local inside = Duq.new()
+		local ev2 = steps(inside, 0, 2, function(t) return { onFloor(60, { safe = t >= 1.5 }) } end)
+		equal(firstOf(ev2, "Vanish"), nil, "inside the plot no vanish"); equal(Duq.phase(inside), "Return", "she floats home")
+		local service = sources and sources.service
+		has(service, 'ev.kind == "Vanish"', "the service draws her vanish")
+	end)
+
+	-- GT (cake move, owner request 2026-11-16 "the cake at the end, and much bigger"): the Torta's plaza is 28 studs from
+	-- the plot's east edge, so her plot depth (where a rage may start, and where she vanishes after one: RC6) ignores
+	-- that edge; the west, north and south edges still count.
+	case("GT13: her plot depth ignores the east edge behind the Torta; the other edges still count", function()
+		local far = Layout.HALF + 17
+		near(Duq.plotDepth(summit, Layout.CENTRE.x + far, Layout.CENTRE.z), Layout.HALF, "east of the plot counts as inside")
+		near(Duq.plotDepth(summit, Layout.CENTRE.x - far, Layout.CENTRE.z), -17, "west")
+		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z + far), -17, "north")
+		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z - far), -17, "south")
+		near(Duq.plotDepth(summit, Layout.CENTRE.x, Layout.CENTRE.z + 50), Layout.HALF - 50, "inside")
+		-- a thief who carried her egg just past the east edge (a few steps off the plaza) still starts her rage
+		local east = carrier(Layout.CENTRE.x + Layout.HALF + 5, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		assert(firstOf(steps(Duq.new(), 0, 0, { east }), "Rage"), "no rage for a thief just past the east edge")
+	end)
+
+	-- GT: the summit is about 65 studs up (it was 40): she still drops from her seat to the floor in about the time she
+	-- needs to fly past the bottom tier's rim, so her first lunge comes as early as before.
+	case("GT14: her descent keeps up with the bigger Torta", function()
+		local drop = summit.top - Layout.FLOOR_TOP
+		local across = (Layout.TOWER.tiers[1].radius + 1) / Duq.CHASE_SPEED
+		assert(drop / Duq.VERTICAL_SPEED <= across, ("a %.1f-stud drop takes %.2f s, the rim %.2f s"):format(drop,
+			drop / Duq.VERTICAL_SPEED, across))
 	end)
 
 	return result

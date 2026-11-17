@@ -21,7 +21,7 @@ return function(Service, Portal, Text, sources)
 			.. ", got " .. tostring(actual))
 	end
 	local C = Portal.CONFIG
-	local STATION = Vector3.new(772, 0.5, -3)
+	local STATION = Vector3.new(588, 0.5, -3) -- the Caramelo arch (GT cake move: 772 -> 588)
 
 	local function fakePlayer(userId)
 		local attributes = {}

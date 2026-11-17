@@ -51,7 +51,8 @@ return function(Layout, Sites, Config, marker, biome)
 		assert(type(marker:GetAttribute("Purpose")) == "string" and #marker:GetAttribute("Purpose") > 20, "Purpose")
 		-- the module keeps its own numbers: without a marker every site is where the Pradera had it
 		local pond, hive, gate, plaza = Sites.world(nil, "pond"), Sites.world(nil, "colmena"), Sites.world(nil, "gate"), Sites.world(nil, "plaza")
-		equal(pond.x, 762, "default pond x"); equal(pond.z, -3, "default pond z")
+		-- Deliberately changed (GT, cake move): the pond offset (150, 0) -> (150, 40), off the bigger boss ground
+		equal(pond.x, 762, "default pond x"); equal(pond.z, 37, "default pond z")
 		equal(hive.x, 537, "default hive x"); equal(hive.z, 72, "default hive z")
 		equal(gate.x, 426, "default gate x"); equal(gate.z, -3, "default gate z")
 		equal(plaza.x, 572, "default plaza x"); equal(plaza.z, 11, "default plaza z")

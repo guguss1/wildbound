@@ -65,16 +65,19 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		local posts = Nests.posts(Sites)
 		-- Deliberately changed (CH1, owner request "more repeated creatures"): each guardian also stands at one extra post
 		-- (Sites.EXTRA_POSTS) beside a new nest, bound as "<name>@<post>" so a steal there wakes that copy (3 -> 6 posts).
-		equal(#posts, 6, "posts")
+		-- Deliberately changed again (GT2, owner request "more eggs and more creatures"): a second extra post per guardian
+		-- beside a GT2 nest (6 -> 9 posts).
+		equal(#posts, 9, "posts")
 		local binding = Nests.bind(markers(), posts)
 		local want = { C1 = "Gomibu", R1 = "Flanfuria", C3 = "Tortidragon", C7 = "Gomibu@candyPostC7",
-			R6 = "Flanfuria@candyPostR6", C8 = "Tortidragon@candyPostC8" }
+			R6 = "Flanfuria@candyPostR6", C8 = "Tortidragon@candyPostC8", E3 = "Gomibu@candyPostE3",
+			R8 = "Flanfuria@candyPostR8", R9 = "Tortidragon@candyPostR9" }
 		local bound = 0
 		for id, name in pairs(binding) do
 			bound += 1
 			equal(name, want[id], "guardian of " .. id)
 		end
-		equal(bound, 6, "bound nests")
+		equal(bound, 9, "bound nests")
 		for _, post in ipairs(posts) do
 			local nest
 			for _, m in ipairs(markers()) do if binding[m.id] == (post.guard or post.name) then nest = m end end
@@ -282,7 +285,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	case("CH1: one extra post per candy creature: fixed, beside its own nest, by a route, off the boss ground and the entrance", function()
 		local NAMES = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
 		assert(type(Sites.EXTRA_POSTS) == "table", "no Sites.EXTRA_POSTS")
-		equal(#Sites.EXTRA_POSTS, #NAMES, "one extra post per candy creature (8 -> 16 posts)")
+		-- Deliberately changed (GT2, owner request "more eggs and more creatures"): two extra posts per creature (16 -> 24)
+		local PER = 2
+		equal(#Sites.EXTRA_POSTS, #NAMES * PER, "two extra posts per candy creature (16 -> 24 posts)")
 		local C = Layout.CENTRE
 		local count, keys, nestOf = {}, {}, {}
 		for _, extra in ipairs(Sites.EXTRA_POSTS) do
@@ -329,11 +334,11 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 			equal(Sites.wants(name, { alive = true, safe = false, meadow = true, x = w.x, z = w.z }), false,
 				key .. ": without the post the home post's rule holds")
 		end
-		for _, name in ipairs(NAMES) do equal(count[name], 1, name .. " extra posts") end
+		for _, name in ipairs(NAMES) do equal(count[name], PER, name .. " extra posts") end
 		local all = {}
 		for _, name in ipairs(NAMES) do table.insert(all, Sites.world(nil, Sites.HOME[name])) end
 		for _, extra in ipairs(Sites.EXTRA_POSTS) do table.insert(all, Sites.world(nil, extra.key)) end
-		equal(#all, 16, "posts in all")
+		equal(#all, 8 + 8 * PER, "posts in all")
 		for i = 1, #all do
 			for j = i + 1, #all do
 				assert(flat(all[i].x, all[i].z, all[j].x, all[j].z) >= 30, "posts " .. i .. " and " .. j .. " closer than 30 studs")
@@ -345,7 +350,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	-- one-egg island nests; the three beside an extra guardian post are guarded by that copy.
 	case("CH3: the new nests are live one-egg island nests; three are guarded by an extra guardian post", function()
 		local list = Nests.islands(markers(), Nests.posts(Sites))
-		equal(#list, 19, "live floor nests (11 -> 19)")
+		equal(#list, 27, "live floor nests (11 -> 19; GT2: 19 -> 27)")
 		local byId = {}
 		for _, entry in ipairs(list) do byId[entry.nestId] = entry end
 		for _, id in ipairs({ "C6", "C7", "C8", "C9", "C10", "R5", "R6", "R7" }) do
@@ -358,6 +363,13 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(byId.C8.guard, "Tortidragon@candyPostC8", "C8 guard")
 		for _, id in ipairs({ "C6", "C9", "C10", "R5", "R7" }) do equal(byId[id].guard, nil, id .. " has a critter beside it, no guard") end
 		equal(byId.C1.guard, "Gomibu", "the home guardians keep their nests")
+		-- GT2: the eight newer nests, three of them guarded by a guardian's second extra post
+		for _, id in ipairs({ "E3", "R8", "R9", "R10", "R11", "C11", "C12", "C13" }) do
+			assert(byId[id], id .. " is not a live nest"); equal(byId[id].eggs, 1, id .. " one egg")
+		end
+		equal(byId.E3.guard, "Gomibu@candyPostE3", "E3 guard"); equal(byId.R8.guard, "Flanfuria@candyPostR8", "R8 guard")
+		equal(byId.R9.guard, "Tortidragon@candyPostR9", "R9 guard")
+		for _, id in ipairs({ "R10", "R11", "C11", "C12", "C13" }) do equal(byId[id].guard, nil, id .. " has a critter beside it") end
 	end)
 
 	-- CH3: the live place was built before the new nests existed; the server's start step (applyFlags -> syncNests) places
@@ -417,10 +429,11 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	case("CH4: the ambush roll: one tunable table, a random critter 25-40 studs away, never by the entrance or the boss ground", function()
 		local A = Sites.AMBUSH
 		assert(type(A) == "table" and type(Sites.ambushRoll) == "function", "no Sites.AMBUSH / Sites.ambushRoll")
-		equal(A.everySeconds, 20, "every"); equal(A.chance, 0.75, "chance"); equal(A.maxActive, 2, "at most two at once")
+		-- Deliberately changed (RC, owner request 2026-11-16 "all of them, more at once"): every 20 -> 15 s, at most 2 -> 3
+		equal(A.everySeconds, 15, "every"); equal(A.chance, 0.75, "chance"); equal(A.maxActive, 3, "at most three at once")
 		equal(A.minStuds, 25, "min"); equal(A.maxStuds, 40, "max"); equal(A.post, "ambush", "director post")
-		-- a crossing of the plot (about 90 s with a nest or two) meets about 90 / 20 x 0.75 = 3 rolls won
-		assert(90 / A.everySeconds * A.chance >= 2 and 90 / A.everySeconds * A.chance <= 4, "2-4 ambushes per crossing")
+		-- a crossing of the plot (about 90 s with a nest or two) meets about 90 / 15 x 0.75 = 4.5 rolls won
+		assert(90 / A.everySeconds * A.chance >= 3 and 90 / A.everySeconds * A.chance <= 5, "3-5 ambushes per crossing")
 		for _, name in ipairs(A.names) do
 			equal(Config.SUMMONED[name], true, name .. " summoned")
 			assert(Config.BEASTS[name].tuning.PerceptionStuds - 2 > A.minStuds, name .. " would not see the player it ambushes")
@@ -456,7 +469,8 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		check(-120, -60); check(60, 0); check(0, 150)
 		equal((check(-185, 0)), 0, "never in the first steps past the entrance")
 		equal((check(260, 0)), 0, "never outside the Caramelo plot")
-		equal((check(0, 30)), 0, "never on the boss plaza or the tower")
+		-- Deliberately changed (GT): the plaza moved with the Torta to (BOSS.x, BOSS.z); (0, 30) is the junction now
+		equal((check(Layout.BOSS.x, Layout.BOSS.z + 30)), 0, "never on the boss plaza or the tower")
 		assert(flat(0, 0, -200, 0) > A.entranceSpotStuds and A.bossClearStuds >= Layout.BOSS.territoryRadius + 40, "clearances")
 		equal(Sites.ambushRoll(0 / 0, 0, 0.5, 0.5, 0.5), nil, "a bad position")
 		equal(Sites.ambushRoll(C.x + 120, C.z + 100, nil, 0.5, 0.5), nil, "no roll")

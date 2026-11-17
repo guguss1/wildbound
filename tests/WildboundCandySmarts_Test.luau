@@ -1,12 +1,15 @@
 -- Invoke with require(freshTestClone)(require(freshCandySmartsClone), require(freshBeastEncountersClone),
 -- require(freshBeastConfigClone), require(freshBeastCandyCritterClone), require(freshBeastGomibuClone),
 -- require(freshBeastFlanfuriaClone), require(freshBeastTortidragonClone), require(freshBeastDonGlaseonClone),
--- require(freshCandyFrutillonClone), require(freshCandyDuquesaClone), require(freshCandyLayoutClone)).
+-- require(freshCandyFrutillonClone), require(freshCandyDuquesaClone), require(freshCandyLayoutClone),
+-- require(freshWorldRulesClone)).
 -- Owner feedback 3 (odd/tasks/wildbound-caramelo-playfix.md, OF3): faster and smarter candy creatures (a sprint burst,
 -- predictive aim, flanking, anti-stuck, a pause on the player's dodge, nest guarding and a call to allies) and a hard
 -- but possible Gran Torta summit (Frutillon quicker, seeds and patrols that knock a climber off a tier, glaze steps, La
 -- Duquesa throwing at the upper tiers). Pure, on the fake worlds of the brains' own suites.
-return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Boss, Frut, Duq, Layout)
+-- RC (owner request 2026-11-16, "all the creatures keep chasing you, and fast, until you reach the base"): RC1-RC4 and
+-- the RC7 runner model below.
+return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Boss, Frut, Duq, Layout, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -110,8 +113,7 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 	--   1. after its burst every creature is slower than that sprint, so a running player never loses ground again;
 	--   2. the burst's gain over the sprint ((sprint - 23.2) x sprintSeconds) never closes a sprinter it noticed at the
 	--      edge of its sight into its attack range (the alert time, which helps the player, is left out);
-	--   3. the leash bounds the chase: it never follows past LeashStuds from home, its leash plus its reach stays inside
-	--      its escape distance, and a sprinter is past that distance and safe within 8 s;
+	--   3. (RC1, was: the leash bounds the chase and a sprinter is safe within 8 s) it hunts until the base;
 	--   4. a dodge close by stops it for dodgePause, in which a sprinter gains more than a body length.
 	-- Against a trained walker (walk W, sprint 1.45 W) the chase (0.92 W, cap 36) stays under the sprint and the burst
 	-- (1.1 W, cap 40) gains no more than against an untrained one.
@@ -134,12 +136,11 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 			assert(gain < 15, name .. " gains " .. gain .. " studs in its burst")
 			assert(T.PerceptionStuds - gain > range, name .. ": the burst closes a noticed sprinter into reach ("
 				.. T.PerceptionStuds .. " - " .. gain .. " <= " .. range .. ")")
-			-- 3
-			local A = T.Attack or {}
-			local reach = T.LeashStuds + range + (A.RadiusStuds or A.WidthStuds or T.RadiusStuds or 0) + (A.PushStuds or T.PushStuds or 0)
-			assert(reach < T.EscapeDistanceStuds, name .. ": its leash and reach (" .. reach .. ") pass its escape distance")
-			local chaseEnds = T.EscapeDistanceStuds / SPRINT + T.EscapeSeconds
-			assert(chaseEnds <= 8, name .. ": a sprinter is still chased after " .. chaseEnds .. " s")
+			-- 3. Deliberately changed (RC1, owner request 2026-11-16 "they keep chasing you until you reach the base"): the
+			-- leash no longer bounds the chase ("the chase ends within 8 s" is gone); a hunt ends only at a safe zone, death,
+			-- a leave or the hard limit, and the escape is reaching the base (RC7 holds that math).
+			equal(P.relentless, true, name .. " is relentless")
+			assert(base < SPRINT, name .. ": a sprinter still gains on it while its stamina lasts")
 			-- 4
 			assert(P.dodgePause * SPRINT >= 8, name .. ": a dodge buys only " .. P.dodgePause * SPRINT .. " studs")
 			-- a trained walker
@@ -495,6 +496,348 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 				assert(ev.kind ~= "Charge", "a volley at a player off the tower")
 			end
 		end
+	end)
+
+	-- RC: the relentless chase -------------------------------------------------------------------------------------------
+	local CANDY = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }
+	local R = Smarts.RELENTLESS
+
+	case("RC1: a candy chase does not end by leash, abandon, escape or time, only by safe zone, defeat or leaving", function()
+		equal(R.hardSeconds, 180, "the safety end"); equal(R.fadeStuds, 120, "fade distance")
+		assert(not Smarts.profile("DonGlaseon").relentless, "Don Glaseon stays territorial")
+		for _, name in ipairs(CANDY) do
+			local T = Config.BEASTS[name].tuning
+			assert(Smarts.profile(name).relentless, name .. " is not relentless")
+			local e, w = spawn(name, "rc1"), fakeWorld()
+			local tgt = target(8, 0)
+			run({ e }, w, tgt, 0, 1)
+			assert(Smarts.hunting(e), name .. " does not hunt after noticing")
+			-- the target runs far past every old limit (leash, abandon, escape) for 30 s at 20 studs/s
+			local events = run({ e }, w, tgt, 1.05, 31, function(t) tgt.x, tgt.vx = 8 + (t - 1) * 20, 20 end)
+			equal(#each(events, "End"), 0, name .. " ended")
+			equal(#each(events, "Disengage"), 0, name .. " faded")
+			assert(not phaseAt(events, e.id, "Return") and not phaseAt(events, e.id, "GiveUp"), name .. " went home")
+			assert(e.pos.x > T.EscapeDistanceStuds + T.LeashStuds, name .. " stayed behind at " .. e.pos.x)
+			-- the safe zone ends it at once
+			tgt.safe = true
+			local over = each(run({ e }, w, tgt, 31.05, 31.1), "End")[1]
+			assert(over and over.reason == "SafeZone", name .. " the base did not end it")
+			-- death (no body) too
+			local d, dw = spawn(name, "rc1d"), fakeWorld()
+			run({ d }, dw, target(8, 0), 0, 1)
+			over = each(run({ d }, dw, nil, 1.05, 1.1), "End")[1]
+			assert(over and over.reason == "Death", name .. " death did not end it")
+			-- the hard limit
+			assert(not Smarts.overtime(e, e.huntFrom + R.hardSeconds - 0.01) and Smarts.overtime(e, e.huntFrom + R.hardSeconds), name .. " hard limit")
+		end
+	end)
+
+	case("RC2: the second wind: windSeconds at the noticing sprint every windEvery, from windFirst seconds of a chase", function()
+		equal(R.windFirst, 8); equal(R.windEvery, 8); equal(R.windSeconds, 1.5)
+		assert(R.windFirst > 6, "only a chase longer than ~6 s gets it")
+		for _, name in ipairs(CANDY) do
+			local T, P = Config.BEASTS[name].tuning, Smarts.profile(name)
+			local e = { beast = name, id = "wind" .. name, pos = { x = 0, y = 0, z = 0 } }
+			local walker = target(0, 0, { walk = 16 })
+			equal(Smarts.speed(e, 0, T.ChaseSpeedStudsPerSecond, walker), P.sprint, name .. " notices at a sprint")
+			for _, s in ipairs({ 3, 7.9, 9.6, 15.9, 17.6 }) do
+				equal(Smarts.speed(e, s, T.ChaseSpeedStudsPerSecond, walker), T.ChaseSpeedStudsPerSecond, name .. " base at " .. s)
+			end
+			for _, s in ipairs({ 8, 9.4, 16, 17.4, 24.1, 80.5 }) do
+				equal(Smarts.speed(e, s, T.ChaseSpeedStudsPerSecond, walker), P.sprint, name .. " second wind at " .. s)
+				assert(Smarts.secondWind(e, s), name .. " secondWind at " .. s)
+			end
+			assert(P.sprint >= 28 and P.sprint <= 30, name .. " wind speed " .. P.sprint)
+			-- a sprinter (23.2) gains over a whole cycle: (base x 6.5 + sprint x 1.5) / 8 stays under 23.2 for an average
+			local mean = (T.ChaseSpeedStudsPerSecond * (R.windEvery - R.windSeconds) + P.sprint * R.windSeconds) / R.windEvery
+			assert(mean < 16 * 1.45 + 1.5, name .. " averages " .. mean .. " over a cycle")
+			assert(mean > 16, name .. " never catches a walker")
+		end
+		local boss = { beast = "DonGlaseon", id = "windBoss", pos = { x = 0, y = 0, z = 0 } }
+		Smarts.speed(boss, 0, 21, target(0, 0, { walk = 16 }))
+		equal(Smarts.secondWind(boss, 9), false, "Don Glaseon has no second wind")
+	end)
+
+	case("RC3: far from home (past fadeStuds) an ending fades out; near home it walks back", function()
+		local e = { beast = "Mochimiau", home = { x = 0, y = 0, z = 0 }, pos = { x = R.fadeStuds + 1, y = 0, z = 0 } }
+		equal(Smarts.farFromHome(e), true, "far")
+		e.pos.x = R.fadeStuds - 1
+		equal(Smarts.farFromHome(e), false, "near")
+		-- a Gomibu that hunted its target 150 studs away and hits the hard limit fades there (no 150-stud walk home)
+		local g, w = spawn("Gomibu", "rc3"), fakeWorld()
+		local tgt = target(8, 0)
+		run({ g }, w, tgt, 0, 1)
+		g.pos.x, tgt.x = 150, 190
+		local events = run({ g }, w, tgt, g.huntFrom + R.hardSeconds - 0.05, g.huntFrom + R.hardSeconds + 1.5)
+		local fade = each(events, "Disengage")[1]
+		assert(fade and fade.reason == "Timeout", "no fade far from home")
+		assert(not phaseAt(events, g.id, "Return"), "a long walk home")
+		assert(each(events, "End")[1], "never ended")
+	end)
+
+	case("RC4: at most maxChasers candy creatures hunt one player; a freed place lets the next one in", function()
+		equal(R.maxChasers, 5)
+		local w = fakeWorld()
+		local list = {}
+		for i = 1, 6 do table.insert(list, spawn("Mochimiau", "cap" .. i, -4 * i, 6)) end
+		local tgt = target(0, 0)
+		run(list, w, tgt, 0, 1.5)
+		local hunting = 0
+		for _, e in ipairs(list) do if Smarts.hunting(e) then hunting += 1 end end
+		equal(hunting, 5, "hunters on one player")
+		equal(Smarts.chasers(w, 1, 1.5), 5, "chasers counted")
+		local waiting
+		for _, e in ipairs(list) do if not Smarts.hunting(e) then waiting = e end end
+		assert(waiting and (waiting.phase == "Patrol" or waiting.phase == "Calm"), "the sixth stays calm")
+		-- one hunter leaves (its encounter ended): the sixth starts its hunt
+		for _, e in ipairs(list) do if Smarts.hunting(e) then e.done = true break end end
+		run(list, w, tgt, 1.55, 2)
+		assert(Smarts.hunting(waiting), "the sixth never joined after a place freed")
+		-- another player has its own five
+		local other = spawn("Mochimiau", "cap7", 10, 10)
+		other.userId = 2
+		run({ other }, w, target(12, 10), 2.05, 2.3)
+		assert(Smarts.hunting(other), "another player's creature was capped by this player's hunters")
+		-- the strike ledger: at most STRIKE_MAX strikes of different owners within STRIKE_WINDOW on one player
+		equal(Smarts.STRIKE_WINDOW, 0.6); equal(Smarts.STRIKE_MAX, 2)
+		equal(Smarts.claimStrike(901, "a", 10, 9), true, "first")
+		equal(Smarts.claimStrike(901, "b", 10.3, 9), true, "a second within the window")
+		equal(Smarts.claimStrike(901, "c", 10.5, 9), false, "a third within the window")
+		equal(Smarts.claimStrike(902, "c", 10.5, 9), true, "another player's ledger")
+		equal(Smarts.claimStrike(901, "c", 10.95, 9), true, "past the window of the first")
+		equal(Smarts.claimStrike(904, "a", 5, 4), true); equal(Smarts.claimStrike(904, "a", 5.1, 4), true)
+		equal(Smarts.claimStrike(904, "a", 5.2, 4), true, "an owner never blocks itself")
+		Smarts.forgetStrikes(904)
+		Smarts.releaseStrikes(901, "b")
+		Smarts.forgetStrikes(901)
+		equal(Smarts.claimStrike(901, "z", 10.3, 9), true, "forgotten")
+		equal(Smarts.claimStrike(903, "x", 20, 9, true), true, "forced")
+		equal(Smarts.claimStrike(903, "y", 20.1, 9, true), true, "forced")
+		equal(Smarts.claimStrike(903, "z", 20.2, 9, true), true, "forced past the cap (an attack whose timing never changes)")
+		Smarts.forgetStrikes(902); Smarts.forgetStrikes(903); Smarts.forgetStrikes(901)
+	end)
+
+	-- RC7: the runner model. An untrained runner leaves a nest (E1 mid-biome, R6 deep) with full health and stamina,
+	-- straight to the plot's entrance and on to the hub's safe edge (WildboundWorldRules HUB, the bases): it holds sprint
+	-- all the way (WildboundStamina: pool 100, drain 25/s, a sprint starts at 10, after empty none until 30, regen 10/s
+	-- 1.5 s after the last drain), 23.2 sprinting, 16 walking, slowed by the hits' slows (one at a time) and pushed on.
+	-- Each creature notices it 12 studs behind (an egg thief at the nest), alerts, then chases at Smarts.speed (its
+	-- sprint, base chase and second wind) and attacks within its range when ready, with the real tell to strike,
+	-- recovery and cooldown (Follow chains included), booking its strike through the stagger (0.8 s from any other
+	-- beast) and the ledger. A swarm wakes 12 studs behind, cruises at 26 and dives within 7 studs (tell 0.8 + dive 0.5,
+	-- gap 0.9, tired gap 5 after 3 stings). Health regenerates 1 a second (Roblox's default Health script).
+	-- "never": it never dodges and stays in every shape (a runner on the real map cannot count on outrunning a circle);
+	-- "perfect": it presses dodge at every strike: a candy beast's attack is not registered, so the dash's i-frames
+	-- cover it (BeastHit answers dodged) and the press costs the miss cooldown 1.2 s; a dive is registered (0.6 s). The
+	-- dash carries it 52 x 0.22 studs on, and a creature within 12 studs pauses dodgePause.
+	local DT = 0.05
+	local LIT = { -- the guardians' attack modules (pinned in their own suites)
+		Flanfuria = { strike = 0.8 + 0.8, recover = 0.6, ready = 0.6 + 5, damage = Config.BEASTS.Flanfuria.damage, push = 0,
+			slow = { 0.65, 1.5 }, kind = "stay", range = Config.BEASTS.Flanfuria.tuning.CastRangeStuds, stand = 4 },
+		Tortidragon = { strike = 0.8 + 0.65, recover = 0.6, ready = 0.6 + 4.5, damage = Config.BEASTS.Tortidragon.damage, push = 4,
+			slow = { 0.85, 0.8 }, kind = "stay", range = Config.BEASTS.Tortidragon.tuning.CastRangeStuds, stand = 6 },
+	}
+	local function specOf(name)
+		local C = Config.BEASTS[name]
+		local T = C.tuning
+		local s
+		if LIT[name] then
+			s = table.clone(LIT[name])
+		elseif name == "Gomibu" then
+			s = { strike = math.max(T.TelegraphSeconds, MIN_TELL) + T.JumpSeconds, recover = T.RecoverSeconds,
+				ready = T.RecoverSeconds + T.AttackCooldownSeconds, damage = C.damage, push = T.PushStuds,
+				slow = { T.SlowMultiplier, T.SlowSeconds }, kind = "leap", range = T.JumpRangeStuds, stand = 3 }
+		else
+			local A = T.Attack
+			local F = T.Extras and T.Extras.Follow
+			s = { strike = Critter.tellSeconds(A) + A.TravelSeconds, recover = A.RecoverSeconds, ready = A.CooldownSeconds,
+				damage = C.damage, push = A.PushStuds or 0, slow = { A.SlowMultiplier, A.SlowSeconds },
+				kind = (A.kind == "leap" or A.kind == "dash") and A.kind or "stay", range = A.RangeStuds,
+				stand = T.StandOffStuds or (A.kind == "leap" and 3 or math.min(A.RangeStuds * 0.6, 4)),
+				follow = F and { F.Max, F.RangeStuds } or nil }
+		end
+		s.base, s.alert = T.ChaseSpeedStudsPerSecond, T.AlertSeconds
+		return s
+	end
+	local function legs(nest)
+		local n
+		for _, row in ipairs(Layout.NESTS) do if row.id == nest then n = row end end
+		local p, gate = Layout.world(n), Layout.world(Layout.ENTRANCE)
+		local d1 = Layout.flat(p.x, p.z, gate.x, gate.z)
+		local d2 = Layout.flat(gate.x, gate.z, Rules.HUB_X, Rules.HUB_Z) - Rules.HUB_RADIUS
+		return d1 + d2, d1, d2
+	end
+	local function model(names, swarms, D, policy)
+		local r, hp, minhp = 0, 100, 100
+		local st = { s = 100, stance = "walk", ex = false, last = -math.huge }
+		local slowU, slowM, dodgeReady, dashAt = -math.huge, 1, -math.huge, nil
+		local out = { hits = 0, opened = 0, dodged = 0, undodgeable = 0, strikes = {}, minhp = 100 }
+		local crs, sws, claims, ledger = {}, {}, {}, {}
+		for _, name in ipairs(names) do
+			local s = specOf(name)
+			table.insert(crs, { name = name, s = s, c = -12, alertEnd = s.alert, strikeAt = nil, recoverU = -math.huge,
+				readyAt = -math.huge, e = { beast = name }, daze = -math.huge, dazeReady = -math.huge, followLeft = 0, following = false })
+		end
+		for i = 1, swarms do table.insert(sws, { id = "fly" .. i, s = -12, alertEnd = 1, strikeAt = nil, nextAt = -math.huge, stings = 0 }) end
+		local function ledgerOk(owner, at, now)
+			for i = #ledger, 1, -1 do if ledger[i].at < now - 1 then table.remove(ledger, i) end end
+			local near = 0
+			for _, c in ipairs(ledger) do if c.owner ~= owner and math.abs(c.at - at) < Smarts.STRIKE_WINDOW then near += 1 end end
+			if near >= Smarts.STRIKE_MAX then return false end
+			table.insert(ledger, { at = at, owner = owner })
+			return true
+		end
+		local function beastClaim(owner, at, now)
+			for i = #claims, 1, -1 do if claims[i].at < now - 1 then table.remove(claims, i) end end
+			for _, c in ipairs(claims) do if c.owner ~= owner and math.abs(c.at - at) < Config.DIRECTOR.STRIKE_SEPARATION then return false end end
+			if not ledgerOk(owner, at, now) then return false end
+			table.insert(claims, { at = at, owner = owner })
+			return true
+		end
+		local function strike(now, damage, push, slow, registered, who)
+			table.insert(out.strikes, { at = now, who = who })
+			if policy == "perfect" then
+				if now >= dodgeReady then
+					out.dodged += 1
+					dodgeReady = now + (registered and 0.6 or 1.2)
+					r += 52 * 0.22
+					dashAt = now
+					return false
+				end
+				out.undodgeable += 1
+			end
+			out.hits += 1
+			hp -= damage
+			minhp = math.min(minhp, hp)
+			r += push
+			if slow and now >= slowU then slowU, slowM = now + slow[2], slow[1] end
+			return true
+		end
+		for i = 1, 4000 do
+			local t = i * DT
+			-- the runner (WildboundStamina.step, always asking to sprint, always moving)
+			local threshold = st.stance == "sprint" and 1e-6 or 10 - 1e-6
+			if st.ex and st.s >= 30 - 1e-6 then st.ex = false end
+			if not st.ex and st.s >= threshold then
+				st.stance, st.s, st.last = "sprint", st.s - 25 * DT, t
+				if st.s <= 1e-6 then st.s, st.ex, st.stance = 0, true, "ex" end
+			else
+				st.stance = st.ex and "ex" or "walk"
+				if t - st.last >= 1.5 - 1e-6 then st.s = math.min(100, st.s + 10 * DT) end
+				if st.ex and st.s >= 30 - 1e-6 then st.ex, st.stance = false, "walk" end
+			end
+			r += (st.stance == "sprint" and 23.2 or 16) * (t < slowU and slowM or 1) * DT
+			hp = math.min(100, hp + DT)
+			if r >= D then out.arrive, out.minhp = t, minhp return out end
+			for _, cr in ipairs(crs) do
+				local s = cr.s
+				if t >= cr.alertEnd then
+					if dashAt and math.abs(t - dashAt) < 1e-9 and r - cr.c <= Smarts.DODGE_REACT_STUDS and t >= cr.dazeReady then
+						cr.daze, cr.dazeReady = t + Smarts.profile(cr.name).dodgePause, t + Smarts.DODGE_COOLDOWN_SECONDS
+					end
+					if cr.strikeAt then
+						if t >= cr.strikeAt - 1e-9 then
+							local at = cr.strikeAt
+							cr.strikeAt = nil
+							if s.kind == "leap" then cr.c = math.max(cr.c, r - 1) elseif s.kind == "dash" then cr.c = math.min(cr.c + 14, r - 1) end
+							strike(at, s.damage, s.push, s.slow, false, cr.name)
+							cr.recoverU = at + s.recover
+							if s.follow and cr.followLeft > 0 then cr.following, cr.readyAt = true, at + s.recover
+							else cr.following, cr.readyAt = false, at + s.ready end
+							cr.lastStrike = at
+						end
+					elseif t >= cr.recoverU then
+						local gap = r - cr.c
+						if cr.following and s.follow and gap > s.follow[2] then cr.following, cr.readyAt = false, cr.lastStrike + s.ready end
+						if t >= cr.daze then
+							local opened = false
+							if gap <= s.range and t >= cr.readyAt and beastClaim(cr.name, t + s.strike, t) then
+								cr.strikeAt, opened = t + s.strike, true
+								out.opened += 1
+								if s.follow then
+									if cr.following then cr.followLeft -= 1 else cr.followLeft = s.follow[1] end
+									cr.following = false
+								end
+							end
+							if not opened and gap > s.stand then
+								cr.c += math.min(Smarts.speed(cr.e, t, s.base, { walk = 16 }) * DT, gap - s.stand)
+							end
+						end
+					end
+				end
+			end
+			for _, sw in ipairs(sws) do
+				if t >= sw.alertEnd then
+					sw.s += math.min(26 * DT, math.max(r - sw.s, 0))
+					if sw.strikeAt then
+						if t >= sw.strikeAt - 1e-9 then
+							local at = sw.strikeAt
+							sw.strikeAt = nil
+							if strike(at, 12, 6, nil, true, sw.id) then sw.stings += 1 end
+							sw.nextAt = at + (sw.stings >= 3 and 5 or 0.9)
+						end
+					elseif r - sw.s <= 7 and t >= sw.nextAt and ledgerOk(sw.id, t + 1.3, t) then
+						sw.strikeAt = t + 1.3
+						out.opened += 1
+					end
+				end
+			end
+			if hp <= 0 then out.dead, out.minhp = t, minhp return out end
+		end
+		out.minhp = minhp
+		return out
+	end
+	local function spaced(out, label)
+		-- the stagger and the ledger: beasts' strikes 0.8 s apart, never three strikes within 0.6 s
+		local list = out.strikes
+		for i = 1, #list do
+			for j = i + 1, #list do
+				local a, b = list[i], list[j]
+				local beasts = string.sub(a.who, 1, 3) ~= "fly" and string.sub(b.who, 1, 3) ~= "fly"
+				if beasts and a.who ~= b.who then
+					assert(math.abs(a.at - b.at) >= Config.DIRECTOR.STRIKE_SEPARATION - 1e-6, label .. ": two beast strikes " .. math.abs(a.at - b.at) .. " s apart")
+				end
+				for k = j + 1, #list do
+					local lo = math.min(a.at, b.at, list[k].at)
+					local hi = math.max(a.at, b.at, list[k].at)
+					assert(hi - lo >= Smarts.STRIKE_WINDOW - 1e-6 or (a.who == b.who or b.who == list[k].who or a.who == list[k].who),
+						label .. ": three strikes within " .. (hi - lo) .. " s")
+				end
+			end
+		end
+	end
+
+	case("RC7: runner model to the base: one creature hurts but never defeats; several must be dodged; a dodger is unhurt", function()
+		local D1 = legs("E1")
+		local D6, to6, gate6 = legs("R6")
+		assert(D1 > 150 and D1 < 260, "E1 to the base " .. D1)
+		assert(D6 > D1 + 100, "R6 deeper " .. D6)
+		assert(gate6 > 20 and gate6 < 80, "the plot's entrance to the hub's edge " .. gate6)
+		assert(to6 > 250, "R6 to the entrance " .. to6)
+		for _, D in ipairs({ D1, D6 }) do
+			for _, name in ipairs(CANDY) do
+				local never = model({ name }, 0, D, "never")
+				assert(never.arrive and not never.dead, name .. ": a lone creature defeated a runner over " .. D)
+				assert(never.hits >= 1, name .. ": never touched a runner who never dodges over " .. D)
+				assert(never.minhp >= 40, name .. ": left " .. never.minhp .. " health over " .. D)
+				local perfect = model({ name }, 0, D, "perfect")
+				equal(perfect.hits, 0, name .. ": a perfect dodger was hurt over " .. D)
+				assert(perfect.arrive, name .. ": a perfect dodger never arrived")
+				spaced(never, name)
+			end
+			local swarm = model({}, 1, D, "never")
+			assert(swarm.arrive and swarm.hits >= 1 and swarm.minhp >= 40, "one swarm: " .. swarm.hits .. " stings, " .. swarm.minhp)
+			equal(model({}, 1, D, "perfect").hits, 0, "a perfect dodger and one swarm")
+		end
+		-- everything at once (the cap: five hunters and three swarms) from the deep nest: a runner who never dodges falls;
+		-- one who dodges arrives, hurt less
+		local five = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Mielita" }
+		local never = model(five, 3, D6, "never")
+		assert(never.dead, "five hunters and three swarms never defeated a runner who never dodges")
+		local perfect = model(five, 3, D6, "perfect")
+		assert(perfect.arrive and not perfect.dead, "a dodger never got through five hunters and three swarms")
+		assert(perfect.hits < never.hits, "dodging did not help")
+		spaced(never, "the crowd"); spaced(perfect, "the crowd dodged")
 	end)
 
 	return result

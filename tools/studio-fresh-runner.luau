@@ -160,12 +160,12 @@ SPECS["WildboundBeastCandyCritter_Test"] = {
 SPECS["WildboundCandySmarts_Test"] = {
 	"mod:WildboundCandySmarts", "mod:WildboundBeastEncounters", "mod:WildboundBeastConfig", "mod:WildboundBeastCandyCritter",
 	"mod:WildboundBeastGomibu", "mod:WildboundBeastFlanfuria", "mod:WildboundBeastTortidragon", "mod:WildboundBeastDonGlaseon",
-	"mod:WildboundCandyFrutillon", "mod:WildboundCandyDuquesa", "mod:WildboundCandyLayout",
+	"mod:WildboundCandyFrutillon", "mod:WildboundCandyDuquesa", "mod:WildboundCandyLayout", "mod:WildboundWorldRules",
 }
 SPECS["WildboundCandyDuquesa_Test"] = {
 	"mod:WildboundCandyDuquesa", "mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout",
 	{ service = "src:WildboundCandyDuquesaService", anim = "src:WildboundCandyCritterAnim" },
-	"mod:WildboundBeastChase",
+	"mod:WildboundBeastChase", "mod:WildboundWorldRules",
 }
 SPECS["WildboundCandyDonGlaseon_Test"] = { "mod:WildboundCandyDonGlaseon", "inst:ServerStorage.WildboundAssets.DonGlaseon" }
 SPECS["WildboundCandyDonGlaseonAttack_Test"] = { "mod:WildboundCandyDonGlaseonAttack" }

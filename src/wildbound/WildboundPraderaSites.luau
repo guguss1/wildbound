@@ -2,7 +2,7 @@
 -- beasts, La Nube Gruñona (docs/design/wildbound-biome-pradera.md s5) and La Abeja Reina (s6). Server only and pure:
 -- no services, no clock, no random. The beast script passes the sector origin (Workspace "WildboundPradera":GetPivot(),
 -- read-only, or nil), the player's server state and the server's event attribute; this module only answers.
--- Sector offsets come from the Pradera planner (PROPUESTA): pond (150, 0), La Colmena (-75, 75), the gate (-186, 0),
+-- Sector offsets come from the Pradera planner (PROPUESTA): pond (150, 0; 150, 40 since GT), La Colmena (-75, 75), the gate (-186, 0),
 -- the Plaza del Molino (-40, 14). Without the map the origin is the Meadow square's centre (WildboundBiomes, 612, -3).
 local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
 	:WaitForChild("WildboundBeastConfig"))
@@ -12,7 +12,7 @@ local finite = Config.finite
 
 Sites.MEADOW_CENTRE = table.freeze({ x = 612, z = -3 })
 Sites.OFFSETS = table.freeze({
-	pond = table.freeze({ x = 150, z = 0 }),
+	pond = table.freeze({ x = 150, z = 40 }), -- GT (cake move): was (150, 0); 40 studs north, off the bigger boss ground
 	colmena = table.freeze({ x = -75, z = 75 }),
 	gate = table.freeze({ x = -186, z = 0 }),
 	plaza = table.freeze({ x = -40, z = 14 }),
@@ -26,24 +26,32 @@ Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu
 -- candyNestR1 is open floor 11 studs from candy nest R1 (534, -33), away from the main path: Flanfuria's post.
 -- candyNestC3 is open floor about 14 studs from candy nest C3 (522, -135), the furthest point from the routes that keeps
 -- the 35-stud leash on the plot and off the boss ground: Tortidragon's post.
--- CA3: bossHome is the Candy builder's BossHome marker (578, -3), where Don Glaseon sleeps; bossTerritory is the centre
--- of its Boss.BossTerritory marker (612, -3, radius Config.BEASTS.DonGlaseon.tuning.TerritoryRadiusStuds = 62).
+-- CA3: bossHome is the Candy builder's BossHome marker (676, -3), where Don Glaseon sleeps; bossTerritory is the centre
+-- of its Boss.BossTerritory marker (726, -3, radius Config.BEASTS.DonGlaseon.tuning.TerritoryRadiusStuds = 76). GT (cake
+-- move, 2026-11-16): both moved with the Gran Torta to the east end (were 578 and 612, radius 62); candyNestR3 (was
+-- 664, -101) and candyPostC8 (was 744, -83) moved beside their moved nests R3 and C8; candyNestR4 (was 664, 71, the key
+-- name kept) is Flanin's post beside nest C5 now.
 -- CC4 (odd/tasks/wildbound-candy-critters.md): the five small candy creatures' posts, open floor 13 to 15 studs from a free
 -- nest on the side away from the routes: candyNestC2 (Gato Repartidor, the friendly one near the entrance), candyNestR2
 -- (Mochimiau), candyNestR3 (Canelin), candyNestR4 (Flanin) and candyNestC4 (Mielita, beside La Abeja's hive).
 -- candyNestR2 sits 86 studs from the boss territory centre: its leash, leap circle and push (14 + 4 + 5) stay off the
 -- 62-stud boss ground, so Mochimiau never shoves a player into Don Glaseon's territory.
 Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
-	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 578, z = -3 }),
-	bossTerritory = table.freeze({ x = 612, z = -3 }),
+	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 676, z = -3 }),
+	bossTerritory = table.freeze({ x = 726, z = -3 }),
 	candyNestC2 = table.freeze({ x = 466, z = 34 }), candyNestR2 = table.freeze({ x = 539, z = 43 }),
-	candyNestR3 = table.freeze({ x = 664, z = -101 }), candyNestR4 = table.freeze({ x = 664, z = 71 }),
+	candyNestR3 = table.freeze({ x = 579, z = -86 }), candyNestR4 = table.freeze({ x = 678, z = 163 }),
 	candyNestC4 = table.freeze({ x = 542, z = 139 }),
 	-- CH1 (extra posts, below): open floor 8 to 15 studs from a new candy nest, between the nest and its route
 	candyPostC7 = table.freeze({ x = 624, z = 130 }), candyPostR6 = table.freeze({ x = 715, z = -120 }),
-	candyPostC8 = table.freeze({ x = 744, z = -83 }), candyPostC9 = table.freeze({ x = 488, z = -61 }),
+	candyPostC8 = table.freeze({ x = 667, z = -161 }), candyPostC9 = table.freeze({ x = 488, z = -61 }),
 	candyPostR7 = table.freeze({ x = 486, z = 63 }), candyPostR5 = table.freeze({ x = 708, z = 119 }),
-	candyPostC6 = table.freeze({ x = 612, z = -157 }), candyPostC10 = table.freeze({ x = 564, z = -157 }) })
+	candyPostC6 = table.freeze({ x = 612, z = -157 }), candyPostC10 = table.freeze({ x = 564, z = -157 }),
+	-- GT2 (more creatures): one more extra post per candy creature, 12 studs from one of the eight GT2 nests
+	candyPostE3 = table.freeze({ x = 600, z = 33 }), candyPostR8 = table.freeze({ x = 514, z = 92 }),
+	candyPostR9 = table.freeze({ x = 564, z = 67 }), candyPostR10 = table.freeze({ x = 602, z = -36 }),
+	candyPostC11 = table.freeze({ x = 582, z = 135 }), candyPostC12 = table.freeze({ x = 494, z = -103 }),
+	candyPostC13 = table.freeze({ x = 700, z = -152 }), candyPostR11 = table.freeze({ x = 639, z = 79 }) })
 -- CH1 (owner request 2026-11-16: "more repeated creatures in the Caramelo kingdom ... make it harder to be in that
 -- biome"): one more copy of each candy creature at an extra post, so a player crossing the biome meets twice as many
 -- (8 -> 16 posts). Each extra post is its own encounter (Director post), summoned by the same wake rule as a home post
@@ -55,6 +63,12 @@ Sites.EXTRA_POSTS = table.freeze({
 	table.freeze({ name = "Tortidragon", key = "candyPostC8" }), table.freeze({ name = "Mochimiau", key = "candyPostC9" }),
 	table.freeze({ name = "Canelin", key = "candyPostR7" }), table.freeze({ name = "GatoRepartidor", key = "candyPostR5" }),
 	table.freeze({ name = "Mielita", key = "candyPostC6" }), table.freeze({ name = "Flanin", key = "candyPostC10" }),
+	-- GT2 (owner request 2026-11-16, "more eggs and more creatures, a livelier map"): a second extra post per creature
+	-- (16 -> 24 posts), the same rules; the guardians' guard the new nests E3, R8 and R9.
+	table.freeze({ name = "Gomibu", key = "candyPostE3" }), table.freeze({ name = "Flanfuria", key = "candyPostR8" }),
+	table.freeze({ name = "Tortidragon", key = "candyPostR9" }), table.freeze({ name = "Mochimiau", key = "candyPostR10" }),
+	table.freeze({ name = "Canelin", key = "candyPostC11" }), table.freeze({ name = "GatoRepartidor", key = "candyPostR11" }),
+	table.freeze({ name = "Mielita", key = "candyPostC13" }), table.freeze({ name = "Flanin", key = "candyPostC12" }),
 })
 
 -- CH4 (owner request 2026-11-16, "more creatures that appear in a random way"): ambushes. Every everySeconds a player
@@ -66,10 +80,11 @@ Sites.EXTRA_POSTS = table.freeze({
 -- plaza and tower, plus a critter's leash, attack and push). The beast server checks the ground (world.landing). Every
 -- number here is the one tuning table.
 Sites.AMBUSH = table.freeze({
-	everySeconds = 20, chance = 0.75, maxActive = 2, tries = 4, minStuds = 25, maxStuds = 40, post = "ambush",
+	-- RC (relentless chases): every 20 -> 15 s, at most 2 -> 3 at once
+	everySeconds = 15, chance = 0.75, maxActive = 3, tries = 4, minStuds = 25, maxStuds = 40, post = "ambush",
 	names = table.freeze({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }),
 	half = 200, edgeStuds = 10, entrance = table.freeze({ x = -200, z = 0 }), entranceStuds = 30, entranceSpotStuds = 80,
-	bossClearStuds = 112,
+	bossClearStuds = 126, -- GT (cake move): 112 -> 126, the 76-stud territory plus the same 50
 })
 
 -- CH4: the kind and spot of one ambush on a player at world (x, z), from three rolls in 0..1 (the server's Random), or

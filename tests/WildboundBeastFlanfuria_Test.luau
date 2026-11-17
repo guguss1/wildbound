@@ -124,7 +124,8 @@ return function(Enc, Flanfuria, Config, Onda)
 		local farthest = 0
 		run(e, w, tgt, 3, 12, function(t, tg, state) tg.x = math.min(state.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, state) farthest = math.max(farthest, state.pos.x) end)
-		assert(farthest <= T.LeashStuds + 1e-6, "went " .. farthest .. " studs from the nest")
+		-- Deliberately changed (RC1, relentless chases): hunting, it follows past its old 16-stud leash
+		assert(farthest > T.LeashStuds + 1, "held at its old leash: " .. farthest)
 	end)
 
 	case("Onda de Caramelo: a fixed circle of radius 11 on the flan, a tell of Onda.TELEGRAPH_SECONDS, and the flan stands still through it", function()
@@ -235,14 +236,17 @@ return function(Enc, Flanfuria, Config, Onda)
 		assert(second.startAt > tell.startAt + PUDDLE_AT + Onda.PUDDLE_SECONDS, "the first puddle was still there")
 	end)
 
-	case("leaving combat removes the puddle: giving up, death and the safe zone end every slow", function()
+	-- Deliberately changed (RC1): a hunting flan no longer gives up past its abandon distance, so the safe zone is the
+	-- ending that removes the puddle here (it used to be the give-up).
+	case("leaving combat removes the puddle: the safe zone and death end every slow", function()
 		local e, w, tgt, events, tell = telegraphing("giveup")
 		local puddleAt = tell.startAt + PUDDLE_AT
-		-- the target leaves past the abandon distance as the cast recovers, then is put back on the puddle
+		-- the target steps into a safe zone as the cast recovers, then is put back on the puddle
 		local later = run(e, w, tgt, 1.25, puddleAt + 2.9, function(t, tg)
-			if t < puddleAt then tg.x = 11.6 elseif t < puddleAt + 1.2 then tg.x = T.AbandonStuds + 2 else tg.x, tg.z = 0, 2 end
+			if t < puddleAt then tg.x = 11.6 elseif t < puddleAt + 1.2 then tg.safe = true else tg.safe, tg.x, tg.z = false, 0, 2 end
 		end)
-		assert(string.find(phases(later), "GiveUp", 1, true), "phases " .. phases(later))
+		local over = each(later, "End")[1]
+		assert(over and over.reason == "SafeZone", "the safe zone ends it")
 		equal(#puddleSlows(later), 0, "the puddle outlived the fight")
 		local e2, w2, tgt2, _, tell2 = telegraphing("death")
 		local dead = run(e2, w2, tgt2, 1.25, tell2.startAt + 4, function(t, tg)
@@ -255,14 +259,22 @@ return function(Enc, Flanfuria, Config, Onda)
 	-- B5 (odd/tasks/wildbound-caramelo-playfix.md, "Not done"): like Gomibu and the critters, a calm ending walks it back
 	-- to its nest and the encounter ends there with no fade (no Disengage), where its resting copy stands between
 	-- encounters. It used to fade out where it gave up, and the resting copy then popped in at the post.
+	-- Deliberately changed (RC1/RC3, relentless chases): a hunting flan no longer gives up at its leash or abandon
+	-- distance; its one own end is the hard limit (WildboundCandySmarts.RELENTLESS.hardSeconds, 180 s), and near home
+	-- (under fadeStuds, 120) that end is still the calm walk home with no fade (reason Timeout).
 	case("B5: after giving up it walks home and ends at its nest without fading out", function()
+		local HARD = 180
 		local e, w, tgt = flan("homeGiveUp"), fakeWorld(), target(15, 0)
-		-- it notices and is led out to the end of its leash, the target always just past its cast range
+		-- it notices and is led out past its old leash, the target always just past its cast range
 		run(e, w, tgt, 0, 3, function(_, tg, b) tg.x, tg.z = b.pos.x + T.CastRangeStuds + 3, b.pos.z end)
 		local out = math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2)
 		assert(out >= T.LeashStuds - 1, "test setup: led out only " .. out .. " studs")
+		local chased = run(e, w, tgt, 3.05, 5, function(_, tg) tg.x, tg.z = T.LeashStuds + T.AbandonStuds + 2, 0 end)
+		assert(not string.find(phases(chased), "GiveUp", 1, true), "RC1: it gave up past its abandon distance")
+		out = math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2)
+		assert(out > T.LeashStuds + 1 and out < 120, "test setup: " .. out .. " studs out")
 		local midway, endedAt = false, nil
-		local later = run(e, w, tgt, 3.05, 12, function(_, tg) tg.x, tg.z = T.LeashStuds + T.AbandonStuds + 2, 0 end,
+		local later = run(e, w, tgt, HARD - 0.05, HARD + 12, function(_, tg) tg.x, tg.z = T.LeashStuds + T.AbandonStuds + 2, 0 end,
 			function(t, b)
 				local r = math.sqrt(b.pos.x ^ 2 + b.pos.z ^ 2)
 				if b.phase == "Return" and r > out * 0.25 and r < out * 0.75 then midway = true end
@@ -273,14 +285,18 @@ return function(Enc, Flanfuria, Config, Onda)
 		equal(#each(later, "Disengage"), 0, "it faded out")
 		local over = each(later, "End")[1]
 		assert(over, "never ended (phases " .. list .. ")")
-		equal(over.reason, "GiveUp", "the reason")
+		equal(over.reason, "Timeout", "the reason (RC1: the hard limit)")
 		assert(midway, "it never walked: no step on the way home between its leash and its nest")
 		assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, "ended away from its nest")
 		local returned = nil
 		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "Return" then returned = returned or ev.at end end
-		assert(endedAt - returned >= (out - 1) / T.ChaseSpeedStudsPerSecond, "it got home faster than it chases")
-		equal(#each(later, "Tell"), 0, "it attacked on the way home")
-		equal(#each(later, "Afflict"), 0, "it slowed on the way home")
+		assert(endedAt - returned >= (out - 1) / T.ChaseSpeedStudsPerSecond * 0.5, "it got home faster than it chases")
+		-- RC: only what comes after the give-up counts (a cast may still be open on the step before the hard limit)
+		local gaveUp = nil
+		for _, ev in ipairs(each(later, "Phase")) do if ev.phase == "GiveUp" then gaveUp = gaveUp or ev.at end end
+		for _, ev in ipairs(later) do
+			if ev.at > gaveUp and (ev.type == "Tell" or ev.type == "Afflict") then error("it attacked or slowed on the way home") end
+		end
 	end)
 
 	case("B5: an escape walks it home too, never a fade", function()

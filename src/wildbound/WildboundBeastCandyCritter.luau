@@ -15,6 +15,10 @@
 --      encounter ends at its post with no fade, where its resting copy stands; the next summon starts there in Patrol.
 --   Escape: the target outside EscapeDistance of home for EscapeSeconds: the same walk home (reason Escape). Death and
 --   the safe zone end it at once (Attack.guard).
+--   RC (owner request 2026-11-16, WildboundCandySmarts.RELENTLESS): once it notices (Smarts.engage, at most maxChasers
+--   per player) it hunts: the leash, the abandon distance, the held-at-leash give-up and the escape no longer apply; only
+--   the safe zone, death, a leave or the hard limit (180 s, reason Timeout) end it, and an ending farther than fadeStuds
+--   from home fades out (Disengage) instead of the walk home.
 -- Attack kinds (tuning.Attack.kind):
 --   leap  a circle of RadiusStuds on the target that follows it until LockSeconds; the creature hops there.
 --   dash  a lane LengthStuds x WidthStuds forward from the creature, aimed until LockSeconds; it rolls along it.
@@ -91,10 +95,10 @@ function Critter.sees(e, target, T)
 	return Attack.distance(e, target) <= T.PerceptionStuds
 end
 
--- Clamps a point to the leash round home.
+-- Clamps a point to the leash round home (RC1: no leash while it hunts, Smarts.hunting).
 local function leashed(e, T, x, z)
 	local d = flat(x, z, e.home.x, e.home.z)
-	if d > T.LeashStuds then
+	if d > T.LeashStuds and not Smarts.hunting(e) then
 		local ux, uz = unit(x - e.home.x, z - e.home.z)
 		return e.home.x + ux * T.LeashStuds, e.home.z + uz * T.LeashStuds
 	end
@@ -128,6 +132,7 @@ end
 
 -- The longest roll along (dx, dz) from the creature that stays inside the leash (at most LengthStuds).
 local function laneLength(e, T, A, dx, dz)
+	if Smarts.hunting(e) then return A.LengthStuds end -- RC1: no leash while it hunts
 	local ox, oz = e.pos.x - e.home.x, e.pos.z - e.home.z
 	local b = ox * dx + oz * dz
 	local c = ox * ox + oz * oz - T.LeashStuds * T.LeashStuds
@@ -262,6 +267,11 @@ local function goHome(events, e, world, now, reason)
 	closeAttack(e, world)
 	e.returnReason = reason
 	e.waypoint, e.waitUntil, e.pinnedSince, e.farSince, e.patrolSince = nil, nil, nil, nil, nil
+	-- RC3: a hunt that ended far from its post fades out there (the shared Disengage fade); its resting copy is back home
+	if Smarts.farFromHome(e) then
+		Attack.disengage(events, e, reason, now, Config.BEASTS[e.beast].disengage)
+		return
+	end
 	Attack.phase(events, e, "Return", now, nil, { reason = reason })
 end
 
@@ -362,7 +372,13 @@ function Critter.step(events, e, now, target, world, dt)
 		return
 	end
 	sideSettle(events, e, world, now, target, C) -- A2: the swarm's puffs or the helper's fries land on their own clock
-	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
+	-- RC1: a relentless hunt has one hard limit (Smarts.RELENTLESS.hardSeconds); it ends like a give-up
+	if Smarts.overtime(e, now) then
+		goHome(events, e, world, now, "Timeout")
+		return
+	end
+	-- RC1: the escape distance only sends home a calm creature whose visitor walked away, never one that hunts
+	if not Smarts.hunting(e) and flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
@@ -376,7 +392,8 @@ function Critter.step(events, e, now, target, world, dt)
 	if e.phase == "Patrol" or e.phase == "Calm" then
 		-- OF3: it also notices a target near its post (Smarts.guards) or when a nearby ally calls; one that saw it calls
 		local saw = Critter.sees(e, target, T) or Smarts.guards(e, target)
-		if saw or Smarts.called(e, world, now) then
+		-- RC4: it starts its hunt only while fewer than Smarts.RELENTLESS.maxChasers hunt this player
+		if (saw or Smarts.called(e, world, now)) and Smarts.engage(e, world, now) then
 			if saw then Smarts.alarm(e, world, now) end
 			e.waypoint, e.waitUntil, e.patrolSince = nil, nil, nil
 			Attack.face(e, target)
@@ -420,12 +437,13 @@ function Critter.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
-		if distance > T.AbandonStuds then
+		local hunting = Smarts.hunting(e) -- RC1: no abandon distance and no leash while it hunts
+		if not hunting and distance > T.AbandonStuds then
 			goHome(events, e, world, now, "GiveUp")
 			return
 		end
 		-- held at the end of its leash with the target out of reach: GiveUpSeconds of that and it gives up
-		if distance > A.RangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - LEASH_EDGE then
+		if not hunting and distance > A.RangeStuds and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) >= T.LeashStuds - LEASH_EDGE then
 			e.pinnedSince = e.pinnedSince or now
 			if now - e.pinnedSince >= T.GiveUpSeconds then
 				goHome(events, e, world, now, "GiveUp")

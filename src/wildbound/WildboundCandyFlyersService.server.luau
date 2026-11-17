@@ -22,6 +22,8 @@ local F = require(ServerStorage:WaitForChild("WildboundCandyFlyers"))
 local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
 local Rules = require(ServerScriptService:WaitForChild("WildboundWorldRules"))
 local DodgeService = require(ServerScriptService:WaitForChild("WildboundDodgeService"))
+-- RC4 (relentless chases): the strike ledger shared with the candy beasts (one module instance in this server)
+local Smarts = require(ServerScriptService:WaitForChild("WildboundCandySmarts"))
 local network = ReplicatedStorage:WaitForChild("WildboundNetwork", 15)
 
 -- An older WildboundDodge without the Zumbidulce row still gets a dodgeable dive (same window, another label).
@@ -54,7 +56,23 @@ local function safeAt(x, z)
 	return safe == true
 end
 
-local hives = F.hives(Layout, centre, { floorTop = floorTop, safe = safeAt })
+-- Studio run 2026-11-16: no hive on a candy creature's post. The posts (WildboundPraderaSites.FIXED, world coordinates,
+-- every "candy..." key) are read from the deployed module when it is there, as the Builder's treeKeepOut does; without
+-- it the hives are placed as before.
+local function creaturePosts()
+	local list = {}
+	local module = ServerScriptService:FindFirstChild("WildboundPraderaSites")
+	if not (module and module:IsA("ModuleScript") and ReplicatedStorage:FindFirstChild("WildboundBeastConfig")) then return list end
+	local ok, Sites = pcall(require, module)
+	if not ok or type(Sites) ~= "table" or type(Sites.FIXED) ~= "table" then return list end
+	for key, p in pairs(Sites.FIXED) do
+		if type(key) == "string" and string.sub(key, 1, 5) == "candy" and type(p) == "table" then
+			table.insert(list, { x = p.x, z = p.z })
+		end
+	end
+	return list
+end
+local hives = F.hives(Layout, centre, { floorTop = floorTop, safe = safeAt, posts = creaturePosts() })
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Include
 params.FilterDescendantsInstances = { ground or biome }
@@ -211,6 +229,11 @@ local hooks = {
 		if not player then return "Unknown" end
 		return DodgeService.resolve(player, key, at)
 	end,
+	-- RC4: a dive books its strike with the candy beasts' strikes; at most Smarts.STRIKE_MAX land within
+	-- Smarts.STRIKE_WINDOW on one player, a refused dive waits for a later step
+	claim = function(id, swarmId, strikeAt, at)
+		return Smarts.claimStrike(id, "flyers:" .. tostring(swarmId), strikeAt, at)
+	end,
 }
 
 local function play(events)
@@ -237,6 +260,7 @@ local function play(events)
 			if v then unmark(v, e.bug) end
 			count("Flyers_dodged")
 		elseif e.kind == "GiveUp" then
+			if e.vanish then count("Flyers_vanished") end -- RC3: far from the hive they vanish (the client fades them)
 			if player and e.reason ~= "Death" and e.reason ~= "Gone" then
 				noted[player] = nil
 				note(player, F.TEXT.home)

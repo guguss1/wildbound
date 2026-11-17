@@ -22,7 +22,7 @@ Frut.SLEEP_SECONDS = 6
 -- still 0.4 s after that pop).
 Frut.WAKE_SECONDS = 1.7
 Frut.RADIUS_STUDS = 2
-Frut.RING_STUDS = 6.3
+Frut.RING_STUDS = 10 -- GT (cake move): 6.3 -> 10 on the wider summit (radius 8.7 -> 14)
 Frut.REST_ANGLE = math.pi
 Frut.ROLL_STUDS_PER_SECOND = 18
 Frut.OVERSHOOT_RADIANS = 0.6

@@ -78,17 +78,20 @@ return function(Layout, Biomes)
 
 	-- Deliberately changed (CH3, owner request 2026-11-16 "more eggs too"): 8 more floor nests near the routes, 5 Comun
 	-- (C6-C10) and 3 Rara (R5-R7), no new Epica or Legendaria: 12 -> 20 (5 -> 10 Comun, 4 -> 7 Rara).
-	case("S5/CH3: twenty candidate nests, 10 Comun, 7 Rara, 2 Epica, 1 Legendaria", function()
-		equal(#Layout.NESTS, 20, "nests")
+	-- Deliberately changed again (GT2, owner request 2026-11-16 "more eggs and more creatures, a livelier map"): 8 more,
+	-- 3 Comun (C11-C13), 4 Rara (R8-R11) and 1 Epica (E3), no Legendaria: 20 -> 28 (10 -> 13 Comun, 7 -> 11 Rara, 2 -> 3
+	-- Epica).
+	case("S5/CH3/GT2: twenty-eight candidate nests, 13 Comun, 11 Rara, 3 Epica, 1 Legendaria", function()
+		equal(#Layout.NESTS, 28, "nests")
 		local count, ids = {}, {}
 		for _, nest in ipairs(Layout.NESTS) do
 			count[nest.rarity] = (count[nest.rarity] or 0) + 1
 			assert(type(nest.id) == "string" and not ids[nest.id], "duplicate or missing nest id")
 			ids[nest.id] = true
 		end
-		equal(count.Comun, 10, "Comun")
-		equal(count.Rara, 7, "Rara")
-		equal(count.Epica, 2, "Epica")
+		equal(count.Comun, 13, "Comun")
+		equal(count.Rara, 11, "Rara")
+		equal(count.Epica, 3, "Epica")
 		equal(count.Legendaria, 1, "Legendaria")
 	end)
 
@@ -167,8 +170,10 @@ return function(Layout, Biomes)
 		equal(B.z, Layout.TORTA.z, "centred on the Torta z")
 		assert(B.plazaRadius > Layout.TORTA.radius + Layout.PATH_WIDTH, "no room for the boss around the Torta")
 		assert(B.territoryRadius > B.plazaRadius, "territory smaller than the plaza")
-		assert(Layout.depth(B.x + B.territoryRadius, B.z) >= 75 and Layout.depth(B.x, B.z + B.territoryRadius) >= 75,
-			"territory reaches the outer ring")
+		-- Deliberately changed (GT, the cake at the east end): the territory may reach the outer ring now, but stays 10
+		-- studs inside the plot (was >= 75 with the Torta in the middle).
+		assert(Layout.depth(B.x + B.territoryRadius, B.z) >= 10 and Layout.depth(B.x, B.z + B.territoryRadius) >= 10
+			and Layout.depth(B.x, B.z - B.territoryRadius) >= 10, "territory leaves the plot")
 		assert(flat(B.home.x, B.home.z, B.x, B.z) <= B.plazaRadius, "home outside the plaza")
 		assert(flat(B.home.x, B.home.z, B.x, B.z) >= Layout.TORTA.radius + 6, "home inside the Torta")
 		for _, p in ipairs({ Layout.ENTRANCE, Layout.FORK, Layout.JUNCTION }) do
@@ -180,7 +185,8 @@ return function(Layout, Biomes)
 		local P, B = Layout.PORTAL, Layout.BOSS
 		assert(flat(P.x, P.z, B.x, B.z) - B.territoryRadius >= B.perception + B.whipLength, "portal under the boss")
 		assert(Layout.depth(P.x, P.z) >= 30, "portal on the plot edge")
-		assert(P.x > 0, "portal on the deep side")
+		-- Deliberately changed (GT): the portal is on the way back from the cake (was "on the deep side", P.x > 0)
+		assert(P.x < Layout.TORTA.x - B.territoryRadius, "portal on the way back from the cake")
 		equal(P.enabled, true, "enabled (CE3: the return portal is live)")
 		equal(P.quietSeconds, 5, "quiet")
 		equal(P.channelSeconds, 2, "channel")
@@ -217,6 +223,100 @@ return function(Layout, Biomes)
 				end
 			end
 		end
+	end)
+
+	-- GT (owner request 2026-11-16, "the cake with the princess at the end, and much bigger";
+	-- docs/design/wildbound-caramelo-cake-move-plan.md): layout version 3.
+	local function near(actual, expected, label, tolerance)
+		assert(type(actual) == "number" and math.abs(actual - expected) <= (tolerance or 1e-6),
+			(label and label .. ": " or "") .. "expected " .. tostring(expected) .. ", got " .. tostring(actual))
+	end
+
+	case("GT1: the Gran Torta is the end of the biome: east of every route, nest and the portal, its plaza by the east edge", function()
+		equal(Layout.VERSION, 3, "layout version")
+		local T = Layout.TORTA
+		assert(T.x >= Layout.HALF / 2, "the Torta is not in the east half's far part: " .. T.x)
+		assert(Layout.depth(T.x + Layout.BOSS.plazaRadius, T.z) <= 30, "its plaza does not reach the east edge's ring")
+		for _, name in ipairs(Layout.ROUTE_ORDER) do
+			for _, p in ipairs(Layout.ROUTES[name]) do assert(p.x < T.x, name .. " passes behind the Torta") end
+		end
+		for _, nest in ipairs(Layout.NESTS) do assert(nest.x < T.x, nest.id .. " is behind the Torta") end
+		assert(Layout.PORTAL.x < Layout.JUNCTION.x + 1, "the portal is past the junction")
+		local main = Layout.ROUTES.main
+		local last, before = main[#main], main[#main - 1]
+		same(before, Layout.JUNCTION, "the avenue starts at the junction")
+		assert(last.x > before.x and last.z == T.z and before.z == T.z, "the avenue runs straight east at the Torta")
+	end)
+
+	case("GT2: radius 40-44 (1.6 times the old 26), every tier from it, no scale of its own", function()
+		local T, tiers = Layout.TORTA, Layout.TOWER.tiers
+		assert(T.radius >= 40 and T.radius <= 44, "radius " .. T.radius)
+		near(tiers[1].radius, T.radius, "the bottom tier is the Torta")
+		near(tiers[1].bottom, 0, "on the floor")
+		for i, row in ipairs({ { 72, 18, 0 }, { 56, 15, 18 }, { 40, 13, 33 }, { 24, 10, 46 } }) do
+			near(tiers[i].radius, row[1] / 72 * T.radius, "radius " .. i)
+			near(tiers[i].top, (row[3] + row[2]) / 36 * T.radius, "top " .. i)
+		end
+		assert(tiers[#tiers].top >= 60, "the summit stands " .. tiers[#tiers].top .. " studs up")
+	end)
+
+	case("GT3: the plaza holds the whole stair and room to walk round; the territory holds the plaza and stays in the plot", function()
+		local B, T = Layout.BOSS, Layout.TORTA
+		local outer = 0
+		for _, s in ipairs(Layout.stairSteps()) do
+			outer = math.max(outer, flat(s.x, s.z, T.x, T.z) + Layout.TOWER.stair.width / 2)
+		end
+		assert(outer + Layout.PATH_WIDTH / 2 <= B.plazaRadius, ("the stair reaches %.1f of the plaza's %d"):format(outer, B.plazaRadius))
+		assert(B.territoryRadius >= B.plazaRadius + 10, "territory hugs the plaza")
+		for _, d in ipairs({ { 1, 0 }, { 0, 1 }, { 0, -1 } }) do
+			assert(Layout.depth(B.x + d[1] * B.territoryRadius, B.z + d[2] * B.territoryRadius) >= 10, "territory leaves the plot")
+		end
+		local main = Layout.ROUTES.main
+		equal(flat(main[#main].x, main[#main].z, B.x, B.z), B.plazaRadius, "the avenue ends at the plaza edge")
+		local home = B.home
+		assert(flat(home.x, home.z, main[#main].x, main[#main].z) <= 10, "he sleeps at the end of the avenue")
+	end)
+
+	case("GT4: the junction and every return route stay out of the boss's sight", function()
+		local B = Layout.BOSS
+		assert(flat(Layout.JUNCTION.x, Layout.JUNCTION.z, B.x, B.z) >= B.territoryRadius + B.perception, "the junction is in his sight")
+		for _, name in ipairs(Layout.RETURN_ROUTES) do
+			for _, p in ipairs(samples(name)) do
+				assert(flat(p.x, p.z, B.x, B.z) >= B.territoryRadius + Layout.PATH_WIDTH / 2, name .. " enters the territory")
+			end
+		end
+	end)
+
+	case("GT5: the portal is out of the boss's reach, on the deep route from the junction, off the nests", function()
+		local P, B = Layout.PORTAL, Layout.BOSS
+		assert(flat(P.x, P.z, B.x, B.z) - B.territoryRadius >= B.perception + B.whipLength, "portal under the boss")
+		local deep = Layout.ROUTES.deep
+		same(deep[1], Layout.JUNCTION, "deep start"); equal(deep[#deep].x, P.x, "deep end x"); equal(deep[#deep].z, P.z, "deep end z")
+		for _, nest in ipairs(Layout.NESTS) do assert(flat(nest.x, nest.z, P.x, P.z) >= 16, nest.id .. " on the portal") end
+	end)
+
+	case("GT6: the summit nest and the glaze puddles follow the Torta", function()
+		local T, S = Layout.TORTA, Layout.TOWER.summit
+		equal(S.x, T.x, "summit x"); near(S.z - T.z, 9.4, "summit z, from the centre"); equal(S.scale, 1, "the kit's nest at full size")
+		for i, g in ipairs(Layout.TOWER.glaze) do
+			local r = flat(g.x, g.z, T.x, T.z)
+			assert(r - g.r >= T.radius + 2 and r <= Layout.BOSS.plazaRadius, "puddle " .. i .. " round the Torta")
+		end
+	end)
+
+	-- GT2 (owner request "more eggs and more creatures"): the eight new nests are live (not event-only), outside the boss
+	-- territory and away from the hub entrance, like CH3's.
+	case("GT2: the eight new nests are live, outside the boss territory and past the entrance", function()
+		local new, found = { E3 = true, R8 = true, R9 = true, R10 = true, R11 = true, C11 = true, C12 = true, C13 = true }, 0
+		for _, nest in ipairs(Layout.NESTS) do
+			if new[nest.id] then
+				found += 1
+				equal(nest.eventOnly, false, nest.id .. " is live")
+				assert(flat(nest.x, nest.z, Layout.BOSS.x, Layout.BOSS.z) >= Layout.BOSS.territoryRadius + 20, nest.id .. " in the boss territory")
+				assert(flat(nest.x, nest.z, Layout.ENTRANCE.x, Layout.ENTRANCE.z) >= 80, nest.id .. " by the hub entrance")
+			end
+		end
+		equal(found, 8, "new nests")
 	end)
 
 	return result

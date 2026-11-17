@@ -28,11 +28,11 @@ local C = Portal.CONFIG
 Portal.CARRY = "refuse"
 
 -- The stations, in world coordinates. "candy": the Candy builder's Portal model (Candy_Bioma_v1.Portal, the layout's
--- Portal marker (160, 0) on the plot centre (612, -3)). "build": the service builds it at server start (place file never
+-- Portal marker (-24, 0) on the plot centre (612, -3); (160, 0) before the GT cake move). "build": the service builds it at server start (place file never
 -- saved). CG2 (F4, decision 49): in the west forest beside Path2, outside the fog, on a clear 12x12 floor patch (floor
 -- scan, y 1.0), 134 studs from La Silueta's home, 376 from the hub and 64 from the nearest island nest.
 Portal.STATIONS = table.freeze({
-	table.freeze({ id = "caramelo", source = "candy", x = 772, z = -3 }),
+	table.freeze({ id = "caramelo", source = "candy", x = 588, z = -3 }),
 	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),
 })
 

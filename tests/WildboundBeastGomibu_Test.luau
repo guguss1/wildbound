@@ -114,7 +114,8 @@ return function(Enc, Gomibu, Config)
 	end)
 
 	-- OF2: 19 studs/s now, so the target stands farther (30, was 24) to stay out of jump range for the whole 0.5 s
-	case("it chases at its chase speed and never goes past its leash, not even with a jump", function()
+	-- Deliberately changed (RC1, relentless chases): once it hunts there is no leash; it follows the target on.
+	case("it chases at its chase speed and, hunting, goes past its old leash after the target", function()
 		local e, w, tgt = bear("chase"), fakeWorld(), target(15, 0)
 		run(e, w, tgt, 0, 0.8)
 		tgt.x = 30 -- still within the abandon distance, outside the jump range
@@ -126,8 +127,7 @@ return function(Enc, Gomibu, Config)
 		local farthest = 0
 		run(e, w, tgt, 1.4, 12, function(t, tg, bearState) tg.x = math.min(bearState.pos.x + 20, T.LeashStuds + 8) end,
 			function(t, bearState) farthest = math.max(farthest, bearState.pos.x) end)
-		assert(farthest <= T.LeashStuds + 1e-6, "went " .. farthest .. " studs from the nest")
-		assert(farthest >= T.LeashStuds - 4, "never reached towards the leash: " .. farthest)
+		assert(farthest > T.LeashStuds + 1, "held at its old leash: " .. farthest)
 	end)
 
 	case("Golpe de Goma: a 4.5 stud circle that follows the target until the lock and never again", function()
@@ -211,19 +211,22 @@ return function(Enc, Gomibu, Config)
 		assert(second.startAt <= tell.strikeAt + T.RecoverSeconds + T.AttackCooldownSeconds + 0.11, "it waited too long")
 	end)
 
-	case("it gives up when the target is past its abandon distance", function()
+	-- Deliberately changed (RC1): a hunting bear no longer gives up past its abandon distance; it keeps chasing.
+	case("RC1: a target past its abandon distance is still hunted", function()
 		local e, w, tgt = bear("giveup"), fakeWorld(), target(15, 0)
 		run(e, w, tgt, 0, 0.9)
 		tgt.x = e.pos.x + T.AbandonStuds + 1
+		local x0 = e.pos.x
 		local later = run(e, w, tgt, 0.95, 1.5)
-		assert(string.find(phases(later), "GiveUp", 1, true), "phases " .. phases(later))
-		equal(#each(later, "Tell"), 0, "it attacked while giving up")
+		assert(not string.find(phases(later), "GiveUp", 1, true), "phases " .. phases(later))
+		assert(e.pos.x > x0 + 5, "it stopped chasing")
 	end)
 
 	-- PF3/PF4 (odd/tasks/wildbound-caramelo-playfix.md): after giving up (or when the target escapes) it walks back to its
 	-- nest and the encounter ends there with no fade (no Disengage), where its resting copy stands between encounters.
+	-- Deliberately changed (RC1): only a calm bear's Escape is left here; a hunt's end is RC3 below.
 	case("PF4: after giving up it walks home and ends at its nest without fading out", function()
-		for _, how in ipairs({ "GiveUp", "Escape" }) do
+		for _, how in ipairs({ "Escape" }) do
 			-- GiveUp: a chase whose target ran off; Escape: a calm bear whose visitor went far away
 			local e, w, tgt = bear("home" .. how), fakeWorld(), target(how == "GiveUp" and 15 or 33, 0)
 			run(e, w, tgt, 0, 0.9)
@@ -244,26 +247,42 @@ return function(Enc, Gomibu, Config)
 	-- but inside the abandon distance, kept Gomibu chasing for ever at the end of its leash; and on the long walk home
 	-- from there the shared guard's escape timer (left set from the chase) faded it out halfway. Now it gives up after
 	-- GiveUpSeconds held at the leash, and the walk home is never cut short.
-	case("PF4: held at its leash out of reach it gives up, and the long walk home is never faded out", function()
-		local stand = T.LeashStuds + T.JumpRangeStuds + 2
-		assert(stand - T.LeashStuds < T.AbandonStuds, "test setup: the stall spot is inside the abandon distance")
-		for _, how in ipairs({ "pinned", "far" }) do
-			local e, w, tgt = bear(how), fakeWorld(), target(15, 0)
-			run(e, w, tgt, 0, 0.9)
-			local gone = false
-			local later = run(e, w, tgt, 0.95, 30, function(_, tg, b)
-				-- "far": once it is held at its leash the player runs off past its escape distance
-				if how == "far" and b.pos.x >= T.LeashStuds - 1 then gone = true end
-				tg.x = gone and T.EscapeDistanceStuds + 10 or math.min(b.pos.x + 20, stand) -- it leads it out to the spot
-			end)
-			local list = phases(later)
-			assert(string.find(list, "GiveUp,Return", 1, true), how .. ": phases " .. list)
-			equal(#each(later, "Disengage"), 0, how .. ": it faded out on the way home")
-			local over = each(later, "End")[1]
-			assert(over, how .. ": never ended (phases " .. list .. ")")
-			equal(over.reason, "GiveUp", how .. ": the reason")
-			assert(math.sqrt(e.pos.x ^ 2 + e.pos.z ^ 2) <= 0.5, how .. ": ended away from its nest")
-		end
+	-- Deliberately changed (RC1): a hunting bear is never held at its leash, so nothing stalls it there; a player past
+	-- its escape distance is followed, not left.
+	case("RC1: hunting, it is never held at its leash nor sent home by the escape distance", function()
+		local e, w, tgt = bear("far"), fakeWorld(), target(15, 0)
+		run(e, w, tgt, 0, 0.9)
+		local later = run(e, w, tgt, 0.95, 20, function(_, tg, b) tg.x = math.min(b.pos.x + 20, T.EscapeDistanceStuds + 40) end)
+		local list = phases(later)
+		assert(not string.find(list, "GiveUp", 1, true) and not string.find(list, "Return", 1, true), "phases " .. list)
+		equal(#each(later, "End"), 0, "it ended")
+		assert(e.pos.x > T.EscapeDistanceStuds, "it stopped at " .. e.pos.x)
+	end)
+
+	-- RC3: the hunt's only own end is the hard limit; far from its nest it fades out there (Disengage, then End), near it
+	-- it walks home as before. Death and the safe zone still end it at once.
+	case("RC3: the hard limit fades it out far from home and walks it home near it; a safe zone ends it at once", function()
+		local hard, fade = 180, 120 -- WildboundCandySmarts.RELENTLESS.hardSeconds / fadeStuds (pinned in the Smarts suite, RC1/RC3)
+		local e, w, tgt = bear("hardFar"), fakeWorld(), target(15, 0)
+		run(e, w, tgt, 0, 0.9)
+		e.pos.x = fade + 20 -- it followed the target far from its nest
+		tgt.x = e.pos.x + 40
+		local later = run(e, w, tgt, hard - 0.05, hard + 2)
+		local fadeEv = each(later, "Disengage")[1]
+		assert(fadeEv and fadeEv.reason == "Timeout", "no fade far from home (phases " .. phases(later) .. ")")
+		local over = each(later, "End")[1]
+		assert(over and over.reason == "Timeout", "it never ended")
+		assert(not string.find(phases(later), "Return", 1, true), "a long walk home")
+		local n, nw, nt = bear("hardNear"), fakeWorld(), target(15, 0)
+		run(n, nw, nt, 0, 0.9)
+		later = run(n, nw, nt, hard - 0.05, hard + 0.5, function(_, tg, b) tg.x = b.pos.x + 40 end)
+		assert(string.find(phases(later), "GiveUp", 1, true), "near home it gives up and walks back: " .. phases(later))
+		equal(#each(later, "Disengage"), 0, "faded out near home")
+		local s, sw, st = bear("safe"), fakeWorld(), target(15, 0)
+		run(s, sw, st, 0, 0.9)
+		st.safe = true
+		local safe = each(run(s, sw, st, 0.95, 1), "End")[1]
+		assert(safe and safe.reason == "SafeZone", "the safe zone ends it at once")
 	end)
 
 	return result

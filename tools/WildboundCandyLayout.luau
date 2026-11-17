@@ -16,7 +16,10 @@ local function nest(id, rarity, x, z)
 end
 
 Layout.ROOT_NAME = "Candy_Bioma_v1"
-Layout.VERSION = 2
+-- GT (owner request 2026-11-16, "the cake with the princess at the end, and much bigger"): version 3 moves the Gran
+-- Torta to the east end, 1.6 times bigger (docs/design/wildbound-caramelo-cake-move-plan.md). A live v2 map gets it
+-- through tools/wildbound-caramelo-cake-move.luau.
+Layout.VERSION = 3
 Layout.SEED = 20261114
 Layout.CENTRE = point(612, -3)
 Layout.HALF = 200
@@ -30,23 +33,28 @@ Layout.NESTS_ENABLED = true
 
 Layout.ENTRANCE = point(-200, 0)
 Layout.FORK = point(-110, 0)
-Layout.JUNCTION = point(130, 0)
-Layout.TORTA = table.freeze({ x = 0, z = 0, radius = 26 })
+-- GT: the junction is the old Torta's ground, the middle of the plot; the Torta stands at the east end (its plaza 28
+-- studs from the east edge), at the end of the main avenue.
+Layout.JUNCTION = point(0, 0)
+Layout.TORTA = table.freeze({ x = 114, z = 0, radius = 42 })
 -- Don Glaseon's ground: the plaza he walks and the limit he never leaves. perception and whipLength are the pack's
--- starting balance (05_SISTEMAS/04_BALANCE_INICIAL_CONFIG.md); they only size the safe distances here.
-Layout.BOSS = table.freeze({ x = 0, z = 0, plazaRadius = 44, territoryRadius = 62, perception = 36, whipLength = 22,
-	home = point(-34, 0) })
+-- starting balance (05_SISTEMAS/04_BALANCE_INICIAL_CONFIG.md); they only size the safe distances here. GT: plaza 44 ->
+-- 58 and territory 62 -> 76 round the bigger Torta; he sleeps at the end of the avenue, at the cake's foot.
+Layout.BOSS = table.freeze({ x = 114, z = 0, plazaRadius = 58, territoryRadius = 76, perception = 36, whipLength = 22,
+	home = point(64, 0) })
 -- Return to the hub (pack 04_ENTORNO/03: 5 s without threat, 2 s channel, 30 s cooldown). CE3: live; the server's
--- WildboundPortalService binds its prompt while the model's Enabled attribute is true (Builder.syncPortal).
-Layout.PORTAL = table.freeze({ x = 160, z = 0, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = true })
+-- WildboundPortalService binds its prompt while the model's Enabled attribute is true (Builder.syncPortal). GT: on the
+-- main path just west of the junction, on the way back from the cake.
+Layout.PORTAL = table.freeze({ x = -24, z = 0, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = true })
 
 Layout.ROUTES = table.freeze({
-	main = route({ { -200, 0 }, { -110, 0 }, { -44, 0 } }),
+	-- GT: the last leg is the avenue from the junction to the plaza edge, a straight view of the cake.
+	main = route({ { -200, 0 }, { -110, 0 }, { 0, 0 }, { 56, 0 } }),
 	-- Left of a player walking in: the syrup riverside, longer and under the cotton trees.
-	left = route({ { -110, 0 }, { -100, -80 }, { -50, -140 }, { 50, -140 }, { 110, -90 }, { 130, 0 } }),
+	left = route({ { -110, 0 }, { -100, -80 }, { -50, -140 }, { 50, -140 }, { 90, -110 }, { 0, 0 } }),
 	-- Right: the lollipop avenue, open and shorter.
-	right = route({ { -110, 0 }, { -90, 70 }, { -40, 120 }, { 40, 120 }, { 100, 80 }, { 130, 0 } }),
-	deep = route({ { 130, 0 }, { 160, 0 } }),
+	right = route({ { -110, 0 }, { -90, 70 }, { -40, 120 }, { 40, 120 }, { 80, 100 }, { 0, 0 } }),
+	deep = route({ { 0, 0 }, { -24, 0 } }),
 })
 Layout.ROUTE_ORDER = table.freeze({ "main", "left", "right", "deep" })
 Layout.RETURN_ROUTES = table.freeze({ "left", "right" })
@@ -61,7 +69,7 @@ Layout.BRIDGE = table.freeze({ x = 0, z = -140, length = 86 })
 -- Ground the builder scatters nothing on: the homes of the two Pradera beasts while they are parked in this plot
 -- (WildboundCandyBeastSites_Test wants open floor there). Remove a row when its beast leaves.
 Layout.KEEP_CLEAR = table.freeze({
-	table.freeze({ x = 165, z = 110, r = 26, why = "La Nube's pond" }),
+	table.freeze({ x = 165, z = 150, r = 26, why = "La Nube's pond" }), -- GT: was (165, 110), now off the bigger boss ground
 	table.freeze({ x = -60, z = 185, r = 10, why = "La Abeja's hive" }),
 })
 
@@ -70,25 +78,35 @@ Layout.NESTS = table.freeze({
 	nest("C2", "Comun", -140, 24),
 	nest("C3", "Comun", -90, -132),
 	nest("C4", "Comun", -62, 130),
-	nest("C5", "Comun", 128, 44), -- was (136, 56): La Nube, parked in the south-east corner, saw players there
+	nest("C5", "Comun", 60, 152), -- GT: was (128, 44), now under the boss ground; north of the right route's bend
 	nest("R1", "Rara", -78, -30),
 	nest("R2", "Rara", -78, 34),
-	nest("R3", "Rara", 60, -110),
-	nest("R4", "Rara", 62, 84),
+	nest("R3", "Rara", -45, -93), -- GT: was (60, -110), by the new left leg
+	nest("R4", "Rara", -20, 95), -- GT: was (62, 84), by the new right leg
 	nest("E1", "Epica", -34, -20),
-	nest("E2", "Epica", 20, 36),
+	nest("E2", "Epica", -34, 24), -- GT: was (20, 36), on the new left leg; now across the main path from E1
 	nest("L1", "Legendaria", 36, -22),
 	-- CH3 (owner request 2026-11-16, "more eggs too"): eight more floor nests near the routes, outside the boss territory
 	-- and past the entrance; C7, R6 and C8 are guarded by the guardians' extra posts, the other five have an extra candy
 	-- critter post beside them (WildboundPraderaSites.EXTRA_POSTS).
 	nest("C6", "Comun", 10, -162), -- south of the biscuit bridge (left route)
 	nest("C7", "Comun", 5, 142), -- north of the lollipop avenue (right route)
-	nest("C8", "Comun", 140, -70), -- by the left route's last leg, away from the portal
+	nest("C8", "Comun", 60, -170), -- GT: was (140, -70), now under the boss ground; south of the left route's bend
 	nest("C9", "Comun", -135, -62), -- west of the left route's first leg
 	nest("C10", "Comun", -60, -162), -- south-west of the bridge
 	nest("R5", "Rara", 88, 112), -- outside the right route's bend
 	nest("R6", "Rara", 96, -122), -- outside the left route's bend
 	nest("R7", "Rara", -116, 58), -- west of the right route's first leg
+	-- GT2 (owner request 2026-11-16, "more eggs and more creatures, a livelier map"): eight more floor nests, 20 -> 28
+	-- (3 Comun, 4 Rara, 1 Epica), each with one more extra post beside it (WildboundPraderaSites.EXTRA_POSTS, 16 -> 24).
+	nest("E3", "Epica", 0, 36), -- the freed centre, north of the junction, between the avenue and the right leg
+	nest("R8", "Rara", -110, 95), -- outside the right route's first bend
+	nest("R9", "Rara", -60, 70), -- inside the right route's first bend
+	nest("R10", "Rara", -10, -45), -- south of the junction, by the left route's last leg
+	nest("R11", "Rara", 36, 74), -- beside the right route's last leg, off the boss ground
+	nest("C11", "Comun", -30, 150), -- north of the lollipop avenue, west of C7
+	nest("C12", "Comun", -130, -100), -- south of the left route's first leg
+	nest("C13", "Comun", 100, -150), -- outside the left route's bend, south of R6
 })
 
 -- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT3): the Gran Torta as a tower. tiers are the kit cake's four
@@ -98,22 +116,26 @@ Layout.NESTS = table.freeze({
 -- level with its tier's top, then a short landing on that ledge leads to the next flight. CT2: the three lower tiers
 -- turn slowly, alternating (1 and -1: the sign of the angular velocity about +Y), one turn per spinPeriodSeconds; the top
 -- tier (the summit with the best egg, Frutillon and La Duquesa) stays still.
+-- GT: the scale follows TORTA.radius (no literal of its own): radius 42 gives tiers of radius 42, 32.7, 23.3 and 14 with
+-- tops 21, 38.5, 53.7 and 65.3, and a stair of 21 + 18 + 16 + 12 = 67 steps.
 do
-	local scale, tiers = 26 / 36, {}
+	local scale, tiers = Layout.TORTA.radius / 36, {}
 	for i, row in ipairs({ { 72, 18, 0 }, { 56, 15, 18 }, { 40, 13, 33 }, { 24, 10, 46 } }) do
 		tiers[i] = table.freeze({ radius = row[1] / 2 * scale, bottom = row[3] * scale, top = (row[3] + row[2]) * scale })
 	end
 	Layout.TOWER = table.freeze({
 		tiers = table.freeze(tiers),
-		spinPeriodSeconds = 90,
+		-- GT: 90 -> 140 s, so the wider bottom rim still turns under 2 studs/s
+		spinPeriodSeconds = 140,
 		spinDirections = table.freeze({ 1, -1, 1, 0 }),
 		stair = table.freeze({ width = 3.8, inset = 0.5, tread = 2.6, maxRise = 1, startDegrees = -100, landingDegrees = 15 }),
-		-- CT3: the best egg of the biome, a Legendaria nest (not event-only) on the summit, the kit's nest at 70 % so it
-		-- fits beside La Duquesa (who sits on the centre), across the summit from where the stair arrives.
-		summit = table.freeze({ id = "T1", rarity = "Legendaria", x = 0, z = 5.8, scale = 0.7 }),
+		-- CT3: the best egg of the biome, a Legendaria nest (not event-only) on the summit, beside La Duquesa (who sits on
+		-- the centre), across the summit from where the stair arrives. x, z are plot coordinates like every nest's. GT: the
+		-- kit's nest at full size (0.7 -> 1) on the wider summit, 9.4 studs from the centre.
+		summit = table.freeze({ id = "T1", rarity = "Legendaria", x = Layout.TORTA.x, z = Layout.TORTA.z + 9.4, scale = 1 }),
 		-- DG4: Don Glaseon's glaze puddles on his plaza, round the Torta, off the stair (south) and the nests.
 		glaze = table.freeze({
-			table.freeze({ x = 0, z = 36, r = 6 }), table.freeze({ x = 38, z = 6, r = 6 }), table.freeze({ x = -30, z = 26, r = 6 }),
+			table.freeze({ x = 114, z = 52, r = 6 }), table.freeze({ x = 165, z = 8, r = 6 }), table.freeze({ x = 75, z = 34, r = 6 }),
 		}),
 	})
 end

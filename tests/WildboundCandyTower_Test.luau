@@ -84,8 +84,10 @@ return function(Layout, Builder, Kit, sources, Nests, library)
 				assert(Layout.flat(s.x, s.z, nest.x, nest.z) >= 6, "a step on nest " .. nest.id)
 			end
 		end
+		-- Deliberately changed (GT): the DG7 stair decoy moved to the riverside (PF6), so its old spot (6, -33) beside a
+		-- Torta at (0, 0) was a stale literal; the stair starts on the Torta's south side, wherever the Torta stands.
 		local first = steps[1]
-		assert(Layout.flat(first.x, first.z, 6, -33) <= 12, "the DG7 stair decoy stands by the first steps")
+		assert(first.z - Layout.TORTA.z < -Layout.TORTA.radius, "the stair starts on the south side")
 	end)
 
 	case("CT1: syncTower builds the stair once: solid anchored columns from their floor to their top", function()
@@ -110,8 +112,9 @@ return function(Layout, Builder, Kit, sources, Nests, library)
 		root:Destroy()
 	end)
 
-	case("CT2: three turning tiers, alternating, one turn in 90 s (the rim under 2 studs/s); the top stays still", function()
-		equal(T.spinPeriodSeconds, 90)
+	-- Deliberately changed (GT): one turn in 140 s (was 90), so the 1.6 times wider bottom rim stays under 2 studs/s.
+	case("CT2: three turning tiers, alternating, one turn in 140 s (the rim under 2 studs/s); the top stays still", function()
+		equal(T.spinPeriodSeconds, 140)
 		equal(T.spinDirections[1], 1); equal(T.spinDirections[2], -1); equal(T.spinDirections[3], 1); equal(T.spinDirections[4], 0)
 		local rate = 2 * math.pi / T.spinPeriodSeconds
 		assert(rate * T.tiers[1].radius <= 2, "slow at the widest rim")
@@ -186,6 +189,28 @@ return function(Layout, Builder, Kit, sources, Nests, library)
 		equal(island.id, "CandyT1"); equal(island.rarity, "Legendaria"); equal(island.rewardTier, "Heart")
 		equal(island.eggs, 1); equal(island.guard, nil, "no guardian post up there")
 		root:Destroy()
+	end)
+
+	-- GT (cake move): the bigger Torta's climb: one step per stud of rise at most, 67 steps in all for radius 42, and the
+	-- summit holds La Duquesa's seat, the full-size nest and Frutillon's ring.
+	case("GT7: the bigger stair is walkable (rises <= 1, 67 steps for radius 42) and the summit fits its guests", function()
+		local steps, expected, base = Layout.stairSteps(), 0, 0
+		for _, tier in ipairs(T.tiers) do
+			expected += math.ceil((tier.top - base) / T.stair.maxRise - 1e-9)
+			base = tier.top
+		end
+		equal(#steps, expected, "one step per stud of rise")
+		if Layout.TORTA.radius == 42 then equal(#steps, 67, "67 steps") end
+		near(steps[#steps].top, T.tiers[#T.tiers].top, "the last step is level with the summit")
+		for i = 2, #steps do
+			local a, b = steps[i - 1], steps[i]
+			if a.flight == b.flight then assert(b.top - a.top <= T.stair.maxRise + 1e-6, "a rise over 1 stud at step " .. i) end
+		end
+		local top = T.tiers[#T.tiers]
+		local S = T.summit
+		local r = Layout.flat(S.x, S.z, Layout.TORTA.x, Layout.TORTA.z)
+		assert(r - 7.4 * S.scale / 2 >= 3 and r + 7.4 * S.scale / 2 <= top.radius - 0.2, "the nest beside the seat, on the summit")
+		assert(top.radius >= 12, "a summit of radius " .. top.radius)
 	end)
 
 	return result

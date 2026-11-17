@@ -12,12 +12,17 @@
 --            target's velocity), locks the spot and dives (DIVE_SECONDS, at most DIVE_REACH_STUDS). At the strike a target
 --            within HIT_STUDS is stung once (DAMAGE, a small push; the egg is kept) unless the perfect dodge holds it (the
 --            bug is stunned STUN_SECONDS); then the bug recovers (RECOVER_SECONDS, climbing slowly in place).
---   Return   they give up (the leash, a safe zone, death, a leave, the biome's edge, the boss plaza or the tower
---            (F.noGoZones), CHASE_SECONDS, or MAX_STINGS) and
---            fly home; Cooldown until COOLDOWN_SECONDS after the give-up.
--- Escape: they are faster than a sprint, so a player escapes by dodging or juking the dive, breaking the leash or
--- outlasting the timer (FL10 holds the math). WildboundCandyFlyersService runs it and applies the hits through the
--- beasts' BeastHit (the place's damage switch) with the egg kept.
+--   Return   they give up (a safe zone, death, a leave, the boss plaza or the tower (F.noGoZones), or the hard limit
+--            HARD_SECONDS) and fly home; Cooldown until COOLDOWN_SECONDS after the give-up.
+--   Vanish   RC3: a give-up farther than FADE_STUDS from the hive: they climb for VANISH_SECONDS (the client fades them
+--            out), then reappear at the hive in Cooldown, instead of a long flight home.
+-- RC (owner request 2026-11-16, "all the creatures keep chasing you, and fast, until you reach the base"): no leash, no
+-- biome edge, no chase timer and no sting cap end a chase any more: a swarm follows its target out of the plot to the
+-- base. After MAX_STINGS stings in one chase it tires (its dives come TIRED_DIVE_GAP_SECONDS apart instead of
+-- DIVE_GAP_SECONDS), so one swarm hurts but rarely defeats a runner. Escape: reach a safe zone, dodging or juking the
+-- dives meanwhile (RC7 holds the math). hooks.claim (optional) books each dive's strike in the shared strike ledger
+-- (WildboundCandySmarts.claimStrike); a refused dive waits for a later step. WildboundCandyFlyersService runs it and
+-- applies the hits through the beasts' BeastHit (the place's damage switch) with the egg kept.
 local F = {}
 
 F.BEAST_NAME = "Zumbidulce"
@@ -27,24 +32,25 @@ F.KEEPS_EGG = true -- only Don Glaseon's lash drops the carried egg
 -- Player-facing words (neutral Spanish). The service shows them through the client's small notice.
 F.TEXT = table.freeze({
 	name = "Zumbidulce",
-	wake = "¡Zumbidulces! Corre lejos de su panal o esquiva su picada.",
+	wake = "¡Zumbidulces! Te siguen hasta tu base: esquiva su picada.", -- RC: they chase to the base now
 	home = "Los Zumbidulces vuelven a su panal.",
 })
 
--- Caps: at most MAX_HIVES swarms of 2 or 3 and MAX_BUGS bugs on the server; PARTS_PER_BUG is the service's build.
-F.MAX_HIVES = 5
-F.MIN_BUGS_PER_HIVE = 2
+-- Caps: at most MAX_HIVES swarms of 3 and MAX_BUGS bugs on the server; PARTS_PER_BUG is the service's build.
+-- RC ("more bugs"): hives 5 -> 8, swarms of 2 or 3 -> 3, bugs 15 -> 24 (168 parts), awake per player 2 -> 3.
+F.MAX_HIVES = 8
+F.MIN_BUGS_PER_HIVE = 3
 F.MAX_BUGS_PER_HIVE = 3
-F.MAX_BUGS = 15
+F.MAX_BUGS = 24
 F.PARTS_PER_BUG = 7
-F.MAX_AWAKE_PER_PLAYER = 2
+F.MAX_AWAKE_PER_PLAYER = 3
 F.STEP_SECONDS = 1 / 12 -- the service's throttled step (12 Hz)
 F.MAX_DT = 0.25 -- a long server hitch never teleports a bug
 
 -- Waking and flying.
 F.NOTICE_STUDS = 35
 F.WAKE_TELL_SECONDS = 1
-F.CRUISE_STUDS_PER_SECOND = 25 -- an untrained sprint is 23.2, a walk 16, the candy critters chase at 22-22.5 (hard tune: 24 -> 25)
+F.CRUISE_STUDS_PER_SECOND = 26 -- an untrained sprint is 23.2, a walk 16, the candy critters chase at 21.5-23 (hard tune: 24 -> 25; RC: 25 -> 26)
 F.RETURN_STUDS_PER_SECOND = 16
 F.IDLE_RADIUS_STUDS = 3.5
 F.IDLE_TURN_RADIANS_PER_SECOND = 0.9
@@ -79,11 +85,16 @@ F.STUN_SECONDS = 2
 F.STUN_SINK_STUDS_PER_SECOND = 1
 
 -- Giving up.
-F.LEASH_STUDS = 110 -- from the hive (hard tune: 70 -> 110)
+-- RC: LEASH_STUDS (110) and CHASE_SECONDS (14) no longer end a chase; they are kept only as the old numbers' record.
+F.LEASH_STUDS = 110
 F.CHASE_SECONDS = 14
+F.HARD_SECONDS = 180 -- RC1: the safety end of any chase (WildboundCandySmarts.RELENTLESS.hardSeconds)
 F.COOLDOWN_SECONDS = 12 -- from the give-up
-F.MAX_STINGS = 3 -- per chase: two swarms (72) never defeat a full-health player
-F.ESCAPE_MAX_STINGS = 2 -- FL10: an untrained sprinter who never dodges, passing a hive on a route (1 or 2)
+F.MAX_STINGS = 3 -- RC: no longer a give-up: after this many stings in one chase the swarm tires
+F.TIRED_DIVE_GAP_SECONDS = 5 -- RC: a tired swarm's gap after a strike (DIVE_GAP_SECONDS before)
+F.FADE_STUDS = 120 -- RC3: farther than this from the hive at a give-up, they vanish instead of flying home
+F.VANISH_SECONDS = 1
+F.VANISH_RISE_STUDS_PER_SECOND = 8
 F.TOWER_NO_GO_MARGIN_STUDS = 4 -- F.noGoZones: the tower's disc reaches past its widest tier (the stair)
 -- FL10's untrained runner: WildboundStamina's pool 100 at DRAIN 25 a second, a 4 s sprint, then a walk.
 F.UNTRAINED_SPRINT_SECONDS = 4
@@ -101,6 +112,9 @@ F.STAIR_CLEAR_STUDS = 15
 F.KEEP_CLEAR_MARGIN_STUDS = 12
 F.PORTAL_CLEAR_STUDS = 45 -- past WildboundPortal's 40-stud threat radius
 F.NEST_CLEAR_STUDS = 15
+-- Studio run 2026-11-16: a hive stood 4.7 studs from a creature post. The service passes the candy creatures' posts
+-- (opts.posts, world coordinates, read at run time from WildboundPraderaSites.FIXED); no hive within this of one.
+F.POST_CLEAR_STUDS = 15
 F.LAKE_MARGIN_STUDS = 4
 F.HIVE_SPACING_STUDS = 60
 
@@ -112,8 +126,12 @@ function F.attackKey(swarmId, bugIndex, dive)
 	return "Zumbidulce:" .. tostring(swarmId) .. ":" .. tostring(bugIndex) .. ":" .. tostring(dive)
 end
 
--- A hive spot in the plot's local coordinates: true, or false and the rule it breaks. steps = L.stairSteps() (optional).
-function F.hiveSpotOk(L, lx, lz, steps)
+-- A hive spot in the plot's local coordinates: true, or false and the rule it breaks. steps = L.stairSteps() (optional);
+-- posts = the creature posts in the plot's local coordinates ({ { x, z } }, optional: none, no post rule).
+function F.hiveSpotOk(L, lx, lz, steps, posts)
+	for _, p in ipairs(posts or {}) do
+		if flat(lx, lz, p.x, p.z) < F.POST_CLEAR_STUDS then return false, "Post" end
+	end
 	if L.depth(lx, lz) < F.EDGE_STUDS then return false, "Edge" end
 	if flat(lx, lz, L.ENTRANCE.x, L.ENTRANCE.z) < F.ENTRANCE_CLEAR_STUDS then return false, "Entrance" end
 	if flat(lx, lz, L.BOSS.x, L.BOSS.z) < L.BOSS.plazaRadius + F.PLAZA_MARGIN_STUDS then return false, "Plaza" end
@@ -163,15 +181,20 @@ end
 
 -- The hives in world coordinates: { { id, index, lx, lz, x, z, floor, count } }, at most MAX_HIVES, HIVE_SPACING_STUDS
 -- apart: the first valid candidate (route order), then each next the valid candidate farthest from those chosen.
--- centre = the plot's centre (default L.CENTRE); opts = { floorTop, safe = function(worldX, worldZ) -> bool }.
+-- centre = the plot's centre (default L.CENTRE); opts = { floorTop, safe = function(worldX, worldZ) -> bool,
+-- posts = { { x, z } } the candy creature posts in world coordinates (optional) }.
 function F.hives(L, centre, opts)
 	centre = centre or L.CENTRE
 	opts = opts or {}
 	local floor = opts.floorTop or L.FLOOR_TOP
 	local steps = L.stairSteps()
+	local posts = {}
+	for _, p in ipairs(opts.posts or {}) do
+		if finite(p.x) and finite(p.z) then table.insert(posts, { x = p.x - centre.x, z = p.z - centre.z }) end
+	end
 	local valid = {}
 	for _, c in ipairs(F.candidates(L)) do
-		if F.hiveSpotOk(L, c.lx, c.lz, steps)
+		if F.hiveSpotOk(L, c.lx, c.lz, steps, posts)
 			and not (opts.safe and opts.safe(centre.x + c.lx, centre.z + c.lz) == true) then
 			table.insert(valid, c)
 		end
@@ -276,26 +299,30 @@ local function usable(world, p)
 		and inside(world.bounds, p.x, p.z) and not inNoGo(world, p.x, p.z)
 end
 
--- Why a swarm loses its target, or nil.
+-- Why a swarm loses its target, or nil. RC1: no leash and no biome edge any more (the bounds only gate the wake).
 local function lost(world, swarm, target)
 	if not target then return "Gone" end
 	if target.alive ~= true or not (finite(target.x) and finite(target.y) and finite(target.z)) then return "Death" end
 	if target.safe == true then return "SafeZone" end
-	if not inside(world.bounds, target.x, target.z) then return "LeftBiome" end
 	if inNoGo(world, target.x, target.z) then return "NoGoZone" end
-	if flat(target.x, target.z, swarm.hive.x, swarm.hive.z) > F.LEASH_STUDS then return "Leash" end
 	return nil
 end
 
+-- RC3: far from the hive (any bug past FADE_STUDS) the swarm vanishes (Vanish) instead of the long flight home (Return).
 local function giveUp(swarm, now, reason, events)
+	local far = false
+	for _, bug in ipairs(swarm.bugs) do
+		if flat(bug.x, bug.z, swarm.hive.x, swarm.hive.z) > F.FADE_STUDS then far = true end
+	end
 	for _, bug in ipairs(swarm.bugs) do
 		if bug.phase == "Aim" or bug.phase == "Dive" then
 			table.insert(events, { kind = "DiveCancel", at = now, swarm = swarm.id, bug = bug.index, id = swarm.target, key = bug.key })
 		end
-		bug.phase, bug.markX, bug.markZ, bug.markY = "Return", nil, nil, nil
+		bug.phase, bug.markX, bug.markZ, bug.markY = far and "Vanish" or "Return", nil, nil, nil
 	end
-	table.insert(events, { kind = "GiveUp", at = now, swarm = swarm.id, id = swarm.target, reason = reason })
-	swarm.phase, swarm.target, swarm.diving = "Return", nil, nil
+	table.insert(events, { kind = "GiveUp", at = now, swarm = swarm.id, id = swarm.target, reason = reason, vanish = far or nil })
+	swarm.phase, swarm.target, swarm.diving = far and "Vanish" or "Return", nil, nil
+	swarm.vanishUntil = far and now + F.VANISH_SECONDS or nil
 	swarm.cooldownUntil = now + F.COOLDOWN_SECONDS
 end
 
@@ -340,7 +367,10 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events)
 		moveToward(bug, target.x + math.cos(a) * F.CHASE_RING_STUDS, ground + F.CHASE_HEIGHT_STUDS,
 			target.z + math.sin(a) * F.CHASE_RING_STUDS, F.CRUISE_STUDS_PER_SECOND, dt)
 		bug.y = math.clamp(bug.y, ground + F.MIN_HEIGHT_STUDS, ground + F.MAX_HEIGHT_STUDS)
-		if swarm.diving == nil and now >= swarm.nextDiveAt and flat(bug.x, bug.z, target.x, target.z) <= F.AIM_RANGE_STUDS then
+		-- RC4: the dive's strike is booked in the shared strike ledger first (hooks.claim); refused, it waits a step
+		local strikeAt = now + F.DIVE_TELL_SECONDS + F.DIVE_SECONDS
+		if swarm.diving == nil and now >= swarm.nextDiveAt and flat(bug.x, bug.z, target.x, target.z) <= F.AIM_RANGE_STUDS
+			and (not (hooks and hooks.claim) or hooks.claim(target.id, swarm.id, strikeAt, now) ~= false) then
 			swarm.dives += 1
 			swarm.diving = bug.index
 			bug.phase, bug.key = "Aim", F.attackKey(swarm.id, bug.index, swarm.dives)
@@ -383,7 +413,8 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events)
 			bug.fromZ + (bug.toZ - bug.fromZ) * u, dt)
 		if now < bug.strikeAt then return end
 		setAt(bug, bug.toX, bug.toY, bug.toZ, 0)
-		swarm.diving, swarm.nextDiveAt = nil, now + F.DIVE_GAP_SECONDS
+		-- RC: a swarm that already stung MAX_STINGS times this chase is tired: longer gaps between its dives
+		swarm.diving, swarm.nextDiveAt = nil, now + (swarm.stings >= F.MAX_STINGS and F.TIRED_DIVE_GAP_SECONDS or F.DIVE_GAP_SECONDS)
 		bug.markX, bug.markZ, bug.markY = nil, nil, nil
 		local reach = flat(target.x, target.z, bug.toX, bug.toZ) <= F.HIT_STUDS and math.abs(target.y - bug.toY) <= F.HIT_HEIGHT_STUDS
 		if not reach then
@@ -398,6 +429,7 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events)
 			return
 		end
 		swarm.stings += 1
+		if swarm.stings >= F.MAX_STINGS then swarm.nextDiveAt = now + F.TIRED_DIVE_GAP_SECONDS end
 		local dx, dz = bug.toX - bug.fromX, bug.toZ - bug.fromZ
 		local d = math.sqrt(dx * dx + dz * dz)
 		if d < 1e-3 then dx, dz, d = target.x - swarm.hive.x, target.z - swarm.hive.z, 0 end
@@ -449,7 +481,7 @@ function F.step(world, now, players, hooks)
 			if reason then
 				giveUp(swarm, now, reason, events)
 			elseif now >= swarm.chaseAt then
-				swarm.phase, swarm.chaseEndsAt, swarm.nextDiveAt, swarm.diving = "Chase", swarm.chaseAt + F.CHASE_SECONDS, -math.huge, nil
+				swarm.phase, swarm.chaseEndsAt, swarm.nextDiveAt, swarm.diving = "Chase", swarm.chaseAt + F.HARD_SECONDS, -math.huge, nil
 				for _, bug in ipairs(swarm.bugs) do bug.phase = "Fly" end
 				table.insert(events, { kind = "Chase", at = now, swarm = swarm.id, id = swarm.target })
 				started = true
@@ -459,7 +491,7 @@ function F.step(world, now, players, hooks)
 		if swarm.phase == "Chase" and not started then
 			local target = byId[swarm.target]
 			local reason = lost(world, swarm, target)
-			if not reason and swarm.stings >= F.MAX_STINGS then reason = "Satisfied" end
+			-- RC1: no sting cap and no chase timer: only the hard limit (chaseEndsAt = chaseAt + HARD_SECONDS)
 			if not reason and now >= swarm.chaseEndsAt then reason = "Timeout" end
 			if reason then
 				giveUp(swarm, now, reason, events)
@@ -476,6 +508,20 @@ function F.step(world, now, players, hooks)
 				swarm.phase = "Cooldown"
 				for _, bug in ipairs(swarm.bugs) do bug.phase = "Idle" end
 				table.insert(events, { kind = "Home", at = now, swarm = swarm.id })
+			end
+		elseif swarm.phase == "Vanish" then
+			-- RC3: they climb while the client fades them out, then stand at the hive again (Cooldown)
+			if now >= (swarm.vanishUntil or now) then
+				swarm.phase, swarm.vanishUntil = "Cooldown", nil
+				for _, bug in ipairs(swarm.bugs) do
+					bug.phase = "Idle"
+					local x, y, z = F.idlePoint(swarm, bug, now)
+					setAt(bug, x, y, z, 0)
+					bug.vx, bug.vy, bug.vz = 0, 0, 0
+				end
+				table.insert(events, { kind = "Home", at = now, swarm = swarm.id, vanished = true })
+			else
+				for _, bug in ipairs(swarm.bugs) do setAt(bug, bug.x, bug.y + F.VANISH_RISE_STUDS_PER_SECOND * dt, bug.z, dt) end
 			end
 		end
 	end

@@ -12,6 +12,9 @@
 --   nest; the encounter ends there with no fade, facing +Z where its resting copy stands).
 --   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
 --   end it at once (Attack.guard).
+--   RC (owner request 2026-11-16, WildboundCandySmarts.RELENTLESS): once it notices it hunts: no leash, abandon or
+--   escape; only the safe zone, death, a leave or the hard limit (reason Timeout) end it, and an ending far from the
+--   nest fades out (Disengage) instead of the walk home.
 -- The attack's numbers and rules are WildboundCandyTortidragonAttack (one source). Threat: damage 0. A hit is a light
 -- push away from the dragon and a short stagger (event.push and event.slow on the Hit event); the egg stays (the beast
 -- script skips BeastHit for a keepsEgg beast). One hit per cast however many circles the target stands in.
@@ -74,6 +77,11 @@ local function retreat(events, e, world, now, phase, reason, seconds)
 	e.returnReason = reason
 	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
 	e.farSince = nil
+	-- RC3: a hunt that ended far from the nest fades out there (the shared Disengage fade); its resting copy is back home
+	if Smarts.farFromHome(e) then
+		Attack.disengage(events, e, reason, now, Config.BEASTS[e.beast].disengage)
+		return
+	end
 	if phase then
 		Attack.phase(events, e, phase, now, now + seconds)
 		e.returnAt = now + seconds
@@ -149,7 +157,13 @@ function Tortidragon.step(events, e, now, target, world, dt)
 		end
 		return
 	end
-	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
+	-- RC1: a relentless hunt has one hard limit (Smarts.RELENTLESS.hardSeconds); it ends like a give-up
+	if Smarts.overtime(e, now) then
+		retreat(events, e, world, now, "GiveUp", "Timeout", T.GiveUpSeconds)
+		return
+	end
+	-- RC1: the escape distance only sends home a calm dragon whose visitor walked away, never one that hunts
+	if not Smarts.hunting(e) and flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
@@ -162,7 +176,8 @@ function Tortidragon.step(events, e, now, target, world, dt)
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
 		local saw = Tortidragon.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
-		if saw or Smarts.called(e, world, now) then
+		-- RC4: it starts its hunt only while fewer than Smarts.RELENTLESS.maxChasers hunt this player
+		if (saw or Smarts.called(e, world, now)) and Smarts.engage(e, world, now) then
 			if saw then Smarts.alarm(e, world, now) end
 			turn(e, target, T, dt)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
@@ -176,7 +191,8 @@ function Tortidragon.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
-		if distance > T.AbandonStuds then
+		local hunting = Smarts.hunting(e) -- RC1: no abandon distance and no leash while it hunts
+		if not hunting and distance > T.AbandonStuds then
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
 		end
@@ -197,7 +213,7 @@ function Tortidragon.step(events, e, now, target, world, dt)
 				e.pos.y = Attack.groundAt(world, e.pos.x, e.pos.z, e.pos.y)
 			end
 		end
-		leash(e, T)
+		if not hunting then leash(e, T) end
 		return
 	end
 	if e.phase == "Telegraph" and e.fan then

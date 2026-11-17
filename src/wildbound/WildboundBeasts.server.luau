@@ -326,6 +326,7 @@ local function close(id, reason, at, event)
 				if claim.enc == id then mine[attackId] = nil end
 			end
 		end
+		if world.smarts then world.smarts.releaseStrikes(entry.player.UserId, id) end -- RC4: its ledger strikes go too
 		local ending = event or Enc.finish(entry.e, reason, at)
 		if ending then
 			logEvent(id, "End", at, reason)
@@ -404,6 +405,13 @@ local function claimStrike(player, encId, attackId, strikeAt, force)
 			count("staggered")
 			return false
 		end
+	end
+	-- RC4 (relentless candy chases): the strike ledger shared with the Zumbidulces (WildboundCandySmarts.claimStrike), so
+	-- at most Smarts.STRIKE_MAX strikes of beasts and bugs land within Smarts.STRIKE_WINDOW on one player.
+	world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
+	if not world.smarts.claimStrike(player.UserId, encId, strikeAt, at, force) then
+		count("staggered")
+		return false
 	end
 	mine[attackId] = { enc = encId, at = strikeAt }
 	return true
@@ -689,7 +697,7 @@ end
 -- Caramelo v2 (DG6, odd/tasks/wildbound-caramelo-v2.md): Don Glaseon's guardians' roar (his Summon event) wakes fresh
 -- candy guardians on the thief through the director's roar reservation (Director.roar: past the per-player cap, never a
 -- second of a kind), each on the ground on a ring round the thief (no ground there: its own post). They give up by
--- their own leash and chase rules. A refusal only notes telemetry.
+-- their own chase rules (RC: relentless, until the thief is safe, defeated or gone). A refusal only notes telemetry.
 function world.roarSummon(entry, event, at)
 	local player = entry.player
 	local _, _, root = bodyOf(player)
@@ -1046,6 +1054,7 @@ Players.PlayerRemoving:Connect(function(player)
 	players[player] = nil
 	sights[player] = nil
 	claims[player] = nil
+	if world.smarts then world.smarts.forgetStrikes(player.UserId) end -- RC4: nothing kept per player
 end)
 
 -- Wave 2: the target client's look vector (WildboundBeastSight.accept: at most 10 a second, a finite unit vector). Only

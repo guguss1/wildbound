@@ -30,17 +30,35 @@ end
 -- each as far as the escape allows: the burst never closes a sprinter noticed at the edge of its sight into its attack
 -- range, and gains under 15 studs (WildboundCandySmarts_Test CH2), so Gomibu, Mielita and Tortidragon get +3, the
 -- others +4. Don Glaseon keeps 25.
+-- RC (owner request 2026-11-16, "all the creatures keep chasing you, and fast, until you reach the base"): relentless =
+-- true makes a creature that noticed a player hunt it until the player is safe (base or hub), defeated or gone; see
+-- Smarts.RELENTLESS. Don Glaseon stays territorial (no relentless flag).
 Smarts.PROFILES = table.freeze({
-	Mochimiau = profile({ sprint = 30, sprintSeconds = 2 }),
-	Canelin = profile({ sprint = 29, sprintSeconds = 1.5 }),
-	Flanin = profile({ sprint = 28, sprintSeconds = 1.5 }),
-	Mielita = profile({ sprint = 30, sprintSeconds = 2 }),
-	GatoRepartidor = profile({ sprint = 28, sprintSeconds = 2 }),
-	Gomibu = profile({ sprint = 29, sprintSeconds = 2, guard = 30 }),
-	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24 }),
-	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28 }),
+	Mochimiau = profile({ sprint = 30, sprintSeconds = 2, relentless = true }),
+	Canelin = profile({ sprint = 29, sprintSeconds = 1.5, relentless = true }),
+	Flanin = profile({ sprint = 28, sprintSeconds = 1.5, relentless = true }),
+	Mielita = profile({ sprint = 30, sprintSeconds = 2, relentless = true }),
+	GatoRepartidor = profile({ sprint = 28, sprintSeconds = 2, relentless = true }),
+	Gomibu = profile({ sprint = 29, sprintSeconds = 2, guard = 30, relentless = true }),
+	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24, relentless = true }),
+	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28, relentless = true }),
 	DonGlaseon = profile({ sprint = 25, sprintSeconds = 1.5 }),
 })
+-- RC: the relentless chase.
+--   hardSeconds   a safety end: no hunt lasts longer than this (then it ends like any other far-from-home ending).
+--   fadeStuds     an ending farther than this from its post fades out where it stands (the shared Disengage fade) and
+--                 its resting copy is back at the post; nearer, it walks home as before ("vuelve a su nido").
+--   windFirst / windEvery / windSeconds   the second wind: windFirst seconds into a chase, and every windEvery after,
+--                 it runs at its noticing sprint for windSeconds, so a player whose stamina ran out (walking 16) is caught
+--                 and must dodge, while a sprinting player still gains whenever it has stamina.
+--   maxChasers    at most this many candy creatures hunt one player at once; another one that sees the player stays calm
+--                 until a place frees (the director keeps them outside MAX_ACTIVE, PF1, so this is their cap).
+Smarts.RELENTLESS = table.freeze({ hardSeconds = 180, fadeStuds = 120, windFirst = 8, windEvery = 8, windSeconds = 1.5,
+	maxChasers = 5 })
+-- RC4: the global strike ledger (every candy beast and the Zumbidulces share it, per player): at most STRIKE_MAX strikes
+-- from different attackers land within STRIKE_WINDOW seconds of each other on one player.
+Smarts.STRIKE_WINDOW = 0.6
+Smarts.STRIKE_MAX = 2
 Smarts.DEFAULTS = DEFAULTS
 Smarts.PEER_SECONDS = 0.3
 Smarts.DASH_FRESH = 0.5
@@ -87,7 +105,95 @@ function Smarts.speed(e, now, base, target)
 	local sprint = math.max(P.sprint, math.min(walk * Smarts.SPRINT_SHARE, Smarts.SPRINT_CAP))
 	e.sprintFrom = e.sprintFrom or now
 	if P.sprint > 0 and sprint > chase and now - e.sprintFrom < P.sprintSeconds then return sprint end
+	if P.sprint > 0 and sprint > chase and Smarts.secondWind(e, now) then return sprint end -- RC2
 	return chase
+end
+
+-- RC2: whether a relentless creature runs its second wind now (windSeconds every windEvery, from windFirst seconds after
+-- its first chase step).
+function Smarts.secondWind(e, now)
+	if not Smarts.profile(e.beast).relentless or not finite(e.sprintFrom) or not finite(now) then return false end
+	local R = Smarts.RELENTLESS
+	local t = now - e.sprintFrom - R.windFirst
+	return t >= 0 and t % R.windEvery < R.windSeconds
+end
+
+-- RC1: the hunt. A relentless creature starts hunting when it notices (Smarts.engage) and from then on no leash, abandon
+-- distance, escape distance or chase timer ends it: only the safe zone, the target's death or leave (Attack.guard), or
+-- the hard limit (Smarts.overtime).
+local QUIET = table.freeze({ Spawn = true, Calm = true, Patrol = true, Return = true, GiveUp = true, Disengage = true,
+	Ended = true })
+function Smarts.hunting(e)
+	return e.huntFrom ~= nil and Smarts.profile(e.beast).relentless == true
+end
+function Smarts.overtime(e, now)
+	return Smarts.hunting(e) and finite(now) and now - e.huntFrom >= Smarts.RELENTLESS.hardSeconds
+end
+-- RC3: farther than fadeStuds from its post: an ending fades out there instead of a long walk home.
+function Smarts.farFromHome(e)
+	return e.home ~= nil and flat(e.pos.x, e.pos.z, e.home.x, e.home.z) > Smarts.RELENTLESS.fadeStuds
+end
+-- RC4: how many relentless creatures hunt this player now (other than `except`); a finished or quiet one leaves.
+function Smarts.chasers(world, userId, now, except)
+	local b = board(world, userId)
+	if not b then return 0 end
+	b.hunters = b.hunters or {}
+	local n = 0
+	for id, e in pairs(b.hunters) do
+		local stale = finite(now) and finite(e.lastStep) and now - e.lastStep > 2
+		if e.done or QUIET[e.phase] or stale then
+			b.hunters[id] = nil
+		elseif id ~= except then
+			n += 1
+		end
+	end
+	return n
+end
+-- RC4: called when a creature would notice its target. A relentless one starts its hunt only while fewer than
+-- maxChasers others hunt that player (false: it stays calm this step). Any other creature always may.
+function Smarts.engage(e, world, now)
+	if not Smarts.profile(e.beast).relentless or e.huntFrom ~= nil then return true end
+	if Smarts.chasers(world, e.userId, now, e.id) >= Smarts.RELENTLESS.maxChasers then return false end
+	local b = board(world, e.userId)
+	if b then b.hunters[e.id] = e end
+	e.huntFrom = now
+	return true
+end
+
+-- RC4: the strike ledger, shared by every script that requires this module (the beast server and the flyers' service
+-- run in one server VM). claimStrike books a strike at strikeAt for `owner` (an encounter or a swarm id) on one player:
+-- false when STRIKE_MAX strikes of other owners would then land within STRIKE_WINDOW of each other (try again on a later
+-- step); force books it anyway (an attack whose timing never changes). Entries older than a second are dropped.
+local ledgers = {}
+function Smarts.claimStrike(userId, owner, strikeAt, now, force)
+	if not finite(strikeAt) then return true end
+	local key = userId or 0
+	local list = ledgers[key] or {}
+	ledgers[key] = list
+	local clock = finite(now) and now or strikeAt
+	local near = 0
+	for i = #list, 1, -1 do
+		local c = list[i]
+		if c.at < clock - 1 then
+			table.remove(list, i)
+		elseif c.owner ~= owner and math.abs(c.at - strikeAt) < Smarts.STRIKE_WINDOW then
+			near += 1
+		end
+	end
+	if near >= Smarts.STRIKE_MAX and force ~= true then return false end
+	table.insert(list, { at = strikeAt, owner = owner })
+	return true
+end
+-- An owner's booked strikes go (its encounter ended or its attack was called off); forget drops a player's ledger.
+function Smarts.releaseStrikes(userId, owner)
+	local list = ledgers[userId or 0]
+	if not list then return end
+	for i = #list, 1, -1 do
+		if list[i].owner == owner then table.remove(list, i) end
+	end
+end
+function Smarts.forgetStrikes(userId)
+	ledgers[userId or 0] = nil
 end
 
 -- Where the target will be in `seconds` (P.lead by default), at most maxLead studs ahead.

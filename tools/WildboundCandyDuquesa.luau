@@ -14,8 +14,9 @@
 -- still within LUNGE_HIT_STUDS of where she lands is hit once (LUNGE_DAMAGE, a push, and her egg drops); a
 -- perfect dodge stuns her STUN_SECONDS, anything else costs her RECOVER_SECONDS. Between lunges her bubbles keep coming
 -- every RAGE_EVERY_SECONDS (the same volley rules). The rage ends when the thief is gone, dead, in a safe zone, without
--- her egg (she calms CALM_SECONDS first), LEAVE_MARGIN_STUDS past the plot's edge, or after RAGE_SECONDS; then she floats
--- home and cannot rage again for COOLDOWN_SECONDS after she sits. One rage at a time: nobody else is chased meanwhile.
+-- her egg (she calms CALM_SECONDS first), or after RAGE_SECONDS (RC6: 180, a safety end; leaving the plot no longer ends
+-- it, she follows the thief to the base); then she floats home (RC6: outside the plot she vanishes and is back on her seat
+-- at once) and cannot rage again for COOLDOWN_SECONDS after she sits. One rage at a time: nobody else is chased meanwhile.
 local Duq = {}
 
 -- OF3 (owner feedback 3, a hard summit): every 10 -> 6 s on the summit; she also throws at a climber on the upper
@@ -54,7 +55,7 @@ Duq.CHASE_SCALE = 1.25 -- of the thief's own speed when that is faster (a traine
 Duq.CHASE_CAP = 34
 Duq.HOVER_STUDS = 4 -- over the cake tier or the floor under her (her seat is HOVER_STUDS over the summit)
 Duq.RIDE_STUDS = 1.5 -- over the thief's root while she follows (4.5 over its floor)
-Duq.VERTICAL_SPEED = 24
+Duq.VERTICAL_SPEED = 48 -- GT (cake move): 24 -> 48, the summit is 65 studs up (was 40): she still lands on time
 Duq.LOOKAHEAD_STUDS = 6 -- she rises for the tier ahead before she reaches its edge
 Duq.HOLD_STUDS = 3 -- she never flies closer than this to the thief (flat)
 Duq.LUNGE_START_STUDS = 6 -- flat; and within LUNGE_HIT_HEIGHT in height
@@ -79,9 +80,11 @@ Duq.LUNGE_GAP_SECONDS = 3
 Duq.STUN_SECONDS = 2.5 -- after a perfect dodge (1.5 asked: frozen, no chase nor bubbles; a walking dodger needs 6)
 Duq.RAGE_EVERY_SECONDS = 2.5 -- her bubbles at the thief between lunges (6 s on the summit)
 Duq.RAGE_FIRST_VOLLEY_SECONDS = 0.5 -- after she leaves her seat
-Duq.RAGE_SECONDS = 25 -- (30 asked) a walking carrier needs ~30 s to the plot's edge: the timeout is its way out
+-- RC6 (owner request 2026-11-16, "they keep chasing you until you reach the base"): RAGE_SECONDS 25 -> 180 is only the
+-- safety end now, and leaving the plot no longer ends the rage: she follows her egg's thief to the base (a safe zone).
+Duq.RAGE_SECONDS = 180
 Duq.CALM_SECONDS = 3 -- after her egg dropped, before she floats home
-Duq.LEAVE_MARGIN_STUDS = 12 -- past the Caramelo plot's edge
+Duq.LEAVE_MARGIN_STUDS = 12 -- RC6: no longer an end of the rage (it was: this far past the Caramelo plot's edge)
 Duq.RETURN_SPEED = 18
 Duq.COOLDOWN_SECONDS = 20 -- after she sits again
 Duq.DODGE_SOURCE = "DonGlaseon" -- an existing WildboundDodge source (the Caramelo boss family), so that module stays as is
@@ -124,10 +127,11 @@ function Duq.floorUnder(summit, x, z)
 	return Layout.FLOOR_TOP
 end
 
--- DR: studs inside the Caramelo plot from its nearest edge (negative outside), for a world point.
+-- DR: studs inside the Caramelo plot from its nearest edge (negative outside), for a world point. GT (cake move): the
+-- east edge does not count (the Torta's plaza is 28 studs from it, so a step past it must not end her rage).
 function Duq.plotDepth(summit, x, z)
 	local Layout = summit.Layout
-	return Layout.depth(x - Layout.CENTRE.x, z - Layout.CENTRE.z)
+	return Layout.HALF - math.max(Layout.CENTRE.x - x, math.abs(z - Layout.CENTRE.z))
 end
 
 -- DR: her chase speed against a thief moving at `thiefSpeed` (its walk speed; nil = untrained).
@@ -251,8 +255,7 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 	elseif p.alive ~= true or type(p.x) ~= "number" then reason = "Dead"
 	elseif p.safe == true then reason = "Safe"
 	elseif p.carriesHerEgg ~= true then reason = "Dropped"
-	elseif Duq.plotDepth(summit, p.x, p.z) < -Duq.LEAVE_MARGIN_STUDS then reason = "Left"
-	elseif now - r.startAt >= Duq.RAGE_SECONDS then reason = "Timeout" end
+	elseif now - r.startAt >= Duq.RAGE_SECONDS then reason = "Timeout" end -- RC6: no "Left" end at the plot's edge
 	if reason then
 		calm(state, now, events, reason)
 		return
@@ -323,7 +326,19 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 end
 
 local function homeStep(state, now, events, summit, dt)
-	if state.mode == "Calm" and now >= state.calmUntil then state.mode = "Return" end
+	if state.mode == "Calm" and now >= state.calmUntil then
+		state.mode = "Return"
+		-- RC6: calmed outside the plot (she chased the thief to the base) she vanishes there (Vanish) and is back on her
+		-- seat at once, instead of a long flight home; inside the plot she floats home as before
+		local her = state.her
+		if her and Duq.plotDepth(summit, her.x, her.z) < 0 then
+			table.insert(events, { kind = "Vanish", at = now, x = her.x, y = her.y, z = her.z })
+			state.mode, state.her, state.nextAt, state.leftAt = nil, nil, nil, nil
+			state.cooldownUntil = now + Duq.COOLDOWN_SECONDS
+			table.insert(events, { kind = "Home", at = now, vanished = true })
+			return
+		end
+	end
 	if state.mode ~= "Return" then return end
 	local seat, her = Duq.seat(summit), state.her
 	fly(summit, her, seat.x, seat.y, seat.z, Duq.RETURN_SPEED, 0, dt)

@@ -11,6 +11,9 @@
 --   From the end of the release a puddle of radius 4 lies where the flan stood for 3 s and slows whoever stands in it.
 --   Escape: the target outside EscapeDistance of the nest for EscapeSeconds: the same walk home. Death and the safe zone
 --   end it at once (Attack.guard).
+--   RC (owner request 2026-11-16, WildboundCandySmarts.RELENTLESS): once it notices it hunts: no leash, abandon or
+--   escape; only the safe zone, death, a leave or the hard limit (reason Timeout) end it, and an ending far from the
+--   nest fades out (Disengage) instead of the walk home.
 -- The attack's numbers and rules are WildboundCandyFlanfuriaAttack (one source); this module only walks it through the
 -- shared attack layer. Threat (OF2): the ring's slow carries damage. Both slows travel as Afflict events, which the beast script applies with its
 -- non-stacking, self-expiring applySlow and never sends to BeastHit: no damage, and the carried egg stays.
@@ -68,6 +71,11 @@ local function retreat(events, e, world, now, phase, reason, seconds)
 	e.returnReason = reason
 	-- the shared guard (Attack.guard) reads e.farSince too: a stale one would fade it out on the walk home
 	e.farSince = nil
+	-- RC3: a hunt that ended far from the nest fades out there (the shared Disengage fade); its resting copy is back home
+	if Smarts.farFromHome(e) then
+		Attack.disengage(events, e, reason, now, Config.BEASTS[e.beast].disengage)
+		return
+	end
 	if phase then
 		Attack.phase(events, e, phase, now, now + seconds)
 		e.returnAt = now + seconds
@@ -120,7 +128,13 @@ function Flanfuria.step(events, e, now, target, world, dt)
 		end
 		return
 	end
-	if flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
+	-- RC1: a relentless hunt has one hard limit (Smarts.RELENTLESS.hardSeconds); it ends like a give-up
+	if Smarts.overtime(e, now) then
+		retreat(events, e, world, now, "GiveUp", "Timeout", T.GiveUpSeconds)
+		return
+	end
+	-- RC1: the escape distance only sends home a calm flan whose visitor walked away, never one that hunts
+	if not Smarts.hunting(e) and flat(e.home.x, e.home.z, target.x, target.z) > T.EscapeDistanceStuds then
 		e.farSince = e.farSince or now
 	else
 		e.farSince = nil
@@ -142,7 +156,8 @@ function Flanfuria.step(events, e, now, target, world, dt)
 	if e.phase == "Spawn" then Attack.phase(events, e, "Calm", e.phaseAt) end
 	if e.phase == "Calm" then
 		local saw = Flanfuria.sees(e, target, T) or Smarts.guards(e, target) -- OF3: its nest guarded, allies called
-		if saw or Smarts.called(e, world, now) then
+		-- RC4: it starts its hunt only while fewer than Smarts.RELENTLESS.maxChasers hunt this player
+		if (saw or Smarts.called(e, world, now)) and Smarts.engage(e, world, now) then
 			if saw then Smarts.alarm(e, world, now) end
 			Attack.face(e, target)
 			Attack.phase(events, e, "Notice", now, now + T.AlertSeconds)
@@ -156,7 +171,8 @@ function Flanfuria.step(events, e, now, target, world, dt)
 	end
 	if e.phase == "Chase" then
 		local distance = Attack.distance(e, target)
-		if distance > T.AbandonStuds then
+		local hunting = Smarts.hunting(e) -- RC1: no abandon distance and no leash while it hunts
+		if not hunting and distance > T.AbandonStuds then
 			retreat(events, e, world, now, "GiveUp", "GiveUp", T.GiveUpSeconds)
 			return
 		end
@@ -177,7 +193,7 @@ function Flanfuria.step(events, e, now, target, world, dt)
 				e.dx, e.dz = dx, dz
 			end
 		end
-		leash(e, T)
+		if not hunting then leash(e, T) end
 		return
 	end
 	if e.phase == "Telegraph" and e.cast then

@@ -342,15 +342,16 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		end
 	end)
 
-	case("CC2: it never goes past its leash, not even with a leap or a dash", function()
+	-- Deliberately changed (RC1, relentless chases): once it hunts there is no leash; it follows its target past it.
+	case("RC1: hunting, it goes past its old leash after the target", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "leash"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 1)
 			local farthest = 0
-			run(e, w, tgt, 1.05, 20, function(_, tg) tg.x = T.LeashStuds + 5 end,
+			run(e, w, tgt, 1.05, 20, function(_, tg) tg.x = T.LeashStuds + 25 end,
 				function(_, c) farthest = math.max(farthest, math.sqrt(c.pos.x ^ 2 + c.pos.z ^ 2)) end)
-			assert(farthest <= T.LeashStuds + 1e-6, name .. " went " .. farthest .. " studs from home")
+			assert(farthest > T.LeashStuds + 1, name .. " held at its old leash: " .. farthest)
 		end
 	end)
 
@@ -374,14 +375,32 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		return back, over
 	end
 
-	case("CC2: past its abandon distance it gives up, walks home and the encounter ends there quietly", function()
+	-- Deliberately changed (RC1/RC3): a hunting creature no longer gives up past its abandon distance; its own end is the
+	-- hard limit (WildboundCandySmarts.RELENTLESS.hardSeconds, 180 s): near home (under fadeStuds, 120) the quiet walk
+	-- home (reason Timeout), far from home a fade where it stands (Disengage, then End), never a 600-stud walk back.
+	case("RC1/RC3: past its abandon distance it keeps hunting; the hard limit walks it home near it, fades it far away", function()
+		local HARD, FADE = 180, 120
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "giveup"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			tgt.x = T.LeashStuds + T.AbandonStuds + 1 -- past the abandon distance even from the end of its leash
-			local later = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 12)
-			quietEnd(name, later, "GiveUp", e)
+			local chased = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 4)
+			equal(#each(chased, "End"), 0, name .. " ended past its abandon distance")
+			assert(not string.find(phases(chased), "Return", 1, true), name .. " walked home: " .. phases(chased))
+			local later = run(e, w, tgt, HARD - 0.05, HARD + 15)
+			quietEnd(name, later, "Timeout", e)
+			-- far from home: a fade where it stands
+			local f, fw, ft = spawn(name, "fade"), fakeWorld(), target(close(name), 0)
+			run(f, fw, ft, 0, 0.9)
+			f.pos.x = FADE + 30
+			ft.x = f.pos.x + 60
+			local far = run(f, fw, ft, HARD - 0.05, HARD + 2)
+			local fade = each(far, "Disengage")[1]
+			assert(fade and fade.reason == "Timeout", name .. " no fade far from home (phases " .. phases(far) .. ")")
+			local over = each(far, "End")[1]
+			assert(over and over.reason == "Timeout", name .. " never ended after the fade")
+			assert(not string.find(phases(far), "Return", 1, true), name .. " began a long walk home")
 		end
 	end)
 
@@ -399,7 +418,9 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 	-- PF2: the walked Play check, as a pure case. A player walks (16 studs/s) from 60 studs straight at the post, stops
 	-- 12 studs from it for 6 s, then walks away. The critter notices well before the player arrives, chases, strikes at
 	-- least once (and the strike lands on a player who stands still), then walks home quietly when the player leaves.
-	case("PF2: a walking player is noticed early, chased, hit, and left with a quiet walk home", function()
+	-- Deliberately changed (RC1): the player who walks away is followed to its base (a safe zone at 140 studs here),
+	-- where the encounter ends at once; it used to be left with a quiet walk home.
+	case("PF2: a walking player is noticed early, chased, hit, and followed to its base", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "walk"), fakeWorld(), target(60, 0)
@@ -408,6 +429,7 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 				if t < 3 then tg.x = math.max(60 - 16 * t, 12)
 				elseif t < 9 then tg.x = 12
 				else tg.x = math.min(12 + 16 * (t - 9), 140) end
+				tg.safe = tg.x >= 140
 			end, function(t, c)
 				if not noticedAt and c.phase == "Notice" then noticedAt = { t = t, x = tgt.x } end
 			end)
@@ -420,25 +442,27 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			assert(hits[1].push and hits[1].push.studs >= 6, name .. " the hit does not push")
 			local over = each(events, "End")[1]
 			assert(over, name .. " never ended after the player left (phases " .. phases(events) .. ")")
-			quietEnd(name, events, over.reason, e)
+			equal(over.reason, "SafeZone", name .. " the base ends the hunt")
+			assert(over.at >= 9 + (140 - 12) / 16 - 0.06, name .. " ended before the player reached its base")
 		end
 	end)
 
 	-- Review fix: a target standing past its leash plus its attack range (but inside its abandon distance from the end
 	-- of the leash) used to keep it in Chase for ever, clamped at the leash. Held there out of reach for GiveUpSeconds,
 	-- it gives up.
-	case("CC2: held at its leash with the target out of reach, it gives up instead of chasing for ever", function()
+	-- Deliberately changed (RC1): hunting, nothing holds it at a leash, so the stall spot past it is simply reached.
+	case("RC1: a target standing past its old leash plus its reach is reached, never stalled at the leash", function()
 		for _, name in ipairs(NAMES) do
 			local T, A = tuning(name), tuning(name).Attack
 			local stand = T.LeashStuds + A.RangeStuds + 2
-			assert(stand < T.LeashStuds + T.AbandonStuds - 1, name .. ": the stall spot is past the abandon distance (test setup)")
 			local e, w, tgt = spawn(name, "stall"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			local farthest = 0
-			local later = run(e, w, tgt, 0.95, 25, function(_, tg) tg.x = stand end,
+			local later = run(e, w, tgt, 0.95, 12, function(_, tg) tg.x = stand end,
 				function(_, c) farthest = math.max(farthest, math.sqrt(c.pos.x ^ 2 + c.pos.z ^ 2)) end)
-			quietEnd(name, later, "GiveUp", e)
-			assert(farthest <= T.LeashStuds + 1e-6, name .. " went " .. farthest .. " studs from home")
+			equal(#each(later, "End"), 0, name .. " ended")
+			assert(farthest > T.LeashStuds + 1, name .. " stalled at its old leash: " .. farthest)
+			assert(#each(later, "Tell") >= 1, name .. " never attacked the target past its old leash")
 		end
 	end)
 
@@ -451,7 +475,8 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 		end
 	end)
 
-	case("CC2: a safe zone or death ends it at once; a target that runs far away ends it", function()
+	-- Deliberately changed (RC1): a target that runs far away no longer ends a hunt (it is followed to a safe zone).
+	case("CC2: a safe zone or death ends it at once; a target that runs far away is still hunted", function()
 		for _, name in ipairs(NAMES) do
 			local T = tuning(name)
 			local e, w, tgt = spawn(name, "safe"), fakeWorld(), target(close(name), 0)
@@ -463,10 +488,8 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			run(e2, w2, tgt2, 0, 0.9)
 			tgt2.x = T.EscapeDistanceStuds + 5
 			local later = run(e2, w2, tgt2, 0.95, 0.95 + T.EscapeSeconds + 3)
-			local over = each(later, "End")
-			-- the abandon distance (GiveUp) usually comes first; Escape stays as the backstop for the attack phases
-			local reason = over[1] and over[1].reason
-			assert(reason == "Escape" or reason == "GiveUp", name .. " escape: expected Escape or GiveUp, got " .. tostring(reason))
+			equal(#each(later, "End"), 0, name .. " a target far away ended the hunt")
+			assert(not string.find(phases(later), "Return", 1, true), name .. " walked home: " .. phases(later))
 		end
 	end)
 
