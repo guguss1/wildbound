@@ -602,6 +602,21 @@ Studio b15ce60a, Edit only, with the import and Play locks cleared afterwards; t
   - An egg steal (frenzy), then a teleport into G162: the hunters, already chasing, kept the player for the 3 s memory, came within 10 studs and struck. Knockback also pushed the player out of the patch. So the grass does not shake off hunters already close; that matches V6-D1 and V6-D10.
 - **Not checked in Play:** a calm creature ignoring a walker in the grass, and the bees and La Duquesa. The suites cover these, including a real Mochimiau brain.
 
+### Evidence: V6-D2 cookie bridges deploy (2026-11-17)
+
+Studio b15ce60a, Edit only, locks cleared; the place is not saved.
+
+- **Deploy:** the code was committed as e26c7ab. Three new instances were created: ServerStorage.WildboundCandyCookieBridge, ServerScriptService.WildboundCandyCookieBridgeService and ServerStorage.WildboundCandyCookieBridge_Test. All three were fingerprint-checked equal to the repo. Extra decisions V6-D20 to V6-D25 are in docs/design/wildbound-caramelo-v3-plan.md.
+- **Tests:** 15/0 after a test fix. CB6 set `engagedAt = nil` in a changes table, which never overwrites the stamp, so it now uses `false`.
+- **Solo Play.** I stole the H2 house egg, waited until a hunter stamped me (WildboundBeastEngagedAt fresh), then stood on the Top deck:
+  - Cracking began at once.
+  - After 2 s the phase went to Down, the deck stopped colliding, and the player dropped from y 7.7 to 3.7 into the chocolate, wading at 0.6 speed.
+  - Off the bridge, it was rebuilt about 45 s after the fall, back at its exact place (603, 4.4, 117), solid and visible.
+  - Bridge_Main was never touched and has no phase attribute.
+  - The runtime effects folder is gone after Play.
+- **Not checked in Play:** the Bottom bridge (same code), the crack sound and the sign's look, and creatures crossing a fallen bridge.
+- **Missing in WildboundText:** `CANDY_BRIDGE.crack`. The code falls back to "¡El puente de galleta se rompe!".
+
 ### Evidence: Caramelo v4 deploy (2026-11-17)
 
 Studio db843df0, place 122652861404212, Edit only, locks set and cleared; place not saved (the owner saves).
