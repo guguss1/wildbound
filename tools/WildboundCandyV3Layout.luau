@@ -215,6 +215,19 @@ V3.PLATFORMS = freeze({
 	{ asset = "CV3_CookieS", x = -20, z = -90, r = 3.9 },
 })
 V3.PLATFORM = freeze({ over = 0.5, pedestalShare = 0.8 })
+-- Caramelo v6, proposal 4 (odd/tasks/wildbound-caramelo-v2.md V6-D4; docs/design/wildbound-caramelo-v3-plan.md V6-D60
+-- on): an island in the big lake with one Epica egg nest, laid at server start by tools/WildboundCandyIsland.luau.
+-- { id, x, z, r, flat, foot }: r is its waterline (inside it is dry land for every rule that reads liquidDistance: the
+-- raft, wading, the current, the clearances), flat the radius of its level top, foot where its underwater bank meets
+-- the floor. It stands in the river's mouth, north of the cookie platforms: the lake leaves no wider spot with a raft
+-- channel all round (V6-D60). No VERSION bump: nothing laid by a migration moves.
+V3.ISLANDS = freeze({
+	{ id = "I1", x = 15, z = -73, r = 6.5, flat = 4.5, foot = 10.4 },
+})
+-- The island's build: its top `top` studs over the chocolate's surface, a beach from the top's edge down to the
+-- waterline and an underwater bank (bankDegrees steep: foot = r + LIQUID.depth / tan(bankDegrees)) down to the floor,
+-- in `sectors` slices.
+V3.ISLAND = freeze({ top = 1.1, bankDegrees = 42, sectors = 16 })
 
 -- V3-D9 tree rule: every old tree of a kind on the left takes the new kind on the right at the same spot and turn,
 -- scaled to the old tree's height (heightFactor), then fitted by the CH clearance rule (WildboundCandyBuilder.treeFits):
@@ -327,12 +340,28 @@ function V3.riverDistance(x, z)
 	return best
 end
 
--- Signed distance to the nearest chocolate (river, pool or lake): negative inside.
+-- Signed distance to the nearest island's waterline (V6-D4): negative on an island, math.huge with none.
+function V3.islandDistance(x, z)
+	local best = math.huge
+	for _, island in ipairs(V3.ISLANDS) do best = math.min(best, flat(x, z, island.x, island.z) - island.r) end
+	return best
+end
+
+-- The island whose waterline holds (x, z) (within `reach` past it), or nil.
+function V3.islandAt(x, z, reach)
+	for _, island in ipairs(V3.ISLANDS) do
+		if flat(x, z, island.x, island.z) <= island.r + (reach or 0) then return island end
+	end
+	return nil
+end
+
+-- Signed distance to the nearest chocolate (river, pool or lake): negative inside. V6-D4: an island is dry land, so
+-- the chocolate round it ends at its waterline (the larger of the water's distance and the island's, negated).
 function V3.liquidDistance(x, z)
 	local best = V3.riverDistance(x, z)
 	best = math.min(best, flat(x, z, V3.POOL.x, V3.POOL.z) - V3.POOL.r)
 	for _, disc in ipairs(V3.LAKE) do best = math.min(best, flat(x, z, disc.x, disc.z) - disc.r) end
-	return best
+	return math.max(best, -V3.islandDistance(x, z))
 end
 
 function V3.riverLength()
@@ -432,6 +461,9 @@ end
 function V3.clearOfPieces(x, z, r, margin)
 	margin = margin or 2
 	if V3.liquidDistance(x, z) < r + margin then return false, "in the chocolate" end
+	-- V6-D4: the island is dry but belongs to its nest and decor, never to the fill
+	local island = V3.islandAt(x, z, r + margin)
+	if island then return false, "on island " .. island.id end
 	for _, p in ipairs(V3.pieces()) do
 		if flat(x, z, p.x, p.z) < p.r + r + margin then return false, "on " .. p.kind .. " " .. p.id end
 	end

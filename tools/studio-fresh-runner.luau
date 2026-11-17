@@ -234,6 +234,13 @@ SPECS["WildboundCandyTraps_Test"] = {
 	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
 		nests = "src:WildboundCandyNests" },
 }
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D4): the island in the lake (real layout, the raft, wading and
+-- the current against it, a detached biome with a fake kit, the nest pipeline and the wiring)
+SPECS["WildboundCandyIsland_Test"] = {
+	"mod:WildboundCandyIsland", "mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundCandyV3Layout",
+	"mod:WildboundCandyRaft", "mod:WildboundCandyWade", "mod:WildboundCandyCurrent", "mod:WildboundCandyLife",
+	{ nests = "src:WildboundCandyNests", beasts = "src:WildboundBeasts" },
+}
 -- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D2): the crumbling cookie bridges (pure rules, real layout, wiring)
 SPECS["WildboundCandyCookieBridge_Test"] = {
 	"mod:WildboundCandyCookieBridge", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout",

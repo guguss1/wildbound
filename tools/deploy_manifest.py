@@ -534,6 +534,10 @@ DEFAULT_MAPPINGS = [
     ("tools/WildboundCandyTraps.luau", "ServerStorage.WildboundCandyTraps"),
     ("src/wildbound/WildboundCandyTrapRules.luau", "ServerScriptService.WildboundCandyTrapRules"),
     ("tests/WildboundCandyTraps_Test.luau", "ServerStorage.WildboundCandyTraps_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D4): the island in the lake with its Epica nest, laid at server
+    # start through WildboundCandyNests.applyFlags; the layout (WildboundCandyV3Layout.ISLANDS) makes it dry land.
+    ("tools/WildboundCandyIsland.luau", "ServerStorage.WildboundCandyIsland"),
+    ("tests/WildboundCandyIsland_Test.luau", "ServerStorage.WildboundCandyIsland_Test"),
 ]
 
 

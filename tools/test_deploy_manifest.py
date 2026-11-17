@@ -650,6 +650,9 @@ class DefaultMappingTests(unittest.TestCase):
         "tools/WildboundCandyTraps.luau": "ServerStorage.WildboundCandyTraps",
         "src/wildbound/WildboundCandyTrapRules.luau": "ServerScriptService.WildboundCandyTrapRules",
         "tests/WildboundCandyTraps_Test.luau": "ServerStorage.WildboundCandyTraps_Test",
+        # Caramelo v6: the island in the lake
+        "tools/WildboundCandyIsland.luau": "ServerStorage.WildboundCandyIsland",
+        "tests/WildboundCandyIsland_Test.luau": "ServerStorage.WildboundCandyIsland_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

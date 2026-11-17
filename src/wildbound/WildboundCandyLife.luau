@@ -143,8 +143,10 @@ local FISH_ROWS = {
 	{ id = "River_N1", x = -6, z = 140, heading = -1.4 },
 	{ id = "River_N2", x = 1, z = 93, heading = -1.22 },
 	{ id = "River_N3", x = 8, z = 72, heading = -1.28 },
-	{ id = "River_S1", x = 16, z = -70, heading = -1.66 },
-	{ id = "Lake_1", x = 12, z = -78, heading = 0.2 },
+	-- V6-D66: River_S1 and Lake_1 stood where the lake's island (V3.ISLANDS I1) now is: moved up the river leg into the
+	-- lake and to the lake's open east side
+	{ id = "River_S1", x = 13.5, z = -46, heading = -1.27 },
+	{ id = "Lake_1", x = 28, z = -82, heading = -1.3 },
 	{ id = "Lake_2", x = 24, z = -100, heading = -2.3 },
 	{ id = "Lake_3", x = 15, z = -112, heading = 0.4 },
 	{ id = "Lake_4", x = -12, z = -108, heading = 0.7 },

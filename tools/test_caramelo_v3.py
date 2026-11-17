@@ -124,6 +124,11 @@ class Geometry:
         self.platforms = [(m[0], float(m[1]), float(m[2]), float(m[3])) for m in re.findall(
             r'asset = "(\w+)", x = %s, z = %s, r = %s' % (NUM, NUM, NUM), block(v3, "V3.PLATFORMS ="))]
         self.platform = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.PLATFORM ="))}
+        # V6-D4: the lake's islands (dry land inside the waterline r) and their build
+        self.islands = [dict(id=m[0], x=float(m[1]), z=float(m[2]), r=float(m[3]), flat=float(m[4]), foot=float(m[5]))
+                        for m in re.findall(r'id = "(\w+)", x = %s, z = %s, r = %s, flat = %s, foot = %s' % ((NUM,) * 5),
+                                            block(v3, "V3.ISLANDS ="))]
+        self.island = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.ISLAND ="))}
         self.clear = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.CLEAR ="))}
         wf = re.search(r"V3\.WATERFALL = freeze\(\{ x = %s, z = %s, width = %s, top = %s, faceX = %s, faceZ = %s"
                        % ((NUM,) * 6), v3)
@@ -170,12 +175,20 @@ class Geometry:
             best = min(best, self.seg(x, z, a[0], a[1], b[0], b[1]) - max(a[2], b[2]) / 2)
         return best
 
-    def liquid_distance(self, x, z):
+    def water_distance(self, x, z):
+        """The chocolate without the islands (river, pool, lake discs)."""
         best = self.river_distance(x, z)
         best = min(best, math.hypot(x - self.pool[0], z - self.pool[1]) - self.pool[2])
         for d in self.lake:
             best = min(best, math.hypot(x - d[0], z - d[1]) - d[2])
         return best
+
+    def island_distance(self, x, z):
+        return min((math.hypot(x - i["x"], z - i["z"]) - i["r"] for i in self.islands), default=math.inf)
+
+    def liquid_distance(self, x, z):
+        # V6-D4: an island is dry land inside its waterline
+        return max(self.water_distance(x, z), -self.island_distance(x, z))
 
     def route_distance(self, x, z):
         return min(self.seg(x, z, p[0], p[1], q[0], q[1]) for pts in self.routes.values() for p, q in zip(pts, pts[1:]))
@@ -571,7 +584,8 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertGreaterEqual(g.lake[1][2], 18, "the second disc grew (was 12)")
         open_water = sum(1 for x in range(-60, 80) for z in range(-150, -20)
                          if g.liquid_distance(x + 0.5, z + 0.5) <= -3 and not g.near_bridge(x + 0.5, z + 0.5, 3))
-        self.assertGreaterEqual(open_water, 3500, "open water for the raft's hull (v4: about 2800)")
+        # Deliberately changed (V6-D4): the lake's island takes about 280 square studs of it (3692 -> 3416)
+        self.assertGreaterEqual(open_water, 3350, "open water for the raft's hull (v4: about 2800)")
         bridges = {b["id"]: b for b in g.bridges}
         self.assertGreaterEqual(bridges["Top"]["length"], 28)
         self.assertGreaterEqual(bridges["Bottom"]["length"], 28)
@@ -588,6 +602,69 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertLess(ax, 0, "dock A on the west bank")
         self.assertGreater(bx, 0, "dock B on the east bank")
         self.assertGreaterEqual(math.hypot(btx - atx, btz - atz), 50, "the docks face each other across open water")
+
+    # V6-D4, V6-D60 on: an island in the big lake (WildboundCandyIsland lays it at server start; the layout treats it as
+    # dry land). Mirrors WildboundCandyIsland_Test IS1, IS2 and IS6.
+    def test_v6_island_in_the_lake(self):
+        g = self.g
+        hull, arm = 3.0, 9.0  # WildboundCandyRaft.HULL, ARM_STUDS
+        self.assertEqual(len(g.islands), 1)
+        i = g.islands[0]
+        x, z, r, foot = i["x"], i["z"], i["r"], i["foot"]
+        self.assertEqual(i["id"], "I1")
+        self.assertLess(i["flat"], r)
+        self.assertLess(r, foot)
+        self.assertTrue(r >= 6 and 9 <= foot <= 12, "about 9 across the floor")
+        self.assertAlmostEqual(foot, r + g.depth_liquid / math.tan(math.radians(g.island["bankDegrees"])), delta=0.05)
+        bx, bz, br = g.lake[0]
+        self.assertLess(math.hypot(x - bx, z - bz) + r, br, "inside the big disc")
+        for k in range(720):
+            a = 2 * math.pi * k / 720
+            px, pz = x + math.cos(a) * (r + hull + 0.25), z + math.sin(a) * (r + hull + 0.25)
+            self.assertLessEqual(g.water_distance(px, pz), -hull, "a raft channel all round at %d" % k)
+            self.assertLessEqual(g.liquid_distance(px, pz), -hull)
+            self.assertFalse(g.near_bridge(px, pz, hull))
+            fx, fz = x + math.cos(a) * foot, z + math.sin(a) * foot
+            self.assertLess(g.water_distance(fx, fz), 0, "the underwater bank stays in the lake")
+        self.assertAlmostEqual(g.liquid_distance(x, z), r, delta=1e-9)
+        self.assertGreater(g.liquid_distance(x + r - 0.01, z), 0)
+        self.assertLess(g.liquid_distance(x + r + 0.01, z), 0)
+        (_, asx, asz, atx, atz), (_, bsx, bsz, btx, btz) = g.docks
+        for tx, tz in ((atx, atz), (btx, btz)):
+            self.assertGreaterEqual(math.hypot(x - tx, z - tz) - foot, arm + 2 * hull, "by a dock tip")
+        self.assertGreaterEqual(g.seg(x, z, atx, atz, btx, btz) - foot, 4 * hull, "on the dock-to-dock line")
+        for asset, px, pz, pr in g.platforms:
+            self.assertGreaterEqual(math.hypot(x - px, z - pz) - pr - r, g.clear["pieceApart"], asset)
+            self.assertGreaterEqual(math.hypot(x - px, z - pz) - pr * g.platform["pedestalShare"] - foot, 0, asset + " pedestal")
+        self.assertFalse(g.near_bridge(x, z, foot + 2 * hull))
+        self.assertGreaterEqual(g.route_distance(x, z) - foot - g.path_half, g.clear["pieceFromRoute"])
+        for nid, (nx, nz) in g.nests.items():
+            self.assertGreaterEqual(math.hypot(x - nx, z - nz) - foot, g.clear["pieceFromNest"], nid)
+        for pid, (px, pz) in g.posts.items():
+            self.assertGreaterEqual(math.hypot(x - px, z - pz) - foot, g.clear["pieceFromPost"], pid)
+        self.assertNotIn(i["id"], g.nests, "the nest id clashes with a layout nest")
+        # the docks' straight crossing still floats the hull
+        for s in range(101):
+            px, pz = atx + (btx - atx) * s / 100, atz + (btz - atz) * s / 100
+            reach = 0 if min(math.hypot(px - atx, pz - atz), math.hypot(px - btx, pz - btz)) <= arm else hull
+            self.assertLessEqual(g.liquid_distance(px, pz), -reach, "crossing at %d %%" % s)
+        # no chocolate fish jumps out of the island (WildboundCandyLife's spots: 7-stud arcs, 3 inside the chocolate)
+        life = read(ROOT / "src" / "wildbound" / "WildboundCandyLife.luau")
+        rows = re.findall(r'id = "(\w+)", x = %s, z = %s, heading = %s' % (NUM, NUM, NUM), block(life, "local FISH_ROWS ="))
+        self.assertEqual(len(rows), 10)
+        for fid, fx, fz, h in rows:
+            fx, fz, h = float(fx), float(fz), float(h)
+            for s in range(21):
+                px, pz = fx + math.cos(h) * 7 * s / 20, fz + math.sin(h) * 7 * s / 20
+                self.assertLessEqual(g.liquid_distance(px, pz), -3, "%s leaves the chocolate" % fid)
+        island = read(ROOT / "tools" / "WildboundCandyIsland.luau")
+        for needle in ('Island.RARITY = "Epica"', 'nest:SetAttribute("LakeIsland", true)', "function Island.sync(",
+                       "Island.ready(root, V3)", 'lookup("WildboundCandyKit")'):
+            self.assertIn(needle, island)
+        nests = read(ROOT / "src" / "wildbound" / "WildboundCandyNests.luau")
+        self.assertIn("pcall(I.sync, root, Layout)", nests)
+        self.assertGreater(nests.index("pcall(I.sync, root, Layout)"), nests.index("pcall(T.sync, root, Layout)"))
+        self.assertIn("and m.island ~= true", nests)
 
     def test_edge_fill_is_a_dense_band(self):
         e = self.g.edge

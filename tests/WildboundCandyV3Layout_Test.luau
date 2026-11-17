@@ -91,7 +91,11 @@ return function(V3, Layout, Sites, Trap)
 		equal(V3.LIQUID.depth, 3.5, "V4-D2: 3.5 deep")
 		local samples = V3.riverSamples(2)
 		assert(#samples > 100, "samples")
-		for _, s in ipairs(samples) do assert(V3.liquidDistance(s.x, s.z) < 0, "a gap in the river") end
+		-- Deliberately changed (V6-D4): the lake's island stands in the river's mouth; its centreline meets the island's
+		-- dry land and leaves it again, so a sample on an island is not a gap
+		for _, s in ipairs(samples) do
+			assert(V3.liquidDistance(s.x, s.z) < 0 or V3.islandAt(s.x, s.z), "a gap in the river")
+		end
 	end)
 
 	-- V4-D1: no dry walk round the river: every west-to-east line meets the chocolate west of the cake's territory (or
@@ -459,7 +463,8 @@ return function(V3, Layout, Sites, Trap)
 				if V3.liquidDistance(x + 0.5, z + 0.5) <= -3 and not V3.nearBridge(x + 0.5, z + 0.5, 3) then open += 1 end
 			end
 		end
-		assert(open >= 3500, "open water for the raft's hull: " .. open)
+		-- Deliberately changed (V6-D4): the island takes about 280 square studs of the hull's water (3692 -> 3416)
+		assert(open >= 3350, "open water for the raft's hull: " .. open)
 		local byId = {}
 		for _, B in ipairs(V3.BRIDGES) do byId[B.id] = B end
 		assert(byId.Top.length >= 28 and byId.Bottom.length >= 28, "the long bridges grew")
