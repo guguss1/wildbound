@@ -36,8 +36,9 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 
 	case("AM1: budgets for desktop, touch and Efectos suaves", function()
 		local desktop, touch, soft = Ambience.budget(false, false), Ambience.budget(true, false), Ambience.budget(false, true)
-		equal(desktop.lights, 12, "desktop lights"); equal(desktop.emitters, 10, "desktop emitters")
-		equal(desktop.rate, 60, "desktop particles per second"); equal(desktop.sway, 8, "desktop swaying lollipops")
+		-- Deliberately changed (V3): "more sparkle particles": desktop emitters 10 -> 16 and 60 -> 100 particles/s
+		equal(desktop.lights, 12, "desktop lights"); equal(desktop.emitters, 16, "desktop emitters")
+		equal(desktop.rate, 100, "desktop particles per second"); equal(desktop.sway, 8, "desktop swaying lollipops")
 		assert(desktop.pulse == true and desktop.fireflies == true, "desktop pulses and has fireflies")
 		assert(touch.lights <= 6 and touch.lights > 0, "touch lights at most 6")
 		near(touch.rate, desktop.rate / 2, "touch: half the particles")
@@ -103,10 +104,11 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 		for _ = 1, Ambience.budget(false, false).emitters do table.insert(worst, { rate = busiest }) end
 		sum = 0
 		for _, r in ipairs(Ambience.rates(worst, Ambience.budget(false, false).rate)) do sum += r end
-		assert(sum <= 60 + 1e-6, "desktop at most 60 particles/s: " .. sum)
+		-- Deliberately changed (V3): the particle budget is 100 on desktop and 50 on touch (was 60 and 30)
+		assert(sum <= 100 + 1e-6, "desktop at most 100 particles/s: " .. sum)
 		sum = 0
 		for _, r in ipairs(Ambience.rates(worst, Ambience.budget(true, false).rate)) do sum += r end
-		assert(sum <= 30 + 1e-6, "touch at most 30 particles/s: " .. sum)
+		assert(sum <= 50 + 1e-6, "touch at most 50 particles/s: " .. sum)
 	end)
 
 	case("AM4: the candy palette and stable colours", function()
@@ -293,7 +295,9 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 		has(client, "emitter.Brightness = style.brightness", "the glitter is bright enough for day light")
 		has(audio, "Catalog.SOUNDS.safeMusic.pitch * musicPitch", "the catalog pitch is kept")
 		assert(Ambience.PULSE_STEP >= 0.05 and Ambience.PULSE_STEP <= 0.2, "about 10 Hz")
-		assert(Ambience.KINDS.lollipop.light.brightness >= 2 and Ambience.KINDS.cake.light.brightness >= 2.4, "one step brighter")
+		-- Deliberately changed (V3): "a little less bright light overall": every light 20 % dimmer than the review's
+		-- step (lollipop 2 -> 1.6, cake 2.4 -> 1.9), still brighter than before the review (1.5 and 1.8)
+		near(Ambience.KINDS.lollipop.light.brightness, 1.6, "lollipop"); near(Ambience.KINDS.cake.light.brightness, 1.9, "cake")
 		for name, style in pairs(Ambience.STYLES) do
 			assert(style.brightness and style.brightness >= 1 and style.brightness <= 3, name .. " particle brightness")
 		end
@@ -303,6 +307,42 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 		near(x, 0.6); near(z, 0.8)
 		equal(Ambience.swayAxis(0, 1, 0), nil, "a flat disc does not sway")
 		equal(Ambience.swayAxis(0 / 0, 0, 1), nil)
+	end)
+
+	-- Caramelo v3 (owner request 2026-11-17: "a little less bright light overall and more sparkle particles";
+	-- docs/design/wildbound-caramelo-v3-plan.md): dimmer lights, more sparkles, the v3 pieces decorated, the waterfall
+	-- flowing on the client.
+	case("AM13: V3: dimmer lights, more sparkles, the v3 pieces and the waterfall's flow", function()
+		local before = { lollipop = 2, gumdrop = 1.6, nest = 2.2, eggNest = 2.5, cake = 2.4, portal = 2.4 }
+		for kind, was in pairs(before) do
+			local now = Ambience.KINDS[kind].light.brightness
+			assert(now <= was * 0.85 + 1e-9 and now >= was * 0.75 - 1e-9, kind .. " is not 15-25 % dimmer: " .. now)
+		end
+		assert(Ambience.budget(false, false).emitters > 10 and Ambience.budget(false, false).rate > 60, "more sparkles on desktop")
+		assert(Ambience.budget(true, false).emitters > 5 and Ambience.budget(true, false).rate > 30, "more sparkles on touch")
+		equal(Ambience.budget(false, true).emitters, 0, "Efectos suaves still has none")
+		equal(Ambience.V3_FOLDER, "CaramelV3", "the v3 folder")
+		for _, name in ipairs({ "Trees", "River", "Lake", "Waterfall", "Houses", "Licorice" }) do
+			assert(table.find(Ambience.V3_FOLDERS, name), name .. " is decorated")
+		end
+		for _, kind in ipairs({ "river", "waterfall", "house", "licorice" }) do
+			assert(Ambience.KINDS[kind] and Ambience.KINDS[kind].sparkle, kind .. " sparkles")
+			assert(Ambience.STYLES[Ambience.KINDS[kind].sparkle.style], kind .. "'s style exists")
+		end
+		assert(Ambience.KINDS.house.light.brightness <= 1.6, "house lights are soft")
+		for t = 0, 10, 0.37 do
+			local d = Ambience.flowOffset(t, 12, 18, 0.4)
+			assert(d >= 0 and d < 18, "flow offset within the span: " .. d)
+		end
+		near(Ambience.flowOffset(0, 12, 18, 0.5), 9, "the phase is a fraction of the span")
+		near(Ambience.flowOffset(1, 12, 18, 0), 12, "12 studs down after a second")
+		near(Ambience.flowOffset(0 / 0, 12, 18, 0), 0, "a bad time rests")
+		near(Ambience.flowOffset(1, 12, 0, 0), 0, "no span rests")
+		has(client, "biome:FindFirstChild(Ambience.V3_FOLDER)", "the client finds the v3 folder")
+		has(client, "Ambience.flowOffset(", "the streaks flow by the rule")
+		has(client, "restoreFlows()", "streaks go back when the ambience stops")
+		has(client, "if budget.sway > 0 then", "no flow with Efectos suaves")
+		has(client, "string.sub(childName, 1, 6) == \"Choco_\"", "the chocolate shimmers")
 	end)
 
 	return result

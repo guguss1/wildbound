@@ -444,6 +444,19 @@ return freeze({
 		-- A2: the Gato Repartidor's golden order (shown by the same client line as a slice's rush)
 		order = "¡Pedido dorado! Corres más rápido",
 	},
+	-- Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md): the free raft's prompt and what it tells its rider
+	-- (WildboundCandyRaftService names it, WildboundCandyRaftClient shows it). At most 64 bytes each.
+	CANDY_RAFT = {
+		prompt = "Subir a la balsa",
+		object = "Balsa Banana Split",
+		boarded = "¡A navegar! Salta o toca Bajar para salir",
+		arrived = "Llegaste a la otra orilla",
+		left = "Bajaste de la balsa",
+		busy = "La balsa está ocupada",
+		moving = "Espera a que la balsa llegue al muelle",
+		tooFar = "Acércate más a la balsa",
+		leave = "Bajar",
+	},
 	-- Arrullo (decision Q2b, docs/mechanics/wildbound-new-mechanics.md section 1): the rare-egg lullaby meter. The title,
 	-- hint, won, lost and timeout lines are WildboundArrullo.TEXT's; hold and holdKey label the hold button (touch, and
 	-- Space or the gamepad's A), time the seconds left. Short lines fit 64 bytes.

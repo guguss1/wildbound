@@ -486,6 +486,17 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyRestingClient.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyRestingClient"),
     # PF6: what a bite of a trap cake did, told to the player
     ("src/wildbound/WildboundCandyCakeClient.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyCakeClient"),
+    # Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md): the layout, the generated kit spec, the builder and the
+    # free raft (pure rules, server service, client). tools/wildbound-caramelo-v3-migrate.luau is a one-shot tool.
+    ("tools/WildboundCandyV3Layout.luau", "ServerStorage.WildboundCandyV3Layout"),
+    ("tests/WildboundCandyV3Layout_Test.luau", "ServerStorage.WildboundCandyV3Layout_Test"),
+    ("tools/WildboundCandyV3KitSpec.luau", "ServerStorage.WildboundCandyV3KitSpec"),
+    ("tools/WildboundCandyV3Builder.luau", "ServerStorage.WildboundCandyV3Builder"),
+    ("tests/WildboundCandyV3Builder_Test.luau", "ServerStorage.WildboundCandyV3Builder_Test"),
+    ("src/wildbound/WildboundCandyRaft.luau", "ReplicatedStorage.WildboundCandyRaft"),
+    ("src/wildbound/WildboundCandyRaftService.server.luau", "ServerScriptService.WildboundCandyRaftService"),
+    ("src/wildbound/WildboundCandyRaft.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyRaftClient"),
+    ("tests/WildboundCandyRaft_Test.luau", "ServerStorage.WildboundCandyRaft_Test"),
 ]
 
 

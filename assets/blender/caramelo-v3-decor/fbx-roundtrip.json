@@ -1,0 +1,314 @@
+{
+  "props": {
+    "CV3_TreeCotton": {
+      "model": {
+        "triangles": 1266,
+        "size": [
+          16.8239,
+          16.553,
+          25.8
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_TreeCotton",
+          "CV3_TreeCotton_Crown",
+          "CV3_TreeCotton_Stripe",
+          "CV3_TreeCotton_Trunk"
+        ],
+        "materials": [
+          "CV3_TreeCotton_Crown",
+          "CV3_TreeCotton_Stripe",
+          "CV3_TreeCotton_Trunk"
+        ]
+      }
+    },
+    "CV3_TreeIceCream": {
+      "model": {
+        "triangles": 1282,
+        "size": [
+          18.3511,
+          17.6181,
+          26.7893
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_TreeIceCream",
+          "CV3_TreeIceCream_Crown",
+          "CV3_TreeIceCream_CrownCherry",
+          "CV3_TreeIceCream_CrownChips",
+          "CV3_TreeIceCream_Trunk"
+        ],
+        "materials": [
+          "CV3_TreeIceCream_Crown",
+          "CV3_TreeIceCream_CrownCherry",
+          "CV3_TreeIceCream_CrownChips",
+          "CV3_TreeIceCream_Trunk"
+        ]
+      }
+    },
+    "CV3_TreeCaramelApple": {
+      "model": {
+        "triangles": 492,
+        "size": [
+          15.4296,
+          15.8264,
+          23.9637
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_TreeCaramelApple",
+          "CV3_TreeCaramelApple_Crown",
+          "CV3_TreeCaramelApple_CrownApple",
+          "CV3_TreeCaramelApple_Trunk"
+        ],
+        "materials": [
+          "CV3_TreeCaramelApple_Crown",
+          "CV3_TreeCaramelApple_CrownApple",
+          "CV3_TreeCaramelApple_Trunk"
+        ]
+      }
+    },
+    "CV3_IceCreamMountain_L": {
+      "model": {
+        "triangles": 2696,
+        "size": [
+          103.4246,
+          99.6437,
+          90.431
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_IceCreamMountain_L",
+          "CV3_IceCreamMountain_L_Base",
+          "CV3_IceCreamMountain_L_Berries",
+          "CV3_IceCreamMountain_L_Cherry",
+          "CV3_IceCreamMountain_L_CherryStem",
+          "CV3_IceCreamMountain_L_Fudge",
+          "CV3_IceCreamMountain_L_Pool",
+          "CV3_IceCreamMountain_L_PoolLip",
+          "CV3_IceCreamMountain_L_River",
+          "CV3_IceCreamMountain_L_Rocks",
+          "CV3_IceCreamMountain_L_Sauce",
+          "CV3_IceCreamMountain_L_Scoop",
+          "CV3_IceCreamMountain_L_Waterfall"
+        ],
+        "materials": [
+          "CV3_IceCreamMountain_L_Base",
+          "CV3_IceCreamMountain_L_Berries",
+          "CV3_IceCreamMountain_L_Cherry",
+          "CV3_IceCreamMountain_L_CherryStem",
+          "CV3_IceCreamMountain_L_Fudge",
+          "CV3_IceCreamMountain_L_Pool",
+          "CV3_IceCreamMountain_L_PoolLip",
+          "CV3_IceCreamMountain_L_River",
+          "CV3_IceCreamMountain_L_Rocks",
+          "CV3_IceCreamMountain_L_Sauce",
+          "CV3_IceCreamMountain_L_Scoop",
+          "CV3_IceCreamMountain_L_Waterfall"
+        ]
+      }
+    },
+    "CV3_IceCreamMountain_M": {
+      "model": {
+        "triangles": 2696,
+        "size": [
+          68.8138,
+          64.481,
+          60.3078
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_IceCreamMountain_M",
+          "CV3_IceCreamMountain_M_Base",
+          "CV3_IceCreamMountain_M_Berries",
+          "CV3_IceCreamMountain_M_Cherry",
+          "CV3_IceCreamMountain_M_CherryStem",
+          "CV3_IceCreamMountain_M_Fudge",
+          "CV3_IceCreamMountain_M_Pool",
+          "CV3_IceCreamMountain_M_PoolLip",
+          "CV3_IceCreamMountain_M_River",
+          "CV3_IceCreamMountain_M_Rocks",
+          "CV3_IceCreamMountain_M_Sauce",
+          "CV3_IceCreamMountain_M_Scoop",
+          "CV3_IceCreamMountain_M_Waterfall"
+        ],
+        "materials": [
+          "CV3_IceCreamMountain_M_Base",
+          "CV3_IceCreamMountain_M_Berries",
+          "CV3_IceCreamMountain_M_Cherry",
+          "CV3_IceCreamMountain_M_CherryStem",
+          "CV3_IceCreamMountain_M_Fudge",
+          "CV3_IceCreamMountain_M_Pool",
+          "CV3_IceCreamMountain_M_PoolLip",
+          "CV3_IceCreamMountain_M_River",
+          "CV3_IceCreamMountain_M_Rocks",
+          "CV3_IceCreamMountain_M_Sauce",
+          "CV3_IceCreamMountain_M_Scoop",
+          "CV3_IceCreamMountain_M_Waterfall"
+        ]
+      }
+    },
+    "CV3_LicoriceArch": {
+      "model": {
+        "triangles": 2984,
+        "size": [
+          77.8259,
+          12.6751,
+          33.7498
+        ],
+        "min_z": 0.0,
+        "objects": [
+          "CV3_LicoriceArch",
+          "CV3_LicoriceArch_Blue",
+          "CV3_LicoriceArch_Clouds",
+          "CV3_LicoriceArch_Green",
+          "CV3_LicoriceArch_Orange",
+          "CV3_LicoriceArch_Pink",
+          "CV3_LicoriceArch_Purple",
+          "CV3_LicoriceArch_Yellow"
+        ],
+        "materials": [
+          "CV3_LicoriceArch_Blue",
+          "CV3_LicoriceArch_Clouds",
+          "CV3_LicoriceArch_Green",
+          "CV3_LicoriceArch_Orange",
+          "CV3_LicoriceArch_Pink",
+          "CV3_LicoriceArch_Purple",
+          "CV3_LicoriceArch_Yellow"
+        ]
+      }
+    },
+    "CV3_CakeBase": {
+      "model": {
+        "triangles": 2292,
+        "size": [
+          44.2891,
+          45.0089,
+          14.75
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CakeBase",
+          "CV3_CakeBase_Band",
+          "CV3_CakeBase_Body",
+          "CV3_CakeBase_Cookies",
+          "CV3_CakeBase_Frosting"
+        ],
+        "materials": [
+          "CV3_CakeBase_Band",
+          "CV3_CakeBase_Body",
+          "CV3_CakeBase_Cookies",
+          "CV3_CakeBase_Frosting"
+        ]
+      }
+    },
+    "CV3_CakeRamp": {
+      "model": {
+        "triangles": 96,
+        "size": [
+          10.4,
+          28.0,
+          12.6
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CakeRamp",
+          "CV3_CakeRamp_Cream",
+          "CV3_CakeRamp_Icing",
+          "CV3_CakeRamp_Sponge"
+        ],
+        "materials": [
+          "CV3_CakeRamp_Cream",
+          "CV3_CakeRamp_Icing",
+          "CV3_CakeRamp_Sponge"
+        ]
+      }
+    },
+    "CV3_CakeTop": {
+      "model": {
+        "triangles": 1758,
+        "size": [
+          27.8276,
+          31.7358,
+          15.0
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CakeTop",
+          "CV3_CakeTop_Band",
+          "CV3_CakeTop_Body",
+          "CV3_CakeTop_Candles",
+          "CV3_CakeTop_Frosting",
+          "CV3_CakeTop_Neon_Flames"
+        ],
+        "materials": [
+          "CV3_CakeTop_Band",
+          "CV3_CakeTop_Body",
+          "CV3_CakeTop_Candles",
+          "CV3_CakeTop_Frosting",
+          "CV3_CakeTop_Neon_Flames"
+        ]
+      }
+    },
+    "CV3_CookieS": {
+      "model": {
+        "triangles": 206,
+        "size": [
+          7.7217,
+          7.7918,
+          1.75
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CookieS",
+          "CV3_CookieS_Chips",
+          "CV3_CookieS_Dough"
+        ],
+        "materials": [
+          "CV3_CookieS_Chips",
+          "CV3_CookieS_Dough"
+        ]
+      }
+    },
+    "CV3_CookieM": {
+      "model": {
+        "triangles": 302,
+        "size": [
+          13.4725,
+          13.3282,
+          2.15
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CookieM",
+          "CV3_CookieM_Chips",
+          "CV3_CookieM_Dough"
+        ],
+        "materials": [
+          "CV3_CookieM_Chips",
+          "CV3_CookieM_Dough"
+        ]
+      }
+    },
+    "CV3_CookieL": {
+      "model": {
+        "triangles": 478,
+        "size": [
+          23.2988,
+          23.2976,
+          2.75
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CookieL",
+          "CV3_CookieL_Chips",
+          "CV3_CookieL_Dough"
+        ],
+        "materials": [
+          "CV3_CookieL_Chips",
+          "CV3_CookieL_Dough"
+        ]
+      }
+    }
+  }
+}

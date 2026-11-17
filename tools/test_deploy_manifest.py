@@ -610,6 +610,16 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundCandyEggArt.luau": "ReplicatedStorage.WildboundCandyEggArt",
         "tests/WildboundCandyEggArt_Test.luau": "ServerStorage.WildboundCandyEggArt_Test",
         "src/wildbound/WildboundCandyEggBob.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyEggBob",
+        # Caramelo v3: layout, kit spec, builder and the free raft
+        "tools/WildboundCandyV3Layout.luau": "ServerStorage.WildboundCandyV3Layout",
+        "tests/WildboundCandyV3Layout_Test.luau": "ServerStorage.WildboundCandyV3Layout_Test",
+        "tools/WildboundCandyV3KitSpec.luau": "ServerStorage.WildboundCandyV3KitSpec",
+        "tools/WildboundCandyV3Builder.luau": "ServerStorage.WildboundCandyV3Builder",
+        "tests/WildboundCandyV3Builder_Test.luau": "ServerStorage.WildboundCandyV3Builder_Test",
+        "src/wildbound/WildboundCandyRaft.luau": "ReplicatedStorage.WildboundCandyRaft",
+        "src/wildbound/WildboundCandyRaftService.server.luau": "ServerScriptService.WildboundCandyRaftService",
+        "src/wildbound/WildboundCandyRaft.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyRaftClient",
+        "tests/WildboundCandyRaft_Test.luau": "ServerStorage.WildboundCandyRaft_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

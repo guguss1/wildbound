@@ -186,6 +186,18 @@ SPECS["WildboundCandyAmbience_Test"] = {
 	"mod:WildboundCandyAmbience", "mod:WildboundAudioMix", "mod:WildboundAudioCatalog", "mod:WildboundBiomeLight",
 	{ client = "src:WildboundCandyAmbienceClient", audio = "src:WildboundAudioClient" },
 }
+-- Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md): the layout, the builder (detached scratch models only) and the raft
+SPECS["WildboundCandyV3Layout_Test"] = {
+	"mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundPraderaSites", "mod:WildboundCandyTrapCake",
+}
+SPECS["WildboundCandyV3Builder_Test"] = {
+	"mod:WildboundCandyV3Builder", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundCandyBuilder",
+	"mod:WildboundCandyV3KitSpec", "mod:WildboundCandyKit", "inst:ServerStorage.WildboundAssets.CandyKit",
+}
+SPECS["WildboundCandyRaft_Test"] = {
+	"mod:WildboundCandyRaft", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundText",
+	{ service = "src:WildboundCandyRaftService", client = "src:WildboundCandyRaftClient" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

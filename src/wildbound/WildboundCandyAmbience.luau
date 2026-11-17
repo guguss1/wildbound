@@ -24,6 +24,11 @@ end
 Ambience.ROOT_NAME = "Candy_Bioma_v1"
 Ambience.FOLDERS = freeze({ "Lollipops", "CottonTrees", "Gumdrops", "Nests", "Lake", "GranTorta", "Portal", "Sweets", "Entrance" })
 Ambience.FORBIDDEN = "SistemaSonriente"
+-- Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md): the v3 pieces live in one folder of the biome
+-- (WildboundCandyV3Builder); these sub-folders are decorated too: the new trees sparkle like the old ones, the
+-- chocolate shimmers, the waterfall mists and flows, the houses glow warm at the door, the licorice glitters.
+Ambience.V3_FOLDER = "CaramelV3"
+Ambience.V3_FOLDERS = freeze({ "Trees", "River", "Lake", "Waterfall", "Houses", "Licorice" })
 -- The catalog slot of a dedicated Caramelo track (WildboundAudioCatalog.SOUNDS; absent until the owner picks one) and
 -- the local WildboundWorldUI attribute that tells the audio controller the player is in the plot.
 Ambience.MUSIC_SLOT = "carameloMusic"
@@ -37,9 +42,11 @@ Ambience.EGG_RADIUS = 5 -- a candy egg this close to a nest's centre sits in it
 Ambience.MAX_RANGE = 16 -- no light reaches farther than this
 
 -- Per device. Efectos suaves keeps a few steady lights and nothing that moves or sparkles; a touch device gets half.
+-- V3 (owner, 2026-11-17: "more sparkle particles"): emitters 10 -> 16 and 60 -> 100 particles per second on desktop,
+-- 5 -> 8 and 30 -> 50 on touch; the light count is unchanged.
 Ambience.BUDGETS = freeze({
-	desktop = { name = "desktop", lights = 12, emitters = 10, rate = 60, sway = 8, pulse = true, fireflies = true },
-	touch = { name = "touch", lights = 6, emitters = 5, rate = 30, sway = 4, pulse = false, fireflies = true },
+	desktop = { name = "desktop", lights = 12, emitters = 16, rate = 100, sway = 8, pulse = true, fireflies = true },
+	touch = { name = "touch", lights = 6, emitters = 8, rate = 50, sway = 4, pulse = false, fireflies = true },
 	soft = { name = "soft", lights = 6, emitters = 0, rate = 0, sway = 0, pulse = false, fireflies = false },
 })
 
@@ -61,17 +68,25 @@ Ambience.PALETTE_ORDER = freeze({ "pink", "mint", "lemon", "sky" })
 -- glow reads from afar). light: PointLight brightness and range; color fixed, else one of PALETTE_ORDER per prop;
 -- cycle: the Gran Torta rim slowly cycles the palette. sparkle: a particle style and its base rate (particles/s).
 -- Review follow-up: every light one step brighter (Caramelo is always in bright day light).
+-- V3 (owner, 2026-11-17: "a little less bright light overall"): every light 20 % dimmer (lollipop 2 -> 1.6, gumdrop
+-- 1.6 -> 1.3, nest 2.2 -> 1.75, egg nest 2.5 -> 2, cake and portal 2.4 -> 1.9); the particles keep their look. New
+-- kinds for the v3 pieces: river (the chocolate's shimmer), waterfall (mist at its foot), house (a warm door light and
+-- glitter), licorice (glitter).
 Ambience.KINDS = freeze({
-	lollipop = { weight = 1, light = { brightness = 2, range = 12 }, sparkle = { style = "glitter", rate = 6 }, sway = true },
-	gumdrop = { weight = 1, light = { brightness = 1.6, range = 8 }, sparkle = { style = "glitter", rate = 5 } },
+	lollipop = { weight = 1, light = { brightness = 1.6, range = 12 }, sparkle = { style = "glitter", rate = 6 }, sway = true },
+	gumdrop = { weight = 1, light = { brightness = 1.3, range = 8 }, sparkle = { style = "glitter", rate = 5 } },
 	cotton = { weight = 1, sparkle = { style = "glitter", rate = 5, color = "pink" } },
 	sweet = { weight = 1.2, sparkle = { style = "glitter", rate = 4, color = "lemon" } },
-	nest = { weight = 0.6, light = { brightness = 2.2, range = 14, color = "warm" } },
-	eggNest = { weight = 0.5, light = { brightness = 2.5, range = 16, color = "warm" },
+	nest = { weight = 0.6, light = { brightness = 1.75, range = 14, color = "warm" } },
+	eggNest = { weight = 0.5, light = { brightness = 2, range = 16, color = "warm" },
 		sparkle = { style = "twinkle", rate = 8, color = "lemon" } },
-	cake = { weight = 0.8, light = { brightness = 2.4, range = 16, cycle = true } },
-	portal = { weight = 0.7, light = { brightness = 2.4, range = 14, color = "sky" }, sparkle = { style = "glitter", rate = 6, color = "sky" } },
+	cake = { weight = 0.8, light = { brightness = 1.9, range = 16, cycle = true } },
+	portal = { weight = 0.7, light = { brightness = 1.9, range = 14, color = "sky" }, sparkle = { style = "glitter", rate = 6, color = "sky" } },
 	lake = { weight = 1, sparkle = { style = "shimmer", rate = 6, color = "lemon" } },
+	river = { weight = 1.1, sparkle = { style = "shimmer", rate = 7, color = "warm" } },
+	waterfall = { weight = 0.6, sparkle = { style = "mist", rate = 10, color = "warm" } },
+	house = { weight = 0.8, light = { brightness = 1.4, range = 14, color = "warm" }, sparkle = { style = "glitter", rate = 5, color = "pink" } },
+	licorice = { weight = 0.8, sparkle = { style = "glitter", rate = 8 } },
 })
 -- The sugar fireflies around the camera: one emitter in a box of `size` studs, counted in the emitter and rate budgets.
 Ambience.FIREFLIES = freeze({ style = "fireflies", rate = 8, color = "lemon", size = { 36, 10, 36 } })
@@ -84,6 +99,8 @@ Ambience.STYLES = freeze({
 	shimmer = { lifetime = { 1, 1.6 }, speed = { 0, 0.3 }, size = 0.3, spread = 10, rise = 0, emission = 1, area = true, brightness = 2 },
 	fireflies = { lifetime = { 3, 5 }, speed = { 0.3, 0.9 }, size = 0.25, spread = 180, rise = 0.1, emission = 1, area = true,
 		brightness = 2 },
+	-- V3: the waterfall's spray, wider and softer
+	mist = { lifetime = { 1, 1.8 }, speed = { 1, 2.5 }, size = 0.6, spread = 70, rise = 1.2, emission = 0.6, brightness = 1.5 },
 })
 
 Ambience.PULSE_PERIOD = 3 -- seconds of a light's slow breath
@@ -93,6 +110,13 @@ Ambience.CAKE_PERIOD = 8 -- seconds for the cake rim to go round the palette
 -- side to side about the stick's foot, in the plane the disc faces; 3 degrees moves a grown head about 1.5 studs.
 Ambience.SWAY_DEGREES = 3
 Ambience.SWAY_PERIOD = 3.6
+
+-- V3: a waterfall streak's drop below its top at time t: it slides down `span` studs at `speed` studs/s and starts
+-- again at the top, offset by its phase (0..1 of the span). In [0, span); a bad input is 0 (the streak rests).
+function Ambience.flowOffset(t, speed, span, phase)
+	if not (finite(t) and finite(speed) and finite(span)) or span <= 0 then return 0 end
+	return (t * speed + (finite(phase) and phase or 0) * span) % span
+end
 
 -- A small stable hash of a prop id (the same id always gets the same colour and phase).
 local function hash(id)

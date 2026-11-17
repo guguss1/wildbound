@@ -42,6 +42,7 @@ local inCandy = false
 local budget = Ambience.budget(false, false)
 local holder, anchor, fireflies = nil, nil, nil
 local lights, emitters, sways = {}, {}, {}
+local flows = {} -- V3: the waterfall streaks: { part, base, top, bottom, phase, speed }
 local connections = {}
 
 local function rgb(c) return Color3.fromRGB(c[1], c[2], c[3]) end
@@ -113,9 +114,55 @@ local function collect(name, container, add)
 	end
 end
 
+-- V3: the pieces under biome.CaramelV3 (WildboundCandyV3Builder).
+local function collectV3(name, container, add)
+	for _, child in ipairs(container:GetChildren()) do
+		if allowed(child) then
+			local childName = child.Name
+			if (name == "River" or name == "Lake") and child:IsA("BasePart") and string.sub(childName, 1, 6) == "Choco_" then
+				add({ id = "river:" .. childName, kind = "river", part = child })
+			elseif child:IsA("Model") then
+				if name == "Trees" then
+					local kind = child:GetAttribute("V3Kind") == "cotton" and "cotton" or "sweet"
+					local top = child:GetAttribute("CrownTop")
+					add({ id = "v3tree:" .. childName, kind = kind, model = child, lift = type(top) == "number" and top or 8 })
+				elseif name == "Houses" then
+					add({ id = "house:" .. childName, kind = "house", model = child, lift = 6 })
+				elseif name == "Licorice" then
+					local height = child:GetAttribute("Height")
+					add({ id = "licorice:" .. childName, kind = "licorice", model = child, lift = type(height) == "number" and height or 20 })
+				end
+			end
+		end
+	end
+	if name == "Waterfall" and container:IsA("Model") then
+		add({ id = "waterfall:" .. container.Name, kind = "waterfall", model = container, piece = "Foam", lift = 1 })
+	end
+end
+
+-- V3: the streaks of every waterfall, from their attributes; the old ones are put back first.
+local function restoreFlows()
+	for _, f in ipairs(flows) do
+		if f.part.Parent then f.part.CFrame = f.base end
+	end
+	flows = {}
+end
+local function collectFlows(waterfall)
+	local speed = waterfall:GetAttribute("FlowSpeed")
+	if type(speed) ~= "number" then return end
+	for _, streak in ipairs(waterfall:GetChildren()) do
+		local top, bottom = streak:GetAttribute("FlowTop"), streak:GetAttribute("FlowBottom")
+		if streak:IsA("BasePart") and type(top) == "number" and type(bottom) == "number" and top > bottom then
+			table.insert(flows, { part = streak, base = streak.CFrame, top = top, bottom = bottom,
+				phase = streak:GetAttribute("FlowPhase") or 0, speed = speed })
+		end
+	end
+end
+
 local function rebuild()
 	dirty = false
 	candidates = {}
+	restoreFlows()
 	unwatchGone()
 	if not biome or biome.Parent == nil then return end
 	watch(biome)
@@ -132,6 +179,18 @@ local function rebuild()
 			collect(name, container, add)
 		end
 	end
+	local v3 = biome:FindFirstChild(Ambience.V3_FOLDER)
+	if v3 and allowed(v3) then
+		watch(v3)
+		for _, name in ipairs(Ambience.V3_FOLDERS) do
+			local container = v3:FindFirstChild(name)
+			if container and allowed(container) then
+				watch(container)
+				collectV3(name, container, add)
+				if name == "Waterfall" and container:IsA("Model") then collectFlows(container) end
+			end
+		end
+	end
 end
 
 -- Where a descriptor's spot is now (props may move or grow later), or nil when it is not streamed in.
@@ -146,7 +205,14 @@ local function locate(c)
 		local angle = (c.rim - 0.5) * 2 * math.pi / RIM_POINTS
 		return top + Vector3.new(math.cos(angle) * radius, 0.5, math.sin(angle) * radius)
 	end
-	if c.part then return c.part.Parent and c.part.Position + Vector3.new(0, 0.3, 0) or nil end
+	if c.part then
+		-- V3: over the part's top (the chocolate is 1.3 studs deep), not its centre
+		local surfacePart = c.part
+		if surfacePart.Parent == nil then return nil end
+		local pcf, phalf = surfacePart.CFrame, surfacePart.Size / 2
+		local up = math.abs(pcf.RightVector.Y) * phalf.X + math.abs(pcf.UpVector.Y) * phalf.Y + math.abs(pcf.LookVector.Y) * phalf.Z
+		return surfacePart.Position + Vector3.new(0, up + 0.3, 0)
+	end
 	local model = c.model
 	if model.Parent == nil then return nil end
 	local piece = c.piece and model:FindFirstChild(c.piece)
@@ -302,6 +368,8 @@ local function teardown()
 		restoreSway(entry)
 		sways[id] = nil
 	end
+	restoreFlows()
+	dirty = true
 	if holder then holder:Destroy() end
 	holder, anchor, fireflies = nil, nil, nil
 	lights, emitters = {}, {}
@@ -407,6 +475,15 @@ local function animate(t)
 		for _, entry in pairs(lights) do
 			entry.light.Brightness = entry.spec.brightness * Ambience.pulse(t, entry.phase)
 			if entry.spec.cycle then entry.light.Color = rgb(Ambience.cakeColor(t, entry.phase)) end
+		end
+	end
+	-- V3: the waterfall streaks slide down and start again at the top (not with Efectos suaves)
+	if budget.sway > 0 then
+		for _, f in ipairs(flows) do
+			if f.part.Parent then
+				local y = f.top - Ambience.flowOffset(t, f.speed, f.top - f.bottom, f.phase)
+				f.part.CFrame = CFrame.new(0, y - f.base.Y, 0) * f.base
+			end
 		end
 	end
 	for _, entry in pairs(sways) do

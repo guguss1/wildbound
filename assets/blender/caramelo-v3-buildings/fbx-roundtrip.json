@@ -1,0 +1,187 @@
+{
+  "props": {
+    "CV3_SweetHouse": {
+      "model": {
+        "triangles": 6112,
+        "size": [
+          31.2438,
+          26.1,
+          29.927
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_SweetHouse",
+          "CV3_SweetHouse_Accent",
+          "CV3_SweetHouse_Base",
+          "CV3_SweetHouse_CandyLavender",
+          "CV3_SweetHouse_CandyLemon",
+          "CV3_SweetHouse_CandyMint",
+          "CV3_SweetHouse_Cushion",
+          "CV3_SweetHouse_Door",
+          "CV3_SweetHouse_Floor",
+          "CV3_SweetHouse_Furniture",
+          "CV3_SweetHouse_Hearts",
+          "CV3_SweetHouse_Icing",
+          "CV3_SweetHouse_Roof",
+          "CV3_SweetHouse_Trim",
+          "CV3_SweetHouse_Walls"
+        ],
+        "materials": [
+          "CV3_SweetHouse_Accent",
+          "CV3_SweetHouse_Base",
+          "CV3_SweetHouse_CandyLavender",
+          "CV3_SweetHouse_CandyLemon",
+          "CV3_SweetHouse_CandyMint",
+          "CV3_SweetHouse_Cushion",
+          "CV3_SweetHouse_Door",
+          "CV3_SweetHouse_Floor",
+          "CV3_SweetHouse_Furniture",
+          "CV3_SweetHouse_Hearts",
+          "CV3_SweetHouse_Icing",
+          "CV3_SweetHouse_Roof",
+          "CV3_SweetHouse_Trim",
+          "CV3_SweetHouse_Walls"
+        ]
+      }
+    },
+    "CV3_ChocoHouse": {
+      "model": {
+        "triangles": 5434,
+        "size": [
+          30.3946,
+          30.8948,
+          39.4
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_ChocoHouse",
+          "CV3_ChocoHouse_Cake",
+          "CV3_ChocoHouse_CandyMint",
+          "CV3_ChocoHouse_CandyPink",
+          "CV3_ChocoHouse_Cream",
+          "CV3_ChocoHouse_Cushion",
+          "CV3_ChocoHouse_Door",
+          "CV3_ChocoHouse_DoorBar",
+          "CV3_ChocoHouse_Floor",
+          "CV3_ChocoHouse_Furniture",
+          "CV3_ChocoHouse_Glaze",
+          "CV3_ChocoHouse_Plinth",
+          "CV3_ChocoHouse_Puddle",
+          "CV3_ChocoHouse_Rolls",
+          "CV3_ChocoHouse_Waffle"
+        ],
+        "materials": [
+          "CV3_ChocoHouse_Cake",
+          "CV3_ChocoHouse_CandyMint",
+          "CV3_ChocoHouse_CandyPink",
+          "CV3_ChocoHouse_Cream",
+          "CV3_ChocoHouse_Cushion",
+          "CV3_ChocoHouse_Door",
+          "CV3_ChocoHouse_DoorBar",
+          "CV3_ChocoHouse_Floor",
+          "CV3_ChocoHouse_Furniture",
+          "CV3_ChocoHouse_Glaze",
+          "CV3_ChocoHouse_Plinth",
+          "CV3_ChocoHouse_Puddle",
+          "CV3_ChocoHouse_Rolls",
+          "CV3_ChocoHouse_Waffle"
+        ]
+      }
+    },
+    "CV3_CaramelTower": {
+      "model": {
+        "triangles": 6154,
+        "size": [
+          26.4988,
+          27.5494,
+          49.1702
+        ],
+        "min_z": -0.0,
+        "objects": [
+          "CV3_CaramelTower",
+          "CV3_CaramelTower_Base",
+          "CV3_CaramelTower_CandyLemon",
+          "CV3_CaramelTower_Cap",
+          "CV3_CaramelTower_CapBand",
+          "CV3_CaramelTower_Cushion",
+          "CV3_CaramelTower_Door",
+          "CV3_CaramelTower_Floor",
+          "CV3_CaramelTower_Furniture",
+          "CV3_CaramelTower_Glass",
+          "CV3_CaramelTower_Leaf",
+          "CV3_CaramelTower_Ledge",
+          "CV3_CaramelTower_Newel",
+          "CV3_CaramelTower_NewelBand",
+          "CV3_CaramelTower_Stairs",
+          "CV3_CaramelTower_Strawberry",
+          "CV3_CaramelTower_Stripes",
+          "CV3_CaramelTower_Trim",
+          "CV3_CaramelTower_Walls",
+          "CV3_CaramelTower_WindowFrame"
+        ],
+        "materials": [
+          "CV3_CaramelTower_Base",
+          "CV3_CaramelTower_CandyLemon",
+          "CV3_CaramelTower_Cap",
+          "CV3_CaramelTower_CapBand",
+          "CV3_CaramelTower_Cushion",
+          "CV3_CaramelTower_Door",
+          "CV3_CaramelTower_Floor",
+          "CV3_CaramelTower_Furniture",
+          "CV3_CaramelTower_Glass",
+          "CV3_CaramelTower_Leaf",
+          "CV3_CaramelTower_Ledge",
+          "CV3_CaramelTower_Newel",
+          "CV3_CaramelTower_NewelBand",
+          "CV3_CaramelTower_Stairs",
+          "CV3_CaramelTower_Strawberry",
+          "CV3_CaramelTower_Stripes",
+          "CV3_CaramelTower_Trim",
+          "CV3_CaramelTower_Walls",
+          "CV3_CaramelTower_WindowFrame"
+        ]
+      }
+    },
+    "CV3_BananaRaft": {
+      "model": {
+        "triangles": 2154,
+        "size": [
+          8.64,
+          14.2,
+          7.9005
+        ],
+        "min_z": -1.2611,
+        "objects": [
+          "CV3_BananaRaft",
+          "CV3_BananaRaft_Cherry",
+          "CV3_BananaRaft_Choc",
+          "CV3_BananaRaft_Cream",
+          "CV3_BananaRaft_Floaters",
+          "CV3_BananaRaft_Hearts",
+          "CV3_BananaRaft_Hull",
+          "CV3_BananaRaft_ScoopPink",
+          "CV3_BananaRaft_ScoopVanilla",
+          "CV3_BananaRaft_Seat",
+          "CV3_BananaRaft_Sprinkles",
+          "CV3_BananaRaft_Stem",
+          "CV3_BananaRaft_Tips",
+          "SeatAnchor"
+        ],
+        "materials": [
+          "CV3_BananaRaft_Cherry",
+          "CV3_BananaRaft_Choc",
+          "CV3_BananaRaft_Cream",
+          "CV3_BananaRaft_Floaters",
+          "CV3_BananaRaft_Hearts",
+          "CV3_BananaRaft_Hull",
+          "CV3_BananaRaft_ScoopPink",
+          "CV3_BananaRaft_ScoopVanilla",
+          "CV3_BananaRaft_Seat",
+          "CV3_BananaRaft_Sprinkles",
+          "CV3_BananaRaft_Stem",
+          "CV3_BananaRaft_Tips"
+        ]
+      }
+    }
+  }
+}
