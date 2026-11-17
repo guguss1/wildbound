@@ -170,9 +170,11 @@ function Builder.syncTower(root, layout, kit, library)
 	local torta = typeof(root) == "Instance" and root:FindFirstChild("GranTorta") or nil
 	assert(torta, "no Gran Torta")
 	local key = Builder.layoutKey(L)
+	-- A cake placed for another layout (a v2 map under v3 code, where the Tower may not exist at all): lay nothing.
+	if torta:GetAttribute("LayoutKey") ~= key then return 0 end
 	local old = root:FindFirstChild("Tower")
 	if old then
-		if old:GetAttribute("LayoutKey") == key or torta:GetAttribute("LayoutKey") ~= key then return 0 end
+		if old:GetAttribute("LayoutKey") == key then return 0 end
 		old:Destroy()
 		local nests, S = root:FindFirstChild("Nests"), L.TOWER.summit
 		local stale = nests and S and nests:FindFirstChild("Nest_" .. S.id)

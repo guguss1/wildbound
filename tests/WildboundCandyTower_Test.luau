@@ -30,6 +30,7 @@ return function(Layout, Builder, Kit, sources, Nests, library)
 		root.Name = Layout.ROOT_NAME
 		local torta = Instance.new("Model")
 		torta.Name = "GranTorta"
+		torta:SetAttribute("LayoutKey", Builder.layoutKey(Layout)) -- syncTower lays nothing round a cake of another layout
 		torta.Parent = root
 		local nests = Instance.new("Folder")
 		nests.Name = "Nests"

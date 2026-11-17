@@ -49,7 +49,7 @@ Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), can
 	candyPostC6 = table.freeze({ x = 612, z = -157 }), candyPostC10 = table.freeze({ x = 564, z = -157 }),
 	-- GT2 (more creatures): one more extra post per candy creature, 12 studs from one of the eight GT2 nests
 	candyPostE3 = table.freeze({ x = 600, z = 33 }), candyPostR8 = table.freeze({ x = 514, z = 92 }),
-	candyPostR9 = table.freeze({ x = 564, z = 67 }), candyPostR10 = table.freeze({ x = 602, z = -36 }),
+	candyPostR9 = table.freeze({ x = 564, z = 67 }), candyPostR10 = table.freeze({ x = 608, z = -59 }),
 	candyPostC11 = table.freeze({ x = 582, z = 135 }), candyPostC12 = table.freeze({ x = 494, z = -103 }),
 	candyPostC13 = table.freeze({ x = 700, z = -152 }), candyPostR11 = table.freeze({ x = 639, z = 79 }) })
 -- CH1 (owner request 2026-11-16: "more repeated creatures in the Caramelo kingdom ... make it harder to be in that

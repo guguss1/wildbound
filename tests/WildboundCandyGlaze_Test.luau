@@ -79,6 +79,7 @@ return function(Glaze, Layout, Builder, sources)
 		local root = Instance.new("Model")
 		local torta = Instance.new("Model")
 		torta.Name = "GranTorta"
+		torta:SetAttribute("LayoutKey", Builder.layoutKey(Layout)) -- syncTower lays nothing round a cake of another layout
 		torta.Parent = root
 		Builder.syncTower(root, Layout)
 		local folder = root.Tower:FindFirstChild("Glaze")

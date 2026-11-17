@@ -189,7 +189,14 @@ task.delay(0.5, function()
 		added += select(2, Builder.layPaths(root, Layout))
 		added += select(2, Builder.layMarkers(root, Layout))
 		table.insert(summary.added, ("GranTorta (radius %g), Ground.Plaza, Boss, Paths, Markers: %d parts"):format(Layout.TORTA.radius, added))
-		-- 3. the tower
+		-- 3. the tower: an existing Tower and summit nest are archived first, so syncTower never destroys them
+		do
+			local oldTower = root:FindFirstChild("Tower")
+			if oldTower then archive(oldTower, "laid again for layout v3") end
+			local nestFolder, summit = root:FindFirstChild("Nests"), Layout.TOWER.summit
+			local oldSummit = nestFolder and summit and nestFolder:FindFirstChild("Nest_" .. summit.id)
+			if oldSummit then archive(oldSummit, "laid again for layout v3") end
+		end
 		local tower = Builder.syncTower(root, Layout, Kit, library)
 		table.insert(summary.added, ("Tower and summit nest: %d parts (%d steps)"):format(tower, #Layout.stairSteps()))
 		-- 4. the portal
