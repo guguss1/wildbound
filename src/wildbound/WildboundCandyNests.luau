@@ -132,7 +132,9 @@ end
 -- the candy kingdom's hiding places last, so they keep off the house nests too. A fifth value: the spots changed.
 -- Caramelo v6 (V6-D1): Grass (the sixth argument, nil = ServerStorage.WildboundCandyGrass, false = none) lays the tall
 -- licorice grass after the hide spots. A sixth value: the patches changed.
-function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass)
+-- Caramelo v6 (V6-D5): Traps (the seventh argument, nil = ServerStorage.WildboundCandyTraps, false = none) lays the sticky
+-- caramel puddles after the grass. A seventh value: the puddles changed.
+function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass, Traps)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
@@ -175,8 +177,21 @@ function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass)
 		end
 	end
 	if type(G) == "table" and type(G.sync) == "function" then okGrass, grass = pcall(G.sync, root, Layout) end
+	-- Caramelo v6 (V6-D5): the sticky caramel traps, after the grass (they keep off it and the hide spots). Traps (the
+	-- seventh argument, nil = ServerStorage.WildboundCandyTraps, false = none); a seventh value: the puddles changed.
+	local okTraps, traps = false, 0
+	local T = Traps
+	if T == nil then
+		local module = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyTraps")
+		if module and module:IsA("ModuleScript") then
+			local okRequire, loaded = pcall(require, module)
+			T = okRequire and loaded or nil
+		end
+	end
+	if type(T) == "table" and type(T.sync) == "function" then okTraps, traps = pcall(T.sync, root, Layout) end
 	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0,
-		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0, okGrass and tonumber(grass) or 0
+		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0, okGrass and tonumber(grass) or 0,
+		okTraps and tonumber(traps) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.

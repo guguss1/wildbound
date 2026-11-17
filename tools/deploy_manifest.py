@@ -519,6 +519,21 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyCookieBridge.luau", "ServerStorage.WildboundCandyCookieBridge"),
     ("src/wildbound/WildboundCandyCookieBridgeService.server.luau", "ServerScriptService.WildboundCandyCookieBridgeService"),
     ("tests/WildboundCandyCookieBridge_Test.luau", "ServerStorage.WildboundCandyCookieBridge_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D3): the river current: the pure flow field (shared by the
+    # raft service and the wade service) and the client that applies the server's push to its own wading character.
+    ("src/wildbound/WildboundCandyCurrent.luau", "ReplicatedStorage.WildboundCandyCurrent"),
+    ("src/wildbound/WildboundCandyCurrent.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyCurrentClient"),
+    ("tests/WildboundCandyCurrent_Test.luau", "ServerStorage.WildboundCandyCurrent_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D6): life on the map, client-only decoration (gummy birds,
+    # caramel butterflies, chocolate fish): pure rules shared with the client and the LocalScript that shows them.
+    ("src/wildbound/WildboundCandyLife.luau", "ReplicatedStorage.WildboundCandyLife"),
+    ("src/wildbound/WildboundCandyLife.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyLifeClient"),
+    ("tests/WildboundCandyLife_Test.luau", "ServerStorage.WildboundCandyLife_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D5): the sticky caramel traps, laid at server start through
+    # WildboundCandyNests.applyFlags; their slow rule lives in WildboundCandyTrapRules (stepped by WildboundBeasts).
+    ("tools/WildboundCandyTraps.luau", "ServerStorage.WildboundCandyTraps"),
+    ("src/wildbound/WildboundCandyTrapRules.luau", "ServerScriptService.WildboundCandyTrapRules"),
+    ("tests/WildboundCandyTraps_Test.luau", "ServerStorage.WildboundCandyTraps_Test"),
 ]
 
 

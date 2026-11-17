@@ -371,3 +371,93 @@ migration laid them.
    junction bridges never crack; the Top bridge rebuilds 45 s later (step off its footprint); the raft still stops
    short of both bridges.
 5. Missing in WildboundText: `CANDY_BRIDGE.crack` ("¡El puente de galleta se rompe!").
+
+## Caramelo v6, proposal 3: the river current (decision V6-D3 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+The pure flow field is `src/wildbound/WildboundCandyCurrent.luau` (ReplicatedStorage.WildboundCandyCurrent,
+ModuleScript): `flow(V3, x, z) -> vx, vz` in plot coordinates, plus the wader's `push`, `pushVector` and `applies`. The
+raft gets it through `WildboundCandyRaft.area(V3, centre, Current.flow)` (`area.flow`, read by `Raft.drift`), so the
+raft module itself still requires nothing. The wade service sets the wader's push on a player attribute and the new
+client `src/wildbound/WildboundCandyCurrent.client.luau` (StarterPlayer.StarterPlayerScripts.WildboundCandyCurrentClient,
+LocalScript) applies it to its own character. Changed: `WildboundCandyRaft`, `WildboundCandyRaftService`,
+`WildboundCandyWade` (the probe also returns the root's plot point) and `WildboundCandyWadeService`. Suite:
+`WildboundCandyCurrent_Test` (new); `WildboundCandyRaft_Test` (RF7 pin, new RF16) and `WildboundCandyWade_Test` (WD3,
+WD6) are updated. No map migration, no new remote, no WildboundText key.
+
+### Decisions taken for the user (V6, river current)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D30 | The flow field: inside the chocolate (`V3.liquidDistance < 0`, river, waterfall pool and lake), the direction is the downstream direction (`RIVER[i]` to `RIVER[i+1]`) of every river leg within `JOIN` = 6 studs of the nearest leg, weighted by `(1 - extra distance / 6)^2` and normalised; the speed is 4 on the river, eased to 1.5 over the first 8 studs inside a lake disc (`LAKE_BLEND`), and eased from 0 at the bank to full 2 studs inside it (`EDGE`). Out of the chocolate it is 0. On the real layout the direction turns at most about 6 degrees per stud along the centreline and 7.5 degrees per stud on a 1-stud grid; the suite allows 15. The waterfall pool flows into the river along leg 1. | A field with no jumps reads as water and keeps the raft from twitching at a joint; the bank ease keeps a wader from being pushed hard against the edge. |
+| V6-D31 | The wader's push is the flow's direction at at most 1.5 studs/s (`WADE_SPEED`): 1.5 on the river legs and in the lake alike, easing to 0 at the bank. It is rounded to 0.05 studs/s, and anything under 0.05 is no push. | V6-D3 gives waders "a gentle push of 1.5" with no lake exception; rounding keeps the replicated attribute from changing every probe. |
+| V6-D32 | The raft drifts with the current only while afloat, Sailing or Adrift (also with nobody aboard). Docked, Boarding or Called it stays exactly at its dock tip. The drift is a separate shift each step through the same hull, bank and bridge rule as the raft's own move (a bank or a bridge stops it, a slide along x or z is allowed); it never changes `state.speed`, which stays the speed through the water. `DOCK_SPEED` (4) and the arming rule are unchanged: they compare that water speed, and the lake's 1.5 at both dock tips is under `DOCK_SPEED`, so the rider can hold and dock (the suite docks at both with the current). An abandoned raft drifts downstream until it stops by a dock tip or `RESPAWN_SECONDS` (8) after it was left, when it is back at its home dock as before, so it never stays stuck against a bank. `Raft.CURRENT_MAX` (4) caps whatever a flow returns. | The docks keep working exactly as before; the existing respawn rule already covers a raft pinned by the current. |
+| V6-D33 | The wader's push is applied on the client, decided on the server. Characters are client-owned physics, and a server LinearVelocity or VectorForce would fight the humanoid's own controller (or be cancelled by it). So WildboundCandyWadeService, on its existing 0.15 s probe, sets the player attribute `WildboundCandyCurrent` (a Vector3, world studs/s) while `WildboundCandyWade.wading` holds, and clears it otherwise. WildboundCandyCurrentClient moves its own root by `push * dt` before each physics step, only if `Current.applies` (a Vector3 no stronger than 1.5, live, not seated) and no solid part stands within 1.5 studs ahead in the push's direction. The client sends nothing. | Robust with the humanoid controller and never trusts the client: the client can only skip the push, which an exploiter could do anyway by moving their own character. |
+| V6-D34 | Removal: the push is cleared on the next probe (0.15 s at most) when the player leaves the chocolate, stands on a deck, dock or platform over the surface, dies or sits (the raft's seat, so a rider is never pushed twice), all through `Wade.wading`. It is also cleared on a new character, and dropped when the player leaves. The client also stops at once when the humanoid is dead or seated or the attribute is gone. The creatures (beasts, bees, La Duquesa) are never pushed: the service loops over players only, and nothing touches their scripts. | Matches V6-D3's rules with the existing wading probe, so wading and the push can never disagree. |
+
+## Caramelo v6, proposal 6: life on the map (decision V6-D6 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+Decoration only, on each client. The pure rules are `src/wildbound/WildboundCandyLife.luau`
+(ReplicatedStorage.WildboundCandyLife, ModuleScript): the budgets per device, the six bird flocks, the butterfly sites
+(the seven houses and two spots of the lollipop avenue), the ten fish spots, each creature's path at time t, and the
+nearest-N culling. The client script is `src/wildbound/WildboundCandyLife.client.luau`
+(StarterPlayer.StarterPlayerScripts.WildboundCandyLifeClient, LocalScript): it makes plain parts in one folder under
+the camera while the player is in the candy biome, re-picks at 2 Hz and moves every shown part in one
+`workspace:BulkMoveTo` per frame. Suite: `WildboundCandyLife_Test`. No map change, no server code, no remote, no
+upload, no sound.
+
+### Decisions taken for the user (V6, life on the map)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D50 | The layout numbers the client needs (plot centre, half side, floor top, the chocolate's depth, the seven house rows) are copied into `WildboundCandyLife`, and the suite pins each copy equal to `WildboundCandyLayout` / `WildboundCandyV3Layout`. The bird flock centres and the fish jump spots are hand-placed plot points, and the suite checks every one against the real layout (`V3.liquidDistance`, `V3.bridgeFrame`, the platforms, the docks, the Gran Torta's tiers). At runtime the plot's centre and floor height come from the live `Ground.Floor` part, with the copied numbers as the fallback. The client does not read the live River, Lake or Houses parts. | The layout modules sit in ServerStorage, where clients cannot read them. The live parts stream in late or not at all on a phone, and fish must never jump out of a bank that has not loaded. Fixed points also make every path testable without Studio. The pin catches any layout change. |
+| V6-D51 | The budget is at most 12 birds (4 flocks of 3), 16 butterflies (8 sites of 2) and 6 fish shown at once on desktop. Touch devices get half (6, 8, 3). A bird is 3 parts, a butterfly 3, a fish 2: 96 parts at most. With Efectos suaves (the world gui's `Reduced`) nothing is shown at all, because everything here is motion. | The small budget the decision asks for. Efectos suaves already turns off the ambience's motion and sparkles (`WildboundCandyAmbience.BUDGETS.soft`). |
+| V6-D52 | The biome check is the candy ambience's own rule, `WildboundCandyAmbience.inside`, with its enter and leave margins. It reads the floor's rectangle, or the Caramelo square of `WildboundBiomeLight` when the floor has not streamed in. Outside the biome the whole folder is destroyed. Culling: every 0.5 s `Life.plan` keeps only the flocks within 320 studs, butterfly sites within 120 and fish spots within 150 of the camera (flat distance), nearest first, up to the budget. Everything else is destroyed, so nothing far away costs a frame. | The same in and out moment as the lights, sparkles and music. Birds fly high and read from far away; butterflies are small and only matter up close. |
+| V6-D53 | Gummy birds circle 46 to 58 studs over the floor. That is over the tallest piece in the open (mountain M1, 40.7), inside the plot by at least 5 studs, and far from the Gran Torta (the only taller piece). Each flock is centred on dry meadow, off the chocolate and the houses, at 9 studs/s, with two flapping wings. The butterflies (caramel, pink and lemon) flutter 2.6 to 6.4 studs up. At a house they stay on the side that faces the junction, 2.5 to 5.5 studs outside its footprint, so never inside a wall. On the lollipop avenue they stay within 4.5 studs of the spot. | "Over the meadows" and "near the houses and the flowers": the candy biome has no flower props, so the lollipop avenue and the gumdrop and mushroom filler round each house stand in for them. |
+| V6-D54 | The fish: each of the ten spots (five in the river, five in the lake) jumps for 1.2 s every 6 to 9.75 s, so each one is up about 16 % of the time. The jump is a 7-stud arc along the river's flow, from 1 stud under the surface up to 4 over it and back under. The whole arc is at least 3 studs inside the chocolate, 3 studs clear of every bridge and its ramps (the cookie bridges can fall), 3 clear of every cookie platform and 8 from each dock tip. Between jumps the fish is invisible. | "Now and then": a fish up every few seconds in each part of the water, never in the air for long. The clearances keep a fish from jumping through a deck, a cookie or the docked raft. |
+| V6-D55 | All plain parts, made at runtime: SmoothPlastic, anchored, massless, with CanCollide, CanTouch, CanQuery and CastShadow off. The kit pieces are in ServerStorage (not visible to clients), and none of them is a bird, a butterfly or a fish. Heartbeat drives the motion (the per-render step did not fire in Studio Play, as with the ambience). A failing step tears everything down and warns once. | No gameplay effect and no asset upload. |
+
+### What the parent does in Studio, in order (v6 life on the map)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyLife` (new ModuleScript, ReplicatedStorage), `WildboundCandyLifeClient`
+   (new LocalScript, StarterPlayer.StarterPlayerScripts) and `WildboundCandyLife_Test` (new ModuleScript, ServerStorage).
+   Nothing else changes.
+3. Run `WildboundCandyLife_Test` with the fresh runner.
+4. Clear the lock and Play solo: walk into Caramelo. Birds should circle overhead, butterflies flutter at the nearest
+   houses, and fish jump in the river and the lake now and then. Leave the plot: everything goes. Turn on Efectos
+   suaves: nothing shows. Check the camera folder `WildboundCandyLife` stays under 96 parts.
+
+## Caramelo v6, proposal 5: sticky caramel traps (decision V6-D5 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+The puddles are laid at server start by `tools/WildboundCandyTraps.luau` (ServerStorage.WildboundCandyTraps,
+ModuleScript), called from `WildboundCandyNests.applyFlags` after the licorice grass (a seventh argument: nil =
+ServerStorage lookup, false = none; guarded with pcall; a seventh return value), idempotent, the same way as
+`WildboundCandyGrass`. The pure rule is `src/wildbound/WildboundCandyTrapRules.luau`
+(ServerScriptService.WildboundCandyTrapRules, ModuleScript: `TRAP`, `affects`, `trapPatches`, `inTrap`, `stuck`,
+`slowStep`), applied by WildboundBeasts after each brain step (`world.trapSlow`, telemetry `Beast_trapped`). Suite:
+`WildboundCandyTraps_Test` (new); `WildboundCandyGrass_Test` and `WildboundCandyNests_Test` pins of the beasts' counters
+line are updated. No upload, no client script, no new remote, no WildboundText key.
+
+### Decisions taken for the user (V6, caramel traps)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D40 | "A candy creature on the ground" is a candy brain (`WildboundCandyHiding.candy`: the `WildboundCandySmarts.PROFILES`) whose `WildboundBeastConfig` entry is `grounded = true`: Mochimiau, Canelin, Flanin, GatoRepartidor, Gomibu, Flanfuria, Tortidragon and Don Glaseon. Mielita (`grounded = false`, she hovers) is not slowed. The bees (Zumbidulces) and La Duquesa run in their own services and never read the traps; forest beasts and players are never slowed. | V6-D5 says the flyers are not affected; the config already marks who walks. |
+| V6-D41 | The slow is applied to the creature's position after its brain steps: when the step started or ended inside a puddle, or the creature's last step inside was under 2 s ago, the new spot is pulled back along the step to `start + (new - start) * 0.4` (height too). The brains keep no velocity of their own (each step moves from `e.pos` by speed times dt), so nothing undoes it, and the snapshots and the client models follow `e.pos`. It runs before the house refuge (`world.keepOut`), which stays the last word. | The least invasive place: one post-step on the server, the same spot as the house refuge, no brain edited. |
+| V6-D42 | A committed leap, roll or jump in flight (the `Release` and `Jump` phases, before or after the step) is not slowed: its path and strike are fixed by time, so slowing the body would leave it short of where its own strike lands. A step longer than 12 studs is a placement (a leash snap or a landing), not a walk, and is kept. The 2 s tail still runs through those steps. | Keeps the body and the strike together; the chase between attacks is what the puddle slows. |
+| V6-D43 | 8 puddles (`TARGET`), footprint radius 6 (a creature whose spot is within 6 studs of the centre is in it), 8 plain parts each (64 in all): a wide caramel disc (1.7 x radius across), 4 darker lobes round its rim (reaching 0.95 x radius) and 3 shiny drops, SmoothPlastic with some reflectance, flat (0.2 thick), anchored, CanCollide, CanTouch, CanQuery and CastShadow off. Folder `Candy_Bioma_v1.CaramelTraps`, models `Trap_H<n>` (near a house: house number x 10 + its try) and `Trap_R<n>` (beside a route: the candidate's number), tag `WildboundCandyTrap`, attributes Radius, TrapId, Near, CandyTrap. | A puddle about two strides across is easy to lead a hunter over; a fixed shape keeps the sync idempotent. |
+| V6-D44 | Placement: up to 3 near the houses (one per house, tries round each house 4 studs past the radius out from its footprint disc, towards the junction first), then beside the routes (every 24 studs along the main, left and right routes, not "deep", both sides, rows 1, 9 and 17 studs past the nearest a puddle may stand to a path) until 8; each next puddle the clear try farthest from those laid, at least 40 studs apart. Clear of (past the 6 radius unless said): the chocolate by 4 (the layout's `liquidDistance` at sync time and the live River and Lake parts), the path edge by 2, a nest's centre by 10, a post's centre by 14, a house or v3 piece by 2, a bridge by 3, the boss plaza, the portal (14), the entrance (60), the kept-clear grounds, the plot edge (4), a live v5 hide spot's centre by 8, a live licorice patch by 4 past both radii, and anything that collides within 7 studs of the centre at body height. The live map is read with `WildboundCandyHideSpots.read`, plus the live `HideSpots` and `LicoriceGrass` folders. | "Open ground beside the routes and near the houses, clear of the paths, water, nests, posts, hide spots and grass"; a post's creature never patrols in a puddle. |
+| V6-D45 | Which puddle a creature stands in comes from the server's encounter position and the puddles' tagged models (pivot and Radius, re-read every 5 s). The rule module is found with `FindFirstChild`, so a place without it simply has no slow. Telemetry `Beast_trapped` counts each catch (free the step before, stuck now), not each slowed step. | Server authority; no per-step attribute writes. |
+
+### What the parent does in Studio, in order (v6 caramel traps)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyTraps` (new ModuleScript, ServerStorage), `WildboundCandyTrapRules`
+   (new ModuleScript, ServerScriptService), `WildboundCandyNests`, `WildboundBeasts`; the suites `WildboundCandyTraps_Test`
+   (new ModuleScript, ServerStorage), `WildboundCandyGrass_Test` and `WildboundCandyNests_Test` (their counters pin).
+   Deploy `WildboundCandyTrapRules` before or with `WildboundBeasts`.
+3. Run those suites with the fresh runner (`WildboundCandyNests_Test` needs Studio's WildboundServer).
+4. Clear the lock and Play solo: the puddles stand beside the routes and near the houses, clear of the grass and the
+   hide spots; lead a chasing critter across one (it slows to 40 % inside and for 2 s after, the player keeps full
+   speed); `Beast_trapped` grows. Note how many were laid (the sync's skipped list says `short:<k>` when fewer than 8
+   fit in the live map).

@@ -375,7 +375,7 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 	-- The wiring ----------------------------------------------------------------------------------------------------
 	case("V6-D1 wiring: the beast server works out the grass from positions and shows each candy brain its view", function()
 		local beasts = sources.beasts
-		has(beasts, "hideLost = 0, grassLost = 0 }", "the grass counter is seeded (count() errors on an unseeded key)")
+		has(beasts, "hideLost = 0, grassLost = 0,", "the grass counter is seeded (count() errors on an unseeded key)")
 		has(beasts, 'H.grassPatches(game:GetService("CollectionService"):GetTagged(H.GRASS.tag))', "the patches from their tagged models")
 		has(beasts, 'H.covered(H.inGrass(world.grassPatches, x, z), player:GetAttribute("WildboundStance"))',
 			"in a patch (server positions) and not sprinting")

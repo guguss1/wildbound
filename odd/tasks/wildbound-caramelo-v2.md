@@ -591,6 +591,14 @@ They come after v5 lands, in this order, each one loaded and checked in Play bef
 | V6-D3 | River current: the chocolate flows from the waterfall (north) to the south edge. The raft drifts with it at up to 4 studs/s on the river legs and 1.5 in the lake, so going upstream is slower and downstream faster. Waders feel a gentle push of 1.5 studs/s. Creatures are not pushed. | Proposal 3: the river feels alive and the raft has something to master. |
 | V6-D4 | An island in the big lake (radius about 9), away from the docks and the raft's main line, with one Epica egg nest (outside Layout.NESTS, like the house nests) and a few candy decorations. You reach it by raft or by wading slowly. It has no guardian post, so a steal raises the usual alarm and the frenzy. | Proposal 4: a rare prize that uses the bigger lake and the raft. |
 
+### Caramelo v6, more proposals (owner, 2026-11-17: "trampas dulces y viditas, agregá eso y terminá todas las tareas")
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D5 | Sticky caramel traps: about 8 puddles of shiny sticky caramel on open ground beside the routes and near the houses, clear of the paths, water, nests, posts, hide spots and grass. They are flat, non-colliding plain parts with no upload. A candy creature on the ground (critters and the ground bosses) that walks into a puddle moves at 40 % speed while inside it and for 2 s after. Players are not slowed: the traps are a tool for escaping, so you lead a hunter across one. Bees and La Duquesa fly, so they are not affected. | Proposal 5: the map itself helps you escape. |
+| V6-D6 | Life on the map, decoration only, run on the client so the server does no work: gummy birds circling over the meadows, caramel butterflies near the houses and the flowers, and chocolate fish jumping out of the river and the lake now and then. No gameplay effect, no collisions, plain parts or existing kit pieces, no upload, a small budget of moving parts, and they stop when far from the camera. | Proposal 10: the kingdom should feel alive. |
+| V6-D7 | "Finish all tasks" means, after the current and the island: lay more grass if it fits (V6-D1 laid only 5 of 10), check in Play what was not yet checked, and record the text keys still missing. Changes to WildboundText or WildboundServer wait for the other branch to be merged, so their missing keys stay in code fallbacks. | The owner asked to finish everything pending. |
+
 ### Evidence: V6-D1 tall licorice grass deploy (2026-11-17)
 
 Studio b15ce60a, Edit only, with the import and Play locks cleared afterwards; the place is not saved. The code was committed as ff38255 and deployed by hunks plus 2 new modules (WildboundCandyGrass, WildboundCandyGrass_Test). All 12 files were fingerprint-checked equal to the repo. Extra decisions V6-D10 to V6-D16 are in docs/design/wildbound-caramelo-v3-plan.md.

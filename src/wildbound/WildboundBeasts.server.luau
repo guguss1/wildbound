@@ -98,7 +98,7 @@ local players = {} -- [Player] = { respawnedAt, outsideSince, character }
 local live = {} -- [encounter id] = { e = encounter, player = Player, character = Model, world = per-encounter adapter }
 local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strike time } } (anti-frustration stagger)
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
-	observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0, grassLost = 0 }
+	observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0, grassLost = 0, trapped = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
 local AUDIENCE = Config.AUDIENCE
 local audience = Audience.new() -- SC0: which other players see which encounter
@@ -943,6 +943,31 @@ function world.grassView(entry, target, at)
 	return H.view(target, "far", e, nil, at), pre
 end
 
+-- V6-D5 (Caramelo v6, odd/tasks/wildbound-caramelo-v2.md; V6-D40.. in docs/design/wildbound-caramelo-v3-plan.md): the
+-- sticky caramel traps. Kept on `world` (no new local). trapSlow: after a brain step, a candy creature on the ground
+-- (WildboundCandyTrapRules.affects: candy and grounded; the bees and La Duquesa run in their own services) whose step
+-- started or ended in a puddle, or left one under TRAP.afterSeconds ago, covers TRAP.slow of the step (its new spot is
+-- pulled back along the step). The puddles are the tagged models (pivot and Radius), re-read every 5 s. Only the
+-- creature's position changes; no player is ever slowed. A module missing in the place changes nothing.
+function world.trapSlow(entry, px, py, pz, phase, at)
+	local e = entry.e
+	if world.trapRules == nil then
+		local module = script.Parent:FindFirstChild("WildboundCandyTrapRules")
+		local ok, loaded = pcall(function() return module and require(module) end)
+		world.trapRules = ok and type(loaded) == "table" and loaded or false
+	end
+	local R = world.trapRules
+	world.hiding = world.hiding or require(script.Parent:WaitForChild("WildboundCandyHiding"))
+	if not R or not R.affects(world.hiding.candy(e.beast), Config.BEASTS[e.beast]) then return end
+	if not world.trapsAt or at - world.trapsAt >= 5 or at < world.trapsAt then
+		world.trapsAt = at
+		world.traps = R.trapPatches(CollectionService:GetTagged(R.TRAP.tag))
+	end
+	entry.trap = entry.trap or {}
+	local _, caught = R.slowStep(e, px, py, pz, world.traps, entry.trap, at, phase)
+	if caught then count("trapped") end
+end
+
 local function stepEncounter(id, entry, at)
 	local target = targetOf(entry)
 	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
@@ -951,12 +976,14 @@ local function stepEncounter(id, entry, at)
 		return
 	end
 	local px, pz = entry.e.pos and entry.e.pos.x, entry.e.pos and entry.e.pos.z
+	local py, phase = entry.e.pos and entry.e.pos.y, entry.e.phase -- V6-D5: the step's start, for the caramel traps
 	local pre
 	target, pre = world.hideView(entry, target, at) -- V5-D2: a hidden player is never acquired; a hunter searches
 	-- V6-D1: a player in the licorice grass who is not sprinting is seen only within GRASS.seeStuds
 	if not pre and not (target and target.hidden) then target, pre = world.grassView(entry, target, at) end
 	local events = Enc.step(entry.e, at, target, entry.world or world)
 	for i, event in ipairs(pre or {}) do table.insert(events, i, event) end
+	world.trapSlow(entry, px, py, pz, phase, at) -- V6-D5: a candy creature on the ground is slowed in a caramel puddle
 	world.keepOut(entry.e, px, pz, at) -- V4-D12: never inside a house
 	for _, event in ipairs(events) do
 		if event.type == "End" then

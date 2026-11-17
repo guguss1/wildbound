@@ -225,10 +225,33 @@ SPECS["WildboundCandyGrass_Test"] = {
 	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
 		nests = "src:WildboundCandyNests" },
 }
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D5): the sticky caramel traps (detached fixtures), the slow rule
+-- with a real Mochimiau brain, and the wiring
+SPECS["WildboundCandyTraps_Test"] = {
+	"mod:WildboundCandyTraps", "mod:WildboundCandyTrapRules", "mod:WildboundCandyHideSpots", "mod:WildboundCandyGrass",
+	"mod:WildboundCandyHiding", "mod:WildboundCandyLayout", "mod:WildboundCandyV3Layout", "mod:WildboundBeastEncounters",
+	"mod:WildboundBeastCandyCritter", "mod:WildboundBeastConfig", "mod:WildboundCandyNests",
+	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
+		nests = "src:WildboundCandyNests" },
+}
 -- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D2): the crumbling cookie bridges (pure rules, real layout, wiring)
 SPECS["WildboundCandyCookieBridge_Test"] = {
 	"mod:WildboundCandyCookieBridge", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout",
 	{ service = "src:WildboundCandyCookieBridgeService" },
+}
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D6): life on the map (pure paths and culling pinned to the real
+-- layout, client wiring)
+SPECS["WildboundCandyLife_Test"] = {
+	"mod:WildboundCandyLife", "mod:WildboundCandyAmbience", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout",
+	{ client = "src:WildboundCandyLifeClient" },
+}
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D3): the river current (pure flow field on the real layout, the
+-- raft and the wader's push, wiring)
+SPECS["WildboundCandyCurrent_Test"] = {
+	"mod:WildboundCandyCurrent", "mod:WildboundCandyRaft", "mod:WildboundCandyWade", "mod:WildboundCandyV3Layout",
+	"mod:WildboundCandyLayout",
+	{ raftService = "src:WildboundCandyRaftService", wadeService = "src:WildboundCandyWadeService",
+		client = "src:WildboundCandyCurrentClient" },
 }
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },

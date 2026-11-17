@@ -638,6 +638,18 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundCandyCookieBridge.luau": "ServerStorage.WildboundCandyCookieBridge",
         "src/wildbound/WildboundCandyCookieBridgeService.server.luau": "ServerScriptService.WildboundCandyCookieBridgeService",
         "tests/WildboundCandyCookieBridge_Test.luau": "ServerStorage.WildboundCandyCookieBridge_Test",
+        # Caramelo v6: the river current
+        "src/wildbound/WildboundCandyCurrent.luau": "ReplicatedStorage.WildboundCandyCurrent",
+        "src/wildbound/WildboundCandyCurrent.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyCurrentClient",
+        "tests/WildboundCandyCurrent_Test.luau": "ServerStorage.WildboundCandyCurrent_Test",
+        # Caramelo v6: life on the map (client-only decoration)
+        "src/wildbound/WildboundCandyLife.luau": "ReplicatedStorage.WildboundCandyLife",
+        "src/wildbound/WildboundCandyLife.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyLifeClient",
+        "tests/WildboundCandyLife_Test.luau": "ServerStorage.WildboundCandyLife_Test",
+        # Caramelo v6: the sticky caramel traps
+        "tools/WildboundCandyTraps.luau": "ServerStorage.WildboundCandyTraps",
+        "src/wildbound/WildboundCandyTrapRules.luau": "ServerScriptService.WildboundCandyTrapRules",
+        "tests/WildboundCandyTraps_Test.luau": "ServerStorage.WildboundCandyTraps_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):
