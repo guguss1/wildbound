@@ -510,6 +510,10 @@ DEFAULT_MAPPINGS = [
     ("tools/WildboundCandyHideSpots.luau", "ServerStorage.WildboundCandyHideSpots"),
     ("src/wildbound/WildboundCandyHiding.luau", "ServerScriptService.WildboundCandyHiding"),
     ("tests/WildboundCandyHideSpots_Test.luau", "ServerStorage.WildboundCandyHideSpots_Test"),
+    # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D1): the tall licorice grass, laid at server start through
+    # WildboundCandyNests.applyFlags; its rule lives in WildboundCandyHiding.
+    ("tools/WildboundCandyGrass.luau", "ServerStorage.WildboundCandyGrass"),
+    ("tests/WildboundCandyGrass_Test.luau", "ServerStorage.WildboundCandyGrass_Test"),
 ]
 
 

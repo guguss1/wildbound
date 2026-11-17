@@ -533,8 +533,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(hits, 2, "no hit and no affliction on a sheltered player")
 		-- count() adds to counts[key]: an unseeded key errors and ends the encounter (seen in Play 2026-11-17)
 		-- V5-D2 (Caramelo v5): the hiding counters follow it on the same line
-		has(beasts, "observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0 }",
-			"the sheltered and hiding counters are seeded")
+		-- V6-D1 (Caramelo v6): the grass counter follows them
+		has(beasts, "observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0, grassLost = 0 }",
+			"the sheltered, hiding and grass counters are seeded")
 	end)
 
 	-- CH1 wiring: the beast server summons each extra post through the director (one per post) and starts it on the ground

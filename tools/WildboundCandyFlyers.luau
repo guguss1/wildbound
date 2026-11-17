@@ -108,6 +108,14 @@ F.HOUSE_GIVEUP_SECONDS = 3
 -- treated like one in a house: never woken on, no new dive and no sting, and the swarm gives up after
 -- HIDE_GIVEUP_SECONDS ("Hidden"), egg or not.
 F.HIDE_GIVEUP_SECONDS = F.HOUSE_GIVEUP_SECONDS
+-- V6-D1 (Caramelo v6): the tall licorice grass. A player in a grass patch who is not sprinting (players[i].grassCover,
+-- worked out by the service from the server's positions: WildboundCandyHiding.covered) is seen by a swarm only within
+-- GRASS_SEE_STUDS: such a player wakes a hive only that close (not NOTICE_STUDS), and a chasing swarm whose every bug
+-- stays farther than that for GRASS_MEMORY_SECONDS loses them ("Grass"). The same numbers as WildboundCandyHiding.GRASS.
+-- A chasing swarm flies a ring CHASE_RING_STUDS round its target, so in practice the grass shakes it off only once the
+-- player has left it behind (V6-D11).
+F.GRASS_SEE_STUDS = 10
+F.GRASS_MEMORY_SECONDS = 3
 F.WADE_LOSE_SECONDS = 2
 F.NO_EGG_LEASH_STUDS = 70
 F.HOUSE_MARGIN_STUDS = 1.5
@@ -365,6 +373,19 @@ local function lost(world, swarm, target, now)
 		else
 			swarm.hideSince = nil
 		end
+		-- V6-D1: in the grass, not sprinting, and every bug farther than GRASS_SEE_STUDS
+		local unseen = target.grassCover == true
+		if unseen then
+			for _, bug in ipairs(swarm.bugs) do
+				if flat(bug.x, bug.z, target.x, target.z) <= F.GRASS_SEE_STUDS then unseen = false break end
+			end
+		end
+		if unseen then
+			swarm.grassSince = swarm.grassSince or now
+			if now - swarm.grassSince >= F.GRASS_MEMORY_SECONDS - 1e-9 then return "Grass" end
+		else
+			swarm.grassSince = nil
+		end
 	end
 	if target.carryingEgg == false and flat(target.x, target.z, swarm.hive.x, swarm.hive.z) > F.NO_EGG_LEASH_STUDS then
 		return "Leash"
@@ -386,7 +407,7 @@ local function giveUp(swarm, now, reason, events)
 	end
 	table.insert(events, { kind = "GiveUp", at = now, swarm = swarm.id, id = swarm.target, reason = reason, vanish = far or nil })
 	swarm.phase, swarm.target, swarm.diving = far and "Vanish" or "Return", nil, nil
-	swarm.shelterSince, swarm.wadeSince, swarm.hideSince = nil, nil, nil
+	swarm.shelterSince, swarm.wadeSince, swarm.hideSince, swarm.grassSince = nil, nil, nil, nil
 	swarm.vanishUntil = far and now + F.VANISH_SECONDS or nil
 	swarm.cooldownUntil = now + F.COOLDOWN_SECONDS
 end
@@ -534,13 +555,15 @@ function F.step(world, now, players, hooks)
 			for _, p in ipairs(players or {}) do
 				if usable(world, p) and (awake[p.id] or 0) < F.MAX_AWAKE_PER_PLAYER then
 					local d = flat(p.x, p.z, swarm.hive.x, swarm.hive.z)
-					if d <= F.NOTICE_STUDS and (best == nil or d < best) then target, best = p, d end
+					-- V6-D1: a player in the grass who is not sprinting is noticed only GRASS_SEE_STUDS from the hive
+					local reach = p.grassCover == true and F.GRASS_SEE_STUDS or F.NOTICE_STUDS
+					if d <= reach and (best == nil or d < best) then target, best = p, d end
 				end
 			end
 			if target then
 				awake[target.id] = (awake[target.id] or 0) + 1
 				swarm.phase, swarm.target, swarm.stings = "Alert", target.id, 0
-				swarm.shelterSince, swarm.wadeSince, swarm.hideSince = nil, nil, nil
+				swarm.shelterSince, swarm.wadeSince, swarm.hideSince, swarm.grassSince = nil, nil, nil, nil
 				swarm.chaseAt = now + F.WAKE_TELL_SECONDS
 				table.insert(events, { kind = "Wake", at = now, swarm = swarm.id, id = target.id, chaseAt = swarm.chaseAt })
 			end

@@ -98,7 +98,7 @@ local players = {} -- [Player] = { respawnedAt, outsideSince, character }
 local live = {} -- [encounter id] = { e = encounter, player = Player, character = Model, world = per-encounter adapter }
 local claims = {} -- [Player] = { [attack id] = { enc = encounter id, at = strike time } } (anti-frustration stagger)
 local counts = { started = 0, ended = 0, hits = 0, refused = 0, noSpawn = 0, errors = 0, dodged = 0, staggered = 0,
-	observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0 }
+	observeDropped = 0, afflicted = 0, sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0, grassLost = 0 }
 local eventLog = {} -- the last events with their server times, for the Studio probe
 local AUDIENCE = Config.AUDIENCE
 local audience = Audience.new() -- SC0: which other players see which encounter
@@ -872,7 +872,18 @@ function world.hideView(entry, target, at)
 	end
 	entry.search = entry.search or H.newSearch(target.x, target.z, at, e.id)
 	if not H.expired(entry.search, at) then return H.view(target, plan, e, entry.search, at), nil end
-	-- the search ran out: it gives up like any other hunt ending (an open attack is called off first)
+	-- the search ran out: it gives up like any other hunt ending (world.loseHunt)
+	local pre = world.loseHunt(entry, at)
+	count("hideLost")
+	entry.search = nil
+	return H.view(target, "far", e, nil, at), pre
+end
+-- A search that ran out (a hidden player, V5-D2, or one lost in the grass, V6-D1): the creature gives up like any other
+-- hunt ending ("Lost": it walks home, or fades out far from its post); an open attack is called off first. Returns the
+-- events, which go before the brain's own.
+function world.loseHunt(entry, at)
+	local e = entry.e
+	world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
 	local pre = {}
 	for _, attackId in ipairs(Attack.openIds(e)) do Attack.drop(pre, e, entry.world or world, e.open[attackId], at, "Lost") end
 	e.attack, e.side, e.jump, e.cast = nil, nil, nil, nil
@@ -884,8 +895,51 @@ function world.hideView(entry, target, at)
 	else
 		Attack.phase(pre, e, "Return", at, nil, { reason = "Lost" })
 	end
-	count("hideLost")
-	entry.search = nil
+	return pre
+end
+
+-- V6-D1 (Caramelo v6, odd/tasks/wildbound-caramelo-v2.md; V6-D10.. in docs/design/wildbound-caramelo-v3-plan.md): the
+-- tall licorice grass. Kept on `world` (no new local). inCover: the player stands in a grass patch (worked out here from
+-- the server's positions and the patches' tagged models, WildboundCandyHiding.inGrass) and is not sprinting
+-- (WildboundStance). grassView: a candy creature farther than GRASS.seeStuds from a covered player does not see them:
+-- a calm one gets the v5 "far" view (it never notices them); a hunter keeps the real target for GRASS.memorySeconds,
+-- then searches round where it lost them like a hidden player, and gives up ("Lost") when the search runs out. Within
+-- seeStuds, or once the player sprints or leaves the grass, the real target again (a searcher that comes close sees
+-- them and hunts on). Returns the view and the events of a give-up (or nil).
+function world.inCover(player, x, z, at)
+	world.hiding = world.hiding or require(script.Parent:WaitForChild("WildboundCandyHiding"))
+	local H = world.hiding
+	if not world.grassAt or at - world.grassAt >= 5 or at < world.grassAt then
+		world.grassAt = at
+		world.grassPatches = H.grassPatches(game:GetService("CollectionService"):GetTagged(H.GRASS.tag))
+	end
+	return typeof(player) == "Instance" and H.covered(H.inGrass(world.grassPatches, x, z), player:GetAttribute("WildboundStance"))
+end
+function world.grassView(entry, target, at)
+	local e, player = entry.e, entry.player
+	world.hiding = world.hiding or require(script.Parent:WaitForChild("WildboundCandyHiding"))
+	local H = world.hiding
+	if not target or not H.candy(e.beast) then
+		entry.grass = nil
+		return target, nil
+	end
+	local covered = world.inCover(player, target.x, target.z, at)
+	local concealed = covered and H.concealed(Config.flat(e.pos.x, e.pos.z, target.x, target.z), true, nil)
+	entry.grass = entry.grass or {}
+	local plan = H.grassPlan(e, concealed == true, e.beast, entry.grass, at)
+	if plan == "none" then
+		entry.grass.search = nil
+		return target, nil
+	end
+	if plan ~= "search" then
+		entry.grass.search = nil
+		return H.view(target, plan, e, nil, at), nil
+	end
+	entry.grass.search = entry.grass.search or H.newSearch(target.x, target.z, at, e.id)
+	if not H.expired(entry.grass.search, at) then return H.view(target, plan, e, entry.grass.search, at), nil end
+	local pre = world.loseHunt(entry, at)
+	count("grassLost")
+	entry.grass = nil
 	return H.view(target, "far", e, nil, at), pre
 end
 
@@ -899,6 +953,8 @@ local function stepEncounter(id, entry, at)
 	local px, pz = entry.e.pos and entry.e.pos.x, entry.e.pos and entry.e.pos.z
 	local pre
 	target, pre = world.hideView(entry, target, at) -- V5-D2: a hidden player is never acquired; a hunter searches
+	-- V6-D1: a player in the licorice grass who is not sprinting is seen only within GRASS.seeStuds
+	if not pre and not (target and target.hidden) then target, pre = world.grassView(entry, target, at) end
 	local events = Enc.step(entry.e, at, target, entry.world or world)
 	for i, event in ipairs(pre or {}) do table.insert(events, i, event) end
 	world.keepOut(entry.e, px, pz, at) -- V4-D12: never inside a house
@@ -1011,6 +1067,9 @@ local function summonPass(player, at)
 	-- V5-D2: a hidden player summons nobody, except the frenzy's call (the hunters come and search the area)
 	local hidden = world.hiddenNow(player)
 	if hidden and not want.frenzy then return end
+	-- V6-D1: nor does a player in the licorice grass who is not sprinting (every patch stands far from the posts)
+	local inGrass = world.inCover(player, p.X, p.Z, at)
+	if inGrass and not want.frenzy then return end
 	local ctx
 	for _, kid in ipairs(KIDS) do
 		if not kid.boss and Sites.wants(kid.name, want) then
@@ -1032,6 +1091,7 @@ local function summonPass(player, at)
 		end
 	end
 	if hidden then return end -- V5-D2: no ambush on a hidden player
+	if inGrass then return end -- V6-D1: no ambush in the grass
 	-- CH4 (owner request "more creatures that appear in a random way"): an ambush roll every Sites.AMBUSH.everySeconds per
 	-- player: a random candy critter on the ground near them (Sites.ambushRoll), through the director (post "ambush").
 	local A = Sites.AMBUSH
@@ -1074,7 +1134,9 @@ local function bossPass(at)
 	for _, player in ipairs(Players:GetPlayers()) do
 		local character, humanoid, root = bodyOf(player)
 		-- V5-D2: Don Glaseon never wakes for a hidden player
-		if character and humanoid.Health > 0 and inMeadow(root.Position.X, root.Position.Z) and not world.hiddenNow(player) then
+		-- V6-D1: nor for one in the licorice grass who is not sprinting
+		if character and humanoid.Health > 0 and inMeadow(root.Position.X, root.Position.Z) and not world.hiddenNow(player)
+			and not world.inCover(player, root.Position.X, root.Position.Z, at) then
 			local p = root.Position
 			local _, safe = Rules.zone(p.X, p.Z)
 			local egg = character:FindFirstChild("WildboundEggCarried")

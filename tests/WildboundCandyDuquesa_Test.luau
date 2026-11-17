@@ -641,6 +641,26 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		has(service, "if body and hiddenNow(player) then return end", "no lunge lands on a hidden thief")
 	end)
 
+	-- V6-D1 (Caramelo v6): the tall licorice grass. A player in a patch who is not sprinting and farther than 10 studs
+	-- from her is not seen: a stranger is left out; her thief is kept for the usual memory time, then searched for like a
+	-- hidden thief (the rules get the search point, marked hidden), and when the search runs out she calms (Gone). The
+	-- rules' part is the V5-D2 case above; here the service's wiring.
+	case("V6-D1 wiring: the grass is worked out on the server and a concealed thief is searched for, then lost", function()
+		local service = sources.service
+		has(service, "Hiding.grassPatches(game:GetService(\"CollectionService\"):GetTagged(Hiding.GRASS.tag))",
+			"the patches from their tagged models (never from the client)")
+		has(service, 'Hiding.covered(Hiding.inGrass(grass.patches, x, z), player:GetAttribute("WildboundStance"))',
+			"in a patch and not sprinting")
+		has(service, "grassCover(player, px, pz, now) and Hiding.concealed(d, true, nil)", "farther than seeStuds from her")
+		has(service, "entry = nil -- never acquired", "a concealed stranger is left out")
+		has(service, "now - grass.since >= Hiding.GRASS.memorySeconds", "her thief is kept for the memory time")
+		has(service, "entry.x, entry.z = Hiding.searchPoint(grass.search, now)", "then searched for")
+		has(service, "if not state.rage then grass.since, grass.search = nil, nil end", "reset when she calms")
+		-- the grass is checked after the hide-spot rules (a hidden thief keeps the v5 search)
+		assert(service:find("if hidden and not searching then entry = nil end", 1, true)
+			< service:find("if entry and not hidden then", 1, true), "after the hiding rules")
+	end)
+
 	case("GT14: her descent keeps up with the bigger Torta", function()
 		local drop = summit.top - Layout.FLOOR_TOP
 		local across = (Layout.TOWER.tiers[1].radius + 1) / Duq.CHASE_SPEED

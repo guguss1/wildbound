@@ -271,6 +271,18 @@ local function play(events)
 end
 
 local grounded = {} -- [Player] = the root's last height while standing on something (review F-7)
+-- V6-D1 (Caramelo v6): the tall licorice grass. The patches (WildboundCandyGrass's tagged models) are read every 5 s;
+-- whether a player stands in one and is not sprinting is worked out here from the server's positions.
+local Hiding = require(ServerScriptService:WaitForChild("WildboundCandyHiding"))
+local grass = { patches = {}, at = -math.huge }
+local function grassCover(player, x, z)
+	local t = now()
+	if t - grass.at >= 5 or t < grass.at then
+		grass.at = t
+		grass.patches = Hiding.grassPatches(game:GetService("CollectionService"):GetTagged(Hiding.GRASS.tag))
+	end
+	return Hiding.covered(Hiding.inGrass(grass.patches, x, z), player:GetAttribute("WildboundStance"))
+end
 local function sample()
 	local list = {}
 	for _, player in ipairs(Players:GetPlayers()) do
@@ -291,7 +303,9 @@ local function sample()
 				groundY = g.y, safe = safeAt(p.X, p.Z), sheltered = Smarts.inHouse(p.X, p.Z, world.houses) ~= nil,
 				wading = wade ~= nil and wade < 1, carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil,
 				-- V5-D2: hidden in a hide spot (WildboundWorld's attribute): like a house for the bees
-				hidden = player:GetAttribute("WildboundHidden") ~= nil })
+				hidden = player:GetAttribute("WildboundHidden") ~= nil,
+				-- V6-D1: in the licorice grass and not sprinting
+				grassCover = grassCover(player, p.X, p.Z) })
 		end
 	end
 	return list

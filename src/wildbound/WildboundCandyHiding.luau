@@ -110,6 +110,78 @@ function Hiding.view(target, plan, e, s, now)
 	return v
 end
 
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md, V6-D1; docs/design/wildbound-caramelo-v3-plan.md V6-D10..): tall
+-- licorice grass (WildboundCandyGrass lays the patches: Models tagged GRASS.tag, pivot on the floor at the patch's centre,
+-- attribute GRASS.radiusAttribute = its footprint radius). A player standing in a patch who is not sprinting
+-- (WildboundStance ~= "sprint"; the game has no crouch) is COVERED. A candy creature farther than GRASS.seeStuds from a
+-- covered player does not see them (CONCEALED); within it, or when they sprint, it sees them as normal. Which patch a
+-- player stands in is worked out on the server from positions (Hiding.inGrass), never from the client.
+--   a calm creature: the v5 "far" view (it never notices them);
+--   a hunter: it keeps tracking them for GRASS.memorySeconds of concealment (the usual memory), then loses them like a
+--   hidden player: the v5 search round where it lost them ("search", or "under" for Don Glaseon), and gives up after
+--   SEARCH.seconds. There is no discovery dwell in the grass: a searcher that comes within seeStuds simply sees them.
+Hiding.GRASS = table.freeze({
+	tag = "WildboundCandyGrass",
+	radiusAttribute = "Radius",
+	seeStuds = 10, -- V6-D1: a covered player is seen only this close
+	memorySeconds = 3, -- V6-D10: a hunter loses a concealed player after this long (the "usual memory time")
+	sprint = "sprint", -- the WildboundStance value that gives a player away
+})
+
+-- The patches { { x, z, r } } (world) of a list of grass instances (CollectionService:GetTagged(GRASS.tag)): each
+-- Model's pivot and its radius attribute. Anything else, or a patch without a usable radius, is skipped.
+function Hiding.grassPatches(list)
+	local out = {}
+	for _, item in ipairs(type(list) == "table" and list or {}) do
+		if typeof(item) == "Instance" and item:IsA("Model") then
+			local r = item:GetAttribute(Hiding.GRASS.radiusAttribute)
+			local p = item:GetPivot().Position
+			if finite(r) and r > 0 and finite(p.X) and finite(p.Z) then table.insert(out, { x = p.X, z = p.Z, r = r }) end
+		end
+	end
+	return out
+end
+
+-- The patch whose footprint holds (x, z) (flat), or nil. patches = { { x, z, r } } in the same coordinates.
+function Hiding.inGrass(patches, x, z)
+	if type(patches) ~= "table" or not (finite(x) and finite(z)) then return nil end
+	for _, patch in ipairs(patches) do
+		if math.sqrt((patch.x - x) ^ 2 + (patch.z - z) ^ 2) <= patch.r then return patch end
+	end
+	return nil
+end
+
+-- Whether a player in the grass (`inGrass` truthy) with this WildboundStance is covered: anything but a sprint.
+function Hiding.covered(inGrass, stance)
+	return inGrass ~= nil and inGrass ~= false and stance ~= Hiding.GRASS.sprint
+end
+
+-- Whether a creature `distance` studs (flat) away does NOT see a player (inGrass, stance): covered and farther than
+-- GRASS.seeStuds. An unknown distance counts as far.
+function Hiding.concealed(distance, inGrass, stance)
+	if not Hiding.covered(inGrass, stance) then return false end
+	return not finite(distance) or distance > Hiding.GRASS.seeStuds
+end
+
+-- The plan for creature e (its beast `beast`) and a player who is `concealed` now (Hiding.concealed): "none" (it sees
+-- them), or Hiding.plan's "far", "search" or "under". memo is a table kept per creature and player (memo.since: when a
+-- hunter's concealment began); now is the caller's clock. A hunter keeps the real target for GRASS.memorySeconds.
+function Hiding.grassPlan(e, concealed, beast, memo, now)
+	memo = type(memo) == "table" and memo or {}
+	if concealed ~= true or not Hiding.candy(beast) then
+		memo.since = nil
+		return "none"
+	end
+	if Hiding.engaged(e) then
+		local t = finite(now) and now or 0
+		memo.since = memo.since or t
+		if t - memo.since < Hiding.GRASS.memorySeconds - 1e-9 then return "none" end
+	else
+		memo.since = nil
+	end
+	return Hiding.plan(e, true, beast)
+end
+
 -- Discovery: a watch per creature and hidden player (WildboundHide's dwell state).
 function Hiding.newWatch()
 	return Hide.newDwell()

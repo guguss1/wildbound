@@ -130,7 +130,9 @@ end
 -- model, or no builder, changes nothing. Returns how many nests and portals changed.
 -- Caramelo v5 (V5-D1): HideSpots (the fifth argument, nil = ServerStorage.WildboundCandyHideSpots, false = none) lays
 -- the candy kingdom's hiding places last, so they keep off the house nests too. A fifth value: the spots changed.
-function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots)
+-- Caramelo v6 (V6-D1): Grass (the sixth argument, nil = ServerStorage.WildboundCandyGrass, false = none) lays the tall
+-- licorice grass after the hide spots. A sixth value: the patches changed.
+function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
@@ -161,8 +163,20 @@ function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots)
 		end
 	end
 	if type(S) == "table" and type(S.sync) == "function" then okSpots, spots = pcall(S.sync, root, Layout) end
+	-- Caramelo v6 (V6-D1): the tall licorice grass, after the hide spots (it keeps off them). Grass (the sixth argument,
+	-- nil = ServerStorage.WildboundCandyGrass, false = none); a sixth value: the patches changed.
+	local okGrass, grass = false, 0
+	local G = Grass
+	if G == nil then
+		local module = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyGrass")
+		if module and module:IsA("ModuleScript") then
+			local okRequire, loaded = pcall(require, module)
+			G = okRequire and loaded or nil
+		end
+	end
+	if type(G) == "table" and type(G.sync) == "function" then okGrass, grass = pcall(G.sync, root, Layout) end
 	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0,
-		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0
+		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0, okGrass and tonumber(grass) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.

@@ -52,6 +52,19 @@ local hideSearch, hideWatch = nil, nil
 local function hiddenNow(player)
 	return player:GetAttribute("WildboundHidden") ~= nil
 end
+-- V6-D1 (Caramelo v6): the tall licorice grass. A player in a patch who is not sprinting (worked out here from the
+-- server's positions, Hiding.covered) and farther than Hiding.GRASS.seeStuds from her is not seen: one who is not her
+-- thief is left out of her rules; her thief is kept for Hiding.GRASS.memorySeconds, then searched for like a hidden
+-- thief (the search point as the thief's place, marked hidden) until the search runs out and she calms ("Gone"). There
+-- is no discovery dwell in the grass: within seeStuds, or sprinting, she sees them again.
+local grass = { patches = {}, at = -math.huge, since = nil, search = nil }
+local function grassCover(player, x, z, now)
+	if now - grass.at >= 5 or now < grass.at then
+		grass.at = now
+		grass.patches = Hiding.grassPatches(game:GetService("CollectionService"):GetTagged(Hiding.GRASS.tag))
+	end
+	return Hiding.covered(Hiding.inGrass(grass.patches, x, z), player:GetAttribute("WildboundStance"))
+end
 
 local STEP = 0.1
 local BUBBLE, RING = Color3.fromRGB(255, 130, 205), Color3.fromRGB(255, 70, 170)
@@ -433,10 +446,35 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 					entry.hidden = true
 				end
 			end
+			-- V6-D1: the licorice grass (see grass above)
+			if entry and not hidden then
+				local her = Duq.position(state)
+				local px, pz = root.Position.X, root.Position.Z
+				local d = her and math.sqrt((her.x - px) ^ 2 + (her.z - pz) ^ 2) or nil
+				local concealed = grassCover(player, px, pz, now) and Hiding.concealed(d, true, nil)
+				if concealed and not mine then
+					entry = nil -- never acquired
+				elseif mine and not concealed then
+					grass.since, grass.search = nil, nil
+				elseif mine then
+					grass.since = grass.since or now
+					if now - grass.since >= Hiding.GRASS.memorySeconds - 1e-9 then
+						grass.search = grass.search or Hiding.newSearch(px, pz, now, "DuquesaGrass:" .. player.UserId)
+						if Hiding.expired(grass.search, now) then
+							entry = nil -- the search ran out: she calms (Gone) and floats home
+						else
+							entry.x, entry.z = Hiding.searchPoint(grass.search, now)
+							entry.vx, entry.vz = 0, 0
+							entry.hidden = true
+						end
+					end
+				end
+			end
 			if entry then table.insert(players, entry) end
 		end
 	end
 	if not state.rage then hideSearch, hideWatch = nil, nil end
+	if not state.rage then grass.since, grass.search = nil, nil end
 	local was = Duq.position(state)
 	local wasX, wasZ = was and was.x, was and was.z
 	local events = Duq.step(state, now, players, summit, resolve)

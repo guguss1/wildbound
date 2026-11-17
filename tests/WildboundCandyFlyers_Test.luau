@@ -678,6 +678,46 @@ return function(F, Layout, Dodge, sources)
 		has(sources.service, 'hidden = player:GetAttribute("WildboundHidden") ~= nil', "the world script's attribute")
 	end)
 
+	-- V6-D1 (odd/tasks/wildbound-caramelo-v2.md "Caramelo v6"): the tall licorice grass. A player in a patch who is not
+	-- sprinting (players[i].grassCover, worked out by the service) is seen by the bees only within GRASS_SEE_STUDS: such a
+	-- player wakes a hive only that close, and a swarm whose every bug stays farther for GRASS_MEMORY_SECONDS loses them.
+	case("V6-D1: the grass: woken only within 10 studs; a swarm left farther than 10 for 3 s gives up (Grass)", function()
+		equal(F.GRASS_SEE_STUDS, 10, "seen within 10 studs"); equal(F.GRASS_MEMORY_SECONDS, 3, "the memory time")
+		-- the wake: 20 studs from the hive in the grass, nothing; at 8, or out of the grass at 20, a wake
+		equal(kinds(F.step(F.new({ hive("A", 0, 0) }, 0, BIG), 0.1, { P(1, 20, 0, { grassCover = true }) })), "",
+			"no wake on a covered player 20 studs out")
+		equal(kinds(F.step(F.new({ hive("A", 0, 0) }, 0, BIG), 0.1, { P(1, 8, 0, { grassCover = true }) })), "Wake",
+			"a covered player 8 studs out is seen")
+		equal(kinds(F.step(F.new({ hive("A", 0, 0) }, 0, BIG), 0.1, { P(1, 20, 0) })), "Wake", "out of the grass, as usual")
+		-- the chase: the target (egg on the back) stands in the grass 200 studs away; the bugs need about 7 s to get there
+		local world, t = chasing(10, 0)
+		local inAt = t + 0.5
+		local events = run(world, t, t + 6, 0.05, function(s)
+			if s < inAt then return { P(1, 10, 0, { carryingEgg = true }) } end
+			return { P(1, 200, 0, { grassCover = true, carryingEgg = true }) }
+		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+		local g = giveUpOf(events)
+		assert(g and g.reason == "Grass", "no Grass give-up: " .. kinds(events))
+		near(g.at - inAt, F.GRASS_MEMORY_SECONDS, "after 3 s unseen", 0.06)
+		-- a covered target the bugs keep within 10 studs is seen all along (they fly a ring of CHASE_RING_STUDS round it)
+		local w2, t2 = chasing(10, 0)
+		local ev2 = run(w2, t2, t2 + 6, 0.05, function()
+			return { P(1, 10, 0, { grassCover = true, carryingEgg = true }) }
+		end, { resolve = hitAll })
+		equal(giveUpOf(ev2), nil, "seen within 10 studs: no give-up")
+		-- the same far target out of the grass (or sprinting: the service's grassCover is false) is chased on
+		local w3, t3 = chasing(10, 0)
+		local ev3 = run(w3, t3, t3 + 6, 0.05, function(s)
+			return { P(1, s < t3 + 0.5 and 10 or 200, 0, { carryingEgg = true }) }
+		end, { resolve = hitAll })
+		equal(giveUpOf(ev3), nil, "not covered: chased on")
+		local service = sources.service
+		has(service, 'require(ServerScriptService:WaitForChild("WildboundCandyHiding"))', "the shared grass rules")
+		has(service, 'Hiding.covered(Hiding.inGrass(grass.patches, x, z), player:GetAttribute("WildboundStance"))',
+			"in a patch (server positions) and not sprinting")
+		has(service, "grassCover = grassCover(player, p.X, p.Z)", "the bees' input")
+	end)
+
 	case("V4-D14: without an egg they give up 70 studs from the hive; with one they follow on", function()
 		local world, t = chasing(10, 0)
 		local events = run(world, t, t + 10, 0.05, function(s)

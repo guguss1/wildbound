@@ -217,6 +217,14 @@ SPECS["WildboundCandyHideSpots_Test"] = {
 	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
 		world = "src:WildboundWorld", nests = "src:WildboundCandyNests" },
 }
+-- Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D1): the tall licorice grass (detached fixtures) and the grass rule
+-- with a real Mochimiau brain
+SPECS["WildboundCandyGrass_Test"] = {
+	"mod:WildboundCandyGrass", "mod:WildboundCandyHideSpots", "mod:WildboundCandyHiding", "mod:WildboundCandyLayout",
+	"mod:WildboundCandyV3Layout", "mod:WildboundBeastEncounters", "mod:WildboundBeastCandyCritter",
+	{ beasts = "src:WildboundBeasts", flyers = "src:WildboundCandyFlyersService", duquesa = "src:WildboundCandyDuquesaService",
+		nests = "src:WildboundCandyNests" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

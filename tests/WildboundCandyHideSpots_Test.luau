@@ -445,7 +445,11 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		has(beasts, ":Fire(player, e.pos.x, e.pos.z)", "with where the finder stands")
 		has(beasts, "world.hiding.plan(e, true, e.beast)", "only the candy creatures (the plan knows them)")
 		-- count() adds to counts[key]: an unseeded key errors and ends the encounter (seen in Play 2026-11-17)
-		has(beasts, "sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0 }", "the new counters are seeded")
+		-- (V6-D1 seeds grassLost after them on the same line)
+		has(beasts, "sheltered = 0, hidden = 0, hideFound = 0, hideLost = 0,", "the new counters are seeded")
+		-- V6-D1: the search's give-up is shared with the grass (world.loseHunt), still counted here
+		has(beasts, "function world.loseHunt(entry, at)", "a search's give-up is shared")
+		has(beasts, "local pre = world.loseHunt(entry, at)", "a hidden player's search ends through it")
 		local _, guards = beasts:gsub('if world.hiddenNow%(entry.player%) then count%("hidden"%) return end', "")
 		equal(guards, 2, "no hit and no affliction on a hidden player")
 		has(beasts, 'count("hideLost")', "a search that runs out")

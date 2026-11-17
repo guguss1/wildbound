@@ -304,3 +304,36 @@ disagrees with the v4 section, this one wins.
 5. Re-run `WildboundCandyBeastSites_Test`, `WildboundCandyBuilder_Test` and the V3 suites on the live map.
 6. Clear the lock and Play solo: cross the Top and Bottom bridges, wade the wider river, sail from dock A to dock B and
    along the river to both bridges, check the raft's top speed (20).
+
+## Caramelo v6, proposal 1: tall licorice grass (decision V6-D1 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+The patches are laid at server start by `tools/WildboundCandyGrass.luau` (ServerStorage.WildboundCandyGrass), called from
+`WildboundCandyNests.applyFlags` after the v5 hide spots, guarded with pcall, idempotent, the same way as
+`WildboundCandyHideSpots`. The rule lives in `WildboundCandyHiding` (`GRASS`, `covered`, `concealed`, `inGrass`,
+`grassPlan`) and is wired into WildboundBeasts (`world.inCover`, `world.grassView`, `world.loseHunt`), the bees
+(`WildboundCandyFlyers`, `players[i].grassCover`) and La Duquesa's service. Suite: `WildboundCandyGrass_Test`.
+
+### Decisions taken for the user (V6, grass)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V6-D10 | The "usual memory time" is 3 s (`WildboundCandyHiding.GRASS.memorySeconds`, `WildboundCandyFlyers.GRASS_MEMORY_SECONDS`): a hunter whose player stays covered and farther than 10 studs keeps the real target for 3 s, then loses them and walks the v5 search ring round where it lost them (15 s, `SEARCH`); the search ends with the usual "Lost" give-up (`world.loseHunt`, shared with the v5 hide spots; telemetry `grassLost`). Don Glaseon uses his own Search ("under"), as in v5. There is no discovery dwell in the grass: a searcher that comes within 10 studs, or a player who sprints or leaves the grass, is seen again and the hunt goes on. | The creatures had no memory time; the bees' house and hide escapes use 3 s (`HOUSE_GIVEUP_SECONDS`), so the grass matches them. |
+| V6-D11 | The bees follow the rule literally: a covered player wakes a hive only within 10 studs of it (was 35), and a chasing swarm loses them ("Grass") after every bug stayed farther than 10 studs for 3 s. A swarm chases in a 5-stud ring round its target at 26 studs/s, so in practice the grass shakes off only a swarm that the player has already left behind; it mostly keeps you from waking hives. | "Bees follow the same rule"; making the grass stronger against bees than against the critters would be a new rule. |
+| V6-D12 | La Duquesa: a covered player farther than 10 studs from her who is not her thief is left out of her rules; her thief is kept 3 s, then searched for like a hidden thief (the search point as the thief's place, marked hidden: no lunge, no bubbles, no hit) until the 15 s search runs out and she calms ("Gone"). No grass stands on the summit, so this matters only for a rage that leaves the cake. | The same rule, through the v5 machinery she already has. |
+| V6-D13 | A covered player wakes no candy post, no ambush and not Don Glaseon (like a hidden player), except the frenzy's call after a steal, whose hunters come, keep the player 3 s and then search. Every patch stands at least 23 studs (radius 9 + 14) from a creature post's centre, so a post's creature would not have seen a covered player anyway. | A creature woken on a player it cannot see would spawn, see nobody and walk home at once. |
+| V6-D14 | 10 patches, footprint radius 9 (a player whose root is within 9 studs of the patch's centre is in it), 34 blades each (340 parts in all), black, red and dark red, 5.2 to 7.6 studs tall (a character is about 5), 0.45 x 0.3 thick, tilted up to 8 degrees, placed on a sunflower spiral (no random: the same patch every start). Plain parts, anchored, CanCollide, CanTouch, CanQuery and CastShadow off. Folder `Candy_Bioma_v1.LicoriceGrass`, models `Grass_G<n>` (n: the candidate's number along the routes), tag `WildboundCandyGrass`, attributes Radius, PatchId, Near, CandyGrass. | Cheap and readable; no shadows and no queries keep the cost low; a fixed spiral keeps the sync idempotent. |
+| V6-D15 | Placement: tries every 24 studs along the main, left and right routes (not "deep"), both sides, in two rows 1 and 13 studs past the nearest a patch may stand to a path; each next patch the clear try farthest from those laid, at least 40 studs apart. Clear of: the chocolate by 4 past the radius (the layout's `liquidDistance` read at sync time and the live River and Lake parts), the path edge by 2, a nest's centre by 12, a post's centre by 14, a house or v3 piece (mountain, dock, licorice arch, trap cake) by 2, a bridge by 3, the boss plaza, the portal (14), the entrance (60), the kept-clear grounds, the plot edge (4), a live v5 hide spot's centre by 10, and anything that collides within 7 studs of the centre at body height (all past the 9 radius unless said). The live map is read with `WildboundCandyHideSpots.read`. | "Open meadows near the routes, clear of paths, water, nests, posts, houses and hide spots"; one reader for both systems. |
+| V6-D16 | Which patch a player stands in is worked out on the server from the root's position and the patches' tagged models (pivot and Radius, re-read every 5 s), never from the client. The stance is the server's `WildboundStance` attribute. | Server authority; the patches never move during a server's life. |
+
+### What the parent does in Studio, in order (v6 grass)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyGrass` (new, ServerStorage), `WildboundCandyHiding`,
+   `WildboundCandyNests`, `WildboundBeasts`, `WildboundCandyFlyersService` (ServerScriptService), `WildboundCandyFlyers`
+   (ServerStorage) and `WildboundCandyDuquesaService`; the suites `WildboundCandyGrass_Test` (new),
+   `WildboundCandyHideSpots_Test`, `WildboundCandyFlyers_Test`, `WildboundCandyDuquesa_Test`, `WildboundCandyNests_Test`.
+3. Run those suites with the fresh runner (`WildboundCandyNests_Test` needs Studio's WildboundServer, which carries another
+   branch's work).
+4. Clear the lock and Play solo: the patches stand beside the routes; walk into one past a patrolling critter (it should
+   not notice you farther than 10 studs), sprint in it (it should), and with an egg and the frenzy duck into one and
+   walk: telemetry `Beast_grassLost` (through the beasts' counts) should grow when a hunter gives up.
