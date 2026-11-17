@@ -58,6 +58,12 @@ Soft wind, leaves, insects, mysterious ambient music.
 
 Found for this layer: 3 wind and leaves, 3 insects, 3 music.
 
+### Cheerful Caramelo music (2026-11-17)
+
+| Asset id | Name | Creator | Duration | Loops | Why it fits | Notes |
+|---|---|---|---|---|---|---|
+| 1845212471 | Bundles Of Joy | APMOfficial | not reported | not stated | A cheerful, light children's track for the candy biome (owner asked for happy music in Caramelo). | Chosen for the owner by name; nobody has listened yet: the owner must audition it. Alternates, same library: 1841060369 Play School, 1846279685 Merry Kids. Verified via search_asset and a Studio preload (Success). |
+
 ## Layer 2. Distant threat
 
 Branches snapping, occasional whispers, unsettling music.

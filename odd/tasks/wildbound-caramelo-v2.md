@@ -365,8 +365,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] AM Ambience: lights, sparkles, music bed. Done 2026-11-16 (evidence below; a cheerful track is still to be picked).
 - [x] GT Gran Torta at the east end at 1.6x, 28 nests, 24 posts. Done 2026-11-17: deployed, cake moved on the live map, suites green, solo Play (evidence "GT and RC deploy" below).
 - [x] RC Relentless candy chases to the base, 8 hives and 24 bugs, five chasers at once. Done 2026-11-17 (same evidence; La Duquesa's rage and the return portal were not walked in Play).
-- [ ] RL Map relief for Caramelo. Not started.
-- [ ] MU A cheerful music track for Caramelo. Not started (needs the owner's approval of the track).
+- [ ] RL Map relief for Caramelo. Folded into Caramelo v3 (V3-D1).
+- [x] MU A cheerful music track for Caramelo. Done 2026-11-17: APM "Bundles Of Joy" (1845212471) in the catalog slot `carameloMusic`; Studio == repo (catalog 4730/1796918521), AudioMix 13/0 and Ambience 12/0; in Play inside the plot it plays at 0.18 (120 s, looped) and the calm bed fades. The owner still has to listen to it (alternates in docs/audio).
 
 ### Decisions taken for the user (CH)
 
