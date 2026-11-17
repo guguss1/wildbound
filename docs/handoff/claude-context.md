@@ -72,14 +72,15 @@ On a new machine, rebuild them from the docs if needed.
 ## Tools on the owner's Windows machine (updated 2026-11-16)
 
 - The shell is Windows PowerShell 5.1 (no `&&`). `git` is not on PATH: use `%LOCALAPPDATA%\GitHubDesktop\app-<version>\resources\app\git\cmd\git.exe` (app-3.6.5 on 2026-11-16).
-- Python is NOT installed there, so the Python tools, tests and the economy simulator cannot run on that PC. Compute fingerprints in PowerShell or in Studio Luau.
+- No standalone Python, but Blender's bundled Python 3.11 runs the tools, tests and economy simulator: `& "C:\Program Files\Blender Foundation\Blender 5.0\5.0\python\bin\python.exe" -I -B ...` (confirmed 2026-11-16).
+- Claude memory on that PC is one shared folder, `E:\juego roblox\memoria-claude`, linked (Windows junction) from each account's `.claude\projects\E--juego-roblox\memory`; `E:\juego roblox\conectar-memoria-claude.ps1` creates the link for a new account or Windows user (see `HANDOFF-2026-11-16b.md`).
 - On a machine with Python 3.11: run tools with `python -I -B`; tests with `python -I -B -m unittest discover -s tools -p "test_*.py"`. The known failure is `test_lumipol_v2.V1IsKept`. If prints fail on cp1252, use `sys.stdout.reconfigure(encoding='utf-8')`.
 - Blender 5.0: `C:\Program Files\Blender Foundation\Blender 5.0\blender.exe`.
 - Worktrees: `E:\juego roblox\wb-first-playable` (branch `codex/wildbound-first-playable`), `E:\juego roblox\wb-big4` (branch `agus/big4-map`).
 
 ## Current handoff
 
-- Latest handoff: `docs/handoff/HANDOFF-2026-11-16.md`. Account switch guide and first prompt: `docs/handoff/SWITCH-ACCOUNT.md`. Sanitized memory copies: `docs/handoff/memory/`.
+- Latest handoff: `docs/handoff/HANDOFF-2026-11-16b.md` (paused tasks P1 and P2), after `docs/handoff/HANDOFF-2026-11-16.md`. Account switch guide and first prompt: `docs/handoff/SWITCH-ACCOUNT.md`. Sanitized memory copies: `docs/handoff/memory/`.
 - Studio locks: besides `WildboundPlayLock`, never start Play while `ServerStorage` attribute `WildboundImportLock` is set; suites honour `WildboundFreshRunnerLock`.
 - Map mode: leave the place in `big4` mode (`WildboundMapModeSwitch`); classic pieces are archived in `ServerStorage.WildboundMapArchive`.
 - Never upload code as assets (the two transport Models 104898638172426 and 110244231107381 are for the owner to archive). Never spend Robux.
