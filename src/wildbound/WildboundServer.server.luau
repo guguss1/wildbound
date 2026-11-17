@@ -414,6 +414,9 @@ local function applyCarry(player)
 	if type(rush) == "number" and rush > workspace:GetServerTimeNow() then speed = math.max(speed, math.min(speed * 1.25, 26)) end
 	-- A2: the Gato Repartidor's golden order (WildboundBeasts writes it): +15 % for its seconds, capped at 26 like the rush.
 	if (tonumber(player:GetAttribute("WildboundCandyOrderUntil")) or 0) > workspace:GetServerTimeNow() then speed = math.max(speed, math.min(speed * 1.15, 26)) end
+	-- V4-D2: wading in the Caramelo chocolate (WildboundCandyWadeService writes the factor, WildboundCandyWade.speed).
+	local wade = tonumber(player:GetAttribute("WildboundCandyWade"))
+	if wade and wade < 1 then speed *= math.max(wade, 0.3) end
 	-- Q4 (was the NP4 stumble): a knocked player is down for the ragdoll and cannot walk.
 	if Heist.Knock.ragdolled(Heist.knocks, player.UserId, workspace:GetServerTimeNow()) then speed = 0 end
 	-- SistemaSonriente: caps, slows and stuns (a server ragdoll is a stun) on top of everything above.
@@ -2415,6 +2418,18 @@ do
 	end
 	Players.PlayerAdded:Connect(watchOrder)
 	for _, player in ipairs(Players:GetPlayers()) do watchOrder(player) end
+end
+
+-- Caramelo v4 (V4-D2): wading in the chocolate re-applies the walk speed when it starts and when it ends. Kept in a do
+-- block: this script is at Luau's 200-local limit (NH-W13).
+do
+	local function watchWade(player)
+		player:GetAttributeChangedSignal("WildboundCandyWade"):Connect(function()
+			if records[player] then applyCarry(player) end
+		end)
+	end
+	Players.PlayerAdded:Connect(watchWade)
+	for _, player in ipairs(Players:GetPlayers()) do watchWade(player) end
 end
 
 -- Caramelo v2 (DG4): a slip on Don Glaseon's glaze. The skating client asks (no argument is read); the server checks

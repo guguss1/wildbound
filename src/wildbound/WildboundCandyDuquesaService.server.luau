@@ -30,6 +30,16 @@ local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
 local Chase = require(ReplicatedStorage:WaitForChild("WildboundBeastChase"))
 local Rules = require(ServerScriptService:WaitForChild("WildboundWorldRules"))
 local DodgeService = require(ServerScriptService:WaitForChild("WildboundDodgeService"))
+-- V4-D12: the houses are a refuge: her flight stops at a house's edge and a lunge never lands on a player inside one
+local Smarts = require(ServerScriptService:WaitForChild("WildboundCandySmarts"))
+local houses, housesAt = {}, -math.huge
+local function houseDiscs(at)
+	if at - housesAt >= 5 or at < housesAt then
+		housesAt = at
+		houses = Smarts.houseDiscs(workspace:FindFirstChild(Layout.ROOT_NAME))
+	end
+	return houses
+end
 
 local STEP = 0.1
 local BUBBLE, RING = Color3.fromRGB(255, 130, 205), Color3.fromRGB(255, 70, 170)
@@ -44,6 +54,18 @@ folder.Parent = workspace
 local preview = workspace:WaitForChild("WildboundNewCandyPreview", 30)
 local duquesa = preview and preview:WaitForChild("DuquesaBurbuja", 30)
 if not duquesa then warn("WildboundCandyDuquesaService: no WildboundNewCandyPreview.DuquesaBurbuja; the bubbles leave the summit centre.") end
+-- V4-D10 (owner request 2026-11-17, "the queen seated on top of the cake as before"): the GT cake move left her model
+-- over the old summit. At start, a model off her seat (Duq.offSeat) is pivoted onto it (Duq.seatPivot), facing the
+-- junction, before any rage reads her seat (leaveSeat's seatPivot and seatOffset); the server copy only (the
+-- v4 migration or tools/wildbound-caramelo-queen-seat.luau moves the edit copy).
+if duquesa then
+	local at = duquesa:GetPivot().Position
+	if Duq.offSeat({ x = at.X, y = at.Y, z = at.Z }, summit) then
+		local junction = { x = Layout.CENTRE.x + Layout.JUNCTION.x, z = Layout.CENTRE.z + Layout.JUNCTION.z }
+		local s = Duq.seatPivot(summit, junction)
+		duquesa:PivotTo(CFrame.new(s.x, s.y, s.z) * CFrame.Angles(0, s.yaw, 0))
+	end
+end
 
 -- DR: every egg that ever lay in her nest, by its encounter id (it keeps that id while carried or dropped).
 local herIsland, herEggs = Duq.herIsland(Layout), {}
@@ -203,6 +225,8 @@ end
 -- invulnerability, which BeastHit checks first) cancels both.
 local beastHit = nil
 local function landLunge(player, ev)
+	local body = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+	if body and Smarts.inHouse(body.Position.X, body.Position.Z, houseDiscs(workspace:GetServerTimeNow())) then return end -- V4-D12
 	local network = ReplicatedStorage:FindFirstChild("WildboundNetwork")
 	beastHit = beastHit or (network and network:FindFirstChild("BeastHit"))
 	if beastHit and beastHit:IsA("BindableFunction") then
@@ -365,7 +389,13 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 			table.insert(players, entry)
 		end
 	end
-	play(Duq.step(state, now, players, summit, resolve), now)
+	local was = Duq.position(state)
+	local wasX, wasZ = was and was.x, was and was.z
+	local events = Duq.step(state, now, players, summit, resolve)
+	-- V4-D12: her flight never enters a house: she stops at its edge and waits (the rage is kept)
+	local her = Duq.position(state)
+	if her and wasX then her.x, her.z = Smarts.outsideHouses(wasX, wasZ, her.x, her.z, houseDiscs(now)) end
+	play(events, now)
 	drawMarker(rootOfId)
 	-- DR: her flying clip while she chases or floats home, cued again now and then (the preview player ends one-shots)
 	local phase = Duq.phase(state)

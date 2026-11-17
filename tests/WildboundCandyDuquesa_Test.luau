@@ -11,6 +11,7 @@
 -- RC6 (owner request 2026-11-16, "they keep chasing you until you reach the base"): her rage no longer ends at the plot's
 -- edge nor after 25 s; it lasts until the thief is safe (the hub, from WildboundWorldRules), dead, gone or without her
 -- egg, with a 180 s safety end, and calmed outside the plot she vanishes back to her seat.
+-- V4-D10 (owner request 2026-11-17): her scenery model sits on the moved summit (Duq.seatPivot), corrected at start.
 return function(Duq, Frut, Layout, sources, Chase, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -550,6 +551,59 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 
 	-- GT: the summit is about 65 studs up (it was 40): she still drops from her seat to the floor in about the time she
 	-- needs to fly past the bottom tier's rim, so her first lunge comes as early as before.
+	-- V4-D10 (owner request 2026-11-17, "the queen seated on top of the cake as before"): her scenery model sits on the
+	-- moved summit again: the service pivots a model found off her seat onto Duq.seatPivot, facing the junction.
+	case("V4-D10: her seated pivot is the summit floor's centre under her seat, facing the junction, clear of T1 and Frutillon", function()
+		local junction = { x = Layout.CENTRE.x + Layout.JUNCTION.x, z = Layout.CENTRE.z + Layout.JUNCTION.z }
+		local s = Duq.seatPivot(summit, junction)
+		local seat = Duq.seat(summit)
+		near(s.x, summit.x, "x"); near(s.z, summit.z, "z"); near(s.y, summit.top, "her base on the summit floor")
+		near(seat.y - s.y, Duq.HOVER_STUDS, "her seat point HOVER_STUDS over her base (leaveSeat's offset)")
+		-- facing the junction (west of the cake): CFrame.Angles(0, yaw, 0)'s LookVector is (-sin, 0, -cos)
+		local lx, lz = -math.sin(s.yaw), -math.cos(s.yaw)
+		local dx, dz = junction.x - summit.x, junction.z - summit.z
+		local d = math.sqrt(dx * dx + dz * dz)
+		near(lx, dx / d, "faces the junction (x)"); near(lz, dz / d, "faces the junction (z)")
+		assert(lx < -0.99, "the junction lies west of the cake")
+		near(Duq.seatPivot(summit).yaw, math.pi / 2, "no facing: west")
+		-- off her seat: the old v2 spot (the plot's centre, 40.94 up) is; on it, a stud off, is not
+		equal(Duq.offSeat({ x = 612, y = 40.94, z = -3 }, summit), true, "the old summit spot")
+		equal(Duq.offSeat({ x = s.x + 1, y = s.y + 1, z = s.z }, summit), false, "a stud or so off")
+		equal(Duq.offSeat({ x = s.x, y = s.y + Duq.SEAT_TOLERANCE_STUDS + 0.5, z = s.z }, summit), true, "floating over it")
+		equal(Duq.offSeat(nil, summit), false, "no pivot: nothing to move")
+		-- her 6-stud seat stays clear of the summit nest (T1, kit nest at its scale) and of Frutillon's ring
+		local T1 = Layout.TOWER.summit
+		local nestX, nestZ = Layout.CENTRE.x + T1.x, Layout.CENTRE.z + T1.z
+		local gap = math.sqrt((nestX - s.x) ^ 2 + (nestZ - s.z) ^ 2) - 3 - 2.65 * T1.scale
+		assert(gap >= 1, "her seat is " .. gap .. " studs from the summit nest")
+		assert(Frut.RING_STUDS - Frut.RADIUS_STUDS - Frut.HIT_STUDS - 3 >= 1, "Frutillon's roll reaches her seat")
+		assert(3 + 1 <= summit.radius, "her seat fits the summit")
+	end)
+
+	case("V4-D10 wiring: the service seats her model at start when it is off her seat", function()
+		local service = sources.service
+		has(service, "if Duq.offSeat({ x = at.X, y = at.Y, z = at.Z }, summit) then", "checks her pivot at start")
+		has(service, "local junction = { x = Layout.CENTRE.x + Layout.JUNCTION.x, z = Layout.CENTRE.z + Layout.JUNCTION.z }",
+			"towards the junction")
+		has(service, "duquesa:PivotTo(CFrame.new(s.x, s.y, s.z) * CFrame.Angles(0, s.yaw, 0))", "onto her seat")
+		local seatAt = service:find("if Duq.offSeat(", 1, true)
+		assert(seatAt < service:find("local function leaveSeat()", 1, true), "before any rage reads her seat")
+		assert(seatAt < service:find("RunService.Heartbeat:Connect", 1, true), "before the first step")
+	end)
+
+	-- V4-D12 (owner 2026-11-17: "no creature may enter the houses"): her rage flight stops at a house's edge and waits;
+	-- a lunge never lands (no damage, no egg drop) on a thief inside a house.
+	case("V4-D12 wiring: her flight is kept out of the houses and a sheltered thief is never struck", function()
+		local service = sources.service
+		has(service, 'local Smarts = require(ServerScriptService:WaitForChild("WildboundCandySmarts"))', "the shared helpers")
+		has(service, "houses = Smarts.houseDiscs(workspace:FindFirstChild(Layout.ROOT_NAME))", "the live houses")
+		has(service, "if her and wasX then her.x, her.z = Smarts.outsideHouses(wasX, wasZ, her.x, her.z, houseDiscs(now)) end",
+			"after each step")
+		assert(service:find("Smarts.outsideHouses(wasX", 1, true) < service:find("play(events, now)", 1, true), "before the events play")
+		has(service, "if body and Smarts.inHouse(body.Position.X, body.Position.Z, houseDiscs(workspace:GetServerTimeNow())) then return end",
+			"no lunge lands inside a house")
+	end)
+
 	case("GT14: her descent keeps up with the bigger Torta", function()
 		local drop = summit.top - Layout.FLOOR_TOP
 		local across = (Layout.TOWER.tiers[1].radius + 1) / Duq.CHASE_SPEED

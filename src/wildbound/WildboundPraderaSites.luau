@@ -87,6 +87,15 @@ Sites.AMBUSH = table.freeze({
 	bossClearStuds = 126, -- GT (cake move): 112 -> 126, the 76-stud territory plus the same 50
 })
 
+-- V4-D9 (owner request 2026-11-17, "progressively, not all at once"): ambushes follow the chase ramp: at most
+-- min(maxActive, the player's chaser cap now: WildboundCandySmarts.cap) ambush critters at once on a player (at least 1,
+-- so an ambush can open the pressure). A missing or bad cap keeps maxActive.
+function Sites.ambushCap(chaseCap)
+	local A = Sites.AMBUSH
+	if not finite(chaseCap) then return A.maxActive end
+	return math.clamp(math.floor(chaseCap), 1, A.maxActive)
+end
+
 -- CH4: the kind and spot of one ambush on a player at world (x, z), from three rolls in 0..1 (the server's Random), or
 -- nil when that player or that spot is not allowed. Returns name, { x, z } (world).
 function Sites.ambushRoll(x, z, kindRoll, angleRoll, distanceRoll)
@@ -140,7 +149,16 @@ function Sites.wants(name, ctx, post)
 		return distance <= (ctx.night == true and T.NightWakeRadiusStuds or T.WakeRadiusStuds)
 	end
 	-- Caramelo biome: every beast at a fixed post (the candy guardians and critters) wakes within its WakeRadiusStuds.
-	if name ~= "DonGlaseon" and Sites.FIXED[key] then return distance <= T.WakeRadiusStuds end
+	-- V4-D13: during a steal's frenzy (ctx.frenzy = { x, z, studs }: WildboundCandySmarts.frenzyAt) it also wakes when
+	-- its post lies within studs of the robbed nest, so the frenzy's call reaches it.
+	if name ~= "DonGlaseon" and Sites.FIXED[key] then
+		local f = ctx.frenzy
+		if type(f) == "table" and finite(f.x) and finite(f.z) and finite(f.studs)
+			and Config.flat(f.x, f.z, site.x, site.z) <= f.studs then
+			return true
+		end
+		return distance <= T.WakeRadiusStuds
+	end
 	if name == "DonGlaseon" then
 		local centre = Sites.world(ctx.origin, "bossTerritory")
 		return Config.flat(ctx.x, ctx.z, centre.x, centre.z) <= T.TerritoryRadiusStuds

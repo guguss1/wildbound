@@ -497,6 +497,14 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyRaftService.server.luau", "ServerScriptService.WildboundCandyRaftService"),
     ("src/wildbound/WildboundCandyRaft.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyRaftClient"),
     ("tests/WildboundCandyRaft_Test.luau", "ServerStorage.WildboundCandyRaft_Test"),
+    # Caramelo v4 (odd/tasks/wildbound-caramelo-v2.md V4-D2): wading in the chocolate at 60 % speed
+    ("src/wildbound/WildboundCandyWade.luau", "ServerStorage.WildboundCandyWade"),
+    ("src/wildbound/WildboundCandyWadeService.server.luau", "ServerScriptService.WildboundCandyWadeService"),
+    ("tests/WildboundCandyWade_Test.luau", "ServerStorage.WildboundCandyWade_Test"),
+    # Caramelo v4 (odd/tasks/wildbound-caramelo-v2.md V4-D8): one egg nest inside each house, laid at server start
+    # through WildboundCandyNests.applyFlags. tools/wildbound-caramelo-queen-seat.luau (V4-D10) is a one-shot tool.
+    ("tools/WildboundCandyHouseNests.luau", "ServerStorage.WildboundCandyHouseNests"),
+    ("tests/WildboundCandyHouseNests_Test.luau", "ServerStorage.WildboundCandyHouseNests_Test"),
 ]
 
 

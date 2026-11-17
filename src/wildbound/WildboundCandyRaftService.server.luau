@@ -1,12 +1,15 @@
--- Caramelo v3 raft service (docs/design/wildbound-caramelo-v3-plan.md V3-D13): runs WildboundCandyRaft in the place.
--- Once the live biome carries the v3 mark (the migration tool laid the river and the docks), it builds the Balsa
--- Banana Split at runtime (the kit's CV3_BananaRaft from ServerStorage.WildboundAssets.CandyKitV3, or a plain-part
--- placeholder; the place file never needs saving) on the lane of WildboundCandyV3Layout.RAFT, with a seat at the kit's
--- SeatAnchor and a ProximityPrompt to board. Server-authoritative: the server decides who boards (one rider, near
--- the docked raft, alive), seats them, moves the anchored raft along the lane every Heartbeat (the seated character
--- rides with it), sets the rider down on the far dock, and brings an abandoned raft back to its home dock. Clients only
--- ask to leave ({ action = "Leave" } on ReplicatedStorage.WildboundNetwork.CandyRaftEvent), validated and rate
--- limited; the server tells each rider what happened. Riding is free: there is no price and no product here.
+-- Caramelo raft service (docs/design/wildbound-caramelo-v3-plan.md V3-D13; Caramelo v4 V4-D3, odd/tasks/
+-- wildbound-caramelo-v2.md): runs WildboundCandyRaft in the place. Once the live biome carries the v3 mark (the
+-- migration tool laid the river and the docks), it builds the Balsa Banana Split at runtime (the kit's CV3_BananaRaft
+-- from ServerStorage.WildboundAssets.CandyKitV3, or a plain-part placeholder; the place file never needs saving) at its
+-- home dock's tip, with a VehicleSeat at the kit's SeatAnchor and a ProximityPrompt to board. Server-authoritative: the
+-- server decides who boards (one rider, near the docked raft, alive) and seats them; every Heartbeat it reads the
+-- seated rider's ThrottleFloat and SteerFloat (W/S, A/D, the touch thumbstick) off the seat, clamps them, steps the
+-- rules inside the chocolate and off the bridges (Raft.area from WildboundCandyV3Layout) and moves the anchored raft
+-- (the seated character rides with it). It sets the rider down on a dock's stand when the raft docks, brings an
+-- abandoned raft back to its home dock and a called one to the caller's dock. Clients only ask to leave
+-- ({ action = "Leave" } on ReplicatedStorage.WildboundNetwork.CandyRaftEvent), validated and rate limited; the server
+-- tells each rider what happened. Riding is free: there is no price and no product here.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -27,12 +30,13 @@ while biome:GetAttribute(V3.MARK) == nil do
 end
 
 local surface = V3.surfaceY(Layout.FLOOR_TOP)
-local lane = V3.raftLane(Layout.CENTRE)
-local state = assert(Raft.new(lane, V3.RAFT.homeDock))
+local docks = assert(Raft.docksFrom(V3, Layout.CENTRE), "the layout's docks")
+local area = Raft.area(V3, Layout.CENTRE)
+local state = assert(Raft.new(docks, V3.RAFT.homeDock))
 local stands = {}
-for i, d in ipairs(V3.DOCKS) do
+for i, d in ipairs(docks) do
 	-- review m6: on top of the dock deck (surface + deckOver), a root's height above it
-	stands[i] = Vector3.new(Layout.CENTRE.x + d.standX, surface + V3.DOCK.deckOver + 3, Layout.CENTRE.z + d.standZ)
+	stands[i] = Vector3.new(d.standX, surface + V3.DOCK.deckOver + 3, d.standZ)
 end
 
 -- The raft model --------------------------------------------------------------------------------------------------
@@ -87,12 +91,15 @@ local function buildModel()
 		m:SetAttribute("Placeholder", true)
 	end
 	m.Name = "BalsaBananaSplit"
-	-- the seat at the kit's SeatAnchor (Roblox local of the pivot), facing -Z
+	-- V4-D3: a VehicleSeat at the kit's SeatAnchor (Roblox local of the pivot), facing -Z like the raft, so the default
+	-- controls (W/S, A/D, the touch thumbstick) set its ThrottleFloat and SteerFloat; the server reads them
 	local seatAt = raftSpec and raftSpec.seat and raftSpec.seat.pos or { 0, 1.2, 1.6 }
-	local seat = Instance.new("Seat")
+	local seat = Instance.new("VehicleSeat")
 	seat.Name = "RaftSeat"
 	seat.Size = Vector3.new(2, 0.6, 2)
 	seat.Transparency = 1
+	seat.HeadsUpDisplay = false
+	seat.MaxSpeed, seat.Torque, seat.TurnSpeed = 0, 0, 0 -- no wheels: the server moves the raft
 	seat.CFrame = m:GetPivot() * CFrame.new(seatAt[1], seatAt[2], seatAt[3])
 	seat.Anchored, seat.CanCollide, seat.CanTouch, seat.CanQuery = true, false, false, false
 	seat.Parent = m
@@ -132,16 +139,12 @@ for i, stand in ipairs(stands) do
 	call.Parent = post
 	callPrompts[i] = call
 end
-local yaw = select(3, Raft.pointAt(lane, state.s))
 
--- review m6: the server moves the anchored raft only while it is under way (and once when it docks or respawns),
--- so a docked raft sends nothing; the bob plays only while it sails.
+-- review m6 / V3-D22: the server moves the anchored raft only while it is under way, and once after each event (it
+-- docked, respawned or was brought over), so a docked raft sends nothing; it bobs only under way.
 local function place(t)
-	local x, z, legYaw = Raft.pointAt(lane, state.s)
-	if state.dir < 0 then legYaw += math.pi end
-	if Raft.moving(state) then yaw = legYaw end
 	local bob = Raft.moving(state) and Raft.bob(t) or 0
-	model:PivotTo(CFrame.new(x, surface + bob, z) * CFrame.Angles(0, yaw, 0))
+	model:PivotTo(CFrame.new(state.x, surface + bob, state.z) * CFrame.Angles(0, state.yaw, 0))
 end
 place(0)
 
@@ -172,6 +175,22 @@ local function unseat(humanoid)
 	local weld = seat:FindFirstChild("SeatWeld")
 	if weld then weld:Destroy() end
 	if humanoid then humanoid.Sit = false end
+end
+
+-- V3-D26 (Play 2026-11-17): the client, still welded to the seat for a moment, snapped a deferred move back onto the
+-- raft; set the rider down on the dock's stand once the unseat has replicated, and again if it did not stick
+local function setDownLater(player, dock)
+	local _, _, character = humanoidOf(player)
+	local stand = dock and stands[dock]
+	if not character or not stand then return end
+	local function setDown()
+		if character.Parent then character:PivotTo(CFrame.new(stand)) end
+	end
+	task.delay(0.3, setDown)
+	task.delay(0.9, function()
+		local root = character.Parent and character:FindFirstChild("HumanoidRootPart")
+		if root and (root.Position - stand).Magnitude > 6 then setDown() end
+	end)
 end
 
 prompt.Triggered:Connect(function(player)
@@ -231,41 +250,39 @@ Players.PlayerRemoving:Connect(function(player)
 end)
 
 -- The step --------------------------------------------------------------------------------------------------------
-local wasMoving = false
+local dirty = false
 RunService.Heartbeat:Connect(function(dt)
 	local t = now()
 	local rider = state.rider and Players:GetPlayerByUserId(state.rider)
 	local humanoid = rider and humanoidOf(rider)
 	-- a short grace after boarding while the seat weld settles
 	local seated = humanoid ~= nil and (seat.Occupant == humanoid or t - boardedAt < 0.6)
-	for _, event in ipairs(Raft.step(state, dt, t, seated)) do
+	-- V4-D3: the steering comes only from the seated rider's own seat, clamped by the rules
+	local input = nil
+	if humanoid ~= nil and seat.Occupant == humanoid then
+		input = { throttle = seat.ThrottleFloat, steer = seat.SteerFloat }
+	end
+	for _, event in ipairs(Raft.step(state, dt, t, input, seated, area)) do
+		dirty = true
 		local player = event.rider and Players:GetPlayerByUserId(event.rider)
-		if event.kind == "Arrived" then
-			local h, _, character = humanoidOf(player)
-			unseat(h)
-			local stand = stands[state.dock]
-			if character and stand then
-				-- V3-D26 (Play 2026-11-17): the client, still welded to the seat for a moment, snapped a deferred move
-				-- back onto the raft; set the rider down once the unseat has replicated, and again if it did not stick
-				local function setDown()
-					if character.Parent then character:PivotTo(CFrame.new(stand)) end
-				end
-				task.delay(0.3, setDown)
-				task.delay(0.9, function()
-					local root = character.Parent and character:FindFirstChild("HumanoidRootPart")
-					if root and (root.Position - stand).Magnitude > 6 then setDown() end
-				end)
-			end
+		if event.kind == "Arrived" and player then
+			unseat((humanoidOf(player)))
+			setDownLater(player, event.dock)
 			tell(player, "Arrived")
 		elseif event.kind == "Left" then
 			unseat(nil)
-			tell(player, "Left")
+			if player and event.dock then
+				setDownLater(player, event.dock)
+				tell(player, "Arrived")
+			else
+				tell(player, "Left")
+			end
 		end
 	end
 	prompt.Enabled = state.status == "Docked" and state.rider == nil
 	for i, call in ipairs(callPrompts) do
 		call.Enabled = state.status == "Docked" and state.rider == nil and state.dock ~= i
 	end
-	if wasMoving or Raft.moving(state) then place(t) end
-	wasMoving = Raft.moving(state)
+	if dirty or Raft.moving(state) then place(t) end
+	dirty = Raft.moving(state)
 end)

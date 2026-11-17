@@ -482,7 +482,55 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		has(beasts, "Sites.ambushRoll(p.X, p.Z, rng:NextNumber(), rng:NextNumber(), rng:NextNumber())", "the pure pick")
 		has(beasts, "local y = spot and world.landing(spot.x, spot.z, p.Y)", "on the ground, out of safe zones and solid parts")
 		has(beasts, "Director.summon(director, player.UserId, name, ctx, at, { post = A.post })", "through the director")
-		has(beasts, "if active < A.maxActive and rng:NextNumber() < A.chance then", "the cap and the chance")
+		-- Deliberately changed (V4): the at-most-at-once follows the chase ramp (V4-D9), min(maxActive, the chaser cap)
+		has(beasts, "if active < Sites.ambushCap(world.smarts.cap(world, player.UserId, at)) and rng:NextNumber() < A.chance then",
+			"the ramped cap and the chance")
+		has(beasts, 'world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))', "the shared Smarts")
+	end)
+
+	-- V4-D9 (owner request 2026-11-17, "progressively, not all at once"): ambushes follow the chase ramp.
+	case("V4-D9: the ambush cap is min(maxActive, the player's chaser cap), at least one", function()
+		local A = Sites.AMBUSH
+		assert(type(Sites.ambushCap) == "function", "no Sites.ambushCap")
+		equal(Sites.ambushCap(1), 1, "no pressure: one ambush at most")
+		equal(Sites.ambushCap(2), 2); equal(Sites.ambushCap(2.9), 2, "whole critters")
+		equal(Sites.ambushCap(5), A.maxActive, "never past maxActive")
+		equal(Sites.ambushCap(0), 1, "an ambush can always open the pressure")
+		equal(Sites.ambushCap(nil), A.maxActive, "no cap: the old maxActive"); equal(Sites.ambushCap(0 / 0), A.maxActive)
+	end)
+
+	-- V4-D13: a steal's frenzy wakes every candy post within its reach of the nest (so the frenzy's call reaches it), past
+	-- the post's own wake radius; Don Glaseon and posts out of reach keep their rule.
+	case("V4-D13: during a frenzy the candy posts within reach of the robbed nest wake", function()
+		local extra = Sites.EXTRA_POSTS[1]
+		local site = Sites.world(nil, extra.key)
+		local T = Config.BEASTS[extra.name].tuning
+		local far = T.WakeRadiusStuds + 60
+		local ctx = { alive = true, safe = false, meadow = true, x = site.x + far, z = site.z }
+		equal(Sites.wants(extra.name, ctx, extra.key), false, "too far without a frenzy")
+		ctx.frenzy = { x = site.x + 100, z = site.z, studs = 150 }
+		equal(Sites.wants(extra.name, ctx, extra.key), true, "a frenzy 100 studs away wakes it")
+		ctx.frenzy = { x = site.x + 151, z = site.z, studs = 150 }
+		equal(Sites.wants(extra.name, ctx, extra.key), false, "out of the frenzy's reach")
+		ctx.frenzy = { x = site.x, z = site.z, studs = 150 }
+		ctx.safe = true
+		equal(Sites.wants(extra.name, ctx, extra.key), false, "never for a safe player")
+		local beasts = sources.beasts
+		has(beasts, "world.stealCheck(player, character, p, at, inMeadow(p.X, p.Z))", "a steal is seen in the summon pass")
+		has(beasts, "want.frenzy = world.smarts.frenzyAt(world, player.UserId, at)", "the frenzy reaches the posts")
+		has(beasts, "world.smarts.frenzy(world, player.UserId, at, p.X, p.Z)", "a new carried egg starts it")
+	end)
+
+	-- V4-D12: the houses are a refuge: every beast step is kept outside them, and no hit lands on a player inside.
+	case("V4-D12 wiring: the beast server keeps every creature out of the houses and shelters a player inside", function()
+		local beasts = sources.beasts
+		has(beasts, "world.keepOut(entry.e, px, pz, at) -- V4-D12: never inside a house", "after each step")
+		assert(beasts:find("world.keepOut(entry.e, px, pz, at)", 1, true) > beasts:find("local events = Enc.step(entry.e, at, target", 1, true),
+			"after the brain moved it")
+		has(beasts, "e.pos.x, e.pos.z = world.smarts.outsideHouses(px, pz, e.pos.x, e.pos.z, discs)", "the pure clamp")
+		has(beasts, 'world.houses = world.smarts.houseDiscs(workspace:FindFirstChild("Candy_Bioma_v1"))', "the live houses")
+		local _, hits = beasts:gsub('if world.sheltered and world.sheltered%(entry.player%) then count%("sheltered"%) return end', "")
+		equal(hits, 2, "no hit and no affliction on a sheltered player")
 	end)
 
 	-- CH1 wiring: the beast server summons each extra post through the director (one per post) and starts it on the ground

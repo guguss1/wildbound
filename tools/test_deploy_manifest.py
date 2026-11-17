@@ -620,6 +620,13 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundCandyRaftService.server.luau": "ServerScriptService.WildboundCandyRaftService",
         "src/wildbound/WildboundCandyRaft.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyRaftClient",
         "tests/WildboundCandyRaft_Test.luau": "ServerStorage.WildboundCandyRaft_Test",
+        # Caramelo v4: wading
+        "src/wildbound/WildboundCandyWade.luau": "ServerStorage.WildboundCandyWade",
+        "src/wildbound/WildboundCandyWadeService.server.luau": "ServerScriptService.WildboundCandyWadeService",
+        "tests/WildboundCandyWade_Test.luau": "ServerStorage.WildboundCandyWade_Test",
+        # Caramelo v4: the house nests
+        "tools/WildboundCandyHouseNests.luau": "ServerStorage.WildboundCandyHouseNests",
+        "tests/WildboundCandyHouseNests_Test.luau": "ServerStorage.WildboundCandyHouseNests_Test",
     }
 
     def test_default_mappings_contain_documented_pairs(self):

@@ -615,6 +615,8 @@ local function applyRoot(player, seconds)
 end
 
 local function afflict(entry, event)
+	-- V4-D12: a player inside a house is sheltered (world.sheltered, defined below; read at call time)
+	if world.sheltered and world.sheltered(entry.player) then count("sheltered") return end
 	count("afflicted")
 	applySlow(entry.player, event.slow, event.slowSeconds)
 	if Config.finite(event.root) then applyRoot(entry.player, event.root) end
@@ -644,6 +646,8 @@ end
 
 local beastHit = nil
 local function landHit(entry, event)
+	-- V4-D12: a player inside a house is sheltered: no damage, push, slow or egg drop lands there
+	if world.sheltered and world.sheltered(entry.player) then count("sheltered") return end
 	count("hits")
 	beastHit = beastHit or network:FindFirstChild("BeastHit")
 	local ok, effect = false, nil
@@ -783,6 +787,43 @@ function world.candyGift(entry, event)
 	telemetry:SetAttribute("Beast_candyGifts", (telemetry:GetAttribute("Beast_candyGifts") or 0) + 1)
 end
 
+-- V4-D12 (owner 2026-11-17: "no creature may enter the houses"): the Caramelo houses are a refuge. Kept on `world` (no
+-- new local). houseDiscs: the live houses as footprint discs (WildboundCandySmarts.houseDiscs), read again every 5 s.
+-- keepOut: after a step, a creature whose new spot lies inside a disc (plus the margin) stops at its edge (it slides
+-- round and waits there; the hunt is kept). sheltered: a player inside a footprint takes no hit and no affliction.
+function world.houseDiscs(at)
+	world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
+	if not world.housesAt or at - world.housesAt >= 5 or at < world.housesAt then
+		world.housesAt = at
+		world.houses = world.smarts.houseDiscs(workspace:FindFirstChild("Candy_Bioma_v1"))
+	end
+	return world.houses
+end
+function world.keepOut(e, px, pz, at)
+	if e.done or type(e.pos) ~= "table" or not Config.finite(px) or not Config.finite(pz) then return end
+	local discs = world.houseDiscs(at)
+	if #discs == 0 then return end
+	e.pos.x, e.pos.z = world.smarts.outsideHouses(px, pz, e.pos.x, e.pos.z, discs)
+end
+function world.sheltered(player)
+	local _, _, root = bodyOf(player)
+	local discs = root and world.houseDiscs(now())
+	return discs ~= nil and world.smarts.inHouse(root.Position.X, root.Position.Z, discs) ~= nil
+end
+-- V4-D13: a steal seen on this player (a new WildboundEggCarried model, EggId) inside the biome starts the frenzy at
+-- that spot (the nest: the steal is seen within one poll of the pick-up). Any nest, house nests included.
+function world.stealCheck(player, character, p, at, inside)
+	world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
+	world.lastEgg = world.lastEgg or setmetatable({}, { __mode = "k" })
+	local egg = character:FindFirstChild("WildboundEggCarried")
+	local id = egg and (egg:GetAttribute("EggId") or egg)
+	if inside and id ~= nil and world.lastEgg[player] ~= id then
+		world.smarts.frenzy(world, player.UserId, at, p.X, p.Z)
+		telemetry:SetAttribute("Beast_frenzies", (telemetry:GetAttribute("Beast_frenzies") or 0) + 1)
+	end
+	world.lastEgg[player] = id
+end
+
 local function stepEncounter(id, entry, at)
 	local target = targetOf(entry)
 	-- Kids biome: the Pradera has no forest beasts. A non-summoned encounter whose target walks in ends at once.
@@ -790,7 +831,9 @@ local function stepEncounter(id, entry, at)
 		close(id, "Pradera", at)
 		return
 	end
+	local px, pz = entry.e.pos and entry.e.pos.x, entry.e.pos and entry.e.pos.z
 	local events = Enc.step(entry.e, at, target, entry.world or world)
+	world.keepOut(entry.e, px, pz, at) -- V4-D12: never inside a house
 	for _, event in ipairs(events) do
 		if event.type == "End" then
 			close(id, event.reason, at, event)
@@ -889,10 +932,14 @@ local function summonPass(player, at)
 	local character, humanoid, root = bodyOf(player)
 	if not character or humanoid.Health <= 0 then return end
 	local p = root.Position
+	-- V4-D13: a steal inside the biome starts the frenzy (an egg carried in from elsewhere does not)
+	world.stealCheck(player, character, p, at, inMeadow(p.X, p.Z))
 	if not inMeadow(p.X, p.Z) then if world.ambushAt then world.ambushAt[player] = nil end return end
 	local _, safe = Rules.zone(p.X, p.Z)
 	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(p.X, p.Z) == "Night", eventOpen = eventOpen(),
 		x = p.X, z = p.Z, origin = praderaOrigin() }
+	-- V4-D13: during the frenzy every candy post within its reach of the nest wakes (Sites.wants ctx.frenzy)
+	want.frenzy = world.smarts.frenzyAt(world, player.UserId, at)
 	local ctx
 	for _, kid in ipairs(KIDS) do
 		if not kid.boss and Sites.wants(kid.name, want) then
@@ -924,7 +971,9 @@ local function summonPass(player, at)
 		for _, enc in pairs(director.encounters) do
 			if enc.userId == player.UserId and enc.post == A.post then active += 1 end
 		end
-		if active < A.maxActive and rng:NextNumber() < A.chance then
+		-- V4-D9: ambushes follow the chase ramp (Sites.ambushCap of the player's WildboundCandySmarts.cap now)
+		world.smarts = world.smarts or require(script.Parent:WaitForChild("WildboundCandySmarts"))
+		if active < Sites.ambushCap(world.smarts.cap(world, player.UserId, at)) and rng:NextNumber() < A.chance then
 			for _ = 1, A.tries do
 				local name, spot = Sites.ambushRoll(p.X, p.Z, rng:NextNumber(), rng:NextNumber(), rng:NextNumber())
 				local y = spot and world.landing(spot.x, spot.z, p.Y)

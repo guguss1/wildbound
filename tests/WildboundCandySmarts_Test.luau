@@ -9,6 +9,8 @@
 -- Duquesa throwing at the upper tiers). Pure, on the fake worlds of the brains' own suites.
 -- RC (owner request 2026-11-16, "all the creatures keep chasing you, and fast, until you reach the base"): RC1-RC4 and
 -- the RC7 runner model below.
+-- V4-D9 / V4-D13 (owner 2026-11-17): the calm chaser cap ramps 1 -> 3 (one per 20 s), a steal's 60 s frenzy allows 5 and
+-- calls the creatures within 150 studs; V4-D12: no creature step ends inside a house.
 return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Boss, Frut, Duq, Layout, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -187,6 +189,9 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 
 	case("OF3-2b: two creatures hunting the same player come from different sides", function()
 		local w = fakeWorld()
+		-- Deliberately changed (V4): the chaser cap ramps from 1 (V4-D9), so this player is put under a full minute of
+		-- pressure first (the calm top, 3 since V4-D13): two hunters at once, as before.
+		Smarts.press(w, 1, -60, 0)
 		local a, b = spawn("Mochimiau", "a"), spawn("Mochimiau", "b", 0, 3)
 		local tgt = target(28, 0)
 		local bearing = {}
@@ -330,11 +335,19 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		assert(phaseAt(events, g.id, "Notice"), "Gomibu ignored a target beside its nest")
 		-- the call
 		local w = fakeWorld()
+		-- Deliberately changed (V4): a called ally obeys the chaser ramp too (V4-D9); under full pressure it comes at once,
+		-- with no pressure it waits for the cap to rise (the next case pins that).
+		Smarts.press(w, 1, -60, 0)
 		local a, b = spawn("Mochimiau", "caller"), spawn("Mochimiau", "ally", 45, 0)
 		local tgt = target(-10, 0)
 		events = run({ a, b }, w, tgt, 0, 0.4)
 		assert(phaseAt(events, a.id, "Notice"), "the caller did not notice")
 		assert(phaseAt(events, b.id, "Notice"), "the ally was not called")
+		local w2 = fakeWorld()
+		local a2, b2 = spawn("Mochimiau", "caller2"), spawn("Mochimiau", "ally2", 45, 0)
+		events = run({ a2, b2 }, w2, target(-10, 0), 0, 0.4)
+		assert(phaseAt(events, a2.id, "Notice"), "the caller did not notice (no pressure)")
+		assert(not Smarts.hunting(b2), "V4-D9: a called ally joined past the ramp's first cap")
 		local c, cw = spawn("Mochimiau", "alone", 45, 0), fakeWorld()
 		events = run({ c }, cw, target(-10, 0), 0, 0.4)
 		assert(not phaseAt(events, c.id, "Notice"), "it noticed a target past its sight without a call")
@@ -575,28 +588,47 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		assert(each(events, "End")[1], "never ended")
 	end)
 
-	case("RC4: at most maxChasers candy creatures hunt one player; a freed place lets the next one in", function()
+	-- Deliberately changed (V4): the cap of five is reached only in a steal's frenzy (V4-D13); before any steal the calm
+	-- ramp allows one hunter, one more every 20 s, at most three (was: five at once).
+	case("RC4: at most maxChasers candy creatures hunt one player (V4: calm ramp to 3, a steal's frenzy 5); a freed place lets the next one in", function()
 		equal(R.maxChasers, 5)
 		local w = fakeWorld()
 		local list = {}
 		for i = 1, 6 do table.insert(list, spawn("Mochimiau", "cap" .. i, -4 * i, 6)) end
 		local tgt = target(0, 0)
-		run(list, w, tgt, 0, 1.5)
-		local hunting = 0
-		for _, e in ipairs(list) do if Smarts.hunting(e) then hunting += 1 end end
-		equal(hunting, 5, "hunters on one player")
-		equal(Smarts.chasers(w, 1, 1.5), 5, "chasers counted")
+		local function count()
+			local n = 0
+			for _, e in ipairs(list) do if Smarts.hunting(e) then n += 1 end end
+			return n
+		end
+		local most = {}
+		run(list, w, tgt, 0, 60, function(t)
+			-- the k-th 20 s slot, away from its edges (the first hunter engages on the first step, at 0)
+			local slot = math.floor(t / R.rampEverySeconds)
+			local into = t - slot * R.rampEverySeconds
+			if into > 0.1 and into < R.rampEverySeconds - 0.1 then most[slot] = math.max(most[slot] or 0, count()) end
+		end)
+		equal(most[0], 1, "one hunter in the first 20 s")
+		assert((most[1] or 0) <= 2, "20-40 s: " .. tostring(most[1]) .. " hunters")
+		assert((most[2] or 0) <= 3, "40-60 s: " .. tostring(most[2]) .. " hunters")
+		equal(count(), 3, "calm: three hunters after a minute, never more")
+		-- a steal: the frenzy lets five hunt at once
+		Smarts.frenzy(w, 1, 60, 0, 0)
+		run(list, w, tgt, 60.05, 61.5)
+		equal(count(), 5, "hunters on one player in the frenzy")
+		equal(Smarts.chasers(w, 1, 61.5), 5, "chasers counted")
+		equal(Smarts.cap(w, 1, 61.5), 5, "the cap")
 		local waiting
 		for _, e in ipairs(list) do if not Smarts.hunting(e) then waiting = e end end
 		assert(waiting and (waiting.phase == "Patrol" or waiting.phase == "Calm"), "the sixth stays calm")
 		-- one hunter leaves (its encounter ended): the sixth starts its hunt
 		for _, e in ipairs(list) do if Smarts.hunting(e) then e.done = true break end end
-		run(list, w, tgt, 1.55, 2)
+		run(list, w, tgt, 61.55, 62)
 		assert(Smarts.hunting(waiting), "the sixth never joined after a place freed")
-		-- another player has its own five
+		-- another player has its own ramp and its own cap
 		local other = spawn("Mochimiau", "cap7", 10, 10)
 		other.userId = 2
-		run({ other }, w, target(12, 10), 2.05, 2.3)
+		run({ other }, w, target(12, 10), 62.05, 62.3)
 		assert(Smarts.hunting(other), "another player's creature was capped by this player's hunters")
 		-- the strike ledger: at most STRIKE_MAX strikes of different owners within STRIKE_WINDOW on one player
 		equal(Smarts.STRIKE_WINDOW, 0.6); equal(Smarts.STRIKE_MAX, 2)
@@ -615,6 +647,136 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		equal(Smarts.claimStrike(903, "y", 20.1, 9, true), true, "forced")
 		equal(Smarts.claimStrike(903, "z", 20.2, 9, true), true, "forced past the cap (an attack whose timing never changes)")
 		Smarts.forgetStrikes(902); Smarts.forgetStrikes(903); Smarts.forgetStrikes(901)
+	end)
+
+	-- V4-D9 with the numbers of V4-D13 (owner 2026-11-17: "at first they must chase less, it progresses, and when you
+	-- steal an egg it should rise a lot"): the calm cap starts at 1 when the first hunter engages and rises by one every
+	-- 20 s, up to 3; 10 s with no hunter ends the pressure. Pure: fake encounters and an injected clock.
+	case("V4-D13: the calm cap ramps 1 -> 3 by one every 20 s of pressure and resets after 10 s with no hunter", function()
+		equal(R.rampStart, 1, "start"); equal(R.rampEverySeconds, 20, "every"); equal(R.rampMax, 3, "calm top")
+		equal(R.rampResetSeconds, 10, "reset"); equal(R.maxChasers, 5, "the RC cap stays (a steal's frenzy)")
+		local w = {}
+		local made = {}
+		local function hunter(id, user) local e = { beast = "Mochimiau", id = id, userId = user or 7, phase = "Chase" }; table.insert(made, e); return e end
+		local function tick(t) for _, e in ipairs(made) do if not e.done then e.lastStep = t end end end
+		equal(Smarts.cap(w, 7, 0), 1, "no pressure: the first cap")
+		equal(Smarts.cap(nil, 7, 0), R.maxChasers, "no board: the old flat cap")
+		equal(Smarts.cap(w, 7, 0 / 0), R.maxChasers, "no clock: the old flat cap")
+		local h = {}
+		for i = 1, 6 do h[i] = hunter("h" .. i) end
+		tick(0)
+		equal(Smarts.engage(h[1], w, 0), true, "the first hunter")
+		equal(h[1].huntFrom, 0)
+		equal(Smarts.engage(h[2], w, 0), false, "a second at once is held back")
+		equal(h[2].huntFrom, nil, "held back: no hunt")
+		tick(19.9)
+		equal(Smarts.cap(w, 7, 19.9), 1); equal(Smarts.engage(h[2], w, 19.9), false, "still one before 20 s")
+		for k = 2, 3 do
+			local t = (k - 1) * 20
+			tick(t)
+			equal(Smarts.cap(w, 7, t), k, "the cap at " .. t .. " s")
+			equal(Smarts.engage(h[k], w, t), true, "hunter " .. k .. " at " .. t .. " s")
+			equal(Smarts.engage(h[k + 1], w, t), false, "hunter " .. (k + 1) .. " at " .. t .. " s")
+		end
+		tick(120)
+		equal(Smarts.cap(w, 7, 120), 3, "calm: never past rampMax")
+		equal(Smarts.engage(h[4], w, 120), false, "a fourth stays calm")
+		-- a critter held back while it sees its player is not idle (its idle clock restarts)
+		local critter = hunter("idle")
+		critter.patrolSince = 100
+		tick(120)
+		equal(Smarts.engage(critter, w, 120), false); equal(critter.patrolSince, nil, "held back: its idle clock restarts")
+		critter.done = true
+		-- the hunters all leave at 130: under 10 s later the pressure (and the calm cap of 3) holds
+		tick(130)
+		for i = 1, 3 do h[i].done = true end
+		equal(Smarts.cap(w, 7, 139.9), 3, "9.9 s without a hunter: the pressure holds")
+		local back = hunter("back")
+		tick(139.9)
+		equal(Smarts.engage(back, w, 139.9), true, "a returning hunter")
+		back.done = true
+		-- 10 s with no hunter: the pressure ends, the next hunt starts at the first cap again
+		equal(Smarts.cap(w, 7, 150), 1, "10 s without a hunter: back to 1")
+		local a, b = hunter("a"), hunter("b")
+		tick(150.5)
+		equal(Smarts.engage(a, w, 150.5), true, "a fresh pressure")
+		equal(Smarts.engage(b, w, 150.5), false, "one at a time again")
+		tick(170.5)
+		equal(Smarts.engage(b, w, 170.5), true, "20 s later the second")
+		-- each player has its own ramp; a non-relentless creature never waits
+		local other = hunter("o", 8)
+		other.lastStep = 170.5
+		equal(Smarts.engage(other, w, 170.5), true, "another player's first hunter")
+		equal(Smarts.engage({ beast = "DonGlaseon", id = "boss", userId = 7, phase = "Chase", lastStep = 170.5 }, w, 170.5), true,
+			"Don Glaseon is never held back")
+		-- press: a player put under pressure from `from` has the cap of that much pressure
+		local pw = {}
+		Smarts.press(pw, 3, -20, 0)
+		equal(Smarts.cap(pw, 3, 0), 2, "20 s of pressure: two")
+	end)
+
+	-- V4-D13: a steal sets a 60 s frenzy: the full cap at once and a call to every candy creature whose post lies within
+	-- 150 studs of the nest; then the calm ramp again.
+	case("V4-D13: a steal's frenzy: cap 5 at once for 60 s, a call within 150 studs of the nest, then the calm ramp", function()
+		equal(R.frenzySeconds, 60); equal(R.frenzyStuds, 150)
+		local w = {}
+		equal(Smarts.frenzyAt(w, 5, 0), nil, "no frenzy before a steal")
+		equal(Smarts.frenzy(w, 5, 100, 400, 20), true)
+		equal(Smarts.cap(w, 5, 100), 5, "at once"); equal(Smarts.cap(w, 5, 159.9), 5, "for 60 s")
+		local f = Smarts.frenzyAt(w, 5, 130)
+		assert(f and f.x == 400 and f.z == 20 and f.studs == 150, "the frenzy point")
+		local near = { beast = "Canelin", id = "n", userId = 5, home = { x = 400 + 149, z = 20 }, pos = { x = 0, y = 0, z = 0 } }
+		local far = { beast = "Canelin", id = "f", userId = 5, home = { x = 400 + 151, z = 20 }, pos = { x = 0, y = 0, z = 0 } }
+		local boss = { beast = "DonGlaseon", id = "b", userId = 5, home = { x = 400, z = 20 }, pos = { x = 0, y = 0, z = 0 } }
+		local stranger = { beast = "Canelin", id = "s", userId = 6, home = { x = 400, z = 20 }, pos = { x = 0, y = 0, z = 0 } }
+		equal(Smarts.called(near, w, 130), true, "a post within 150 studs is called")
+		equal(Smarts.called(far, w, 130), false, "past 150 studs: not")
+		equal(Smarts.called(boss, w, 130), false, "Don Glaseon stays territorial")
+		equal(Smarts.called(stranger, w, 130), false, "another player's creatures are not")
+		equal(Smarts.called(near, w, 160), false, "the call ends with the frenzy")
+		equal(Smarts.frenzyAt(w, 5, 160), nil)
+		-- after the frenzy: the calm ramp from the steal (60 s of pressure: its top, 3), while hunted
+		local e = { beast = "Canelin", id = "h", userId = 5, phase = "Chase", lastStep = 160 }
+		equal(Smarts.engage(e, w, 160), true)
+		equal(Smarts.cap(w, 5, 160), 3, "back to the calm ramp")
+		equal(Smarts.frenzy(w, 5, 0 / 0, 1, 1), false, "no clock, no frenzy")
+	end)
+
+	-- V4-D12 (owner 2026-11-17: "no creature may enter the houses"): a creature's move is kept outside every house disc
+	-- (plus HOUSE_MARGIN_STUDS): it stops at the edge, slides round it and waits there.
+	case("V4-D12: a creature's step never ends inside a house; it stops at the edge, slides round it and waits", function()
+		local discs = { { id = "H1", x = 0, z = 0, r = 10 }, { id = "H2", x = 30, z = 0, r = 6 } }
+		local m = Smarts.HOUSE_MARGIN_STUDS
+		assert(m >= 1 and m <= 3, "margin " .. m)
+		local function d(x, z, c) return math.sqrt((x - c.x) ^ 2 + (z - c.z) ^ 2) end
+		-- outside to outside: untouched
+		local x, z = Smarts.outsideHouses(-30, 0, -20, 0, discs)
+		equal(x, -20); equal(z, 0)
+		-- a step into the house stops at the edge, on the side it came from
+		x, z = Smarts.outsideHouses(-12, 0, -8, 0, discs)
+		assert(math.abs(d(x, z, discs[1]) - (10 + m)) < 0.01 and x < 0, ("stopped at %.2f, %.2f"):format(x, z))
+		-- chasing a target inside, step after step, it waits at the edge (never closer)
+		local px, pz = -20, 1
+		for _ = 1, 40 do
+			local nx, nz = px + 1, pz -- straight at the centre
+			px, pz = Smarts.outsideHouses(px, pz, nx, nz, discs)
+			assert(d(px, pz, discs[1]) >= 10 + m - 1e-6, "inside the house")
+		end
+		-- a step on the centre goes back out on its own side; one landing in a neighbour is pushed out of both
+		x, z = Smarts.outsideHouses(-15, 0, 0, 0, discs)
+		assert(x < 0 and math.abs(d(x, z, discs[1]) - (10 + m)) < 0.01, "centre")
+		x, z = Smarts.outsideHouses(20, 0, 30, 0, discs)
+		assert(d(x, z, discs[1]) >= 10 + m - 1e-6 and d(x, z, discs[2]) >= 6 + m - 1e-6, "between two houses")
+		x, z = Smarts.outsideHouses(-20, 0, 0 / 0, 0, discs)
+		assert(x ~= x, "a bad point is left to the caller")
+		-- sheltered: inside the footprint itself
+		equal(Smarts.inHouse(5, 5, discs).id, "H1"); equal(Smarts.inHouse(0, 10.5, discs), nil)
+		equal(Smarts.inHouse(0, 10.5, discs, m).id, "H1", "with the margin"); equal(Smarts.inHouse(0, 0, nil), nil)
+		-- a house's disc holds its whole bounding box, round its pivot
+		local disc = Smarts.houseDisc("H3", 100, 50, 101, 50, 20, 30)
+		equal(disc.id, "H3"); equal(disc.x, 100); equal(disc.z, 50); equal(disc.r, 16, "half the long side plus the offset")
+		equal(Smarts.houseDisc("H4", 0 / 0, 0, 0, 0, 1, 1), nil)
+		equal(#Smarts.houseDiscs(nil), 0, "no biome, no houses")
 	end)
 
 	-- RC7: the runner model. An untrained runner leaves a nest (E1 mid-biome, R6 deep) with full health and stamina,
@@ -830,7 +992,8 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 			equal(model({}, 1, D, "perfect").hits, 0, "a perfect dodger and one swarm")
 		end
 		-- everything at once (the cap: five hunters and three swarms) from the deep nest: a runner who never dodges falls;
-		-- one who dodges arrives, hurt less
+		-- one who dodges arrives, hurt less. V4-D13: five hunters at once only happen in a steal's 60 s frenzy (an egg
+		-- thief, as modelled here); before any steal the calm cap is at most three.
 		local five = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Mielita" }
 		local never = model(five, 3, D6, "never")
 		assert(never.dead, "five hunters and three swarms never defeated a runner who never dodges")

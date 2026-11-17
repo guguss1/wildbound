@@ -116,6 +116,30 @@ function Duq.seat(summit)
 	return { x = summit.x, y = summit.top + Duq.HOVER_STUDS, z = summit.z }
 end
 
+-- V4-D10 (owner request 2026-11-17, "the queen seated on top of the cake as before"; the GT cake move left her scenery
+-- model over the old summit): her model's pivot is her seated base on the summit floor, HOVER_STUDS under her seat (as
+-- placed on the v2 cake: pivot (612, 40.94, -3), the old summit floor at its centre), turned so her front (-Z, the
+-- model's LookVector, which the service's flight turns from) faces `facing` ({ x, z } world; nil: west, towards the
+-- junction and the plot's entrance). Returns { x, y, z, yaw } (yaw for CFrame.Angles(0, yaw, 0)).
+Duq.SEAT_TOLERANCE_STUDS = 3 -- the service re-seats her when her pivot is farther than this from seatPivot
+function Duq.seatPivot(summit, facing)
+	local seat = Duq.seat(summit)
+	local dx, dz = -1, 0
+	if type(facing) == "table" and type(facing.x) == "number" and type(facing.z) == "number" then
+		local ux, uz = unit(facing.x - seat.x, facing.z - seat.z)
+		if ux then dx, dz = ux, uz end
+	end
+	return { x = seat.x, y = seat.y - Duq.HOVER_STUDS, z = seat.z, yaw = math.atan2(-dx, -dz) }
+end
+-- V4-D10: whether a model pivot { x, y, z } (world) is off her seat (farther than SEAT_TOLERANCE_STUDS from seatPivot).
+function Duq.offSeat(pivot, summit)
+	local s = Duq.seatPivot(summit)
+	if type(pivot) ~= "table" or type(pivot.x) ~= "number" or type(pivot.y) ~= "number" or type(pivot.z) ~= "number" then
+		return false
+	end
+	return math.sqrt((pivot.x - s.x) ^ 2 + (pivot.y - s.y) ^ 2 + (pivot.z - s.z) ^ 2) > Duq.SEAT_TOLERANCE_STUDS
+end
+
 -- DR: the top of the highest cake tier under a world point, else the plot floor (from summit.Layout).
 function Duq.floorUnder(summit, x, z)
 	local Layout = summit.Layout

@@ -96,6 +96,17 @@ F.FADE_STUDS = 120 -- RC3: farther than this from the hive at a give-up, they va
 F.VANISH_SECONDS = 1
 F.VANISH_RISE_STUDS_PER_SECOND = 8
 F.TOWER_NO_GO_MARGIN_STUDS = 4 -- F.noGoZones: the tower's disc reaches past its widest tier (the stair)
+-- V4-D14 (owner 2026-11-17: "proposals to get rid of the bees, they chase too much"): three ways to shake them off.
+--   (1) a target inside a house (players[i].sheltered) for HOUSE_GIVEUP_SECONDS: the swarm gives up ("House"); the bugs
+--       never enter a house (V4-D12: world.houses, footprint discs { x, z, r }, kept HOUSE_MARGIN_STUDS outside);
+--   (2) a target wading in the chocolate (players[i].wading) for WADE_LOSE_SECONDS: lost ("Chocolate");
+--   (3) a target without an egg (players[i].carryingEgg == false) farther than NO_EGG_LEASH_STUDS from the hive:
+--       given up ("Leash"). With an egg (or unknown: nil) they stay relentless (RC) except for (1) and (2).
+-- A sheltered or wading player never wakes a swarm.
+F.HOUSE_GIVEUP_SECONDS = 3
+F.WADE_LOSE_SECONDS = 2
+F.NO_EGG_LEASH_STUDS = 70
+F.HOUSE_MARGIN_STUDS = 1.5
 -- FL10's untrained runner: WildboundStamina's pool 100 at DRAIN 25 a second, a 4 s sprint, then a walk.
 F.UNTRAINED_SPRINT_SECONDS = 4
 
@@ -297,14 +308,55 @@ end
 local function usable(world, p)
 	return p ~= nil and p.alive == true and finite(p.x) and finite(p.y) and finite(p.z) and p.safe ~= true
 		and inside(world.bounds, p.x, p.z) and not inNoGo(world, p.x, p.z)
+		and p.sheltered ~= true and p.wading ~= true -- V4-D14: never woken on a player in a house or in the chocolate
+end
+
+-- V4-D12 / V4-D14: (x, z) kept outside every house disc of `discs` (grown by HOUSE_MARGIN_STUDS): a point inside one
+-- goes out to its edge along the line from its centre (from (px, pz) when it stands on the centre). Returns x, z.
+function F.outsideHouses(discs, x, z, px, pz)
+	if not (finite(x) and finite(z)) then return x, z end
+	for _ = 1, 2 do
+		for _, d in ipairs(discs or {}) do
+			local r = d.r + F.HOUSE_MARGIN_STUDS
+			local dx, dz = x - d.x, z - d.z
+			local dist = math.sqrt(dx * dx + dz * dz)
+			if dist < r then
+				if dist < 1e-6 then
+					dx, dz = (finite(px) and px or d.x + 1) - d.x, (finite(pz) and pz or d.z) - d.z
+					dist = math.sqrt(dx * dx + dz * dz)
+					if dist < 1e-6 then dx, dz, dist = 1, 0, 1 end
+				end
+				x, z = d.x + dx / dist * (r + 1e-3), d.z + dz / dist * (r + 1e-3)
+			end
+		end
+	end
+	return x, z
 end
 
 -- Why a swarm loses its target, or nil. RC1: no leash and no biome edge any more (the bounds only gate the wake).
-local function lost(world, swarm, target)
+-- V4-D14: the house, chocolate and no-egg escapes (the swarm keeps since-when timers).
+local function lost(world, swarm, target, now)
 	if not target then return "Gone" end
 	if target.alive ~= true or not (finite(target.x) and finite(target.y) and finite(target.z)) then return "Death" end
 	if target.safe == true then return "SafeZone" end
 	if inNoGo(world, target.x, target.z) then return "NoGoZone" end
+	if now then
+		if target.sheltered == true then
+			swarm.shelterSince = swarm.shelterSince or now
+			if now - swarm.shelterSince >= F.HOUSE_GIVEUP_SECONDS - 1e-9 then return "House" end
+		else
+			swarm.shelterSince = nil
+		end
+		if target.wading == true then
+			swarm.wadeSince = swarm.wadeSince or now
+			if now - swarm.wadeSince >= F.WADE_LOSE_SECONDS - 1e-9 then return "Chocolate" end
+		else
+			swarm.wadeSince = nil
+		end
+	end
+	if target.carryingEgg == false and flat(target.x, target.z, swarm.hive.x, swarm.hive.z) > F.NO_EGG_LEASH_STUDS then
+		return "Leash"
+	end
 	return nil
 end
 
@@ -322,6 +374,7 @@ local function giveUp(swarm, now, reason, events)
 	end
 	table.insert(events, { kind = "GiveUp", at = now, swarm = swarm.id, id = swarm.target, reason = reason, vanish = far or nil })
 	swarm.phase, swarm.target, swarm.diving = far and "Vanish" or "Return", nil, nil
+	swarm.shelterSince, swarm.wadeSince = nil, nil
 	swarm.vanishUntil = far and now + F.VANISH_SECONDS or nil
 	swarm.cooldownUntil = now + F.COOLDOWN_SECONDS
 end
@@ -342,7 +395,7 @@ local function lead(target)
 end
 
 -- One bug of a chasing swarm. hooks.resolve(targetId, key, now) -> "Dodged" | "Hit" | "Unknown" (the perfect dodge).
-local function chaseBug(swarm, bug, target, now, dt, hooks, events)
+local function chaseBug(swarm, bug, target, now, dt, hooks, events, houses)
 	-- review F-7: the floor from the root's last grounded height (target.groundY), so a jump never lifts the bugs or
 	-- floats the marker; the sting still compares the root's real height (target.y), so a jump can dodge a dive.
 	local ground = (finite(target.groundY) and target.groundY or target.y) - F.ROOT_HEIGHT_STUDS
@@ -400,6 +453,8 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events)
 		local dx, dz = tx - bug.x, tz - bug.z
 		local d = math.sqrt(dx * dx + dz * dz)
 		if d > F.DIVE_REACH_STUDS then tx, tz = bug.x + dx / d * F.DIVE_REACH_STUDS, bug.z + dz / d * F.DIVE_REACH_STUDS end
+		-- V4-D14: a dive never goes into a house (its spot stops at the edge: a target inside is out of reach)
+		tx, tz = F.outsideHouses(houses, tx, tz, bug.x, bug.z)
 		bug.fromX, bug.fromY, bug.fromZ = bug.x, bug.y, bug.z
 		bug.toX, bug.toY, bug.toZ = tx, ground + F.ROOT_HEIGHT_STUDS, tz
 		bug.markX, bug.markZ = tx, tz
@@ -442,7 +497,8 @@ local function chaseBug(swarm, bug, target, now, dt, hooks, events)
 end
 
 -- One step of every swarm. players = { { id, alive, x, y, z (the server-side root), groundY (the root's last grounded
--- height, optional), vx, vz, safe } }. Events: Wake
+-- height, optional), vx, vz, safe, V4-D14: sheltered, wading, carryingEgg (each optional) } }; world.houses (optional):
+-- the house discs { { x, z, r } } (V4-D12). Events: Wake
 -- { swarm, id, chaseAt }, Chase, DiveTell { bug, id, key, startAt, strikeAt, x, y, z }, Dive { key, x, y, z }, Hit { id,
 -- key, damage, dx, dz, studs, seconds, keepsEgg }, Miss, Dodged, DiveCancel { key }, GiveUp { reason }, Home.
 function F.step(world, now, players, hooks)
@@ -470,6 +526,7 @@ function F.step(world, now, players, hooks)
 			if target then
 				awake[target.id] = (awake[target.id] or 0) + 1
 				swarm.phase, swarm.target, swarm.stings = "Alert", target.id, 0
+				swarm.shelterSince, swarm.wadeSince = nil, nil
 				swarm.chaseAt = now + F.WAKE_TELL_SECONDS
 				table.insert(events, { kind = "Wake", at = now, swarm = swarm.id, id = target.id, chaseAt = swarm.chaseAt })
 			end
@@ -477,7 +534,7 @@ function F.step(world, now, players, hooks)
 		elseif swarm.phase == "Cooldown" then
 			hover(swarm, now, dt)
 		elseif swarm.phase == "Alert" then
-			local reason = lost(world, swarm, byId[swarm.target])
+			local reason = lost(world, swarm, byId[swarm.target], now)
 			if reason then
 				giveUp(swarm, now, reason, events)
 			elseif now >= swarm.chaseAt then
@@ -490,13 +547,13 @@ function F.step(world, now, players, hooks)
 		end
 		if swarm.phase == "Chase" and not started then
 			local target = byId[swarm.target]
-			local reason = lost(world, swarm, target)
+			local reason = lost(world, swarm, target, now)
 			-- RC1: no sting cap and no chase timer: only the hard limit (chaseEndsAt = chaseAt + HARD_SECONDS)
 			if not reason and now >= swarm.chaseEndsAt then reason = "Timeout" end
 			if reason then
 				giveUp(swarm, now, reason, events)
 			else
-				for _, bug in ipairs(swarm.bugs) do chaseBug(swarm, bug, target, now, dt, hooks, events) end
+				for _, bug in ipairs(swarm.bugs) do chaseBug(swarm, bug, target, now, dt, hooks, events, world.houses) end
 			end
 		elseif swarm.phase == "Return" then
 			local home = true
@@ -522,6 +579,15 @@ function F.step(world, now, players, hooks)
 				table.insert(events, { kind = "Home", at = now, swarm = swarm.id, vanished = true })
 			else
 				for _, bug in ipairs(swarm.bugs) do setAt(bug, bug.x, bug.y + F.VANISH_RISE_STUDS_PER_SECOND * dt, bug.z, dt) end
+			end
+		end
+		-- V4-D12 / V4-D14: no bug ever enters a house (it stops at the edge and slides round it)
+		if world.houses and #world.houses > 0 and swarm.phase ~= "Idle" and swarm.phase ~= "Cooldown" then
+			for _, bug in ipairs(swarm.bugs) do
+				if bug.phase ~= "Dive" then
+					local px, pz = bug.x - (bug.vx or 0) * dt, bug.z - (bug.vz or 0) * dt
+					bug.x, bug.z = F.outsideHouses(world.houses, bug.x, bug.z, px, pz)
+				end
 			end
 		end
 	end

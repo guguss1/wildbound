@@ -284,8 +284,12 @@ local function sample()
 				g = { character = character, y = p.Y }
 				grounded[player] = g
 			end
+			-- V4-D14: in a house (the footprint discs), wading in the chocolate (WildboundCandyWadeService's factor under 1),
+			-- and whether an egg rides on the player's back (the inventory server's WildboundEggCarried model)
+			local wade = tonumber(player:GetAttribute("WildboundCandyWade"))
 			table.insert(list, { id = player.UserId, alive = humanoid.Health > 0, x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z,
-				groundY = g.y, safe = safeAt(p.X, p.Z) })
+				groundY = g.y, safe = safeAt(p.X, p.Z), sheltered = Smarts.inHouse(p.X, p.Z, world.houses) ~= nil,
+				wading = wade ~= nil and wade < 1, carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil })
 		end
 	end
 	return list
@@ -309,6 +313,10 @@ connection = RunService.Heartbeat:Connect(function(dt)
 	ticks += 1
 	local at = now()
 	local ok, message = pcall(function()
+		-- V4-D12 / V4-D14: the houses' footprint discs, read again every 5 s (the bugs never enter them)
+		if not world.housesAt or at - world.housesAt >= 5 or at < world.housesAt then
+			world.housesAt, world.houses = at, Smarts.houseDiscs(biome)
+		end
 		local players = sample()
 		play(F.step(world, at, players, hooks))
 		for _, swarm in ipairs(world.swarms) do

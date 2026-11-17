@@ -1333,12 +1333,14 @@ function Builder.build(parent, layout, kit, library)
 		created += extra.parts
 		root:SetAttribute("TreesSkipped", treesSkipped + extra.skipped)
 
-		-- Colinas de Azucar: cubes standing on a corner along the deep edge, closing the view behind the Torta.
-		local hills = group("Folder", "SugarHills")
-		for i, hill in ipairs({ { -190, 5.0 }, { -125, 4.4 }, { -60, 4.0 }, { 60, 4.0 }, { 125, 4.4 }, { 190, 5.0 } }) do
-			local z, scale = hill[1], hill[2]
-			prop(hills, "Hill_" .. i, "RockSugar", 198, z, rng:NextNumber(0, math.pi * 2), scale)
-			prop(hills, "Peak_" .. i, "RockSugar", 207, z + (z < 0 and -1 or 1) * scale * 5.5, rng:NextNumber(0, math.pi * 2), scale * 0.55)
+		-- Colinas de Azucar. V4-D6 (Caramelo v4, owner: "remove the yellow crystals"): no RockSugar any more. The folder
+		-- stays (empty); the pink ice-cream hills at these spots are laid by WildboundCandyV3Builder.layAll
+		-- (V3.CRYSTAL_HILLS, CaramelV3.EdgeHills) and the backdrop outside the east edge takes the peaks' place. The two
+		-- draws per hill are kept so the seeded scatter after this point is unchanged.
+		group("Folder", "SugarHills")
+		for _ = 1, 6 do
+			rng:NextNumber(0, math.pi * 2)
+			rng:NextNumber(0, math.pi * 2)
 		end
 
 		-- Portal back to the hub: a pad and an arch. CE3: WildboundPortalService binds its prompt while Enabled is true.

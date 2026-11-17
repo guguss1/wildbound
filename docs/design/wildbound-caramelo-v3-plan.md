@@ -186,3 +186,68 @@ batch into a detached model and reports `partsEstimate` and `overCap` before any
    the raft both ways, call it from the other dock, jump off mid-way (it respawns at dock A after 8 s), enter a house
    with a creature chasing (it must follow and attack inside), climb the cake, and run from a creature to the base
    across the chocolate.
+
+## Caramelo v4 (owner's second round, 2026-11-17; decisions V4-D1 to V4-D15 in `odd/tasks/wildbound-caramelo-v2.md`)
+
+Status: **Prepared** (repo only; Luau suites not run; `tools/test_caramelo_v3.py` green). `V3.VERSION` is 2 and the live
+map gets it through `tools/wildbound-caramelo-v4-migrate.luau` (mark `CaramelV4`). The v3 sections above describe v3;
+where they disagree, this section wins.
+
+### Layout (plot coordinates)
+
+- **River** (V4-D1): M1 (`CV3_IceCreamMountain_L` at 0.45, r 24.3, 40.7 tall) at (-4, 176), its footprint touching the
+  north edge, faces (-12, 138); outlet (-8.36, 154.08), pool (-7.24, 159.36) r 4.95, waterfall top 15.17. The river runs
+  (-12, 138), (-11, 120) under the right route's top leg, (-4, 102), (8, 80), (14, 60), then 10 wide in an arc 30.5 studs
+  round the junction: (19.06, 23.82) under the right route's last leg, (30.5, 0) under the main avenue, (19.31, -23.6)
+  under the left route's last leg (west of nest L1), then (12, -42), (16, -58), 22 wide into the lake, (22, -118),
+  (27, -140) under the left route's bottom leg, (29, -170), (30, -200) on the south edge. About 390 studs. Every
+  west-to-east line meets the chocolate west of the cake's territory (or M1).
+- **Lake**: (4, -100) r 30 and (22, -118) r 12. **Depth** 3.5 (V4-D2).
+- **Bridges** (`V3.BRIDGES`, shared `BRIDGE_BUILD`: width 15, deck top 4.1 over the floor, end ramps 9, gaps 8 wide with
+  9-stud side ramps): Top (right route, (-11, 120), deck 22, one gap), RightLast (right route's last leg, 30.5 from the
+  junction, deck 11), Main (main avenue, x 30.5, deck 11), LeftLast (left route's last leg, 30.5 from the junction,
+  deck 11), Bottom (left route's bottom leg, x 27, deck 24, one gap). `V3.onBridge` and `V3.nearBridge` read all of
+  them; `V3.bridgeFrame` and `V3.bridgeCorners` give a bridge's frame and footprint.
+- **Docks** (the raft's open water, the lake): A stand (-30, -112), tip (-14, -108); B stand (40, -110), tip (24, -108);
+  both tips 6 studs inside the chocolate and off every bridge. `DOCK.rampBack` 10. `V3.RAFT` = { asset, homeDock }.
+- **Houses**: H1 sweet (-148, 166) x1.4 r 28; H2 tower (-100, 175) r 15, turned; H3 choco (-158, -150) x1.4 r 22.4;
+  H4 sweet (178, 100) r 20; H5 tower (-168, -82) x1.4 r 21, turned; H6 choco (150, -170) r 16; H7 sweet (110, 178) r 20.
+  `V3.houseYaw` (front to the junction, towers +180, V4-D15), `V3.houseFootprints` (V4-D12).
+- **Mountains**: M2 (180, -90), M3 (76, 187), M4 (165, -120), M5 (-186, -186), M6 (-187, 187).
+- **Platforms** on the lake: CookieM (-6, -120), CookieL (0, -88), CookieS (20, -86) and (-20, -90), each kit cookie
+  lifted on a `Collision_Pedestal` so its top is 0.5 over the surface.
+- **Pink hills** (`V3.CRYSTAL_HILLS`, V4-D6): the medium mountain at x 198, z -190 (0.5), -125 (0.45), -60 (0.5), 60 (0.5),
+  125 (0.28), 190 (0.5), in `CaramelV3.EdgeHills`. The old builder lays no RockSugar any more (its SugarHills folder
+  stays empty).
+- **Edge fill** (`V3.EDGE`, V4-D7): a jittered 13-stud grid over the band 4 to 45 studs deep and a 26-stud grid over the
+  empty interior: kit trees 17 to 27 tall (in `CaramelV3.Trees`, `EdgeFill = true`, `V3Kind`), old-kit candy props and
+  up to 4 small hills (in `CaramelV3.EdgeFill`), on `openSpot`. **Backdrop** (`V3.BACKDROP`): 3 big and 5 medium
+  mountains and 6 big trees outside the east edge and its corners, decor only, off the Caves and Mountains squares.
+- **Trees**: `TREES.heightFactor` 1.35 (V4-D4). `V3Builder.refitTrees` grows each live swapped tree about its pivot by
+  1.35 (down to 0.7 of that, or nudged 2-8 studs; a tree with no room keeps its size), its Roof disc keeps its width
+  and is seated again in the crown; `V4Refit` marks it (idempotent).
+
+### Decisions taken for the user (V4, layout and migration)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| V4-D11 | The chocolate pool disc is laid at the river's depth even with the kit mountain (the kit's own pool is 0.6 deep). | No 2.9-stud step between the pool and the river. |
+| V4-D16 | Round the junction the river is a 10-wide arc 30.5 studs from it, so the main avenue and both last legs cross it square on three short bridges (15 wide, no gaps) that never touch. M1 is scaled 0.55 -> 0.45 to fit by the north edge between nests C11 and C7. H1, H2, H3, H5, H6, H7, M2, M4 and M6 moved; nests and posts did not. | Nest L1, nest E3 and the cake's territory leave no room for a wider or further river; any other line crossed the last legs obliquely and needed overlapping bridges. |
+| V4-D17 | Part budget: the batch (pieces and filler) stays under `MAX_NEW_PARTS` 1300; the pink hills, the backdrop and the edge fill are counted apart; the edge fill stops at `EDGE.maxParts` 600 or at what is left under `V4_PART_TARGET` 2700 (the migration measures it in a detached dry build first). The v3 filler's hills 6 -> 4. | The cap is 2800 and the other v4 tasks (house nests, the Duquesa) add parts too. |
+| V4-D18 | The v4 migration lays the whole `CaramelV3` folder again except `Trees` (`layAll` with `relay = true`), after archiving its other children, the yellow crystals and every prop or tree in the new chocolate, on a bridge, on a piece or on a pink hill (`V3Builder.planV4`); then it refits the trees, lays the batch, retags the houses and marks `CaramelV4`. | Almost every piece moves or changes; one path is simpler and keeps the trees and their Roof discs. |
+| V4-D19 | Edge trees live in `CaramelV3.Trees` with `EdgeFill = true` and `V3Kind`, so the ambience sways and sparkles them with no ambience change; the backdrop is decor only (never collides, never answers rays). | "Life on the sides" without new code paths; nothing outside the plot can block a biome connection. |
+| V4-D20 | The dock ramps start 10 studs behind the stand (was 5) and the bridge ramps are 9 long, so every ramp up to the deeper decks stays under 25 degrees. | Walkable at 3.5 deep. |
+
+### What the parent does in Studio, in order (v4)
+
+1. Confirm the place and that no Play is running; set `WildboundImportLock`.
+2. Deploy by the fingerprint rule: `WildboundCandyV3Layout`, `WildboundCandyV3Builder` and `WildboundCandyBuilder`
+   (ServerStorage), and the suites `WildboundCandyV3Layout_Test`, `WildboundCandyV3Builder_Test` (with the other v4
+   agents' files: the raft, the beasts, the house nests).
+3. Run the suites with the fresh runner (V3Layout, V3Builder, Raft, Ambience; then the full run).
+4. Run `tools/wildbound-caramelo-v4-migrate.luau` with `DRY_RUN = true`; read `WildboundCaramelV4Summary`
+   (`partsEstimate` at most 2700, `overCap` false, `kitMissing` empty, `refit`, `archived`). Then `DRY_RUN = false`.
+5. Re-run `WildboundCandyBeastSites_Test`, `WildboundCandyBuilder_Test`, `WildboundCandyTower_Test` and the V3 suites on
+   the live map.
+6. Clear the lock and Play solo: cross every bridge, wade the river (slow), sail between the docks, climb a turned
+   tower's balcony, walk the east edge and look at the backdrop.

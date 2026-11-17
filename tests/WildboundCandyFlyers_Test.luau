@@ -6,6 +6,7 @@
 -- telegraphed pull-up (a perfect dodge stuns the bug), stings once per dive, recovers, and (RC, relentless chases) gives
 -- up only at a safe zone, death, a leave, a no-go zone or the hard limit; then a cooldown. Damage only through the beasts'
 -- BeastHit with the egg kept. Pure rules plus source pins of the service and the client. Changes nothing.
+-- V4-D14 (owner 2026-11-17): a house (3 s), the chocolate (2 s) or, without an egg, 70 studs from the hive shake them off.
 return function(F, Layout, Dodge, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -593,6 +594,96 @@ return function(F, Layout, Dodge, sources)
 		-- review F-2 / F-5 / F-8 / F-9
 		has(client, "local EXTRAPOLATE = 0.35"); has(client, "if not rec.body.Parent then", "re-track a streamed-back body")
 		has(client, "sound.SoundGroup = ", "the buzz follows the game's volume"); has(client, "CurrentCamera", "far bugs skipped")
+	end)
+
+	-- V4-D14 (owner 2026-11-17: "proposals to get rid of the bees, they chase too much"): three escapes that use the map:
+	-- a house (they never enter it, V4-D12; they give up after 3 s), the chocolate (lost after 2 s), and without an egg
+	-- 70 studs from the hive. With an egg they stay relentless except for the house and the chocolate.
+	local function giveUpOf(events)
+		for _, e in ipairs(events) do if e.kind == "GiveUp" then return e end end
+		return nil
+	end
+	case("V4-D14: a target in a house: the bugs stop at its edge and the swarm gives up after 3 s", function()
+		equal(F.HOUSE_GIVEUP_SECONDS, 3); equal(F.WADE_LOSE_SECONDS, 2); equal(F.NO_EGG_LEASH_STUDS, 70)
+		local world, t = chasing(10, 0)
+		world.houses = { { x = 24, z = 0, r = 8 } }
+		local inAt = t + 0.5
+		local events = run(world, t, t + 5, 0.05, function(s)
+			return { P(1, s < inAt and 12 or 24, 0, { sheltered = s >= inAt, carryingEgg = true }) }
+		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+		local g = giveUpOf(events)
+		assert(g and g.reason == "House", "no House give-up: " .. kinds(events))
+		near(g.at - inAt, F.HOUSE_GIVEUP_SECONDS, "after 3 s inside", 0.06)
+		equal(#only(events, "Hit"), 0, "never stung inside")
+		-- during the chase no bug stood inside the house
+		local w2, t2 = chasing(10, 0)
+		w2.houses = { { x = 24, z = 0, r = 8 } }
+		run(w2, t2, t2 + 2.9, 0.05, function(s)
+			for _, bug in ipairs(w2.swarms[1].bugs) do
+				assert(flat(bug.x, bug.z, 24, 0) >= 8 + F.HOUSE_MARGIN_STUDS - 1e-6, ("a bug inside the house at %.2f s"):format(s))
+			end
+			return { P(1, 24, 0, { sheltered = true }) }
+		end, { resolve = hitAll })
+		-- in and out before 3 s: the clock starts again
+		local w3, t3 = chasing(10, 0)
+		local ev3 = run(w3, t3, t3 + 5, 0.05, function(s)
+			local inside = (s - t3) % 2.5 < 2
+			return { P(1, 10, 0, { sheltered = inside }) }
+		end, { resolve = hitAll })
+		equal(giveUpOf(ev3), nil, "short visits never shake them")
+		-- a sheltered player never wakes a swarm
+		local idle = F.new({ hive("A", 0, 0) }, 0, BIG)
+		equal(kinds(F.step(idle, 0.1, { P(1, 10, 0, { sheltered = true }) })), "", "no wake in a house")
+	end)
+
+	case("V4-D14: wading in the chocolate for 2 s loses them; they never wake on a wader", function()
+		local world, t = chasing(10, 0)
+		local events = run(world, t, t + 4, 0.05, function(s)
+			return { P(1, 10, 0, { wading = s >= t + 1, carryingEgg = true }) }
+		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+		local g = giveUpOf(events)
+		assert(g and g.reason == "Chocolate", "no Chocolate give-up: " .. kinds(events))
+		near(g.at - (t + 1), F.WADE_LOSE_SECONDS, "after 2 s in the chocolate", 0.06)
+		local idle = F.new({ hive("A", 0, 0) }, 0, BIG)
+		equal(kinds(F.step(idle, 0.1, { P(1, 10, 0, { wading = true }) })), "", "no wake on a wader")
+	end)
+
+	case("V4-D14: without an egg they give up 70 studs from the hive; with one they follow on", function()
+		local world, t = chasing(10, 0)
+		local events = run(world, t, t + 10, 0.05, function(s)
+			return { P(1, 10 + (s - t) * 16, 0, { carryingEgg = false }) }
+		end, { resolve = hitAll }, function(e) return e.kind == "GiveUp" end)
+		local g = giveUpOf(events)
+		assert(g and g.reason == "Leash", "no Leash give-up: " .. kinds(events))
+		local x = 10 + (g.at - t) * 16
+		assert(x > F.NO_EGG_LEASH_STUDS and x <= F.NO_EGG_LEASH_STUDS + 16 * 0.05 + 1e-6, "gave up at " .. x)
+		-- an egg carrier (or a target whose egg is unknown) is chased past it, RC
+		for _, egg in ipairs({ true, "unknown" }) do
+			local w, t0 = chasing(10, 0)
+			local ev = run(w, t0, t0 + 15, 0.05, function(s)
+				return { P(1, 10 + (s - t0) * 16, 0, { carryingEgg = egg == true or nil }) }
+			end, { resolve = hitAll })
+			equal(giveUpOf(ev), nil, tostring(egg) .. ": gave up at " .. tostring(giveUpOf(ev) and giveUpOf(ev).reason))
+		end
+	end)
+
+	case("V4-D14: the pure house clamp (a dive's spot, a bug's step) and the service's inputs", function()
+		local discs = { { x = 0, z = 0, r = 10 } }
+		local r = 10 + F.HOUSE_MARGIN_STUDS
+		local x, z = F.outsideHouses(discs, 3, 4, 20, 0)
+		near(math.sqrt(x * x + z * z), r, "to the edge", 0.01); assert(x > 0 and z > 0, "along its own line")
+		x, z = F.outsideHouses(discs, 0, 0, -20, 0)
+		assert(x < 0 and math.abs(math.sqrt(x * x + z * z) - r) < 0.01, "from the centre back to its side")
+		x, z = F.outsideHouses(discs, 30, 0)
+		equal(x, 30); equal(z, 0)
+		x, z = F.outsideHouses(nil, 1, 1)
+		equal(x, 1, "no houses")
+		local service = sources.service
+		has(service, "world.housesAt, world.houses = at, Smarts.houseDiscs(biome)", "the live houses")
+		has(service, "sheltered = Smarts.inHouse(p.X, p.Z, world.houses) ~= nil", "in a house")
+		has(service, 'local wade = tonumber(player:GetAttribute("WildboundCandyWade"))', "the wade factor")
+		has(service, "wading = wade ~= nil and wade < 1", "wading")
+		has(service, 'carryingEgg = character:FindFirstChild("WildboundEggCarried") ~= nil', "the carried egg")
 	end)
 
 	case("FL13: the perfect dodge knows the Zumbidulce's dive", function()

@@ -67,7 +67,9 @@ function Nests.bind(markers, posts, radius)
 	for _, post in ipairs(type(posts) == "table" and posts or {}) do
 		local best, bestD = nil, math.huge
 		for _, m in ipairs(type(markers) == "table" and markers or {}) do
-			if type(m) == "table" and type(m.id) == "string" and finite(m.x) and finite(m.z) and not taken[m.id] then
+			-- V4-D8: a house nest has no guardian post (a steal there raises the usual alarm only)
+			if type(m) == "table" and type(m.id) == "string" and finite(m.x) and finite(m.z) and not taken[m.id]
+				and m.house ~= true then
 				local d = math.sqrt((m.x - post.x) ^ 2 + (m.z - post.z) ^ 2)
 				if d <= radius and d < bestD then best, bestD = m.id, d end
 			end
@@ -126,7 +128,7 @@ end
 -- own sync steps (Builder.syncNests, Builder.syncPortal: attributes only, no part moved), so a reopened or published
 -- place has its nests and portal on without an Edit session. Each step is guarded: a missing Nests folder or Portal
 -- model, or no builder, changes nothing. Returns how many nests and portals changed.
-function Nests.applyFlags(root, Builder, Layout)
+function Nests.applyFlags(root, Builder, Layout, HouseNests)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
@@ -134,7 +136,21 @@ function Nests.applyFlags(root, Builder, Layout)
 	-- before the nests are read. A third value: the parts it added.
 	local okTower, tower = false, 0
 	if type(Builder.syncTower) == "function" then okTower, tower = pcall(Builder.syncTower, root, Layout) end
-	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0
+	-- V4-D8 (owner request 2026-11-17, "eggs inside the houses"): one nest inside each Caramelo v3 house, laid by
+	-- WildboundCandyHouseNests from the live houses, before the nests are read. HouseNests: that module (nil = look it up
+	-- in ServerStorage, FindFirstChild only; false = none). A fourth value: the house nests changed.
+	local okHouse, house = false, 0
+	local H = HouseNests
+	if H == nil then
+		local module = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyHouseNests")
+		if module and module:IsA("ModuleScript") then
+			local okRequire, loaded = pcall(require, module)
+			H = okRequire and loaded or nil
+		end
+	end
+	if type(H) == "table" and type(H.sync) == "function" then okHouse, house = pcall(H.sync, root, Layout) end
+	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0,
+		okHouse and tonumber(house) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.
@@ -154,8 +170,10 @@ function Nests.read(root)
 				top = bowl.Position.Y + (math.abs(c.RightVector.Y) * s.X + math.abs(c.UpVector.Y) * s.Y
 					+ math.abs(c.LookVector.Y) * s.Z) / 2
 			end
+			-- V4-D8: a house nest (WildboundCandyHouseNests, attribute House) is never bound to a creature post
 			table.insert(list, { id = id, rarity = nest:GetAttribute("Rarity"), x = frame.Position.X, z = frame.Position.Z,
-				top = top, enabled = nest:GetAttribute("Enabled") == true, eventOnly = nest:GetAttribute("EventOnly") == true })
+				top = top, enabled = nest:GetAttribute("Enabled") == true, eventOnly = nest:GetAttribute("EventOnly") == true,
+				house = nest:GetAttribute("House") == true })
 		end
 	end
 	return list

@@ -5,7 +5,9 @@
 -- Caramelo v3 (owner request 2026-11-17; docs/design/wildbound-caramelo-v3-plan.md): what WildboundCandyV3Builder lays.
 -- Every build goes into a detached scratch Model (never parented into the place), so the live biome is never touched:
 -- the placeholder batch (no kit), a batch with a stand-in kit house built from the kit spec's colliders, the plan of
--- what a live map archives, and the tree swap.
+-- what a live map archives, and the tree swap. Caramelo v4 (V4-D1 to V4-D17): the bridges, the deeper chocolate, the
+-- houses at their scale and turn (overhead, V4-D12), the platforms' pedestals, the pink hills, the backdrop, the edge
+-- fill, planV4, the relay lay and the tree refit.
 return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 	local CollectionService = game:GetService("CollectionService")
 	local beasts = type(sources) == "table" and sources.beasts or ""
@@ -55,14 +57,18 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 
 	case("B1: one CaramelV3 folder with every piece, placeholders named, within the part budget, refused twice", function()
 		assert(holder and holder:IsA("Folder"), "no " .. V3.FOLDER .. " folder")
-		for _, name in ipairs({ "River", "Lake", "Waterfall", "Bridge", "Docks", "Mountains", "Houses", "Licorice", "Cake",
-			"Platforms", "Trees", "Filler" }) do
+		-- Deliberately changed (V4): Bridge -> Bridges (one model per bridge), and the v4 folders
+		for _, name in ipairs({ "River", "Lake", "Waterfall", "Bridges", "Docks", "Mountains", "Houses", "Licorice", "Cake",
+			"Platforms", "Trees", "Filler", "EdgeHills", "Backdrop", "EdgeFill" }) do
 			assert(holder:FindFirstChild(name), "missing " .. name)
 		end
 		-- Deliberately changed (V3 review): the placeholder hills are listed too (so a kit upgrade finds them)
-		equal(#report.placeholders, #V3.MOUNTAINS + #V3.HOUSES + 1 + 1 + #V3.PLATFORMS + report.hills, "placeholders")
-		equal(holder:GetAttribute("PartCount"), report.parts, "PartCount")
-		equal(#parts(holder), report.parts, "every part counted")
+		-- Deliberately changed (V4): the pink hills, the backdrop and the edge hills are listed too, and the edge parts
+		-- are counted apart from the batch's
+		equal(#report.placeholders, #V3.MOUNTAINS + #V3.HOUSES + 1 + 1 + #V3.PLATFORMS + report.hills + #V3.CRYSTAL_HILLS
+			+ #V3.BACKDROP + report.edgeHills, "placeholders")
+		equal(holder:GetAttribute("PartCount"), report.parts + report.edgeParts, "PartCount")
+		equal(#parts(holder), report.parts + report.edgeParts, "every part counted")
 		assert(report.parts <= V3.MAX_NEW_PARTS, "over budget: " .. report.parts)
 		assert(not pcall(V3Builder.layAll, scratch, { Layout = Layout, V3 = V3 }), "a second batch was accepted")
 		for _, d in ipairs(holder:GetDescendants()) do
@@ -88,39 +94,44 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 				end
 			end
 		end
-		equal(count, #V3.RIVER * 2 - 1 + 1 + #V3.LAKE, "river legs, joints, the placeholder pool and the lake discs")
+		-- Deliberately changed (V4): the last point lies on the plot edge and has no joint (V4-D1)
+		equal(count, #V3.RIVER * 2 - 2 + 1 + #V3.LAKE, "river legs, joints, the pool and the lake discs")
+		equal(V3.LIQUID.depth, 3.5, "V4-D2")
 	end)
 
-	case("B3: the bridge's deck and ramps are walkable over the surface, its rails off the path", function()
-		local bridge = holder.Bridge
-		local deck = bridge.Deck
-		equal(deck:GetAttribute("Role"), "floor", "deck role")
-		near(topOf(deck), floorTop + V3.BRIDGE.deck, "deck top", 0.01)
-		assert(topOf(deck) > surface, "the deck is under the chocolate")
-		near(deck.Position.X, centre.x + V3.BRIDGE.x, "deck x"); near(deck.Position.Z, centre.z + V3.BRIDGE.z, "deck z")
-		-- Deliberately changed (V3 review M3): the rails are runs between gaps (Rail_<side>_<run>), and every gap has a
-		-- walkable side ramp down to the floor on both sides
-		local B = V3.BRIDGE
-		local rails, sideRamps = 0, 0
-		for _, p in ipairs(bridge:GetChildren()) do
-			if string.sub(p.Name, 1, 5) == "Rail_" then
-				rails += 1
-				equal(p:GetAttribute("Role"), "solid", p.Name)
-				assert(math.abs(p.Position.Z - deck.Position.Z) - p.Size.Z / 2 >= Layout.PATH_WIDTH / 2, p.Name .. " on the path")
-				for _, gx in ipairs(B.gaps) do
-					local gapLeft, gapRight = centre.x + B.x + gx - B.gapWidth / 2, centre.x + B.x + gx + B.gapWidth / 2
-					local railLeft, railRight = p.Position.X - p.Size.X / 2, p.Position.X + p.Size.X / 2
-					assert(railRight <= gapLeft + 1e-3 or railLeft >= gapRight - 1e-3, p.Name .. " closes a gap")
+	-- Deliberately changed (V4): every bridge of V3.BRIDGES, each straight on its leg (was the single bridge).
+	case("B3: every bridge's deck and ramps are walkable over the surface, its rails off the path", function()
+		equal(#holder.Bridges:GetChildren(), #V3.BRIDGES, "one model per bridge")
+		for _, B in ipairs(V3.BRIDGES) do
+			local bridge = holder.Bridges:FindFirstChild("Bridge_" .. B.id)
+			assert(bridge, "Bridge_" .. B.id)
+			local deck = bridge.Deck
+			equal(deck:GetAttribute("Role"), "floor", B.id .. " deck role")
+			near(topOf(deck), floorTop + B.deck, B.id .. " deck top", 0.01)
+			assert(topOf(deck) >= surface + 0.6 - 0.01, B.id .. ": the deck is not 0.6 over the chocolate")
+			near(deck.Position.X, centre.x + B.x, B.id .. " deck x", 0.01); near(deck.Position.Z, centre.z + B.z, B.id .. " deck z", 0.01)
+			near(math.abs(deck.CFrame.LookVector:Dot(Vector3.new(B.ux, 0, B.uz))), 1, B.id .. " along its leg", 1e-3)
+			local rails, sideRamps = 0, 0
+			for _, p in ipairs(bridge:GetChildren()) do
+				local along, across = V3.bridgeFrame(B, p.Position.X - centre.x, p.Position.Z - centre.z)
+				if string.sub(p.Name, 1, 5) == "Rail_" then
+					rails += 1
+					equal(p:GetAttribute("Role"), "solid", p.Name)
+					assert(math.abs(across) - p.Size.X / 2 >= Layout.PATH_WIDTH / 2, B.id .. " " .. p.Name .. " on the path")
+					for _, gx in ipairs(B.gaps) do
+						local lo, hi = along - p.Size.Z / 2, along + p.Size.Z / 2
+						assert(hi <= gx - B.gapWidth / 2 + 1e-3 or lo >= gx + B.gapWidth / 2 - 1e-3, B.id .. " " .. p.Name .. " closes a gap")
+					end
+				elseif string.sub(p.Name, 1, 9) == "SideRamp_" then
+					sideRamps += 1
+					equal(p:GetAttribute("Role"), "floor", p.Name)
+					assert(p.Size.X >= B.gapWidth - 1e-3, p.Name .. " narrower than its gap")
 				end
-			elseif string.sub(p.Name, 1, 9) == "SideRamp_" then
-				sideRamps += 1
-				equal(p:GetAttribute("Role"), "floor", p.Name)
-				assert(p.Size.X >= B.gapWidth - 1e-3, p.Name .. " narrower than its gap")
 			end
+			equal(rails, 2 * (#B.gaps + 1), B.id .. " rail runs")
+			equal(sideRamps, 2 * #B.gaps, B.id .. " side ramps")
+			for i = 1, 2 do equal(bridge["Ramp_" .. i]:GetAttribute("Role"), "floor", B.id .. " ramp " .. i) end
 		end
-		equal(rails, 2 * (#B.gaps + 1), "rail runs")
-		equal(sideRamps, 2 * #B.gaps, "side ramps")
-		for i = 1, 2 do equal(bridge["Ramp_" .. i]:GetAttribute("Role"), "floor", "ramp " .. i) end
 	end)
 
 	case("B4: two docks at the layout's stands, tagged, their decks over the surface", function()
@@ -158,6 +169,15 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			for _, p in ipairs(parts(house)) do
 				local d = math.sqrt((p.Position.X - centre.x - h.x) ^ 2 + (p.Position.Z - centre.z - h.z) ^ 2)
 				assert(d <= h.r, h.id .. "'s " .. p.Name .. " leaves its footprint")
+			end
+			-- V4-D5 and V4-D15: the house at its scale, a tower's door (-Z) away from the junction
+			equal(house:GetAttribute("HouseScale"), h.scale, h.id .. " scale")
+			local look = house:GetPivot().LookVector
+			local toJunction = Vector3.new(Layout.JUNCTION.x - h.x, 0, Layout.JUNCTION.z - h.z).Unit
+			if h.asset == "CV3_CaramelTower" then
+				assert(look:Dot(toJunction) < -0.99, h.id .. "'s balcony does not face the junction")
+			else
+				assert(look:Dot(toJunction) > 0.99, h.id .. " does not face the junction")
 			end
 		end
 	end)
@@ -224,16 +244,20 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		assert(report.hills >= 1, "no hills")
 	end)
 	-- V3 review M1: creatures follow a player into a house instead of landing on its roof; nothing lands on a summit.
-	case("B13: houses and the cake are tagged pass, mountains, hills and the licorice overhead; the beasts read the tags", function()
+	case("B13: the cake is tagged pass, houses, mountains, hills and the licorice overhead; the beasts read the tags", function()
+		-- Deliberately changed (V4-D12): the houses are a refuge, tagged overhead (a wall, never ground), no longer pass
 		for _, house in ipairs(holder.Houses:GetChildren()) do
-			assert(CollectionService:HasTag(house, V3.BEAST_PASS_TAG), house.Name .. " is not tagged pass")
+			assert(CollectionService:HasTag(house, V3.BEAST_OVERHEAD_TAG), house.Name .. " is not tagged overhead")
+			assert(not CollectionService:HasTag(house, V3.BEAST_PASS_TAG), house.Name .. " is still tagged pass")
 		end
 		assert(CollectionService:HasTag(holder.Cake.CakeModular, V3.BEAST_PASS_TAG), "the cake")
 		for _, m in ipairs(holder.Mountains:GetChildren()) do
 			assert(CollectionService:HasTag(m, V3.BEAST_OVERHEAD_TAG), m.Name .. " is not tagged overhead")
 		end
-		for _, m in ipairs(holder.Filler:GetChildren()) do
-			if m:GetAttribute("Hill") then assert(CollectionService:HasTag(m, V3.BEAST_OVERHEAD_TAG), m.Name .. " (hill)") end
+		for _, f in ipairs({ holder.Filler, holder.EdgeHills, holder.EdgeFill }) do
+			for _, m in ipairs(f:GetChildren()) do
+				if m:GetAttribute("Hill") then assert(CollectionService:HasTag(m, V3.BEAST_OVERHEAD_TAG), m.Name .. " (hill)") end
+			end
 		end
 		assert(CollectionService:HasTag(holder.Licorice.LicoriceArch, V3.BEAST_OVERHEAD_TAG), "the licorice")
 		-- every elevated collider of a house is inside a tagged model (the roof the review saw a critter land on)
@@ -250,6 +274,44 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			has(beasts, "params.FilterDescendantsInstances = ground", "the ground ray uses both")
 			has(beasts, "overlap.FilterDescendantsInstances = exclude", "a landing still refuses the inside of a mountain")
 		end
+	end)
+	-- V4: the cookie platforms over the deeper surface, the pink hills, the backdrop and the edge fill
+	case("B16: pink hills at the crystal spots, a decor-only backdrop outside the east edge, a dense edge fill", function()
+		equal(#holder.EdgeHills:GetChildren(), #V3.CRYSTAL_HILLS, "one pink hill per crystal spot")
+		for _, h in ipairs(V3.CRYSTAL_HILLS) do
+			local hill = holder.EdgeHills:FindFirstChild(h.id)
+			assert(hill, h.id)
+			local p = hill:GetPivot().Position
+			near(p.X, centre.x + h.x, h.id .. " x", 0.01); near(p.Z, centre.z + h.z, h.id .. " z", 0.01)
+			equal(hill:GetAttribute("CrystalSpot"), true, h.id)
+		end
+		equal(#holder.Backdrop:GetChildren(), #V3.BACKDROP, "backdrop pieces")
+		for _, m in ipairs(holder.Backdrop:GetChildren()) do
+			assert(m:GetPivot().Position.X - centre.x > Layout.HALF, m.Name .. " inside the plot")
+			for _, p in ipairs(parts(m)) do
+				equal(p.CanCollide, false, m.Name .. "'s " .. p.Name .. " collides")
+				equal(p.CanQuery, false, m.Name .. "'s " .. p.Name .. " answers rays")
+			end
+		end
+		local edgeTrees = 0
+		for _, tree in ipairs(holder.Trees:GetChildren()) do
+			if tree:GetAttribute("EdgeFill") then
+				edgeTrees += 1
+				assert(type(tree:GetAttribute("V3Kind")) == "string", tree.Name .. " has no V3Kind (the ambience)")
+				local p = tree:GetPivot().Position
+				local x, z = p.X - centre.x, p.Z - centre.z
+				assert(V3.liquidDistance(x, z) > 0 and Layout.routeDistance(x, z) > Layout.PATH_WIDTH / 2, tree.Name .. " off open ground")
+				assert(Layout.flat(x, z, Layout.BOSS.x, Layout.BOSS.z) > Layout.BOSS.territoryRadius, tree.Name .. " in the boss territory")
+			end
+		end
+		equal(edgeTrees, report.edgeTrees, "edge trees")
+		assert(report.edgeTrees >= 20, "a thin edge: " .. report.edgeTrees .. " trees")
+		if library then assert(report.edgeProps >= 15, "a thin edge: " .. report.edgeProps .. " props") end
+		for _, m in ipairs(holder.EdgeFill:GetChildren()) do
+			local p = m:GetPivot().Position
+			assert(V3.liquidDistance(p.X - centre.x, p.Z - centre.z) > 0, m.Name .. " in the chocolate")
+		end
+		assert(report.edgeParts <= V3.EDGE.maxParts + 600, "edge parts " .. report.edgeParts)
 	end)
 	scratch:Destroy()
 
@@ -275,8 +337,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			},
 		} }
 		local root = Instance.new("Model")
-		local r = V3Builder.layAll(root, { Layout = Layout, V3 = V3, kitV3 = kit, kitSpec = spec, keepOut = {} })
-		-- Deliberately changed (V3 review): placeholder hills are listed
+		local r = V3Builder.layAll(root, { Layout = Layout, V3 = V3, kitV3 = kit, kitSpec = spec, keepOut = {}, edge = false })
+		-- Deliberately changed (V3 review): placeholder hills are listed; (V4) without the edge pieces (edge = false)
 		equal(#r.placeholders, #V3.MOUNTAINS + #V3.HOUSES - 3 + 1 + 1 + #V3.PLATFORMS + r.hills, "three sweet houses from the kit")
 		local h1 = V3.HOUSES[1]
 		local house = root[V3.FOLDER].Houses.House_H1
@@ -290,7 +352,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		equal(floor.Transparency, 1, "invisible collider"); equal(floor.CanCollide, true, "the collider collides")
 		local pivot = house:GetPivot()
 		near(pivot.X, centre.x + h1.x, "pivot x", 0.01); near(pivot.Z, centre.z + h1.z, "pivot z", 0.01); near(pivot.Y, floorTop, "pivot y", 0.01)
-		near((pivot:PointToObjectSpace(back.Position) - Vector3.new(0, 5, 9.5)).Magnitude, 0, "the wall sits in the pivot frame", 0.01)
+		-- Deliberately changed (V4-D5): H1 is laid at its scale (1.4)
+		near((pivot:PointToObjectSpace(back.Position) - Vector3.new(0, 5, 9.5) * h1.scale).Magnitude, 0, "the wall sits in the pivot frame", 0.01)
 		local look = pivot.LookVector
 		local toJunction = Vector3.new(Layout.JUNCTION.x - h1.x, 0, Layout.JUNCTION.z - h1.z).Unit
 		assert(look:Dot(toJunction) > 0.99, "the front faces the junction")
@@ -401,7 +464,9 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		near(p.Y, floorTop, "on the floor", 0.01)
 		equal(roof.Parent, tree, "the roof moved into the new tree")
 		local height = V3Builder.measureTree(tree).height
-		assert(height >= 16 * V3.TREES.minFactor - 0.5 and height <= 16 + 0.5, "height " .. height)
+		-- Deliberately changed (V4-D4): up to heightFactor (1.35) times the old tree's height
+		assert(height >= 16 * V3.TREES.heightFactor * V3.TREES.minFactor - 0.5 and height <= 16 * V3.TREES.heightFactor + 0.5,
+			"height " .. height)
 		root:Destroy()
 	end)
 
@@ -455,7 +520,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		cotton.Parent = root
 		local old = oldTree(cotton, "CottonTree_2", "TreeCotton_M", -150, 60, true)
 		local roof = old.Roof
-		local base = { Layout = Layout, V3 = V3, Builder = Builder, kitSpec = KitSpec, keepOut = {} }
+		-- (V4) edge = false: the edge fill's trees would be upgraded too
+		local base = { Layout = Layout, V3 = V3, Builder = Builder, kitSpec = KitSpec, keepOut = {}, edge = false }
 		V3Builder.layAll(root, base)
 		V3Builder.swapTrees(root, base, function(instance) instance.Parent = nil end, false)
 		local placeholderTree = root[V3.FOLDER].Trees.Tree_1
@@ -508,6 +574,80 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		assert(kitTree:FindFirstChild("Collision_Trunk"), "the kit tree has its spec collider")
 		local again = V3Builder.upgradePlaceholders(root, deps, function() error("a second run archived") end, false)
 		equal(#again.upgraded, 0, "idempotent")
+		root:Destroy()
+	end)
+
+	-- V4: what the v4 migration archives, the relay lay into the live CaramelV3, the tree refit.
+	case("B17: planV4 archives the v3 pieces, the yellow crystals and the props in the new chocolate; Trees stay", function()
+		local root = Instance.new("Model")
+		local holder3 = Instance.new("Folder")
+		holder3.Name = V3.FOLDER
+		holder3.Parent = root
+		for _, name in ipairs({ "Bridge", "Mountains", "Trees" }) do
+			local f = Instance.new("Folder")
+			f.Name = name
+			f.Parent = holder3
+		end
+		local dryTree = oldTree(holder3.Trees, "Tree_1", "CV3_TreeCotton", -150, 60, true)
+		dryTree:SetAttribute(V3.TREES.attribute, "TreeCotton_M")
+		local wetTree = oldTree(holder3.Trees, "Tree_2", "CV3_TreeCotton", V3.RIVER[4][1], V3.RIVER[4][2], false)
+		local hills = Instance.new("Folder")
+		hills.Name = "SugarHills"
+		hills.Parent = root
+		local crystal = oldTree(hills, "Hill_1", "RockSugar", 198, -190, false)
+		local plan = V3Builder.planV4(root, Layout, V3)
+		local why = {}
+		for _, a in ipairs(plan.archive) do why[a.instance] = a.why end
+		assert(why[holder3.Bridge] and why[holder3.Mountains], "the v3 pieces are laid again")
+		equal(why[holder3.Trees], nil, "the trees stay")
+		equal(why[crystal], "yellow crystal (V4-D6)", "the crystal")
+		equal(why[wetTree], "in the chocolate", "the tree in the new river")
+		equal(why[dryTree], nil, "the dry tree stays")
+		equal(plan.trees, 1, "one CaramelV3 tree kept")
+		equal(crystal.Parent, hills, "the plan moves nothing")
+		root:Destroy()
+	end)
+
+	case("B18: a relay lay keeps the live trees; refitTrees grows them 35 % with La Nube's roof, once", function()
+		local root = Instance.new("Model")
+		local holder3 = Instance.new("Folder")
+		holder3.Name = V3.FOLDER
+		holder3.Parent = root
+		local trees = Instance.new("Folder")
+		trees.Name = "Trees"
+		trees.Parent = holder3
+		local tree = oldTree(trees, "Tree_1", "CV3_TreeCotton", -150, 60, true)
+		tree:SetAttribute(V3.TREES.attribute, "TreeCotton_M")
+		local roof = tree.Roof
+		local roofSize = roof.Size
+		local before = V3Builder.measureTree(tree).height
+		local deps = { Layout = Layout, V3 = V3, Builder = Builder, kitSpec = KitSpec, keepOut = {} }
+		local dry = V3Builder.refitTrees(root, deps, function() error("archived") end, true)
+		equal(#dry.refit, 1, "dry: one to refit")
+		near(V3Builder.measureTree(tree).height, before, "a dry run changes nothing", 0.01)
+		local r = V3Builder.refitTrees(root, deps, function() error("archived") end, false)
+		equal(#r.refit, 1, "refit")
+		local k = tree:GetAttribute("V4Refit")
+		assert(type(k) == "number" and k > 1 and k <= V3.TREES.heightFactor + 1e-6, "factor " .. tostring(k))
+		near(V3Builder.measureTree(tree).height, before * k, "the tree grew", 0.05)
+		equal(roof.Parent, tree, "the roof stays in the tree")
+		near((roof.Size - roofSize).Magnitude, 0, "the roof keeps its width", 0.01)
+		local m = V3Builder.measureTree(tree)
+		assert(roof.Position.Y - tree:GetPivot().Y < m.height, "the roof inside the crown")
+		equal(#V3Builder.refitTrees(root, deps, function() end, false).refit, 0, "idempotent")
+		-- the relay lay: refused while a v3 piece is left, then laid into the same folder, the tree kept
+		local stale = Instance.new("Folder")
+		stale.Name = "River"
+		stale.Parent = holder3
+		assert(not pcall(V3Builder.layAll, root, { Layout = Layout, V3 = V3, kitSpec = KitSpec, keepOut = {}, relay = true }),
+			"a relay with a v3 piece left was accepted")
+		stale.Parent = nil
+		local laid = V3Builder.layAll(root, { Layout = Layout, V3 = V3, kitSpec = KitSpec, keepOut = {}, relay = true, edge = false })
+		equal(root[V3.FOLDER], holder3, "the same folder")
+		equal(tree.Parent, trees, "the live tree stays")
+		assert(holder3:FindFirstChild("Bridges") and holder3:FindFirstChild("Houses"), "the v4 pieces")
+		assert(laid.parts > 0, "parts")
+		equal(V3Builder.retagHouses(root, V3), #V3.HOUSES, "retagged")
 		root:Destroy()
 	end)
 

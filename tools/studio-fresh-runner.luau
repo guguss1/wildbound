@@ -199,6 +199,15 @@ SPECS["WildboundCandyRaft_Test"] = {
 	"mod:WildboundCandyRaft", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundText",
 	{ service = "src:WildboundCandyRaftService", client = "src:WildboundCandyRaftClient" },
 }
+SPECS["WildboundCandyWade_Test"] = {
+	"mod:WildboundCandyWade", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout",
+	{ service = "src:WildboundCandyWadeService", server = "src:WildboundServer" },
+}
+-- Caramelo v4 (odd/tasks/wildbound-caramelo-v2.md V4-D8): the house nests (detached fixtures, a fake kit)
+SPECS["WildboundCandyHouseNests_Test"] = {
+	"mod:WildboundCandyHouseNests", "mod:WildboundCandyNests", "mod:WildboundCandyLayout", "mod:WildboundCandyV3KitSpec",
+	"mod:WildboundCandyV3Layout", { nests = "src:WildboundCandyNests" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

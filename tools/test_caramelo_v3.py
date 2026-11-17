@@ -1,6 +1,7 @@
-"""Guard for Caramelo v3 (owner request 2026-11-17: new trees, a big chocolate river from ice-cream mountains with a
-waterfall, a bridge, a free raft, houses with interiors, a rainbow licorice, the modular cake, cookie platforms on the
-lake, a little less light and more sparkles; docs/design/wildbound-caramelo-v3-plan.md).
+"""Guard for Caramelo v3 and v4 (owner requests 2026-11-17: new trees, a big chocolate river from ice-cream mountains
+with a waterfall, bridges, a free raft, houses with interiors, a rainbow licorice, the modular cake, cookie platforms on
+the lake; v4: the river as a north-south barrier before the cake, deeper chocolate, bigger trees and houses, no yellow
+crystals, fuller sides; docs/design/wildbound-caramelo-v3-plan.md).
 
 Run from the project root (isolated mode, no bytecode written):
 
@@ -8,7 +9,7 @@ Run from the project root (isolated mode, no bytecode written):
 
 Reads the repo only. The Luau suites (WildboundCandyV3Layout_Test, WildboundCandyV3Builder_Test, WildboundCandyRaft_Test,
 WildboundCandyAmbience_Test) hold the same rules in Studio; this mirror parses the layout data out of the Luau sources so
-the geometry can be checked on a machine without Studio, and guards the one-shot migration tool and the raft's "free,
+the geometry can be checked on a machine without Studio, and guards the one-shot migration tools and the raft's "free,
 no purchase" rule.
 """
 
@@ -21,9 +22,12 @@ ROOT = Path(__file__).resolve().parent.parent
 V3_PATH = ROOT / "tools" / "WildboundCandyV3Layout.luau"
 LAYOUT_PATH = ROOT / "tools" / "WildboundCandyLayout.luau"
 SITES_PATH = ROOT / "src" / "wildbound" / "WildboundPraderaSites.luau"
+BIOMES_PATH = ROOT / "src" / "wildbound" / "WildboundBiomes.luau"
 TRAP_PATH = ROOT / "tools" / "WildboundCandyTrapCake.luau"
 TOOL_PATH = ROOT / "tools" / "wildbound-caramelo-v3-migrate.luau"
+TOOL_V4_PATH = ROOT / "tools" / "wildbound-caramelo-v4-migrate.luau"
 BUILDER_PATH = ROOT / "tools" / "WildboundCandyV3Builder.luau"
+OLD_BUILDER_PATH = ROOT / "tools" / "WildboundCandyBuilder.luau"
 DECOR_JSON = ROOT / "assets" / "exports" / "caramelo-v3" / "decor" / "caramelo-v3-decor-spec.json"
 KIT_SPEC = ROOT / "tools" / "WildboundCandyV3KitSpec.luau"
 RAFT_PATHS = [
@@ -32,6 +36,7 @@ RAFT_PATHS = [
     ROOT / "src" / "wildbound" / "WildboundCandyRaft.client.luau",
 ]
 NUM = r"(-?\d+(?:\.\d+)?)"
+HOUSE_BASE_R = {"CV3_SweetHouse": 20, "CV3_ChocoHouse": 16, "CV3_CaramelTower": 15}
 
 
 def read(path):
@@ -57,27 +62,58 @@ def floats(match):
     return [float(g) for g in match]
 
 
+def rect_corners(b):
+    a = b["length"] / 2 + b["ramp"]
+    c = b["width"] / 2 + (b["sideRamp"] if b["gaps"] else 0)
+    ux, uz = b["ux"], b["uz"]
+    return [(b["x"] + sa * a * ux - sc * c * uz, b["z"] + sa * a * uz + sc * c * ux)
+            for sa, sc in ((-1, -1), (1, -1), (1, 1), (-1, 1))]
+
+
+def rects_overlap(p, q):
+    """Separating-axis test of two convex quads."""
+    for poly in (p, q):
+        for i in range(4):
+            ax, az = poly[i]
+            bx, bz = poly[(i + 1) % 4]
+            nx, nz = -(bz - az), bx - ax
+            pa = [nx * x + nz * z for x, z in p]
+            qa = [nx * x + nz * z for x, z in q]
+            if max(pa) < min(qa) or max(qa) < min(pa):
+                return False
+    return True
+
+
 class Geometry:
     def __init__(self):
         v3, layout, sites, trap = read(V3_PATH), read(LAYOUT_PATH), read(SITES_PATH), read(TRAP_PATH)
         self.river = [floats(m) for m in re.findall(r"\{ %s, %s, %s \}" % (NUM, NUM, NUM), block(v3, "V3.RIVER ="))]
         self.pool = floats(re.search(r"V3\.POOL = freeze\(\{ x = %s, z = %s, r = %s \}\)" % (NUM, NUM, NUM), v3).groups())
         self.lake = [floats(m) for m in re.findall(r"x = %s, z = %s, r = %s" % (NUM, NUM, NUM), block(v3, "V3.LAKE ="))]
-        b = re.search(r"V3\.BRIDGE = freeze\(\{ x = %s, z = %s, length = %s, ramp = %s, width = %s, deck = %s"
-                      % (NUM, NUM, NUM, NUM, NUM, NUM), v3)
-        self.bridge = dict(zip(("x", "z", "length", "ramp", "width", "deck"), floats(b.groups())))
+        self.depth_liquid = float(re.search(r"V3\.LIQUID = freeze\(\{ depth = %s" % NUM, v3).group(1))
+        build = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.BRIDGE_BUILD ="))}
+        self.bridges = []
+        for m in re.findall(r'id = "(\w+)", route = "(\w+)", from = \{ %s, %s \}, to = \{ %s, %s \}, at = %s, length = %s, gaps = \{([^}]*)\}'
+                            % ((NUM,) * 6), block(v3, "local BRIDGE_ROWS =")):
+            fx, fz, tx, tz, at, length = (float(v) for v in m[2:8])
+            leg = math.hypot(tx - fx, tz - fz)
+            ux, uz = (tx - fx) / leg, (tz - fz) / leg
+            b = dict(build)
+            b.update(id=m[0], route=m[1], frm=(fx, fz), to=(tx, tz), at=at, length=length, leg=leg, ux=ux, uz=uz,
+                     x=fx + ux * at, z=fz + uz * at,
+                     gaps=[float(v) for v in m[8].split(",") if v.strip()])
+            self.bridges.append(b)
         piece = r'id = "(\w+)", asset = "(\w+)", x = %s, z = %s, r = %s' % (NUM, NUM, NUM)
         mountain = r'id = "(\w+)", asset = "(\w+)", x = %s, z = %s, scale = %s, r = %s, height = %s,\s*faceX = %s, faceZ = %s' % ((NUM,) * 7)
         self.mountains = [(m[0], m[1], float(m[2]), float(m[3]), float(m[5]), float(m[4]), float(m[7]), float(m[8]))
                           for m in re.findall(mountain, block(v3, "V3.MOUNTAINS ="))]
-        self.houses = [(m[0], m[1], float(m[2]), float(m[3]), float(m[4])) for m in re.findall(piece, block(v3, "V3.HOUSES ="))]
+        self.houses = [(m[0], m[1], float(m[2]), float(m[3]), float(m[4]), float(m[5])) for m in re.findall(
+            piece + r", scale = %s" % NUM, block(v3, "V3.HOUSES ="))]
         self.docks = [(m[0],) + tuple(float(v) for v in m[1:]) for m in re.findall(
             r'id = "(\w+)", standX = %s, standZ = %s, tipX = %s, tipZ = %s' % (NUM, NUM, NUM, NUM), block(v3, "V3.DOCKS ="))]
-        self.lane = [floats(m) for m in re.findall(r"\{ %s, %s \}" % (NUM, NUM), block(v3, "V3.RAFT ="))]
+        self.raft = block(v3, "V3.RAFT =")
+        self.turns = {m[0]: float(m[1]) for m in re.findall(r'id = "(\w+)",[^\n]*turn = %s' % NUM, block(v3, "V3.HOUSES ="))}
         self.dock = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.DOCK ="))}
-        gaps = re.search(r"gaps = \{ ([^}]*) \}, gapWidth = %s, sideRamp = %s" % (NUM, NUM), v3)
-        self.bridge["gaps"] = [float(v) for v in gaps.group(1).split(",")]
-        self.bridge["gapWidth"], self.bridge["sideRamp"] = float(gaps.group(2)), float(gaps.group(3))
         lic = re.search(r"V3\.LICORICE = freeze\(\{ x = %s, z = %s, scale = %s, height = %s, span = %s" % ((NUM,) * 5), v3)
         self.licorice = dict(zip(("x", "z", "scale", "height", "span"), floats(lic.groups())))
         self.licorice["feet"] = [floats(m) for m in re.findall(r"offset = %s, r = %s" % (NUM, NUM), block(v3, "V3.LICORICE ="))]
@@ -86,10 +122,17 @@ class Geometry:
         self.cake = dict(zip(("x", "z", "scale", "r", "reach", "faceX", "faceZ"), floats(cake.groups())))
         self.platforms = [(m[0], float(m[1]), float(m[2]), float(m[3])) for m in re.findall(
             r'asset = "(\w+)", x = %s, z = %s, r = %s' % (NUM, NUM, NUM), block(v3, "V3.PLATFORMS ="))]
+        self.platform = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.PLATFORM ="))}
         self.clear = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.CLEAR ="))}
         wf = re.search(r"V3\.WATERFALL = freeze\(\{ x = %s, z = %s, width = %s, top = %s, faceX = %s, faceZ = %s"
                        % ((NUM,) * 6), v3)
         self.waterfall = dict(zip(("x", "z", "width", "top", "faceX", "faceZ"), floats(wf.groups())))
+        self.trees = {k: float(v) for k, v in re.findall(r"(heightFactor|minFactor) = %s" % NUM, block(v3, "V3.TREES ="))}
+        self.crystal_hills = [(m[0], float(m[1]), float(m[2]), float(m[3]), float(m[4])) for m in re.findall(
+            r'id = "(\w+)", x = %s, z = %s, scale = %s, r = %s' % ((NUM,) * 4), block(v3, "V3.CRYSTAL_HILLS ="))]
+        self.backdrop = [(m[0], float(m[1]), float(m[2]), float(m[3]), float(m[4])) for m in re.findall(
+            r'asset = "(\w+)", x = %s, z = %s, scale = %s, r = %s' % ((NUM,) * 4), block(v3, "V3.BACKDROP ="))]
+        self.edge = {k: float(v) for k, v in re.findall(r"(\w+) = %s" % NUM, block(v3, "V3.EDGE ="))}
         # the base layout
         self.half = float(re.search(r"Layout\.HALF = (\d+)", layout).group(1))
         self.path_half = float(re.search(r"Layout\.PATH_WIDTH = (\d+)", layout).group(1)) / 2
@@ -109,6 +152,8 @@ class Geometry:
         self.posts = {m[0]: (float(m[1]) - cx, float(m[2]) - cz)
                       for m in re.findall(r"(\w+) = table\.freeze\(\{ x = %s, z = %s \}\)" % (NUM, NUM), fixed)}
         self.traps = [floats(m) for m in re.findall(r'key = "\w+", x = %s, z = %s' % (NUM, NUM), block(trap, "Trap.SPOTS ="))]
+        self.biomes = [(m[0], float(m[1]), float(m[2]), float(m[3]), float(m[4])) for m in re.findall(
+            r'square\("(\w+)", "[\w-]+", %s, %s, %s, %s\)' % ((NUM,) * 4), read(BIOMES_PATH))]
 
     # --- distances ---
     @staticmethod
@@ -137,10 +182,25 @@ class Geometry:
     def depth(self, x, z):
         return self.half - max(abs(x), abs(z))
 
+    @staticmethod
+    def frame(b, x, z):
+        dx, dz = x - b["x"], z - b["z"]
+        return dx * b["ux"] + dz * b["uz"], -dx * b["uz"] + dz * b["ux"]
+
     def on_bridge(self, x, z, deck_only=False):
-        b = self.bridge
-        reach = b["length"] / 2 + (0 if deck_only else b["ramp"])
-        return abs(z - b["z"]) <= b["width"] / 2 and abs(x - b["x"]) <= reach
+        for b in self.bridges:
+            along, across = self.frame(b, x, z)
+            if abs(across) <= b["width"] / 2 and abs(along) <= b["length"] / 2 + (0 if deck_only else b["ramp"]):
+                return True
+        return False
+
+    def near_bridge(self, x, z, reach=0):
+        for b in self.bridges:
+            along, across = self.frame(b, x, z)
+            side = b["sideRamp"] if b["gaps"] else 0
+            if abs(across) <= b["width"] / 2 + side + reach and abs(along) <= b["length"] / 2 + b["ramp"] + reach:
+                return True
+        return False
 
     def route_samples(self):
         for name, pts in self.routes.items():
@@ -175,6 +235,29 @@ class Geometry:
         X, Z = X * scale, Z * scale
         return x + X * math.cos(yaw) + Z * math.sin(yaw), z - X * math.sin(yaw) + Z * math.cos(yaw)
 
+    def open_disc(self, label, x, z, r, test, pieces=True):
+        """The clearances of a solid disc: nests, posts, trap cakes, routes, the boss territory, the portal, the
+        entrance, KEEP_CLEAR, the chocolate and (optionally) every v3 piece."""
+        g, c = self, self.clear
+        for nid, (nx, nz) in g.nests.items():
+            test.assertGreaterEqual(math.hypot(x - nx, z - nz) - r, c["pieceFromNest"], "%s on nest %s" % (label, nid))
+        for pid, (px, pz) in g.posts.items():
+            test.assertGreaterEqual(math.hypot(x - px, z - pz) - r, c["pieceFromPost"], "%s on post %s" % (label, pid))
+        for tx, tz in g.traps:
+            test.assertGreaterEqual(math.hypot(x - tx, z - tz) - r, c["trapFromAnything"], "%s on a trap cake" % label)
+        test.assertGreaterEqual(g.route_distance(x, z) - r - g.path_half, c["pieceFromRoute"], label + " on a route")
+        bx, bz, _, territory = g.boss
+        test.assertGreaterEqual(math.hypot(x - bx, z - bz) - r, territory, label + " in the boss territory")
+        test.assertGreaterEqual(math.hypot(x - g.portal[0], z - g.portal[1]) - r, 16, label + " at the portal")
+        test.assertGreaterEqual(math.hypot(x - g.entrance[0], z - g.entrance[1]) - r, 28, label + " at the entrance")
+        for kx, kz, kr in g.keep:
+            test.assertGreaterEqual(math.hypot(x - kx, z - kz) - r - kr, c["pieceApart"], label + " in KEEP_CLEAR")
+        test.assertGreaterEqual(g.liquid_distance(x, z) - r, c["pieceApart"], label + " in the chocolate")
+        test.assertFalse(g.near_bridge(x, z, r), label + " on a bridge")
+        if pieces:
+            for plabel, px, pz, pr in g.solid_pieces():
+                test.assertGreaterEqual(math.hypot(x - px, z - pz) - r - pr, c["pieceApart"], label + " on " + plabel)
+
 
 class CarameloV3Layout(unittest.TestCase):
     @classmethod
@@ -184,7 +267,8 @@ class CarameloV3Layout(unittest.TestCase):
     def test_parsed_everything(self):
         g = self.g
         self.assertGreaterEqual(len(g.river), 6)
-        self.assertEqual(len(g.lake), 4)
+        # Deliberately changed (V4): the lake is reshaped round the new river (two discs)
+        self.assertGreaterEqual(len(g.lake), 1)
         self.assertEqual(len(g.houses), 7)
         self.assertGreaterEqual(len(g.mountains), 4)
         self.assertEqual(len(g.docks), 2)
@@ -193,17 +277,43 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertEqual(len(g.nests), 28)
         self.assertGreaterEqual(len(g.posts), 26)
         self.assertEqual(len(g.traps), 3)
+        self.assertEqual(len(g.bridges), 5)
+        self.assertEqual(len(g.crystal_hills), 6)
+        self.assertGreaterEqual(len(g.backdrop), 6)
 
-    def test_river_runs_from_the_waterfall_pool_into_the_lake_and_is_big(self):
+    # Deliberately changed (V4): the river is born at M1's pool by the north edge and leaves at the south edge (V4-D1);
+    # it was a south-band river into the lake, at least 20 wide and inside the plot.
+    def test_river_runs_from_the_waterfall_pool_through_the_lake_to_the_south_edge(self):
         g = self.g
         first, last = g.river[0], g.river[-1]
         self.assertLessEqual(math.hypot(first[0] - g.pool[0], first[1] - g.pool[1]), g.pool[2] + 1, "starts at the pool's outlet")
-        self.assertTrue(any(math.hypot(last[0] - d[0], last[1] - d[1]) < d[2] for d in g.lake), "ends inside the lake")
+        self.assertTrue(any(g.seg(d[0], d[1], a[0], a[1], b[0], b[1]) < d[2] for d in g.lake for a, b in zip(g.river, g.river[1:])),
+                        "runs through the lake")
+        self.assertAlmostEqual(g.depth(last[0], last[1]), 0, delta=0.01, msg="ends on the plot edge")
+        self.assertLess(last[1], 0, "the south edge")
+        m1 = [m for m in g.mountains if m[0] == "M1"][0]
+        self.assertGreater(m1[3], 0, "M1 by the north edge")
+        self.assertGreaterEqual(m1[3] + m1[4], g.half - 0.5, "M1's footprint touches the north edge")
         length = sum(math.hypot(b[0] - a[0], b[1] - a[1]) for a, b in zip(g.river, g.river[1:]))
-        self.assertGreaterEqual(length, 250, "a long river")
-        self.assertTrue(all(p[2] >= 20 for p in g.river[1:]), "at least 20 studs wide below the outlet")
-        for p in g.river:
+        self.assertGreaterEqual(length, 340, "a long river")
+        self.assertTrue(all(p[2] >= 10 for p in g.river[1:]), "at least 10 studs wide below the outlet (round the junction)")
+        self.assertGreaterEqual(max(p[2] for p in g.river), 20, "wide where the raft sails")
+        for p in g.river[:-1]:
             self.assertGreaterEqual(g.depth(p[0], p[1]) - p[2] / 2, 2, "the river leaves the plot at %s" % p[:2])
+
+    def test_the_river_is_a_barrier_west_of_the_cake(self):
+        # V4-D1: every west-to-east line across the plot meets the chocolate (or M1, the source, standing on the north
+        # edge), so every walk from the west half to the cake wades or takes a bridge.
+        g = self.g
+        m1 = [m for m in g.mountains if m[0] == "M1"][0]
+        bx, bz, _, territory = g.boss
+        for zi in range(-200, 201, 2):
+            z = float(zi)
+            if abs(z - m1[3]) <= m1[4] and g.depth(m1[2], m1[3]) <= m1[4] + 0.5:
+                continue
+            wet = [x for x in range(-200, 201) if g.liquid_distance(x, z) < 0]
+            self.assertTrue(wet, "a dry line at z %s" % z)
+            self.assertLess(min(wet), bx - territory + 1, "the chocolate at z %s is not west of the cake" % z)
 
     def test_the_waterfall_falls_from_the_big_mountain_into_the_pool(self):
         g = self.g
@@ -229,6 +339,7 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertLess(math.hypot(px - g.pool[0], pz - g.pool[1]), 0.5, "POOL is M1's pool")
         self.assertAlmostEqual(g.pool[2], water["pool_radius"] * scale, delta=0.1)
         self.assertLess(abs(g.waterfall["top"] - water["ledge_z"] * scale), 0.5, "the fall starts at the ledge (studs over the floor)")
+        self.assertEqual((fx, fz), (g.river[1][0], g.river[1][1]), "M1 faces RIVER[2]")
         size = spec[asset]["size"]
         self.assertGreaterEqual(r, max(size[0], size[1]) / 2 * scale, "the footprint holds the kit")
         for m in g.mountains:
@@ -241,8 +352,14 @@ class CarameloV3Layout(unittest.TestCase):
         lic = spec["CV3_LicoriceArch"]
         self.assertAlmostEqual(g.licorice["span"], lic["size"][0] * g.licorice["scale"], delta=0.5)
         self.assertAlmostEqual(g.licorice["height"], lic["size"][2] * g.licorice["scale"], delta=0.5)
+        # V4-D6/D7: the pink hills and the backdrop hold their kit
+        for hid, _, _, sc, rr in g.crystal_hills:
+            self.assertGreaterEqual(rr, max(spec["CV3_IceCreamMountain_M"]["size"][:2]) / 2 * sc - 0.1, hid)
+        for asset, _, _, sc, rr in g.backdrop:
+            self.assertGreaterEqual(rr, max(spec[asset]["size"][:2]) / 2 * sc - 0.1, asset)
 
-    def test_routes_meet_the_chocolate_only_on_the_bridge(self):
+    # Deliberately changed (V4): a list of bridges, one on every route leg the river crosses (was the single BRIDGE).
+    def test_routes_meet_the_chocolate_only_on_a_bridge(self):
         g = self.g
         for name, x, z in g.route_samples():
             d = g.liquid_distance(x, z)
@@ -250,33 +367,49 @@ class CarameloV3Layout(unittest.TestCase):
                 self.assertTrue(g.on_bridge(x, z, True), "%s wades at (%.1f, %.1f)" % (name, x, z))
             if d < g.path_half:
                 self.assertTrue(g.on_bridge(x, z), "%s's edge wades at (%.1f, %.1f)" % (name, x, z))
-        b = g.bridge
-        left = g.routes["left"]
-        self.assertTrue(any(abs(p[1] - b["z"]) < 1e-6 and abs(q[1] - b["z"]) < 1e-6 and min(p[0], q[0]) <= b["x"] - b["length"] / 2
-                            and max(p[0], q[0]) >= b["x"] + b["length"] / 2 for p, q in zip(left, left[1:])),
-                        "the deck lies on a straight leg of the left route")
-        self.assertGreater(b["width"], g.path_half * 2)
+        crossed = set()
+        for b in g.bridges:
+            pts = g.routes[b["route"]]
+            legs = list(zip(pts, pts[1:]))
+            self.assertIn((list(b["frm"]), list(b["to"])), [(list(p), list(q)) for p, q in legs], b["id"] + " on a route leg")
+            self.assertGreaterEqual(b["at"] - b["length"] / 2 - b["ramp"], -1e-6, b["id"] + " past its leg's start")
+            self.assertLessEqual(b["at"] + b["length"] / 2 + b["ramp"], b["leg"] + 1e-6, b["id"] + " past its leg's end")
+            self.assertGreater(b["width"], g.path_half * 2)
+            self.assertLess(g.liquid_distance(b["x"], b["z"]), 0, b["id"] + " stands over the chocolate")
+            crossed.add(b["route"])
+        self.assertEqual(crossed, {"main", "left", "right"}, "the main avenue's, the left route's and the right route's")
 
-    def test_bridge_opens_for_north_south_crossings(self):
-        b = self.g.bridge
-        self.assertGreaterEqual(len(b["gaps"]), 3)
-        self.assertGreaterEqual(b["gapWidth"], 8)
-        for gx in b["gaps"]:
-            self.assertLessEqual(abs(gx) + b["gapWidth"] / 2, b["length"] / 2, "a gap past the deck")
-        for i, a in enumerate(b["gaps"]):
-            for c in b["gaps"][i + 1:]:
-                self.assertGreaterEqual(abs(a - c), b["gapWidth"] + 4, "gaps too close")
-        rise = b["deck"]
-        self.assertLessEqual(math.degrees(math.atan2(rise, b["sideRamp"])), 25, "side ramps walkable")
-        # V3-D25: no side ramp on a creature post (candyPostC6 stood at the middle gap's south ramp)
-        for gx in b["gaps"]:
-            for s in (-1, 1):
-                x0, x1 = b["x"] + gx - b["gapWidth"] / 2, b["x"] + gx + b["gapWidth"] / 2
-                za, zb = b["z"] + s * b["width"] / 2, b["z"] + s * (b["width"] / 2 + b["sideRamp"])
-                z0, z1 = min(za, zb), max(za, zb)
-                for pid, (px, pz) in self.g.posts.items():
-                    dx, dz = max(x0 - px, 0, px - x1), max(z0 - pz, 0, pz - z1)
-                    self.assertGreaterEqual(math.hypot(dx, dz), 6, "side ramp at gap %s on post %s" % (gx, pid))
+    def test_bridges_stand_over_the_deeper_chocolate_and_are_walkable(self):
+        g = self.g
+        self.assertEqual(g.depth_liquid, 3.5, "V4-D2: 3.5 studs deep")
+        for b in g.bridges:
+            self.assertGreaterEqual(b["deck"], g.depth_liquid + 0.6 - 1e-9, b["id"] + " deck 0.6 over the surface")
+            self.assertLessEqual(math.degrees(math.atan2(b["deck"], b["ramp"])), 25, b["id"] + " end ramps")
+            self.assertLessEqual(math.degrees(math.atan2(b["deck"], b["sideRamp"])), 25, b["id"] + " side ramps")
+        for i, a in enumerate(g.bridges):
+            for c in g.bridges[i + 1:]:
+                self.assertFalse(rects_overlap(rect_corners(a), rect_corners(c)), "bridges %s and %s overlap" % (a["id"], c["id"]))
+        d = g.dock
+        self.assertLessEqual(math.degrees(math.atan2(g.depth_liquid + d["deckOver"], d["rampBack"] - 1.5)), 25, "dock ramps walkable")
+
+    def test_bridge_gaps_open_for_crossings_off_the_posts(self):
+        for b in self.g.bridges:
+            self.assertGreaterEqual(b["gapWidth"], 8)
+            for gx in b["gaps"]:
+                self.assertLessEqual(abs(gx) + b["gapWidth"] / 2, b["length"] / 2, "a gap past the deck")
+            for i, a in enumerate(b["gaps"]):
+                for c in b["gaps"][i + 1:]:
+                    self.assertGreaterEqual(abs(a - c), b["gapWidth"] + 4, "gaps too close")
+            # V3-D25: no side ramp on a creature post
+            for gx in b["gaps"]:
+                for s in (-1, 1):
+                    for pid, (px, pz) in self.g.posts.items():
+                        along, across = self.g.frame(b, px, pz)
+                        da = max(abs(along - gx) - b["gapWidth"] / 2, 0)
+                        lo, hi = sorted((s * b["width"] / 2, s * (b["width"] / 2 + b["sideRamp"])))
+                        dc = max(lo - across, 0, across - hi)
+                        self.assertGreaterEqual(math.hypot(da, dc), 6, "%s side ramp at gap %s on post %s" % (b["id"], gx, pid))
+        self.assertTrue(any(b["gaps"] for b in self.g.bridges), "some bridge opens for waders")
 
     def test_nests_posts_traps_boss_portal_entrance_stay_off_the_chocolate(self):
         g, c = self.g, self.g.clear
@@ -316,6 +449,8 @@ class CarameloV3Layout(unittest.TestCase):
                 self.assertGreaterEqual(g.depth(x, z) - r, c["edgeDepth"], label + " by the plot edge")
             if not (label == "mountain M1" or label.startswith("dock")):
                 self.assertGreaterEqual(g.liquid_distance(x, z) - r, c["pieceApart"], label + " in the chocolate")
+            if not label.startswith("dock"):
+                self.assertFalse(g.near_bridge(x, z, r), label + " on a bridge")
         for i, a in enumerate(pieces):
             for b in pieces[i + 1:]:
                 if a[0].startswith("cake") and b[0].startswith("cake"):
@@ -324,33 +459,52 @@ class CarameloV3Layout(unittest.TestCase):
                     continue  # one dock's stand, ramp and deck
                 self.assertGreaterEqual(math.hypot(a[1] - b[1], a[2] - b[2]) - a[3] - b[3], c["pieceApart"], a[0] + " / " + b[0])
 
-    def test_houses_several_places_with_three_kinds(self):
+    def test_houses_several_places_with_three_kinds_three_bigger(self):
         g = self.g
         self.assertTrue(5 <= len(g.houses) <= 7)
         self.assertEqual({h[1] for h in g.houses}, {"CV3_SweetHouse", "CV3_ChocoHouse", "CV3_CaramelTower"})
         quadrants = {(h[2] > 0, h[3] > 0) for h in g.houses}
         self.assertEqual(len(quadrants), 4, "houses in every quarter of the plot")
+        # V4-D5: H1, H3 and H5 (one of each kind) at 1.4, their footprints scaled with them
+        big = {h[0]: h for h in g.houses if h[5] > 1}
+        self.assertEqual(set(big), {"H1", "H3", "H5"})
+        self.assertEqual({h[1] for h in big.values()}, {"CV3_SweetHouse", "CV3_ChocoHouse", "CV3_CaramelTower"})
+        for h in g.houses:
+            self.assertIn(h[5], (1.0, 1.4), h[0])
+            self.assertAlmostEqual(h[4], HOUSE_BASE_R[h[1]] * h[5], delta=0.05, msg=h[0] + " footprint")
 
-    def test_docks_stand_on_both_banks_and_the_lane_floats(self):
+    def test_towers_turn_their_balcony_to_the_kingdom_and_every_door_has_an_approach(self):
+        # V4-D15: the caramel towers (balcony at the kit's +Z) are turned 180 degrees, so the balcony looks at the
+        # junction and the door (-Z) faces away; every door keeps a clear approach inside the plot.
+        g = self.g
+        for h in g.houses:
+            hid, asset, x, z, r, scale = h
+            turn = g.turns.get(hid, 0)
+            self.assertEqual(turn, 180 if asset == "CV3_CaramelTower" else 0, hid + " turn")
+            length = math.hypot(x, z)
+            sign = -1 if turn == 180 else 1
+            lx, lz = -x / length * sign, -z / length * sign  # where the door looks
+            dx, dz = x + lx * (r + 4), z + lz * (r + 4)
+            self.assertGreaterEqual(g.depth(dx, dz), 5, hid + "'s door faces the plot edge")
+            self.assertGreaterEqual(g.liquid_distance(dx, dz), 4, hid + "'s door faces the chocolate")
+            for label, px, pz, pr in g.solid_pieces():
+                if label != "house " + hid:
+                    self.assertGreaterEqual(math.hypot(dx - px, dz - pz) - pr, 4, hid + "'s door faces " + label)
+
+    # Deliberately changed (V4): the raft is steered (V4-D3), so there is no lane; each dock tip has 6 studs of chocolate
+    # round it, off every bridge, and the two docks stand on opposite banks of an open stretch.
+    def test_docks_stand_on_both_banks_with_open_chocolate_at_the_tips(self):
         g = self.g
         (a, ax, az, atx, atz), (b, bx, bz, btx, btz) = g.docks
         for label, x, z in (("stand A", ax, az), ("stand B", bx, bz)):
             self.assertGreater(g.liquid_distance(x, z), 0, label + " on land")
         for label, x, z in (("tip A", atx, atz), ("tip B", btx, btz)):
-            self.assertLess(g.liquid_distance(x, z), -2, label + " over the river")
-        # opposite banks: the stands lie on opposite sides of the river's first leg
-        p, q = g.river[0], g.river[1]
-
-        def side(x, z):
-            return (q[0] - p[0]) * (z - p[1]) - (q[1] - p[1]) * (x - p[0])
-
-        self.assertLess(side(ax, az) * side(bx, bz), 0, "both banks")
-        self.assertEqual((g.lane[0][0], g.lane[0][1]), (atx, atz), "the lane starts at tip A")
-        self.assertEqual((g.lane[-1][0], g.lane[-1][1]), (btx, btz), "the lane ends at tip B")
-        for a2, b2 in zip(g.lane, g.lane[1:]):
-            for s in range(11):
-                x, z = a2[0] + (b2[0] - a2[0]) * s / 10, a2[1] + (b2[1] - a2[1]) * s / 10
-                self.assertLess(g.liquid_distance(x, z), -1.5, "the lane floats at (%.1f, %.1f)" % (x, z))
+            self.assertLessEqual(g.liquid_distance(x, z), -6, label + " in open chocolate")
+            self.assertFalse(g.near_bridge(x, z, 6), label + " by a bridge")
+        wet = [s for s in range(1, 100) if g.liquid_distance(ax + (bx - ax) * s / 100, az + (bz - az) * s / 100) < 0]
+        self.assertTrue(wet, "the docks are on the same bank")
+        self.assertNotIn("lane", g.raft)
+        self.assertIn("homeDock = 1", g.raft)
 
     def test_licorice_spans_the_main_path_and_platforms_float(self):
         g = self.g
@@ -361,10 +515,48 @@ class CarameloV3Layout(unittest.TestCase):
         self.assertGreaterEqual(lic["height"], 18)
         for asset, x, z, r in g.platforms:
             self.assertTrue(any(math.hypot(x - d[0], z - d[1]) + r <= d[2] for d in g.lake), asset + " inside the lake")
-            self.assertGreater(abs(z - g.bridge["z"]) - r, g.bridge["width"] / 2 + g.bridge["sideRamp"], asset + " on the bridge's side ramps")
+            # Deliberately changed (V4): off every bridge
+            self.assertFalse(g.near_bridge(x, z, r), asset + " on a bridge")
         for i, a in enumerate(g.platforms):
             for b in g.platforms[i + 1:]:
                 self.assertGreaterEqual(math.hypot(a[1] - b[1], a[2] - b[2]) - a[3] - b[3], 2)
+        self.assertGreater(g.platform["over"], 0, "V4-D2: the walk tops over the surface")
+
+    def test_trees_are_taller(self):
+        self.assertEqual(self.g.trees["heightFactor"], 1.35, "V4-D4")
+        self.assertLess(self.g.trees["minFactor"], 1)
+
+    def test_pink_hills_stand_at_the_crystal_spots(self):
+        g = self.g
+        for hid, x, z, scale, r in g.crystal_hills:
+            self.assertEqual(x, 198, hid + " at the crystals' x")
+            self.assertGreater(scale, 0.2, hid)
+            g.open_disc(hid, x, z, r, self)
+        for i, a in enumerate(g.crystal_hills):
+            for b in g.crystal_hills[i + 1:]:
+                self.assertGreaterEqual(math.hypot(a[1] - b[1], a[2] - b[2]) - a[4] - b[4], 2, a[0] + " / " + b[0])
+
+    def test_backdrop_stands_outside_the_east_edge_and_off_other_biomes(self):
+        g = self.g
+        cx, cz = g.centre
+        for asset, x, z, scale, r in g.backdrop:
+            self.assertGreater(x, g.half, asset + " east of the plot")
+            dx, dz = max(abs(x) - g.half, 0), max(abs(z) - g.half, 0)
+            self.assertGreaterEqual(math.hypot(dx, dz), r, "%s at (%s, %s) reaches into the plot" % (asset, x, z))
+            wx, wz = cx + x, cz + z
+            for tag, minx, maxx, minz, maxz in g.biomes:
+                if tag == "Meadow":
+                    continue
+                ex = max(minx - wx, 0, wx - maxx)
+                ez = max(minz - wz, 0, wz - maxz)
+                self.assertGreaterEqual(math.hypot(ex, ez), r, "%s reaches into the %s square" % (asset, tag))
+
+    def test_edge_fill_is_a_dense_band(self):
+        e = self.g.edge
+        self.assertLess(e["bandMin"], e["bandMax"])
+        self.assertGreaterEqual(e["bandMax"], 40)
+        self.assertLessEqual(e["spacing"], 16, "dense")
+        self.assertGreaterEqual(e["maxTrees"] + e["maxProps"], 80)
 
 
 class CarameloV3Sources(unittest.TestCase):
@@ -384,13 +576,33 @@ class CarameloV3Sources(unittest.TestCase):
         self.assertNotIn("archiving CaramelV3 and running again", tool)
         self.assertNotRegex(tool, r":Destroy\(\)")
 
+    def test_v4_migration_tool_starts_dry_backs_up_archives_and_never_destroys(self):
+        tool = read(TOOL_V4_PATH)
+        self.assertRegex(tool, r"(?m)^local DRY_RUN = true\b")
+        for needle in ("CaramelV4Backup", "CaramelV4Archived", "TryBeginRecording", "FinishRecordingOperation.Cancel",
+                       'FindFirstAncestor("SistemaSonriente")', "RunService:IsRunning()", "WildboundCaramelV4Summary",
+                       "V3.MARK", "V3.V4_MARK", "V3Builder.planV4", "V3Builder.refitTrees", "relay = true",
+                       "creature posts: refusing", "summary.partsEstimate", "summary.overCap", "kitMissing = missing",
+                       "partsBefore = countParts(root)", "require(found:Clone())", "V3.V4_PART_TARGET"):
+            self.assertIn(needle, tool)
+        self.assertGreater(tool.index("TryBeginRecording"), tool.index("task.delay("))
+        self.assertNotRegex(tool, r":Destroy\(\)")
+
     def test_builder_uses_the_layout_and_falls_back_to_placeholders(self):
         builder = read(BUILDER_PATH)
         for name in ("function V3Builder.layAll", "function V3Builder.plan", "function V3Builder.swapTrees",
                      "function V3Builder.kitModel", "Placeholder", "function V3Builder.upgradePlaceholders",
-                     "function V3Builder.existingProps", "V3.BEAST_PASS_TAG", "V3.BEAST_OVERHEAD_TAG", "SideRamp_"):
+                     "function V3Builder.existingProps", "V3.BEAST_PASS_TAG", "V3.BEAST_OVERHEAD_TAG", "SideRamp_",
+                     "function V3Builder.planV4", "function V3Builder.refitTrees", "V3.BRIDGES", "V3.CRYSTAL_HILLS",
+                     "V3.BACKDROP", "V3.EDGE", "Pedestal"):
             self.assertIn(name, builder)
         self.assertNotIn("SistemaSonriente\"", builder.replace('"SistemaSonriente"', ""))
+
+    def test_fresh_build_lays_no_yellow_crystal(self):
+        # V4-D6: the old builder's SugarHills lays no RockSugar any more (the pink hills come from the v3 batch)
+        old = read(OLD_BUILDER_PATH)
+        hills = old[old.index('"SugarHills"'):old.index("-- Portal back to the hub")]
+        self.assertNotIn('"RockSugar"', hills)
 
     def test_raft_is_free(self):
         for path in RAFT_PATHS:
