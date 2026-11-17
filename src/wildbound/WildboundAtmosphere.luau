@@ -11,7 +11,13 @@ local ROWS = table.freeze({
 	camp = { Day = { 0.55, 0.05, 2.2, 40, 260 }, Dusk = { 0.64, 0.03, 3.0, 26, 160 }, Night = { 0.72, 0, 3.8, 18, 100 } },
 	-- CA4 (Caramelo pack 05_SISTEMAS/02): the Caramelo biome's bright pastel air, a light haze and a long view
 	-- (WildboundBiomeLight uses its Day row; Dusk and Night exist only so the blend has every row).
-	candy = { Day = { 0.28, 0.12, 0.6, 120, 900 }, Dusk = { 0.34, 0.08, 1.0, 90, 600 }, Night = { 0.4, 0.05, 1.5, 60, 400 } },
+	-- V7-D3 (owner request 2026-11-17, "a pink sky with clouds"): Day haze 0.6 -> 1.6, so the pink air (ZONE_COLOURS)
+	-- tints the sky and the horizon.
+	candy = { Day = { 0.28, 0.12, 1.6, 120, 900 }, Dusk = { 0.34, 0.08, 1.8, 90, 600 }, Night = { 0.4, 0.05, 2.0, 60, 400 } },
+})
+-- V7-D3: a zone's own air and fog colours (RGB), in place of the time of day's grey ones. Caramelo's air is pink.
+Atmosphere.ZONE_COLOURS = table.freeze({
+	candy = table.freeze({ atmosphere = table.freeze({ 255, 168, 206 }), fog = table.freeze({ 255, 198, 224 }) }),
 })
 -- Colours and light per time of day. ambientWeight 0 keeps the place's own Ambient and OutdoorAmbient. The flashlight
 -- is a SpotLight on the player's own head (brightness, range, angle): off by day, the main light at night.
@@ -43,8 +49,10 @@ end
 local function pure(zone, time)
 	local row, light = ROWS[zone][time], LIGHT[time]
 	local darken = zone == "fog" and Atmosphere.FOG_ZONE_DARKEN or 1
+	local own = Atmosphere.ZONE_COLOURS[zone]
 	return { density = row[1], offset = row[2], haze = row[3], fogStart = row[4], fogEnd = row[5],
-		atmosphereColor = colour(light.atmosphere, darken), fogColor = colour(light.fog, darken),
+		atmosphereColor = colour(own and own.atmosphere or light.atmosphere, darken),
+		fogColor = colour(own and own.fog or light.fog, darken),
 		ambient = colour(light.ambient, 1), outdoorAmbient = colour(light.outdoor, 1),
 		ambientWeight = light.ambientWeight, brightness = light.brightness, exposure = light.exposure,
 		flashlight = { brightness = light.flashlight[1], range = light.flashlight[2], angle = light.flashlight[3] } }

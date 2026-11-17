@@ -260,6 +260,10 @@ SPECS["WildboundCandyCurrent_Test"] = {
 	{ raftService = "src:WildboundCandyRaftService", wadeService = "src:WildboundCandyWadeService",
 		client = "src:WildboundCandyCurrentClient" },
 }
+-- Caramelo v7 (odd/tasks/wildbound-caramelo-v2.md V7-D3): the pink sky (pure targets, the client's wiring)
+SPECS["WildboundCandySky_Test"] = {
+	"mod:WildboundAtmosphere", "mod:WildboundBiomeLight", { client = "src:WildboundCandySkyClient" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }
