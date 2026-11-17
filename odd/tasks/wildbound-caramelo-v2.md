@@ -363,8 +363,8 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - [x] FL Zumbidulces, the flying bugs. Done 2026-11-16 (evidence below).
 - [x] DR La Duquesa's rage when her egg is stolen. Done 2026-11-16 (evidence below).
 - [x] AM Ambience: lights, sparkles, music bed. Done 2026-11-16 (evidence below; a cheerful track is still to be picked).
-- [ ] GT Gran Torta at the east end at 1.6x, 28 nests, 24 posts. Repo done and reviewed (commit `efb1f48` plus the review fixes); NOT deployed, no Luau suite run.
-- [ ] RC Relentless candy chases to the base, 8 hives and 24 bugs, five chasers at once. Repo done and reviewed; NOT deployed, no Luau suite run.
+- [x] GT Gran Torta at the east end at 1.6x, 28 nests, 24 posts. Done 2026-11-17: deployed, cake moved on the live map, suites green, solo Play (evidence "GT and RC deploy" below).
+- [x] RC Relentless candy chases to the base, 8 hives and 24 bugs, five chasers at once. Done 2026-11-17 (same evidence; La Duquesa's rage and the return portal were not walked in Play).
 - [ ] RL Map relief for Caramelo. Not started.
 - [ ] MU A cheerful music track for Caramelo. Not started (needs the owner's approval of the track).
 
@@ -422,3 +422,27 @@ It records the user's decisions of 2026-11-15, made while the balance pass (`odd
 - Review: `odd/reviews/caramelo-gt-rc-review.md`. Fixed before any deploy: `syncTower` lays nothing round a cake of another layout even when no Tower exists (it would have built the new stair round empty floor at the first server start); Mochimiau's post `candyPostR10` moved to (608, -59), away from the return portal; `WildboundBeastAbeja_Test` pond re-pinned; the migration tool archives the old Tower and summit nest instead of letting `syncTower` destroy them. Minors m1-m9 are open.
 - Mandatory deploy order: code into Studio in Edit mode, then the cake-move tool (dry run, then real), then the suites, and only then Play. With v3 code on the v2 map the return portal is refused, the boss sleeps off his ground and La Duquesa expects a cake that has not moved.
 - Handoff: `docs/handoff/HANDOFF-2026-11-17.md`.
+
+### Evidence: GT and RC deploy (2026-11-17)
+
+- Fingerprint rule: before writing, all 33 Studio scripts equalled commit `1be077f` (the 16 suites, the 12 sources in ServerScriptService, ReplicatedStorage and StarterPlayer, the 5 tool modules in ServerStorage). Exact replacements (`multi_edit`) built from `git diff 1be077f HEAD`, each list simulated against the old text first. After: all 33 equal HEAD `e28350d`. Locks: `WildboundImportLock` during the load, `WildboundPlayLock` during Play, both cleared.
+- Transport: Studio's HTTP allowlist refuses raw.githubusercontent.com, so the changes went as exact replacements. Suites ran with a compact fresh-loader runner kept for the session in `ServerStorage.ClaudeRunnerSrc` (a StringValue, removed at the end of the session); the Workspace suites (CandyBeastSites, CandyBuilder) ran through the same loader with the real `game`.
+- RED (suites in, sources old), run `d6364787`: 295 passed, 51 failed, each for the expected reason (no layout v3, leashes held, rage ends at the plot edge, no RC constants); Builder, run `74793742`: 18/9.
+- GREEN before the map move, run `2c623cf1`: 367 passed, 6 failed. Three were the live map (BeastSites CA3, CH1/CH3) and the old CC4; three were stale test geometry, fixed in the tests (decisions GT-D3 to GT-D5 below), run `fd5ca172`: DonGlaseon 24/0, Duquesa 20/0, Tower 9/0.
+- Cake move (`tools/wildbound-caramelo-cake-move.luau`, identical to the repo, 12881/3354387826). Dry run: 5 nests moved, 8 added, 30 props archived, 10 trees refitted, 108 kept. First real run refused to open its undo step (the calling execute_luau was still open while it waited) and changed nothing; second real run: backup `ServerStorage.WildboundMapArchive.CakeMoveBackup`, 35 props archived into `CakeMoveArchived`, 10 trees refitted, nests C5, R3, R4, E2, C8 moved, 8 nests placed, GranTorta radius 42 plus plaza, boss ground, paths and markers 77 parts, tower 126 parts with 67 steps, portal (772, -3) -> (588, -3), centre backfill 20 props and 128 parts, 0 skipped. Biome parts 1169 -> 1298 (budget 1450). A further run answered "already" (LayoutVersion 3, CakeMoveV1).
+- After the move, run `cf65e3f1`: 22 suites, 372 passed, 1 failed (BeastSites CC4, the old red: Mochimiau's post 22.9 studs from a route). Big4Map, run `4dd73aec`: 20/0.
+- Solo Play (PlayLock `GT-RC-play`): no Wildbound script errors. Tower key 114,0,42 with 67 steps, 29 nests, portal at (588, 0.5, -3) enabled, 8 hives and 24 bugs.
+  - Relentless chase: a player dropped beside Gomibu's post E3 (600, 33) and walked to the hub: Gomibu, Tortidragon, Mochimiau, Flanin and Gato Repartidor hunted it at once (five, the cap; Canelin stayed calm, then ended "Escape"), followed it about 200 studs out of the plot (Gomibu at (406, 0), past the plot's entrance at 412) and all ended "SafeZone" the moment it reached the hub's edge, 13.9 s after the start. Health 35 -> 14 without a dodge (it had already been hit at the post). Nothing stuck at the biome edge.
+  - Swarm: hive H8 (636, 55) woke 1 s after the player arrived and chased it about 260 studs to the hub's edge (10 stings over the run, two other swarms joined), then vanished there (`Flyers_vanished` 1).
+  - Found: after the vanish the hive was calm but its three bugs stayed by the base (374, 2), because calm bugs are only placed while a player watches the hive. Fixed (test first, FL14 pin red then green): `WildboundCandyFlyersService` places a swarm's bugs on the step it comes back from a vanish. Second Play (`GT-RC-play2`): the bugs were back within 4.1 studs of the hive.
+  - Don Glaseon: woke at his new home (676, -3) when the player stood at (690, 30), roared, chased, lashed and vacuumed on his new ground.
+- Not checked in Play: stealing the summit egg and La Duquesa's rage to the base, the return portal from its new spot, the 67-step climb on foot, the three routes walked end to end, the big4 <-> classic switch, two players, a phone. The minors m1-m9 of the review stay open.
+
+### Decisions taken for the user (GT and RC deploy, 2026-11-17)
+
+| ID | Decision | Why |
+| --- | --- | --- |
+| GT-D3 | `WildboundCandyTower_Test` CT2 now expects the spin rings to turn about the cake's centre (CENTRE + TORTA), not the plot's. | The builder was right; the test's literal only held while the cake stood in the middle. |
+| GT-D4 | `WildboundBeastDonGlaseon_Test` PF5b walks the target out to the ring at 16 studs/s instead of placing it there. | With the 76-stud territory the ring is 64 studs from where he stands, beyond his 54-stud chase sight; a shoved player is never that far from him in play. |
+| GT-D5 | La Duquesa may catch a straight sprinter with her first or second lunge (was: the first). Her numbers are unchanged. | The bigger cake's longer stair lets a sprinter outrun the first lunge; the second catches it at 5.8 s, so it must still dodge. |
+| RC-D5 | A swarm that vanished is placed back at its hive at once. | Otherwise its bugs reappear by the base until someone walks near the hive. |

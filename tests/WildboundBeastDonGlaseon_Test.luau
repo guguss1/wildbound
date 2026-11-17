@@ -357,13 +357,19 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		end
 		-- PF5b (walked Play): his lash shoves a target about 12 studs; one shoved just past the edge and standing there is
 		-- still his (the ring of LeftMarginStuds round the territory), however long it stays
-		local ring = run(e, w, tgt, 9.05, 9.05 + T.LeftGraceSeconds + 3, function(_, target)
-			target.z = T.TerritoryRadiusStuds + T.LeftMarginStuds - 2
+		-- Deliberately changed (GT, first Studio run 2026-11-17): with the 76-stud territory the ring is 64 studs from where
+		-- he stands, past his chase sight, so the target now walks out to the ring (16 studs/s) with him on its heels, as
+		-- a shoved player would be, instead of appearing there
+		local ringZ = T.TerritoryRadiusStuds + T.LeftMarginStuds - 2
+		local walk = run(e, w, tgt, 9.05, 13.05, function(t, target) target.z = math.min(30 + (t - 9.05) * 16, ringZ) end)
+		local ring = run(e, w, tgt, 13.1, 13.1 + T.LeftGraceSeconds + 3, function(_, target)
+			target.z = ringZ
 		end)
+		for _, ev in ipairs(each(walk, "Phase")) do table.insert(ring, ev) end
 		for _, ev in ipairs(each(ring, "Phase")) do
 			assert(ev.phase ~= "LoseTarget", "it let a target in the ring go at " .. ev.at .. " (" .. tostring(ev.reason) .. ")")
 		end
-		local outAt = 9.05 + T.LeftGraceSeconds + 3.05
+		local outAt = 13.1 + T.LeftGraceSeconds + 3.05
 		local later = run(e, w, tgt, outAt, outAt + T.LeftGraceSeconds + 1, function(_, target)
 			target.z = T.TerritoryRadiusStuds + T.LeftMarginStuds + 4
 		end)

@@ -558,6 +558,9 @@ return function(F, Layout, Dodge, sources)
 		has(sources.service, 'Smarts.claimStrike(id, "flyers:"', "dives book the shared strike ledger")
 		has(sources.client, 'hivePhase == "Vanish"', "the client fades a vanishing swarm")
 		has(sources.client, "DIVE_EXTRAPOLATE", "a short guess ahead during a pull-up or a dive (no snap)")
+		-- Studio Play 2026-11-17: a swarm that vanished by the base stood there again once calm (its bugs are placed only
+		-- while a player watches a calm hive); the step it comes back from a vanish places them at the hive once
+		has(sources.service, 'was == "Vanish"', "a swarm back from a vanish is placed at its hive at once")
 	end)
 
 	case("FL12: wiring: parts, the throttled step, the beasts' damage gate and push, the dodge, the safe zones, no egg path", function()

@@ -136,7 +136,10 @@ return function(Layout, Builder, Kit, sources, Nests, library)
 				near(disc.Size.Y, tier.radius * 2, "the tier's width")
 				assert(spin, "a ring of dollops on tier " .. k)
 				near(spin:GetAttribute("SpinRate"), rate * T.spinDirections[k], "the ring turns with its disc")
-				near(spin:GetAttribute("CentreX"), Layout.CENTRE.x); near(spin:GetAttribute("CentreZ"), Layout.CENTRE.z)
+				-- Deliberately changed (GT, first Studio run 2026-11-17): the ring turns about the cake's centre, which is no
+				-- longer the plot's centre (the Torta stands at TORTA.x, TORTA.z)
+				near(spin:GetAttribute("CentreX"), Layout.CENTRE.x + Layout.TORTA.x)
+				near(spin:GetAttribute("CentreZ"), Layout.CENTRE.z + Layout.TORTA.z)
 				for _, d in ipairs(spin:GetChildren()) do
 					assert(d:IsA("BasePart") and not d.CanCollide and not d.CanQuery, "decor never collides")
 				end

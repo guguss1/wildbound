@@ -313,9 +313,12 @@ connection = RunService.Heartbeat:Connect(function(dt)
 		play(F.step(world, at, players, hooks))
 		for _, swarm in ipairs(world.swarms) do
 			local v = visuals[swarm]
-			if v.model:GetAttribute("Phase") ~= swarm.phase then v.model:SetAttribute("Phase", swarm.phase) end
+			local was = v.model:GetAttribute("Phase")
+			if was ~= swarm.phase then v.model:SetAttribute("Phase", swarm.phase) end
 			local calm = swarm.phase == "Idle" or swarm.phase == "Cooldown"
-			if not calm or (ticks % IDLE_EVERY == 0 and watched(swarm, players)) then
+			-- Studio Play 2026-11-17: back from a vanish (RC3) the bugs are placed at the hive at once, watched or not;
+			-- they stood where they vanished (by the base) until a player came near the hive again
+			if not calm or was == "Vanish" or (ticks % IDLE_EVERY == 0 and watched(swarm, players)) then
 				for _, bug in ipairs(swarm.bugs) do place(swarm, bug, v.bugs[bug.index]) end
 			end
 			for _, bug in ipairs(swarm.bugs) do

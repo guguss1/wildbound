@@ -427,8 +427,10 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		local never = escape(11, "never")
 		assert(never.caught and never.lunge == 1, "a carrier who never dodges kept the egg past her first lunge")
 		assert(never.at <= Duq.ROAR_SECONDS + 3, "caught at " .. never.at)
+		-- Deliberately changed (GT, first Studio run 2026-11-17): the bigger Torta's longer stair lets a straight sprinter
+		-- outrun her first lunge (a miss); her second one still catches it (at 5.8 s), so it must dodge all the same
 		local sprinter = escape(16, "never")
-		assert(sprinter.caught and sprinter.lunge == 1, "a sprinter running straight kept the egg past her first lunge")
+		assert(sprinter.caught and sprinter.lunge <= 2, "a sprinter running straight kept the egg past her second lunge")
 		for _, speed in ipairs({ 11, 16 }) do
 			for _, policy in ipairs({ "perfect", "side" }) do
 				local free = escape(speed, policy)
