@@ -539,19 +539,25 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		has(service, 'ev.kind == "Vanish"', "the service draws her vanish")
 	end)
 
-	-- GT (cake move, owner request 2026-11-16 "the cake at the end, and much bigger"): the Torta's plaza is 28 studs from
-	-- the plot's east edge, so her plot depth (where a rage may start, and where she vanishes after one: RC6) ignores
-	-- that edge; the west, north and south edges still count.
-	case("GT13: her plot depth ignores the east edge behind the Torta; the other edges still count", function()
+	-- Deliberately changed (V8-D3, owner request 2026-11-17 "another space of the same size, separated by clouds"): GT13
+	-- left the east edge out of her plot depth (the Torta's plaza was 28 studs from it). With the bigger plot the plaza
+	-- ends 54 studs from it and the second space lies past it, behind the cloud wall, so every edge counts again.
+	case("GT13/V8-D3: her plot depth counts every edge again, the east one too; the plaza stays well inside", function()
 		local far = Layout.HALF + 17
-		near(Duq.plotDepth(summit, Layout.CENTRE.x + far, Layout.CENTRE.z), Layout.HALF, "east of the plot counts as inside")
+		near(Duq.plotDepth(summit, Layout.CENTRE.x + far, Layout.CENTRE.z), -17, "east")
 		near(Duq.plotDepth(summit, Layout.CENTRE.x - far, Layout.CENTRE.z), -17, "west")
 		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z + far), -17, "north")
 		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z - far), -17, "south")
 		near(Duq.plotDepth(summit, Layout.CENTRE.x, Layout.CENTRE.z + 50), Layout.HALF - 50, "inside")
-		-- a thief who carried her egg just past the east edge (a few steps off the plaza) still starts her rage
+		-- the east edge of the plaza is well inside (54 studs at Layout HALF 260)
+		local plazaEast = Layout.CENTRE.x + Layout.BOSS.x + Layout.BOSS.plazaRadius
+		assert(Duq.plotDepth(summit, plazaEast, Layout.CENTRE.z) >= 40,
+			"the plaza ends " .. Duq.plotDepth(summit, plazaEast, Layout.CENTRE.z) .. " studs from the east edge")
+		-- a thief who carried her egg past the east edge (in the second space) starts no rage
 		local east = carrier(Layout.CENTRE.x + Layout.HALF + 5, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
-		assert(firstOf(steps(Duq.new(), 0, 0, { east }), "Rage"), "no rage for a thief just past the east edge")
+		equal(firstOf(steps(Duq.new(), 0, 0, { east }), "Rage"), nil, "a thief past the east edge")
+		-- the service keeps her flight west of the cloud wall (WildboundCandySmarts.outsideWall)
+		has(sources and sources.service, "Smarts.outsideWall(wasX, wasZ, her.x, her.z, wall)", "her flight never crosses the wall")
 	end)
 
 	-- GT: the summit is about 65 studs up (it was 40): she still drops from her seat to the floor in about the time she

@@ -13,10 +13,15 @@ local Trap = {}
 -- disguise, so those two could never spring). riverside: the edge of the left (syrup riverside) route, where the old
 -- stair cake (6, -33) by the tower stair was; path: the edge of the main route, further out than the old (-60, 8);
 -- rareNest: beside nest R1 (Rara), on the side away from Flanfuria's post.
+-- V8-D1 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger ... more space between things"): the plot
+-- is 1.3 times bigger about the same centre. riverside scales, v7 (-97, -55): 7.9 studs from the left route. path: x
+-- scales, v7 (-72, 8), and it keeps its 8 studs off the main route (the line z = 0; scaled it would be 10.4, past the
+-- suite's PATH_WIDTH / 2 + 3). rareNest moves with nest R1, v7 (-86, -21), keeping its v7 offset (-8, 9), 12 studs
+-- (scaled it would be 15.7, past the suite's 14 "next to it").
 Trap.SPOTS = table.freeze({
-	table.freeze({ key = "riverside", x = -97, z = -55 }),
-	table.freeze({ key = "path", x = -72, z = 8 }),
-	table.freeze({ key = "rareNest", x = -86, z = -21, nest = "R1" }),
+	table.freeze({ key = "riverside", x = -126.1, z = -71.5 }),
+	table.freeze({ key = "path", x = -93.6, z = 8 }),
+	table.freeze({ key = "rareNest", x = -109.4, z = -30, nest = "R1" }),
 })
 Trap.SPRING_STUDS = 5
 Trap.PROMPT_STUDS = 8

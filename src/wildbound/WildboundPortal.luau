@@ -31,8 +31,10 @@ Portal.CARRY = "refuse"
 -- Portal marker (-24, 0) on the plot centre (612, -3); (160, 0) before the GT cake move). "build": the service builds it at server start (place file never
 -- saved). CG2 (F4, decision 49): in the west forest beside Path2, outside the fog, on a clear 12x12 floor patch (floor
 -- scan, y 1.0), 134 studs from La Silueta's home, 376 from the hub and 64 from the nearest island nest.
+-- V8-D1 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger"): the caramelo station is the v8 layout's
+-- CENTRE + PORTAL: (672, -3) + (-24 x 1.3, 0) = (640.8, -3) (was 588, -3). WildboundPortal_Test pins it to the layout.
 Portal.STATIONS = table.freeze({
-	table.freeze({ id = "caramelo", source = "candy", x = 588, z = -3 }),
+	table.freeze({ id = "caramelo", source = "candy", x = 640.8, z = -3 }),
 	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),
 })
 

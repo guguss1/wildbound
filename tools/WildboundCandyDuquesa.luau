@@ -156,11 +156,13 @@ function Duq.floorUnder(summit, x, z)
 	return Layout.FLOOR_TOP
 end
 
--- DR: studs inside the Caramelo plot from its nearest edge (negative outside), for a world point. GT (cake move): the
--- east edge does not count (the Torta's plaza is 28 studs from it, so a step past it must not end her rage).
+-- DR: studs inside the Caramelo plot from its nearest edge (negative outside), for a world point. GT (cake move) had
+-- left the east edge out (the Torta's plaza was 28 studs from it). V8-D3 (owner request 2026-11-17, "another space of
+-- the same size, separated by clouds"): every edge counts again; the plaza now ends 54 studs from the east edge
+-- (Layout.HALF 260) and the second space lies past it, behind the cloud wall.
 function Duq.plotDepth(summit, x, z)
 	local Layout = summit.Layout
-	return Layout.HALF - math.max(Layout.CENTRE.x - x, math.abs(z - Layout.CENTRE.z))
+	return Layout.HALF - math.max(math.abs(x - Layout.CENTRE.x), math.abs(z - Layout.CENTRE.z))
 end
 
 -- DR: her chase speed against a thief moving at `thiefSpeed` (its walk speed; nil = untrained).

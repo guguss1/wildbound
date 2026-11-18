@@ -6,23 +6,48 @@
 local Layout = {}
 
 local function point(x, z) return table.freeze({ x = x, z = z }) end
-local function route(points)
-	local list = {}
-	for i, p in ipairs(points) do list[i] = point(p[1], p[2]) end
-	return table.freeze(list)
-end
-local function nest(id, rarity, x, z)
-	return table.freeze({ id = id, rarity = rarity, x = x, z = z, eventOnly = rarity == "Legendaria" })
-end
 
 Layout.ROOT_NAME = "Candy_Bioma_v1"
 -- GT (owner request 2026-11-16, "the cake with the princess at the end, and much bigger"): version 3 moves the Gran
 -- Torta to the east end, 1.6 times bigger (docs/design/wildbound-caramelo-cake-move-plan.md). A live v2 map gets it
 -- through tools/wildbound-caramelo-cake-move.luau.
+-- V8-D1: VERSION stays 3 (WildboundCandyV3Builder and the older migrations read it as "the GT layout"); the v8 map is
+-- marked by WildboundCandyV3Layout.VERSION 4 and the root's CaramelV8.
 Layout.VERSION = 3
 Layout.SEED = 20261114
-Layout.CENTRE = point(612, -3)
-Layout.HALF = 200
+-- Caramelo v8 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger, in width and in length, so there is
+-- more space between things"; docs/design/wildbound-caramelo-v8-plan.md, V8-D1): the plot grows 1.3 times about its
+-- centre with the entrance fixed on the hub road: HALF 200 -> 260, CENTRE (612, -3) -> (672, -3), world x 412..932, z
+-- -263..257, inside the big4 Meadow square (classic mode is not supported). Every position below keeps its v7 literal,
+-- mapped at load by v8() (x S about the centre); sizes and radii keep their v7 values. The exceptions say V8-D1:
+-- re-anchored to an edge or the plaza, or translated with their parent (the v7 offset kept).
+Layout.CENTRE = point(672, -3)
+Layout.HALF = 260
+Layout.V8 = table.freeze({ S = 1.3, OLD_CENTRE = point(612, -3), OLD_HALF = 200 })
+
+-- V8-D1: a v7 plot-local point in the v8 plot (x S about the centre): returns the new local x, z. Pure.
+function Layout.fromV7Local(x, z)
+	return x * Layout.V8.S, z * Layout.V8.S
+end
+
+-- V8-D1: a v7 world point in the v8 world, (672 + 1.3 (x - 612), -3 + 1.3 (z + 3)): returns the new world x, z. Pure.
+function Layout.fromV7World(x, z)
+	local S, old = Layout.V8.S, Layout.V8.OLD_CENTRE
+	return Layout.CENTRE.x + (x - old.x) * S, Layout.CENTRE.z + (z - old.z) * S
+end
+
+-- A v7 literal as a v8 point, a v7 route and a v7 nest (positions mapped, everything else kept).
+local function v8(x, z) return point(Layout.fromV7Local(x, z)) end
+local function route(points)
+	local list = {}
+	for i, p in ipairs(points) do list[i] = v8(p[1], p[2]) end
+	return table.freeze(list)
+end
+local function nest(id, rarity, x, z)
+	local nx, nz = Layout.fromV7Local(x, z)
+	return table.freeze({ id = id, rarity = rarity, x = nx, z = nz, eventOnly = rarity == "Legendaria" })
+end
+
 Layout.FLOOR_TOP = 0.5
 Layout.PATH_WIDTH = 14
 -- The blockout places candidates only: nothing here spawns eggs or beasts.
@@ -31,25 +56,36 @@ Layout.SPAWNS_ENABLED = false
 -- the event-only legendary nest stays off (no Caramelo event yet). false turns every nest back into a candidate.
 Layout.NESTS_ENABLED = true
 
-Layout.ENTRANCE = point(-200, 0)
-Layout.FORK = point(-110, 0)
+-- V8-D1: re-anchored to the west edge, (-HALF, 0): world (412, -3), on the hub road as in v7.
+Layout.ENTRANCE = point(-Layout.HALF, 0)
+Layout.FORK = v8(-110, 0)
 -- GT: the junction is the old Torta's ground, the middle of the plot; the Torta stands at the east end (its plaza 28
--- studs from the east edge), at the end of the main avenue.
-Layout.JUNCTION = point(0, 0)
-Layout.TORTA = table.freeze({ x = 114, z = 0, radius = 42 })
+-- studs from the east edge; V8-D1: 53.8 now, the plaza kept its size), at the end of the main avenue.
+Layout.JUNCTION = v8(0, 0)
+do
+	local x, z = Layout.fromV7Local(114, 0)
+	Layout.TORTA = table.freeze({ x = x, z = z, radius = 42 })
+end
 -- Don Glaseon's ground: the plaza he walks and the limit he never leaves. perception and whipLength are the pack's
 -- starting balance (05_SISTEMAS/04_BALANCE_INICIAL_CONFIG.md); they only size the safe distances here. GT: plaza 44 ->
 -- 58 and territory 62 -> 76 round the bigger Torta; he sleeps at the end of the avenue, at the cake's foot.
-Layout.BOSS = table.freeze({ x = 114, z = 0, plazaRadius = 58, territoryRadius = 76, perception = 36, whipLength = 22,
-	home = point(64, 0) })
+-- V8-D1: centred on the Torta; home moves with him (its v7 offset, 50 studs west of the Torta, kept).
+Layout.BOSS = table.freeze({ x = Layout.TORTA.x, z = Layout.TORTA.z, plazaRadius = 58, territoryRadius = 76, perception = 36,
+	whipLength = 22, home = point(Layout.TORTA.x + (64 - 114), Layout.TORTA.z) })
 -- Return to the hub (pack 04_ENTORNO/03: 5 s without threat, 2 s channel, 30 s cooldown). CE3: live; the server's
 -- WildboundPortalService binds its prompt while the model's Enabled attribute is true (Builder.syncPortal). GT: on the
 -- main path just west of the junction, on the way back from the cake.
-Layout.PORTAL = table.freeze({ x = -24, z = 0, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = true })
+do
+	local x, z = Layout.fromV7Local(-24, 0)
+	Layout.PORTAL = table.freeze({ x = x, z = z, quietSeconds = 5, channelSeconds = 2, cooldownSeconds = 30, enabled = true })
+end
 
 Layout.ROUTES = table.freeze({
 	-- GT: the last leg is the avenue from the junction to the plaza edge, a straight view of the cake.
-	main = route({ { -200, 0 }, { -110, 0 }, { 0, 0 }, { 56, 0 } }),
+	-- V8-D1: the entrance and the avenue's end are re-anchored (the west edge; the plaza edge, TORTA.x - plazaRadius,
+	-- because the plaza keeps its 58); the fork and the junction scale.
+	main = table.freeze({ Layout.ENTRANCE, v8(-110, 0), v8(0, 0),
+		point(Layout.TORTA.x - Layout.BOSS.plazaRadius, Layout.TORTA.z) }),
 	-- Left of a player walking in: the syrup riverside, longer and under the cotton trees.
 	left = route({ { -110, 0 }, { -100, -80 }, { -50, -140 }, { 50, -140 }, { 90, -110 }, { 0, 0 } }),
 	-- Right: the lollipop avenue, open and shorter.
@@ -60,19 +96,32 @@ Layout.ROUTE_ORDER = table.freeze({ "main", "left", "right", "deep" })
 Layout.RETURN_ROUTES = table.freeze({ "left", "right" })
 
 -- Laguna de Almibar: shallow discs { x, z, r } crossed by one biscuit bridge on the left route.
+-- V8-D1: the bridge's spot scales (v7 (0, -140)); the three discs move with it (their v7 offsets from it kept): with
+-- their sizes kept, scaled discs would reach 47.8 studs along the route from the bridge's centre, past its 86-stud deck.
+do
+	local x, z = Layout.fromV7Local(0, -140)
+	Layout.BRIDGE = table.freeze({ x = x, z = z, length = 86 })
+end
+local function withBridge(x, z, r)
+	return table.freeze({ x = Layout.BRIDGE.x + (x - 0), z = Layout.BRIDGE.z + (z + 140), r = r })
+end
 Layout.LAKE = table.freeze({
-	table.freeze({ x = 0, z = -120, r = 24 }),
-	table.freeze({ x = 26, z = -134, r = 16 }),
-	table.freeze({ x = -26, z = -134, r = 16 }),
+	withBridge(0, -120, 24),
+	withBridge(26, -134, 16),
+	withBridge(-26, -134, 16),
 })
-Layout.BRIDGE = table.freeze({ x = 0, z = -140, length = 86 })
 -- Ground the builder scatters nothing on: the homes of the two Pradera beasts while they are parked in this plot
 -- (WildboundCandyBeastSites_Test wants open floor there). Remove a row when its beast leaves.
+local function keepClear(x, z, r, why)
+	local kx, kz = Layout.fromV7Local(x, z)
+	return table.freeze({ x = kx, z = kz, r = r, why = why })
+end
 Layout.KEEP_CLEAR = table.freeze({
-	table.freeze({ x = 165, z = 150, r = 26, why = "La Nube's pond" }), -- GT: was (165, 110), now off the bigger boss ground
-	table.freeze({ x = -60, z = 185, r = 10, why = "La Abeja's hive" }),
+	keepClear(165, 150, 26, "La Nube's pond"), -- GT: was (165, 110), now off the bigger boss ground
+	keepClear(-60, 185, 10, "La Abeja's hive"),
 })
 
+-- V8-D1: the v7 spots below, scaled by nest() (x S); the rarity depth rings scale with them (WildboundCandyLayout_Test).
 Layout.NESTS = table.freeze({
 	nest("C1", "Comun", -160, -18),
 	nest("C2", "Comun", -140, 24),
@@ -120,6 +169,9 @@ Layout.NESTS = table.freeze({
 -- tops 21, 38.5, 53.7 and 65.3, and a stair of 21 + 18 + 16 + 12 = 67 steps.
 do
 	local scale, tiers = Layout.TORTA.radius / 36, {}
+	local function glaze(x, z, r)
+		return table.freeze({ x = Layout.TORTA.x + (x - 114), z = Layout.TORTA.z + (z - 0), r = r })
+	end
 	for i, row in ipairs({ { 72, 18, 0 }, { 56, 15, 18 }, { 40, 13, 33 }, { 24, 10, 46 } }) do
 		tiers[i] = table.freeze({ radius = row[1] / 2 * scale, bottom = row[3] * scale, top = (row[3] + row[2]) * scale })
 	end
@@ -137,9 +189,10 @@ do
 		-- kit's nest at full size (0.7 -> 1) on the wider summit, 9.4 studs from the centre.
 		summit = table.freeze({ id = "T1", rarity = "Legendaria", x = Layout.TORTA.x, z = Layout.TORTA.z + 9.4, scale = 1 }),
 		-- DG4: Don Glaseon's glaze puddles on his plaza, round the Torta, off the stair (south) and the nests.
+		-- V8-D1: they move with the Torta (v7 literals round the v7 Torta at (114, 0), offsets kept).
 		glaze = table.freeze({
 			-- V7-D2: puddle 2 (165, 8) -> (170, 9), 10.5 studs out from the wider stair's first flight
-			table.freeze({ x = 114, z = 52, r = 6 }), table.freeze({ x = 170, z = 9, r = 6 }), table.freeze({ x = 75, z = 34, r = 6 }),
+			glaze(114, 52, 6), glaze(170, 9, 6), glaze(75, 34, 6),
 		}),
 	})
 end

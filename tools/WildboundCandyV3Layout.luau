@@ -30,7 +30,19 @@ end
 -- narrower only where a nest or a post leaves no room), a bigger lake (two discs, as big as the nests, posts and the left
 -- route allow), longer Top and Bottom bridges, the docks on the new banks. tools/wildbound-caramelo-v5-migrate.luau
 -- changes the live map (mark V5_MARK).
-V3.VERSION = 3
+-- Caramelo v8 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger ... more space between things";
+-- docs/design/wildbound-caramelo-v8-plan.md, V8-D1): VERSION 4, so the older migrations refuse to run. The plot grows
+-- 1.3 times about its centre (WildboundCandyLayout HALF 200 -> 260). Every position below keeps its v7 literal, mapped
+-- at load (x S); sizes, radii, widths and deck lengths keep their v7 values. The exceptions say V8-D1: re-anchored to
+-- an edge, or translated with their parent (M1, a lake disc, a bridge), their v7 offset kept.
+-- tools/wildbound-caramelo-v8-migrate.luau changes the live map.
+V3.VERSION = 4
+-- V8-D1: this module requires nothing, so it carries its own copy of WildboundCandyLayout.V8.S and HALF;
+-- WildboundCandyV3Layout_Test pins that they agree.
+V3.V8 = freeze({ S = 1.3, HALF = 260, OLD_HALF = 200 })
+local S, HALF = V3.V8.S, V3.V8.HALF
+-- A v7 plot-local coordinate in the v8 plot.
+local function v8(n) return n * S end
 V3.V4_MARK = "CaramelV4"
 V3.V5_MARK = "CaramelV5"
 -- The root attribute the migration sets (tools/wildbound-caramelo-v3-migrate.luau) and the folder every v3 piece
@@ -67,15 +79,32 @@ V3.LIQUID = freeze({ depth = 3.5, color = { 92, 52, 34 }, transparency = 0.08 })
 -- Footprint: 54 (L) or 35.5 (M) studs x scale, the kit's widest half side plus its pivot offset.
 -- V4-D1: M1 moved to the north edge (scale 0.55 -> 0.45 to fit between nests C11 and C7; its footprint touches the
 -- edge, so it closes the barrier there), M2 and M4 moved off the east edge's pink hills and the freed south-east.
-V3.MOUNTAINS = freeze({
-	{ id = "M1", asset = "CV3_IceCreamMountain_L", x = -4, z = 176, scale = 0.45, r = 24.3, height = 40.7,
-		faceX = -12, faceZ = 138, river = true },
-	{ id = "M2", asset = "CV3_IceCreamMountain_M", x = 180, z = -90, scale = 0.4, r = 14.2, height = 24.1, faceX = 0, faceZ = 0 },
-	{ id = "M3", asset = "CV3_IceCreamMountain_M", x = 76, z = 187, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
-	{ id = "M4", asset = "CV3_IceCreamMountain_M", x = 165, z = -120, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
-	{ id = "M5", asset = "CV3_IceCreamMountain_M", x = -186, z = -186, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
-	{ id = "M6", asset = "CV3_IceCreamMountain_M", x = -187, z = 187, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
-})
+-- V8-D1: M1 is re-anchored to the north edge (its v7 24 studs off it, so its footprint still touches the edge and closes
+-- the barrier; x scales); M1_DX, M1_DZ is how far it moved, and its kit outlet, pool, waterfall and the river's first two
+-- points (the outlet and the point it faces) move the same, so the kit's turn and outlet are unchanged. M2-M6 scale.
+local M1_DX, M1_DZ = v8(-4) - -4, HALF - 24 - 176
+local function withM1(x, z) return x + M1_DX, z + M1_DZ end
+do
+	local list = {}
+	for i, row in ipairs({
+		{ id = "M1", asset = "CV3_IceCreamMountain_L", x = -4, z = 176, scale = 0.45, r = 24.3, height = 40.7,
+			faceX = -12, faceZ = 138, river = true },
+		{ id = "M2", asset = "CV3_IceCreamMountain_M", x = 180, z = -90, scale = 0.4, r = 14.2, height = 24.1, faceX = 0, faceZ = 0 },
+		{ id = "M3", asset = "CV3_IceCreamMountain_M", x = 76, z = 187, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
+		{ id = "M4", asset = "CV3_IceCreamMountain_M", x = 165, z = -120, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
+		{ id = "M5", asset = "CV3_IceCreamMountain_M", x = -186, z = -186, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
+		{ id = "M6", asset = "CV3_IceCreamMountain_M", x = -187, z = 187, scale = 0.37, r = 13.1, height = 22.3, faceX = 0, faceZ = 0 },
+	}) do
+		if row.river then
+			row.x, row.z = withM1(row.x, row.z)
+			row.faceX, row.faceZ = withM1(row.faceX, row.faceZ)
+		else
+			row.x, row.z, row.faceX, row.faceZ = v8(row.x), v8(row.z), v8(row.faceX), v8(row.faceZ)
+		end
+		list[i] = row
+	end
+	V3.MOUNTAINS = freeze(list)
+end
 
 -- The river (V4-D1): { x, z, w } points from M1's outlet by the north edge to the south edge; w is the width at that
 -- point. A leg is as wide as its wider end for every clearance rule (V3.liquidDistance), so the rules are on the safe
@@ -87,7 +116,12 @@ V3.MOUNTAINS = freeze({
 -- C11 and nest C7 (RIVER[2] stays where M1 faces), 16 then 10 by nest E3 into the junction arc (unchanged, 10 wide),
 -- 14 to 20 between nest L1 / post R10 and the lake. A width step gets its own point, because a leg is as wide as its
 -- wider end.
-V3.RIVER = freeze({
+-- V8-D1: the v7 points below scale (x S, widths kept), but for three: the first two move with M1 (withM1), the one
+-- under the Top bridge keeps its v7 4 studs north of the bridge's leg (scaled it would be 5.2 north, and the 24-wide
+-- band would reach 15 studs along the 28-stud deck, past its end; WildboundCandyV3Layout_Test V3-17), and the last one
+-- stays on the south edge.
+local RIVER_TOP_Z = v8(120) + (124 - 120)
+local RIVER_V7 = {
 	{ -8.36, 154.08, 12 }, -- M1's outlet (kit outlet x 0.45, turned to face RIVER[2])
 	{ -12, 138, 19 }, -- between post C11 and nest C7 (M1 faces this point: it never moves)
 	{ -10, 131, 19.5 },
@@ -112,24 +146,48 @@ V3.RIVER = freeze({
 	{ 27, -140, 24 }, -- under the left route's bottom bridge
 	{ 29, -170, 24 }, -- between nest C6 and post C8
 	{ 30, -200, 24 }, -- the south edge
-})
+}
+do
+	local list = {}
+	for i, p in ipairs(RIVER_V7) do
+		local x, z = v8(p[1]), v8(p[2])
+		if i <= 2 then x, z = withM1(p[1], p[2])
+		elseif i == 4 then z = RIVER_TOP_Z
+		elseif i == #RIVER_V7 then z = -HALF end
+		list[i] = { x, z, p[3] }
+	end
+	V3.RIVER = freeze(list)
+end
 -- M1's waterfall pool (the kit's pool centre and radius x 0.45, at the kit's turn) and the waterfall: the kit's own
 -- sheet falls from the ledge (33.72 x 0.45 studs) into the pool; the builder adds streaks of lighter chocolate in front
 -- of it that slide down on the client (WildboundCandyAmbienceClient reads their attributes). V4-D11: the pool disc is
 -- laid at the new depth even with the kit (the kit's own pool is 0.6 deep).
-V3.POOL = freeze({ x = -7.24, z = 159.36, r = 4.95 })
-V3.WATERFALL = freeze({ x = -6.62, z = 162.3, width = 7, top = 15.17, faceX = -7.24, faceZ = 159.36, streaks = 5,
-	flowSpeed = 12 }) -- review m8: top is studs over the floor (the kit ledge 33.72 x 0.45), not a world height
+-- V8-D1: both move with M1 (withM1).
+do
+	local px, pz = withM1(-7.24, 159.36)
+	local wx, wz = withM1(-6.62, 162.3)
+	V3.POOL = freeze({ x = px, z = pz, r = 4.95 })
+	V3.WATERFALL = freeze({ x = wx, z = wz, width = 7, top = 15.17, faceX = px, faceZ = pz, streaks = 5,
+		flowSpeed = 12 }) -- review m8: top is studs over the floor (the kit ledge 33.72 x 0.45), not a world height
+end
 -- The chocolate lake (V4-D1): a wide disc south of the junction where the river widens, the docks stand and the cookie
 -- platforms float, and a smaller one where it leaves towards the bottom bridge.
 -- V5-D3, V5-D11: disc 1 grows to r 34.5 at (8, -98) and disc 2 (r 18) becomes the lake's west lobe at (-14, -114). A
 -- 46 disc does not fit: the left route closes the lake on the south (z -140) and the east (its last leg), post R10 on
 -- the north and nest R3 / post R3 on the west, so no single disc passes r 37.7 (at (20, -95), which leaves no east bank
 -- for a dock). Open water for the raft's hull south of the junction: about 3700 square studs (was about 2800).
-V3.LAKE = freeze({
-	{ x = 8, z = -98, r = 34.5 },
-	{ x = -14, z = -114, r = 18 },
-})
+-- V8-D1: the discs' centres scale, their radii stay; what floats on a disc (a dock, a cookie platform, the island) moves
+-- with it (withDisc: its v7 offset from that disc's centre kept), so each keeps its v7 water round it.
+local LAKE_V7 = { { x = 8, z = -98, r = 34.5 }, { x = -14, z = -114, r = 18 } }
+local function withDisc(i, x, z)
+	local d = LAKE_V7[i]
+	return x + (v8(d.x) - d.x), z + (v8(d.z) - d.z)
+end
+do
+	local list = {}
+	for i, d in ipairs(LAKE_V7) do list[i] = { x = v8(d.x), z = v8(d.z), r = d.r } end
+	V3.LAKE = freeze(list)
+end
 -- The bridges (V4-D1): one on every route leg the river crosses, each straight on that leg: { id, route, from, to (the
 -- leg's two route points), at (studs from `from` to the deck's centre), length (the deck), gaps (rail gaps, studs
 -- along the deck from its centre) }. Every bridge shares BRIDGE_BUILD: a deck `width` wide whose top stands `deck`
@@ -141,6 +199,9 @@ V3.LAKE = freeze({
 -- V5-D12: over the 24-wide river the Top deck is 28 (was 22, at 31: x -9) and the Bottom deck 28 (was 24, at 76: x 26);
 -- the three junction bridges are unchanged.
 V3.BRIDGE_BUILD = freeze({ width = 15, deck = 4.1, ramp = 9, gapWidth = 8, sideRamp = 9 })
+-- V8-D1: from, to and at scale with the route legs (so each deck still lands on the river, the junction arc now 39.65
+-- studs round); deck lengths and widths stay. Main's `to` is the avenue's end, re-anchored to the plaza edge like
+-- WildboundCandyLayout.ROUTES.main (the Torta's v7 x 114, scaled, less the plaza's 58), the same float.
 local BRIDGE_ROWS = {
 	{ id = "Top", route = "right", from = { -40, 120 }, to = { 40, 120 }, at = 31, length = 28, gaps = { 0 } },
 	{ id = "RightLast", route = "right", from = { 80, 100 }, to = { 0, 0 }, at = 97.56, length = 11, gaps = {} },
@@ -148,6 +209,11 @@ local BRIDGE_ROWS = {
 	{ id = "LeftLast", route = "left", from = { 90, -110 }, to = { 0, 0 }, at = 111.63, length = 11, gaps = {} },
 	{ id = "Bottom", route = "left", from = { -50, -140 }, to = { 50, -140 }, at = 76, length = 28, gaps = { 0 } },
 }
+for _, row in ipairs(BRIDGE_ROWS) do
+	row.from = { v8(row.from[1]), v8(row.from[2]) }
+	row.to = row.id == "Main" and { v8(114) - 58, v8(0) } or { v8(row.to[1]), v8(row.to[2]) }
+	row.at = v8(row.at)
+end
 do
 	local list = {}
 	for i, row in ipairs(BRIDGE_ROWS) do
@@ -166,7 +232,12 @@ end
 -- its scale), scale, turn (degrees added to facing the junction) }. Each faces the junction; V4-D15: the caramel
 -- towers (balcony at the kit's +Z) turn 180 degrees, so the balcony looks at the kingdom and the door faces away. V4-D5: H1, H3 and H5 (one of each kind) at kit scale 1.4 (doors 9.8 x
 -- 13.3); the others at 1 (7 x 9.5). V4-D1: H2, H3, H5, H6 and H7 moved for the bigger houses, M1 and the pink hills.
-V3.HOUSES = freeze({
+-- V8-D1: the spots scale; footprints and kit scales stay.
+local function scaled(rows)
+	for _, row in ipairs(rows) do row.x, row.z = v8(row.x), v8(row.z) end
+	return rows
+end
+V3.HOUSES = freeze(scaled({
 	{ id = "H1", asset = "CV3_SweetHouse", x = -148, z = 166, r = 28, scale = 1.4 },
 	{ id = "H2", asset = "CV3_CaramelTower", x = -100, z = 175, r = 15, scale = 1, turn = 180 },
 	{ id = "H3", asset = "CV3_ChocoHouse", x = -158, z = -150, r = 22.4, scale = 1.4 },
@@ -174,7 +245,7 @@ V3.HOUSES = freeze({
 	{ id = "H5", asset = "CV3_CaramelTower", x = -168, z = -82, r = 21, scale = 1.4, turn = 180 },
 	{ id = "H6", asset = "CV3_ChocoHouse", x = 150, z = -170, r = 16, scale = 1 },
 	{ id = "H7", asset = "CV3_SweetHouse", x = 110, z = 178, r = 20, scale = 1 },
-})
+}))
 -- Placeholder sizes (side of the square, wall height) when a house model is missing, at scale 1.
 V3.HOUSE_PLACEHOLDER = freeze({ CV3_SweetHouse = { 24, 14 }, CV3_ChocoHouse = { 22, 14 }, CV3_CaramelTower = { 20, 20 } })
 
@@ -187,10 +258,21 @@ V3.HOUSE_PLACEHOLDER = freeze({ CV3_SweetHouse = { 24, 14 }, CV3_ChocoHouse = { 
 -- (WildboundCandyRaft); homeDock is where it respawns.
 -- V5-D3, V5-D13: A on the west lobe's west bank, B on the big disc's east bank (its ramp keeps 11 studs off the left
 -- route's last leg), 70 studs apart across the open lake.
-V3.DOCKS = freeze({
-	{ id = "A", standX = -38, standZ = -116, tipX = -22, tipZ = -114 },
-	{ id = "B", standX = 48, standZ = -104, tipX = 32, tipZ = -102 },
-})
+-- V8-D1: each dock moves with its lake disc (A the west lobe, disc 2; B the big disc, disc 1), so it keeps its length
+-- and its tip keeps 10 studs of chocolate round it.
+do
+	local list = {}
+	for i, row in ipairs({
+		{ id = "A", disc = 2, standX = -38, standZ = -116, tipX = -22, tipZ = -114 },
+		{ id = "B", disc = 1, standX = 48, standZ = -104, tipX = 32, tipZ = -102 },
+	}) do
+		local d = { id = row.id }
+		d.standX, d.standZ = withDisc(row.disc, row.standX, row.standZ)
+		d.tipX, d.tipZ = withDisc(row.disc, row.tipX, row.tipZ)
+		list[i] = d
+	end
+	V3.DOCKS = freeze(list)
+end
 V3.RAFT = freeze({ asset = "CV3_BananaRaft", homeDock = 1 })
 -- A dock's build (review m5, m6): its deck stops tipGap studs short of the tip (the docked hull's room), its ramp
 -- starts rampBack studs behind the stand, deckWidth wide; its top stands deckOver studs over the chocolate's surface.
@@ -200,20 +282,30 @@ V3.DOCK = freeze({ deckWidth = 6, tipGap = 5, rampBack = 10, deckOver = 0.4 })
 -- The rainbow licorice arch (CV3_LicoriceArch) over the main path, between the entrance and the fork, its span (the
 -- kit's X) across the path. The kit's ribbon meets the ground at four feet, feet = { |x| of the inner pair, of the
 -- outer pair } with their footprint radii, at kit scale 1; everything scales by `scale`.
-V3.LICORICE = freeze({ x = -124, z = 0, scale = 0.8, height = 27, span = 62.3,
+-- V8-D1: the arch, the cake and the point the cake faces scale; their sizes stay.
+V3.LICORICE = freeze({ x = v8(-124), z = v8(0), scale = 0.8, height = 27, span = 62.3,
 	feet = { { offset = 20.6, r = 5.7 }, { offset = 34.8, r = 4.5 } } })
 -- The modular cake (CV3_CakeBase, CV3_CakeTop on its top_tier socket, CV3_CakeRamp at its ramp_front socket), in the
 -- open north-west, its front (and ramp) facing (faceX, faceZ). r is the base's footprint, rampReach how far in front
 -- of the centre the ramp's low end lies, both at `scale`.
-V3.CAKE = freeze({ x = -150, z = 112, scale = 0.8, r = 18, rampReach = 38.5, faceX = -150, faceZ = 0, height = 21.6 })
+V3.CAKE = freeze({ x = v8(-150), z = v8(112), scale = 0.8, r = 18, rampReach = 38.5, faceX = v8(-150), faceZ = v8(0),
+	height = 21.6 })
 -- The cookie platforms standing on the lake floor (kit scale 1). V4-D2: each kit cookie is lifted on a pedestal
 -- collider so its walk top stands PLATFORM.over studs over the 3.5-deep surface.
-V3.PLATFORMS = freeze({
-	{ asset = "CV3_CookieM", x = -6, z = -120, r = 6.7 },
-	{ asset = "CV3_CookieL", x = 0, z = -88, r = 11.7 },
-	{ asset = "CV3_CookieS", x = 20, z = -86, r = 3.9 },
-	{ asset = "CV3_CookieS", x = -20, z = -90, r = 3.9 },
-})
+-- V8-D1: each moves with the lake disc it floats in (the medium one in the west lobe, disc 2; the rest in disc 1).
+do
+	local list = {}
+	for i, row in ipairs({
+		{ asset = "CV3_CookieM", disc = 2, x = -6, z = -120, r = 6.7 },
+		{ asset = "CV3_CookieL", disc = 1, x = 0, z = -88, r = 11.7 },
+		{ asset = "CV3_CookieS", disc = 1, x = 20, z = -86, r = 3.9 },
+		{ asset = "CV3_CookieS", disc = 1, x = -20, z = -90, r = 3.9 },
+	}) do
+		local x, z = withDisc(row.disc, row.x, row.z)
+		list[i] = { asset = row.asset, x = x, z = z, r = row.r }
+	end
+	V3.PLATFORMS = freeze(list)
+end
 V3.PLATFORM = freeze({ over = 0.5, pedestalShare = 0.8 })
 -- Caramelo v6, proposal 4 (odd/tasks/wildbound-caramelo-v2.md V6-D4; docs/design/wildbound-caramelo-v3-plan.md V6-D60
 -- on): an island in the big lake with one Epica egg nest, laid at server start by tools/WildboundCandyIsland.luau.
@@ -221,9 +313,13 @@ V3.PLATFORM = freeze({ over = 0.5, pedestalShare = 0.8 })
 -- raft, wading, the current, the clearances), flat the radius of its level top, foot where its underwater bank meets
 -- the floor. It stands in the river's mouth, north of the cookie platforms: the lake leaves no wider spot with a raft
 -- channel all round (V6-D60). No VERSION bump: nothing laid by a migration moves.
-V3.ISLANDS = freeze({
-	{ id = "I1", x = 15, z = -73, r = 6.5, flat = 4.5, foot = 10.4 },
-})
+-- V8-D1: it moves with the big disc (disc 1), its v7 offset from the disc's centre kept.
+do
+	local x, z = withDisc(1, 15, -73)
+	V3.ISLANDS = freeze({
+		{ id = "I1", x = x, z = z, r = 6.5, flat = 4.5, foot = 10.4 },
+	})
+end
 -- The island's build: its top `top` studs over the chocolate's surface, a beach from the top's edge down to the
 -- waterline and an underwater bank (bankDegrees steep: foot = r + LIQUID.depth / tan(bankDegrees)) down to the floor,
 -- in `sectors` slices.
@@ -257,14 +353,22 @@ V3.FILLER = freeze({
 -- fits (x 198 like the crystals, so it straddles the edge). The Peak_ spots stood outside the plot: the backdrop takes
 -- their place. Hill_3 and Hill_5 are smaller (M2, H4 and La Nube's pond stand near them).
 V3.CRYSTAL = freeze({ asset = "RockSugar", folder = "SugarHills", hillAsset = "CV3_IceCreamMountain_M", hillHeight = 60.3 })
-V3.CRYSTAL_HILLS = freeze({
-	{ id = "Hill_1", x = 198, z = -190, scale = 0.5, r = 17.75 },
-	{ id = "Hill_2", x = 198, z = -125, scale = 0.45, r = 16 },
-	{ id = "Hill_3", x = 198, z = -60, scale = 0.5, r = 17.75 },
-	{ id = "Hill_4", x = 198, z = 60, scale = 0.5, r = 17.75 },
-	{ id = "Hill_5", x = 198, z = 125, scale = 0.28, r = 9.94 },
-	{ id = "Hill_6", x = 198, z = 190, scale = 0.5, r = 17.75 },
-})
+-- V8-D1: x is re-anchored to the edge (HALF - 2, as the v7 198 was), z scales.
+do
+	local list = {}
+	for i, row in ipairs({
+		{ id = "Hill_1", x = 198, z = -190, scale = 0.5, r = 17.75 },
+		{ id = "Hill_2", x = 198, z = -125, scale = 0.45, r = 16 },
+		{ id = "Hill_3", x = 198, z = -60, scale = 0.5, r = 17.75 },
+		{ id = "Hill_4", x = 198, z = 60, scale = 0.5, r = 17.75 },
+		{ id = "Hill_5", x = 198, z = 125, scale = 0.28, r = 9.94 },
+		{ id = "Hill_6", x = 198, z = 190, scale = 0.5, r = 17.75 },
+	}) do
+		row.x, row.z = HALF - 2, v8(row.z)
+		list[i] = row
+	end
+	V3.CRYSTAL_HILLS = freeze(list)
+end
 
 -- V4-D7, the sides: a seeded fill of the edge band (plot depth bandMin to bandMax, the x > 158 strip outside the boss
 -- territory included) every `spacing` studs (jittered), and of the interior where no prop stands within emptyRadius
@@ -281,7 +385,11 @@ V3.EDGE = freeze({
 -- The backdrop (V4-D7): big decor just outside the east edge and its corners (local x > 200), never colliding and never
 -- queried (decor only), clear of every neighbouring biome square (WildboundBiomes: nothing east of the Meadow; Caves
 -- from world z 237 north, Mountains from world z -243 south). { asset, x, z, scale, r (footprint at that scale) }.
-V3.BACKDROP = freeze({
+-- V8-D2 (fixer): east of the v8 plot lie the cloud band (local x 260..276) and Caramelo Este, so every one of these
+-- pieces, re-anchored to the east edge (HALF + (x - 200)), would stand in the Veil or on the second space's floor. The
+-- v8 backdrop is empty: a fresh build matches the live map, where tools/wildbound-caramelo-v8-migrate.luau archives
+-- the old backdrop ("would stand east of the plot"). V3.BACKDROP_V7 keeps the v7 rows as a record (nothing lays them).
+V3.BACKDROP_V7 = freeze({
 	{ asset = "CV3_IceCreamMountain_L", x = 236, z = -160, scale = 0.6, r = 32.4 },
 	{ asset = "CV3_IceCreamMountain_L", x = 240, z = -40, scale = 0.65, r = 35.1 },
 	{ asset = "CV3_IceCreamMountain_L", x = 238, z = 90, scale = 0.6, r = 32.4 },
@@ -297,6 +405,7 @@ V3.BACKDROP = freeze({
 	{ asset = "CV3_TreeIceCream", x = 212, z = -195, scale = 1.2, r = 11 },
 	{ asset = "CV3_TreeCaramelApple", x = 212, z = 200, scale = 1.2, r = 9.5 },
 })
+V3.BACKDROP = freeze({})
 
 -- Clearances (studs) every piece keeps, checked by the suites.
 V3.CLEAR = freeze({

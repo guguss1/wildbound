@@ -18,6 +18,10 @@ return function(Layout, Sites, Config, marker, biome)
 		assert(actual == expected, (label and label .. ": " or "") .. "Expected " .. tostring(expected) .. ", got "
 			.. tostring(actual))
 	end
+	local function near(actual, expected, label, tolerance)
+		assert(type(actual) == "number" and math.abs(actual - expected) <= (tolerance or 1e-6),
+			(label and label .. ": " or "") .. "Expected " .. tostring(expected) .. ", got " .. tostring(actual))
+	end
 	-- The same rule as WildboundBeasts.praderaOrigin.
 	local origin = nil
 	if marker and (marker:IsA("Model") or marker:IsA("BasePart")) then
@@ -52,10 +56,14 @@ return function(Layout, Sites, Config, marker, biome)
 		-- the module keeps its own numbers: without a marker every site is where the Pradera had it
 		local pond, hive, gate, plaza = Sites.world(nil, "pond"), Sites.world(nil, "colmena"), Sites.world(nil, "gate"), Sites.world(nil, "plaza")
 		-- Deliberately changed (GT, cake move): the pond offset (150, 0) -> (150, 40), off the bigger boss ground
-		equal(pond.x, 762, "default pond x"); equal(pond.z, 37, "default pond z")
-		equal(hive.x, 537, "default hive x"); equal(hive.z, 72, "default hive z")
-		equal(gate.x, 426, "default gate x"); equal(gate.z, -3, "default gate z")
-		equal(plaza.x, 572, "default plaza x"); equal(plaza.z, 11, "default plaza z")
+		-- Deliberately changed (V8-D1): the default origin is the v8 plot centre (672, -3) (was 612, -3) and the offsets are
+		-- x 1.3 (pond (195, 52), hive (-97.5, 97.5), gate (-241.8, 0), plaza (-52, 18.2)), so with the marker moved by
+		-- fromV7World each site lands where v7 had it, scaled: was pond (762, 37), hive (537, 72), gate (426, -3), plaza
+		-- (572, 11). Within 1e-6: 430.2, 574.5 and 15.2 are not whole studs.
+		near(pond.x, 867, "default pond x"); near(pond.z, 49, "default pond z")
+		near(hive.x, 574.5, "default hive x"); near(hive.z, 94.5, "default hive z")
+		near(gate.x, 430.2, "default gate x"); near(gate.z, -3, "default gate z")
+		near(plaza.x, 620, "default plaza x"); near(plaza.z, 15.2, "default plaza z")
 		equal(Sites.HOME.NubeGrunona, "pond", "Nube home"); equal(Sites.HOME.AbejaReina, "colmena", "Abeja home")
 	end)
 
@@ -144,8 +152,10 @@ return function(Layout, Sites, Config, marker, biome)
 		assert(biome and biome:FindFirstChild("Markers") and biome:FindFirstChild("Boss"), "no live candy biome given")
 		local home, centre = Sites.world(nil, "bossHome"), Sites.world(nil, "bossTerritory")
 		local marker, territory = biome.Markers.BossHome, biome.Boss.BossTerritory
-		equal(home.x, marker.Position.X, "home x"); equal(home.z, marker.Position.Z, "home z")
-		equal(centre.x, territory.Position.X, "territory x"); equal(centre.z, territory.Position.Z, "territory z")
+		-- Deliberately changed (V8-D1): the v8 home (770.2, -3) and centre (820.2, -3) are not whole studs and a part's
+		-- Position holds 32-bit floats, so the same check within 1e-3 (was exact equality on 676 and 726)
+		near(home.x, marker.Position.X, "home x", 1e-3); near(home.z, marker.Position.Z, "home z", 1e-3)
+		near(centre.x, territory.Position.X, "territory x", 1e-3); near(centre.z, territory.Position.Z, "territory z", 1e-3)
 		local T = Config.BEASTS.DonGlaseon.tuning
 		equal(T.TerritoryRadiusStuds, territory:GetAttribute("Radius"), "radius"); equal(territory:GetAttribute("Boss"), "DonGlaseon", "the marker's boss")
 		local portal = biome.Markers.Portal.Position

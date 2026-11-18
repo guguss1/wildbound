@@ -190,13 +190,17 @@ return function(Enc, Abeja, Config, source, Sites, sitesSource)
 	end)
 
 	case("KB-3 Sites: offsets, origin fallback, the Abeja wants the open window near La Colmena", function()
+		-- Deliberately changed (V8-D1, owner request 2026-11-17 "make the Reino Caramelo map a bit bigger"): the default
+		-- origin is the v8 plot centre (672, -3) (was 612, -3) and the offsets are x 1.3: pond (195, 52), colmena
+		-- (-97.5, 97.5), gate (-241.8, 0), plaza (-52, 18.2). Was pond (762, 37), hive (-75, 75), gate x 426, plaza z 11.
+		-- Within 1e-9: 430.2 and 15.2 are not exact in binary.
 		local o = Sites.origin(nil)
-		equal(o.x, 612); equal(o.z, -3)
+		equal(o.x, 672); equal(o.z, -3)
 		local pond = Sites.world(nil, "pond")
-		equal(pond.x, 762); equal(pond.z, 37)
+		equal(pond.x, 867); equal(pond.z, 49)
 		local hive = Sites.world({ x = 0, z = 0 }, "colmena")
-		equal(hive.x, -75); equal(hive.z, 75)
-		equal(Sites.world(nil, "gate").x, 426); equal(Sites.world(nil, "plaza").z, 11)
+		equal(hive.x, -97.5); equal(hive.z, 97.5)
+		near(Sites.world(nil, "gate").x, 430.2, "gate x", 1e-9); near(Sites.world(nil, "plaza").z, 15.2, "plaza z", 1e-9)
 		local col = Sites.world(nil, "colmena")
 		local ctx = { alive = true, safe = false, meadow = true, eventOpen = true, x = col.x + 60, z = col.z }
 		equal(Sites.wants("AbejaReina", ctx), true)

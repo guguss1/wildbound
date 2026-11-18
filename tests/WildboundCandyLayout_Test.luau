@@ -2,7 +2,8 @@
 -- Caramelo biome blockout (odd/tasks/caramelo-bioma.md, T1, S2 S4 S5): the pure layout rules of the candy biome that
 -- takes the Pradera plot. Coordinates are local to the plot centre: x grows east (away from the hub), the entrance is
 -- on the west edge. No services and no instances; the built model has its own suite (WildboundCandyBuilder_Test).
-return function(Layout, Biomes)
+-- V8-D1 (Caramelo v8): Biomes is still passed but no longer read; the plot left the classic "pradera" square.
+return function(Layout, _Biomes)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -32,14 +33,18 @@ return function(Layout, Biomes)
 		return points
 	end
 
-	case("S2: the plot is the square Pradera used", function()
-		local area
-		for _, candidate in ipairs(Biomes.AREAS) do if candidate.key == "pradera" then area = candidate end end
-		assert(area, "no pradera square in WildboundBiomes")
-		equal(Layout.CENTRE.x - Layout.HALF, area.minX, "minX")
-		equal(Layout.CENTRE.x + Layout.HALF, area.maxX, "maxX")
-		equal(Layout.CENTRE.z - Layout.HALF, area.minZ, "minZ")
-		equal(Layout.CENTRE.z + Layout.HALF, area.maxZ, "maxZ")
+	-- Deliberately changed (V8-D1, owner request 2026-11-17 "make the Reino Caramelo map a bit bigger"): the plot is no
+	-- longer the classic "pradera" square (x 412..812, z -203..197); it grows 1.3 times to world x 412..932, z -263..257,
+	-- inside the big4 Meadow square (x 412..1012, z -303..297), and its entrance stays at world (412, -3) on the hub road.
+	case("S2/V8-D1: the plot lies inside the big4 Meadow square, its entrance on the hub road", function()
+		local C, H = Layout.CENTRE, Layout.HALF
+		equal(H, 260, "HALF")
+		equal(C.x, 672, "centre x")
+		equal(C.z, -3, "centre z")
+		assert(C.x - H >= 412 and C.x + H <= 1012, "the plot leaves the big4 Meadow square in x")
+		assert(C.z - H >= -303 and C.z + H <= 297, "the plot leaves the big4 Meadow square in z")
+		equal(C.x + Layout.ENTRANCE.x, 412, "entrance world x")
+		equal(C.z + Layout.ENTRANCE.z, -3, "entrance world z")
 		equal(Layout.FLOOR_TOP, 0.5, "floor top, level with the hub road")
 		equal(string.sub(Layout.ROOT_NAME, 1, 6), "Candy_", "versioned Candy_ prefix")
 	end)
@@ -101,24 +106,27 @@ return function(Layout, Biomes)
 		end
 	end)
 
-	case("layout contract: each rarity sits in its depth ring (0-75, 75-160, 160-200)", function()
-		local ring = { Comun = { 0, 75 }, Rara = { 75, 160 }, Epica = { 160, 200 }, Legendaria = { 160, 200 } }
+	-- Deliberately changed (V8-D1): the rings scale with the plot, 0-75, 75-160, 160-200 -> 0-97.5, 97.5-208, 208-260.
+	case("layout contract: each rarity sits in its depth ring (v7 0-75, 75-160, 160-200, x 1.3)", function()
+		local S = Layout.V8.S
+		local ring = { Comun = { 0, 75 * S }, Rara = { 75 * S, 160 * S }, Epica = { 160 * S, 200 * S }, Legendaria = { 160 * S, 200 * S } }
 		for _, nest in ipairs(Layout.NESTS) do
 			local depth = Layout.depth(nest.x, nest.z)
 			local band = ring[nest.rarity]
 			assert(depth >= band[1] and depth <= band[2], nest.id .. " at depth " .. depth)
 		end
-		equal(Layout.depth(-200, 0), 0, "edge depth")
-		equal(Layout.depth(0, 0), 200, "centre depth")
-		equal(Layout.depth(30, -150), 50, "square rings")
+		equal(Layout.depth(-Layout.HALF, 0), 0, "edge depth")
+		equal(Layout.depth(0, 0), Layout.HALF, "centre depth")
+		equal(Layout.depth(39, -195), 65, "square rings")
 	end)
 
-	case("S5: the first common nests are 30 to 70 studs past the entrance", function()
-		local near = 0
+	-- Deliberately changed (V8-D1): the band scales with the plot, 30-70 -> 39-91 studs (C1 57, C2 84).
+	case("S5: the first common nests are 39 to 91 studs past the entrance (v7 30 to 70, x 1.3)", function()
+		local near, S = 0, Layout.V8.S
 		for _, nest in ipairs(Layout.NESTS) do
 			local distance = flat(nest.x, nest.z, Layout.ENTRANCE.x, Layout.ENTRANCE.z)
-			assert(distance >= 30, nest.id .. " crowds the entrance")
-			if distance <= 70 then
+			assert(distance >= 30 * S, nest.id .. " crowds the entrance")
+			if distance <= 70 * S then
 				equal(nest.rarity, "Comun", nest.id .. " near the entrance")
 				near += 1
 			end
@@ -131,7 +139,8 @@ return function(Layout, Biomes)
 			local toRoute = Layout.routeDistance(nest.x, nest.z)
 			local toTorta = flat(nest.x, nest.z, Layout.TORTA.x, Layout.TORTA.z)
 			assert(toRoute >= Layout.PATH_WIDTH / 2 + 4, nest.id .. " blocks a path")
-			assert(toRoute <= 40 or toTorta <= Layout.BOSS.plazaRadius, nest.id .. " is unreachable")
+			-- Deliberately changed (V8-D1): 40 -> 40 x 1.3 = 52 studs off a route (the farthest, C13, is 49.4 off)
+			assert(toRoute <= 40 * Layout.V8.S or toTorta <= Layout.BOSS.plazaRadius, nest.id .. " is unreachable")
 			assert(toTorta >= Layout.TORTA.radius + 6, nest.id .. " is inside the Torta")
 			for j = i + 1, #Layout.NESTS do
 				local other = Layout.NESTS[j]
@@ -236,7 +245,9 @@ return function(Layout, Biomes)
 		equal(Layout.VERSION, 3, "layout version")
 		local T = Layout.TORTA
 		assert(T.x >= Layout.HALF / 2, "the Torta is not in the east half's far part: " .. T.x)
-		assert(Layout.depth(T.x + Layout.BOSS.plazaRadius, T.z) <= 30, "its plaza does not reach the east edge's ring")
+		-- Deliberately changed (V8-D1): <= 30 -> <= 60: the plot grew 1.3 times and the plaza kept its 58, so it ends 53.8
+		-- studs from the east edge (was 28; V8-D3 counts on that room by the cloud wall)
+		assert(Layout.depth(T.x + Layout.BOSS.plazaRadius, T.z) <= 60, "its plaza does not reach the east edge's ring")
 		for _, name in ipairs(Layout.ROUTE_ORDER) do
 			for _, p in ipairs(Layout.ROUTES[name]) do assert(p.x < T.x, name .. " passes behind the Torta") end
 		end
@@ -317,6 +328,56 @@ return function(Layout, Biomes)
 			end
 		end
 		equal(found, 8, "new nests")
+	end)
+
+	-- V8-D1 (owner request 2026-11-17, "more space between things"; docs/design/wildbound-caramelo-v8-plan.md): the v7 ->
+	-- v8 transform other modules use, and the layout built from it: positions x 1.3 about the centre, sizes kept, the
+	-- re-anchored and translated exceptions.
+	case("V8-D1: fromV7Local / fromV7World scale 1.3 about the centre, pure; positions follow, sizes stay", function()
+		local V = Layout.V8
+		assert(table.isfrozen(V) and table.isfrozen(V.OLD_CENTRE), "V8 frozen")
+		equal(V.S, 1.3, "S"); equal(V.OLD_HALF, 200, "old half")
+		equal(V.OLD_CENTRE.x, 612, "old centre x"); equal(V.OLD_CENTRE.z, -3, "old centre z")
+		local x, z = Layout.fromV7Local(100, -50)
+		near(x, 130, "local x"); near(z, -65, "local z")
+		x, z = Layout.fromV7World(612, -3)
+		equal(x, 672, "old centre -> new centre x"); equal(z, -3, "old centre -> new centre z")
+		x, z = Layout.fromV7World(412, -3)
+		near(x, 412, "the v7 entrance stays x"); near(z, -3, "the v7 entrance stays z")
+		x, z = Layout.fromV7World(812, 197)
+		near(x, 932, "the v7 north-east corner x"); near(z, 257, "the v7 north-east corner z")
+		local lx, lz = Layout.fromV7Local(-150, 60)
+		local wx, wz = Layout.fromV7World(612 - 150, -3 + 60)
+		near(wx - Layout.CENTRE.x, lx, "world and local agree x"); near(wz - Layout.CENTRE.z, lz, "world and local agree z")
+		local again = { Layout.fromV7World(500, 100) }
+		local twice = { Layout.fromV7World(500, 100) }
+		equal(again[1], twice[1], "pure x"); equal(again[2], twice[2], "pure z")
+		-- positions scale
+		near(Layout.FORK.x, -143, "fork"); same(Layout.JUNCTION, { x = 0, z = 0 }, "junction")
+		near(Layout.TORTA.x, 148.2, "Torta"); near(Layout.PORTAL.x, -31.2, "portal")
+		near(Layout.NESTS[1].x, -208, "C1 x"); near(Layout.NESTS[1].z, -23.4, "C1 z")
+		near(Layout.KEEP_CLEAR[1].x, 214.5, "pond x"); near(Layout.KEEP_CLEAR[1].z, 195, "pond z")
+		-- sizes stay
+		equal(Layout.TORTA.radius, 42, "Torta radius"); equal(Layout.BOSS.plazaRadius, 58, "plaza")
+		equal(Layout.BOSS.territoryRadius, 76, "territory"); equal(Layout.PATH_WIDTH, 14, "path")
+		equal(Layout.KEEP_CLEAR[1].r, 26, "pond radius"); equal(Layout.BRIDGE.length, 86, "biscuit bridge")
+		-- re-anchored: the entrance on the west edge, the avenue's end on the plaza edge
+		same(Layout.ENTRANCE, { x = -Layout.HALF, z = 0 }, "entrance")
+		local main = Layout.ROUTES.main
+		near(main[#main].x, Layout.TORTA.x - Layout.BOSS.plazaRadius, "the avenue ends on the plaza edge")
+		-- translated with their parent: home with the boss, the glaze with the Torta, the syrup with its bridge
+		near(Layout.BOSS.home.x - Layout.BOSS.x, 64 - 114, "home keeps its v7 offset")
+		for i, offset in ipairs({ { 0, 52 }, { 56, 9 }, { -39, 34 } }) do
+			local g = Layout.TOWER.glaze[i]
+			near(g.x - Layout.TORTA.x, offset[1], "puddle " .. i .. " x"); near(g.z - Layout.TORTA.z, offset[2], "puddle " .. i .. " z")
+		end
+		near(Layout.BRIDGE.z, -182, "the biscuit bridge scales")
+		for i, offset in ipairs({ { 0, 20 }, { 26, 6 }, { -26, 6 } }) do
+			local d = Layout.LAKE[i]
+			near(d.x - Layout.BRIDGE.x, offset[1], "syrup " .. i .. " x"); near(d.z - Layout.BRIDGE.z, offset[2], "syrup " .. i .. " z")
+		end
+		assert(table.isfrozen(Layout.NESTS) and table.isfrozen(Layout.NESTS[1]) and table.isfrozen(Layout.ROUTES.main)
+			and table.isfrozen(Layout.LAKE[1]) and table.isfrozen(Layout.TOWER.glaze[1]), "the layout stays frozen")
 	end)
 
 	return result

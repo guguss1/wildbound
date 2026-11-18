@@ -31,11 +31,14 @@ BiomeLight.AREAS = freeze({
 	square("Mountains", 522, 1022, -743, -243),
 	square("Volcanic", -308, 92, 237, 637),
 	square("Caves", 472, 772, 237, 537),
+	-- V8-D2 (owner request 2026-11-17): Caramelo Este, the cloud band and the second space (WildboundBiomes "caramelo-este")
+	square("CandyEast", 932, 1468, -263, 257),
 })
 -- The preset of each biome tag (the Meadow square is the Caramelo biome now). Between biomes, the hub's day.
+-- V8-D2: Caramelo Este keeps the Caramelo preset (the pink sky, light and clouds hold there; Day rules).
 BiomeLight.TAG_PRESET = freeze({
 	Forest = "Forest", Meadow = "Caramelo", Swamp = "Swamp", Cemetery = "Cemetery", Abyss = "Abyss",
-	Mountains = "Mountains", Volcanic = "Volcanic", Caves = "Caves",
+	Mountains = "Mountains", Volcanic = "Volcanic", Caves = "Caves", CandyEast = "Caramelo",
 })
 
 -- mood: the presentation phase (HUD hint, audio, the fear stalk, Night Nose). clockTime: the local sky. zone: an

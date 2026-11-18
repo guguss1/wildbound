@@ -73,6 +73,40 @@ return function(BiomeLight, source, sources)
 		equal(seen, total, "one square per server square")
 	end)
 
+	-- V8-D2 (owner request 2026-11-17, "another space of the same size, separated by clouds"): Caramelo Este (the cloud
+	-- band and the second space east of the bigger plot) is its own square and tag, with the Caramelo light and Day rules.
+	case("V8-D2: Caramelo Este is its own square, lit as Caramelo, played by Day", function()
+		local row
+		for _, area in ipairs(BiomeLight.AREAS) do
+			if area.tag == "CandyEast" then
+				assert(row == nil, "one CandyEast row")
+				row = area
+			end
+		end
+		assert(row, "no CandyEast row")
+		equal(("%g,%g,%g,%g"):format(row.minX, row.maxX, row.minZ, row.maxZ), "932,1468,-263,257", "the band and the space")
+		equal(BiomeLight.TAG_PRESET.CandyEast, "Caramelo", "the Caramelo preset")
+		for _, sample in ipairs({ { 940, -3 }, { 1208, -3 }, { 1460, 250 }, { 960, -240 } }) do
+			local name, preset = BiomeLight.presetAt(sample[1], sample[2])
+			equal(name, "Caramelo", ("at %d, %d"):format(sample[1], sample[2]))
+			equal(preset, BiomeLight.PRESETS.Caramelo)
+			equal((BiomeLight.phaseAt(sample[1], sample[2])), "Day", "Day rules")
+		end
+		equal((BiomeLight.presetAt(1500, -3)), "Hub", "past the second space")
+		local Biomes = sources.biomes
+		if type(Biomes) == "table" and type(Biomes.at) == "function" then
+			local tags = Biomes.at(1208, -3)
+			equal(tags.CandyEast, true, "the server's CandyEast tag")
+			equal(tags.Meadow, nil, "no Meadow rules there (classic squares)")
+			-- big4's Meadow square runs to x 1012, over the band and the space's west strip: CandyEast wins there
+			local strip = Biomes.at(960, 0)
+			equal(strip.CandyEast, true, "the space's west strip is CandyEast")
+			equal(strip.Meadow, nil, "no Meadow rules in the overlap (big4)")
+			equal(Biomes.at(900, 0).CandyEast, nil, "the plot west of the band is no CandyEast")
+			equal(Biomes.at(612, -3).Meadow, true, "the plot keeps its Meadow tag")
+		end
+	end)
+
 	case("CA4: Caramelo is always bright and the forest always dark", function()
 		local Atmos = sources.atmosphere
 		assert(type(Atmos) == "table", "atmosphere not passed")

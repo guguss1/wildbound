@@ -23,12 +23,23 @@ local function finite(value)
 end
 
 -- Copies of the layout (WildboundCandyLayout, WildboundCandyV3Layout), pinned by the suite.
+-- Caramelo v8 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger, in width and in length, so there is
+-- more space between things"; docs/design/wildbound-caramelo-v8-plan.md, V8-D1): the plot grows 1.3 times about its
+-- centre, which moves (612, -3) -> (672, -3); HALF 200 -> 260. Positions below keep their v7 literals, mapped at load
+-- by v8() (x S); sizes and radii stay, as in the layout.
+local V8_S = 1.3
+local function v8(n) return n * V8_S end
 Life.ROOT_NAME = "Candy_Bioma_v1"
-Life.CENTRE = freeze({ x = 612, z = -3 })
-Life.HALF = 200
+Life.CENTRE = freeze({ x = 672, z = -3 })
+Life.HALF = 260
 Life.FLOOR_TOP = 0.5
 Life.CHOCO_DEPTH = 3.5 -- the chocolate's surface stands this far over the floor's top
-Life.HOUSES = freeze({
+local function scaled(rows)
+	for _, row in ipairs(rows) do row.x, row.z = v8(row.x), v8(row.z) end
+	return rows
+end
+-- V8-D1: the houses' spots scale like WildboundCandyV3Layout.HOUSES; their footprints stay.
+Life.HOUSES = freeze(scaled({
 	{ id = "H1", x = -148, z = 166, r = 28 },
 	{ id = "H2", x = -100, z = 175, r = 15 },
 	{ id = "H3", x = -158, z = -150, r = 22.4 },
@@ -36,7 +47,7 @@ Life.HOUSES = freeze({
 	{ id = "H5", x = -168, z = -82, r = 21 },
 	{ id = "H6", x = 150, z = -170, r = 16 },
 	{ id = "H7", x = 110, z = 178, r = 20 },
-})
+}))
 
 -- Budgets of creatures shown at once. Touch devices get half; Efectos suaves (the world gui's Reduced) shows none:
 -- everything here is motion.
@@ -67,14 +78,16 @@ end
 -- 40.7 studs); only the Gran Torta stands higher, and no flock comes near it.
 Life.MIN_ALT = 46
 Life.BIRD_SPEED = 9 -- studs per second along the circle
-Life.FLOCKS = freeze({
+-- V8-D1: the circles' centres scale, their radii stay (each stays over open meadow, 10+ studs off the chocolate and
+-- off the houses and the Torta; WildboundCandyLife_Test CL3 holds it).
+Life.FLOCKS = freeze(scaled({
 	{ id = "F1", x = -120, z = 40, r = 26, alt = 50, dir = 1, phase = 0, color = { 235, 70, 90 } },
 	{ id = "F2", x = -80, z = -50, r = 24, alt = 53, dir = -1, phase = 1.3, color = { 120, 215, 90 } },
 	{ id = "F3", x = 60, z = 150, r = 22, alt = 49, dir = 1, phase = 2.6, color = { 255, 205, 60 } },
 	{ id = "F4", x = 130, z = -110, r = 22, alt = 52, dir = -1, phase = 3.9, color = { 255, 140, 60 } },
 	{ id = "F5", x = -80, z = -160, r = 20, alt = 50, dir = 1, phase = 5.2, color = { 170, 110, 235 } },
 	{ id = "F6", x = 150, z = 120, r = 20, alt = 54, dir = -1, phase = 0.7, color = { 235, 70, 90 } },
-})
+}))
 local BIRD_TRAIL = 0.32 -- radians each bird trails the one before
 local BIRD_RADIUS = { 0, 2.5, -2.5 } -- studs off the circle per bird of the flock
 local BIRD_LIFT = { 0, 1.2, 2.4 }
@@ -92,10 +105,11 @@ end
 -- Caramel butterflies -----------------------------------------------------------------------------------------
 -- A pair flutters on the side of every house that faces the junction (the plot centre), just outside its footprint,
 -- and round a few spots of the lollipop avenue (the right route; the candy "flowers").
-Life.FLOWERS = freeze({
+-- V8-D1: both scale with the avenue (Avenue_W stays on its first leg's line).
+Life.FLOWERS = freeze(scaled({
 	{ id = "Avenue_W", x = -65, z = 95 },
 	{ id = "Avenue_E", x = 60, z = 110 },
-})
+}))
 Life.BUTTERFLY_COLORS = freeze({ { 255, 175, 70 }, { 255, 140, 190 }, { 255, 225, 120 } })
 local HOUSE_GAP = 4 -- studs outside the footprint disc
 local HOUSE_ARC = 1.2 -- radians either side of the face that looks at the junction
@@ -154,10 +168,20 @@ local FISH_ROWS = {
 	{ id = "River_S2", x = 28, z = -160, heading = 1.5 },
 	{ id = "River_S3", x = 29.5, z = -185, heading = 1.54 },
 }
+-- V8-D1: a river spot scales (the river's points scale and its widths stay, so a spot on or near the centreline stays
+-- there; the jump keeps its 7 studs and its heading). A lake spot moves with the big lake disc it lies in
+-- (WildboundCandyV3Layout's withDisc: v7 (8, -98) -> (10.4, -127.4), radius 34.5 kept), like the cookie platforms,
+-- dock B and the island that float in it, so it keeps its v7 water and clearances round them.
+local LAKE_DISC_V7 = { x = 8, z = -98 }
 do
 	local list = {}
 	for i, row in ipairs(FISH_ROWS) do
 		local spot = table.clone(row)
+		if string.sub(row.id, 1, 5) == "Lake_" then
+			spot.x, spot.z = row.x + (v8(LAKE_DISC_V7.x) - LAKE_DISC_V7.x), row.z + (v8(LAKE_DISC_V7.z) - LAKE_DISC_V7.z)
+		else
+			spot.x, spot.z = v8(row.x), v8(row.z)
+		end
 		spot.period = 6 + (i % 4) * 1.25 -- seconds between jumps: 6 to 9.75
 		spot.phase = (i * 2.3) % spot.period
 		list[i] = spot

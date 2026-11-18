@@ -4,24 +4,34 @@
 -- read-only, or nil), the player's server state and the server's event attribute; this module only answers.
 -- Sector offsets come from the Pradera planner (PROPUESTA): pond (150, 0; 150, 40 since GT), La Colmena (-75, 75), the gate (-186, 0),
 -- the Plaza del Molino (-40, 14). Without the map the origin is the Meadow square's centre (WildboundBiomes, 612, -3).
+-- V8-D1: the offsets are x 1.3 now and the default origin is the v8 candy plot's centre (672, -3); see below.
 local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
 	:WaitForChild("WildboundBeastConfig"))
 local Sites = {}
 
 local finite = Config.finite
 
-Sites.MEADOW_CENTRE = table.freeze({ x = 612, z = -3 })
+-- Caramelo v8 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger, in width and in length, so there is
+-- more space between things"; docs/design/wildbound-caramelo-v8-plan.md, V8-D1): the candy plot grows 1.3 times about
+-- its centre, which moves (612, -3) -> (672, -3) with the entrance fixed. MEADOW_CENTRE is a copy of
+-- WildboundCandyLayout.CENTRE (WildboundCandyNests_Test pins it).
+Sites.MEADOW_CENTRE = table.freeze({ x = 672, z = -3 })
+-- V8-D1: the sector offsets scale with the plot (v7 x 1.3), so with the WildboundPradera marker moved by
+-- WildboundCandyLayout.fromV7World (v7 pivot (627, 107) -> (691.5, 140)) the pond and the hive land exactly on the
+-- layout's KEEP_CLEAR spots again (local (214.5, 195) and (-78, 240.5)). Kept as fixed they could not both: the hive
+-- would stand inside mountain M1. v7: pond (150, 40), colmena (-75, 75), gate (-186, 0), plaza (-40, 14).
 Sites.OFFSETS = table.freeze({
-	pond = table.freeze({ x = 150, z = 40 }), -- GT (cake move): was (150, 0); 40 studs north, off the bigger boss ground
-	colmena = table.freeze({ x = -75, z = 75 }),
-	gate = table.freeze({ x = -186, z = 0 }),
-	plaza = table.freeze({ x = -40, z = 14 }),
+	pond = table.freeze({ x = 195, z = 52 }), -- GT (cake move): (150, 0) -> (150, 40), off the bigger boss ground
+	colmena = table.freeze({ x = -97.5, z = 97.5 }),
+	gate = table.freeze({ x = -241.8, z = 0 }),
+	plaza = table.freeze({ x = -52, z = 18.2 }),
 })
 -- Which site each summoned beast lives at.
 Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1",
 	Tortidragon = "candyNestC3", DonGlaseon = "bossHome", Mochimiau = "candyNestR2", Canelin = "candyNestR3", Flanin = "candyNestR4",
 	Mielita = "candyNestC4", GatoRepartidor = "candyNestC2" })
--- Caramelo biome: sites given in world coordinates, which never move with the sector origin. candyNest is the open
+-- Caramelo biome: sites given in world coordinates, which never move with the sector origin (the world numbers in this
+-- paragraph are the v7 ones; V8-D1 below moves each post with its nest). candyNest is the open
 -- floor beside candy nest C1 (the nest itself is at 452, -21), the first one past the biome entrance: Gomibu's post.
 -- candyNestR1 is open floor 11 studs from candy nest R1 (534, -33), away from the main path: Flanfuria's post.
 -- candyNestC3 is open floor about 14 studs from candy nest C3 (522, -135), the furthest point from the routes that keeps
@@ -36,22 +46,35 @@ Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu
 -- (Mochimiau), candyNestR3 (Canelin), candyNestR4 (Flanin) and candyNestC4 (Mielita, beside La Abeja's hive).
 -- candyNestR2 sits 86 studs from the boss territory centre: its leash, leap circle and push (14 + 4 + 5) stay off the
 -- 62-stud boss ground, so Mochimiau never shoves a player into Don Glaseon's territory.
-Sites.FIXED = table.freeze({ candyNest = table.freeze({ x = 446, z = -15 }), candyNestR1 = table.freeze({ x = 542, z = -41 }),
-	candyNestC3 = table.freeze({ x = 510, z = -143 }), bossHome = table.freeze({ x = 676, z = -3 }),
-	bossTerritory = table.freeze({ x = 726, z = -3 }),
-	candyNestC2 = table.freeze({ x = 466, z = 34 }), candyNestR2 = table.freeze({ x = 539, z = 43 }),
-	candyNestR3 = table.freeze({ x = 579, z = -86 }), candyNestR4 = table.freeze({ x = 678, z = 163 }),
-	candyNestC4 = table.freeze({ x = 542, z = 139 }),
+-- V8-D1: every post moves with its paired nest and keeps its v7 offset from it (the 8-16 stud spacing), so each row
+-- below is beside(the nest's v7 plot spot as in WildboundCandyLayout.NESTS, the v7 offset): world = MEADOW_CENTRE +
+-- 1.3 x nest + offset. One exception: candyPostR10 (see there). Don Glaseon's two are CENTRE + BOSS.home and CENTRE +
+-- BOSS (the layout's Torta at 1.3 x 114 = 148.2, home 50 studs west of it): (770.2, -3) and (820.2, -3).
+local V8_S = 1.3
+local function beside(nestX, nestZ, dx, dz)
+	return table.freeze({ x = Sites.MEADOW_CENTRE.x + nestX * V8_S + dx, z = Sites.MEADOW_CENTRE.z + nestZ * V8_S + dz })
+end
+Sites.FIXED = table.freeze({ candyNest = beside(-160, -18, -6, 6) --[[C1, v7 (446, -15)]],
+	candyNestR1 = beside(-78, -30, 8, -8) --[[R1, v7 (542, -41)]],
+	candyNestC3 = beside(-90, -132, -12, -8) --[[C3, v7 (510, -143)]],
+	bossHome = table.freeze({ x = 770.2, z = -3 }), -- v7 (676, -3)
+	bossTerritory = table.freeze({ x = 820.2, z = -3 }), -- v7 (726, -3)
+	candyNestC2 = beside(-140, 24, -6, 13) --[[C2, v7 (466, 34)]], candyNestR2 = beside(-78, 34, 5, 12) --[[R2, v7 (539, 43)]],
+	candyNestR3 = beside(-45, -93, 12, 10) --[[R3, v7 (579, -86)]], candyNestR4 = beside(60, 152, 6, 14) --[[C5, v7 (678, 163)]],
+	candyNestC4 = beside(-62, 130, -8, 12) --[[C4, v7 (542, 139)]],
 	-- CH1 (extra posts, below): open floor 8 to 15 studs from a new candy nest, between the nest and its route
-	candyPostC7 = table.freeze({ x = 624, z = 130 }), candyPostR6 = table.freeze({ x = 715, z = -120 }),
-	candyPostC8 = table.freeze({ x = 667, z = -161 }), candyPostC9 = table.freeze({ x = 488, z = -61 }),
-	candyPostR7 = table.freeze({ x = 486, z = 63 }), candyPostR5 = table.freeze({ x = 708, z = 119 }),
-	candyPostC6 = table.freeze({ x = 612, z = -157 }), candyPostC10 = table.freeze({ x = 564, z = -157 }),
+	candyPostC7 = beside(5, 142, 7, -9) --[[v7 (624, 130)]], candyPostR6 = beside(96, -122, 7, 5) --[[v7 (715, -120)]],
+	candyPostC8 = beside(60, -170, -5, 12) --[[v7 (667, -161)]], candyPostC9 = beside(-135, -62, 11, 4) --[[v7 (488, -61)]],
+	candyPostR7 = beside(-116, 58, -10, 8) --[[v7 (486, 63)]], candyPostR5 = beside(88, 112, 8, 10) --[[v7 (708, 119)]],
+	candyPostC6 = beside(10, -162, -10, 8) --[[v7 (612, -157)]], candyPostC10 = beside(-60, -162, 12, 8) --[[v7 (564, -157)]],
 	-- GT2 (more creatures): one more extra post per candy creature, 12 studs from one of the eight GT2 nests
-	candyPostE3 = table.freeze({ x = 600, z = 33 }), candyPostR8 = table.freeze({ x = 514, z = 92 }),
-	candyPostR9 = table.freeze({ x = 564, z = 67 }), candyPostR10 = table.freeze({ x = 608, z = -59 }),
-	candyPostC11 = table.freeze({ x = 582, z = 135 }), candyPostC12 = table.freeze({ x = 494, z = -103 }),
-	candyPostC13 = table.freeze({ x = 700, z = -152 }), candyPostR11 = table.freeze({ x = 639, z = 79 }) })
+	candyPostE3 = beside(0, 36, -12, 0) --[[v7 (600, 33)]], candyPostR8 = beside(-110, 95, 12, 0) --[[v7 (514, 92)]],
+	candyPostR9 = beside(-60, 70, 12, 0) --[[v7 (564, 67)]],
+	-- V8-D1: the scaled nest R10 stands 47 studs from the left route's last leg, past Mochimiau's 45-stud wake radius,
+	-- so its v7 offset (6, -11) is turned to 12 studs towards that leg, (9, 8): 35 studs from it, 12 off the river.
+	candyPostR10 = beside(-10, -45, 9, 8) --[[v7 (608, -59)]],
+	candyPostC11 = beside(-30, 150, 0, -12) --[[v7 (582, 135)]], candyPostC12 = beside(-130, -100, 12, 0) --[[v7 (494, -103)]],
+	candyPostC13 = beside(100, -150, -12, 1) --[[v7 (700, -152)]], candyPostR11 = beside(36, 74, -9, 8) --[[v7 (639, 79)]] })
 -- CH1 (owner request 2026-11-16: "more repeated creatures in the Caramelo kingdom ... make it harder to be in that
 -- biome"): one more copy of each candy creature at an extra post, so a player crossing the biome meets twice as many
 -- (8 -> 16 posts). Each extra post is its own encounter (Director post), summoned by the same wake rule as a home post
@@ -83,7 +106,9 @@ Sites.AMBUSH = table.freeze({
 	-- RC (relentless chases): every 20 -> 15 s, at most 2 -> 3 at once
 	everySeconds = 15, chance = 0.75, maxActive = 3, tries = 4, minStuds = 25, maxStuds = 40, post = "ambush",
 	names = table.freeze({ "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }),
-	half = 200, edgeStuds = 10, entrance = table.freeze({ x = -200, z = 0 }), entranceStuds = 30, entranceSpotStuds = 80,
+	-- V8-D1: half and entrance are re-anchored to the bigger plot (WildboundCandyLayout.HALF 260 and ENTRANCE (-HALF, 0));
+	-- every other number is a gameplay radius and stays
+	half = 260, edgeStuds = 10, entrance = table.freeze({ x = -260, z = 0 }), entranceStuds = 30, entranceSpotStuds = 80,
 	bossClearStuds = 126, -- GT (cake move): 112 -> 126, the 76-stud territory plus the same 50
 })
 

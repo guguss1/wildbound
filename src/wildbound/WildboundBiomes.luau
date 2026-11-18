@@ -21,6 +21,10 @@ Biomes.AREAS = table.freeze({
 	square("Mountains", "frozen-mountains", 522, 1022, -743, -243),
 	square("Volcanic", "volcanic-lands", -308, 92, 237, 637),
 	square("Caves", "rock-caves", 472, 772, 237, 537),
+	-- V8-D2 (owner request 2026-11-17, "another space of the same size, separated by clouds"): Caramelo Este, the cloud
+	-- band and the second space east of the bigger plot (WildboundCandyEast: x 932..1468, z -263..257). Its own tag, so
+	-- the Meadow-only creature rules do not apply there; WildboundBiomeLight gives it the Caramelo light.
+	square("CandyEast", "caramelo-este", 932, 1468, -263, 257),
 	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
 })
 
@@ -42,6 +46,9 @@ function Biomes.at(x, z)
 	for _, area in ipairs(Biomes.AREAS) do
 		if inside(area, x, z) then tags[area.tag] = true end
 	end
+	-- V8-D2 (owner request 2026-11-17): Caramelo Este wins where it overlaps the Meadow square (big4's Meadow runs to
+	-- x 1012, over the cloud band and the space's first 64 studs), so the Meadow-only creature rules stop at the wall
+	if tags.CandyEast then tags.Meadow = nil end
 	return tags
 end
 

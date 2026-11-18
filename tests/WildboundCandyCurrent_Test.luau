@@ -139,8 +139,10 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 			end
 		end
 		local checked = 0
-		for x = -40, 60, 4 do
-			for z = -210, 165, 4 do
+		-- Deliberately changed (V8-D1): the grid is the v7 box round the chocolate (x -40..60, z -210..165) grown with the
+		-- 1.3 times bigger plot: x -52..78, z -262..226 (the river now ends at z -260 and M1's pool lies at z 219)
+		for x = -52, 78, 4 do
+			for z = -262, 226, 4 do
 				if V3.liquidDistance(x, z) <= -1 and V3.liquidDistance(x + 1, z) <= -1 and V3.liquidDistance(x, z + 1) <= -1 then
 					local ax, az = Current.flow(V3, x, z)
 					for _, q in ipairs({ { x + 1, z }, { x, z + 1 } }) do
@@ -254,12 +256,15 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 		near(s.x, docks[V3.RAFT.homeDock].x); near(s.z, docks[V3.RAFT.homeDock].z)
 		-- a ridden raft left to the current upstream of the Top bridge and in the lake by the Bottom bridge: the bridges
 		-- and the banks still stop it
-		for _, p in ipairs({ { -10, 146 }, { 20, -110 }, { -5, -125 } }) do
+		-- Deliberately changed (V8-D1): the plot is 1.3 times bigger; each start keeps its v7 water by moving with what it
+		-- floats in: (-10, 146) on the leg out of M1's pool moves with M1 (+(-1.2, 60), WildboundCandyV3Layout withM1);
+		-- (20, -110) and (-5, -125) in the big lake disc move with it (+(2.4, -29.4), withDisc 1). Printed with %.1f.
+		for _, p in ipairs({ { -11.2, 206 }, { 22.4, -139.4 }, { -2.6, -154.4 } }) do
 			local r = sailing(p[1], p[2], 0, -1)
 			assert(area.inside(r.x, r.z, Raft.HULL), "a sailable start")
 			for k = 1, 20 * 30 do
 				Raft.step(r, 1 / 30, k / 30, nil, true, area)
-				afloat(r, ("from %d, %d"):format(p[1], p[2]))
+				afloat(r, ("from %.1f, %.1f"):format(p[1], p[2]))
 			end
 		end
 	end)

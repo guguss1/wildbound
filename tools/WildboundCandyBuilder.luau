@@ -501,6 +501,12 @@ end
 -- and extras are spaced by TREE_SPACING of their grown canopy (crowns may meet: a fuller wood).
 Builder.EXTRA_TREES = table.freeze({ cottonLeft = 11, cottonRight = 5, TreeCookie = 3, TreeCream = 3, avenueFrom = 35,
 	avenueEvery = 60 })
+
+-- V8-D1 (Caramelo v8, the plot 1.3 times bigger): the avenue's lollipop slots (v7 studs along the right route) stretch
+-- with the route by the layout's V8.S (1 for a layout without it), so a fresh build keeps the v7 lollipop count.
+local function avenueScale(L)
+	return type(L.V8) == "table" and type(L.V8.S) == "number" and L.V8.S or 1
+end
 Builder.TREE_SPACING = 0.5
 Builder.TREES_ADDED_ATTRIBUTE = "CaramelTreesAddedV2"
 
@@ -708,7 +714,9 @@ function Builder.syncTrees(root, layout, kit, library, dryRun)
 	end
 	-- avenue lollipops between the base pairs, heads facing the walker, alternating like the base ones; a slot that
 	-- already holds an extra lollipop (within the 8-stud nudge, plus slack) is kept as it is
-	local avenue, travelled, nextAt, lollipops = L.ROUTES.right, 0, E.avenueFrom, 0
+	-- V8-D1: the slots stretch with the route (avenueScale), as the build's base pairs do
+	local slots = avenueScale(L)
+	local avenue, travelled, nextAt, lollipops = L.ROUTES.right, 0, E.avenueFrom * slots, 0
 	local function slotKept(x, z)
 		for _, k in ipairs(keptLollipops) do
 			if L.flat(x, z, k.x, k.z) < 10 then return true end
@@ -736,7 +744,7 @@ function Builder.syncTrees(root, layout, kit, library, dryRun)
 					lollipops += 1
 				end
 			end
-			nextAt += E.avenueEvery
+			nextAt += E.avenueEvery * slots
 		end
 		travelled += length
 	end
@@ -1233,7 +1241,10 @@ function Builder.build(parent, layout, kit, library)
 
 		-- Avenida de Piruletas: pairs along the right route, heads facing the walker. Sticks never collide.
 		local lollipops = group("Folder", "Lollipops")
-		local avenue, travelled, nextAt, placed = L.ROUTES.right, 0, 20, 0
+		-- V8-D1: the slots (v7 every 30 studs from 20) stretch with the route, so a fresh build keeps the v7 count and lays
+		-- them where the v8 migration moves the live ones
+		local slots = avenueScale(L)
+		local avenue, travelled, nextAt, placed = L.ROUTES.right, 0, 20 * slots, 0
 		for i = 1, #avenue - 1 do
 			local a, b = avenue[i], avenue[i + 1]
 			local length = L.flat(a.x, a.z, b.x, b.z)
@@ -1253,7 +1264,7 @@ function Builder.build(parent, layout, kit, library)
 						end
 					end
 				end
-				nextAt += 30
+				nextAt += 30 * slots
 			end
 			travelled += length
 		end
@@ -1263,7 +1274,8 @@ function Builder.build(parent, layout, kit, library)
 			while done < count do
 				attempts += 1
 				assert(attempts <= 6000, "no room left to scatter")
-				local x, z = math.round(rng:NextNumber(-190, 158)), math.round(rng:NextNumber(minZ, maxZ))
+				-- V8-D1: the range follows HALF (v7 -190..158 at HALF 200), like plantSpot's
+				local x, z = math.round(rng:NextNumber(-L.HALF + 10, L.HALF - 42)), math.round(rng:NextNumber(minZ, maxZ))
 				if open(x, z, routeClear, reach) then
 					done += 1
 					table.insert(taken, { x = x, z = z, reach = reach })
@@ -1299,12 +1311,13 @@ function Builder.build(parent, layout, kit, library)
 			Builder.growTree(model, asset, Builder.TREE_SCALE[asset])
 		end
 		local function cotton() return cottonKind(rng), 1 end
-		plant(22, -190, -10, cotton, tree)
-		plant(10, 10, 190, cotton, tree)
+		-- V8-D1: the scatter bands follow HALF (v7 -190, 190 and -195, 195 at HALF 200)
+		plant(22, -L.HALF + 10, -10, cotton, tree)
+		plant(10, 10, L.HALF - 10, cotton, tree)
 
 		-- Gumdrops: low props half sunk in the floor, walk-through.
 		local gumdrops, gumCount = group("Folder", "Gumdrops"), 0
-		scatter(30, -195, 195, 9.5, 3, function(x, z)
+		scatter(30, -L.HALF + 5, L.HALF - 5, 9.5, 3, function(x, z)
 			gumCount += 1
 			prop(gumdrops, "Gumdrop_" .. gumCount, gumCount % 2 == 0 and "GumdropBush_A" or "GumdropBush_B", x, z, rng:NextNumber(0, math.pi * 2),
 				rng:NextNumber(0.8, 1.3))
@@ -1316,13 +1329,13 @@ function Builder.build(parent, layout, kit, library)
 			{ "RockChocolate", 6, 14, 8, 0.8, 1.3 }, { "ConfettiPile", 3, 9, 10, 1.0, 1.6 } }) do
 			if Builder.TREE_SCALE[row[1]] then
 				-- CH: a cookie or cream tree draws its scale first, then a spot its grown size fits (row[2], row[3] unused)
-				plant(row[4], -195, 195, function() return row[1], rng:NextNumber(row[5], row[6]) end, function(x, z, asset, scale)
+				plant(row[4], -L.HALF + 5, L.HALF - 5, function() return row[1], rng:NextNumber(row[5], row[6]) end, function(x, z, asset, scale)
 					sweetCount += 1
 					local model = prop(sweets, asset .. "_" .. sweetCount, asset, x, z, rng:NextNumber(0, math.pi * 2), scale)
 					Builder.growTree(model, asset, Builder.TREE_SCALE[asset])
 				end)
 			else
-				scatter(row[4], -195, 195, row[3], row[2], function(x, z)
+				scatter(row[4], -L.HALF + 5, L.HALF - 5, row[3], row[2], function(x, z)
 					sweetCount += 1
 					prop(sweets, row[1] .. "_" .. sweetCount, row[1], x, z, rng:NextNumber(0, math.pi * 2), rng:NextNumber(row[5], row[6]))
 				end)

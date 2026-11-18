@@ -139,7 +139,9 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		assert(Spots.blocked(B.x, B.z, ctx) ~= nil, "on a bridge")
 		equal(Spots.blocked(Layout.HALF - 2, 60, ctx), "edge", "on the plot edge")
 		-- a free spot north-west, and the spacing rule against a spot already laid
-		local fx, fz = -158.6, -54.6
+		-- Deliberately changed (V8-D1): v7 (-158.6, -54.6) scaled with the plot (x 1.3), so it stays by house H5 (which
+		-- moved (-168, -82) -> (-218.4, -106.6)); unscaled it would be 79 studs from H5
+		local fx, fz = -206.18, -70.98
 		equal(Spots.blocked(fx, fz, ctx), nil, "an open spot by house H5")
 		table.insert(ctx.spots, { x = fx + 10, z = fz })
 		equal(Spots.blocked(fx, fz, ctx), "spacing", "too near another spot")

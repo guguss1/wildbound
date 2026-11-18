@@ -40,6 +40,8 @@ local function houseDiscs(at)
 	end
 	return houses
 end
+-- V8-D3: the cloud wall east of the plot (Smarts.wallOf), or false when the map has none
+local cloudWall, cloudWallAt = false, -math.huge
 
 -- V5-D2 (Caramelo v5, odd/tasks/wildbound-caramelo-v2.md): hiding. A player hidden in a hide spot (WildboundWorld's
 -- WildboundHidden) is never acquired: one who is not her thief is left out of her rules. Her thief who hides is
@@ -483,6 +485,15 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 	-- V4-D12: her flight never enters a house: she stops at its edge and waits (the rage is kept)
 	local her = Duq.position(state)
 	if her and wasX then her.x, her.z = Smarts.outsideHouses(wasX, wasZ, her.x, her.z, houseDiscs(now)) end
+	-- V8-D3 (owner request 2026-11-17, "an invisible wall with a cloud texture"): nor does it cross the cloud wall
+	-- (Workspace.Candy_Este_v1.CloudWall, read again every 5 s): she stops on her side of it
+	if her and wasX then
+		if now - cloudWallAt >= 5 or now < cloudWallAt then
+			cloudWallAt, cloudWall = now, Smarts.wallOf(workspace:FindFirstChild("Candy_Este_v1")) or false
+		end
+		local wall = cloudWall
+		if wall then her.x, her.z = Smarts.outsideWall(wasX, wasZ, her.x, her.z, wall) end
+	end
 	play(events, now)
 	drawMarker(seenRootOf)
 	-- DR: her flying clip while she chases or floats home, cued again now and then (the preview player ends one-shots)

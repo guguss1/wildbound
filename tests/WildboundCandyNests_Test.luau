@@ -467,11 +467,15 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		assert(spots > 0, "a player in the open plot is never ambushed")
 		for _, name in ipairs(A.names) do assert(kinds[name], name .. " never ambushes") end
 		check(-120, -60); check(60, 0); check(0, 150)
-		equal((check(-185, 0)), 0, "never in the first steps past the entrance")
-		equal((check(260, 0)), 0, "never outside the Caramelo plot")
+		-- Deliberately changed (V8-D1): the plot is 1.3 times bigger (HALF 200 -> 260); the same two probes, re-anchored:
+		-- 15 studs past the entrance (was (-185, 0), the entrance at -200) and 60 outside the east edge (was (260, 0))
+		equal((check(Layout.ENTRANCE.x + 15, Layout.ENTRANCE.z)), 0, "never in the first steps past the entrance")
+		equal((check(Layout.HALF + 60, 0)), 0, "never outside the Caramelo plot")
 		-- Deliberately changed (GT): the plaza moved with the Torta to (BOSS.x, BOSS.z); (0, 30) is the junction now
 		equal((check(Layout.BOSS.x, Layout.BOSS.z + 30)), 0, "never on the boss plaza or the tower")
-		assert(flat(0, 0, -200, 0) > A.entranceSpotStuds and A.bossClearStuds >= Layout.BOSS.territoryRadius + 40, "clearances")
+		-- Deliberately changed (V8-D1): the entrance is Layout.ENTRANCE (-260, 0), was the literal (-200, 0)
+		assert(flat(0, 0, Layout.ENTRANCE.x, Layout.ENTRANCE.z) > A.entranceSpotStuds
+			and A.bossClearStuds >= Layout.BOSS.territoryRadius + 40, "clearances")
 		equal(Sites.ambushRoll(0 / 0, 0, 0.5, 0.5, 0.5), nil, "a bad position")
 		equal(Sites.ambushRoll(C.x + 120, C.z + 100, nil, 0.5, 0.5), nil, "no roll")
 	end)
@@ -549,6 +553,45 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		has(beasts, "reservation.near = { x = site.x, y = y, z = site.z }", "never at the home post")
 		has(beasts, 'local key = string.match(name, "@(%w+)$")', "the alarm reads the post of the binding")
 		has(beasts, "world.startAtPost(player, value, key, body and body.Position.Y or 0, at)", "an extra guardian wakes at its post")
+	end)
+
+	-- V8-D1 (owner request 2026-11-17, "make the Reino Caramelo map a bit bigger ... more space between things"): the
+	-- sites' copies of the layout follow the 1.3 times bigger plot, and every post moved with its paired nest.
+	case("V8-D1: the sites' layout copies equal the v8 layout; each post moved with its nest", function()
+		local function near(actual, expected, label)
+			assert(type(actual) == "number" and math.abs(actual - expected) <= 1e-6, label .. ": expected " .. tostring(expected)
+				.. ", got " .. tostring(actual))
+		end
+		local C, A = Layout.CENTRE, Sites.AMBUSH
+		near(Sites.MEADOW_CENTRE.x, C.x, "MEADOW_CENTRE x"); near(Sites.MEADOW_CENTRE.z, C.z, "MEADOW_CENTRE z")
+		near(A.half, Layout.HALF, "AMBUSH.half"); near(A.entrance.x, Layout.ENTRANCE.x, "AMBUSH.entrance x")
+		near(A.entrance.z, Layout.ENTRANCE.z, "AMBUSH.entrance z")
+		local home, territory = Sites.world(nil, "bossHome"), Sites.world(nil, "bossTerritory")
+		near(home.x, C.x + Layout.BOSS.home.x, "bossHome x"); near(home.z, C.z + Layout.BOSS.home.z, "bossHome z")
+		near(territory.x, C.x + Layout.BOSS.x, "bossTerritory x"); near(territory.z, C.z + Layout.BOSS.z, "bossTerritory z")
+		-- each post keeps its v7 offset from its paired nest (candyPostR10 alone was turned towards its route)
+		local pairs7 = {
+			candyNest = { "C1", -6, 6 }, candyNestR1 = { "R1", 8, -8 }, candyNestC3 = { "C3", -12, -8 },
+			candyNestC2 = { "C2", -6, 13 }, candyNestR2 = { "R2", 5, 12 }, candyNestR3 = { "R3", 12, 10 },
+			candyNestR4 = { "C5", 6, 14 }, candyNestC4 = { "C4", -8, 12 }, candyPostC7 = { "C7", 7, -9 },
+			candyPostR6 = { "R6", 7, 5 }, candyPostC8 = { "C8", -5, 12 }, candyPostC9 = { "C9", 11, 4 },
+			candyPostR7 = { "R7", -10, 8 }, candyPostR5 = { "R5", 8, 10 }, candyPostC6 = { "C6", -10, 8 },
+			candyPostC10 = { "C10", 12, 8 }, candyPostE3 = { "E3", -12, 0 }, candyPostR8 = { "R8", 12, 0 },
+			candyPostR9 = { "R9", 12, 0 }, candyPostR10 = { "R10", 9, 8 }, candyPostC11 = { "C11", 0, -12 },
+			candyPostC12 = { "C12", 12, 0 }, candyPostC13 = { "C13", -12, 1 }, candyPostR11 = { "R11", -9, 8 },
+		}
+		local count = 0
+		for key, row in pairs(pairs7) do
+			count += 1
+			local nest
+			for _, spec in ipairs(Layout.NESTS) do if spec.id == row[1] then nest = spec end end
+			assert(nest, key .. ": no nest " .. row[1])
+			local w = Sites.world(nil, key)
+			near(w.x, C.x + nest.x + row[2], key .. " x beside " .. row[1]); near(w.z, C.z + nest.z + row[3], key .. " z beside " .. row[1])
+		end
+		local fixed = 0
+		for _ in pairs(Sites.FIXED) do fixed += 1 end
+		equal(fixed, count + 2, "every fixed post is paired (plus Don Glaseon's home and territory)")
 	end)
 
 	return result

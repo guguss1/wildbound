@@ -49,7 +49,11 @@ return function(V3, Layout, Sites, Trap)
 	case("V3-1: the data is versioned, frozen and names its kit", function()
 		-- Deliberately changed (V4): VERSION 1 -> 2, and the v4 mark
 		-- Deliberately changed (V5): VERSION 2 -> 3, and the v5 mark
-		equal(V3.VERSION, 3, "VERSION")
+		-- Deliberately changed (V8-D1): VERSION 3 -> 4 (the plot 1.3 times bigger), so the older migrations refuse to run
+		equal(V3.VERSION, 4, "VERSION")
+		equal(V3.V8.S, Layout.V8.S, "V8-D1: the same scale as the layout")
+		equal(V3.V8.HALF, Layout.HALF, "V8-D1: the same plot as the layout")
+		equal(V3.V8.OLD_HALF, Layout.V8.OLD_HALF, "V8-D1: the same v7 plot")
 		equal(V3.V4_MARK, "CaramelV4", "v4 mark")
 		equal(V3.V5_MARK, "CaramelV5", "v5 mark")
 		equal(V3.MARK, "CaramelV3", "mark")
@@ -417,7 +421,8 @@ return function(V3, Layout, Sites, Trap)
 		equal(#V3.CRYSTAL_HILLS, 6, "one per Hill_ spot")
 		local B = Layout.BOSS
 		for _, h in ipairs(V3.CRYSTAL_HILLS) do
-			equal(h.x, 198, h.id .. " at the crystals' x")
+			-- Deliberately changed (V8-D1): x 198 -> HALF - 2 (258), re-anchored to the edge like the v7 crystals
+			equal(h.x, Layout.HALF - 2, h.id .. " at the crystals' x, 2 inside the edge")
 			for _, spec in ipairs(Layout.NESTS) do assert(flat(h.x, h.z, spec.x, spec.z) - h.r >= C.pieceFromNest, h.id .. " on nest " .. spec.id) end
 			for _, p in ipairs(posts()) do assert(flat(h.x, h.z, p.x, p.z) - h.r >= C.pieceFromPost, h.id .. " on post " .. p.id) end
 			assert(Layout.routeDistance(h.x, h.z) - h.r - half >= C.pieceFromRoute, h.id .. " on a route")
@@ -430,7 +435,16 @@ return function(V3, Layout, Sites, Trap)
 
 	-- V4-D7: the backdrop stands outside the plot's east side, the edge fill is a dense band
 	case("V3-16: the backdrop is outside the east edge; the edge fill is dense and budgeted", function()
-		assert(#V3.BACKDROP >= 6, "a backdrop")
+		-- Deliberately changed (V8-D2, fixer): the v8 backdrop is empty (was at least 6 pieces): east of the bigger plot
+		-- lie the cloud band and Caramelo Este, where every v7 piece, re-anchored to the east edge, would stand. The v7
+		-- rows are kept as a record (V3.BACKDROP_V7) and still hold their v7 rules
+		equal(#V3.BACKDROP, 0, "no backdrop in v8")
+		assert(#V3.BACKDROP_V7 >= 6, "the v7 record")
+		for i, b in ipairs(V3.BACKDROP_V7) do
+			local x = Layout.HALF + (b.x - Layout.V8.OLD_HALF)
+			assert(x - b.r < Layout.HALF + 16 + 2 * Layout.HALF, "v7 backdrop " .. i .. " would stand in the band or the second space")
+			assert(b.x > Layout.V8.OLD_HALF and table.find(V3.ASSETS, b.asset), "v7 backdrop " .. i)
+		end
 		for i, b in ipairs(V3.BACKDROP) do
 			assert(b.x > Layout.HALF, "backdrop " .. i .. " east of the plot")
 			local dx, dz = math.max(math.abs(b.x) - Layout.HALF, 0), math.max(math.abs(b.z) - Layout.HALF, 0)
@@ -447,9 +461,11 @@ return function(V3, Layout, Sites, Trap)
 	-- V5-D3, V5-D10 to V5-D13 (the clearances themselves are V3-4, V3-5, V3-6, V3-8 and V3-9, unchanged)
 	case("V3-17: v5: a 24-wide river on its open legs, the junction arc 10, a bigger lake, longer Top and Bottom bridges", function()
 		local wide, wideLength = 0, 0
+		local S = Layout.V8.S
 		for i, p in ipairs(V3.RIVER) do
 			if p[3] >= 24 then wide += 1 end
-			if flat(p[1], p[2], Layout.JUNCTION.x, Layout.JUNCTION.z) <= 31 then equal(p[3], 10, "junction arc point " .. i) end
+			-- Deliberately changed (V8-D1): the arc scaled with the plot (30.5 -> 39.65 studs round), so 31 -> 31 x 1.3
+			if flat(p[1], p[2], Layout.JUNCTION.x, Layout.JUNCTION.z) <= 31 * S then equal(p[3], 10, "junction arc point " .. i) end
 			local q = V3.RIVER[i + 1]
 			if q and math.min(p[3], q[3]) >= 24 then wideLength += flat(p[1], p[2], q[1], q[2]) end
 		end
@@ -458,12 +474,14 @@ return function(V3, Layout, Sites, Trap)
 		equal(#V3.LAKE, 2, "two lake discs")
 		assert(V3.LAKE[1].r >= 34 and V3.LAKE[2].r >= 18, "the lake grew")
 		local open = 0
-		for x = -60, 79 do
-			for z = -150, -21 do
+		-- Deliberately changed (V8-D1): the v7 box (x -60..79, z -150..-21) scales with the lake round it
+		for x = math.floor(-60 * S), math.floor(79 * S) do
+			for z = math.floor(-150 * S), math.floor(-21 * S) do
 				if V3.liquidDistance(x + 0.5, z + 0.5) <= -3 and not V3.nearBridge(x + 0.5, z + 0.5, 3) then open += 1 end
 			end
 		end
 		-- Deliberately changed (V6-D4): the island takes about 280 square studs of the hull's water (3692 -> 3416)
+		-- V8-D1: about 4400 in the scaled box (the discs keep their radii but overlap less; more river in the box)
 		assert(open >= 3350, "open water for the raft's hull: " .. open)
 		local byId = {}
 		for _, B in ipairs(V3.BRIDGES) do byId[B.id] = B end
@@ -480,6 +498,48 @@ return function(V3, Layout, Sites, Trap)
 		local a, b = V3.DOCKS[1], V3.DOCKS[2]
 		assert(a.standX < 0 and b.standX > 0, "dock A west, dock B east")
 		assert(flat(a.tipX, a.tipZ, b.tipX, b.tipZ) >= 50, "the docks face each other across open water")
+	end)
+
+	-- V8-D1 (owner request 2026-11-17, "more space between things"; docs/design/wildbound-caramelo-v8-plan.md): the v7
+	-- positions scale 1.3 about the centre and the sizes stay; the exceptions keep their v7 relation to their parent.
+	case("V3-18: v8: positions scale, sizes stay; M1 and its water, the Top crossing and what floats keep their offsets", function()
+		local S = Layout.V8.S
+		local function near(actual, expected, label)
+			assert(math.abs(actual - expected) <= 1e-6, label .. ": expected " .. tostring(expected) .. ", got " .. tostring(actual))
+		end
+		local m1 = V3.MOUNTAINS[1]
+		equal(m1.id, "M1", "M1 first")
+		near(Layout.HALF - m1.z, 24, "M1 keeps its v7 24 studs off the north edge")
+		near(m1.x, -4 * S, "M1 x scales")
+		equal(m1.r, 24.3, "M1 footprint kept")
+		local dx, dz = m1.x - -4, m1.z - 176
+		near(V3.POOL.x - dx, -7.24, "the pool moves with M1, x"); near(V3.POOL.z - dz, 159.36, "the pool, z")
+		near(V3.RIVER[1][1] - dx, -8.36, "the outlet moves with M1, x"); near(V3.RIVER[1][2] - dz, 154.08, "the outlet, z")
+		near(m1.faceX - dx, -12, "M1 still faces RIVER[2], x"); near(m1.faceZ - dz, 138, "RIVER[2], z")
+		near(V3.RIVER[4][2] - 120 * S, 4, "the Top crossing keeps its 4 studs north of the leg")
+		near(V3.RIVER[5][1], -3 * S, "the river scales, x"); near(V3.RIVER[5][2], 104 * S, "z"); equal(V3.RIVER[5][3], 24, "width kept")
+		near(V3.RIVER[14][1], 30.5 * S, "the arc under the main avenue, 39.65 round")
+		near(V3.RIVER[#V3.RIVER][2], -Layout.HALF, "the river ends on the south edge")
+		near(V3.LAKE[1].x, 8 * S, "disc 1 x"); near(V3.LAKE[1].z, -98 * S, "disc 1 z"); equal(V3.LAKE[1].r, 34.5, "disc 1 radius kept")
+		local d1x, d1z = V3.LAKE[1].x - 8, V3.LAKE[1].z - -98
+		local d2x, d2z = V3.LAKE[2].x - -14, V3.LAKE[2].z - -114
+		near(V3.DOCKS[1].tipX - d2x, -22, "dock A moves with disc 2, x"); near(V3.DOCKS[1].tipZ - d2z, -114, "dock A, z")
+		near(V3.DOCKS[2].tipX - d1x, 32, "dock B moves with disc 1, x"); near(V3.DOCKS[2].tipZ - d1z, -102, "dock B, z")
+		near(V3.ISLANDS[1].x - d1x, 15, "the island moves with disc 1, x"); near(V3.ISLANDS[1].z - d1z, -73, "the island, z")
+		near(V3.PLATFORMS[1].x - d2x, -6, "the medium cookie moves with disc 2"); near(V3.PLATFORMS[2].z - d1z, -88, "the big cookie with disc 1")
+		near(V3.HOUSES[1].x, -148 * S, "H1 x"); near(V3.HOUSES[1].z, 166 * S, "H1 z"); equal(V3.HOUSES[1].r, 28, "H1 footprint kept")
+		near(V3.LICORICE.x, -124 * S, "the arch"); near(V3.CAKE.z, 112 * S, "the cake"); equal(V3.CAKE.r, 18, "the cake's size kept")
+		local byId = {}
+		for _, B in ipairs(V3.BRIDGES) do byId[B.id] = B end
+		near(byId.Main.at, 30.5 * S, "Main at"); equal(byId.Main.length, 11, "Main deck kept"); equal(byId.Top.length, 28, "Top deck kept")
+		near(byId.Main.to[1], Layout.TORTA.x - Layout.BOSS.plazaRadius, "Main's leg ends where the avenue does")
+		for _, h in ipairs(V3.CRYSTAL_HILLS) do
+			assert(h.x - h.r < Layout.HALF and h.x + h.r > Layout.HALF, h.id .. " straddles the edge")
+		end
+		-- Deliberately changed (V8-D2, fixer): no v8 backdrop to re-anchor (V3-16); the v7 record and the empty list are frozen
+		equal(#V3.BACKDROP, 0, "no backdrop in v8")
+		assert(table.isfrozen(V3.V8) and table.isfrozen(V3.RIVER[1]) and table.isfrozen(V3.DOCKS[1])
+			and table.isfrozen(V3.BRIDGES[1].from) and table.isfrozen(V3.BACKDROP) and table.isfrozen(V3.BACKDROP_V7[1]), "frozen")
 	end)
 
 	return result

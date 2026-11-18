@@ -797,6 +797,62 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		equal(#Smarts.houseDiscs(nil), 0, "no biome, no houses")
 	end)
 
+	-- V8-D3 (owner request 2026-11-17, "another space of the same size, separated by clouds: an invisible wall"): a
+	-- creature's step is kept on its side of the cloud wall (it stops WALL_MARGIN_STUDS short of the wall's centre line,
+	-- on the plot's east edge, and slides along it); the wall is read from the live CloudWall.Collider.
+	case("V8-D3: a creature's step never crosses the cloud wall; it stops on its side and slides along it", function()
+		local wall = { x = 940, margin = 8 }
+		equal(Smarts.WALL_MARGIN_STUDS, 8, "half the 16-stud band")
+		equal(Smarts.WALL_ROOT, "Candy_Este_v1")
+		-- west to west, short of the margin: untouched
+		local x, z = Smarts.outsideWall(900, 0, 910, 5, wall)
+		equal(x, 910); equal(z, 5)
+		-- a step into the band or across the wall stops at x - margin, z kept
+		x, z = Smarts.outsideWall(925, 0, 945, 12, wall)
+		equal(x, 932, "stopped on the plot's east edge"); equal(z, 12, "slides along the wall")
+		x, z = Smarts.outsideWall(931, 0, 2000, -40, wall)
+		equal(x, 932, "a long jump is clamped too"); equal(z, -40)
+		-- chasing a target behind the wall, step after step, it waits at the edge
+		local px, pz = 900, 0
+		for _ = 1, 30 do
+			px, pz = Smarts.outsideWall(px, pz, px + 3, pz + 0.5, wall)
+			assert(px <= 932 + 1e-9, "crossed the wall: " .. px)
+		end
+		within(px, 932, 932, "waits at the edge")
+		-- unknown origin counts as the west side
+		x = Smarts.outsideWall(nil, nil, 960, 0, wall)
+		equal(x, 932, "no origin: the plot's side")
+		-- a creature of the second space (east) stays east
+		x, z = Smarts.outsideWall(1000, 0, 930, 3, wall)
+		equal(x, 948, "east side: stops at x + margin"); equal(z, 3)
+		x = Smarts.outsideWall(1000, 0, 1100, 3, wall)
+		equal(x, 1100, "east to east: untouched")
+		-- the default margin, no wall, a bad point
+		x = Smarts.outsideWall(900, 0, 950, 0, { x = 940 })
+		equal(x, 940 - Smarts.WALL_MARGIN_STUDS, "default margin")
+		x, z = Smarts.outsideWall(900, 0, 950, 0, nil)
+		equal(x, 950, "no wall: left as it is"); equal(z, 0)
+		x = Smarts.outsideWall(900, 0, 0 / 0, 0, wall)
+		assert(x ~= x, "a bad point is left to the caller")
+		-- the wall from the map: CloudWall.Collider's centre x and its WallMargin attribute
+		local root = Instance.new("Model")
+		equal(Smarts.wallOf(root), nil, "no CloudWall: no wall")
+		equal(Smarts.wallOf(nil), nil)
+		local folder = Instance.new("Folder")
+		folder.Name = "CloudWall"
+		folder.Parent = root
+		local collider = Instance.new("Part")
+		collider.Name = "Collider"
+		collider.Size = Vector3.new(4, 80, 536)
+		collider.Position = Vector3.new(940, 40.5, -3)
+		collider.Parent = folder
+		local read = Smarts.wallOf(root)
+		within(read.x, 940, 940, "x"); equal(read.margin, Smarts.WALL_MARGIN_STUDS, "default margin")
+		collider:SetAttribute("WallMargin", 6)
+		equal(Smarts.wallOf(root).margin, 6, "the collider's margin")
+		root:Destroy()
+	end)
+
 	-- RC7: the runner model. An untrained runner leaves a nest (E1 mid-biome, R6 deep) with full health and stamina,
 	-- straight to the plot's entrance and on to the hub's safe edge (WildboundWorldRules HUB, the bases): it holds sprint
 	-- all the way (WildboundStamina: pool 100, drain 25/s, a sprint starts at 10, after empty none until 30, regen 10/s

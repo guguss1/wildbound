@@ -268,6 +268,35 @@ function Smarts.outsideHouses(px, pz, nx, nz, discs, margin)
 	end
 	return x, z
 end
+-- V8-D3 (owner request 2026-11-17, "another space of the same size, separated by clouds: an invisible wall ... that you
+-- can see through"): the cloud wall between the plot and the second space. Creatures move by code, so its collider
+-- alone does not stop them: every step is clamped to the side of the wall it came from. WALL_MARGIN_STUDS: how far
+-- from the wall's centre line a creature stops (half the 16-stud cloud band: on the plot's east edge, out of the band).
+Smarts.WALL_MARGIN_STUDS = 8
+Smarts.WALL_ROOT = "Candy_Este_v1"
+-- wallOf(root) -> { x, margin } of the wall under `root` (Workspace.Candy_Este_v1: CloudWall.Collider, its centre x;
+-- its WallMargin attribute, else WALL_MARGIN_STUDS), or nil when there is none. Reads instances only.
+function Smarts.wallOf(root)
+	local folder = typeof(root) == "Instance" and root:FindFirstChild("CloudWall") or nil
+	local collider = folder and folder:FindFirstChild("Collider")
+	if not (collider and collider:IsA("BasePart")) then return nil end
+	local x = collider.Position.X
+	if not finite(x) then return nil end
+	local margin = collider:GetAttribute("WallMargin")
+	return { x = x, margin = finite(margin) and margin or Smarts.WALL_MARGIN_STUDS }
+end
+-- outsideWall(px, pz, nx, nz, wall) -> x, z: a creature's move from (px, pz) to (nx, nz) kept on the side of the wall
+-- (wall = { x, margin? }) it came from: from the west (or from nowhere known) a point east of x - margin comes back to
+-- it; from the east (a creature of the second space, none yet) a point west of x + margin comes back to that. z is
+-- never changed (it slides along the wall). A bad point or no wall is left to the caller.
+function Smarts.outsideWall(px, pz, nx, nz, wall)
+	if not (finite(nx) and finite(nz)) or type(wall) ~= "table" or not finite(wall.x) then return nx, nz end
+	local margin = finite(wall.margin) and wall.margin or Smarts.WALL_MARGIN_STUDS
+	if finite(px) and px > wall.x then
+		return math.max(nx, wall.x + margin), nz
+	end
+	return math.min(nx, wall.x - margin), nz
+end
 -- V4-D9: puts a player under pressure from `from` (hunted until `at`), as if hunted since then: the cap is then
 -- Smarts.cap(world, userId, at). For suites that need several hunters at once, and any caller that wants it.
 function Smarts.press(world, userId, from, at)

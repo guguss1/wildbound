@@ -144,8 +144,11 @@ function Ambience.phase(id, period)
 	return (hash(id) % 1000) / 1000 * (finite(period) and period or 1)
 end
 
--- The plot's rectangle from its floor part (centre and size), and the Caramelo square of WildboundBiomeLight when the
--- floor has not streamed in (the same numbers: Layout CENTRE 612, -3 and HALF 200).
+-- The plot's rectangle from its floor part (centre and size), and the plot's own rectangle when the floor has not
+-- streamed in. V8-D1 (owner request 2026-11-17, "the Caramelo map a bit bigger"): the plot is Layout CENTRE (672, -3) and
+-- HALF 260, a copy here because clients cannot read the ServerStorage layout; BiomeLight's classic Meadow row is still
+-- the v7 square, so it is only the sign that the module is there.
+Ambience.PLOT_FALLBACK = table.freeze({ minX = 412, maxX = 932, minZ = -263, maxZ = 257 })
 function Ambience.boundsFromFloor(x, z, sizeX, sizeZ)
 	if not (finite(x) and finite(z) and finite(sizeX) and finite(sizeZ)) then return nil end
 	return { minX = x - sizeX / 2, maxX = x + sizeX / 2, minZ = z - sizeZ / 2, maxZ = z + sizeZ / 2 }
@@ -157,7 +160,8 @@ function Ambience.fallbackBounds(BiomeLight)
 	end
 	for _, area in ipairs(BiomeLight.AREAS) do
 		if BiomeLight.TAG_PRESET[area.tag] == "Caramelo" then
-			return { minX = area.minX, maxX = area.maxX, minZ = area.minZ, maxZ = area.maxZ }
+			local P = Ambience.PLOT_FALLBACK
+			return { minX = P.minX, maxX = P.maxX, minZ = P.minZ, maxZ = P.maxZ }
 		end
 	end
 	return nil

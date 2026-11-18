@@ -805,6 +805,12 @@ end
 function world.keepOut(e, px, pz, at)
 	if e.done or type(e.pos) ~= "table" or not Config.finite(px) or not Config.finite(pz) then return end
 	local discs = world.houseDiscs(at)
+	-- V8-D3 (owner request 2026-11-17, "an invisible wall with a cloud texture"): never across the cloud wall
+	-- (Workspace.Candy_Este_v1.CloudWall, WildboundCandySmarts.wallOf, read again every 5 s; false: no wall)
+	if not world.wallAt or at - world.wallAt >= 5 or at < world.wallAt then
+		world.wallAt, world.cloudWall = at, world.smarts.wallOf(workspace:FindFirstChild("Candy_Este_v1")) or false
+	end
+	if world.cloudWall then e.pos.x, e.pos.z = world.smarts.outsideWall(px, pz, e.pos.x, e.pos.z, world.cloudWall) end
 	if #discs == 0 then return end
 	e.pos.x, e.pos.z = world.smarts.outsideHouses(px, pz, e.pos.x, e.pos.z, discs)
 end

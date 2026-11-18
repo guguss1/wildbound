@@ -264,6 +264,14 @@ SPECS["WildboundCandyCurrent_Test"] = {
 SPECS["WildboundCandySky_Test"] = {
 	"mod:WildboundAtmosphere", "mod:WildboundBiomeLight", { client = "src:WildboundCandySkyClient" },
 }
+-- Caramelo v8 (docs/design/wildbound-caramelo-v8-plan.md V8-D2 to V8-D4): Caramelo Este's plan and build (detached
+-- folders only), the creature clamp, the annex plan, and the cloud client, the two server clamps and the v8 migration
+-- tool by source (the tool is kept in Studio as the disabled Script ServerStorage.WildboundCaramelV8Migrate)
+SPECS["WildboundCandyEast_Test"] = {
+	"mod:WildboundCandyEast", "mod:WildboundCandyLayout", "mod:WildboundCandySmarts",
+	{ client = "src:WildboundCandyCloudWallClient", beasts = "src:WildboundBeasts", duquesa = "src:WildboundCandyDuquesaService",
+		migrate = "src:WildboundCaramelV8Migrate" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }
