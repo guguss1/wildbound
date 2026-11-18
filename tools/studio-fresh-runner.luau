@@ -272,6 +272,26 @@ SPECS["WildboundCandyEast_Test"] = {
 	{ client = "src:WildboundCandyCloudWallClient", beasts = "src:WildboundBeasts", duquesa = "src:WildboundCandyDuquesaService",
 		migrate = "src:WildboundCaramelV8Migrate" },
 }
+-- Pueblo Gatito (docs/design/wildbound-kitten-park-plan.md §4): the park's plan, recipes and build (detached models
+-- only), the nest markers, the two archives on detached fixtures and the one-shot tool's source (kept in Studio as the
+-- disabled Script ServerStorage.WildboundKittenParkBuild); the kittens' gameplay and wiring; the kittens' look, music and
+-- light clients
+SPECS["WildboundKittenPark_Test"] = {
+	"mod:WildboundKittenPark", "mod:WildboundCandyEast", "mod:WildboundCandyLayout",
+	{ park = "src:WildboundKittenPark", build = "src:WildboundKittenParkBuild" },
+}
+SPECS["WildboundCandyKittens_Test"] = {
+	"mod:WildboundBeastEncounters", "mod:WildboundBeastCandyCritter", "mod:WildboundBeastConfig",
+	"mod:WildboundPraderaSites", "mod:WildboundCandySmarts", "mod:WildboundBeastDirector", "mod:WildboundBeastChase",
+	"mod:WildboundCandyNests", "mod:WildboundKittenPark", "mod:WildboundPortal", "mod:WildboundBiomes",
+	{ beasts = "src:WildboundBeasts", client = "src:WildboundBeastsClient", resting = "src:WildboundCandyRestingService",
+		restingClient = "src:WildboundCandyRestingClient" },
+}
+SPECS["WildboundCandyKittenArt_Test"] = {
+	"mod:WildboundCandyKittens",
+	{ service = "src:WildboundCandyKittenService", anim = "src:WildboundCandyKittenAnimClient",
+		ambience = "src:WildboundCandyKittenAmbienceClient", audio = "src:WildboundAudioClient" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

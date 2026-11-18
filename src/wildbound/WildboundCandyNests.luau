@@ -28,14 +28,29 @@ Nests.BIND_RADIUS = 20
 Nests.EGGS = 1
 Nests.ID_PREFIX = "Candy"
 Nests.ROOT_NAME = "Candy_Bioma_v1"
+-- K-D8, K-D9 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
+-- gatito ... también tiene que haber huevos para robar"): the kitten park's eight nests K1..K8 live in the second
+-- space's root (Workspace.Candy_Este_v1.Nests, laid by ServerStorage.WildboundKittenPark.syncNests). Their markers carry
+-- Park = true and Guard (the kitten that guards them: "<name>" for a home post, "<name>@<post>" for an east extra post).
+Nests.PARK_ROOT = "Candy_Este_v1"
+-- K-D8: the same three species (no new egg art, pet or icon), paid one tier more than the plot's (the random world's
+-- SpawnClock.REWARD) for the long walk home: Comun Fog (10), Rara FogFar (16), Epica Territory (24). No Legendaria: it
+-- stays event-only, as in the plot. The risk tier stays Nests.RISK.
+Nests.PARK_POOL = table.freeze({
+	Comun = table.freeze({ species = "Gomibu", rewardTier = "Fog" }),
+	Rara = table.freeze({ species = "Tortidragon", rewardTier = "FogFar" }),
+	Epica = table.freeze({ species = "Flanfuria", rewardTier = "Territory" }),
+})
 
 local function finite(value)
 	return type(value) == "number" and value == value and value > -math.huge and value < math.huge
 end
 
 -- The species, rarity, reward tier and risk tier of a nest of `rarity`, or nil for an unknown rarity.
-function Nests.pick(rarity)
-	local row = type(rarity) == "string" and Nests.POOL[rarity] or nil
+-- K-D8: park (true for a kitten park nest) reads PARK_POOL instead, so a park Legendaria is unknown (nil).
+function Nests.pick(rarity, park)
+	local pool = park == true and Nests.PARK_POOL or Nests.POOL
+	local row = type(rarity) == "string" and pool[rarity] or nil
 	if not row then return nil end
 	return { species = row.species, rarity = rarity, rewardTier = row.rewardTier, tier = Nests.RISK[rarity] }
 end
@@ -71,7 +86,8 @@ function Nests.bind(markers, posts, radius)
 			-- lake island's nest
 			if type(m) == "table" and type(m.id) == "string" and finite(m.x) and finite(m.z) and not taken[m.id]
 				and m.island ~= true
-				and m.house ~= true then
+				and m.house ~= true
+				and m.park ~= true then -- K-D9: a park nest's guard is its own Guard attribute, never a plot post
 				local d = math.sqrt((m.x - post.x) ^ 2 + (m.z - post.z) ^ 2)
 				if d <= radius and d < bestD then best, bestD = m.id, d end
 			end
@@ -83,11 +99,12 @@ end
 
 -- The island entries for markers { { id, rarity, x, z, top, enabled, eventOnly } ... }: only enabled, non-event markers
 -- of a known rarity, sorted by id.
+-- K-D9: a park marker (park = true) pays from PARK_POOL, keeps its own guard (m.guard) and is marked park = true.
 function Nests.islands(markers, posts)
 	local kept = {}
 	for _, m in ipairs(type(markers) == "table" and markers or {}) do
 		if type(m) == "table" and m.enabled == true and m.eventOnly ~= true and type(m.id) == "string"
-			and finite(m.x) and finite(m.z) and Nests.pick(m.rarity) then
+			and finite(m.x) and finite(m.z) and Nests.pick(m.rarity, m.park) then
 			table.insert(kept, m)
 		end
 	end
@@ -95,14 +112,17 @@ function Nests.islands(markers, posts)
 	local binding = Nests.bind(kept, posts)
 	local list = {}
 	for _, m in ipairs(kept) do
-		local pick = Nests.pick(m.rarity)
+		local park = m.park == true
+		local pick = Nests.pick(m.rarity, park)
 		table.insert(list, table.freeze({
 			id = Nests.ID_PREFIX .. m.id, key = "caramelo_" .. string.lower(m.id), x = m.x, z = m.z,
 			floorRadius = 6, zone = "outside", tier = pick.tier,
 			rewardTier = pick.rewardTier, species = pick.species, rarity = pick.rarity, adults = 0,
 			wakeDay = 12, wakeNight = 15, hideSpot = nil,
 			adultPoints = table.freeze({}), content = "Egg", eggs = Nests.EGGS,
-			biome = "Caramelo", nestId = m.id, nestTop = finite(m.top) and m.top or nil, guard = binding[m.id],
+			biome = "Caramelo", nestId = m.id, nestTop = finite(m.top) and m.top or nil,
+			guard = park and (type(m.guard) == "string" and m.guard or nil) or binding[m.id],
+			park = park or nil,
 		}))
 	end
 	return list
@@ -138,7 +158,10 @@ end
 -- caramel puddles after the grass. A seventh value: the puddles changed.
 -- Caramelo v6 (V6-D4): Island (the eighth argument, nil = ServerStorage.WildboundCandyIsland, false = none) lays the lake
 -- island and its Epica nest after the traps, before the nests are read. An eighth value: the island's changes.
-function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass, Traps, Island)
+-- K-D9 (Pueblo Gatito): Park (the ninth argument, nil = ServerStorage.WildboundKittenPark, false = none) lays the kitten
+-- park's nests (Park.syncNests) in the sibling root Candy_Este_v1 after the island, before the nests are read; an
+-- unparented root or a missing sibling root calls nothing. A ninth value: the park nests changed.
+function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass, Traps, Island, Park)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end
 	local okNests, nests = pcall(Builder.syncNests, root, Layout)
 	local okPortal, portals = pcall(Builder.syncPortal, root, Layout)
@@ -205,16 +228,28 @@ function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass, T
 		end
 	end
 	if type(I) == "table" and type(I.sync) == "function" then okIsland, island = pcall(I.sync, root, Layout) end
+	-- K-D9: the kitten park's nests, after the island (the sibling root only: a scratch root has no parent)
+	local okPark, park = false, 0
+	local parkRoot = root.Parent and root.Parent:FindFirstChild(Nests.PARK_ROOT)
+	local P = Park
+	if parkRoot and P == nil then
+		local module = game:GetService("ServerStorage"):FindFirstChild("WildboundKittenPark")
+		if module and module:IsA("ModuleScript") then
+			local okRequire, loaded = pcall(require, module)
+			P = okRequire and loaded or nil
+		end
+	end
+	if parkRoot and type(P) == "table" and type(P.syncNests) == "function" then okPark, park = pcall(P.syncNests, parkRoot) end
 	return okNests and tonumber(nests) or 0, okPortal and tonumber(portals) or 0, okTower and tonumber(tower) or 0,
 		okHouse and tonumber(house) or 0, okSpots and tonumber(spots) or 0, okGrass and tonumber(grass) or 0,
-		okTraps and tonumber(traps) or 0, okIsland and tonumber(island) or 0
+		okTraps and tonumber(traps) or 0, okIsland and tonumber(island) or 0, okPark and tonumber(park) or 0
 end
 
 -- The builder's markers under `root` (the Candy_Bioma_v1 model): { { id, rarity, x, z, top, enabled, eventOnly } }.
-function Nests.read(root)
-	local list = {}
-	local folder = typeof(root) == "Instance" and root:FindFirstChild("Nests") or nil
-	if not folder then return list end
+-- K-D9 (Pueblo Gatito): when `root` is the live Candy_Bioma_v1 (named ROOT_NAME, parented), the kitten park's markers in
+-- its sibling root (PARK_ROOT.Nests) are read too, each with park = true and guard (its Guard string attribute), so the
+-- server's one read returns both roots. A scratch root has no parent and reads only itself.
+local function readFolder(list, folder, park)
 	for _, nest in ipairs(folder:GetChildren()) do
 		local id = nest:GetAttribute("NestId")
 		if nest:IsA("Model") and type(id) == "string" then
@@ -232,9 +267,20 @@ function Nests.read(root)
 			table.insert(list, { id = id, rarity = nest:GetAttribute("Rarity"), x = frame.Position.X, z = frame.Position.Z,
 				top = top, enabled = nest:GetAttribute("Enabled") == true, eventOnly = nest:GetAttribute("EventOnly") == true,
 				house = nest:GetAttribute("House") == true,
-				island = nest:GetAttribute("LakeIsland") == true })
+				island = nest:GetAttribute("LakeIsland") == true,
+				park = park,
+				guard = park and type(nest:GetAttribute("Guard")) == "string" and nest:GetAttribute("Guard") or nil })
 		end
 	end
+end
+function Nests.read(root)
+	local list = {}
+	if typeof(root) ~= "Instance" then return list end
+	local folder = root:FindFirstChild("Nests")
+	if folder then readFolder(list, folder, false) end
+	local parkRoot = root.Name == Nests.ROOT_NAME and root.Parent ~= nil and root.Parent:FindFirstChild(Nests.PARK_ROOT) or nil
+	local parkFolder = parkRoot and parkRoot:FindFirstChild("Nests")
+	if parkFolder then readFolder(list, parkFolder, true) end
 	return list
 end
 

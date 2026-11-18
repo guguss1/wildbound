@@ -380,5 +380,27 @@ return function(Layout, _Biomes)
 			and table.isfrozen(Layout.LAKE[1]) and table.isfrozen(Layout.TOWER.glaze[1]), "the layout stays frozen")
 	end)
 
+	-- K-D2 (owner request 2026-11-17, the kitten park: "es como el mundo de gatito"): the plot side of the cloud gate to
+	-- Caramelo Este is kept clear for the server-start planners (hide spots, grass, traps, bee hives). The row is written
+	-- in v8 plot coordinates: (250, 0) is world (922, -3), in front of the wall's gap at z -10..4.
+	case("K-D2: the KEEP_CLEAR gate row at (250, 0), r 16, clear of every nest and of the boss territory", function()
+		local row = nil
+		for _, spot in ipairs(Layout.KEEP_CLEAR) do
+			if spot.why == "Cloud gate to Caramelo Este" then row = spot end
+		end
+		assert(row, "the gate row")
+		assert(table.isfrozen(row), "the row is frozen")
+		equal(row.x, 250, "x"); equal(row.z, 0, "z"); equal(row.r, 16, "r")
+		equal(Layout.CENTRE.x + row.x, 922, "world x"); equal(Layout.CENTRE.z + row.z, -3, "world z")
+		for _, nest in ipairs(Layout.NESTS) do
+			assert(flat(nest.x, nest.z, row.x, row.z) >= row.r + 8, nest.id .. " in the gate's clear disc")
+		end
+		local B = Layout.BOSS
+		assert(flat(B.x, B.z, row.x, row.z) - B.territoryRadius >= row.r + 8, "the boss territory reaches the gate")
+		-- the two Pradera rows are still the first two, unchanged (the suites pin [1])
+		equal(Layout.KEEP_CLEAR[1].why, "La Nube's pond"); equal(Layout.KEEP_CLEAR[2].why, "La Abeja's hive")
+		equal(#Layout.KEEP_CLEAR, 3, "three rows")
+	end)
+
 	return result
 end

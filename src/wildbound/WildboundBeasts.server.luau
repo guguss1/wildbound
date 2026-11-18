@@ -50,6 +50,10 @@ local KIDS = { { name = "NubeGrunona", module = "WildboundBeastNube" }, { name =
 	{ name = "Mochimiau", module = "WildboundBeastCandyCritter" }, { name = "Canelin", module = "WildboundBeastCandyCritter" },
 	{ name = "Flanin", module = "WildboundBeastCandyCritter" }, { name = "Mielita", module = "WildboundBeastCandyCritter" },
 	{ name = "GatoRepartidor", module = "WildboundBeastCandyCritter" }, -- CC: the five small candy creatures, one brain
+	-- K-D4 (Pueblo Gatito, owner request 2026-11-17 "un parque verde lindo con las criaturas gatitas"): the four kittens
+	-- of Caramelo Este, on the same brain (WildboundBeastConfig rows, home posts WildboundPraderaSites.EAST_FIXED)
+	{ name = "GatitoLanudo", module = "WildboundBeastCandyCritter" }, { name = "GatitoGuerrero", module = "WildboundBeastCandyCritter" },
+	{ name = "GatitaBouquet", module = "WildboundBeastCandyCritter" }, { name = "GatitoActually", module = "WildboundBeastCandyCritter" },
 	{ name = "DonGlaseon", module = "WildboundBeastDonGlaseon", boss = true } } -- and its one boss per server (bossPass)
 for _, kid in ipairs(KIDS) do Enc.register(kid.name, require(script.Parent:WaitForChild(kid.module))) end
 -- Beast spawn P0: the dusk roll buff. A place without the module keeps every roll at x1 instead of stalling the beasts.
@@ -235,6 +239,9 @@ local function covered(head)
 	return workspace:Raycast(head, Vector3.new(0, 200, 0), roofParams) ~= nil
 end
 local function inMeadow(x, z) return Biomes.has(x, z, "Meadow") end
+-- K-D10, K-D11 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md): a summoning biome, the candy plot (Meadow) or
+-- the kitten park (CandyEast). Kept on `world` (no new local: the chunk is near Luau's local limit).
+function world.inCandy(x, z) return inMeadow(x, z) or Biomes.has(x, z, "CandyEast") end
 -- The Abeja window: the server's event clock writes BiomeEvent (read only here); Studio may override it (ForceAbejaEvent).
 local biomeEvent = telemetry:GetAttribute("BiomeEvent")
 telemetry:GetAttributeChangedSignal("BiomeEvent"):Connect(function()
@@ -510,7 +517,8 @@ local function targetOf(entry)
 	if entry.player.Parent ~= Players or not character or character ~= entry.character or humanoid.Health <= 0 then return nil end
 	local p, v = root.Position, root.AssemblyLinearVelocity
 	local _, safe = Rules.zone(p.X, p.Z)
-	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe, meadow = inMeadow(p.X, p.Z) }
+	-- K-D10: a forest encounter that follows a player into the kitten park closes there too ("Pradera")
+	local target = { x = p.X, y = p.Y, z = p.Z, vx = v.X, vz = v.Z, alive = true, safe = safe, meadow = world.inCandy(p.X, p.Z) }
 	-- OF3 review: the walk speed without the sprint (WildboundStamina SPRINT_MULTIPLIER 1.45), so candy chases scale with training
 	target.walk = humanoid.WalkSpeed / (entry.player:GetAttribute("WildboundStance") == "sprint" and 1.45 or 1)
 	if Config.SUMMONED[entry.e.beast] then
@@ -1090,8 +1098,9 @@ local function summonPass(player, at)
 	if not character or humanoid.Health <= 0 then return end
 	local p = root.Position
 	-- V4-D13: a steal inside the biome starts the frenzy (an egg carried in from elsewhere does not)
-	world.stealCheck(player, character, p, at, inMeadow(p.X, p.Z))
-	if not inMeadow(p.X, p.Z) then if world.ambushAt then world.ambushAt[player] = nil end return end
+	-- K-D11: the kitten park (CandyEast) summons too; the director's biome rule keeps the two creature sets apart
+	world.stealCheck(player, character, p, at, world.inCandy(p.X, p.Z))
+	if not world.inCandy(p.X, p.Z) then if world.ambushAt then world.ambushAt[player] = nil end return end
 	local _, safe = Rules.zone(p.X, p.Z)
 	local want = { alive = true, safe = safe, meadow = true, night = phaseAt(p.X, p.Z) == "Night", eventOpen = eventOpen(),
 		x = p.X, z = p.Z, origin = praderaOrigin() }
@@ -1116,6 +1125,15 @@ local function summonPass(player, at)
 	-- CH1 (owner request "more repeated creatures in the Caramelo kingdom"): the extra posts, one more copy of a candy
 	-- creature at each (Sites.EXTRA_POSTS), by the same wake rule at that post; its own encounter (Director post).
 	for _, extra in ipairs(Sites.EXTRA_POSTS) do
+		if Sites.wants(extra.name, want, extra.key) then
+			ctx = ctx or contextFor(player, at)
+			local ok, value = Director.summon(director, player.UserId, extra.name, ctx, at, { post = extra.key })
+			if ok then world.startAtPost(player, value, extra.key, p.Y, at) end
+			if not ok then telemetry:SetAttribute("Beast_lastSummonRefusal", extra.name .. "@" .. extra.key .. ":" .. tostring(value)) end
+		end
+	end
+	-- K-D11 (Pueblo Gatito): the kittens' east extra posts (Sites.EAST_EXTRA_POSTS), the same body
+	for _, extra in ipairs(Sites.EAST_EXTRA_POSTS) do
 		if Sites.wants(extra.name, want, extra.key) then
 			ctx = ctx or contextFor(player, at)
 			local ok, value = Director.summon(director, player.UserId, extra.name, ctx, at, { post = extra.key })

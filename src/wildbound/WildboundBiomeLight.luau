@@ -22,7 +22,12 @@ end
 local function square(tag, minX, maxX, minZ, maxZ)
 	return { tag = tag, minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ }
 end
+-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo ..."): Caramelo Este (Pueblo
+-- Gatito) is the first row, because presetAt answers with the first square that holds the point; where another square
+-- overlaps the cloud band or the park, the park's light wins.
 BiomeLight.AREAS = freeze({
+	-- V8-D2 (owner request 2026-11-17): Caramelo Este, the cloud band and the second space (WildboundBiomes "caramelo-este")
+	square("CandyEast", 932, 1468, -263, 257),
 	square("Forest", -218, 182, -203, 197),
 	square("Meadow", 412, 812, -203, 197),
 	square("Swamp", 82, 482, -643, -243),
@@ -31,14 +36,13 @@ BiomeLight.AREAS = freeze({
 	square("Mountains", 522, 1022, -743, -243),
 	square("Volcanic", -308, 92, 237, 637),
 	square("Caves", 472, 772, 237, 537),
-	-- V8-D2 (owner request 2026-11-17): Caramelo Este, the cloud band and the second space (WildboundBiomes "caramelo-este")
-	square("CandyEast", 932, 1468, -263, 257),
 })
 -- The preset of each biome tag (the Meadow square is the Caramelo biome now). Between biomes, the hub's day.
--- V8-D2: Caramelo Este keeps the Caramelo preset (the pink sky, light and clouds hold there; Day rules).
+-- Deliberately changed (K-D14): Caramelo Este is Pueblo Gatito, lit by its own Gatuno preset (a blue sky, white clouds
+-- and a long, clear view; Day rules). V8-D2 had it keep the Caramelo preset.
 BiomeLight.TAG_PRESET = freeze({
 	Forest = "Forest", Meadow = "Caramelo", Swamp = "Swamp", Cemetery = "Cemetery", Abyss = "Abyss",
-	Mountains = "Mountains", Volcanic = "Volcanic", Caves = "Caves", CandyEast = "Caramelo",
+	Mountains = "Mountains", Volcanic = "Volcanic", Caves = "Caves", CandyEast = "Gatuno",
 })
 
 -- mood: the presentation phase (HUD hint, audio, the fear stalk, Night Nose). clockTime: the local sky. zone: an
@@ -48,6 +52,9 @@ BiomeLight.TAG_PRESET = freeze({
 BiomeLight.PRESETS = freeze({
 	Caramelo = { label = "Caramelo · siempre de día", mood = "Day", clockTime = 14, zone = "candy", variants = false,
 		tint = { 255, 255, 255 }, saturation = 0.08, contrast = 0.04, lift = 0.03 },
+	-- K-D14: the kitten park, always day in clear blue air (the Atmosphere park zone).
+	Gatuno = { label = "Pueblo Gatito · siempre de día", mood = "Day", clockTime = 13, zone = "park", variants = false,
+		tint = { 255, 255, 255 }, saturation = 0.06, contrast = 0.03, lift = 0.03 },
 	Forest = { label = "Bosque · siempre de noche", mood = "Night", clockTime = 0, variants = true,
 		tint = { 255, 255, 255 }, saturation = 0, contrast = 0, lift = 0 },
 	Swamp = { label = "Pantano · atardecer", mood = "Dusk", clockTime = 19, variants = true,
@@ -87,6 +94,7 @@ end
 BiomeLight.RULES = freeze({
 	Forest = "Night", Abyss = "Night", Caves = "Night",
 	Caramelo = "Day", Hub = "Day", Mountains = "Day", Swamp = "Day", Cemetery = "Day", Volcanic = "Day",
+	Gatuno = "Day", -- K-D14: the kitten park plays by Day rules, like Caramelo
 })
 -- The clock time those rules read (the islands' deep sleep is 11:00-13:00, so neither is in it).
 BiomeLight.RULES_CLOCK = freeze({ Day = 14, Night = 0 })

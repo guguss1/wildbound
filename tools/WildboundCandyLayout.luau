@@ -119,6 +119,10 @@ end
 Layout.KEEP_CLEAR = table.freeze({
 	keepClear(165, 150, 26, "La Nube's pond"), -- GT: was (165, 110), now off the bigger boss ground
 	keepClear(-60, 185, 10, "La Abeja's hive"),
+	-- K-D2 (owner request 2026-11-17, kitten park: "es como el mundo de gatito: un parque verde lindo"): the plot side of
+	-- the cloud gate to Caramelo Este (world (922, -3), in front of the wall's 14-stud gap at z -10..4), kept clear of
+	-- hide spots, grass, traps and bee hives. Written in v8 plot coordinates, not through keepClear() (v7 ones).
+	table.freeze({ x = 250, z = 0, r = 16, why = "Cloud gate to Caramelo Este" }),
 })
 
 -- V8-D1: the v7 spots below, scaled by nest() (x S); the rarity depth rings scale with them (WildboundCandyLayout_Test).

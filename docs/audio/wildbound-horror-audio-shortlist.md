@@ -64,6 +64,17 @@ Found for this layer: 3 wind and leaves, 3 insects, 3 music.
 |---|---|---|---|---|---|---|
 | 1845212471 | Bundles Of Joy | APMOfficial | not reported | not stated | A cheerful, light children's track for the candy biome (owner asked for happy music in Caramelo). | Chosen for the owner by name; nobody has listened yet: the owner must audition it. Alternates, same library: 1841060369 Play School, 1846279685 Merry Kids. Verified via search_asset and a Studio preload (Success). |
 
+### Kitten park music (2026-11-17)
+
+The owner asked for "otra canción que tenga que ver más con gatitos" for Pueblo Gatito, the kitten park in Caramelo Este (`docs/design/wildbound-kitten-park-plan.md` K-D13). Catalog slot `gatitoMusic`, in fallback order (the first id that loads plays). Before the deploy, keep only the ids that pass `search_asset` and a Studio `ContentProvider:PreloadAsync` Success, and record each result here. If none of the three kitten tracks passes, the slot is only the APM fallback and the owner is told.
+
+| Asset id | Name | Creator | Duration | Loops | Why it fits | Notes |
+|---|---|---|---|---|---|---|
+| 108517170970006 | Tiny Kitten's Happy Adventure | not known | not reported | not stated | A happy, kitten-named track for the kitten park. First choice. | Creator unknown (not APM or PSE): confirm it is free and preloads in Studio. Not yet checked. The owner must audition it. |
+| 122890771686677 | Lazy Kitten Loop | not known | not reported | not stated | A calm kitten-named loop. Second choice. | Creator unknown: confirm it is free and preloads in Studio. Not yet checked. |
+| 133622392487696 | Sneaky Kitten | not known | not reported | not stated | A playful kitten-named track. Third choice. | Creator unknown: confirm it is free and preloads in Studio. Not yet checked. |
+| 1846279685 | Merry Kids | APMOfficial | not reported | not stated | A cheerful children's track from the same library as the Caramelo music. Final fallback. | Listed above as a Caramelo alternate; no other slot uses it. Not yet checked for this slot. |
+
 ## Layer 2. Distant threat
 
 Branches snapping, occasional whispers, unsettling music.

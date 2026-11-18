@@ -163,8 +163,10 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		equal(Portal.threatened({ x = 0, z = 0, beastEngagedAt = "soon" }, now), false, "bad stamp")
 	end)
 
-	case("PT-8: two stations, the Caramelo arch and the forest, outside every safe zone, the forest one far from La Silueta", function()
-		equal(#Portal.STATIONS, 2, "two stations")
+	case("PT-8: three stations, the Caramelo arch, the forest and the kitten park, outside every safe zone, the forest one far from La Silueta", function()
+		-- Deliberately changed (K-D3, Pueblo Gatito, owner request 2026-11-17 "un parque verde lindo con las criaturas
+		-- gatitas"): a third station, "parque", in Caramelo Este (2 -> 3); see PT-K1.
+		equal(#Portal.STATIONS, 3, "three stations")
 		local byId = {}
 		for _, s in ipairs(Portal.STATIONS) do byId[s.id] = s end
 		local candy, forest = byId.caramelo, byId.bosque
@@ -185,6 +187,24 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		equal((Rules.zone(forest.x, forest.z)), false, "bosque outside the deep fog")
 		equal(Portal.station("bosque"), forest, "lookup"); equal(Portal.station("nope"), nil, "unknown")
 		assert(table.isfrozen(Portal.STATIONS), "frozen")
+	end)
+
+	-- K-D3 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md): the kitten park's return station, built by the
+	-- service in Caramelo Este (CandyEast), far from the hub, outside every safe zone, on the park floor, walked through
+	-- along world z; a carrier is still refused there (Portal.CARRY, decision 47).
+	case("PT-K1: the parque station stands in Caramelo Este, built, yaw 90 at y 0.5, far from the hub, outside every safe zone", function()
+		local park = Portal.station("parque")
+		assert(park, "no parque station")
+		assert(table.isfrozen(park), "frozen")
+		equal(park.source, "build", "the service builds it")
+		near(park.x, 980, "x"); near(park.z, 40, "z")
+		near(park.y, 0.5, "on the park floor (top 0.5)"); equal(park.yaw, 90, "walked through along world z")
+		equal(Biomes.has(park.x, park.z, "CandyEast"), true, "parque in Caramelo Este")
+		equal(Biomes.has(park.x, park.z, "Meadow"), false, "never in the candy plot")
+		local _, safe = Rules.zone(park.x, park.z)
+		equal(safe, false, "parque outside every safe zone")
+		assert(Rules.distance(park.x, park.z, Rules.HUB_X, Rules.HUB_Z) >= 300, "parque far from the hub")
+		equal(Portal.CARRY, "refuse", "a carrier is still refused (decision 47)")
 	end)
 
 	case("PT-9: CG2 (decision 47): a player carrying an egg cannot use a portal", function()

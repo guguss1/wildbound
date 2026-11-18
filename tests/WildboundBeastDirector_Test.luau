@@ -604,6 +604,40 @@ return function(Director, source, Config)
 		assert(Director.summon(dir, 1, "Mochimiau", meadow, 15), "back after 5 s")
 	end)
 
+	-- K-D4, K-D10 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "un parque verde
+	-- lindo con las criaturas gatitas"): the four kittens are summoned only in Caramelo Este (home biome CandyEast); a plot
+	-- creature is never summoned there and no Global beast is placed there (NO_GLOBAL_BIOMES). Mirrors
+	-- WildboundCandyKittens_Test KK6; the PF7 loop above covers their 5 s rest (they are SUMMONED).
+	case("K-D10: kittens only in Caramelo Este, plot creatures and globals never there, an east post books its own copy", function()
+		local KITTENS = { "GatitoLanudo", "GatitoGuerrero", "GatitaBouquet", "GatitoActually" }
+		local park = ctx({ biomes = { CandyEast = true } })
+		local meadow = ctx({ biomes = { Meadow = true } })
+		equal(Config.NO_GLOBAL_BIOMES.CandyEast, true, "Caramelo Este bars the Global beasts")
+		for _, name in ipairs(KITTENS) do
+			equal(Config.SUMMONED[name], true, name .. " summoned"); equal(Config.PLAYABLE[name], nil, name .. " never rolled")
+			equal(Config.homeBiome(name), "CandyEast", name .. " home")
+			equal(Director.placeBlock(name, park), nil, name .. " in the park")
+			local dir = Director.new({ random = always(0) })
+			local ok, why = Director.summon(dir, 1, name, park, 0)
+			equal(ok, true, name .. " summoned in the park (" .. tostring(why) .. ")")
+			equal(select(2, Director.summon(dir, 2, name, meadow, 0)), "Biome", name .. " never in the plot")
+			equal(select(2, Director.summon(dir, 3, name, ctx(), 0)), "Biome", name .. " never in the forest")
+		end
+		equal(Director.placeBlock("Mochimiau", park), "Biome", "a plot critter never in the park")
+		equal(select(2, Director.summon(Director.new({ random = always(0) }), 1, "Mochimiau", park, 0)), "Biome")
+		for name in pairs(Config.PLAYABLE) do
+			equal(Director.placeBlock(name, park), "NoGlobalZone", name .. " in the park")
+		end
+		equal(select(2, Director.reserve(Director.new({ random = always(0) }), 1, "Viper", park, 0, { force = true })),
+			"NoGlobalZone", "even forced")
+		-- a steal at nest K5 wakes the copy of that east extra post, beside the home copy
+		local dir = Director.new({ random = always(0) })
+		local ok, enc = Director.alarm(dir, 1, "GatitoGuerrero", park, 0, "kittenPostK5")
+		assert(ok and enc.post == "kittenPostK5", "the alarm books post kittenPostK5")
+		assert(Director.summon(dir, 1, "GatitoGuerrero", park, 0.25), "the home copy is its own encounter")
+		equal(select(2, Director.alarm(dir, 1, "GatitoGuerrero", park, 0.5, "kittenPostK5")), "AlreadyActive", "one per post")
+	end)
+
 	-- PF1: the refusal reason of a summon is returned, so the beast script can write it to Beast_lastSummonRefusal.
 	case("PF1: summon returns why it refused", function()
 		local dir = Director.new({ random = always(0) })

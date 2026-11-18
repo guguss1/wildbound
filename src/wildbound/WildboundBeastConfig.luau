@@ -67,7 +67,9 @@ Config.CATEGORIES = table.freeze({ Guardian = true, Biome = true, Global = true,
 -- "Event": a creature woken by the server's biome event window, summoned by the beast script (La Abeja Reina).
 -- Biome tags where no Global beast may appear (owner decision 3: Pradera Arcoiris has a no-damage rule). Safe zones are
 -- excluded for every beast already. Nothing fills the "Meadow" tag until the P1 biome tags exist.
-Config.NO_GLOBAL_BIOMES = table.freeze({ Meadow = true })
+-- K-D10 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
+-- gatito: un parque verde lindo con las criaturas gatitas"): no Global beast rolls in the kitten park (CandyEast) either.
+Config.NO_GLOBAL_BIOMES = table.freeze({ Meadow = true, CandyEast = true })
 -- Biome preference switch (owner, 2026-11-14: "que no tengan un bioma predilecto de momento"). Off: every playable
 -- beast is treated as Global (it rolls and spawns anywhere the director allows beasts: still never in a safe zone or in
 -- NO_GLOBAL_BIOMES), and Root no longer gives up outside the Pantano. The `category` and `biome` fields below stay as the
@@ -515,6 +517,70 @@ Config.BEASTS = table.freeze({
 			}),
 		}),
 	}),
+	-- K-D4, K-D5 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
+	-- gatito: un parque verde lindo con las criaturas gatitas ... también tiene que haber huevos para robar"): the four
+	-- kittens of Caramelo Este guard its eight nests. Four rows on the candy critters' one brain (WildboundBeastCandyCritter,
+	-- no new module): summoned at fixed posts (WildboundPraderaSites.EAST_FIXED), never rolled, points 0, the egg kept,
+	-- home biome CandyEast (so the director never summons them in the plot, nor a plot creature in the park). They hurt
+	-- lightly (7-10, under the critters' 12-23) through the same BeastHit path; every chase is between a walking (16) and a
+	-- running (23.2) player; every tell is at least MIN_TELL. Never a Gift or a Call extra (the server writes the Gato's
+	-- golden-order text for those). Every number is a first proposal (plan K-D5).
+	GatitoLanudo = table.freeze({ -- Rebota como ovillo: a yarn-ball hop onto the target's circle, then one more bounce
+		category = "Guardian", riskModifier = 1, points = 0, biome = "CandyEast",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = SUMMONED_REST, damage = 8, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 40, PerceptionStuds = 36, AbandonStuds = 46, LeashStuds = 30,
+			PatrolRadiusStuds = 9, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6, ChaseSpeedStudsPerSecond = 21,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
+			Attack = table.freeze({ kind = "leap", RangeStuds = 7, TelegraphSeconds = 0.8, LockSeconds = 0.45, TravelSeconds = 0.45,
+				RadiusStuds = 4, RecoverSeconds = 0.6, CooldownSeconds = 4, PushStuds = 6, PushSeconds = 0.3,
+				SlowMultiplier = 0.8, SlowSeconds = 2 }),
+			Extras = table.freeze({
+				Follow = table.freeze({ Max = 1, RangeStuds = 9 }),
+			}),
+		}),
+	}),
+	GatitoGuerrero = table.freeze({ -- shield charge: a lane forward from itself, a push and a 25 % slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "CandyEast",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = SUMMONED_REST, damage = 10, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 40, PerceptionStuds = 36, AbandonStuds = 48, LeashStuds = 32,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 1.5, PatrolSpeedStudsPerSecond = 6.5, ChaseSpeedStudsPerSecond = 21.5,
+			AlertSeconds = 0.6, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
+			Attack = table.freeze({ kind = "dash", RangeStuds = 10, TelegraphSeconds = 0.9, LockSeconds = 0.5, TravelSeconds = 0.55,
+				LengthStuds = 13, WidthStuds = 4.5, RecoverSeconds = 0.7, CooldownSeconds = 5.5, PushStuds = 8, PushSeconds = 0.35,
+				SlowMultiplier = 0.75, SlowSeconds = 2.5 }),
+		}),
+	}),
+	GatitaBouquet = table.freeze({ -- petal throw from a stand-off: a circle on the target, a puff and a 20 % slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "CandyEast",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = SUMMONED_REST, damage = 7, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 42, PerceptionStuds = 38, AbandonStuds = 50, LeashStuds = 34,
+			PatrolRadiusStuds = 10, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5.5, ChaseSpeedStudsPerSecond = 20.5,
+			StandOffStuds = 9,
+			AlertSeconds = 0.7, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
+			Attack = table.freeze({ kind = "lob", RangeStuds = 15, TelegraphSeconds = 1.0, LockSeconds = 0.5, TravelSeconds = 0.6,
+				RadiusStuds = 4.5, RecoverSeconds = 0.7, CooldownSeconds = 4.5, PushStuds = 5, PushSeconds = 0.3,
+				SlowMultiplier = 0.8, SlowSeconds = 2 }),
+		}),
+	}),
+	GatitoActually = table.freeze({ -- "¡De hecho!": a shockwave round itself after a long comic tell, a shove and a slow
+		category = "Guardian", riskModifier = 1, points = 0, biome = "CandyEast",
+		chance10 = 0, chance = 0, -- never rolled
+		cooldown = SUMMONED_REST, damage = 9, keepsEgg = true, grounded = true, hitHeight = 8, disengage = 0.9,
+		tuning = table.freeze({
+			WakeRadiusStuds = 38, PerceptionStuds = 34, AbandonStuds = 46, LeashStuds = 30,
+			PatrolRadiusStuds = 8, PatrolPauseSeconds = 2, PatrolSpeedStudsPerSecond = 5, ChaseSpeedStudsPerSecond = 20,
+			AlertSeconds = 0.8, EscapeDistanceStuds = 90, EscapeSeconds = 2, GiveUpSeconds = 4.5, IdleSeconds = 25,
+			Attack = table.freeze({ kind = "burst", RangeStuds = 7, TelegraphSeconds = 1.2, LockSeconds = 0, TravelSeconds = 0.25,
+				RadiusStuds = 9, RecoverSeconds = 0.8, CooldownSeconds = 6.5, PushStuds = 6, PushSeconds = 0.3,
+				SlowMultiplier = 0.75, SlowSeconds = 2.5 }),
+		}),
+	}),
 	-- Caramelo biome (pack 03_PERSONAJES/04_DON_GLASEON_BOSS.md; odd/tasks/wildbound-caramelo.md, CA3): Don Glaseon, the
 	-- territorial boss of the Gran Torta, summoned like Gomibu but one per server (serverUnique: the director refuses a
 	-- second encounter while one lives and for switchSeconds after it ends). Its one attack, Latigo de Regaliz, has its
@@ -567,11 +633,15 @@ Config.PLAYABLE = table.freeze({ Viper = true, Pouncer = true, Streamer = true, 
 -- Wave 2 beasts run through a behaviour module registered with WildboundBeastEncounters (Enc.register).
 Config.WAVE2 = table.freeze({ Streamer = true, Root = true, Gaze = true, Lurker = true, NubeGrunona = true,
 	AbejaReina = true, Scuttler = true, Gomibu = true, Flanfuria = true, Tortidragon = true, DonGlaseon = true,
-	Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true })
+	Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true,
+	-- K-D4: the four kittens of Caramelo Este (the candy critters' brain)
+	GatitoLanudo = true, GatitoGuerrero = true, GatitaBouquet = true, GatitoActually = true })
 -- Kids biome: beasts the beast script summons by presence (Director.summon), never rolled. They ignore
 -- DIRECTOR.GLOBAL_COOLDOWN (neither set it nor obey it); their species cooldown is `cooldown` or endCooldowns[reason].
 Config.SUMMONED = table.freeze({ NubeGrunona = true, AbejaReina = true, Gomibu = true, Flanfuria = true,
-	Tortidragon = true, DonGlaseon = true, Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true })
+	Tortidragon = true, DonGlaseon = true, Mochimiau = true, Canelin = true, Flanin = true, Mielita = true, GatoRepartidor = true,
+	-- K-D4: the four kittens, summoned at their park posts
+	GatitoLanudo = true, GatitoGuerrero = true, GatitaBouquet = true, GatitoActually = true })
 -- The beasts that read the target's camera through the validated observation (WildboundBeastSight).
 Config.OBSERVERS = table.freeze({ Gaze = true, Lurker = true })
 

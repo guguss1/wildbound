@@ -13,7 +13,7 @@ Mix.REDUCED_MASTER = 0.6
 local LEVEL = { Safe = true, Distant = true, Near = true, Chase = true }
 local TIME = { Day = "Day", Dusk = "Dusk", Dawn = "Dusk", Night = "Night" }
 local BEDS = { wind = true, birds = true, insectsDusk = true, insectsNight = true, safeMusic = true, nightBed = true,
-	carameloMusic = true }
+	carameloMusic = true, gatitoMusic = true }
 local CHASE = { chaseMusic = true, pulse = true }
 local ONE_SHOTS = {
 	snap = { slot = "snap", volume = 0.25 }, dirt = { slot = "dirt", volume = 0.20 },
@@ -114,6 +114,25 @@ function Mix.targets(level, time, reduced, candy, candyTrack)
 			-- review follow-up: the same lift at every hour (0.15 -> CANDY.safeMusic by day), never a flat level
 			t.safeMusic = t.safeMusic * (Mix.CANDY.safeMusic / 0.15)
 		end
+	end
+	return t
+end
+
+-- K-D13 (owner request 2026-11-17, "otra canción que tenga que ver más con gatitos"): inside the kitten park (Pueblo
+-- Gatito) its own bed, gatitoMusic, plays at `track` in place of the Caramelo track and the calm bed, halved when
+-- something is Distant and silent when it is Near or in a chase, like them.
+Mix.KITTEN = table.freeze({ track = 0.18 })
+
+-- withKitten(t, level, kitten, kittenTrack) -> t, changed in place. kittenTrack: the catalog has a gatitoMusic slot (only
+-- then is that key returned); kitten: the player is in the park. Outside the park the bed is 0 (it fades out).
+function Mix.withKitten(t, level, kitten, kittenTrack)
+	if kittenTrack ~= true or type(t) ~= "table" then return t end
+	if kitten == true then
+		local calm = level == "Safe" and 1 or (level == "Distant" and 0.5 or 0)
+		t.gatitoMusic, t.safeMusic = Mix.KITTEN.track * calm, 0
+		if t.carameloMusic ~= nil then t.carameloMusic = 0 end
+	else
+		t.gatitoMusic = 0
 	end
 	return t
 end

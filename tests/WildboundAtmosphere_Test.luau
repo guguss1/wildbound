@@ -180,6 +180,25 @@ return function(Atmosphere, clientSource)
 		end
 	end)
 
+	-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo ..."): the kitten park's own zone
+	-- (WildboundBiomeLight's Gatuno preset reads its Day row): clear light-blue air, a thin haze and the longest view.
+	case("K-D14: the park zone: rows for Day, Dusk and Night, light-blue air and a view to 1100", function()
+		local day = Atmosphere.at(13, "park", false)
+		row(day, { 0.22, 0.1, 0.6, 150, 1100 }, "park Day")
+		row(Atmosphere.at(19, "park", false), { 0.28, 0.08, 0.8, 110, 700 }, "park Dusk")
+		row(Atmosphere.at(23, "park", false), { 0.34, 0.05, 1.0, 70, 450 }, "park Night")
+		near(day.atmosphereColor.r, 199, "air r"); near(day.atmosphereColor.g, 226, "air g")
+		near(day.atmosphereColor.b, 245, "air b")
+		near(day.fogColor.r, 214, "fog r"); near(day.fogColor.g, 236, "fog g"); near(day.fogColor.b, 250, "fog b")
+		local colours = Atmosphere.ZONE_COLOURS.park
+		assert(colours and table.isfrozen(colours), "frozen park colours")
+		for name, clock in pairs(TIMES) do
+			for _, reduced in ipairs({ false, true }) do checkFloors(Atmosphere.at(clock, "park", reduced), "park " .. name) end
+		end
+		assert(day.fogEnd > Atmosphere.at(13, "candy", false).fogEnd, "clearer than Caramelo")
+		assert(Atmosphere.at(13, "lava", false).fogEnd == 140, "an unknown zone still falls back to the open row")
+	end)
+
 	case("D1: the world client applies the module, owns Offset, and has no inline fog numbers", function()
 		assert(clientSource:find("WildboundAtmosphere", 1, true), "client does not require WildboundAtmosphere")
 		assert(clientSource:find("Atmosphere.at(", 1, true) or clientSource:find("Atmos.at(", 1, true),

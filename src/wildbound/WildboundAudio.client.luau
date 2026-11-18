@@ -205,9 +205,11 @@ local function update(dt)
 	local hidden = type(player:GetAttribute("WildboundHidden")) == "string"
 	local now = os.clock()
 	-- Caramelo ambience: WildboundCandyAmbienceClient sets this local flag while the player is in the Caramelo plot.
-	local candy = worldGui:GetAttribute("CandyAmbience") == true
+	-- K-D13: WildboundCandyKittenAmbienceClient sets GatitoAmbience in the kitten park; its bed wins where both are on.
+	local kitten = worldGui:GetAttribute("GatitoAmbience") == true
+	local candy = worldGui:GetAttribute("CandyAmbience") == true and not kitten
 	local candyTrack = Catalog.SOUNDS.carameloMusic ~= nil
-	local targets = Mix.targets(level, phase, reduced, candy, candyTrack)
+	local targets = Mix.withKitten(Mix.targets(level, phase, reduced, candy, candyTrack), level, kitten, Catalog.SOUNDS.gatitoMusic ~= nil)
 	local body = guardianBody()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")

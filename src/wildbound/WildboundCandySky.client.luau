@@ -4,6 +4,10 @@
 -- client never sets); elsewhere the clouds fade out and the decay goes back to the place's own. The pink air and fog
 -- themselves are WildboundAtmosphere's candy zone (ZONE_COLOURS), applied by the world client. Visual only: no
 -- gameplay, no server. StarterPlayerScripts LocalScript.
+-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo ..."; docs/design/
+-- wildbound-kitten-park-plan.md): one look per preset. Caramelo keeps its pink look exactly; Gatuno (Pueblo Gatito, the
+-- kitten park) shows white clouds under the place's own blue Sky, with no decay change and no skybox swap. Walking from
+-- one look to the other fades the first out, then the second in.
 local Players = game:GetService("Players")
 local Lighting = game:GetService("Lighting")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,32 +15,34 @@ local RunService = game:GetService("RunService")
 
 local BiomeLight = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight"))
 
+-- cover: of the sky; decay: the sky's tint (none keeps the place's own); skybox: show the pink skybox
 local SKY = table.freeze({
-	preset = "Caramelo",
-	cover = 0.62, -- of the sky
-	density = 0.55,
-	cloudColour = Color3.fromRGB(255, 226, 240),
-	decay = Color3.fromRGB(255, 140, 196),
-	blendSeconds = 1.5,
+	Caramelo = table.freeze({ cover = 0.62, density = 0.55, cloudColour = Color3.fromRGB(255, 226, 240),
+		decay = Color3.fromRGB(255, 140, 196), skybox = true }),
+	Gatuno = table.freeze({ cover = 0.45, density = 0.4, cloudColour = Color3.fromRGB(255, 255, 255), skybox = false }),
 })
+local BLEND_SECONDS = 1.5
 
 local player = Players.LocalPlayer
 local clouds = Instance.new("Clouds")
 clouds.Name = "WildboundCandyClouds"
-clouds.Cover, clouds.Density, clouds.Color = 0, SKY.density, SKY.cloudColour
+clouds.Cover, clouds.Density, clouds.Color = 0, SKY.Caramelo.density, SKY.Caramelo.cloudColour
 clouds.Enabled = false
 clouds.Parent = workspace.Terrain
 
 local originalDecay = nil
-local weight = 0 -- 0: the place's own sky, 1: Caramelo's
+local weight = 0 -- 0: the place's own sky, 1: the active look's
+local active = nil -- the preset whose look is shown or fading (it changes only at weight 0)
 
 -- V7-D3 (Play 2026-11-17: the place's skybox kept the sky blue under the pink air): in Caramelo this client shows the
 -- pink skybox ReplicatedStorage.WildboundCandySkybox (a Sky only: the textures of a free Creator Store sky; its scripts
 -- and gui were discarded) in place of the place's own Sky, which it puts back outside. Roblox draws one Sky.
+-- K-D14: only a look with skybox = true swaps it; the park keeps the place's own blue Sky.
 local template = ReplicatedStorage:WaitForChild("WildboundCandySkybox", 10)
 local pinkSky, placeSky = nil, nil
 local function useCandySky(on)
 	if not template or not template:IsA("Sky") then return end
+	on = on and SKY[active] ~= nil and SKY[active].skybox == true
 	if on and not pinkSky then
 		placeSky = Lighting:FindFirstChildOfClass("Sky")
 		if placeSky then placeSky.Parent = nil end
@@ -54,16 +60,22 @@ end
 RunService.Heartbeat:Connect(function(dt)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	local inside = root ~= nil and BiomeLight.presetAt(root.Position.X, root.Position.Z) == SKY.preset
-	local goal = inside and 1 or 0
+	local name = root ~= nil and BiomeLight.presetAt(root.Position.X, root.Position.Z) or nil
+	local wanted = SKY[name] and name or nil
+	if wanted ~= active and weight == 0 then
+		active = wanted
+		if SKY[active] then clouds.Density, clouds.Color = SKY[active].density, SKY[active].cloudColour end
+	end
+	local look = SKY[active]
+	local goal = (look ~= nil and wanted == active) and 1 or 0
 	if weight == goal then return end
-	weight = math.clamp(weight + (goal == 1 and 1 or -1) * math.min(dt, 0.1) / SKY.blendSeconds, 0, 1)
+	weight = math.clamp(weight + (goal == 1 and 1 or -1) * math.min(dt, 0.1) / BLEND_SECONDS, 0, 1)
 	clouds.Enabled = weight > 0
-	clouds.Cover = SKY.cover * weight
+	clouds.Cover = look.cover * weight
 	useCandySky(weight >= 0.5)
 	local atmosphere = Lighting:FindFirstChildOfClass("Atmosphere")
 	if atmosphere then
 		originalDecay = originalDecay or atmosphere.Decay
-		atmosphere.Decay = originalDecay:Lerp(SKY.decay, weight)
+		atmosphere.Decay = originalDecay:Lerp(look.decay or originalDecay, weight)
 	end
 end)

@@ -290,6 +290,12 @@ local TELL_COLOR = {
 	Flanin = Color3.fromHex("E8A23A"),
 	Mielita = Color3.fromHex("F8D23A"),
 	GatoRepartidor = Color3.fromHex("45C9A0"),
+	-- K-D5 (Pueblo Gatito, owner request 2026-11-17 "un parque verde lindo con las criaturas gatitas"): the four kittens,
+	-- each in a bright colour that reads on the green park floor; none red.
+	GatitoLanudo = Color3.fromHex("6FE3CF"),
+	GatitoGuerrero = Color3.fromHex("FF9F43"),
+	GatitaBouquet = Color3.fromHex("FF8FB8"),
+	GatitoActually = Color3.fromHex("7FB8FF"),
 }
 -- Kids biome: their own sounds (catalogue slots only; never chaseMusic, heartbeat, roar or stinger).
 local KIDS_PHASE_SOUND = {

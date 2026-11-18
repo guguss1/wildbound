@@ -74,8 +74,9 @@ return function(BiomeLight, source, sources)
 	end)
 
 	-- V8-D2 (owner request 2026-11-17, "another space of the same size, separated by clouds"): Caramelo Este (the cloud
-	-- band and the second space east of the bigger plot) is its own square and tag, with the Caramelo light and Day rules.
-	case("V8-D2: Caramelo Este is its own square, lit as Caramelo, played by Day", function()
+	-- band and the second space east of the bigger plot) is its own square and tag, with Day rules. K-D14 gives it the
+	-- kitten park's own light (it had the Caramelo light).
+	case("V8-D2: Caramelo Este is its own square, lit as Pueblo Gatito (K-D14), played by Day", function()
 		local row
 		for _, area in ipairs(BiomeLight.AREAS) do
 			if area.tag == "CandyEast" then
@@ -85,11 +86,13 @@ return function(BiomeLight, source, sources)
 		end
 		assert(row, "no CandyEast row")
 		equal(("%g,%g,%g,%g"):format(row.minX, row.maxX, row.minZ, row.maxZ), "932,1468,-263,257", "the band and the space")
-		equal(BiomeLight.TAG_PRESET.CandyEast, "Caramelo", "the Caramelo preset")
+		-- Deliberately changed (K-D14): the owner's "es como el mundo de gatito: un parque verde lindo ..." gives Caramelo
+		-- Este its own Gatuno preset (a blue sky and a long, clear view) in place of the Caramelo one.
+		equal(BiomeLight.TAG_PRESET.CandyEast, "Gatuno", "the Gatuno preset")
 		for _, sample in ipairs({ { 940, -3 }, { 1208, -3 }, { 1460, 250 }, { 960, -240 } }) do
 			local name, preset = BiomeLight.presetAt(sample[1], sample[2])
-			equal(name, "Caramelo", ("at %d, %d"):format(sample[1], sample[2]))
-			equal(preset, BiomeLight.PRESETS.Caramelo)
+			equal(name, "Gatuno", ("at %d, %d"):format(sample[1], sample[2]))
+			equal(preset, BiomeLight.PRESETS.Gatuno)
 			equal((BiomeLight.phaseAt(sample[1], sample[2])), "Day", "Day rules")
 		end
 		equal((BiomeLight.presetAt(1500, -3)), "Hub", "past the second space")
@@ -104,6 +107,41 @@ return function(BiomeLight, source, sources)
 			equal(strip.Meadow, nil, "no Meadow rules in the overlap (big4)")
 			equal(Biomes.at(900, 0).CandyEast, nil, "the plot west of the band is no CandyEast")
 			equal(Biomes.at(612, -3).Meadow, true, "the plot keeps its Meadow tag")
+		end
+	end)
+
+	-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo con las criaturas gatitas, ..."):
+	-- Pueblo Gatito, the kitten park in Caramelo Este, has its own Gatuno preset: always day, the Atmosphere "park" zone
+	-- (clear blue air, a long view), Day rules. Its square is the first row, so no overlapping square takes the cloud band.
+	case("K-D14: Pueblo Gatito's Gatuno preset: a blue sky, a long clear view, Day rules, first in the squares", function()
+		equal((BiomeLight.presetAt(1200, 0, "classic")), "Gatuno", "the park")
+		equal((BiomeLight.presetAt(620, -7, "classic")), "Caramelo", "the plot keeps Caramelo")
+		local gatuno = BiomeLight.PRESETS.Gatuno
+		assert(type(gatuno) == "table" and table.isfrozen(gatuno), "a frozen Gatuno preset")
+		equal(gatuno.zone, "park", "the park zone")
+		equal(gatuno.mood, "Day", "always day")
+		equal(gatuno.variants, false, "the wave's variant never reaches the park")
+		equal(gatuno.label, "Pueblo Gatito · siempre de día", "the HUD label")
+		equal(BiomeLight.RULES.Gatuno, "Day", "Day rules")
+		equal((BiomeLight.phaseAt(1200, 0, "classic")), "Day", "played by Day")
+		equal(BiomeLight.AREAS[1].tag, "CandyEast", "the park's square is the first row")
+		local Atmos = sources.atmosphere
+		assert(type(Atmos) == "table", "atmosphere not passed")
+		local park = BiomeLight.target(Atmos, "Gatuno", "open", false)
+		assert(park.fogEnd >= 900, "a long, clear view: " .. park.fogEnd)
+		assert(park.density <= 0.3, "a thin haze: " .. park.density)
+		equal(park.brightness, 1, "bright")
+		local air = park.atmosphereColor
+		assert(air.b > air.r and air.b > 200, "blue air, not pink: " .. air.r .. "," .. air.g .. "," .. air.b)
+		local withVariant = BiomeLight.target(Atmos, "Gatuno", "open", false, "Ceniza")
+		equal(withVariant.fogEnd, park.fogEnd, "no variant in the park")
+		-- the big4 copy (Studio): the park's square is first there too, so the big4 Meadow square (x 412..1012) no longer
+		-- takes the cloud band and the park's west strip
+		if type(BiomeLight.AREAS_BIG4) == "table" then
+			equal(BiomeLight.AREAS_BIG4[1].tag, "CandyEast", "big4: the park's square is the first row")
+			equal((BiomeLight.presetAt(960, 0, "big4")), "Gatuno", "big4: the park's west strip")
+			equal((BiomeLight.presetAt(1300, 0, "big4")), "Gatuno", "big4: the park")
+			equal((BiomeLight.presetAt(900, 0, "big4")), "Caramelo", "big4: the plot west of the band")
 		end
 	end)
 

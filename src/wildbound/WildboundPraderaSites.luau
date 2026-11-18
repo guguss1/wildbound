@@ -29,7 +29,11 @@ Sites.OFFSETS = table.freeze({
 -- Which site each summoned beast lives at.
 Sites.HOME = table.freeze({ NubeGrunona = "pond", AbejaReina = "colmena", Gomibu = "candyNest", Flanfuria = "candyNestR1",
 	Tortidragon = "candyNestC3", DonGlaseon = "bossHome", Mochimiau = "candyNestR2", Canelin = "candyNestR3", Flanin = "candyNestR4",
-	Mielita = "candyNestC4", GatoRepartidor = "candyNestC2" })
+	Mielita = "candyNestC4", GatoRepartidor = "candyNestC2",
+	-- K-D7 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "un parque verde lindo con
+	-- las criaturas gatitas ... también tiene que haber huevos para robar"): the four kittens' home posts (EAST_FIXED)
+	GatitoGuerrero = "kittenPostK1", GatitaBouquet = "kittenPostK2", GatitoActually = "kittenPostK3",
+	GatitoLanudo = "kittenPostK4" })
 -- Caramelo biome: sites given in world coordinates, which never move with the sector origin (the world numbers in this
 -- paragraph are the v7 ones; V8-D1 below moves each post with its nest). candyNest is the open
 -- floor beside candy nest C1 (the nest itself is at 452, -21), the first one past the biome entrance: Gomibu's post.
@@ -94,6 +98,30 @@ Sites.EXTRA_POSTS = table.freeze({
 	table.freeze({ name = "Mielita", key = "candyPostC13" }), table.freeze({ name = "Flanin", key = "candyPostC12" }),
 })
 
+-- K-D7 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de gatito:
+-- un parque verde lindo con las criaturas gatitas ... también tiene que haber huevos para robar"): the eight kitten posts
+-- in Caramelo Este, in world coordinates (they never move with the sector origin), each 12 studs from its park nest K<n>
+-- toward the nearest route, at least 85 from any other post (two wake circles of at most 42), world x 1038..1388 and
+-- |z + 3| <= 180, so a hunt (zone 60 + 12) plus the attack and the push never reaches the cloud wall (K1: 1038 - 72 - 10
+-- - 8 = 948, east of the Collider's face at 938). Deliberately kept out of FIXED, which the plot's suites and tools pin;
+-- Sites.world and Sites.wants read both. Keys are letters and digits only (an attribute name and a "<name>@<post>" binding).
+Sites.EAST_FIXED = table.freeze({
+	kittenPostK1 = table.freeze({ x = 1038, z = -46 }), -- GatitoGuerrero, home (nest K1 at 1038, -58)
+	kittenPostK2 = table.freeze({ x = 1043, z = 104 }), -- GatitaBouquet, home (nest K2 at 1043, 92)
+	kittenPostK3 = table.freeze({ x = 1143, z = -53 }), -- GatitoActually, home (nest K3 at 1143, -65)
+	kittenPostK4 = table.freeze({ x = 1158, z = 55 }), -- GatitoLanudo, home (nest K4 at 1158, 67)
+	kittenPostK5 = table.freeze({ x = 1228, z = -61 }), -- GatitoGuerrero, extra (nest K5 at 1228, -73)
+	kittenPostK6 = table.freeze({ x = 1243, z = 60 }), -- GatitaBouquet, extra (nest K6 at 1243, 72)
+	kittenPostK7 = table.freeze({ x = 1358, z = -111 }), -- GatitoActually, extra (nest K7 at 1358, -123)
+	kittenPostK8 = table.freeze({ x = 1358, z = 105 }), -- GatitoLanudo, extra (nest K8 at 1358, 117)
+})
+-- K-D7, K-D11: one more copy of each kitten at an east extra post, summoned like the plot's EXTRA_POSTS (its own
+-- encounter, Director post, its own rest); the beast server and the resting service walk this list after that one.
+Sites.EAST_EXTRA_POSTS = table.freeze({
+	table.freeze({ name = "GatitoGuerrero", key = "kittenPostK5" }), table.freeze({ name = "GatitaBouquet", key = "kittenPostK6" }),
+	table.freeze({ name = "GatitoActually", key = "kittenPostK7" }), table.freeze({ name = "GatitoLanudo", key = "kittenPostK8" }),
+})
+
 -- CH4 (owner request 2026-11-16, "more creatures that appear in a random way"): ambushes. Every everySeconds a player
 -- inside the Caramelo plot (half studs round the Meadow centre) wins a roll with `chance`: a random candy critter
 -- (names) appears on the ground minStuds to maxStuds away (never past its own sight - 2, so it notices at once, with its
@@ -150,8 +178,9 @@ function Sites.origin(pivot)
 end
 
 -- One site in world coordinates ({x, z}), or nil for an unknown key.
+-- K-D11: a kitten post (EAST_FIXED) is a fixed site too.
 function Sites.world(origin, key)
-	local fixed = Sites.FIXED[key]
+	local fixed = Sites.FIXED[key] or Sites.EAST_FIXED[key]
 	if fixed then return { x = fixed.x, z = fixed.z } end
 	local offset = Sites.OFFSETS[key]
 	if not offset then return nil end
@@ -176,7 +205,8 @@ function Sites.wants(name, ctx, post)
 	-- Caramelo biome: every beast at a fixed post (the candy guardians and critters) wakes within its WakeRadiusStuds.
 	-- V4-D13: during a steal's frenzy (ctx.frenzy = { x, z, studs }: WildboundCandySmarts.frenzyAt) it also wakes when
 	-- its post lies within studs of the robbed nest, so the frenzy's call reaches it.
-	if name ~= "DonGlaseon" and Sites.FIXED[key] then
+	-- K-D11: the kittens' posts (EAST_FIXED) follow the same rule (ctx.meadow is then "in a summoning biome").
+	if name ~= "DonGlaseon" and (Sites.FIXED[key] or Sites.EAST_FIXED[key]) then
 		local f = ctx.frenzy
 		if type(f) == "table" and finite(f.x) and finite(f.z) and finite(f.studs)
 			and Config.flat(f.x, f.z, site.x, site.z) <= f.studs then

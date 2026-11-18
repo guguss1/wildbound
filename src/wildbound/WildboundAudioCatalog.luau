@@ -61,6 +61,11 @@ Catalog.SOUNDS = table.freeze({
 	-- cheerful track picked for the owner, who still has to listen to it (alternates in docs/audio). Removing this line
 	-- brings back the sweeter calm bed (safeMusic).
 	carameloMusic = slot("Music", { 1845212471 }, { loop = true }),
+	-- K-D13 (owner request 2026-11-17, "otra canción que tenga que ver más con gatitos"): the kitten park's own bed
+	-- (WildboundCandyKittenAmbience), in fallback order: "Tiny Kitten's Happy Adventure", "Lazy Kitten Loop", "Sneaky
+	-- Kitten", then APM "Merry Kids" (the Caramelo track's library). The first id that loads plays; the parent keeps only
+	-- the ids that pass search_asset and a Studio preload (docs/audio, "Kitten park music"). The owner must audition it.
+	gatitoMusic = slot("Music", { 108517170970006, 122890771686677, 133622392487696, 1846279685 }, { loop = true }),
 })
 
 -- Ids deliberately used by more than one slot (sorted slot names). Anything else reused is a mistake.

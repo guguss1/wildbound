@@ -520,7 +520,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		ctx.safe = true
 		equal(Sites.wants(extra.name, ctx, extra.key), false, "never for a safe player")
 		local beasts = sources.beasts
-		has(beasts, "world.stealCheck(player, character, p, at, inMeadow(p.X, p.Z))", "a steal is seen in the summon pass")
+		-- Deliberately changed (K-D11, Pueblo Gatito, owner request 2026-11-17 "también tiene que haber huevos para robar"):
+		-- a steal in the kitten park (CandyEast) starts the frenzy too, so the check reads world.inCandy, not inMeadow
+		has(beasts, "world.stealCheck(player, character, p, at, world.inCandy(p.X, p.Z))", "a steal is seen in the summon pass")
 		has(beasts, "want.frenzy = world.smarts.frenzyAt(world, player.UserId, at)", "the frenzy reaches the posts")
 		has(beasts, "world.smarts.frenzy(world, player.UserId, at, p.X, p.Z)", "a new carried egg starts it")
 	end)
@@ -592,6 +594,146 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		local fixed = 0
 		for _ in pairs(Sites.FIXED) do fixed += 1 end
 		equal(fixed, count + 2, "every fixed post is paired (plus Don Glaseon's home and territory)")
+	end)
+
+	-- K-D8, K-D9 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
+	-- gatito ... también tiene que haber huevos para robar"): the kitten park's nests K1..K8 live in the sibling root
+	-- Candy_Este_v1.Nests. The server's one read of Candy_Bioma_v1 returns them too (park = true, guard from the Guard
+	-- attribute), they pay one tier more (PARK_POOL), no plot post ever binds them, and applyFlags lays them (Park.syncNests)
+	-- as its ninth step. Every fixture is a detached scratch Folder.
+	local function scratchNest(folder, id, rarity, x, z, guard)
+		local nest = Instance.new("Model")
+		nest.Name = "Nest_" .. id
+		local bowl = Instance.new("Part")
+		bowl.Name, bowl.Shape, bowl.Size = "Collision_Bowl", Enum.PartType.Cylinder, Vector3.new(2.2, 6, 6)
+		bowl.CFrame = CFrame.new(x, 1.6, z) * CFrame.Angles(0, 0, math.rad(90))
+		bowl.Parent = nest
+		nest.PrimaryPart = bowl
+		nest:SetAttribute("NestId", id); nest:SetAttribute("Rarity", rarity)
+		nest:SetAttribute("EventOnly", false); nest:SetAttribute("Enabled", true)
+		if guard ~= nil then
+			nest:SetAttribute("Candidate", true); nest:SetAttribute("Park", true); nest:SetAttribute("Guard", guard)
+		end
+		nest.Parent = folder
+		return nest
+	end
+	-- A scratch world: a parent Folder holding Candy_Bioma_v1 (one plot nest) and, unless noPark, Candy_Este_v1.Nests
+	-- (two park markers: K1 Comun guarded from a home post, K7 Epica from an east extra post).
+	local function scratchWorld(noPark)
+		local world = Instance.new("Folder")
+		world.Name = "KittenScratch"
+		local bioma = Instance.new("Model")
+		bioma.Name = Nests.ROOT_NAME
+		local plot = Instance.new("Folder")
+		plot.Name, plot.Parent = "Nests", bioma
+		scratchNest(plot, "C1", "Comun", 450, -21, nil)
+		bioma.Parent = world
+		local park
+		if not noPark then
+			park = Instance.new("Model")
+			park.Name = Nests.PARK_ROOT
+			local folder = Instance.new("Folder")
+			folder.Name, folder.Parent = "Nests", park
+			scratchNest(folder, "K1", "Comun", 1038, -58, "GatitoGuerrero")
+			scratchNest(folder, "K7", "Epica", 1358, -123, "GatitoActually@kittenPostK7")
+			park.Parent = world
+		end
+		return world, bioma, park
+	end
+
+	case("PK1: the read of Candy_Bioma_v1 also returns the park markers of its sibling root, marked park with their guard", function()
+		equal(Nests.PARK_ROOT, "Candy_Este_v1", "the park root")
+		local world, bioma = scratchWorld()
+		local read = Nests.read(bioma)
+		equal(#read, 3, "one plot nest and two park nests")
+		local byId = {}
+		for _, m in ipairs(read) do byId[m.id] = m end
+		assert(byId.C1 and byId.K1 and byId.K7, "C1, K1 and K7")
+		equal(byId.C1.park, false, "C1 is a plot nest"); equal(byId.C1.guard, nil, "a plot nest's guard comes from its post")
+		equal(byId.K1.park, true, "K1 park"); equal(byId.K1.guard, "GatitoGuerrero", "K1 guard")
+		equal(byId.K7.park, true, "K7 park"); equal(byId.K7.guard, "GatitoActually@kittenPostK7", "K7 guard")
+		equal(byId.K1.rarity, "Comun"); equal(byId.K7.rarity, "Epica"); equal(byId.K1.enabled, true)
+		assert(math.abs(byId.K1.x - 1038) < 1e-3 and math.abs(byId.K1.z + 58) < 1e-3, "K1 position")
+		assert(math.abs(byId.K1.top - 2.7) < 1e-3, "K1 bowl top " .. byId.K1.top)
+		-- a scratch root (no parent) reads only itself; so does a parented one with no park sibling
+		bioma.Parent = nil
+		equal(#Nests.read(bioma), 1, "an unparented root reads only its own nests")
+		world:Destroy(); bioma:Destroy()
+		local lone, loneBioma = scratchWorld(true)
+		equal(#Nests.read(loneBioma), 1, "no Candy_Este_v1: only the plot's nests")
+		lone:Destroy()
+	end)
+
+	case("PK2: a park nest pays one tier more (Comun Fog Gomibu, Rara FogFar Tortidragon, Epica Territory Flanfuria); no park Legendaria", function()
+		local want = { Comun = { "Gomibu", "Fog" }, Rara = { "Tortidragon", "FogFar" }, Epica = { "Flanfuria", "Territory" } }
+		for rarity, row in pairs(want) do
+			local pick = Nests.pick(rarity, true)
+			assert(pick, rarity)
+			equal(pick.species, row[1], rarity .. " species"); equal(pick.rewardTier, row[2], rarity .. " park reward")
+			equal(pick.tier, Nests.RISK[rarity], rarity .. " the risk tier stays RISK")
+		end
+		equal(Nests.pick("Legendaria", true), nil, "a park Legendaria is unknown")
+		equal(Nests.pick("Comun").rewardTier, "Safe", "the plot keeps its pay"); equal(Nests.pick("Legendaria").rewardTier, "Heart")
+		assert(table.isfrozen(Nests.PARK_POOL), "frozen")
+		local markers = {
+			{ id = "C1", rarity = "Comun", x = 450, z = -21, top = 2.7, enabled = true },
+			{ id = "K1", rarity = "Comun", x = 1038, z = -58, top = 2.7, enabled = true, park = true, guard = "GatitoGuerrero" },
+			{ id = "K7", rarity = "Epica", x = 1358, z = -123, top = 2.7, enabled = true, park = true,
+				guard = "GatitoActually@kittenPostK7" },
+			{ id = "K9", rarity = "Legendaria", x = 1300, z = 0, top = 2.7, enabled = true, park = true, guard = "GatitoLanudo" },
+		}
+		local list = Nests.islands(markers, {})
+		equal(#list, 3, "the park Legendaria is dropped")
+		local byId = {}
+		for _, entry in ipairs(list) do byId[entry.id] = entry end
+		local k1, k7, c1 = byId.CandyK1, byId.CandyK7, byId.CandyC1
+		assert(k1 and k7 and c1, "CandyK1, CandyK7 and CandyC1")
+		equal(k1.species, "Gomibu"); equal(k1.rewardTier, "Fog"); equal(k1.rarity, "Comun"); equal(k1.tier, "Fog")
+		equal(k1.park, true, "K1 marked park"); equal(k1.key, "caramelo_k1"); equal(k1.nestId, "K1")
+		equal(k7.species, "Flanfuria"); equal(k7.rewardTier, "Territory"); equal(k7.rarity, "Epica"); equal(k7.tier, "Territory")
+		equal(c1.rewardTier, "Safe", "a plot Comun still pays Safe"); equal(c1.park, nil, "a plot entry has no park mark")
+		equal(byId.CandyK9, nil, "no park Legendaria")
+		assert(table.isfrozen(k1), "frozen entry")
+	end)
+
+	case("PK3: a park nest's guard is its Guard attribute; a plot post 5 studs away never binds it", function()
+		local markers = {
+			{ id = "K1", rarity = "Comun", x = 1038, z = -58, enabled = true, park = true, guard = "GatitoGuerrero" },
+			{ id = "K2", rarity = "Comun", x = 1043, z = 92, enabled = true, park = true },
+		}
+		local posts = { { name = "Gomibu", x = 1043, z = -58 }, { name = "Flanfuria", x = 1043, z = 97 } }
+		local binding = Nests.bind(markers, posts)
+		equal(binding.K1, nil, "a plot post never binds a park nest"); equal(binding.K2, nil, "nor K2")
+		local byId = {}
+		for _, entry in ipairs(Nests.islands(markers, posts)) do byId[entry.id] = entry end
+		equal(byId.CandyK1.guard, "GatitoGuerrero", "the guard comes from the attribute")
+		equal(byId.CandyK2.guard, nil, "no attribute, no guard (never the plot post beside it)")
+		-- the plot's own guardian posts are unchanged (the kittens are not candy guardians)
+		equal(#Nests.posts(Sites), 9, "still nine plot guardian posts")
+		for _, post in ipairs(Nests.posts(Sites)) do
+			assert(post.x < 932, post.name .. " post in the plot")
+		end
+	end)
+
+	case("PK4: applyFlags lays the park nests ninth through Park.syncNests on the sibling root (guarded)", function()
+		local fakeBuilder = { syncNests = function() return 0 end, syncPortal = function() return 0 end }
+		local calls, seen = 0, nil
+		local fake = { syncNests = function(r) calls += 1; seen = r; return 3 end }
+		local world, bioma, park = scratchWorld()
+		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false, fake)), 3, "the ninth value")
+		equal(calls, 1, "called once"); equal(seen, park, "with the sibling Candy_Este_v1")
+		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false, false)), 0, "false: none")
+		equal(calls, 1, "false calls nothing")
+		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false,
+			{ syncNests = function() error("boom") end })), 0, "a failing sync counts 0")
+		bioma.Parent = nil
+		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false, fake)), 0, "unparented: 0")
+		equal(calls, 1, "an unparented root calls nothing")
+		world:Destroy(); bioma:Destroy()
+		local lone, loneBioma = scratchWorld(true)
+		equal(select(9, Nests.applyFlags(loneBioma, fakeBuilder, Layout, false, false, false, false, false, fake)), 0, "no park root: 0")
+		equal(calls, 1, "no park root calls nothing")
+		lone:Destroy()
 	end)
 
 	return result

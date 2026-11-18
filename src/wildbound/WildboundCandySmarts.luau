@@ -47,6 +47,14 @@ Smarts.PROFILES = table.freeze({
 	Flanfuria = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 90 }),
 	Tortidragon = profile({ sprint = 29, sprintSeconds = 2, guard = 28, relentless = true, zone = 100 }),
 	DonGlaseon = profile({ sprint = 25, sprintSeconds = 1.5 }),
+	-- K-D6 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "un parque verde lindo
+	-- con las criaturas gatitas"): the four kittens of Caramelo Este hunt like the critters, inside a zone of 60 (the plot
+	-- uses 75-100), so a hunt (zone + 12), its attack and its push keep off the cloud wall and the void edges; the sprint
+	-- gains at most (28 - 23.2) x 1.5 = 7.2 studs on a running player (CH2 rule: under 15).
+	GatitoLanudo = profile({ sprint = 28, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 60 }),
+	GatitoGuerrero = profile({ sprint = 27, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 60 }),
+	GatitaBouquet = profile({ sprint = 27, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 60 }),
+	GatitoActually = profile({ sprint = 26, sprintSeconds = 1.5, guard = 24, relentless = true, zone = 60 }),
 })
 -- RC: the relentless chase.
 --   hardSeconds   a safety end: no hunt lasts longer than this (then it ends like any other far-from-home ending).

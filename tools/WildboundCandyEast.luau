@@ -3,19 +3,27 @@
 -- Este: a 16-stud cloud band along the bigger plot's east edge and, east of it, a second playable square as big as the
 -- plot. Deployed as ServerStorage.WildboundCandyEast. Pure plan (every number from WildboundCandyLayout: CENTRE, HALF,
 -- FLOOR_TOP) plus build(), which lays the floor and the cloud wall into Workspace.Candy_Este_v1:
---   Ground.Floor        one floor part under the band and the space, the plot's colour, its top at FLOOR_TOP (named
---                       Floor in its own root, so readers of Candy_Bioma_v1.Ground.Floor keep finding the first plot);
---   CloudWall.Collider  an invisible block 4 thick and 80 tall on the band's centre line, as long as the band: anchored,
---                       collides and answers queries (creature sight stops at it), never touched, no shadow, Role
---                       "solid", never tagged WildboundBeastPass; WildboundCandySmarts.wallOf reads it (V8-D3);
+--   Ground.Floor        one floor part under the band and the space, its top at FLOOR_TOP (named Floor in its own root,
+--                       so readers of Candy_Bioma_v1.Ground.Floor keep finding the first plot); K-D15 (owner request
+--                       2026-11-17, "es como el mundo de gatito: un parque verde lindo"): grass green, Material Grass,
+--                       for Pueblo Gatito (tools/WildboundKittenPark.luau); was the plot's pink;
+--   CloudWall.Collider  an invisible block 4 thick and 80 tall on the band's centre line: anchored, collides and answers
+--                       queries (creature sight stops at it), never touched, no shadow, Role "solid", never tagged
+--                       WildboundBeastPass; WildboundCandySmarts.wallOf reads it (V8-D3). K-D1: the gate splits it at
+--                       GATE (a 14-stud gap at the space's centre z, -3: z -10..4, on the main avenue's axis);
+--                       Collider keeps its name and WallMargin and is the north piece (z 4..265), so wallOf still finds
+--                       x 940 (the clamp reads x only);
+--   CloudWall.ColliderSouth  K-D1: the south piece (z -271..-10), the same flags, no WallMargin;
 --   CloudWall.Veil      the band itself, 16 thick and 80 tall, ForceField in cloud pink: no collision, no query, no
 --                       touch, so the player sees through it; WildboundCandyCloudWallClient puts the puffs on it;
 --   CloudWall.CapNorth  V8-D3 amendment (fixer, 2026-11-17): two invisible end caps with the Collider's flags, 4 thick
 --   CloudWall.CapSouth  and 80 tall, inside the band's two ends, from the Collider east to the second space's far edge.
 --                       The big4 annex strips (z -303..-263 and 257..297, to x 1012) and the grey Baseplate (to x 1024
 --                       at every z) run past the band's ends, so without them a player walks round the wall ("nobody
---                       crosses it"); east of x 1024 is void, so nobody gets round a cap either.
--- No nests, creatures or eggs yet (the owner's next micro-phases). Anything named SistemaSonriente is never touched.
+--                       crosses it"); east of x 1024 is void, so nobody gets round a cap either. The Veil stays whole
+--                       (K-D1, K-D15): players walk through the cloud at the gate; it stays cloud pink, both sides own it.
+-- The park itself (paths, village, toys, nests K1..K8) is laid by WildboundKittenPark under the same root. Anything named
+-- SistemaSonriente is never touched.
 -- tools/wildbound-caramelo-v8-migrate.luau calls build() on the live map; WildboundCandyEast_Test holds the rules.
 local East = {}
 
@@ -30,8 +38,12 @@ East.CAP_THICK = 4 -- V8-D3 amendment: the two end caps' thickness (z)
 East.HEIGHT = 80 -- the wall's height over the floor's top
 East.WALL_MARGIN = 8 -- creatures stop this far from the wall's centre line (half the band: the plot's east edge)
 East.FOLDER = "CloudWall"
-East.FLOOR_COLOR = table.freeze({ 255, 177, 209 }) -- WildboundCandyBuilder's palette.floor
+-- K-D15 (owner request 2026-11-17, "un parque verde lindo"): the park's grass (was { 255, 177, 209 }, the plot's pink)
+East.FLOOR_COLOR = table.freeze({ 140, 201, 107 })
+East.FLOOR_MATERIAL = "Grass"
 East.VEIL_COLOR = table.freeze({ 255, 226, 240 }) -- cloud pink
+-- K-D1: the gate, a gap in the Collider. dz: its centre from the space's centre z (-3); width: Layout.PATH_WIDTH, 14.
+East.GATE = table.freeze({ dz = 0, width = 14 })
 East.FORBIDDEN = "SistemaSonriente"
 
 local function rect(minX, maxX, minZ, maxZ)
@@ -55,10 +67,11 @@ end
 --   ground    the floor under the band and the space (the plot's z range)
 --   wallX     the band's centre line (the Collider's x); margin = WALL_MARGIN
 --   shift     how far east a point of the plot lands at the same spot of the space (2 * HALF + BAND)
---   parts     the specs of Ground.Floor, CloudWall.Collider, CloudWall.Veil, CloudWall.CapNorth and CloudWall.CapSouth:
---             { name, folder, size = { x, y, z }, position = { x, y, z }, color, material, transparency, canCollide,
---             canQuery, canTouch, castShadow, role }
+--   parts     the specs of Ground.Floor, CloudWall.Collider, CloudWall.ColliderSouth, CloudWall.Veil,
+--             CloudWall.CapNorth and CloudWall.CapSouth, in that order: { name, folder, size = { x, y, z },
+--             position = { x, y, z }, color, material, transparency, canCollide, canQuery, canTouch, castShadow, role }
 --   caps      the two end caps' rectangles { north, south } (V8-D3 amendment)
+--   gate      K-D1: the gap in the Collider { minZ, maxZ } (z -10..4: GATE.width about the space's centre z + GATE.dz)
 function East.plan(L)
 	L = layout(L)
 	local cx, cz, half, top = L.CENTRE.x, L.CENTRE.z, L.HALF, L.FLOOR_TOP
@@ -82,16 +95,23 @@ function East.plan(L)
 			color = East.VEIL_COLOR, material = "SmoothPlastic", transparency = 1,
 			canCollide = true, canQuery = true, canTouch = false, castShadow = false }
 	end
+	-- K-D1: the gate's gap in the Collider, about the space's centre z; the Collider is cut into a north and a south piece
+	local gateZ = (space.minZ + space.maxZ) / 2 + East.GATE.dz
+	local gate = table.freeze({ minZ = gateZ - East.GATE.width / 2, maxZ = gateZ + East.GATE.width / 2 })
+	local function collider(name, minZ, maxZ)
+		return { name = name, folder = East.FOLDER, role = "solid",
+			size = { East.COLLIDER_THICK, East.HEIGHT, maxZ - minZ }, position = { wallX, wallY, (minZ + maxZ) / 2 },
+			color = East.VEIL_COLOR, material = "SmoothPlastic", transparency = 1,
+			canCollide = true, canQuery = true, canTouch = false, castShadow = false }
+	end
 	local parts = {
 		{ name = "Floor", folder = "Ground", role = "floor",
 			size = { ground.maxX - ground.minX, 1, ground.maxZ - ground.minZ },
 			position = { (ground.minX + ground.maxX) / 2, top - 0.5, (ground.minZ + ground.maxZ) / 2 },
-			color = East.FLOOR_COLOR, material = "SmoothPlastic", transparency = 0,
+			color = East.FLOOR_COLOR, material = East.FLOOR_MATERIAL, transparency = 0,
 			canCollide = true, canQuery = true, canTouch = false, castShadow = true },
-		{ name = "Collider", folder = East.FOLDER, role = "solid",
-			size = { East.COLLIDER_THICK, East.HEIGHT, bandLength }, position = { wallX, wallY, bandZ },
-			color = East.VEIL_COLOR, material = "SmoothPlastic", transparency = 1,
-			canCollide = true, canQuery = true, canTouch = false, castShadow = false },
+		collider("Collider", gate.maxZ, band.maxZ), -- K-D1: the north piece keeps the name wallOf reads
+		collider("ColliderSouth", band.minZ, gate.minZ),
 		{ name = "Veil", folder = East.FOLDER, role = "decor",
 			size = { East.BAND, East.HEIGHT, bandLength }, position = { wallX, wallY, bandZ },
 			color = East.VEIL_COLOR, material = "ForceField", transparency = 0,
@@ -100,7 +120,7 @@ function East.plan(L)
 		cap("CapSouth", caps.south),
 	}
 	return {
-		plot = plot, band = band, space = space, ground = ground, caps = table.freeze(caps),
+		plot = plot, band = band, space = space, ground = ground, caps = table.freeze(caps), gate = gate,
 		centre = table.freeze({ x = (space.minX + space.maxX) / 2, z = (space.minZ + space.maxZ) / 2 }),
 		wallX = wallX, margin = East.WALL_MARGIN, shift = space.minX - plot.minX, floorTop = top,
 		parts = parts,
@@ -243,7 +263,8 @@ end
 -- build(parent, L) -> root, report { created, changed, parts }: Caramelo Este's floor and cloud wall under
 -- parent (default Workspace) as parent.Candy_Este_v1 (a Model; created when missing). Idempotent: a missing piece is
 -- made, a piece that differs from the plan is set back to it, and a second call changes nothing (created 0, changed 0).
--- The Collider carries WallMargin (WildboundCandySmarts.wallOf); the root carries Version, WallX and Key. Refuses a
+-- The Collider (the north piece since K-D1; on a live map the old whole Collider is conformed to it and ColliderSouth is
+-- made) carries WallMargin (WildboundCandySmarts.wallOf); the root carries Version, WallX and Key. Refuses a
 -- parent inside SistemaSonriente; never touches anything else under parent.
 function East.build(parent, L)
 	parent = parent or game:GetService("Workspace")

@@ -250,6 +250,56 @@ return function(Mix, Catalog)
 		near(Mix.CHASE_STING_COOLDOWN, 8)
 	end)
 
+	-- K-D13 (owner request 2026-11-17, "otra canción que tenga que ver más con gatitos"): inside the kitten park (Pueblo
+	-- Gatito) its own bed replaces the Caramelo track and the calm bed, and ducks under danger like them.
+	case("K-D13: the kitten park bed: 0.18 when safe, halved when distant, silent near or in a chase", function()
+		near(Mix.KITTEN.track, 0.18, "the kitten bed's level")
+		local inside = Mix.withKitten(Mix.targets("Safe", "Day", false, false, true), "Safe", true, true)
+		near(inside.gatitoMusic, 0.18, "the kitten bed plays")
+		near(inside.carameloMusic, 0, "the Caramelo track gives way")
+		near(inside.safeMusic, 0, "the calm bed gives way")
+		local function kitten(level) return Mix.withKitten(Mix.targets(level, "Day", false, false, true), level, true, true) end
+		near(kitten("Distant").gatitoMusic, 0.09, "halved when something is near")
+		near(kitten("Near").gatitoMusic, 0, "silent when close")
+		near(kitten("Chase").gatitoMusic, 0, "silent in a chase")
+		near(kitten("Chase").chaseMusic, 0.35, "the chase music is untouched")
+		-- Efectos suaves leaves the bed's level to the master, like the Caramelo track
+		near(Mix.withKitten(Mix.targets("Safe", "Day", true, false, true), "Safe", true, true).gatitoMusic, 0.18)
+		local outside = Mix.withKitten(Mix.targets("Safe", "Day", false, false, true), "Safe", false, true)
+		near(outside.gatitoMusic, 0, "leaving fades it out")
+		near(outside.safeMusic, 0.15, "the calm bed is back outside")
+		local plain = Mix.targets("Safe", "Day", false, false, true)
+		local same = Mix.withKitten(plain, "Safe", true, false)
+		assert(same == plain and same.gatitoMusic == nil, "no kitten slot: the targets come back unchanged")
+		near(same.safeMusic, 0.15, "no kitten slot: the calm bed is untouched")
+		assert(Mix.withKitten(Mix.targets("Safe", "Day", false, false, false), "Safe", true, true).carameloMusic == nil,
+			"no carameloMusic key is added")
+		near(Mix.fadeSeconds("gatitoMusic", false, false), 4, "it leaves like a bed, over 4 s")
+		-- AM8: every key the controller can get is a catalog slot
+		for _, level in ipairs(LEVELS) do
+			for _, time in ipairs(TIMES) do
+				for _, inPark in ipairs({ true, false }) do
+					local t = Mix.withKitten(Mix.targets(level, time, false, not inPark, true), level, inPark, true)
+					for key, volume in pairs(t) do
+						assert(Catalog.SOUNDS[key], key .. " is not in the catalog")
+						assert(volume >= 0 and volume <= 0.35 + 1e-9 or not table.find(MUSIC, key), key .. " too loud")
+					end
+				end
+			end
+		end
+		-- the slot: a looping 2D Music slot whose ids follow the K-D13 ladder (the parent may drop ids that fail in Studio)
+		local entry = Catalog.SOUNDS.gatitoMusic
+		assert(entry and entry.group == "Music" and entry.loop == true and not entry.spatial, "a looping 2D music slot")
+		assert(#entry.ids >= 1, "at least one id")
+		local LADDER = { 108517170970006, 122890771686677, 133622392487696, 1846279685 }
+		local last = 0
+		for _, id in ipairs(entry.ids) do
+			local at = table.find(LADDER, id)
+			assert(at and at > last, tostring(id) .. " is not on the K-D13 ladder, or out of its order")
+			last = at
+		end
+	end)
+
 	case("NB2: the chase music and pulse cut in fast; other rises and Efectos suaves keep their fades", function()
 		assert(Mix.fadeSeconds("chaseMusic", true, false) <= 0.3, "chase music cuts in")
 		assert(Mix.fadeSeconds("pulse", true, false) <= 0.3, "pulse cuts in")

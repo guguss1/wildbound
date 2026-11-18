@@ -14,10 +14,16 @@ local ROWS = table.freeze({
 	-- V7-D3 (owner request 2026-11-17, "a pink sky with clouds"): Day haze 0.6 -> 1.6, so the pink air (ZONE_COLOURS)
 	-- tints the sky and the horizon.
 	candy = { Day = { 0.28, 0.12, 1.6, 120, 900 }, Dusk = { 0.34, 0.08, 1.8, 90, 600 }, Night = { 0.4, 0.05, 2.0, 60, 400 } },
+	-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo ..."): Pueblo Gatito, the kitten
+	-- park's clear sunny air, a thin haze and the longest view (WildboundBiomeLight's Gatuno preset uses its Day row; Dusk
+	-- and Night exist only so the blend has every row). Without it the park would fall back to the misty open row.
+	park = { Day = { 0.22, 0.1, 0.6, 150, 1100 }, Dusk = { 0.28, 0.08, 0.8, 110, 700 }, Night = { 0.34, 0.05, 1.0, 70, 450 } },
 })
 -- V7-D3: a zone's own air and fog colours (RGB), in place of the time of day's grey ones. Caramelo's air is pink.
+-- K-D14: the kitten park's air and fog are a light sky blue.
 Atmosphere.ZONE_COLOURS = table.freeze({
 	candy = table.freeze({ atmosphere = table.freeze({ 255, 168, 206 }), fog = table.freeze({ 255, 198, 224 }) }),
+	park = table.freeze({ atmosphere = table.freeze({ 199, 226, 245 }), fog = table.freeze({ 214, 236, 250 }) }),
 })
 -- Colours and light per time of day. ambientWeight 0 keeps the place's own Ambient and OutdoorAmbient. The flashlight
 -- is a SpotLight on the player's own head (brightness, range, angle): off by day, the main light at night.

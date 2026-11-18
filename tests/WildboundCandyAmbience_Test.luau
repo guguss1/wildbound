@@ -151,8 +151,9 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 		assert(fallback, "the Caramelo square from WildboundBiomeLight")
 		-- Deliberately changed (V8-D1): the fallback is the bigger plot (CENTRE 672, -3 +- HALF 260), not the v7 square
 		near(fallback.minX, 412); near(fallback.maxX, 932); near(fallback.minZ, -263); near(fallback.maxZ, 257)
-		-- V8-D2: Caramelo Este (tag CandyEast) is lit as Caramelo too, but the fallback stays the plot's own square
-		equal(BiomeLight.TAG_PRESET.CandyEast, "Caramelo", "Caramelo Este has the Caramelo light")
+		-- V8-D2: Caramelo Este (tag CandyEast) has its own square, but the fallback stays the plot's own square
+		-- Deliberately changed (K-D14): Caramelo Este is Pueblo Gatito, lit by its own Gatuno preset (it had the Caramelo light)
+		equal(BiomeLight.TAG_PRESET.CandyEast, "Gatuno", "Caramelo Este has the kitten park's light")
 		assert(fallback.maxX <= 932, "the fallback is not the second space (it ends at the cloud band)")
 		equal(Ambience.fallbackBounds(nil), nil, "no module: no bounds")
 	end)

@@ -6,6 +6,8 @@
 -- plan numbers from the layout, its floor and cloud wall built on a detached folder (twice: the second build changes
 -- nothing), the creature clamp against the built wall, the big4 annex's moves and floor slabs, and source pins of the
 -- cloud client, the two server clamps and the v8 migration tool. Changes nothing outside its own detached folders.
+-- Pueblo Gatito (docs/design/wildbound-kitten-park-plan.md K-D1, K-D15): the gate splits the Collider into Collider and
+-- ColliderSouth (14-stud gap at z -10..4) and the floor turns grass green.
 return function(East, Layout, Smarts, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -58,18 +60,27 @@ return function(East, Layout, Smarts, sources)
 		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
 		local floor, collider, veil = byName.Floor, byName.Collider, byName.Veil
 		assert(floor and collider and veil, "Floor, Collider and Veil")
-		-- Deliberately changed (V8-D3 amendment): five parts, the two end caps added (was three)
-		equal(#P.parts, 5, "five parts, nothing else")
+		-- Deliberately changed (K-D1): six parts, the Collider split at the gate into Collider and ColliderSouth (was five,
+		-- V8-D3 amendment; three before it)
+		equal(#P.parts, 6, "six parts, nothing else")
+		local order = { "Floor", "Collider", "ColliderSouth", "Veil", "CapNorth", "CapSouth" }
+		for i, name in ipairs(order) do equal(P.parts[i].name, name, "part " .. i) end
 		equal(floor.folder, "Ground"); equal(collider.folder, "CloudWall"); equal(veil.folder, "CloudWall")
 		near(floor.size[1], 536); near(floor.size[2], 1); near(floor.size[3], 520)
 		near(floor.position[1], 1200); near(floor.position[2] + floor.size[2] / 2, Layout.FLOOR_TOP, "floor top"); near(floor.position[3], -3)
-		near(collider.size[1], 4); near(collider.size[2], 80); near(collider.size[3], 536, "as long as the band")
+		-- Deliberately changed (K-D1): the Collider is the north piece, z 4..265 (was the band's whole length, 536)
+		near(collider.size[1], 4); near(collider.size[2], 80); near(collider.size[3], 261, "the north piece, z 4..265")
 		near(veil.size[1], 16); near(veil.size[2], 80); near(veil.size[3], 536)
+		-- Deliberately changed (K-D1): the Collider's centre z -3 -> 134.5; the Veil stays whole on the band's centre
+		near(collider.position[1], 940, "Collider x"); near(collider.position[3], 134.5, "Collider z (the north piece)")
+		near(veil.position[1], 940, "Veil x"); near(veil.position[3], -3, "Veil z")
 		for _, spec in ipairs({ collider, veil }) do
-			near(spec.position[1], 940, spec.name .. " x"); near(spec.position[3], -3, spec.name .. " z")
 			near(spec.position[2] - spec.size[2] / 2, Layout.FLOOR_TOP, spec.name .. " stands on the floor")
 		end
-		equal(floor.color[1], 255); equal(floor.color[2], 177); equal(floor.color[3], 209)
+		-- Deliberately changed (K-D15, owner request "un parque verde lindo"): the floor is grass green, Material Grass
+		-- (was the plot's pink 255, 177, 209, SmoothPlastic)
+		equal(floor.color[1], 140); equal(floor.color[2], 201); equal(floor.color[3], 107)
+		equal(floor.material, "Grass", "floor material")
 		equal(veil.color[1], 255); equal(veil.color[2], 226); equal(veil.color[3], 240)
 	end)
 
@@ -109,13 +120,15 @@ return function(East, Layout, Smarts, sources)
 		other.Parent = holder
 		local root, report = East.build(holder, Layout)
 		equal(root.Parent, holder, "under the given parent"); equal(root.Name, East.ROOT_NAME); assert(root:IsA("Model"), "a Model")
-		-- Deliberately changed (V8-D3 amendment): five parts, the two end caps added (was three; created >= 6)
-		equal(report.parts, 5, "five parts")
-		assert(report.created >= 8, "root, two folders and five parts made: " .. report.created)
+		-- Deliberately changed (K-D1): six parts, the Collider split at the gate (was five, V8-D3 amendment; created >= 8)
+		equal(report.parts, 6, "six parts")
+		assert(report.created >= 9, "root, two folders and six parts made: " .. report.created)
 		local floor = root.Ground.Floor
 		local collider, veil = root.CloudWall.Collider, root.CloudWall.Veil
-		-- the floor
+		-- the floor; K-D15: grass green, Material Grass
 		equal(floor:GetAttribute("Role"), "floor"); equal(floor.Anchored, true); equal(floor.CanCollide, true)
+		equal(floor.Material, Enum.Material.Grass, "the park's grass")
+		near(floor.Color.R * 255, 140, "green R", 0.6); near(floor.Color.G * 255, 201, "green G", 0.6); near(floor.Color.B * 255, 107, "green B", 0.6)
 		near(floor.Position.Y + floor.Size.Y / 2, Layout.FLOOR_TOP, "the plot's floor top")
 		near(floor.Position.X - floor.Size.X / 2, 932, "from the plot's east edge"); near(floor.Position.X + floor.Size.X / 2, 1468, "to the space's")
 		-- the collider: invisible, collides, answers rays, never touched, no shadow, solid, never a pass for creatures
@@ -139,8 +152,9 @@ return function(East, Layout, Smarts, sources)
 		equal(second.created, 0, "nothing made the second time"); equal(second.changed, 0, "nothing changed the second time")
 		local count = 0
 		for _, d in ipairs(root:GetDescendants()) do if d:IsA("BasePart") then count += 1 end end
-		equal(count, 5, "still five parts") -- Deliberately changed (V8-D3 amendment): was three
-		for _, name in ipairs({ "CapNorth", "CapSouth" }) do
+		equal(count, 6, "still six parts") -- Deliberately changed (K-D1): was five (V8-D3 amendment), three before it
+		-- Deliberately changed (K-D1): ColliderSouth carries the same flags as the caps and the Collider
+		for _, name in ipairs({ "CapNorth", "CapSouth", "ColliderSouth" }) do
 			local cap = root.CloudWall:FindFirstChild(name)
 			assert(cap, name .. " built")
 			equal(cap.CanCollide, true, name .. " collides"); equal(cap.CanTouch, false, name .. " touch")
@@ -183,6 +197,47 @@ return function(East, Layout, Smarts, sources)
 		x = Smarts.outsideWall(P.centre.x, 0, P.band.minX - 30, 0, wall)
 		near(x, P.space.minX, "a creature of the second space stops on its west edge")
 		equal(Smarts.wallOf(holder), nil, "the parent folder is no wall root")
+		holder:Destroy()
+	end)
+
+	-- K-D1 (owner request 2026-11-17, the kitten park: "es como el mundo de gatito"): a 14-stud gate in the Collider at
+	-- the space's centre z (-3), on the main avenue's axis; the creature clamp (x only) is unchanged.
+	case("K-D1: the gate: a 14-stud gap in the Collider at z -10..4; both pieces at x 940; the clamp still reads x 940", function()
+		equal(East.GATE.dz, 0, "gate dz"); equal(East.GATE.width, 14, "gate width"); equal(East.GATE.width, Layout.PATH_WIDTH, "the path's width")
+		assert(table.isfrozen(East.GATE), "GATE frozen")
+		local P = East.plan(Layout)
+		near(P.gate.minZ, -10, "gate min z"); near(P.gate.maxZ, 4, "gate max z")
+		local byName = {}
+		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
+		local north, south = byName.Collider, byName.ColliderSouth
+		assert(north and south, "Collider and ColliderSouth")
+		near(north.size[3], 261, "north length"); near(north.position[3], 134.5, "north centre z")
+		near(north.position[3] - north.size[3] / 2, 4, "north piece starts at the gate"); near(north.position[3] + north.size[3] / 2, 265, "to the band's end")
+		near(south.size[3], 261, "south length"); near(south.position[3], -140.5, "south centre z")
+		near(south.position[3] + south.size[3] / 2, -10, "south piece ends at the gate"); near(south.position[3] - south.size[3] / 2, -271, "from the band's end")
+		for _, spec in ipairs({ north, south }) do
+			near(spec.position[1], 940, spec.name .. " x"); near(spec.size[1], 4, spec.name .. " thick"); near(spec.size[2], 80, spec.name .. " tall")
+			equal(spec.role, "solid", spec.name .. " role"); equal(spec.canCollide, true, spec.name .. " collides")
+			equal(spec.canQuery, true, spec.name .. " query"); equal(spec.canTouch, false, spec.name .. " touch")
+			near(spec.transparency, 1, spec.name .. " invisible")
+		end
+		-- built: no colliding part rising above the floor stands in the gate (x 938..942, z strictly inside -10..4)
+		local holder = Instance.new("Folder")
+		local root = East.build(holder, Layout)
+		for _, part in ipairs(root:GetDescendants()) do
+			if part:IsA("BasePart") and part.CanCollide and part.Position.Y + part.Size.Y / 2 > Layout.FLOOR_TOP + 0.01 then
+				local p, s = part.Position, part.Size
+				local overlapX = p.X - s.X / 2 < 942 and p.X + s.X / 2 > 938
+				local overlapZ = p.Z - s.Z / 2 < 4 - 1e-3 and p.Z + s.Z / 2 > -10 + 1e-3
+				assert(not (overlapX and overlapZ), part.Name .. " blocks the gate")
+			end
+		end
+		equal(root.CloudWall.ColliderSouth:GetAttribute("WallMargin"), nil, "only the Collider carries WallMargin")
+		local wall = Smarts.wallOf(root)
+		assert(wall, "wallOf still finds the wall")
+		near(wall.x, 940, "wallOf x"); equal(wall.margin, East.WALL_MARGIN, "wallOf margin")
+		near((Smarts.outsideWall(1000, -3, 930, -3, wall)), 948, "a creature of the space stops at x 948, even in the gate")
+		near((Smarts.outsideWall(900, -3, 950, -3, wall)), 932, "a creature of the plot stops at x 932, even in the gate")
 		holder:Destroy()
 	end)
 

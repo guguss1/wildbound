@@ -15,7 +15,10 @@
 -- guardian beside the thief) hides nothing. Event driven: no per-frame work.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon" }
+-- K-D7 (Pueblo Gatito, owner request 2026-11-17 "un parque verde lindo con las criaturas gatitas"): the four kittens
+-- (Models.<name> built by WildboundCandyKittenService; no name has an underscore, nameOf needs that)
+local NAMES = { "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor", "Gomibu", "Flanfuria", "Tortidragon",
+	"GatitoLanudo", "GatitoGuerrero", "GatitaBouquet", "GatitoActually" }
 local BIND_STUDS, BIND_TRIES, BIND_SECONDS = 12, 8, 0.25
 local FIRST_SECONDS = 0.1
 
