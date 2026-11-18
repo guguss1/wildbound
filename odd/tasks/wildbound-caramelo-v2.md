@@ -783,3 +783,61 @@ one."
   - the wider stair seen from the plaza.
 - Not checked in Play: a creature walking home at its zone's edge (covered by Smarts RC1/V7-D6), the bees' Zone give-up,
   and the queen's "Left".
+## Caramelo v8: a bigger kingdom and a second space behind a cloud wall (2026-11-17)
+
+Owner's words: "make the Reino Caramelo map a bit bigger, in width and in length, so there is more space between things
+... another space of the same size, separated by clouds (an invisible wall with a cloud texture that you can see
+through)". The plan and its decisions are in `docs/design/wildbound-caramelo-v8-plan.md`, V8-D1 to V8-D4.
+
+| ID | Task | Status |
+|---|---|---|
+| V8-D1 | The plot 1.3 times bigger (HALF 260, CENTRE 672, -3), entrance fixed | Done (34d599e, 8c56af3) |
+| V8-D2 | Caramelo Este: the second space, its floor and its CandyEast square | Done (34d599e) |
+| V8-D3 | The cloud wall: Collider, Veil, two end caps, client puffs, creature clamp | Done (34d599e) |
+| V8-D4 | The live map migrated (tools/wildbound-caramelo-v8-migrate.luau) | Done (Studio) |
+
+### Decisions taken for the user (v8, after the plan)
+
+- **The target is big4 mode.** Studio is in big4 mode (`WildboundMapMode = big4`), and its Biomes and BiomeLight are the
+  big4 copies from `agus/big4-map`. The CandyEast rows and `Biomes.at`'s "CandyEast wins over Meadow" line were patched
+  into those Studio copies as hunks. **The big4 branch needs the same lines when it merges:**
+  - the CandyEast row in both tables;
+  - TAG_PRESET `CandyEast = "Caramelo"`;
+  - the `Biomes.at` line;
+  - BiomeLight_Test's big4 count, 4 -> 5.
+- **Fixer amendments:**
+  - two end caps close the cloud band's ends (players could walk round it on the annex strips);
+  - the v8 backdrop is empty (its pieces would stand in the band);
+  - the Pradera marker moves with the plot.
+- **Island I1.** It moves 1.5 studs east of its v7 offset and shrinks (r 6.5 -> 6, foot 10.4 -> 9.9), so the raft keeps
+  its channel all round (IS1 margin 0.44).
+- **Tests and the zones.**
+  - RC7 now models a lone creature's chase to its zone's edge: zone + 12, not to the base.
+  - The Grass and Traps chase cases keep the hunter's post with it, because the zone is not what they test.
+  - These were V7-D6 consequences the edit-mode harness had hidden.
+- `Ambience.PLOT_FALLBACK` is the v8 plot square, because clients cannot read the layout.
+
+### Evidence (v8)
+
+- **Deploy.** 27 changed or new scripts were fingerprinted against 381dae6 (all equal, except the three big4 copies,
+  which were patched as hunks) and against HEAD afterwards (all equal).
+- **Migration dry run, then the real run:**
+  - backup in `ServerStorage.WildboundMapArchive.CaramelV8Backup`;
+  - 242 pieces moved, 30 archived (14 backdrop pieces);
+  - Paths 27, Boss 26, Markers 15, water 150 and Tower 126 laid again;
+  - annex: 70 props moved into the second space, 6 archived, 2 slabs resized;
+  - Pradera marker (627, 107) -> (691.5, 140);
+  - parts: bioma 2188 -> 2072, annex 719 -> 698, east 5.
+- **Suites, fresh Play server VM:**
+  - Layout 23/0, V3Layout 18/0, Smarts 26/0, Duquesa 25/0, Flyers 23/0, East 8/0;
+  - Nests 22/0, Portal 11/0, Abeja 10/0, DonGlaseon 24/0, HideSpots 16/0, Grass 12/0;
+  - Traps 12/0, Island 10/0, Raft 16/0, Current 11/0, Life 8/0, TrapCake 11/0;
+  - Ambience 13/0, BiomeLight (big4 copy) 11/0.
+- **Play.**
+  - Live map: Ground.Floor is 520 x 520 at (672, -3); 14 hide spots, 8 traps, the island and the tower; 2350 runtime
+    parts.
+  - A character pushed east stops at x 937.1 (the Collider's west face is at 938).
+  - Pushed along the north annex strip to x 1010, then south, it stops at z 266.2 (the cap).
+  - The cloud client made 2 emitters.
+  - **Not checked:** how anything looks. Studio's 3D view rendered white in every screen capture after the migration,
+    in Edit and in Play, while the HUD drew; the lighting values were normal.
