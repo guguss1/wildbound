@@ -598,7 +598,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 
 	-- K-D8, K-D9 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
 	-- gatito ... también tiene que haber huevos para robar"): the kitten park's nests K1..K8 live in the sibling root
-	-- Candy_Este_v1.Nests. The server's one read of Candy_Bioma_v1 returns them too (park = true, guard from the Guard
+	-- PARK_ROOT.Nests (PuebloGatito_v1 since PGM-D2; was Candy_Este_v1). The server's one read of Candy_Bioma_v1 returns them too (park = true, guard from the Guard
 	-- attribute), they pay one tier more (PARK_POOL), no plot post ever binds them, and applyFlags lays them (Park.syncNests)
 	-- as its ninth step. Every fixture is a detached scratch Folder.
 	local function scratchNest(folder, id, rarity, x, z, guard)
@@ -617,7 +617,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		nest.Parent = folder
 		return nest
 	end
-	-- A scratch world: a parent Folder holding Candy_Bioma_v1 (one plot nest) and, unless noPark, Candy_Este_v1.Nests
+	-- A scratch world: a parent Folder holding Candy_Bioma_v1 (one plot nest) and, unless noPark, PARK_ROOT.Nests
 	-- (two park markers: K1 Comun guarded from a home post, K7 Epica from an east extra post).
 	local function scratchWorld(noPark)
 		local world = Instance.new("Folder")
@@ -642,7 +642,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	end
 
 	case("PK1: the read of Candy_Bioma_v1 also returns the park markers of its sibling root, marked park with their guard", function()
-		equal(Nests.PARK_ROOT, "Candy_Este_v1", "the park root")
+		-- Deliberately changed (PGM-D2, owner request 2026-11-18 "Sí, movelo"): the moved park has its own root,
+		-- Workspace.PuebloGatito_v1 (was "Candy_Este_v1")
+		equal(Nests.PARK_ROOT, "PuebloGatito_v1", "the park root")
 		local world, bioma = scratchWorld()
 		local read = Nests.read(bioma)
 		equal(#read, 3, "one plot nest and two park nests")
@@ -660,7 +662,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(#Nests.read(bioma), 1, "an unparented root reads only its own nests")
 		world:Destroy(); bioma:Destroy()
 		local lone, loneBioma = scratchWorld(true)
-		equal(#Nests.read(loneBioma), 1, "no Candy_Este_v1: only the plot's nests")
+		equal(#Nests.read(loneBioma), 1, "no park root: only the plot's nests")
 		lone:Destroy()
 	end)
 
@@ -730,7 +732,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		local fake = { syncNests = function(r) calls += 1; seen = r; return 3 end }
 		local world, bioma, park = scratchWorld()
 		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false, fake)), 3, "the ninth value")
-		equal(calls, 1, "called once"); equal(seen, park, "with the sibling Candy_Este_v1")
+		equal(calls, 1, "called once"); equal(seen, park, "with the sibling park root")
 		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false, false)), 0, "false: none")
 		equal(calls, 1, "false calls nothing")
 		equal(select(9, Nests.applyFlags(bioma, fakeBuilder, Layout, false, false, false, false, false,

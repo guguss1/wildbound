@@ -2,9 +2,14 @@
 -- lindo con las criaturas gatitas, juguetes como rollos de papel, hisopos, papel, bolsas, tiendas de gatitos como que es
 -- su village, otra canción que tenga que ver más con gatitos, también tiene que haber huevos para robar";
 -- docs/design/wildbound-kitten-park-plan.md, K-D1 to K-D21). Deployed as ServerStorage.WildboundKittenPark.
--- Pure plan and recipes, plus the builders that lay them into Workspace.Candy_Este_v1:
+-- Moved (owner request 2026-11-18 "Sí, movelo"; docs/design/wildbound-pueblo-gatito-move-plan.md PGM-D1, PGM-D2, PGM-D4):
+-- the park now stands on the big4 south arm in its own root Workspace.PuebloGatito_v1, and every park position is
+-- park-local, turned to world by ReplicatedStorage.WildboundGatitoArea (world(lx, lz) = (282 - lz, 600 + lx)); the K-D
+-- world literals below are the old frame's (Area.V1, centre (1208, -3)) and are converted through Area.localOfV1.
+-- Pure plan and recipes, plus the builders that lay them into Workspace.PuebloGatito_v1:
 --   plan(L, East)     every path, item and nest of the park in world studs (K-D16, Appendix A), with the drop rules
---                     applied and the part budget per folder (K-D18);
+--                     applied and the part budget per folder (K-D18); the frame is Area's (PGM-D4), L and East unused;
+--   buildGround(root) the park's own floor root.Ground.Floor, 520 x 520 green Grass (PGM-D2);
 --   recipe(kind, v)   one item as plain parts, local to its pivot (its ground centre, front toward -Z): primitive Parts
 --                     and Sphere SpecialMeshes only, no upload of any kind (K-D12, K-D21); signs are a SurfaceGui with a
 --                     TextLabel (K-D16);
@@ -13,23 +18,29 @@
 --                     start by WildboundCandyNests.applyFlags (K-D9);
 --   archiveAnnex      the big4 annex props that v8 moved into the space go to an archive folder (K-D17);
 --   clearGate         the plot's colliding pieces in the gate corridor go to an archive folder (K-D2).
+--   (archiveAnnex, clearGate and GATE_CORRIDOR work in the old frame east of Caramelo: obsolete for the move, kept, PGM-D8.)
 -- Roles follow WildboundCandyBuilder: floor and solid parts collide and answer queries, decor parts do neither; no part
 -- is ever touched (CanTouch false). Anything named SistemaSonriente, or under it, is refused (K-D20).
--- tools/wildbound-kitten-park-build.luau runs it once on the live map; WildboundKittenPark_Test holds the rules.
+-- tools/wildbound-kitten-park-build.luau ran it once on the live map, tools/wildbound-pueblo-gatito-move.luau moves it
+-- (PGM-D7); WildboundKittenPark_Test holds the rules.
 local CollectionService = game:GetService("CollectionService")
+local Area = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundGatitoArea"))
 
 local Park = {}
 
 local freeze = table.freeze
 
 Park.VERSION = 1
-Park.ROOT_NAME = "Candy_Este_v1"
+Park.ROOT_NAME = Area.ROOT_NAME -- PGM-D2: the park's own root, "PuebloGatito_v1" (was "Candy_Este_v1")
 Park.FOLDER = "Park"
 Park.NESTS_FOLDER = "Nests"
+Park.GROUND_FOLDER = "Ground" -- PGM-D2: root.Ground.Floor, the park's own floor
+-- PGM-D2: the floor, the park's 2 * HALF square in the K-D15 park grass
+Park.FLOOR = freeze({ size = freeze({ 2 * Area.HALF, 1, 2 * Area.HALF }), color = freeze({ 140, 201, 107 }), material = "Grass" })
 Park.FORBIDDEN = "SistemaSonriente"
 Park.SEED = 8128
 Park.NEST_TAG = "WildboundCandyNestCandidate" -- the tag every candy nest marker carries (WildboundCandyIsland.NEST_TAG)
-Park.FLOOR_TOP = 0.5 -- Layout.FLOOR_TOP; used by syncNests when the root has no Ground.Floor
+Park.FLOOR_TOP = Area.FLOOR_TOP -- 0.5 (Layout.FLOOR_TOP); used by syncNests when the root has no Ground.Floor
 -- K-D16 drop rules: a scatter or decor item is dropped within NEST of a nest, post or chest (its REACH added), within
 -- PORTAL of the return portal, inside the arrival disc, or within PATH plus half the width of a path's centre line
 -- (path pieces, the gate, the chests and the lanterns are placed on purpose and never dropped by the path rule).
@@ -37,9 +48,10 @@ Park.CLEAR = freeze({ nest = 8, portal = 12, path = 6 })
 -- How far an item's ground footprint reaches past its pivot, for the nest rule only: a flat ground patch (30 x 20) would
 -- otherwise lie under a nest's rarity ring and flicker against it.
 Park.REACH = freeze({ patch = 10 })
--- K-D2: the plot side of the gate (world), where clearGate archives colliding pieces of Candy_Bioma_v1.
+-- K-D2: the plot side of the gate (world), where clearGate archives colliding pieces of Candy_Bioma_v1 (old frame; PGM-D8).
 Park.GATE_CORRIDOR = freeze({ minX = 896, maxX = 932, minZ = -17, maxZ = 11 })
--- K-D18: BaseParts per folder of Candy_Este_v1.Park before the drop rules (they only lower it), and the caps.
+-- K-D18: BaseParts per folder of root.Park (PuebloGatito_v1.Park since PGM-D2) before the drop rules (they only lower
+-- it), and the caps.
 Park.FOLDERS = freeze({ "Paths", "Gate", "Village", "ToyPark", "Toys", "Chests", "Trees", "Lanterns", "Scatter" })
 Park.BUDGET = freeze({ Paths = 254, Gate = 8, Village = 310, ToyPark = 98, Toys = 160, Chests = 88, Trees = 208,
 	Lanterns = 130, Scatter = 136 })
@@ -49,11 +61,23 @@ Park.NEST_PARTS = 2 -- Collision_Bowl and RarityRing (K-D8)
 Park.SIGNS = freeze({ "Pueblo Gatito", "Café Cat", "Paws & Coffee", "Panadería Gatuna", "=^.^=", "Takoyaki", "Taiyaki",
 	"Mochi" })
 
-local function nest(id, rarity, x, z, key, px, pz, guard, cx, cz)
-	return freeze({ id = id, rarity = rarity, x = x, z = z, post = freeze({ key = key, x = px, z = pz }), guard = guard,
-		chest = freeze({ x = cx, z = cz }) })
+-- PGM-D4: a K-D world literal (the old frame, Area.V1) in the park frame: its world x, z now (what every consumer
+-- compares) and its park-local lx, lz. Exact: the frame turns by a multiple of 90.
+local function moved(x, z)
+	local lx, lz = Area.localOfV1(x, z)
+	local wx, wz = Area.world(lx, lz)
+	return wx, wz, lx, lz
 end
--- K-D7/K-D8: the eight park nests (world studs). Each post stands 12 studs from its nest toward the route; the chest
+local function nest(id, rarity, x, z, key, px, pz, guard, cx, cz)
+	local nx, nz, nlx, nlz = moved(x, z)
+	local postX, postZ, postLx, postLz = moved(px, pz)
+	local chestX, chestZ, chestLx, chestLz = moved(cx, cz)
+	return freeze({ id = id, rarity = rarity, x = nx, z = nz, lx = nlx, lz = nlz,
+		post = freeze({ key = key, x = postX, z = postZ, lx = postLx, lz = postLz }), guard = guard,
+		chest = freeze({ x = chestX, z = chestZ, lx = chestLx, lz = chestLz }) })
+end
+-- K-D7/K-D8: the eight park nests (written as the K-D world studs of the old frame; PGM-D4 turns them into the park
+-- frame, K1 at (337, 430) ... K8 at (162, 750)). Each post stands 12 studs from its nest toward the route; the chest
 -- stands 7 studs on the far side, its open lid toward the nest. Rarity grows with the depth from the gate: 3 Comun,
 -- 3 Rara, 2 Epica, no Legendaria (event-only, as in the plot). The guard is the kitten's name for a HOME post and
 -- "<name>@<post key>" for an east extra post (WildboundPraderaSites.EAST_FIXED / EAST_EXTRA_POSTS).
@@ -68,15 +92,20 @@ Park.NESTS = freeze({
 	nest("K8", "Epica", 1358, 117, "kittenPostK8", 1358, 105, "GatitoLanudo@kittenPostK8", 1358, 124),
 })
 -- K-D3: the return portal station "parque" (built by WildboundPortalService at server start) and its clear disc.
-Park.PORTAL = freeze({ x = 980, z = 40 })
+-- PGM-D4: K-D (980, 40) is local (-228, 43), world (239, 372).
+local portalX, portalZ, portalLx, portalLz = moved(980, 40)
+Park.PORTAL = freeze({ x = portalX, z = portalZ, lx = portalLx, lz = portalLz })
 -- K-D16: where a player lands through the gate; only the gate arch and the paths stand in this disc.
-Park.ARRIVAL = freeze({ x = 964, z = -3, r = 30 })
+-- PGM-D4: K-D (964, -3) is local (-244, 0), world (282, 356).
+local arrivalX, arrivalZ, arrivalLx, arrivalLz = moved(964, -3)
+Park.ARRIVAL = freeze({ x = arrivalX, z = arrivalZ, lx = arrivalLx, lz = arrivalLz, r = 30 })
 -- K-D8: ring colours by rarity (WildboundCandyBuilder: Comun mint, Rara confetti, Epica grape) and the cat basket.
 Park.RING_COLORS = freeze({ Comun = freeze({ 88, 214, 220 }), Rara = freeze({ 251, 225, 94 }), Epica = freeze({ 117, 64, 121 }) })
 Park.BOWL = freeze({ size = freeze({ 2.2, 6, 6 }), color = freeze({ 205, 150, 105 }), material = "Wood" })
 Park.RING = freeze({ size = freeze({ 0.08, 8, 8 }) })
 
--- Appendix A, park-local (lx, lz): world = (centre.x + lx, centre.z + lz), centre (1208, -3); north is +z.
+-- Appendix A, park-local (lx, lz): world = Area.world(lx, lz) (PGM-D4; it was (1208 + lx, -3 + lz), north +z, before the
+-- move); local +x runs from the gate to the far end.
 local LOCAL = {
 	paths = {
 		-- the main path M, 12 wide: sand strips, joint discs at the bends, slabs every 5 alternating +-2.5 across
@@ -98,7 +127,7 @@ local LOCAL = {
 		{ id = "TowerPlaza", x = 215, z = 0, d = 50 },
 	},
 	arch = { x = -254, z = 0 },
-	-- yaw 0: the front faces -z (south); 180 north; 90 west
+	-- local yaw 0: the front faces local -z; 180 local +z; 90 local -x (plan turns them by Area.worldYaw, PGM-D4)
 	buildings = {
 		{ id = "CafeCat", kind = "cafe", folder = "Village", x = -170, z = -150, yaw = 180 },
 		{ id = "PanaderiaGatuna", kind = "bakery", folder = "Village", x = -130, z = -82, yaw = 0 },
@@ -1087,21 +1116,20 @@ local function eastModule(E)
 	return require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyEast"))
 end
 
--- plan(L, East) -> the park in world studs for layout L and WildboundCandyEast (defaults: ServerStorage's):
---   centre, space, floorTop          from East.plan (the second space, centre (1208, -3), floor top 0.5)
---   gate = { x, z, width }           the Arco de Nubes (world (954, -3)) and the wall's gap (East.GATE.width)
+-- plan(L, East) -> the park in world studs (PGM-D4: the frame is Area's; L and East stay in the signature, unused):
+--   centre, space, floorTop          Area.ORIGIN (282, 600), Area.rect() (x 22..542, z 340..860), Area.FLOOR_TOP 0.5
+--   gate = { x, z, width }           the Arco de Nubes (world (282, 346), local (-254, 0)) and its 14-stud gap
 --   paths = { { id, width, points = { { x, z } } } }   the main path M and the six forks (K-D16, Appendix A)
---   items = { { id, kind, folder, x, z, yaw, variant? } }   every kept item (yaw in degrees; 0 = front toward -z)
+--   items = { { id, kind, folder, x, z, yaw, variant? } }   every kept item (world yaw in degrees; 0 = front toward world
+--                                    -z): a yaw from the local tables is turned by Area.worldYaw, a yaw computed from world
+--                                    points (along a path, toward a nest or a path, seeded) is already a world yaw
 --   dropped = { { id, kind, folder, x, z, reason, parts } }  the items the drop rules removed (K-D16)
 --   budget = { [folder] = parts }, parts = the Park total; nests = Park.NESTS, portal, arrival
--- Deterministic (Park.SEED); pure apart from the default requires.
+-- The turn keeps every distance, so the drops and the budget are the K-D ones (1378 parts). Deterministic (Park.SEED); pure.
 function Park.plan(L, East)
-	L = layout(L)
-	East = eastModule(East)
-	local P = East.plan(L)
-	local cx, cz, top = P.centre.x, P.centre.z, P.floorTop
+	local cx, cz, top = Area.ORIGIN.x, Area.ORIGIN.z, Area.FLOOR_TOP
 	local rng = Random.new(Park.SEED)
-	local function world(lx, lz) return cx + lx, cz + lz end
+	local world = Area.world
 	local items, kept, dropped = {}, {}, {}
 	local function item(id, kind, folder, x, z, yaw, variant)
 		table.insert(items, { id = id, kind = kind, folder = folder, x = x, z = z, yaw = yaw or 0, variant = variant })
@@ -1161,17 +1189,17 @@ function Park.plan(L, East)
 	end
 	-- the gate
 	local gx, gz = world(LOCAL.arch.x, LOCAL.arch.z)
-	item("ArcoDeNubes", "arch", "Gate", gx, gz, 0)
+	item("ArcoDeNubes", "arch", "Gate", gx, gz, Area.worldYaw(0)) -- PGM-D4: local yaw 0, the pillars across the gate's axis
 	-- the village and the toy park
 	for _, b in ipairs(LOCAL.buildings) do
 		local x, z = world(b.x, b.z)
-		item(b.id, b.kind, b.folder, x, z, b.yaw)
+		item(b.id, b.kind, b.folder, x, z, Area.worldYaw(b.yaw))
 	end
 	-- toys
 	for _, t in ipairs(LOCAL.toys) do
 		local x, z = world(t[3], t[4])
 		local yaw = t[5]
-		if yaw == nil then yaw = seeded() end
+		if yaw == nil then yaw = seeded() else yaw = Area.worldYaw(yaw) end
 		item(t[1], t[2], "Toys", x, z, yaw, t[6])
 	end
 	-- chests: at the K-D8 chest points, the front (and the open lid) toward the nest
@@ -1255,8 +1283,8 @@ function Park.plan(L, East)
 		end
 	end
 	return {
-		centre = { x = cx, z = cz }, space = P.space, floorTop = top,
-		gate = { x = gx, z = gz, width = East.GATE and East.GATE.width or 14 },
+		centre = { x = cx, z = cz }, space = Area.rect(), floorTop = top,
+		gate = { x = gx, z = gz, width = 14 }, -- PGM-D4: the K-D1 gap, no longer East.GATE (PGM-D5 drops it)
 		paths = paths, items = kept, dropped = dropped, budget = budget, parts = total,
 		nests = Park.NESTS, portal = Park.PORTAL, arrival = Park.ARRIVAL,
 	}
@@ -1359,8 +1387,34 @@ local function conform(part, spec, pivot, report, isNew)
 	if isNew then report.created += 1 else report.changed += n end
 end
 
+-- buildGround(root) -> report { created, changed } (PGM-D2): the park's own floor, root.Ground.Floor (root is
+-- Workspace.PuebloGatito_v1 on the live map, any Instance in a suite): a Part of role floor, Park.FLOOR's size, colour
+-- and material, centred on Area.ORIGIN with its top at Area.FLOOR_TOP; anchored, it collides and answers queries, is
+-- never touched and casts a shadow. Idempotent like build (a second call reports created 0 and changed 0); refuses
+-- SistemaSonriente.
+function Park.buildGround(root)
+	assert(typeof(root) == "Instance", "root must be an Instance")
+	assert(not forbidden(root), "refusing to touch " .. Park.FORBIDDEN)
+	local report = { created = 0, changed = 0 }
+	local ground, madeGround = child(root, "Folder", Park.GROUND_FOLDER)
+	if madeGround then report.created += 1 end
+	local floor, made = child(ground, "Part", "Floor")
+	local s = Park.FLOOR.size
+	local n = apply(floor, { Anchored = true, Shape = Enum.PartType.Block })
+	n += apply(floor, {
+		Size = Vector3.new(s[1], s[2], s[3]), CFrame = CFrame.new(Area.ORIGIN.x, Area.FLOOR_TOP - s[2] / 2, Area.ORIGIN.z),
+		Color = rgb(Park.FLOOR.color), Material = material(Park.FLOOR.material), Transparency = 0, CanCollide = true,
+		CanQuery = true, CanTouch = false, CastShadow = true, TopSurface = Enum.SurfaceType.Smooth,
+		BottomSurface = Enum.SurfaceType.Smooth,
+	})
+	n += attribute(floor, "Role", "floor")
+	if made then report.created += 1 else report.changed += n end
+	return report
+end
+
 -- build(root, L, East) -> report { created, changed, parts, byFolder }: the park under root.Park (root is
--- Workspace.Candy_Este_v1 on the live map, any Instance in a suite). One Folder per K-D18 folder; an item of one part
+-- Workspace.PuebloGatito_v1 on the live map since PGM-D2, any Instance in a suite). Moved parts are conformed to the park
+-- frame (PGM-D4). One Folder per K-D18 folder; an item of one part
 -- is a Part named by its id, a bigger one a Model of its recipe's parts (WorldPivot on its ground centre). Idempotent:
 -- what is missing is made, what differs from the plan is set back, and a second call reports created 0 and changed 0.
 -- Never removes anything (a dropped item that already stands is left to the archive). Refuses SistemaSonriente.
@@ -1408,7 +1462,8 @@ function Park.build(root, L, East)
 	return report
 end
 
--- syncNests(root) -> changed: the eight park nests under root.Nests (root = Workspace.Candy_Este_v1), from Park.NESTS
+-- syncNests(root) -> changed: the eight park nests under root.Nests (root = Workspace.PuebloGatito_v1 since PGM-D2; on
+-- root.Ground.Floor's top when there is one, else Area.FLOOR_TOP; at the park-frame x, z of PGM-D4), from Park.NESTS
 -- only (K-D8): Model Nest_K<n> with a Wood Collision_Bowl (its PrimaryPart, pivot on the ground centre) and a
 -- RarityRing, the attributes NestId, Rarity, EventOnly false, Candidate, Enabled, Park and Guard, and the
 -- WildboundCandyNestCandidate tag. A missing nest is made, a moved or re-flagged one is set back; nothing else in the
@@ -1416,8 +1471,8 @@ end
 function Park.syncNests(root)
 	if typeof(root) ~= "Instance" then return 0 end
 	assert(not forbidden(root), "refusing to touch " .. Park.FORBIDDEN)
-	local top = Park.FLOOR_TOP
-	local ground = root:FindFirstChild("Ground")
+	local top = Area.FLOOR_TOP
+	local ground = root:FindFirstChild(Park.GROUND_FOLDER)
 	local floor = ground and ground:FindFirstChild("Floor")
 	if floor and floor:IsA("BasePart") then top = floor.Position.Y + floor.Size.Y / 2 end
 	local folder = child(root, "Folder", Park.NESTS_FOLDER)

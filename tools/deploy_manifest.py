@@ -385,6 +385,11 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyKittenAmbience.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyKittenAmbienceClient"),
     ("tests/WildboundCandyKittens_Test.luau", "ServerStorage.WildboundCandyKittens_Test"),
     ("tests/WildboundCandyKittenArt_Test.luau", "ServerStorage.WildboundCandyKittenArt_Test"),
+    # Pueblo Gatito moves to the big4 south arm (PGM-D1, PGM-D7; owner request 2026-11-18, "Sí, movelo"): the shared park
+    # frame, its suite and the one-shot move tool (kept in Studio as a disabled Script)
+    ("src/wildbound/WildboundGatitoArea.luau", "ReplicatedStorage.WildboundGatitoArea"),
+    ("tests/WildboundGatitoArea_Test.luau", "ServerStorage.WildboundGatitoArea_Test"),
+    ("tools/wildbound-pueblo-gatito-move.luau", "ServerStorage.WildboundPuebloGatitoMove"),
     ("tools/WildboundCandyBuilder.luau", "ServerStorage.WildboundCandyBuilder"),
     ("tests/WildboundCandyBuilder_Test.luau", "ServerStorage.WildboundCandyBuilder_Test"),
     ("tests/WildboundCandyBeastSites_Test.luau", "ServerStorage.WildboundCandyBeastSites_Test"),

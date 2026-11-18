@@ -192,14 +192,25 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 	-- K-D3 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md): the kitten park's return station, built by the
 	-- service in Caramelo Este (CandyEast), far from the hub, outside every safe zone, on the park floor, walked through
 	-- along world z; a carrier is still refused there (Portal.CARRY, decision 47).
-	case("PT-K1: the parque station stands in Caramelo Este, built, yaw 90 at y 0.5, far from the hub, outside every safe zone", function()
+	-- Deliberately changed (PGM-D4, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south arm; the
+	-- station is park-local (-228, 43) with local yaw 90, world (239, 372) with yaw 0 (was x 980, z 40, yaw 90)
+	case("PT-K1: the parque station stands in Pueblo Gatito, built, yaw 0 at y 0.5, far from the hub, outside every safe zone", function()
 		local park = Portal.station("parque")
 		assert(park, "no parque station")
 		assert(table.isfrozen(park), "frozen")
 		equal(park.source, "build", "the service builds it")
-		near(park.x, 980, "x"); near(park.z, 40, "z")
-		near(park.y, 0.5, "on the park floor (top 0.5)"); equal(park.yaw, 90, "walked through along world z")
-		equal(Biomes.has(park.x, park.z, "CandyEast"), true, "parque in Caramelo Este")
+		near(park.x, 239, "x"); near(park.z, 372, "z")
+		near(park.y, 0.5, "on the park floor (top 0.5)"); equal(park.yaw, 0, "walked through along world z")
+		-- PGM-D1: the park frame, world(lx, lz) = (282 - lz, 600 + lx): local (-228, 43), yaw 90 - 90 = 0
+		near(park.z - 600, -228, "park-local lx"); near(282 - park.x, 43, "park-local lz")
+		local shared = game:GetService("ReplicatedStorage"):FindFirstChild("WildboundGatitoArea")
+		if shared then
+			local Area = require(shared)
+			local ax, az = Area.world(-228, 43)
+			near(park.x, ax, "Area.world x"); near(park.z, az, "Area.world z")
+			equal(park.yaw, Area.worldYaw(90), "Area.worldYaw(90)"); near(park.y, Area.FLOOR_TOP, "Area.FLOOR_TOP")
+		end
+		equal(Biomes.has(park.x, park.z, "CandyEast"), true, "parque in Pueblo Gatito (CandyEast)")
 		equal(Biomes.has(park.x, park.z, "Meadow"), false, "never in the candy plot")
 		local _, safe = Rules.zone(park.x, park.z)
 		equal(safe, false, "parque outside every safe zone")

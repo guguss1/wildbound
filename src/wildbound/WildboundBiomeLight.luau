@@ -27,8 +27,10 @@ end
 -- overlaps the cloud band or the park, the park's light wins.
 BiomeLight.AREAS = freeze({
 	-- V8-D2 (owner request 2026-11-17): the cloud band and the second space, Pueblo Gatito since PG-D1 (WildboundBiomes
-	-- "pueblo-gatito")
-	square("CandyEast", 932, 1468, -263, 257),
+	-- "pueblo-gatito"). PGM-D3 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí,
+	-- movelo"): the park moved, so the square is the whole big4 south arm (WildboundGatitoArea.ARM; was x 932..1468, z
+	-- -263..257). Still first: here it overlaps Volcanic, Cemetery and Caves, and Pueblo Gatito wins
+	square("CandyEast", -3, 597, 337, 937),
 	square("Forest", -218, 182, -203, 197),
 	square("Meadow", 412, 812, -203, 197),
 	square("Swamp", 82, 482, -643, -243),

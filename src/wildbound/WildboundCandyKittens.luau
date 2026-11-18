@@ -6,7 +6,8 @@
 -- ball), Gatito Guerrero (a ginger kitten with a red spear and a shield), Gatita Bouquet (white and grey, a pink bow and
 -- three tulips) and Gatito Actually (orange, black glasses, one finger raised). Scaled up from the sheets' 2.4-4 studs to
 -- 5.5-7 so they read as guardians beside a 5-stud player.
--- Shared and pure apart from build(): ReplicatedStorage. WildboundCandyKittenService parks build()'s models in
+-- Shared and pure apart from build() (and the require of ReplicatedStorage.WildboundGatitoArea for PARK, PGM-D4):
+-- ReplicatedStorage. WildboundCandyKittenService parks build()'s models in
 -- ReplicatedStorage.WildboundBeasts.Models; WildboundCandyKittenAnimClient poses the live clones with pose(); the
 -- WildboundCandyKittenAmbienceClient switches the kitten music with inPark().
 -- Conventions: every offset is in RootPart space (the RootPart is the ground pivot, front toward -Z, so the kitten's
@@ -18,10 +19,14 @@ local Kittens = {}
 Kittens.NAMES = table.freeze({ "GatitoLanudo", "GatitoGuerrero", "GatitaBouquet", "GatitoActually" })
 Kittens.MAX_PARTS = 25
 Kittens.CULL_STUDS = 200
--- K-D13: the music switch's rectangle (the second space, x 948..1468, z -263..257) and its leave margin.
--- PG-D5 ("the border is the cloud"): it turns on ENTER_MARGIN before the park (inside the 16-stud cloud band) and off
--- LEAVE_MARGIN past it (was 0 and 8).
-Kittens.PARK = table.freeze({ minX = 948, maxX = 1468, minZ = -263, maxZ = 257 })
+-- K-D13: the music switch's rectangle (the park floor) and its leave margin.
+-- PG-D5 ("the border is the cloud"): it turns on ENTER_MARGIN before the park and off LEAVE_MARGIN past it (was 0 and 8).
+-- PGM-D4 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
+-- the big4 south arm, so the rectangle is the park frame's floor square, WildboundGatitoArea.rect(): x 22..542, z
+-- 340..860 (was the second space, x 948..1468, z -263..257). The margins stay 16 and 24: coming down the road from the
+-- hub the music starts at z 324, by the road's end (324.5), and stops past z 316.
+local Area = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundGatitoArea"))
+Kittens.PARK = Area.rect()
 Kittens.ENTER_MARGIN = 16
 Kittens.LEAVE_MARGIN = 24
 Kittens.GUI_ATTRIBUTE = "GatitoAmbience"
@@ -312,7 +317,8 @@ end
 -- rectangle and, once on, stops only more than LEAVE_MARGIN studs outside it. A bad point is off. PG-D5
 -- (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18: "hacelo bioma aparte"): the border is
 -- the cloud, so the flag starts inside the cloud band (x 932..948) and the Caramelo music stops where the HUD already
--- says Pueblo Gatito (was: only inside the rectangle).
+-- says Pueblo Gatito (was: only inside the rectangle). PGM-D4 ("Sí, movelo"): the rectangle is the moved park floor,
+-- so the flag now starts on the apron round it (the HUD's Pueblo Gatito square is the whole arm, PGM-D3).
 function Kittens.inPark(was, x, z)
 	if not (finite(x) and finite(z)) then return false end
 	local P = Kittens.PARK

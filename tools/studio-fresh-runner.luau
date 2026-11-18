@@ -292,6 +292,8 @@ SPECS["WildboundCandyKittenArt_Test"] = {
 	{ service = "src:WildboundCandyKittenService", anim = "src:WildboundCandyKittenAnimClient",
 		ambience = "src:WildboundCandyKittenAmbienceClient", audio = "src:WildboundAudioClient" },
 }
+-- Pueblo Gatito's park frame in the big4 south arm (docs/design/wildbound-pueblo-gatito-move-plan.md PGM-D1, "Sí, movelo")
+SPECS["WildboundGatitoArea_Test"] = { "mod:WildboundGatitoArea" }
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

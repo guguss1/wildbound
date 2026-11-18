@@ -41,10 +41,15 @@ Portal.CARRY = "refuse"
 -- PG-D1, PG-D3 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"):
 -- "parque" is Pueblo Gatito's own portal, the return portal of a biome of its own; its name is WildboundText
 -- PORTAL.names.parque, "Portal de Pueblo Gatito" (K-D3 had no name: the fallback "Portal"). The station is unchanged.
+-- PGM-D4 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
+-- the big4 south arm, so "parque" is park-local (-228, 43) (the K-D3 (980, 40) through WildboundGatitoArea.localOfV1)
+-- with local yaw 90: world Area.world(-228, 43) = (239, 372) and Area.worldYaw(90) = 0 (its posts stand along world
+-- x now), on the park floor (top 0.5), 32 studs inside its gate edge (z 340). Written as literals because this module stays pure (no services); WildboundPortal_Test
+-- checks them against the frame (was x 980, z 40, yaw 90).
 Portal.STATIONS = table.freeze({
 	table.freeze({ id = "caramelo", source = "candy", x = 640.8, z = -3 }),
 	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),
-	table.freeze({ id = "parque", source = "build", x = 980, z = 40, y = 0.5, yaw = 90 }),
+	table.freeze({ id = "parque", source = "build", x = 239, z = 372, y = 0.5, yaw = 0 }),
 })
 
 function Portal.station(id)

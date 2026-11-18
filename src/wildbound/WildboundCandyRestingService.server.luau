@@ -24,8 +24,9 @@ end
 
 local biome = workspace:WaitForChild("Candy_Bioma_v1", 60)
 local floor = biome and biome:FindFirstChild("Ground")
--- K-D7: the kitten park's floor (Candy_Este_v1.Ground) as well, each one only when present (no nil holes)
-local east = workspace:WaitForChild("Candy_Este_v1", 10)
+-- K-D7: the kitten park's floor as well, each one only when present (no nil holes). PGM-D2 (owner request 2026-11-18,
+-- "Sí, movelo"): the moved park's own root, PuebloGatito_v1.Ground (was Candy_Este_v1.Ground)
+local east = workspace:WaitForChild("PuebloGatito_v1", 10)
 local eastFloor = east and east:FindFirstChild("Ground")
 local floors = {}
 if floor then table.insert(floors, floor) end

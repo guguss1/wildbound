@@ -8,6 +8,8 @@
 -- cloud client, the two server clamps and the v8 migration tool. Changes nothing outside its own detached folders.
 -- Pueblo Gatito (docs/design/wildbound-kitten-park-plan.md K-D1, K-D15): the gate splits the Collider into Collider and
 -- ColliderSouth (14-stud gap at z -10..4) and the floor turns grass green.
+-- PGM-D5 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
+-- the big4 south arm, so the wall closes again: one whole Collider, no ColliderSouth, the floor under the band only, pink.
 return function(East, Layout, Smarts, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -49,7 +51,9 @@ return function(East, Layout, Smarts, sources)
 		near(P.space.maxX - P.space.minX, P.plot.maxX - P.plot.minX, "same width")
 		near(P.space.maxZ - P.space.minZ, P.plot.maxZ - P.plot.minZ, "same length")
 		near(P.centre.x, 1208, "space centre x"); near(P.centre.z, -3, "space centre z")
-		rectIs(P.ground, 932, 1468, -263, 257, "the floor under the band and the space")
+		-- Deliberately changed (PGM-D5): the floor is under the band only, the plot's z (was x 932..1468, band and space)
+		rectIs(P.ground, 932, 948, -263, 257, "the floor under the band only")
+		equal(P.gate, nil, "no gate (PGM-D5)")
 		near(P.wallX, 940, "the wall on the band's centre line"); near(East.wallX(Layout), 940, "wallX")
 		near(P.shift, 536, "a plot point lands at the same spot of the space"); near(P.floorTop, Layout.FLOOR_TOP, "floor top")
 		equal(P.margin, East.WALL_MARGIN, "margin"); equal(East.WALL_MARGIN, 8, "half the band")
@@ -57,32 +61,38 @@ return function(East, Layout, Smarts, sources)
 		equal(East.ROOT_NAME, "Candy_Este_v1"); equal(East.FOLDER, "CloudWall")
 		-- Deliberately changed (PG-D2, Pueblo Gatito is its own biome, owner request 2026-11-18 "hacelo bioma aparte"): the
 		-- key mirrors the WildboundBiomes row "pueblo-gatito"; the internal tag stays CandyEast (PG-D1) (was "caramelo-este")
-		equal(East.TAG, "CandyEast"); equal(East.KEY, "pueblo-gatito")
+		-- Deliberately changed (PGM-D5, "Sí, movelo"): the wall is Caramelo's, so East.TAG is gone (the CandyEast row is
+		-- the south arm's, in WildboundBiomes) and the key names the wall (was TAG "CandyEast", KEY "pueblo-gatito")
+		equal(East.TAG, nil, "no tag"); equal(East.KEY, "caramelo-nube")
 		local byName = {}
 		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
 		local floor, collider, veil = byName.Floor, byName.Collider, byName.Veil
 		assert(floor and collider and veil, "Floor, Collider and Veil")
-		-- Deliberately changed (K-D1): six parts, the Collider split at the gate into Collider and ColliderSouth (was five,
-		-- V8-D3 amendment; three before it)
-		equal(#P.parts, 6, "six parts, nothing else")
-		local order = { "Floor", "Collider", "ColliderSouth", "Veil", "CapNorth", "CapSouth" }
+		-- Deliberately changed (PGM-D5): five parts again, the Collider whole, no ColliderSouth (was six, K-D1; five
+		-- before it, V8-D3 amendment; three before that)
+		equal(#P.parts, 5, "five parts, nothing else")
+		local order = { "Floor", "Collider", "Veil", "CapNorth", "CapSouth" }
 		for i, name in ipairs(order) do equal(P.parts[i].name, name, "part " .. i) end
+		equal(byName.ColliderSouth, nil, "no ColliderSouth (PGM-D5)")
 		equal(floor.folder, "Ground"); equal(collider.folder, "CloudWall"); equal(veil.folder, "CloudWall")
-		near(floor.size[1], 536); near(floor.size[2], 1); near(floor.size[3], 520)
-		near(floor.position[1], 1200); near(floor.position[2] + floor.size[2] / 2, Layout.FLOOR_TOP, "floor top"); near(floor.position[3], -3)
-		-- Deliberately changed (K-D1): the Collider is the north piece, z 4..265 (was the band's whole length, 536)
-		near(collider.size[1], 4); near(collider.size[2], 80); near(collider.size[3], 261, "the north piece, z 4..265")
+		-- Deliberately changed (PGM-D5): the floor is the band's 16 by the plot's 520, centred on the wall (was 536 x 520
+		-- at x 1200, under the band and the space)
+		near(floor.size[1], 16); near(floor.size[2], 1); near(floor.size[3], 520)
+		near(floor.position[1], 940); near(floor.position[2] + floor.size[2] / 2, Layout.FLOOR_TOP, "floor top"); near(floor.position[3], -3)
+		-- Deliberately changed (PGM-D5): the Collider is the band's whole length again, z -271..265 (was K-D1's north
+		-- piece, 261, z 4..265)
+		near(collider.size[1], 4); near(collider.size[2], 80); near(collider.size[3], 536, "the band's whole length")
 		near(veil.size[1], 16); near(veil.size[2], 80); near(veil.size[3], 536)
-		-- Deliberately changed (K-D1): the Collider's centre z -3 -> 134.5; the Veil stays whole on the band's centre
-		near(collider.position[1], 940, "Collider x"); near(collider.position[3], 134.5, "Collider z (the north piece)")
+		-- Deliberately changed (PGM-D5): the Collider's centre z is the band's, -3, like the Veil (was 134.5, K-D1)
+		near(collider.position[1], 940, "Collider x"); near(collider.position[3], -3, "Collider z (the band's centre)")
 		near(veil.position[1], 940, "Veil x"); near(veil.position[3], -3, "Veil z")
 		for _, spec in ipairs({ collider, veil }) do
 			near(spec.position[2] - spec.size[2] / 2, Layout.FLOOR_TOP, spec.name .. " stands on the floor")
 		end
-		-- Deliberately changed (K-D15, owner request "un parque verde lindo"): the floor is grass green, Material Grass
-		-- (was the plot's pink 255, 177, 209, SmoothPlastic)
-		equal(floor.color[1], 140); equal(floor.color[2], 201); equal(floor.color[3], 107)
-		equal(floor.material, "Grass", "floor material")
+		-- Deliberately changed (PGM-D5): the floor is the plot's pink SmoothPlastic again; the park lays its own grass (was
+		-- K-D15's grass green 140, 201, 107, Material Grass)
+		equal(floor.color[1], 255); equal(floor.color[2], 177); equal(floor.color[3], 209)
+		equal(floor.material, "SmoothPlastic", "floor material")
 		equal(veil.color[1], 255); equal(veil.color[2], 226); equal(veil.color[3], 240)
 	end)
 
@@ -122,17 +132,18 @@ return function(East, Layout, Smarts, sources)
 		other.Parent = holder
 		local root, report = East.build(holder, Layout)
 		equal(root.Parent, holder, "under the given parent"); equal(root.Name, East.ROOT_NAME); assert(root:IsA("Model"), "a Model")
-		-- Deliberately changed (K-D1): six parts, the Collider split at the gate (was five, V8-D3 amendment; created >= 8)
-		equal(report.parts, 6, "six parts")
-		assert(report.created >= 9, "root, two folders and six parts made: " .. report.created)
+		-- Deliberately changed (PGM-D5): five parts again, the Collider whole (was six, K-D1; created >= 9)
+		equal(report.parts, 5, "five parts")
+		assert(report.created >= 8, "root, two folders and five parts made: " .. report.created)
 		local floor = root.Ground.Floor
 		local collider, veil = root.CloudWall.Collider, root.CloudWall.Veil
-		-- the floor; K-D15: grass green, Material Grass
+		-- the floor; Deliberately changed (PGM-D5): the plot's pink SmoothPlastic (was K-D15's green Grass)
 		equal(floor:GetAttribute("Role"), "floor"); equal(floor.Anchored, true); equal(floor.CanCollide, true)
-		equal(floor.Material, Enum.Material.Grass, "the park's grass")
-		near(floor.Color.R * 255, 140, "green R", 0.6); near(floor.Color.G * 255, 201, "green G", 0.6); near(floor.Color.B * 255, 107, "green B", 0.6)
+		equal(floor.Material, Enum.Material.SmoothPlastic, "the plot's material")
+		near(floor.Color.R * 255, 255, "pink R", 0.6); near(floor.Color.G * 255, 177, "pink G", 0.6); near(floor.Color.B * 255, 209, "pink B", 0.6)
 		near(floor.Position.Y + floor.Size.Y / 2, Layout.FLOOR_TOP, "the plot's floor top")
-		near(floor.Position.X - floor.Size.X / 2, 932, "from the plot's east edge"); near(floor.Position.X + floor.Size.X / 2, 1468, "to the space's")
+		-- Deliberately changed (PGM-D5): the band only, x 932..948 (was to the space's far edge, 1468)
+		near(floor.Position.X - floor.Size.X / 2, 932, "from the plot's east edge"); near(floor.Position.X + floor.Size.X / 2, 948, "to the band's")
 		-- the collider: invisible, collides, answers rays, never touched, no shadow, solid, never a pass for creatures
 		equal(collider.Anchored, true, "collider anchored"); equal(collider.CanCollide, true, "collider collides")
 		equal(collider.CanQuery, true, "collider blocks sight"); equal(collider.CanTouch, false, "collider touch")
@@ -142,22 +153,25 @@ return function(East, Layout, Smarts, sources)
 		equal(CollectionService:HasTag(root, "WildboundBeastPass"), false, "the root is no pass either")
 		equal(collider:GetAttribute("WallMargin"), East.WALL_MARGIN, "the clamp margin")
 		near(collider.Size.X, 4); near(collider.Size.Y, 80); near(collider.Position.X, 940)
+		near(collider.Size.Z, 536, "PGM-D5: the band's whole length"); near(collider.Position.Z, -3, "on the band's centre")
 		-- the veil: ForceField cloud pink, never collides, never answers rays, never touched: the player sees through it
 		equal(veil.Material, Enum.Material.ForceField, "ForceField")
 		near(veil.Color.R * 255, 255, "pink R", 0.6); near(veil.Color.G * 255, 226, "pink G", 0.6); near(veil.Color.B * 255, 240, "pink B", 0.6)
 		equal(veil.CanCollide, false, "veil collide"); equal(veil.CanQuery, false, "veil query"); equal(veil.CanTouch, false, "veil touch")
 		near(veil.Size.X, 16); near(veil.Size.Y, 80)
-		-- Deliberately changed (PG-D2): the root attribute Key follows East.KEY (was "caramelo-este")
-		equal(root:GetAttribute("WallX"), 940); equal(root:GetAttribute("Key"), "pueblo-gatito")
+		-- Deliberately changed (PGM-D5): the root attribute Key follows East.KEY, the wall's (was "pueblo-gatito", PG-D2;
+		-- "caramelo-este" before it)
+		equal(root:GetAttribute("WallX"), 940); equal(root:GetAttribute("Key"), "caramelo-nube")
 		-- idempotent
 		local again, second = East.build(holder, Layout)
 		equal(again, root, "the same root")
 		equal(second.created, 0, "nothing made the second time"); equal(second.changed, 0, "nothing changed the second time")
 		local count = 0
 		for _, d in ipairs(root:GetDescendants()) do if d:IsA("BasePart") then count += 1 end end
-		equal(count, 6, "still six parts") -- Deliberately changed (K-D1): was five (V8-D3 amendment), three before it
-		-- Deliberately changed (K-D1): ColliderSouth carries the same flags as the caps and the Collider
-		for _, name in ipairs({ "CapNorth", "CapSouth", "ColliderSouth" }) do
+		equal(count, 5, "still five parts") -- Deliberately changed (PGM-D5): was six (K-D1), five before it, three before that
+		-- Deliberately changed (PGM-D5): no ColliderSouth is built (was built with the caps' flags, K-D1)
+		equal(root.CloudWall:FindFirstChild("ColliderSouth"), nil, "no ColliderSouth")
+		for _, name in ipairs({ "CapNorth", "CapSouth" }) do
 			local cap = root.CloudWall:FindFirstChild(name)
 			assert(cap, name .. " built")
 			equal(cap.CanCollide, true, name .. " collides"); equal(cap.CanTouch, false, name .. " touch")
@@ -203,45 +217,75 @@ return function(East, Layout, Smarts, sources)
 		holder:Destroy()
 	end)
 
-	-- K-D1 (owner request 2026-11-17, the kitten park: "es como el mundo de gatito"): a 14-stud gate in the Collider at
-	-- the space's centre z (-3), on the main avenue's axis; the creature clamp (x only) is unchanged.
-	case("K-D1: the gate: a 14-stud gap in the Collider at z -10..4; both pieces at x 940; the clamp still reads x 940", function()
-		equal(East.GATE.dz, 0, "gate dz"); equal(East.GATE.width, 14, "gate width"); equal(East.GATE.width, Layout.PATH_WIDTH, "the path's width")
-		assert(table.isfrozen(East.GATE), "GATE frozen")
+	-- Deliberately changed (PGM-D5, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south arm, so the
+	-- wall closes; K-D1's gate case is now the closed wall case (was "K-D1: the gate: a 14-stud gap in the Collider at
+	-- z -10..4; both pieces at x 940"); the creature clamp (x only) is unchanged.
+	case("PGM-D5: the closed wall: no gate, no gap anywhere along the band; the clamp still reads x 940", function()
+		equal(East.GATE, nil, "no GATE")
 		local P = East.plan(Layout)
-		near(P.gate.minZ, -10, "gate min z"); near(P.gate.maxZ, 4, "gate max z")
+		equal(P.gate, nil, "no gate in the plan")
 		local byName = {}
 		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
-		local north, south = byName.Collider, byName.ColliderSouth
-		assert(north and south, "Collider and ColliderSouth")
-		near(north.size[3], 261, "north length"); near(north.position[3], 134.5, "north centre z")
-		near(north.position[3] - north.size[3] / 2, 4, "north piece starts at the gate"); near(north.position[3] + north.size[3] / 2, 265, "to the band's end")
-		near(south.size[3], 261, "south length"); near(south.position[3], -140.5, "south centre z")
-		near(south.position[3] + south.size[3] / 2, -10, "south piece ends at the gate"); near(south.position[3] - south.size[3] / 2, -271, "from the band's end")
-		for _, spec in ipairs({ north, south }) do
-			near(spec.position[1], 940, spec.name .. " x"); near(spec.size[1], 4, spec.name .. " thick"); near(spec.size[2], 80, spec.name .. " tall")
-			equal(spec.role, "solid", spec.name .. " role"); equal(spec.canCollide, true, spec.name .. " collides")
-			equal(spec.canQuery, true, spec.name .. " query"); equal(spec.canTouch, false, spec.name .. " touch")
-			near(spec.transparency, 1, spec.name .. " invisible")
-		end
-		-- built: no colliding part rising above the floor stands in the gate (x 938..942, z strictly inside -10..4)
+		local whole = byName.Collider
+		assert(whole, "Collider")
+		equal(byName.ColliderSouth, nil, "no ColliderSouth")
+		near(whole.size[3], 536, "the band's whole length"); near(whole.position[3], -3, "the band's centre z")
+		near(whole.position[3] - whole.size[3] / 2, -271, "from the band's south end"); near(whole.position[3] + whole.size[3] / 2, 265, "to its north end")
+		near(whole.position[1], 940, "Collider x"); near(whole.size[1], 4, "Collider thick"); near(whole.size[2], 80, "Collider tall")
+		equal(whole.role, "solid", "Collider role"); equal(whole.canCollide, true, "Collider collides")
+		equal(whole.canQuery, true, "Collider query"); equal(whole.canTouch, false, "Collider touch")
+		near(whole.transparency, 1, "Collider invisible")
+		-- built: at every z of the band (half-stud steps, -271..265), a colliding part rising above the floor covers x 938..942
 		local holder = Instance.new("Folder")
 		local root = East.build(holder, Layout)
+		local solids = {}
 		for _, part in ipairs(root:GetDescendants()) do
 			if part:IsA("BasePart") and part.CanCollide and part.Position.Y + part.Size.Y / 2 > Layout.FLOOR_TOP + 0.01 then
-				local p, s = part.Position, part.Size
-				local overlapX = p.X - s.X / 2 < 942 and p.X + s.X / 2 > 938
-				local overlapZ = p.Z - s.Z / 2 < 4 - 1e-3 and p.Z + s.Z / 2 > -10 + 1e-3
-				assert(not (overlapX and overlapZ), part.Name .. " blocks the gate")
+				table.insert(solids, part)
 			end
 		end
-		equal(root.CloudWall.ColliderSouth:GetAttribute("WallMargin"), nil, "only the Collider carries WallMargin")
+		for step = 0, 2 * (P.band.maxZ - P.band.minZ) do
+			local z = P.band.minZ + step / 2
+			local covered = false
+			for _, part in ipairs(solids) do
+				local p, s = part.Position, part.Size
+				if p.X - s.X / 2 <= 938 + 1e-3 and p.X + s.X / 2 >= 942 - 1e-3
+					and p.Z - s.Z / 2 <= z + 1e-3 and p.Z + s.Z / 2 >= z - 1e-3 then
+					covered = true
+					break
+				end
+			end
+			assert(covered, "a gap in the wall at z " .. z)
+		end
+		equal(root.CloudWall.Collider:GetAttribute("WallMargin"), East.WALL_MARGIN, "the Collider carries WallMargin")
 		local wall = Smarts.wallOf(root)
 		assert(wall, "wallOf still finds the wall")
 		near(wall.x, 940, "wallOf x"); equal(wall.margin, East.WALL_MARGIN, "wallOf margin")
-		near((Smarts.outsideWall(1000, -3, 930, -3, wall)), 948, "a creature of the space stops at x 948, even in the gate")
-		near((Smarts.outsideWall(900, -3, 950, -3, wall)), 932, "a creature of the plot stops at x 932, even in the gate")
+		near((Smarts.outsideWall(1000, -3, 930, -3, wall)), 948, "a creature east of the wall stops at x 948")
+		near((Smarts.outsideWall(900, -3, 950, -3, wall)), 932, "a creature of the plot stops at x 932")
 		holder:Destroy()
+		-- a live K-D1 map: the north piece grows back, the floor shrinks to the band, and a leftover ColliderSouth is never
+		-- removed (tools/wildbound-pueblo-gatito-move.luau archives it); then nothing changes again
+		local live = Instance.new("Folder")
+		local liveRoot = East.build(live, Layout)
+		local north, liveFloor = liveRoot.CloudWall.Collider, liveRoot.Ground.Floor
+		north.Size = Vector3.new(4, 80, 261)
+		north.Position = Vector3.new(940, 40.5, 134.5)
+		liveFloor.Size = Vector3.new(536, 1, 520)
+		liveFloor.Position = Vector3.new(1200, 0, -3)
+		liveFloor.Material = Enum.Material.Grass
+		local south = Instance.new("Part")
+		south.Name = "ColliderSouth"
+		south.Parent = liveRoot.CloudWall
+		local _, conformed = East.build(live, Layout)
+		equal(conformed.created, 0, "nothing made"); assert(conformed.changed >= 3, "conformed: " .. conformed.changed)
+		near(north.Size.Z, 536, "the Collider grew back"); near(north.Position.Z, -3, "on the band's centre")
+		near(liveFloor.Size.X, 16, "the floor shrank to the band"); near(liveFloor.Position.X, 940, "the floor on the wall")
+		equal(liveFloor.Material, Enum.Material.SmoothPlastic, "the plot's material again")
+		equal(south.Parent, liveRoot.CloudWall, "ColliderSouth left in place")
+		local _, settled = East.build(live, Layout)
+		equal(settled.created, 0, "settled: nothing made"); equal(settled.changed, 0, "settled: nothing changed")
+		live:Destroy()
 	end)
 
 	case("V8-D4: the annex: plot props move by (x + 536, z), band props are archived, the slabs become two strips", function()

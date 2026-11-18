@@ -6,6 +6,9 @@
 -- §4 Set A, KP1 to KP9): the park's plan, recipes and budget, a build into a detached model (twice: the second changes
 -- nothing), the nest markers, the two archives on detached fixtures, the SistemaSonriente refusal and the one-shot
 -- tool's source. Changes nothing outside its own detached instances.
+-- Since the move (owner request 2026-11-18 "Sí, movelo"; docs/design/wildbound-pueblo-gatito-move-plan.md PGM-D2, PGM-D4)
+-- the park stands in its own root Workspace.PuebloGatito_v1 on the big4 south arm, every position in the park frame of
+-- ReplicatedStorage.WildboundGatitoArea (world(lx, lz) = (282 - lz, 600 + lx)); KP12 checks its own floor.
 return function(Park, East, Layout, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -43,6 +46,8 @@ return function(Park, East, Layout, sources)
 	assert(type(Park) == "table" and type(East) == "table" and type(Layout) == "table", "pass KittenPark, CandyEast and Layout")
 	sources = type(sources) == "table" and sources or {}
 	local CollectionService = game:GetService("CollectionService")
+	-- PGM-D1: the park frame (the module the park itself requires)
+	local Area = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundGatitoArea"))
 
 	-- K-D18: BaseParts per folder before the drop rules
 	local KD18 = { Paths = 254, Gate = 8, Village = 310, ToyPark = 98, Toys = 160, Chests = 88, Trees = 208, Lanterns = 130,
@@ -79,7 +84,9 @@ return function(Park, East, Layout, sources)
 	end
 
 	case("KP0: the interface: names, seed, the K-D18 budget, the sign strings (Latin only)", function()
-		equal(Park.VERSION, 1); equal(Park.ROOT_NAME, "Candy_Este_v1"); equal(Park.ROOT_NAME, East.ROOT_NAME, "one root")
+		-- Deliberately changed (PGM-D2, owner request 2026-11-18 "Sí, movelo"): the park has its own root,
+		-- Workspace.PuebloGatito_v1 = Area.ROOT_NAME (was "Candy_Este_v1" = East.ROOT_NAME)
+		equal(Park.VERSION, 1); equal(Park.ROOT_NAME, "PuebloGatito_v1"); equal(Park.ROOT_NAME, Area.ROOT_NAME, "one root")
 		equal(Park.FOLDER, "Park"); equal(Park.NESTS_FOLDER, "Nests"); equal(Park.FORBIDDEN, "SistemaSonriente")
 		equal(Park.SEED, 8128); equal(Park.PART_CAP, 1400); equal(Park.NEST_PARTS, 2)
 		for folder, n in pairs(KD18) do equal(Park.BUDGET[folder], n, folder .. " budget") end
@@ -88,8 +95,11 @@ return function(Park, East, Layout, sources)
 		equal(total, 1392, "the K-D18 park total")
 		assert(table.isfrozen(Park.NESTS) and table.isfrozen(Park.NESTS[1]) and table.isfrozen(Park.NESTS[1].post)
 			and table.isfrozen(Park.PORTAL) and table.isfrozen(Park.ARRIVAL) and table.isfrozen(Park.BUDGET), "frozen data")
-		near(Park.PORTAL.x, 980); near(Park.PORTAL.z, 40)
-		near(Park.ARRIVAL.x, 964); near(Park.ARRIVAL.z, -3); near(Park.ARRIVAL.r, 30)
+		-- Deliberately changed (PGM-D4): the portal and the arrival disc in the park frame, world of local (-228, 43) and
+		-- (-244, 0) (was (980, 40) and (964, -3))
+		near(Park.PORTAL.x, 239); near(Park.PORTAL.z, 372)
+		near(Park.ARRIVAL.x, 282); near(Park.ARRIVAL.z, 356); near(Park.ARRIVAL.r, 30)
+		near(Park.PORTAL.lx, -228); near(Park.PORTAL.lz, 43); near(Park.ARRIVAL.lx, -244); near(Park.ARRIVAL.lz, 0)
 		local wanted = { "Pueblo Gatito", "Café Cat", "Paws & Coffee", "Panadería Gatuna", "=^.^=", "Takoyaki", "Taiyaki", "Mochi" }
 		equal(#Park.SIGNS, #wanted, "sign count")
 		for i, text in ipairs(wanted) do equal(Park.SIGNS[i], text, "sign " .. i) end
@@ -101,9 +111,14 @@ return function(Park, East, Layout, sources)
 
 	case("KP1: every item and path point inside the space inset by 4; the arrival disc holds only the gate and paths; the portal disc is empty", function()
 		local plan = Park.plan(Layout, East)
-		local space = East.plan(Layout).space
-		near(plan.centre.x, 1208, "centre x"); near(plan.centre.z, -3, "centre z"); near(plan.floorTop, Layout.FLOOR_TOP, "floor top")
-		near(plan.gate.x, 954, "the arch's x"); near(plan.gate.z, -3, "the arch's z"); equal(plan.gate.width, East.GATE.width, "gate width")
+		-- Deliberately changed (PGM-D4, owner request 2026-11-18 "Sí, movelo"): the frame is Area's, the floor square
+		-- x 22..542, z 340..860 round (282, 600), the arch at world (282, 346), the gate 14 wide (was East.plan's space,
+		-- centre (1208, -3), the arch at (954, -3) and East.GATE.width)
+		local space = Area.rect()
+		near(plan.centre.x, 282, "centre x"); near(plan.centre.z, 600, "centre z"); near(plan.floorTop, 0.5, "floor top")
+		near(plan.space.minX, 22, "space minX"); near(plan.space.maxX, 542, "space maxX")
+		near(plan.space.minZ, 340, "space minZ"); near(plan.space.maxZ, 860, "space maxZ")
+		near(plan.gate.x, 282, "the arch's x"); near(plan.gate.z, 346, "the arch's z"); equal(plan.gate.width, 14, "gate width")
 		local function inside(x, z, label)
 			assert(x >= space.minX + 4 and x <= space.maxX - 4 and z >= space.minZ + 4 and z <= space.maxZ - 4,
 				label .. (" at (%.1f, %.1f) is outside the space"):format(x, z))
@@ -121,25 +136,38 @@ return function(Park, East, Layout, sources)
 			assert(not inArrival or it.folder == "Gate" or it.folder == "Paths", it.id .. " stands in the arrival disc")
 			assert(flat(it.x, it.z, Park.PORTAL.x, Park.PORTAL.z) >= 12, it.id .. " stands in the portal's clear disc")
 		end
-		-- the main path starts at the gate and runs on the avenue's axis (z -3) through the arrival point
+		-- the main path starts at the gate and runs on the gate's axis through the arrival point
 		local main = plan.paths[1]
 		equal(main.id, "M"); equal(main.width, 12, "the main path is 12 wide")
-		near(main.points[1].x, 956, "starts just past the arch"); near(main.points[1].z, -3, "on the gate's axis")
+		-- Deliberately changed (PGM-D4): the first point is world of local (-252, 0), (282, 348), on the axis x 282 (was
+		-- (956, -3) on the avenue's axis z -3)
+		near(main.points[1].x, 282, "on the gate's axis"); near(main.points[1].z, 348, "starts just past the arch")
 		for _, path in ipairs(plan.paths) do
 			assert(path.width >= 8 and path.width <= 14, path.id .. " width")
 		end
-		-- the arch: its pillars leave the 14-stud gap clear (z -10..4) and stand on the gate's axis
+		-- the arch: its pillars leave the 14-stud gap clear and stand on the gate's axis
+		-- Deliberately changed (PGM-D4): compared along the arch's local z, -7..7 round its pivot (was the world z of the
+		-- gap, -10..4); the arch turns with the frame
 		local arch = Park.recipe("arch")
 		local pillars = 0
+		local half = plan.gate.width / 2
 		for _, spec in ipairs(arch) do
 			if string.find(spec.name, "Pillar", 1, true) then
 				pillars += 1
-				local z = plan.gate.z + spec.offset[3]
+				local z = spec.offset[3]
 				local r = spec.size[2] / 2
-				assert(z - r >= 4 or z + r <= -10, spec.name .. " stands in the gap")
+				assert(z - r >= half or z + r <= -half, spec.name .. " stands in the gap")
 			end
 		end
 		equal(pillars, 2, "two pillars")
+		-- PGM-D4: an item placed from the local tables with a yaw turns by Area.worldYaw (yaw - 90); the arch (local 0), the
+		-- Café Cat at world of local (-170, -150) = (432, 430) with local 180, the tower (local 90), the giant bag (local -45)
+		local byId = {}
+		for _, it in ipairs(plan.items) do byId[it.id] = it end
+		near(byId.ArcoDeNubes.yaw, -90, "the arch's yaw")
+		near(byId.CafeCat.x, 432, "the café's x"); near(byId.CafeCat.z, 430, "the café's z"); near(byId.CafeCat.yaw, 90, "the café's yaw")
+		near(byId.TorreGatoVigia.yaw, 0, "the tower's yaw")
+		near(byId.GiantBag.yaw, -135, "the giant bag's yaw")
 		-- deterministic
 		local again = Park.plan(Layout, East)
 		equal(#again.items, #plan.items, "same item count")
@@ -163,7 +191,15 @@ return function(Park, East, Layout, sources)
 			assert(counts[n.rarity] ~= nil, n.id .. " rarity " .. tostring(n.rarity))
 			counts[n.rarity] += 1
 			near(flat(n.x, n.z, n.post.x, n.post.z), 12, n.id .. " post distance", 0.01)
-			assert(n.post.x >= 1038 and n.post.x <= 1388 and math.abs(n.post.z + 3) <= 180, n.id .. " post inside the posts' band")
+			-- Deliberately changed (PGM-D4): the posts' band in park-local terms, local x -170..180 and |local z| <= 180 (was
+			-- world x 1038..1388, |z + 3| <= 180); the nest, post and chest carry local lx, lz that match their world x, z
+			local plx, plz = Area.localOf(n.post.x, n.post.z)
+			assert(plx >= -170 and plx <= 180 and math.abs(plz) <= 180, n.id .. " post inside the posts' band")
+			near(n.post.lx, plx, n.id .. " post lx"); near(n.post.lz, plz, n.id .. " post lz")
+			local nlx, nlz = Area.localOf(n.x, n.z)
+			near(n.lx, nlx, n.id .. " lx"); near(n.lz, nlz, n.id .. " lz")
+			local clx, clz = Area.localOf(n.chest.x, n.chest.z)
+			near(n.chest.lx, clx, n.id .. " chest lx"); near(n.chest.lz, clz, n.id .. " chest lz")
 			equal(n.post.key, "kittenPost" .. n.id, n.id .. " post key")
 			near(flat(n.x, n.z, n.chest.x, n.chest.z), 7, n.id .. " chest distance", 0.01)
 			local dot = (n.chest.x - n.x) * (n.post.x - n.x) + (n.chest.z - n.z) * (n.post.z - n.z)
@@ -181,7 +217,12 @@ return function(Park, East, Layout, sources)
 		local guards = { "GatitoGuerrero", "GatitaBouquet", "GatitoActually", "GatitoLanudo", "GatitoGuerrero@kittenPostK5",
 			"GatitaBouquet@kittenPostK6", "GatitoActually@kittenPostK7", "GatitoLanudo@kittenPostK8" }
 		for i, g in ipairs(guards) do equal(Park.NESTS[i].guard, g, "K" .. i .. " guard") end
-		near(Park.NESTS[1].x, 1038); near(Park.NESTS[1].z, -58); near(Park.NESTS[8].x, 1358); near(Park.NESTS[8].z, 117)
+		-- Deliberately changed (PGM-D4): K1 and K8 in the park frame, world of local (-170, -55) and (150, 120) (was
+		-- (1038, -58) and (1358, 117)); K1's post (325, 430) and chest (344, 430) (were (1038, -46) and (1038, -65))
+		near(Park.NESTS[1].x, 337); near(Park.NESTS[1].z, 430); near(Park.NESTS[8].x, 162); near(Park.NESTS[8].z, 750)
+		near(Park.NESTS[1].post.x, 325); near(Park.NESTS[1].post.z, 430)
+		near(Park.NESTS[1].chest.x, 344); near(Park.NESTS[1].chest.z, 430)
+		near(Park.NESTS[1].lx, -170); near(Park.NESTS[1].lz, -55); near(Park.NESTS[8].lx, 150); near(Park.NESTS[8].lz, 120)
 	end)
 
 	case("KP3: no solid or floor part within 8 of a nest, post or chest; solid parts keep 6 + half the width off every path", function()
@@ -452,6 +493,7 @@ return function(Park, East, Layout, sources)
 		inner.Parent = sonriente
 		equal((pcall(Park.build, inner, Layout, East)), false, "build refuses")
 		equal((pcall(Park.syncNests, inner)), false, "syncNests refuses")
+		equal((pcall(Park.buildGround, inner)), false, "buildGround refuses (PGM-D2)")
 		equal((pcall(Park.archiveAnnex, inner, nil, Layout, East, true)), false, "archiveAnnex refuses")
 		equal((pcall(Park.clearGate, inner, nil, true)), false, "clearGate refuses")
 		equal(#inner:GetChildren(), 0, "nothing laid there")
@@ -540,6 +582,41 @@ return function(Park, East, Layout, sources)
 		local destroys = 0
 		for _ in string.gmatch(tool, ":Destroy%(") do destroys += 1 end
 		equal(destroys, 1, "one Destroy"); has(tool, "scratch:Destroy()", "the dry run's scratch model")
+	end)
+
+	case("KP12: buildGround lays the park's own floor once (PGM-D2): Ground.Floor 520 x 520 Grass green, top 0.5, at (282, 600)", function()
+		equal(Park.GROUND_FOLDER, "Ground", "the ground folder")
+		equal(Park.FLOOR.size[1], 2 * Area.HALF, "520 across"); equal(Park.FLOOR.material, "Grass", "the K-D15 grass")
+		local root = Instance.new("Model")
+		root.Name = "GroundTest"
+		local first = Park.buildGround(root)
+		equal(first.created, 2, "the Ground folder and its Floor made"); equal(first.changed, 0, "nothing changed the first time")
+		local second = Park.buildGround(root)
+		equal(second.created, 0, "nothing made the second time"); equal(second.changed, 0, "nothing changed the second time")
+		local ground = root:FindFirstChild("Ground")
+		assert(ground and ground:IsA("Folder"), "root.Ground is a Folder")
+		equal(#ground:GetChildren(), 1, "one floor")
+		local floor = ground:FindFirstChild("Floor")
+		assert(floor and floor:IsA("Part"), "Ground.Floor is a Part")
+		near(floor.Size.X, 520, "size x"); near(floor.Size.Y, 1, "size y"); near(floor.Size.Z, 520, "size z")
+		near(floor.Position.Y + floor.Size.Y / 2, 0.5, "top at Area.FLOOR_TOP")
+		near(floor.Position.X, 282, "centre x"); near(floor.Position.Z, 600, "centre z")
+		equal(floor.Material, Enum.Material.Grass, "Grass")
+		near(floor.Color.R * 255, 140, "R", 0.6); near(floor.Color.G * 255, 201, "G", 0.6); near(floor.Color.B * 255, 107, "B", 0.6)
+		equal(floor:GetAttribute("Role"), "floor", "role floor"); equal(floor.Anchored, true, "anchored")
+		equal(floor.CanCollide, true, "collides"); equal(floor.CanQuery, true, "answers queries")
+		equal(floor.CanTouch, false, "never touched"); equal(floor.CastShadow, true, "casts a shadow")
+		-- a floor pushed off is set back, then nothing changes
+		floor.CFrame = CFrame.new(0, 0, 0)
+		floor.Material = Enum.Material.Plastic
+		local fixed = Park.buildGround(root)
+		assert(fixed.changed >= 2 and fixed.created == 0, "set back: " .. fixed.changed)
+		near(floor.Position.X, 282, "back at x"); near(floor.Position.Z, 600, "back at z")
+		equal(Park.buildGround(root).changed, 0, "settled")
+		-- syncNests stands the nests on this floor
+		equal(Park.syncNests(root), 8, "eight nests on the floor")
+		for _, n in ipairs(Park.NESTS) do near(root.Nests["Nest_" .. n.id]:GetPivot().Y, 0.5, n.id .. " on the floor's top") end
+		root:Destroy()
 	end)
 
 	if scratch then scratch.root:Destroy() end

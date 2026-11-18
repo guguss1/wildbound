@@ -7,6 +7,9 @@
 -- V8-D1: the offsets are x 1.3 now and the default origin is the v8 candy plot's centre (672, -3); see below.
 local Config = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
 	:WaitForChild("WildboundBeastConfig"))
+-- PGM-D1 (owner request 2026-11-18, "Sí, movelo"): the kitten park's frame (EAST_FIXED below), shared and pure
+local Area = require((script:FindFirstAncestorOfClass("DataModel") :: any):GetService("ReplicatedStorage")
+	:WaitForChild("WildboundGatitoArea"))
 local Sites = {}
 
 local finite = Config.finite
@@ -100,20 +103,29 @@ Sites.EXTRA_POSTS = table.freeze({
 
 -- K-D7 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de gatito:
 -- un parque verde lindo con las criaturas gatitas ... también tiene que haber huevos para robar"): the eight kitten posts
--- in Caramelo Este, in world coordinates (they never move with the sector origin), each 12 studs from its park nest K<n>
--- toward the nearest route, at least 85 from any other post (two wake circles of at most 42), world x 1038..1388 and
--- |z + 3| <= 180, so a hunt (zone 60 + 12) plus the attack and the push never reaches the cloud wall (K1: 1038 - 72 - 10
--- - 8 = 948, east of the Collider's face at 938). Deliberately kept out of FIXED, which the plot's suites and tools pin;
--- Sites.world and Sites.wants read both. Keys are letters and digits only (an attribute name and a "<name>@<post>" binding).
+-- of the park, in world coordinates (they never move with the sector origin), each 12 studs from its park nest K<n>
+-- toward the nearest route, at least 85 from any other post (two wake circles of at most 42), park-local lx -170..150
+-- and |lz| <= 108 (the suites allow up to lx 180, |lz| 180). PGM-D1, PGM-D4 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí,
+-- movelo"): the park moved to the big4 south arm, so each post is written park-local (the K-D7 world value v converted
+-- with Area.localOfV1: lx = x - 1208, lz = z + 3) and frozen at Area.world(lx, lz); they no longer face the cloud wall.
+-- A hunt (zone 60 + 12) plus the attack's range and the push stays on the park floor (Area.rect(), x 22..542, z
+-- 340..860): 25 studs inside its far end, 60 inside its two sides, and at most to its gate edge (K1: lx -170 - 90 = -260,
+-- world z 340; Guerrero's 13-stud lane can reach 3 studs past it, onto the apron by the road to the hub, still the arm). Deliberately kept out of FIXED, which the plot's suites and
+-- tools pin; Sites.world and Sites.wants read both. Keys are letters and digits only (an attribute name and a
+-- "<name>@<post>" binding). Each row: local (was the K-D7 world value) -> world; the nest is 12 studs along local z.
+local function parkPost(lx, lz)
+	local x, z = Area.world(lx, lz)
+	return table.freeze({ x = x, z = z })
+end
 Sites.EAST_FIXED = table.freeze({
-	kittenPostK1 = table.freeze({ x = 1038, z = -46 }), -- GatitoGuerrero, home (nest K1 at 1038, -58)
-	kittenPostK2 = table.freeze({ x = 1043, z = 104 }), -- GatitaBouquet, home (nest K2 at 1043, 92)
-	kittenPostK3 = table.freeze({ x = 1143, z = -53 }), -- GatitoActually, home (nest K3 at 1143, -65)
-	kittenPostK4 = table.freeze({ x = 1158, z = 55 }), -- GatitoLanudo, home (nest K4 at 1158, 67)
-	kittenPostK5 = table.freeze({ x = 1228, z = -61 }), -- GatitoGuerrero, extra (nest K5 at 1228, -73)
-	kittenPostK6 = table.freeze({ x = 1243, z = 60 }), -- GatitaBouquet, extra (nest K6 at 1243, 72)
-	kittenPostK7 = table.freeze({ x = 1358, z = -111 }), -- GatitoActually, extra (nest K7 at 1358, -123)
-	kittenPostK8 = table.freeze({ x = 1358, z = 105 }), -- GatitoLanudo, extra (nest K8 at 1358, 117)
+	kittenPostK1 = parkPost(-170, -43), -- (1038, -46) -> (325, 430): GatitoGuerrero, home (nest K1 at 337, 430)
+	kittenPostK2 = parkPost(-165, 107), -- (1043, 104) -> (175, 435): GatitaBouquet, home (nest K2 at 187, 435)
+	kittenPostK3 = parkPost(-65, -50), -- (1143, -53) -> (332, 535): GatitoActually, home (nest K3 at 344, 535)
+	kittenPostK4 = parkPost(-50, 58), -- (1158, 55) -> (224, 550): GatitoLanudo, home (nest K4 at 212, 550)
+	kittenPostK5 = parkPost(20, -58), -- (1228, -61) -> (340, 620): GatitoGuerrero, extra (nest K5 at 352, 620)
+	kittenPostK6 = parkPost(35, 63), -- (1243, 60) -> (219, 635): GatitaBouquet, extra (nest K6 at 207, 635)
+	kittenPostK7 = parkPost(150, -108), -- (1358, -111) -> (390, 750): GatitoActually, extra (nest K7 at 402, 750)
+	kittenPostK8 = parkPost(150, 108), -- (1358, 105) -> (174, 750): GatitoLanudo, extra (nest K8 at 162, 750)
 })
 -- K-D7, K-D11: one more copy of each kitten at an east extra post, summoned like the plot's EXTRA_POSTS (its own
 -- encounter, Director post, its own rest); the beast server and the resting service walk this list after that one.

@@ -32,7 +32,10 @@ Nests.ROOT_NAME = "Candy_Bioma_v1"
 -- gatito ... también tiene que haber huevos para robar"): the kitten park's eight nests K1..K8 live in the second
 -- space's root (Workspace.Candy_Este_v1.Nests, laid by ServerStorage.WildboundKittenPark.syncNests). Their markers carry
 -- Park = true and Guard (the kitten that guards them: "<name>" for a home post, "<name>@<post>" for an east extra post).
-Nests.PARK_ROOT = "Candy_Este_v1"
+-- PGM-D2 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
+-- the big4 south arm, into its own root Workspace.PuebloGatito_v1 (WildboundGatitoArea.ROOT_NAME), still a sibling of
+-- Candy_Bioma_v1 (was "Candy_Este_v1", which keeps only Caramelo's cloud wall).
+Nests.PARK_ROOT = "PuebloGatito_v1"
 -- PG-D2 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"): Pueblo
 -- Gatito is its own biome, so a park nest is its own island entry: id PARK_ID_PREFIX .. id (GatitoK1; letters and digits
 -- only, like every island id), key "gatito_k<n>", biome "PuebloGatito". The plot keeps Candy / caramelo_ / Caramelo.
@@ -165,7 +168,8 @@ end
 -- Caramelo v6 (V6-D4): Island (the eighth argument, nil = ServerStorage.WildboundCandyIsland, false = none) lays the lake
 -- island and its Epica nest after the traps, before the nests are read. An eighth value: the island's changes.
 -- K-D9 (Pueblo Gatito): Park (the ninth argument, nil = ServerStorage.WildboundKittenPark, false = none) lays the kitten
--- park's nests (Park.syncNests) in the sibling root Candy_Este_v1 after the island, before the nests are read; an
+-- park's nests (Park.syncNests) in the sibling root PARK_ROOT (PuebloGatito_v1 since PGM-D2) after the island, before
+-- the nests are read; an
 -- unparented root or a missing sibling root calls nothing. A ninth value: the park nests changed.
 function Nests.applyFlags(root, Builder, Layout, HouseNests, HideSpots, Grass, Traps, Island, Park)
 	if typeof(root) ~= "Instance" or type(Builder) ~= "table" or type(Layout) ~= "table" then return 0, 0 end

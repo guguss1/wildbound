@@ -49,13 +49,23 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 	}
 	local NAMES = { "GatitoLanudo", "GatitoGuerrero", "GatitaBouquet", "GatitoActually" }
 	-- The K-D7 table (world coordinates).
+	-- Deliberately changed (PGM-D1, PGM-D4, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south
+	-- arm; each post is its K-D7 value v through the park frame, Area.world(Area.localOfV1(v)), world(lx, lz) =
+	-- (282 - lz, 600 + lx) (was K1 (1038, -46), K2 (1043, 104), K3 (1143, -53), K4 (1158, 55), K5 (1228, -61), K6 (1243,
+	-- 60), K7 (1358, -111), K8 (1358, 105))
 	local POSTS = {
-		kittenPostK1 = { 1038, -46 }, kittenPostK2 = { 1043, 104 }, kittenPostK3 = { 1143, -53 }, kittenPostK4 = { 1158, 55 },
-		kittenPostK5 = { 1228, -61 }, kittenPostK6 = { 1243, 60 }, kittenPostK7 = { 1358, -111 }, kittenPostK8 = { 1358, 105 },
+		kittenPostK1 = { 325, 430 }, kittenPostK2 = { 175, 435 }, kittenPostK3 = { 332, 535 }, kittenPostK4 = { 224, 550 },
+		kittenPostK5 = { 340, 620 }, kittenPostK6 = { 219, 635 }, kittenPostK7 = { 390, 750 }, kittenPostK8 = { 174, 750 },
 	}
 	-- The second space (WildboundCandyEast plan) and the cloud wall's Collider (centre x 940, face at 938, margin 8).
-	local SPACE = { minX = 948, maxX = 1468, minZ = -263, maxZ = 257 }
+	-- Deliberately changed (PGM-D4): SPACE is the park floor, WildboundGatitoArea.rect() (was the second space, x
+	-- 948..1468, z -263..257); ARM is the south arm, the Pueblo Gatito biome square (PGM-D3, WildboundGatitoArea.ARM).
+	-- The wall stays Caramelo's (PGM-D8: the creature clamp is kept).
+	local SPACE = { minX = 22, maxX = 542, minZ = 340, maxZ = 860 }
+	local ARM = { minX = -3, maxX = 597, minZ = 337, maxZ = 937 }
 	local WALL = { x = 940, margin = 8 }
+	-- PGM-D1: a world point in park-local studs (WildboundGatitoArea.localOf): lx = z - 600, lz = 282 - x
+	local function parkLocal(x, z) return z - 600, 282 - x end
 	local FAR = 70 -- a target this far from home is never seen
 	for _, name in ipairs(NAMES) do
 		if Config.WAVE2[name] or Config.SUMMONED[name] then Enc.register(name, Critter) end
@@ -265,22 +275,51 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 	end)
 
 	-- KK4 (V8-D3 wall, K-D7): a kitten never crosses the cloud wall west of the park (the server clamps every step).
-	case("KK4 wall: a kitten chasing west from (960, -3) stays at x >= 948", function()
+	-- Deliberately changed (PGM-D1, PGM-D4, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south arm,
+	-- so no kitten stands by Caramelo's cloud wall now. The clamp's own rule stays (PGM-D8); the case now checks that the
+	-- park is off the wall and off the candy plot: every post's reach stays far west of the wall's clamp line and the
+	-- clamp leaves a kitten's chase alone, and the arm overlaps no Meadow square (was "a kitten chasing west from
+	-- (960, -3) stays at x >= 948", a kitten spawned at (960, -3) stepped against the wall)
+	case("KK4 off the wall: the park is off Caramelo's plot and far from its cloud wall; the clamp never moves a kitten", function()
 		local x, z = Smarts.outsideWall(950, -3, 900, -3, { x = 940 })
 		near(x, 948, "a step from (950, -3) toward x 900 stops at the wall plus its margin"); near(z, -3, "z is never changed")
 		near((Smarts.outsideWall(1000, -3, 930, -3, WALL)), 948, "from the east")
 		for _, name in ipairs(NAMES) do
-			local e, w = spawn(name, "wall", 960, -3), fakeWorld()
-			local tgt = target(930, -3)
-			local least = math.huge
+			local A = tuning(name).Attack
+			local reach = Smarts.profile(name).zone + 12 + A.RangeStuds + A.PushStuds
+			for _, key in ipairs({ SHEET[name].post, SHEET[name].extra }) do
+				local p = POSTS[key]
+				assert(p[1] + reach < WALL.x - WALL.margin, key .. " reaches the cloud wall's clamp line (" .. (p[1] + reach) .. ")")
+				near((Smarts.outsideWall(p[1], p[2], p[1] + reach, p[2], WALL)), p[1] + reach, key .. ": the clamp never moves its hunt")
+			end
+			-- a kitten at its home post chasing a target east of it, stepped with the clamp as world.keepOut does: never moved
+			local home = POSTS[SHEET[name].post]
+			local e, w = spawn(name, "wall", home[1], home[2]), fakeWorld()
+			local tgt = target(home[1] + 30, home[2])
 			for i = 0, 160 do
 				local t = i * 0.05
 				local px, pz = e.pos.x, e.pos.z
 				if not e.done then Enc.step(e, t, tgt, w) end
-				e.pos.x, e.pos.z = Smarts.outsideWall(px, pz, e.pos.x, e.pos.z, WALL) -- as world.keepOut does
-				least = math.min(least, e.pos.x)
+				local cx, cz = Smarts.outsideWall(px, pz, e.pos.x, e.pos.z, WALL)
+				assert(cx == e.pos.x and cz == e.pos.z, name .. " moved by the wall clamp at x " .. e.pos.x)
 			end
-			assert(least >= 948 - 1e-9, name .. " reached x " .. least)
+		end
+		-- the arm (the Pueblo Gatito square) and the floor inside it overlap no Meadow square (the candy plot), in this copy
+		-- and, when present, the big4 one
+		assert(SPACE.minX >= ARM.minX and SPACE.maxX <= ARM.maxX and SPACE.minZ >= ARM.minZ and SPACE.maxZ <= ARM.maxZ,
+			"the floor inside the arm")
+		for _, list in ipairs({ Biomes.AREAS, Biomes.AREAS_BIG4 }) do
+			if type(list) == "table" then
+				for _, area in ipairs(list) do
+					if area.tag == "Meadow" and area.kind == "square" then
+						local apart = area.maxX < ARM.minX or area.minX > ARM.maxX or area.maxZ < ARM.minZ or area.minZ > ARM.maxZ
+						assert(apart, "the arm overlaps the Meadow square " .. area.minX .. ".." .. area.maxX .. ", " .. area.minZ .. ".." .. area.maxZ)
+					end
+				end
+			end
+		end
+		for _, corner in ipairs({ { ARM.minX, ARM.minZ }, { ARM.maxX, ARM.minZ }, { ARM.minX, ARM.maxZ }, { ARM.maxX, ARM.maxZ } }) do
+			equal(Biomes.has(corner[1], corner[2], "CandyEast"), true, ("arm corner %d, %d is Pueblo Gatito"):format(corner[1], corner[2]))
 		end
 	end)
 
@@ -298,7 +337,7 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 			local w, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
 			near(w.x, want[1], key .. " x"); near(w.z, want[2], key .. " z"); near(p.x, want[1]); near(p.z, want[2])
 			near(moved.x, w.x, key .. " never moves with the origin"); near(moved.z, w.z)
-			equal(Biomes.has(w.x, w.z, "CandyEast"), true, key .. " in Caramelo Este"); equal(Biomes.has(w.x, w.z, "Meadow"), false, key)
+			equal(Biomes.has(w.x, w.z, "CandyEast"), true, key .. " in Pueblo Gatito"); equal(Biomes.has(w.x, w.z, "Meadow"), false, key)
 		end
 		equal(count, 8, "eight kitten posts")
 		equal(#Sites.EAST_EXTRA_POSTS, 4, "one east extra post per kitten")
@@ -330,13 +369,21 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 				equal(wants(T.WakeRadiusStuds + 60, { frenzy = { x = w.x + 151, z = w.z, studs = 150 } }), false, key .. " a frenzy out of reach")
 				-- the reach: a hunt (zone + 12), its attack and its push stay off the void edges by 10, and west of it the
 				-- wall clamp line (948, the Collider's face 938 plus its margin side) is never passed
+				-- Deliberately changed (PGM-D4, owner request 2026-11-18 "Sí, movelo"): the park floor's edges are the
+				-- moved square (x 22..542, z 340..860); the far end (z 860) and both sides (x 22, 542) keep the 10-stud
+				-- inset, and the gate edge (z 340, the old wall clamp line's place: open ground toward the hub past it) is
+				-- reached at most (K1: 430 - 90 = 340) (was east edge maxX - 10, north and south edges by 10, x - reach
+				-- >= 948 the wall clamp)
 				local A = T.Attack
 				local reach = Smarts.profile(name).zone + 12 + A.RangeStuds + A.PushStuds
-				assert(w.x + reach <= SPACE.maxX - 10, key .. " reaches the east edge")
-				assert(w.z + reach <= SPACE.maxZ - 10 and w.z - reach >= SPACE.minZ + 10, key .. " reaches a north or south edge")
-				assert(w.x - reach >= WALL.x + WALL.margin, key .. " reaches past the wall clamp (" .. (w.x - reach) .. ")")
-				assert(w.x - 84 >= 938, key .. " two wake circles from the Collider's face")
-				assert(w.x >= 1038 and w.x <= 1388 and math.abs(w.z + 3) <= 180, key .. " outside the K-D7 window")
+				assert(w.z + reach <= SPACE.maxZ - 10, key .. " reaches the far end")
+				assert(w.x + reach <= SPACE.maxX - 10 and w.x - reach >= SPACE.minX + 10, key .. " reaches a side edge")
+				assert(w.z - reach >= SPACE.minZ, key .. " reaches past the gate edge (" .. (w.z - reach) .. ")")
+				-- Deliberately changed (PGM-D4): two wake circles from the gate edge (was w.x - 84 >= 938, the Collider's face)
+				assert(w.z - 84 >= SPACE.minZ, key .. " two wake circles from the gate edge")
+				-- Deliberately changed (PGM-D4): the K-D7 window in park-local terms (was world x 1038..1388, |z + 3| <= 180)
+				local lx, lz = parkLocal(w.x, w.z)
+				assert(lx >= -170 and lx <= 180 and math.abs(lz) <= 180, key .. " outside the K-D7 window")
 			end
 		end
 		equal(#all, 8, "posts in all")
@@ -437,7 +484,8 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 		equal(summons, 2, "both extra-post loops summon one per post")
 		local _, starts = beasts:gsub("world%.startAtPost%(player, value, extra%.key, p%.Y, at%)", "")
 		equal(starts, 2, "both start on the ground at the post")
-		has(resting, "Candy_Este_v1", "the resting rays hit the park floor")
+		-- Deliberately changed (PGM-D2, owner request 2026-11-18 "Sí, movelo"): the moved park's own root (was "Candy_Este_v1")
+		has(resting, 'workspace:WaitForChild("PuebloGatito_v1", 10)', "the resting rays hit the park floor")
 		has(resting, 'root:SetAttribute("RestingPost_" .. extra.name .. "_" .. extra.key', "published as RestingPost_<name>_<post>")
 		has(resting, "Sites.world(nil, Sites.HOME[name])", "the post is the beast's own home site")
 		for _, source in ipairs({ beasts, client, resting, restingClient }) do

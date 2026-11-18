@@ -79,7 +79,9 @@ return function(Atmosphere, BiomeLight, sources)
 		local c = park.atmosphereColor
 		assert(c.b > c.r and c.b > c.g and c.b >= 240, "the park's air is light blue: " .. c.r .. "," .. c.g .. "," .. c.b)
 		assert(park.fogEnd >= 900, "a long view")
-		local name = BiomeLight.presetAt(1208, -3)
+		-- Deliberately changed (PGM-D3, owner request 2026-11-18 "Sí, movelo"): the park's centre is in the big4 south
+		-- arm now, WildboundGatitoArea.ORIGIN (was 1208, -3)
+		local name = BiomeLight.presetAt(282, 600)
 		assert(name == "Gatuno", "the park reads Gatuno, got " .. tostring(name))
 	end)
 
