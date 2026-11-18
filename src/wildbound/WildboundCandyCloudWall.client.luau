@@ -7,7 +7,11 @@
 --   budget   "Efectos suaves" (the world gui's Reduced, as WildboundCandyLife.client reads it) lowers the rate; far from
 --            the wall the emitters stop;
 --   stream   at 2 Hz (Heartbeat) the Veil is looked up again, so a Veil that streams out and back gets its puffs again;
---   cleanup  the emitters go when the script goes (script.Destroying).
+--   cleanup  the emitters go when the script goes (script.Destroying);
+--   faces    PG-D6 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"):
+--            the cloud has two faces. Seen from Caramelo (the camera west of the Veil) the puffs are pink and white; seen
+--            from Pueblo Gatito (east of it) they are white and sky blue (the park's Atmosphere air, 199, 226, 245). The
+--            side is read at the same 2 Hz step and the palette is set only when it changes. The Veil part is unchanged.
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
@@ -17,17 +21,21 @@ local CHECK_SECONDS = 0.5
 local NEAR_STUDS = 700 -- farther than this from the wall (flat) the puffs stop
 local REDUCED_SHARE = 0.3 -- Efectos suaves: this share of the rate
 -- Two layers of puffs: big slow pink ones and smaller white ones (rate per second at full budget).
+-- PG-D6: colors is the Caramelo face; parkColors the Pueblo Gatito face (white and sky blue).
 local LAYERS = {
 	{ name = "CloudPuffs", rate = 22, lifetime = { 9, 14 }, size = { 18, 30 }, speed = { 0.4, 1.4 },
-		colors = { Color3.fromRGB(255, 214, 234), Color3.fromRGB(255, 240, 248) }, transparency = 0.45 },
+		colors = { Color3.fromRGB(255, 214, 234), Color3.fromRGB(255, 240, 248) },
+		parkColors = { Color3.fromRGB(240, 248, 255), Color3.fromRGB(199, 226, 245) }, transparency = 0.45 },
 	{ name = "CloudWisps", rate = 14, lifetime = { 7, 11 }, size = { 10, 18 }, speed = { 0.6, 1.8 },
-		colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 226, 240) }, transparency = 0.55 },
+		colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 226, 240) },
+		parkColors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(214, 236, 250) }, transparency = 0.55 },
 }
 
 local player = Players.LocalPlayer
 local veil = nil
 local emitters = {}
 local connections = {}
+local side = nil -- PG-D6: the face the emitters wear (true = Pueblo Gatito, false = Caramelo, nil = not painted yet)
 
 local function worldGui()
 	local gui = player:FindFirstChildOfClass("PlayerGui")
@@ -38,6 +46,16 @@ local function teardown()
 	for _, emitter in ipairs(emitters) do emitter:Destroy() end
 	table.clear(emitters)
 	veil = nil
+	side = nil
+end
+
+-- PG-D6: every emitter wears the palette of the side the camera is on (park: Pueblo Gatito, else Caramelo).
+local function paint(park)
+	for i, emitter in ipairs(emitters) do
+		local colors = park and LAYERS[i].parkColors or LAYERS[i].colors
+		emitter.Color = ColorSequence.new(colors[1], colors[2])
+	end
+	side = park
 end
 
 local function newEmitter(layer, parent)
@@ -99,6 +117,9 @@ local function refresh()
 	local camera = workspace.CurrentCamera
 	local eye = camera and camera.CFrame.Position
 	local near = eye ~= nil and math.abs(eye.X - veil.Position.X) <= NEAR_STUDS
+	-- PG-D6: the camera east of the Veil sees Pueblo Gatito's face; a new emitter (side nil) is painted at once
+	local park = eye ~= nil and eye.X > veil.Position.X
+	if park ~= side then paint(park) end
 	for i, emitter in ipairs(emitters) do
 		local layer = LAYERS[i]
 		emitter.Rate = near and layer.rate * (reduced and REDUCED_SHARE or 1) or 0

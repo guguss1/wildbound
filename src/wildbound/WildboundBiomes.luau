@@ -23,8 +23,10 @@ Biomes.AREAS = table.freeze({
 	square("Caves", "rock-caves", 472, 772, 237, 537),
 	-- V8-D2 (owner request 2026-11-17, "another space of the same size, separated by clouds"): Caramelo Este, the cloud
 	-- band and the second space east of the bigger plot (WildboundCandyEast: x 932..1468, z -263..257). Its own tag, so
-	-- the Meadow-only creature rules do not apply there; WildboundBiomeLight gives it the Caramelo light.
-	square("CandyEast", "caramelo-este", 932, 1468, -263, 257),
+	-- the Meadow-only creature rules do not apply there; WildboundBiomeLight gives it its own Gatuno light (K-D14).
+	-- PG-D1, PG-D2 (owner request 2026-11-18, "hacelo bioma aparte"): this is Pueblo Gatito, a biome of its own; the
+	-- internal tag stays CandyEast, the key is "pueblo-gatito" (was "caramelo-este").
+	square("CandyEast", "pueblo-gatito", 932, 1468, -263, 257),
 	table.freeze({ tag = "Swamp", key = "island-pantano", kind = "circle", x = 115, z = 15, r = 16 }),
 })
 

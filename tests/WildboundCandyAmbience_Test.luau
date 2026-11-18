@@ -350,5 +350,23 @@ return function(Ambience, Mix, Catalog, BiomeLight, sources)
 		has(client, "string.sub(childName, 1, 6) == \"Choco_\"", "the chocolate shimmers")
 	end)
 
+	-- Pueblo Gatito its own biome (docs/design/wildbound-pueblo-gatito-biome-plan.md PG-D5, "the border is the cloud";
+	-- owner request 2026-11-18: "hacelo bioma aparte"): while the local kitten flag is on, the player is out of Caramelo:
+	-- the CandyAmbience flag (the Caramelo music) goes false and the lights, sparkles and fireflies are torn down.
+	case("AM14: PG-D5: the kitten flag switches the Caramelo ambience off", function()
+		has(client, "require(ReplicatedStorage:WaitForChild(\"WildboundCandyKittens\")).GUI_ATTRIBUTE",
+			"the kitten flag's name comes from its own module")
+		has(client, "gui:GetAttribute(KITTEN_FLAG) == true", "reads the local kitten flag")
+		-- the plot's own hysteresis (nearCandy) is kept apart from the gated result, so a player leaving the park never
+		-- falls into a strip where neither biome's ambience is on
+		has(client, "nearCandy = biome ~= nil and at ~= nil and Ambience.inside(nearCandy, plotBounds(), at.X, at.Z)\n"
+			.. "\tinCandy = nearCandy and not kittenOn()",
+			"out of Caramelo while the kitten flag is on, right where inCandy is decided")
+		local gate = string.find(client, "inCandy = nearCandy and not kittenOn()", 1, true)
+		local flag = string.find(client, "setFlag(inCandy)", 1, true)
+		assert(gate and flag and gate < flag, "the gate comes before the CandyAmbience flag is set")
+		has(client, "if not inCandy then\n\t\tteardown()", "and the decoration is torn down")
+	end)
+
 	return result
 end

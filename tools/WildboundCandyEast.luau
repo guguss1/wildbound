@@ -29,8 +29,10 @@ local East = {}
 
 East.VERSION = 1
 East.ROOT_NAME = "Candy_Este_v1"
-East.TAG = "CandyEast" -- the WildboundBiomes / WildboundBiomeLight row (key "caramelo-este")
-East.KEY = "caramelo-este"
+East.TAG = "CandyEast" -- the WildboundBiomes / WildboundBiomeLight row (key "pueblo-gatito")
+-- PG-D1, PG-D2 (owner request 2026-11-18, "hacelo bioma aparte"): the second space is Pueblo Gatito, a biome of its own;
+-- the key mirrors the WildboundBiomes row and is written to the root attribute Key (was "caramelo-este")
+East.KEY = "pueblo-gatito"
 East.BAND = 16 -- the cloud band's width (studs)
 East.BAND_OVERHANG = 8 -- the band runs this far past the plot's north and south edges
 East.COLLIDER_THICK = 4

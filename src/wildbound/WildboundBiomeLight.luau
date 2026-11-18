@@ -26,7 +26,8 @@ end
 -- Gatito) is the first row, because presetAt answers with the first square that holds the point; where another square
 -- overlaps the cloud band or the park, the park's light wins.
 BiomeLight.AREAS = freeze({
-	-- V8-D2 (owner request 2026-11-17): Caramelo Este, the cloud band and the second space (WildboundBiomes "caramelo-este")
+	-- V8-D2 (owner request 2026-11-17): the cloud band and the second space, Pueblo Gatito since PG-D1 (WildboundBiomes
+	-- "pueblo-gatito")
 	square("CandyEast", 932, 1468, -263, 257),
 	square("Forest", -218, 182, -203, 197),
 	square("Meadow", 412, 812, -203, 197),

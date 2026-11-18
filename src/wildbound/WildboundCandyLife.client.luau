@@ -18,6 +18,8 @@ local UserInputService = game:GetService("UserInputService")
 
 local Life = require(ReplicatedStorage:WaitForChild("WildboundCandyLife"))
 local Ambience = require(ReplicatedStorage:WaitForChild("WildboundCandyAmbience"))
+-- PG-D5: Pueblo Gatito's local flag, read by name from its own module (one name for both biomes)
+local KITTEN_FLAG = require(ReplicatedStorage:WaitForChild("WildboundCandyKittens")).GUI_ATTRIBUTE
 local fallbackBounds = nil
 do
 	local found = ReplicatedStorage:WaitForChild("WildboundBiomeLight", 10)
@@ -29,6 +31,7 @@ local player = Players.LocalPlayer
 local biome = nil
 local floorBounds, frame = nil, nil
 local inCandy = false
+local nearCandy = false -- PG-D5: the plot's own enter/leave state (its hysteresis), before the kitten flag is applied
 local budget = Life.budget(false, false)
 local holder = nil
 local flocks, sites, spots = {}, {}, {} -- [id] = { parts..., per-creature records }
@@ -38,6 +41,12 @@ local function rgb(c) return Color3.fromRGB(c[1], c[2], c[3]) end
 local function worldGui()
 	local gui = player:FindFirstChildOfClass("PlayerGui")
 	return gui and gui:FindFirstChild("WildboundWorldUI")
+end
+-- PG-D5 ("the border is the cloud"): whether Pueblo Gatito's local flag is on (WildboundCandyKittenAmbienceClient sets
+-- it; the name is WildboundCandyKittens.GUI_ATTRIBUTE)
+local function kittenOn()
+	local gui = worldGui()
+	return gui ~= nil and gui:GetAttribute(KITTEN_FLAG) == true
 end
 
 -- Parts -------------------------------------------------------------------------------------------------------
@@ -188,7 +197,8 @@ local function refresh()
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
 	local at = root and root.Position or (camera and camera.Focus.Position)
-	inCandy = biome ~= nil and at ~= nil and Ambience.inside(inCandy, floorBounds or fallbackBounds, at.X, at.Z)
+	nearCandy = biome ~= nil and at ~= nil and Ambience.inside(nearCandy, floorBounds or fallbackBounds, at.X, at.Z)
+	inCandy = nearCandy and not kittenOn() -- PG-D5: in Pueblo Gatito, out of Caramelo (no candy creatures)
 	local gui = worldGui()
 	local soft = gui ~= nil and gui:GetAttribute("Reduced") == true
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled

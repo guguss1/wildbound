@@ -686,13 +686,21 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(#list, 3, "the park Legendaria is dropped")
 		local byId = {}
 		for _, entry in ipairs(list) do byId[entry.id] = entry end
-		local k1, k7, c1 = byId.CandyK1, byId.CandyK7, byId.CandyC1
-		assert(k1 and k7 and c1, "CandyK1, CandyK7 and CandyC1")
+		-- Deliberately changed (PG-D2, Pueblo Gatito is its own biome, owner request 2026-11-18 "hacelo bioma aparte"): a
+		-- park nest is its own island entry, GatitoK<n> / gatito_k<n> / biome PuebloGatito (was CandyK1, CandyK7,
+		-- caramelo_k1); the plot entry keeps CandyC1 / caramelo_c1 / Caramelo
+		equal(Nests.PARK_ID_PREFIX, "Gatito", "the park's id prefix (letters only: the guard binding parses @(%w+)$)")
+		local k1, k7, c1 = byId.GatitoK1, byId.GatitoK7, byId.CandyC1
+		assert(k1 and k7 and c1, "GatitoK1, GatitoK7 and CandyC1")
 		equal(k1.species, "Gomibu"); equal(k1.rewardTier, "Fog"); equal(k1.rarity, "Comun"); equal(k1.tier, "Fog")
-		equal(k1.park, true, "K1 marked park"); equal(k1.key, "caramelo_k1"); equal(k1.nestId, "K1")
+		equal(k1.park, true, "K1 marked park"); equal(k1.key, "gatito_k1"); equal(k1.nestId, "K1")
+		equal(k1.biome, "PuebloGatito", "K1 biome"); equal(k7.biome, "PuebloGatito", "K7 biome")
+		equal(k7.key, "gatito_k7", "K7 key")
 		equal(k7.species, "Flanfuria"); equal(k7.rewardTier, "Territory"); equal(k7.rarity, "Epica"); equal(k7.tier, "Territory")
 		equal(c1.rewardTier, "Safe", "a plot Comun still pays Safe"); equal(c1.park, nil, "a plot entry has no park mark")
-		equal(byId.CandyK9, nil, "no park Legendaria")
+		equal(c1.key, "caramelo_c1", "the plot keeps its key"); equal(c1.biome, "Caramelo", "the plot keeps its biome")
+		equal(byId.CandyK1, nil, "no Candy park entry"); equal(byId.CandyK7, nil, "no Candy park entry")
+		equal(byId.GatitoK9, nil, "no park Legendaria")
 		assert(table.isfrozen(k1), "frozen entry")
 	end)
 
@@ -706,8 +714,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(binding.K1, nil, "a plot post never binds a park nest"); equal(binding.K2, nil, "nor K2")
 		local byId = {}
 		for _, entry in ipairs(Nests.islands(markers, posts)) do byId[entry.id] = entry end
-		equal(byId.CandyK1.guard, "GatitoGuerrero", "the guard comes from the attribute")
-		equal(byId.CandyK2.guard, nil, "no attribute, no guard (never the plot post beside it)")
+		-- Deliberately changed (PG-D2): the park entries are GatitoK1 and GatitoK2 (was CandyK1, CandyK2)
+		equal(byId.GatitoK1.guard, "GatitoGuerrero", "the guard comes from the attribute")
+		equal(byId.GatitoK2.guard, nil, "no attribute, no guard (never the plot post beside it)")
 		-- the plot's own guardian posts are unchanged (the kittens are not candy guardians)
 		equal(#Nests.posts(Sites), 9, "still nine plot guardian posts")
 		for _, post in ipairs(Nests.posts(Sites)) do

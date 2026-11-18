@@ -19,8 +19,11 @@ Kittens.NAMES = table.freeze({ "GatitoLanudo", "GatitoGuerrero", "GatitaBouquet"
 Kittens.MAX_PARTS = 25
 Kittens.CULL_STUDS = 200
 -- K-D13: the music switch's rectangle (the second space, x 948..1468, z -263..257) and its leave margin.
+-- PG-D5 ("the border is the cloud"): it turns on ENTER_MARGIN before the park (inside the 16-stud cloud band) and off
+-- LEAVE_MARGIN past it (was 0 and 8).
 Kittens.PARK = table.freeze({ minX = 948, maxX = 1468, minZ = -263, maxZ = 257 })
-Kittens.LEAVE_MARGIN = 8
+Kittens.ENTER_MARGIN = 16
+Kittens.LEAVE_MARGIN = 24
 Kittens.GUI_ATTRIBUTE = "GatitoAmbience"
 Kittens.JOINTS = table.freeze({ "Body", "Head", "EarL", "EarR", "Tail", "PawL", "PawR", "Prop" })
 -- K-D12 heights (Guerrero's spear tip stands higher, at most 8.5).
@@ -305,8 +308,11 @@ function Kittens.build(name)
 	return model
 end
 
--- inPark(was, x, z) -> whether the kitten music is on (K-D13): it starts inside the park's rectangle and, once on, stops
--- only more than LEAVE_MARGIN studs outside it. A bad point is off.
+-- inPark(was, x, z) -> whether the kitten music is on (K-D13): it starts within ENTER_MARGIN studs of the park's
+-- rectangle and, once on, stops only more than LEAVE_MARGIN studs outside it. A bad point is off. PG-D5
+-- (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18: "hacelo bioma aparte"): the border is
+-- the cloud, so the flag starts inside the cloud band (x 932..948) and the Caramelo music stops where the HUD already
+-- says Pueblo Gatito (was: only inside the rectangle).
 function Kittens.inPark(was, x, z)
 	if not (finite(x) and finite(z)) then return false end
 	local P = Kittens.PARK
@@ -314,7 +320,7 @@ function Kittens.inPark(was, x, z)
 	local dz = math.max(P.minZ - z, 0, z - P.maxZ)
 	local d = math.sqrt(dx * dx + dz * dz)
 	if was == true then return d <= Kittens.LEAVE_MARGIN end
-	return d == 0
+	return d <= Kittens.ENTER_MARGIN
 end
 
 -- K-D12 poses. pose(name, phase, t, reduced) -> { [joint] = CFrame } in RootPart space about each joint's pivot (the

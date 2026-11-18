@@ -1,5 +1,7 @@
 # Pueblo Gatito: build plan for the kitten park in Caramelo Este
 
+> **Since 2026-11-18 (PG-D9), Pueblo Gatito is its own biome, not "phase 2 of Reino Caramelo".** This plan stays the record of how the park was built (K-D1 to K-D21; deployed in `fbcfb6f`). The current plan is `docs/design/wildbound-pueblo-gatito-biome-plan.md`, and the task log is `odd/tasks/wildbound-pueblo-gatito.md`.
+
 Status: plan by the designer, every choice decided for the owner. No code has been written and no Studio tool was called. Line numbers are from `E:\juego roblox\wb-first-playable` unless marked `wb-big4`. Any line marked **(verified)** I read myself; the rest comes from the three research reports.
 
 ---

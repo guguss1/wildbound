@@ -37,8 +37,10 @@ Portal.CARRY = "refuse"
 -- un parque verde lindo ... también tiene que haber huevos para robar"): "parque", a built station in Caramelo Este near
 -- the cloud gate (45.9 studs from the arrival point (964, -3), 43 from the main path, 89.8 from the nearest kitten post,
 -- outside every safe zone), on the park floor (top 0.5); yaw 90, so its posts stand along world z. It helps only an
--- empty-handed player: a carrier is still refused (decision 47), so the heist stays "carry it home past the beasts". No
--- name of its own (WildboundText is untouched): it shows the fallback "Portal".
+-- empty-handed player: a carrier is still refused (decision 47), so the heist stays "carry it home past the beasts".
+-- PG-D1, PG-D3 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"):
+-- "parque" is Pueblo Gatito's own portal, the return portal of a biome of its own; its name is WildboundText
+-- PORTAL.names.parque, "Portal de Pueblo Gatito" (K-D3 had no name: the fallback "Portal"). The station is unchanged.
 Portal.STATIONS = table.freeze({
 	table.freeze({ id = "caramelo", source = "candy", x = 640.8, z = -3 }),
 	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),

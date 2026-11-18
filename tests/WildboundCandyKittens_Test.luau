@@ -373,8 +373,11 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 		equal(#islands, 8, "every park nest becomes an island nest")
 		for _, entry in ipairs(islands) do
 			local nest
-			for _, n in ipairs(Park.NESTS) do if Nests.ID_PREFIX .. n.id == entry.id then nest = n end end
+			-- Deliberately changed (PG-D2, Pueblo Gatito is its own biome): a park entry's id is PARK_ID_PREFIX .. id
+			-- (GatitoK1, was Nests.ID_PREFIX .. id, CandyK1) and its biome is PuebloGatito
+			for _, n in ipairs(Park.NESTS) do if Nests.PARK_ID_PREFIX .. n.id == entry.id then nest = n end end
 			assert(nest, entry.id .. " is not a park nest")
+			equal(entry.biome, "PuebloGatito", entry.id .. " biome")
 			equal(entry.guard, nest.guard, entry.id .. " guard"); equal(entry.park, true, entry.id .. " park")
 			equal(entry.rewardTier, Nests.PARK_POOL[nest.rarity].rewardTier, entry.id .. " pay")
 		end

@@ -55,7 +55,9 @@ return function(East, Layout, Smarts, sources)
 		equal(P.margin, East.WALL_MARGIN, "margin"); equal(East.WALL_MARGIN, 8, "half the band")
 		equal(East.BAND, 16); equal(East.COLLIDER_THICK, 4); equal(East.HEIGHT, 80)
 		equal(East.ROOT_NAME, "Candy_Este_v1"); equal(East.FOLDER, "CloudWall")
-		equal(East.TAG, "CandyEast"); equal(East.KEY, "caramelo-este")
+		-- Deliberately changed (PG-D2, Pueblo Gatito is its own biome, owner request 2026-11-18 "hacelo bioma aparte"): the
+		-- key mirrors the WildboundBiomes row "pueblo-gatito"; the internal tag stays CandyEast (PG-D1) (was "caramelo-este")
+		equal(East.TAG, "CandyEast"); equal(East.KEY, "pueblo-gatito")
 		local byName = {}
 		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
 		local floor, collider, veil = byName.Floor, byName.Collider, byName.Veil
@@ -145,7 +147,8 @@ return function(East, Layout, Smarts, sources)
 		near(veil.Color.R * 255, 255, "pink R", 0.6); near(veil.Color.G * 255, 226, "pink G", 0.6); near(veil.Color.B * 255, 240, "pink B", 0.6)
 		equal(veil.CanCollide, false, "veil collide"); equal(veil.CanQuery, false, "veil query"); equal(veil.CanTouch, false, "veil touch")
 		near(veil.Size.X, 16); near(veil.Size.Y, 80)
-		equal(root:GetAttribute("WallX"), 940); equal(root:GetAttribute("Key"), "caramelo-este")
+		-- Deliberately changed (PG-D2): the root attribute Key follows East.KEY (was "caramelo-este")
+		equal(root:GetAttribute("WallX"), 940); equal(root:GetAttribute("Key"), "pueblo-gatito")
 		-- idempotent
 		local again, second = East.build(holder, Layout)
 		equal(again, root, "the same root")
@@ -290,6 +293,24 @@ return function(East, Layout, Smarts, sources)
 		for _, banned in ipairs({ "FireServer", "InvokeServer", "RemoteEvent", "SetAttribute", "CanCollide = true" }) do
 			hasNot(client, banned, "client-only, no gameplay")
 		end
+	end)
+
+	-- PG-D6 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"): the
+	-- cloud has two faces: pink and white from Caramelo, white and sky blue from Pueblo Gatito, picked by the camera's side
+	-- of the Veil at the 2 Hz step; the Veil part itself is unchanged.
+	case("PG-D6 wiring: the cloud client keeps both palettes and picks one by the camera's side of the Veil", function()
+		local client = sources.client
+		has(client, "colors = { Color3.fromRGB(255, 214, 234), Color3.fromRGB(255, 240, 248) }", "the Caramelo puffs kept")
+		has(client, "colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 226, 240) }", "the Caramelo wisps kept")
+		has(client, "parkColors = { Color3.fromRGB(240, 248, 255), Color3.fromRGB(199, 226, 245) }", "the park puffs")
+		has(client, "parkColors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(214, 236, 250) }", "the park wisps")
+		has(client, "local park = eye ~= nil and eye.X > veil.Position.X", "the side: east of the Veil is the park")
+		has(client, "if park ~= side then paint(park) end", "painted only when the side changes")
+		has(client, "local colors = park and LAYERS[i].parkColors or LAYERS[i].colors", "that side's palette")
+		has(client, "emitter.Color = ColorSequence.new(colors[1], colors[2])", "on every emitter")
+		has(client, "side = nil", "a new emitter is painted at once")
+		hasNot(client, "RenderStepped", "still the 2 Hz Heartbeat step")
+		hasNot(client, "veil.Color =", "the Veil part is unchanged")
 	end)
 
 	case("V8-D3 wiring: both server clamps read the wall and keep creatures on their side", function()

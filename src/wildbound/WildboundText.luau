@@ -139,7 +139,8 @@ return freeze({
 			Cestillo = "Camina entre los juncos con su cesto a cuestas.",
 			Polvilla = "Polilla de las ruinas. Suelta polvo dorado al volar.",
 			Tizoncillo = "Un tronco que arde por dentro. Solo nace de noche.",
-			Gomibu = "Osito de goma del bioma Caramelo. Rebota y empuja.",
+			-- PG-D7 (owner request 2026-11-18, "hacelo bioma aparte"): park nests give Gomibu too, so the card names no place.
+			Gomibu = "Osito de goma. Rebota y empuja.",
 			Tortidragon = "Dragón de pastel y fresa. Estornuda confites.",
 			Flanfuria = "Flan con un gatito de crema. Su onda de caramelo frena.",
 		},
@@ -423,6 +424,16 @@ return freeze({
 		GatoRepartidor = { warn = "¡Lluvia de papas! Sal del círculo", hit = "¡Papas por todos lados!",
 			phases = { Notice = "El Gato Repartidor te vio", Chase = "¡El Gato Repartidor te sigue!", Telegraph = "¡Lluvia de papas! Sal del círculo",
 				Deliver = "¡El Gato Repartidor te trae un pedido!" } },
+		-- PG-D4 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"): the
+		-- four Pueblo Gatito kittens speak in the candy critters' style; this reverses K-D20's no-Text choice. Never red.
+		GatitoLanudo = { warn = "¡Gatito Lanudo va a rebotar! Sal del círculo", hit = "¡Enredado en lana!",
+			phases = { Notice = "Gatito Lanudo te vio", Chase = "¡Gatito Lanudo te sigue!", Telegraph = "¡Gatito Lanudo va a rebotar! Sal del círculo" } },
+		GatitoGuerrero = { warn = "¡Carga de escudo! Sal de la franja por un lado", hit = "¡Escudazo!",
+			phases = { Notice = "Gatito Guerrero te vio", Chase = "¡Gatito Guerrero te sigue!", Telegraph = "¡Carga de escudo! Sal de la franja por un lado" } },
+		GatitaBouquet = { warn = "¡Lluvia de pétalos! Sal del círculo", hit = "¡Achís! Pétalos",
+			phases = { Notice = "Gatita Bouquet te vio", Chase = "¡Gatita Bouquet te sigue!", Telegraph = "¡Lluvia de pétalos! Sal del círculo" } },
+		GatitoActually = { warn = "¡De hecho! Aléjate de Gatito Actually", hit = "¡De hecho, te alcanzó!",
+			phases = { Notice = "Gatito Actually te vio", Chase = "¡Gatito Actually te sigue!", Telegraph = "¡De hecho! Aléjate de Gatito Actually" } },
 		AbejaReina = { warn = "¡Zum! Sal de la línea", hit = "¡Plof!",
 			phases = {
 				Wake = "¡Bzz! La Reina despertó. Si no te mueves, no te oye.",
@@ -875,6 +886,8 @@ return freeze({
 		names = {
 			caramelo = "Portal del Caramelo",
 			bosque = "Portal del Bosque",
+			-- PG-D3 (owner request 2026-11-18, "hacelo bioma aparte"): Pueblo Gatito's return portal has its own name.
+			parque = "Portal de Pueblo Gatito",
 		},
 	},
 })

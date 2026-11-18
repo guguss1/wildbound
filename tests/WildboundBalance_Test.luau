@@ -333,11 +333,14 @@ return function(Balance, source)
 		assert(type(live) == "table", "LIVE")
 		-- CF3 (odd/tasks/wildbound-caramelo.md): no day/night cycle since CA4; a 300 s wave clock with a 10 s Warning window,
 		-- and per place a fixed gameplay phase (BiomeLight.RULES, CF1) and a fixed light mood (BiomeLight.PRESETS).
+		-- Deliberately changed (PG-D8, Pueblo Gatito is its own biome, owner request 2026-11-18 "hacelo bioma aparte"): the
+		-- record knows the park's Gatuno preset (BiomeLight RULES and PRESETS, K-D14), Day rules and a Day mood, so B23's
+		-- liveFrom() matches it again (was no Gatuno row in rules or light)
 		pinMap(live.dayCycle, { fixed = true, waveSeconds = 300, warningSeconds = 10,
 			rules = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
-				Swamp = "Day", Cemetery = "Day", Volcanic = "Day" },
+				Swamp = "Day", Cemetery = "Day", Volcanic = "Day", Gatuno = "Day" },
 			light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
-				Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" } }, "LIVE.dayCycle")
+				Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk", Gatuno = "Day" } }, "LIVE.dayCycle")
 		-- PF2 (user decision 2026-11-14): the live treadmill went to +2 walk per level, 17 levels, a cap of 50.
 		-- Deliberately re-pinned (BP1, balance pass 2026-11-15): the console is re-priced (30 x 1.2 -> 20 x 1.1).
 		pinMap(live.training, { walkStep = 2, maxLevel = 17, walkCap = 50, walkCapMin = 16, walkCapMax = 60,

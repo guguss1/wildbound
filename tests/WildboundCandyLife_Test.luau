@@ -299,5 +299,19 @@ return function(Life, Ambience, V3, Layout, sources)
 		assert(not string.find(client, "%d%d%d%d%d%d%d"), "an asset id is written in the client")
 	end)
 
+	-- Pueblo Gatito its own biome (docs/design/wildbound-pueblo-gatito-biome-plan.md PG-D5, "the border is the cloud";
+	-- owner request 2026-11-18: "hacelo bioma aparte"): while the local kitten flag is on, the player is out of Caramelo
+	-- and its birds, butterflies and fish are cleared.
+	case("CL9: PG-D5: the kitten flag clears the Caramelo creatures", function()
+		has(client, "require(ReplicatedStorage:WaitForChild(\"WildboundCandyKittens\")).GUI_ATTRIBUTE",
+			"the kitten flag's name comes from its own module")
+		has(client, "gui:GetAttribute(KITTEN_FLAG) == true", "reads the local kitten flag")
+		-- the plot's own hysteresis (nearCandy) is kept apart from the gated result
+		has(client, "nearCandy = biome ~= nil and at ~= nil and Ambience.inside(nearCandy, floorBounds or fallbackBounds, at.X, at.Z)\n"
+			.. "\tinCandy = nearCandy and not kittenOn()",
+			"out of Caramelo while the kitten flag is on, right where inCandy is decided")
+		has(client, "if not inCandy then\n\t\tteardown()", "and the creatures are cleared")
+	end)
+
 	return result
 end

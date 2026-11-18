@@ -113,12 +113,14 @@ Balance.LIVE = freeze({
 	-- CF3 (odd/tasks/wildbound-caramelo.md): since CA4 there is no day/night cycle. The world runs a wave clock
 	-- (WAVE_SECONDS, the last WARNING_SECONDS are its Warning window) and each place has a fixed gameplay phase (rules,
 	-- BiomeLight.RULES, CF1) and a fixed light mood (light, BiomeLight.PRESETS[...].mood). No phase lengths exist.
+	-- PG-D8 (Pueblo Gatito is its own biome, owner request 2026-11-18 "hacelo bioma aparte"): its Gatuno preset (K-D14)
+	-- plays by Day rules with a Day mood, like Caramelo.
 	dayCycle = {
 		fixed = true, waveSeconds = 300, warningSeconds = 10,
 		rules = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
-			Swamp = "Day", Cemetery = "Day", Volcanic = "Day" },
+			Swamp = "Day", Cemetery = "Day", Volcanic = "Day", Gatuno = "Day" },
 		light = { Forest = "Night", Abyss = "Night", Caves = "Night", Caramelo = "Day", Hub = "Day", Mountains = "Day",
-			Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk" },
+			Swamp = "Dusk", Cemetery = "Dusk", Volcanic = "Dusk", Gatuno = "Day" },
 	},
 	-- PF2 (user decision 2026-11-14): the live treadmill is +2 walk per level, 17 levels, a walk cap of 50. BP1 (balance
 	-- pass 2026-11-15): the console is re-priced to 20 x 1.1 (was 30 x 1.2).

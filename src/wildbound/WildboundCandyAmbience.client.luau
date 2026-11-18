@@ -22,6 +22,8 @@ local UserInputService = game:GetService("UserInputService")
 local CollectionService = game:GetService("CollectionService")
 
 local Ambience = require(ReplicatedStorage:WaitForChild("WildboundCandyAmbience"))
+-- PG-D5: Pueblo Gatito's local flag, read by name from its own module (one name for both biomes)
+local KITTEN_FLAG = require(ReplicatedStorage:WaitForChild("WildboundCandyKittens")).GUI_ATTRIBUTE
 local function optional(name, read)
 	local found = ReplicatedStorage:WaitForChild(name, 10)
 	local ok, value = pcall(function() return found and read(require(found)) end)
@@ -39,6 +41,7 @@ local floorBounds = nil
 local candidates, dirty = {}, true
 local watched = {} -- [container] = { connections }
 local inCandy = false
+local nearCandy = false -- PG-D5: the plot's own enter/leave state (its hysteresis), before the kitten flag is applied
 local budget = Ambience.budget(false, false)
 local holder, anchor, fireflies = nil, nil, nil
 local lights, emitters, sways = {}, {}, {}
@@ -52,6 +55,12 @@ end
 local function worldGui()
 	local gui = player:FindFirstChildOfClass("PlayerGui")
 	return gui and gui:FindFirstChild("WildboundWorldUI")
+end
+-- PG-D5 ("the border is the cloud"): whether Pueblo Gatito's local flag is on (WildboundCandyKittenAmbienceClient sets
+-- it; the name is WildboundCandyKittens.GUI_ATTRIBUTE)
+local function kittenOn()
+	local gui = worldGui()
+	return gui ~= nil and gui:GetAttribute(KITTEN_FLAG) == true
 end
 local function setFlag(on)
 	local gui = worldGui()
@@ -384,7 +393,8 @@ local function refresh()
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
 	local at = root and root.Position or (camera and camera.Focus.Position)
-	inCandy = biome ~= nil and at ~= nil and Ambience.inside(inCandy, plotBounds(), at.X, at.Z)
+	nearCandy = biome ~= nil and at ~= nil and Ambience.inside(nearCandy, plotBounds(), at.X, at.Z)
+	inCandy = nearCandy and not kittenOn() -- PG-D5: in Pueblo Gatito, out of Caramelo (music and decoration)
 	setFlag(inCandy)
 	if not inCandy then
 		teardown()

@@ -33,6 +33,10 @@ Nests.ROOT_NAME = "Candy_Bioma_v1"
 -- space's root (Workspace.Candy_Este_v1.Nests, laid by ServerStorage.WildboundKittenPark.syncNests). Their markers carry
 -- Park = true and Guard (the kitten that guards them: "<name>" for a home post, "<name>@<post>" for an east extra post).
 Nests.PARK_ROOT = "Candy_Este_v1"
+-- PG-D2 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"): Pueblo
+-- Gatito is its own biome, so a park nest is its own island entry: id PARK_ID_PREFIX .. id (GatitoK1; letters and digits
+-- only, like every island id), key "gatito_k<n>", biome "PuebloGatito". The plot keeps Candy / caramelo_ / Caramelo.
+Nests.PARK_ID_PREFIX = "Gatito"
 -- K-D8: the same three species (no new egg art, pet or icon), paid one tier more than the plot's (the random world's
 -- SpawnClock.REWARD) for the long walk home: Comun Fog (10), Rara FogFar (16), Epica Territory (24). No Legendaria: it
 -- stays event-only, as in the plot. The risk tier stays Nests.RISK.
@@ -115,12 +119,14 @@ function Nests.islands(markers, posts)
 		local park = m.park == true
 		local pick = Nests.pick(m.rarity, park)
 		table.insert(list, table.freeze({
-			id = Nests.ID_PREFIX .. m.id, key = "caramelo_" .. string.lower(m.id), x = m.x, z = m.z,
+			-- PG-D2: a park nest is Pueblo Gatito's own entry (GatitoK1, gatito_k1, PuebloGatito)
+			id = (park and Nests.PARK_ID_PREFIX or Nests.ID_PREFIX) .. m.id,
+			key = (park and "gatito_" or "caramelo_") .. string.lower(m.id), x = m.x, z = m.z,
 			floorRadius = 6, zone = "outside", tier = pick.tier,
 			rewardTier = pick.rewardTier, species = pick.species, rarity = pick.rarity, adults = 0,
 			wakeDay = 12, wakeNight = 15, hideSpot = nil,
 			adultPoints = table.freeze({}), content = "Egg", eggs = Nests.EGGS,
-			biome = "Caramelo", nestId = m.id, nestTop = finite(m.top) and m.top or nil,
+			biome = park and "PuebloGatito" or "Caramelo", nestId = m.id, nestTop = finite(m.top) and m.top or nil,
 			guard = park and (type(m.guard) == "string" and m.guard or nil) or binding[m.id],
 			park = park or nil,
 		}))

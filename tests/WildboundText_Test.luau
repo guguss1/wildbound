@@ -403,10 +403,44 @@ return function(Text, source, sources)
 			"noBase", "disabled", "dead", "carrying", "cutDisabled" }) do
 			text(P[key], "PORTAL." .. key, 72)
 		end
-		for _, id in ipairs({ "caramelo", "bosque" }) do text(P.names[id], "PORTAL.names." .. id, 24) end
+		-- PG-D3 (owner request 2026-11-18, "hacelo bioma aparte"): the park's return portal has its own name.
+		for _, id in ipairs({ "caramelo", "bosque", "parque" }) do text(P.names[id], "PORTAL.names." .. id, 24) end
+		equal(P.names.parque, "Portal de Pueblo Gatito", "PORTAL.names.parque")
 		assert(P.cooldown:format(12):find("12", 1, true), "cooldown shows the wait")
 		assert(P.threat:format(4):find("4", 1, true), "threat shows the calm left")
 		assert(P.readyIn:format(9):find("9", 1, true), "readyIn shows the wait")
+	end)
+
+	-- PG-D4 (docs/design/wildbound-pueblo-gatito-biome-plan.md; owner request 2026-11-18, "hacelo bioma aparte"): the
+	-- four kittens speak in the candy critters' style (this reverses K-D20's no-Text choice). Telegraph says the warn line;
+	-- the tells are never red, and every line fits the 64 bytes the other beasts' lines fit.
+	case("PG-D4: the four kittens have their warn, hit, Notice, Chase and Telegraph lines", function()
+		local expected = {
+			GatitoLanudo = { name = "Gatito Lanudo", warn = "¡Gatito Lanudo va a rebotar! Sal del círculo", hit = "¡Enredado en lana!" },
+			GatitoGuerrero = { name = "Gatito Guerrero", warn = "¡Carga de escudo! Sal de la franja por un lado", hit = "¡Escudazo!" },
+			GatitaBouquet = { name = "Gatita Bouquet", warn = "¡Lluvia de pétalos! Sal del círculo", hit = "¡Achís! Pétalos" },
+			GatitoActually = { name = "Gatito Actually", warn = "¡De hecho! Aléjate de Gatito Actually", hit = "¡De hecho, te alcanzó!" },
+		}
+		for beast, words in pairs(expected) do
+			local actual = Text.BEAST[beast]
+			assert(type(actual) == "table" and type(actual.phases) == "table", "Text.BEAST." .. beast)
+			equal(actual.warn, words.warn, beast .. ".warn"); equal(actual.hit, words.hit, beast .. ".hit")
+			equal(actual.phases.Notice, words.name .. " te vio", beast .. ".phases.Notice")
+			equal(actual.phases.Chase, "¡" .. words.name .. " te sigue!", beast .. ".phases.Chase")
+			equal(actual.phases.Telegraph, actual.warn, beast .. ".phases.Telegraph")
+			for _, key in ipairs({ "warn", "hit" }) do text(actual[key], beast .. "." .. key, 64) end
+			for _, key in ipairs({ "Notice", "Chase", "Telegraph" }) do text(actual.phases[key], beast .. ".phases." .. key, 64) end
+			for _, red in ipairs({ "rojo", "roja" }) do
+				assert(not actual.warn:find(red, 1, true), beast .. " never points at a red mark")
+			end
+		end
+	end)
+
+	-- PG-D7 (owner request 2026-11-18, "hacelo bioma aparte"): park nests give Gomibu too, so its card names no place.
+	case("PG-D7: the Gomibu card is place-neutral", function()
+		equal(Text.CARD.blurb.Gomibu, "Osito de goma. Rebota y empuja.", "CARD.blurb.Gomibu")
+		text(Text.CARD.blurb.Gomibu, "blurb Gomibu", 80)
+		assert(not Text.CARD.blurb.Gomibu:find("Caramelo", 1, true), "the card names no biome")
 	end)
 
 	-- BP4a: "Liberar" a spare creature from the bag panel: a button, a second tap to confirm, the reply and its refusals.
