@@ -271,7 +271,9 @@ return function(HouseNests, Nests, Layout, KitSpec, V3, sources)
 		assert(src:find("pcall(H.sync, root, Layout)", 1, true) > src:find("pcall(Builder.syncTower, root, Layout)", 1, true),
 			"after the tower step")
 		has(src, 'house = nest:GetAttribute("House") == true', "read marks house nests")
-		has(src, "and m.house ~= true then", "bind skips them")
+		-- Deliberately changed (K-D9, the kitten park): bind also skips park nests on the next line, so the house check no
+		-- longer ends the condition (was "and m.house ~= true then")
+		has(src, "and m.house ~= true\n", "bind skips them")
 	end)
 
 	return result

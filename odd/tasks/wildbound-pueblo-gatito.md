@@ -23,19 +23,46 @@ The park was built by `docs/design/wildbound-kitten-park-plan.md` (K-D1 to K-D21
 
 | ID | Task | Status |
 |---|---|---|
-| PG-D1 | Its own biome in every name, text, sound and doc. The internal tag `CandyEast` stays | In progress |
-| PG-D2 | Park nests as their own island entries (`GatitoK1`..`GatitoK8`, `gatito_k<n>`, biome `PuebloGatito`). Key `pueblo-gatito` | In progress |
-| PG-D3 | The return portal is named "Portal de Pueblo Gatito" | In progress |
-| PG-D4 | The four kittens have warning and hit lines | In progress |
-| PG-D5 | The border is the cloud: kitten music from inside the band, Caramelo music, lights and life off in the park | In progress |
-| PG-D6 | The cloud is pink from Caramelo, white and sky blue from the park | In progress |
-| PG-D7 | The Gomibu card no longer says "del bioma Caramelo" | In progress |
-| PG-D8 | The Balance record knows the Gatuno preset | In progress |
-| PG-D9 | Own task file, overview rows, kitten-plan note | In progress |
+| PG-D1 | Its own biome in every name, text, sound and doc. The internal tag `CandyEast` stays | Done (51debba, Studio) |
+| PG-D2 | Park nests as their own island entries (`GatitoK1`..`GatitoK8`, `gatito_k<n>`, biome `PuebloGatito`). Key `pueblo-gatito` | Done (51debba, Studio, solo Play) |
+| PG-D3 | The return portal is named "Portal de Pueblo Gatito" | Done (solo Play) |
+| PG-D4 | The four kittens have warning and hit lines | Done (solo Play, Gatito Guerrero) |
+| PG-D5 | The border is the cloud: kitten music from inside the band, Caramelo music, lights and life off in the park | Done (solo Play walk) |
+| PG-D6 | The cloud is pink from Caramelo, white and sky blue from the park | Done (solo Play, camera both sides) |
+| PG-D7 | The Gomibu card no longer says "del bioma Caramelo" | Done (suite) |
+| PG-D8 | The Balance record knows the Gatuno preset | Done (suite) |
+| PG-D9 | Own task file, overview rows, kitten-plan note | Done |
+
+### Decisions taken for the user (step 1, after the plan)
+
+- **The border keeps Caramelo's own hysteresis.** Both Caramelo clients (ambience and life) keep the plot's enter/leave state (`nearCandy`) apart from the gated result (`inCandy = nearCandy and not kittenOn()`). A reviewer found that writing the gated value back would leave a strip at the north and south corners where neither biome's ambience is on.
+- **One name for the kitten flag.** The Caramelo clients read the flag name from `WildboundCandyKittens.GUI_ATTRIBUTE`, so a rename cannot break the border silently.
+- **A K-D9 test needle fixed.** WildboundCandyHouseNests_Test pinned `and m.house ~= true then`. Since K-D9 the bind line goes on with `and m.park ~= true then`, so this case had failed since the park deploy (not caused by step 1).
+- **Not done:** the ambience and life clients still poll every 0.5 s, so the switch can lag the kitten flag by up to half a second. The reviewer rated it low.
+
+### Evidence (step 1, 2026-11-18)
+
+- **Deploy.**
+  - 16 changed scripts matched base a24d1ef in Studio before the hunks, and matched HEAD 51debba after.
+  - Hunks only for the mixed copies: WildboundText and WildboundText_Test (Studio's Text_Test carries 334 extra bytes from another branch), and the Studio-only big4 WildboundBiomes and WildboundBiomeLight (the key and a comment).
+  - The live root attribute `Candy_Este_v1.Key` is now `pueblo-gatito`.
+- **Suites, fresh Play server VM:**
+  - CandyNests 26/0, CandyKittens 7/0, CandyKittenArt 5/0, CandyEast 10/0, CandyAmbience 14/0, CandyLife 9/0;
+  - Balance 25/0 (B23 passes again), Portal 12/0, PortalService 15/0, BiomeLight (big4 copy) 12/0;
+  - KittenPark 12/0, BeastWiring 53/0, CandySky 4/0, CandyIsland 10/0, Text 25/0;
+  - CandyHouseNests 5/0, after the needle fix.
+- **Play, solo:**
+  - The server laid 8 park islands `Island_GatitoK1`..`K8`, and no `Island_CandyK*` remains.
+  - The "parque" prompt reads "Portal de Pueblo Gatito" / "Volver a la base".
+  - The 8 park nests show "Tomar el huevo".
+  - Walking x 900 -> 1000 -> 900 at z -3: Caramelo music and decoration stay on to x 928. The kitten flag is on and Caramelo off from x 933. On the way back the kitten flag stays on to x 926, and Caramelo is back from x 922. No step had neither on.
+  - With the camera set at x 880, the cloud puffs read 255,240,248 (pink face). At x 1000 they read 199,226,245 (park face).
+  - Near post K1 the client showed "Gatito Guerrero te vio", "¡Gatito Guerrero te sigue!", "¡Carga de escudo! Sal de la franja por un lado" and "¡Escudazo!".
+  - The console had no errors from the changed scripts. It did show permission errors for the Lumipol MeshGen meshes (Workspace.MeshGen1, ServerStorage.WildboundAssets.LumipolMeshGen); those predate this step.
 
 ## Next step
 
-Step 1's deploy and checks, then step 2: move the park to its own side of the hub (the south arm is planned).
+Step 2: move the park to its own side of the hub (the south arm is planned). Then the longer Caramelo with a river 5 times wider.
 
 ---
 
