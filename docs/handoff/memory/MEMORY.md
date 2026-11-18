@@ -1,3 +1,4 @@
-- [Explain questions plainly](explain-questions-plainly.md) — plain Spanish, no task codes/jargon in questions and summaries
+﻿- [Explain questions plainly](explain-questions-plainly.md) — plain Spanish, no task codes/jargon in questions and summaries
 - [Wildbound env: git/python/worktrees](wildbound-env-git-python.md) — git only via GitHub Desktop path, no Python, repo worktree layout
+- [Wildbound current state](wildbound-current-state.md) — Pueblo Gatito moved to big4 south arm (6831632) 2026-11-18; next: longer Caramelo + 5x river, then park look
 - [Lumipol rig pipeline](lumipol-rig-pipeline.md) — asset ownership blocks export; rig in Blender; sleep idle + walk/run anims

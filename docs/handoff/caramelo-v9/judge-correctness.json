@@ -1,0 +1,79 @@
+﻿{
+    "scores":  [
+                   {
+                       "design":  "A (keep)",
+                       "score":  4.5,
+                       "strengths":  [
+                                         "Keeps the most in place: the plot frame stays CENTRE (672,-3) plus EAST 860, and the Torta, tower, boss, portal and 24 of 28 nests do not move, so the fewest relays are needed",
+                                         "The bridge geometry holds when recomputed. At x 520 the wet span is z -136.4..-36.0 and the Bottom deck covers -141.25..-32.25. At x 760 the wet span is -84..16 and the Top deck covers -88.75..22.25. The deck-end liquid of 1.79 matches the design. Underside is 13-0.4-3.5 = 9.1 above the surface, so it clears the 8 clearance",
+                                         "The raft mechanism works with the code: adding nearBridge(...,forRaft) as a 4th argument leaves the fake layouts in RF4/RF16 unchanged. The plot clip on liquidDistance and the max-of-neighbours joint drum are both right",
+                                         "M1 kit offsets check against KitSpec (outlet Z -49.6671, poolCentre -37.6671, poolRadius 11 x 0.45 = 4.95). The pool is 5.40 from the outlet, within the 5.95 limit",
+                                         "Harbour checks recomputed and correct: dock C stand liquid 5.34 and tip -10.06, island ring -4.0, tip line minus foot 14.6 (needs 12), dock C ramp 22.4 from the south route",
+                                         "The only design that flags creatures\u0027 ground rays hitting a raised deck (the area under a bridge could become a refuge); adds a Flyers rule that keeps hives off the chocolate"
+                                     ],
+                       "defects":  [
+                                       "CH1 failure its checker misses: candyPostC13 moves to world (800,-184) and the kept candyPostR6 is at (803.8,-156.6), 27.7 apart. Nests_Test needs every pair of posts at least 30 apart",
+                                       "CH3 and CH1 syrup failures: the legacy Layout.LAKE discs (0,-162) r24 and (26,-176) r16 are still tested. Moved nest C6 at (13,-164) is 13.2 and 17.7 from them (needs 30 and 22). Moved candyPostC6 at local (3,-156) is 6.7 from (0,-162) (needs 26). The geo.ps1 checker has no syrup or posts-apart rule, so its \u00270 failures\u0027 claim is wrong",
+                                       "Breaks the owner\u0027s standing GT rule (\u0027the cake with the princess at the end\u0027). The Torta ends up 650 studs from the east edge and GT1 has to be rewritten",
+                                       "The river stops being a barrier: you can walk from the entrance to the Torta without crossing it. The V3-14 replacement (\u0027every x line meets chocolate\u0027) is trivially true for an east-west river",
+                                       "The head of the river is 12/24/40 wide, below the 50..120 band the brief allows",
+                                       "Docks A and B sit in full current, exactly 4 = DOCK_SPEED, so CU3 passes only on the boundary",
+                                       "Needs several new builder exports (planV9, layMissing, layEdgeRegion) instead of existing tested paths. A minor numeric slip: Hill_3 is 15.25 off the mouth, not 13.7"
+                                   ]
+                   },
+                   {
+                       "design":  "B (play)",
+                       "score":  7,
+                       "strengths":  [
+                                         "Its checker is the most complete. It implements the full CH1 rules: nearest nest 8..16, route between 11 and the wake radius, depth at least the leash, boss at least 76 + reach, entrance at least 30 + reach, at least 100 from the creature\u0027s home, every pair of the 40 posts at least 30 apart. It also checks guardian binding. I found no failing test rule",
+                                         "Every bridge crosses a straight 60-wide stretch at right angles. Recomputed: the wet span is Â±30, the band where liquid â‰¤ 1 is Â±31, and the deck is Â±34. The bend capsules (R12 r35, R5 r30, R11/R6) add no wet span at the lanes. Underside 12-0.4-3.5 = 8.1, ramp 24.78Â°, SINK 13 \u003e 12.4",
+                                         "Keeps the owner\u0027s \u0027cake at the end\u0027 rule: Torta (745,0), plaza edge 57 from the east edge, territory depth 39, liquid at the boss 155.1 (recomputed)",
+                                         "M1 at scale 0.9 checked: outlet (766.7,198.0) and pool (777.5,198.5) r 9.9, 10.8 apart against a limit of 10.9. Waterfall offset 31.0s matches today\u0027s 13.95/0.45",
+                                         "Tight spots recomputed and correct: candyPostR5 liquid 43.74-35 = 8.74, dock D stand 54.43-45 = 9.43",
+                                         "Its V9-3 test does a breadth-first flood fill of the raft\u0027s area to prove every dock is reachable under all 6 decks. The avenue bridges never break, so there is always a safe crossing"
+                                     ],
+                       "defects":  [
+                                       "The barrier leaks inside the plot. A dry strip about 5 studs wide stays south of the lake (for example 5 studs at x 330, where point 9\u0027s r 60 band reaches z -255), so you can walk from the west region round stretches B and A to the Torta without a bridge. The claim that this is \u0027as it is today\u0027 is false: today the river ends on the south edge",
+                                       "The mouth is on the open west edge at world (412, 202), next to the hub apron, with no Veil. A 60-wide, 3.5-tall chocolate block ends there in plain view. The strip north of the mouth (z 235..260) also lets anyone walk from outside the plot straight into the middle region",
+                                       "Arithmetic slip: point 1\u0027s joint drum is r 40 at 44.7 ahead of M1, so it reaches 4.7 studs from M1\u0027s pivot, not \u0027about 20\u0027. Most of M1\u0027s front and its kit pool sit under the chocolate",
+                                       "Raft.area calls a new V3.raftBlocked with no fallback, so the fake layouts in Raft_Test have to change (C\u0027s \u0027or V3.nearBridge\u0027 fallback avoids that)",
+                                       "Adds no rule to keep hives off the chocolate. Flyers candidates sit 16 off each route, which puts some of them over the river at six 60-wide crossings",
+                                       "Docks A, B and D are in full current (4 = DOCK_SPEED, on the boundary)",
+                                       "The most churn by far: Torta, tower, boss, Pradera marker, pond, hive, 6 houses, 5 mountains, hills and 8 nests move. Every move uses existing relays, but this is the largest migration surface"
+                                   ]
+                   },
+                   {
+                       "design":  "C (build)",
+                       "score":  6,
+                       "strengths":  [
+                                         "Its flood fills prove the barrier (the entrance bank never reaches the Torta) and raft reach (25,635 hull cells from dock A, including x up to 856). M1 at depth 32 against r-0.5 = 31.9 closes the corner",
+                                         "The dock basins are the best idea in any design: each river dock tip sits at least 8 inside a small lake disc, so the current is 1.5 at every tip and the docking tests hold. Recomputed: dock A tip is 12 inside basin A (r 20), and dock B\u0027s stand is 5.92 on land",
+                                         "\u0027local blocks = V3.raftBlocks or V3.nearBridge\u0027 keeps the fake layouts in Raft_Test (RF4/RF16) unchanged; raftBlocks also clamps the raft at the plot edge",
+                                         "The bridges sit square on one straight 60-wide reach: deck Â±32 against wet Â±30, ramps 24.06Â°, underside 8.6 above the surface. The check against the bend at z 125 (âˆš(52Â²-50Â²) = 14.3, inside the deck) is correct",
+                                         "Recomputed tight spots are right: candyNestC3 post 9.59, left route 10.0, E6 depth 210, R16 route 50.0, C14 depth 96",
+                                         "Safest build path: it reuses the existing tested V3Builder.layAll(relay=true) after archiving (I confirmed the relay asserts in the code). Adds a RESTORE mode, a refusal above V9_PART_TARGET and a SistemaSonriente refusal, and keeps Cookie.IDS"
+                                     ],
+                       "defects":  [
+                                       "CH1 posts-apart failures its checker misses (it only checks posts at x \u003e 250): moved candyPostC13 at local (138,-171) is 18.5 from the kept candyPostR6 (131.8,-153.6), and moved candyPostC8 at (105,-166) is 29.5 from it. Both need at least 30",
+                                       "CH3 and CH1 syrup failures against the legacy Layout.LAKE discs, which Geo.cs never models: C6 at (13,-166) is 13.6 from (0,-162) (needs 30), C10 at (-40,-166) is 17.2 from (-26,-176) (needs 22), and candyPostC6 at local (3,-158) is 5 from (0,-162) (needs 26). So \u00270 failures\u0027 is wrong",
+                                       "Players can fall into the void: the annex strips are stretched to x 1612, but no cap or wall runs along their outer long sides from x 1024 to 1612. The caps stay on the void side (x 1538..2068), and the risk is listed only for the strip ends",
+                                       "The west channel is only 50..64 wide over half the river\u0027s length (admitted). It meets the 5x band but is the narrowest profile of the three",
+                                       "The layout POOL r 20 and RIVER[1] at kit Z -86.7 sit beyond the kit\u0027s own outlet (-49.67). This is consistent, since the pool bridges the gap, but the outlet is no longer the kit outlet that V3-3 assumed"
+                                   ]
+                   }
+               ],
+    "best":  "B (play)",
+    "graft":  [
+                  "From C: small lake basin discs under each river dock tip, so the current is LAKE_SPEED 1.5 at every tip (B\u0027s docks A, B and D are at exactly DOCK_SPEED 4). Add C\u0027s V3-23 pin: every tip at least LAKE_BLEND inside a disc and every basin inside the band",
+                  "From C: the Raft.area fallback \u0027local blocks = V3.raftBlocks or V3.nearBridge\u0027, so the fake layouts in RF4/RF16 keep bridges as walls without edits",
+                  "From C: the barrier flood-fill test (V3-21) and the raft-reach flood fill. Then fix B\u0027s leaks it would expose: close the 5-stud dry strip south of the lake (point 9 and the lake disc to the south edge, or a mountain or edge piece there), and close the strip north of the west mouth",
+                  "From A/C: a FlyersService/hiveSpotOk rule rejecting hive spots with V3.liquidDistance \u003c LAKE_MARGIN, since B\u0027s six 60-wide crossings put route-offset candidates over the river",
+                  "For B\u0027s west-edge mouth: hide the cut end with a mountain, a cloud-veil piece or banks at the edge (A and C avoid the problem by putting the mouth behind the east Collider)",
+                  "From C: the migration safety pieces. Reuse V3Builder.layAll(relay=true) where possible, refuse the real run above V9_PART_TARGET, add RESTORE=true with a CaramelV9Restore recording, and find the annex strips by geometry",
+                  "From A: the Play check (and risk entry) for creatures\u0027 ground rays hitting raised decks, so the area under a bridge does not become a refuge",
+                  "From C: the CB1/CB4/CB7/CB8 audit of which ids are the never-breaking junction bridges, applied to B\u0027s new Cookie.IDS and its avenue bridges Medio and Hondo",
+                  "General: either delete the dead Layout.LAKE syrup data and its tests, or add it to the checker. It silently traps any nest or post moved near (0,-162), as happened to A and C",
+                  "Fix B\u0027s drum arithmetic for M1: point 1\u0027s joint drum is r 40 and reaches 4.7 studs from M1\u0027s pivot. Consider capping point 1\u0027s drum at w1/2, or C\u0027s layout pool, so M1\u0027s front and pool are not buried"
+              ],
+    "notes":  "I recomputed by hand against the code: V3.riverDistance (capsule per leg, r = max(w)/2), liquidDistance, nearBridge/onBridge (2D, no height check), layLiquid (joint drum w/2, skipped when depth â‰¤ 0.01), layBridge (the deck at B.deck raises with no code change; side ramps only when there are gaps), Raft.area/shift/step (DOCK_SPEED compares the raft\u0027s own speed through the water; Raft.new clamps homeDock to 1 or 2), Current.flow (no bridge awareness), Cookie.triggers (FEET_SLACK against floorTop + B.deck, so waders under a raised deck never trigger), Flyers hiveSpotOk (no liquid rule) and Nests_Test CH1/CE1 plus Layout_Test CH3.\n\nAll three raised-bridge mechanisms are feasible: underside clearance is 9.1 (A), 8.1 (B) and 8.6 (C) against a raft top of about 6.8; SINK exceeds deck + 0.4 in each; the decks cover the wet spans when recomputed.\n\nThe test failures I found:\n- A and C both fail Nests_Test CH1\u0027s rule that every pair of posts is at least 30 apart. A: candyPostC13 vs candyPostR6, 27.7. C: the same pair at 18.5, and candyPostC8 vs candyPostR6 at 29.5.\n- A and C both fail the Layout_Test CH3 and CH1 syrup rules against the legacy Layout.LAKE discs (C6, C10 and candyPostC6 moved into the old syrup zone).\n- Neither checker models those rules (I confirmed this by grepping geo.ps1 and Geo.cs), so their \u00270 failures\u0027 claims are wrong.\n- B\u0027s checker covers the full CH1 rule set, and I found no failing rule.\n- B\u0027s defects are gameplay and visual rather than test failures: a 5-stud barrier leak behind the lake, the open west-edge mouth (visible, and an easy bypass from the hub side), no rule keeping hives off the chocolate, and the M1 drum slip.\n\nA also gives up the owner\u0027s GT \u0027cake at the end\u0027 rule and the river\u0027s barrier role. That is why it ranks last even though it moves the least.\n\nC has the strongest mechanisms (basins, the raftBlocks fallback, flood fills, the layAll relay, RESTORE), and grafting them onto B gives the best result."
+}

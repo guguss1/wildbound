@@ -1,0 +1,265 @@
+﻿M1 (-219.80,-219.80) r 40.50 h 67.82 yaw -1.5107; pool (-191.58,-221.07) r 8.25; waterfall (-196.57,-220.77) width 11.67 top 25.29; outlet (-182.59,-221.61) w 20.00
+river length 1412.2, points 16
+RIVER[1] to pool 9.00 (<= 9.25)
+  pt 1: (-182.59,-221.61) w 20.00 depth-w/2 28.39; joint drum r 25.0
+  pt 2: (-150.00,-224.00) w 50.00 depth-w/2 11.00; joint drum r 32.0
+  pt 3: (-60.00,-225.00) w 64.00 depth-w/2 3.00; joint drum r 32.0
+  pt 4: (40.00,-224.00) w 64.00 depth-w/2 4.00; joint drum r 32.0
+  pt 5: (140.00,-225.00) w 64.00 depth-w/2 3.00; joint drum r 32.0
+  pt 6: (240.00,-224.00) w 64.00 depth-w/2 4.00; joint drum r 32.0
+  pt 7: (330.00,-218.00) w 64.00 depth-w/2 10.00; joint drum r 32.0
+  pt 8: (400.00,-210.00) w 60.00 depth-w/2 20.00; joint drum r 32.0
+  pt 9: (445.00,-200.00) w 60.00 depth-w/2 30.00; joint drum r 30.0
+  pt 10: (470.00,-175.00) w 60.00 depth-w/2 55.00; joint drum r 30.0
+  pt 11: (470.00,175.00) w 60.00 depth-w/2 55.00; joint drum r 45.0
+  pt 12: (510.00,200.00) w 90.00 depth-w/2 15.00; joint drum r 55.0
+  pt 13: (575.00,195.00) w 110.00 depth-w/2 10.00; joint drum r 60.0
+  pt 14: (650.00,195.00) w 120.00 depth-w/2 5.00; joint drum r 60.0
+  pt 15: (760.00,195.00) w 120.00 depth-w/2 5.00; joint drum r 60.0
+tightest point-in-plot margin: pt 3 = 3.00
+fall to pool 5.00; fall to M1 23.25; M1 depth 40.20 vs r-0.5 40.00
+bridge Top centre (470.0,125.0) world (1142.0,122.0): wet(<=1) to |along| 31 of deck half 34; deck-end liquid 4.00; underside over surface 8.6; pier footprint min liquid 2.00; footprint along leg 88.0..212.0 of 300.0
+bridge Main centre (470.0,0.0) world (1142.0,-3.0): wet(<=1) to |along| 31 of deck half 34; deck-end liquid 4.00; underside over surface 8.6; pier footprint min liquid 2.00; footprint along leg 408.0..532.0 of 690.2
+bridge Bottom centre (470.0,-125.0) world (1142.0,-128.0): wet(<=1) to |along| 31 of deck half 34; deck-end liquid 4.00; underside over surface 8.6; pier footprint min liquid 2.00; footprint along leg 88.0..212.0 of 320.0
+boss centre liquid 135.00 (>= 76); plaza edge to chocolate 77.00
+  house H1 (-192.4,215.8) r 28: liquid-r 381.8, route-r-7 106.6, door (-171.1,191.9) liquid 384.4 depth 68.1
+  house H2 (-130,227.5) r 15: liquid-r 404.7, route-r-7 83.7, door (-139.4,244.0) liquid 436.1 depth 16.0
+  house H3 (-10,-118) r 22.4: liquid-r 52.1, route-r-7 34.6, door (-7.8,-91.7) liquid 100.8 depth 168.3
+  house H4 (231.4,130) r 20: liquid-r 177.8, route-r-7 61.3, door (210.5,118.2) liquid 220.7 depth 141.8
+  house H5 (-218.4,-106.6) r 21: liquid-r 74.5, route-r-7 60.0, door (-240.9,-117.6) liquid 94.3 depth 19.1
+  house H6 (45,-125) r 16: liquid-r 51.0, route-r-7 21.3, door (38.2,-106.2) liquid 85.8 depth 153.8
+  house H7 (143,231.4) r 20: liquid-r 266.8, route-r-7 81.1, door (130.4,211.0) liquid 296.5 depth 49.0
+  house H8 (380,-60) r 20: liquid-r 40.0, route-r-7 33.0, door (356.3,-56.3) liquid 83.7 depth 203.7
+  house H9 (600,-200) r 16: liquid-r 86.4, route-r-7 42.0, door (581.0,-193.7) liquid 82.6 depth 66.3
+  house H10 (530,70) r 15: liquid-r 15.0, route-r-7 33.0, door (548.8,72.5) liquid 48.8 depth 187.5
+dock A: stand (-150,-187) world (522,-190) liquid 5.00; tip (-150,-210) world (522,-213) liquid -18.00; ramp foot liquid 15.00; tip inside its disc by 8.0; current 1.500; nearest route 68.5
+dock B: stand (240,-186) world (912,-189) liquid 5.92; tip (240,-208) world (912,-211) liquid -16.04; ramp foot liquid 15.89; tip inside its disc by 10.0; current 1.500; nearest route 100.6
+dock C: stand (670,104) world (1342,101) liquid 14.00; tip (670,128) world (1342,125) liquid -10.00; ramp foot liquid 24.00; tip inside its disc by 10.0; current 1.500; nearest route 54.2
+dock D: stand (815,124) world (1487,121) liquid 11.00; tip (815,148) world (1487,145) liquid -13.00; ramp foot liquid 21.00; tip inside its disc by 10.0; current 1.500; nearest route 175.9
+basin 3 rim max river distance -10.00
+basin 4 rim max river distance -6.06
+basin 5 rim max river distance -3.00
+  hill Hill_1 z -247: liquid-r 346.9, boss-r 252.6
+  hill Hill_2 z -190: liquid-r 309.0, boss-r 203.4
+  hill Hill_3 z -125: liquid-r 242.3, boss-r 148.6
+  hill Hill_4 z -60: liquid-r 179.0, boss-r 109.1
+  hill Hill_5 z 60: liquid-r 59.0, boss-r 109.1
+  hill Hill_6 z 105: liquid-r 20.1, boss-r 142.0
+east fork (300,0) to boss 448.2 (>= 112); plaza edge depth 53.8; territory edge depth 35.8
+new Comun count 6 mean x 519.2
+new Rara count 8 mean x 465.0
+new Epica count 3 mean x 593.3
+nest counts: Comun 19, Rara 19, Epica 6, Legendaria 1; total 45
+POST candyNest      Gomibu         home  local (-214,-17.4) world (458,-20.4) nearest C1 8.5; route 17.4 (wake 40); liquid 181.6; depth 46.0; boss 962.4 (need 106); home 0.0
+POST candyNestR1    Flanfuria      home  local (-93.4,-47) world (578.6,-50) nearest R1 11.3; route 43.4 (wake 40); liquid 145.6; depth 166.6; boss 842.9 (need 92); home 0.0
+POST candyNestC3    Tortidragon    home  local (-129,-179.6) world (543,-182.6) nearest C3 14.4; route 47.6 (wake 40); liquid 12.6; depth 80.4; boss 895.4 (need 111); home 0.0
+POST candyNestC2    GatoRepartidor home  local (-188,44.2) world (484,41.2) nearest C2 14.3; route 44.2 (wake 40); liquid 238.9; depth 72.0; boss 937.2 (need 116); home 0.0
+POST candyNestR2    Mochimiau      home  local (-96.4,56.2) world (575.6,53.2) nearest R2 13.0; route 29.4 (wake 45); liquid 248.8; depth 163.6; boss 846.5 (need 122); home 0.0
+POST candyNestR3    Canelin        home  local (-46.5,-110.9) world (625.5,-113.9) nearest R3 15.6; route 59.7 (wake 45); liquid 82.0; depth 149.1; boss 802.4 (need 125); home 0.0
+POST candyNestR4    Flanin         home  local (84,211.6) world (756,208.6) nearest C5 15.2; route 64.0 (wake 42); liquid 342.7; depth 48.4; boss 697.1 (need 124); home 0.0
+POST candyNestC4    Mielita        home  local (-88.6,181) world (583.4,178) nearest C4 14.4; route 43.6 (wake 48); liquid 373.7; depth 79.0; boss 856.2 (need 126); home 0.0
+POST candyPostC7    Gomibu         extra local (13.5,175.6) world (685.5,172.6) nearest C7 11.4; route 19.6 (wake 40); liquid 367.8; depth 84.4; boss 755.4 (need 106); home 298.3
+POST candyPostR6    Flanfuria      extra local (131.8,-153.6) world (803.8,-156.6) nearest R6 8.6; route 18.2 (wake 40); liquid 39.3; depth 106.4; boss 635.2 (need 92); home 249.2
+POST candyPostC8    Tortidragon    extra local (97,-174) world (769,-177) nearest C8 12.0; route 12.8 (wake 40); liquid 18.6; depth 86.0; boss 674.0 (need 111); home 226.1
+POST candyPostC9    Mochimiau      extra local (-164.5,-76.6) world (507.5,-79.6) nearest C9 11.7; route 30.8 (wake 45); liquid 116.1; depth 95.5; boss 915.9 (need 122); home 149.2
+POST candyPostR7    Canelin        extra local (-160.8,83.4) world (511.2,80.4) nearest R7 12.8; route 40.0 (wake 45); liquid 275.6; depth 99.2; boss 912.8 (need 125); home 225.4
+POST candyPostR5    GatoRepartidor extra local (122.4,155.6) world (794.4,152.6) nearest R5 12.8; route 31.5 (wake 40); liquid 303.1; depth 104.4; boss 644.9 (need 116); home 329.8
+POST candyPostC6    Mielita        extra local (55,-156) world (727,-159) nearest C6 12.0; route 26.0 (wake 48); liquid 36.1; depth 104.0; boss 710.5 (need 126); home 366.3
+POST candyPostC10   Flanin         extra local (-40,-159) world (632,-162) nearest C10 14.4; route 23.0 (wake 42); liquid 33.8; depth 101.0; boss 804.1 (need 124); home 390.8
+POST candyPostE3    Gomibu         extra local (-12,46.8) world (660,43.8) nearest E3 12.0; route 38.6 (wake 40); liquid 239.3; depth 213.2; boss 761.6 (need 106); home 212.0
+POST candyPostR8    Flanfuria      extra local (-131,123.5) world (541,120.5) nearest R8 12.0; route 32.9 (wake 40); liquid 315.7; depth 129.0; boss 887.8 (need 92); home 174.6
+POST candyPostR9    Tortidragon    extra local (-66,91) world (606,88) nearest R9 12.0; route 36.1 (wake 40); liquid 283.9; depth 169.0; boss 819.3 (need 111); home 277.8
+POST candyPostR10   Mochimiau      extra local (-4,-50.5) world (668,-53.5) nearest R10 12.0; route 35.1 (wake 45); liquid 141.9; depth 209.5; boss 753.9 (need 122); home 141.1
+POST candyPostC11   Canelin        extra local (-39,183) world (633,180) nearest C11 12.0; route 27.0 (wake 45); liquid 375.8; depth 77.0; boss 808.2 (need 125); home 294.0
+POST candyPostR11   GatoRepartidor extra local (37.8,104.2) world (709.8,101.2) nearest R11 12.0; route 35.6 (wake 40); liquid 296.2; depth 155.8; boss 718.0 (need 116); home 233.6
+POST candyPostC13   Mielita        extra local (45,198) world (717,195) nearest C13 12.8; route 42.0 (wake 48); liquid 380.6; depth 62.0; boss 730.5 (need 126); home 134.7
+POST candyPostC12   Flanin         extra local (-157,-130) world (515,-133) nearest C12 12.0; route 37.4 (wake 42); liquid 62.3; depth 103.0; boss 914.5 (need 124); home 418.1
+POST candyPostE4    Gomibu         extra local (560,-28) world (1232,-31) nearest E4 12.0; route 28.0 (wake 40); liquid 60.0; depth 232.0; boss 190.3 (need 106); home 774.1
+POST candyPostR16   Flanfuria      extra local (600,-92) world (1272,-95) nearest R16 12.0; route 33.0 (wake 40); liquid 100.0; depth 168.0; boss 174.4 (need 92); home 694.9
+POST candyPostE5    Tortidragon    extra local (580,28) world (1252,25) nearest E5 12.0; route 28.0 (wake 40); liquid 80.0; depth 232.0; boss 170.5 (need 111); home 738.8
+POST candyPostR12   Mochimiau      extra local (292,-80) world (964,-83) nearest R12 12.0; route 20.5 (wake 45); liquid 108.2; depth 180.0; boss 463.2 (need 122); home 411.6
+POST candyPostC16   Canelin        extra local (530,-158) world (1202,-161) nearest C16 12.0; route 33.0 (wake 45); liquid 30.0; depth 102.0; boss 269.4 (need 125); home 578.4
+POST candyPostR13   GatoRepartidor extra local (292,80) world (964,77) nearest R13 12.0; route 20.5 (wake 40); liquid 148.0; depth 180.0; boss 463.2 (need 116); home 481.3
+POST candyPostC18   Mielita        extra local (688,-215) world (1360,-218) nearest C18 12.0; route 23.4 (wake 48); liquid 191.6; depth 45.0; boss 223.3 (need 126); home 871.7
+POST candyPostR15   Flanin         extra local (398,150) world (1070,147) nearest R15 12.0; route 25.0 (wake 42); liquid 31.2; depth 110.0; boss 381.0 (need 124); home 320.0
+closest posts candyPostC7/candyPostC13 38.7
+  guard candyNest binds C1 at 8.5
+  guard candyNestR1 binds R1 at 11.3
+  guard candyNestC3 binds C3 at 14.4
+  guard candyPostC7 binds C7 at 11.4
+  guard candyPostR6 binds R6 at 8.6
+  guard candyPostC8 binds C8 at 12.0
+  guard candyPostE3 binds E3 at 12.0
+  guard candyPostR8 binds R8 at 12.0
+  guard candyPostR9 binds R9 at 12.0
+  guard candyPostE4 binds E4 at 12.0
+  guard candyPostR16 binds R16 at 12.0
+  guard candyPostE5 binds E5 at 12.0
+pond: route 126.6 nearest nest 111.6; hive: route 88.4 nearest nest 59.9
+barrier: entrance-bank dry cells 79364; torta reached: False
+  banks (E entrance, C cake): C14:E C15:E R12:E R13:E R14:E R15:E E4:C C16:C C17:C C18:C C19:C R16:C R17:C R18:C R19:C E5:C E6:C dockA:E dockB:E dockC:C dockD:C
+raft hull cells (2-stud grid, liquid <= -3) 25703, reachable from dock A 25703
+raft reaches pool: True
+raft x range -204..856
+open hull one-stud cells 102390
+wet area 111084 sq studs, share 19.1%
+current: worst direction change 9.35 deg/stud at (520,145) over 219467 checks
+MIN_ALT >= 71.82 -> 72
+flock F1 (-156,52) r 26 alt 76: liquid 244.1
+flock F2 (-104,-65) r 24 alt 79: liquid 127.5
+flock F3 (78,195) r 22 alt 75: liquid 347.5
+flock F4 (169,-143) r 22 alt 78: liquid 49.7
+flock F5 (-90,-140) r 20 alt 76: liquid 52.7
+flock F6 (195,156) r 20 alt 80: liquid 230.7
+flock F7 (380,-110) r 24 alt 77: liquid 60.0
+flock F8 (620,-50) r 22 alt 79: liquid 120.0
+  fish River_W1 worst liquid -31.37
+  fish River_W2 worst liquid -30.20
+  fish River_W3 worst liquid -31.98
+  fish River_M1 worst liquid -30.00
+  fish River_M2 worst liquid -30.00
+  fish Lake_1 worst liquid -25.00
+  fish Lake_2 worst liquid -18.46
+  fish Lake_3 worst liquid -40.00
+  fish Lake_4 worst liquid -50.00
+  fish River_E1 worst liquid -55.00
+current at dock A tip 1.50
+current at dock B tip 1.50
+current at dock C tip 1.50
+current at dock D tip 1.50
+current at lake disc 1 centre 1.500 dir (1.50,0.00)
+current at lake disc 2 centre 1.500 dir (1.50,-0.05)
+current at lake disc 3 centre 1.500 dir (1.50,-0.06)
+current at lake disc 4 centre 1.500 dir (1.50,0.06)
+current at lake disc 5 centre 1.500 dir (1.50,0.00)
+CU2 open legs (midpoint off every disc) 12
+hive candidates 482, valid by today's rules 383, of which in or within 4 of the chocolate (the new rule rejects them) 55
+NEST C1   Comun      local (-208,-23.4) world (464,-26.4) depth 52.0 route 23.4 liquid 174.8 boss 956.5 nearest-piece-r 42.7
+NEST C2   Comun      local (-182,31.2) world (490,28.2) depth 78.0 route 31.2 liquid 225.2 boss 930.7 nearest-piece-r 17.5
+NEST C3   Comun      local (-117,-171.6) world (555,-174.6) depth 88.4 route 33.3 liquid 20.8 boss 882.1 nearest-piece-r 29.9
+NEST C4   Comun      local (-80.6,169) world (591.4,166) depth 91.0 route 29.4 liquid 361.7 boss 845.9 nearest-piece-r 61.6
+NEST C5   Comun      local (78,197.6) world (750,194.6) depth 62.4 route 48.8 liquid 347.7 boss 698.7 nearest-piece-r 36.9
+NEST R1   Rara       local (-101.4,-39) world (570.6,-42) depth 158.6 route 36.4 liquid 153.5 boss 850.5 nearest-piece-r 57.2
+NEST R2   Rara       local (-101.4,44.2) world (570.6,41.2) depth 158.6 route 27.9 liquid 236.7 boss 850.7 nearest-piece-r 58.4
+NEST R3   Rara       local (-58.5,-120.9) world (613.5,-123.9) depth 139.1 route 44.1 liquid 72.1 boss 815.7 nearest-piece-r 26.2
+NEST R4   Rara       local (-26,123.5) world (646,120.5) depth 136.5 route 32.5 liquid 316.1 boss 784.0 nearest-piece-r 132.1
+NEST E1   Epica      local (-44.2,-26) world (627.8,-29) depth 215.8 route 26.0 liquid 166.8 boss 792.8 nearest-piece-r 75.8
+NEST E2   Epica      local (-44.2,31.2) world (627.8,28.2) depth 215.8 route 31.2 liquid 224.0 boss 793.0 nearest-piece-r 113.4
+NEST L1   Legendaria local (46.8,-28.6) world (718.8,-31.6) depth 231.4 route 18.1 liquid 163.5 boss 702.0 nearest-piece-r 80.4
+NEST C6   Comun      local (55,-168) world (727,-171) depth 92.0 route 14.0 liquid 24.1 boss 713.3 nearest-piece-r 28.1
+NEST C7   Comun      local (6.5,184.6) world (678.5,181.6) depth 75.4 route 28.6 liquid 376.9 boss 764.3 nearest-piece-r 96.2
+NEST C8   Comun      local (105,-183) world (777,-186) depth 77.0 route 24.8 liquid 9.6 boss 668.7 nearest-piece-r 67.5
+NEST C9   Comun      local (-175.5,-80.6) world (496.5,-83.6) depth 84.5 route 42.2 liquid 113.6 boss 927.2 nearest-piece-r 29.2
+NEST C10  Comun      local (-52,-167) world (620,-170) depth 93.0 route 15.0 liquid 25.9 boss 817.4 nearest-piece-r 42.1
+NEST R5   Rara       local (114.4,145.6) world (786.4,142.6) depth 114.4 route 18.7 liquid 311.8 boss 650.3 nearest-piece-r 70.4
+NEST R6   Rara       local (124.8,-158.6) world (796.8,-161.6) depth 101.4 route 17.2 liquid 34.2 boss 643.3 nearest-piece-r 70.6
+NEST R7   Rara       local (-150.8,75.4) world (521.2,72.4) depth 109.2 route 28.2 liquid 267.4 boss 902.2 nearest-piece-r 45.1
+NEST E3   Epica      local (0,46.8) world (672,43.8) depth 213.2 route 29.2 liquid 239.2 boss 749.7 nearest-piece-r 142.7
+NEST R8   Rara       local (-143,123.5) world (529,120.5) depth 117.0 route 41.4 liquid 315.6 boss 899.7 nearest-piece-r 38.5
+NEST R9   Rara       local (-78,91) world (594,88) depth 169.0 route 27.6 liquid 283.8 boss 831.2 nearest-piece-r 100.9
+NEST R10  Rara       local (-13,-58.5) world (659,-61.5) depth 201.5 route 47.1 liquid 134.0 boss 763.4 nearest-piece-r 37.2
+NEST R11  Rara       local (46.8,96.2) world (718.8,93.2) depth 163.8 route 23.6 liquid 288.3 boss 708.0 nearest-piece-r 142.7
+NEST C11  Comun      local (-39,195) world (633,192) depth 65.0 route 39.0 liquid 387.8 boss 811.0 nearest-piece-r 81.6
+NEST C12  Comun      local (-169,-130) world (503,-133) depth 91.0 route 46.9 liquid 63.9 boss 926.4 nearest-piece-r 33.7
+NEST C13  Comun      local (35,190) world (707,187) depth 70.0 route 34.0 liquid 382.0 boss 738.1 nearest-piece-r 69.9
+NEST C14  Comun      local (340,-166) world (1012,-169) depth 94.0 route 41.0 liquid 18.5 boss 440.7 nearest-piece-r 93.3
+NEST C15  Comun      local (350,166) world (1022,163) depth 94.0 route 41.0 liquid 75.3 boss 431.4 nearest-piece-r 67.0
+NEST R12  Rara       local (280,-80) world (952,-83) depth 180.0 route 32.4 liquid 109.0 boss 475.0 nearest-piece-r 44.8
+NEST R13  Rara       local (280,80) world (952,77) depth 180.0 route 32.4 liquid 160.0 boss 475.0 nearest-piece-r 49.7
+NEST R14  Rara       local (400,-150) world (1072,-153) depth 110.0 route 25.0 liquid 28.0 boss 379.1 nearest-piece-r 72.2
+NEST R15  Rara       local (410,150) world (1082,147) depth 110.0 route 25.0 liquid 20.0 boss 370.0 nearest-piece-r 121.8
+NEST E4   Epica      local (560,-40) world (1232,-43) depth 220.0 route 40.0 liquid 60.0 boss 192.4 nearest-piece-r 99.0
+NEST C16  Comun      local (530,-170) world (1202,-173) depth 90.0 route 45.0 liquid 30.0 boss 276.6 nearest-piece-r 60.2
+NEST C17  Comun      local (620,-172) world (1292,-175) depth 88.0 route 36.0 liquid 120.0 boss 214.5 nearest-piece-r 18.4
+NEST C18  Comun      local (700,-215) world (1372,-218) depth 45.0 route 33.5 liquid 203.5 boss 220.3 nearest-piece-r 76.3
+NEST C19  Comun      local (575,-172) world (1247,-175) depth 88.0 route 47.0 liquid 75.0 boss 244.1 nearest-piece-r 21.5
+NEST R16  Rara       local (600,-80) world (1272,-83) depth 180.0 route 45.0 liquid 100.0 boss 168.4 nearest-piece-r 104.0
+NEST R17  Rara       local (660,-95) world (1332,-98) depth 165.0 route 36.1 liquid 160.0 boss 129.6 nearest-piece-r 104.9
+NEST R18  Rara       local (560,95) world (1232,92) depth 165.0 route 30.0 liquid 41.1 boss 210.8 nearest-piece-r 24.1
+NEST R19  Rara       local (530,-80) world (1202,-83) depth 180.0 route 45.0 liquid 30.0 boss 232.4 nearest-piece-r 122.9
+NEST E5   Epica      local (580,40) world (1252,37) depth 220.0 route 40.0 liquid 80.0 boss 172.9 nearest-piece-r 43.3
+NEST E6   Epica      local (640,-40) world (1312,-43) depth 220.0 route 40.0 liquid 140.0 boss 115.4 nearest-piece-r 133.8
+PIECE mountain M1 (-219.8,-219.8) r 40.50: liquid-r -28.2, route-r-7 95.6, depth-r -0.3, boss-r 952.1
+PIECE mountain M2 (234.0,-117.0) r 14.20: liquid-r 60.9, route-r-7 62.5, depth-r 128.8, boss-r 513.1
+PIECE mountain M3 (98.8,243.1) r 13.10: liquid-r 319.3, route-r-7 78.7, depth-r 3.8, boss-r 680.3
+PIECE mountain M4 (214.5,-156.0) r 13.10: liquid-r 23.2, route-r-7 78.3, depth-r 90.9, boss-r 542.9
+PIECE mountain M5 (800.0,-236.0) r 13.10: liquid-r 292.5, route-r-7 114.8, depth-r 10.9, boss-r 228.5
+PIECE mountain M6 (-243.1,243.1) r 13.10: liquid-r 430.5, route-r-7 176.6, depth-r 3.8, boss-r 1007.6
+PIECE mountain M7 (790.0,-170.0) r 24.30: liquid-r 265.7, route-r-7 92.4, depth-r 45.7, boss-r 150.8
+PIECE mountain M8 (300.0,230.0) r 14.20: liquid-r 119.5, route-r-7 85.7, depth-r 15.8, boss-r 489.6
+PIECE house H1 (-192.4,215.8) r 28.00: liquid-r 381.8, route-r-7 106.6, depth-r 16.2, boss-r 937.0
+PIECE house H2 (-130.0,227.5) r 15.00: liquid-r 404.7, route-r-7 83.7, depth-r 17.5, boss-r 892.2
+PIECE house H3 (-10.0,-118.0) r 22.40: liquid-r 52.1, route-r-7 34.6, depth-r 119.6, boss-r 744.9
+PIECE house H4 (231.4,130.0) r 20.00: liquid-r 177.8, route-r-7 61.3, depth-r 110.0, boss-r 512.9
+PIECE house H5 (-218.4,-106.6) r 21.00: liquid-r 74.5, route-r-7 60.0, depth-r 20.6, boss-r 951.5
+PIECE house H6 (45.0,-125.0) r 16.00: liquid-r 51.0, route-r-7 21.3, depth-r 119.0, boss-r 698.2
+PIECE house H7 (143.0,231.4) r 20.00: liquid-r 266.8, route-r-7 81.1, depth-r 8.6, boss-r 627.9
+PIECE house H8 (380.0,-60.0) r 20.00: liquid-r 40.0, route-r-7 33.0, depth-r 180.0, boss-r 353.1
+PIECE house H9 (600.0,-200.0) r 16.00: liquid-r 86.4, route-r-7 42.0, depth-r 44.0, boss-r 232.9
+PIECE house H10 (530.0,70.0) r 15.00: liquid-r 15.0, route-r-7 33.0, depth-r 175.0, boss-r 214.2
+PIECE dock A (-150.0,-187.0) r 3.00: liquid-r 2.0, route-r-7 58.5, depth-r 70.0, boss-r 914.5
+PIECE dock ARamp (-150.0,-177.0) r 3.50: liquid-r 11.5, route-r-7 51.6, depth-r 79.5, boss-r 912.0
+PIECE dock ADeck (-150.0,-196.0) r 3.00: liquid-r -7.0, route-r-7 64.3, depth-r 61.0, boss-r 916.3
+PIECE dock B (240.0,-186.0) r 3.00: liquid-r 2.9, route-r-7 90.6, depth-r 71.0, boss-r 538.2
+PIECE dock BRamp (240.0,-176.0) r 3.50: liquid-r 12.4, route-r-7 84.4, depth-r 80.5, boss-r 534.3
+PIECE dock BDeck (240.0,-194.5) r 3.00: liquid-r -5.6, route-r-7 96.0, depth-r 62.5, boss-r 541.1
+PIECE dock C (670.0,104.0) r 3.00: liquid-r 11.0, route-r-7 44.2, depth-r 153.0, boss-r 127.1
+PIECE dock CRamp (670.0,94.0) r 3.50: liquid-r 20.5, route-r-7 48.3, depth-r 162.5, boss-r 118.8
+PIECE dock CDeck (670.0,113.5) r 3.00: liquid-r 1.5, route-r-7 41.3, depth-r 143.5, boss-r 134.8
+PIECE dock D (815.0,124.0) r 3.00: liquid-r 8.0, route-r-7 165.9, depth-r 42.0, boss-r 137.8
+PIECE dock DRamp (815.0,114.0) r 3.50: liquid-r 17.5, route-r-7 158.5, depth-r 41.5, boss-r 128.6
+PIECE dock DDeck (815.0,133.5) r 3.00: liquid-r -1.5, route-r-7 172.7, depth-r 42.0, boss-r 146.3
+PIECE licorice Foot (-161.2,-16.5) r 4.56: liquid-r 171.3, route-r-7 4.9, depth-r 94.2, boss-r 905.0
+PIECE licorice Foot (-161.2,16.5) r 4.56: liquid-r 204.2, route-r-7 4.9, depth-r 94.2, boss-r 905.0
+PIECE licorice Foot (-161.2,-27.8) r 3.60: liquid-r 160.9, route-r-7 10.9, depth-r 95.2, boss-r 906.2
+PIECE licorice Foot (-161.2,27.8) r 3.60: liquid-r 216.5, route-r-7 14.5, depth-r 95.2, boss-r 906.2
+PIECE cake Base (-195.0,145.6) r 18.00: liquid-r 322.3, route-r-7 70.2, depth-r 47.0, boss-r 936.4
+PIECE cake Ramp (-195.0,117.4) r 12.25: liquid-r 300.1, route-r-7 63.1, depth-r 52.8, boss-r 938.2
+route main: length 950.2; min liquid off bridges 32.38 at (532.4,0.0)
+route left: length 586.1; min liquid off bridges 10.00 at (40.0,-182.0)
+route right: length 515.2; min liquid off bridges 192.06 at (-143.0,0.0)
+route deep: length 31.2; min liquid off bridges 192.39 at (0.0,0.0)
+route south: length 527.4; min liquid off bridges 33.00 at (407.0,-125.0)
+route north: length 426.6; min liquid off bridges 10.00 at (575.0,125.0)
+  slack    0.20  M1 depth 40.20 (>= r-0.5 40.00)
+  slack    1.39  post candyPostE3 route 38.61 (<= wake 40)
+  slack    1.92  licorice Foot route-r-7 4.92 (>= 3)
+  slack    1.92  licorice Foot route-r-7 4.92 (>= 3)
+  slack    3.00  nest C6 route 14.00 (11..52)
+  slack    3.16  nest C5 route 48.84 (11..52)
+  slack    3.50  nest C14 depth 94.0 ring 0..97.5
+  slack    3.50  nest C15 depth 94.0 ring 0..97.5
+  slack    3.65  nest C8 liquid 9.65 (>= 6)
+  slack    3.90  nest R6 depth 101.4 ring 97.5..208
+  slack    3.94  post candyPostR9 route 36.06 (<= wake 40)
+  slack    4.00  nest C10 route 15.00 (11..52)
+  slack    4.02  post candyPostC10 syrup s3 22.02 (>= 18)
+  slack    4.42  post candyPostR11 route 35.58 (<= wake 40)
+  slack    4.50  nest C10 depth 93.0 ring 0..97.5
+  slack    4.61  post candyPostC12 route 37.39 (<= wake 42)
+  slack    4.63  post candyNestC3 liquid 12.63 (>= 8)
+  slack    4.89  nest R10 route 47.11 (11..52)
+  slack    4.97  post candyPostR7 route 40.03 (<= wake 45)
+  slack    5.00  nest C19 route 47.00 (11..52)
+  slack    5.13  nest C12 route 46.87 (11..52)
+  slack    5.20  nest E3 depth 213.2 ring 208..260
+  slack    5.50  nest C6 depth 92.0 ring 0..97.5
+  slack    5.51  nest C10 syrup s3 27.51 (>= 22)
+  slack    6.00  post candyPostC13 route 42.00 (<= wake 48)
+  slack    6.16  nest R6 route 17.16 (11..52)
+  slack    6.50  nest C4 depth 91.0 ring 0..97.5
+  slack    6.50  nest R10 depth 201.5 ring 97.5..208
+  slack    6.50  nest C12 depth 91.0 ring 0..97.5
+  slack    7.00  nest C16 route 45.00 (11..52)
+  slack    7.00  nest R16 route 45.00 (11..52)
+  slack    7.00  nest R19 route 45.00 (11..52)
+  slack    7.00  post candyPostR16 route 33.00 (<= wake 40)
+  slack    7.11  nest L1 route 18.11 (11..52)
+  slack    7.12  post candyPostR8 route 32.88 (<= wake 40)
+  slack    7.50  nest C16 depth 90.0 ring 0..97.5
+  slack    7.75  nest R5 route 18.75 (11..52)
+  slack    7.80  nest E1 depth 215.8 ring 208..260
+  slack    7.80  nest E2 depth 215.8 ring 208..260
+  slack    7.89  nest R3 route 44.11 (11..52)
+
+FAILS: 0

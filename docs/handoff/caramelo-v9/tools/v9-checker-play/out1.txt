@@ -1,0 +1,151 @@
+﻿outlet 766,71,197,99 pool 777,50,198,48 r 9,90 wf 783,53,198,75
+river length 1.647,9
+R1 to pool 10,8
+nests: 38
+Comun 14 mean x 81,5
+Rara 17 mean x 147,0
+Epica 6 mean x 699,2
+Legendaria 1 mean x 795,0
+guard candyNest -> C1 8,5
+guard candyNestR1 -> R1 11,3
+guard candyNestC3 -> C3 14,4
+guard candyPostC7 -> C7 11,4
+guard candyPostR6 -> R6 8,6
+guard candyPostC8 -> C8 13,0
+guard candyPostE3 -> E3 12,0
+guard candyPostR8 -> R8 12,0
+guard candyPostR9 -> R9 12,0
+guard candyPostE1 -> E1 12,8
+guard candyPostE4 -> E4 11,7
+guard candyPostE5 -> E5 11,3
+bridge Medio at (215,0,0,0) wet(<=1) -31..31 deck +-34
+bridge Hondo at (510,0,0,0) wet(<=1) -31..31 deck +-34
+bridge LagoMedio at (215,0,-70,0) wet(<=1) -31..31 deck +-34
+bridge LagoHondo at (510,0,-70,0) wet(<=1) -31..31 deck +-34
+bridge AltoMedio at (215,0,100,0) wet(<=1) -31..31 deck +-34
+bridge AltoHondo at (510,0,100,0) wet(<=1) -31..31 deck +-34
+ramp angle 24,8
+boss liquid 155,1
+portal liquid 170,0 entrance liquid 175,0
+gate->boss 145,0 junction->boss 745,0
+dock A stand liq 13,0 tip liq -11,0 len 24,0
+dock B stand liq 17,0 tip liq -10,0 len 27,0
+dock C stand liq 12,0 tip liq -14,0 len 26,0
+dock D stand liq 9,4 tip liq -16,5 len 26,0
+centreline hull samples ok 825, dry 6
+wet area / hull area:
+wet 129408 hull 121024 plot 582400 share 22,2%
+pond route 92,0 portal 435,8 entr 649,0 boss 430,2 nest 88,5 depth 68,0
+hive route 110,1 portal 249,0 entr 153,0 boss 986,5 nest 64,2 depth 30,0
+tight post candyPostR5 liquid 8,7
+tight post candyPostR9 route 36,1 wake 40
+tight post candyPostE4 route 39,0 wake 40
+tight post candyPostR14 route 38,0 wake 40
+post candyNest Gomibu (-214,0,-17,4) world (458,0,-20,4) liq 192,4 route 17,4 boss 959,2
+post candyNestR1 Flanfuria (-93,4,-47,0) world (578,6,-50,0) liq 217,4 route 43,4 boss 839,7
+post candyNestC3 Tortidragon (-129,0,-179,6) world (543,0,-182,6) liq 308,3 route 47,6 boss 892,3
+post candyNestC2 GatoRepartidor (-188,0,44,2) world (484,0,41,2) liq 130,8 route 44,2 boss 934,0
+post candyNestR2 Mochimiau (-96,4,56,2) world (575,6,53,2) liq 114,7 route 29,4 boss 843,3
+post candyNestR3 Canelin (-46,5,-110,9) world (625,5,-113,9) liq 221,9 route 59,7 boss 799,2
+post candyNestR4 Flanin (306,0,64,0) world (978,0,61,0) liq 61,0 route 36,0 boss 443,6
+post candyNestC4 Mielita (292,0,-23,0) world (964,0,-26,0) liq 47,0 route 23,0 boss 453,6
+post candyPostC7 Gomibu (447,0,36,0) world (1.119,0,33,0) liq 33,0 route 36,0 boss 300,2
+post candyPostR6 Flanfuria (131,8,-153,6) world (803,8,-156,6) liq 48,0 route 18,2 boss 632,1
+post candyPostC8 Tortidragon (73,0,-209,0) world (745,0,-212,0) liq 125,0 route 28,2 boss 703,8
+post candyPostC9 Mochimiau (-164,5,-76,6) world (507,5,-79,6) liq 251,6 route 30,8 boss 912,7
+post candyPostR7 Canelin (-160,8,83,4) world (511,2,80,4) liq 91,6 route 40,0 boss 909,6
+post candyPostR5 GatoRepartidor (122,4,155,6) world (794,4,152,6) liq 8,7 route 31,5 boss 641,7
+post candyPostC6 Mielita (3,0,-202,6) world (675,0,-205,6) liq 185,8 route 20,6 boss 769,2
+post candyPostC10 Flanin (-66,0,-202,6) world (606,0,-205,6) liq 251,5 route 20,6 boss 835,9
+post candyPostE3 Gomibu (678,0,-95,0) world (1.350,0,-98,0) liq 135,7 route 29,2 boss 116,2
+post candyPostR8 Flanfuria (-131,0,123,5) world (541,0,120,5) liq 51,5 route 32,9 boss 884,7
+post candyPostR9 Tortidragon (-66,0,91,0) world (606,0,88,0) liq 79,0 route 36,1 boss 816,1
+post candyPostR10 Mochimiau (-4,0,-50,5) world (668,0,-53,5) liq 189,0 route 35,1 boss 750,7
+post candyPostC11 Canelin (440,0,-47,0) world (1.112,0,-50,0) liq 40,0 route 23,0 boss 308,6
+post candyPostC12 Flanin (-157,0,-130,0) world (515,0,-133,0) liq 305,0 route 37,4 boss 911,3
+post candyPostC13 Mielita (118,0,-194,0) world (790,0,-197,0) liq 78,8 route 41,4 boss 656,3
+post candyPostR11 GatoRepartidor (37,8,104,2) world (709,8,101,2) liq 65,8 route 35,6 boss 714,8
+post candyPostE1 Gomibu (642,0,-140,0) world (1.314,0,-143,0) liq 97,8 route 28,4 boss 173,8
+post candyPostE4 Flanfuria (570,0,-109,0) world (1.242,0,-112,0) liq 27,1 route 39,0 boss 206,2
+post candyPostE5 Tortidragon (752,0,128,0) world (1.424,0,125,0) liq 29,3 route 34,5 boss 128,2
+post candyPostR12 Mochimiau (370,0,-47,0) world (1.042,0,-50,0) liq 63,0 route 23,0 boss 377,9
+post candyPostR15 Canelin (572,0,50,0) world (1.244,0,47,0) liq 32,0 route 28,0 boss 180,1
+post candyPostR16 Flanin (638,0,129,0) world (1.310,0,126,0) liq 17,8 route 24,1 boss 167,6
+post candyPostR17 Mielita (587,0,-41,0) world (1.259,0,-44,0) liq 47,0 route 13,0 boss 163,2
+post candyPostR14 GatoRepartidor (445,0,138,0) world (1.117,0,135,0) liq 37,4 route 38,0 boss 330,2
+nest C1 Comun (-208,-23,4) liq 198,4 route 23,4 boss 953,3 reach 52
+nest C2 Comun (-182,31,2) liq 143,8 route 31,2 boss 927,5 reach 78
+nest C3 Comun (-117,-171,6) liq 295,3 route 33,3 boss 878,9 reach 143
+nest C6 Comun (13,-210,6) liq 179,4 route 28,6 boss 761,7 reach 273
+nest C8 Comun (78,-221) liq 123,7 route 41,1 boss 702,7 reach 338
+nest C9 Comun (-175,5,-80,6) liq 255,6 route 42,2 boss 924,0 reach 84,5
+nest C10 Comun (-78,-210,6) liq 265,2 route 31,4 boss 849,5 reach 182
+nest C12 Comun (-169,-130) liq 305,0 route 46,9 boss 923,2 reach 91
+nest C13 Comun (130,-195) liq 67,1 route 49,4 boss 645,2 reach 390
+nest R1 Rara (-101,4,-39) liq 209,9 route 36,4 boss 847,3 reach 158,6
+nest R2 Rara (-101,4,44,2) liq 127,2 route 27,9 boss 847,6 reach 158,6
+nest R3 Rara (-58,5,-120,9) liq 233,5 route 44,1 boss 812,5 reach 201,5
+nest R4 Rara (-26,123,5) liq 46,5 route 32,5 boss 780,8 reach 234
+nest R5 Rara (114,4,145,6) liq 19,9 route 18,7 boss 647,2 reach 374,4
+nest R6 Rara (124,8,-158,6) liq 56,3 route 17,2 boss 640,2 reach 384,8
+nest R7 Rara (-150,8,75,4) liq 99,6 route 28,2 boss 899,0 reach 109,2
+nest R8 Rara (-143,123,5) liq 51,5 route 41,4 boss 896,5 reach 117
+nest R9 Rara (-78,91) liq 79,0 route 27,6 boss 828,0 reach 182
+nest R10 Rara (-13,-58,5) liq 197,5 route 47,1 boss 760,3 reach 247
+nest R11 Rara (46,8,96,2) liq 73,8 route 23,6 boss 704,8 reach 306,8
+nest C4 Comun (300,-35) liq 55,0 route 35,0 boss 446,4 reach 560
+nest C11 Comun (440,-35) liq 40,0 route 35,0 boss 307,0 reach 700
+nest C5 Comun (300,50) liq 55,0 route 50,0 boss 447,8 reach 560
+nest C7 Comun (440,45) liq 40,0 route 45,0 boss 308,3 reach 700
+nest C14 Comun (370,50) liq 110,0 route 50,0 boss 378,3 reach 630
+nest R12 Rara (370,-35) liq 75,0 route 35,0 boss 376,6 reach 630
+nest R13 Rara (285,145) liq 36,6 route 45,0 boss 482,3 reach 545
+nest R14 Rara (445,150) liq 41,6 route 50,0 boss 335,4 reach 705
+nest R15 Rara (560,50) liq 20,0 route 40,0 boss 191,6 reach 820
+nest R16 Rara (650,135) liq 12,4 route 28,5 boss 165,1 reach 910
+nest R17 Rara (575,-35) liq 35,0 route 25,0 boss 173,6 reach 835
+nest E1 Epica (650,-150) liq 107,2 route 31,2 boss 177,6 reach 910
+nest E2 Epica (735,-200) liq 201,8 route 50,0 boss 200,2 reach 995
+nest E3 Epica (690,-95) liq 147,5 route 36,7 boss 109,8 reach 950
+nest E4 Epica (560,-115) liq 16,0 route 45,0 boss 217,8 reach 820
+nest E5 Epica (760,120) liq 37,6 route 40,3 boss 120,9 reach 1020
+nest E6 Epica (800,-200) liq 264,5 route 51,0 boss 207,4 reach 1060
+nest L1 Legendaria (795,-115) liq 250,2 route 35,4 boss 125,4 reach 1055
+piece mountain M1 (811,4,200,0) r 48,60 liq-r -43,9 route-r-7 69,2 depth 48,6
+piece mountain M2 (838,0,-238,0) r 14,20 liq-r 295,3 route-r-7 79,0 depth 22,0
+piece mountain M3 (370,0,246,0) r 13,10 liq-r 134,7 route-r-7 125,9 depth 14,0
+piece mountain M4 (135,0,-245,0) r 13,10 liq-r 67,4 route-r-7 72,3 depth 15,0
+piece mountain M5 (-241,8,-241,8) r 13,10 liq-r 403,7 route-r-7 154,0 depth 18,2
+piece mountain M6 (-246,0,-48,0) r 13,10 liq-r 209,9 route-r-7 27,9 depth 14,0
+piece house H1 (285,0,210,0) r 28,00 liq-r 35,4 route-r-7 75,0 depth 50,0
+piece house H2 (445,0,215,0) r 15,00 liq-r 51,8 route-r-7 93,0 depth 45,0
+piece house H3 (-205,4,-195,0) r 22,40 liq-r 347,6 route-r-7 86,8 depth 54,6
+piece house H4 (560,0,-205,0) r 20,00 liq-r 12,8 route-r-7 103,4 depth 55,0
+piece house H5 (-218,4,-106,6) r 21,00 liq-r 260,6 route-r-7 60,0 depth 41,6
+piece house H6 (828,0,-55,0) r 16,00 liq-r 204,3 route-r-7 79,3 depth 32,0
+piece house H7 (-20,0,70,0) r 20,00 liq-r 80,0 route-r-7 32,3 depth 190,0
+piece dock A (-150,0,162,0) r 3,00 liq-r 10,0 route-r-7 63,5 depth 98,0
+piece dock ARamp (-150,0,152,0) r 3,50 liq-r 19,5 route-r-7 56,0 depth 108,0
+piece dock ADeck (-150,0,171,5) r 3,00 liq-r 0,5 route-r-7 70,3 depth 88,5
+piece dock B (168,0,40,0) r 3,00 liq-r 14,0 route-r-7 30,0 depth 220,0
+piece dock BRamp (158,0,40,0) r 3,50 liq-r 23,5 route-r-7 29,5 depth 220,0
+piece dock BDeck (179,0,40,0) r 3,00 liq-r 3,0 route-r-7 30,0 depth 220,0
+piece dock C (370,0,-98,0) r 3,00 liq-r 9,0 route-r-7 18,0 depth 162,0
+piece dock CRamp (370,0,-88,0) r 3,50 liq-r 18,5 route-r-7 7,5 depth 172,0
+piece dock CDeck (370,0,-108,5) r 3,00 liq-r -1,5 route-r-7 28,5 depth 151,5
+piece dock D (690,0,140,0) r 3,00 liq-r 6,4 route-r-7 18,5 depth 120,0
+piece dock DRamp (690,0,130,0) r 3,50 liq-r 15,9 route-r-7 8,1 depth 130,0
+piece dock DDeck (690,0,150,5) r 3,00 liq-r -4,1 route-r-7 28,9 depth 109,5
+piece licorice F (-161,2,-16,5) r 4,56 liq-r 186,9 route-r-7 4,9 depth 98,8
+piece licorice F (-161,2,16,5) r 4,56 liq-r 154,0 route-r-7 4,9 depth 98,8
+piece licorice F (-161,2,-27,8) r 3,60 liq-r 199,2 route-r-7 10,9 depth 98,8
+piece licorice F (-161,2,27,8) r 3,60 liq-r 143,6 route-r-7 14,5 depth 98,8
+piece cake Base (-195,0,145,6) r 18,00 liq-r 11,4 route-r-7 70,2 depth 65,0
+piece cake Ramp (-195,0,117,4) r 12,25 liq-r 45,4 route-r-7 63,1 depth 65,0
+---- FAILS: 6
+centreline dry for hull at 400,6,-191,5 -2,5
+centreline dry for hull at 398,6,-191,6 -1,5
+centreline dry for hull at 396,7,-191,7 -0,9
+centreline dry for hull at 394,7,-191,8 -0,8
+centreline dry for hull at 392,7,-191,9 -1,2
+centreline dry for hull at 390,8,-192,0 -2,1

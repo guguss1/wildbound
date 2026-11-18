@@ -1,0 +1,77 @@
+﻿{
+    "scores":  [
+                   {
+                       "design":  "A (keep)",
+                       "score":  6.5,
+                       "strengths":  [
+                                         "The Gran Torta, Tower (126 parts), Boss, Markers, bossHome/bossTerritory, Duquesa, Frutillon and the AMBUSH boss clearance all stay put. That removes the riskiest relay in the v8 chain (syncTower\u0027s Destroy of a stale Tower) and leaves the BeastDonGlaseon and Duquesa test churn out.",
+                                         "Only 4 west nests, 4 posts, H3/H6, M1/M5 and the hills move, so the west half is left almost alone. The Pradera marker, Portal, TrapCake and Life literals keep their values.",
+                                         "The V3.liquidDistance plot clip (max(old, -depth)) removes the invisible chocolate past the edge for the raft, wading and the current together. The joint-drum max-radius rule keeps the part count unchanged.",
+                                         "M1_KIT offsets are pinned as data, and a regression test checks that kitPoint at v8\u0027s M1 spot reproduces v8\u0027s pool within 0.01, so the source move can be verified without Studio.",
+                                         "Tightest clearances keep 3-4 studs of slack, more than C\u0027s 0.1-2.0, so they are less likely to flip on float error in the Luau suites.",
+                                         "Cookie.IDS is unchanged (Top/Bottom kept) and the raft change is one optional nearBridge parameter."
+                                     ],
+                       "defects":  [
+                                       "It adds three untested builder mechanisms (planV9, layMissing, layEdgeRegion) plus pier decor in layBridge, where C reuses the tested layAll relay path. Each needs its own idempotency tests in Studio.",
+                                       "M1 is moved by a rigid pivot+yaw snap, and the separate Waterfall model must follow by the same transform. That is hand-written transform code with no relay fallback.",
+                                       "Docks A, B (and the river tips) sit in the full 4 studs/s current, exactly at DOCK_SPEED. CU3 passes only at the limit, and docking happens while the raft drifts.",
+                                       "There is no RESTORE mode and no hard refusal on the part estimate. Runtime of about 2750-2800 is right at today\u0027s cap, and SistemaSonriente is only refused by name, with no bounds check over the x 932..1612 growth area.",
+                                       "The extra \u0027far\u0027 route exists only to carry two 109-111-stud raised decks with piers only at the ends. That is new geometry with possible creature-ray refuge issues under the decks.",
+                                       "Keeping the Torta at x 148 breaks the owner\u0027s \u0027cake at the end\u0027 rule and forces GT1 to be rewritten. That is a design cost, and the owner may later demand a second migration.",
+                                       "Old west bank filler is left lining a river that no longer exists (visual cleanup is deferred to later work).",
+                                       "Two new skirt parts are added past x 1024, where C resizes the existing annex strips with 0 new parts."
+                                   ]
+                   },
+                   {
+                       "design":  "B (play)",
+                       "score":  3.5,
+                       "strengths":  [
+                                         "Adds a SistemaSonriente bounds check that aborts the real run if the system overlaps the new plot, strips or walls.",
+                                         "Uses a liquidDistance plot clip and the joint-drum max rule, as A does.",
+                                         "Adds invisible SideWall and EndWall parts at the strip ends, which closes the fall-off risk at x 1612.",
+                                         "Archives all v8 bank filler using a kept RIVER_V8 record, so no props line a vanished river.",
+                                         "V9-3 BFS raft-reach test over the dock tips and under all 6 decks is a strong verification idea."
+                                     ],
+                       "defects":  [
+                                       "Highest churn of the three. It moves the Torta and relays the Tower, rescales M1 to 0.9 (needing new layMountain and layWaterfall exports), relocates H1/H2/H4/H6/H7 and M2/M3/M4/M6, moves E1-E3 and L1, and replaces the depth rarity rings with a new x-band rule.",
+                                       "It moves the Pradera marker, which shifts the pond and hive. That ripples into BeastSites S7, Abeja KB-3, Nube and Nests_Test (guardian binding 9 to 12, CH1 PER 3, CH3 counts).",
+                                       "It reverses the river\u0027s flow toward the hub, adds 6 raised bridges, 4 new cookie IDs, FAR_ROUTES, 6 new East parts and MIN_ALT 88. That is a large rewrite of the Current, CookieBridge and Life tests.",
+                                       "Its own checker run reports 6 \u0027centreline\u0027 failures explained away as \u0027by design\u0027, and margins are razor-thin: post route-vs-wake 38-39 of 40, candyPostR5 at 8.74 of 8, deck spans 3 studs over the wet band.",
+                                       "EDGE_V9 (450 parts) and layBankFiller are new exports with their own budgets. The part estimate of about 2700-2750 has no enforcement.",
+                                       "Too many moving parts to ship and verify in Studio in one task."
+                                   ]
+                   },
+                   {
+                       "design":  "C (build)",
+                       "score":  7.5,
+                       "strengths":  [
+                                         "Most of the rebuild is one existing, tested call: V3Builder.layAll(relay = true). It is used by v4 and asserts that only Trees remain. M1 and its waterfall are relaid by the existing layAll path, with no new builder planner or exports.",
+                                         "The Torta, Boss, Markers and Tower move by +600 through the exact v8 relays (archive the Tower first, then syncTower at the new LayoutKey), so the Destroy hazard is already solved.",
+                                         "Safest migration skeleton: dry run, backup (including the annex and queen), archive, a single :Destroy in the probe, a RESTORE mode with its own recording, refusal when the estimate exceeds V9_PART_TARGET, refusal when SistemaSonriente has parts in x 932..1612, and refusal when the annex strips are not found.",
+                                         "The annex strips are resized with stripPlan (0 new parts) instead of adding skirts or walls. East.build makes 0 new parts.",
+                                         "Small basin lake discs at the river docks keep the current at 1.5 at every tip, so the CU3/CU6/CU7, Island IS1-IS3 and docking rules hold almost unchanged.",
+                                         "The raft change is 2 lines, with a fallback (V3.raftBlocks or V3.nearBridge), so the RF4/RF16 fake-layout tests stay unchanged. Raft.new accepts any valid homeDock index.",
+                                         "A dedicated V9Migrate source-pin suite and a concrete deploy order with Play checks (walk to x 1530, sail under the 3 bridges, call the raft from D, crack Top, bees, part count in Play).",
+                                         "Its checker includes barrier, raft-reach, current-smoothness and Life flood fills. Only 3 bridges, all on straight 60-wide stretches with 64 decks."
+                                     ],
+                       "defects":  [
+                                       "Several clearances sit at or near equality: M1 depth 32 vs r-0.5 = 31.9 (0.1), river point 14 depth-w/2 = 2.0 exactly, C14 ring margin 1.5, R16 and E6 at 2.0. Any float drift in the Luau suites flips these to failures. Nudge them before shipping.",
+                                       "layAll relay re-lays every CaramelV3 piece, including west houses, mountains, filler and seeded edge fill. That is a large live blast radius and visual churn in the west, and it needs MAX_NEW_PARTS raised to 1600.",
+                                       "Invisible chocolate remains past the mouth and behind RIVER[1] for wading and the current. raftBlocks clamps only the raft, where A\u0027s and B\u0027s liquidDistance clip fixes all three.",
+                                       "Moving the Torta adds churn in BeastDonGlaseon_Test, Duquesa and PraderaSites boss posts, all of which A avoids.",
+                                       "The west channel is only 50-64 wide (a partial 5x), and the strip ends at x 1612 can still be fallen off."
+                                   ]
+                   }
+               ],
+    "best":  "C (build)",
+    "graft":  [
+                  "From A and B: put the plot clip inside V3.liquidDistance (max(best, -plotDepth)) instead of only clamping the raft in raftBlocks. This removes invisible chocolate past the mouth and behind the outlet for wading and the current as well, at no part cost.",
+                  "From A: pin M1_KIT offsets as data copied from WildboundCandyV3KitSpec, with a test, and add a regression test that kitPoint at v8\u0027s M1 spot reproduces v8\u0027s pool within 0.01.",
+                  "From A: aim for 3-4 studs of slack on the tightest clearances. In C, move river point 14 inward or narrow it slightly, and nudge M1 so depth exceeds r-0.5 by more than 0.1. C14, R16 and E6 also need more than 1.5-2.0 margin.",
+                  "From B: add invisible EndWall/SideWall parts at the strip ends (x 1612), or extend the caps, to close the fall-off risk C lists as risk 10.",
+                  "From B: the V9-3 BFS raft-reach test that passes under every deck, run as a Studio suite (C\u0027s flood fill exists only in its C# port).",
+                  "From B: archive the old v8 bank filler by a kept RIVER_V8 record if the layAll relay leaves Trees-folder props standing along the vanished north-south course.",
+                  "From A: the FlyersService rule that a hive is never over chocolate is already in C. Keep it, together with the requirement that FlyersService loads V3Layout."
+              ],
+    "notes":  "Judged through build risk and test churn. I read the brief, r1 and r6, and checked repo facts:\n- layAll has a relay mode that asserts only Trees remain (V3Builder:985-988).\n- Cookie.IDS = {Top, Bottom}.\n- Raft.DOCK_SPEED = 4 equals RIVER_SPEED 4, so A\u0027s and B\u0027s river docks sit at the docking limit.\n\nC wins because it reuses tested paths: layAll relay, the v8 Torta, Tower and Boss relays, East.build, and a strip resize with 0 new parts. It also has the strongest safety envelope: target refusal, a SistemaSonriente refusal over the growth area, and RESTORE.\n\nA is a close second. Not moving the Torta is the biggest single risk cut, but A pays with three new builder exports, a hand-written rigid M1 and waterfall transform, docks in full current, no RESTORE, and a broken owner rule (\u0027cake at the end\u0027).\n\nB has the most churn by far: Torta move, M1 rescale with new exports, Pradera marker move, house and mountain relocations, a new rarity rule, reversed flow, and 6 bridges. Its own checker also carries \u0027by-design\u0027 failures.\n\nNone of the three resolves StreamingEnabled reach; all list it as unknown."
+}

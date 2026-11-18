@@ -1,0 +1,77 @@
+﻿{
+    "scores":  [
+                   {
+                       "design":  "A (keep)",
+                       "score":  5,
+                       "strengths":  [
+                                         "Smallest change to the west half: 24 of 28 nests, every existing route, the portal, posts and most pieces stay where the owner knows them",
+                                         "River truly spans the plot from M1\u0027s waterfall at the west edge to the east edge, about 1115 long, raft sails end to end under 2 raised bridges",
+                                         "Adds the liquid plot clip (max(liquid, -depth)) and the joint-drum fix, which removes invisible chocolate past the mouth and at width steps",
+                                         "Harbour lake with island, cookie platforms and a dock pair across water (C-D) gives a readable raft playground in the new east half",
+                                         "Keeps every nest rarity via the existing depth rings; 16 new nests with 2 new Epica; third post per creature"
+                                     ],
+                       "defects":  [
+                                       "Breaks the owner\u0027s standing rule \u0027the cake with the princess at the end\u0027: the Gran Torta stays at local x 148, about 650 studs from the new east edge, and GT1 must be rewritten. The new east half has no destination or climax",
+                                       "The head of the river is not 5x: points 1 to 3 are 12, 24 and 40 wide, below the agreed 50..120 range, and the 12-wide kit outlet with r 4.95 pool looks wrong at the head of a 60..100 river",
+                                       "The river no longer works like today\u0027s river: main, left and right routes never cross it, so most players never meet a bridge. Only the new \u0027far\u0027 route crosses, on 2 cookie bridges, with no always-safe crossing",
+                                       "Docks A and B sit in the full 4 studs/s current, which makes docking harder for kids",
+                                       "Old bank filler and props stay lining a west river course that no longer exists, so the west looks stale",
+                                       "Long walks east for nests only, with no reason to go there except more of the same rarities"
+                                   ]
+                   },
+                   {
+                       "design":  "B (play)",
+                       "score":  7,
+                       "strengths":  [
+                                         "Strongest fun loop: rarity rises with distance, all Epica and the Legendaria are deep near the boss, and the raft running downstream toward home outruns chasers, so it becomes the safe way home",
+                                         "Fullest 5x river: widths 50..120 the whole way, 1648 long, a winding S that reads as today\u0027s river, with a big landmark waterfall (M1 at scale 0.9, height 81) and an outlet that fits the river",
+                                         "Cake and princess move to the east end (plaza 57 from the edge), which keeps the owner\u0027s \u0027cake at the end\u0027 rule",
+                                         "The avenue has 2 bridges that never break, the side lanes have 4 cookie bridges, and the raft passes under all 6. A BFS test (V9-3) proves all 4 docks link and pass under every deck",
+                                         "Landmarks pace the walk every 150..250 studs (arch, junction, Puente Medio, Prado Alto, lake and island, Puente Hondo, Gate, tower, waterfall)",
+                                         "Closes the void with side strips, an end pad and invisible side and end walls; checks SistemaSonriente bounds before the real run"
+                                     ],
+                       "defects":  [
+                                       "The mouth is on the WEST edge at world (412, 202), about 24 studs from the hub\u0027s apron, with no cloud wall there. The chocolate stops dead at an open edge beside the entrance, which looks odd and is not the \u0027reach the far end\u0027 look",
+                                       "Heavy churn of the familiar west map: E1, E2, E3 and L1 move, 5 houses and 4 mountains move, and La Nube\u0027s pond and La Abeja\u0027s hive move. The owner will see a very different Caramelo",
+                                       "Readability for kids is weaker: 3 parallel lanes, 6 bridges, and a middle peninsula enclosed by two river stretches",
+                                       "Every Epica is only reachable near the boss, which is hard for young players. The raft is no faster than walking overall, and there is one raft per server",
+                                       "22% of the plot is chocolate (a bee refuge and wading penalty). Many tight margins: post R5 8.74, post route vs wake 39/40 and 38/40, deck overhang 3 studs",
+                                       "The flock MIN_ALT jumps to 88 to clear the taller M1"
+                                   ]
+                   },
+                   {
+                       "design":  "C (build)",
+                       "score":  8,
+                       "strengths":  [
+                                         "Closest to the owner\u0027s words: a long river from M1\u0027s waterfall at the west end to its mouth under the cloud wall at the east end, about 1409 long, with widths 50..120 (only the outlet is exempt)",
+                                         "Keeps today\u0027s look and game: the river is still a barrier crossed by bridges, and the entrance and the cake are on opposite banks. The cake, princess, tower and boss move +600, so the plaza still ends 53.8 from the east edge (\u0027cake at the end\u0027)",
+                                         "Easy to read for kids: one main avenue with a Main bridge that never breaks, plus 2 cookie side bridges (ids Top and Bottom kept), all raised so the raft passes under",
+                                         "4 docks on both banks, each in a calm basin or lake disc (current 1.5 at every tip), so docking is easy. A flood fill proves the raft reaches all 25,635 hull cells from dock A, including the mouth",
+                                         "Keeps the west half as it is: only C6, C8, C10, C13, H3, H6 and M5 move. Every rarity is kept; there are 17 new nests (3 Epica) and the third post per creature binds its guardian",
+                                         "Safest delivery: reuses layAll with relay, a RESTORE mode, a SistemaSonriente refusal and a hard part target. A Flyers rule stops hives over chocolate"
+                                     ],
+                       "defects":  [
+                                       "The west channel is only 50..64 wide (average 76.6 overall), so half the river sits at the low end of 5x",
+                                       "The course is geometric (a straight edge run, a 350-stud straight north-south reach, an edge run), so it winds less than today\u0027s river",
+                                       "Invisible chocolate stays past the mouth (x 860..920, into the band) and behind RIVER[1]: no liquid plot clip",
+                                       "The current flows west to east, away from home. That makes the raft slow on the trip home with an egg, the opposite of B\u0027s escape highway",
+                                       "The Epica and Legendaria nests near the hub stay where they are, so the long east half gives weaker reward progression. The only return portal is still at the hub",
+                                       "M1 at scale 0.6 has never been seen. Hide spots, grass and traps get sparser over twice the area. Players can still fall at the strip ends (x 1612)"
+                                   ]
+                   }
+               ],
+    "best":  "C (build)",
+    "graft":  [
+                  "From A and B: end V3.liquidDistance with max(best, -plotDepth(x, z)) so nothing outside the plot is chocolate. This closes C\u0027s open risk 5 (invisible chocolate past the mouth) for wading, current and clearances, not just the raft",
+                  "From B: the invisible SideWallNorth, SideWallSouth and EndWall (plus the EndPad) at the strip ends, so players cannot fall off at x 1612 (C\u0027s risk 10)",
+                  "From B: a depth-reward lean for C\u0027s 17 new nests. Place the 3 new Epica (and a few Rara) in the cake-bank east third, and add a soft test that the new nests\u0027 mean x rises Comun \u003c Rara \u003c Epica. Do not move existing E1-E3 or L1",
+                  "From B: a bigger, taller M1 (about 0.75..0.9) so the source waterfall is a landmark and the kit outlet matches a 50+ river head. Raise the flock MIN_ALT to match",
+                  "From B: think about which way the river runs. If the raft should be the safe ride home with an egg, either flip the flow (source at the east end) or check that upstream sailing from dock D to dock A is still quick enough. At least record the trip times both ways as B did",
+                  "From B: name a GATE point on the avenue before the boss\u0027s sight line, and set landmarks about every 150..250 studs along the 690-stud avenue leg so the long walk is paced",
+                  "From B and A: put 4 decorative piers (on dry land) under each raised deck, so kids can see the bridges are tall enough for the raft",
+                  "From A: a harbour-style lake with the island, cookie platforms and a dock pair across open water where the reach meets the east channel, to give the raft a play area on the cake bank",
+                  "From B: where the left route and nests allow, widen the east channel and any lake stretches toward 120 so the average width moves closer to a true 5x",
+                  "From B: test V9-3\u0027s BFS reach under all decks, plus B\u0027s per-design fish rows along the reach and the lake"
+              ],
+    "notes":  "I read brief.md, the critic report r6.md and r4.md (what lies west of x 412) in full. I did not open the repo or rerun the designers\u0027 checkers, so each design\u0027s geometry claim of 0 failures is taken as reported.\n\nOwner-fit deciders:\n1. Cake at the end. The owner has a standing GT rule: \"the cake with the princess at the end\". A keeps the Torta at local x 148, 650 studs short of the new east edge, and A itself lists this as its main open risk. That is the biggest owner-fit miss of the three.\n2. River width at the head. PD3 sets 50..120. A\u0027s points 2 and 3 (24 and 40 wide) fall below it. B is fully inside the range. C is inside it but sits at the low end (50..64) in the west.\n3. Mouth placement. B\u0027s mouth ends at world x 412 on the west edge, beside the hub\u0027s apron (east edge 388) and the hub\u0027s bounding box (east edge 387). There is no cloud wall there, so the river visibly stops at an open edge near the entrance. A and C both pour into the east cloud wall, which reads as \"reaching the far end\".\n4. Today\u0027s look. Today\u0027s river is a barrier that players cross by bridge, by wading or by raft. Only C keeps that structure (the entrance and the cake on opposite banks, a bridge that never breaks on the avenue). B keeps it with more complexity. A drops it for most players.\n\nOn fun alone, B is the most ambitious, but it is harder for kids to read and it rearranges much of the west map the owner already approved. C does exactly what was asked with the least surprise. Grafting B\u0027s reward lean, its bigger waterfall and its edge walls, plus A and B\u0027s liquid clip, closes most of C\u0027s gaps."
+}

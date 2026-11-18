@@ -66,6 +66,8 @@ Están completas en `docs/handoff/claude-context.md`.
 
 ## 8. Primer mensaje para pegarle a la IA nueva
 
+**Actualización 18/11/2026:** el traspaso más nuevo es `HANDOFF-2026-11-18.md` y trae su propio primer mensaje (sección 5). Usar ese. El de abajo es el original del 16/11.
+
 Copiar y pegar esto tal cual:
 
 ```
