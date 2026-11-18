@@ -375,6 +375,9 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 					-- (once lost it either searches or, given up on its own, is calm: "far")
 					assert(firstSearch == nil, "it saw them again at 15 studs")
 				end
+				-- Deliberately changed (V7-D6/V8-D1, "each creature has its zone"): this long straight run would pass the
+				-- hunter's zone (80 studs) and end the hunt there; the zone is not under test, so its post follows it
+				e.home.x, e.home.z = e.pos.x, e.pos.z
 				for _, ev in ipairs(Enc.step(e, t, Hiding.view(target, plan, e, search, t), w)) do
 					if ev.type == "Hit" or ev.type == "Afflict" or (ev.type == "Strike" and ev.hit) then hits += 1 end
 				end

@@ -1052,10 +1052,15 @@ return function(Smarts, Enc, Config, Critter, Gomibu, Flanfuria, Tortidragon, Bo
 		assert(to6 > 250, "R6 to the entrance " .. to6)
 		for _, D in ipairs({ D1, D6 }) do
 			for _, name in ipairs(CANDY) do
-				local never = model({ name }, 0, D, "never")
-				assert(never.arrive and not never.dead, name .. ": a lone creature defeated a runner over " .. D)
-				assert(never.hits >= 1, name .. ": never touched a runner who never dodges over " .. D)
-				assert(never.minhp >= 40, name .. ": left " .. never.minhp .. " health over " .. D)
+				-- Deliberately changed (V8-D1, after V7-D6 "each creature has its zone"): a lone creature's hunt ends at its
+				-- zone's edge (Smarts.overtime), so the run it chases is at most the zone plus its 12-stud start, not the
+				-- whole way to the base (in the 1.3 times bigger plot that is 456 studs from R6)
+				local chased = math.min(D, Smarts.profile(name).zone + 12)
+				local never = model({ name }, 0, chased, "never")
+				assert(never.arrive and not never.dead, name .. ": a lone creature defeated a runner over " .. chased)
+				-- a hunt cut short by the zone may end before the creature's first strike lands: the whole point of the zone
+				assert(never.hits >= 1 or chased < D, name .. ": never touched a runner who never dodges over " .. chased)
+				assert(never.minhp >= 40, name .. ": left " .. never.minhp .. " health over " .. chased)
 				local perfect = model({ name }, 0, D, "perfect")
 				equal(perfect.hits, 0, name .. ": a perfect dodger was hurt over " .. D)
 				assert(perfect.arrive, name .. ": a perfect dodger never arrived")

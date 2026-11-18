@@ -525,7 +525,9 @@ return function(V3, Layout, Sites, Trap)
 		local d2x, d2z = V3.LAKE[2].x - -14, V3.LAKE[2].z - -114
 		near(V3.DOCKS[1].tipX - d2x, -22, "dock A moves with disc 2, x"); near(V3.DOCKS[1].tipZ - d2z, -114, "dock A, z")
 		near(V3.DOCKS[2].tipX - d1x, 32, "dock B moves with disc 1, x"); near(V3.DOCKS[2].tipZ - d1z, -102, "dock B, z")
-		near(V3.ISLANDS[1].x - d1x, 15, "the island moves with disc 1, x"); near(V3.ISLANDS[1].z - d1z, -73, "the island, z")
+		-- the island moves with disc 1, 1.5 studs further east than its v7 offset (and r 6.5 -> 6) for the raft's channel
+		near(V3.ISLANDS[1].x - d1x, 15 + 1.5, "the island moves with disc 1, x"); near(V3.ISLANDS[1].z - d1z, -73, "the island, z")
+		equal(V3.ISLANDS[1].r, 6, "the island's waterline radius")
 		near(V3.PLATFORMS[1].x - d2x, -6, "the medium cookie moves with disc 2"); near(V3.PLATFORMS[2].z - d1z, -88, "the big cookie with disc 1")
 		near(V3.HOUSES[1].x, -148 * S, "H1 x"); near(V3.HOUSES[1].z, 166 * S, "H1 z"); equal(V3.HOUSES[1].r, 28, "H1 footprint kept")
 		near(V3.LICORICE.x, -124 * S, "the arch"); near(V3.CAKE.z, 112 * S, "the cake"); equal(V3.CAKE.r, 18, "the cake's size kept")

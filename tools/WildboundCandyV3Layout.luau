@@ -313,11 +313,13 @@ V3.PLATFORM = freeze({ over = 0.5, pedestalShare = 0.8 })
 -- raft, wading, the current, the clearances), flat the radius of its level top, foot where its underwater bank meets
 -- the floor. It stands in the river's mouth, north of the cookie platforms: the lake leaves no wider spot with a raft
 -- channel all round (V6-D60). No VERSION bump: nothing laid by a migration moves.
--- V8-D1: it moves with the big disc (disc 1), its v7 offset from the disc's centre kept.
+-- V8-D1: it moves with the big disc (disc 1), its v7 offset from the disc's centre kept, but 1.5 studs further east
+-- and a little smaller (r 6.5 -> 6, flat 4.5 -> 4, foot 10.4 -> 9.9, the same bank): the scaled river mouth leaves less
+-- chocolate north-west of it, and the raft's channel all round (WildboundCandyIsland_Test IS1) needs the room.
 do
-	local x, z = withDisc(1, 15, -73)
+	local x, z = withDisc(1, 15 + 1.5, -73)
 	V3.ISLANDS = freeze({
-		{ id = "I1", x = x, z = z, r = 6.5, flat = 4.5, foot = 10.4 },
+		{ id = "I1", x = x, z = z, r = 6, flat = 4, foot = 9.9 },
 	})
 end
 -- The island's build: its top `top` studs over the chocolate's surface, a beach from the top's edge down to the

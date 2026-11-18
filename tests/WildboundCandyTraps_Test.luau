@@ -385,6 +385,9 @@ return function(Traps, Rules, Spots, Grass, Hiding, Layout, V3, Enc, Critter, Co
 			for i = 1, steps do
 				t += 0.05
 				local px, py, pz, phase = e.pos.x, e.pos.y, e.pos.z, e.phase
+				-- Deliberately changed (V7-D6/V8-D1, "each creature has its zone"): this long straight run would pass the
+				-- hunter's zone (80 studs) and end the hunt there; the zone is not under test, so its post follows it
+				e.home.x, e.home.z = e.pos.x, e.pos.z
 				Enc.step(e, t, ahead(e, 30), w)
 				slowed[i] = Rules.slowStep(e, px, py, pz, patches, memo, t, phase)
 				lengths[i] = flat(px, pz, e.pos.x, e.pos.z)
