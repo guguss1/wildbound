@@ -60,9 +60,56 @@ The park was built by `docs/design/wildbound-kitten-park-plan.md` (K-D1 to K-D21
   - Near post K1 the client showed "Gatito Guerrero te vio", "¡Gatito Guerrero te sigue!", "¡Carga de escudo! Sal de la franja por un lado" and "¡Escudazo!".
   - The console had no errors from the changed scripts. It did show permission errors for the Lumipol MeshGen meshes (Workspace.MeshGen1, ServerStorage.WildboundAssets.LumipolMeshGen); those predate this step.
 
+## Checklist, step 2: its own side of the hub (2026-11-18)
+
+Owner's words: "Sí, movelo". Plan: PGM-D1 to PGM-D9 in `docs/design/wildbound-pueblo-gatito-move-plan.md`. Code commit 6831632.
+
+| ID | Task | Status |
+|---|---|---|
+| PGM-D1 | One park frame, `WildboundGatitoArea`: origin (282, 600), yaw -90, floor x 22..542, z 340..860 | Done (6831632, Studio, suite) |
+| PGM-D2 | Its own root `Workspace.PuebloGatito_v1` with its own grass floor | Done (Studio move) |
+| PGM-D3 | The biome square is the big4 south arm (x -3..597, z 337..937), first row; in big4 it replaces Volcán | Done (Studio, suites) |
+| PGM-D4 | Every park position park-local: paths, village, nests, posts, chests, portal, arrival, music rectangle | Done (solo Play) |
+| PGM-D5 | Caramelo's cloud wall closes: one whole Collider, no gate, the floor under the band only, pink | Done (solo Play rays) |
+| PGM-D6 | The big4 volcanic decor is archived whole | Done (`WildboundMapArchive.GatitoSouthVolcanic`) |
+| PGM-D7 | The one-shot move tool, dry run first | Done (dry run, then the real run) |
+| PGM-D8 | What stays: the creature wall clamp, the old-frame archive helpers | Done (suites) |
+| PGM-D9 | Docs: this file, overview rows | Done |
+
+### Decisions taken for the user (step 2)
+
+- **Two Studio-only big4 suites updated.** WildboundBeastSight_Test (big4 copy) and WildboundBig4Map_Test still expected a Volcán square in the south arm. They now read Pueblo Gatito (`CandyEast`) there, and the "parque" station is checked in its own biome. Both exist only in Studio, so the repo has no copy to change.
+- **The 16-stud gap between the big4 road and the park floor is left as grey baseplate.** The road ends at z 324.5 and the park floor starts at z 340. It is walkable (heights 0.62, 0, 0.5). It is noted for step 3, the look.
+- **The music check stays partly open.** In this automated Play every music layer read volume 0, Caramelo's too, so the silence is not from the move. The switches themselves were checked: the kitten flag is on in the park and off at the hub, and the Caramelo flag is on in the plot.
+
+### Evidence (step 2, 2026-11-18)
+
+- **Deploy.**
+  - 3 new scripts were created: WildboundGatitoArea, WildboundGatitoArea_Test, WildboundPuebloGatitoMove (disabled).
+  - Hunks were applied to 15 changed scripts. All 18 matched HEAD 6831632 by fingerprint.
+  - Hand patches went into the Studio-only big4 copies WildboundBiomes, WildboundBiomeLight and WildboundBiomeLight_Test.
+- **Move tool.**
+  - The dry run listed 1378 park parts, 8 nests (16 parts) and 440 volcanic parts, with no warnings.
+  - The real run made the backup `WildboundMapArchive.GatitoMoveBackup`.
+  - It moved Park and Nests into `PuebloGatito_v1` and laid `Ground.Floor` (520 x 520 at (282, 600), top 0.5).
+  - It archived the volcanic decor to `GatitoSouthVolcanic` and ColliderSouth to `GatitoGate`.
+  - A rebuild check after the move changed 0 parts. The root has attributes `PuebloGatito = 2` and `Key = pueblo-gatito`.
+- **Suites, fresh Play server VM:**
+  - GatitoArea 4/0, KittenPark 13/0, CandyKittens 7/0, CandyKittenArt 5/0, CandyEast 10/0;
+  - Portal 12/0, PortalService 15/0, BiomeLight (big4 copy) 12/0, CandySky 4/0, CandyNests 26/0;
+  - CandySmarts 26/0, CandyV3Layout 18/0, BeastDirector 53/0, BeastWiring 53/0, CandyAmbience 14/0;
+  - CandyHouseNests 5/0, CandyLife 9/0, BeastSight (big4) 8/0 and Big4Map 20/0, after the updates above.
+- **Play, solo:**
+  - The 8 kittens stood at their new posts: K1 (325, 430) to K8 (174, 750). Gatito Guerrero woke and chased near K1.
+  - The HUD read "Pueblo Gatito · siempre de día". The light at (282, 600) is Gatuno, and the biome there is CandyEast.
+  - The 8 "Tomar el huevo" prompts stand on the new nests, (337, 430) to (162, 750).
+  - The "parque" portal "Volver a la base" stands at (239, 372).
+  - Ground rays at x 282 hit, in order: the big4 road to z 324, the baseplate z 326..338, the park floor from z 341, and the main path at z 360 and 600.
+  - Wall rays from x 925 at z -250, -3, 0 and 100 hit the whole Collider at x 938. Nothing is open.
+
 ## Next step
 
-Step 2: move the park to its own side of the hub (the south arm is planned). Then the longer Caramelo with a river 5 times wider.
+The longer Caramelo with a river 5 times wider (queued). Then step 3, the park's look (the road-to-floor gap above, density, a border, hills).
 
 ---
 

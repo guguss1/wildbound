@@ -89,7 +89,7 @@ Still tied to Caramelo:
 
 ## Not in step 1 (recorded, in order)
 
-- **Step 2: move the park to its own side of the hub.**
+- **Step 2: move the park to its own side of the hub.** Done 2026-11-18 (`6831632`, `docs/design/wildbound-pueblo-gatito-move-plan.md`).
   - The planned side is the south arm, x -3..597, z 337..937, which today holds only the big4 volcanic decor.
   - The park gets one frame in a shared module (an origin and a yaw in multiples of 90). Its nests, posts, portal,
     arrival, music rectangle and squares become park-local, and a migration moves the built park.
