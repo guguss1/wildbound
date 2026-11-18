@@ -385,9 +385,18 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			local e, w, tgt = spawn(name, "giveup"), fakeWorld(), target(close(name), 0)
 			run(e, w, tgt, 0, 0.9)
 			tgt.x = T.LeashStuds + T.AbandonStuds + 1 -- past the abandon distance even from the end of its leash
-			local chased = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 4)
+			-- Deliberately changed (V7-D6, each creature keeps to its zone): the home follows the hunter while it chases,
+			-- so the zone's edge (WildboundCandySmarts PROFILES zone) never ends this abandon-distance check; then the
+			-- hunter is set back near its real post for the hard limit's walk home.
+			local hx, hz = e.home.x, e.home.z
+			local chased = run(e, w, tgt, 0.95, 0.95 + T.GiveUpSeconds + 4, function(_, _, c)
+				c.home.x, c.home.z = c.pos.x, c.pos.z
+			end)
 			equal(#each(chased, "End"), 0, name .. " ended past its abandon distance")
 			assert(not string.find(phases(chased), "Return", 1, true), name .. " walked home: " .. phases(chased))
+			e.home.x, e.home.z = hx, hz
+			e.pos.x, e.pos.z = hx + 10, hz
+			tgt.x = hx + 20
 			local later = run(e, w, tgt, HARD - 0.05, HARD + 15)
 			quietEnd(name, later, "Timeout", e)
 			-- far from home: a fade where it stands
@@ -487,7 +496,10 @@ return function(Enc, Critter, Config, Portal, sources, Chase)
 			local e2, w2, tgt2 = spawn(name, "escape"), fakeWorld(), target(close(name), 0)
 			run(e2, w2, tgt2, 0, 0.9)
 			tgt2.x = T.EscapeDistanceStuds + 5
-			local later = run(e2, w2, tgt2, 0.95, 0.95 + T.EscapeSeconds + 3)
+			-- Deliberately changed (V7-D6): the home follows the hunter, so its zone's edge never ends this escape check
+			local later = run(e2, w2, tgt2, 0.95, 0.95 + T.EscapeSeconds + 3, function(_, _, c)
+				c.home.x, c.home.z = c.pos.x, c.pos.z
+			end)
 			equal(#each(later, "End"), 0, name .. " a target far away ended the hunt")
 			assert(not string.find(phases(later), "Return", 1, true), name .. " walked home: " .. phases(later))
 		end

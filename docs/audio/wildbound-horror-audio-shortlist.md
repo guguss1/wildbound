@@ -70,8 +70,8 @@ The owner asked for "otra canción que tenga que ver más con gatitos" for Puebl
 
 | Asset id | Name | Creator | Duration | Loops | Why it fits | Notes |
 |---|---|---|---|---|---|---|
-| 108517170970006 | Tiny Kitten's Happy Adventure | not known | not reported | not stated | A happy, kitten-named track for the kitten park. First choice. | Creator unknown (not APM or PSE): confirm it is free and preloads in Studio. Not yet checked. The owner must audition it. |
-| 122890771686677 | Lazy Kitten Loop | not known | not reported | not stated | A calm kitten-named loop. Second choice. | Creator unknown: confirm it is free and preloads in Studio. Not yet checked. |
+| 108517170970006 | Tiny Kitten's Happy Adventure | not known | 187 s (Studio TimeLength) | looped by the slot | A happy, kitten-named track for the kitten park. First choice. | Checked 2026-11-18 in Studio Play: the Sound loaded (IsLoaded true, 187 s) and played at 0.18 while the player stood in the park, so it is the track that plays. Creator still unknown (not APM or PSE). The owner must audition it. |
+| 122890771686677 | Lazy Kitten Loop | not known | not reported | not stated | A calm kitten-named loop. Second choice. | Creator unknown. Not checked: it only plays if the first id fails to load. |
 | 133622392487696 | Sneaky Kitten | not known | not reported | not stated | A playful kitten-named track. Third choice. | Creator unknown: confirm it is free and preloads in Studio. Not yet checked. |
 | 1846279685 | Merry Kids | APMOfficial | not reported | not stated | A cheerful children's track from the same library as the Caramelo music. Final fallback. | Listed above as a Caramelo alternate; no other slot uses it. Not yet checked for this slot. |
 
