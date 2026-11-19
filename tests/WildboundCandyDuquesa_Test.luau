@@ -441,7 +441,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 				-- Deliberately changed (V7-D6): she lets go past the plot's edge and its margin ("Left"), before the base
 				equal(free.reason, "Left", label .. ": she lets go past her zone")
 				assert(free.at < Duq.RAGE_SECONDS, label .. ": free at " .. free.at)
-				assert(free.dodged >= 5 and free.dodged <= 40, label .. ": K = " .. free.dodged)
+				-- CL-D9: the summit moved +600 east, so the run from it to the west edge is about 600 studs longer and a
+				-- dodging carrier avoids more lunges on the way (estimated 12 to 35; the upper bound 40 -> 60)
+				assert(free.dodged >= 5 and free.dodged <= 60, label .. ": K = " .. free.dodged)
 			end
 		end
 		-- hard: a walking carrier must avoid at least 5 lunges in a row (6 when tuned, by dodge or sidestep; sprinting all
@@ -544,20 +546,52 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- ends 54 studs from it and the second space lies past it, behind the cloud wall, so every edge counts again.
 	case("GT13/V8-D3: her plot depth counts every edge again, the east one too; the plaza stays well inside", function()
 		local far = Layout.HALF + 17
-		near(Duq.plotDepth(summit, Layout.CENTRE.x + far, Layout.CENTRE.z), -17, "east")
+		-- CL-D15: the plot is the v9 rectangle; its east edge is Layout.EAST (860), so the east probe is EAST + 17
+		near(Duq.plotDepth(summit, Layout.CENTRE.x + Layout.EAST + 17, Layout.CENTRE.z), -17, "east")
 		near(Duq.plotDepth(summit, Layout.CENTRE.x - far, Layout.CENTRE.z), -17, "west")
 		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z + far), -17, "north")
 		near(Duq.plotDepth(summit, summit.x, Layout.CENTRE.z - far), -17, "south")
 		near(Duq.plotDepth(summit, Layout.CENTRE.x, Layout.CENTRE.z + 50), Layout.HALF - 50, "inside")
-		-- the east edge of the plaza is well inside (54 studs at Layout HALF 260)
+		-- the east edge of the plaza is well inside (54 studs at Layout HALF 260; CL-D9: 53.8 at Layout.EAST 860, the
+		-- Torta moved +600 with the edge)
 		local plazaEast = Layout.CENTRE.x + Layout.BOSS.x + Layout.BOSS.plazaRadius
 		assert(Duq.plotDepth(summit, plazaEast, Layout.CENTRE.z) >= 40,
 			"the plaza ends " .. Duq.plotDepth(summit, plazaEast, Layout.CENTRE.z) .. " studs from the east edge")
 		-- a thief who carried her egg past the east edge (in the second space) starts no rage
-		local east = carrier(Layout.CENTRE.x + Layout.HALF + 5, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		-- CL-D15: past Layout.EAST now (HALF + 5 is inside the grown plot)
+		local east = carrier(Layout.CENTRE.x + Layout.EAST + 5, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
 		equal(firstOf(steps(Duq.new(), 0, 0, { east }), "Rage"), nil, "a thief past the east edge")
 		-- the service keeps her flight west of the cloud wall (WildboundCandySmarts.outsideWall)
 		has(sources and sources.service, "Smarts.outsideWall(wasX, wasZ, her.x, her.z, wall)", "her flight never crosses the wall")
+	end)
+
+	-- DQ-V9 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md CL-D15; owner request 2026-11-18, "agranda mas el
+	-- bioma caramelo a lo largo"): the plot is the rectangle x -HALF..EAST, |z| <= HALF, and her plot depth is
+	-- Layout.depth of the plot-local point. With the v8 square she would start no rage and would "Vanish" east of world x 932.
+	case("DQ-V9: her plot depth is the v9 rectangle (Layout.depth); calmed at local x 800 she floats home, no Vanish", function()
+		local C = Layout.CENTRE
+		equal(Layout.EAST, 860, "Layout.EAST")
+		for _, probe in ipairs({ { 0, 0, 260 }, { -260, 0, 0 }, { 860, 0, 0 }, { 800, 0, 60 }, { 300, 250, 10 }, { 39, -195, 65 },
+			{ 880, 0, -20 }, { 500, -275, -15 } }) do
+			local x, z, want = probe[1], probe[2], probe[3]
+			near(Duq.plotDepth(summit, C.x + x, C.z + z), want, ("depth(%g, %g)"):format(x, z))
+			near(Duq.plotDepth(summit, C.x + x, C.z + z), Layout.depth(x, z), ("Layout.depth(%g, %g)"):format(x, z))
+		end
+		assert(Duq.plotDepth(summit, 1000, C.z) > 0, "world x 1000 (past the v8 edge at 932) is inside the plot")
+		-- a thief on the floor at local (800, 0), east of the Torta, makes her rage; it drops her egg; calmed there she
+		-- floats home (inside the plot), never a Vanish
+		local state = Duq.new()
+		local function list(t)
+			return { carrier(C.x + 800, Layout.FLOOR_TOP + 3, C.z, { carriesHerEgg = t < 4 }) }
+		end
+		local events = steps(state, 0, 4 + Duq.CALM_SECONDS + 0.5, list)
+		assert(firstOf(events, "Rage"), "no rage for a thief at local x 800")
+		local calm = firstOf(events, "Calm")
+		assert(calm and calm.reason == "Dropped", "dropped: " .. tostring(calm and calm.reason))
+		equal(firstOf(events, "Vanish"), nil, "a Vanish inside the grown plot")
+		equal(Duq.phase(state), "Return", "she floats home")
+		local her = Duq.position(state)
+		assert(her and her.x - C.x > Layout.HALF, "she calmed east of the v8 edge (local x " .. tostring(her and her.x - C.x) .. ")")
 	end)
 
 	-- GT: the summit is about 65 studs up (it was 40): she still drops from her seat to the floor in about the time she

@@ -41,8 +41,12 @@ return function(Life, Ambience, V3, Layout, sources)
 	case("CL1: the copied layout numbers equal the real layout", function()
 		near(Life.CENTRE.x, Layout.CENTRE.x, "centre x"); near(Life.CENTRE.z, Layout.CENTRE.z, "centre z")
 		near(Life.FLOOR_TOP, Layout.FLOOR_TOP, "floor top"); near(Life.HALF, Layout.HALF, "plot half side")
+		-- CL-D14: the plot grew east only, so its east edge is a copy of its own
+		near(Life.EAST, Layout.EAST, "the plot's east edge")
 		near(Life.CHOCO_DEPTH, V3.LIQUID.depth, "the chocolate's depth")
 		equal(Life.ROOT_NAME, Layout.ROOT_NAME, "the biome's root")
+		-- CL-D14: 10 houses (H3 and H6 moved, H8..H10 new), copied exactly
+		equal(#Life.HOUSES, 10, "the v9 houses")
 		equal(#Life.HOUSES, #V3.HOUSES, "every house")
 		for i, house in ipairs(V3.HOUSES) do
 			local copy = Life.HOUSES[i]
@@ -78,9 +82,12 @@ return function(Life, Ambience, V3, Layout, sources)
 		local tallest = math.max(V3.LICORICE.height, V3.CAKE.height)
 		for _, m in ipairs(V3.MOUNTAINS) do tallest = math.max(tallest, m.height) end
 		for _, hill in ipairs(V3.CRYSTAL_HILLS) do tallest = math.max(tallest, V3.CRYSTAL.hillHeight * hill.scale) end
+		-- CL-D14: M1 at 0.75 is 67.82 tall, so MIN_ALT is 72
 		assert(Life.MIN_ALT >= tallest + 4, "the birds fly 4 studs over the tallest piece: " .. tallest)
+		equal(Life.MIN_ALT, 72, "MIN_ALT over the v9 M1")
 		-- the backdrop stands outside the plot, beyond where any bird flies
-		for _, piece in ipairs(V3.BACKDROP) do assert(piece.x - piece.r >= Life.HALF, piece.asset .. " inside the plot") end
+		-- CL-D14: the plot's east edge is EAST now
+		for _, piece in ipairs(V3.BACKDROP) do assert(piece.x - piece.r >= Life.EAST, piece.asset .. " inside the plot") end
 		local seen = {}
 		for _, flock in ipairs(Life.FLOCKS) do
 			assert(not seen[flock.id], "a flock id twice: " .. flock.id)
@@ -95,7 +102,9 @@ return function(Life, Ambience, V3, Layout, sources)
 					local x, y, z = Life.birdPosition(flock, k, t)
 					assert(y >= Life.MIN_ALT, flock.id .. " bird " .. k .. " too low at " .. t .. ": " .. y)
 					assert(y <= Life.MIN_ALT + 20, flock.id .. " flies too high")
-					assert(math.abs(x) <= Life.HALF - 5 and math.abs(z) <= Life.HALF - 5, flock.id .. " leaves the plot at " .. t)
+					-- CL-D14: the plot is the rectangle x -HALF..EAST, z -HALF..HALF
+					assert(x >= -Life.HALF + 5 and x <= Life.EAST - 5 and math.abs(z) <= Life.HALF - 5,
+						flock.id .. " leaves the plot at " .. t)
 					-- the cake tower: every tier whose top reaches the bird's height is kept clear
 					for _, tier in ipairs(Layout.TOWER.tiers) do
 						if tier.top + 8 >= y then
@@ -145,7 +154,8 @@ return function(Life, Ambience, V3, Layout, sources)
 						assert(d <= 9, site.id .. " strays from its flowers at " .. t)
 					end
 					assert(y >= 2 and y <= 10, site.id .. " height " .. y)
-					assert(math.abs(x) <= Life.HALF and math.abs(z) <= Life.HALF, site.id .. " leaves the plot at " .. t)
+					-- CL-D14: the rectangle x -HALF..EAST, z -HALF..HALF
+					assert(x >= -Life.HALF and x <= Life.EAST and math.abs(z) <= Life.HALF, site.id .. " leaves the plot at " .. t)
 				end)
 			end
 		end
@@ -154,6 +164,10 @@ return function(Life, Ambience, V3, Layout, sources)
 	case("CL5: the chocolate fish jump from the chocolate back into it, clear of bridges, docks and cookies", function()
 		local budget = Life.budget(false, false)
 		assert(#Life.FISH_SPOTS >= budget.fish, "enough jump spots")
+		-- CL-D14: the v9 fish are plain local literals along the new river and in the harbour lake
+		equal(ids(Life.FISH_SPOTS), "River_W1,River_W2,River_W3,River_M1,River_M2,Lake_1,Lake_2,Lake_3,Lake_4,River_E1", "the v9 fish")
+		near(Life.FISH_SPOTS[1].x, -100, "River_W1 x"); near(Life.FISH_SPOTS[1].z, -224, "River_W1 z")
+		near(Life.FISH_SPOTS[10].x, 780, "River_E1 x"); near(Life.FISH_SPOTS[10].z, 190, "River_E1 z")
 		local inLake, inRiver = 0, 0
 		for _, spot in ipairs(Life.FISH_SPOTS) do
 			local name = spot.id
@@ -172,6 +186,10 @@ return function(Life, Ambience, V3, Layout, sources)
 				end
 				for _, dock in ipairs(V3.DOCKS) do
 					assert(flat(x, z, dock.tipX, dock.tipZ) >= 8, name .. " jumps at dock " .. dock.id)
+				end
+				-- CL-D14: the island in the harbour lake is kept clear too
+				for _, island in ipairs(V3.ISLANDS) do
+					assert(flat(x, z, island.x, island.z) >= island.r + 3, name .. " jumps onto island " .. island.id)
 				end
 			end
 			local lake = false
@@ -248,8 +266,9 @@ return function(Life, Ambience, V3, Layout, sources)
 	end)
 
 	case("CL7: the plot's frame and the biome test come from the floor or the fallback", function()
+		-- CL-D14: the frame anchors on the floor's west edge (x - sizeX / 2 + HALF), so 700 - 200 + 260 = 760
 		local frame = Life.plotFrame(700, 0, -50, 400, 1, 400)
-		near(frame.x, 700); near(frame.z, -50); near(frame.top, 0.5, "the floor's top")
+		near(frame.x, 760); near(frame.z, -50); near(frame.top, 0.5, "the floor's top")
 		local fallback = Life.plotFrame(nil)
 		near(fallback.x, Layout.CENTRE.x); near(fallback.z, Layout.CENTRE.z); near(fallback.top, Layout.FLOOR_TOP)
 		local bad = Life.plotFrame(0 / 0, 0, 0, 400, 1, 400)
@@ -311,6 +330,35 @@ return function(Life, Ambience, V3, Layout, sources)
 			.. "\tinCandy = nearCandy and not kittenOn()",
 			"out of Caramelo while the kitten flag is on, right where inCandy is decided")
 		has(client, "if not inCandy then\n\t\tteardown()", "and the creatures are cleared")
+	end)
+
+	-- CL-D14 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): the floor grew east only, so its centre is no
+	-- longer the plot's centre; the frame anchors on its west edge and every creature stays where the layout puts it.
+	case("CL10: CL-D14: the west-edge frame keeps the flocks and fish in place on the grown floor", function()
+		local floorX, floorZ, sizeX, sizeZ = Layout.CENTRE.x + (Layout.EAST - Layout.HALF) / 2, Layout.CENTRE.z,
+			Layout.HALF + Layout.EAST, 2 * Layout.HALF
+		near(floorX, 972, "the grown floor's centre x"); near(sizeX, 1120, "the grown floor's length")
+		local frame = Life.plotFrame(floorX, 0, floorZ, sizeX, 1, sizeZ)
+		near(frame.x, Layout.CENTRE.x, "the grown floor gives the plot centre x")
+		near(frame.z, Layout.CENTRE.z, "z is the floor's centre")
+		near(frame.top, Layout.FLOOR_TOP, "the floor's top")
+		-- today's (v8) floor, 520 square at the plot centre, gives the same frame
+		local old = Life.plotFrame(Layout.CENTRE.x, 0, Layout.CENTRE.z, 2 * Layout.HALF, 1, 2 * Layout.HALF)
+		near(old.x, Layout.CENTRE.x, "the v8 floor gives the plot centre too")
+		local floor = Ambience.boundsFromFloor(floorX, floorZ, sizeX, sizeZ)
+		local function onFloor(lx, lz, label)
+			local wx, wz = frame.x + lx, frame.z + lz
+			assert(wx >= floor.minX and wx <= floor.maxX and wz >= floor.minZ and wz <= floor.maxZ, label .. " leaves the floor")
+		end
+		for _, flock in ipairs(Life.FLOCKS) do onFloor(flock.x, flock.z, flock.id) end
+		for _, spot in ipairs(Life.FISH_SPOTS) do onFloor(spot.x, spot.z, spot.id) end
+		for _, house in ipairs(Life.HOUSES) do onFloor(house.x, house.z, house.id) end
+		-- the east flocks and fish are on the grown part, which a centre-anchored frame would push off the floor
+		local east = 0
+		for _, flock in ipairs(Life.FLOCKS) do if flock.x > Layout.V9.OLD_EAST then east += 1 end end
+		for _, spot in ipairs(Life.FISH_SPOTS) do if spot.x > Layout.V9.OLD_EAST then east += 1 end end
+		assert(east >= 3, "creatures on the grown east: " .. east)
+		assert(floorX + Life.FISH_SPOTS[10].x > floor.maxX, "a centre-anchored frame would put River_E1 off the floor")
 	end)
 
 	return result

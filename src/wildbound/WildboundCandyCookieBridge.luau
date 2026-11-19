@@ -2,8 +2,9 @@
 -- docs/design/wildbound-caramelo-v3-plan.md V6-D20 on). The two long outer bridges (Top and Bottom in
 -- WildboundCandyV3Layout.BRIDGES) are cookie: a player carrying an egg who is being hunted and stands on one's deck
 -- cracks it (CRACK_SECONDS of cracks, crumbs and a sound), then the whole bridge drops into the chocolate for
--- DOWN_SECONDS and rebuilds once nobody stands in its footprint. The three junction bridges (RightLast, Main,
--- LeftLast) never break, so there is always a way across.
+-- DOWN_SECONDS and rebuilds once nobody stands in its footprint. The Main bridge (the avenue's) never breaks, so there
+-- is always a way across. CL-D7 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): the three bridges (Top, Main,
+-- Bottom) are raised 12.5 over the floor so the raft passes under; RightLast and LeftLast are retired.
 -- Pure rules for WildboundCandyCookieBridgeService: no services, no clock (time is passed in), no require. Plot
 -- coordinates are local to Layout.CENTRE, like WildboundCandyV3Layout. Server only (ServerStorage).
 -- Rules: WildboundCandyCookieBridge_Test.
@@ -21,12 +22,14 @@ Cookie.DOWN_SECONDS = 45
 -- published threat level is one of THREAT_LEVELS (the return portal's own rule, WildboundPortal.SILUETA_LEVELS).
 Cookie.HUNT_WINDOW = 3
 Cookie.THREAT_LEVELS = table.freeze({ Near = true, Chase = true })
-Cookie.FEET_SLACK = 1.5 -- feet this far under the deck's top still stand on it; a wader under it is 4 studs lower
+Cookie.FEET_SLACK = 1.5 -- feet this far under the deck's top still stand on it; a wader under it is far lower
 Cookie.BLOCK_MARGIN = 1.5 -- a body's half width round the deck: anyone this close holds the rebuild back
 Cookie.STEP = 0.1 -- seconds between two service steps (10 Hz)
 -- The fall (the service's visuals): every part of the bridge sinks SINK studs in FALL_SECONDS while it fades, so the
--- deck (DeckY 4.1 over the floor) ends under the floor, out of sight in the chocolate.
-Cookie.SINK = 7
+-- deck ends under the floor, out of sight in the chocolate. CL-D7: the raised deck's top stands 12.5 over the floor
+-- (its 0.4 slab under it), so SINK 7 -> 14 (> 12.9); FEET_SLACK is still measured from floorTop + deck, so a wader
+-- under a raised deck never triggers it.
+Cookie.SINK = 14
 Cookie.FALL_SECONDS = 1.2
 Cookie.MODEL_PREFIX = "Bridge_" -- WildboundCandyV3Builder.layBridge: CaramelV3.Bridges.Bridge_<id>
 Cookie.PHASE_ATTRIBUTE = "CookieBridgePhase" -- on the bridge model, for the client and for a Play check

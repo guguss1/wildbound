@@ -160,9 +160,13 @@ end
 -- left the east edge out (the Torta's plaza was 28 studs from it). V8-D3 (owner request 2026-11-17, "another space of
 -- the same size, separated by clouds"): every edge counts again; the plaza now ends 54 studs from the east edge
 -- (Layout.HALF 260) and the second space lies past it, behind the cloud wall.
+-- CL-D15 (Caramelo v9, owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo"): the plot is the rectangle
+-- x -HALF..EAST, |z| <= HALF (world x 412..1532), so her depth is Layout.depth of the plot-local point; with the v8
+-- square she would "Vanish" east of world x 932. The Torta moved +600 with the east edge: the plaza still ends 53.8
+-- studs from it.
 function Duq.plotDepth(summit, x, z)
 	local Layout = summit.Layout
-	return Layout.HALF - math.max(math.abs(x - Layout.CENTRE.x), math.abs(z - Layout.CENTRE.z))
+	return Layout.depth(x - Layout.CENTRE.x, z - Layout.CENTRE.z)
 end
 
 -- DR: her chase speed against a thief moving at `thiefSpeed` (its walk speed; nil = untrained).

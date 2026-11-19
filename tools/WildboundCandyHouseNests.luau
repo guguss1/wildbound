@@ -34,7 +34,11 @@ HouseNests.SPOTS = table.freeze({
 })
 -- V4-D11-C2: rarities: mostly Rara; the two sweet houses nearest the routes' ends Comun; H5, the big caramel tower
 -- (V4-D5, scale 1.4), Epica on its upper floor. An unknown house: DEFAULT_RARITY.
-HouseNests.RARITY = table.freeze({ H1 = "Rara", H2 = "Rara", H3 = "Rara", H4 = "Comun", H5 = "Epica", H6 = "Rara", H7 = "Comun" })
+-- CL-D10 (Caramelo v9, owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo"): the three new houses, H8
+-- (the sweet house by the east fork, on the route) Comun, H9 (chocolate, cake bank) and H10 (the caramel tower by the
+-- bridged reach) Rara.
+HouseNests.RARITY = table.freeze({ H1 = "Rara", H2 = "Rara", H3 = "Rara", H4 = "Comun", H5 = "Epica", H6 = "Rara", H7 = "Comun",
+	H8 = "Comun", H9 = "Rara", H10 = "Rara" })
 HouseNests.DEFAULT_RARITY = "Rara"
 local RARITY_COLOR = {
 	Comun = Color3.fromRGB(88, 214, 220), Rara = Color3.fromRGB(251, 225, 94), Epica = Color3.fromRGB(117, 64, 121),
@@ -43,7 +47,7 @@ local RARITY_COLOR = {
 
 local function finite(v) return type(v) == "number" and v == v and v ~= math.huge and v ~= -math.huge end
 
--- The nest id of a house: its HouseId ("H1".."H7"); never one of Layout.NESTS (C, R, E, L, T ids).
+-- The nest id of a house: its HouseId ("H1".."H10"); never one of Layout.NESTS (C, R, E, L, T ids).
 function HouseNests.nestId(houseId)
 	return type(houseId) == "string" and houseId or nil
 end

@@ -4,8 +4,8 @@
 -- One raft waits at a dock tip. A player near the docked raft boards it (one rider); after DEPART_SECONDS the rider
 -- steers it with the seat's throttle and steer (W/S, A/D, the touch thumbstick): it speeds up by ACCEL to SPEED
 -- (REVERSE backwards), brakes by BRAKE, drifts to a stop by DRAG, and turns at TURN_RATE at speed (TURN_MIN of it when
--- still). It never leaves the chocolate nor passes under a bridge: the area says where its hull (HULL studs) fits, and a
--- bank met at an angle lets it slide along. Brought slowly (DOCK_SPEED) within DOCK_STUDS of a dock tip, once it has
+-- still). It never leaves the chocolate nor passes under a bridge too low for it (CL-D8: the raised Caramelo v9 bridges
+-- let it pass): the area says where its hull (HULL studs) fits, and a bank met at an angle lets it slide along. Brought slowly (DOCK_SPEED) within DOCK_STUDS of a dock tip, once it has
 -- been ARM_STUDS away from every tip, it docks and the rider is set down. A rider who leaves near a dock leaves it
 -- docked there; mid-river it drifts, stops, and RESPAWN_SECONDS later is back at its home dock (or docks where it stops
 -- near a tip). A player at the other dock calls the empty raft: CALL_SECONDS later it is there. Riding is free: no
@@ -72,16 +72,19 @@ function Raft.docksFrom(V3, centre)
 end
 
 -- area(V3, centre, flow) -> { inside = function(x, z, r), flow = function(x, z) or nil }: inside says whether a hull
--- of reach r at world (x, z) is in the chocolate (V3.liquidDistance <= -r, plot-local) and clear of every bridge (not
--- V3.nearBridge). V6-D3: flow (optional, WildboundCandyCurrent.flow: (V3, plotX, plotZ) -> vx, vz) gives the river's
--- current at world (x, z), studs/s; without it the chocolate is still.
+-- of reach r at world (x, z) is in the chocolate (V3.liquidDistance <= -r, plot-local) and clear of every bridge too
+-- low to pass under. CL-D8 (Caramelo v9): V3.raftBlocks says which bridges those are (the raised v9 bridges are
+-- none); a layout without it keeps every bridge a wall (V3.nearBridge). V6-D3: flow (optional,
+-- WildboundCandyCurrent.flow: (V3, plotX, plotZ) -> vx, vz) gives the river's current at world (x, z), studs/s;
+-- without it the chocolate is still.
 function Raft.area(V3, centre, flow)
 	return {
 		inside = function(x, z, r)
 			if not finite(x) or not finite(z) then return false end
 			r = finite(r) and r or 0
 			local lx, lz = x - centre.x, z - centre.z
-			return V3.liquidDistance(lx, lz) <= -r and not V3.nearBridge(lx, lz, r)
+			local blocks = V3.raftBlocks or V3.nearBridge
+			return V3.liquidDistance(lx, lz) <= -r and not blocks(lx, lz, r)
 		end,
 		flow = type(flow) == "function" and function(x, z)
 			return flow(V3, x - centre.x, z - centre.z)
@@ -100,13 +103,14 @@ function Raft.drift(area, x, z)
 	return vx, vz
 end
 
--- new(docks, homeDock) -> state, or nil and why. The raft waits at its home dock's tip, looking out.
+-- new(docks, homeDock) -> state, or nil and why. The raft waits at its home dock's tip, looking out. CL-D8: the home
+-- dock is any valid index of docks; anything else is dock 1.
 function Raft.new(docks, homeDock)
 	if type(docks) ~= "table" or #docks < 2 then return nil, "BadDocks" end
 	for _, d in ipairs(docks) do
 		if type(d) ~= "table" or not (finite(d.x) and finite(d.z) and finite(d.yaw)) then return nil, "BadDocks" end
 	end
-	homeDock = (homeDock == 2 and #docks >= 2) and 2 or 1
+	homeDock = (type(homeDock) == "number" and docks[homeDock] ~= nil) and homeDock or 1
 	local home = docks[homeDock]
 	return { docks = docks, home = homeDock, dock = homeDock, x = home.x, z = home.z, yaw = home.yaw,
 		status = "Docked", rider = nil, speed = 0, armed = false, departAt = nil, adriftAt = nil, callAt = nil, target = nil }
@@ -316,7 +320,7 @@ function Raft.bob(t)
 	return Raft.BOB.amplitude * math.sin(2 * math.pi * t / Raft.BOB.period)
 end
 
--- The dock (1 or 2) a docked raft waits at; nil while it is away, boarding or called.
+-- The dock (an index of the docks) a docked raft waits at; nil while it is away, boarding or called.
 function Raft.dockedAt(state)
 	if type(state) ~= "table" or state.status ~= "Docked" then return nil end
 	return state.dock

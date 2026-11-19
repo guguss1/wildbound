@@ -27,27 +27,44 @@ end
 -- more space between things"; docs/design/wildbound-caramelo-v8-plan.md, V8-D1): the plot grows 1.3 times about its
 -- centre, which moves (612, -3) -> (672, -3); HALF 200 -> 260. Positions below keep their v7 literals, mapped at load
 -- by v8() (x S); sizes and radii stay, as in the layout.
+-- Caramelo v9 (owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo"; docs/design/
+-- wildbound-caramelo-v9-plan.md CL-D14): the plot grows 600 studs east only. CENTRE and HALF stay (HALF is now the
+-- west half-length and the z half-length); EAST is the east edge, so the plot is local x -HALF..EAST, z -HALF..HALF.
+-- The moved and new rows (v9 = true) and every flock and fish are v9 plot-local literals.
 local V8_S = 1.3
 local function v8(n) return n * V8_S end
 Life.ROOT_NAME = "Candy_Bioma_v1"
 Life.CENTRE = freeze({ x = 672, z = -3 })
 Life.HALF = 260
+Life.EAST = 860
 Life.FLOOR_TOP = 0.5
 Life.CHOCO_DEPTH = 3.5 -- the chocolate's surface stands this far over the floor's top
 local function scaled(rows)
 	for _, row in ipairs(rows) do row.x, row.z = v8(row.x), v8(row.z) end
 	return rows
 end
--- V8-D1: the houses' spots scale like WildboundCandyV3Layout.HOUSES; their footprints stay.
-Life.HOUSES = freeze(scaled({
-	{ id = "H1", x = -148, z = 166, r = 28 },
-	{ id = "H2", x = -100, z = 175, r = 15 },
-	{ id = "H3", x = -158, z = -150, r = 22.4 },
-	{ id = "H4", x = 178, z = 100, r = 20 },
-	{ id = "H5", x = -168, z = -82, r = 21 },
-	{ id = "H6", x = 150, z = -170, r = 16 },
-	{ id = "H7", x = 110, z = 178, r = 20 },
-}))
+-- V8-D1: the houses' spots scale like WildboundCandyV3Layout.HOUSES; their footprints stay. CL-D12: H3 and H6 moved out
+-- of the river's west channel, H8..H10 are new (local literals, as in V3.HOUSES).
+do
+	local list = {}
+	for i, row in ipairs({
+		{ id = "H1", x = -148, z = 166, r = 28 },
+		{ id = "H2", x = -100, z = 175, r = 15 },
+		{ id = "H3", x = -10, z = -118, r = 22.4, v9 = true },
+		{ id = "H4", x = 178, z = 100, r = 20 },
+		{ id = "H5", x = -168, z = -82, r = 21 },
+		{ id = "H6", x = 45, z = -125, r = 16, v9 = true },
+		{ id = "H7", x = 110, z = 178, r = 20 },
+		{ id = "H8", x = 380, z = -60, r = 20, v9 = true },
+		{ id = "H9", x = 600, z = -200, r = 16, v9 = true },
+		{ id = "H10", x = 530, z = 70, r = 15, v9 = true },
+	}) do
+		if not row.v9 then row.x, row.z = v8(row.x), v8(row.z) end
+		row.v9 = nil
+		list[i] = row
+	end
+	Life.HOUSES = freeze(list)
+end
 
 -- Budgets of creatures shown at once. Touch devices get half; Efectos suaves (the world gui's Reduced) shows none:
 -- everything here is motion.
@@ -75,19 +92,22 @@ end
 -- The flocks circle over open meadow (off the chocolate, the houses and the cake tower), inside the plot.
 -- { id, x, z (the circle's centre), r (its radius), alt (studs over the floor's top), dir (1 anticlockwise seen from
 -- above, -1 clockwise), phase (radians), color (RGB) }. MIN_ALT clears the tallest piece in the open (mountain M1,
--- 40.7 studs); only the Gran Torta stands higher, and no flock comes near it.
-Life.MIN_ALT = 46
+-- CL-D4: 67.82 studs at scale 0.75); only the Gran Torta stands higher, and no flock comes near it.
+Life.MIN_ALT = 72
 Life.BIRD_SPEED = 9 -- studs per second along the circle
--- V8-D1: the circles' centres scale, their radii stay (each stays over open meadow, 10+ studs off the chocolate and
--- off the houses and the Torta; WildboundCandyLife_Test CL3 holds it).
-Life.FLOCKS = freeze(scaled({
-	{ id = "F1", x = -120, z = 40, r = 26, alt = 50, dir = 1, phase = 0, color = { 235, 70, 90 } },
-	{ id = "F2", x = -80, z = -50, r = 24, alt = 53, dir = -1, phase = 1.3, color = { 120, 215, 90 } },
-	{ id = "F3", x = 60, z = 150, r = 22, alt = 49, dir = 1, phase = 2.6, color = { 255, 205, 60 } },
-	{ id = "F4", x = 130, z = -110, r = 22, alt = 52, dir = -1, phase = 3.9, color = { 255, 140, 60 } },
-	{ id = "F5", x = -80, z = -160, r = 20, alt = 50, dir = 1, phase = 5.2, color = { 170, 110, 235 } },
-	{ id = "F6", x = 150, z = 120, r = 20, alt = 54, dir = -1, phase = 0.7, color = { 235, 70, 90 } },
-}))
+-- V8-D1: the circles' radii stay (each stays over open meadow, 10+ studs off the chocolate and off the houses and the
+-- Torta; WildboundCandyLife_Test CL3 holds it). CL-D14: plain v9 local literals: F1..F4 and F6 keep their v8 centres,
+-- F5 moved off the river's west channel, F7 and F8 are new over the grown east; every alt is over MIN_ALT 72.
+Life.FLOCKS = freeze({
+	{ id = "F1", x = -156, z = 52, r = 26, alt = 76, dir = 1, phase = 0, color = { 235, 70, 90 } },
+	{ id = "F2", x = -104, z = -65, r = 24, alt = 79, dir = -1, phase = 1.3, color = { 120, 215, 90 } },
+	{ id = "F3", x = 78, z = 195, r = 22, alt = 75, dir = 1, phase = 2.6, color = { 255, 205, 60 } },
+	{ id = "F4", x = 169, z = -143, r = 22, alt = 78, dir = -1, phase = 3.9, color = { 255, 140, 60 } },
+	{ id = "F5", x = -90, z = -140, r = 20, alt = 76, dir = 1, phase = 5.2, color = { 170, 110, 235 } },
+	{ id = "F6", x = 195, z = 156, r = 20, alt = 80, dir = -1, phase = 0.7, color = { 235, 70, 90 } },
+	{ id = "F7", x = 380, z = -110, r = 24, alt = 77, dir = 1, phase = 2.0, color = { 120, 215, 90 } },
+	{ id = "F8", x = 620, z = -50, r = 22, alt = 79, dir = -1, phase = 4.5, color = { 255, 205, 60 } },
+})
 local BIRD_TRAIL = 0.32 -- radians each bird trails the one before
 local BIRD_RADIUS = { 0, 2.5, -2.5 } -- studs off the circle per bird of the flock
 local BIRD_LIFT = { 0, 1.2, 2.4 }
@@ -154,34 +174,26 @@ end
 -- ramps), cookie platform and raft dock (the suite checks it against the real layout). period and phase are added.
 Life.FISH_MARGIN = 3
 Life.FISH_JUMP = freeze({ length = 7, height = 4, sink = 1, seconds = 1.2 })
+-- CL-D14 (Caramelo v9): plain v9 local literals, no scaling: three in the west channel, two in the north-south reach
+-- between the bridges, four in the harbour lake (round the island and the cookie platforms) and one in the east
+-- stretch, each jumping downstream (the river flows west to east). Every jump stays 3 inside the chocolate, off the
+-- bridges and their ramps (+3), the platforms (+3), the island (+3), and 8 from every dock tip.
 local FISH_ROWS = {
-	{ id = "River_N1", x = -6, z = 140, heading = -1.4 },
-	{ id = "River_N2", x = 1, z = 93, heading = -1.22 },
-	{ id = "River_N3", x = 8, z = 72, heading = -1.28 },
-	-- V6-D66: River_S1 and Lake_1 stood where the lake's island (V3.ISLANDS I1) now is: moved up the river leg into the
-	-- lake and to the lake's open east side
-	{ id = "River_S1", x = 13.5, z = -46, heading = -1.27 },
-	{ id = "Lake_1", x = 28, z = -82, heading = -1.3 },
-	{ id = "Lake_2", x = 24, z = -100, heading = -2.3 },
-	{ id = "Lake_3", x = 15, z = -112, heading = 0.4 },
-	{ id = "Lake_4", x = -12, z = -108, heading = 0.7 },
-	{ id = "River_S2", x = 28, z = -160, heading = 1.5 },
-	{ id = "River_S3", x = 29.5, z = -185, heading = 1.54 },
+	{ id = "River_W1", x = -100, z = -224, heading = 0 },
+	{ id = "River_W2", x = 60, z = -226, heading = 0 },
+	{ id = "River_W3", x = 300, z = -220, heading = 0.07 },
+	{ id = "River_M1", x = 470, z = -60, heading = 1.5708 },
+	{ id = "River_M2", x = 470, z = 60, heading = 1.5708 },
+	{ id = "Lake_1", x = 600, z = 160, heading = 0.2 },
+	{ id = "Lake_2", x = 655, z = 140, heading = 0 },
+	{ id = "Lake_3", x = 700, z = 215, heading = 0 },
+	{ id = "Lake_4", x = 620, z = 205, heading = -0.2 },
+	{ id = "River_E1", x = 780, z = 190, heading = 0 },
 }
--- V8-D1: a river spot scales (the river's points scale and its widths stay, so a spot on or near the centreline stays
--- there; the jump keeps its 7 studs and its heading). A lake spot moves with the big lake disc it lies in
--- (WildboundCandyV3Layout's withDisc: v7 (8, -98) -> (10.4, -127.4), radius 34.5 kept), like the cookie platforms,
--- dock B and the island that float in it, so it keeps its v7 water and clearances round them.
-local LAKE_DISC_V7 = { x = 8, z = -98 }
 do
 	local list = {}
 	for i, row in ipairs(FISH_ROWS) do
 		local spot = table.clone(row)
-		if string.sub(row.id, 1, 5) == "Lake_" then
-			spot.x, spot.z = row.x + (v8(LAKE_DISC_V7.x) - LAKE_DISC_V7.x), row.z + (v8(LAKE_DISC_V7.z) - LAKE_DISC_V7.z)
-		else
-			spot.x, spot.z = v8(row.x), v8(row.z)
-		end
 		spot.period = 6 + (i % 4) * 1.25 -- seconds between jumps: 6 to 9.75
 		spot.phase = (i * 2.3) % spot.period
 		list[i] = spot
@@ -259,9 +271,11 @@ end
 
 -- plotFrame(x, y, z, sizeX, sizeY, sizeZ) -> { x, z (the plot centre in world studs), top (the floor's top) } from the
 -- live floor part (Candy_Bioma_v1.Ground.Floor), or the layout's numbers when the floor is missing or bad.
+-- CL-D14: the floor grew east only, so the plot centre is HALF east of the floor's west edge (the grown floor, centre
+-- 972 and 1120 long, gives 972 - 560 + 260 = 672; the v8 520-square floor at 672 gives 672 too).
 function Life.plotFrame(x, y, z, sizeX, sizeY, sizeZ)
 	if finite(x) and finite(y) and finite(z) and finite(sizeX) and finite(sizeY) and finite(sizeZ) and sizeX > 0 then
-		return { x = x, z = z, top = y + sizeY / 2 }
+		return { x = x - sizeX / 2 + Life.HALF, z = z, top = y + sizeY / 2 }
 	end
 	return { x = Life.CENTRE.x, z = Life.CENTRE.z, top = Life.FLOOR_TOP }
 end

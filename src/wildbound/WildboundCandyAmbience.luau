@@ -148,7 +148,9 @@ end
 -- streamed in. V8-D1 (owner request 2026-11-17, "the Caramelo map a bit bigger"): the plot is Layout CENTRE (672, -3) and
 -- HALF 260, a copy here because clients cannot read the ServerStorage layout; BiomeLight's classic Meadow row is still
 -- the v7 square, so it is only the sign that the module is there.
-Ambience.PLOT_FALLBACK = table.freeze({ minX = 412, maxX = 932, minZ = -263, maxZ = 257 })
+-- CL-D14 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): the plot grows 600 studs east only (Layout.EAST
+-- 860), so it is world x 412..1532; the live floor's bounds follow on their own.
+Ambience.PLOT_FALLBACK = table.freeze({ minX = 412, maxX = 1532, minZ = -263, maxZ = 257 })
 function Ambience.boundsFromFloor(x, z, sizeX, sizeZ)
 	if not (finite(x) and finite(z) and finite(sizeX) and finite(sizeZ)) then return nil end
 	return { minX = x - sizeX / 2, maxX = x + sizeX / 2, minZ = z - sizeZ / 2, maxZ = z + sizeZ / 2 }

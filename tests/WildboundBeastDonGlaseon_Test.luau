@@ -402,18 +402,21 @@ return function(Enc, Boss, Config, Latigo, Director, Sites)
 		-- Deliberately changed (V8-D1, owner request 2026-11-17 "make the Reino Caramelo map a bit bigger"): home 676 ->
 		-- 770.2 and territory 726 -> 820.2 (CENTRE + BOSS.home and CENTRE + BOSS of the bigger plot; the radius stays 76);
 		-- the probes moved with them (726 -> 820.2, 681 -> 775.2, 696 -> 790.2), their z kept
-		near(home.x, 770.2, "BossHome x"); near(home.z, -3, "BossHome z"); near(centre.x, 820.2, "territory x"); near(centre.z, -3, "territory z")
+		-- CL-D9: the Gran Torta, the boss and his home move +600 with the longer kingdom: home 770.2 -> 1370.2 and
+		-- territory 820.2 -> 1420.2 (the radius stays 76); the probes move with them (820.2 -> 1420.2, 775.2 -> 1375.2,
+		-- 790.2 -> 1390.2), their z kept
+		near(home.x, 1370.2, "BossHome x"); near(home.z, -3, "BossHome z"); near(centre.x, 1420.2, "territory x"); near(centre.z, -3, "territory z")
 		equal(Sites.HOME.DonGlaseon, "bossHome", "home")
 		local base = { alive = true, safe = false, meadow = true }
 		local function at(x, z, extra) local c = table.clone(base); c.x, c.z = x, z; for k, v in pairs(extra or {}) do c[k] = v end; return c end
-		equal(Sites.wants("DonGlaseon", at(820.2, 40)), true, "inside the territory")
-		equal(Sites.wants("DonGlaseon", at(820.2, 80)), false, "outside the territory")
-		equal(Sites.wants("DonGlaseon", at(820.2, 40, { safe = true })), false, "in a safe zone")
-		local pick = Sites.bossPick({ { userId = 1, ctx = at(775.2, -3) }, { userId = 2, ctx = at(820.2, 40, { rarity = "Epica" }) },
-			{ userId = 3, ctx = at(820.2, 100, { rarity = "Legendaria" }) } })
+		equal(Sites.wants("DonGlaseon", at(1420.2, 40)), true, "inside the territory")
+		equal(Sites.wants("DonGlaseon", at(1420.2, 80)), false, "outside the territory")
+		equal(Sites.wants("DonGlaseon", at(1420.2, 40, { safe = true })), false, "in a safe zone")
+		local pick = Sites.bossPick({ { userId = 1, ctx = at(1375.2, -3) }, { userId = 2, ctx = at(1420.2, 40, { rarity = "Epica" }) },
+			{ userId = 3, ctx = at(1420.2, 100, { rarity = "Legendaria" }) } })
 		equal(pick, 2, "the rare carrier inside the territory")
-		equal(Sites.bossPick({ { userId = 1, ctx = at(790.2, -3) }, { userId = 4, ctx = at(775.2, -3) } }), 4, "else the nearest to its home")
-		equal(Sites.bossPick({ { userId = 1, ctx = at(820.2, 90) } }), nil, "nobody in the territory")
+		equal(Sites.bossPick({ { userId = 1, ctx = at(1390.2, -3) }, { userId = 4, ctx = at(1375.2, -3) } }), 4, "else the nearest to its home")
+		equal(Sites.bossPick({ { userId = 1, ctx = at(1420.2, 90) } }), nil, "nobody in the territory")
 	end)
 
 	-- DG6 (user 2026-11-15): Rugido de guardianes.

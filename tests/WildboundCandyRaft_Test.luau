@@ -102,15 +102,25 @@ return function(Raft, V3, Layout, Text, sources)
 		equal(built.inside(300, 20, 0), false, "on land")
 		equal(Raft.new(nil), nil, "no docks, no raft")
 		equal(Raft.new({ d[1] }), nil, "one dock is not a crossing")
-		-- the real layout: two docks, each tip in the chocolate and off every bridge
+		-- the real layout: each dock tip in the chocolate and off every bridge
+		-- CL-D8: four docks now (A, B on the entrance bank, C, D on the cake bank), so at least three, all apart
 		local real = Raft.docksFrom(V3, Layout.CENTRE)
-		equal(real and #real, 2, "the layout has two docks")
+		assert(real and #real >= 3, "the layout has at least three docks")
+		equal(#real, #V3.DOCKS, "every dock")
 		local realArea = Raft.area(V3, Layout.CENTRE)
 		for i, dock in ipairs(real) do
 			assert(realArea.inside(dock.x, dock.z, 0), "dock " .. i .. "'s tip is in the chocolate and off the bridges")
 		end
-		assert(flat(real[1].x, real[1].z, real[2].x, real[2].z) > 2 * Raft.DOCK_STUDS, "the docks are apart")
-		equal(V3.RAFT.homeDock == 1 or V3.RAFT.homeDock == 2, true, "a home dock")
+		for i = 1, #real do
+			for j = i + 1, #real do
+				assert(flat(real[i].x, real[i].z, real[j].x, real[j].z) > 2 * Raft.DOCK_STUDS, "docks " .. i .. " and " .. j .. " are apart")
+			end
+		end
+		-- CL-D8: the home dock is any valid index
+		local home = V3.RAFT.homeDock
+		equal(type(home) == "number" and real[home] ~= nil, true, "a home dock")
+		local s = Raft.new(real, home)
+		equal(s and s.home, home, "the raft waits at the layout's home dock")
 	end)
 
 	case("RF2: one rider boards the docked raft from close by; everyone else waits", function()
@@ -428,7 +438,10 @@ return function(Raft, V3, Layout, Text, sources)
 	-- V5-D5: a quarter faster, reverse by the same share. V5-D3: the area is the layout's, so it follows the wider river
 	-- and the bigger lake: both lake discs' centres and every 24-wide river point float a hull, and the open water
 	-- between the two dock tips is sailable in a straight line (the docks face each other across the lake).
-	case("RF15: SPEED 20 and REVERSE 7.5; the real area follows the v5 lake and river", function()
+	-- CL-D8 (Caramelo v9): the raised bridges no longer block the raft (V3.raftBlocks), and the plot clip ends the
+	-- chocolate at the east edge, so every river point but the last (the mouth, on the edge) floats a hull; the straight
+	-- run between docks A and B along the west channel stays open water.
+	case("RF15: SPEED 20 and REVERSE 7.5; the real area follows the v9 lake and river", function()
 		equal(Raft.SPEED, 20, "SPEED (V5-D5)")
 		near(Raft.REVERSE, 7.5, "REVERSE (V5-D5)")
 		near(Raft.REVERSE / Raft.SPEED, 6 / 16, "reverse keeps its share of SPEED")
@@ -437,16 +450,13 @@ return function(Raft, V3, Layout, Text, sources)
 		for i, disc in ipairs(V3.LAKE) do
 			assert(realArea.inside(C.x + disc.x, C.z + disc.z, Raft.HULL), "lake disc " .. i .. "'s centre is not open water")
 		end
-		local wide = 0
-		for i, p in ipairs(V3.RIVER) do
-			if p[3] >= 24 and Layout.depth(p[1], p[2]) > p[3] then
-				wide += 1
-				if not V3.nearBridge(p[1], p[2], Raft.HULL) then
-					assert(realArea.inside(C.x + p[1], C.z + p[2], Raft.HULL), "river point " .. i .. " is not open water")
-				end
-			end
+		-- CL-D8: every point but the last, bridges or not (none is too low for the raft)
+		for i = 1, #V3.RIVER - 1 do
+			local p = V3.RIVER[i]
+			assert(realArea.inside(C.x + p[1], C.z + p[2], Raft.HULL), "river point " .. i .. " is not open water")
 		end
-		assert(wide >= 6, "the river is 24 wide on its open legs: " .. wide)
+		local mouth = V3.RIVER[#V3.RIVER]
+		equal(realArea.inside(C.x + mouth[1], C.z + mouth[2], Raft.HULL), false, "the mouth, on the east edge, is past the plot clip")
 		local real = Raft.docksFrom(V3, C)
 		for s = 1, 19 do
 			local x = real[1].x + (real[2].x - real[1].x) * s / 20
@@ -501,6 +511,71 @@ return function(Raft, V3, Layout, Text, sources)
 		end
 		assert(respawned and a.status == "Docked", "respawned at home")
 		near(a.x, 10); near(a.z, 2)
+	end)
+
+	-- CL-D8 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): four docks, so the home dock is any valid index.
+	case("RF17: CL-D8: any valid home dock; anything else is dock 1", function()
+		local four = {}
+		for i = 1, 4 do four[i] = { id = string.char(64 + i), x = i * 20, z = 5, standX = i * 20, standZ = -5, yaw = 0 } end
+		for _, home in ipairs({ 1, 2, 3, 4 }) do
+			local s = Raft.new(four, home)
+			equal(s.home, home, "home dock " .. home); equal(s.dock, home, "docked at " .. home)
+			near(s.x, four[home].x, "waits at dock " .. home .. "'s tip")
+			equal(Raft.dockedAt(s), home, "dockedAt names dock " .. home)
+		end
+		for _, bad in ipairs({ 0, 5, -1, 1.5, 0 / 0, "2" }) do
+			local s = Raft.new(four, bad)
+			equal(s.home, 1, "home dock " .. tostring(bad) .. " falls back to 1")
+		end
+		equal(Raft.new(four, nil).home, 1, "no home dock: dock 1")
+		equal(Raft.new(four).home, 1, "no argument: dock 1")
+		equal(Raft.new({ four[1] }, 1), nil, "one dock is still not a crossing")
+		-- a respawn goes to the home dock, wherever it is
+		local s = Raft.new(four, 3)
+		s.status, s.adriftAt, s.x, s.z, s.speed = "Adrift", 0, 50, 50, 0
+		local respawned
+		for k = 1, math.ceil((Raft.RESPAWN_SECONDS + 0.5) * 30) do
+			for _, e in ipairs(Raft.step(s, 1 / 30, k / 30, nil, false, { inside = function() return true end })) do
+				if e.kind == "Respawn" then respawned = e end
+			end
+		end
+		assert(respawned and respawned.dock == 3, "respawned at home dock 3")
+		near(s.x, four[3].x); near(s.z, four[3].z)
+	end)
+
+	-- CL-D8: the area asks V3.raftBlocks (a bridge too low to sail under) when the layout has it; a layout without it
+	-- keeps every bridge a wall (V3.nearBridge), as RF4 and RF16 do with the fake river.
+	case("RF18: CL-D8: the area uses raftBlocks; without it the bridges stay walls", function()
+		local blocked = 0
+		local raised = {
+			DOCKS = fakeV3.DOCKS, RAFT = fakeV3.RAFT, liquidDistance = liquid, nearBridge = fakeV3.nearBridge,
+			raftBlocks = function(_x, _z, _reach)
+				blocked += 1
+				return false
+			end,
+		}
+		local open = Raft.area(raised, ORIGIN)
+		equal(open.inside(50, 20, 0), true, "under a raised bridge: open water")
+		equal(open.inside(50, 20, Raft.HULL), true, "a hull fits under it")
+		assert(blocked > 0, "raftBlocks was asked")
+		equal(open.inside(150, 20, 0), false, "land is still land")
+		local low = {
+			DOCKS = fakeV3.DOCKS, RAFT = fakeV3.RAFT, liquidDistance = liquid, nearBridge = function() return false end,
+			raftBlocks = function(x, z, reach) return underBridge(x, z, reach or 0) end,
+		}
+		equal(Raft.area(low, ORIGIN).inside(50, 20, 0), false, "a bridge raftBlocks calls low is a wall")
+		local old = Raft.area(fakeV3, ORIGIN)
+		equal(old.inside(50, 20, 0), false, "no raftBlocks: the bridge is a wall")
+		equal(old.inside(20, 20, 0), true, "open water elsewhere")
+		-- the real layout: under the Main bridge's deck is open water for a hull
+		equal(type(V3.raftBlocks), "function", "the real layout has raftBlocks")
+		local C = Layout.CENTRE
+		local realArea = Raft.area(V3, C)
+		for _, B in ipairs(V3.BRIDGES) do
+			assert(V3.nearBridge(B.x, B.z, Raft.HULL), B.id .. " is a bridge footprint")
+			equal(V3.raftBlocks(B.x, B.z, Raft.HULL), false, B.id .. " is high enough to sail under")
+			assert(realArea.inside(C.x + B.x, C.z + B.z, Raft.HULL), "the raft passes under " .. B.id)
+		end
 	end)
 
 	return result

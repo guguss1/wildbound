@@ -7,7 +7,9 @@
 -- platforms on pedestals, the pink hills at the crystal spots, the edge fill and the backdrop (layAll), and on a live
 -- map planV4 (what the v4 migration archives) and refitTrees (the trees 35 % taller). Caramelo v5 (V5-D3, V5-D14): on a
 -- live map planV5 (the water folders and whatever stands in the wider chocolate) and layWater (the river, lake,
--- bridges and docks laid again into the live CaramelV3).
+-- bridges and docks laid again into the live CaramelV3). Caramelo v9 (docs/design/wildbound-caramelo-v9-plan.md): the
+-- joint drums at V3.jointRadius (CL-D3), four piers under a raised deck (CL-D7), and the filler hills and edge fill over
+-- the grown plot, x -HALF..EAST (CL-D1); the v9 migration reuses planV5 and the layAll relay.
 -- Every piece comes from the Blender kit ServerStorage.WildboundAssets.CandyKitV3.<AssetName> when that Model is there:
 -- scaled about its pivot (the ground centre of its base, front -Z), its meshes coloured and made non-colliding, and its
 -- invisible Collision_ parts made from the kit spec (tools/WildboundCandyV3KitSpec.luau, generated from the kits'
@@ -54,6 +56,11 @@ local function forbidden(instance)
 	return instance.Name == FORBIDDEN or instance:FindFirstAncestor(FORBIDDEN) ~= nil
 end
 V3Builder.forbidden = forbidden
+
+-- CL-D1: the plot's east half-length (Layout.EAST, 860 in v9); a layout without it is square (HALF).
+local function plotEast(L)
+	return type(L.EAST) == "number" and L.EAST or L.HALF
+end
 
 -- A build context: the layout pair, the kit, the part count and a yield every YIELD_EVERY parts.
 local function context(L, V3, deps)
@@ -473,7 +480,10 @@ local function layLiquid(ctx, into, poolFromKit)
 		local x, z = L.CENTRE.x + p[1], L.CENTRE.z + p[2]
 		-- V4-D1: the last point lies on the plot edge; no round joint hangs past it
 		if L.depth(p[1], p[2]) > 0.01 then
-			liquid(drum(ctx, river, "Choco_Joint_" .. i, "decor", x, z, top, p[3] / 2, depth, PALETTE.chocolate), V3)
+			-- CL-D3: the drum is as wide as the widest leg it joins (V3.jointRadius), so the laid chocolate matches the
+			-- rule's capsules at every width step (was p[3] / 2)
+			local r = type(V3.jointRadius) == "function" and V3.jointRadius(i) or p[3] / 2
+			liquid(drum(ctx, river, "Choco_Joint_" .. i, "decor", x, z, top, r, depth, PALETTE.chocolate), V3)
 		end
 		local q = V3.RIVER[i + 1]
 		if q then
@@ -587,6 +597,18 @@ local function layBridge(ctx, into, B)
 		for k, gx in ipairs(cuts) do
 			plank(ctx, m, "SideRamp_" .. i .. "_" .. k, "floor", at(gx, s * (B.width / 2 + B.sideRamp), top),
 				at(gx, s * B.width / 2, y), B.gapWidth, PALETTE.wafer)
+		end
+	end
+	-- CL-D7: four piers (decor) under a raised deck, size x size blocks at along +-(length / 2 - inset) and across
+	-- +-(width / 2 - inset), from the floor to the deck's underside, so a player sees the raft fits under
+	local pier = B.pier or (ctx.V3.BRIDGE_BUILD and ctx.V3.BRIDGE_BUILD.pier)
+	local pierHeight = B.deck - 0.4
+	if type(pier) == "table" and pierHeight > 0.05 then
+		for i, sa in ipairs({ -1, 1 }) do
+			for k, sc in ipairs({ -1, 1 }) do
+				block(ctx, m, "Pier_" .. i .. "_" .. k, "decor", Vector3.new(pier.size, pierHeight, pier.size),
+					frame(sa * (B.length / 2 - pier.inset), sc * (B.width / 2 - pier.inset), top + pierHeight / 2), PALETTE.wafer)
+			end
 		end
 	end
 	m:SetAttribute("Route", B.route)
@@ -812,15 +834,18 @@ local function layFiller(ctx, into, deps, report, existing)
 		end
 	end
 	-- small ice-cream hills by the plot edge (the kit's medium mountain scaled down, or a placeholder)
+	-- CL-D1: the four edges of the grown plot: x -HALF..EAST, z -HALF..HALF (was HALF on every side)
 	local hills, tries = 0, 0
 	local r = hillRadius(ctx)
+	local east = plotEast(L)
 	while hills < F.hills and tries < 400 do
 		tries += 1
 		local edge = rng:NextInteger(1, 4)
-		local along = rng:NextNumber(-L.HALF + 20, L.HALF - 20)
+		-- the east and west edges run along z, the north and south edges along x (one draw either way)
+		local along = if edge <= 2 then rng:NextNumber(-L.HALF + 20, L.HALF - 20) else rng:NextNumber(-L.HALF + 20, east - 20)
 		local inset = rng:NextNumber(r + 3, r + 10)
 		local x, z
-		if edge == 1 then x, z = L.HALF - inset, along
+		if edge == 1 then x, z = east - inset, along
 		elseif edge == 2 then x, z = -L.HALF + inset, along
 		elseif edge == 3 then x, z = along, L.HALF - inset
 		else x, z = along, -L.HALF + inset end
@@ -875,7 +900,8 @@ end
 -- The edge fill (V4-D7): new-kind trees (into trees, EdgeFill = true, with V3Kind so the ambience sways and sparkles
 -- them), old-kit candy props and a few small hills (into EdgeFill), on a jittered grid over the edge band and over the
 -- interior where nothing stands within emptyRadius; seeded; each on V3Builder.openSpot, off taken (updated). Stops at
--- `budget` parts.
+-- `budget` parts. CL-D1: over the grown plot (x -HALF..EAST), its grid columns in COLUMN_PASSES interleaved passes.
+V3Builder.COLUMN_PASSES = 4
 local function layEdge(ctx, holder, trees, deps, report, taken, budget)
 	local L, V3 = ctx.L, ctx.V3
 	local E = V3.EDGE
@@ -949,16 +975,27 @@ local function layEdge(ctx, holder, trees, deps, report, taken, budget)
 			end
 		end
 	end
+	-- CL-D1: the grids run the grown plot, x -HALF..EAST (was -HALF..HALF). Their columns are visited in COLUMN_PASSES
+	-- interleaved passes (every COLUMN_PASSES-th column, then the next offset), so the caps (maxTrees, maxProps,
+	-- maxHills and the part budget) spread the fill over the whole length instead of spending it in the west first.
+	local H, east = L.HALF, plotEast(L)
+	local function columns(from, to, step)
+		local list, out = {}, {}
+		for x0 = from, to, step do table.insert(list, x0) end
+		for pass = 1, V3Builder.COLUMN_PASSES do
+			for i = pass, #list, V3Builder.COLUMN_PASSES do table.insert(out, list[i]) end
+		end
+		return out
+	end
 	-- the band, ring by ring from the edge inwards
-	local H = L.HALF
-	for x0 = -H + E.bandMin, H - E.bandMin, E.spacing do
+	for _, x0 in ipairs(columns(-H + E.bandMin, east - E.bandMin, E.spacing)) do
 		for z0 = -H + E.bandMin, H - E.bandMin, E.spacing do
 			local d = L.depth(x0, z0)
 			if d >= E.bandMin and d <= E.bandMax then try(x0, z0, false) end
 		end
 	end
 	-- the empty interior
-	for x0 = -H + E.bandMax, H - E.bandMax, E.interiorSpacing do
+	for _, x0 in ipairs(columns(-H + E.bandMax, east - E.bandMax, E.interiorSpacing)) do
 		for z0 = -H + E.bandMax, H - E.bandMax, E.interiorSpacing do
 			try(x0, z0, true)
 		end

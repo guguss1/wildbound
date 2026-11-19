@@ -1550,7 +1550,7 @@ end
 
 -- archiveAnnex(annexRoot, archiveFolder, L, East, dryRun) -> { moved = { paths }, count } (K-D17): every piece of the
 -- big4 annex (Workspace.WildboundCandyAnnex_Big4, walked through its Folders) whose pivot lies in the second space
--- (East.plan(L).space, x 948..1468, z -263..257) is reparented into archiveFolder; a dry run only lists them. Never
+-- (East.plan(L).space, x 1548..2068 since Caramelo v9, was 948..1468, z -263..257) is reparented into archiveFolder; a dry run only lists them. Never
 -- destroys anything; refuses SistemaSonriente.
 function Park.archiveAnnex(annexRoot, archiveFolder, L, East, dryRun)
 	if typeof(annexRoot) ~= "Instance" then return { moved = {}, count = 0 } end

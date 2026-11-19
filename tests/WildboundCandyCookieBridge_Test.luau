@@ -4,8 +4,8 @@
 -- on): the two long outer bridges (Top and Bottom) are cookie bridges. A player carrying an egg (the character child
 -- WildboundEggCarried) who is being hunted (a creature's WildboundBeastEngagedAt stamp within HUNT_WINDOW seconds, or La
 -- Silueta's WildboundThreatLevel Near or Chase) standing on one's deck cracks it: CRACK_SECONDS of cracks, crumbs and a
--- sound, then it falls into the chocolate for DOWN_SECONDS and rebuilds (once nobody stands in its footprint). The three
--- junction bridges never break. The pure rules run with an injected clock; the deck footprint runs against the real
+-- sound, then it falls into the chocolate for DOWN_SECONDS and rebuilds (once nobody stands in its footprint). The Main
+-- bridge never breaks (CL-D7, Caramelo v9: three raised bridges, Top, Main and Bottom). The pure rules run with an injected clock; the deck footprint runs against the real
 -- layout bridges; the wiring pins read the service's source. Changes nothing.
 return function(Cookie, V3, Layout, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
@@ -55,11 +55,17 @@ return function(Cookie, V3, Layout, sources)
 		equal(#Cookie.IDS, 2, "two cookie bridges")
 		equal(Cookie.isCookie("Top"), true, "Top")
 		equal(Cookie.isCookie("Bottom"), true, "Bottom")
-		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do equal(Cookie.isCookie(id), false, id .. " never breaks") end
+		-- CL-D7: the v9 layout has three bridges (Top, Main, Bottom); Main is the one that never breaks
+		for _, id in ipairs({ "Main" }) do equal(Cookie.isCookie(id), false, id .. " never breaks") end
 		equal(Cookie.isCookie(nil), false, "junk")
-		-- every cookie id is a real layout bridge, and the junction three are still in the layout
+		-- every cookie id is a real layout bridge, and Main is still in the layout
 		for _, id in ipairs(Cookie.IDS) do assert(bridge(id).length >= 28, id .. " is a long outer bridge") end
-		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do bridge(id) end
+		for _, id in ipairs({ "Main" }) do bridge(id) end
+		-- CL-D7: RightLast and LeftLast are retired with the v8 water
+		equal(#V3.BRIDGES, 3, "three v9 bridges")
+		for _, B in ipairs(V3.BRIDGES) do
+			assert(B.id ~= "RightLast" and B.id ~= "LeftLast", "a retired bridge is still in the layout: " .. B.id)
+		end
 		assert(Cookie.HUNT_WINDOW >= 1 and Cookie.HUNT_WINDOW <= 5, "a recent hunt, a few seconds")
 		assert(Cookie.STEP > 0 and Cookie.STEP <= 0.2, "about 10 Hz")
 	end)
@@ -95,7 +101,8 @@ return function(Cookie, V3, Layout, sources)
 	end)
 
 	case("CB4: a junction bridge never leaves Up; junk time changes nothing", function()
-		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do
+		-- CL-D7: Main is the only junction bridge left
+		for _, id in ipairs({ "Main" }) do
 			local st = Cookie.new(id)
 			equal(Cookie.step(st, 5, true, false), nil, id)
 			equal(st.phase, "Up", id)
@@ -136,7 +143,8 @@ return function(Cookie, V3, Layout, sources)
 	end)
 
 	case("CB7: a junction bridge never triggers, whatever the player carries", function()
-		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do
+		-- CL-D7: Main is the only junction bridge left
+		for _, id in ipairs({ "Main" }) do
 			local B = bridge(id)
 			local x, z = at(B, 0, 0)
 			equal(Cookie.triggers(V3, FLOOR, carrier({ x = x, z = z, feetY = deckTop(B), threatLevel = "Chase" }), NOW), nil, id)
@@ -157,7 +165,8 @@ return function(Cookie, V3, Layout, sources)
 				equal(Cookie.deckBridge(V3, x, z), nil, id .. " off the deck at " .. p[1] .. ", " .. p[2])
 			end
 		end
-		for _, id in ipairs({ "RightLast", "Main", "LeftLast" }) do
+		-- CL-D7: Main is the only junction bridge left
+		for _, id in ipairs({ "Main" }) do
 			local x, z = at(bridge(id), 0, 0)
 			equal(Cookie.deckBridge(V3, x, z), nil, id .. " is no cookie deck")
 		end
@@ -179,7 +188,11 @@ return function(Cookie, V3, Layout, sources)
 	end)
 
 	case("CB10: the fall sinks the parts under the floor (into the chocolate) and the fx never collide", function()
-		assert(Cookie.SINK > bridge("Top").deck + 0.4, "the deck ends under the floor, out of sight")
+		-- CL-D7: the raised decks stand 12.5 over the floor, so SINK 7 -> 14
+		equal(Cookie.SINK, 14, "SINK")
+		for _, id in ipairs(Cookie.IDS) do
+			assert(Cookie.SINK > bridge(id).deck + 0.4, id .. ": the deck ends under the floor, out of sight")
+		end
 		assert(Cookie.FALL_SECONDS > 0 and Cookie.FALL_SECONDS < Cookie.DOWN_SECONDS, "a short fall")
 		equal(Cookie.MODEL_PREFIX, "Bridge_", "the builder's model names (WildboundCandyV3Builder.layBridge)")
 	end)
@@ -191,7 +204,8 @@ return function(Cookie, V3, Layout, sources)
 		has(service, ':FindFirstChild("Bridges")', "CaramelV3.Bridges")
 		has(service, "if not model then", "a missing bridge model is skipped")
 		has(service, "biome:GetAttribute(V3.MARK)", "only on the migrated map")
-		for _, id in ipairs({ '"RightLast"', '"Main"', '"LeftLast"' }) do hasNot(service, id, "never names a junction bridge") end
+		-- CL-D7: Main is the only junction bridge left
+		for _, id in ipairs({ '"Main"' }) do hasNot(service, id, "never names a junction bridge") end
 	end)
 
 	case("CB12: the service: steps the pure rules with the server clock and the hunt stamps", function()

@@ -789,5 +789,63 @@ return function(F, Layout, Dodge, sources)
 		assert(#F.attackKey("H5", 3, 99999) <= 64, "a valid dodge id")
 	end)
 
+	-- CL-D15 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): the plot grew 600 studs east only, so the biome is
+	-- a rectangle: bounds.halfX along x, bounds.half along z (halfX defaults to half, the old square).
+	case("FL-V9-1: CL-D15: the bounds are a rectangle (halfX along x, half along z)", function()
+		local wide = { x = 0, z = 0, half = 50, halfX = 200 }
+		local world = F.new({ hive("A", 150, 0) }, 0, wide)
+		equal(kinds(F.step(world, 0.1, { P(1, 160, 0) })), "Wake", "inside halfX: woken")
+		local square = F.new({ hive("A", 150, 0) }, 0, { x = 0, z = 0, half = 50 })
+		equal(#F.step(square, 0.1, { P(1, 160, 0) }), 0, "no halfX: the square of half 50 leaves x 160 out")
+		local tall = F.new({ hive("A", 0, 70) }, 0, wide)
+		equal(#F.step(tall, 0.1, { P(1, 0, 75) }), 0, "z still uses half: z 75 is out")
+		local edge = F.new({ hive("A", 190, 0) }, 0, wide)
+		equal(#F.step(edge, 0.1, { P(1, 201, 0) }), 0, "past halfX: out")
+		-- the service builds the v9 rectangle from the layout: { x = 972, z = -3, half = 260, halfX = 560 }
+		local service = sources and sources.service or ""
+		has(service, "local east = Layout.EAST or Layout.HALF", "the plot's east edge from the layout")
+		has(service, "halfX = (Layout.HALF + east) / 2", "the rectangle's half length")
+		has(service, "x = centre.x + (east - Layout.HALF) / 2", "the rectangle's centre")
+		has(service, "F.new(hives, now(), bounds, ", "the swarms get the rectangle")
+		has(service, "floorPart.Position.X - floorPart.Size.X / 2 + Layout.HALF", "the plot centre from the floor's west edge")
+		local east = Layout.EAST or Layout.HALF
+		near(Layout.CENTRE.x + (east - Layout.HALF) / 2, 972, "the rectangle's centre x"); near((Layout.HALF + east) / 2, 560, "halfX")
+	end)
+
+	-- CL-D15: the river is 19 % of the plot; hives keep LAKE_MARGIN_STUDS off the chocolate when the service passes the
+	-- layout's liquid (WildboundCandyV3Layout.liquidDistance, plot-local).
+	case("FL-V9-2: CL-D15: no hive in or within LAKE_MARGIN_STUDS of the chocolate", function()
+		local hives = F.hives(Layout, Layout.CENTRE)
+		local first = hives[1]
+		assert(first, "a hive without the rule")
+		equal(F.hiveSpotOk(Layout, first.lx, first.lz, nil, nil), true, "no liquid: no rule")
+		local ok, why = F.hiveSpotOk(Layout, first.lx, first.lz, nil, nil, { liquid = function() return -5 end })
+		assert(not ok and why == "Chocolate", "in the chocolate: " .. tostring(why))
+		ok, why = F.hiveSpotOk(Layout, first.lx, first.lz, nil, nil, { liquid = function() return F.LAKE_MARGIN_STUDS - 0.1 end })
+		assert(not ok and why == "Chocolate", "within the margin: " .. tostring(why))
+		equal(F.hiveSpotOk(Layout, first.lx, first.lz, nil, nil, { liquid = function() return F.LAKE_MARGIN_STUDS end }), true,
+			"at the margin: fine")
+		equal(F.hiveSpotOk(Layout, first.lx, first.lz, nil, nil, { liquid = function() return 0 / 0 end }), true, "junk: no rule")
+		-- F.hives passes it through, in the plot's local coordinates
+		local seen = {}
+		local dry = F.hives(Layout, Layout.CENTRE, { liquid = function(lx, lz)
+			table.insert(seen, { lx, lz })
+			return 100
+		end })
+		equal(#dry, #hives, "all dry: the same hives")
+		for i, h in ipairs(hives) do near(dry[i].lx, h.lx); near(dry[i].lz, h.lz) end
+		assert(#seen > 0, "the liquid was asked")
+		equal(#F.hives(Layout, Layout.CENTRE, { liquid = function() return -1 end }), 0, "all chocolate: no hive")
+		-- a band of chocolate through the first hive pushes it elsewhere
+		local banded = F.hives(Layout, Layout.CENTRE, { liquid = function(lx) return math.abs(lx - first.lx) - 10 end })
+		for _, h in ipairs(banded) do
+			assert(math.abs(h.lx - first.lx) - 10 >= F.LAKE_MARGIN_STUDS, h.id .. " stands by the chocolate band")
+		end
+		-- the service passes the layout's chocolate
+		local service = sources and sources.service or ""
+		has(service, 'require(ServerStorage:WaitForChild("WildboundCandyV3Layout"))', "the v3 layout")
+		has(service, "liquid = V3.liquidDistance", "the hives keep off the chocolate")
+	end)
+
 	return result
 end

@@ -67,17 +67,20 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		-- (Sites.EXTRA_POSTS) beside a new nest, bound as "<name>@<post>" so a steal there wakes that copy (3 -> 6 posts).
 		-- Deliberately changed again (GT2, owner request "more eggs and more creatures"): a second extra post per guardian
 		-- beside a GT2 nest (6 -> 9 posts).
-		equal(#posts, 9, "posts")
+		-- CL-D11: a third extra post per guardian guards the v9 nests E4, R16 and E5 (9 -> 12 posts)
+		equal(#posts, 12, "posts")
 		local binding = Nests.bind(markers(), posts)
 		local want = { C1 = "Gomibu", R1 = "Flanfuria", C3 = "Tortidragon", C7 = "Gomibu@candyPostC7",
 			R6 = "Flanfuria@candyPostR6", C8 = "Tortidragon@candyPostC8", E3 = "Gomibu@candyPostE3",
-			R8 = "Flanfuria@candyPostR8", R9 = "Tortidragon@candyPostR9" }
+			R8 = "Flanfuria@candyPostR8", R9 = "Tortidragon@candyPostR9", E4 = "Gomibu@candyPostE4",
+			R16 = "Flanfuria@candyPostR16", E5 = "Tortidragon@candyPostE5" }
 		local bound = 0
 		for id, name in pairs(binding) do
 			bound += 1
 			equal(name, want[id], "guardian of " .. id)
 		end
-		equal(bound, 9, "bound nests")
+		-- CL-D11: 9 -> 12 guarded nests
+		equal(bound, 12, "bound nests")
 		for _, post in ipairs(posts) do
 			local nest
 			for _, m in ipairs(markers()) do if binding[m.id] == (post.guard or post.name) then nest = m end end
@@ -286,8 +289,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		local NAMES = { "Gomibu", "Flanfuria", "Tortidragon", "Mochimiau", "Canelin", "Flanin", "Mielita", "GatoRepartidor" }
 		assert(type(Sites.EXTRA_POSTS) == "table", "no Sites.EXTRA_POSTS")
 		-- Deliberately changed (GT2, owner request "more eggs and more creatures"): two extra posts per creature (16 -> 24)
-		local PER = 2
-		equal(#Sites.EXTRA_POSTS, #NAMES * PER, "two extra posts per candy creature (16 -> 24 posts)")
+		-- CL-D11: a third extra post per creature for the longer kingdom (EXTRA_POSTS 16 -> 24 rows, 32 posts in all)
+		local PER = 3
+		equal(#Sites.EXTRA_POSTS, #NAMES * PER, "three extra posts per candy creature (EXTRA_POSTS 16 -> 24 rows)")
 		local C = Layout.CENTRE
 		local count, keys, nestOf = {}, {}, {}
 		for _, extra in ipairs(Sites.EXTRA_POSTS) do
@@ -350,7 +354,8 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 	-- one-egg island nests; the three beside an extra guardian post are guarded by that copy.
 	case("CH3: the new nests are live one-egg island nests; three are guarded by an extra guardian post", function()
 		local list = Nests.islands(markers(), Nests.posts(Sites))
-		equal(#list, 27, "live floor nests (11 -> 19; GT2: 19 -> 27)")
+		-- CL-D10: 45 floor nests in v9, all live but the event-only L1 (27 -> 44)
+		equal(#list, 44, "live floor nests (11 -> 19; GT2: 19 -> 27; CL-D10: 27 -> 44)")
 		local byId = {}
 		for _, entry in ipairs(list) do byId[entry.nestId] = entry end
 		for _, id in ipairs({ "C6", "C7", "C8", "C9", "C10", "R5", "R6", "R7" }) do
@@ -470,7 +475,8 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		-- Deliberately changed (V8-D1): the plot is 1.3 times bigger (HALF 200 -> 260); the same two probes, re-anchored:
 		-- 15 studs past the entrance (was (-185, 0), the entrance at -200) and 60 outside the east edge (was (260, 0))
 		equal((check(Layout.ENTRANCE.x + 15, Layout.ENTRANCE.z)), 0, "never in the first steps past the entrance")
-		equal((check(Layout.HALF + 60, 0)), 0, "never outside the Caramelo plot")
+		-- CL-D11: the east edge is Layout.EAST (860) now, so the outside probe is EAST + 60 (was HALF + 60)
+		equal((check(Layout.EAST + 60, 0)), 0, "never outside the Caramelo plot")
 		-- Deliberately changed (GT): the plaza moved with the Torta to (BOSS.x, BOSS.z); (0, 30) is the junction now
 		equal((check(Layout.BOSS.x, Layout.BOSS.z + 30)), 0, "never on the boss plaza or the tower")
 		-- Deliberately changed (V8-D1): the entrance is Layout.ENTRANCE (-260, 0), was the literal (-200, 0)
@@ -568,19 +574,26 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		near(Sites.MEADOW_CENTRE.x, C.x, "MEADOW_CENTRE x"); near(Sites.MEADOW_CENTRE.z, C.z, "MEADOW_CENTRE z")
 		near(A.half, Layout.HALF, "AMBUSH.half"); near(A.entrance.x, Layout.ENTRANCE.x, "AMBUSH.entrance x")
 		near(A.entrance.z, Layout.ENTRANCE.z, "AMBUSH.entrance z")
+		-- CL-D11: the ambush plot is the v9 rectangle; its east edge is a copy of Layout.EAST
+		near(A.east, Layout.EAST, "AMBUSH.east")
 		local home, territory = Sites.world(nil, "bossHome"), Sites.world(nil, "bossTerritory")
 		near(home.x, C.x + Layout.BOSS.home.x, "bossHome x"); near(home.z, C.z + Layout.BOSS.home.z, "bossHome z")
 		near(territory.x, C.x + Layout.BOSS.x, "bossTerritory x"); near(territory.z, C.z + Layout.BOSS.z, "bossTerritory z")
 		-- each post keeps its v7 offset from its paired nest (candyPostR10 alone was turned towards its route)
+		-- CL-D11: the posts of the four moved nests (C6, C8, C10, C13) take their v9 offsets (besideLocal), and the eight
+		-- third-round posts sit at theirs beside the new nests E4, R16, E5, R12, C16, R13, C18 and R15
 		local pairs7 = {
 			candyNest = { "C1", -6, 6 }, candyNestR1 = { "R1", 8, -8 }, candyNestC3 = { "C3", -12, -8 },
 			candyNestC2 = { "C2", -6, 13 }, candyNestR2 = { "R2", 5, 12 }, candyNestR3 = { "R3", 12, 10 },
 			candyNestR4 = { "C5", 6, 14 }, candyNestC4 = { "C4", -8, 12 }, candyPostC7 = { "C7", 7, -9 },
-			candyPostR6 = { "R6", 7, 5 }, candyPostC8 = { "C8", -5, 12 }, candyPostC9 = { "C9", 11, 4 },
-			candyPostR7 = { "R7", -10, 8 }, candyPostR5 = { "R5", 8, 10 }, candyPostC6 = { "C6", -10, 8 },
+			candyPostR6 = { "R6", 7, 5 }, candyPostC8 = { "C8", -8, 9 }, candyPostC9 = { "C9", 11, 4 },
+			candyPostR7 = { "R7", -10, 8 }, candyPostR5 = { "R5", 8, 10 }, candyPostC6 = { "C6", 0, 12 },
 			candyPostC10 = { "C10", 12, 8 }, candyPostE3 = { "E3", -12, 0 }, candyPostR8 = { "R8", 12, 0 },
 			candyPostR9 = { "R9", 12, 0 }, candyPostR10 = { "R10", 9, 8 }, candyPostC11 = { "C11", 0, -12 },
-			candyPostC12 = { "C12", 12, 0 }, candyPostC13 = { "C13", -12, 1 }, candyPostR11 = { "R11", -9, 8 },
+			candyPostC12 = { "C12", 12, 0 }, candyPostC13 = { "C13", 10, 8 }, candyPostR11 = { "R11", -9, 8 },
+			candyPostE4 = { "E4", 0, 12 }, candyPostR16 = { "R16", 0, -12 }, candyPostE5 = { "E5", 0, -12 },
+			candyPostR12 = { "R12", 12, 0 }, candyPostC16 = { "C16", 0, 12 }, candyPostR13 = { "R13", 12, 0 },
+			candyPostC18 = { "C18", -12, 0 }, candyPostR15 = { "R15", -12, 0 },
 		}
 		local count = 0
 		for key, row in pairs(pairs7) do
@@ -594,6 +607,104 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		local fixed = 0
 		for _ in pairs(Sites.FIXED) do fixed += 1 end
 		equal(fixed, count + 2, "every fixed post is paired (plus Don Glaseon's home and territory)")
+	end)
+
+	-- NS-V9 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md CL-D11; owner request 2026-11-18, "agranda mas el
+	-- bioma caramelo a lo largo"): the plot is the rectangle x -HALF..EAST, |z| <= HALF. The ambush roll refuses a player
+	-- outside it and a spot within edgeStuds of its edge; each candy creature has a third extra post (EXTRA_POSTS 16 -> 24
+	-- rows) and the guardians' third posts guard E4, R16 and E5 (12 guarded nests).
+	case("NS-V9: the ambush rectangle, the third round of extra posts and the twelve guardian binds", function()
+		local function near(actual, expected, label)
+			assert(type(actual) == "number" and math.abs(actual - expected) <= 1e-6, label .. ": expected " .. tostring(expected)
+				.. ", got " .. tostring(actual))
+		end
+		local A, C = Sites.AMBUSH, Layout.CENTRE
+		equal(A.east, 860, "AMBUSH.east"); equal(A.east, Layout.EAST, "AMBUSH.east is a copy of Layout.EAST")
+		equal(A.half, 260, "AMBUSH.half (the west half-length and the z half-length)")
+		local function rectDepth(x, z) return math.min(x + A.half, A.east - x, A.half - math.abs(z)) end
+		-- every spot the roll gives a player at local (lx, lz), in plot-local coordinates
+		local function spots(lx, lz)
+			local list = {}
+			for k = 0, 9 do
+				for a = 0, 15 do
+					for d = 0, 4 do
+						local name, spot = Sites.ambushRoll(C.x + lx, C.z + lz, k / 10 + 0.05, a / 16, d / 4)
+						if name then table.insert(list, { x = spot.x - C.x, z = spot.z - C.z }) end
+					end
+				end
+			end
+			return list
+		end
+		-- a player past the v8 square's east edge (local x 260) is ambushed now (v8 refused it), at spots in the rectangle
+		assert(#spots(A.half + 60, 0) > 0, "a player at local x 320 (past the v8 edge) is never ambushed")
+		local beyond = 0
+		for _, probe in ipairs({ { A.half + 60, 0 }, { 400, -100 }, { 600, 160 }, { A.east - 15, -A.half + 15 },
+			{ A.east - 1, 200 }, { 400, A.half - 1 }, { -A.half + 1, 100 } }) do
+			for _, s in ipairs(spots(probe[1], probe[2])) do
+				assert(rectDepth(s.x, s.z) >= A.edgeStuds - 1e-6,
+					("a spot (%g, %g) within edgeStuds of the rectangle's edge"):format(s.x, s.z))
+				if s.x > A.half then beyond += 1 end
+			end
+		end
+		assert(beyond > 0, "no ambush spot east of the v8 square")
+		-- the player test is the rectangle: just inside each edge is allowed, just outside it is refused
+		assert(#spots(A.east - 1, 200) > 0, "a player just inside the east edge")
+		equal(#spots(A.east + 1, 200), 0, "a player just past the east edge")
+		assert(#spots(400, A.half - 1) > 0, "a player just inside the +z edge")
+		equal(#spots(400, A.half + 1), 0, "a player just past the +z edge")
+		equal(#spots(400, -A.half - 1), 0, "a player just past the -z edge")
+		assert(#spots(-A.half + 1, 100) > 0, "a player just inside the west edge")
+		equal(#spots(-A.half - 1, 100), 0, "a player just past the west edge")
+		-- the third round of extra posts: one more per creature, beside a v9 nest in the grown east (besideLocal)
+		equal(#Sites.EXTRA_POSTS, 24, "EXTRA_POSTS rows (16 -> 24)")
+		local third = {
+			{ "Gomibu", "candyPostE4", "E4", 0, 12 }, { "Flanfuria", "candyPostR16", "R16", 0, -12 },
+			{ "Tortidragon", "candyPostE5", "E5", 0, -12 }, { "Mochimiau", "candyPostR12", "R12", 12, 0 },
+			{ "Canelin", "candyPostC16", "C16", 0, 12 }, { "GatoRepartidor", "candyPostR13", "R13", 12, 0 },
+			{ "Mielita", "candyPostC18", "C18", -12, 0 }, { "Flanin", "candyPostR15", "R15", -12, 0 },
+		}
+		for i, row in ipairs(third) do
+			local extra = Sites.EXTRA_POSTS[16 + i]
+			equal(extra.name, row[1], "third-round row " .. i .. " creature"); equal(extra.key, row[2], "third-round row " .. i .. " key")
+			local nest
+			for _, spec in ipairs(Layout.NESTS) do if spec.id == row[3] then nest = spec end end
+			assert(nest, row[2] .. ": no nest " .. row[3])
+			local w = Sites.world(nil, row[2])
+			near(w.x, C.x + nest.x + row[4], row[2] .. " x beside " .. row[3]); near(w.z, C.z + nest.z + row[5], row[2] .. " z beside " .. row[3])
+			assert(w.x - C.x > A.half, row[2] .. " stands in the grown east")
+		end
+		local wantExtras = {
+			Gomibu = "candyPostC7,candyPostE3,candyPostE4", Flanfuria = "candyPostR6,candyPostR8,candyPostR16",
+			Tortidragon = "candyPostC8,candyPostR9,candyPostE5", Mochimiau = "candyPostC9,candyPostR10,candyPostR12",
+			Canelin = "candyPostR7,candyPostC11,candyPostC16", GatoRepartidor = "candyPostR5,candyPostR11,candyPostR13",
+			Mielita = "candyPostC6,candyPostC13,candyPostC18", Flanin = "candyPostC10,candyPostC12,candyPostR15",
+		}
+		local extrasOf = {}
+		for _, extra in ipairs(Sites.EXTRA_POSTS) do
+			extrasOf[extra.name] = extrasOf[extra.name] or {}
+			table.insert(extrasOf[extra.name], extra.key)
+		end
+		for name, keys in pairs(wantExtras) do
+			equal(table.concat(extrasOf[name] or {}, ","), keys, name .. "'s extra posts")
+		end
+		-- the twelve guardian binds, each post 8 to 14.5 studs from its nest, inside BIND_RADIUS
+		local posts = Nests.posts(Sites)
+		equal(#posts, 12, "guardian posts (9 -> 12)")
+		equal(Nests.BIND_RADIUS, 20, "BIND_RADIUS")
+		local list = markers()
+		local binding = Nests.bind(list, posts)
+		local guarded = 0
+		for _ in pairs(binding) do guarded += 1 end
+		equal(guarded, 12, "guarded nests (9 -> 12)")
+		equal(binding.E4, "Gomibu@candyPostE4", "E4 guard"); equal(binding.R16, "Flanfuria@candyPostR16", "R16 guard")
+		equal(binding.E5, "Tortidragon@candyPostE5", "E5 guard")
+		for _, post in ipairs(posts) do
+			local guard, nest = post.guard or post.name, nil
+			for _, m in ipairs(list) do if binding[m.id] == guard then nest = m end end
+			assert(nest, guard .. " guards no nest")
+			local d = flat(nest.x, nest.z, post.x, post.z)
+			assert(d >= 8 and d <= 14.5 and d <= Nests.BIND_RADIUS, guard .. " is " .. d .. " studs from nest " .. nest.id)
+		end
 	end)
 
 	-- K-D8, K-D9 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de
@@ -720,9 +831,10 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(byId.GatitoK1.guard, "GatitoGuerrero", "the guard comes from the attribute")
 		equal(byId.GatitoK2.guard, nil, "no attribute, no guard (never the plot post beside it)")
 		-- the plot's own guardian posts are unchanged (the kittens are not candy guardians)
-		equal(#Nests.posts(Sites), 9, "still nine plot guardian posts")
+		-- CL-D11: twelve plot guardian posts now (9 -> 12), and the plot's east edge is world x 1532 (was 932)
+		equal(#Nests.posts(Sites), 12, "still twelve plot guardian posts")
 		for _, post in ipairs(Nests.posts(Sites)) do
-			assert(post.x < 932, post.name .. " post in the plot")
+			assert(post.x < 1532, post.name .. " post in the plot")
 		end
 	end)
 

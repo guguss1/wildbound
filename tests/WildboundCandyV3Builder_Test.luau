@@ -8,6 +8,9 @@
 -- what a live map archives, and the tree swap. Caramelo v4 (V4-D1 to V4-D17): the bridges, the deeper chocolate, the
 -- houses at their scale and turn (overhead, V4-D12), the platforms' pedestals, the pink hills, the backdrop, the edge
 -- fill, planV4, the relay lay and the tree refit.
+-- Caramelo v9 (docs/design/wildbound-caramelo-v9-plan.md): the joint drums at V3.jointRadius (CL-D3), four piers under
+-- every raised deck (CL-D7), four docks (CL-D8), ten houses (CL-D12), and the filler and edge fill over the grown plot,
+-- x -HALF..EAST (CL-D1).
 return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 	local CollectionService = game:GetService("CollectionService")
 	local beasts = type(sources) == "table" and sources.beasts or ""
@@ -99,6 +102,29 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		equal(V3.LIQUID.depth, 3.5, "V4-D2")
 	end)
 
+	-- CL-D3: each joint drum is as wide as the widest leg it joins, so the laid chocolate is the rule's capsules at every
+	-- width step; still no drum at the last point (on the east edge).
+	case("B-V9-1: layLiquid lays each joint drum at V3.jointRadius; no drum at the last point", function()
+		assert(type(V3.jointRadius) == "function", "V3.jointRadius")
+		local n = #V3.RIVER
+		for i = 1, n - 1 do
+			local joint = holder.River:FindFirstChild("Choco_Joint_" .. i)
+			assert(joint, "Choco_Joint_" .. i)
+			local w = V3.RIVER[i][3]
+			if V3.RIVER[i - 1] then w = math.max(w, V3.RIVER[i - 1][3]) end
+			if V3.RIVER[i + 1] then w = math.max(w, V3.RIVER[i + 1][3]) end
+			near(V3.jointRadius(i), w / 2, "jointRadius(" .. i .. ") is the widest neighbour's half width", 1e-6)
+			-- a cylinder's Size is (height, 2r, 2r)
+			near(joint.Size.Y, 2 * V3.jointRadius(i), "joint " .. i .. " diameter", 0.01)
+			near(joint.Size.Z, 2 * V3.jointRadius(i), "joint " .. i .. " diameter (z)", 0.01)
+			near(joint.Position.X, centre.x + V3.RIVER[i][1], "joint " .. i .. " x", 0.01)
+			near(joint.Position.Z, centre.z + V3.RIVER[i][2], "joint " .. i .. " z", 0.01)
+		end
+		equal(holder.River:FindFirstChild("Choco_Joint_" .. n), nil, "no drum at the last point")
+		-- CL-D4: the foot basin: point 1's drum is r 25 (max(20, 50) / 2)
+		near(V3.jointRadius(1), math.max(V3.RIVER[1][3], V3.RIVER[2][3]) / 2, "the foot basin", 1e-6)
+	end)
+
 	-- Deliberately changed (V4): every bridge of V3.BRIDGES, each straight on its leg (was the single bridge).
 	case("B3: every bridge's deck and ramps are walkable over the surface, its rails off the path", function()
 		equal(#holder.Bridges:GetChildren(), #V3.BRIDGES, "one model per bridge")
@@ -131,12 +157,47 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			equal(rails, 2 * (#B.gaps + 1), B.id .. " rail runs")
 			equal(sideRamps, 2 * #B.gaps, B.id .. " side ramps")
 			for i = 1, 2 do equal(bridge["Ramp_" .. i]:GetAttribute("Role"), "floor", B.id .. " ramp " .. i) end
+			-- CL-D7: the part formula with piers: deck, 2 ramps, rails and caps per run, side ramps, 4 piers (11 in v9)
+			local pierParts = type(B.pier or V3.BRIDGE_BUILD.pier) == "table" and B.deck - 0.4 > 0.05 and 4 or 0
+			equal(#parts(bridge), 1 + 2 + 4 * (#B.gaps + 1) + 2 * #B.gaps + pierParts, B.id .. " parts")
 		end
 	end)
 
-	case("B4: two docks at the layout's stands, tagged, their decks over the surface", function()
+	-- CL-D7: the raised decks: four piers each, on dry land, from the floor to the deck's underside, so a player sees the
+	-- raft fits under; the underside keeps the raft's clearance over the chocolate.
+	case("B-V9-2: four piers under every raised bridge, on dry land, floor to underside", function()
+		local pier = V3.BRIDGE_BUILD.pier
+		assert(type(pier) == "table", "V3.BRIDGE_BUILD.pier")
+		for _, B in ipairs(V3.BRIDGES) do
+			local bridge = holder.Bridges["Bridge_" .. B.id]
+			local piers = {}
+			for _, p in ipairs(bridge:GetChildren()) do
+				if string.sub(p.Name, 1, 5) == "Pier_" then table.insert(piers, p) end
+			end
+			equal(#piers, 4, B.id .. " piers")
+			local underside = floorTop + B.deck - 0.4
+			if V3.RAFT and V3.RAFT.clearance then
+				assert(underside - surface >= V3.RAFT.clearance - 1e-6, B.id .. " underside " .. (underside - surface) .. " over the chocolate")
+			end
+			for _, p in ipairs(piers) do
+				equal(p:GetAttribute("Role"), "decor", p.Name .. " role")
+				equal(p.CanCollide, false, p.Name .. " collides")
+				near(p.Size.X, pier.size, p.Name .. " size x", 0.01); near(p.Size.Z, pier.size, p.Name .. " size z", 0.01)
+				near(p.Position.Y - p.Size.Y / 2, floorTop, p.Name .. " stands on the floor", 0.01)
+				near(p.Position.Y + p.Size.Y / 2, underside, p.Name .. " reaches the deck's underside", 0.01)
+				local along, across = V3.bridgeFrame(B, p.Position.X - centre.x, p.Position.Z - centre.z)
+				near(math.abs(along), B.length / 2 - pier.inset, p.Name .. " along", 0.01)
+				near(math.abs(across), B.width / 2 - pier.inset, p.Name .. " across", 0.01)
+				local lx, lz = p.Position.X - centre.x, p.Position.Z - centre.z
+				assert(V3.liquidDistance(lx, lz) >= pier.size / 2, B.id .. " " .. p.Name .. " stands in the chocolate")
+			end
+		end
+	end)
+
+	-- Deliberately changed (CL-D8): every dock of V3.DOCKS (four in v9; was two)
+	case("B4: every dock at the layout's stands, tagged, its deck over the surface", function()
 		local CollectionService = game:GetService("CollectionService")
-		equal(#holder.Docks:GetChildren(), 2, "docks")
+		equal(#holder.Docks:GetChildren(), #V3.DOCKS, "docks")
 		for _, d in ipairs(V3.DOCKS) do
 			local dock = holder.Docks:FindFirstChild("Dock_" .. d.id)
 			assert(dock, "Dock_" .. d.id)
@@ -153,7 +214,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		end
 	end)
 
-	case("B5: seven houses you can walk into, each at its spot", function()
+	-- CL-D12: every house of V3.HOUSES (ten in v9; the count was always read from the layout)
+	case("B5: every house you can walk into, each at its spot", function()
 		equal(#holder.Houses:GetChildren(), #V3.HOUSES, "houses")
 		for _, h in ipairs(V3.HOUSES) do
 			local house = holder.Houses:FindFirstChild("House_" .. h.id)
@@ -287,7 +349,8 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		end
 		equal(#holder.Backdrop:GetChildren(), #V3.BACKDROP, "backdrop pieces")
 		for _, m in ipairs(holder.Backdrop:GetChildren()) do
-			assert(m:GetPivot().Position.X - centre.x > Layout.HALF, m.Name .. " inside the plot")
+			-- Deliberately changed (CL-D1): the plot's east edge is Layout.EAST (was HALF)
+			assert(m:GetPivot().Position.X - centre.x > Layout.EAST, m.Name .. " inside the plot")
 			for _, p in ipairs(parts(m)) do
 				equal(p.CanCollide, false, m.Name .. "'s " .. p.Name .. " collides")
 				equal(p.CanQuery, false, m.Name .. "'s " .. p.Name .. " answers rays")
@@ -312,6 +375,29 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			assert(V3.liquidDistance(p.X - centre.x, p.Z - centre.z) > 0, m.Name .. " in the chocolate")
 		end
 		assert(report.edgeParts <= V3.EDGE.maxParts + 600, "edge parts " .. report.edgeParts)
+	end)
+
+	-- CL-D1: the plot runs x -HALF..EAST, so the bank filler, the filler's edge hills and the edge fill reach the grown
+	-- east (x > HALF), and nothing stands past the east edge.
+	case("B-V9-3: the edge fill and the filler reach x > HALF, inside the grown plot", function()
+		local east = Layout.EAST
+		assert(type(east) == "number" and east > Layout.HALF, "Layout.EAST")
+		local function localX(m) return m:GetPivot().Position.X - centre.x end
+		local edgeMax = -math.huge
+		for _, tree in ipairs(holder.Trees:GetChildren()) do
+			if tree:GetAttribute("EdgeFill") then edgeMax = math.max(edgeMax, localX(tree)) end
+		end
+		for _, m in ipairs(holder.EdgeFill:GetChildren()) do edgeMax = math.max(edgeMax, localX(m)) end
+		assert(edgeMax > Layout.HALF, "the edge fill stops at x " .. edgeMax)
+		local fillerMax = -math.huge
+		for _, m in ipairs(holder.Filler:GetChildren()) do fillerMax = math.max(fillerMax, localX(m)) end
+		if library then assert(fillerMax > Layout.HALF, "the filler stops at x " .. fillerMax) end
+		for _, f in ipairs({ holder.Filler, holder.EdgeFill }) do
+			for _, m in ipairs(f:GetChildren()) do
+				local p = m:GetPivot().Position
+				assert(Layout.depth(p.X - centre.x, p.Z - centre.z) > 0, m:GetFullName() .. " outside the plot")
+			end
+		end
 	end)
 	scratch:Destroy()
 
@@ -339,7 +425,11 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		local root = Instance.new("Model")
 		local r = V3Builder.layAll(root, { Layout = Layout, V3 = V3, kitV3 = kit, kitSpec = spec, keepOut = {}, edge = false })
 		-- Deliberately changed (V3 review): placeholder hills are listed; (V4) without the edge pieces (edge = false)
-		equal(#r.placeholders, #V3.MOUNTAINS + #V3.HOUSES - 3 + 1 + 1 + #V3.PLATFORMS + r.hills, "three sweet houses from the kit")
+		-- Deliberately changed (CL-D12): every sweet house of the layout comes from the kit (four in v9: H1, H4, H7, H8; was
+		-- the literal three)
+		local sweet = 0
+		for _, h in ipairs(V3.HOUSES) do if h.asset == "CV3_SweetHouse" then sweet += 1 end end
+		equal(#r.placeholders, #V3.MOUNTAINS + #V3.HOUSES - sweet + 1 + 1 + #V3.PLATFORMS + r.hills, "the sweet houses from the kit")
 		local h1 = V3.HOUSES[1]
 		local house = root[V3.FOLDER].Houses.House_H1
 		equal(house:GetAttribute("Placeholder"), false, "kit")
@@ -555,12 +645,16 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 		local archived = {}
 		local deps = { Layout = Layout, V3 = V3, Builder = Builder, kitV3 = kit, kitSpec = spec, keepOut = {} }
 		local dry = V3Builder.upgradePlaceholders(root, deps, function() error("a dry run archived") end, true)
-		equal(#dry.upgraded, 4, "dry: three sweet houses and the tree")
+		-- Deliberately changed (CL-D12): every sweet house of the layout and the tree (four houses in v9; was the literal
+		-- three houses, 4 in all)
+		local sweet = 0
+		for _, h in ipairs(V3.HOUSES) do if h.asset == "CV3_SweetHouse" then sweet += 1 end end
+		equal(#dry.upgraded, sweet + 1, "dry: the sweet houses and the tree")
 		local r = V3Builder.upgradePlaceholders(root, deps, function(instance, why)
 			table.insert(archived, instance)
 			instance.Parent = nil
 		end, false)
-		equal(#r.upgraded, 4, "upgraded"); equal(#archived, 4, "archived, never destroyed")
+		equal(#r.upgraded, sweet + 1, "upgraded"); equal(#archived, sweet + 1, "archived, never destroyed")
 		assert(#r.waiting > 0, "the rest waits for its kit")
 		local h1 = root[V3.FOLDER].Houses.House_H1
 		equal(h1:GetAttribute("Placeholder"), false, "the house is the kit now")
@@ -664,16 +758,18 @@ return function(V3Builder, V3, Layout, Builder, KitSpec, Kit, library, sources)
 			f.Parent = holder3
 		end
 		local dryTree = oldTree(holder3.Trees, "Tree_1", "CV3_TreeCotton", -150, 60, true)
-		-- a tree, a filler prop and an edge hill on spots the v4 river left dry and the v5 river covers
-		-- (the lake's new west lobe, the big disc's east side, the wider south leg)
-		local wetTree = oldTree(holder3.Trees, "Tree_2", "CV3_TreeCotton", -26, -118, false)
-		local wetProp = oldTree(holder3.Filler, "Filler_1", "GumdropBush_A", 38, -98, false)
-		local wetHill = oldTree(holder3.EdgeFill, "EdgeHill_1", "CV3_IceCreamMountain_M", -34, -120, false)
+		-- a tree, a filler prop, an edge hill and a cookie tree in the river
+		-- Deliberately changed (CL-D3): on the v9 river's points (the west channel, the east stretch, the bend) (were
+		-- (-26, -118), (38, -98), (-34, -120) and (40, -170), the v5 lake and south leg, dry in v9)
+		local function riverAt(i) return V3.RIVER[i][1], V3.RIVER[i][2] end
+		local wetTree = oldTree(holder3.Trees, "Tree_2", "CV3_TreeCotton", riverAt(5))
+		local wetProp = oldTree(holder3.Filler, "Filler_1", "GumdropBush_A", riverAt(12))
+		local wetHill = oldTree(holder3.EdgeFill, "EdgeHill_1", "CV3_IceCreamMountain_M", riverAt(14))
 		wetHill:SetAttribute("HillRadius", 7)
 		local cookies = Instance.new("Folder")
 		cookies.Name = "Sweets"
 		cookies.Parent = root
-		local wetCookie = oldTree(cookies, "Cookie_1", "TreeCookie", 40, -170, false)
+		local wetCookie = oldTree(cookies, "Cookie_1", "TreeCookie", riverAt(7))
 		local dock = oldTree(holder3.EdgeFill, "Edge_9", "ConfettiPile", V3.DOCKS[2].standX, V3.DOCKS[2].standZ, false)
 		local plan = V3Builder.planV5(root, Layout, V3)
 		local why = {}

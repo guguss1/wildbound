@@ -105,9 +105,26 @@ return function(Builder, Layout, Kit, library)
 
 	case("S2: the floor fills the plot at the old ground level", function()
 		local floor = root.Ground.Floor
-		equal(floor.Size, Vector3.new(Layout.HALF * 2, 1, Layout.HALF * 2), "size")
-		at(floor, { x = 0, z = 0 }, top - 0.5, "floor")
+		-- Deliberately changed (CL-D13): the plot is x -HALF..EAST by z -HALF..HALF (1120 x 520 in v9), so the floor is
+		-- HALF + EAST long, centred at x (EAST - HALF) / 2 (was HALF * 2 square at the centre)
+		equal(floor.Size, Vector3.new(Layout.HALF + Layout.EAST, 1, Layout.HALF * 2), "size")
+		at(floor, { x = (Layout.EAST - Layout.HALF) / 2, z = 0 }, top - 0.5, "floor")
+		near(floor.Position.X - floor.Size.X / 2, centre.x - Layout.HALF, "the west edge (the entrance)")
+		near(floor.Position.X + floor.Size.X / 2, centre.x + Layout.EAST, "the east edge")
 		equal(floor:GetAttribute("Role"), "floor", "role")
+	end)
+
+	-- CL-D1: the scatter runs x -HALF + 10 .. EAST - 42 (was HALF - 42), so the gumdrops reach the grown east and keep off
+	-- the east hill band.
+	case("S2 (CL-D1): the scatter reaches the grown east, off the east hill band", function()
+		local most = -math.huge
+		for _, m in ipairs(root.Gumdrops:GetChildren()) do
+			local x = m:GetPivot().Position.X - centre.x
+			assert(x <= Layout.EAST - 42 + 1e-3, m.Name .. " in the east hill band at x " .. x)
+			assert(x >= -Layout.HALF + 10 - 1e-3, m.Name .. " past the west edge at x " .. x)
+			most = math.max(most, x)
+		end
+		assert(most > Layout.HALF, "the gumdrops stop at x " .. most)
 	end)
 
 	case("S4: the corridors stay clear for eight players and for beasts", function()
@@ -128,7 +145,8 @@ return function(Builder, Layout, Kit, library)
 			end
 		end
 		-- Deliberately changed (GT): 13 -> 14 segments (the main route gained the avenue to the Torta's plaza)
-		equal(swept, 14, "route segments swept")
+		-- Deliberately changed (CL-D6): 14 -> 19 segments (the south route's 3 legs and the north route's 2)
+		equal(swept, 19, "route segments swept")
 		local paved = 0
 		for _, p in ipairs(root.Paths:GetChildren()) do
 			equal(p:GetAttribute("Role"), "floor", p.Name .. " role")

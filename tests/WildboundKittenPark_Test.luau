@@ -422,14 +422,15 @@ return function(Park, East, Layout, sources)
 		local props = Instance.new("Folder")
 		props.Name = "Props"
 		props.Parent = annex
-		local a = piece(props, "A", 1000, 0)
+		-- Deliberately changed (CL-D13): the second space moved east with the grown plot (x 1548..2068, was 948..1468)
+		local a = piece(props, "A", 1600, 0)
 		local bModel = Instance.new("Model")
 		bModel.Name = "B"
-		piece(bModel, "Trunk", 1200, 100)
-		bModel.WorldPivot = CFrame.new(1200, 2, 100)
+		piece(bModel, "Trunk", 1800, 100)
+		bModel.WorldPivot = CFrame.new(1800, 2, 100)
 		bModel.Parent = props
-		local c = piece(props, "C", 900, 0) -- in the plot
-		local d = piece(props, "D", 1000, -280) -- the annex's south strip
+		local c = piece(props, "C", 1500, 0) -- in the plot
+		local d = piece(props, "D", 1600, -280) -- the annex's south strip
 		local ground = Instance.new("Folder")
 		ground.Name = "Ground"
 		ground.Parent = annex

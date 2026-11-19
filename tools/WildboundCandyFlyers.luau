@@ -154,8 +154,10 @@ function F.attackKey(swarmId, bugIndex, dive)
 end
 
 -- A hive spot in the plot's local coordinates: true, or false and the rule it breaks. steps = L.stairSteps() (optional);
--- posts = the creature posts in the plot's local coordinates ({ { x, z } }, optional: none, no post rule).
-function F.hiveSpotOk(L, lx, lz, steps, posts)
+-- posts = the creature posts in the plot's local coordinates ({ { x, z } }, optional: none, no post rule). CL-D15
+-- (Caramelo v9): opts.liquid (optional, function(lx, lz) -> signed studs to the chocolate, WildboundCandyV3Layout's
+-- liquidDistance) keeps a hive LAKE_MARGIN_STUDS off the chocolate ("Chocolate"); without it there is no such rule.
+function F.hiveSpotOk(L, lx, lz, steps, posts, opts)
 	for _, p in ipairs(posts or {}) do
 		if flat(lx, lz, p.x, p.z) < F.POST_CLEAR_STUDS then return false, "Post" end
 	end
@@ -172,6 +174,10 @@ function F.hiveSpotOk(L, lx, lz, steps, posts)
 	if L.PORTAL and flat(lx, lz, L.PORTAL.x, L.PORTAL.z) < F.PORTAL_CLEAR_STUDS then return false, "Portal" end
 	for _, w in ipairs(L.LAKE or {}) do -- review F-6: never over the syrup lake
 		if flat(lx, lz, w.x, w.z) < w.r + F.LAKE_MARGIN_STUDS then return false, "Lake" end
+	end
+	if type(opts) == "table" and type(opts.liquid) == "function" then
+		local d = opts.liquid(lx, lz)
+		if finite(d) and d < F.LAKE_MARGIN_STUDS then return false, "Chocolate" end
 	end
 	for _, n in ipairs(L.NESTS or {}) do
 		if flat(lx, lz, n.x, n.z) < F.NEST_CLEAR_STUDS then return false, "Nest" end
@@ -209,7 +215,8 @@ end
 -- The hives in world coordinates: { { id, index, lx, lz, x, z, floor, count } }, at most MAX_HIVES, HIVE_SPACING_STUDS
 -- apart: the first valid candidate (route order), then each next the valid candidate farthest from those chosen.
 -- centre = the plot's centre (default L.CENTRE); opts = { floorTop, safe = function(worldX, worldZ) -> bool,
--- posts = { { x, z } } the candy creature posts in world coordinates (optional) }.
+-- posts = { { x, z } } the candy creature posts in world coordinates (optional), liquid = function(lx, lz) -> studs to
+-- the chocolate in the plot's local coordinates (optional, CL-D15: F.hiveSpotOk's "Chocolate" rule) }.
 function F.hives(L, centre, opts)
 	centre = centre or L.CENTRE
 	opts = opts or {}
@@ -221,7 +228,7 @@ function F.hives(L, centre, opts)
 	end
 	local valid = {}
 	for _, c in ipairs(F.candidates(L)) do
-		if F.hiveSpotOk(L, c.lx, c.lz, steps, posts)
+		if F.hiveSpotOk(L, c.lx, c.lz, steps, posts, opts)
 			and not (opts.safe and opts.safe(centre.x + c.lx, centre.z + c.lz) == true) then
 			table.insert(valid, c)
 		end
@@ -268,8 +275,9 @@ function F.idlePoint(swarm, bug, now)
 		h.z + math.sin(a) * F.IDLE_RADIUS_STUDS
 end
 
--- hives from F.hives (or { id, x, z, floor, count }); bounds = { x, z, half } (the biome's square: a target outside it
--- is lost), optional; noGo = F.noGoZones (a target inside one is lost and never woken on), optional. Returns the world:
+-- hives from F.hives (or { id, x, z, floor, count }); bounds = { x, z, half, halfX } (the biome's rectangle, half its
+-- size along z and halfX along x, halfX defaulting to half (a square); CL-D15: the v9 plot is 1120 x 520; a target
+-- outside it is lost), optional; noGo = F.noGoZones (a target inside one is lost and never woken on), optional. Returns the world:
 -- { swarms, bugs, at, bounds, noGo }.
 function F.new(hives, now, bounds, noGo)
 	local world = { swarms = {}, bugs = 0, at = now, bounds = bounds, noGo = noGo or {} }
@@ -311,7 +319,7 @@ end
 
 local function inside(bounds, x, z)
 	if not bounds then return true end
-	return math.max(math.abs(x - bounds.x), math.abs(z - bounds.z)) <= bounds.half
+	return math.abs(x - bounds.x) <= (bounds.halfX or bounds.half) and math.abs(z - bounds.z) <= bounds.half
 end
 
 local function inNoGo(world, x, z)

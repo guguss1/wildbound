@@ -5,9 +5,11 @@
 -- Caramelo v6, proposal 3: the river current (odd/tasks/wildbound-caramelo-v2.md V6-D3; docs/design/
 -- wildbound-caramelo-v3-plan.md V6-D30 on). The flow field on the real layout (downstream along every river leg at 4
 -- studs/s, 1.5 in the lake, 0 on dry ground, no jump in direction), the raft with the real area and the current
--- (faster downstream than upstream over the same distance, never out of the chocolate or under a bridge, a docked raft
--- stays put, docking at both docks, an abandoned raft drifts and respawns at home), the wader's push and its removal
--- rules (pure parts), and source pins of the raft service, the wade service and the client. Changes nothing.
+-- (faster downstream than upstream over the same distance, never out of the chocolate or under a bridge too low for it,
+-- a docked raft stays put, docking at every dock, an abandoned raft drifts and respawns at home), the wader's push and
+-- its removal rules (pure parts), and source pins of the raft service, the wade service and the client. Changes
+-- nothing. CL-D3 (Caramelo v9, docs/design/wildbound-caramelo-v9-plan.md): one long river flowing west to east from M1
+-- in the south-west corner to the east edge, four docks, three raised bridges the raft passes under.
 return function(Current, Raft, Wade, V3, Layout, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
@@ -61,9 +63,10 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 		s.x, s.z, s.yaw, s.speed = C.x + x, C.z + z, math.atan2(-ux, -uz), 0
 		return s
 	end
+	-- CL-D8: the raft passes under the raised v9 bridges, so "under a bridge" means under one too low for it (V3.raftBlocks)
 	local function afloat(s, label)
 		assert(area.inside(s.x, s.z, 0), (label or "") .. " left the chocolate at " .. s.x .. ", " .. s.z)
-		assert(not V3.nearBridge(s.x - C.x, s.z - C.z, 0), (label or "") .. " under a bridge at " .. s.x .. ", " .. s.z)
+		assert(not V3.raftBlocks(s.x - C.x, s.z - C.z, 0), (label or "") .. " under a low bridge at " .. s.x .. ", " .. s.z)
 	end
 
 	case("CU1: the speeds, the attribute and junk", function()
@@ -93,18 +96,20 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 				assert((vx * ux + vz * uz) / speedOf(vx, vz) >= 0.95, "leg " .. i .. " does not flow downstream")
 			end
 		end
-		assert(checked >= 15, "most legs are open river: " .. checked)
-		-- from the waterfall (north) to the south edge
+		-- CL-D3: 15 legs, 3 of them under a lake disc's centre line (the basins and the harbour lake): 12 open
+		assert(checked >= 10, "most legs are open river: " .. checked)
+		-- CL-D3: from the waterfall in the south-west corner east to the east edge
 		local first = V3.RIVER[1]
-		local _, vz = Current.flow(V3, first[1], first[2])
-		assert(vz < 0, "the waterfall's outlet flows south")
+		local vx = Current.flow(V3, first[1], first[2])
+		assert(vx > 0, "the waterfall's outlet flows east")
 	end)
 
-	case("CU3: the lake flows at 1.5, also at both dock tips; dry ground is still", function()
+	case("CU3: the lake flows at 1.5, also at every dock tip; dry ground is still", function()
 		for i, disc in ipairs(V3.LAKE) do
 			local vx, vz = Current.flow(V3, disc.x, disc.z)
 			near(speedOf(vx, vz), Current.LAKE_SPEED, "lake disc " .. i .. "'s centre", 1e-6)
-			assert(vz < 0, "the lake drains south towards its outlet")
+			-- CL-D3: every disc lies on the west-to-east river, so it drains downstream, east
+			assert(vx > 0, "lake disc " .. i .. " drains downstream (east)")
 		end
 		for _, d in ipairs(V3.DOCKS) do
 			local vx, vz = Current.flow(V3, d.tipX, d.tipZ)
@@ -141,8 +146,10 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 		local checked = 0
 		-- Deliberately changed (V8-D1): the grid is the v7 box round the chocolate (x -40..60, z -210..165) grown with the
 		-- 1.3 times bigger plot: x -52..78, z -262..226 (the river now ends at z -260 and M1's pool lies at z 219)
-		for x = -52, 78, 4 do
-			for z = -262, 226, 4 do
+		-- CL-D3: the v9 river runs the whole plot, so the grid covers it all (x -HALF..EAST, z -HALF..HALF), base points
+		-- every 2 studs, each checked against its neighbours 1 stud away
+		for x = -Layout.HALF, Layout.EAST, 2 do
+			for z = -Layout.HALF, Layout.HALF, 2 do
 				if V3.liquidDistance(x, z) <= -1 and V3.liquidDistance(x + 1, z) <= -1 and V3.liquidDistance(x, z + 1) <= -1 then
 					local ax, az = Current.flow(V3, x, z)
 					for _, q in ipairs({ { x + 1, z }, { x, z + 1 } }) do
@@ -154,12 +161,13 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 				end
 			end
 		end
-		assert(checked > 200, "the grid reached the chocolate: " .. checked)
+		-- CL-D3: about 111,000 sq studs of chocolate, so tens of thousands of checks on the 2-stud grid
+		assert(checked > 20000, "the grid reached the chocolate: " .. checked)
 	end)
 
 	-- V6-D3: the same distance along a straight leg, full throttle from rest: downstream is faster than with still
-	-- chocolate, upstream slower. Legs 6 (24 wide, north of the junction) and 18 (the narrow leg the raft reaches from
-	-- the lake), 15 % to 85 % of each.
+	-- chocolate, upstream slower, 15 % to 85 % of each leg. CL-D3: legs 6 (the west channel, by dock B) and 10 (the
+	-- straight north-south reach, under the three raised bridges).
 	case("CU5: the raft goes downstream faster than upstream over the same distance", function()
 		local function run(withArea, ax, az, bx, bz)
 			local ux, uz = bx - ax, bz - az
@@ -176,7 +184,8 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 			end
 			return math.huge
 		end
-		for _, i in ipairs({ 6, 18 }) do
+		-- CL-D3: the v9 river has 15 legs; 6 and 10 are long and straight
+		for _, i in ipairs({ 6, 10 }) do
 			local a, b = V3.RIVER[i], V3.RIVER[i + 1]
 			local ax, az = a[1] + (b[1] - a[1]) * 0.15, a[2] + (b[2] - a[2]) * 0.15
 			local bx, bz = a[1] + (b[1] - a[1]) * 0.85, a[2] + (b[2] - a[2]) * 0.85
@@ -189,7 +198,8 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 	end)
 
 	case("CU6: a docked, boarding or called raft stays put at its dock", function()
-		for home = 1, 2 do
+		-- CL-D8: four docks now; every one holds a docked raft still
+		for home = 1, #V3.DOCKS do
 			local s = Raft.new(docks, home)
 			for k = 1, 300 do Raft.step(s, 1 / 30, k / 30, nil, false, area) end
 			equal(s.status, "Docked", "still docked")
@@ -200,21 +210,24 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 		for k = 1, math.floor(Raft.DEPART_SECONDS * 30) - 2 do Raft.step(b, 1 / 30, k / 30, nil, true, area) end
 		equal(b.status, "Boarding")
 		near(b.x, docks[1].x, "boarding stays at the tip"); near(b.z, docks[1].z)
-		local c = Raft.new(docks, 1)
-		assert(Raft.call(c, 2, 0), "called")
-		for k = 1, math.ceil((Raft.CALL_SECONDS + 0.5) * 30) do Raft.step(c, 1 / 30, k / 30, nil, false, area) end
-		equal(c.status, "Docked"); equal(c.dock, 2)
-		near(c.x, docks[2].x, "laid at the tip"); near(c.z, docks[2].z)
+		-- CL-D8: a call reaches every other dock
+		for target = 2, #V3.DOCKS do
+			local c = Raft.new(docks, 1)
+			assert(Raft.call(c, target, 0), "called to dock " .. target)
+			for k = 1, math.ceil((Raft.CALL_SECONDS + 0.5) * 30) do Raft.step(c, 1 / 30, k / 30, nil, false, area) end
+			equal(c.status, "Docked"); equal(c.dock, target)
+			near(c.x, docks[target].x, "laid at the tip"); near(c.z, docks[target].z)
+		end
 	end)
 
 	-- Docking still works against the lake's 1.5: the rider aims the bow at the tip at 15 % throttle (3 studs/s through
-	-- the water, under DOCK_SPEED) from 10 studs out towards the other dock.
-	case("CU7: docking at both docks with the current", function()
-		for i = 1, 2 do
-			local tip, other = docks[i], docks[3 - i]
-			local dx, dz = other.x - tip.x, other.z - tip.z
-			local length = math.sqrt(dx * dx + dz * dz)
-			local s = sailing(tip.x - C.x + dx / length * 10, tip.z - C.z + dz / length * 10, -dx / length, -dz / length)
+	-- the water, under DOCK_SPEED) from 10 studs out. CL-D8: four docks that no longer face each other, so the approach
+	-- starts 10 studs out along each dock's own look (from its stand through its tip, over its disc's open water).
+	case("CU7: docking at every dock with the current", function()
+		for i = 1, #V3.DOCKS do
+			local tip = docks[i]
+			local dx, dz = -math.sin(tip.yaw), -math.cos(tip.yaw)
+			local s = sailing(tip.x - C.x + dx * 10, tip.z - C.z + dz * 10, -dx, -dz)
 			s.rider = 40 + i
 			local t, arrived = 0, nil
 			while t < 15 and not arrived do
@@ -233,8 +246,9 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 	end)
 
 	case("CU8: an abandoned raft drifts downstream, never out or under a bridge, and respawns at home", function()
-		local a, b = V3.RIVER[18], V3.RIVER[19]
-		local ux, uz = legDirection(18)
+		-- CL-D3: leg 7, the west channel's last straight before the bend (the v9 river has 15 legs)
+		local a, b = V3.RIVER[7], V3.RIVER[8]
+		local ux, uz = legDirection(7)
 		local s = sailing((a[1] + b[1]) / 2, (a[2] + b[2]) / 2, ux, uz)
 		s.rider = nil
 		s.status, s.adriftAt = "Adrift", 0
@@ -254,12 +268,12 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 		assert(respawned and respawned.dock == V3.RAFT.homeDock, "respawned at the home dock")
 		equal(s.status, "Docked")
 		near(s.x, docks[V3.RAFT.homeDock].x); near(s.z, docks[V3.RAFT.homeDock].z)
-		-- a ridden raft left to the current upstream of the Top bridge and in the lake by the Bottom bridge: the bridges
-		-- and the banks still stop it
-		-- Deliberately changed (V8-D1): the plot is 1.3 times bigger; each start keeps its v7 water by moving with what it
-		-- floats in: (-10, 146) on the leg out of M1's pool moves with M1 (+(-1.2, 60), WildboundCandyV3Layout withM1);
-		-- (20, -110) and (-5, -125) in the big lake disc move with it (+(2.4, -29.4), withDisc 1). Printed with %.1f.
-		for _, p in ipairs({ { -11.2, 206 }, { 22.4, -139.4 }, { -2.6, -154.4 } }) do
+		-- a ridden raft left to the current for 20 s: the banks still stop it, it never leaves the chocolate, and it passes
+		-- under the raised bridges
+		-- CL-D3, CL-D8 (Caramelo v9): v9 plot-local starts, no scaling: (-100, -224) in the west channel, (470, 60) in the
+		-- north-south reach, drifting under the Top bridge, and (700, 190) on the east stretch, drifting towards the mouth.
+		-- Printed with %.1f.
+		for _, p in ipairs({ { -100, -224 }, { 470, 60 }, { 700, 190 } }) do
 			local r = sailing(p[1], p[2], 0, -1)
 			assert(area.inside(r.x, r.z, Raft.HULL), "a sailable start")
 			for k = 1, 20 * 30 do
@@ -342,6 +356,44 @@ return function(Current, Raft, Wade, V3, Layout, sources)
 			for _, creature in ipairs({ "WildboundBeasts", "Flyers", "Duquesa", "CollectionService" }) do
 				hasNot(source, creature, "the creatures are never pushed")
 			end
+		end
+	end)
+
+	-- CL-D3, CL-D8 (Caramelo v9): the plan's "CU11" (this suite's CU11 already names the wade wiring). The river flows
+	-- west to east, from M1's outlet to the mouth on the east edge, downstream on every leg; the current is the lake's
+	-- 1.5 at every dock tip (each 10 inside its disc) and at every disc centre.
+	case("CU12: CL-D3: the river flows west to east; 1.5 at every dock tip and disc centre", function()
+		local first, last = V3.RIVER[1], V3.RIVER[#V3.RIVER]
+		assert(first[1] < -Layout.HALF / 2, "the source is in the west")
+		near(last[1], Layout.EAST, "the mouth lies on the east edge")
+		local checked = 0
+		for i = 1, #V3.RIVER - 1 do
+			local ux, uz = legDirection(i)
+			local a = V3.RIVER[i]
+			local b = V3.RIVER[i + 1]
+			for k = 1, 9 do
+				local x, z = a[1] + (b[1] - a[1]) * k / 10, a[2] + (b[2] - a[2]) * k / 10
+				local vx, vz = Current.flow(V3, x, z)
+				if speedOf(vx, vz) > 0 then
+					checked += 1
+					assert((vx * ux + vz * uz) / speedOf(vx, vz) > 0, ("leg %d flows upstream at %.1f, %.1f"):format(i, x, z))
+				end
+			end
+		end
+		assert(checked >= 100, "the centreline was sampled: " .. checked)
+		-- the net flow: east at the outlet's leg and on the last leg before the mouth
+		local vxFirst = Current.flow(V3, (first[1] + V3.RIVER[2][1]) / 2, (first[2] + V3.RIVER[2][2]) / 2)
+		local before = V3.RIVER[#V3.RIVER - 1]
+		local vxLast = Current.flow(V3, (before[1] + last[1]) / 2, (before[2] + last[2]) / 2)
+		assert(vxFirst > 0 and vxLast > 0, "west to east at both ends")
+		-- the mouth itself is on the plot clip: still
+		equal(Current.speedAt(V3, last[1], last[2]), 0, "nothing flows past the east edge")
+		equal(Current.speedAt(V3, Layout.EAST + 5, last[2]), 0, "outside the plot is dry")
+		for _, d in ipairs(V3.DOCKS) do
+			near(Current.speedAt(V3, d.tipX, d.tipZ), Current.LAKE_SPEED, "dock " .. d.id .. "'s tip", 1e-6)
+		end
+		for i, disc in ipairs(V3.LAKE) do
+			near(Current.speedAt(V3, disc.x, disc.z), Current.LAKE_SPEED, "lake disc " .. i .. "'s centre", 1e-6)
 		end
 	end)
 

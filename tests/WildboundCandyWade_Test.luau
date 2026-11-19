@@ -94,6 +94,15 @@ return function(Wade, V3, Layout, sources)
 			"walking the chocolate's floor is wading")
 		equal(Wade.wading(false, { liquid = -1, feetY = surface + V3.DOCK.deckOver, surface = surface, alive = true }), false,
 			"a dock deck is dry")
+		-- CL-D7 (Caramelo v9): the three raised bridges stand over open chocolate; on a deck is dry, under it is wading
+		for _, B in ipairs(V3.BRIDGES) do
+			local liquid = V3.liquidDistance(B.x, B.z)
+			assert(liquid < 0, B.id .. "'s deck centre stands over the chocolate")
+			equal(Wade.wading(false, { liquid = liquid, feetY = Layout.FLOOR_TOP + B.deck, surface = surface, alive = true }), false,
+				B.id .. ": on the raised deck is dry")
+			equal(Wade.wading(false, { liquid = liquid, feetY = Layout.FLOOR_TOP, surface = surface, alive = true }), true,
+				B.id .. ": under the raised deck is wading")
+		end
 	end)
 
 	case("WD5: applyCarry multiplies its own fresh speed (no stacking) and re-applies on a change", function()

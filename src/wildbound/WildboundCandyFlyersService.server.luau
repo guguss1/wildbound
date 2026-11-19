@@ -20,6 +20,8 @@ local RunService = game:GetService("RunService")
 
 local F = require(ServerStorage:WaitForChild("WildboundCandyFlyers"))
 local Layout = require(ServerStorage:WaitForChild("WildboundCandyLayout"))
+-- CL-D15 (Caramelo v9): the chocolate (V3.liquidDistance) keeps the hives off the river, the lake and the basins
+local V3 = require(ServerStorage:WaitForChild("WildboundCandyV3Layout"))
 local Rules = require(ServerScriptService:WaitForChild("WildboundWorldRules"))
 local DodgeService = require(ServerScriptService:WaitForChild("WildboundDodgeService"))
 -- RC4 (relentless chases): the strike ledger shared with the candy beasts (one module instance in this server)
@@ -46,10 +48,15 @@ end
 local ground = biome:FindFirstChild("Ground")
 local floorPart = ground and ground:FindFirstChild("Floor")
 local centre, floorTop = { x = Layout.CENTRE.x, z = Layout.CENTRE.z }, Layout.FLOOR_TOP
+-- CL-D15 (Caramelo v9): the floor grew 600 studs east only, so the plot centre is HALF east of the floor's west edge
+-- (972 - 560 + 260 = 672 on the grown floor; the v8 square floor gives 672 too), as WildboundCandyLife.plotFrame.
 if floorPart and floorPart:IsA("BasePart") then
-	centre = { x = floorPart.Position.X, z = floorPart.Position.Z }
+	centre = { x = floorPart.Position.X - floorPart.Size.X / 2 + Layout.HALF, z = floorPart.Position.Z }
 	floorTop = floorPart.Position.Y + floorPart.Size.Y / 2
 end
+-- CL-D15: the biome's rectangle, local x -HALF..EAST and z -HALF..HALF: { x = 972, z = -3, half = 260, halfX = 560 }
+local east = Layout.EAST or Layout.HALF
+local bounds = { x = centre.x + (east - Layout.HALF) / 2, z = centre.z, half = Layout.HALF, halfX = (Layout.HALF + east) / 2 }
 
 local function safeAt(x, z)
 	local _, safe = Rules.zone(x, z)
@@ -72,7 +79,8 @@ local function creaturePosts()
 	end
 	return list
 end
-local hives = F.hives(Layout, centre, { floorTop = floorTop, safe = safeAt, posts = creaturePosts() })
+local hives = F.hives(Layout, centre, { floorTop = floorTop, safe = safeAt, posts = creaturePosts(),
+	liquid = V3.liquidDistance })
 local params = RaycastParams.new()
 params.FilterType = Enum.RaycastFilterType.Include
 params.FilterDescendantsInstances = { ground or biome }
@@ -80,7 +88,7 @@ for _, h in ipairs(hives) do -- the floor under each hive, once
 	local hit = workspace:Raycast(Vector3.new(h.x, floorTop + 200, h.z), Vector3.new(0, -400, 0), params)
 	h.floor = hit and hit.Position.Y or floorTop
 end
-local world = F.new(hives, now(), { x = centre.x, z = centre.z, half = Layout.HALF }, F.noGoZones(Layout, centre))
+local world = F.new(hives, now(), bounds, F.noGoZones(Layout, centre))
 
 local folder = Instance.new("Folder")
 folder.Name = "WildboundCandyFlyers"

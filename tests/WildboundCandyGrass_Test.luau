@@ -47,8 +47,9 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 		local ground = Instance.new("Folder")
 		ground.Name, ground.Parent = "Ground", root
 		local floor = Instance.new("Part")
-		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF * 2, 1, Layout.HALF * 2)
-		floor.Position = Vector3.new(C.x, Layout.FLOOR_TOP - 0.5, C.z)
+		-- CL-D13: the v9 floor is the rectangle x -HALF..EAST, z -HALF..HALF (1120 x 520, centre 300 east of CENTRE)
+		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF + Layout.EAST, 1, Layout.HALF * 2)
+		floor.Position = Vector3.new(C.x + (Layout.EAST - Layout.HALF) / 2, Layout.FLOOR_TOP - 0.5, C.z)
 		floor.Parent = ground
 		local v3 = Instance.new("Folder")
 		v3.Name, v3.Parent = V3.FOLDER, root
@@ -175,7 +176,8 @@ return function(Grass, Spots, Hiding, Layout, V3, Enc, Critter, sources)
 		local ctx = Grass.context(Layout, V3, Spots, {})
 		equal(Grass.blocked(V3.LAKE[1].x, V3.LAKE[1].z, ctx), "liquid", "in the lake")
 		assert(Grass.blocked(-150, 0, ctx) ~= nil, "on the main path")
-		equal(Grass.blocked(Layout.HALF - 2, 60, ctx), "edge", "on the plot edge")
+		-- CL-D1: the east edge is at EAST now (HALF - 2 is deep in the grown plot)
+		equal(Grass.blocked(Layout.EAST - 2, 60, ctx), "edge", "on the plot edge")
 		local h = V3.HOUSES[1]
 		assert(Grass.blocked(h.x, h.z, ctx) ~= nil, "inside a house")
 		local n = Layout.NESTS[1]

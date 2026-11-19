@@ -502,6 +502,12 @@ end
 Builder.EXTRA_TREES = table.freeze({ cottonLeft = 11, cottonRight = 5, TreeCookie = 3, TreeCream = 3, avenueFrom = 35,
 	avenueEvery = 60 })
 
+-- CL-D1 (Caramelo v9, the plot grown east): the plot's east half-length (Layout.EAST, 860); a layout without it is
+-- square (HALF).
+local function plotEast(L)
+	return type(L.EAST) == "number" and L.EAST or L.HALF
+end
+
 -- V8-D1 (Caramelo v8, the plot 1.3 times bigger): the avenue's lollipop slots (v7 studs along the right route) stretch
 -- with the route by the layout's V8.S (1 for a layout without it), so a fresh build keeps the v7 lollipop count.
 local function avenueScale(L)
@@ -514,7 +520,8 @@ Builder.TREES_ADDED_ATTRIBUTE = "CaramelTreesAddedV2"
 -- inside the plot, off the routes by routeClear, the boss territory, the entrance, the portal, KEEP_CLEAR, the nests,
 -- the lake and every { x, z, reach } of taken.
 function Builder.openGround(L, x, z, routeClear, reach, taken)
-	if L.depth(x, z) < 10 or x > L.HALF - 42 then return false end
+	-- CL-D1: the east hill band follows the grown plot's east edge, x > EAST - 42 (was HALF - 42)
+	if L.depth(x, z) < 10 or x > plotEast(L) - 42 then return false end
 	if L.routeDistance(x, z) < routeClear then return false end
 	if L.flat(x, z, L.BOSS.x, L.BOSS.z) < L.BOSS.territoryRadius + 4 + reach then return false end
 	if L.flat(x, z, L.ENTRANCE.x, L.ENTRANCE.z) < 28 then return false end
@@ -605,7 +612,8 @@ end
 local function plantSpot(L, rng, m, minZ, maxZ, taken, keepOut)
 	local reach = m.canopy * Builder.TREE_SPACING
 	for _ = 1, 400 do
-		local x, z = math.round(rng:NextNumber(-L.HALF + 10, L.HALF - 42)), math.round(rng:NextNumber(minZ, maxZ))
+		-- CL-D1: x -HALF + 10 .. EAST - 42 (was HALF - 42)
+		local x, z = math.round(rng:NextNumber(-L.HALF + 10, plotEast(L) - 42)), math.round(rng:NextNumber(minZ, maxZ))
 		if Builder.openGround(L, x, z, 0, reach, taken) and Builder.treeFits(L, x, z, m, keepOut) then return x, z end
 	end
 	return nil
@@ -1157,7 +1165,10 @@ function Builder.build(parent, layout, kit, library)
 	local ok, failure = pcall(function()
 		-- Ground and paths. Thin layers at different heights so no two tops fight.
 		local ground = group("Folder", "Ground")
-		block(ground, "Floor", "floor", Vector3.new(L.HALF * 2, 1, L.HALF * 2), CFrame.new(world(0, top - 0.5, 0)), palette.floor)
+		-- CL-D13: one floor part over the grown plot, x -HALF..EAST by z -HALF..HALF (was HALF * 2 square)
+		local east = plotEast(L)
+		block(ground, "Floor", "floor", Vector3.new(L.HALF + east, 1, 2 * L.HALF), CFrame.new(world((east - L.HALF) / 2, top - 0.5, 0)),
+			palette.floor)
 		-- GT: the paths, the Gran Torta (scaled uniformly so its bottom tier has the layout's radius; only the four tier
 		-- cylinders collide), the plaza and the boss ground come from the helpers the live cake move uses too.
 		created += select(2, Builder.layPaths(root, L))
@@ -1274,8 +1285,8 @@ function Builder.build(parent, layout, kit, library)
 			while done < count do
 				attempts += 1
 				assert(attempts <= 6000, "no room left to scatter")
-				-- V8-D1: the range follows HALF (v7 -190..158 at HALF 200), like plantSpot's
-				local x, z = math.round(rng:NextNumber(-L.HALF + 10, L.HALF - 42)), math.round(rng:NextNumber(minZ, maxZ))
+				-- V8-D1: the range follows HALF (v7 -190..158 at HALF 200), like plantSpot's; CL-D1: to EAST - 42 (was HALF - 42)
+				local x, z = math.round(rng:NextNumber(-L.HALF + 10, plotEast(L) - 42)), math.round(rng:NextNumber(minZ, maxZ))
 				if open(x, z, routeClear, reach) then
 					done += 1
 					table.insert(taken, { x = x, z = z, reach = reach })

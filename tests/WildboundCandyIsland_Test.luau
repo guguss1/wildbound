@@ -5,8 +5,8 @@
 -- Caramelo v6, proposal 4 (odd/tasks/wildbound-caramelo-v2.md V6-D4; docs/design/wildbound-caramelo-v3-plan.md V6-D60
 -- on): an island in the big lake with one Epica egg nest. The layout's island (V3.ISLANDS) clear of the docks, the
 -- straight dock-to-dock line, the cookie platforms and the bridges, with a raft channel all round; the chocolate ends at
--- its waterline for every reader of V3.liquidDistance (the raft cannot enter it, still sails round it and docks at both
--- docks; a wader walks up out of it by the feet rule; the current is 0 on it; no fish jumps out of it); the ground's
+-- its waterline for every reader of V3.liquidDistance (the raft cannot enter it, still sails round it and docks at every
+-- dock, CL-D8; a wader walks up out of it by the feet rule; the current is 0 on it; no fish jumps out of it); the ground's
 -- slabs follow the shore profile; WildboundCandyIsland.sync on a detached biome lays the island and its nest
 -- idempotently, read as the unguarded Epica island nest CandyI1; and the wiring (applyFlags' eighth step, the reader,
 -- the frenzy on any steal). Every fixture is built detached (never parented to a service); the kit is a fake.
@@ -42,11 +42,12 @@ return function(Island, Nests, Layout, V3, Raft, Wade, Current, Life, sources)
 	local C = Layout.CENTRE
 	local I = V3.ISLANDS[1]
 	-- The chocolate without the islands (the river, the pool and the lake discs), as before V6-D4.
+	-- CL-D3: with the v9 plot clip (nothing outside the plot is chocolate), as V3.liquidDistance has it.
 	local function water(x, z)
 		local best = V3.riverDistance(x, z)
 		best = math.min(best, flat(x, z, V3.POOL.x, V3.POOL.z) - V3.POOL.r)
 		for _, disc in ipairs(V3.LAKE) do best = math.min(best, flat(x, z, disc.x, disc.z) - disc.r) end
-		return best
+		return math.max(best, -V3.plotDepth(x, z))
 	end
 	-- A point `rho` studs from the island's centre, `degrees` round it (plot coordinates).
 	local function round(rho, degrees)
@@ -77,6 +78,9 @@ return function(Island, Nests, Layout, V3, Raft, Wade, Current, Life, sources)
 			assert(water(x, z) < 0, "the foot leaves the lake at " .. k)
 		end
 		-- away from the docks' tips and approach, and from the straight line between them, by more than a raft
+		-- CL-D8: four docks (A, B, C, D); every tip and stand is checked, and the straight line is A-B's (the only two
+		-- that face each other along open water, the west channel; C and D are reached along the river)
+		assert(#V3.DOCKS >= 3, "the v9 docks")
 		local a, b = V3.DOCKS[1], V3.DOCKS[2]
 		for _, d in ipairs(V3.DOCKS) do
 			assert(flat(I.x, I.z, d.tipX, d.tipZ) - I.foot >= Raft.ARM_STUDS + 2 * Raft.HULL, "by dock " .. d.id)
@@ -125,7 +129,7 @@ return function(Island, Nests, Layout, V3, Raft, Wade, Current, Life, sources)
 	end)
 
 	-- The raft, wading and the current ------------------------------------------------------------------------------
-	case("IS3: the raft cannot enter the island, sails round it, and still crosses and docks at both docks", function()
+	case("IS3: the raft cannot enter the island, sails round it, and still crosses and docks at every dock", function()
 		local wx, wz = C.x + I.x, C.z + I.z
 		for rho = 0, I.r + Raft.HULL - 0.05, 0.5 do
 			for k = 0, 330, 30 do
@@ -164,15 +168,15 @@ return function(Island, Nests, Layout, V3, Raft, Wade, Current, Life, sources)
 			local reach = Raft.nearDock({ docks = docks }, x, z, Raft.ARM_STUDS) and 0 or Raft.HULL
 			assert(area.inside(x, z, reach), "the crossing is blocked at " .. s .. " %")
 		end
-		-- docking at both docks with the current (as WildboundCandyCurrent_Test CU7)
-		for i = 1, 2 do
-			local tip, other = docks[i], docks[3 - i]
-			local dx, dz = other.x - tip.x, other.z - tip.z
-			local length = math.sqrt(dx * dx + dz * dz)
+		-- docking at every dock with the current (as WildboundCandyCurrent_Test CU7)
+		-- CL-D8: #V3.DOCKS docks; each approach starts 10 studs out along the dock's own look (stand -> tip)
+		for i = 1, #V3.DOCKS do
+			local tip = docks[i]
+			local dx, dz = -math.sin(tip.yaw), -math.cos(tip.yaw)
 			local s = Raft.new(docks, V3.RAFT.homeDock)
 			s.status, s.rider, s.armed, s.speed = "Sailing", 40 + i, true, 0
-			s.x, s.z = tip.x + dx / length * 10, tip.z + dz / length * 10
-			s.yaw = math.atan2(dx / length, dz / length)
+			s.x, s.z = tip.x + dx * 10, tip.z + dz * 10
+			s.yaw = math.atan2(dx, dz)
 			local t, arrived = 0, nil
 			while t < 15 and not arrived do
 				t += 1 / 30
@@ -314,8 +318,9 @@ return function(Island, Nests, Layout, V3, Raft, Wade, Current, Life, sources)
 		local ground = Instance.new("Folder")
 		ground.Name, ground.Parent = "Ground", root
 		local floor = Instance.new("Part")
-		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF * 2, 1, Layout.HALF * 2)
-		floor.Position = Vector3.new(C.x, Layout.FLOOR_TOP - 0.5, C.z)
+		-- CL-D13: the v9 floor, x -HALF..EAST, so the island (local x 690) stands on it
+		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF + Layout.EAST, 1, Layout.HALF * 2)
+		floor.Position = Vector3.new(C.x + (Layout.EAST - Layout.HALF) / 2, Layout.FLOOR_TOP - 0.5, C.z)
 		floor.Parent = ground
 		local v3 = Instance.new("Folder")
 		v3.Name, v3.Parent = V3.FOLDER, root

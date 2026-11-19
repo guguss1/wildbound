@@ -24,9 +24,24 @@
 --                       The big4 annex strips (z -303..-263 and 257..297, to x 1012) and the grey Baseplate (to x 1024
 --                       at every z) run past the band's ends, so without them a player walks round the wall ("nobody
 --                       crosses it"); east of x 1024 is void, so nobody gets round a cap either. The Veil stays whole.
+-- Caramelo v9 (CL-D1, CL-D13; docs/design/wildbound-caramelo-v9-plan.md; owner request 2026-11-18: "agranda mas el
+-- bioma caramelo a lo largo"): the plot runs east to Layout.EAST (world x 1532), so the band, the wall and the floor
+-- follow it, and the big4 arm (x 412..1612, z -303..297) ends TAIL studs past the band:
+--   Ground.Floor        the band and the tail, x 1532..1612 (was the band only);
+--   CloudWall.CapNorth  the caps end at the arm's end (x 1612), no longer at the second space's far edge;
+--   CloudWall.CapSouth
+--   CloudWall.SideWallNorth, SideWallSouth, EndWall  invisible solid walls (EDGE_WALL thick, 80 tall) along the stretched
+--                       annex strips' outer sides from the Baseplate's east edge (x 1024, past it is void) and across the
+--                       arm's end, so nobody falls into the void;
+--   CloudWall.MouthGuard  an invisible solid block from the plot's east edge to the Collider across the river's mouth,
+--                       so the river's barrier holds to the wall;
+--   CloudWall.MouthSheet  decor chocolate (V3.LIQUID's colour, as thick as the chocolate) from the plot's east edge to the
+--                       arm's end across the mouth: the river flows on under the cloud. The two mouth parts are planned only
+--                       when V3's last river point lies on the east edge, their z from it.
+-- stripPlan resizes the two big4 annex strips to the arm (0 new parts).
 -- Anything named SistemaSonriente is never touched.
--- tools/wildbound-caramelo-v8-migrate.luau and tools/wildbound-pueblo-gatito-move.luau call build() on the live map;
--- WildboundCandyEast_Test holds the rules.
+-- tools/wildbound-caramelo-v8-migrate.luau, tools/wildbound-pueblo-gatito-move.luau and
+-- tools/wildbound-caramelo-v9-migrate.luau call build() on the live map; WildboundCandyEast_Test holds the rules.
 local East = {}
 
 East.VERSION = 1
@@ -50,6 +65,15 @@ East.FLOOR_MATERIAL = "SmoothPlastic"
 East.VEIL_COLOR = table.freeze({ 255, 226, 240 }) -- cloud pink
 -- PGM-D5: East.GATE (K-D1's 14-stud gap in the Collider) is gone; the wall is closed.
 East.FORBIDDEN = "SistemaSonriente"
+-- CL-D13: the big4 arm runs TAIL studs past the cloud band (world x 1548..1612); EDGE_WALL is the side and end walls'
+-- thickness. STRIP_WIDTH is the big4 annex strips' width (z), the arm's overhang past the plot's long sides;
+-- STRIP_OLD_MAX_X their east end before v9 and BASEPLATE_MAX_X the grey Baseplate's east edge (world x; past it is void).
+East.TAIL = 64
+East.EDGE_WALL = 4
+East.STRIP_WIDTH = 40
+East.STRIP_OLD_MAX_X = 1012
+East.BASEPLATE_MAX_X = 1024
+East.STRIP_SLACK = 1 -- stripPlan finds a strip by its rectangle within this many studs
 
 local function rect(minX, maxX, minZ, maxZ)
 	return table.freeze({ minX = minX, maxX = maxX, minZ = minZ, maxZ = maxZ })
@@ -65,35 +89,84 @@ local function layout(L)
 	return require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyLayout"))
 end
 
--- plan(L) -> the world numbers of Caramelo Este for layout L (default ServerStorage's WildboundCandyLayout):
---   plot      the first plot's square (x CENTRE.x +- HALF, z CENTRE.z +- HALF)
---   band      the cloud band: BAND wide along the plot's east edge, the plot's length plus BAND_OVERHANG at each end
---   space     the second space: as big as the plot, east of the band; centre { x, z } (PGM-D5: no longer built, kept
---             for annexMove, annexGround, the v8 tool and KittenPark's archive step)
---   ground    the floor under the band only (PGM-D5; the band's x, the plot's z range; was the band and the space)
---   wallX     the band's centre line (the Collider's x); margin = WALL_MARGIN
---   shift     how far east a point of the plot lands at the same spot of the space (2 * HALF + BAND)
---   parts     the specs of Ground.Floor, CloudWall.Collider, CloudWall.Veil, CloudWall.CapNorth and CloudWall.CapSouth,
---             in that order: { name, folder, size = { x, y, z }, position = { x, y, z }, color, material, transparency,
---             canCollide, canQuery, canTouch, castShadow, role } (PGM-D5: ColliderSouth left, the Collider whole again)
---   caps      the two end caps' rectangles { north, south } (V8-D3 amendment)
-function East.plan(L)
-	L = layout(L)
-	local cx, cz, half, top = L.CENTRE.x, L.CENTRE.z, L.HALF, L.FLOOR_TOP
-	local plot = rect(cx - half, cx + half, cz - half, cz + half)
+-- CL-D13: the V3 layout for the river's mouth: the one given, else ServerStorage's WildboundCandyV3Layout when it is
+-- there (never waited for), else nil (no mouth parts).
+local function v3Layout(V3)
+	if type(V3) == "table" then return V3 end
+	local found = game:GetService("ServerStorage"):FindFirstChild("WildboundCandyV3Layout")
+	if found and found:IsA("ModuleScript") then
+		local ok, module = pcall(require, found)
+		if ok and type(module) == "table" then return module end
+	end
+	return nil
+end
+
+-- CL-D1: the plot's east half-length (Layout.EAST, 860 in v9); a layout without it is square (HALF).
+local function eastOf(L)
+	return type(L.EAST) == "number" and L.EAST or L.HALF
+end
+
+-- The rectangles that need no V3: plot, band, space, arm.
+local function frame(L)
+	local cx, cz, half = L.CENTRE.x, L.CENTRE.z, L.HALF
+	-- CL-D1: x from the west edge (CENTRE.x - HALF) to the east edge (CENTRE.x + EAST) (was CENTRE.x +- HALF)
+	local plot = rect(cx - half, cx + eastOf(L), cz - half, cz + half)
 	local band = rect(plot.maxX, plot.maxX + East.BAND, plot.minZ - East.BAND_OVERHANG, plot.maxZ + East.BAND_OVERHANG)
+	-- CL-D13: a legacy formula (2 * HALF east of the band) for annexMove, annexGround and the old tools
 	local space = rect(band.maxX, band.maxX + 2 * half, plot.minZ, plot.maxZ)
-	-- PGM-D5: the band only (was band.minX..space.maxX); the plot's z, so it never fights the annex strips past it
-	local ground = rect(band.minX, band.maxX, plot.minZ, plot.maxZ)
+	-- CL-D13: the big4 arm, TAIL past the band, STRIP_WIDTH past the plot's long sides
+	local arm = rect(plot.minX, band.maxX + East.TAIL, plot.minZ - East.STRIP_WIDTH, plot.maxZ + East.STRIP_WIDTH)
+	return plot, band, space, arm
+end
+
+-- plan(L, V3) -> the world numbers of Caramelo Este for layout L (default ServerStorage's WildboundCandyLayout) and V3
+-- layout V3 (optional; default ServerStorage's WildboundCandyV3Layout when it is there, read for the river's mouth only):
+--   plot      the plot (CL-D1: x CENTRE.x - HALF .. CENTRE.x + EAST, z CENTRE.z +- HALF)
+--   band      the cloud band: BAND wide along the plot's east edge, the plot's length plus BAND_OVERHANG at each end
+--   space     legacy (CL-D13): 2 * HALF east of the band; centre { x, z } (never built, kept for annexMove,
+--             annexGround, the v8 tool and KittenPark's archive step)
+--   arm       CL-D13: the big4 arm, x plot.minX .. band.maxX + TAIL, z plot +- STRIP_WIDTH (world 412..1612, -303..297)
+--   ground    the floor under the band and the tail (CL-D13: band.minX .. arm.maxX, the plot's z; was the band only)
+--   wallX     the band's centre line (the Collider's x); margin = WALL_MARGIN
+--   shift     legacy: how far east a point of the plot lands at the same spot of the space (space.minX - plot.minX)
+--   mouth     CL-D13: the river's mouth past the plot (x plot.maxX .. arm.maxX, z from V3's last river point +- half its
+--             width), or nil when the river does not end on the east edge
+--   parts     the specs of Ground.Floor, CloudWall.Collider, Veil, CapNorth, CapSouth, SideWallNorth, SideWallSouth,
+--             EndWall and, with a mouth, MouthGuard and MouthSheet, in that order: { name, folder, size = { x, y, z },
+--             position = { x, y, z }, color, material, transparency, canCollide, canQuery, canTouch, castShadow, role }
+--   caps      the two end caps' rectangles { north, south } (V8-D3 amendment; CL-D13: to the arm's end)
+function East.plan(L, V3)
+	L = layout(L)
+	V3 = v3Layout(V3)
+	local cz, top = L.CENTRE.z, L.FLOOR_TOP
+	local plot, band, space, arm = frame(L)
+	-- CL-D13: the band and the tail (was the band only, PGM-D5); the plot's z, so it never fights the annex strips
+	local ground = rect(band.minX, arm.maxX, plot.minZ, plot.maxZ)
 	local wallX = (band.minX + band.maxX) / 2
 	local bandZ, bandLength = (band.minZ + band.maxZ) / 2, band.maxZ - band.minZ
 	local wallY = top + East.HEIGHT / 2
-	-- V8-D3 amendment: the end caps, inside the band's two ends, from the Collider's west face to the space's far edge
+	-- V8-D3 amendment: the end caps, inside the band's two ends, from the Collider's west face; CL-D13: to the arm's end
+	-- (was the second space's far edge)
 	local capWest = wallX - East.COLLIDER_THICK / 2
 	local caps = {
-		north = rect(capWest, space.maxX, band.maxZ - East.CAP_THICK, band.maxZ),
-		south = rect(capWest, space.maxX, band.minZ, band.minZ + East.CAP_THICK),
+		north = rect(capWest, arm.maxX, band.maxZ - East.CAP_THICK, band.maxZ),
+		south = rect(capWest, arm.maxX, band.minZ, band.minZ + East.CAP_THICK),
 	}
+	-- CL-D13: the side walls along the stretched strips' outer sides, from over the Baseplate to past the arm's end, and
+	-- the end wall across the arm's end, corner to corner
+	local wall = East.EDGE_WALL
+	local sides = {
+		north = rect(East.BASEPLATE_MAX_X - wall, arm.maxX + wall, arm.maxZ, arm.maxZ + wall),
+		south = rect(East.BASEPLATE_MAX_X - wall, arm.maxX + wall, arm.minZ - wall, arm.minZ),
+		ending = rect(arm.maxX, arm.maxX + wall, arm.minZ - wall, arm.maxZ + wall),
+	}
+	-- CL-D13: the mouth, when V3's last river point { x, z, w } (local) lies on the east edge
+	local mouth = nil
+	local river = V3 and V3.RIVER
+	local last = type(river) == "table" and river[#river] or nil
+	if type(last) == "table" and type(last[1]) == "number" and math.abs(last[1] - eastOf(L)) <= 1e-3 then
+		mouth = rect(plot.maxX, arm.maxX, cz + last[2] - last[3] / 2, cz + last[2] + last[3] / 2)
+	end
 	local function cap(name, r)
 		return { name = name, folder = East.FOLDER, role = "solid",
 			size = { r.maxX - r.minX, East.HEIGHT, r.maxZ - r.minZ },
@@ -121,9 +194,26 @@ function East.plan(L)
 			canCollide = false, canQuery = false, canTouch = false, castShadow = false },
 		cap("CapNorth", caps.north),
 		cap("CapSouth", caps.south),
+		-- CL-D13: the side and end walls have the caps' flags
+		cap("SideWallNorth", sides.north),
+		cap("SideWallSouth", sides.south),
+		cap("EndWall", sides.ending),
 	}
+	if mouth then
+		-- CL-D13: the guard closes the gap between the plot's east edge and the Collider across the mouth
+		table.insert(parts, cap("MouthGuard", rect(plot.maxX, capWest, mouth.minZ, mouth.maxZ)))
+		-- CL-D13: the sheet: decor chocolate from the floor to the river's surface, to the arm's end
+		local liquid = type(V3.LIQUID) == "table" and V3.LIQUID or {}
+		local depth = type(liquid.depth) == "number" and liquid.depth or 3.5
+		table.insert(parts, { name = "MouthSheet", folder = East.FOLDER, role = "decor",
+			size = { mouth.maxX - mouth.minX, depth, mouth.maxZ - mouth.minZ },
+			position = { (mouth.minX + mouth.maxX) / 2, top + depth / 2, (mouth.minZ + mouth.maxZ) / 2 },
+			color = type(liquid.color) == "table" and liquid.color or { 92, 52, 34 }, material = "Glass",
+			transparency = type(liquid.transparency) == "number" and liquid.transparency or 0.08,
+			canCollide = false, canQuery = false, canTouch = false, castShadow = false })
+	end
 	return {
-		plot = plot, band = band, space = space, ground = ground, caps = table.freeze(caps),
+		plot = plot, band = band, space = space, arm = arm, ground = ground, caps = table.freeze(caps), mouth = mouth,
 		centre = table.freeze({ x = (space.minX + space.maxX) / 2, z = (space.minZ + space.maxZ) / 2 }),
 		wallX = wallX, margin = East.WALL_MARGIN, shift = space.minX - plot.minX, floorTop = top,
 		parts = parts,
@@ -211,6 +301,45 @@ function East.annexGround(L, slabs)
 	return out
 end
 
+-- stripPlan(L, slabs) -> { resize = { { name, side, rect } }, done = { { name, side } }, missing = { sides }, ok }
+-- (CL-D13). slabs = { { name, minX, maxX, minZ, maxZ } }: the floor slabs of Workspace.WildboundCandyAnnex_Big4. The
+-- two strips are found by geometry, within STRIP_SLACK studs: x arm.minX..STRIP_OLD_MAX_X (412..1012) and z the arm's
+-- edge to the plot's (south -303..-263, north 257..297). Each found strip is resized to the arm's x (412..1612), its own
+-- z range kept; a strip already at the arm's x is `done` (nothing to resize). side is "south" or "north"; missing lists
+-- the sides with no strip; ok is true when both were found. 0 new parts; pure; deterministic (name order: the first
+-- match wins a side).
+function East.stripPlan(L, slabs)
+	L = layout(L)
+	local plot, _, _, arm = frame(L)
+	local slack = East.STRIP_SLACK
+	local function close(a, b) return math.abs(a - b) <= slack + 1e-6 end
+	local wanted = {
+		{ side = "south", minZ = arm.minZ, maxZ = plot.minZ },
+		{ side = "north", minZ = plot.maxZ, maxZ = arm.maxZ },
+	}
+	local list = table.clone(slabs or {})
+	table.sort(list, function(a, b) return tostring(a.name) < tostring(b.name) end)
+	local out = { resize = {}, done = {}, missing = {}, ok = false }
+	for _, w in ipairs(wanted) do
+		local found = false
+		for _, s in ipairs(list) do
+			if not found and type(s.minX) == "number" and close(s.minX, arm.minX) and close(s.minZ, w.minZ)
+				and close(s.maxZ, w.maxZ) then
+				if close(s.maxX, arm.maxX) then
+					found = true
+					table.insert(out.done, { name = s.name, side = w.side })
+				elseif close(s.maxX, East.STRIP_OLD_MAX_X) then
+					found = true
+					table.insert(out.resize, { name = s.name, side = w.side, rect = rect(arm.minX, arm.maxX, s.minZ, s.maxZ) })
+				end
+			end
+		end
+		if not found then table.insert(out.missing, w.side) end
+	end
+	out.ok = #out.missing == 0
+	return out
+end
+
 -- Whether a property already holds a value (vectors, frames and colours within float noise).
 local function same(a, b)
 	if typeof(a) ~= typeof(b) then return false end
@@ -263,18 +392,19 @@ local function child(parent, class, name)
 	return made, true
 end
 
--- build(parent, L) -> root, report { created, changed, parts }: Caramelo Este's floor and cloud wall under
--- parent (default Workspace) as parent.Candy_Este_v1 (a Model; created when missing). Idempotent: a missing piece is
--- made, a piece that differs from the plan is set back to it, and a second call changes nothing (created 0, changed 0).
--- The Collider (PGM-D5: whole again; on a live map K-D1's north piece grows back to the band's length and the floor
--- shrinks to the band) carries WallMargin (WildboundCandySmarts.wallOf); the root carries Version, WallX and Key. Never
--- removes anything: a live ColliderSouth is left as it is (tools/wildbound-pueblo-gatito-move.luau archives it). Refuses
--- a parent inside SistemaSonriente; never touches anything else under parent.
-function East.build(parent, L)
+-- build(parent, L, V3) -> root, report { created, changed, parts }: Caramelo Este's floor and cloud wall under
+-- parent (default Workspace) as parent.Candy_Este_v1 (a Model; created when missing), from plan(L, V3). Idempotent: a
+-- missing piece is made, a piece that differs from the plan is set back to it, and a second call changes nothing
+-- (created 0, changed 0). The Collider (PGM-D5: whole again; on a live map K-D1's north piece grows back to the band's
+-- length) carries WallMargin (WildboundCandySmarts.wallOf); the root carries Version, WallX and Key. CL-D13: on the v8
+-- map it conforms the five old parts to the v9 band and creates the five new ones. Never removes anything: a live
+-- ColliderSouth is left as it is (tools/wildbound-pueblo-gatito-move.luau archives it). Refuses a parent inside
+-- SistemaSonriente; never touches anything else under parent.
+function East.build(parent, L, V3)
 	parent = parent or game:GetService("Workspace")
 	assert(typeof(parent) == "Instance", "parent must be an Instance")
 	assert(not forbidden(parent), "refusing to touch " .. East.FORBIDDEN)
-	local P = East.plan(L)
+	local P = East.plan(L, V3)
 	local report = { created = 0, changed = 0, parts = 0 }
 	local root, made = child(parent, "Model", East.ROOT_NAME)
 	if made then report.created += 1 end

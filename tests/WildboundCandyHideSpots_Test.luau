@@ -51,8 +51,9 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		local ground = Instance.new("Folder")
 		ground.Name, ground.Parent = "Ground", root
 		local floor = Instance.new("Part")
-		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF * 2, 1, Layout.HALF * 2)
-		floor.Position = Vector3.new(C.x, Layout.FLOOR_TOP - 0.5, C.z)
+		-- CL-D13: the v9 floor is the rectangle x -HALF..EAST, z -HALF..HALF (1120 x 520, centre 300 east of CENTRE)
+		floor.Name, floor.Anchored, floor.Size = "Floor", true, Vector3.new(Layout.HALF + Layout.EAST, 1, Layout.HALF * 2)
+		floor.Position = Vector3.new(C.x + (Layout.EAST - Layout.HALF) / 2, Layout.FLOOR_TOP - 0.5, C.z)
 		floor.Parent = ground
 		local v3 = Instance.new("Folder")
 		v3.Name, v3.Parent = V3.FOLDER, root
@@ -137,7 +138,8 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		assert(Spots.blocked(h.x, h.z, ctx) ~= nil, "inside a house")
 		local B = V3.BRIDGES[1]
 		assert(Spots.blocked(B.x, B.z, ctx) ~= nil, "on a bridge")
-		equal(Spots.blocked(Layout.HALF - 2, 60, ctx), "edge", "on the plot edge")
+		-- CL-D1: the east edge is at EAST now (HALF - 2 is deep in the grown plot)
+		equal(Spots.blocked(Layout.EAST - 2, 60, ctx), "edge", "on the plot edge")
 		-- a free spot north-west, and the spacing rule against a spot already laid
 		-- Deliberately changed (V8-D1): v7 (-158.6, -54.6) scaled with the plot (x 1.3), so it stays by house H5 (which
 		-- moved (-168, -82) -> (-218.4, -106.6)); unscaled it would be 79 studs from H5
@@ -155,7 +157,9 @@ return function(Spots, Hiding, Hide, Layout, V3, Enc, Config, Critter, Boss, sou
 		local x, z = nil, nil
 		for d = 0, 80 do
 			-- a point that is clear for the old river and not for one 8 studs wider
-			local px, pz = 34 + d * 0.5, 60
+			-- CL-D3: the v9 river no longer runs north-south through the middle; the probe walks south from (100, -150)
+			-- towards the west channel's north bank (z about -192 there)
+			local px, pz = 100, -150 - d * 0.5
 			if V3.liquidDistance(px, pz) >= Spots.LIQUID_MARGIN + Spots.REACH
 				and wider.liquidDistance(px, pz) < Spots.LIQUID_MARGIN + Spots.REACH then x, z = px, pz break end
 		end

@@ -21,9 +21,15 @@ Layout.SEED = 20261114
 -- -263..257, inside the big4 Meadow square (classic mode is not supported). Every position below keeps its v7 literal,
 -- mapped at load by v8() (x S about the centre); sizes and radii keep their v7 values. The exceptions say V8-D1:
 -- re-anchored to an edge or the plaza, or translated with their parent (the v7 offset kept).
+-- Caramelo v9 (owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo";
+-- docs/design/wildbound-caramelo-v9-plan.md, CL-D1): the plot grows 600 studs east only. CENTRE and HALF stay, so every west literal keeps its value; HALF
+-- now means the west half-length and the z half-length, and EAST (HALF + V9.GROWTH = 860) is the east edge. The plot is
+-- local x -260..860, z -260..260: world x 412..1532, z -263..257, inside the big4 Caramelo arm (x 412..1612).
 Layout.CENTRE = point(672, -3)
 Layout.HALF = 260
 Layout.V8 = table.freeze({ S = 1.3, OLD_CENTRE = point(612, -3), OLD_HALF = 200 })
+Layout.V9 = table.freeze({ GROWTH = 600, OLD_EAST = 260 })
+Layout.EAST = Layout.HALF + Layout.V9.GROWTH
 
 -- V8-D1: a v7 plot-local point in the v8 plot (x S about the centre): returns the new local x, z. Pure.
 function Layout.fromV7Local(x, z)
@@ -47,6 +53,10 @@ local function nest(id, rarity, x, z)
 	local nx, nz = Layout.fromV7Local(x, z)
 	return table.freeze({ id = id, rarity = rarity, x = nx, z = nz, eventOnly = rarity == "Legendaria" })
 end
+-- CL-D10: a nest written in v9 plot-local literals (no 1.3 scaling).
+local function nestAt(id, rarity, x, z)
+	return table.freeze({ id = id, rarity = rarity, x = x, z = z, eventOnly = rarity == "Legendaria" })
+end
 
 Layout.FLOOR_TOP = 0.5
 Layout.PATH_WIDTH = 14
@@ -62,10 +72,14 @@ Layout.FORK = v8(-110, 0)
 -- GT: the junction is the old Torta's ground, the middle of the plot; the Torta stands at the east end (its plaza 28
 -- studs from the east edge; V8-D1: 53.8 now, the plaza kept its size), at the end of the main avenue.
 Layout.JUNCTION = v8(0, 0)
+-- CL-D9: the Torta (and with it the boss, his home, the tower, the summit nest and the glaze) moves +600 with the east
+-- edge: local (748.2, 0), world (1420.2, -3); its plaza ends 53.8 studs from the east edge again.
 do
 	local x, z = Layout.fromV7Local(114, 0)
-	Layout.TORTA = table.freeze({ x = x, z = z, radius = 42 })
+	Layout.TORTA = table.freeze({ x = x + Layout.V9.GROWTH, z = z, radius = 42 })
 end
+-- CL-D6: where the far routes (south, north) leave the avenue: world (972, -3), 448.2 studs from the boss.
+Layout.EAST_FORK = point(300, 0)
 -- Don Glaseon's ground: the plaza he walks and the limit he never leaves. perception and whipLength are the pack's
 -- starting balance (05_SISTEMAS/04_BALANCE_INICIAL_CONFIG.md); they only size the safe distances here. GT: plaza 44 ->
 -- 58 and territory 62 -> 76 round the bigger Torta; he sleeps at the end of the avenue, at the cake's foot.
@@ -91,8 +105,13 @@ Layout.ROUTES = table.freeze({
 	-- Right: the lollipop avenue, open and shorter.
 	right = route({ { -110, 0 }, { -90, 70 }, { -40, 120 }, { 40, 120 }, { 80, 100 }, { 0, 0 } }),
 	deep = route({ { 0, 0 }, { -24, 0 } }),
+	-- CL-D6 (v9 local literals, no scaling): the far routes leave the avenue at the east fork and cross the river's
+	-- north-south reach at x 470 on the raised Bottom and Top bridges (WildboundCandyV3Layout.BRIDGES); the main avenue
+	-- crosses it on the Main bridge.
+	south = table.freeze({ Layout.EAST_FORK, point(320, -125), point(640, -125), point(670, -200) }),
+	north = table.freeze({ Layout.EAST_FORK, point(320, 125), point(620, 125) }),
 })
-Layout.ROUTE_ORDER = table.freeze({ "main", "left", "right", "deep" })
+Layout.ROUTE_ORDER = table.freeze({ "main", "left", "right", "deep", "south", "north" })
 Layout.RETURN_ROUTES = table.freeze({ "left", "right" })
 
 -- Laguna de Almibar: shallow discs { x, z, r } crossed by one biscuit bridge on the left route.
@@ -119,13 +138,12 @@ end
 Layout.KEEP_CLEAR = table.freeze({
 	keepClear(165, 150, 26, "La Nube's pond"), -- GT: was (165, 110), now off the bigger boss ground
 	keepClear(-60, 185, 10, "La Abeja's hive"),
-	-- K-D2 (owner request 2026-11-17, kitten park: "es como el mundo de gatito: un parque verde lindo"): the plot side of
-	-- the cloud gate to Caramelo Este (world (922, -3), in front of the wall's 14-stud gap at z -10..4), kept clear of
-	-- hide spots, grass, traps and bee hives. Written in v8 plot coordinates, not through keepClear() (v7 ones).
-	table.freeze({ x = 250, z = 0, r = 16, why = "Cloud gate to Caramelo Este" }),
+	-- CL-D12 (PGM-D8): K-D2's row for the cloud gate to Caramelo Este (250, 0) is gone: the gate left with Pueblo Gatito
+	-- and the plot now runs on east past it.
 })
 
 -- V8-D1: the v7 spots below, scaled by nest() (x S); the rarity depth rings scale with them (WildboundCandyLayout_Test).
+-- CL-D10: the moved and the new v9 nests are nestAt() rows, v9 local literals.
 Layout.NESTS = table.freeze({
 	nest("C1", "Comun", -160, -18),
 	nest("C2", "Comun", -140, 24),
@@ -142,11 +160,12 @@ Layout.NESTS = table.freeze({
 	-- CH3 (owner request 2026-11-16, "more eggs too"): eight more floor nests near the routes, outside the boss territory
 	-- and past the entrance; C7, R6 and C8 are guarded by the guardians' extra posts, the other five have an extra candy
 	-- critter post beside them (WildboundPraderaSites.EXTRA_POSTS).
-	nest("C6", "Comun", 10, -162), -- south of the biscuit bridge (left route)
+	-- CL-D10: C6, C8, C10 (and C13 below) stood where the v9 river's west channel runs; nestAt moves them out of it
+	nestAt("C6", "Comun", 55, -168), -- was v8 (13, -210.6); north of the channel, by the left route's bottom leg
 	nest("C7", "Comun", 5, 142), -- north of the lollipop avenue (right route)
-	nest("C8", "Comun", 60, -170), -- GT: was (140, -70), now under the boss ground; south of the left route's bend
+	nestAt("C8", "Comun", 105, -183), -- was v8 (78, -221); north of the channel, south of the left route's bend
 	nest("C9", "Comun", -135, -62), -- west of the left route's first leg
-	nest("C10", "Comun", -60, -162), -- south-west of the bridge
+	nestAt("C10", "Comun", -52, -167), -- was v8 (-78, -210.6); north of the channel, south-west of the bridge
 	nest("R5", "Rara", 88, 112), -- outside the right route's bend
 	nest("R6", "Rara", 96, -122), -- outside the left route's bend
 	nest("R7", "Rara", -116, 58), -- west of the right route's first leg
@@ -159,7 +178,26 @@ Layout.NESTS = table.freeze({
 	nest("R11", "Rara", 36, 74), -- beside the right route's last leg, off the boss ground
 	nest("C11", "Comun", -30, 150), -- north of the lollipop avenue, west of C7
 	nest("C12", "Comun", -130, -100), -- south of the left route's first leg
-	nest("C13", "Comun", 100, -150), -- outside the left route's bend, south of R6
+	nestAt("C13", "Comun", 35, 190), -- CL-D10: was v8 (130, -195), in the channel; now north, between C7 and C5
+	-- CL-D10 (Caramelo v9, the grown east): 17 more floor nests, v9 local literals, 28 -> 45 (6 Comun, 8 Rara, 3 Epica).
+	-- The east fork's two banks: C14, C15 and R12-R15 on the entrance bank; the rest on the cake bank, the Epica deepest.
+	nestAt("C14", "Comun", 340, -166),
+	nestAt("C15", "Comun", 350, 166),
+	nestAt("C16", "Comun", 530, -170),
+	nestAt("C17", "Comun", 620, -172),
+	nestAt("C18", "Comun", 700, -215),
+	nestAt("C19", "Comun", 575, -172),
+	nestAt("R12", "Rara", 280, -80),
+	nestAt("R13", "Rara", 280, 80),
+	nestAt("R14", "Rara", 400, -150),
+	nestAt("R15", "Rara", 410, 150),
+	nestAt("R16", "Rara", 600, -80),
+	nestAt("R17", "Rara", 660, -95),
+	nestAt("R18", "Rara", 560, 95),
+	nestAt("R19", "Rara", 530, -80),
+	nestAt("E4", "Epica", 560, -40),
+	nestAt("E5", "Epica", 580, 40),
+	nestAt("E6", "Epica", 640, -40),
 })
 
 -- Caramelo v2 (odd/tasks/wildbound-caramelo-v2.md, CT1-CT3): the Gran Torta as a tower. tiers are the kit cake's four
@@ -227,9 +265,11 @@ function Layout.flat(ax, az, bx, bz)
 	return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2)
 end
 
--- Studs from the nearest plot edge, inwards: 0 on the edge, HALF at the centre (the layout's square rings).
+-- Studs from the nearest plot edge, inwards: 0 on the edge, HALF at the centre (the layout's rings).
+-- CL-D1: the plot is the rectangle x -HALF..EAST, z -HALF..HALF, so the depth is the rectangle's (for x <= 0 it equals
+-- the old square rings'; the ring numbers stay).
 function Layout.depth(x, z)
-	return Layout.HALF - math.max(math.abs(x), math.abs(z))
+	return math.min(x + Layout.HALF, Layout.EAST - x, Layout.HALF - math.abs(z))
 end
 
 -- Flat distance from a point to the segment a-b.

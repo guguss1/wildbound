@@ -189,6 +189,7 @@ SPECS["WildboundCandyAmbience_Test"] = {
 -- Caramelo v3 (docs/design/wildbound-caramelo-v3-plan.md): the layout, the builder (detached scratch models only) and the raft
 SPECS["WildboundCandyV3Layout_Test"] = {
 	"mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundPraderaSites", "mod:WildboundCandyTrapCake",
+	"mod:WildboundCandyV3KitSpec", -- CL-D4: V3-1 pins M1_KIT to the kit spec
 }
 SPECS["WildboundCandyV3Builder_Test"] = {
 	"mod:WildboundCandyV3Builder", "mod:WildboundCandyV3Layout", "mod:WildboundCandyLayout", "mod:WildboundCandyBuilder",
@@ -269,8 +270,16 @@ SPECS["WildboundCandySky_Test"] = {
 -- tool by source (the tool is kept in Studio as the disabled Script ServerStorage.WildboundCaramelV8Migrate)
 SPECS["WildboundCandyEast_Test"] = {
 	"mod:WildboundCandyEast", "mod:WildboundCandyLayout", "mod:WildboundCandySmarts",
+	"mod:WildboundCandyV3Layout", -- CL-D13: the real river end, for the mouth parts
 	{ client = "src:WildboundCandyCloudWallClient", beasts = "src:WildboundBeasts", duquesa = "src:WildboundCandyDuquesaService",
 		migrate = "src:WildboundCaramelV8Migrate" },
+}
+-- Caramelo v9 (docs/design/wildbound-caramelo-v9-plan.md CL-D17): the v9 migration tool by source (the tool is kept in
+-- Studio as the disabled Script ServerStorage.WildboundCaramelV9Migrate) and the module names it calls
+SPECS["WildboundCandyV9Migrate_Test"] = {
+	{ migrate = "src:WildboundCaramelV9Migrate" },
+	"mod:WildboundCandyV3Builder", "mod:WildboundCandyBuilder", "mod:WildboundCandyEast", "mod:WildboundCandyLayout",
+	"mod:WildboundCandyV3Layout",
 }
 -- Pueblo Gatito (docs/design/wildbound-kitten-park-plan.md §4): the park's plan, recipes and build (detached models
 -- only), the nest markers, the two archives on detached fixtures and the one-shot tool's source (kept in Studio as the

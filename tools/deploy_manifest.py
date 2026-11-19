@@ -374,6 +374,9 @@ DEFAULT_MAPPINGS = [
     ("tools/WildboundCandyEast.luau", "ServerStorage.WildboundCandyEast"),
     ("tests/WildboundCandyEast_Test.luau", "ServerStorage.WildboundCandyEast_Test"),
     ("tools/wildbound-caramelo-v8-migrate.luau", "ServerStorage.WildboundCaramelV8Migrate"),
+    # Caramelo v9 (CL-D17): the one-shot migration tool (kept in Studio as a disabled Script) and its source pins
+    ("tools/wildbound-caramelo-v9-migrate.luau", "ServerStorage.WildboundCaramelV9Migrate"),
+    ("tests/WildboundCandyV9Migrate_Test.luau", "ServerStorage.WildboundCandyV9Migrate_Test"),
     ("src/wildbound/WildboundCandyCloudWall.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyCloudWallClient"),
     ("src/wildbound/WildboundCandySky.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandySkyClient"),
     ("tools/WildboundKittenPark.luau", "ServerStorage.WildboundKittenPark"),

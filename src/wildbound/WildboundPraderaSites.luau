@@ -61,19 +61,29 @@ local V8_S = 1.3
 local function beside(nestX, nestZ, dx, dz)
 	return table.freeze({ x = Sites.MEADOW_CENTRE.x + nestX * V8_S + dx, z = Sites.MEADOW_CENTRE.z + nestZ * V8_S + dz })
 end
+-- CL-D11 (Caramelo v9, owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo";
+-- docs/design/wildbound-caramelo-v9-plan.md): a post beside a nest written in v9 plot-local literals (no 1.3 scaling,
+-- as WildboundCandyLayout's nestAt): world = MEADOW_CENTRE + (nest + offset). The posts of the four nests the chocolate
+-- channel swallowed (C6, C8, C10, C13) moved with them, and the third round of extra posts uses it.
+-- CL-D9: Don Glaseon's two moved +600 with the Gran Torta: CENTRE + BOSS.home (698.2, 0) and CENTRE + BOSS (748.2, 0).
+local function besideLocal(lx, lz, dx, dz)
+	return table.freeze({ x = Sites.MEADOW_CENTRE.x + (lx + dx), z = Sites.MEADOW_CENTRE.z + (lz + dz) })
+end
 Sites.FIXED = table.freeze({ candyNest = beside(-160, -18, -6, 6) --[[C1, v7 (446, -15)]],
 	candyNestR1 = beside(-78, -30, 8, -8) --[[R1, v7 (542, -41)]],
 	candyNestC3 = beside(-90, -132, -12, -8) --[[C3, v7 (510, -143)]],
-	bossHome = table.freeze({ x = 770.2, z = -3 }), -- v7 (676, -3)
-	bossTerritory = table.freeze({ x = 820.2, z = -3 }), -- v7 (726, -3)
+	bossHome = table.freeze({ x = 1370.2, z = -3 }), -- CL-D9: v8 (770.2, -3), v7 (676, -3)
+	bossTerritory = table.freeze({ x = 1420.2, z = -3 }), -- CL-D9: v8 (820.2, -3), v7 (726, -3)
 	candyNestC2 = beside(-140, 24, -6, 13) --[[C2, v7 (466, 34)]], candyNestR2 = beside(-78, 34, 5, 12) --[[R2, v7 (539, 43)]],
 	candyNestR3 = beside(-45, -93, 12, 10) --[[R3, v7 (579, -86)]], candyNestR4 = beside(60, 152, 6, 14) --[[C5, v7 (678, 163)]],
 	candyNestC4 = beside(-62, 130, -8, 12) --[[C4, v7 (542, 139)]],
 	-- CH1 (extra posts, below): open floor 8 to 15 studs from a new candy nest, between the nest and its route
 	candyPostC7 = beside(5, 142, 7, -9) --[[v7 (624, 130)]], candyPostR6 = beside(96, -122, 7, 5) --[[v7 (715, -120)]],
-	candyPostC8 = beside(60, -170, -5, 12) --[[v7 (667, -161)]], candyPostC9 = beside(-135, -62, 11, 4) --[[v7 (488, -61)]],
+	candyPostC8 = besideLocal(105, -183, -8, 9) --[[CL-D11: (769, -177), was v8 beside(60, -170, -5, 12)]],
+	candyPostC9 = beside(-135, -62, 11, 4) --[[v7 (488, -61)]],
 	candyPostR7 = beside(-116, 58, -10, 8) --[[v7 (486, 63)]], candyPostR5 = beside(88, 112, 8, 10) --[[v7 (708, 119)]],
-	candyPostC6 = beside(10, -162, -10, 8) --[[v7 (612, -157)]], candyPostC10 = beside(-60, -162, 12, 8) --[[v7 (564, -157)]],
+	candyPostC6 = besideLocal(55, -168, 0, 12) --[[CL-D11: (727, -159), was v8 beside(10, -162, -10, 8)]],
+	candyPostC10 = besideLocal(-52, -167, 12, 8) --[[CL-D11: (632, -162), was v8 beside(-60, -162, 12, 8)]],
 	-- GT2 (more creatures): one more extra post per candy creature, 12 studs from one of the eight GT2 nests
 	candyPostE3 = beside(0, 36, -12, 0) --[[v7 (600, 33)]], candyPostR8 = beside(-110, 95, 12, 0) --[[v7 (514, 92)]],
 	candyPostR9 = beside(-60, 70, 12, 0) --[[v7 (564, 67)]],
@@ -81,7 +91,13 @@ Sites.FIXED = table.freeze({ candyNest = beside(-160, -18, -6, 6) --[[C1, v7 (44
 	-- so its v7 offset (6, -11) is turned to 12 studs towards that leg, (9, 8): 35 studs from it, 12 off the river.
 	candyPostR10 = beside(-10, -45, 9, 8) --[[v7 (608, -59)]],
 	candyPostC11 = beside(-30, 150, 0, -12) --[[v7 (582, 135)]], candyPostC12 = beside(-130, -100, 12, 0) --[[v7 (494, -103)]],
-	candyPostC13 = beside(100, -150, -12, 1) --[[v7 (700, -152)]], candyPostR11 = beside(36, 74, -9, 8) --[[v7 (639, 79)]] })
+	candyPostC13 = besideLocal(35, 190, 10, 8) --[[CL-D11: (717, 195), was v8 beside(100, -150, -12, 1)]],
+	candyPostR11 = beside(36, 74, -9, 8) --[[v7 (639, 79)]],
+	-- CL-D11: the third round of extra posts, beside v9 nests in the grown east (plot-local nest, then the offset)
+	candyPostE4 = besideLocal(560, -40, 0, 12) --[[(1232, -31)]], candyPostR16 = besideLocal(600, -80, 0, -12) --[[(1272, -95)]],
+	candyPostE5 = besideLocal(580, 40, 0, -12) --[[(1252, 25)]], candyPostR12 = besideLocal(280, -80, 12, 0) --[[(964, -83)]],
+	candyPostC16 = besideLocal(530, -170, 0, 12) --[[(1202, -161)]], candyPostR13 = besideLocal(280, 80, 12, 0) --[[(964, 77)]],
+	candyPostC18 = besideLocal(700, -215, -12, 0) --[[(1360, -218)]], candyPostR15 = besideLocal(410, 150, -12, 0) --[[(1070, 147)]] })
 -- CH1 (owner request 2026-11-16: "more repeated creatures in the Caramelo kingdom ... make it harder to be in that
 -- biome"): one more copy of each candy creature at an extra post, so a player crossing the biome meets twice as many
 -- (8 -> 16 posts). Each extra post is its own encounter (Director post), summoned by the same wake rule as a home post
@@ -99,6 +115,13 @@ Sites.EXTRA_POSTS = table.freeze({
 	table.freeze({ name = "Tortidragon", key = "candyPostR9" }), table.freeze({ name = "Mochimiau", key = "candyPostR10" }),
 	table.freeze({ name = "Canelin", key = "candyPostC11" }), table.freeze({ name = "GatoRepartidor", key = "candyPostR11" }),
 	table.freeze({ name = "Mielita", key = "candyPostC13" }), table.freeze({ name = "Flanin", key = "candyPostC12" }),
+	-- CL-D11 (Caramelo v9, owner request 2026-11-18, "agranda mas el bioma caramelo a lo largo"): a third extra post per
+	-- creature for the longer kingdom (EXTRA_POSTS 16 -> 24 rows, 32 posts with the 8 home posts), the same rules; the
+	-- guardians' guard the v9 nests E4, R16 and E5 (12 guarded nests).
+	table.freeze({ name = "Gomibu", key = "candyPostE4" }), table.freeze({ name = "Flanfuria", key = "candyPostR16" }),
+	table.freeze({ name = "Tortidragon", key = "candyPostE5" }), table.freeze({ name = "Mochimiau", key = "candyPostR12" }),
+	table.freeze({ name = "Canelin", key = "candyPostC16" }), table.freeze({ name = "GatoRepartidor", key = "candyPostR13" }),
+	table.freeze({ name = "Mielita", key = "candyPostC18" }), table.freeze({ name = "Flanin", key = "candyPostR15" }),
 })
 
 -- K-D7 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de gatito:
@@ -135,7 +158,7 @@ Sites.EAST_EXTRA_POSTS = table.freeze({
 })
 
 -- CH4 (owner request 2026-11-16, "more creatures that appear in a random way"): ambushes. Every everySeconds a player
--- inside the Caramelo plot (half studs round the Meadow centre) wins a roll with `chance`: a random candy critter
+-- inside the Caramelo plot (CL-D11: local x -half..east, |z| <= half round the Meadow centre) wins a roll with `chance`: a random candy critter
 -- (names) appears on the ground minStuds to maxStuds away (never past its own sight - 2, so it notices at once, with its
 -- alert as the tell), through the director (post: one of a kind per player, its own rest), at most maxActive at once.
 -- Never for a player within entranceStuds of the entrance, never at a spot within entranceSpotStuds of it (the hub
@@ -149,6 +172,9 @@ Sites.AMBUSH = table.freeze({
 	-- V8-D1: half and entrance are re-anchored to the bigger plot (WildboundCandyLayout.HALF 260 and ENTRANCE (-HALF, 0));
 	-- every other number is a gameplay radius and stays
 	half = 260, edgeStuds = 10, entrance = table.freeze({ x = -260, z = 0 }), entranceStuds = 30, entranceSpotStuds = 80,
+	-- CL-D11 (Caramelo v9): the plot is the rectangle lx -half..east, |lz| <= half; east is a copy of
+	-- WildboundCandyLayout.EAST (half now means the west half-length and the z half-length)
+	east = 860,
 	bossClearStuds = 126, -- GT (cake move): 112 -> 126, the 76-stud territory plus the same 50
 })
 
@@ -168,14 +194,14 @@ function Sites.ambushRoll(x, z, kindRoll, angleRoll, distanceRoll)
 	if not (finite(x) and finite(z) and finite(kindRoll) and finite(angleRoll) and finite(distanceRoll)) then return nil end
 	local c = Sites.MEADOW_CENTRE
 	local lx, lz = x - c.x, z - c.z
-	if math.max(math.abs(lx), math.abs(lz)) > A.half then return nil end
+	if lx < -A.half or lx > A.east or math.abs(lz) > A.half then return nil end -- CL-D11: the v9 rectangle
 	if Config.flat(lx, lz, A.entrance.x, A.entrance.z) < A.entranceStuds then return nil end
 	local name = A.names[math.clamp(math.floor(kindRoll * #A.names) + 1, 1, #A.names)]
 	local far = math.max(A.minStuds, math.min(A.maxStuds, Config.BEASTS[name].tuning.PerceptionStuds - 2))
 	local distance = A.minStuds + math.clamp(distanceRoll, 0, 1) * (far - A.minStuds)
 	local angle = math.clamp(angleRoll, 0, 1) * 2 * math.pi
 	local sx, sz = lx + math.cos(angle) * distance, lz + math.sin(angle) * distance
-	if A.half - math.max(math.abs(sx), math.abs(sz)) < A.edgeStuds then return nil end
+	if math.min(sx + A.half, A.east - sx, A.half - math.abs(sz)) < A.edgeStuds then return nil end -- CL-D11: the rectangle
 	if Config.flat(sx, sz, A.entrance.x, A.entrance.z) < A.entranceSpotStuds then return nil end
 	local boss = Sites.FIXED.bossTerritory
 	if Config.flat(sx + c.x, sz + c.z, boss.x, boss.z) < A.bossClearStuds then return nil end

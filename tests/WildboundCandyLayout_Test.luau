@@ -36,13 +36,19 @@ return function(Layout, _Biomes)
 	-- Deliberately changed (V8-D1, owner request 2026-11-17 "make the Reino Caramelo map a bit bigger"): the plot is no
 	-- longer the classic "pradera" square (x 412..812, z -203..197); it grows 1.3 times to world x 412..932, z -263..257,
 	-- inside the big4 Meadow square (x 412..1012, z -303..297), and its entrance stays at world (412, -3) on the hub road.
-	case("S2/V8-D1: the plot lies inside the big4 Meadow square, its entrance on the hub road", function()
+	-- Deliberately changed again (CL-D1, Caramelo v9, owner request 2026-11-18 "agranda mas el bioma caramelo a lo
+	-- largo"): the plot grows 600 studs east only, to world x 412..1532 (EAST 860), inside the big4 arm x 412..1612;
+	-- CENTRE and HALF (the west and z half-lengths) stay.
+	case("S2/V8-D1/CL-D1: the plot lies inside the big4 Caramelo arm, its entrance on the hub road", function()
 		local C, H = Layout.CENTRE, Layout.HALF
 		equal(H, 260, "HALF")
+		equal(Layout.EAST, 860, "CL-D1: EAST")
 		equal(C.x, 672, "centre x")
 		equal(C.z, -3, "centre z")
-		assert(C.x - H >= 412 and C.x + H <= 1012, "the plot leaves the big4 Meadow square in x")
-		assert(C.z - H >= -303 and C.z + H <= 297, "the plot leaves the big4 Meadow square in z")
+		equal(C.x - H, 412, "CL-D1: the plot's west edge, world x")
+		equal(C.x + Layout.EAST, 1532, "CL-D1: the plot's east edge, world x")
+		assert(C.x - H >= 412 and C.x + Layout.EAST <= 1612, "CL-D1: the plot leaves the big4 arm in x")
+		assert(C.z - H >= -303 and C.z + H <= 297, "the plot leaves the big4 arm in z")
 		equal(C.x + Layout.ENTRANCE.x, 412, "entrance world x")
 		equal(C.z + Layout.ENTRANCE.z, -3, "entrance world z")
 		equal(Layout.FLOOR_TOP, 0.5, "floor top, level with the hub road")
@@ -86,18 +92,25 @@ return function(Layout, _Biomes)
 	-- Deliberately changed again (GT2, owner request 2026-11-16 "more eggs and more creatures, a livelier map"): 8 more,
 	-- 3 Comun (C11-C13), 4 Rara (R8-R11) and 1 Epica (E3), no Legendaria: 20 -> 28 (10 -> 13 Comun, 7 -> 11 Rara, 2 -> 3
 	-- Epica).
-	case("S5/CH3/GT2: twenty-eight candidate nests, 13 Comun, 11 Rara, 3 Epica, 1 Legendaria", function()
-		equal(#Layout.NESTS, 28, "nests")
+	-- Deliberately changed again (CL-D10, Caramelo v9): 17 new nests on the grown east, 6 Comun (C14-C19), 8 Rara
+	-- (R12-R19) and 3 Epica (E4-E6): 28 -> 45 (19 Comun, 19 Rara, 6 Epica, 1 Legendaria), 44 live.
+	case("S5/CH3/GT2/CL-D10: forty-five candidate nests, 19 Comun, 19 Rara, 6 Epica, 1 Legendaria", function()
+		equal(#Layout.NESTS, 45, "nests")
 		local count, ids = {}, {}
 		for _, nest in ipairs(Layout.NESTS) do
 			count[nest.rarity] = (count[nest.rarity] or 0) + 1
 			assert(type(nest.id) == "string" and not ids[nest.id], "duplicate or missing nest id")
 			ids[nest.id] = true
 		end
-		equal(count.Comun, 13, "Comun")
-		equal(count.Rara, 11, "Rara")
-		equal(count.Epica, 3, "Epica")
+		equal(count.Comun, 19, "Comun")
+		equal(count.Rara, 19, "Rara")
+		equal(count.Epica, 6, "Epica")
 		equal(count.Legendaria, 1, "Legendaria")
+		local live = 0
+		for _, nest in ipairs(Layout.NESTS) do
+			if not nest.eventOnly then live += 1 end
+		end
+		equal(live, 44, "CL-D10: live nests")
 	end)
 
 	case("S5: only the legendary nest waits for an event", function()
@@ -118,6 +131,10 @@ return function(Layout, _Biomes)
 		equal(Layout.depth(-Layout.HALF, 0), 0, "edge depth")
 		equal(Layout.depth(0, 0), Layout.HALF, "centre depth")
 		equal(Layout.depth(39, -195), 65, "square rings")
+		-- CL-D1: the depth is now the rectangle's, min(x + HALF, EAST - x, HALF - |z|); the ring numbers stay
+		equal(Layout.depth(860, 0), 0, "CL-D1: the east edge")
+		equal(Layout.depth(800, 0), 60, "CL-D1: 60 inside the east edge")
+		equal(Layout.depth(300, 250), 10, "CL-D1: by the north edge in the east")
 	end)
 
 	-- Deliberately changed (V8-D1): the band scales with the plot, 30-70 -> 39-91 studs (C1 57, C2 84).
@@ -185,7 +202,8 @@ return function(Layout, _Biomes)
 			and Layout.depth(B.x, B.z - B.territoryRadius) >= 10, "territory leaves the plot")
 		assert(flat(B.home.x, B.home.z, B.x, B.z) <= B.plazaRadius, "home outside the plaza")
 		assert(flat(B.home.x, B.home.z, B.x, B.z) >= Layout.TORTA.radius + 6, "home inside the Torta")
-		for _, p in ipairs({ Layout.ENTRANCE, Layout.FORK, Layout.JUNCTION }) do
+		-- Deliberately changed (CL-D6): the east fork, where the far routes leave the avenue, is a safe point too
+		for _, p in ipairs({ Layout.ENTRANCE, Layout.FORK, Layout.JUNCTION, Layout.EAST_FORK }) do
 			assert(flat(p.x, p.z, B.x, B.z) >= B.territoryRadius + B.perception, "a safe point is within boss sight")
 		end
 	end)
@@ -247,7 +265,9 @@ return function(Layout, _Biomes)
 		assert(T.x >= Layout.HALF / 2, "the Torta is not in the east half's far part: " .. T.x)
 		-- Deliberately changed (V8-D1): <= 30 -> <= 60: the plot grew 1.3 times and the plaza kept its 58, so it ends 53.8
 		-- studs from the east edge (was 28; V8-D3 counts on that room by the cloud wall)
+		-- CL-D9: the same rule, now through the rectangle depth: the Torta moved +600 with the east edge, 53.8 again
 		assert(Layout.depth(T.x + Layout.BOSS.plazaRadius, T.z) <= 60, "its plaza does not reach the east edge's ring")
+		near(Layout.depth(T.x + Layout.BOSS.plazaRadius, T.z), 53.8, "CL-D9: the plaza ends 53.8 from the east edge", 1e-6)
 		for _, name in ipairs(Layout.ROUTE_ORDER) do
 			for _, p in ipairs(Layout.ROUTES[name]) do assert(p.x < T.x, name .. " passes behind the Torta") end
 		end
@@ -354,7 +374,10 @@ return function(Layout, _Biomes)
 		equal(again[1], twice[1], "pure x"); equal(again[2], twice[2], "pure z")
 		-- positions scale
 		near(Layout.FORK.x, -143, "fork"); same(Layout.JUNCTION, { x = 0, z = 0 }, "junction")
-		near(Layout.TORTA.x, 148.2, "Torta"); near(Layout.PORTAL.x, -31.2, "portal")
+		-- Deliberately changed (CL-D9): the Torta moves +600 with the east edge, 148.2 -> 748.2 (the transform stays as a
+		-- record: its v8 spot is fromV7Local(114, 0))
+		near(Layout.TORTA.x, 748.2, "Torta"); near(Layout.PORTAL.x, -31.2, "portal")
+		near(Layout.fromV7Local(114, 0), 148.2, "the v8 Torta, kept as the transform's record")
 		near(Layout.NESTS[1].x, -208, "C1 x"); near(Layout.NESTS[1].z, -23.4, "C1 z")
 		near(Layout.KEEP_CLEAR[1].x, 214.5, "pond x"); near(Layout.KEEP_CLEAR[1].z, 195, "pond z")
 		-- sizes stay
@@ -381,25 +404,120 @@ return function(Layout, _Biomes)
 	end)
 
 	-- K-D2 (owner request 2026-11-17, the kitten park: "es como el mundo de gatito"): the plot side of the cloud gate to
-	-- Caramelo Este is kept clear for the server-start planners (hide spots, grass, traps, bee hives). The row is written
-	-- in v8 plot coordinates: (250, 0) is world (922, -3), in front of the wall's gap at z -10..4.
-	case("K-D2: the KEEP_CLEAR gate row at (250, 0), r 16, clear of every nest and of the boss territory", function()
-		local row = nil
+	-- Caramelo Este was kept clear for the server-start planners (hide spots, grass, traps, bee hives).
+	-- Deliberately changed (CL-D12, PGM-D8): Pueblo Gatito left the east of the plot, the gate is gone and the plot now
+	-- runs on past (250, 0), so the stale gate row goes; only the two Pradera rows remain.
+	case("K-D2/CL-D12: the KEEP_CLEAR gate row is gone; the pond and the hive rows stay first", function()
 		for _, spot in ipairs(Layout.KEEP_CLEAR) do
-			if spot.why == "Cloud gate to Caramelo Este" then row = spot end
+			assert(spot.why ~= "Cloud gate to Caramelo Este", "CL-D12: the stale gate row is still there")
+			assert(table.isfrozen(spot), spot.why .. " is frozen")
 		end
-		assert(row, "the gate row")
-		assert(table.isfrozen(row), "the row is frozen")
-		equal(row.x, 250, "x"); equal(row.z, 0, "z"); equal(row.r, 16, "r")
-		equal(Layout.CENTRE.x + row.x, 922, "world x"); equal(Layout.CENTRE.z + row.z, -3, "world z")
-		for _, nest in ipairs(Layout.NESTS) do
-			assert(flat(nest.x, nest.z, row.x, row.z) >= row.r + 8, nest.id .. " in the gate's clear disc")
-		end
-		local B = Layout.BOSS
-		assert(flat(B.x, B.z, row.x, row.z) - B.territoryRadius >= row.r + 8, "the boss territory reaches the gate")
 		-- the two Pradera rows are still the first two, unchanged (the suites pin [1])
 		equal(Layout.KEEP_CLEAR[1].why, "La Nube's pond"); equal(Layout.KEEP_CLEAR[2].why, "La Abeja's hive")
-		equal(#Layout.KEEP_CLEAR, 3, "three rows")
+		equal(#Layout.KEEP_CLEAR, 2, "CL-D12: two rows")
+	end)
+
+	-- CL-D1, CL-D9 (Caramelo v9, owner request 2026-11-18: the kingdom grows east only, "a lo largo";
+	-- docs/design/wildbound-caramelo-v9-plan.md): one new number, V9.GROWTH, makes EAST and moves the Torta.
+	case("V9-1: EAST 860 and the rectangle depth; the Torta is the v8 one + 600; plaza 53.8; CENTRE and ENTRANCE stay", function()
+		local V = Layout.V9
+		assert(type(V) == "table" and table.isfrozen(V), "V9 frozen")
+		equal(V.GROWTH, 600, "growth"); equal(V.OLD_EAST, 260, "the v8 east half")
+		equal(Layout.EAST, Layout.HALF + V.GROWTH, "EAST = HALF + GROWTH")
+		equal(Layout.EAST, 860, "EAST")
+		equal(Layout.HALF, 260, "HALF stays (the west and z half-lengths)")
+		equal(Layout.CENTRE.x, 672, "centre x"); equal(Layout.CENTRE.z, -3, "centre z")
+		same(Layout.ENTRANCE, { x = -260, z = 0 }, "entrance")
+		for _, row in ipairs({ { 0, 0, 260 }, { -260, 0, 0 }, { 860, 0, 0 }, { 800, 0, 60 }, { 300, 250, 10 }, { 39, -195, 65 },
+			{ 300, -260, 0 }, { -100, 0, 160 } }) do
+			near(Layout.depth(row[1], row[2]), row[3], ("depth(%g, %g)"):format(row[1], row[2]))
+		end
+		local v8x = Layout.fromV7Local(114, 0)
+		near(Layout.TORTA.x, v8x + V.GROWTH, "the Torta is the v8 one + 600")
+		near(Layout.TORTA.x, 748.2, "Torta x"); equal(Layout.TORTA.z, 0, "Torta z"); equal(Layout.TORTA.radius, 42, "Torta radius")
+		near(Layout.BOSS.home.x, 698.2, "boss home x")
+		near(Layout.TOWER.summit.x, 748.2, "summit x"); near(Layout.TOWER.summit.z, 9.4, "summit z")
+		near(Layout.depth(Layout.TORTA.x + Layout.BOSS.plazaRadius, 0), 53.8, "plaza edge depth")
+		near(Layout.depth(Layout.TORTA.x + Layout.BOSS.territoryRadius, 0), 35.8, "territory edge depth")
+		same(Layout.EAST_FORK, { x = 300, z = 0 }, "the east fork")
+		equal(Layout.CENTRE.x + Layout.EAST_FORK.x, 972, "east fork world x")
+		near(Layout.PORTAL.x, -31.2, "the Portal stays")
+		local main = Layout.ROUTES.main
+		near(main[#main].x, 690.2, "the avenue's end follows the Torta")
+		near(Layout.routeLength("main"), 950.2, "the avenue's length")
+	end)
+
+	-- CL-D10: the 17 new nests on the grown east.
+	local NEW_V9 = { "C14", "C15", "C16", "C17", "C18", "C19", "R12", "R13", "R14", "R15", "R16", "R17", "R18", "R19", "E4", "E5", "E6" }
+	local function nestById(id)
+		for _, nest in ipairs(Layout.NESTS) do
+			if nest.id == id then return nest end
+		end
+		return nil
+	end
+	case("V9-2: the 17 new nests are live, in their rings, reachable, >= 96 from the boss and >= 80 from the entrance", function()
+		local ring = { Comun = { 0, 97.5 }, Rara = { 97.5, 208 }, Epica = { 208, 260 } }
+		local B = Layout.BOSS
+		for _, id in ipairs(NEW_V9) do
+			local nest = nestById(id)
+			assert(nest, id .. " is missing")
+			assert(table.isfrozen(nest), id .. " is frozen")
+			equal(nest.eventOnly, false, id .. " is live")
+			equal(nest.rarity, ({ C = "Comun", R = "Rara", E = "Epica" })[string.sub(id, 1, 1)], id .. " rarity")
+			local depth, band = Layout.depth(nest.x, nest.z), ring[nest.rarity]
+			assert(depth >= band[1] and depth <= band[2], id .. " at depth " .. depth)
+			local toRoute = Layout.routeDistance(nest.x, nest.z)
+			assert(toRoute >= Layout.PATH_WIDTH / 2 + 4 and toRoute <= 52, id .. " route " .. toRoute)
+			assert(flat(nest.x, nest.z, B.x, B.z) >= B.territoryRadius + 20, id .. " in the boss territory")
+			assert(flat(nest.x, nest.z, Layout.ENTRANCE.x, Layout.ENTRANCE.z) >= 80, id .. " by the hub entrance")
+			assert(nest.x < Layout.TORTA.x, id .. " behind the Torta")
+		end
+		-- the four moved nests (nestAt, v9 literals, no 1.3 scaling)
+		for _, row in ipairs({ { "C6", 55, -168 }, { "C8", 105, -183 }, { "C10", -52, -167 }, { "C13", 35, 190 } }) do
+			local nest = nestById(row[1])
+			assert(nest, row[1] .. " is missing")
+			equal(nest.x, row[2], row[1] .. " x"); equal(nest.z, row[3], row[1] .. " z"); equal(nest.rarity, "Comun", row[1])
+			assert(flat(nest.x, nest.z, B.x, B.z) >= B.territoryRadius + 20, row[1] .. " in the boss territory")
+		end
+	end)
+
+	-- CL-D6: the far routes south and north leave the avenue at the east fork.
+	case("V9-3: south and north start at EAST_FORK on the avenue, west of the Torta, >= 83 from the boss, depth >= 20", function()
+		local order = {}
+		for i, name in ipairs(Layout.ROUTE_ORDER) do order[name] = i end
+		equal(#Layout.ROUTE_ORDER, 6, "six routes")
+		assert(order.south and order.north, "south and north are in ROUTE_ORDER")
+		assert(Layout.routeDistance(Layout.EAST_FORK.x, Layout.EAST_FORK.z, "main") < 1e-6, "the east fork is on the avenue")
+		local B = Layout.BOSS
+		for _, name in ipairs({ "south", "north" }) do
+			local route = Layout.ROUTES[name]
+			assert(table.isfrozen(route), name .. " is frozen")
+			same(route[1], Layout.EAST_FORK, name .. " start")
+			for _, p in ipairs(route) do assert(p.x < Layout.TORTA.x, name .. " passes behind the Torta") end
+			for _, p in ipairs(samples(name)) do
+				assert(flat(p.x, p.z, B.x, B.z) >= B.territoryRadius + Layout.PATH_WIDTH / 2, name .. " enters the territory")
+				assert(Layout.depth(p.x, p.z) >= 20, name .. " leaves the plot")
+			end
+		end
+		near(Layout.routeLength("south"), 527.4, "south length", 0.05)
+		near(Layout.routeLength("north"), 426.6, "north length", 0.05)
+		equal(#Layout.RETURN_ROUTES, 2, "the return routes stay left and right")
+	end)
+
+	-- CL-D10 reward lean: the new Epica sit deepest east, on the cake bank (x >= 500, past the 60-wide reach at x 470;
+	-- the bank itself is WildboundCandyV3Layout_Test V3-21's flood fill).
+	case("V9-4: the 3 new Epica are on the cake bank; their mean x exceeds the new Rara's and the new Comun's", function()
+		local sum, count = {}, {}
+		for _, id in ipairs(NEW_V9) do
+			local nest = nestById(id)
+			assert(nest, id .. " is missing")
+			sum[nest.rarity] = (sum[nest.rarity] or 0) + nest.x
+			count[nest.rarity] = (count[nest.rarity] or 0) + 1
+			if nest.rarity == "Epica" then assert(nest.x >= 500, id .. " is not on the cake bank") end
+		end
+		equal(count.Epica, 3, "new Epica"); equal(count.Rara, 8, "new Rara"); equal(count.Comun, 6, "new Comun")
+		local epica, rara, comun = sum.Epica / count.Epica, sum.Rara / count.Rara, sum.Comun / count.Comun
+		assert(epica > rara and epica > comun, ("mean x: Epica %.1f, Rara %.1f, Comun %.1f"):format(epica, rara, comun))
 	end)
 
 	return result
