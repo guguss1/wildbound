@@ -8,8 +8,8 @@
 -- gatito: un parque verde lindo con las criaturas gatitas, juguetes como rollos de papel, hisopos, papel, bolsas, tiendas
 -- de gatitos como que es su village, otra canción que tenga que ver más con gatitos, también tiene que haber huevos para
 -- robar"): the four kittens of Caramelo Este (GatitoLanudo, GatitoGuerrero, GatitaBouquet, GatitoActually) are four rows
--- on the candy critters' one data-driven brain (WildboundBeastCandyCritter), summoned at eight park posts
--- (WildboundPraderaSites.EAST_FIXED) beside the park's nests. Pure, on the harness of WildboundBeastCandyCritter_Test: a
+-- on the candy critters' one data-driven brain (WildboundBeastCandyCritter), summoned at sixteen park posts since GL-D11
+-- (WildboundPraderaSites.EAST_FIXED; eight before the park grew to 600 x 1200) beside the park's nests. Pure, on the harness of WildboundBeastCandyCritter_Test: a
 -- fake world with flat ground at y 0 and a target moved by the test; the wiring cases read the sources.
 return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Park, Portal, Biomes, sources)
 	local result = { passed = 0, failed = 0, messages = {} }
@@ -33,20 +33,31 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 	local function flat(ax, az, bx, bz) return math.sqrt((ax - bx) ^ 2 + (az - bz) ^ 2) end
 
 	-- The K-D5 sheet: attack kind, damage, chase, reach, tell, cooldown, push and slow, wake/sight/abandon/leash.
+	-- Deliberately changed (GL-D11, owner request 2026-11-19 "hace el mapa bastante mas largo y si hace falta colocar mas
+	-- bichos de distintas zonas hazlo"): each kitten has three east extra posts now, the K-D11 one and two in the grown
+	-- park (docs/design/wildbound-pueblo-gatito-long-plan.md), so `extra` (one key) became `extras` (three keys, in the
+	-- EAST_EXTRA_POSTS order) (was extra = K8, K5, K6, K7)
 	local SHEET = {
 		GatitoLanudo = { kind = "leap", damage = 8, chase = 21, range = 7, tell = 0.8, cooldown = 4, push = 6, slow = 0.8,
 			slowSeconds = 2, wake = 40, sight = 36, abandon = 46, leash = 30, hex = "6FE3CF", post = "kittenPostK4",
-			extra = "kittenPostK8" },
+			extras = { "kittenPostK8", "kittenPostK12", "kittenPostK16" } },
 		GatitoGuerrero = { kind = "dash", damage = 10, chase = 21.5, range = 10, tell = 0.9, cooldown = 5.5, push = 8, slow = 0.75,
 			slowSeconds = 2.5, wake = 40, sight = 36, abandon = 48, leash = 32, hex = "FF9F43", post = "kittenPostK1",
-			extra = "kittenPostK5" },
+			extras = { "kittenPostK5", "kittenPostK9", "kittenPostK13" } },
 		GatitaBouquet = { kind = "lob", damage = 7, chase = 20.5, range = 15, tell = 1.0, cooldown = 4.5, push = 5, slow = 0.8,
 			slowSeconds = 2, wake = 42, sight = 38, abandon = 50, leash = 34, standOff = 9, hex = "FF8FB8", post = "kittenPostK2",
-			extra = "kittenPostK6" },
+			extras = { "kittenPostK6", "kittenPostK10", "kittenPostK14" } },
 		GatitoActually = { kind = "burst", damage = 9, chase = 20, range = 7, tell = 1.2, cooldown = 6.5, push = 6, slow = 0.75,
 			slowSeconds = 2.5, wake = 38, sight = 34, abandon = 46, leash = 30, hex = "7FB8FF", post = "kittenPostK3",
-			extra = "kittenPostK7" },
+			extras = { "kittenPostK7", "kittenPostK11", "kittenPostK15" } },
 	}
+	-- GL-D11: a kitten's posts, its home post first, then its east extra posts
+	local function postsOf(name)
+		local sheet = SHEET[name]
+		local list = { sheet.post }
+		for _, key in ipairs(sheet.extras) do table.insert(list, key) end
+		return list
+	end
 	local NAMES = { "GatitoLanudo", "GatitoGuerrero", "GatitaBouquet", "GatitoActually" }
 	-- The K-D7 table (world coordinates).
 	-- Deliberately changed (PGM-D1, PGM-D4, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south
@@ -56,13 +67,27 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 	local POSTS = {
 		kittenPostK1 = { 325, 430 }, kittenPostK2 = { 175, 435 }, kittenPostK3 = { 332, 535 }, kittenPostK4 = { 224, 550 },
 		kittenPostK5 = { 340, 620 }, kittenPostK6 = { 219, 635 }, kittenPostK7 = { 390, 750 }, kittenPostK8 = { 174, 750 },
+		-- Deliberately changed (GL-D11): eight more posts in the grown park, park-local (lx, lz) -> world (282 - lz,
+		-- 600 + lx): K9 (300, 66), K10 (360, -68), K11 (420, 78), K12 (470, -83), K13 (560, 73), K14 (600, -68),
+		-- K15 (680, 68), K16 (730, -63) (were eight posts, K1..K8)
+		kittenPostK9 = { 216, 900 }, kittenPostK10 = { 350, 960 }, kittenPostK11 = { 204, 1020 }, kittenPostK12 = { 365, 1070 },
+		kittenPostK13 = { 209, 1160 }, kittenPostK14 = { 350, 1200 }, kittenPostK15 = { 214, 1280 }, kittenPostK16 = { 345, 1330 },
+	}
+	-- GL-11: the eight GL-D11 posts and their kittens, in the EAST_EXTRA_POSTS order (rows 5..12)
+	local NEW_POSTS = {
+		{ key = "kittenPostK9", name = "GatitoGuerrero" }, { key = "kittenPostK10", name = "GatitaBouquet" },
+		{ key = "kittenPostK11", name = "GatitoActually" }, { key = "kittenPostK12", name = "GatitoLanudo" },
+		{ key = "kittenPostK13", name = "GatitoGuerrero" }, { key = "kittenPostK14", name = "GatitaBouquet" },
+		{ key = "kittenPostK15", name = "GatitoActually" }, { key = "kittenPostK16", name = "GatitoLanudo" },
 	}
 	-- The second space (WildboundCandyEast plan) and the cloud wall's Collider (centre x 940, face at 938, margin 8).
 	-- Deliberately changed (PGM-D4): SPACE is the park floor, WildboundGatitoArea.rect() (was the second space, x
 	-- 948..1468, z -263..257); ARM is the south arm, the Pueblo Gatito biome square (PGM-D3, WildboundGatitoArea.ARM).
 	-- The wall stays Caramelo's (PGM-D8: the creature clamp is kept).
-	local SPACE = { minX = 22, maxX = 542, minZ = 340, maxZ = 860 }
-	local ARM = { minX = -3, maxX = 597, minZ = 337, maxZ = 937 }
+	-- Deliberately changed (GL-D1, GL-D2): the park grew to 600 x 1200 along world +z, so the space runs to its far end
+	-- z 1460 (rect(), lx -260..860) and the arm to z 1537 (were maxZ 860 and 937)
+	local SPACE = { minX = 22, maxX = 542, minZ = 340, maxZ = 1460 }
+	local ARM = { minX = -3, maxX = 597, minZ = 337, maxZ = 1537 }
 	local WALL = { x = 940, margin = 8 }
 	-- PGM-D1: a world point in park-local studs (WildboundGatitoArea.localOf): lx = z - 600, lz = 282 - x
 	local function parkLocal(x, z) return z - 600, 282 - x end
@@ -287,7 +312,8 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 		for _, name in ipairs(NAMES) do
 			local A = tuning(name).Attack
 			local reach = Smarts.profile(name).zone + 12 + A.RangeStuds + A.PushStuds
-			for _, key in ipairs({ SHEET[name].post, SHEET[name].extra }) do
+			-- Deliberately changed (GL-D11): every post of the kitten, home and three extras (was the home and one extra)
+			for _, key in ipairs(postsOf(name)) do
 				local p = POSTS[key]
 				assert(p[1] + reach < WALL.x - WALL.margin, key .. " reaches the cloud wall's clamp line (" .. (p[1] + reach) .. ")")
 				near((Smarts.outsideWall(p[1], p[2], p[1] + reach, p[2], WALL)), p[1] + reach, key .. ": the clamp never moves its hunt")
@@ -324,14 +350,17 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 	end)
 
 	-- KK5 (K-D7, K-D11): the eight posts, their wake rule, their spacing and their reach inside the space.
-	case("KK5 sites: eight fixed kitten posts, the wake rule and the frenzy, inside the space, 85 apart, agreeing with the park", function()
+	-- Deliberately changed (GL-D11, owner request 2026-11-19 "si hace falta colocar mas bichos de distintas zonas hazlo"):
+	-- sixteen posts (8 -> 16), twelve east extra posts (4 -> 12), three per kitten (was one), the K-D7 window grown to
+	-- lx -170..760 (was -170..180), sixteen park nests and islands (8 -> 16, GL-D10)
+	case("KK5 sites: sixteen fixed kitten posts, the wake rule and the frenzy, inside the space, 85 apart, agreeing with the park", function()
 		assert(type(Sites.EAST_FIXED) == "table" and table.isfrozen(Sites.EAST_FIXED), "Sites.EAST_FIXED frozen")
 		assert(type(Sites.EAST_EXTRA_POSTS) == "table" and table.isfrozen(Sites.EAST_EXTRA_POSTS), "Sites.EAST_EXTRA_POSTS frozen")
 		local count = 0
 		for key, p in pairs(Sites.EAST_FIXED) do
 			count += 1
 			local want = POSTS[key]
-			assert(want, key .. " is not a K-D7 post")
+			assert(want, key .. " is not a K-D7 or GL-D11 post")
 			equal(Sites.FIXED[key], nil, key .. " stays out of FIXED")
 			assert(string.match(key, "^%w+$"), key .. ": letters and digits only")
 			local w, moved = Sites.world(nil, key), Sites.world({ x = 0, z = 0 }, key)
@@ -339,20 +368,27 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 			near(moved.x, w.x, key .. " never moves with the origin"); near(moved.z, w.z)
 			equal(Biomes.has(w.x, w.z, "CandyEast"), true, key .. " in Pueblo Gatito"); equal(Biomes.has(w.x, w.z, "Meadow"), false, key)
 		end
-		equal(count, 8, "eight kitten posts")
-		equal(#Sites.EAST_EXTRA_POSTS, 4, "one east extra post per kitten")
-		local extraOf = {}
+		equal(count, 16, "sixteen kitten posts")
+		equal(#Sites.EAST_EXTRA_POSTS, 12, "three east extra posts per kitten")
+		local extraOf, extraCount = {}, {}
 		for _, extra in ipairs(Sites.EAST_EXTRA_POSTS) do
 			assert(table.isfrozen(extra), "frozen row")
 			assert(SHEET[extra.name], tostring(extra.name) .. " is not a kitten")
-			assert(not extraOf[extra.name], extra.name .. " has two east extra posts"); extraOf[extra.name] = extra.key
+			extraOf[extra.name] = extraOf[extra.name] or {}
+			assert(not extraOf[extra.name][extra.key], extra.name .. " lists " .. tostring(extra.key) .. " twice")
+			extraOf[extra.name][extra.key] = true
+			extraCount[extra.name] = (extraCount[extra.name] or 0) + 1
 		end
 		-- every post: the wake radius, death, a safe zone, outside the biome, the frenzy's call
 		local all = {}
 		for _, name in ipairs(NAMES) do
 			local sheet, T = SHEET[name], tuning(name)
-			equal(Sites.HOME[name], sheet.post, name .. " home post"); equal(extraOf[name], sheet.extra, name .. " east extra post")
-			for _, key in ipairs({ sheet.post, sheet.extra }) do
+			equal(Sites.HOME[name], sheet.post, name .. " home post")
+			equal(extraCount[name], #sheet.extras, name .. " east extra posts")
+			for _, key in ipairs(sheet.extras) do
+				equal(extraOf[name] and extraOf[name][key], true, name .. " east extra post " .. key)
+			end
+			for _, key in ipairs(postsOf(name)) do
 				local w = Sites.world(nil, key)
 				table.insert(all, { key = key, x = w.x, z = w.z, name = name })
 				local post = key ~= sheet.post and key or nil
@@ -374,6 +410,7 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 				-- inset, and the gate edge (z 340, the old wall clamp line's place: open ground toward the hub past it) is
 				-- reached at most (K1: 430 - 90 = 340) (was east edge maxX - 10, north and south edges by 10, x - reach
 				-- >= 948 the wall clamp)
+				-- Deliberately changed (GL-D1): the far end is z 1460 now (SPACE.maxZ, the grown rect()) (was 860)
 				local A = T.Attack
 				local reach = Smarts.profile(name).zone + 12 + A.RangeStuds + A.PushStuds
 				assert(w.z + reach <= SPACE.maxZ - 10, key .. " reaches the far end")
@@ -382,11 +419,12 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 				-- Deliberately changed (PGM-D4): two wake circles from the gate edge (was w.x - 84 >= 938, the Collider's face)
 				assert(w.z - 84 >= SPACE.minZ, key .. " two wake circles from the gate edge")
 				-- Deliberately changed (PGM-D4): the K-D7 window in park-local terms (was world x 1038..1388, |z + 3| <= 180)
+				-- Deliberately changed (GL-D11): the window runs to lx 760 in the grown park (was lx <= 180)
 				local lx, lz = parkLocal(w.x, w.z)
-				assert(lx >= -170 and lx <= 180 and math.abs(lz) <= 180, key .. " outside the K-D7 window")
+				assert(lx >= -170 and lx <= 760 and math.abs(lz) <= 180, key .. " outside the GL-D11 window")
 			end
 		end
-		equal(#all, 8, "posts in all")
+		equal(#all, 16, "posts in all")
 		for i = 1, #all do
 			for j = i + 1, #all do
 				local d = flat(all[i].x, all[i].z, all[j].x, all[j].z)
@@ -395,7 +433,7 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 		end
 		-- With Set A: the park's nest table (WildboundKittenPark.NESTS) agrees with the posts and the guards
 		assert(type(Park) == "table" and type(Park.NESTS) == "table", "no WildboundKittenPark.NESTS given")
-		equal(#Park.NESTS, 8, "eight park nests")
+		equal(#Park.NESTS, 16, "sixteen park nests") -- Deliberately changed (GL-D10): K9..K16 added (was 8)
 		local markers = {}
 		for _, nest in ipairs(Park.NESTS) do
 			local key = nest.post and nest.post.key
@@ -407,7 +445,7 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 			local name, extra = string.match(nest.guard, "^(%w+)@(%w+)$")
 			if name then
 				equal(extra, key, nest.id .. " guard names its own post")
-				equal(extraOf[name], key, nest.id .. " guard is an EAST_EXTRA_POSTS row")
+				equal(extraOf[name] and extraOf[name][key], true, nest.id .. " guard is an EAST_EXTRA_POSTS row")
 			else
 				assert(string.match(nest.guard, "^%w+$"), nest.id .. " guard " .. tostring(nest.guard))
 				equal(Sites.HOME[nest.guard], key, nest.id .. " guard's home post")
@@ -417,7 +455,7 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 		end
 		-- and the server's island list keeps those guards and pays one tier more (WildboundCandyNests, K-D8, K-D9)
 		local islands = Nests.islands(markers, Nests.posts(Sites))
-		equal(#islands, 8, "every park nest becomes an island nest")
+		equal(#islands, 16, "every park nest becomes an island nest") -- Deliberately changed (GL-D10): 16 (was 8)
 		for _, entry in ipairs(islands) do
 			local nest
 			-- Deliberately changed (PG-D2, Pueblo Gatito is its own biome): a park entry's id is PARK_ID_PREFIX .. id
@@ -428,6 +466,49 @@ return function(Enc, Critter, Config, Sites, Smarts, Director, Chase, Nests, Par
 			equal(entry.guard, nest.guard, entry.id .. " guard"); equal(entry.park, true, entry.id .. " park")
 			equal(entry.rewardTier, Nests.PARK_POOL[nest.rarity].rewardTier, entry.id .. " pay")
 		end
+	end)
+
+	-- GL-11 (GL-D11, docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19 "hace el mapa bastante mas
+	-- largo y si hace falta colocar mas bichos de distintas zonas hazlo"): the eight posts of the grown park (K9..K16), two
+	-- more per kitten, at their world literals, in Pueblo Gatito, each with the wake rule and the frenzy's call, a hunt that
+	-- stays 10 studs inside the space (far end z 1460, sides x 22 and 542), and 85 apart from every one of the sixteen.
+	case("GL-11 the grown park's posts: K9..K16 at their literals, CandyEast, the wake and frenzy rules, inside by 10, 85 apart", function()
+		for i, row in ipairs(NEW_POSTS) do
+			local extra = Sites.EAST_EXTRA_POSTS[4 + i]
+			assert(extra, "no EAST_EXTRA_POSTS row " .. (4 + i))
+			equal(extra.name, row.name, "row " .. (4 + i) .. " kitten"); equal(extra.key, row.key, "row " .. (4 + i) .. " post")
+			local want, p = POSTS[row.key], Sites.EAST_FIXED[row.key]
+			assert(p, row.key .. " is not in EAST_FIXED")
+			near(p.x, want[1], row.key .. " x"); near(p.z, want[2], row.key .. " z")
+			local w = Sites.world(nil, row.key)
+			near(w.x, want[1], row.key .. " Sites.world x"); near(w.z, want[2], row.key .. " Sites.world z")
+			equal(Biomes.has(w.x, w.z, "CandyEast"), true, row.key .. " in Pueblo Gatito")
+			equal(Biomes.has(w.x, w.z, "Meadow"), false, row.key .. " never the candy plot")
+			local lx = parkLocal(w.x, w.z)
+			assert(lx >= 260 and lx <= 760, row.key .. " in the grown half (lx " .. lx .. ")")
+			local T, A = tuning(row.name), tuning(row.name).Attack
+			local function wants(dx, more)
+				local c = { alive = true, safe = false, meadow = true, x = w.x + dx, z = w.z }
+				for k, v in pairs(more or {}) do c[k] = v end
+				return Sites.wants(row.name, c, row.key)
+			end
+			equal(wants(T.WakeRadiusStuds - 1), true, row.key .. " 1 stud inside the wake radius")
+			equal(wants(T.WakeRadiusStuds + 1), false, row.key .. " 1 stud outside the wake radius")
+			equal(wants(0, { meadow = false }), false, row.key .. " outside a summoning biome")
+			equal(wants(0, { safe = true }), false, row.key .. " safe")
+			equal(wants(T.WakeRadiusStuds + 60, { frenzy = { x = w.x, z = w.z + 100, studs = 150 } }), true, row.key .. " a frenzy within 150")
+			equal(wants(T.WakeRadiusStuds + 60, { frenzy = { x = w.x, z = w.z + 151, studs = 150 } }), false, row.key .. " a frenzy out of reach")
+			local reach = Smarts.profile(row.name).zone + 12 + A.RangeStuds + A.PushStuds
+			assert(w.z + reach <= SPACE.maxZ - 10, row.key .. " reaches the far end (" .. (w.z + reach) .. ")")
+			assert(w.x + reach <= SPACE.maxX - 10 and w.x - reach >= SPACE.minX + 10, row.key .. " reaches a side edge")
+			for key, other in pairs(POSTS) do
+				if key ~= row.key then
+					local d = flat(w.x, w.z, other[1], other[2])
+					assert(d >= 85, row.key .. " and " .. key .. " only " .. d .. " apart")
+				end
+			end
+		end
+		equal(#Sites.EAST_EXTRA_POSTS, 4 + #NEW_POSTS, "the K-D11 rows first, then the eight GL-D11 rows")
 	end)
 
 	-- KK6 (K-D10): the director keeps the kittens in Caramelo Este and every other set out of it.

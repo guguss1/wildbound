@@ -6,23 +6,33 @@
 -- the park now stands on the big4 south arm in its own root Workspace.PuebloGatito_v1, and every park position is
 -- park-local, turned to world by ReplicatedStorage.WildboundGatitoArea (world(lx, lz) = (282 - lz, 600 + lx)); the K-D
 -- world literals below are the old frame's (Area.V1, centre (1208, -3)) and are converted through Area.localOfV1.
+-- Grown to 600 x 1200 (owner requests 2026-11-18 "hacelos mas largos aun" and 2026-11-19 "hace el mapa bastante mas
+-- largo"; docs/design/wildbound-pueblo-gatito-long-plan.md GL-D1..GL-D17): the park runs from the gate (local x -260)
+-- to the far end (local x 860); the K-D half (local x -260..260) keeps every item where it was except the far-end goal
+-- (TowerPlaza, the Torre Gato Vigía and its four lit lanterns, +600, GL-D9); the new half is the Jardín de Ovillos
+-- (GARDEN, its own generator GARDEN_SEED, GL-D6..GL-D8); 16 nests (GL-D10), a second portal disc (GL-D13).
 -- Pure plan and recipes, plus the builders that lay them into Workspace.PuebloGatito_v1:
---   plan(L, East)     every path, item and nest of the park in world studs (K-D16, Appendix A), with the drop rules
---                     applied and the part budget per folder (K-D18); the frame is Area's (PGM-D4), L and East unused;
---   buildGround(root) the park's own floor root.Ground.Floor, 520 x 520 green Grass (PGM-D2);
+--   plan(L, East, o)  every path, item and nest of the park in world studs (K-D16, Appendix A, GL-D7, GL-D8), with the
+--                     drop rules applied and the part budget per folder (K-D18 + GARDEN_BUDGET); the frame is Area's
+--                     (PGM-D4), L and East unused; o.garden == false leaves the garden out (a suite-only switch);
+--   buildGround(root) the park's own ground: root.Ground.Floor, the whole arm 600 x 1200 in green Grass, and
+--                     root.Ground.Approach, the slab from the big4 road's end to the arm (PGM-D2, GL-D3);
 --   recipe(kind, v)   one item as plain parts, local to its pivot (its ground centre, front toward -Z): primitive Parts
 --                     and Sphere SpecialMeshes only, no upload of any kind (K-D12, K-D21); signs are a SurfaceGui with a
 --                     TextLabel (K-D16);
 --   build(root)       lays root.Park (idempotent: conforms or creates, never removes);
---   syncNests(root)   the eight park nests root.Nests.Nest_K1..K8 and their marker contract (K-D8), run at every server
---                     start by WildboundCandyNests.applyFlags (K-D9);
+--   edgePlan()        the edge: three invisible solid walls and 100 hedge puffs along the arm's outer sides (GL-D4, GL-D5);
+--   buildEdge(root)   lays root.Edge.Walls and root.Edge.Hedge (idempotent: conforms or creates, never removes);
+--   strays(root, L, East) the pieces of root.Park that the plan does not keep where they stand (for the grow tool's archive);
+--   syncNests(root)   the sixteen park nests root.Nests.Nest_K1..K16 and their marker contract (K-D8, GL-D10), run at
+--                     every server start by WildboundCandyNests.applyFlags (K-D9);
 --   archiveAnnex      the big4 annex props that v8 moved into the space go to an archive folder (K-D17);
 --   clearGate         the plot's colliding pieces in the gate corridor go to an archive folder (K-D2).
 --   (archiveAnnex, clearGate and GATE_CORRIDOR work in the old frame east of Caramelo: obsolete for the move, kept, PGM-D8.)
 -- Roles follow WildboundCandyBuilder: floor and solid parts collide and answer queries, decor parts do neither; no part
 -- is ever touched (CanTouch false). Anything named SistemaSonriente, or under it, is refused (K-D20).
--- tools/wildbound-kitten-park-build.luau ran it once on the live map, tools/wildbound-pueblo-gatito-move.luau moves it
--- (PGM-D7); WildboundKittenPark_Test holds the rules.
+-- tools/wildbound-kitten-park-build.luau ran it once on the live map, tools/wildbound-pueblo-gatito-move.luau moved it
+-- (PGM-D7), tools/wildbound-pueblo-gatito-grow.luau grows it (GL-D14); WildboundKittenPark_Test holds the rules.
 local CollectionService = game:GetService("CollectionService")
 local Area = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundGatitoArea"))
 
@@ -30,15 +40,28 @@ local Park = {}
 
 local freeze = table.freeze
 
-Park.VERSION = 1
+Park.VERSION = 2 -- 1: the K-D park; 2: grown to 600 x 1200 (GL-D14)
 Park.ROOT_NAME = Area.ROOT_NAME -- PGM-D2: the park's own root, "PuebloGatito_v1" (was "Candy_Este_v1")
 Park.FOLDER = "Park"
 Park.NESTS_FOLDER = "Nests"
-Park.GROUND_FOLDER = "Ground" -- PGM-D2: root.Ground.Floor, the park's own floor
--- PGM-D2: the floor, the park's 2 * HALF square in the K-D15 park grass
-Park.FLOOR = freeze({ size = freeze({ 2 * Area.HALF, 1, 2 * Area.HALF }), color = freeze({ 140, 201, 107 }), material = "Grass" })
+Park.GROUND_FOLDER = "Ground" -- PGM-D2: root.Ground.Floor, the park's own floor (GL-D3: and root.Ground.Approach)
+-- GL-D3: the floor covers the whole arm (Area.ARM, 600 x 1200 centred at (297, 937); was the 2 * HALF square at the
+-- origin) in the K-D15 park grass; the size is in world axes (buildGround lays it with no turn)
+local ARM = Area.ARM
+Park.FLOOR = freeze({ size = freeze({ ARM.maxX - ARM.minX, 1, ARM.maxZ - ARM.minZ }),
+	centre = freeze({ x = (ARM.minX + ARM.maxX) / 2, z = (ARM.minZ + ARM.maxZ) / 2 }), color = freeze({ 140, 201, 107 }),
+	material = "Grass" })
+-- GL-D3: the Approach, the floor slab from the big4 road's end (z 324.5) to the arm's gate side (z 337), world studs
+Park.APPROACH = freeze({ minX = 272, maxX = 292, minZ = 324, maxZ = 337 })
+-- GL-D4: the edge (root.Edge, outside Ground on purpose: the resting service and the summon rays include Ground, and an
+-- 80-tall wall top would read as ground): walls `wall` thick and `height` tall along the arm's long sides from z
+-- wallFromZ, and across its far end
+Park.EDGE = freeze({ folder = "Edge", wall = 4, height = 80, wallFromZ = 937 })
+Park.EDGE_PARTS = 203 -- GL-D5: 3 walls + 100 hedge puffs x 2
 Park.FORBIDDEN = "SistemaSonriente"
 Park.SEED = 8128
+-- GL-D6: the Jardín de Ovillos draws every seeded yaw and jitter from its own generator, so the K-D half never moves
+Park.GARDEN_SEED = Park.SEED + Area.GROWTH -- 8728
 Park.NEST_TAG = "WildboundCandyNestCandidate" -- the tag every candy nest marker carries (WildboundCandyIsland.NEST_TAG)
 Park.FLOOR_TOP = Area.FLOOR_TOP -- 0.5 (Layout.FLOOR_TOP); used by syncNests when the root has no Ground.Floor
 -- K-D16 drop rules: a scatter or decor item is dropped within NEST of a nest, post or chest (its REACH added), within
@@ -55,7 +78,11 @@ Park.GATE_CORRIDOR = freeze({ minX = 896, maxX = 932, minZ = -17, maxZ = 11 })
 Park.FOLDERS = freeze({ "Paths", "Gate", "Village", "ToyPark", "Toys", "Chests", "Trees", "Lanterns", "Scatter" })
 Park.BUDGET = freeze({ Paths = 254, Gate = 8, Village = 310, ToyPark = 98, Toys = 160, Chests = 88, Trees = 208,
 	Lanterns = 130, Scatter = 136 })
-Park.PART_CAP = 1400
+-- GL-D8: the Jardín de Ovillos' BaseParts per folder before the drop rules (which should drop none of it), 1211 in all;
+-- its Chests are Chest_K9..K16
+Park.GARDEN_BUDGET = freeze({ Paths = 288, Gate = 0, Village = 93, ToyPark = 119, Toys = 188, Chests = 88, Trees = 196,
+	Lanterns = 105, Scatter = 134 })
+Park.PART_CAP = 2800 -- GL-D15: the park folder (2589 planned; was 1400)
 Park.NEST_PARTS = 2 -- Collision_Bowl and RarityRing (K-D8)
 -- K-D16: the sign strings, Latin text only (no CJK, so no font risk).
 Park.SIGNS = freeze({ "Pueblo Gatito", "Café Cat", "Paws & Coffee", "Panadería Gatuna", "=^.^=", "Takoyaki", "Taiyaki",
@@ -76,25 +103,50 @@ local function nest(id, rarity, x, z, key, px, pz, guard, cx, cz)
 		post = freeze({ key = key, x = postX, z = postZ, lx = postLx, lz = postLz }), guard = guard,
 		chest = freeze({ x = chestX, z = chestZ, lx = chestLx, lz = chestLz }) })
 end
--- K-D7/K-D8: the eight park nests (written as the K-D world studs of the old frame; PGM-D4 turns them into the park
--- frame, K1 at (337, 430) ... K8 at (162, 750)). Each post stands 12 studs from its nest toward the route; the chest
--- stands 7 studs on the far side, its open lid toward the nest. Rarity grows with the depth from the gate: 3 Comun,
--- 3 Rara, 2 Epica, no Legendaria (event-only, as in the plot). The guard is the kitten's name for a HOME post and
--- "<name>@<post key>" for an east extra post (WildboundPraderaSites.EAST_FIXED / EAST_EXTRA_POSTS).
+-- GL-D10: a garden nest written park-local (lx, lz) and turned to world by the frame; the post key is "kittenPost" .. id.
+local function parkNest(id, rarity, lx, lz, plx, plz, guard, clx, clz)
+	local nx, nz = Area.world(lx, lz)
+	local postX, postZ = Area.world(plx, plz)
+	local chestX, chestZ = Area.world(clx, clz)
+	return freeze({ id = id, rarity = rarity, x = nx, z = nz, lx = lx, lz = lz,
+		post = freeze({ key = "kittenPost" .. id, x = postX, z = postZ, lx = plx, lz = plz }), guard = guard,
+		chest = freeze({ x = chestX, z = chestZ, lx = clx, lz = clz }) })
+end
+-- K-D7/K-D8: the park nests (K1..K8 written as the K-D world studs of the old frame; PGM-D4 turns them into the park
+-- frame, K1 at (337, 430) ... K8 at (162, 750); K9..K16 park-local, GL-D10, K9 at (204, 900) ... K16 at (357, 1330)).
+-- Each post stands 12 studs from its nest toward the route; the chest stands 7 studs on the far side, its open lid
+-- toward the nest. Rarity grows with the depth from the gate (GL-D10): 5 Comun (K1..K5, local x -170..20), 6 Rara
+-- (K6..K11, local x 35..420), 5 Epica (K12..K16, local x 470..730, all in the garden), no Legendaria (event-only, as in
+-- the plot). The guard is the kitten's name for a HOME post and "<name>@<post key>" for an east extra post
+-- (WildboundPraderaSites.EAST_FIXED / EAST_EXTRA_POSTS).
 Park.NESTS = freeze({
 	nest("K1", "Comun", 1038, -58, "kittenPostK1", 1038, -46, "GatitoGuerrero", 1038, -65),
 	nest("K2", "Comun", 1043, 92, "kittenPostK2", 1043, 104, "GatitaBouquet", 1043, 85),
 	nest("K3", "Comun", 1143, -65, "kittenPostK3", 1143, -53, "GatitoActually", 1143, -72),
-	nest("K4", "Rara", 1158, 67, "kittenPostK4", 1158, 55, "GatitoLanudo", 1158, 74),
-	nest("K5", "Rara", 1228, -73, "kittenPostK5", 1228, -61, "GatitoGuerrero@kittenPostK5", 1228, -80),
+	nest("K4", "Comun", 1158, 67, "kittenPostK4", 1158, 55, "GatitoLanudo", 1158, 74), -- GL-D10: was Rara
+	nest("K5", "Comun", 1228, -73, "kittenPostK5", 1228, -61, "GatitoGuerrero@kittenPostK5", 1228, -80), -- GL-D10: was Rara
 	nest("K6", "Rara", 1243, 72, "kittenPostK6", 1243, 60, "GatitaBouquet@kittenPostK6", 1243, 79),
-	nest("K7", "Epica", 1358, -123, "kittenPostK7", 1358, -111, "GatitoActually@kittenPostK7", 1358, -130),
-	nest("K8", "Epica", 1358, 117, "kittenPostK8", 1358, 105, "GatitoLanudo@kittenPostK8", 1358, 124),
+	nest("K7", "Rara", 1358, -123, "kittenPostK7", 1358, -111, "GatitoActually@kittenPostK7", 1358, -130), -- GL-D10: was Epica
+	nest("K8", "Rara", 1358, 117, "kittenPostK8", 1358, 105, "GatitoLanudo@kittenPostK8", 1358, 124), -- GL-D10: was Epica
+	parkNest("K9", "Rara", 300, 78, 300, 66, "GatitoGuerrero@kittenPostK9", 300, 85),
+	parkNest("K10", "Rara", 360, -80, 360, -68, "GatitaBouquet@kittenPostK10", 360, -87),
+	parkNest("K11", "Rara", 420, 90, 420, 78, "GatitoActually@kittenPostK11", 420, 97),
+	parkNest("K12", "Epica", 470, -95, 470, -83, "GatitoLanudo@kittenPostK12", 470, -102),
+	parkNest("K13", "Epica", 560, 85, 560, 73, "GatitoGuerrero@kittenPostK13", 560, 92),
+	parkNest("K14", "Epica", 600, -80, 600, -68, "GatitaBouquet@kittenPostK14", 600, -87),
+	parkNest("K15", "Epica", 680, 80, 680, 68, "GatitoActually@kittenPostK15", 680, 87),
+	parkNest("K16", "Epica", 730, -75, 730, -63, "GatitoLanudo@kittenPostK16", 730, -82),
 })
+-- GL-D15: the whole root's cap: the park folder, the edge, the Floor and the Approach, the nests (3037)
+Park.ROOT_CAP = Park.PART_CAP + Park.EDGE_PARTS + 2 + #Park.NESTS * Park.NEST_PARTS
 -- K-D3: the return portal station "parque" (built by WildboundPortalService at server start) and its clear disc.
 -- PGM-D4: K-D (980, 40) is local (-228, 43), world (239, 372).
 local portalX, portalZ, portalLx, portalLz = moved(980, 40)
 Park.PORTAL = freeze({ x = portalX, z = portalZ, lx = portalLx, lz = portalLz })
+-- GL-D13: the second portal station "parque2" (WildboundPortal.STATIONS, built by the service) at the far end, local
+-- (775, 55), world (227, 1375); the drop rule clears the same 12-stud disc round it.
+local portal2X, portal2Z = Area.world(775, 55)
+Park.PORTAL2 = freeze({ x = portal2X, z = portal2Z, lx = 775, lz = 55 })
 -- K-D16: where a player lands through the gate; only the gate arch and the paths stand in this disc.
 -- PGM-D4: K-D (964, -3) is local (-244, 0), world (282, 356).
 local arrivalX, arrivalZ, arrivalLx, arrivalLz = moved(964, -3)
@@ -124,7 +176,8 @@ local LOCAL = {
 		{ id = "VillageSquare", x = -100, z = -110, d = 26 },
 		{ id = "ToyPlaza", x = -100, z = 110, d = 26 },
 		{ id = "EastJunction", x = 120, z = 0, d = 24 },
-		{ id = "TowerPlaza", x = 215, z = 0, d = 50 },
+		-- GL-D9: the far-end goal moved +600 (was (215, 0)); PuertaJardin (GARDEN) covers the seam where it stood
+		{ id = "TowerPlaza", x = 815, z = 0, d = 50 },
 	},
 	arch = { x = -254, z = 0 },
 	-- local yaw 0: the front faces local -z; 180 local +z; 90 local -x (plan turns them by Area.worldYaw, PGM-D4)
@@ -136,7 +189,7 @@ local LOCAL = {
 		{ id = "TakoyakiGatuno", kind = "takoyaki", folder = "Village", x = 15, z = -160, yaw = 180 },
 		{ id = "TaiyakiMochi", kind = "taiyaki", folder = "Village", x = 40, z = -95, yaw = 0 },
 		{ id = "CastilloCarton", kind = "castle", folder = "Village", x = -190, z = -175, yaw = 180 },
-		{ id = "TorreGatoVigia", kind = "tower", folder = "Village", x = 220, z = 0, yaw = 90 },
+		{ id = "TorreGatoVigia", kind = "tower", folder = "Village", x = 820, z = 0, yaw = 90 }, -- GL-D9: was (220, 0)
 		{ id = "CastilloRascador", kind = "scratchCastle", folder = "ToyPark", x = -160, z = 175, yaw = 0 },
 		{ id = "ArbolRascador", kind = "scratchTree", folder = "ToyPark", x = -60, z = 175, yaw = 0 },
 		{ id = "TorreDeCajas", kind = "boxTower", folder = "ToyPark", x = -110, z = 160, yaw = 0 },
@@ -175,11 +228,12 @@ local LOCAL = {
 	bushes = { { -222, 32 }, { -222, -36 }, { -140, -60 }, { -150, 60 }, { -40, -75 }, { 55, -75 }, { -215, -160 }, { -185, 120 },
 		{ -25, 110 }, { 75, 30 }, { 240, 40 }, { 85, -25 } },
 	lanternsTall = { { -205, 9 }, { -150, -10 }, { -90, 9 }, { -30, -13 }, { 30, 14 }, { 90, -4 }, { 150, 9 }, { 180, -9 } },
-	-- { x, z, lit }: the four on the Tower Plaza carry a light (K-D18: 8 tall + 4 = 12 PointLights)
+	-- { x, z, lit }: the four on the Tower Plaza carry a light (K-D18: 8 tall + 4 = 12 PointLights; GL-D8: with the
+	-- garden's 7 tall ones, 19); GL-D9: they moved +600 with the plaza (were at local x 195 and 235)
 	lanternsShort = { { -180, -108 }, { -140, -125 }, { -60, -110 }, { -20, -140 }, { 20, -117 }, { 45, -135 },
 		{ -160, 143 }, { -60, 135 }, { 0, 128 }, { 40, 140 },
 		{ -132, 12 }, { -132, -12 }, { -108, 12 }, { -108, -12 },
-		{ 195, 20, true }, { 195, -20, true }, { 235, 20, true }, { 235, -20, true } },
+		{ 795, 20, true }, { 795, -20, true }, { 835, 20, true }, { 835, -20, true } },
 	patches = { { -230, 120 }, { -230, -130 }, { -165, 95 }, { -60, 70 }, { -60, -60 }, { 0, -215 }, { -140, -220 }, { -120, 240 },
 		{ 30, 90 }, { 80, 40 }, { 150, 30 }, { 200, 130 }, { 100, 230 }, { 200, -60 }, { 160, -200 }, { 60, -230 } },
 	flowers = { { -212, 20 }, { -212, -22 }, { -185, 18 }, { -190, -22 }, { -140, 25 }, { -95, -22 }, { -70, 15 }, { -20, 22 },
@@ -188,6 +242,87 @@ local LOCAL = {
 	tufts = { { -205, 40 }, { -205, -45 }, { -175, -40 }, { -165, 30 }, { -100, 30 }, { -100, -35 }, { -50, 25 }, { -30, -30 },
 		{ 5, 30 }, { 35, -30 }, { 68, -25 }, { 105, 25 }, { 175, 25 }, { 175, -25 }, { -150, -130 }, { -75, -135 },
 		{ 25, -140 }, { -185, 160 }, { -70, 150 }, { -5, 160 }, { 75, 120 }, { 200, 170 }, { 120, -140 }, { 190, -200 } },
+}
+
+-- GL-D7, GL-D8: the Jardín de Ovillos, the new half (local x 260..860), park-local like LOCAL and with its row shapes.
+-- plan() lays it after LOCAL in every category and draws its seeded yaws and jitters from Random.new(GARDEN_SEED), so
+-- no K-D item moves (GL-D6). Existing recipes only and no sign-bearing kinds; every row keeps the drop rules' distances.
+local GARDEN = {
+	paths = {
+		-- M2, the main path's continuation from M's end (190, 0) to the far plaza (800, 0), 12 wide: 8 strips, 7 joints,
+		-- 123 slabs; a second path, so M and every K-D draw stay as they were
+		{ id = "M2", width = 12, main = true,
+			points = { { 190, 0 }, { 260, 0 }, { 330, -10 }, { 410, 4 }, { 490, -8 }, { 570, 6 }, { 650, -6 }, { 730, 4 }, { 800, 0 } } },
+		-- the garden's forks, 8 wide: from the PlazaOvillos to the two side gardens, and the two long walks
+		{ id = "GN", width = 8, points = { { 490, -8 }, { 500, 55 }, { 520, 120 } } },
+		{ id = "GS", width = 8, points = { { 490, -8 }, { 500, -65 }, { 520, -125 } } },
+		{ id = "GT", width = 8, points = { { 320, 140 }, { 420, 128 }, { 520, 120 }, { 620, 130 }, { 700, 110 } } },
+		{ id = "GV", width = 8, points = { { 320, -140 }, { 420, -128 }, { 520, -125 }, { 620, -135 }, { 700, -115 } } },
+	},
+	junctions = {
+		{ id = "PuertaJardin", x = 190, z = 0, d = 24 }, -- the M/M2 seam, where TowerPlaza was
+		{ id = "PlazaOvillos", x = 490, z = -8, d = 30 }, -- the garden's centre plaza, on M2's bend
+		{ id = "JardinNorte", x = 520, z = 120, d = 26 },
+		{ id = "JardinSur", x = 520, z = -125, d = 26 },
+	},
+	-- local yaw 0: the front faces local -z; 180 local +z
+	buildings = {
+		{ id = "CasaOvillera", kind = "potter", folder = "Village", x = 380, z = -195, yaw = 180 },
+		{ id = "CastilloDeOvillos", kind = "castle", folder = "Village", x = 690, z = 195, yaw = 0 },
+		{ id = "ArbolRascadorJardin", kind = "scratchTree", folder = "ToyPark", x = 430, z = 195, yaw = 0 },
+		{ id = "TorreDeCajasJardin", kind = "boxTower", folder = "ToyPark", x = 560, z = 190, yaw = 0 },
+		{ id = "CastilloRascadorJardin", kind = "scratchCastle", folder = "ToyPark", x = 600, z = -195, yaw = 180 },
+		{ id = "TorreDeCajasMirador", kind = "boxTower", folder = "ToyPark", x = 745, z = -185, yaw = 180 },
+	},
+	-- toys: { id, kind, x, z, yaw (nil: seeded by the garden's generator), variant }; ten giant yarns ring the plaza and
+	-- the side gardens, the rolls, tubes and bags make two toy piles by JardinNorte and JardinSur
+	toys = {
+		{ "Yarn_G1", "yarn", 455, 40, nil, "rainbow" }, { "Yarn_G2", "yarn", 530, -45, nil, "sky" },
+		{ "Yarn_G3", "yarn", 455, -50, nil, "pink" }, { "Yarn_G4", "yarn", 530, 45, nil, "cream" },
+		{ "Yarn_G5", "yarn", 360, 175, nil, "orange" }, { "Yarn_G6", "yarn", 640, 180, nil, "lime" },
+		{ "Yarn_G7", "yarn", 650, -185, nil, "purple" }, { "Yarn_G8", "yarn", 300, -195, nil, "rainbow" },
+		{ "Yarn_G9", "yarn", 775, 140, nil, "sky" }, { "Yarn_G10", "yarn", 790, -120, nil, "pink" },
+		{ "YarnSmall_G1", "yarnSmall", 470, 55, nil, "pink" }, { "YarnSmall_G2", "yarnSmall", 440, 30, nil, "sky" },
+		{ "YarnSmall_G3", "yarnSmall", 545, -30, nil, "lime" }, { "YarnSmall_G4", "yarnSmall", 440, -35, nil, "orange" },
+		{ "YarnSmall_G5", "yarnSmall", 550, 60, nil, "cream" }, { "YarnSmall_G6", "yarnSmall", 520, -60, nil, "purple" },
+		{ "YarnSmall_G7", "yarnSmall", 380, 190, nil, "rainbow" }, { "YarnSmall_G8", "yarnSmall", 620, 175, nil, "pink" },
+		{ "YarnSmall_G9", "yarnSmall", 670, -170, nil, "sky" }, { "YarnSmall_G10", "yarnSmall", 320, -180, nil, "lime" },
+		{ "YarnSmall_G11", "yarnSmall", 760, 120, nil, "orange" }, { "YarnSmall_G12", "yarnSmall", 770, -100, nil, "cream" },
+		{ "YarnSmall_G13", "yarnSmall", 600, 30, nil, "purple" }, { "YarnSmall_G14", "yarnSmall", 390, -30, nil, "rainbow" },
+		{ "ToiletRoll_G", "rollStand", 470, 165, nil }, { "RollStand_G2", "rollStand", 545, -165, nil },
+		{ "ToiletRollLying_G", "rollLying", 500, 175, 0 }, { "KitchenRoll_G", "kitchen", 465, 180, nil },
+		{ "TubeTunnel_G1", "tunnel", 530, 220, 0 }, { "TubeTunnel_G2", "tunnel", 500, -200, 0 },
+		{ "Tube_G1", "tube", 545, 160, nil }, { "Tube_G2", "tube", 455, 205, nil }, { "Tube_G3", "tube", 455, -170, nil },
+		{ "TubeBundle_G1", "bundle", 585, 225, 0 }, { "TubeBundle_G2", "bundle", 455, -215, 0 },
+		{ "SwabBench_G1", "swab", 480, -150, 0, "mint" }, { "SwabBench_G2", "swab", 480, 150, 0, "pink" },
+		{ "SwabBench_G3", "swab", 640, -60, 0, "blue" }, { "SwabCup_G", "swabCup", 575, -230, 0 },
+		{ "PaperBall_G1", "paperBall", 510, 200, nil }, { "PaperBall_G2", "paperBall", 590, 155, nil },
+		{ "PaperBall_G3", "paperBall", 470, -185, nil }, { "PaperBall_G4", "paperBall", 560, -160, nil },
+		{ "PaperBall_G5", "paperBall", 720, 40, nil }, { "PaperBall_G6", "paperBall", 350, 30, nil },
+		{ "PaperBag_G", "paperBag", 720, 160, 0 }, { "GiantBag_G", "giantBag", 420, -230, 45 },
+	},
+	treesL = { { 280, 110 }, { 285, -110 }, { 330, 230 }, { 340, -235 }, { 400, 60 }, { 410, -75 }, { 480, 245 }, { 470, -245 },
+		{ 610, 100 }, { 630, -100 }, { 650, 235 }, { 700, -240 }, { 760, 200 }, { 800, -170 }, { 840, 120 }, { 845, -95 } },
+	treesS = { { 300, 30 }, { 310, -40 }, { 370, 105 }, { 385, -105 }, { 450, 90 }, { 560, -95 }, { 585, 100 }, { 660, 40 },
+		{ 670, -40 }, { 735, 170 }, { 760, -150 }, { 820, 170 }, { 825, -140 }, { 395, 225 }, { 420, -170 }, { 530, 250 },
+		{ 540, -250 }, { 290, 200 } },
+	bushes = { { 275, 25 }, { 275, -25 }, { 430, 40 }, { 430, -50 }, { 555, 30 }, { 560, -40 }, { 340, 160 }, { 340, -165 },
+		{ 640, 150 }, { 640, -150 }, { 750, 60 }, { 755, -45 }, { 850, 40 }, { 850, -40 } },
+	-- seven tall lanterns along M2, about 10 off its centre line like the K-D ones, each with its light
+	lanternsTall = { { 270, 10 }, { 350, -17 }, { 430, 12 }, { 510, -15 }, { 590, 12 }, { 670, -14 }, { 750, 13 } },
+	-- fourteen unlit short ones: the PlazaOvillos (the PlazaCentral pattern), JardinNorte, JardinSur, the two walks
+	lanternsShort = { { 478, 4 }, { 478, -20 }, { 502, 4 }, { 502, -20 },
+		{ 507, 137 }, { 533, 137 }, { 535, 103 },
+		{ 507, -142 }, { 533, -142 }, { 535, -108 },
+		{ 395, 140 }, { 645, 140 }, { 395, -140 }, { 645, -140 } },
+	patches = { { 300, 120 }, { 300, -120 }, { 390, 170 }, { 400, -165 }, { 460, 70 }, { 440, -80 }, { 575, 50 }, { 575, -50 },
+		{ 640, 200 }, { 690, -170 }, { 720, 90 }, { 720, -100 }, { 800, 100 }, { 800, -80 } },
+	flowers = { { 290, 20 }, { 295, -22 }, { 360, 20 }, { 335, -30 }, { 410, 24 }, { 400, -22 }, { 470, 25 }, { 465, -30 },
+		{ 520, 25 }, { 525, -28 }, { 600, -25 }, { 620, 25 }, { 700, 28 }, { 705, -25 }, { 780, 25 }, { 775, -30 },
+		{ 545, 145 }, { 545, -145 }, { 350, 150 }, { 355, -150 }, { 600, 150 }, { 610, -160 }, { 690, 140 }, { 680, -140 } },
+	tufts = { { 305, 45 }, { 320, -55 }, { 375, 40 }, { 385, -45 }, { 445, 70 }, { 450, -65 }, { 540, 70 }, { 545, -70 },
+		{ 625, 55 }, { 640, -35 }, { 710, 50 }, { 705, -50 }, { 790, 45 }, { 790, -45 }, { 420, 160 }, { 430, -150 },
+		{ 585, 175 }, { 590, -175 }, { 665, 200 }, { 725, -200 }, { 760, 165 }, { 775, -160 }, { 825, 60 }, { 825, -60 } },
 }
 
 -- Palette (art pass §2): the master photo's green park, beige stones, pink blossom; nothing dark or violet on the ground.
@@ -1028,6 +1163,15 @@ R.tuft = function() -- grass tuft [2]: two crossed blades
 	return l
 end
 
+-- GL-D5: the edge border (decor; laid by buildEdge, outside the drop rules).
+R.hedge = function(length) -- hedge puff [2]: a long low grass oval and a lighter top, along local X
+	local l = {}
+	local L = tonumber(length) or 30
+	oval(l, "Puff", { L, 5, 8 }, { 0, 2.5, 0 }, C.GRASS_DK, "decor", "Grass")
+	oval(l, "Top", { L * 0.6, 3.5, 5.5 }, { 0, 4.6, 0.5 }, C.GRASS_LT, "decor", "Grass")
+	return l
+end
+
 -- Every kind, for the suite.
 Park.KINDS = {}
 for kind in pairs(R) do table.insert(Park.KINDS, kind) end
@@ -1116,38 +1260,55 @@ local function eastModule(E)
 	return require(game:GetService("ServerStorage"):WaitForChild("WildboundCandyEast"))
 end
 
--- plan(L, East) -> the park in world studs (PGM-D4: the frame is Area's; L and East stay in the signature, unused):
---   centre, space, floorTop          Area.ORIGIN (282, 600), Area.rect() (x 22..542, z 340..860), Area.FLOOR_TOP 0.5
+-- plan(L, East, options) -> the park in world studs (PGM-D4: the frame is Area's; L and East stay in the signature,
+-- unused):
+--   centre, space, floorTop          Area.ORIGIN (282, 600), Area.rect() (x 22..542, z 340..1460), Area.FLOOR_TOP 0.5
 --   gate = { x, z, width }           the Arco de Nubes (world (282, 346), local (-254, 0)) and its 14-stud gap
---   paths = { { id, width, points = { { x, z } } } }   the main path M and the six forks (K-D16, Appendix A)
+--   paths = { { id, width, main, points = { { x, z } } } }   the main path M and the six forks (K-D16, Appendix A), then
+--                                    the garden's M2, GN, GS, GT and GV (GL-D7)
 --   items = { { id, kind, folder, x, z, yaw, variant? } }   every kept item (world yaw in degrees; 0 = front toward world
 --                                    -z): a yaw from the local tables is turned by Area.worldYaw, a yaw computed from world
 --                                    points (along a path, toward a nest or a path, seeded) is already a world yaw
 --   dropped = { { id, kind, folder, x, z, reason, parts } }  the items the drop rules removed (K-D16)
---   budget = { [folder] = parts }, parts = the Park total; nests = Park.NESTS, portal, arrival
--- The turn keeps every distance, so the drops and the budget are the K-D ones (1378 parts). Deterministic (Park.SEED); pure.
-function Park.plan(L, East)
+--   budget = { [folder] = parts }, parts = the Park total; nests = Park.NESTS, portal, portal2, arrival
+-- options.garden == false leaves the GARDEN rows out (a suite-only switch, GL-3); build() and the tools pass none.
+-- GL-D6: in every category the LOCAL rows come first and draw from Random.new(Park.SEED) in the same order as before the
+-- garden, then the GARDEN rows draw from Random.new(Park.GARDEN_SEED), so no K-D item moves. The turn keeps every
+-- distance, so the K-D drops are the K-D ones and the garden drops none: K-D18 + GARDEN_BUDGET - 14 = 2589 parts.
+-- Deterministic; pure.
+function Park.plan(L, East, options)
 	local cx, cz, top = Area.ORIGIN.x, Area.ORIGIN.z, Area.FLOOR_TOP
 	local rng = Random.new(Park.SEED)
+	local grow = Random.new(Park.GARDEN_SEED)
 	local world = Area.world
+	-- the row sets in plan order, each with its generator; tag goes into the garden's generated ids (TreeL_G01, ...)
+	local sets = { { rows = LOCAL, gen = rng, tag = "" } }
+	if not (type(options) == "table" and options.garden == false) then
+		table.insert(sets, { rows = GARDEN, gen = grow, tag = "G" })
+	end
 	local items, kept, dropped = {}, {}, {}
 	local function item(id, kind, folder, x, z, yaw, variant)
 		table.insert(items, { id = id, kind = kind, folder = folder, x = x, z = z, yaw = yaw or 0, variant = variant })
 	end
-	local function seeded() return rng:NextInteger(0, 359) end
+	local function seeded(gen) return gen:NextInteger(0, 359) end
 
-	-- paths (world points)
-	local paths, stones = {}, 0
-	for _, p in ipairs(LOCAL.paths) do
-		local points = {}
-		for i, q in ipairs(p.points) do
-			local x, z = world(q[1], q[2])
-			points[i] = freeze({ x = x, z = z })
+	-- paths (world points): the K-D ones, then the garden's (so the drop rule and the lanterns' facing see them all)
+	local paths, pathGen, stones = {}, {}, 0
+	for _, set in ipairs(sets) do
+		for _, p in ipairs(set.rows.paths) do
+			local points = {}
+			for i, q in ipairs(p.points) do
+				local x, z = world(q[1], q[2])
+				points[i] = freeze({ x = x, z = z })
+			end
+			local path = freeze({ id = p.id, width = p.width, main = p.main == true, points = freeze(points) })
+			table.insert(paths, path)
+			pathGen[path] = set.gen
 		end
-		table.insert(paths, freeze({ id = p.id, width = p.width, main = p.main == true, points = freeze(points) }))
 	end
 	for _, path in ipairs(paths) do
 		local pts = path.points
+		local gen = pathGen[path]
 		if path.main then
 			-- a sand strip per leg, a joint disc per bend, a slab every 5 studs alternating +-2.5 across the path
 			for i = 1, #pts - 1 do
@@ -1166,7 +1327,7 @@ function Park.plan(L, East)
 				local x, z, dx, dz = along(pts, s)
 				local across = (k % 2 == 1) and 2.5 or -2.5
 				item(("Path_%s_Slab%03d"):format(path.id, k), "slab", "Paths", x - dz * across, z + dx * across,
-					yawAlong(dx, dz) + rng:NextNumber(-18, 18), k)
+					yawAlong(dx, dz) + gen:NextNumber(-18, 18), k)
 				s += 5
 			end
 		else
@@ -1176,48 +1337,60 @@ function Park.plan(L, East)
 			local step = total / n
 			for i = 1, n do
 				local x, z, dx, dz = along(pts, (i - 0.5) * step)
-				local on, off = rng:NextNumber(-1, 1), rng:NextNumber(-1, 1)
+				local on, off = gen:NextNumber(-1, 1), gen:NextNumber(-1, 1)
 				stones += 1
 				item(("Path_%s_Stone%02d"):format(path.id, i), "stone", "Paths", x + dx * on - dz * off, z + dz * on + dx * off,
-					yawAlong(dx, dz) + rng:NextNumber(-25, 25), stones)
+					yawAlong(dx, dz) + gen:NextNumber(-25, 25), stones)
 			end
 		end
 	end
-	for _, j in ipairs(LOCAL.junctions) do
-		local x, z = world(j.x, j.z)
-		item("Junction_" .. j.id, "junction", "Paths", x, z, 0, j.d)
+	for _, set in ipairs(sets) do
+		for _, j in ipairs(set.rows.junctions) do
+			local x, z = world(j.x, j.z)
+			item("Junction_" .. j.id, "junction", "Paths", x, z, 0, j.d)
+		end
 	end
 	-- the gate
 	local gx, gz = world(LOCAL.arch.x, LOCAL.arch.z)
 	item("ArcoDeNubes", "arch", "Gate", gx, gz, Area.worldYaw(0)) -- PGM-D4: local yaw 0, the pillars across the gate's axis
 	-- the village and the toy park
-	for _, b in ipairs(LOCAL.buildings) do
-		local x, z = world(b.x, b.z)
-		item(b.id, b.kind, b.folder, x, z, Area.worldYaw(b.yaw))
+	for _, set in ipairs(sets) do
+		for _, b in ipairs(set.rows.buildings) do
+			local x, z = world(b.x, b.z)
+			item(b.id, b.kind, b.folder, x, z, Area.worldYaw(b.yaw))
+		end
 	end
 	-- toys
-	for _, t in ipairs(LOCAL.toys) do
-		local x, z = world(t[3], t[4])
-		local yaw = t[5]
-		if yaw == nil then yaw = seeded() else yaw = Area.worldYaw(yaw) end
-		item(t[1], t[2], "Toys", x, z, yaw, t[6])
+	for _, set in ipairs(sets) do
+		for _, t in ipairs(set.rows.toys) do
+			local x, z = world(t[3], t[4])
+			local yaw = t[5]
+			if yaw == nil then yaw = seeded(set.gen) else yaw = Area.worldYaw(yaw) end
+			item(t[1], t[2], "Toys", x, z, yaw, t[6])
+		end
 	end
-	-- chests: at the K-D8 chest points, the front (and the open lid) toward the nest
+	-- chests: at the K-D8 (GL-D10) chest points, the front (and the open lid) toward the nest
 	for _, n in ipairs(Park.NESTS) do
 		item("Chest_" .. n.id, "chest", "Chests", n.chest.x, n.chest.z, round(yawToward(n.chest.x, n.chest.z, n.x, n.z), 4))
 	end
 	-- trees and bushes
-	for i, q in ipairs(LOCAL.treesL) do
-		local x, z = world(q[1], q[2])
-		item(("TreeL_%02d"):format(i), "treeL", "Trees", x, z, seeded())
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.treesL) do
+			local x, z = world(q[1], q[2])
+			item(("TreeL_%s%02d"):format(set.tag, i), "treeL", "Trees", x, z, seeded(set.gen))
+		end
 	end
-	for i, q in ipairs(LOCAL.treesS) do
-		local x, z = world(q[1], q[2])
-		item(("TreeS_%02d"):format(i), "treeS", "Trees", x, z, seeded())
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.treesS) do
+			local x, z = world(q[1], q[2])
+			item(("TreeS_%s%02d"):format(set.tag, i), "treeS", "Trees", x, z, seeded(set.gen))
+		end
 	end
-	for i, q in ipairs(LOCAL.bushes) do
-		local x, z = world(q[1], q[2])
-		item(("Bush_%02d"):format(i), "bush", "Trees", x, z, seeded())
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.bushes) do
+			local x, z = world(q[1], q[2])
+			item(("Bush_%s%02d"):format(set.tag, i), "bush", "Trees", x, z, seeded(set.gen))
+		end
 	end
 	-- lanterns: each faces the nearest path point (the tall ones hang their bell over the path)
 	local function facing(x, z)
@@ -1228,26 +1401,36 @@ function Park.plan(L, East)
 		end
 		return round(yawToward(x, z, bx, bz), 4)
 	end
-	for i, q in ipairs(LOCAL.lanternsTall) do
-		local x, z = world(q[1], q[2])
-		item(("LanternTall_%d"):format(i), "lanternTall", "Lanterns", x, z, facing(x, z))
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.lanternsTall) do
+			local x, z = world(q[1], q[2])
+			item(("LanternTall_%s%d"):format(set.tag, i), "lanternTall", "Lanterns", x, z, facing(x, z))
+		end
 	end
-	for i, q in ipairs(LOCAL.lanternsShort) do
-		local x, z = world(q[1], q[2])
-		item(("LanternShort_%02d"):format(i), "lanternShort", "Lanterns", x, z, facing(x, z), q[3] and "light" or nil)
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.lanternsShort) do
+			local x, z = world(q[1], q[2])
+			item(("LanternShort_%s%02d"):format(set.tag, i), "lanternShort", "Lanterns", x, z, facing(x, z), q[3] and "light" or nil)
+		end
 	end
-	-- scatter
-	for i, q in ipairs(LOCAL.patches) do
-		local x, z = world(q[1], q[2])
-		item(("Patch_%02d"):format(i), "patch", "Scatter", x, z, seeded(), (i % 2) + 1)
+	-- scatter (a patch's and a flower's variant by its own index in its set)
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.patches) do
+			local x, z = world(q[1], q[2])
+			item(("Patch_%s%02d"):format(set.tag, i), "patch", "Scatter", x, z, seeded(set.gen), (i % 2) + 1)
+		end
 	end
-	for i, q in ipairs(LOCAL.flowers) do
-		local x, z = world(q[1], q[2])
-		item(("Flower_%02d"):format(i), "flower", "Scatter", x, z, seeded(), (i - 1) % 3 + 1)
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.flowers) do
+			local x, z = world(q[1], q[2])
+			item(("Flower_%s%02d"):format(set.tag, i), "flower", "Scatter", x, z, seeded(set.gen), (i - 1) % 3 + 1)
+		end
 	end
-	for i, q in ipairs(LOCAL.tufts) do
-		local x, z = world(q[1], q[2])
-		item(("Tuft_%02d"):format(i), "tuft", "Scatter", x, z, seeded())
+	for _, set in ipairs(sets) do
+		for i, q in ipairs(set.rows.tufts) do
+			local x, z = world(q[1], q[2])
+			item(("Tuft_%s%02d"):format(set.tag, i), "tuft", "Scatter", x, z, seeded(set.gen))
+		end
 	end
 
 	-- K-D16 drop rules
@@ -1261,6 +1444,7 @@ function Park.plan(L, East)
 			end
 		end
 		if flat(it.x, it.z, Park.PORTAL.x, Park.PORTAL.z) < CL.portal then return "by the portal" end
+		if flat(it.x, it.z, Park.PORTAL2.x, Park.PORTAL2.z) < CL.portal then return "by the second portal" end -- GL-D13
 		if flat(it.x, it.z, Park.ARRIVAL.x, Park.ARRIVAL.z) < Park.ARRIVAL.r then return "in the arrival disc" end
 		if it.folder ~= "Lanterns" then
 			for _, path in ipairs(paths) do
@@ -1286,7 +1470,7 @@ function Park.plan(L, East)
 		centre = { x = cx, z = cz }, space = Area.rect(), floorTop = top,
 		gate = { x = gx, z = gz, width = 14 }, -- PGM-D4: the K-D1 gap, no longer East.GATE (PGM-D5 drops it)
 		paths = paths, items = kept, dropped = dropped, budget = budget, parts = total,
-		nests = Park.NESTS, portal = Park.PORTAL, arrival = Park.ARRIVAL,
+		nests = Park.NESTS, portal = Park.PORTAL, portal2 = Park.PORTAL2, arrival = Park.ARRIVAL,
 	}
 end
 
@@ -1357,7 +1541,9 @@ local function conform(part, spec, pivot, report, isNew)
 	n += apply(part, {
 		Size = Vector3.new(s[1], s[2], s[3]), CFrame = cf, Color = rgb(spec.color), Material = material(spec.material),
 		Transparency = spec.transparency or 0, CanCollide = solid, CanQuery = solid, CanTouch = false,
-		CastShadow = spec.role ~= "floor" and biggest >= 2, TopSurface = Enum.SurfaceType.Smooth,
+		-- GL-D4: a spec may set its shadow (the invisible edge walls cast none)
+		CastShadow = if spec.castShadow ~= nil then spec.castShadow else (spec.role ~= "floor" and biggest >= 2),
+		TopSurface = Enum.SurfaceType.Smooth,
 		BottomSurface = Enum.SurfaceType.Smooth,
 	})
 	n += attribute(part, "Role", spec.role)
@@ -1387,10 +1573,27 @@ local function conform(part, spec, pivot, report, isNew)
 	if isNew then report.created += 1 else report.changed += n end
 end
 
--- buildGround(root) -> report { created, changed } (PGM-D2): the park's own floor, root.Ground.Floor (root is
--- Workspace.PuebloGatito_v1 on the live map, any Instance in a suite): a Part of role floor, Park.FLOOR's size, colour
--- and material, centred on Area.ORIGIN with its top at Area.FLOOR_TOP; anchored, it collides and answers queries, is
--- never touched and casts a shadow. Idempotent like build (a second call reports created 0 and changed 0); refuses
+-- One ground part of root.Ground: a Part of role floor in Park.FLOOR's colour and material, size s (world axes), centred
+-- on (x, z) with its top at Area.FLOOR_TOP; anchored, it collides and answers queries, is never touched and casts a
+-- shadow. Counts into report like conform.
+local function groundPart(ground, name, s, x, z, report)
+	local part, made = child(ground, "Part", name)
+	local n = apply(part, { Anchored = true, Shape = Enum.PartType.Block })
+	n += apply(part, {
+		Size = Vector3.new(s[1], s[2], s[3]), CFrame = CFrame.new(x, Area.FLOOR_TOP - s[2] / 2, z),
+		Color = rgb(Park.FLOOR.color), Material = material(Park.FLOOR.material), Transparency = 0, CanCollide = true,
+		CanQuery = true, CanTouch = false, CastShadow = true, TopSurface = Enum.SurfaceType.Smooth,
+		BottomSurface = Enum.SurfaceType.Smooth,
+	})
+	n += attribute(part, "Role", "floor")
+	if made then report.created += 1 else report.changed += n end
+end
+
+-- buildGround(root) -> report { created, changed } (PGM-D2, GL-D3): the park's own ground (root is
+-- Workspace.PuebloGatito_v1 on the live map, any Instance in a suite): root.Ground.Floor, Park.FLOOR's size centred on
+-- Park.FLOOR.centre (the whole arm, 600 x 1200 at (297, 937); the live 520 x 520 floor is conformed in place), and
+-- root.Ground.Approach, the Park.APPROACH slab (20 x 1 x 13 at (282, 330.5)) from the big4 road's end to the arm; both
+-- with their tops at Area.FLOOR_TOP. Idempotent like build (a second call reports created 0 and changed 0); refuses
 -- SistemaSonriente.
 function Park.buildGround(root)
 	assert(typeof(root) == "Instance", "root must be an Instance")
@@ -1398,18 +1601,38 @@ function Park.buildGround(root)
 	local report = { created = 0, changed = 0 }
 	local ground, madeGround = child(root, "Folder", Park.GROUND_FOLDER)
 	if madeGround then report.created += 1 end
-	local floor, made = child(ground, "Part", "Floor")
-	local s = Park.FLOOR.size
-	local n = apply(floor, { Anchored = true, Shape = Enum.PartType.Block })
-	n += apply(floor, {
-		Size = Vector3.new(s[1], s[2], s[3]), CFrame = CFrame.new(Area.ORIGIN.x, Area.FLOOR_TOP - s[2] / 2, Area.ORIGIN.z),
-		Color = rgb(Park.FLOOR.color), Material = material(Park.FLOOR.material), Transparency = 0, CanCollide = true,
-		CanQuery = true, CanTouch = false, CastShadow = true, TopSurface = Enum.SurfaceType.Smooth,
-		BottomSurface = Enum.SurfaceType.Smooth,
-	})
-	n += attribute(floor, "Role", "floor")
-	if made then report.created += 1 else report.changed += n end
+	groundPart(ground, "Floor", Park.FLOOR.size, Park.FLOOR.centre.x, Park.FLOOR.centre.z, report)
+	local P = Park.APPROACH
+	groundPart(ground, "Approach", { P.maxX - P.minX, Park.FLOOR.size[2], P.maxZ - P.minZ }, (P.minX + P.maxX) / 2,
+		(P.minZ + P.maxZ) / 2, report)
 	return report
+end
+
+-- One planned item { id, kind, x, z, yaw, variant } into folder at the floor's top: an item of one part is a Part named
+-- by its id, a bigger one a Model of its recipe's parts (WorldPivot on its ground centre); both carry Kind. Conforms or
+-- creates, counting into report; returns the item's part count. cache holds the recipes by kind and variant.
+local function layItem(folder, it, floorTop, cache, report)
+	local key = it.kind .. "|" .. tostring(it.variant)
+	cache[key] = cache[key] or Park.recipe(it.kind, it.variant)
+	local specs = cache[key]
+	local pivot = CFrame.new(it.x, floorTop, it.z) * CFrame.Angles(0, math.rad(it.yaw or 0), 0)
+	if #specs == 1 then
+		local part, made = child(folder, "Part", it.id)
+		conform(part, specs[1], pivot, report, made)
+		report.changed += made and 0 or attribute(part, "Kind", it.kind)
+		if made then part:SetAttribute("Kind", it.kind) end
+	else
+		local model, made = child(folder, "Model", it.id)
+		if made then report.created += 1 end
+		for _, spec in ipairs(specs) do
+			local part, madePart = child(model, "Part", spec.name)
+			conform(part, spec, pivot, report, madePart)
+		end
+		local n = apply(model, { WorldPivot = pivot })
+		n += attribute(model, "Kind", it.kind)
+		if not made then report.changed += n end
+	end
+	return #specs
 end
 
 -- build(root, L, East) -> report { created, changed, parts, byFolder }: the park under root.Park (root is
@@ -1435,34 +1658,15 @@ function Park.build(root, L, East)
 	end
 	local cache = {}
 	for _, it in ipairs(plan.items) do
-		local key = it.kind .. "|" .. tostring(it.variant)
-		cache[key] = cache[key] or Park.recipe(it.kind, it.variant)
-		local specs = cache[key]
-		local pivot = CFrame.new(it.x, plan.floorTop, it.z) * CFrame.Angles(0, math.rad(it.yaw or 0), 0)
-		local folder = folders[it.folder]
-		if #specs == 1 then
-			local part, made = child(folder, "Part", it.id)
-			conform(part, specs[1], pivot, report, made)
-			report.changed += made and 0 or attribute(part, "Kind", it.kind)
-			if made then part:SetAttribute("Kind", it.kind) end
-		else
-			local model, made = child(folder, "Model", it.id)
-			if made then report.created += 1 end
-			for _, spec in ipairs(specs) do
-				local part, madePart = child(model, "Part", spec.name)
-				conform(part, spec, pivot, report, madePart)
-			end
-			local n = apply(model, { WorldPivot = pivot })
-			n += attribute(model, "Kind", it.kind)
-			if not made then report.changed += n end
-		end
-		report.parts += #specs
-		report.byFolder[it.folder] += #specs
+		local n = layItem(folders[it.folder], it, plan.floorTop, cache, report)
+		report.parts += n
+		report.byFolder[it.folder] += n
 	end
 	return report
 end
 
--- syncNests(root) -> changed: the eight park nests under root.Nests (root = Workspace.PuebloGatito_v1 since PGM-D2; on
+-- syncNests(root) -> changed: the sixteen park nests under root.Nests (GL-D10: K1..K16, K4, K5, K7 and K8 re-flagged in
+-- place; root = Workspace.PuebloGatito_v1 since PGM-D2; on
 -- root.Ground.Floor's top when there is one, else Area.FLOOR_TOP; at the park-frame x, z of PGM-D4), from Park.NESTS
 -- only (K-D8): Model Nest_K<n> with a Wood Collision_Bowl (its PrimaryPart, pivot on the ground centre) and a
 -- RarityRing, the attributes NestId, Rarity, EventOnly false, Candidate, Enabled, Park and Guard, and the
@@ -1505,6 +1709,103 @@ function Park.syncNests(root)
 		if made or changed > 0 then total += 1 end
 	end
 	return total
+end
+
+-- GL-D5: the hedge rows, park-local: W and E along local x at lz 281 and -311 (world x 1 and 593), S across the far end
+-- at lx 933 (world z 1533); centres at from + pitch * (i - 0.5) along the row, each puff `length` long along its local X
+-- (local yaw 0 runs it along local x, 90 along local z). The puffs (8 deep) lie on the floor's margins, outside the space.
+local HEDGE_ROWS = {
+	{ row = "W", count = 40, across = 281, from = -256, pitch = 29.75, length = 33.75, yaw = 0 },
+	{ row = "E", count = 40, across = -311, from = -256, pitch = 29.75, length = 33.75, yaw = 0 },
+	{ row = "S", count = 20, across = 933, from = 277, pitch = -29.2, length = 33.2, yaw = 90 },
+}
+
+-- edgePlan() -> { walls = { spec }, hedge = { item } } (GL-D4, GL-D5), world studs; pure, fresh tables every call:
+--   walls  SideWallWest (x -7..-3), SideWallEast (x 597..601), both along z 937..1541, and EndWall (x -7..601, z
+--          1537..1541): { name, shape, x, z (centre), size, offset (its centre EDGE.height / 2 over the floor's top),
+--          color, material, role "solid", transparency 1, castShadow false }, the CandyEast cap() flags (80 tall,
+--          invisible, collide and answer queries, never touched, no shadow)
+--   hedge  Hedge_W01..W40, Hedge_E01..E40, Hedge_S01..S20: { id, kind "hedge", x, z, yaw (world), variant (the puff
+--          length, 4 places), lx, lz }
+function Park.edgePlan()
+	local E = Park.EDGE
+	local function wall(name, minX, maxX, minZ, maxZ)
+		return { name = name, shape = "Block", x = (minX + maxX) / 2, z = (minZ + maxZ) / 2,
+			size = { maxX - minX, E.height, maxZ - minZ }, offset = { 0, E.height / 2, 0, 0, 0, 0 }, color = C.WHITE,
+			material = "SmoothPlastic", role = "solid", transparency = 1, castShadow = false }
+	end
+	local walls = {
+		wall("SideWallWest", ARM.minX - E.wall, ARM.minX, E.wallFromZ, ARM.maxZ + E.wall),
+		wall("SideWallEast", ARM.maxX, ARM.maxX + E.wall, E.wallFromZ, ARM.maxZ + E.wall),
+		wall("EndWall", ARM.minX - E.wall, ARM.maxX + E.wall, ARM.maxZ, ARM.maxZ + E.wall),
+	}
+	local hedge = {}
+	for _, r in ipairs(HEDGE_ROWS) do
+		for i = 1, r.count do
+			local along = r.from + r.pitch * (i - 0.5)
+			local lx, lz = along, r.across
+			if r.yaw == 90 then lx, lz = r.across, along end
+			local x, z = Area.world(lx, lz)
+			table.insert(hedge, { id = ("Hedge_%s%02d"):format(r.row, i), kind = "hedge", x = x, z = z,
+				yaw = Area.worldYaw(r.yaw), variant = round(r.length, 4), lx = lx, lz = lz })
+		end
+	end
+	return { walls = walls, hedge = hedge }
+end
+
+-- buildEdge(root) -> report { created, changed, parts } (GL-D4, GL-D5): the edge under root.Edge (root =
+-- Workspace.PuebloGatito_v1 on the live map, any Instance in a suite): Edge.Walls holds the three walls (Parts by name),
+-- Edge.Hedge the hedge puffs (a Model of two decor parts each, Kind "hedge"); 203 parts (Park.EDGE_PARTS). Idempotent
+-- like build: what is missing is made, what differs is set back, a second call reports created 0 and changed 0; never
+-- removes anything. Refuses SistemaSonriente.
+function Park.buildEdge(root)
+	assert(typeof(root) == "Instance", "root must be an Instance")
+	assert(not forbidden(root), "refusing to touch " .. Park.FORBIDDEN)
+	local plan = Park.edgePlan()
+	local report = { created = 0, changed = 0, parts = 0 }
+	local edge, madeEdge = child(root, "Folder", Park.EDGE.folder)
+	if madeEdge then report.created += 1 end
+	local walls, madeWalls = child(edge, "Folder", "Walls")
+	if madeWalls then report.created += 1 end
+	local hedge, madeHedge = child(edge, "Folder", "Hedge")
+	if madeHedge then report.created += 1 end
+	for _, spec in ipairs(plan.walls) do
+		local part, made = child(walls, "Part", spec.name)
+		conform(part, spec, CFrame.new(spec.x, Area.FLOOR_TOP, spec.z), report, made)
+		report.parts += 1
+	end
+	local cache = {}
+	for _, it in ipairs(plan.hedge) do
+		report.parts += layItem(hedge, it, Area.FLOOR_TOP, cache, report)
+	end
+	return report
+end
+
+-- strays(root, L, East) -> { { instance, path, folder, name } } (GL-D14, the grow tool's archive list): every Model or
+-- BasePart directly in one of root.Park's Park.FOLDERS folders whose name is not a kept item of that folder in
+-- plan(L, East) (a dropped id, an unknown name, or an item in another folder), sorted by path ("Toys.Junk"). Read only:
+-- nothing is moved. A child named SistemaSonriente is never listed; a root inside it is refused; no root.Park, none.
+function Park.strays(root, L, East)
+	assert(typeof(root) == "Instance", "root must be an Instance")
+	assert(not forbidden(root), "refusing to touch " .. Park.FORBIDDEN)
+	local out = {}
+	local park = root:FindFirstChild(Park.FOLDER)
+	if not park then return out end
+	local keep = {}
+	for _, name in ipairs(Park.FOLDERS) do keep[name] = {} end
+	for _, it in ipairs(Park.plan(L, East).items) do keep[it.folder][it.id] = true end
+	for _, name in ipairs(Park.FOLDERS) do
+		local folder = park:FindFirstChild(name)
+		if folder and folder:IsA("Folder") then
+			for _, c in ipairs(folder:GetChildren()) do
+				if not forbidden(c) and (c:IsA("Model") or c:IsA("BasePart")) and not keep[name][c.Name] then
+					table.insert(out, { instance = c, path = name .. "." .. c.Name, folder = name, name = c.Name })
+				end
+			end
+		end
+	end
+	table.sort(out, function(a, b) return a.path < b.path end)
+	return out
 end
 
 -- The pieces of a root, walking down through Folders only (a Model or a BasePart is one piece), sorted by name, each

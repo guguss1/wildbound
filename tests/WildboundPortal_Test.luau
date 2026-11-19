@@ -163,10 +163,12 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		equal(Portal.threatened({ x = 0, z = 0, beastEngagedAt = "soon" }, now), false, "bad stamp")
 	end)
 
-	case("PT-8: three stations, the Caramelo arch, the forest and the kitten park, outside every safe zone, the forest one far from La Silueta", function()
+	case("PT-8: four stations, the Caramelo arch, the forest and the kitten park's two, outside every safe zone, the forest one far from La Silueta", function()
 		-- Deliberately changed (K-D3, Pueblo Gatito, owner request 2026-11-17 "un parque verde lindo con las criaturas
 		-- gatitas"): a third station, "parque", in Caramelo Este (2 -> 3); see PT-K1.
-		equal(#Portal.STATIONS, 3, "three stations")
+		-- Deliberately changed (GL-D13, owner request 2026-11-19 "hace el mapa bastante mas largo"): a fourth station,
+		-- "parque2", at the grown park's far end (3 -> 4); see GL-12.
+		equal(#Portal.STATIONS, 4, "four stations")
 		local byId = {}
 		for _, s in ipairs(Portal.STATIONS) do byId[s.id] = s end
 		local candy, forest = byId.caramelo, byId.bosque
@@ -215,6 +217,46 @@ return function(Portal, Balance, Rules, Layout, Biomes, sources)
 		local _, safe = Rules.zone(park.x, park.z)
 		equal(safe, false, "parque outside every safe zone")
 		assert(Rules.distance(park.x, park.z, Rules.HUB_X, Rules.HUB_Z) >= 300, "parque far from the hub")
+		equal(Portal.CARRY, "refuse", "a carrier is still refused (decision 47)")
+	end)
+
+	-- GL-12 (GL-D13, docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19 "hace el mapa bastante mas
+	-- largo y si hace falta colocar mas bichos de distintas zonas hazlo"): the grown park's second station, "parque2",
+	-- built by the service at the far end, park-local (775, 55) with local yaw 90: world (227, 1375), yaw 0, on the park
+	-- floor (top 0.5), so an empty-handed player there need not walk the 1400 studs home. A carrier is still refused.
+	case("GL-12: the parque2 station at the far end: built, (227, 1375), yaw 0 at y 0.5, CandyEast, away from the hub, the safe zones and the posts", function()
+		local far = Portal.station("parque2")
+		assert(far, "no parque2 station")
+		assert(table.isfrozen(far), "frozen")
+		equal(far.source, "build", "the service builds it")
+		near(far.x, 227, "x"); near(far.z, 1375, "z")
+		near(far.y, 0.5, "on the park floor (top 0.5)"); equal(far.yaw, 0, "walked through along world z")
+		-- the park frame, world(lx, lz) = (282 - lz, 600 + lx): local (775, 55), yaw 90 - 90 = 0
+		near(far.z - 600, 775, "park-local lx"); near(282 - far.x, 55, "park-local lz")
+		local shared = game:GetService("ReplicatedStorage"):FindFirstChild("WildboundGatitoArea")
+		if shared then
+			local Area = require(shared)
+			local ax, az = Area.world(775, 55)
+			near(far.x, ax, "Area.world x"); near(far.z, az, "Area.world z")
+			equal(far.yaw, Area.worldYaw(90), "Area.worldYaw(90)"); near(far.y, Area.FLOOR_TOP, "Area.FLOOR_TOP")
+		end
+		equal(Biomes.has(far.x, far.z, "CandyEast"), true, "parque2 in Pueblo Gatito (CandyEast)")
+		equal(Biomes.has(far.x, far.z, "Meadow"), false, "never in the candy plot")
+		local _, safe = Rules.zone(far.x, far.z)
+		equal(safe, false, "parque2 outside every safe zone")
+		assert(Rules.distance(far.x, far.z, Rules.HUB_X, Rules.HUB_Z) >= 300, "parque2 far from the hub")
+		local park = Portal.station("parque")
+		assert(park and park.id ~= far.id, "the gate station stays")
+		assert(Rules.distance(far.x, far.z, park.x, park.z) >= 900, "the two park stations at the two ends")
+		-- at least 85 from every kitten post (WildboundPraderaSites.EAST_FIXED, GL-D11 world literals), so a calm
+		-- kitten nearby never blocks it
+		local POSTS = { { 325, 430 }, { 175, 435 }, { 332, 535 }, { 224, 550 }, { 340, 620 }, { 219, 635 }, { 390, 750 },
+			{ 174, 750 }, { 216, 900 }, { 350, 960 }, { 204, 1020 }, { 365, 1070 }, { 209, 1160 }, { 350, 1200 },
+			{ 214, 1280 }, { 345, 1330 } }
+		for _, p in ipairs(POSTS) do
+			assert(Rules.distance(far.x, far.z, p[1], p[2]) >= 85, ("parque2 only %.1f from the post at %d, %d"):format(
+				Rules.distance(far.x, far.z, p[1], p[2]), p[1], p[2]))
+		end
 		equal(Portal.CARRY, "refuse", "a carrier is still refused (decision 47)")
 	end)
 

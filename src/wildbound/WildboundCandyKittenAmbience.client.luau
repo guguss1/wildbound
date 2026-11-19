@@ -1,7 +1,7 @@
 -- Pueblo Gatito (docs/design/wildbound-kitten-park-plan.md K-D13; owner request 2026-11-17: "... otra canción que tenga
 -- que ver más con gatitos ..."): tells the audio controller when this player is in the kitten park. Every 0.25 s it
 -- reads the character's root and sets the local WildboundWorldUI attribute GatitoAmbience: on within 16 studs of the
--- park's floor (WildboundCandyKittens.PARK: x 22..542, z 340..860 since the park moved to the south arm, PGM-D4), off
+-- park's floor (WildboundCandyKittens.PARK: x 22..542, z 340..1460 since the park grew to 600 x 1200, GL-D1), off
 -- once more than 24 studs outside it (WildboundCandyKittens.inPark, ENTER_MARGIN and LEAVE_MARGIN; PG-D5: the margins
 -- keep the edge from flickering it). WildboundAudioClient then plays the kitten bed
 -- (WildboundAudioMix.withKitten) in place of the Caramelo track, and while it is on the Caramelo ambience and life

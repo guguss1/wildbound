@@ -30,7 +30,9 @@ BiomeLight.AREAS = freeze({
 	-- "pueblo-gatito"). PGM-D3 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí,
 	-- movelo"): the park moved, so the square is the whole big4 south arm (WildboundGatitoArea.ARM; was x 932..1468, z
 	-- -263..257). Still first: here it overlaps Volcanic, Cemetery and Caves, and Pueblo Gatito wins
-	square("CandyEast", -3, 597, 337, 937),
+	-- GL-D2 (docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19, "hace el mapa bastante mas
+	-- largo"): the park grew to 600 x 1200, so the arm runs to z 1537 (was z 337..937), still the first row
+	square("CandyEast", -3, 597, 337, 1537),
 	square("Forest", -218, 182, -203, 197),
 	square("Meadow", 412, 812, -203, 197),
 	square("Swamp", 82, 482, -643, -243),

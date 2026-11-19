@@ -793,7 +793,9 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 			{ id = "K1", rarity = "Comun", x = 1038, z = -58, top = 2.7, enabled = true, park = true, guard = "GatitoGuerrero" },
 			{ id = "K7", rarity = "Epica", x = 1358, z = -123, top = 2.7, enabled = true, park = true,
 				guard = "GatitoActually@kittenPostK7" },
-			{ id = "K9", rarity = "Legendaria", x = 1300, z = 0, top = 2.7, enabled = true, park = true, guard = "GatitoLanudo" },
+			-- Deliberately changed (GL-D10, owner request 2026-11-19 "hace el mapa bastante mas largo"): the grown park has a
+			-- real nest K9 now, so the Legendaria fixture is "K99" (GatitoK99), never a real nest's name (was "K9")
+			{ id = "K99", rarity = "Legendaria", x = 1300, z = 0, top = 2.7, enabled = true, park = true, guard = "GatitoLanudo" },
 		}
 		local list = Nests.islands(markers, {})
 		equal(#list, 3, "the park Legendaria is dropped")
@@ -813,7 +815,7 @@ return function(Nests, Layout, Sites, Config, Island, Species, Builder, sources)
 		equal(c1.rewardTier, "Safe", "a plot Comun still pays Safe"); equal(c1.park, nil, "a plot entry has no park mark")
 		equal(c1.key, "caramelo_c1", "the plot keeps its key"); equal(c1.biome, "Caramelo", "the plot keeps its biome")
 		equal(byId.CandyK1, nil, "no Candy park entry"); equal(byId.CandyK7, nil, "no Candy park entry")
-		equal(byId.GatitoK9, nil, "no park Legendaria")
+		equal(byId.GatitoK99, nil, "no park Legendaria") -- GL-D10: the fixture K99 (was GatitoK9)
 		assert(table.isfrozen(k1), "frozen entry")
 	end)
 

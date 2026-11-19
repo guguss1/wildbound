@@ -404,8 +404,11 @@ return function(Text, source, sources)
 			text(P[key], "PORTAL." .. key, 72)
 		end
 		-- PG-D3 (owner request 2026-11-18, "hacelo bioma aparte"): the park's return portal has its own name.
-		for _, id in ipairs({ "caramelo", "bosque", "parque" }) do text(P.names[id], "PORTAL.names." .. id, 24) end
+		-- Deliberately changed (GL-D13, owner request 2026-11-19 "hace el mapa bastante mas largo"): the grown park's far
+		-- station "parque2" has its own name too (was caramelo, bosque, parque)
+		for _, id in ipairs({ "caramelo", "bosque", "parque", "parque2" }) do text(P.names[id], "PORTAL.names." .. id, 24) end
 		equal(P.names.parque, "Portal de Pueblo Gatito", "PORTAL.names.parque")
+		equal(P.names.parque2, "Portal del Jardín", "PORTAL.names.parque2")
 		assert(P.cooldown:format(12):find("12", 1, true), "cooldown shows the wait")
 		assert(P.threat:format(4):find("4", 1, true), "threat shows the calm left")
 		assert(P.readyIn:format(9):find("9", 1, true), "readyIn shows the wait")

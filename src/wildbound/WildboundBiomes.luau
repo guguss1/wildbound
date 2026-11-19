@@ -18,11 +18,13 @@ Biomes.AREAS = table.freeze({
 	-- PG-D1, PG-D2 (owner request 2026-11-18, "hacelo bioma aparte"): this is Pueblo Gatito, a biome of its own; the
 	-- internal tag stays CandyEast, the key is "pueblo-gatito" (was "caramelo-este").
 	-- PGM-D3 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
-	-- the big4 south arm, so the square is the whole arm, x -3..597, z 337..937 (WildboundGatitoArea.ARM; was the cloud
-	-- band and the second space, x 932..1468, z -263..257), first like WildboundBiomeLight's row. Here it overlaps the
-	-- Volcanic, Cemetery and Caves squares; Biomes.at keeps every tag, which no rolled beast reads (Root is Swamp only),
+	-- the big4 south arm, so the square is the whole arm, x -3..597, z 337..1537 since GL-D2 (WildboundGatitoArea.ARM;
+	-- was the cloud band and the second space, x 932..1468, z -263..257), first like WildboundBiomeLight's row. Here it
+	-- overlaps the Volcanic, Cemetery and Caves squares; Biomes.at keeps every tag, which no rolled beast reads (Root is Swamp only),
 	-- and NO_GLOBAL_BIOMES.CandyEast keeps every Global beast out, so only the light needed first-match (its first row).
-	square("CandyEast", "pueblo-gatito", -3, 597, 337, 937),
+	-- GL-D2 (docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19, "hace el mapa bastante mas
+	-- largo"): the park grew to 600 x 1200, so the arm runs to z 1537 (WildboundGatitoArea.ARM; was z 337..937).
+	square("CandyEast", "pueblo-gatito", -3, 597, 337, 1537),
 	square("Forest", "forest", -218, 182, -203, 197),
 	square("Meadow", "pradera", 412, 812, -203, 197),
 	square("Swamp", "living-forest", 82, 482, -643, -243),

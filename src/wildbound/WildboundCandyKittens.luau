@@ -22,9 +22,11 @@ Kittens.CULL_STUDS = 200
 -- K-D13: the music switch's rectangle (the park floor) and its leave margin.
 -- PG-D5 ("the border is the cloud"): it turns on ENTER_MARGIN before the park and off LEAVE_MARGIN past it (was 0 and 8).
 -- PGM-D4 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to
--- the big4 south arm, so the rectangle is the park frame's floor square, WildboundGatitoArea.rect(): x 22..542, z
--- 340..860 (was the second space, x 948..1468, z -263..257). The margins stay 16 and 24: coming down the road from the
--- hub the music starts at z 324, by the road's end (324.5), and stops past z 316.
+-- the big4 south arm, so the rectangle is the park frame's floor square, WildboundGatitoArea.rect() (was the second
+-- space, x 948..1468, z -263..257). GL-D1, GL-D16 (docs/design/wildbound-pueblo-gatito-long-plan.md; owner request
+-- 2026-11-19, "hace el mapa bastante mas largo"): the park grew to 600 x 1200, so rect() is x 22..542, z 340..1460 now
+-- (was z 340..860), followed here on its own. The margins stay 16 and 24: coming down the road from the hub the music
+-- starts at z 324, by the road's end (324.5), and stops past z 316; at the far end it stops past z 1484.
 local Area = require(game:GetService("ReplicatedStorage"):WaitForChild("WildboundGatitoArea"))
 Kittens.PARK = Area.rect()
 Kittens.ENTER_MARGIN = 16

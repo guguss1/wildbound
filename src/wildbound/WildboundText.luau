@@ -893,6 +893,7 @@ return freeze({
 			bosque = "Portal del Bosque",
 			-- PG-D3 (owner request 2026-11-18, "hacelo bioma aparte"): Pueblo Gatito's return portal has its own name.
 			parque = "Portal de Pueblo Gatito",
+			parque2 = "Portal del Jardín", -- GL-D13 (owner request 2026-11-19): the grown park's far station
 		},
 	},
 })

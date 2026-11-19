@@ -303,6 +303,11 @@ SPECS["WildboundCandyKittenArt_Test"] = {
 }
 -- Pueblo Gatito's park frame in the big4 south arm (docs/design/wildbound-pueblo-gatito-move-plan.md PGM-D1, "Sí, movelo")
 SPECS["WildboundGatitoArea_Test"] = { "mod:WildboundGatitoArea" }
+-- Pueblo Gatito 600 x 1200 (docs/design/wildbound-pueblo-gatito-long-plan.md GL-D14): the grow tool by source (kept in Studio as the disabled Script ServerStorage.WildboundPuebloGatitoGrow), the move tool's frame assert and the park module's caps
+SPECS["WildboundPuebloGatitoGrow_Test"] = {
+	"mod:WildboundKittenPark", "mod:WildboundGatitoArea",
+	{ grow = "src:WildboundPuebloGatitoGrow", move = "src:WildboundPuebloGatitoMove" },
+}
 SPECS["WildboundCandyFrutillon_Test"] = {
 	"mod:WildboundCandyFrutillon", "mod:WildboundCandyLayout", { service = "src:WildboundCandyFrutillonService" },
 }

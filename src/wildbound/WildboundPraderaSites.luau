@@ -125,17 +125,23 @@ Sites.EXTRA_POSTS = table.freeze({
 })
 
 -- K-D7 (Pueblo Gatito, docs/design/wildbound-kitten-park-plan.md; owner request 2026-11-17, "es como el mundo de gatito:
--- un parque verde lindo con las criaturas gatitas ... también tiene que haber huevos para robar"): the eight kitten posts
--- of the park, in world coordinates (they never move with the sector origin), each 12 studs from its park nest K<n>
--- toward the nearest route, at least 85 from any other post (two wake circles of at most 42), park-local lx -170..150
--- and |lz| <= 108 (the suites allow up to lx 180, |lz| 180). PGM-D1, PGM-D4 (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí,
--- movelo"): the park moved to the big4 south arm, so each post is written park-local (the K-D7 world value v converted
--- with Area.localOfV1: lx = x - 1208, lz = z + 3) and frozen at Area.world(lx, lz); they no longer face the cloud wall.
+-- un parque verde lindo con las criaturas gatitas ... también tiene que haber huevos para robar"): the kitten posts of
+-- the park, in world coordinates (they never move with the sector origin), each 12 studs from its park nest K<n>
+-- toward the nearest route, at least 85 from any other post (two wake circles of at most 42). PGM-D1, PGM-D4
+-- (docs/design/wildbound-pueblo-gatito-move-plan.md; owner request 2026-11-18, "Sí, movelo"): the park moved to the big4
+-- south arm, so each post is written park-local (K1..K8: the K-D7 world value v converted with Area.localOfV1: lx = x -
+-- 1208, lz = z + 3) and frozen at Area.world(lx, lz); they no longer face the cloud wall.
+-- GL-D11 (docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19, "hace el mapa bastante mas largo y
+-- si hace falta colocar mas bichos de distintas zonas hazlo"): the park grew to 600 x 1200 along world +z (lx -260..860),
+-- so eight more posts K9..K16 stand in the grown half beside its nests (16 posts): park-local lx -170..730 and |lz| <=
+-- 108 (the suites allow lx -170..760, |lz| 180), every pair at least 85 apart (the nearest K10-K12, 111).
 -- A hunt (zone 60 + 12) plus the attack's range and the push stays on the park floor (Area.rect(), x 22..542, z
--- 340..860): 25 studs inside its far end, 60 inside its two sides, and at most to its gate edge (K1: lx -170 - 90 = -260,
--- world z 340; Guerrero's 13-stud lane can reach 3 studs past it, onto the apron by the road to the hub, still the arm). Deliberately kept out of FIXED, which the plot's suites and
--- tools pin; Sites.world and Sites.wants read both. Keys are letters and digits only (an attribute name and a
--- "<name>@<post>" binding). Each row: local (was the K-D7 world value) -> world; the nest is 12 studs along local z.
+-- 340..1460): the deepest post, K16 at z 1330, reaches 1415, 45 inside the far end; the widest, K12 at x 365, reaches 450,
+-- inside its sides; and at most to its gate edge (K1: lx -170 - 90 = -260, world z 340; Guerrero's 13-stud lane can
+-- reach 3 studs past it, onto the apron by the road to the hub, still the arm). Deliberately kept out of FIXED, which the
+-- plot's suites and tools pin; Sites.world and Sites.wants read both. Keys are letters and digits only (an attribute
+-- name and a "<name>@<post>" binding). Each row: local (was the K-D7 world value) -> world; the nest is 12 studs along
+-- local z.
 local function parkPost(lx, lz)
 	local x, z = Area.world(lx, lz)
 	return table.freeze({ x = x, z = z })
@@ -149,12 +155,28 @@ Sites.EAST_FIXED = table.freeze({
 	kittenPostK6 = parkPost(35, 63), -- (1243, 60) -> (219, 635): GatitaBouquet, extra (nest K6 at 207, 635)
 	kittenPostK7 = parkPost(150, -108), -- (1358, -111) -> (390, 750): GatitoActually, extra (nest K7 at 402, 750)
 	kittenPostK8 = parkPost(150, 108), -- (1358, 105) -> (174, 750): GatitoLanudo, extra (nest K8 at 162, 750)
+	-- GL-D11: the grown half's posts, park-local -> world (the nest 12 studs further along local z, away from M2)
+	kittenPostK9 = parkPost(300, 66), -- (216, 900): GatitoGuerrero, extra (nest K9 at 204, 900)
+	kittenPostK10 = parkPost(360, -68), -- (350, 960): GatitaBouquet, extra (nest K10 at 362, 960)
+	kittenPostK11 = parkPost(420, 78), -- (204, 1020): GatitoActually, extra (nest K11 at 192, 1020)
+	kittenPostK12 = parkPost(470, -83), -- (365, 1070): GatitoLanudo, extra (nest K12 at 377, 1070)
+	kittenPostK13 = parkPost(560, 73), -- (209, 1160): GatitoGuerrero, extra (nest K13 at 197, 1160)
+	kittenPostK14 = parkPost(600, -68), -- (350, 1200): GatitaBouquet, extra (nest K14 at 362, 1200)
+	kittenPostK15 = parkPost(680, 68), -- (214, 1280): GatitoActually, extra (nest K15 at 202, 1280)
+	kittenPostK16 = parkPost(730, -63), -- (345, 1330): GatitoLanudo, extra (nest K16 at 357, 1330)
 })
 -- K-D7, K-D11: one more copy of each kitten at an east extra post, summoned like the plot's EXTRA_POSTS (its own
 -- encounter, Director post, its own rest); the beast server and the resting service walk this list after that one.
 Sites.EAST_EXTRA_POSTS = table.freeze({
 	table.freeze({ name = "GatitoGuerrero", key = "kittenPostK5" }), table.freeze({ name = "GatitaBouquet", key = "kittenPostK6" }),
 	table.freeze({ name = "GatitoActually", key = "kittenPostK7" }), table.freeze({ name = "GatitoLanudo", key = "kittenPostK8" }),
+	-- GL-D11 (owner request 2026-11-19, "si hace falta colocar mas bichos de distintas zonas hazlo"): two more copies of
+	-- each kitten in the grown half (EAST_EXTRA_POSTS 4 -> 12 rows, 16 posts with the 4 home posts), the same rules; each
+	-- guards its nest (WildboundKittenPark.NESTS K9..K16, "<name>@<post>")
+	table.freeze({ name = "GatitoGuerrero", key = "kittenPostK9" }), table.freeze({ name = "GatitaBouquet", key = "kittenPostK10" }),
+	table.freeze({ name = "GatitoActually", key = "kittenPostK11" }), table.freeze({ name = "GatitoLanudo", key = "kittenPostK12" }),
+	table.freeze({ name = "GatitoGuerrero", key = "kittenPostK13" }), table.freeze({ name = "GatitaBouquet", key = "kittenPostK14" }),
+	table.freeze({ name = "GatitoActually", key = "kittenPostK15" }), table.freeze({ name = "GatitoLanudo", key = "kittenPostK16" }),
 })
 
 -- CH4 (owner request 2026-11-16, "more creatures that appear in a random way"): ambushes. Every everySeconds a player

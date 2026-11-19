@@ -46,10 +46,17 @@ Portal.CARRY = "refuse"
 -- with local yaw 90: world Area.world(-228, 43) = (239, 372) and Area.worldYaw(90) = 0 (its posts stand along world
 -- x now), on the park floor (top 0.5), 32 studs inside its gate edge (z 340). Written as literals because this module stays pure (no services); WildboundPortal_Test
 -- checks them against the frame (was x 980, z 40, yaw 90).
+-- GL-D13 (docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19, "hace el mapa bastante mas
+-- largo"): the park grew to 600 x 1200, so "parque2", "Portal del Jardín" (WildboundText PORTAL.names.parque2), is a
+-- second built station at its far end: park-local (775, 55) with local yaw 90, world Area.world(775, 55) = (227, 1375)
+-- and Area.worldYaw(90) = 0, on the park floor (top 0.5), 68 studs from the far plaza's centre, 95.9 from the nearest
+-- kitten post (K15), outside every safe zone. Like "parque" it only helps an empty-handed player: a carrier is still
+-- refused (decision 47). WildboundPortal_Test (GL-12) checks it against the frame.
 Portal.STATIONS = table.freeze({
 	table.freeze({ id = "caramelo", source = "candy", x = 640.8, z = -3 }),
 	table.freeze({ id = "bosque", source = "build", x = -94, z = 11, y = 1, yaw = 90 }),
 	table.freeze({ id = "parque", source = "build", x = 239, z = 372, y = 0.5, yaw = 0 }),
+	table.freeze({ id = "parque2", source = "build", x = 227, z = 1375, y = 0.5, yaw = 0 }),
 })
 
 function Portal.station(id)

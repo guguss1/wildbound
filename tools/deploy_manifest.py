@@ -398,6 +398,10 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundGatitoArea.luau", "ReplicatedStorage.WildboundGatitoArea"),
     ("tests/WildboundGatitoArea_Test.luau", "ServerStorage.WildboundGatitoArea_Test"),
     ("tools/wildbound-pueblo-gatito-move.luau", "ServerStorage.WildboundPuebloGatitoMove"),
+    # Pueblo Gatito grows to 600 x 1200 (GL-D14; owner request 2026-11-19, "hace el mapa bastante mas largo"): the
+    # one-shot grow tool (kept in Studio as a disabled Script) and its source pins
+    ("tools/wildbound-pueblo-gatito-grow.luau", "ServerStorage.WildboundPuebloGatitoGrow"),
+    ("tests/WildboundPuebloGatitoGrow_Test.luau", "ServerStorage.WildboundPuebloGatitoGrow_Test"),
     ("tools/WildboundCandyBuilder.luau", "ServerStorage.WildboundCandyBuilder"),
     ("tests/WildboundCandyBuilder_Test.luau", "ServerStorage.WildboundCandyBuilder_Test"),
     ("tests/WildboundCandyBeastSites_Test.luau", "ServerStorage.WildboundCandyBeastSites_Test"),

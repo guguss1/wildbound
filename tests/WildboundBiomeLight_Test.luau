@@ -43,6 +43,8 @@ return function(BiomeLight, source, sources)
 	case("CA4: the preset follows the biome a point stands in", function()
 		-- Deliberately changed (PGM-D3, owner request 2026-11-18 "Sí, movelo"): the Cemetery sample moves north of the
 		-- south arm (Pueblo Gatito's square, first, holds z 337..937) (was 282, 387)
+		-- GL-D2 (owner request 2026-11-19 "hace el mapa bastante mas largo"): the arm holds z 337..1537 now; every sample
+		-- here is outside it either way
 		for _, sample in ipairs({ { 620, -7, "Caramelo" }, { 452, -21, "Caramelo" }, { 0, -85, "Forest" },
 			{ -140, 140, "Forest" }, { 282, -3, "Hub" }, { 282, -443, "Swamp" }, { 282, 287, "Cemetery" },
 			{ -108, -393, "Abyss" }, { 772, -493, "Mountains" }, { -108, 437, "Volcanic" }, { 622, 387, "Caves" },
@@ -89,13 +91,16 @@ return function(BiomeLight, source, sources)
 		assert(row, "no CandyEast row")
 		-- Deliberately changed (PGM-D3, owner request 2026-11-18 "Sí, movelo"): the park moved to the big4 south arm, and
 		-- the square is the whole arm (WildboundGatitoArea.ARM) (was "932,1468,-263,257", the band and the space)
-		equal(("%g,%g,%g,%g"):format(row.minX, row.maxX, row.minZ, row.maxZ), "-3,597,337,937", "the south arm")
+		-- Deliberately changed (GL-D2, owner request 2026-11-19 "hace el mapa bastante mas largo"): the south arm is 600 x
+		-- 1200 now, z 337..1537 (was "-3,597,337,937")
+		equal(("%g,%g,%g,%g"):format(row.minX, row.maxX, row.minZ, row.maxZ), "-3,597,337,1537", "the south arm")
 		-- Deliberately changed (K-D14): the owner's "es como el mundo de gatito: un parque verde lindo ..." gives Caramelo
 		-- Este its own Gatuno preset (a blue sky and a long, clear view) in place of the Caramelo one.
 		equal(BiomeLight.TAG_PRESET.CandyEast, "Gatuno", "the Gatuno preset")
 		-- Deliberately changed (PGM-D3): samples inside the arm, the park's centre, a corner over the Volcanic square
 		-- and the far corner (were 940, -3; 1208, -3; 1460, 250; 960, -240)
-		for _, sample in ipairs({ { 282, 600 }, { 30, 360 }, { 590, 930 } }) do
+		-- Deliberately changed (GL-D2): a sample by the grown arm's far corner, (590, 1530)
+		for _, sample in ipairs({ { 282, 600 }, { 30, 360 }, { 590, 930 }, { 590, 1530 } }) do
 			local name, preset = BiomeLight.presetAt(sample[1], sample[2])
 			equal(name, "Gatuno", ("at %d, %d"):format(sample[1], sample[2]))
 			equal(preset, BiomeLight.PRESETS.Gatuno)
@@ -103,7 +108,8 @@ return function(BiomeLight, source, sources)
 		end
 		-- Deliberately changed (PGM-D3): past the arm's far end, and the road north of it (was 1500, -3, "past the second
 		-- space")
-		assert((BiomeLight.presetAt(282, 940)) ~= "Gatuno", "past the arm's far end is no Pueblo Gatito (Hub in classic)")
+		-- Deliberately changed (GL-D2): the arm's far end is z 1537 now, so the probe moves past it (was 282, 940)
+		assert((BiomeLight.presetAt(282, 1540)) ~= "Gatuno", "past the arm's far end is no Pueblo Gatito (Hub in classic)")
 		assert((BiomeLight.presetAt(282, 300)) ~= "Gatuno", "north of the arm is no Pueblo Gatito")
 		local Biomes = sources.biomes
 		if type(Biomes) == "table" and type(Biomes.at) == "function" then
@@ -116,6 +122,25 @@ return function(BiomeLight, source, sources)
 			equal(Biomes.at(960, 0).CandyEast, nil, "the old park's west strip is no CandyEast")
 			equal(Biomes.at(900, 0).CandyEast, nil, "the plot west of the band is no CandyEast")
 			equal(Biomes.at(612, -3).Meadow, true, "the plot keeps its Meadow tag")
+		end
+	end)
+
+	-- GL-13 (GL-D2, docs/design/wildbound-pueblo-gatito-long-plan.md; owner request 2026-11-19 "hace el mapa bastante mas
+	-- largo"): the grown arm's far half, past the old far end (z 937), is Pueblo Gatito too: its light, Day rules and the
+	-- server's CandyEast tag (without it no kitten wakes there: world.inCandy reads that tag).
+	case("GL-13: the grown arm's far half (297, 1500) is Pueblo Gatito: Gatuno light, Day rules, the CandyEast tag", function()
+		local name, preset = BiomeLight.presetAt(297, 1500)
+		equal(name, "Gatuno", "the far half's light")
+		equal(preset, BiomeLight.PRESETS.Gatuno)
+		equal((BiomeLight.phaseAt(297, 1500)), "Day", "Day rules")
+		equal((BiomeLight.presetAt(297, 1500, "classic")), "Gatuno", "the classic copy")
+		equal((BiomeLight.presetAt(297, 1000, "classic")), "Gatuno", "just past the old far end (z 937)")
+		local Biomes = sources.biomes
+		if type(Biomes) == "table" and type(Biomes.at) == "function" then
+			local tags = Biomes.at(297, 1500)
+			equal(tags.CandyEast, true, "the server's CandyEast tag")
+			equal(tags.Meadow, nil, "no Meadow rules there")
+			equal(Biomes.at(297, 1545).CandyEast, nil, "past the arm's far end (z 1537)")
 		end
 	end)
 
