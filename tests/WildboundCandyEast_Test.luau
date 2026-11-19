@@ -295,8 +295,12 @@ return function(East, Layout, Smarts, fourth, fifth)
 		equal(collider:GetAttribute("WallMargin"), East.WALL_MARGIN, "the clamp margin")
 		near(collider.Size.X, 4); near(collider.Size.Y, 80); near(collider.Position.X, 1540) -- CL-D13 (was 940)
 		near(collider.Size.Z, 536, "PGM-D5: the band's whole length"); near(collider.Position.Z, -3, "on the band's centre")
-		-- the veil: ForceField cloud pink, never collides, never answers rays, never touched: the player sees through it
-		equal(veil.Material, Enum.Material.ForceField, "ForceField")
+		-- the veil: cloud pink, never collides, never answers rays, never touched: the player sees through it
+		-- Deliberately changed (OQ1, owner request 2026-11-19, "quiero que las nubes sean mas realistas, no una foto
+		-- estirada"): the Veil is no longer drawn: SmoothPlastic, fully transparent (was ForceField, transparency 0, a
+		-- stretched shimmering texture); it only carries the cloud client's emitters and marks the band
+		equal(veil.Material, Enum.Material.SmoothPlastic, "no ForceField texture")
+		near(veil.Transparency, 1, "the Veil is not drawn")
 		near(veil.Color.R * 255, 255, "pink R", 0.6); near(veil.Color.G * 255, 226, "pink G", 0.6); near(veil.Color.B * 255, 240, "pink B", 0.6)
 		equal(veil.CanCollide, false, "veil collide"); equal(veil.CanQuery, false, "veil query"); equal(veil.CanTouch, false, "veil touch")
 		near(veil.Size.X, 16); near(veil.Size.Y, 80)
@@ -502,13 +506,130 @@ return function(East, Layout, Smarts, fourth, fifth)
 		has(client, "colors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(255, 226, 240) }", "the Caramelo wisps kept")
 		has(client, "parkColors = { Color3.fromRGB(240, 248, 255), Color3.fromRGB(199, 226, 245) }", "the park puffs")
 		has(client, "parkColors = { Color3.fromRGB(255, 255, 255), Color3.fromRGB(214, 236, 250) }", "the park wisps")
-		has(client, "local park = eye ~= nil and eye.X > veil.Position.X", "the side: east of the Veil is the park")
+		-- Deliberately changed (OQ1 review, 2026-11-19): the face follows the camera's biome, not its side of the Veil
+		-- (was `eye.X > veil.Position.X`). Pueblo Gatito moved to the south arm (PGM-D3), so east of this wall is only
+		-- Caramelo's tail, and a camera pushed past the wall (the invisible Collider never stops it) flipped the whole
+		-- wall to the park's colours while the player stood in Caramelo.
+		has(client, 'local BiomeLight = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight"))', "the biome reader")
+		has(client, 'local park = eye ~= nil and BiomeLight.presetAt(eye.X, eye.Z) == "Gatuno"', "the park's face only in the park")
+		hasNot(client, "eye.X > veil.Position.X", "no face by the side of the Veil")
 		has(client, "if park ~= side then paint(park) end", "painted only when the side changes")
 		has(client, "local colors = park and LAYERS[i].parkColors or LAYERS[i].colors", "that side's palette")
 		has(client, "emitter.Color = ColorSequence.new(colors[1], colors[2])", "on every emitter")
 		has(client, "side = nil", "a new emitter is painted at once")
 		hasNot(client, "RenderStepped", "still the 2 Hz Heartbeat step")
 		hasNot(client, "veil.Color =", "the Veil part is unchanged")
+	end)
+
+	-- OQ1 (owner request 2026-11-19, "quiero que las nubes sean mas realistas, no una foto estirada"): the cloud wall is a
+	-- soft volume, not a flat texture: the Veil is not drawn (no ForceField), and the client lays layered, overlapping,
+	-- slowly drifting puffs (soft ellipsoids, mostly see-through) along the band, with the particles over them; both
+	-- wear the two faces (PG-D6). The Collider, caps, side and end walls and the mouth parts are unchanged.
+	case("OQ1-4: the Veil is not drawn as a flat texture; the solid walls are unchanged", function()
+		local P = East.plan(Layout, V3Mouth)
+		local byName = {}
+		for _, spec in ipairs(P.parts) do byName[spec.name] = spec end
+		local veil = byName.Veil
+		assert(veil, "the Veil is still planned (the client's emitters and the band's marker)")
+		assert(veil.material ~= "ForceField", "no ForceField texture")
+		equal(veil.material, "SmoothPlastic", "Veil material")
+		near(veil.transparency, 1, "the Veil is not drawn")
+		equal(veil.role, "decor", "Veil role")
+		equal(veil.canCollide, false, "veil collide"); equal(veil.canQuery, false, "veil query")
+		equal(veil.canTouch, false, "veil touch"); equal(veil.castShadow, false, "veil shadow")
+		for _, spec in ipairs(P.parts) do
+			assert(spec.material ~= "ForceField", spec.name .. " has no ForceField texture")
+		end
+		for _, name in ipairs({ "Collider", "CapNorth", "CapSouth", "SideWallNorth", "SideWallSouth", "EndWall", "MouthGuard" }) do
+			local spec = byName[name]
+			equal(spec.canCollide, true, name .. " still blocks"); near(spec.transparency, 1, name .. " invisible")
+		end
+		local client = sources.client
+		hasNot(client, "ForceField", "the client draws no ForceField either")
+		hasNot(client, "veil.Transparency =", "the client never makes the Veil visible")
+		hasNot(client, "veil.Material =", "the client never changes the Veil's material")
+	end)
+
+	case("OQ1-5: the soft wall: layered drifting puffs and particles, two faces, phone-safe budgets", function()
+		local client = sources.client
+		-- puffs: client-only soft ellipsoids, never solid, never in rays, no shadow
+		has(client, 'Instance.new("SpecialMesh")', "soft ellipsoid puffs")
+		has(client, "mesh.MeshType = Enum.MeshType.Sphere", "a sphere mesh stretched to the puff")
+		has(client, "puff.Material = Enum.Material.SmoothPlastic", "a soft material, no Neon")
+		hasNot(client, "Enum.Material.Neon", "no Neon")
+		has(client, "puff.CanCollide = false", "never solid"); has(client, "puff.CanQuery = false", "never in rays")
+		has(client, "puff.CanTouch = false", "never touched"); has(client, "puff.CastShadow = false", "no shadow")
+		has(client, "puff.Anchored = true", "anchored")
+		-- the slow drift: engine tweens, sine, back and forth forever; cancelled on teardown, paused far away
+		has(client, 'game:GetService("TweenService")', "TweenService drifts them")
+		has(client, "Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, -1, true", "a slow sine sway, forever")
+		has(client, "tween:Cancel()", "cancelled on teardown"); has(client, "tweens[i]:Pause()", "paused when hidden")
+		has(client, "Random.new(PUFF_SEED)", "the same wall every time")
+		-- PG-D6: the puffs wear the side's palette too
+		has(client, "local PUFF_COLORS = { Color3.fromRGB(255, 232, 242), Color3.fromRGB(255, 246, 250) }", "Caramelo's puffs")
+		has(client, "local PUFF_PARK_COLORS = { Color3.fromRGB(246, 250, 255), Color3.fromRGB(214, 234, 250) }",
+			"the park's puffs")
+		has(client, "local tint = park and PUFF_PARK_COLORS or PUFF_COLORS", "the puffs follow the side")
+		has(client, "for i, puff in ipairs(puffs) do puff.Color = tint[tones[i]] end", "every puff repainted with the side")
+		-- budgets on the real band (536 studs): puffs = floor(length / spacing) columns x tiers
+		local P = East.plan(Layout, V3Mouth)
+		local length = P.band.maxZ - P.band.minZ
+		local spacing = tonumber(string.match(client, "local PUFF_SPACING = (%d+)"))
+		assert(spacing and spacing >= 16, "a puff column every 16 studs or more")
+		local tiers, minClear = 0, 1
+		for _, low, high, clear in string.gmatch(client,
+			"{ height = ([%d%.]+), size = { (%d+), (%d+) }, transparency = ([%d%.]+) }") do
+			tiers += 1
+			assert(tonumber(low) <= tonumber(high), "a size range")
+			minClear = math.min(minClear, tonumber(clear))
+		end
+		assert(tiers >= 2 and tiers <= 3, "two or three layers of puffs, got " .. tiers)
+		assert(minClear >= 0.65, "every puff is mostly see-through: " .. minClear)
+		local puffs = math.floor(length / spacing) * tiers
+		assert(puffs > 0 and puffs <= 80, "at most 80 puffs on the whole band, got " .. puffs)
+		has(client, "local shown = near and (not reduced or i % 2 == 1)", "Efectos suaves shows half, far shows none")
+		-- OQ1 review: every puff (its length along the band plus its sway) stays inside the Veil's length, and the layers
+		-- overlap from the floor up (no empty stripe between them)
+		has(client, "local halfLen = PUFF_SHAPE.Z * d / 2 + PUFF_DRIFT_STUDS.Z", "a puff's half-length with its sway")
+		has(client, "oz = math.clamp(oz, math.min(0, -size.Z / 2 + halfLen), math.max(0, size.Z / 2 - halfLen))",
+			"kept inside the band's ends")
+		has(client, "local offset = Vector3.new(ox, oy, oz)", "the clamped offset is the one used")
+		local VECTOR = "Vector3%.new%(([%d%.]+), ([%d%.]+), ([%d%.]+)%)"
+		local _, shapeY, shapeZ = string.match(client, "local PUFF_SHAPE = " .. VECTOR)
+		local _, _, driftZ = string.match(client, "local PUFF_DRIFT_STUDS = " .. VECTOR)
+		shapeY, shapeZ, driftZ = tonumber(shapeY), tonumber(shapeZ), tonumber(driftZ)
+		assert(shapeY and shapeZ and driftZ, "the puff shape and sway")
+		local bandHeight = 80 -- the Veil's height (WildboundCandyEast)
+		local spans, largest = {}, 0
+		for height, low, high in string.gmatch(client,
+			"{ height = ([%d%.]+), size = { (%d+), (%d+) }, transparency = [%d%.]+ }") do
+			local h, d = tonumber(height) * bandHeight, (tonumber(low) + tonumber(high)) / 2
+			largest = math.max(largest, tonumber(high))
+			-- a layer's typical puff (its mean size, no jitter), measured from the Veil's floor
+			table.insert(spans, { bottom = h - shapeY * d / 2, top = h + shapeY * d / 2 })
+		end
+		table.sort(spans, function(a, b) return a.bottom < b.bottom end)
+		assert(#spans >= 2 and spans[1].bottom <= 4, "the lowest layer reaches the floor")
+		for i = 2, #spans do
+			assert(spans[i].bottom <= spans[i - 1].top, "layers " .. (i - 1) .. " and " .. i .. " overlap (gap "
+				.. (spans[i].bottom - spans[i - 1].top) .. " studs)")
+		end
+		assert(spans[#spans].top >= bandHeight * 0.8, "the top layer reaches near the top: " .. spans[#spans].top)
+		-- the clamp has room: even the largest puff and its sway fit on the real band
+		assert(shapeZ * largest / 2 + driftZ < length / 2, "the band is longer than the largest puff")
+		-- particles: alive at full rate = sum of rate x mean lifetime
+		local alive, layers = 0, 0
+		for _, rate, short, long in string.gmatch(client, 'name = "(%w+)", rate = (%d+), lifetime = { (%d+), (%d+) }') do
+			layers += 1
+			alive += tonumber(rate) * (tonumber(short) + tonumber(long)) / 2
+		end
+		equal(layers, 2, "two particle layers")
+		assert(alive <= 200, "at most 200 live particles at full rate (was about 380), got " .. alive)
+		local share = tonumber(string.match(client, "local REDUCED_SHARE = ([%d%.]+)"))
+		assert(share and share <= 0.5, "Efectos suaves at most half the rate")
+		local nearStuds = tonumber(string.match(client, "local NEAR_STUDS = (%d+)"))
+		assert(nearStuds and nearStuds <= 700, "far from the wall nothing runs")
+		has(client, "emitter.Rate = near and layer.rate * (reduced and REDUCED_SHARE or 1) or 0", "the rate budget")
 	end)
 
 	case("V8-D3 wiring: both server clamps read the wall and keep creatures on their side", function()

@@ -17,8 +17,11 @@
 --                       anchored, collides and answers queries (creature sight stops at it), never touched, no shadow,
 --                       Role "solid", never tagged WildboundBeastPass; carries WallMargin; WildboundCandySmarts.wallOf
 --                       reads it (V8-D3);
---   CloudWall.Veil      the band itself, 16 thick and 80 tall, ForceField in cloud pink: no collision, no query, no
---                       touch, so the player sees through it; WildboundCandyCloudWallClient puts the puffs on it;
+--   CloudWall.Veil      the band itself, 16 thick and 80 tall, in cloud pink: no collision, no query, no touch, so the
+--                       player sees through it; WildboundCandyCloudWallClient puts the puffs on it. OQ1 (owner request
+--                       2026-11-19, "quiero que las nubes sean mas realistas, no una foto estirada"): the Veil itself is
+--                       not drawn (SmoothPlastic, transparency 1; was ForceField, a stretched shimmering texture): the
+--                       client's layered puffs and particles are the cloud;
 --   CloudWall.CapNorth  V8-D3 amendment (fixer, 2026-11-17): two invisible end caps with the Collider's flags, 4 thick
 --   CloudWall.CapSouth  and 80 tall, inside the band's two ends, from the Collider east to the second space's far edge.
 --                       The big4 annex strips (z -303..-263 and 257..297, to x 1012) and the grey Baseplate (to x 1024
@@ -188,9 +191,11 @@ function East.plan(L, V3)
 			color = East.FLOOR_COLOR, material = East.FLOOR_MATERIAL, transparency = 0,
 			canCollide = true, canQuery = true, canTouch = false, castShadow = true },
 		collider("Collider", band.minZ, band.maxZ), -- PGM-D5: whole again (was K-D1's north piece and ColliderSouth)
+		-- OQ1 (owner request 2026-11-19, "no una foto estirada"): not drawn (was ForceField, transparency 0, a stretched
+		-- shimmering texture); WildboundCandyCloudWallClient draws the soft cloud volume around it
 		{ name = "Veil", folder = East.FOLDER, role = "decor",
 			size = { East.BAND, East.HEIGHT, bandLength }, position = { wallX, wallY, bandZ },
-			color = East.VEIL_COLOR, material = "ForceField", transparency = 0,
+			color = East.VEIL_COLOR, material = "SmoothPlastic", transparency = 1,
 			canCollide = false, canQuery = false, canTouch = false, castShadow = false },
 		cap("CapNorth", caps.north),
 		cap("CapSouth", caps.south),

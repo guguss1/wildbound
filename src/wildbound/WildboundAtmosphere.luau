@@ -13,11 +13,18 @@ local ROWS = table.freeze({
 	-- (WildboundBiomeLight uses its Day row; Dusk and Night exist only so the blend has every row).
 	-- V7-D3 (owner request 2026-11-17, "a pink sky with clouds"): Day haze 0.6 -> 1.6, so the pink air (ZONE_COLOURS)
 	-- tints the sky and the horizon.
-	candy = { Day = { 0.28, 0.12, 1.6, 120, 900 }, Dusk = { 0.34, 0.08, 1.8, 90, 600 }, Night = { 0.4, 0.05, 2.0, 60, 400 } },
+	-- OQ1 (owner request 2026-11-19, "quiero que las nubes sean mas realistas, no una foto estirada"): haze 1.6 -> 3.0
+	-- (Dusk 3.2, Night 3.4): the pink haze fades the place's painted skybox, now that Caramelo no longer swaps in the pink
+	-- skybox picture; the real clouds are WildboundCandySkyClient's Terrain Clouds. Density and the view are unchanged.
+	candy = { Day = { 0.28, 0.12, 3.0, 120, 900 }, Dusk = { 0.34, 0.08, 3.2, 90, 600 }, Night = { 0.4, 0.05, 3.4, 60, 400 } },
 	-- K-D14 (owner request 2026-11-17, "es como el mundo de gatito: un parque verde lindo ..."): Pueblo Gatito, the kitten
 	-- park's clear sunny air, a thin haze and the longest view (WildboundBiomeLight's Gatuno preset uses its Day row; Dusk
 	-- and Night exist only so the blend has every row). Without it the park would fall back to the misty open row.
-	park = { Day = { 0.22, 0.1, 0.6, 150, 1100 }, Dusk = { 0.28, 0.08, 0.8, 110, 700 }, Night = { 0.34, 0.05, 1.0, 70, 450 } },
+	-- OQ1: haze 0.6 -> 1.8 (Dusk 2.0, Night 2.2), meant to fade the painted skybox into a blue gradient (the client's
+	-- sky-blue decay) behind the white 3D clouds; density and the view are unchanged. Haze tints mostly near the horizon,
+	-- so the sky overhead is a Play check; if the photo still shows there, raise the client's Gatuno cover, never the
+	-- density (the park's long view).
+	park = { Day = { 0.22, 0.1, 1.8, 150, 1100 }, Dusk = { 0.28, 0.08, 2.0, 110, 700 }, Night = { 0.34, 0.05, 2.2, 70, 450 } },
 })
 -- V7-D3: a zone's own air and fog colours (RGB), in place of the time of day's grey ones. Caramelo's air is pink.
 -- K-D14: the kitten park's air and fog are a light sky blue.
