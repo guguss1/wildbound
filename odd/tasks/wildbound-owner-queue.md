@@ -33,3 +33,9 @@ The proposals go first so the owner can read them while the code tasks run. OQ2 
   - the thief is defeated.
 
   This is the end rule proposal B suggests (the "recommended" section).
+- **OQ2 details**, code committed, not yet in Studio:
+  - **Hiding no longer loses her.** She circles the hide spot or the grass until the thief comes out, and the spot's own time limit pushes the thief out.
+  - **A portal end is the portal service's server stamp only** (`WildboundPortalReadyAt`). The thief's client moves their own body, so a body jump does not count. Egg carriers still cannot use a portal (CG2), so in practice the end is the safe hub.
+  - **A second thief is remembered.** Someone who stole her egg inside the plot while she chased another thief is chased afterwards, even outside the plot.
+  - **Picking her egg up again after dropping it does not restart the chase.** Dropping the egg ends it, as recorded above.
+  - The ends, in the order they are checked: Gone (left or no character), Dead, Portal, Safe, Dropped (after `CALM_SECONDS`).

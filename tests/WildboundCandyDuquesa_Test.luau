@@ -11,6 +11,11 @@
 -- RC6 (owner request 2026-11-16, "they keep chasing you until you reach the base"): her rage no longer ends at the plot's
 -- edge nor after 25 s; it lasts until the thief is safe (the hub, from WildboundWorldRules), dead, gone or without her
 -- egg, with a 180 s safety end, and calmed outside the plot she vanishes back to her seat.
+-- OQ2 (owner request 2026-11-19, "que la reina de caramelo se enoje y no te deje de perseguir cuando robas el huevo";
+-- odd/tasks/wildbound-owner-queue.md): no time limit and no zone margin any more. Her chase ends only when the thief is
+-- safe (a safe zone or the base, Rules.zone on the server), goes through a portal, no longer carries her egg, or is
+-- defeated (dead, or out of the game); calmed outside the plot she still vanishes home, and her flight still never
+-- crosses the cloud wall (the service's clamp). A hidden thief is searched for with no end.
 -- V4-D10 (owner request 2026-11-17): her scenery model sits on the moved summit (Duq.seatPivot), corrected at start.
 return function(Duq, Frut, Layout, sources, Chase, Rules)
 	local result = { passed = 0, failed = 0, messages = {} }
@@ -292,7 +297,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	end)
 
 	-- Deliberately changed (RC6): the plot's edge no longer ends the rage and the time limit is 180 s (a safety end).
-	case("DR5: the rage ends: safe zone, death, gone, egg dropped (she calms first), or the 180 s safety limit", function()
+	-- Deliberately changed (OQ2, owner request 2026-11-19): no zone margin ("Left") and no time limit ("Timeout") any
+	-- more; a portal is a new end ("Portal"). The long chase is OQ2-1, each end far outside the plot OQ2-2 to OQ2-5.
+	case("DR5: the rage ends: safe zone, death, gone, egg dropped (she calms first), a portal; no margin, no time limit", function()
 		local function endsWith(change)
 			local events = steps(Duq.new(), 0, 2, function(t) return t >= 1.5 and change() or { onFloor(60) } end)
 			return firstOf(events, "Calm")
@@ -300,11 +307,13 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		equal(endsWith(function() return { onFloor(60, { safe = true }) } end).reason, "Safe", "safe zone")
 		equal(endsWith(function() return { onFloor(60, { alive = false }) } end).reason, "Dead", "dead")
 		equal(endsWith(function() return {} end).reason, "Gone", "gone")
-		local outside = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS - 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
-		-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): her zone is the plot again
-		equal(endsWith(function() return { outside } end).reason, "Left", "past the edge and its margin she lets go (V7-D6)")
-		local margin = carrier(Layout.CENTRE.x - Layout.HALF - Duq.LEAVE_MARGIN_STUDS + 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
-		equal(endsWith(function() return { margin } end), nil, "inside the margin she keeps chasing")
+		equal(endsWith(function() return { onFloor(60, { portal = true }) } end).reason, "Portal", "through a portal (OQ2)")
+		-- Deliberately changed (OQ2, owner request 2026-11-19): past the plot's edge and the old V7-D6 margin (12 studs)
+		-- she keeps chasing (it was "Left")
+		local outside = carrier(Layout.CENTRE.x - Layout.HALF - 12 - 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		equal(endsWith(function() return { outside } end), nil, "past the edge and the old margin she keeps chasing")
+		local margin = carrier(Layout.CENTRE.x - Layout.HALF - 12 + 1, Layout.FLOOR_TOP + 3, Layout.CENTRE.z)
+		equal(endsWith(function() return { margin } end), nil, "inside the old margin she keeps chasing")
 		-- an open lunge is called off
 		local cut = steps(Duq.new(), 0, 3.3, function(t) return { onFloor(60, { safe = t >= 3.3 }) } end)
 		local cancel = firstOf(cut, "LungeCancel")
@@ -323,15 +332,10 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		near(still.x, held.x, "she hovers while she calms"); near(still.y, held.y, "y")
 		assert(firstOf(steps(state, 1.5 + Duq.CALM_SECONDS - 0.1, 12, list), "Home"), "she never got home")
 		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
-		-- the time limit (a thief who dodges every lunge)
-		equal(Duq.RAGE_SECONDS, 180, "the safety limit (RC6: 25 -> 180)")
-		local timed = steps(Duq.new(), 0, Duq.RAGE_SECONDS + 0.3, { onFloor(60) }, dodgeAll)
-		local over = firstOf(timed, "Calm")
-		assert(over and over.reason == "Timeout", "time limit: " .. tostring(over and over.reason))
-		assert(over.t >= Duq.RAGE_SECONDS - 1e-6 and over.t <= Duq.RAGE_SECONDS + 0.11, "ended at " .. over.t)
-		for _, ev in ipairs(timed) do
-			if ev.kind == "Strike" then assert(ev.t < over.t, "a strike after the end") end
-		end
+		-- Deliberately changed (OQ2, owner request 2026-11-19): the 180 s safety limit is gone (OQ2-1 chases 600 s), and
+		-- so is the zone margin
+		equal(Duq.RAGE_SECONDS, nil, "no time limit (OQ2)")
+		equal(Duq.LEAVE_MARGIN_STUDS, nil, "no zone margin (OQ2)")
 	end)
 
 	case("DR6: a perfect dodge stuns her STUN_SECONDS (no damage, the egg stays); otherwise she recovers RECOVER_SECONDS", function()
@@ -374,6 +378,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- moved in the last step. Policies (D-1): "never" keeps running straight and takes every lunge; "perfect" runs
 	-- straight and perfect-dodges every lunge; "side" never presses dodge but steps sideways from the lock to the strike.
 	-- K = the lunges a carrier avoided (dodged or missed) before it was free.
+	-- Deliberately changed (OQ2, owner request 2026-11-19): her rage has no time limit, so the run is bounded by the
+	-- suite's own ESCAPE_SECONDS (it was RAGE_SECONDS + 2).
+	local ESCAPE_SECONDS = 600
 	local function escape(speed, policy)
 		local path = { { x = nestX, y = summit.top + 3, z = nestZ } }
 		for _, s in ipairs(Frut.seedPath(Layout)) do table.insert(path, { x = s.x, y = s.y + 3, z = s.z }) end
@@ -385,7 +392,7 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		local leg, slowUntil, dodged = 1, -math.huge, 0
 		local sideX, sideZ, sideUntil = nil, nil, -math.huge
 		local function resolve() return policy == "perfect" and "Dodged" or "Hit" end
-		for i = 0, math.floor((Duq.RAGE_SECONDS + 2) / 0.1) do
+		for i = 0, math.floor(ESCAPE_SECONDS / 0.1) do
 			local t = i * 0.1
 			if i > 0 then
 				local left = speed * (t < slowUntil and Duq.SLOW_MULTIPLIER or 1) * 0.1
@@ -439,8 +446,10 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 				local label = speed .. " " .. policy
 				assert(not free.caught, label .. ": caught at lunge " .. tostring(free.lunge))
 				-- Deliberately changed (V7-D6): she lets go past the plot's edge and its margin ("Left"), before the base
-				equal(free.reason, "Left", label .. ": she lets go past her zone")
-				assert(free.at < Duq.RAGE_SECONDS, label .. ": free at " .. free.at)
+				-- Deliberately changed (OQ2, owner request 2026-11-19): no margin any more: she follows the carrier to the
+				-- base (the hub, Rules.zone), where it is safe ("Safe", as in RC6), about 30 studs past the old "Left" line
+				equal(free.reason, "Safe", label .. ": free only at the base")
+				assert(free.at < ESCAPE_SECONDS, label .. ": free at " .. free.at)
 				-- CL-D9: the summit moved +600 east, so the run from it to the west edge is about 600 studs longer and a
 				-- dodging carrier avoids more lunges on the way (estimated 12 to 35; the upper bound 40 -> 60)
 				assert(free.dodged >= 5 and free.dodged <= 60, label .. ": K = " .. free.dodged)
@@ -511,29 +520,39 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- Deliberately changed (V7-D6, owner request 2026-11-17 "each creature has its zone"): she no longer follows the thief
 	-- to the base: just outside the plot (inside the margin) she still chases; past the margin she lets go ("Left").
 	-- Calmed outside the plot she still vanishes and is back on her seat at once.
-	case("RC6/V7-D6: her rage holds just past the plot's edge, ends past its margin; outside she vanishes home at once", function()
+	-- Deliberately changed (OQ2, owner request 2026-11-19): past the old margin she keeps chasing (it was "Left"), 30
+	-- and then 300 studs out of the plot; the end out there is the thief's own (here a safe zone), and calmed outside
+	-- the plot she still vanishes and is back on her seat at once.
+	case("RC6/OQ2: her rage holds past the plot's edge and the old margin, far out; outside she vanishes home at once", function()
 		-- Deliberately changed (CL-D9): with the Torta 600 studs further east the west gate is out of her 20 s reach, so
 		-- the thief leaves by the -z edge level with her seat (the nearest edge) instead of the west gate
 		local edgeZ = Layout.CENTRE.z - Layout.HALF
-		-- the thief stands just outside the plot's -z edge, inside the margin, then 30 studs out (past it)
-		local near_ = carrier(summit.x, Layout.FLOOR_TOP + 3, edgeZ - Duq.LEAVE_MARGIN_STUDS + 4)
+		-- the thief stands 30 studs out of the plot's -z edge (past the old 12-stud margin), then 300 studs out
 		local outside = carrier(summit.x, Layout.FLOOR_TOP + 3, edgeZ - 30)
+		local far = carrier(summit.x, Layout.FLOOR_TOP + 3, edgeZ - 300)
 		assert(not select(2, Rules.zone(outside.x, outside.z)), "test setup: the spot outside the plot is not safe")
+		assert(not select(2, Rules.zone(far.x, far.z)), "test setup: the far spot is not safe")
 		local state = Duq.new()
 		local events = steps(state, 0, 20, function(t)
 			if t < 1 then return { onFloor(60) } end
-			return { near_ }
+			return { outside }
 		end, dodgeAll)
-		equal(firstOf(events, "Calm"), nil, "inside the margin she keeps chasing")
+		equal(firstOf(events, "Calm"), nil, "past the old margin she keeps chasing")
 		equal(state.mode, "Rage", "still raging")
 		local her = Duq.position(state)
-		assert(Duq.plotDepth(summit, her.x, her.z) < 0, "she followed the thief out of the plot")
-		local last = steps(state, 20.1, 20.1, { outside }, dodgeAll)
+		assert(Duq.plotDepth(summit, her.x, her.z) < -12, "she followed the thief out of the plot and past the old margin")
+		local farther = steps(state, 20.1, 40, { far }, dodgeAll)
+		equal(firstOf(farther, "Calm"), nil, "300 studs out she keeps chasing")
+		equal(state.mode, "Rage", "still raging far out")
+		her = Duq.position(state)
+		assert(Duq.plotDepth(summit, her.x, her.z) < -250, "she followed the thief 300 studs out: depth "
+			.. Duq.plotDepth(summit, her.x, her.z))
+		local last = steps(state, 40.1, 40.1, { carrier(far.x, far.y, far.z, { safe = true }) }, dodgeAll)
 		local calm = firstOf(last, "Calm")
-		assert(calm and calm.reason == "Left", "past her zone she lets go: " .. tostring(calm and calm.reason))
+		assert(calm and calm.reason == "Safe", "a safe thief ends it: " .. tostring(calm and calm.reason))
 		local vanish, home = firstOf(last, "Vanish"), firstOf(last, "Home")
 		assert(vanish and home and home.vanished == true, "outside the plot she vanishes home at once")
-		near(vanish.x, her.x, "the vanish where she was", 1)
+		near(vanish.x, her.x, "the vanish where she was", 1); near(vanish.z, her.z, "z", 1)
 		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
 		-- calmed inside the plot she still floats home (DR7 holds the cooldown)
 		local inside = Duq.new()
@@ -658,7 +677,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- service gives her the search point round the spot as the thief's place) never starts a rage, gets no lunge and no
 	-- bubbles, and is never hit, even by a lunge told before they hid. She keeps raging (she searches); the service ends
 	-- the search by leaving the thief out ("Gone").
-	case("V5-D2: a hidden thief: no rage, no lunge, no bubbles, never hit; the search ends as Gone", function()
+	-- Deliberately changed (OQ2, owner request 2026-11-19): the service no longer ends her search (OQ2-7); a thief it
+	-- leaves out is one out of the game or dead, still "Gone".
+	case("V5-D2: a hidden thief: no rage, no lunge, no bubbles, never hit; a thief left out is Gone", function()
 		equal(firstOf(steps(Duq.new(), 0, 2, { onFloor(40, { hidden = true }) }), "Rage"), nil, "never acquired while hidden")
 		local state = Duq.new()
 		local thief = onFloor(30)
@@ -680,9 +701,10 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		assert(firstOf(steps(s3, 0, lunge.t, { onFloor(60) }), "Lunge"), "the same lunge again")
 		local strike = firstOf(steps(s3, lunge.t + 0.1, lunge.t + 2, { onFloor(60, { hidden = true }) }), "Strike")
 		assert(strike and strike.outcome ~= "Hit", "a lunge struck a hidden thief")
-		-- the service leaves the thief out when the search ends: she calms (Gone) and floats home
+		-- a thief the service leaves out (OQ2: out of the game or dead; no longer a search that ran out): she calms (Gone)
+		-- and floats home
 		local calm = firstOf(steps(state, 8.1, 8.2, {}), "Calm")
-		assert(calm and calm.reason == "Gone", "the search ended")
+		assert(calm and calm.reason == "Gone", "the thief left out")
 		local service = sources.service
 		has(service, 'local hidden = player:GetAttribute("WildboundHidden") ~= nil', "the world script's attribute")
 		has(service, "entry.hidden = true", "the rules know the thief is hidden")
@@ -694,7 +716,9 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- from her is not seen: a stranger is left out; her thief is kept for the usual memory time, then searched for like a
 	-- hidden thief (the rules get the search point, marked hidden), and when the search runs out she calms (Gone). The
 	-- rules' part is the V5-D2 case above; here the service's wiring.
-	case("V6-D1 wiring: the grass is worked out on the server and a concealed thief is searched for, then lost", function()
+	-- Deliberately changed (OQ2, owner request 2026-11-19): the grass search no longer runs out (OQ2-7); the pins below
+	-- are unchanged, the name says so.
+	case("V6-D1 wiring: the grass is worked out on the server and a concealed thief is searched for (OQ2: with no end)", function()
 		local service = sources.service
 		has(service, "Hiding.grassPatches(game:GetService(\"CollectionService\"):GetTagged(Hiding.GRASS.tag))",
 			"the patches from their tagged models (never from the client)")
@@ -715,6 +739,222 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 		local across = (Layout.TOWER.tiers[1].radius + 1) / Duq.CHASE_SPEED
 		assert(drop / Duq.VERTICAL_SPEED <= across, ("a %.1f-stud drop takes %.2f s, the rim %.2f s"):format(drop,
 			drop / Duq.VERTICAL_SPEED, across))
+	end)
+
+	-- OQ2 (owner request 2026-11-19, "que la reina de caramelo se enoje y no te deje de perseguir cuando robas el huevo";
+	-- odd/tasks/wildbound-owner-queue.md): she chases with no time limit and no zone margin. The chase ends only when the
+	-- thief is safe (a safe zone or the base), goes through a portal, no longer carries her egg, or is defeated.
+	case("OQ2-1: no time limit: a thief who dodges every lunge is still chased after 600 s, lunge after lunge", function()
+		equal(Duq.RAGE_SECONDS, nil, "no RAGE_SECONDS"); equal(Duq.LEAVE_MARGIN_STUDS, nil, "no LEAVE_MARGIN_STUDS")
+		local state = Duq.new()
+		local events = steps(state, 0, 600, { onFloor(60) }, dodgeAll)
+		equal(firstOf(events, "Calm"), nil, "she calmed")
+		equal(state.mode, "Rage", "still raging at 600 s")
+		equal(Duq.phase(state) ~= "Return" and Duq.phase(state) ~= "Calm", true, "never on her way home")
+		local lastLunge, lastVolley
+		for _, ev in ipairs(events) do
+			if ev.kind == "Lunge" then lastLunge = ev end
+			if ev.kind == "Charge" and ev.rage then lastVolley = ev end
+		end
+		assert(lastLunge and lastLunge.t >= 590, "her last lunge at " .. tostring(lastLunge and lastLunge.t))
+		assert(lastVolley and lastVolley.t >= 590, "her last bubbles at " .. tostring(lastVolley and lastVolley.t))
+	end)
+
+	-- OQ2: a chase that left the plot: the thief steals on the plot floor, then stands SOUTH_OUT studs past the plot's -z
+	-- edge (level with her seat, not a safe zone) until t = 25; she follows it out (dodgeAll: never hit, the egg stays).
+	local SOUTH_OUT = 80
+	local function southThief(fields)
+		return carrier(summit.x, Layout.FLOOR_TOP + 3, Layout.CENTRE.z - Layout.HALF - SOUTH_OUT, fields)
+	end
+	local function chaseSouth(state)
+		local spot = southThief()
+		assert(not select(2, Rules.zone(spot.x, spot.z)), "test setup: the spot south of the plot is not safe")
+		local events = steps(state, 0, 25, function(t)
+			if t < 1 then return { onFloor(60) } end
+			return { southThief() }
+		end, dodgeAll)
+		assert(firstOf(events, "Calm") == nil and state.mode == "Rage", "test setup: still raging at 25 s")
+		local her = Duq.position(state)
+		assert(Duq.plotDepth(summit, her.x, her.z) < -(SOUTH_OUT - 10), "test setup: she followed the thief out of the plot")
+		return her
+	end
+	-- the end at 25.1 s (`list`, the players then); returns the Calm, the Vanish and the Home of that step
+	local function endSouth(list)
+		local state = Duq.new()
+		local her = table.clone(chaseSouth(state))
+		local last = steps(state, 25.1, 25.1, list, dodgeAll)
+		return firstOf(last, "Calm"), firstOf(last, "Vanish"), firstOf(last, "Home"), her, state
+	end
+
+	case("OQ2-2: the safe zone or the base ends it: at the hub (Rules.zone) she lets go and, out of the plot, vanishes home", function()
+		local hubSafe = select(2, Rules.zone(Rules.HUB_X, Rules.HUB_Z)) == true
+		assert(hubSafe, "test setup: the hub is a safe zone")
+		local calm, vanish, home, her, state = endSouth({ carrier(Rules.HUB_X, Layout.FLOOR_TOP + 3, Rules.HUB_Z, { safe = hubSafe }) })
+		assert(calm and calm.reason == "Safe", "at the base: " .. tostring(calm and calm.reason))
+		near(calm.returnAt - calm.at, 0, "no calm wait")
+		assert(vanish and home and home.vanished == true, "out of the plot she vanishes home at once")
+		near(vanish.x, her.x, "the vanish where she was", 1); near(vanish.z, her.z, "z", 1)
+		equal(Duq.phase(state), "Seated", "seated again"); equal(Duq.position(state), nil, "on her seat")
+		-- a safe zone right where the thief stands out there ends it the same way
+		local calm2, vanish2 = endSouth({ southThief({ safe = true }) })
+		assert(calm2 and calm2.reason == "Safe" and vanish2, "a safe zone out of the plot")
+		-- the safe test stays the server's: Rules.zone of the thief's own root
+		has(sources.service, "entry.safe = select(2, Rules.zone(root.Position.X, root.Position.Z)) == true", "the server's safe test")
+	end)
+
+	case("OQ2-3: a portal ends it (only the portal service's server stamp); out of the plot she vanishes", function()
+		-- in the plot: she lets go at once and floats home
+		local state = Duq.new()
+		steps(state, 0, 2, { onFloor(60) })
+		local cut = steps(state, 2.1, 2.1, { onFloor(60, { portal = true }) })
+		local calm = firstOf(cut, "Calm")
+		assert(calm and calm.reason == "Portal", "through a portal: " .. tostring(calm and calm.reason))
+		near(calm.returnAt - calm.at, 0, "no calm wait")
+		equal(Duq.phase(state), "Return", "in the plot she floats home")
+		-- out of the plot: she vanishes home at once
+		local calm2, vanish2, home2 = endSouth({ southThief({ portal = true }) })
+		assert(calm2 and calm2.reason == "Portal", "out of the plot: " .. tostring(calm2 and calm2.reason))
+		assert(vanish2 and home2 and home2.vanished == true, "out of the plot she vanishes home at once")
+		-- a portal wins over the safe base it lands on
+		local calm3 = endSouth({ southThief({ portal = true, safe = true }) })
+		equal(calm3 and calm3.reason, "Portal", "the portal, not the base")
+		-- Deliberately changed (OQ2, owner request 2026-11-19): a portal is only the portal service's server stamp; a jump
+		-- of the thief's root (moved by its own client: a lag snap or an exploit) no longer ends her chase, and
+		-- TELEPORT_STUDS and TELEPORT_SPEED are gone. Duq.travelled(mark, readyAt): mark is the thief's last sample { readyAt }
+		equal(Duq.travelled(nil, nil), false, "no sample yet")
+		local mark = { readyAt = nil }
+		equal(Duq.travelled(mark, nil), false, "the same (no) stamp")
+		equal(Duq.travelled(mark, 50), true, "the portal stamp changed (the portal moved them)")
+		equal(Duq.travelled({ readyAt = 50 }, 50), false, "an old stamp")
+		equal(Duq.travelled(mark, nil, Duq.LUNGE_PUSH_STUDS + 100, 0, 10.1), false, "a jump is not a portal (client-owned root)")
+		equal(Duq.TELEPORT_STUDS, nil, "no TELEPORT_STUDS"); equal(Duq.TELEPORT_SPEED, nil, "no TELEPORT_SPEED")
+		-- the wiring: server side only (the portal service writes the stamp on the server)
+		local service = sources.service
+		has(service, 'local readyAt = player:GetAttribute("WildboundPortalReadyAt")', "the portal service's own stamp")
+		has(service, "Duq.travelled(travel, readyAt)", "the server's check")
+		has(service, "travel = { id = player.UserId, readyAt = readyAt }", "the sample is the stamp alone")
+		assert(not service:find("Duq.travelled(travel, readyAt, px", 1, true), "no root jump in the check")
+		has(service, "entry.portal = true", "the rules hear of it")
+		has(service, "if not state.rage then travel = nil end", "reset when she calms")
+	end)
+
+	case("OQ2-4: her egg dropped ends it anywhere: out of the plot she calms CALM_SECONDS, then vanishes home", function()
+		local state = Duq.new()
+		chaseSouth(state)
+		local events = steps(state, 25.1, 25.1 + Duq.CALM_SECONDS + 0.3, { southThief({ carriesHerEgg = false }) }, dodgeAll)
+		local calm = firstOf(events, "Calm")
+		assert(calm and calm.reason == "Dropped", "dropped: " .. tostring(calm and calm.reason))
+		near(calm.returnAt - calm.at, Duq.CALM_SECONDS, "she calms first")
+		local vanish, home = firstOf(events, "Vanish"), firstOf(events, "Home")
+		assert(vanish and home and home.vanished == true, "then she vanishes home")
+		assert(vanish.t >= calm.returnAt - 1e-6 and vanish.t <= calm.returnAt + 0.11, "vanished at " .. vanish.t)
+		equal(Duq.phase(state), "Seated", "seated again")
+		equal(firstOf(events, "Rage"), nil, "no new rage")
+	end)
+
+	case("OQ2-5: the thief defeated (dead, or out of the game) ends it anywhere; out of the plot she vanishes home at once", function()
+		local dead, deadVanish = endSouth({ southThief({ alive = false }) })
+		assert(dead and dead.reason == "Dead" and deadVanish, "dead: " .. tostring(dead and dead.reason))
+		local gone, goneVanish, goneHome = endSouth({})
+		assert(gone and gone.reason == "Gone" and goneVanish and goneHome, "gone: " .. tostring(gone and gone.reason))
+		-- the service leaves a dead character out (Gone) and so a player who left
+		has(sources.service, "if root and humanoid and humanoid:GetState() ~= Enum.HumanoidStateType.Dead then", "dead is left out")
+	end)
+
+	case("OQ2-6: a chase with no end still never crosses the cloud wall: the service clamps her flight after every step", function()
+		local service = sources.service
+		has(service, "if wall then her.x, her.z = Smarts.outsideWall(wasX, wasZ, her.x, her.z, wall) end", "the clamp")
+		has(service, 'Smarts.wallOf(workspace:FindFirstChild("Candy_Este_v1"))', "the live wall")
+		local stepAt = service:find("local events = Duq.step(state, now, players, summit, resolve)", 1, true)
+		local clampAt = service:find("Smarts.outsideWall(wasX", 1, true)
+		local playAt = service:find("\n\tplay(events, now)", 1, true)
+		assert(stepAt and clampAt and playAt and stepAt < clampAt and clampAt < playAt, "after every step, before its events play")
+		-- the clamp is kept for any position (no plot test round it): it holds wherever the chase goes
+		local block = service:sub(stepAt, playAt)
+		assert(not block:find("plotDepth", 1, true), "the clamp is never tied to her plot")
+		-- the rules alone keep chasing a thief past the plot's east edge (no zone end); the wall is the service's. Kept on
+		-- the west of the wall as the service keeps her (Smarts.outsideWall: x <= wall - margin, margin 8), she never
+		-- passes it in 60 s
+		local wallX = Layout.CENTRE.x + Layout.EAST + 8
+		local beyond = carrier(wallX + 30, Layout.FLOOR_TOP + 3, summit.z)
+		local state = Duq.new()
+		for i = 0, 600 do
+			local t = i * 0.1
+			Duq.step(state, t, { t < 1 and atNest() or beyond }, summit, dodgeAll)
+			local her = Duq.position(state)
+			if her then her.x = math.min(her.x, wallX - 8) end
+		end
+		equal(state.mode, "Rage", "still raging at the wall")
+		assert(Duq.position(state).x <= wallX - 8 + 1e-6, "she crossed the wall")
+	end)
+
+	-- Deliberately changed (OQ2, owner request 2026-11-19): a hidden thief is searched for with no end (the V5-D2 and
+	-- V6-D1 searches ran out after Hiding.SEARCH.seconds and she gave up, "Gone"); the hide spot's own time limit
+	-- (WildboundWorld's "tooLong") sends the thief out again, still carrying her egg.
+	case("OQ2-7: a hidden thief is searched for with no end: no end in 120 s, no lunge nor bubbles; out again, she lunges", function()
+		local state = Duq.new()
+		steps(state, 0, 1.1, { onFloor(60) })
+		equal(Duq.phase(state), "Chase", "raging")
+		local events = steps(state, 1.2, 120, { onFloor(60, { hidden = true }) })
+		equal(firstOf(events, "Calm"), nil, "she gave up on a hidden thief")
+		equal(firstOf(events, "Lunge"), nil, "a lunge at a hidden thief")
+		equal(firstOf(events, "Charge"), nil, "bubbles at a hidden thief")
+		equal(state.mode, "Rage", "still searching at 120 s")
+		local out = steps(state, 120.1, 125, { onFloor(60) })
+		assert(firstOf(out, "Lunge"), "no lunge once the thief came out")
+		local service = sources.service
+		assert(not service:find("Hiding.expired(", 1, true), "the service never ends her search")
+		has(service, "entry.x, entry.z = Hiding.searchPoint(hideSearch, now)", "she circles the hide spot")
+		has(service, "entry.x, entry.z = Hiding.searchPoint(grass.search, now)", "and the grass")
+	end)
+
+	-- OQ2: one rage at a time, but every thief who stole in the plot is remembered (state.thieves): a second thief who
+	-- took her egg while she chased the first is chased once that chase ends and her cooldown is over, wherever it is.
+	-- Here both run out by the -z edge (the spot chaseSouth checks is not safe); the first reaches safety at 25.1 s.
+	local SECOND = 8
+	case("OQ2-8: a second thief who stole in the plot while she chased the first is chased, out of the plot, once she is free", function()
+		local state = Duq.new()
+		local events = steps(state, 0, 25, function(t)
+			if t < 1 then return { onFloor(60), onFloor(40, { id = SECOND }) } end
+			return { southThief(), southThief({ id = SECOND }) }
+		end, dodgeAll)
+		equal(firstOf(events, "Rage", function(ev) return ev.id == SECOND end), nil, "one rage at a time")
+		equal(state.rage and state.rage.id, THIEF, "she chases the first thief")
+		equal(state.thieves[SECOND], true, "the second thief is remembered")
+		assert(Duq.plotDepth(summit, southThief().x, southThief().z) < 0, "test setup: the second thief is out of the plot")
+		local function after() return { southThief({ safe = true }), southThief({ id = SECOND }) } end
+		local ended = steps(state, 25.1, 25.1, after(), dodgeAll)
+		local home = firstOf(ended, "Home")
+		assert(home and home.vanished == true, "test setup: out of the plot she vanished home")
+		equal(state.thieves[THIEF], nil, "a safe thief is forgotten")
+		local waiting = steps(state, 25.2, home.t + Duq.COOLDOWN_SECONDS - 0.2, after(), dodgeAll)
+		equal(firstOf(waiting, "Rage"), nil, "her cooldown comes first")
+		local rage = firstOf(steps(state, home.t + Duq.COOLDOWN_SECONDS - 0.1, home.t + Duq.COOLDOWN_SECONDS + 1, after(),
+			dodgeAll), "Rage")
+		assert(rage and rage.id == SECOND, "no rage at the second thief: " .. tostring(rage and rage.id))
+		assert(rage.t - home.t >= Duq.COOLDOWN_SECONDS - 1e-6, "raged " .. (rage.t - home.t) .. " s after sitting")
+		-- and she chases it out there, with no end, as the first
+		local chase = steps(state, rage.t + 0.1, rage.t + 20, after(), dodgeAll)
+		equal(firstOf(chase, "Calm"), nil, "she let go of the second thief")
+		equal(state.mode, "Rage", "still raging at the second thief")
+	end)
+
+	-- OQ2: GT13 holds: a carrier who was never in the plot (past its east edge, in the second space) is never marked,
+	-- alone or once she is free after another chase.
+	case("OQ2-9: a carrier who never stole in the plot starts no rage, even once she is free after another chase", function()
+		local east = carrier(Layout.CENTRE.x + Layout.EAST + 5, Layout.FLOOR_TOP + 3, Layout.CENTRE.z, { id = SECOND })
+		local alone = Duq.new()
+		equal(firstOf(steps(alone, 0, 30, { east }), "Rage"), nil, "alone, past the east edge")
+		equal(alone.thieves[SECOND], nil, "never marked")
+		local state = Duq.new()
+		steps(state, 0, 25, function(t)
+			if t < 1 then return { onFloor(60), east } end
+			return { southThief(), east }
+		end, dodgeAll)
+		equal(state.thieves[SECOND], nil, "never marked during another chase")
+		local later = steps(state, 25.1, 25.1 + Duq.COOLDOWN_SECONDS + 2, { southThief({ safe = true }), east }, dodgeAll)
+		assert(firstOf(later, "Home"), "test setup: she went home")
+		equal(firstOf(later, "Rage"), nil, "no rage at a carrier who was never in the plot")
 	end)
 
 	return result

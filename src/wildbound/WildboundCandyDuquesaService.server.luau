@@ -16,6 +16,11 @@
 -- shared WildboundDodgeService (the perfect dodge stuns her); a lunge that lands goes to the inventory server's BeastHit
 -- with the egg NOT kept (the one egg drop path, also used by Don Glaseon's lash: damage only where the game allows it)
 -- and pushes the thief. Her rage bubbles are the ordinary volleys, bigger and redder.
+-- OQ2 (owner request 2026-11-19, "que la reina de caramelo se enoje y no te deje de perseguir cuando robas el huevo"):
+-- she chases with no time limit and no zone margin. Every end is worked out here, on the server: the thief's root in a
+-- safe zone or on the base (Rules.zone), a portal (only the portal service's server stamp WildboundPortalReadyAt,
+-- Duq.travelled), her egg no longer on the thief's back, or the thief dead or gone. Her flight still never crosses the
+-- cloud wall, and a hidden thief is searched for with no end.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ServerStorage = game:GetService("ServerStorage")
@@ -49,6 +54,8 @@ local cloudWall, cloudWallAt = false, -math.huge
 -- marked hidden (no lunge, no bubbles, no hit), until the search runs out; then the thief is left out and she calms
 -- ("Gone") and floats home. Hovering within WildboundHide's discover radius of the spot for its dwell time she finds
 -- them (Hiding.finds) and tells the world script (HideFound), which pulls the thief out on her side.
+-- OQ2: her search no longer runs out: she circles the spot until she finds the thief or the thief comes out (the hide
+-- spot's own time limit, WildboundWorld's "tooLong"), still carrying her egg.
 local Hiding = require(ServerScriptService:WaitForChild("WildboundCandyHiding"))
 local hideSearch, hideWatch = nil, nil
 local function hiddenNow(player)
@@ -59,6 +66,7 @@ end
 -- thief is left out of her rules; her thief is kept for Hiding.GRASS.memorySeconds, then searched for like a hidden
 -- thief (the search point as the thief's place, marked hidden) until the search runs out and she calms ("Gone"). There
 -- is no discovery dwell in the grass: within seeStuds, or sprinting, she sees them again.
+-- OQ2: nor does that search run out: she circles the spot until she comes within seeStuds or the thief sprints.
 local grass = { patches = {}, at = -math.huge, since = nil, search = nil }
 local function grassCover(player, x, z, now)
 	if now - grass.at >= 5 or now < grass.at then
@@ -67,6 +75,9 @@ local function grassCover(player, x, z, now)
 	end
 	return Hiding.covered(Hiding.inGrass(grass.patches, x, z), player:GetAttribute("WildboundStance"))
 end
+
+-- OQ2: her thief's last sample for the portal end (Duq.travelled): { id, readyAt }, nil while she sits
+local travel = nil
 
 local STEP = 0.1
 local BUBBLE, RING = Color3.fromRGB(255, 130, 205), Color3.fromRGB(255, 70, 170)
@@ -422,6 +433,14 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 				entry.carriesHerEgg = true
 				entry.safe = select(2, Rules.zone(root.Position.X, root.Position.Z)) == true
 			end
+			-- OQ2: her thief went through a portal (the stamp only the portal service writes, on the server, right after
+			-- it moves a player home): she lets go ("Portal"). A jump of the root is not a portal: the thief's client
+			-- moves it.
+			if state.rage and state.rage.id == player.UserId then
+				local readyAt = player:GetAttribute("WildboundPortalReadyAt")
+				if travel and travel.id == player.UserId and Duq.travelled(travel, readyAt) then entry.portal = true end
+				travel = { id = player.UserId, readyAt = readyAt }
+			end
 			-- V5-D2: hiding (see Hiding above)
 			local hidden = player:GetAttribute("WildboundHidden") ~= nil
 			local mine = state.rage ~= nil and state.rage.id == player.UserId
@@ -442,9 +461,9 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 					local found = network and network:FindFirstChild("HideFound")
 					if found and found:IsA("BindableEvent") then found:Fire(player, her.x, her.z) end
 					entry.hidden = true -- released by the world script before her next step
-				elseif Hiding.expired(hideSearch, now) then
-					entry = nil -- the search ran out: she calms (Gone) and floats home
 				else
+					-- OQ2 (owner request 2026-11-19): the search never runs out (it ended after Hiding.SEARCH.seconds,
+					-- "Gone"): she keeps circling the spot
 					entry.x, entry.z = Hiding.searchPoint(hideSearch, now)
 					entry.vx, entry.vz = 0, 0
 					entry.hidden = true
@@ -464,13 +483,10 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 					grass.since = grass.since or now
 					if now - grass.since >= Hiding.GRASS.memorySeconds - 1e-9 then
 						grass.search = grass.search or Hiding.newSearch(px, pz, now, "DuquesaGrass:" .. player.UserId)
-						if Hiding.expired(grass.search, now) then
-							entry = nil -- the search ran out: she calms (Gone) and floats home
-						else
-							entry.x, entry.z = Hiding.searchPoint(grass.search, now)
-							entry.vx, entry.vz = 0, 0
-							entry.hidden = true
-						end
+						-- OQ2: nor does this search run out (it ended after Hiding.SEARCH.seconds, "Gone")
+						entry.x, entry.z = Hiding.searchPoint(grass.search, now)
+						entry.vx, entry.vz = 0, 0
+						entry.hidden = true
 					end
 				end
 			end
@@ -479,6 +495,7 @@ local heartbeat = RunService.Heartbeat:Connect(function(dt)
 	end
 	if not state.rage then hideSearch, hideWatch = nil, nil end
 	if not state.rage then grass.since, grass.search = nil, nil end
+	if not state.rage then travel = nil end
 	local was = Duq.position(state)
 	local wasX, wasZ = was and was.x, was and was.z
 	local events = Duq.step(state, now, players, summit, resolve)

@@ -17,6 +17,12 @@
 -- her egg (she calms CALM_SECONDS first), or after RAGE_SECONDS (RC6: 180, a safety end; leaving the plot no longer ends
 -- it, she follows the thief to the base); then she floats home (RC6: outside the plot she vanishes and is back on her seat
 -- at once) and cannot rage again for COOLDOWN_SECONDS after she sits. One rage at a time: nobody else is chased meanwhile.
+-- OQ2 (owner request 2026-11-19, "que la reina de caramelo se enoje y no te deje de perseguir cuando robas el huevo";
+-- odd/tasks/wildbound-owner-queue.md): no time limit (RAGE_SECONDS) and no zone margin (V7-D6's LEAVE_MARGIN_STUDS) any
+-- more. The rage ends only when the thief is safe (a safe zone or the base: the service's Rules.zone), goes through a
+-- portal (p.portal: only the portal service's server stamp, the service's Duq.travelled), no longer carries her egg, or
+-- is defeated (dead, or out of the game). Every thief who stole in the plot is remembered (state.thieves), so one who
+-- stole while she chased another is chased, anywhere, once she is free again.
 local Duq = {}
 
 -- OF3 (owner feedback 3, a hard summit): every 10 -> 6 s on the summit; she also throws at a climber on the upper
@@ -75,16 +81,16 @@ Duq.LUNGE_PUSH_STUDS = 10
 Duq.LUNGE_PUSH_SECONDS = 0.4
 Duq.RECOVER_SECONDS = 1.2 -- after a lunge that hit or missed: the escape window
 -- D-1: from one strike to the next lunge's start at least this long (she chases and throws meanwhile), so a carrier who
--- sidesteps every lunge needs about as many as one who perfect-dodges them (6 walking, in RAGE_SECONDS)
+-- sidesteps every lunge needs about as many as one who perfect-dodges them (6 walking; OQ2: no RAGE_SECONDS any more)
 Duq.LUNGE_GAP_SECONDS = 3
 Duq.STUN_SECONDS = 2.5 -- after a perfect dodge (1.5 asked: frozen, no chase nor bubbles; a walking dodger needs 6)
 Duq.RAGE_EVERY_SECONDS = 2.5 -- her bubbles at the thief between lunges (6 s on the summit)
 Duq.RAGE_FIRST_VOLLEY_SECONDS = 0.5 -- after she leaves her seat
 -- RC6 (owner request 2026-11-16, "they keep chasing you until you reach the base"): RAGE_SECONDS 25 -> 180 is only the
 -- safety end now, and leaving the plot no longer ends the rage: she follows her egg's thief to the base (a safe zone).
-Duq.RAGE_SECONDS = 180
+-- OQ2 (owner request 2026-11-19): RAGE_SECONDS (180) and V7-D6's LEAVE_MARGIN_STUDS (12 past the plot's edge, "Left")
+-- are gone: no time limit and no zone margin.
 Duq.CALM_SECONDS = 3 -- after her egg dropped, before she floats home
-Duq.LEAVE_MARGIN_STUDS = 12 -- V7-D6: an end of the rage again (RC6 had removed it): this far past the plot's edge
 Duq.RETURN_SPEED = 18
 Duq.COOLDOWN_SECONDS = 20 -- after she sits again
 Duq.DODGE_SOURCE = "DonGlaseon" -- an existing WildboundDodge source (the Caramelo boss family), so that module stays as is
@@ -103,7 +109,8 @@ local function unit(x, z)
 end
 
 function Duq.new()
-	return { nextAt = nil, volley = 0, pending = nil, mode = nil, rage = nil, her = nil, cooldownUntil = nil, lastAt = nil }
+	return { nextAt = nil, volley = 0, pending = nil, mode = nil, rage = nil, her = nil, cooldownUntil = nil, lastAt = nil,
+		thieves = {} }
 end
 
 -- DR: the island id of her nest (the summit nest of WildboundCandyLayout.TOWER).
@@ -174,6 +181,16 @@ function Duq.chaseSpeed(thiefSpeed)
 	local speed = Duq.CHASE_SPEED
 	if type(thiefSpeed) == "number" and thiefSpeed == thiefSpeed then speed = math.max(speed, thiefSpeed * Duq.CHASE_SCALE) end
 	return math.min(speed, Duq.CHASE_CAP)
+end
+
+-- OQ2: whether her thief went through a portal since `mark`, its last sample { readyAt } (nil: none yet). readyAt is
+-- the thief's WildboundPortalReadyAt now: only the portal service writes it, on the server, right after it moves a
+-- player home, so a new value is a portal. A jump of the thief's root is never one: that root is moved by the thief's
+-- own client (a lag snap or an exploit), and the owner's list names only a portal. Pure; the service samples on the
+-- server only.
+function Duq.travelled(mark, readyAt)
+	if type(mark) ~= "table" then return false end
+	return readyAt ~= mark.readyAt
 end
 
 -- D-1: her speed during a lunge's tell, until the lock: TELL_SPEED, or the thief's own speed when faster.
@@ -268,13 +285,31 @@ local function calm(state, now, events, reason)
 	table.insert(events, { kind = "Calm", id = r.id, reason = reason, at = now, returnAt = state.calmUntil })
 end
 
+-- OQ2 (owner request 2026-11-19): she remembers every thief, not only the one she chases. A carrier of her egg seen
+-- alive and not safe inside the plot is marked (state.thieves[id]); the mark goes when that player is seen without her
+-- egg, dead, safe or through a portal. A player left out of the step (hidden, concealed in the grass, dead or out of the
+-- game) keeps the mark until it is seen again (a respawned or rejoined player carries no egg, so the mark goes).
+local function noteThieves(state, players, summit)
+	if type(state.thieves) ~= "table" then state.thieves = {} end
+	local thieves = state.thieves
+	for _, p in ipairs(players) do
+		if p.carriesHerEgg == true and p.alive == true and type(p.x) == "number" and p.safe ~= true and p.portal ~= true
+			and Duq.plotDepth(summit, p.x, p.z) >= 0 then
+			thieves[p.id] = true
+		elseif thieves[p.id] and (p.carriesHerEgg ~= true or p.alive ~= true or p.safe == true or p.portal == true) then
+			thieves[p.id] = nil
+		end
+	end
+end
+
 -- DR: a carrier of her egg, alive, out of every safe zone, inside the plot, while she sits and her cooldown is over.
 -- V5-D2 (Caramelo v5): never a thief hidden in a hide spot (p.hidden).
+-- OQ2: or a marked thief anywhere (noteThieves): one who stole while she chased another is chased once she is free.
 local function startRage(state, now, events, players, summit)
 	if state.mode ~= nil or now < (state.cooldownUntil or -math.huge) then return end
 	for _, p in ipairs(players) do
 		if p.carriesHerEgg == true and p.alive == true and type(p.x) == "number" and p.safe ~= true and p.hidden ~= true
-			and Duq.plotDepth(summit, p.x, p.z) >= 0 then
+			and (Duq.plotDepth(summit, p.x, p.z) >= 0 or state.thieves[p.id] == true) then
 			state.mode, state.her, state.nextAt = "Rage", Duq.seat(summit), nil
 			state.rage = { id = p.id, startAt = now, phase = "Roar", phaseUntil = now + Duq.ROAR_SECONDS, lunges = 0 }
 			table.insert(events, { kind = "Rage", id = p.id, at = now, chaseAt = now + Duq.ROAR_SECONDS })
@@ -289,12 +324,11 @@ local function rageStep(state, now, events, players, summit, resolve, dt)
 	local reason
 	if not p then reason = "Gone"
 	elseif p.alive ~= true or type(p.x) ~= "number" then reason = "Dead"
+	-- OQ2: through a portal (it lands the thief on the base, so it is asked before the safe zone)
+	elseif p.portal == true then reason = "Portal"
 	elseif p.safe == true then reason = "Safe"
-	elseif p.carriesHerEgg ~= true then reason = "Dropped"
-	-- V7-D6 (owner request 2026-11-17, "each creature has its zone"): her zone is the Caramelo plot again: a thief
-	-- LEAVE_MARGIN_STUDS past its edge ends the rage ("Left"; RC6 had taken that end out)
-	elseif Duq.plotDepth(summit, p.x, p.z) < -Duq.LEAVE_MARGIN_STUDS then reason = "Left"
-	elseif now - r.startAt >= Duq.RAGE_SECONDS then reason = "Timeout" end
+	-- OQ2 (owner request 2026-11-19): no zone end (V7-D6's "Left") and no time end ("Timeout") any more
+	elseif p.carriesHerEgg ~= true then reason = "Dropped" end
 	if reason then
 		calm(state, now, events, reason)
 		return
@@ -391,7 +425,8 @@ local function homeStep(state, now, events, summit, dt)
 	end
 end
 
--- One step. players = { { id, alive, x, y, z, vx?, vz?, carriesHerEgg?, safe?, speed?, hidden? } }; summit = Frut.summit(Layout).
+-- One step. players = { { id, alive, x, y, z, vx?, vz?, carriesHerEgg?, safe?, speed?, hidden?, portal? } };
+-- summit = Frut.summit(Layout). OQ2: portal = true when the server saw her thief go through a portal (Duq.travelled).
 -- V5-D2: a hidden player (hidden = true) never starts a rage and gets no lunge, no bubbles and no hit; her thief who
 -- hides is given by the service at the search point round the spot (WildboundCandyHiding), so she searches there.
 -- resolve(id, lunge, now) (optional, DR) answers "Dodged" for a lunge the thief perfect-dodged. Events (field kind):
@@ -401,10 +436,12 @@ end
 --   Lock { lunge, id, x, y, z (the locked spot on the thief's floor), strikeAt }
 --   Strike { lunge, id, outcome = "Hit" | "Dodged" | "Miss", x, y, z, and on a Hit: damage, drop, dx, dz, studs, seconds }
 --   Calm { id, reason, at, returnAt }   Home { at }
+--   OQ2: Calm's reason is "Gone", "Dead", "Portal", "Safe" or "Dropped" (no "Left", no "Timeout")
 function Duq.step(state, now, players, summit, resolve)
 	local events = {}
 	local dt = state.lastAt and math.clamp(now - state.lastAt, 0, 0.25) or 0
 	state.lastAt = now
+	noteThieves(state, players, summit)
 	startRage(state, now, events, players, summit)
 	if state.mode == "Rage" then rageStep(state, now, events, players, summit, resolve, dt) end
 	if state.mode == "Calm" or state.mode == "Return" then homeStep(state, now, events, summit, dt) end
