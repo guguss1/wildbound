@@ -9,8 +9,8 @@ Owner's words (verbatim): "te doy tareas para mañana, anotalas y resolvelas ma�
 | ID | Task | Notes | Status |
 |---|---|---|---|
 | OQ1 | **More realistic clouds**, "no una foto estirada" | The likely target is the cloud wall between biomes (Caramelo's east edge, `Candy_Este_v1.CloudWall`: Veil and puffs) and any sky cloud that is a stretched image. Make them volumetric: many soft parts or particles, layered, and moving slowly. Uploads need separate approval, so use primitives or particles first. | Not started |
-| OQ2 | **The Caramelo queen (La Duquesa) gets angry and never stops chasing** once you steal her egg | This reverses V7-D6, where she lets go past her zone margin. The service's flight clamp (`Smarts.outsideWall`) and the "Vanish" rule change too. RC6 in `WildboundCandyDuquesa_Test` is a deliberate change. Decide how the chase ends: the base, dropping the egg, being caught, or a long timeout. | Not started |
-| OQ3 | **Fall damage** from the Gran Torta's tower and other tall towers | This is new. Damage stays off outside the private test place, so it is a flag that is on here. It applies to tall towers in every biome; list them first. | Not started |
+| OQ2 | **The Caramelo queen (La Duquesa) gets angry and never stops chasing** once you steal her egg | This reverses V7-D6, where she lets go past her zone margin. The service's flight clamp (`Smarts.outsideWall`) and the "Vanish" rule change too. RC6 in `WildboundCandyDuquesa_Test` is a deliberate change. Decide how the chase ends: the base, dropping the egg, being caught, or a long timeout. | Done 2026-11-19 (`d69dfac`, Studio, suites). A live chase in Play was not staged. |
+| OQ3 | **Fall damage** from the Gran Torta's tower and other tall towers | This is new. Damage stays off outside the private test place, so it is a flag that is on here. It applies to tall towers in every biome; list them first. | Done 2026-11-19 (`f0f2873`, Studio, suites, solo Play fall) |
 | OQ4 | **A much longer map**, with more creatures from different zones if needed | This builds on PD1: every big4 arm 600 x 1200, with Caramelo already done (v9). "Bastante más largo" may mean longer than 1200: decide and record. Pueblo Gatito is next. Its research workflow was started and stopped on 2026-11-19, with nothing written. Then Bosque and Montañas. Add creatures to the new space where it feels empty. | In progress (Caramelo done) |
 | OQ5 | **Proposals for game progression**: difficulty rising as you advance; the player has to buy or earn a dash or another mechanic, such as speed | The deliverable is proposals, not code: several options. Note in the proposals that buying with Robux is design only. Nothing is purchasable (`monetization = "none"`) without the owner's explicit approval. In-game currency or earned unlocks are fine to propose. Read `docs/design/wildbound-combined-plan.md` §6, `docs/design/wildbound-economy-and-offers.md` and the overview first. | Done 2026-11-19: `docs/design/wildbound-progression-proposals.md` (A Sellos, B Nivel + tienda, C Rango; recommended B with grafts). Waiting on the owner's choice. |
 
@@ -48,3 +48,19 @@ The proposals go first so the owner can read them while the code tasks run. OQ2 
   - **No damage** after a portal or teleport, respawn, seat or raft, hide spot, ragdoll, a creature push or hit (1.5 s), a crumbling cookie bridge, a landing in chocolate, or a slow descent.
   - **Pradera falls hurt too,** for example the Seta Trueno at 26 studs → 9.
   - No warning sign at the stair for now.
+
+## Evidence (OQ2 and OQ3, 2026-11-19)
+
+- **Deploy.**
+  - Before writing, Studio matched `fc55760` for the Duquesa files.
+  - WildboundServer and WildboundText are mixed copies, so they got their one hunk each. They grew by the exact repo delta (Server 228954 → 229139, Text 45197 → 45630) and both compile.
+  - Six scripts matched `f0f2873` by fingerprint: Duquesa, DuquesaService, Duquesa_Test, and the new WildboundFallDamage, WildboundFallDamage_Test and WildboundFallDamageService (enabled).
+- **Suites, fresh Play server VM:** CandyDuquesa 35/0, FallDamage 18/0, BeastWiring 53/0, CandySmarts 26/0, CandyHideSpots 16/0, CandyGrass 12/0, CandyTraps 12/0, CandyEast 13/0, PortalService 15/0, CandyNests 27/0.
+- **Play, solo.** The character walked off a temporary platform at y 60, which existed for this Play only. Each fall measured a 60.5-stud drop.
+  - The first fall only warned: `Fall_warned` 1, no fall damage.
+  - The second fall took 40, and health regenerated from 60 afterwards. `Fall_damage` was 40 in total.
+  - The other health losses in that session were forest creature hits (`Beast_hits` 4), not falls.
+- **Not seen in Play:**
+  - a live Duquesa chase out of the plot;
+  - the warning and hit lines on screen;
+  - a fall from the real Gran Torta summit.
