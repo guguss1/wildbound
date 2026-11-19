@@ -11,8 +11,9 @@ local CollectionService = game:GetService("CollectionService")
 local Builder = {}
 -- CH: was 900; the extra trees add about 270 parts (Builder.EXTRA_TREES), the 8 new nests 40. GT (cake move): 1300 ->
 -- 1450, the centre backfill (Builder.CENTRE_FILL) adds about 130 parts, the 8 GT2 nests 40 and the avenue 2 (the bigger tower stair is laid
--- by syncTower, outside this count: about 25 parts more on the live map).
-Builder.MAX_PARTS = 1450
+-- by syncTower, outside this count: about 25 parts more on the live map). CL-D16 (v9): 1450 -> 1550, the 17 new nests and
+-- the two new routes (a fresh build measured 1470 in Studio).
+Builder.MAX_PARTS = 1550
 
 local YIELD_EVERY = 150
 local palette = {

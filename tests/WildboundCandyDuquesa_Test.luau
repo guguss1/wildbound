@@ -512,10 +512,12 @@ return function(Duq, Frut, Layout, sources, Chase, Rules)
 	-- to the base: just outside the plot (inside the margin) she still chases; past the margin she lets go ("Left").
 	-- Calmed outside the plot she still vanishes and is back on her seat at once.
 	case("RC6/V7-D6: her rage holds just past the plot's edge, ends past its margin; outside she vanishes home at once", function()
-		local gate = Layout.world(Layout.ENTRANCE)
-		-- the thief stands just outside the plot's west edge, inside the margin, then 30 studs out (past it)
-		local near_ = carrier(gate.x - Duq.LEAVE_MARGIN_STUDS + 4, Layout.FLOOR_TOP + 3, gate.z)
-		local outside = carrier(gate.x - 30, Layout.FLOOR_TOP + 3, gate.z)
+		-- Deliberately changed (CL-D9): with the Torta 600 studs further east the west gate is out of her 20 s reach, so
+		-- the thief leaves by the -z edge level with her seat (the nearest edge) instead of the west gate
+		local edgeZ = Layout.CENTRE.z - Layout.HALF
+		-- the thief stands just outside the plot's -z edge, inside the margin, then 30 studs out (past it)
+		local near_ = carrier(summit.x, Layout.FLOOR_TOP + 3, edgeZ - Duq.LEAVE_MARGIN_STUDS + 4)
+		local outside = carrier(summit.x, Layout.FLOOR_TOP + 3, edgeZ - 30)
 		assert(not select(2, Rules.zone(outside.x, outside.z)), "test setup: the spot outside the plot is not safe")
 		local state = Duq.new()
 		local events = steps(state, 0, 20, function(t)
