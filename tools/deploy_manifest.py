@@ -85,6 +85,11 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundFlags.luau", "ServerScriptService.WildboundFlags"),
     ("src/wildbound/WildboundFairStrike.luau", "ServerScriptService.WildboundFairStrike"),
     ("tests/WildboundFairStrike_Test.luau", "ServerStorage.WildboundFairStrike_Test"),
+    # Fall damage (owner request 2026-11-19, "que haya daño de caida desde esa torre y de otras torres altas"): the pure
+    # rules and the server service that measures falls and hurts through BeastHit, under the same damage switch.
+    ("src/wildbound/WildboundFallDamage.luau", "ServerScriptService.WildboundFallDamage"),
+    ("src/wildbound/WildboundFallDamageService.server.luau", "ServerScriptService.WildboundFallDamageService"),
+    ("tests/WildboundFallDamage_Test.luau", "ServerStorage.WildboundFallDamage_Test"),
     # M4.7, wave W6: pure ambush relocation with no camera or gaze input
     ("src/wildbound/WildboundAmbush.luau", "ServerScriptService.WildboundAmbush"),
     ("tests/WildboundAmbush_Test.luau", "ServerStorage.WildboundAmbush_Test"),

@@ -348,6 +348,11 @@ return freeze({
 	-- Nest Heist phase 4a (NB5, NB6): the beasts' warnings (shown with the red lane or circle) and their hits.
 	BEAST = {
 		hit = "¡Una bestia te golpeó!",
+		-- Fall damage (owner request 2026-11-19): WildboundFallDamageService sends a hard landing through BeastHit as
+		-- beast "Fall"; only its hit line is read. At most 64 bytes, like the beasts' lines. A player's first landing that
+		-- would hurt costs nothing and only warns, as beast "FallWarn" ("todos avisan antes").
+		Fall = { hit = "¡Auch! Caíste de muy alto." },
+		FallWarn = { hit = "¡Cuidado! Caer de tan alto duele." },
 		Viper = { warn = "¡Una víbora va a embestir! Sal de la línea roja.", hit = "¡La víbora te embistió!" },
 		Pouncer = { warn = "¡Una araña va a saltar! Sal del círculo rojo.", hit = "¡La araña te cayó encima!",
 			webbed = "¡Te atrapó la telaraña!" },

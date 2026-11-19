@@ -2376,7 +2376,10 @@ do
 		end
 		telemetry:SetAttribute("BeastHitDamage", (telemetry:GetAttribute("BeastHitDamage") or 0) + hurt)
 		local words = Text.BEAST[beast]
-		send(player, "BeastHit", false, eggDropped and Text.EGG.knocked or words and words.hit or Text.BEAST.hit)
+		-- Fall damage: a fall that took nothing (before the first paid trip) says nothing; its warning is "FallWarn".
+		if not (beast == "Fall" and hurt == 0 and not eggDropped) then
+			send(player, "BeastHit", false, eggDropped and Text.EGG.knocked or words and words.hit or Text.BEAST.hit)
+		end
 		return { eggDropped = eggDropped, damage = hurt }
 	end
 	beastHit.Parent = network

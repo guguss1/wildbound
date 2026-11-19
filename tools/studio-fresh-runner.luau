@@ -435,6 +435,10 @@ SPECS["WildboundFairStrike_Test"] = {
 	"mod:WildboundFairStrike", "mod:WildboundFlags", "src:WildboundFairStrike", "src:WildboundWorld", "src:WildboundWorldClient",
 }
 SPECS["WildboundFakePlayerStore_Test"] = { "mod:WildboundFakePlayerStore", "src:WildboundFakePlayerStore" }
+SPECS["WildboundFallDamage_Test"] = {
+	"mod:WildboundFallDamage", "mod:WildboundFairStrike", "mod:WildboundFlags", "mod:WildboundText",
+	{ service = "src:WildboundFallDamageService", server = "src:WildboundServer" },
+}
 SPECS["WildboundFearWiring_Test"] = {
 	{ fear = "src:WildboundFearClient", world = "src:WildboundWorldClient", audio = "src:WildboundAudioClient" },
 }

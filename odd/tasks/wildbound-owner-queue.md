@@ -39,3 +39,12 @@ The proposals go first so the owner can read them while the code tasks run. OQ2 
   - **A second thief is remembered.** Someone who stole her egg inside the plot while she chased another thief is chased afterwards, even outside the plot.
   - **Picking her egg up again after dropping it does not restart the chase.** Dropping the egg ends it, as recorded above.
   - The ends, in the order they are checked: Gone (left or no character), Dead, Portal, Safe, Dropped (after `CALM_SECONDS`).
+- **OQ3, fall damage**, code committed, not yet in Studio:
+  - **Height rule.** A drop of 20 studs or less, from the takeoff standing height to the landing, never hurts. That covers jumping off bridges, ledges, kitten toys and one cake tier.
+  - **Damage.** It is floor((drop − 20) × 1.5), capped at 40, the hardest creature hit. So a fall never kills from full health, and a second fall can defeat a hurt player.
+  - **Same switch as creature damage.** It goes through the existing BeastHit path, so it is on only on the private test place.
+  - **The egg is kept** on a fall.
+  - **One warning per player per session.** The first fall that would hurt only shows "¡Cuidado! Caer de tan alto duele." with no damage, to keep the "todos avisan antes" rule. Later ones show "¡Auch! Caíste de muy alto.".
+  - **No damage** after a portal or teleport, respawn, seat or raft, hide spot, ragdoll, a creature push or hit (1.5 s), a crumbling cookie bridge, a landing in chocolate, or a slow descent.
+  - **Pradera falls hurt too,** for example the Seta Trueno at 26 studs → 9.
+  - No warning sign at the stair for now.
