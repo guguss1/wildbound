@@ -174,3 +174,30 @@ Owner's words (2026-11-20): "quiero que la ui de mi juego sea exactamente igual 
   - white rows with icons instead of plain blue bars;
   - a brighter gold pill;
   - round icon buttons in the action bar.
+## T1, thief rank and the dodge fix (2026-11-20)
+
+The owner, mid polish pass (2026-11-20): "quiero que comences eso de que se pueda jugar mas tiempo".
+- Code: `8b0052b` and `f8a7c23`.
+
+### Decisions taken for the user
+- **The UI polish pass is paused**, with nothing written. One task at a time. It comes back after T1 is tested.
+- **First task to play longer: T1** from `docs/design/wildbound-fun-build-plan.md` (the dodge fix plus the thief rank). It is the plan's first gameplay step after the kit.
+- **Dodge:** only a perfect dodge makes you untouchable for 0.28 s. A missed press still dashes and cools down, but it is no shield.
+- **Ranks:** the full ladder of proposal C is shown now, so there is always a next goal:
+  - Aprendiz 0, Ladronzuelo 3, Ladrón 8, Bandido 15, Maestro 25, Leyenda 40 eggs brought home.
+  - What each rank gives (tools, faster beasts) comes in T3, T6 and T12.
+- **What counts:** every egg banked: the chest, walking into the base, the hub stations, the shelter capsule. Creatures and materials do not count. The count never goes down.
+- **How it is saved:** the training map's `eggsHome`, like gold. No save format change, and no edit to the mixed WildboundServer copy.
+- **Display:**
+  - On screen: a purple sign at the top left with the emoji and rank name, and a yellow bar under it ("1/3 huevos").
+  - Where: on screens narrower than 700 px it sits under the Vida bar's row.
+  - Rank-up: a yellow card with rays for 4 s. It never shows when the save loads.
+  - With "Efectos suaves" on: no pop, and the rays do not turn.
+- **Texts:** the rank words live in `WildboundRank.luau`, so the mixed WildboundText copy is untouched.
+
+### Evidence
+- **Repo Python tests:** the manifest and runner checks for the new files pass. Remaining failures, none of them in files this task touched:
+  - `test_spec_tokens_name_deployed_scripts` (known: CritterAnim and GoldClient);
+  - errors in the Caramelo v3, cake move, tree resize, Lumipol v1 and economy/gold simulator tests. They are stale against the v9 layout: `Layout.ENTRANCE` not found.
+- **Review (two reviewers, then a check):** no logic defects. One style point (the kit's screen setup) was added in `f8a7c23`.
+- **Studio before loading:** WildboundDodge, WildboundDodge_Test, WildboundGoldService and WildboundState all match `7cd22ac`. The 3 new scripts are not there yet.
