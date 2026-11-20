@@ -1,28 +1,74 @@
 -- Hub roulette service (PF5, user decision 2026-11-14: "en el hub", pity Rara+). WildboundServer starts it with its
 -- State, its alive and root checks and a server-side Random; it builds one roulette station in the hub plaza at
 -- runtime (the place file never needs saving) with one ProximityPrompt that everyone may use (no owner gating).
--- Never trust the client: the "Roulette" remote carries one action word ("open" or "spin") and nothing else is read.
+-- Never trust the client: the "Roulette" remote carries one action word ("open", "spin" or "offer") and, for "offer"
+-- only, one offer id; nothing else is read.
 -- The server alone checks the rate (one spin per SPIN_SECONDS), that the player is alive and near the station
 -- (measured from the server-side root), rolls with its own rng over WildboundRoulette.LIVE and spends and grants
 -- atomically through State:spinRoulette. The odds, the price (or the free spin) and the pity counter are sent before
--- any spin ("open"); the client shows them, plays a short spin and shows the server's result. Esencia only, no Robux.
+-- any spin ("open"); the client shows them, turns its wheel to the server's result and shows it. Spins cost Esencia.
+-- RW-4 / RW-5 (owner request 2026-11-20: "que lo de la ruleta sea asi"): spin packs from WildboundOffers. "offer" with
+-- a catalog id is checked for the rate (OFFER_SECONDS), alive and in range. While WildboundFlags.DESBLOQUEAR_TODO is
+-- true the pack's spins are granted for free; when it is false the answer is "Próximamente". Nothing is ever charged and
+-- no purchase prompt exists anywhere.
+-- Where the extra spins live (RW-5): here, per player, in server memory for the session (self.extra). They are never
+-- saved, so the saved record (schema 6) and its validation stay exactly as they were and an older server can always
+-- read a save. A free development grant that ends with the session costs nothing; a pack that is really bought would
+-- need a saved, receipt-tied store, which comes with its own approval. An extra spin is used only after the account's
+-- free first spin, costs no Esencia and neither counts toward nor resets the pity (WildboundRoulette.drawExtra).
+-- The HUD notice of a win waits NOTIFY_DELAY seconds, so it never tells the prize before the client's wheel stops.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Service = {}
 Service.__index = Service
 
 Service.RANGE = 12 -- studs from the server-side root to the station for a spin or the odds panel
-Service.SPIN_SECONDS = 1.6 -- one spin at a time per player: the client's spin animation is shorter
+Service.SPIN_SECONDS = 3.2 -- one spin at a time per player: the client's wheel (3 s) stops before the next one
 Service.OPEN_SECONDS = 0.3 -- the odds panel at most this often per player
+Service.OFFER_SECONDS = 0.5 -- one spin pack at most this often per player
+Service.NOTIFY_DELAY = 3 -- the HUD notice of a win waits for the wheel to stop
 Service.PROMPT_DISTANCE = 9
+
+-- The development switch, read from the sibling WildboundFlags (ServerScriptService); missing or broken reads as locked.
+local function readFlags()
+	local module = script.Parent and script.Parent:FindFirstChild("WildboundFlags")
+	if not (module and module:IsA("ModuleScript")) then return nil end
+	local ok, flags = pcall(require, module)
+	if ok then return flags end
+	return nil
+end
+
+-- Without the catalog (WildboundOffers not deployed yet) the packs stay shut: every offer id is unknown, and the server
+-- start never waits forever.
+local function noOffers(Text)
+	local words = Text.ROULETTE.unavailable
+	return {
+		WORDS = { comingSoon = words, full = words, unknown = words, wait = words, granted = words },
+		get = function() return nil end,
+		unlocked = function() return false end,
+		claim = function() return false, "UnknownOffer" end,
+	}
+end
 
 function Service.new(deps)
 	assert(type(deps) == "table" and deps.state and deps.Roulette and deps.Text, "the roulette service needs its deps")
+	local offers = deps.Offers
+	if offers == nil then
+		local module = ReplicatedStorage:WaitForChild("WildboundOffers", 10)
+		offers = module and require(module) or noOffers(deps.Text)
+	end
+	local unlocked = deps.unlockAll
+	if unlocked == nil then unlocked = offers.unlocked(readFlags()) end
 	return setmetatable({
 		deps = deps,
 		position = deps.position, -- the station's centre (set by build)
 		lastSpin = {}, -- [player] = clock of the last spin request
 		lastOpen = {}, -- [player] = clock of the last odds request
+		lastOffer = {}, -- [player] = clock of the last pack request
+		extra = {}, -- [player] = extra spins from packs, this session only (RW-5)
+		offers = offers,
+		unlocked = unlocked == true,
 		fire = deps.fire,
 	}, Service)
 end
@@ -55,7 +101,9 @@ local function reach(self, player)
 	return distance
 end
 
--- What the panel shows: every live prize with its odds, the price or the free spin, the pity counter and the balance.
+-- What the panel shows: every live prize with its odds, the price or the free spin, the pity counter, the balance, the
+-- spins left (the free first spin plus the extra spins), whether the packs are open, and SPIN_SECONDS (the client keeps
+-- Girar off that long after a tap, so it never offers a spin this server would refuse as busy).
 function Service:view(player)
 	local deps = self.deps
 	local Text, live = deps.Text, deps.Roulette.LIVE
@@ -68,11 +116,15 @@ function Service:view(player)
 			rarity = Text.RARITY[row.rarity] or row.rarity, rarityKey = row.rarity, percent = row.percent })
 	end
 	local free = live.freeFirstSpin == true and roulette.freeSpinUsed ~= true
+	local extra = self.extra[player] or 0
 	local every = live.pity.every
 	return {
-		odds = odds, price = live.spinCost, free = free, ember = ember, canSpin = free or ember >= live.spinCost,
+		odds = odds, price = live.spinCost, free = free, ember = ember,
+		canSpin = free or extra > 0 or ember >= live.spinCost,
 		pityEnabled = live.pity.enabled == true, pityEvery = every, pityLeft = math.max(1, every - roulette.pityCount),
 		pityRarity = Text.RARITY[live.pity.minRarity] or live.pity.minRarity,
+		extraSpins = extra, spinsLeft = (free and 1 or 0) + extra, unlocked = self.unlocked,
+		spinSeconds = Service.SPIN_SECONDS,
 	}
 end
 
@@ -93,9 +145,14 @@ end
 
 local function refuse(self, player, reason)
 	local Text = self.deps.Text.ROULETTE
+	local words = self.offers.WORDS
 	local text = Text.unavailable
 	if reason == "Busy" then text = Text.busy
 	elseif reason == "TooFar" then text = Text.tooFar
+	elseif reason == "Locked" then text = words.comingSoon
+	elseif reason == "Full" then text = words.full
+	elseif reason == "UnknownOffer" then text = words.unknown
+	elseif reason == "OfferBusy" then text = words.wait
 	elseif reason == "CannotAfford" then
 		local snapshot = self.deps.state:snapshot(player.UserId)
 		local missing = self.deps.Roulette.LIVE.spinCost - (snapshot and snapshot.ember or 0)
@@ -107,7 +164,23 @@ local function refuse(self, player, reason)
 	return false, reason
 end
 
+-- The HUD notice, after NOTIFY_DELAY (deps.after replaces the wait in tests); never for a player who left.
+local function notifyLater(self, player, text)
+	local deps = self.deps
+	if not deps.notify then return end
+	local function tell() deps.notify(player, true, text) end
+	if deps.after then
+		deps.after(Service.NOTIFY_DELAY, tell)
+		return
+	end
+	task.delay(Service.NOTIFY_DELAY, function()
+		if typeof(player) == "Instance" and player.Parent == nil then return end
+		tell()
+	end)
+end
+
 -- One spin: rate, alive and distance first (before any roll), then the server's roll, spent and granted in State.
+-- After the free first spin, an extra spin from a pack is used before any Esencia is spent.
 function Service:spin(player)
 	local deps = self.deps
 	local now = clock(self)
@@ -118,10 +191,18 @@ function Service:spin(player)
 	if not deps.state:snapshot(player.UserId) then return refuse(self, player, "InvalidPlayer") end
 	local Roulette, live = deps.Roulette, deps.Roulette.LIVE
 	local rng = deps.random()
+	local extra = self.extra[player] or 0
+	local usedExtra = false
 	local ok, receipt = deps.state:spinRoulette(player.UserId, true, distance, Service.RANGE, function(current)
+		local firstFree = live.freeFirstSpin == true and current.freeSpinUsed ~= true
+		if extra > 0 and not firstFree then
+			usedExtra = true
+			return Roulette.drawExtra(rng, current, live)
+		end
 		return Roulette.draw(rng, current, live)
 	end)
 	if not ok then return refuse(self, player, receipt) end
+	if usedExtra then self.extra[player] = math.max(0, extra - 1) end
 	local Text = deps.Text
 	local label = Text.ROULETTE.prizes[receipt.prizeId] or receipt.prizeId
 	local text = receipt.free and Text.ROULETTE.wonFree:format(label)
@@ -130,17 +211,38 @@ function Service:spin(player)
 	send(self, player, "result", {
 		prizeId = receipt.prizeId, index = prizeIndex(live, receipt.prizeId), label = label,
 		rarity = Text.RARITY[receipt.rarity] or receipt.rarity, rarityKey = receipt.rarity, cost = receipt.cost,
-		free = receipt.free, pity = receipt.pity, text = text, view = self:view(player),
+		free = receipt.free, pity = receipt.pity, extra = usedExtra, text = text, view = self:view(player),
 	})
-	-- The server's own notice path pushes the HUD snapshot (the new Esencia and materials).
-	if deps.notify then deps.notify(player, true, text) end
+	-- The server's own notice path pushes the HUD snapshot (the new Esencia and materials) once the wheel has stopped.
+	notifyLater(self, player, text)
 	return true, receipt
 end
 
--- The remote handler: only the action word is read; any other argument from the client is ignored.
-function Service:handle(player, action)
+-- One spin pack (RW-4): the rate, a catalog id, alive and in range, then the free grant while DESBLOQUEAR_TODO is on.
+function Service:offer(player, offerId)
+	local deps = self.deps
+	local now = clock(self)
+	if now - (self.lastOffer[player] or -math.huge) < Service.OFFER_SECONDS then return refuse(self, player, "OfferBusy") end
+	self.lastOffer[player] = now
+	if self.offers.get(offerId) == nil then return refuse(self, player, "UnknownOffer") end
+	local _, why = reach(self, player)
+	if why then return refuse(self, player, why) end
+	if not deps.state:snapshot(player.UserId) then return refuse(self, player, "InvalidPlayer") end
+	local ok, held, offer = self.offers.claim(offerId, self.unlocked, self.extra[player] or 0)
+	if not ok then return refuse(self, player, held) end
+	self.extra[player] = held
+	send(self, player, "granted", {
+		offerId = offer.id, spins = offer.spins, extraSpins = held,
+		text = self.offers.WORDS.granted:format(offer.name, held), view = self:view(player),
+	})
+	return true, offer.spins
+end
+
+-- The remote handler: the action word and, for "offer" only, the offer id; any other argument is ignored.
+function Service:handle(player, action, offerId)
 	if action == "open" then return self:open(player) end
 	if action == "spin" then return (self:spin(player)) end
+	if action == "offer" then return (self:offer(player, offerId)) end
 	return false
 end
 
@@ -217,7 +319,7 @@ function Service:build(parent, cframe)
 	return model
 end
 
--- Creates the remote in the network folder, builds the station and forgets players who leave.
+-- Creates the remote in the network folder, builds the station and forgets players who leave (their extra spins too).
 function Service:start(network, parent, cframe)
 	local remote = Instance.new("RemoteEvent")
 	remote.Name = "Roulette"
@@ -226,13 +328,15 @@ function Service:start(network, parent, cframe)
 	if not self.fire then
 		self.fire = function(player, kind, payload) remote:FireClient(player, kind, payload) end
 	end
-	remote.OnServerEvent:Connect(function(player, action)
-		self:handle(player, action)
+	remote.OnServerEvent:Connect(function(player, action, offerId)
+		self:handle(player, action, offerId)
 	end)
 	self:build(parent, cframe)
 	Players.PlayerRemoving:Connect(function(player)
 		self.lastSpin[player] = nil
 		self.lastOpen[player] = nil
+		self.lastOffer[player] = nil
+		self.extra[player] = nil
 	end)
 	return self
 end

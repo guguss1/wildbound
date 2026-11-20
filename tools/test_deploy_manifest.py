@@ -498,6 +498,11 @@ class DefaultMappingTests(unittest.TestCase):
         "tests/WildboundRouletteService_Test.luau": "ServerStorage.WildboundRouletteService_Test",
         "tests/WildboundUiKit_Test.luau": "ServerStorage.WildboundUiKit_Test",
         "src/wildbound/WildboundRoulette.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient",
+        # RW-1..RW-6 the roulette wheel and the offers catalog
+        "src/wildbound/WildboundRouletteWheel.luau": "ReplicatedStorage.WildboundRouletteWheel",
+        "src/wildbound/WildboundOffers.luau": "ReplicatedStorage.WildboundOffers",
+        "tests/WildboundRouletteWheel_Test.luau": "ServerStorage.WildboundRouletteWheel_Test",
+        "tests/WildboundOffers_Test.luau": "ServerStorage.WildboundOffers_Test",
         # Caramelo biome: Gomibu and the candy blockout, pulled from Studio
         "src/wildbound/WildboundBeastGomibu.luau": "ServerScriptService.WildboundBeastGomibu",
         "tests/WildboundBeastGomibu_Test.luau": "ServerStorage.WildboundBeastGomibu_Test",

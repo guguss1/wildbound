@@ -369,6 +369,11 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundRoulette.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient"),
     # P0.1 (docs/design/wildbound-fun-build-plan.md): the store kit in WildboundUiStyle and its suite
     ("tests/WildboundUiKit_Test.luau", "ServerStorage.WildboundUiKit_Test"),
+    # RW-1..RW-6 (owner request 2026-11-20): the roulette wheel, the offers catalog and their suites
+    ("src/wildbound/WildboundRouletteWheel.luau", "ReplicatedStorage.WildboundRouletteWheel"),
+    ("src/wildbound/WildboundOffers.luau", "ReplicatedStorage.WildboundOffers"),
+    ("tests/WildboundRouletteWheel_Test.luau", "ServerStorage.WildboundRouletteWheel_Test"),
+    ("tests/WildboundOffers_Test.luau", "ServerStorage.WildboundOffers_Test"),
     # Caramelo biome (odd/tasks/caramelo-bioma.md): Gomibu and the candy blockout, built in Studio and pulled into the
     # repo at the Explorer paths observed there
     ("src/wildbound/WildboundBeastGomibu.luau", "ServerScriptService.WildboundBeastGomibu"),

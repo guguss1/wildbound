@@ -74,11 +74,12 @@ return function(Roulette, Balance)
 
 	-- PF5 (user decision 2026-11-14, deliberately changed pin): the module is wired through its LIVE hub table; CONFIG
 	-- stays the 2.0 proposal that mirrors the Balance weights.
+	-- Deliberately changed (RW-5, owner request 2026-11-20): drawExtra joins the functions (one extra spin from a pack).
 	case("R1: the module is pure data, wired through LIVE, and the default config validates", function()
 		equal(Roulette.status, "wired", "status")
 		equal(Roulette.wired, true, "wired")
 		assert(type(Roulette.CONFIG) == "table" and table.isfrozen(Roulette.CONFIG), "CONFIG frozen")
-		for _, name in ipairs({ "validate", "draw", "oddsTable", "expectedValue", "newState", "allowedAt" }) do
+		for _, name in ipairs({ "validate", "draw", "drawExtra", "oddsTable", "expectedValue", "newState", "allowedAt" }) do
 			assert(type(Roulette[name]) == "function", "missing function " .. name)
 		end
 		passes(fresh(), "default config")
@@ -430,6 +431,37 @@ return function(Roulette, Balance)
 		local pityPrize, after, pityReceipt = Roulette.draw(0.0, state, live)
 		equal(pityPrize.id, "esencia45", "pity pool at rng 0"); equal(pityReceipt.pity, true); equal(after.pityCount, 0)
 		equal(Roulette.draw(0.999, state, live).id, "forestChest", "pity pool top")
+	end)
+
+	-- RW-5 (owner request 2026-11-20): an extra spin from a spin pack rolls the whole table, costs nothing and leaves the
+	-- state alone: the free first spin, the pity counter and the paid spins stay as they were, even at the pity spin.
+	case("R18: drawExtra() rolls the whole LIVE table for free and never touches the free spin, the pity or the paid spins", function()
+		local live = Roulette.LIVE
+		local fresh = Roulette.newState()
+		local prize, same, receipt = Roulette.drawExtra(0.0, fresh, live)
+		equal(prize.id, "esencia10", "rng 0")
+		equal(receipt.cost, 0, "free"); equal(receipt.free, true, "free flag"); equal(receipt.pity, false, "never pity")
+		equal(receipt.extra, true, "extra flag")
+		equal(same.freeSpinUsed, false, "the free first spin is not used up"); equal(same.pityCount, 0); equal(same.paidSpins, 0)
+		assert(same ~= fresh, "a new table, the input is not reused")
+		for _, pair in ipairs({ { 0.1999, "esencia10" }, { 0.3, "esencia45" }, { 0.4, "fogbark10" }, { 0.98, "forestChest" },
+			{ 0.9999, "forestChest" } }) do
+			equal(Roulette.drawExtra(pair[1], fresh, live).id, pair[2], "rng " .. pair[1])
+		end
+		local drought = { freeSpinUsed = true, pityCount = 9, paidSpins = 9 }
+		local p, after, r = Roulette.drawExtra(0.0, drought, live)
+		equal(p.id, "esencia10", "the full table even when the next paid spin would be the pity spin")
+		equal(r.pity, false)
+		equal(after.pityCount, 9, "the pity counter waits"); equal(after.paidSpins, 9, "not a paid spin")
+		equal(drought.pityCount, 9, "the input is not mutated")
+		local paid = select(3, Roulette.draw(0.0, drought, live))
+		equal(paid.pity, true, "the next paid spin is still the pity spin")
+		for _, bad in ipairs({ -0.1, 1, 0 / 0 }) do
+			local none, kept, err = Roulette.drawExtra(bad, fresh, live)
+			equal(none, nil, "rng " .. tostring(bad)); equal(kept, fresh, "state returned"); assert(type(err) == "string")
+		end
+		local none, _, err = Roulette.drawExtra(0.5, { freeSpinUsed = true, pityCount = -1, paidSpins = 0 }, live)
+		equal(none, nil, "bad state"); assert(type(err) == "string")
 	end)
 
 	return result

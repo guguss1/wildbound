@@ -1,11 +1,15 @@
 -- Invoke with require(freshTestClone)(require(freshServiceClone), require(freshRouletteClone), require(freshStateClone),
 -- require(freshEconomyClone), require(freshConfigClone), require(freshTextClone), { server = WildboundServer.Source,
--- service = freshServiceClone.Source, client = WildboundRouletteClient.Source }).
+-- service = freshServiceClone.Source, client = WildboundRouletteClient.Source }, require(freshOffersClone)).
 -- PF5 (user decision 2026-11-14, odd/tasks/wildbound-playtest-fixes.md): the hub roulette. One station in the hub plaza
 -- that everyone may use; the server alone validates (rate limit, alive, distance from the server-side root), rolls,
--- spends Esencia atomically through State:spinRoulette and grants. The client only asks to "open" or "spin" and shows
--- the odds before spinning. Fakes only: fake players and roots, a scripted rng and clock, and a parentless folder.
-return function(Service, Roulette, State, Economy, Config, Text, sources)
+-- spends Esencia atomically through State:spinRoulette and grants. The client only asks to "spin" (or, RW-4, for a
+-- spin pack by its catalog id) and the odds are one tap away before spinning. Fakes only: fake players and roots, a
+-- scripted rng and clock, and a parentless folder.
+-- RW-4 / RW-5 (owner request 2026-11-20): spin packs from WildboundOffers, free on the server while the development
+-- switch is on (the suite injects it: unlockAll), "Próximamente" when it is off; the extra spins live in the service
+-- for the session only and cost no Esencia.
+return function(Service, Roulette, State, Economy, Config, Text, sources, Offers)
 	local result = { passed = 0, failed = 0, messages = {} }
 	local function case(name, run)
 		local ok, message = pcall(run)
@@ -27,16 +31,22 @@ return function(Service, Roulette, State, Economy, Config, Text, sources)
 
 	local STATION = Vector3.new(265, 0.5, 14)
 	-- A world: one State with one player, a fake root near the station, a scripted rng and clock, captured messages.
-	local function world()
+	-- RW-4: the offers catalog and the development switch are injected (options.locked turns it off); the HUD notice's
+	-- wait runs at once unless options.holdNotice keeps it in w.deferred.
+	local function world(options)
+		options = options or {}
+		assert(type(Offers) == "table", "the suite needs WildboundOffers (8th argument)")
 		local state = State.new(Economy, Config)
 		local player = { UserId = 501, Name = "Tester" }
 		state:addPlayer(player.UserId)
 		local w = { state = state, player = player, t = 100, rolls = {}, rolled = 0, fired = {}, notified = {},
-			alive = true, root = { Position = STATION + Vector3.new(3, 2, 0) } }
+			deferred = {}, alive = true, root = { Position = STATION + Vector3.new(3, 2, 0) } }
 		w.service = Service.new({
 			state = state,
 			Roulette = Roulette,
 			Text = Text,
+			Offers = Offers,
+			unlockAll = options.locked ~= true,
 			alive = function() return w.alive end,
 			rootOf = function() return w.root end,
 			random = function()
@@ -46,8 +56,16 @@ return function(Service, Roulette, State, Economy, Config, Text, sources)
 			now = function() return w.t end,
 			fire = function(target, kind, payload) table.insert(w.fired, { player = target, kind = kind, payload = payload }) end,
 			notify = function(target, ok, text) table.insert(w.notified, { player = target, ok = ok, text = text }) end,
+			after = function(seconds, run)
+				if options.holdNotice then
+					table.insert(w.deferred, { seconds = seconds, run = run })
+				else
+					run()
+				end
+			end,
 			position = STATION,
 		})
+		w.offerLater = function() w.t += Service.OFFER_SECONDS + 0.01 end
 		w.last = function() return w.fired[#w.fired] end
 		w.profile = function() return state.players["n:" .. player.UserId] end
 		w.snap = function() return state:snapshot(player.UserId) end
@@ -224,7 +242,9 @@ return function(Service, Roulette, State, Economy, Config, Text, sources)
 		folder:Destroy()
 	end)
 
-	case("RS-9: wiring: the server starts the service in a do block with a server rng; the client sends only open/spin", function()
+	-- Deliberately changed (RW-4, owner request 2026-11-20): the remote handler also reads one offer id (for "offer"
+	-- only) and the client may send "offer" with a catalog id besides "spin".
+	case("RS-9: wiring: the server starts the service in a do block with a server rng; the client sends only spin/offer", function()
 		local server = sources.server or ""
 		has(server, 'require(script.Parent:WaitForChild("WildboundRouletteService"))')
 		has(server, "Heist.roulette = RouletteService.new({")
@@ -236,45 +256,201 @@ return function(Service, Roulette, State, Economy, Config, Text, sources)
 		local line = server:sub(lineStart, at)
 		hasNot(line, "\nlocal RouletteService", "the server adds no top-level local (NH-W13)")
 		local service = sources.service or ""
-		has(service, "OnServerEvent:Connect(function(player, action)", "the handler reads one word")
+		has(service, "OnServerEvent:Connect(function(player, action, offerId)", "the handler reads one word and one offer id")
+		has(service, "self:handle(player, action, offerId)", "nothing else reaches the handler")
 		hasNot(service, "math.random", "the roll comes from the injected server rng")
 		local client = sources.client or ""
 		assert(#client > 0, "client source")
-		local calls = 0
+		local calls, seen = 0, {}
 		for args in client:gmatch("FireServer%(([^)]*)%)") do
 			calls += 1
-			assert(args == '"open"' or args == '"spin"', "the client sends only open or spin: " .. args)
+			seen[args] = true
+			assert(args == '"open"' or args == '"spin"' or args == '"offer", pack.offer.id',
+				"the client sends only spin or offer with a catalog id: " .. args)
 		end
-		assert(calls >= 1, "the client asks the server to spin")
+		assert(calls >= 2, "the client asks the server to spin and for packs")
+		assert(seen['"spin"'] and seen['"offer", pack.offer.id'], "spin and offer")
 		has(client, "Text.ROULETTE", "the client words come from WildboundText")
 	end)
 
 	-- Deliberately changed (P0.1, owner request 2026-11-20): the roulette window leaves the dark Style.panel for the
-	-- store kit in WildboundUiStyle (docs/design/refs/store-ui-reference.png). Same words, same two remote words; the
-	-- price card's rays stand still with "Efectos suaves" (also when it is switched on while the window is open) and
-	-- while the window is shut; on a wide window the result fills the room between the card and the buttons, so a
-	-- short phone held sideways never draws it over the card; no price button, no purchase.
-	case("RS-10: the roulette window wears the store kit, keeps its words and closes from the X or Cerrar", function()
+	-- store kit in WildboundUiStyle (docs/design/refs/store-ui-reference.png).
+	-- Deliberately changed again (RW-1..RW-6, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente
+	-- igual a la de la foto que te envie y que lo de la ruleta sea asi", docs/design/refs/roulette-wheel-reference.webp):
+	-- the blue window, the cyan price card and its rays and the X give way to the wheel of the reference over a dimmed
+	-- screen: "Tiradas: N", the wheel (WildboundRouletteWheel), the green "Girar" and red "Cerrar", the round "i" that
+	-- opens the odds window (the store-kit window with the old odds words and its own X), and the three spin packs with
+	-- the Robux sign (kit glyph) and "modo desarrollo: gratis". Every box comes from Wheel.layout (phones either way);
+	-- "Efectos suaves" picks the short spin. Still no purchase call. After review: Girar stays off for the server's
+	-- spinSeconds after a tap, a second "open" during a spin is ignored, and the odds window says extra spins skip the pity.
+	case("RS-10: the roulette window is the wheel of the reference, keeps its words and opens the odds from the i", function()
 		local client = sources.client or ""
 		assert(#client > 0, "client source")
 		hasNot(client, "Style.panel(panel)", "the old dark panel")
-		for _, needle in ipairs({ "Style.kitWindow(gui, \"Panel\"", "Style.kitTitle(panel, WORDS.title", "Style.kitClose(panel)",
-			"Style.kitCard(main, \"cyan\", true", "Style.kitButton(main, text, tone, name)", "button(\"Spin\", WORDS.spin, \"green\"",
-			"button(\"Close\", WORDS.close, \"red\"", "WORDS.oddsHeader", "WORDS.oddsNote", "WORDS.spinning",
-			"closeX.Activated:Connect(hidePanel)", "closeButton.Activated:Connect(hidePanel)",
-			"Style.setSpin(card, Style.motion(Style.reduced(playerGui)).spin)", "Style.setSpin(card, false)",
-			"Style.setLabel(spinButton, WORDS.spin)", "Style.isWide(inner.AbsoluteSize.X)", "Style.fitText(",
-			"world:GetAttributeChangedSignal(\"Reduced\")",
-			"resultLine.Position = UDim2.new(0, 0, 0, CARD_HEIGHT + 4)",
-			"resultLine.Size = UDim2.new(1, 0, 1, -(CARD_HEIGHT + 8 + Style.KIT_SIZES.buttonHeight))",
-			"resultLine.Position = UDim2.new(0, 0, 1, -56)" }) do
+		for _, gone in ipairs({ "Style.kitCard(", "Style.setSpin(", "CARD_HEIGHT" }) do
+			hasNot(client, gone, "client")
+		end
+		for _, needle in ipairs({ "require(ReplicatedStorage:WaitForChild(\"WildboundRouletteWheel\"))",
+			"require(ReplicatedStorage:WaitForChild(\"WildboundOffers\"))", "WHEEL_WORDS.spinsLeft:format(view.spinsLeft or 0)",
+			"Style.kitTitle(panel, WHEEL_WORDS.spinsLeft", "Style.kitButton(panel, WORDS.spin, \"green\", \"Spin\")",
+			"Style.kitButton(panel, WORDS.close, \"red\", \"Close\")", "Style.kitButton(panel, WHEEL_WORDS.oddsButton",
+			"Style.kitWindow(gui, \"OddsPanel\"", "Style.kitTitle(oddsPanel, WORDS.oddsHeader", "Style.kitClose(oddsPanel)",
+			"WORDS.oddsNote", "WORDS.oddsRow", "WORDS.spinning", "WORDS.pityNext",
+			"Wheel.buildWheel(panel, faces, Style)", "Wheel.face(PRIZES[row.id])",
+			"Wheel.buildPack(panel, offer, Style.priceText(\"robux\", offer.robux), Style)",
+			"Offers.WORDS.devFree", "Offers.WORDS.comingSoon", "view.unlocked",
+			"Wheel.layout(size.X, size.Y)", "Wheel.fitPack(", "Wheel.motion(Style.reduced(playerGui))",
+			"Wheel.targetRotation(index, wheelCount, motion.turns,", "Enum.EasingStyle.Quint",
+			"oddsButton.Activated:Connect(", "oddsClose.Activated:Connect(", "closeButton.Activated:Connect(hidePanel)",
+			"Style.setLabel(spinButton, WORDS.spin)", "kind == \"granted\"",
+			"tonumber(view.spinSeconds)", "if os.clock() - spinAskedAt < spinGate() then return end",
+			"if spinning then return end", "WHEEL_WORDS.extraNoPity" }) do
 			has(client, needle, "client")
 		end
 		hasNot(client, "spinButton.Text =", "the kit button's words live on its Label")
-		for _, banned in ipairs({ "MarketplaceService", "PromptProductPurchase", "PromptPurchase", "ProcessReceipt",
-			"kitPriceButton", "kitNewBadge", "kitTimerChip" }) do
+		for _, banned in ipairs({ "MarketplaceService", "PromptProductPurchase", "PromptPurchase", "PromptGamePassPurchase",
+			"ProcessReceipt", "Robux", "rbxassetid", "kitNewBadge", "kitTimerChip" }) do
 			hasNot(client, banned, "client")
 		end
+	end)
+
+	-- RW-4 / RW-5: a pack grants its spins for free while the switch is on; an extra spin after the free first spin rolls
+	-- the whole table, costs no Esencia, is counted down and leaves the pity and the paid spins alone.
+	case("RS-11: a spin pack grants free extra spins; an extra spin costs no Esencia and keeps the pity", function()
+		local w = world()
+		equal(w.service.unlocked, true, "the injected switch")
+		w.rolls = { 0 }
+		equal((w.service:spin(w.player)), true, "the free first spin")
+		equal(w.snap().ember, 10)
+		equal(w.service:view(w.player).spinsLeft, 0, "no spins left")
+		equal(w.service:view(w.player).canSpin, false, "10 Esencia cannot pay 45")
+		equal((w.service:handle(w.player, "offer", "rouletteSpins3")), true, "the pack")
+		local message = w.last()
+		equal(message.kind, "granted"); equal(message.player, w.player)
+		equal(message.payload.offerId, "rouletteSpins3"); equal(message.payload.spins, 3); equal(message.payload.extraSpins, 3)
+		equal(message.payload.text, Offers.WORDS.granted:format("+3 Tiradas", 3))
+		equal(message.payload.view.spinsLeft, 3); equal(message.payload.view.extraSpins, 3)
+		equal(message.payload.view.canSpin, true, "an extra spin needs no Esencia")
+		equal(message.payload.view.unlocked, true)
+		equal(w.snap().ember, 10, "a pack costs nothing")
+		equal(w.rolled, 1, "a pack never rolls")
+		w.later()
+		w.rolls = { 0.98 }
+		equal((w.service:spin(w.player)), true, "an extra spin with only 10 Esencia")
+		local payload = w.last().payload
+		equal(payload.prizeId, "forestChest"); equal(payload.cost, 0); equal(payload.free, true); equal(payload.extra, true)
+		equal(payload.pity, false)
+		equal(payload.text, Text.ROULETTE.wonFree:format(Text.ROULETTE.prizes.forestChest))
+		equal(payload.index, #Roulette.LIVE.prizes, "the wedge the wheel stops on")
+		local snap = w.snap()
+		equal(snap.ember, 10, "no Esencia spent"); equal(snap.banked.fogbark, 40, "the prize is granted")
+		equal(snap.roulette.paidSpins, 0, "not a paid spin"); equal(snap.roulette.pityCount, 0, "the pity waits")
+		equal(snap.roulette.freeSpinUsed, true)
+		equal(payload.view.extraSpins, 2, "counted down"); equal(payload.view.spinsLeft, 2)
+		w.later()
+		w.rolls = { 0 }
+		w.service:spin(w.player)
+		w.later()
+		w.rolls = { 0 }
+		w.service:spin(w.player)
+		equal(w.service:view(w.player).extraSpins, 0, "all used")
+		equal(w.snap().ember, 30, "two more free Esencia prizes, nothing paid")
+		w.later()
+		local paid, reason = w.service:spin(w.player)
+		equal(paid, false); equal(reason, "CannotAfford", "then Esencia again")
+	end)
+
+	-- RW-4: with DESBLOQUEAR_TODO off the server answers "Próximamente" and grants nothing.
+	case("RS-12: with the switch off a pack is refused with Próximamente and nothing changes", function()
+		local w = world({ locked = true })
+		equal(w.service.unlocked, false)
+		local ok, reason = w.service:offer(w.player, "rouletteSpins10")
+		equal(ok, false); equal(reason, "Locked")
+		local message = w.last()
+		equal(message.kind, "refused"); equal(message.payload.text, Offers.WORDS.comingSoon)
+		equal(message.payload.view.unlocked, false, "the client says Próximamente")
+		equal(message.payload.view.extraSpins, 0); equal(message.payload.view.spinsLeft, 1, "only the free first spin")
+		equal(w.rolled, 0); equal(w.snap().ember, 0)
+	end)
+
+	-- RW-4: only a catalog id is accepted; the rate, alive and range are checked on the server; at most 99 extra spins
+	-- are held, and a pack that would pass that is refused whole (nothing lost).
+	case("RS-13: packs are validated: catalog ids only, the rate, alive and in range, and the 99 cap", function()
+		local w = world()
+		for _, bad in ipairs({ "rouletteSpins2", "ROULETTESPINS1", "", 5, { "rouletteSpins1" }, true }) do
+			w.offerLater()
+			local ok, reason = w.service:offer(w.player, bad)
+			equal(ok, false, "refused: " .. tostring(bad)); equal(reason, "UnknownOffer", tostring(bad))
+		end
+		w.offerLater()
+		equal(select(2, w.service:offer(w.player, nil)), "UnknownOffer", "no id")
+		equal(w.last().payload.text, Offers.WORDS.unknown)
+		w.offerLater()
+		equal((w.service:handle(w.player, "offer")), false, "no id through the remote")
+		equal(w.last().payload.reason, "UnknownOffer")
+		equal(w.service:view(w.player).extraSpins, 0, "nothing granted")
+		w.offerLater()
+		equal((w.service:offer(w.player, "rouletteSpins1")), true)
+		local again, busy = w.service:offer(w.player, "rouletteSpins1")
+		equal(again, false); equal(busy, "OfferBusy", "one pack at a time"); equal(w.last().payload.text, Offers.WORDS.wait)
+		equal(w.service:view(w.player).extraSpins, 1)
+		w.offerLater()
+		w.root = { Position = STATION + Vector3.new(Service.RANGE + 1, 0, 0) }
+		equal(select(2, w.service:offer(w.player, "rouletteSpins1")), "TooFar")
+		w.offerLater()
+		w.root = { Position = STATION }
+		w.alive = false
+		equal(select(2, w.service:offer(w.player, "rouletteSpins1")), "InvalidContext")
+		w.alive = true
+		w.offerLater()
+		equal(select(2, w.service:offer({ UserId = 777, Name = "NoProfile" }, "rouletteSpins1")), "InvalidPlayer")
+		equal(w.service:view(w.player).extraSpins, 1, "nothing granted while refused")
+		for _ = 1, 9 do
+			w.offerLater()
+			equal((w.service:offer(w.player, "rouletteSpins10")), true)
+		end
+		equal(w.service:view(w.player).extraSpins, 91)
+		w.offerLater()
+		local full, why = w.service:offer(w.player, "rouletteSpins10")
+		equal(full, false); equal(why, "Full"); equal(w.last().payload.text, Offers.WORDS.full)
+		equal(w.service:view(w.player).extraSpins, 91, "refused whole")
+		w.offerLater()
+		equal((w.service:offer(w.player, "rouletteSpins3")), true, "a smaller pack still fits")
+		equal(w.service:view(w.player).extraSpins, Offers.MAX_EXTRA_SPINS - 5)
+		equal(w.rolled, 0, "packs never roll"); equal(w.snap().ember, 0, "packs never pay or charge Esencia")
+	end)
+
+	-- RW-5: the account's free first spin is used before any extra spin.
+	case("RS-14: the free first spin comes before the extra spins", function()
+		local w = world()
+		equal((w.service:offer(w.player, "rouletteSpins1")), true)
+		local view = w.service:view(w.player)
+		equal(view.spinsLeft, 2, "the free first spin and one extra"); equal(view.free, true)
+		w.rolls = { 0 }
+		w.service:spin(w.player)
+		local payload = w.last().payload
+		equal(payload.free, true); equal(payload.extra, false, "the free first spin, not the extra one")
+		equal(w.snap().roulette.freeSpinUsed, true)
+		equal(payload.view.extraSpins, 1, "the extra spin is still there"); equal(payload.view.spinsLeft, 1)
+	end)
+
+	-- RW-6: the result reaches the client at once (the wheel needs it to stop), but the HUD notice of the win waits
+	-- NOTIFY_DELAY, under SPIN_SECONDS, so it never tells the prize before the wheel stops.
+	case("RS-15: the HUD notice of a win waits for the wheel; the next spin waits longer still", function()
+		local w = world({ holdNotice = true })
+		w.rolls = { 0 }
+		equal((w.service:spin(w.player)), true)
+		equal(w.last().kind, "result", "the wheel gets the prize at once")
+		equal(#w.notified, 0, "no notice yet")
+		equal(#w.deferred, 1); equal(w.deferred[1].seconds, Service.NOTIFY_DELAY)
+		assert(Service.NOTIFY_DELAY > 0 and Service.NOTIFY_DELAY < Service.SPIN_SECONDS, "the notice comes before the next spin")
+		equal(w.last().payload.view.spinSeconds, Service.SPIN_SECONDS, "the client keeps Girar off this long after a tap")
+		w.deferred[1].run()
+		equal(#w.notified, 1); equal(w.notified[1].text, w.last().payload.text); equal(w.notified[1].ok, true)
+		local service = sources.service or ""
+		has(service, "task.delay(Service.NOTIFY_DELAY", "the real wait")
+		has(service, "player.Parent == nil", "never for a player who left")
+		has(service, "self.extra[player] = nil", "a leaving player's extra spins are forgotten")
 	end)
 
 	return result

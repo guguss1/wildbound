@@ -16,4 +16,9 @@ return table.freeze({
 	-- Studio without API access it falls back to memory and says so); "memory" keeps saves for one server only;
 	-- "off" is the old session-only game. WildboundSave and WildboundStoreRoblox read it.
 	persistenceMode = "datastore", -- "datastore" | "memory" | "off"
+	-- P0.2 / RW-4 (owner request 2026-11-20, docs/design/wildbound-fun-build-plan.md 2c): the development switch for the
+	-- offers in WildboundOffers. true: every offer is open and its green button grants for free on the server (the
+	-- roulette's spin packs: WildboundRouletteService). false: the server answers "Próximamente". Nothing is ever charged
+	-- either way; WildboundEconomyConfig.monetization stays "none".
+	DESBLOQUEAR_TODO = true,
 })

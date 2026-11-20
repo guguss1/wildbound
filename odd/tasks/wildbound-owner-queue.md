@@ -121,3 +121,19 @@ Owner's words (2026-11-20): "Quiero que la estetica sea asi de la ui, con esa ti
   - On a wide screen the left column has empty space between the card and the buttons.
   - The rays are faint on the cyan card.
   - Both are left for the owner's eye.
+
+## RW, the roulette wheel and the spin packs (2026-11-20)
+
+Owner's words (2026-11-20): "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie y que lo de la ruleta sea asi".
+- Reference: `docs/design/refs/roulette-wheel-reference.webp`. Plan: `docs/design/wildbound-fun-build-plan.md` (P0.2 catalog and switch, P0.3 spin packs).
+- Status: Prepared (in the repo, not deployed, suites not run). Not committed.
+- Code: `WildboundRouletteWheel.luau` (new: wheel math, layout, builders), `WildboundOffers.luau` (new: catalog), `WildboundFlags.luau` (`DESBLOQUEAR_TODO = true`), `WildboundRoulette.luau` (`drawExtra`), `WildboundRouletteService.luau` (`offer` action, extra spins, delayed HUD notice, `SPIN_SECONDS` 1.6 → 3.2), `WildboundRoulette.client.luau` (rewritten as the wheel).
+- Decisions recorded:
+  - **Where the extra spins live (RW-5):** in `WildboundRouletteService`, per player, in server memory for the session only. Not saved: record schema 6 and its validation stay as they are. A real paid pack would need a saved, receipt-tied store and its own approval.
+  - An extra spin is used only after the free first spin, costs no Esencia, rolls the whole table and neither counts toward nor resets the pity.
+  - At most 99 extra spins held; a pack that would pass that is refused whole.
+  - The HUD notice of a win now waits 3 s so it does not tell the prize before the wheel stops.
+  - Paid chance (`rouletteExtraSpins`) is the owner's decision of 2026-11-20, against the economy doc. Nothing is purchasable; monetization stays `"none"`.
+- [ ] RW-D1: deploy the 6 scripts and 2 new suites (deploy manifest rows added); the runner needs the new `WildboundRouletteService` sibling `WildboundFlags`.
+- [ ] RW-S1: suites in Studio: Roulette (R18), RouletteService (RS-9..RS-15), RouletteWheel (W1..W12), Offers (O1..O6).
+- [ ] RW-P1: solo Play: wheel opens from the prompt, spins and stops on the server's prize, packs grant free spins, "i" opens the odds; check a phone held upright and sideways (device emulator) and with "Efectos suaves".

@@ -81,8 +81,21 @@ SPECS["WildboundRouletteService_Test"] = {
 	"mod:WildboundRouletteService", "mod:WildboundRoulette", "mod:WildboundState", "mod:WildboundEconomy",
 	"mod:WildboundEconomyConfig", "mod:WildboundText",
 	{ server = "src:WildboundServer", service = "src:WildboundRouletteService", client = "src:WildboundRouletteClient" },
+	"mod:WildboundOffers",
 }
 SPECS["WildboundUiKit_Test"] = { "mod:WildboundUiStyle", "src:WildboundUiStyle" }
+-- RW-1..RW-6 (owner request 2026-11-20): the roulette wheel and the offers catalog with the development switch
+SPECS["WildboundRouletteWheel_Test"] = {
+	"mod:WildboundRouletteWheel", "mod:WildboundUiStyle", "mod:WildboundRoulette", "src:WildboundRouletteWheel",
+}
+SPECS["WildboundOffers_Test"] = {
+	"mod:WildboundOffers", "mod:WildboundFlags", "mod:WildboundEconomyConfig",
+	{
+		offers = "src:WildboundOffers", flags = "src:WildboundFlags", service = "src:WildboundRouletteService",
+		client = "src:WildboundRouletteClient", wheel = "src:WildboundRouletteWheel", style = "src:WildboundUiStyle",
+		server = "src:WildboundServer",
+	},
+}
 SPECS["WildboundBaseZone_Test"] = {
 	"mod:WildboundBaseZone",
 	"src:WildboundBaseZone",
@@ -644,6 +657,7 @@ SPECS["WildboundWorldRules_Test"] = { "mod:WildboundWorldRules", "mod:WildboundI
 local SIBLINGS = {
 	WildboundRecord = { "WildboundTotemRecord", "WildboundFarmRecord", "WildboundRouletteRecord" },
 	WildboundCaptureView = { "WildboundText" }, -- require(script.Parent:WaitForChild("WildboundText")) would yield forever
+	WildboundRouletteService = { "WildboundFlags" }, -- RW-4: the development switch DESBLOQUEAR_TODO
 	-- The candy critter clip data modules require script.Parent.WildboundCandyClipKit.
 	WildboundCandyCritterClipsDuquesaBurbuja = { "WildboundCandyClipKit" },
 	WildboundCandyCritterClipsMochimiau = { "WildboundCandyClipKit" },

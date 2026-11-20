@@ -322,6 +322,25 @@ function Roulette.draw(rng01, state, config)
 	return chosen, nextState, { cost = free and 0 or config.spinCost, free = free, pity = pityOn }
 end
 
+-- drawExtra(rng01, state, config?) -> prize, sameState, receipt { cost = 0, free = true, pity = false, extra = true }.
+-- RW-5 (owner request 2026-11-20): one extra spin from a spin pack. It rolls the whole table like a free spin (never the
+-- pity pool), costs no Esencia and leaves the state as it is (it neither counts toward nor resets the pity, and never
+-- uses up the account's free first spin). The input state is never changed; on bad input: nil, the same state, an error.
+function Roulette.drawExtra(rng01, state, config)
+	config = config or Roulette.CONFIG
+	if not finite(rng01) or rng01 < 0 or rng01 >= 1 then return nil, state, "rng01 must be a number in [0, 1)" end
+	if not validState(state) then return nil, state, "state must be { freeSpinUsed, pityCount, paidSpins }" end
+	local total = 0
+	for _, prize in ipairs(config.prizes) do total += prize.weight end
+	local pick, chosen = math.floor(rng01 * total), nil
+	for _, prize in ipairs(config.prizes) do
+		pick -= prize.weight
+		if pick < 0 then chosen = prize; break end
+	end
+	local sameState = { freeSpinUsed = state.freeSpinUsed, pityCount = state.pityCount, paidSpins = state.paidSpins }
+	return chosen, sameState, { cost = 0, free = true, pity = false, extra = true }
+end
+
 -- oddsTable(config?, withPity?) -> { prizes = { {id, category, rarity, label, percent} }, byRarity, byCategory, pity,
 -- pitySpinShare }. Without withPity the percents are the declared weights / 100 (what the UI shows); with it they are
 -- the long-run odds of a paid spin under pity.
