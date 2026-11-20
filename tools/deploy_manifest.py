@@ -556,6 +556,11 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundCandyCurrent.luau", "ReplicatedStorage.WildboundCandyCurrent"),
     ("src/wildbound/WildboundCandyCurrent.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyCurrentClient"),
     ("tests/WildboundCandyCurrent_Test.luau", "ServerStorage.WildboundCandyCurrent_Test"),
+    # TB-2 (owner request 2026-11-20, "que el agua marron sea de la toolbox"): the toolbox chocolate texture on the river,
+    # lake and pool: pure rules shared with the client and the LocalScript that lays and scrolls it.
+    ("src/wildbound/WildboundCandyChocoLook.luau", "ReplicatedStorage.WildboundCandyChocoLook"),
+    ("src/wildbound/WildboundCandyChocoLook.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundCandyChocoLookClient"),
+    ("tests/WildboundCandyChocoLook_Test.luau", "ServerStorage.WildboundCandyChocoLook_Test"),
     # Caramelo v6 (odd/tasks/wildbound-caramelo-v2.md V6-D6): life on the map, client-only decoration (gummy birds,
     # caramel butterflies, chocolate fish): pure rules shared with the client and the LocalScript that shows them.
     ("src/wildbound/WildboundCandyLife.luau", "ReplicatedStorage.WildboundCandyLife"),

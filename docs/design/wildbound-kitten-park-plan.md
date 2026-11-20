@@ -372,6 +372,7 @@ All of this goes in `WildboundCandyNests.luau`, which is not a protected file:
   3. 133622392487696 "Sneaky Kitten";
   4. final fallback: 1846279685 APM "Merry Kids", the same library as the live Caramelo track.
 - **Rule.** The parent keeps only the ids that pass `search_asset` and a Studio `ContentProvider:PreloadAsync` Success. If none of the three kitten ids passes, the slot is `{ 1846279685 }`, and the owner is told the kitten-named tracks failed.
+- **Changed 2026-11-20 (TB-3, owner request "que tenga otra musica").** The slot is now `{ 1839661368, 1846279685 }`: APM "Cute Cat" (95 s), then APM "Merry Kids". The three kitten-named ids above are off the slot.
 - **Switch.** A new client sets the local `WildboundWorldUI` attribute `GatitoAmbience`:
   - on inside x 948..1468, z -263..257;
   - off once more than 8 studs outside that rectangle (hysteresis).

@@ -642,6 +642,10 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundCandyCurrent.luau": "ReplicatedStorage.WildboundCandyCurrent",
         "src/wildbound/WildboundCandyCurrent.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyCurrentClient",
         "tests/WildboundCandyCurrent_Test.luau": "ServerStorage.WildboundCandyCurrent_Test",
+        # TB-2: the toolbox chocolate texture (client-only look)
+        "src/wildbound/WildboundCandyChocoLook.luau": "ReplicatedStorage.WildboundCandyChocoLook",
+        "src/wildbound/WildboundCandyChocoLook.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyChocoLookClient",
+        "tests/WildboundCandyChocoLook_Test.luau": "ServerStorage.WildboundCandyChocoLook_Test",
         # Caramelo v6: life on the map (client-only decoration)
         "src/wildbound/WildboundCandyLife.luau": "ReplicatedStorage.WildboundCandyLife",
         "src/wildbound/WildboundCandyLife.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundCandyLifeClient",

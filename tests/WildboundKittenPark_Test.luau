@@ -621,8 +621,14 @@ return function(Park, East, Layout, sources)
 		-- Deliberately changed (GL-D3): the floor covers the whole arm, 600 x 1200 at (297, 937) (was 520 x 520 at
 		-- (282, 600)), FLOOR.size[1] is the arm's width (was 2 * HALF); Ground holds the Floor and the Approach, so the
 		-- first call makes 3 (was 2); syncNests stands 16 nests on it (was 8)
+		-- Deliberately changed (TB-1, owner request 2026-11-20 "el pasto del mundo gatito tambien" from the toolbox): the
+		-- floor wears the MaterialVariant "WildboundGatitoGrass" (the Creator Store Stylized Grass, BaseMaterial Grass)
+		-- and a lighter green 170, 224, 128 that tints its colour map (was K-D15's 140, 201, 107 with no variant)
 		equal(Park.GROUND_FOLDER, "Ground", "the ground folder")
 		equal(Park.FLOOR.size[1], Area.ARM.maxX - Area.ARM.minX, "600 across"); equal(Park.FLOOR.material, "Grass", "the K-D15 grass")
+		equal(Park.GRASS_VARIANT, "WildboundGatitoGrass", "the toolbox grass variant's name")
+		equal(Park.FLOOR.variant, Park.GRASS_VARIANT, "the floor wears the variant")
+		equal(Park.FLOOR.color[1], 170); equal(Park.FLOOR.color[2], 224); equal(Park.FLOOR.color[3], 128)
 		equal(Park.FLOOR.size[3], Area.ARM.maxZ - Area.ARM.minZ, "1200 long")
 		near(Park.FLOOR.centre.x, 297, "FLOOR.centre x"); near(Park.FLOOR.centre.z, 937, "FLOOR.centre z")
 		local root = Instance.new("Model")
@@ -643,16 +649,19 @@ return function(Park, East, Layout, sources)
 		near(floor.Position.X - floor.Size.X / 2, A.minX, "the floor's west edge is the arm's"); near(floor.Position.X + floor.Size.X / 2, A.maxX, "east edge")
 		near(floor.Position.Z - floor.Size.Z / 2, A.minZ, "gate-side edge"); near(floor.Position.Z + floor.Size.Z / 2, A.maxZ, "far edge")
 		equal(floor.Material, Enum.Material.Grass, "Grass")
-		near(floor.Color.R * 255, 140, "R", 0.6); near(floor.Color.G * 255, 201, "G", 0.6); near(floor.Color.B * 255, 107, "B", 0.6)
+		equal(floor.MaterialVariant, "WildboundGatitoGrass", "the toolbox grass variant (TB-1)")
+		near(floor.Color.R * 255, 170, "R", 0.6); near(floor.Color.G * 255, 224, "G", 0.6); near(floor.Color.B * 255, 128, "B", 0.6)
 		equal(floor:GetAttribute("Role"), "floor", "role floor"); equal(floor.Anchored, true, "anchored")
 		equal(floor.CanCollide, true, "collides"); equal(floor.CanQuery, true, "answers queries")
 		equal(floor.CanTouch, false, "never touched"); equal(floor.CastShadow, true, "casts a shadow")
 		-- a floor pushed off is set back, then nothing changes
 		floor.CFrame = CFrame.new(0, 0, 0)
 		floor.Material = Enum.Material.Plastic
+		floor.MaterialVariant = ""
 		local fixed = Park.buildGround(root)
 		assert(fixed.changed >= 2 and fixed.created == 0, "set back: " .. fixed.changed)
 		near(floor.Position.X, 297, "back at x"); near(floor.Position.Z, 937, "back at z")
+		equal(floor.MaterialVariant, "WildboundGatitoGrass", "the variant set back")
 		equal(Park.buildGround(root).changed, 0, "settled")
 		-- syncNests stands the nests on this floor
 		equal(Park.syncNests(root), 16, "sixteen nests on the floor")
@@ -985,7 +994,10 @@ return function(Park, East, Layout, sources)
 		equal(part.CanCollide, true, "collides"); equal(part.CanQuery, true, "answers queries")
 		equal(part.CanTouch, false, "never touched"); equal(part.CastShadow, true, "casts a shadow")
 		equal(part.Material, Enum.Material.Grass, "Grass")
-		near(part.Color.G * 255, 201, "the park grass", 0.6)
+		-- Deliberately changed (TB-1, owner request 2026-11-20): the Approach wears the floor's toolbox grass variant and
+		-- its lighter green (G 224, was 201)
+		equal(part.MaterialVariant, "WildboundGatitoGrass", "the toolbox grass variant")
+		near(part.Color.G * 255, 224, "the park grass", 0.6)
 		root:Destroy()
 	end)
 

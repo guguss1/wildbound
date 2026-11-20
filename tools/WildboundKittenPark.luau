@@ -15,7 +15,8 @@
 --   plan(L, East, o)  every path, item and nest of the park in world studs (K-D16, Appendix A, GL-D7, GL-D8), with the
 --                     drop rules applied and the part budget per folder (K-D18 + GARDEN_BUDGET); the frame is Area's
 --                     (PGM-D4), L and East unused; o.garden == false leaves the garden out (a suite-only switch);
---   buildGround(root) the park's own ground: root.Ground.Floor, the whole arm 600 x 1200 in green Grass, and
+--   buildGround(root) the park's own ground: root.Ground.Floor, the whole arm 600 x 1200 in green Grass (TB-1: with the
+--                     toolbox grass MaterialVariant "WildboundGatitoGrass"), and
 --                     root.Ground.Approach, the slab from the big4 road's end to the arm (PGM-D2, GL-D3);
 --   recipe(kind, v)   one item as plain parts, local to its pivot (its ground centre, front toward -Z): primitive Parts
 --                     and Sphere SpecialMeshes only, no upload of any kind (K-D12, K-D21); signs are a SurfaceGui with a
@@ -47,10 +48,16 @@ Park.NESTS_FOLDER = "Nests"
 Park.GROUND_FOLDER = "Ground" -- PGM-D2: root.Ground.Floor, the park's own floor (GL-D3: and root.Ground.Approach)
 -- GL-D3: the floor covers the whole arm (Area.ARM, 600 x 1200 centred at (297, 937); was the 2 * HALF square at the
 -- origin) in the K-D15 park grass; the size is in world axes (buildGround lays it with no turn)
+-- TB-1 (owner request 2026-11-20 "el pasto del mundo gatito tambien" from the toolbox): the floor and the Approach wear
+-- the MaterialVariant "WildboundGatitoGrass" (MaterialService, BaseMaterial Grass: the Creator Store "Stylized Grass
+-- Material" 11314842253, ColorMap 11314835829, NormalMap 11314836132, StudsPerTile 10); the Part colour tints its
+-- colour map, so it is a lighter green (was K-D15's { 140, 201, 107 }). Without the variant in MaterialService the
+-- part falls back to plain Grass in that colour.
 local ARM = Area.ARM
+Park.GRASS_VARIANT = "WildboundGatitoGrass"
 Park.FLOOR = freeze({ size = freeze({ ARM.maxX - ARM.minX, 1, ARM.maxZ - ARM.minZ }),
-	centre = freeze({ x = (ARM.minX + ARM.maxX) / 2, z = (ARM.minZ + ARM.maxZ) / 2 }), color = freeze({ 140, 201, 107 }),
-	material = "Grass" })
+	centre = freeze({ x = (ARM.minX + ARM.maxX) / 2, z = (ARM.minZ + ARM.maxZ) / 2 }), color = freeze({ 170, 224, 128 }),
+	material = "Grass", variant = Park.GRASS_VARIANT })
 -- GL-D3: the Approach, the floor slab from the big4 road's end (z 324.5) to the arm's gate side (z 337), world studs
 Park.APPROACH = freeze({ minX = 272, maxX = 292, minZ = 324, maxZ = 337 })
 -- GL-D4: the edge (root.Edge, outside Ground on purpose: the resting service and the summon rays include Ground, and an
@@ -1573,9 +1580,9 @@ local function conform(part, spec, pivot, report, isNew)
 	if isNew then report.created += 1 else report.changed += n end
 end
 
--- One ground part of root.Ground: a Part of role floor in Park.FLOOR's colour and material, size s (world axes), centred
--- on (x, z) with its top at Area.FLOOR_TOP; anchored, it collides and answers queries, is never touched and casts a
--- shadow. Counts into report like conform.
+-- One ground part of root.Ground: a Part of role floor in Park.FLOOR's colour, material and MaterialVariant (TB-1),
+-- size s (world axes), centred on (x, z) with its top at Area.FLOOR_TOP; anchored, it collides and answers queries, is
+-- never touched and casts a shadow. Counts into report like conform.
 local function groundPart(ground, name, s, x, z, report)
 	local part, made = child(ground, "Part", name)
 	local n = apply(part, { Anchored = true, Shape = Enum.PartType.Block })
@@ -1585,6 +1592,8 @@ local function groundPart(ground, name, s, x, z, report)
 		CanQuery = true, CanTouch = false, CastShadow = true, TopSurface = Enum.SurfaceType.Smooth,
 		BottomSurface = Enum.SurfaceType.Smooth,
 	})
+	-- TB-1: the variant after the material (set on its own, so a material change can never clear it afterwards)
+	n += apply(part, { MaterialVariant = Park.FLOOR.variant })
 	n += attribute(part, "Role", "floor")
 	if made then report.created += 1 else report.changed += n end
 end

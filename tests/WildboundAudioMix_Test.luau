@@ -291,7 +291,11 @@ return function(Mix, Catalog)
 		local entry = Catalog.SOUNDS.gatitoMusic
 		assert(entry and entry.group == "Music" and entry.loop == true and not entry.spatial, "a looping 2D music slot")
 		assert(#entry.ids >= 1, "at least one id")
-		local LADDER = { 108517170970006, 122890771686677, 133622392487696, 1846279685 }
+		-- Deliberately changed (TB-3, owner request 2026-11-20 "que tenga otra musica"): the ladder is APM "Cute Cat"
+		-- 1839661368, then APM "Merry Kids" (was "Tiny Kitten's Happy Adventure", "Lazy Kitten Loop", "Sneaky Kitten",
+		-- then "Merry Kids"), and the first id is the new bed
+		local LADDER = { 1839661368, 1846279685 }
+		assert(entry.ids[1] == 1839661368, "Cute Cat is the bed")
 		local last = 0
 		for _, id in ipairs(entry.ids) do
 			local at = table.find(LADDER, id)

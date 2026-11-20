@@ -261,6 +261,12 @@ SPECS["WildboundCandyCurrent_Test"] = {
 	{ raftService = "src:WildboundCandyRaftService", wadeService = "src:WildboundCandyWadeService",
 		client = "src:WildboundCandyCurrentClient" },
 }
+-- TB-2 (owner request 2026-11-20): the toolbox chocolate texture on the river, lake and pool (pure rules, the client's
+-- wiring, and the part names the V3 builder and the cloud wall lay)
+SPECS["WildboundCandyChocoLook_Test"] = {
+	"mod:WildboundCandyChocoLook", "mod:WildboundCandyCurrent",
+	{ client = "src:WildboundCandyChocoLookClient", builder = "src:WildboundCandyV3Builder", east = "src:WildboundCandyEast" },
+}
 -- Caramelo v7 (odd/tasks/wildbound-caramelo-v2.md V7-D3): the pink sky (pure targets, the client's wiring)
 SPECS["WildboundCandySky_Test"] = {
 	"mod:WildboundAtmosphere", "mod:WildboundBiomeLight", { client = "src:WildboundCandySkyClient" },

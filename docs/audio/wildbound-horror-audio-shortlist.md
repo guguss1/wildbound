@@ -68,12 +68,15 @@ Found for this layer: 3 wind and leaves, 3 insects, 3 music.
 
 The owner asked for "otra canción que tenga que ver más con gatitos" for Pueblo Gatito, the kitten park in Caramelo Este (`docs/design/wildbound-kitten-park-plan.md` K-D13). Catalog slot `gatitoMusic`, in fallback order (the first id that loads plays). Before the deploy, keep only the ids that pass `search_asset` and a Studio `ContentProvider:PreloadAsync` Success, and record each result here. If none of the three kitten tracks passes, the slot is only the APM fallback and the owner is told.
 
+Changed 2026-11-20 (TB-3, owner request "que tenga otra musica"): the slot is now `{ 1839661368, 1846279685 }`, APM "Cute Cat" first and APM "Merry Kids" as the fallback. The three kitten-named tracks below are off the slot (kept here as a record).
+
 | Asset id | Name | Creator | Duration | Loops | Why it fits | Notes |
 |---|---|---|---|---|---|---|
-| 108517170970006 | Tiny Kitten's Happy Adventure | not known | 187 s (Studio TimeLength) | looped by the slot | A happy, kitten-named track for the kitten park. First choice. | Checked 2026-11-18 in Studio Play: the Sound loaded (IsLoaded true, 187 s) and played at 0.18 while the player stood in the park, so it is the track that plays. Creator still unknown (not APM or PSE). The owner must audition it. |
-| 122890771686677 | Lazy Kitten Loop | not known | not reported | not stated | A calm kitten-named loop. Second choice. | Creator unknown. Not checked: it only plays if the first id fails to load. |
-| 133622392487696 | Sneaky Kitten | not known | not reported | not stated | A playful kitten-named track. Third choice. | Creator unknown: confirm it is free and preloads in Studio. Not yet checked. |
-| 1846279685 | Merry Kids | APMOfficial | not reported | not stated | A cheerful children's track from the same library as the Caramelo music. Final fallback. | Listed above as a Caramelo alternate; no other slot uses it. Not yet checked for this slot. |
+| 1839661368 | Cute Cat | APMOfficial (APM library, Roblox-licensed) | 95 s | looped by the slot | A light, playful cat-named track for the kitten park. First choice since 2026-11-20. | Picked from the Creator Store on 2026-11-20 for the owner's request for other music. The owner must audition it; confirm it loads in Studio Play (IsLoaded true) after the deploy. |
+| 108517170970006 | Tiny Kitten's Happy Adventure | not known | 187 s (Studio TimeLength) | looped by the slot | A happy, kitten-named track for the kitten park. Was the first choice. | Replaced 2026-11-20 by Cute Cat (owner wanted other music); no longer in the slot. Checked 2026-11-18 in Studio Play: the Sound loaded (IsLoaded true, 187 s) and played at 0.18. Creator unknown (not APM or PSE). |
+| 122890771686677 | Lazy Kitten Loop | not known | not reported | not stated | A calm kitten-named loop. Was the second choice. | Off the slot since 2026-11-20. Creator unknown. Never checked. |
+| 133622392487696 | Sneaky Kitten | not known | not reported | not stated | A playful kitten-named track. Was the third choice. | Off the slot since 2026-11-20. Creator unknown. Never checked. |
+| 1846279685 | Merry Kids | APMOfficial | not reported | not stated | A cheerful children's track from the same library as the Caramelo music. Fallback (second since 2026-11-20). | Listed above as a Caramelo alternate; no other slot uses it. Not yet checked for this slot. |
 
 ## Layer 2. Distant threat
 
