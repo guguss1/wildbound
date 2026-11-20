@@ -30,7 +30,7 @@ local BiomeLight = require(ReplicatedStorage:WaitForChild("WildboundBiomeLight")
 -- pink skybox picture (OQ1: no look does; kept as a one-flag rollback); wind: the clouds' drift (studs/s, level)
 local SKY = table.freeze({
 	Caramelo = table.freeze({ cover = 0.72, density = 0.6, cloudColour = Color3.fromRGB(255, 226, 240),
-		decay = Color3.fromRGB(255, 140, 196), skybox = false, wind = Vector3.new(3, 0, 1) }),
+		decay = Color3.fromRGB(255, 140, 196), skybox = true, wind = Vector3.new(3, 0, 1) }),
 	Gatuno = table.freeze({ cover = 0.58, density = 0.62, cloudColour = Color3.fromRGB(255, 255, 255),
 		decay = Color3.fromRGB(120, 176, 236), skybox = false, wind = Vector3.new(3, 0, 1) }),
 })

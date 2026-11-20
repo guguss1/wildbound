@@ -50,8 +50,11 @@ return function(Atmosphere, BiomeLight, sources)
 		-- pink comes from the clouds, the pink decay (unchanged) and the candy haze. Each look also drifts (wind).
 		has(client, "Caramelo = table.freeze({ cover = 0.72, density = 0.6, cloudColour = Color3.fromRGB(255, 226, 240),",
 			"Caramelo's clouds")
-		has(client, "decay = Color3.fromRGB(255, 140, 196), skybox = false, wind = Vector3.new(3, 0, 1) }),",
-			"Caramelo's decay unchanged, no skybox picture, a slow drift")
+		-- Deliberately changed (TB-4, owner request 2026-11-20, "el cielo tenia que ser solo en reino caramelo y rosa"):
+		-- Caramelo swaps in its own skybox again (now the Toolbox "Obby Sky" pictures in the WildboundCandySkybox
+		-- template, tinted by the pink decay and haze); every other biome keeps the place's own Sky (was skybox = false)
+		has(client, "decay = Color3.fromRGB(255, 140, 196), skybox = true, wind = Vector3.new(3, 0, 1) }),",
+			"Caramelo's decay unchanged, its own skybox, a slow drift")
 		has(client, "local BLEND_SECONDS = 1.5", "the same blend")
 		has(client, "local name = root ~= nil and BiomeLight.presetAt(root.Position.X, root.Position.Z) or nil",
 			"where the character stands")
@@ -155,8 +158,10 @@ return function(Atmosphere, BiomeLight, sources)
 
 	case("OQ1-2: no painted skybox picture swapped in, the haze raised over the place's own, sun and moon kept", function()
 		local client = sources.client
-		assert(not client:find("skybox = true", 1, true), "no look shows the stretched skybox picture")
-		for _, name in ipairs(LOOKS) do has(look(client, name).row, "skybox = false", name .. " shows no skybox picture") end
+		-- Deliberately changed (TB-4, owner request 2026-11-20): only Caramelo swaps in its own skybox (the Toolbox Obby
+		-- Sky in the WildboundCandySkybox template); Gatuno keeps the place's own (was: no look swaps)
+		has(look(client, "Gatuno").row, "skybox = false", "Gatuno shows no skybox swap")
+		has(look(client, "Caramelo").row, "skybox = true", "Caramelo swaps in its own skybox")
 		-- the swap stays only as a one-flag rollback and still puts the place's own Sky back
 		has(client, "on = on and SKY[active] ~= nil and SKY[active].skybox == true", "only a skybox look could swap")
 		for _, banned in ipairs({ "CelestialBodiesShown", "SkyboxBk", "SkyboxUp", "SunTextureId", "MoonTextureId" }) do
