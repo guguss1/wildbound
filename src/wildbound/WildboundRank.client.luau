@@ -32,6 +32,7 @@ local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundRankUI"
 gui.ResetOnSpawn = false
 gui.DisplayOrder = 5
+if Style then Style.screen(gui) end -- like every kit screen: children draw over their parent (the card's rays)
 gui.Parent = playerGui
 
 local holder = Instance.new("Frame")
