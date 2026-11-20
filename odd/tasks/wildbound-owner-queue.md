@@ -76,3 +76,29 @@ The proposals go first so the owner can read them while the code tasks run. OQ2 
   - **Hub:** clouds off, wind 0.
   - The place's Sky is unchanged (6444884337).
 - **Not judged:** whether the painted sky photo still shows between the clouds, and whether Caramelo reads pink enough. The fallbacks are in the commit's studioOnly notes: Caramelo cover 0.85, then Gatuno cover 0.75, then the Caramelo pink skybox back on.
+
+## Toolbox look pass (TB-1..TB-3, 2026-11-20)
+
+Owner's words (2026-11-20): "quiero que investigues cosas de la toolbox para mejorar texturas, etc. Que el cielo sea como ese objeto de la toolbox u otro si queda raro que tenga color rosa, que el agua marron sea de la toolbox tambien, no se si se puede cambiar los colores, el pasto del mundo gatito tambien y que tenga otra musica".
+
+### Decisions taken for the user
+- **Sky.** Creator Store "Obby Sky" (127719608807122, by SaturunSnow) is applied to Lighting.Sky in Studio for the whole map.
+  - The old ids are kept as Was* attributes on the Sky.
+  - Caramelo keeps its pink 3D clouds; there is no pink skybox swap.
+- **A pink cartoon skybox (97128825470015) was rejected.** It carried hidden scripts (a "BloomEffect" Runtime Script and an overlay-building LocalScript), and its creator account is deleted. It was destroyed before use.
+- **Grass.** Creator Store "Stylized Grass Material" (11314842253) is in MaterialService as "WildboundGatitoGrass". The park floor and Approach use it, tinted 170/224/128 (`bbf427f`).
+- **Chocolate.**
+  - A client-only scrolling Texture uses Creator Store image 82311877461867, tinted from the part colour, at transparency 0.3.
+  - It goes on the river blocks, the pool and the MouthSheet.
+  - Joints and lake discs stay plain, so overlaps do not flicker.
+- **Music.** Pueblo Gatito's bed is APM "Cute Cat" (1839661368), with APM "Merry Kids" as the fallback.
+
+### Evidence
+- **Deploy.** Before writing, 4 scripts matched `1766a06`. After the hunks they matched `bbf427f`, plus 3 new scripts: WildboundCandyChocoLook, WildboundCandyChocoLookClient and WildboundCandyChocoLook_Test.
+- **Floor.** `Park.buildGround` changed 4 properties on the first run and 0 on the second.
+- **Suites:** CandyChocoLook 11/0, AudioMix 14/0, KittenPark 22/0, CandySky 6/0.
+- **Play, solo, client readings.**
+  - 17 chocolate textures: 16 on a Top face and 1 on a Right face.
+  - Choco_River_3's offset changes every second.
+  - gatitoMusic 1839661368 is loaded and playing at volume 0.18 in the park, 95 s long and looped.
+- **Not judged:** the scroll direction on screen, how the tint looks, and whether the sky looks right at night in the Bosque. 3D captures render white, so these are for the owner.
