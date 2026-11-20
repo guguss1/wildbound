@@ -503,6 +503,10 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundOffers.luau": "ReplicatedStorage.WildboundOffers",
         "tests/WildboundRouletteWheel_Test.luau": "ServerStorage.WildboundRouletteWheel_Test",
         "tests/WildboundOffers_Test.luau": "ServerStorage.WildboundOffers_Test",
+        # T1 the thief rank
+        "src/wildbound/WildboundRank.luau": "ReplicatedStorage.WildboundRank",
+        "src/wildbound/WildboundRank.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundRankClient",
+        "tests/WildboundRank_Test.luau": "ServerStorage.WildboundRank_Test",
         # Caramelo biome: Gomibu and the candy blockout, pulled from Studio
         "src/wildbound/WildboundBeastGomibu.luau": "ServerScriptService.WildboundBeastGomibu",
         "tests/WildboundBeastGomibu_Test.luau": "ServerStorage.WildboundBeastGomibu_Test",

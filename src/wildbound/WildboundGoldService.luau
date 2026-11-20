@@ -48,7 +48,13 @@ end
 
 function Service:sync(player)
 	local snapshot = self.deps.state:snapshot(player.UserId)
-	if snapshot and player:GetAttribute("WildboundGold") ~= snapshot.gold then player:SetAttribute("WildboundGold", snapshot.gold) end
+	if not snapshot then return end
+	if player:GetAttribute("WildboundGold") ~= snapshot.gold then player:SetAttribute("WildboundGold", snapshot.gold) end
+	-- T1 (WildboundRank): the eggs brought home (the training map's saved eggsHome count) for the HUD's thief rank
+	-- sign. Mirrored here because this sync already runs on every gold change and every Gold.TICK after the save loads.
+	local home = type(snapshot.training) == "table" and snapshot.training.eggsHome or 0
+	if type(home) ~= "number" or home ~= home or home < 0 then home = 0 end
+	if player:GetAttribute("WildboundThiefSteals") ~= home then player:SetAttribute("WildboundThiefSteals", home) end
 end
 
 -- Pays `amount` earned gold and queues it for the popup. Returns what was paid.

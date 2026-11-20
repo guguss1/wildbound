@@ -96,6 +96,14 @@ SPECS["WildboundOffers_Test"] = {
 		server = "src:WildboundServer",
 	},
 }
+-- T1 (docs/design/wildbound-fun-build-plan.md): the thief rank, its count in State, its save and its HUD
+SPECS["WildboundRank_Test"] = {
+	"mod:WildboundRank", "mod:WildboundState", "mod:WildboundEconomy", "mod:WildboundEconomyConfig", "mod:WildboundRecord",
+	{
+		rank = "src:WildboundRank", client = "src:WildboundRankClient", gold = "src:WildboundGoldService",
+		state = "src:WildboundState",
+	},
+}
 SPECS["WildboundBaseZone_Test"] = {
 	"mod:WildboundBaseZone",
 	"src:WildboundBaseZone",

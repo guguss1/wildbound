@@ -23,7 +23,7 @@ Dodge.CONSTANTS = table.freeze({
 	LATE_MEMORY = 0.6, -- seconds after a strike in which a press still reads as Late (not Whiff)
 	DASH_DURATION = 0.22, -- seconds the directional dash burst lasts
 	DASH_SPEED = 52, -- studs per second horizontal dash burst
-	DASH_IFRAMES = 0.28, -- seconds of invulnerability during a dash
+	DASH_IFRAMES = 0.28, -- seconds of invulnerability after a perfect dodge (T1: a missed press grants none)
 })
 -- The fair-strike floor (docs/mechanics/wildbound-fair-strike.md, WARNING_LEAD 0.8): no tune goes below it.
 Dodge.MIN_TELEGRAPH = 0.8
@@ -155,7 +155,8 @@ function Dodge.press(state, now, ctx)
 		return "Perfect", { dodged = dodged, boostUntil = state.boostUntil }
 	end
 	state.cooldownUntil = now + C.MISS_COOLDOWN
-	state.dashInvulnUntil = now + C.DASH_IFRAMES
+	-- T1 (owner request 2026-11-20): a miss still dashes (the client's burst) but is no shield; only a perfect press
+	-- above sets dashInvulnUntil, so mashing the button between hits cannot make the player untouchable.
 	if early then return "Early" end
 	if late then return "Late" end
 	return "Whiff"

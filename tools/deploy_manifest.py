@@ -374,6 +374,10 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundOffers.luau", "ReplicatedStorage.WildboundOffers"),
     ("tests/WildboundRouletteWheel_Test.luau", "ServerStorage.WildboundRouletteWheel_Test"),
     ("tests/WildboundOffers_Test.luau", "ServerStorage.WildboundOffers_Test"),
+    # T1 (docs/design/wildbound-fun-build-plan.md): the thief rank, its HUD sign and its suite
+    ("src/wildbound/WildboundRank.luau", "ReplicatedStorage.WildboundRank"),
+    ("src/wildbound/WildboundRank.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundRankClient"),
+    ("tests/WildboundRank_Test.luau", "ServerStorage.WildboundRank_Test"),
     # Caramelo biome (odd/tasks/caramelo-bioma.md): Gomibu and the candy blockout, built in Studio and pulled into the
     # repo at the Explorer paths observed there
     ("src/wildbound/WildboundBeastGomibu.luau", "ServerScriptService.WildboundBeastGomibu"),

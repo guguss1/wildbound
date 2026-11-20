@@ -420,6 +420,11 @@ local function bankItem(self, player, entry)
 	if entry.kind == "Egg" then
 		table.insert(player.bankedEggs, { uid = entry.uid, kind = "Egg", species = entry.species,
 			riskTier = entry.riskTier, rarity = entry.rarity })
+		-- T1 (WildboundRank): one more egg brought home for the thief rank. Saved as the `eggsHome` count of the training
+		-- map, like gold (no record schema step); made on the first egg, so a blank profile is unchanged. It only grows.
+		player.training = player.training or {}
+		local home = player.training.eggsHome
+		player.training.eggsHome = (finite(home) and home >= 0 and math.floor(home) or 0) + 1
 	elseif entry.kind == "Nightbloom" then
 		player.banked.nightbloom += entry.quantity
 	else
