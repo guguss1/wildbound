@@ -21,7 +21,7 @@ line.Name = "Line"
 line.AnchorPoint = Vector2.new(0.5, 0)
 line.Position = UDim2.new(0.5, 0, 0.26, 0)
 -- UR-C (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's round display font, a little
--- taller, with a darker candy outline. The outline stays the label's own text stroke (not a UIStroke), because the
+-- taller, with a darker candy outline. The outline stays the label's own text stroke (no separate stroke object), because the
 -- fade below tweens TextStrokeTransparency with the words.
 line.Size = UDim2.new(0.8, 0, 0, 44)
 line.BackgroundTransparency = 1
