@@ -24,13 +24,13 @@ local panel = Instance.new("Frame")
 panel.Name = "Channel"
 panel.AnchorPoint = Vector2.new(0.5, 1)
 panel.Position = UDim2.new(0.5, 0, 1, -150)
-panel.Size = UDim2.new(0.7, 0, 0, 52)
+panel.Size = UDim2.new(0.7, 0, 0, 56)
 panel.BackgroundColor3 = Color3.fromRGB(24, 16, 40)
 panel.BackgroundTransparency = 0.15
 panel.Visible = false
 panel.Parent = gui
 local limit = Instance.new("UISizeConstraint")
-limit.MaxSize = Vector2.new(360, 52)
+limit.MaxSize = Vector2.new(360, 56)
 limit.Parent = panel
 local corner = Instance.new("UICorner")
 corner.CornerRadius = UDim.new(0, 10)
@@ -48,8 +48,8 @@ title.Text = P.channel
 title.Parent = panel
 local track = Instance.new("Frame")
 track.Name = "Track"
-track.Position = UDim2.new(0, 12, 0, 32)
-track.Size = UDim2.new(1, -24, 0, 10)
+track.Position = UDim2.new(0, 12, 0, 30)
+track.Size = UDim2.new(1, -24, 0, 16)
 track.BackgroundColor3 = Color3.fromRGB(60, 46, 90)
 track.BorderSizePixel = 0
 track.Parent = panel
@@ -64,6 +64,19 @@ for _, frame in ipairs({ track, fill }) do
 	round.CornerRadius = UDim.new(1, 0)
 	round.Parent = frame
 end
+-- UR-P (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's look. A dark rounded HUD panel
+-- with a thick border, white round words with a thick dark outline, and the kit's rounded bar (a dark track with a
+-- thick border, a glossy purple fill with a shine), 16 px tall so it reads on a phone. Styled off the main thread, so
+-- the portal events never wait for it; without the shared style module the plain bar stays.
+task.spawn(function()
+	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = found and found:IsA("ModuleScript") and require(found) or nil
+	if not (Style and Style.gloss) then return end
+	Style.screen(gui)
+	Style.dressPanel(panel, "dark", 0.08)
+	Style.loudText(title)
+	Style.glossBar(track, fill, "purple")
+end)
 
 local channelStart, channelSeconds = nil, 0
 local function hide()

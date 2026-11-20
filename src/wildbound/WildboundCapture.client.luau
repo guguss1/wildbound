@@ -76,21 +76,27 @@ local hint = make("TextLabel", { Name = "ReactionHint", Visible = false, Backgro
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, hint)
 -- UI colorida: the capture panel keeps its tone colours (WildboundCaptureView) and gains the shading, a rounder corner and
 -- stroked display words; Stop is a red chunky button, Seal a blue one, the hint a dark outlined pill. Without the
--- shared style module every call is a no-op.
+-- shared style module every call is a no-op. An older module without the glossy kit (no Style.gloss, a partial Studio
+-- sync) counts as missing, so the capture controller never dies at load.
 do
 	local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
 	local Style = styleModule and require(styleModule)
-	if Style then
+	if Style and Style.gloss then
 		Style.screen(gui)
-		Style.corner(panel, 12)
-		Style.shade(panel, 0.82)
-		Style.title(badge)
-		Style.title(headline)
-		Style.body(detail, true)
-		Style.outline(track, 2)
+		-- UR (owner request 2026-11-20, the store reference look): a rounder panel with the glossy 3D edge (its border
+		-- colour still follows the state each frame), big outlined round words, a pill meter with a lit fill, and
+		-- glossy chunky Stop and Seal buttons. The words and every handler stay as they were.
+		Style.corner(panel, 16)
+		Style.gloss(panel)
+		Style.loudText(badge, Style.FONT_TITLE, 2)
+		Style.loudText(headline, Style.FONT_TITLE, 2)
+		Style.title(detail)
+		Style.glossBar(track, fill)
 		Style.button(stop, "red")
+		Style.gloss(stop, "red")
 		Style.button(sealButton, "blue")
-		Style.pill(hint, 0.1)
+		Style.gloss(sealButton, "blue")
+		Style.gloss(hint, "dark")
 		Style.title(hint, Style.COLORS.gold)
 	end
 end
@@ -293,7 +299,7 @@ listen(RunService.RenderStepped, function(dt)
 			if detail.Visible then detail.Text = View.moveLine(word) end
 		end
 	end
-	panelStroke.Thickness = view.state == "Outside" and 5 or 3
+	panelStroke.Thickness = view.state == "Outside" and 6 or 4
 	-- Ring: solid inside, dashed outside, hidden once it ends.
 	if ring and cx and view.ringStyle ~= "hidden" then
 		drawRing(cx, cz, ring, view.ringStyle, view.ringTone, View.ringWidth(view.pulse, ringTime))

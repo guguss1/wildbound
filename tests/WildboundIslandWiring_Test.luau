@@ -133,6 +133,22 @@ return function(serverSource, worldSource, clientSource)
 		has(clientSource, "view.next")
 	end)
 
+	-- UR-I1 (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the refuge card that carries the bonus and the tease wears the store reference's look, keeps its two
+	-- buttons tall enough for a phone, and respects "Efectos suaves".
+	case("UR-I1: the refuge card is a blue kit window with a pale inner panel and 52 px glossy buttons", function()
+		local card = block(clientSource, "local function showCard(view)", "listen(gui.Destroying, closeCard)")
+		has(card, 'Style.dressPanel(sheet, "blue")', "the blue window")
+		has(card, 'Style.dressPanel(inner, "light")', "the pale inner panel")
+		has(card, 'label(inner, table.concat(lines, "\\n"), 15)', "the lines sit on the inner panel")
+		has(card, "UDim2.fromOffset(120, 52)", "52 px buttons")
+		has(card, 'Style.tint(closer, "red")', "a red close button")
+		has(card, "Style.reduced(playerGui) == true", "no pop with Efectos suaves")
+		has(card, 'request("Equip", uid)', "Equip still asks the server")
+		has(card, "view.bonus")
+		has(card, "view.next")
+	end)
+
 	case("I6: a Studio-only, server-only probe drives the islands for Play checks", function()
 		local studio = serverSource:find("RunService:IsStudio()", 1, true)
 		local probe = serverSource:find('"IslandProbe"', 1, true)

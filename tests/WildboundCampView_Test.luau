@@ -340,6 +340,39 @@ return function(View, Config, Economy, Layout, source)
 		end
 	end)
 
+	-- UR-C1 (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the camp screen's glossy tones, as names the UI kit knows (WildboundUiStyle.GLOSS_TONES).
+	case("UR-C1: every header button and row button has a glossy tone; an off button is grey", function()
+		local known = { green = true, red = true, blue = true, orange = true, purple = true, yellow = true, grey = true }
+		assert(table.isfrozen(View.TAB_TONES) and table.isfrozen(View.BUTTON_TONES), "the tone tables are frozen")
+		local seen = {}
+		for _, name in ipairs({ "bag", "eggs", "camp", "menu", "close" }) do
+			local tone = View.TAB_TONES[name]
+			assert(known[tone], name .. " has no glossy tone")
+			assert(not seen[tone], "two header buttons share " .. tostring(tone))
+			seen[tone] = true
+		end
+		equal(View.TAB_TONES.close, "red", "the close button is red, like the reference's X")
+		equal(View.buttonTone({ action = "Craft", label = "Fabricar" }), "green")
+		equal(View.buttonTone({ action = "BuyGold", label = "Comprar" }), "orange", "a gold price is orange")
+		equal(View.buttonTone({ action = "Unequip" }), "yellow", "not blue: the rows are blue tiles")
+		for action, tone in pairs(View.BUTTON_TONES) do
+			assert(tone ~= "blue", action .. " would vanish on a blue row tile")
+		end
+		equal(View.buttonTone({ action = "ReleaseCreature" }), "red")
+		equal(View.buttonTone({ action = "Hatch" }), "purple")
+		equal(View.buttonTone({ action = "BuyGold", enabled = false }), "grey", "off wins over the action")
+		equal(View.buttonTone({ action = "Craft", enabled = true }), "green")
+		equal(View.buttonTone(nil), "green")
+		equal(View.buttonTone({}), "green")
+		for _, item in ipairs(rowsOf(rich, { atCamp = true })) do
+			if item.label then
+				assert(known[View.buttonTone(item)], tostring(item.id) .. " has no glossy tone")
+				if item.enabled == false then equal(View.buttonTone(item), "grey", tostring(item.id)) end
+			end
+		end
+	end)
+
 	case("the module is pure: no services, clock, randomness or persistence", function()
 		for _, word in ipairs({ "game", "GetService", "os.", "tick", "Random", "math.random", "DataStore",
 			"task.", "workspace", "Instance", "MarketplaceService", "Robux", "TextService" }) do

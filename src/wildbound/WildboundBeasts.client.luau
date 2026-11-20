@@ -75,6 +75,17 @@ warning.TextStrokeColor3 = Color3.fromRGB(150, 0, 0)
 warning.TextStrokeTransparency = 0
 warning.Visible = false
 warning.Parent = gui
+-- UR-B (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's loud words, a thick round outline
+-- (kept dark red, so the line still reads as a warning) in place of the thin text stroke. Styled off the main thread,
+-- so the beasts never wait for it; without the shared style module the old stroke stays.
+task.spawn(function()
+	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = found and found:IsA("ModuleScript") and require(found) or nil
+	if not (Style and Style.gloss) then return end
+	Style.loudText(warning, Enum.Font.FredokaOne, 3, Color3.fromRGB(255, 235, 225))
+	local outline = warning:FindFirstChild("WbTextStroke")
+	if outline and outline:IsA("UIStroke") then outline.Color = Color3.fromRGB(150, 0, 0) end
+end)
 gui.Parent = player:WaitForChild("PlayerGui")
 local warningUntil = 0
 local function showWarning(beast, untilAt)
@@ -1057,7 +1068,7 @@ local meter = Instance.new("TextLabel")
 meter.Name = "GazeMeter"
 meter.AnchorPoint = Vector2.new(0.5, 0)
 meter.Position = UDim2.fromScale(0.5, 0.24)
-meter.Size = UDim2.fromScale(0.3, 0.04)
+meter.Size = UDim2.new(0.3, 0, 0, 26) -- UR-B: the kit's bar height, readable on a phone
 meter.BackgroundColor3 = Color3.fromRGB(30, 20, 45)
 meter.BackgroundTransparency = 0.3
 meter.TextScaled = true
@@ -1082,6 +1093,25 @@ meterFill.BackgroundTransparency = 0.2
 meterFill.Size = UDim2.fromScale(0, 1)
 meterFill.ZIndex = 0
 meterFill.Parent = meter
+-- UR-B: the Gaze meter as the kit's rounded bar: a dark pill track with a thick border, at least 200 px wide, the
+-- violet glossy fill with a shine (its own colour kept), and the words on a child "Words" drawn above the fill (a child
+-- always draws over its parent's own text, so the meter's Text is mirrored there and hidden on the meter itself).
+task.spawn(function()
+	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = found and found:IsA("ModuleScript") and require(found) or nil
+	if not (Style and Style.gloss) then return end
+	local least = Instance.new("UISizeConstraint")
+	least.MinSize = Vector2.new(200, 26)
+	least.Parent = meter
+	Style.glossBar(meter, meterFill)
+	meterFill.ZIndex = 1
+	local words = Style.kitLabel(meter, "Words", meter.Text, 16, Style.FONT_TITLE, 2)
+	words.ZIndex = 2
+	Style.fitText(words, 16, 10)
+	meter.TextTransparency = 1
+	meter.TextStrokeTransparency = 1
+	meter:GetPropertyChangedSignal("Text"):Connect(function() words.Text = meter.Text end)
+end)
 local blur = Instance.new("BlurEffect")
 blur.Name = "WildboundGazeBlur"
 blur.Size = 0

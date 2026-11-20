@@ -90,5 +90,22 @@ return function(serverSource, worldSource, clientSource, Text)
 		has(clientSource, "camera.FieldOfView")
 	end)
 
+	-- Added (UR-H2, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the always-on HUD in the reference's glossy look. The world client is a mixed Studio copy, so the look is
+	-- one self-contained hunk that finds the buttons by name and keeps their words, places and handlers.
+	case("UR-H2: the HUD buttons, bars, chip and hint wear the glossy kit; names and words unchanged", function()
+		has(clientSource, '"ReducedButton", "FlashlightButton", "PulseButton", "HideExitButton", "SprintButton",')
+		has(clientSource, '"DodgeButton", "BatButton"')
+		has(clientSource, "Style.gloss(item)", "a tone of nil keeps each button's colour and cooldown recolours")
+		has(clientSource, 'Name = "WbLift"', "the words sit above the 3D edge")
+		has(clientSource, "Style.glossBar(healthBar, healthFill)", "Vida keeps its own fill colour (green, amber, red)")
+		has(clientSource, 'Style.glossBar(staminaBar, staminaFill, "rainbow")', "Aliento keeps its rainbow")
+		has(clientSource, "Style.gloss(chip)")
+		has(clientSource, 'Style.gloss(sprintHint, "dark")')
+		has(clientSource, 'type(Style.HUD_SIZES) == "table"', "the kit-less fallback never indexes a missing table")
+		has(clientSource, 'staminaWords.sprint or "Correr"'); has(clientSource, 'staminaWords.label or "Aliento"')
+		has(clientSource, '"Vida: %d / %d"')
+	end)
+
 	return result
 end

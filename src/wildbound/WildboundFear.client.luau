@@ -73,6 +73,16 @@ local damage = make("TextLabel", { Name = "FearDamage", AnchorPoint = Vector2.ne
 	Position = UDim2.fromScale(0.5, 0.42), Size = UDim2.fromOffset(200, 48), BackgroundTransparency = 1,
 	Font = Enum.Font.FredokaOne, TextSize = 40, Text = "", TextColor3 = Color3.fromRGB(255, 235, 235),
 	TextStrokeColor3 = Color3.fromRGB(120, 0, 0), TextStrokeTransparency = 0, Visible = false }, gui)
+-- Owner request 2026-11-20 (UR-H4, docs/design/refs/store-ui-reference.png): the shouts in the reference's loud
+-- capitals (LuckiestGuy, as its "¡NUEVO!") and both the shouts and the damage number with its thick round outline,
+-- which fades with the words. Same words, same timing; nothing uploaded.
+shout.Font = Enum.Font.LuckiestGuy
+local function thickOutline(item, thickness, color)
+	return make("UIStroke", { Name = "WbTextStroke", ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual,
+		Thickness = thickness, Color = color, LineJoinMode = Enum.LineJoinMode.Round, Transparency = 1 }, item)
+end
+local shoutStroke = thickOutline(shout, 4, Color3.fromRGB(16, 18, 34))
+local damageStroke = thickOutline(damage, 3, Color3.fromRGB(120, 0, 0))
 
 local cues = {}
 local shoutSerial = 0
@@ -80,11 +90,18 @@ local function displayShout(text, seconds)
 	shoutSerial += 1
 	local serial = shoutSerial
 	shout.Text, shout.Visible, shout.TextTransparency, shout.TextStrokeTransparency = text, true, 0, 0.2
-	shoutScale.Scale = 1.5
-	TweenService:Create(shoutScale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	shoutStroke.Transparency = 0
+	-- "Efectos suaves" (the world interface's Reduced attribute): the shout appears at its size, without the pop.
+	if worldGui:GetAttribute("Reduced") == true then
+		shoutScale.Scale = 1
+	else
+		shoutScale.Scale = 1.5
+		TweenService:Create(shoutScale, TweenInfo.new(0.18, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Scale = 1 }):Play()
+	end
 	task.delay(seconds or 1.4, function()
 		if serial ~= shoutSerial then return end
 		local fade = TweenService:Create(shout, TweenInfo.new(0.3), { TextTransparency = 1, TextStrokeTransparency = 1 })
+		TweenService:Create(shoutStroke, TweenInfo.new(0.3), { Transparency = 1 }):Play()
 		fade:Play()
 		fade.Completed:Once(function() if serial == shoutSerial then shout.Visible = false end end)
 	end)
@@ -104,8 +121,11 @@ local function showDamage(amount)
 	damage.Text = (WORDS.damage or "-%d"):format(math.floor(amount + 0.5))
 	damage.Visible, damage.TextTransparency, damage.TextStrokeTransparency = true, 0, 0
 	damage.Position = UDim2.fromScale(0.5, 0.42)
-	local rise = TweenService:Create(damage, TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+	damageStroke.Transparency = 0
+	local info = TweenInfo.new(1.1, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	local rise = TweenService:Create(damage, info,
 		{ Position = UDim2.fromScale(0.5, 0.33), TextTransparency = 1, TextStrokeTransparency = 1 })
+	TweenService:Create(damageStroke, info, { Transparency = 1 }):Play()
 	rise:Play()
 end
 

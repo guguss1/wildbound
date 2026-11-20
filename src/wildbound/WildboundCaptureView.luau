@@ -37,14 +37,18 @@ local function color(r, g, b) return table.freeze({ r = r, g = g, b = b }) end
 local function tone(bg, text, fill, track, border)
 	return table.freeze({ bg = bg, text = text, fill = fill, track = track, border = border })
 end
+-- UR (owner request 2026-11-20, the store reference look): brighter panels with white words and the kit's dark
+-- outline; the two warning states (outside the ring, a failed capture) keep a white border as their extra cue.
+local OUTLINE = color(16, 18, 34)
+local WHITE = color(255, 255, 255)
 View.TONES = table.freeze({
-	calm = tone(color(22, 50, 38), color(232, 245, 236), color(112, 214, 150), color(8, 18, 12), color(112, 214, 150)),
-	slow = tone(color(64, 48, 8), color(255, 236, 170), color(255, 196, 60), color(20, 16, 2), color(255, 196, 60)),
-	step = tone(color(14, 48, 70), color(225, 243, 255), color(120, 200, 255), color(4, 14, 22), color(120, 200, 255)),
-	outside = tone(color(110, 24, 24), color(255, 255, 255), color(255, 140, 110), color(30, 6, 6), color(255, 255, 255)),
-	waiting = tone(color(40, 44, 48), color(222, 228, 232), color(176, 186, 196), color(14, 16, 18), color(176, 186, 196)),
-	good = tone(color(18, 72, 40), color(255, 255, 255), color(150, 255, 176), color(6, 24, 12), color(150, 255, 176)),
-	failed = tone(color(92, 30, 30), color(255, 255, 255), color(255, 150, 130), color(26, 8, 8), color(255, 255, 255)),
+	calm = tone(color(20, 120, 56), WHITE, color(140, 236, 170), color(8, 30, 16), OUTLINE),
+	slow = tone(color(140, 84, 0), WHITE, color(255, 214, 64), color(30, 20, 0), OUTLINE),
+	step = tone(color(18, 96, 170), WHITE, color(130, 210, 255), color(4, 20, 40), OUTLINE),
+	outside = tone(color(170, 30, 40), WHITE, color(255, 180, 150), color(40, 6, 8), WHITE),
+	waiting = tone(color(70, 80, 100), WHITE, color(196, 206, 220), color(16, 18, 24), OUTLINE),
+	good = tone(color(16, 128, 60), WHITE, color(170, 255, 190), color(6, 30, 14), OUTLINE),
+	failed = tone(color(150, 36, 44), WHITE, color(255, 176, 156), color(36, 8, 10), WHITE),
 })
 -- The world ring: bright and thick enough to read in fog at night. Amber when the player is outside it.
 View.RING_COLORS = table.freeze({ inside = color(120, 255, 170), outside = color(255, 196, 60) })

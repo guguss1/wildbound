@@ -162,9 +162,14 @@ function Style.button(button, tone)
 	return button
 end
 
--- Recolours a styled button (a toggle, a cooldown) without touching anything else.
+-- Recolours a styled button (a toggle, a cooldown) without touching anything else. A glossy button (Style.gloss,
+-- below) takes its tone from the glossy palette, so "grey" and the other glossy names work on it too.
 function Style.tint(button, tone)
-	button.BackgroundColor3 = Style.color(tone)
+	if button:GetAttribute("WbGloss") == true then
+		button.BackgroundColor3 = Style.glossColor(tone)
+	else
+		button.BackgroundColor3 = Style.color(tone)
+	end
 end
 
 -- A dark slate panel with a thick outline. transparency defaults to opaque; HUD strips pass a little.
@@ -357,11 +362,11 @@ function Style.tapSize(pixels)
 	return math.max(value, Style.KIT_SIZES.minTap)
 end
 
--- motion(reduced) -> { spin, pulse }. With "Efectos suaves" (reduced = true) the rays stand still and "¡NUEVO!"
--- does not beat.
+-- motion(reduced) -> { spin, pulse, bump }. With "Efectos suaves" (reduced = true) the rays stand still, "¡NUEVO!"
+-- does not beat and a counter does not pop when its number changes.
 function Style.motion(reduced)
 	local soft = reduced == true
-	return { spin = not soft, pulse = not soft }
+	return { spin = not soft, pulse = not soft, bump = not soft }
 end
 
 -- reduced(playerGui) -> the "Efectos suaves" setting, as the world gui's Reduced attribute carries it (set by
@@ -830,6 +835,503 @@ function Style.kitLock(parent, priceLine)
 	price.ZIndex = 6
 	lock.Parent = parent
 	return lock
+end
+
+-- ===================================================================================================================
+-- The glossy HUD kit (UR-K, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente igual a la de la
+-- foto que te envie"), after the price and category buttons of docs/design/refs/store-ui-reference.png: chunky glossy
+-- buttons (a lighter top half, a darker 3D lip along the bottom, a thick dark border, white outlined words, the press
+-- squash) in seven tones, a pill counter, a rounded progress bar, a light panel and toast, and a round icon button with
+-- a caption for the action bar. Built-in pieces only (Frame, TextLabel, TextButton, UIStroke, UIGradient, UICorner,
+-- UIScale, UIPadding, UITextSizeConstraint, emoji text); no remote, no purchase, no uploaded image.
+-- The 3D lip is drawn inside the object's own box by its UIGradient (the bottom few pixels darker), not by a second
+-- frame beside it: a sibling would be laid out by a UIListLayout, would need to follow every Position, Size and
+-- Visible change the scripts make, and would sit outside the rects WildboundHudLayout measures. Because the gradient
+-- multiplies the background colour, a script that recolours a glossy object later (a cooldown, low health) keeps the
+-- gloss and the lip.
+-- Two kinds of helper, like the rest of this file: dress helpers (gloss, glossBar, dressPanel, panelText) take an
+-- existing object and never change its Name, Position, Size, Visible, Text, ZIndex or handlers; kit builders
+-- (kitGlossButton, kitCounter, kitProgressBar, kitPanel, kitToast, kitIconButton) make new objects and put the root
+-- into the parent last. Pure helpers (glossColor, glossSequence, progressFraction, countText, panelLook, motion) are
+-- tested in tests/WildboundUiKit_Test.luau (UR-K1..).
+-- ===================================================================================================================
+
+-- Glossy tones, read off the reference: green and orange price buttons, the blue, red, yellow and purple category
+-- buttons, a grey for a disabled or "off" button, and a dark navy for HUD counters over the world.
+Style.GLOSS_TONES = table.freeze({
+	green = rgb(64, 208, 72),
+	red = rgb(234, 52, 60),
+	blue = rgb(44, 150, 244),
+	orange = rgb(255, 148, 32),
+	purple = rgb(156, 82, 236),
+	yellow = rgb(255, 202, 40),
+	grey = rgb(138, 150, 172),
+	dark = rgb(40, 50, 76),
+})
+
+-- Sizes in pixels. iconButton and the glossy button height are tap targets (at least 44); counterHeight and barHeight
+-- are not tap targets but stay readable on a phone.
+Style.HUD_SIZES = table.freeze({
+	lip = 5,
+	lipMax = 0.3,
+	lipMin = 0.02,
+	glossCorner = 12,
+	glossStroke = 3,
+	glossHeight = 52,
+	counterWidth = 160,
+	counterHeight = 48,
+	counterIcon = 34,
+	counterText = 26,
+	barWidth = 200,
+	barHeight = 26,
+	barStroke = 3,
+	barText = 16,
+	panelStroke = 4,
+	panelCorner = 16,
+	panelPad = 10,
+	toastWidth = 320,
+	toastHeight = 56,
+	toastText = 20,
+	iconButton = 64,
+	iconText = 30,
+	captionHeight = 20,
+	captionGap = 2,
+	captionWiden = 28,
+	captionText = 16,
+	shineTransparency = 0.65,
+	dimTransparency = 0.45,
+	bumpScale = 1.12,
+	bumpSeconds = 0.09,
+	countMax = 999999999,
+})
+
+-- Suggested emoji for the HUD (built-in text, no upload). Check each in Play on a phone: a missing one shows a box.
+Style.ICONS = table.freeze({
+	gold = "💰",
+	essence = "✨",
+	heart = "❤️",
+	bolt = "⚡",
+	bat = "🏏",
+	dodge = "💨",
+	light = "🔦",
+	pulse = "💥",
+	run = "👟",
+	egg = "🥚",
+	bag = "🎒",
+	star = "⭐",
+})
+
+local HUD = Style.HUD_SIZES
+
+-- glossColor(tone) -> Color3. A glossy tone name, else a KIT_COLORS or COLORS name, else grey; a Color3 is kept.
+function Style.glossColor(tone)
+	if typeof(tone) == "Color3" then
+		return tone
+	end
+	return Style.GLOSS_TONES[tone] or Style.KIT_COLORS[tone] or Style.COLORS[tone] or Style.GLOSS_TONES.grey
+end
+
+local function grey(value)
+	return Color3.new(value, value, value)
+end
+
+-- glossSequence(height, lip) -> the ColorSequence of a glossy object's UIGradient (Rotation 90, so time 0 is the top):
+-- the top half at full colour, the lower half a little darker, and the bottom lip pixels clearly darker (the 3D edge).
+-- height is the object's height in pixels (a bad one counts as glossHeight); the lip stays between lipMin and lipMax of
+-- the height.
+function Style.glossSequence(height, lip)
+	local tall = tonumber(height)
+	if tall == nil or tall ~= tall or tall <= 0 or tall == math.huge then
+		tall = HUD.glossHeight
+	end
+	local edge = tonumber(lip)
+	if edge == nil or edge ~= edge then
+		edge = HUD.lip
+	end
+	local share = math.clamp(edge / tall, HUD.lipMin, HUD.lipMax)
+	local start = 1 - share
+	return ColorSequence.new({
+		ColorSequenceKeypoint.new(0, grey(1)),
+		ColorSequenceKeypoint.new(0.46, grey(1)),
+		ColorSequenceKeypoint.new(0.54, grey(0.86)),
+		ColorSequenceKeypoint.new(start - 0.001, grey(0.82)),
+		ColorSequenceKeypoint.new(start, grey(0.58)),
+		ColorSequenceKeypoint.new(1, grey(0.58)),
+	})
+end
+
+local function glossHeight(item)
+	local shown = item.AbsoluteSize.Y
+	if shown > 0 then
+		return shown
+	end
+	if item.Size.Y.Offset > 0 and item.Size.Y.Scale == 0 then
+		return item.Size.Y.Offset
+	end
+	return HUD.glossHeight
+end
+
+local function refreshGloss(item)
+	local gradient = item:FindFirstChild("WbShade")
+	if gradient and gradient:IsA("UIGradient") then
+		gradient.Color = Style.glossSequence(glossHeight(item), HUD.lip)
+		gradient.Rotation = 90
+	end
+end
+
+-- Keeps a kit "Label" (or a glyph) above the lip, so the words sit in the middle of the lit face.
+local function liftLabel(label)
+	if label.Size.Y.Scale == 1 and label.Size.Y.Offset == 0 then
+		label.Size = UDim2.new(label.Size.X.Scale, label.Size.X.Offset, 1, -HUD.lip)
+	end
+end
+
+local glossed = setmetatable({}, { __mode = "k" })
+
+-- gloss(item, tone) -> item. Dresses an existing GuiObject (a script's own button, chip or pill) as a glossy chunky
+-- button: the tone (nil keeps its colour), a 12 px corner unless it already has one (a round button stays round), a
+-- thick dark border, the gloss and lip gradient (it follows the object's size), the press squash on a button, and
+-- white outlined words: a kit "Label" is lifted above the lip, a button's own Text gets the display font and outline.
+-- Do not gloss an object that carries a UIGradient of its own: one object shows one gradient.
+function Style.gloss(item, tone)
+	if tone ~= nil then
+		item.BackgroundColor3 = Style.glossColor(tone)
+	end
+	item.BackgroundTransparency = 0
+	item.BorderSizePixel = 0
+	if item:FindFirstChildOfClass("UICorner") == nil then
+		setCorner(item, UDim.new(0, HUD.glossCorner))
+	end
+	Style.outline(item, HUD.glossStroke)
+	child(item, "UIGradient", "WbShade")
+	item:SetAttribute("WbGloss", true)
+	refreshGloss(item)
+	if not glossed[item] then
+		glossed[item] = true
+		item:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+			refreshGloss(item)
+		end)
+	end
+	local label = item:FindFirstChild("Label")
+	if label and label:IsA("TextLabel") then
+		liftLabel(label)
+	elseif item:IsA("TextButton") or item:IsA("TextLabel") then
+		Style.title(item)
+	end
+	if item:IsA("GuiButton") then
+		Style.press(item)
+	end
+	return item
+end
+
+-- kitGlossButton(parent, text, tone, name) -> button, label. kitButton in the glossy look: words on the child "Label"
+-- (Style.setLabel), at least 44 x 44, recolour with Style.tint (glossy names work).
+function Style.kitGlossButton(parent, text, tone, name)
+	local button, label = Style.kitButton(nil, text, tone or "green", name or "Button")
+	Style.gloss(button, tone or "green")
+	button.Parent = parent
+	return button, label
+end
+
+-- countText(value) -> a whole number with Spanish dots: 1250 -> "1.250"; never negative, at most 999.999.999.
+function Style.countText(value)
+	local digits = tostring(whole(value, HUD.countMax))
+	local grouped = string.reverse((string.gsub(string.reverse(digits), "(%d%d%d)", "%1.")))
+	if string.sub(grouped, 1, 1) == "." then
+		grouped = string.sub(grouped, 2)
+	end
+	return grouped
+end
+
+-- kitCounter(parent, icon, text, tone, name) -> counter, value. A round glossy pill (dark navy unless a tone is given)
+-- with an emoji "Icon" on the left and the outlined "Value" words, shrinking to fit. Not a button.
+function Style.kitCounter(parent, icon, text, tone, name)
+	local counter = Instance.new("Frame")
+	counter.Name = name or "Counter"
+	counter.Active = false
+	counter.Size = UDim2.fromOffset(HUD.counterWidth, HUD.counterHeight)
+	setCorner(counter, UDim.new(0.5, 0))
+	Style.gloss(counter, tone or "dark")
+	local glyph = Instance.new("TextLabel")
+	glyph.Name = "Icon"
+	glyph.BackgroundTransparency = 1
+	glyph.BorderSizePixel = 0
+	glyph.Active = false
+	glyph.AnchorPoint = Vector2.new(0, 0.5)
+	glyph.Position = UDim2.new(0, 8, 0.5, -math.floor(HUD.lip / 2))
+	glyph.Size = UDim2.fromOffset(HUD.counterIcon, HUD.counterIcon)
+	glyph.Text = icon or ""
+	glyph.TextSize = 28
+	glyph.Font = Style.FONT_TITLE
+	glyph.TextColor3 = Style.COLORS.ink
+	glyph.Parent = counter
+	local value = Style.kitLabel(counter, "Value", text, HUD.counterText, Style.FONT_TITLE, Style.KIT_SIZES.textStroke)
+	value.Position = UDim2.fromOffset(HUD.counterIcon + 10, 0)
+	value.Size = UDim2.new(1, -(HUD.counterIcon + 22), 1, -HUD.lip)
+	Style.fitText(value, HUD.counterText, 12)
+	counter.Parent = parent
+	return counter, value
+end
+
+-- setCounter(counter, text): the words of a counter (or of a kit button, through its Label).
+function Style.setCounter(counter, text)
+	local value = counter and (counter:FindFirstChild("Value") or counter:FindFirstChild("Label"))
+	if value and value:IsA("TextLabel") then
+		value.Text = text
+	end
+end
+
+local bumps = setmetatable({}, { __mode = "k" })
+
+-- bump(item, reduced) -> whether it popped: a quick grow and back (a counter that just changed), never with
+-- "Efectos suaves". Reuses the object's own UIScale when it has one.
+function Style.bump(item, reduced)
+	if not Style.motion(reduced).bump then
+		return false
+	end
+	local scale = item:FindFirstChildOfClass("UIScale") or child(item, "UIScale", "WbBump")
+	local running = bumps[item]
+	if running then
+		running:Cancel()
+	end
+	scale.Scale = 1
+	local info = TweenInfo.new(HUD.bumpSeconds, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true)
+	local tween = TweenService:Create(scale, info, { Scale = HUD.bumpScale })
+	bumps[item] = tween
+	tween:Play()
+	return true
+end
+
+-- progressFraction(value, max) -> value / max between 0 and 1; a bad number or a max of 0 gives 0. max defaults to 1.
+function Style.progressFraction(value, max)
+	local amount = tonumber(value)
+	local top = max == nil and 1 or tonumber(max)
+	if amount == nil or top == nil or amount ~= amount or top ~= top or top <= 0 or top == math.huge then
+		return 0
+	end
+	local share = amount / top
+	if share ~= share then
+		return 0
+	end
+	return math.clamp(share, 0, 1)
+end
+
+-- A bar fill: lit top, darker bottom.
+local FILL_SHINE = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, grey(1)),
+	ColorSequenceKeypoint.new(0.5, grey(1)),
+	ColorSequenceKeypoint.new(0.56, grey(0.84)),
+	ColorSequenceKeypoint.new(1, grey(0.72)),
+})
+Style.FILL_SHINE = FILL_SHINE
+
+-- The fill of a bar: rounded, a tone (nil keeps the script's colour, so its warning recolour still shows) with a lit
+-- top, or "rainbow" (the Aliento look), and a soft white "WbShine" streak across its upper part.
+local function dressFill(fill, tone)
+	local rainbow = tone == "rainbow"
+	local drop = fill:FindFirstChild(rainbow and "WbShade" or "WbRainbow")
+	if drop and drop:IsA("UIGradient") then
+		drop:Destroy()
+	end
+	local gradient = child(fill, "UIGradient", rainbow and "WbRainbow" or "WbShade")
+	if rainbow then
+		fill.BackgroundColor3 = Color3.new(1, 1, 1)
+		gradient.Color = RAINBOW
+		gradient.Rotation = 0
+	else
+		if tone ~= nil then
+			fill.BackgroundColor3 = Style.glossColor(tone)
+		end
+		gradient.Color = FILL_SHINE
+		gradient.Rotation = 90
+	end
+	fill.BackgroundTransparency = 0
+	fill.BorderSizePixel = 0
+	setCorner(fill, UDim.new(0.5, 0))
+	local shine = child(fill, "Frame", "WbShine")
+	shine.BackgroundColor3 = Color3.new(1, 1, 1)
+	shine.BackgroundTransparency = HUD.shineTransparency
+	shine.BorderSizePixel = 0
+	shine.Active = false
+	shine.Position = UDim2.new(0, 4, 0.14, 0)
+	shine.Size = UDim2.new(1, -8, 0.3, 0)
+	setCorner(shine, UDim.new(0.5, 0))
+	return fill
+end
+
+-- glossBar(track, fill, tone) -> track. Dresses an existing bar: a dark round track with a thick border and, when
+-- fill is given, the glossy rounded fill (tone as dressFill above; nil keeps the fill's colour).
+function Style.glossBar(track, fill, tone)
+	track.BackgroundColor3 = Style.COLORS.panelDeep
+	track.BackgroundTransparency = 0
+	track.BorderSizePixel = 0
+	setCorner(track, UDim.new(0.5, 0))
+	Style.outline(track, HUD.barStroke)
+	if fill then
+		dressFill(fill, tone)
+	end
+	return track
+end
+
+-- kitProgressBar(parent, text, tone, name) -> track, fill, label. A new rounded bar ("Fill" inside, full to start)
+-- with the outlined "Text" words centred over it. tone: a glossy name or "rainbow"; default green.
+function Style.kitProgressBar(parent, text, tone, name)
+	local track = Instance.new("Frame")
+	track.Name = name or "Bar"
+	track.Active = false
+	track.Size = UDim2.fromOffset(HUD.barWidth, HUD.barHeight)
+	local fill = Instance.new("Frame")
+	fill.Name = "Fill"
+	fill.Active = false
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.ZIndex = 1
+	fill.Parent = track
+	Style.glossBar(track, fill, tone or "green")
+	local label = Style.kitLabel(track, "Text", text, HUD.barText, Style.FONT_TITLE, Style.KIT_SIZES.textStroke)
+	label.ZIndex = 2
+	Style.fitText(label, HUD.barText, 10)
+	track.Parent = parent
+	return track, fill, label
+end
+
+-- setProgress(track, value, max, text) -> the fraction shown. Sizes the track's "Fill" (hidden at 0, where a rounded
+-- sliver would look like a dot) and, when text is given, sets the "Text" words.
+function Style.setProgress(track, value, max, text)
+	local share = Style.progressFraction(value, max)
+	local fill = track and track:FindFirstChild("Fill")
+	if fill and fill:IsA("GuiObject") then
+		fill.Size = UDim2.new(share, 0, 1, 0)
+		fill.Visible = share > 0
+	end
+	if text ~= nil then
+		local label = track and track:FindFirstChild("Text")
+		if label and label:IsA("TextLabel") then
+			label.Text = text
+		end
+	end
+	return share
+end
+
+-- Panel looks: "light" (the reference's pale inner panel, dark words), "dark" (navy, for HUD panels over the world,
+-- white words) and "blue" (the reference's window frame).
+local PANEL_LOOKS = table.freeze({
+	light = table.freeze({ fill = Style.KIT_COLORS.inner, edge = Style.KIT_COLORS.frameOutline, shade = 0.94 }),
+	dark = table.freeze({ fill = Style.COLORS.panelDeep, edge = Style.COLORS.outline, shade = 0.82 }),
+	blue = table.freeze({ fill = Style.KIT_COLORS.frame, edge = Style.KIT_COLORS.frameOutline, shade = 0.8 }),
+})
+Style.PANEL_LOOKS = PANEL_LOOKS
+
+-- panelLook(variant) -> { fill, edge, shade }. An unknown variant is light.
+function Style.panelLook(variant)
+	return PANEL_LOOKS[variant] or PANEL_LOOKS.light
+end
+
+-- dressPanel(frame, variant, transparency) -> frame. A rounded panel with a thick dark border; adds no padding, so the
+-- script's own layout stays where it was.
+function Style.dressPanel(frame, variant, transparency)
+	local look = Style.panelLook(variant)
+	frame.BackgroundColor3 = look.fill
+	frame.BackgroundTransparency = transparency or 0
+	frame.BorderSizePixel = 0
+	Style.corner(frame, HUD.panelCorner)
+	Style.outline(frame, HUD.panelStroke, look.edge)
+	Style.shade(frame, look.shade)
+	frame:SetAttribute("WbPanel", PANEL_LOOKS[variant] and variant or "light")
+	return frame
+end
+
+-- panelText(label) -> label: dark round words for a light panel (no outline, which would blur on a pale fill).
+function Style.panelText(label)
+	label.Font = Style.FONT_TITLE
+	label.TextColor3 = Style.KIT_COLORS.inkDark
+	label.TextStrokeTransparency = 1
+	local stroke = label:FindFirstChild("WbTextStroke")
+	if stroke and stroke:IsA("UIStroke") then
+		stroke.Transparency = 1
+	end
+	return label
+end
+
+-- kitPanel(parent, name, variant) -> panel. A new panel (dressPanel) with 10 px padding inside.
+function Style.kitPanel(parent, name, variant)
+	local panel = Instance.new("Frame")
+	panel.Name = name or "Panel"
+	panel.Active = false
+	Style.dressPanel(panel, variant)
+	local pad = child(panel, "UIPadding", "WbPad")
+	pad.PaddingTop, pad.PaddingBottom = UDim.new(0, HUD.panelPad), UDim.new(0, HUD.panelPad)
+	pad.PaddingLeft, pad.PaddingRight = UDim.new(0, HUD.panelPad), UDim.new(0, HUD.panelPad)
+	panel.Parent = parent
+	return panel
+end
+
+-- kitToast(parent, text, name) -> toast, label. A light panel (320 x 56 to start) with dark round words that shrink
+-- to fit.
+function Style.kitToast(parent, text, name)
+	local toast = Style.kitPanel(nil, name or "Toast", "light")
+	toast.Size = UDim2.fromOffset(HUD.toastWidth, HUD.toastHeight)
+	local label = Instance.new("TextLabel")
+	label.Name = "Label"
+	label.BackgroundTransparency = 1
+	label.BorderSizePixel = 0
+	label.Active = false
+	label.Size = UDim2.fromScale(1, 1)
+	label.Text = text or ""
+	label.TextSize = HUD.toastText
+	label.TextXAlignment = Enum.TextXAlignment.Center
+	label.TextYAlignment = Enum.TextYAlignment.Center
+	Style.panelText(label)
+	Style.fitText(label, HUD.toastText, 12)
+	label.Parent = toast
+	toast.Parent = parent
+	return toast, label
+end
+
+-- kitIconButton(parent, icon, caption, tone, name) -> button, glyph, caption. A round glossy button (64 px, never under
+-- 44) with an emoji in its "Label" and an outlined "Caption" under it, outside the button (captionGap + captionHeight
+-- pixels below; leave that room in the layout). Change the icon with Style.setLabel and the caption with
+-- Style.setCaption; Style.setDimmed shades it while it cannot be used.
+function Style.kitIconButton(parent, icon, caption, tone, name)
+	local size = Style.tapSize(HUD.iconButton)
+	local button, glyph = Style.kitGlossButton(nil, icon, tone or "blue", name or "IconButton")
+	button.Size = UDim2.fromOffset(size, size)
+	setCorner(button, UDim.new(0.5, 0))
+	refreshGloss(button)
+	glyph.TextSize = HUD.iconText
+	local words = Style.kitLabel(button, "Caption", caption, HUD.captionText, Style.FONT_TITLE, Style.KIT_SIZES.textStroke)
+	words.AnchorPoint = Vector2.new(0.5, 0)
+	words.Position = UDim2.new(0.5, 0, 1, HUD.captionGap)
+	words.Size = UDim2.new(1, HUD.captionWiden, 0, HUD.captionHeight)
+	Style.fitText(words, HUD.captionText, 10)
+	words.TextWrapped = false
+	button.Parent = parent
+	return button, glyph, words
+end
+
+-- setCaption(button, text): the words under an icon button.
+function Style.setCaption(button, text)
+	local words = button and button:FindFirstChild("Caption")
+	if words and words:IsA("TextLabel") then
+		words.Text = text
+	end
+end
+
+-- setDimmed(button, on) -> on. A dark round "WbDim" cover over the button (and its icon) while it cannot be used; it
+-- does not take taps or change Active, so the script still decides what a tap does.
+function Style.setDimmed(button, on)
+	local dim = child(button, "Frame", "WbDim")
+	dim.BackgroundColor3 = Style.KIT_COLORS.lockShade
+	dim.BackgroundTransparency = HUD.dimTransparency
+	dim.BorderSizePixel = 0
+	dim.Active = false
+	dim.Size = UDim2.fromScale(1, 1)
+	dim.ZIndex = 2
+	local corner = button:FindFirstChildOfClass("UICorner")
+	setCorner(dim, corner and corner.CornerRadius or UDim.new(0, HUD.glossCorner))
+	local shown = on == true
+	dim.Visible = shown
+	button:SetAttribute("WbDimmed", shown)
+	return shown
 end
 
 return Style

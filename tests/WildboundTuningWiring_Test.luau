@@ -99,6 +99,23 @@ return function(sources)
 		has(panel, "Los cambios en Play se pierden al parar", "the persistence note")
 	end)
 
+	-- UR-T (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the developer panel wears the UI kit too, built only after the developer
+	-- check like the rest of it. Source pins only; the look itself is checked in Play.
+	case("UR-T: the developer panel takes the kit's panels, glossy buttons and rounded tracks after the developer check", function()
+		has(panel, 'Style.dressPanel(panel, "dark", 0.04)')
+		has(panel, 'Style.gloss(toggle, "blue")')
+		has(panel, 'Style.gloss(resetAll, "orange")')
+		has(panel, 'Style.gloss(export, "green")')
+		has(panel, 'Style.gloss(close, "red")')
+		has(panel, 'Style.glossBar(item, trackFill, "green")')
+		has(panel, "for _, refreshHeader in ipairs(headers) do refreshHeader() end", "the amber headers come back")
+		before(panel, "player:GetAttribute(Schema.DEV_ATTRIBUTE) == true", 'WaitForChild("WildboundUiStyle", 10)',
+			"no kit before the developer check")
+		before(panel, 'WaitForChild("WildboundUiStyle", 10)', "gui.Parent = player:WaitForChild(\"PlayerGui\")",
+			"styled before it is shown")
+	end)
+
 	-- Look pass: Silueta.VISUAL_SCALE is read when the art is built and again whenever the tuned value changes.
 	case("Look pass: the world server rescales La Silueta's art live from the tuned scale", function()
 		local world = sources.world

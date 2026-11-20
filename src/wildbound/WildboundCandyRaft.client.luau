@@ -30,7 +30,7 @@ gui.Parent = player:WaitForChild("PlayerGui")
 local line = Instance.new("TextLabel")
 line.Name = "Line"
 line.AnchorPoint = Vector2.new(0.5, 1)
-line.Position = UDim2.new(0.5, 0, 1, -150)
+line.Position = UDim2.new(0.5, 0, 1, -156) -- UR-R: room for the kit's thick borders above Bajar
 line.Size = UDim2.new(0.8, 0, 0, 36)
 line.BackgroundTransparency = 0.35
 line.BackgroundColor3 = Color3.fromRGB(92, 52, 34)
@@ -75,9 +75,26 @@ end
 -- V4-D3: the steering hint above the line while riding (a keyboard's keys, or the thumbstick on a touch screen)
 local hint = line:Clone()
 hint.Name = "SteerHint"
-hint.Position = UDim2.new(0.5, 0, 1, -192)
+hint.Position = UDim2.new(0.5, 0, 1, -206) -- UR-R: a 6 px gap between the two toasts' thick borders
 hint.BackgroundTransparency = 0.5
 hint.Parent = gui
+
+-- UR-R (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's look. The two lines are the
+-- reference's pale toast panels (a thick dark border, 16 px corners) with dark round words; Bajar is a chunky glossy
+-- orange button with the 3D lip and white outlined words, still 160 x 48 (a big tap target). Styled off the main
+-- thread; without the shared style module the old look stays.
+task.spawn(function()
+	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = found and found:IsA("ModuleScript") and require(found) or nil
+	if not (Style and Style.gloss) then return end
+	Style.screen(gui)
+	Style.dressPanel(line, "light", 0.05)
+	Style.panelText(line)
+	Style.dressPanel(hint, "light", 0.25)
+	Style.panelText(hint)
+	Style.gloss(leave, "orange")
+	Style.fitText(leave, 26, 14)
+end)
 
 local function steerHint(on)
 	local touch = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled

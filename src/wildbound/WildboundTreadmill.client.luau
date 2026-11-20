@@ -76,9 +76,10 @@ local function dressConsole(belt)
 	gui.PixelsPerStud = 40
 	gui.Parent = console
 
+	-- UR (owner request 2026-11-20, the store reference look): a bright blue screen with round outlined words.
 	local bg = Instance.new("Frame")
 	bg.Size = UDim2.fromScale(1, 1)
-	bg.BackgroundColor3 = Color3.fromRGB(16, 22, 32)
+	bg.BackgroundColor3 = Color3.fromRGB(36, 104, 210)
 	bg.BorderSizePixel = 0
 	bg.Parent = gui
 
@@ -86,9 +87,11 @@ local function dressConsole(belt)
 	title.Size = UDim2.new(1, -12, 0.42, 0)
 	title.Position = UDim2.fromOffset(6, 6)
 	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.GothamBold
+	title.Font = Enum.Font.FredokaOne
 	title.Text = "CAMINADORA"
-	title.TextColor3 = Color3.fromRGB(190, 235, 255)
+	title.TextColor3 = Color3.fromRGB(255, 255, 255)
+	title.TextStrokeColor3 = Color3.fromRGB(16, 18, 34)
+	title.TextStrokeTransparency = 0
 	title.TextScaled = true
 	title.Parent = bg
 
@@ -100,6 +103,8 @@ local function dressConsole(belt)
 	status.Font = Enum.Font.FredokaOne
 	status.Text = "LISTA"
 	status.TextColor3 = Color3.fromRGB(92, 240, 165)
+	status.TextStrokeColor3 = Color3.fromRGB(16, 18, 34)
+	status.TextStrokeTransparency = 0
 	status.TextScaled = true
 	status.Parent = bg
 
@@ -317,9 +322,10 @@ screen.DisplayOrder = 12
 screen.Enabled = false
 screen.Parent = playerGui
 
+-- UR (owner request 2026-11-20): the card grew to 132 px so the Dismount button is a 48 px tap and the bar a 26 px pill.
 local card = Instance.new("Frame")
 card.Name = "Card"
-card.Size = UDim2.fromOffset(320, 118)
+card.Size = UDim2.fromOffset(320, 132)
 card.AnchorPoint = Vector2.new(0.5, 1)
 card.Position = UDim2.new(0.5, 0, 1, -24)
 card.BackgroundColor3 = Color3.fromRGB(18, 22, 34)
@@ -345,8 +351,8 @@ titleLabel.TextXAlignment = Enum.TextXAlignment.Left
 titleLabel.Parent = card
 
 local barBg = Instance.new("Frame")
-barBg.Size = UDim2.new(1, -24, 0, 22)
-barBg.Position = UDim2.fromOffset(12, 36)
+barBg.Size = UDim2.new(1, -24, 0, 26)
+barBg.Position = UDim2.fromOffset(12, 38)
 barBg.BackgroundColor3 = Color3.fromRGB(32, 38, 56)
 barBg.BorderSizePixel = 0
 barBg.Parent = card
@@ -362,25 +368,41 @@ makeCorner(barFill, 8)
 local pctLabel = Instance.new("TextLabel")
 pctLabel.Size = UDim2.fromScale(1, 1)
 pctLabel.BackgroundTransparency = 1
-pctLabel.Font = Enum.Font.GothamBold
+pctLabel.Font = Enum.Font.FredokaOne
 pctLabel.Text = "Corriendo... 0%"
 pctLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-pctLabel.TextStrokeTransparency = 0.4
-pctLabel.TextSize = 13
+pctLabel.TextStrokeTransparency = 0
+pctLabel.TextSize = 15
+pctLabel.ZIndex = 2
 pctLabel.Parent = barBg
 
 local dismountBtn = Instance.new("TextButton")
 dismountBtn.Name = "Dismount"
-dismountBtn.Size = UDim2.new(1, -24, 0, 38)
-dismountBtn.Position = UDim2.fromOffset(12, 68)
+dismountBtn.Size = UDim2.new(1, -24, 0, 48)
+dismountBtn.Position = UDim2.fromOffset(12, 72)
 dismountBtn.BackgroundColor3 = Color3.fromRGB(232, 84, 84)
 dismountBtn.BorderSizePixel = 0
 dismountBtn.Font = Enum.Font.FredokaOne
 dismountBtn.Text = "Bajar (Espacio)"
 dismountBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-dismountBtn.TextSize = 17
+dismountBtn.TextSize = 18
 dismountBtn.Parent = card
-makeCorner(dismountBtn, 10)
+makeCorner(dismountBtn, 12)
+
+-- UR (owner request 2026-11-20, the store reference look): a bright blue card with a thick dark border, big outlined
+-- words, a glossy green pill bar and a chunky red Dismount button with the 3D edge. Without the shared UI kit the
+-- plain look above stays. Styled in its own thread, so a missing kit never delays the Dismount handlers below.
+task.spawn(function()
+	local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = styleModule and styleModule:IsA("ModuleScript") and require(styleModule)
+	if not (Style and Style.gloss) then return end
+	Style.screen(screen)
+	Style.dressPanel(card, "blue")
+	Style.loudText(titleLabel, Style.FONT_TITLE, 2)
+	Style.glossBar(barBg, barFill, "green")
+	Style.loudText(pctLabel, Style.FONT_TITLE, 2)
+	Style.gloss(dismountBtn, "red")
+end)
 
 local treadmillRemote = nil
 task.spawn(function()

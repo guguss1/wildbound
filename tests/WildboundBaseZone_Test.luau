@@ -138,5 +138,21 @@ return function(Zone, source, sources)
 		assert(not guide:find("FireServer", 1, true) and not guide:find("InvokeServer", 1, true), "the client sends nothing")
 	end)
 
+	-- UR-G (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the guide's screens wear the UI kit (WildboundUiStyle). Source pins only;
+	-- the look itself is checked in Play.
+	case("UR-G: a glossy hint pill and drop sign, kit panels for the toast and the cradle sign, a calm toast", function()
+		local guide = sources.guide
+		has(guide, "Style.gloss(hint, BEACON_COLOR)", "the hint is a glossy pill in the guide's blue")
+		has(guide, "Style.gloss(text, BEACON_COLOR)", "the Deja el huevo aquí sign is a glossy chip")
+		has(guide, 'Style.dressPanel(toast, "dark")', "the reward toast is a kit panel")
+		has(guide, "Style.loudText(toastTitle, nil, 3)", "an outlined toast title")
+		has(guide, 'Style.dressPanel(back, "dark", 0.1)', "the cradle sign is a kit panel")
+		has(guide, "Style.loudText(status)", "outlined cradle words")
+		has(guide, "if reduced() then\n\t\t\ttoastScale.Scale = 1", "no toast pop with Efectos suaves")
+		assert(not guide:find("Style.panel(toast)", 1, true), "the old slate toast is gone")
+		assert(not guide:find("rbxassetid://%d"), "no image")
+	end)
+
 	return result
 end

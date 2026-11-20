@@ -33,7 +33,9 @@ local hint = Instance.new("Frame")
 hint.Name = "Hint"
 hint.AnchorPoint = Vector2.new(0.5, 0)
 hint.Position = UDim2.new(0.5, 0, 0, 48)
-hint.Size = UDim2.fromOffset(380, 40)
+-- UR-G: at most 380 wide, and 12 px inside each edge on a narrow phone, so the pill and its border are never cut off.
+hint.Size = UDim2.new(1, -24, 0, 40)
+Instance.new("UISizeConstraint", hint).MaxSize = Vector2.new(380, 40)
 hint.BackgroundColor3 = Color3.fromRGB(12, 24, 40)
 hint.BackgroundTransparency = 0.2
 hint.Visible = false
@@ -44,8 +46,8 @@ stroke.Color, stroke.Thickness = BEACON_COLOR, 2
 local arrow = Instance.new("TextLabel")
 arrow.Name = "Arrow"
 arrow.BackgroundTransparency = 1
-arrow.Size = UDim2.fromOffset(40, 40)
-arrow.Position = UDim2.fromOffset(4, 2)
+arrow.Size = UDim2.fromOffset(34, 34)
+arrow.Position = UDim2.fromOffset(8, 1)
 arrow.Font = Enum.Font.GothamBold
 arrow.Text = "▲"
 arrow.TextScaled = true
@@ -95,18 +97,21 @@ saved.Parent = banner
 
 -- UI colorida: the shared look. The guide's blue and the rarity colours stay the strokes' colours (they carry meaning);
 -- the style adds the rounded display font with a dark outline, shading and thicker borders. Without the module every
--- call is a no-op.
+-- call is a no-op. UR-G: an older module without the glossy kit (no Style.gloss) counts as missing, so a partial sync
+-- never stops the guide.
 local Style = (function()
 	local found = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
-	return found and found:IsA("ModuleScript") and require(found)
-		or setmetatable({}, { __index = function() return function() end end })
+	local kit = found and found:IsA("ModuleScript") and require(found)
+	if type(kit) == "table" and type(kit.gloss) == "function" then return kit end
+	return setmetatable({}, { __index = function() return function() end end })
 end)()
 Style.screen(gui)
-Style.pill(hint, 0.1)
-Style.outline(hint, 3, BEACON_COLOR)
-Style.shade(hint, 0.8)
-Style.title(arrow, BEACON_COLOR)
-Style.title(label)
+-- UR-G (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the hint is a glossy pill in the guide's
+-- blue (a thick dark border, a lighter top half, the darker 3D lip) with white outlined words; the kit lifts the
+-- "Label" above the lip. The arrow keeps turning toward the base.
+Style.gloss(hint, BEACON_COLOR)
+Style.loudText(arrow)
+Style.loudText(label)
 Style.title(title, Color3.fromRGB(150, 255, 190))
 Style.title(saved)
 
@@ -179,8 +184,8 @@ local function buildBeacon(pad)
 	Instance.new("UICorner", text).CornerRadius = UDim.new(0, 14)
 	local edge = Instance.new("UIStroke", text)
 	edge.Color, edge.Thickness, edge.ApplyStrokeMode = BEACON_COLOR, 3, Enum.ApplyStrokeMode.Border
-	Style.title(text)
-	Style.shade(text, 0.8)
+	-- UR-G: a glossy chip in the guide's blue with the 3D lip; the gloss reuses the sign's border (now dark and thick).
+	Style.gloss(text, BEACON_COLOR)
 	beacon.pad, beacon.folder, beacon.anchor = pad, folder, anchor
 	folder.Parent = nil
 end
@@ -303,9 +308,10 @@ if EggLoop and Text.LOOP then
 	local toastEdge = Instance.new("UIStroke", toast)
 	toastEdge.Thickness = 3
 	local toastScale = Instance.new("UIScale", toast)
-	-- UI colorida: a slate panel; the rarity colour stays on the 4 px border and the title.
-	Style.panel(toast)
-	toastEdge.Thickness = 3
+	-- UR-G: the kit's dark HUD panel (16 px corners, a thick border, soft shading). It stays dark, not the pale toast,
+	-- because the rarity colour stays on the border and the title, and a pale Común border would vanish on a pale fill.
+	Style.dressPanel(toast, "dark")
+	toastEdge.Thickness = 4
 	local function toastLabel(name, y, height, font, maxSize)
 		local item = Instance.new("TextLabel")
 		item.Name = name
@@ -322,8 +328,9 @@ if EggLoop and Text.LOOP then
 	local toastTitle = toastLabel("Title", 6, 28, Enum.Font.GothamBlack, 22)
 	local toastLine = toastLabel("Line", 34, 24, Enum.Font.GothamBold, 17)
 	local toastSub = toastLabel("Sub", 56, 12, Enum.Font.Gotham, 13)
-	Style.title(toastTitle)
-	Style.title(toastLine, Color3.fromRGB(255, 214, 64))
+	-- UR-G: the title and the line are round words with a thick dark outline (the reference's titles).
+	Style.loudText(toastTitle, nil, 3)
+	Style.loudText(toastLine, nil, 2, Color3.fromRGB(255, 214, 64))
 	Style.body(toastSub, true)
 	local toastUntil = 0
 	local function showToast(lines, color, seconds)
@@ -333,9 +340,14 @@ if EggLoop and Text.LOOP then
 		toast.Position = hint.Visible and UDim2.new(0.5, 0, 0, 94) or UDim2.new(0.5, 0, 0, 48)
 		toast.Visible = true
 		toastUntil = os.clock() + seconds
-		toastScale.Scale = 0.85
-		TweenService:Create(toastScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-			{ Scale = 1 }):Play()
+		-- UR-G: the pop is left out with "Efectos suaves".
+		if reduced() then
+			toastScale.Scale = 1
+		else
+			toastScale.Scale = 0.85
+			TweenService:Create(toastScale, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1 }):Play()
+		end
 	end
 
 	-- The bank reward (the server writes it once per egg banked).
@@ -385,9 +397,10 @@ if EggLoop and Text.LOOP then
 		local edge = Instance.new("UIStroke", back)
 		edge.Name = "Edge"
 		edge.Thickness, edge.Color = 3, BEACON_COLOR
-		-- UI colorida: a slate sign with shading and a stroked status line.
+		-- UI colorida: a slate sign with shading and a stroked status line. UR-G: now the kit's dark HUD panel (16 px
+		-- corners, a 4 px border on the same "Edge", which the loop below still colours blue or green).
 		back.BackgroundColor3 = Color3.fromRGB(40, 50, 70)
-		Style.shade(back, 0.8)
+		Style.dressPanel(back, "dark", 0.1)
 		local status = Instance.new("TextLabel")
 		status.Name = "Status"
 		status.BackgroundTransparency = 1
@@ -397,7 +410,7 @@ if EggLoop and Text.LOOP then
 		status.TextScaled = true
 		status.TextColor3 = Color3.new(1, 1, 1)
 		status.Parent = back
-		Style.title(status)
+		Style.loudText(status)
 		local shelf = Instance.new("Frame")
 		shelf.Name = "Shelf"
 		shelf.BackgroundTransparency = 1
@@ -439,6 +452,9 @@ if EggLoop and Text.LOOP then
 			Instance.new("UICorner", egg).CornerRadius = UDim.new(0.5, 0)
 			local rim = Instance.new("UIStroke", egg)
 			rim.Color, rim.Thickness = Color3.new(1, 1, 1), 1
+			-- UR-G: a chunky egg, like the reference's icons: a dark 2 px rim (the same stroke) and a lit top.
+			Style.outline(egg, 2)
+			Style.shade(egg, 0.72)
 		end
 		if shelf.extra > 0 then
 			local more = Instance.new("TextLabel")
@@ -451,6 +467,7 @@ if EggLoop and Text.LOOP then
 			more.TextColor3 = Color3.new(1, 1, 1)
 			more.Text = "+" .. shelf.extra
 			more.Parent = sign.shelf
+			Style.loudText(more)
 		end
 		sign.shelf.Visible = #shelf.rarities > 0
 	end

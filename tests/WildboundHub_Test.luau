@@ -323,6 +323,23 @@ return function(Bases, source, sources)
 		assert(type(Text.HUB.glovePrompt) == "string" and type(Text.HUB.gloves) == "string"
 			and type(Text.HUB.trainPrompt) == "string", "Spanish words")
 	end)
+	-- UR-H1 (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the camp screen the base stations open (the inventory panel) wears the store reference's look; its tabs,
+	-- rows, words and remote calls stay as they were.
+	case("UR-H1: the camp screen is a blue kit window with glossy tabs and rows on a pale inner panel", function()
+		local client = sources.client
+		has(client, 'Style.dressPanel(panel, "blue")', "the blue window")
+		lacks(client, 'Style.header(panel, ', "no magenta header strip")
+		has(client, 'Name = "ListBack"', "the pale inner panel behind the list")
+		has(client, 'Style.dressPanel(listBack, "light")')
+		has(client, "placeBack()", "the inner panel follows the list")
+		has(client, "Camp.TAB_TONES", "each tab in its own glossy tone")
+		has(client, 'Style.gloss(item, "blue")', "glossy row tiles")
+		has(client, "Style.tint(b, Camp.buttonTone(spec))", "row buttons by action, grey when off")
+		has(client, "Style.gloss(b)", "every button glossy")
+		has(client, "request(spec.action, spec.argument)", "row taps still go to the server")
+		has(client, 'Name = "InventoryPanel"')
+	end)
 
 	return result
 end

@@ -626,6 +626,33 @@ do
 		end
 	end)
 end
+-- Owner request 2026-11-20 (UR-H2, docs/design/refs/store-ui-reference.png): the always-on HUD in the reference's
+-- glossy look. One self-contained hunk, presentation only: every button, bar and chip keeps its name, place, size,
+-- words and handler. Style.gloss adds the lit top, the dark 3D bottom edge and the thick outline (a later recolour, a
+-- cooldown or the sprint toggle, keeps them); the words sit on the lit face, above the edge. An older WildboundUiStyle
+-- without the glossy kit (a partial Studio sync) skips the hunk, so the rest of the HUD still runs.
+if type(Style.gloss) == "function" then
+	local lip = type(Style.HUD_SIZES) == "table" and Style.HUD_SIZES.lip or 0
+	for _, name in ipairs({"ReducedButton", "FlashlightButton", "PulseButton", "HideExitButton", "SprintButton",
+		"DodgeButton", "BatButton"}) do
+		local item = gui:FindFirstChild(name)
+		if item and item:IsA("TextButton") then
+			Style.gloss(item)
+			make("UIPadding", {Name = "WbLift", PaddingBottom = UDim.new(0, lip)}, item)
+		end
+	end
+	Style.dressPanel(panel, "dark", 0.12)
+	Style.gloss(chip)
+	chipText.Font, chipText.Size = Enum.Font.FredokaOne, UDim2.new(1, -44, 1, -lip)
+	Style.fitText(chipText, 15, 10)
+	Style.glossBar(healthBar, healthFill)
+	healthLabel.Font, healthLabel.TextSize = Enum.Font.FredokaOne, 16
+	local healthOutline = healthLabel:FindFirstChildOfClass("UIStroke")
+	if healthOutline then healthOutline.Thickness, healthOutline.LineJoinMode = 2, Enum.LineJoinMode.Round end
+	Style.glossBar(staminaBar, staminaFill, "rainbow")
+	Style.loudText(staminaLabel, Enum.Font.FredokaOne, 2)
+	staminaLabel.TextSize = 14
+end
 listen(effects.Activated, function()
 	reduced = not reduced
 	gui:SetAttribute("Reduced", reduced)
@@ -929,6 +956,13 @@ make("UICorner", {CornerRadius = UDim.new(0, 6)}, sprintHint)
 -- UI colorida: a bold outlined pill at the bottom centre.
 Style.pill(sprintHint, 0.15)
 Style.title(sprintHint)
+-- UR-H2 (owner request 2026-11-20): the hint as a glossy navy pill with the 3D edge; its words, place and size stay.
+if type(Style.gloss) == "function" then
+	Style.gloss(sprintHint, "dark")
+	if type(Style.HUD_SIZES) == "table" then
+		make("UIPadding", {Name = "WbLift", PaddingBottom = UDim.new(0, Style.HUD_SIZES.lip)}, sprintHint)
+	end
+end
 local vignette = make("Frame", {Name = "DreadVignette", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1,
 	Active = false, ZIndex = 40, Visible = false}, gui)
 local VIGNETTE_EDGES = {

@@ -847,5 +847,21 @@ return function(F, Layout, Dodge, sources)
 		has(service, "liquid = V3.liquidDistance", "the hives keep off the chocolate")
 	end)
 
+	-- UR-F (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the flyers' notice is the UI kit's pale toast. Source pins only; the
+	-- look itself is checked in Play.
+	case("UR-F: the notice is a pale toast panel with dark round words, 44 px tall, styled off the main thread", function()
+		local client = sources and sources.client or ""
+		has(client, 'WaitForChild("WildboundUiStyle", 10)', "the shared kit")
+		has(client, 'Style.dressPanel(label, "light", 0.05)', "a pale toast panel")
+		has(client, "Style.panelText(label)", "dark round words")
+		has(client, "label.Size = UDim2.new(0.8, 0, 0, 44)", "readable on a phone")
+		has(client, "widest.MaxSize = Vector2.new(560, 44)", "not a wall of text on a big screen")
+		local styled = string.find(client, "task.spawn(function()", 1, true)
+		local kit = string.find(client, 'WaitForChild("WildboundUiStyle"', 1, true)
+		assert(styled and kit and styled < kit, "the kit is waited for off the main thread")
+		lacks(client, "FireServer"); lacks(client, "InvokeServer")
+	end)
+
 	return result
 end

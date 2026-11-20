@@ -44,6 +44,11 @@ local H = Text.HUD
 -- and the plain look stays.
 local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
 local Style = styleModule and require(styleModule) or setmetatable({}, { __index = function() return function() end end })
+-- UR-H1: an older module without the glossy kit (no Style.gloss, a partial Studio sync) counts as missing, so the
+-- inventory and HUD never die half-built.
+if type(Style.gloss) ~= "function" then
+	Style = setmetatable({}, { __index = function() return function() end end })
+end
 
 local gui = Instance.new("ScreenGui")
 gui.Name = "WildboundUI"
@@ -84,6 +89,10 @@ local function label(parent, text, size)
 		TextSize = size, Font = Enum.Font.Gotham, TextWrapped = true,
 		TextXAlignment = Enum.TextXAlignment.Left}, parent)
 	Style.body(item)
+	-- UR (owner request 2026-11-20, the store reference look): every line in the round display font, fully outlined.
+	item.Font = Enum.Font.FredokaOne
+	item.TextStrokeColor3 = Color3.fromRGB(16, 18, 34)
+	item.TextStrokeTransparency = 0
 	return item
 end
 local function button(parent, text, tone)
@@ -94,6 +103,8 @@ local function button(parent, text, tone)
 	b.MouseEnter:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1.02}):Play() end)
 	b.MouseLeave:Connect(function() TweenService:Create(scale, TweenInfo.new(0.12), {Scale = 1}):Play() end)
 	Style.button(b, tone or "green")
+	-- UR (owner request 2026-11-20): the glossy chunky look of the reference, lit top half and the dark 3D edge below.
+	Style.gloss(b)
 	return b
 end
 local function place(item, rect)
@@ -104,9 +115,10 @@ local hud = make("Frame", {BackgroundColor3 = dark, BackgroundTransparency = 0.1
 	Position = UDim2.fromOffset(12, 12), Size = UDim2.new(1, -168, 0, 82), Visible = false}, gui)
 make("UISizeConstraint", {MaxSize = Vector2.new(430, 82)}, hud)
 make("UICorner", {CornerRadius = UDim.new(0, 8)}, hud)
-Style.panel(hud, 0.12)
+-- UR (owner request 2026-11-20): a rounded navy HUD panel with the kit's thick border, and outlined round words.
+Style.dressPanel(hud, "dark", 0.12)
 local objective = label(hud, H.objective .. "\n" .. H.sessionOnly, 15)
-Style.body(objective, true)
+Style.title(objective)
 objective.Position = UDim2.fromOffset(10, 5)
 objective.Size = UDim2.new(1, -20, 0, 42)
 local status = label(hud, H.connecting, 14)
@@ -122,9 +134,9 @@ local panel = make("Frame", {Name = "InventoryPanel", Visible = false, Backgroun
 	AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.52),
 	Size = UDim2.fromScale(0.88, 0.75)}, gui)
 make("UICorner", {CornerRadius = UDim.new(0, 10)}, panel)
--- UI colorida: an outlined slate panel under a magenta header strip (moved with the header in applyLayout).
-Style.panel(panel)
-Style.header(panel, 52, "magenta")
+-- UR (owner request 2026-11-20, the store reference look): the bright blue window with a thick dark border; the
+-- header buttons sit on the blue and the list on a pale inner panel (ListBack, below).
+Style.dressPanel(panel, "blue")
 -- Header: two tabs and Close, each at least 44 pixels (the rectangles come from the camp view module).
 local bagTab = button(panel, H.bag, "sky")
 bagTab.Name = "BagTab"
@@ -144,8 +156,15 @@ for _, tab in ipairs({ bagTab, eggsTab, campTab }) do
 		make("UIStroke", {Thickness = 0, Color = amber, ApplyStrokeMode = Enum.ApplyStrokeMode.Border}, tab)
 	end
 end
+-- UR (owner request 2026-11-20): each header button in its own glossy tone, like the reference's category buttons
+-- (WildboundCampView.TAB_TONES); the open tab is told by its brackets and its gold outline (paintTabs).
+local tabTones = Camp and Camp.TAB_TONES or {}
+for name, item in pairs({ bag = bagTab, eggs = eggsTab, camp = campTab, menu = menuTab, close = close }) do
+	Style.gloss(item, tabTones[name] or (name == "close" and "red" or "blue"))
+end
 local warning = label(panel, H.sessionNote, 14)
 warning.Name = "TabNote"
+Style.title(warning)
 warning.TextColor3 = Color3.fromRGB(214, 224, 245)
 local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 	Size = UDim2.new(1, -24, 1, -108), BackgroundTransparency = 1,
@@ -154,6 +173,18 @@ local scroll = make("ScrollingFrame", {Position = UDim2.fromOffset(12, 96),
 local listLayout = make("UIListLayout", {Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder}, scroll)
 -- Room for the rows' outlines inside the scrolling clip.
 make("UIPadding", {PaddingLeft = UDim.new(0, 3), PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3)}, scroll)
+-- UR (owner request 2026-11-20): the reference's pale inner panel behind the list. ZIndex 0 keeps it under the list;
+-- placeBack keeps it around the list wherever applyLayout puts it. It takes no taps.
+local listBack = make("Frame", {Name = "ListBack", ZIndex = 0, Active = false, BorderSizePixel = 0,
+	BackgroundColor3 = Color3.fromRGB(236, 246, 255)}, panel)
+make("UICorner", {CornerRadius = UDim.new(0, 14)}, listBack)
+Style.dressPanel(listBack, "light")
+local function placeBack()
+	local at, size = scroll.Position, scroll.Size
+	listBack.Position = UDim2.new(at.X.Scale, at.X.Offset - 6, at.Y.Scale, at.Y.Offset - 2)
+	listBack.Size = UDim2.new(size.X.Scale, size.X.Offset + 12, size.Y.Scale, size.Y.Offset + 2)
+end
+placeBack()
 campTab.Visible = campReady
 menuTab.Visible = campReady
 
@@ -262,7 +293,6 @@ local function applyLayout()
 			or Camp.header(rect.w)
 		place(bagTab, header.bag); place(campTab, header.camp); place(close, header.close); place(menuTab, header.menu)
 		if header.eggs then eggsTab.Visible = true; place(eggsTab, header.eggs) else eggsTab.Visible = false end
-		Style.header(panel, header.bottom + 4, "magenta")
 		-- A narrow panel shrinks the header buttons, so their words shrink with them.
 		for _, item in ipairs({ bagTab, eggsTab, campTab, menuTab, close }) do item.TextSize = header.tabWidth < 80 and 13 or 16 end
 		sideways = Camp.sideways(size.X, size.Y)
@@ -277,11 +307,11 @@ local function applyLayout()
 		panel.Size = UDim2.fromScale(0.88, 0.75)
 		bagTab.Position, bagTab.Size = UDim2.fromOffset(8, 4), UDim2.fromOffset(84, 44)
 		close.Position, close.Size = UDim2.new(1, -86, 0, 4), UDim2.fromOffset(78, 44)
-		Style.header(panel, 52, "magenta")
 		warning.Position, warning.Size = UDim2.fromOffset(12, 52), UDim2.new(1, -24, 0, noteHeight)
 		scroll.Position, scroll.Size = UDim2.fromOffset(12, 78), UDim2.new(1, -24, 1, -90)
 		rowWidth = 330
 	end
+	placeBack()
 	warning.TextSize = rowText - (compact and 0 or 1)
 	if compact then
 		status.TextSize = 13
@@ -340,6 +370,8 @@ local function addRow(spec)
 		title.Font = Enum.Font.GothamBold
 		title.TextColor3 = amber
 		Style.title(title, amber)
+		-- UR (owner request 2026-11-20): a section title sits on the pale inner panel, so it reads in dark round words.
+		Style.panelText(title)
 		title.Size = UDim2.new(1, -8, 0, 24)
 		title.LayoutOrder = order
 		return
@@ -349,12 +381,15 @@ local function addRow(spec)
 	local item = make("Frame", {BackgroundColor3 = Color3.fromRGB(54, 66, 94), LayoutOrder = order,
 		Size = UDim2.new(1, -8, 0, height)}, scroll)
 	make("UICorner", {CornerRadius = UDim.new(0, 6)}, item)
-	-- UI colorida: each row is an outlined tile (2 px, so the list keeps its row height).
-	Style.card(item, "row")
+	-- UR (owner request 2026-11-20, the store reference look): each row is a glossy blue tile with the 3D edge, on the
+	-- pale inner panel; its outline stays 2 px, so the list keeps its row height and gaps.
+	Style.gloss(item, "blue")
 	Style.outline(item, 2)
 	local description = label(item, spec.text, rowText)
 	description.Position = UDim2.fromOffset(8, 2)
 	description.Size = UDim2.new(1, hasButton and -(112 + 6) or -16, 1, -4)
+	-- The round font runs a little wider than the Gotham the row heights were measured with: shrink, never spill.
+	Style.fitText(description, rowText, 10)
 	if hasButton then
 		local b = button(item, spec.label)
 		b.AnchorPoint = Vector2.new(1, 0.5)
@@ -371,6 +406,9 @@ local function addRow(spec)
 				if spec.onTap then spec.onTap() else request(spec.action, spec.argument) end
 			end)
 		end
+		-- UR (owner request 2026-11-20): the button's glossy tone by its action, grey while it is off
+		-- (WildboundCampView.buttonTone).
+		if Camp and Camp.buttonTone then Style.tint(b, Camp.buttonTone(spec)) end
 	end
 end
 
@@ -586,12 +624,15 @@ local function paintTabs()
 	for name, item in pairs({ bag = bagTab, eggs = eggsTab, camp = campTab }) do
 		local selected = tab == name
 		item.BackgroundColor3 = selected and Color3.fromRGB(72, 200, 250) or accentOff
+		-- UR (owner request 2026-11-20): every tab keeps its own bright glossy tone, as in the reference; without the
+		-- UI kit tint does nothing and the colours above stay.
+		Style.tint(item, tabTones[name] or "blue")
 		item.Font = Enum.Font.FredokaOne
 		-- The chosen tab also wears a gold outline (the others a dark one), so it is not told apart by colour alone.
 		local stroke = item:FindFirstChildOfClass("UIStroke")
 		if stroke then
 			stroke.Color = selected and amber or Color3.fromRGB(16, 18, 34)
-			stroke.Thickness = selected and 3 or 2
+			stroke.Thickness = selected and 4 or 3
 		end
 		local word = name == "bag" and H.bag or name == "eggs" and (H.eggsTab or "Huevos") or H.camp
 		item.Text = selected and ("[" .. word .. "]") or word
@@ -766,22 +807,33 @@ local function showLossSummary(summary, fallback)
 	closeLossSummary()
 	summaryGui = make("ScreenGui", {Name = "WildboundLossSummary", ResetOnSpawn = false, DisplayOrder = 50,
 		IgnoreGuiInset = true}, playerGui)
+	Style.screen(summaryGui)
+	-- UR (owner request 2026-11-20, the store reference look): the whole screen is still one dim button that closes on
+	-- a tap anywhere; on it sits the bright blue window with the summary in big round outlined words. The window and
+	-- its words take no taps, so every tap reaches the sheet.
 	local sheet = make("TextButton", {Name = "Summary", Size = UDim2.fromScale(1, 1), BackgroundColor3 = dark,
-		BackgroundTransparency = 0.05, AutoButtonColor = false, Modal = true, TextColor3 = ink, Font = Enum.Font.GothamBold,
-		TextScaled = true, TextWrapped = true,
+		BackgroundTransparency = 0.3, AutoButtonColor = false, Modal = true, Text = ""}, summaryGui)
+	local window = make("Frame", {Name = "Window", Active = false, AnchorPoint = Vector2.new(0.5, 0.5),
+		Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromScale(0.88, 0.8), BorderSizePixel = 0,
+		BackgroundColor3 = Color3.fromRGB(48, 140, 246)}, sheet)
+	make("UISizeConstraint", {MaxSize = Vector2.new(680, 480)}, window)
+	make("UICorner", {CornerRadius = UDim.new(0, 18)}, window)
+	Style.dressPanel(window, "blue")
+	make("UIPadding", {PaddingLeft = UDim.new(0.06, 0), PaddingRight = UDim.new(0.06, 0),
+		PaddingTop = UDim.new(0.08, 0), PaddingBottom = UDim.new(0.08, 0)}, window)
+	local words = make("TextLabel", {Name = "Words", Active = false, BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1),
+		TextColor3 = ink, Font = Enum.Font.FredokaOne, TextScaled = true, TextWrapped = true,
+		TextStrokeColor3 = Color3.fromRGB(16, 18, 34), TextStrokeTransparency = 0,
 		Text = View and View.lossSummary(summary, Text and Text.DEFEAT) or (fallback .. "\n"
-			.. Text.DEFEAT.close)}, summaryGui)
-	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, sheet)
-	Style.title(sheet)
-	Style.shade(sheet, 0.7)
-	make("UIPadding", {PaddingLeft = UDim.new(0.08, 0), PaddingRight = UDim.new(0.08, 0),
-		PaddingTop = UDim.new(0.12, 0), PaddingBottom = UDim.new(0.12, 0)}, sheet)
+			.. Text.DEFEAT.close)}, window)
+	make("UITextSizeConstraint", {MinTextSize = 14, MaxTextSize = 30}, words)
+	Style.loudText(words, Enum.Font.FredokaOne, 3)
 	sheet.Activated:Connect(closeLossSummary)
 end
 listen(gui.Destroying, closeLossSummary)
 
 -- B3: the presentation card. A short pop-in panel with the creature, its collection entry and its Ember, an Equip
--- button and a Close button, both 44 pixels high. It closes by itself after a while.
+-- button and a Close button, both 52 pixels high (44 before UR). It closes by itself after a while.
 local cardGui
 local function closeCard()
 	if cardGui then cardGui:Destroy(); cardGui = nil end
@@ -795,19 +847,34 @@ local function showCard(view)
 	cardGui = make("ScreenGui", {Name = "WildboundCard", ResetOnSpawn = false, DisplayOrder = 40, IgnoreGuiInset = true}, playerGui)
 	local size = gui.AbsoluteSize
 	local width = math.min(380, math.max(260, size.X - 32))
+	-- UR (owner request 2026-11-20, the store reference look): the bright blue window with a thick dark border, big
+	-- outlined round words, a pale inner panel for the lines and glossy chunky 52 px buttons, still 288 px tall in all.
+	Style.screen(cardGui)
 	local sheet = make("Frame", {Name = "Card", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45),
 		Size = UDim2.fromOffset(width, 288), BackgroundColor3 = dark, BackgroundTransparency = 0.05}, cardGui)
 	make("UICorner", {CornerRadius = UDim.new(0, 12)}, sheet)
 	make("UIStroke", {Thickness = 2, Color = amber}, sheet)
+	Style.dressPanel(sheet, "blue")
 	local scale = make("UIScale", {Scale = 0.6}, sheet)
-	TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Scale = 1}):Play()
+	-- "Efectos suaves": the card is just there, with no pop.
+	if Style.reduced(playerGui) == true then
+		scale.Scale = 1
+	else
+		TweenService:Create(scale, TweenInfo.new(0.25, Enum.EasingStyle.Back), {Scale = 1}):Play()
+	end
 	local title = label(sheet, view.title, 22)
-	title.Font, title.TextColor3 = Enum.Font.GothamBold, amber
+	title.Font, title.TextColor3 = Enum.Font.FredokaOne, amber
+	Style.loudText(title, Enum.Font.FredokaOne, 3, amber)
 	title.TextXAlignment = Enum.TextXAlignment.Center
 	title.Position, title.Size = UDim2.fromOffset(12, 10), UDim2.new(1, -24, 0, 28)
 	local name = label(sheet, view.name, 20)
-	name.Font, name.TextXAlignment = Enum.Font.GothamBold, Enum.TextXAlignment.Center
+	name.Font, name.TextXAlignment = Enum.Font.FredokaOne, Enum.TextXAlignment.Center
+	Style.loudText(name, Enum.Font.FredokaOne, 2)
 	name.Position, name.Size = UDim2.fromOffset(12, 40), UDim2.new(1, -24, 0, 24)
+	local inner = make("Frame", {Name = "Inner", Active = false, BorderSizePixel = 0, Position = UDim2.fromOffset(12, 68),
+		Size = UDim2.new(1, -24, 0, 148), BackgroundColor3 = Color3.fromRGB(236, 246, 255)}, sheet)
+	make("UICorner", {CornerRadius = UDim.new(0, 14)}, inner)
+	Style.dressPanel(inner, "light")
 	local lines = {}
 	if view.blurb then table.insert(lines, view.blurb) end
 	if view.entry then table.insert(lines, view.entry) end
@@ -815,17 +882,22 @@ local function showCard(view)
 	-- Expedition islands (K2): the one-off first-steal bonus and the next island's tease.
 	if view.bonus then table.insert(lines, view.bonus) end
 	if view.next then table.insert(lines, view.next) end
-	local body = label(sheet, table.concat(lines, "\n"), 15)
+	-- The lines sit on the pale inner panel in dark round words, shrinking to fit a long island tease.
+	local body = label(inner, table.concat(lines, "\n"), 15)
 	body.TextXAlignment = Enum.TextXAlignment.Center
 	body.TextWrapped = true
-	body.Position, body.Size = UDim2.fromOffset(16, 68), UDim2.new(1, -32, 0, 152)
+	body.TextColor3, body.TextStrokeTransparency = Color3.fromRGB(28, 36, 66), 1
+	Style.panelText(body)
+	Style.fitText(body, 15, 11)
+	body.Position, body.Size = UDim2.fromOffset(8, 4), UDim2.new(1, -16, 1, -8)
 	local equip = button(sheet, view.equip)
 	equip.Name = "CardEquip"
-	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -56), UDim2.fromOffset(120, 44)
+	equip.Position, equip.Size = UDim2.new(0.5, -128, 1, -64), UDim2.fromOffset(120, 52)
 	local closer = button(sheet, view.close)
 	closer.Name = "CardClose"
 	closer.BackgroundColor3 = accentOff
-	closer.Position, closer.Size = UDim2.new(0.5, 8, 1, -56), UDim2.fromOffset(120, 44)
+	Style.tint(closer, "red")
+	closer.Position, closer.Size = UDim2.new(0.5, 8, 1, -64), UDim2.fromOffset(120, 52)
 	local uid = view.uid
 	equip.Activated:Connect(function() request("Equip", uid); closeCard() end)
 	closer.Activated:Connect(closeCard)
@@ -850,6 +922,9 @@ Style.pill(eventBanner, 0)
 Style.shade(eventBanner, 0.75)
 Style.title(eventBanner, amber)
 eventBanner.BackgroundColor3 = Color3.fromRGB(150, 86, 232)
+-- UR (owner request 2026-11-20): the reference's glossy purple pill with the 3D edge; the words stay gold and outlined.
+Style.gloss(eventBanner, "purple")
+Style.title(eventBanner, amber)
 local eventState = nil
 -- Under the threat chip (the world client's AwarenessChip), as wide as it, so the banner never covers the left panels
 -- or the Mochila button on any screen; the fallback above is used until the chip exists.
@@ -886,6 +961,8 @@ local waveBoard = make("Frame", { Name = "WaveBoard", BackgroundColor3 = dark, B
 	BorderSizePixel = 0, Size = UDim2.fromOffset(190, 92), Visible = false }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, waveBoard)
 Style.pill(waveBoard, 0.1)
+-- UR (owner request 2026-11-20): a rounded navy panel with the kit's thick border; every line round and outlined.
+Style.dressPanel(waveBoard, "dark", 0.1)
 local boardLabels = {}
 for index = 1, 4 do
 	boardLabels[index] = make("TextLabel", { BackgroundTransparency = 1, Font = index == 1 and Enum.Font.GothamBold
@@ -893,7 +970,7 @@ for index = 1, 4 do
 		TextScaled = true, Position = UDim2.new(0, 8, 0, 4 + (index - 1) * 21), Size = UDim2.new(1, -16, 0, 19),
 		Text = "" }, waveBoard)
 	make("UITextSizeConstraint", { MaxTextSize = 16 }, boardLabels[index])
-	if index == 1 then Style.title(boardLabels[index], amber) else Style.body(boardLabels[index], true) end
+	if index == 1 then Style.title(boardLabels[index], amber) else Style.title(boardLabels[index]) end
 end
 local boardState = nil
 local function placeBoard()

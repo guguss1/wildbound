@@ -20,6 +20,28 @@ function View.showSectionHeaders(compact)
 end
 View.HEADER_H = 44
 
+-- UR (owner request 2026-11-20, the store reference look): the glossy tone of each header button and of each row
+-- button, as names of WildboundUiStyle.GLOSS_TONES. Colour is never the only cue: the open tab keeps its brackets and
+-- its gold outline, and an off button keeps the reason written in its row.
+View.TAB_TONES = table.freeze({ bag = "blue", eggs = "yellow", camp = "green", menu = "purple", close = "red" })
+View.BUTTON_TONES = table.freeze({
+	BuyGold = "orange",
+	SellCreature = "orange",
+	SellDuplicateEggs = "orange",
+	ReleaseCreature = "red",
+	DisarmTotem = "red",
+	Unequip = "yellow",
+	Hatch = "purple",
+	HatchAll = "purple",
+})
+
+-- buttonTone(spec) -> the glossy tone of a row's button: grey when it is off, else by its action, else green.
+function View.buttonTone(spec)
+	if type(spec) ~= "table" then return "green" end
+	if spec.enabled == false then return "grey" end
+	return View.BUTTON_TONES[spec.action] or "green"
+end
+
 -- NB5: players call the currency Esencia (internal name ember); a price reads "12 de Esencia, 8 Fogbark".
 local NAMES = table.freeze({ ember = "de Esencia", fogbark = "Fogbark", glowmoss = "Glowmoss", nightbloom = "Nightbloom" })
 local ORDER = table.freeze({ "ember", "fogbark", "glowmoss", "nightbloom" })

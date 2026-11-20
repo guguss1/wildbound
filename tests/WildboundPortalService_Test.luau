@@ -323,5 +323,23 @@ return function(Service, Portal, Text, sources)
 		assert(not string.find(sources.service, 'Instance.new("RemoteFunction")', 1, true), "never a remote probe")
 	end)
 
+	-- UR-P (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the channel bar wears the UI kit (WildboundUiStyle). Source pins only;
+	-- the look itself is checked in Play.
+	case("UR-P: the channel bar is a dark kit panel with outlined words and a glossy purple bar, styled off the main thread", function()
+		local client = sources.client
+		assert(type(client) == "string", "pass the portal client source")
+		for _, needle in ipairs({ 'WaitForChild("WildboundUiStyle", 10)', 'Style.dressPanel(panel, "dark", 0.08)',
+			"Style.loudText(title)", 'Style.glossBar(track, fill, "purple")', "track.Size = UDim2.new(1, -24, 0, 16)",
+			"limit.MaxSize = Vector2.new(360, 56)" }) do
+			assert(string.find(client, needle, 1, true), "missing: " .. needle)
+		end
+		local styled = string.find(client, "task.spawn(function()", 1, true)
+		local kit = string.find(client, 'WaitForChild("WildboundUiStyle"', 1, true)
+		local events = string.find(client, "remote.OnClientEvent:Connect", 1, true)
+		assert(styled and kit and events and styled < kit and kit < events, "the kit never holds up the portal events")
+		assert(not string.find(client, "rbxassetid", 1, true), "no image")
+	end)
+
 	return result
 end

@@ -113,5 +113,18 @@ return function(sources)
 		assert(world:find('GetAttribute("Awake") ~= true', 1, true), "only a sleeping adult breathes")
 		assert(world:find('GetAttribute("Deep") == true', 1, true), "deep sleep breathes slower")
 	end)
+
+	-- Added (UR-H4, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the shouts and the damage number in the reference's loud outlined letters; words and timing unchanged.
+	case("UR-H4: the shouts are loud outlined capitals and both outlines fade with their words", function()
+		has(fear, "shout.Font = Enum.Font.LuckiestGuy")
+		has(fear, "local shoutStroke = thickOutline(shout, 4,")
+		has(fear, "local damageStroke = thickOutline(damage, 3,")
+		has(fear, "ApplyStrokeMode = Enum.ApplyStrokeMode.Contextual", "an outline of the letters, not of the box")
+		has(fear, "TweenService:Create(shoutStroke, TweenInfo.new(0.3), { Transparency = 1 })", "the shout's outline fades")
+		has(fear, "TweenService:Create(damageStroke, info, { Transparency = 1 })", "the damage outline fades")
+		has(fear, "(WORDS.damage or \"-%d\")", "the damage words still come from WildboundText")
+		hasNot(fear, "ImageLabel", "nothing uploaded"); hasNot(fear, "ImageButton", "nothing uploaded")
+	end)
 	return result
 end

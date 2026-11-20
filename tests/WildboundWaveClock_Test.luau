@@ -366,6 +366,16 @@ return function(WaveClock, source, sources)
 		has(client, "local function refreshBanner()\n\teventBanner.Visible = false\nend", "the banner stays hidden")
 	end)
 
+	-- UR-W1 (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the hidden banner and board wear the UI kit's look, so they match the rest when they come back.
+	case("UR-W1: the event banner is a glossy pill and the wave board a kit panel, both still hidden", function()
+		local client = sources.client
+		has(client, 'Style.gloss(eventBanner, "purple")', "the glossy banner")
+		has(client, 'Style.dressPanel(waveBoard, "dark", 0.1)', "the board's panel")
+		has(client, "local function refreshBoard()\n\twaveBoard.Visible = false\nend", "the board stays hidden")
+		has(client, "local function refreshBanner()\n\teventBanner.Visible = false\nend", "the banner stays hidden")
+	end)
+
 	-- CA4 (user, 2026-11-15; Caramelo pack 05_SISTEMAS/01_OLEADAS_300_SEGUNDOS.md): the one 300 s egg clock. Collect from
 	-- 0 to 289.999, Warning from 290 to 299.999 (no new steal hold), the refresh at 300 (a new wave id, once).
 	case("CA4: the Collect and Warning windows and their boundaries", function()

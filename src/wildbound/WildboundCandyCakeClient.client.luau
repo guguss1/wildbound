@@ -20,17 +20,20 @@ local line = Instance.new("TextLabel")
 line.Name = "Line"
 line.AnchorPoint = Vector2.new(0.5, 0)
 line.Position = UDim2.new(0.5, 0, 0.26, 0)
-line.Size = UDim2.new(0.8, 0, 0, 40)
+-- UR-C (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's round display font, a little
+-- taller, with a darker candy outline. The outline stays the label's own text stroke (not a UIStroke), because the
+-- fade below tweens TextStrokeTransparency with the words.
+line.Size = UDim2.new(0.8, 0, 0, 44)
 line.BackgroundTransparency = 1
-line.Font = Enum.Font.GothamBold
+line.Font = Enum.Font.FredokaOne
 line.TextScaled = true
 line.TextColor3 = Color3.fromRGB(255, 236, 160)
-line.TextStrokeColor3 = Color3.fromRGB(150, 50, 110)
+line.TextStrokeColor3 = Color3.fromRGB(80, 20, 60)
 line.TextStrokeTransparency = 0.2
 line.TextTransparency = 1
 line.Parent = gui
 local constraint = Instance.new("UITextSizeConstraint")
-constraint.MaxTextSize = 34
+constraint.MaxTextSize = 36
 constraint.Parent = line
 
 local shown = 0

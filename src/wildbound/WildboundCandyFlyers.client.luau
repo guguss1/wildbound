@@ -137,7 +137,7 @@ gui.ResetOnSpawn = false
 local label = Instance.new("TextLabel")
 label.AnchorPoint = Vector2.new(0.5, 0)
 label.Position = UDim2.new(0.5, 0, 0.12, 0)
-label.Size = UDim2.new(0.8, 0, 0, 36)
+label.Size = UDim2.new(0.8, 0, 0, 44)
 label.BackgroundColor3 = Color3.fromRGB(60, 20, 45)
 label.BackgroundTransparency = 0.25
 label.TextColor3 = Color3.fromRGB(255, 235, 245)
@@ -151,6 +151,19 @@ corner.Parent = label
 local limit = Instance.new("UITextSizeConstraint")
 limit.MaxTextSize = 24
 limit.Parent = label
+-- UR-F (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's toast look, the reference's pale
+-- panel with a thick dark border and 16 px corners, dark round words, at most 560 px wide on a big screen. Styled off
+-- the main thread; without the shared style module the plum label stays.
+task.spawn(function()
+	local found = game:GetService("ReplicatedStorage"):WaitForChild("WildboundUiStyle", 10)
+	local Style = found and found:IsA("ModuleScript") and require(found) or nil
+	if not (Style and Style.gloss) then return end
+	local widest = Instance.new("UISizeConstraint")
+	widest.MaxSize = Vector2.new(560, 44)
+	widest.Parent = label
+	Style.dressPanel(label, "light", 0.05)
+	Style.panelText(label)
+end)
 gui.Parent = player:WaitForChild("PlayerGui")
 local shown = 0
 player:GetAttributeChangedSignal("WildboundCandyFlyersNoteAt"):Connect(function()

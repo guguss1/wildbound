@@ -578,5 +578,21 @@ return function(Raft, V3, Layout, Text, sources)
 		end
 	end)
 
+	-- UR-R (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the raft's lines and its Bajar button wear the UI kit
+	-- (WildboundUiStyle). Source pins only; the look itself is checked in Play.
+	case("UR-R: pale toast lines, a glossy Bajar button at least 44 px tall, styled without blocking the remote", function()
+		has(client, 'WaitForChild("WildboundUiStyle", 10)', "the shared kit")
+		has(client, 'Style.dressPanel(line, "light", 0.05)', "the line is a pale toast panel")
+		has(client, "Style.panelText(line)", "dark round words on it")
+		has(client, 'Style.dressPanel(hint, "light", 0.25)', "the steering hint too")
+		has(client, 'Style.gloss(leave, "orange")', "Bajar is a chunky glossy button")
+		has(client, "leave.Size = UDim2.new(0, 160, 0, 48)", "a big tap target (over 44 px)")
+		local styled = string.find(client, "task.spawn(function()", 1, true)
+		local kit = string.find(client, 'WaitForChild("WildboundUiStyle"', 1, true)
+		assert(styled and kit and styled < kit, "the kit is waited for off the main thread")
+		hasNot(client, "rbxassetid", "no image")
+	end)
+
 	return result
 end

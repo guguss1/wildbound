@@ -55,5 +55,27 @@ return function(worldClient, client, start)
 		has(start, 'SetAttribute("TestAction", nil)')
 	end)
 
+	-- Added (UR-H1, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the start, Settings and How to play screens and the tutorial card in the reference's look, with the same
+	-- names, words and rectangles (WildboundStartView).
+	case("UR-H1: the screens are a blue window over a pale inner panel with glossy buttons and outlined titles", function()
+		has(start, 'Style.dressPanel(panel, "blue")', "the blue window")
+		has(start, 'Name = "WbInner"', "the pale inner panel under the title")
+		has(start, 'Style.dressPanel(inner, "light")')
+		has(start, "Style.gloss(item, color or accent)", "glossy buttons with the 3D edge")
+		has(start, 'Name = "WbLift"', "the words sit above the edge")
+		has(start, "Style.loudText(item, Enum.Font.FredokaOne, 3", "titles with the thick round outline")
+		has(start, "Style.panelText(item)", "dark round words on the pale panel")
+		has(start, 'Style.dressPanel(card, "light")', "the tutorial card is a pale panel")
+		has(start, "Style.fitText(cardText, geometry.size, 10)", "the card words shrink to fit")
+		has(start, '"Saltar", "SkipButton"', "Saltar keeps its name and word")
+		for _, words in ipairs({ '"Jugar", "PlayButton"', '"Ajustes", "SettingsButton"', '"Cómo jugar", "HowToButton"',
+			'"Repetir tutorial", "ReplayButton"', '"Volver", "BackButton"' }) do
+			has(start, words)
+		end
+		hasNot(start, "Style.header(", "the old header strip is replaced by the inner panel")
+		hasNot(start, "ImageLabel"); hasNot(start, "ImageButton")
+	end)
+
 	return result
 end

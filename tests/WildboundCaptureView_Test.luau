@@ -263,6 +263,22 @@ return function(View, Layout, CaptureSession, source, Text)
 		assert(table.isfrozen(View.TONES), "tones must be frozen")
 	end)
 
+	-- Deliberately changed (UR-n, owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de
+	-- la foto que te envie"): the capture panel leaves its dark muted tones for bright ones with white words; the
+	-- contrast case above still holds for every tone.
+	case("UR-CV1: every panel tone is bright, its words are white and the warnings keep a white border", function()
+		for name, tone in pairs(View.TONES) do
+			assert(math.max(tone.bg.r, tone.bg.g, tone.bg.b) >= 100, name .. " panel is too dark")
+			equal(tone.text.r + tone.text.g + tone.text.b, 765, name .. " words are white")
+		end
+		for _, name in ipairs({ "outside", "failed" }) do
+			local border = View.TONES[name].border
+			equal(border.r + border.g + border.b, 765, name .. " keeps its white border")
+		end
+		local calm = View.TONES.calm.border
+		assert(calm.r + calm.g + calm.b < 120, "a calm panel has the kit's dark outline")
+	end)
+
 	case("reduced effects stop the ring pulsing and change no words", function()
 		local calm = View.status(active(), info({ reduced = false }))
 		local reduced = View.status(active(), info({ reduced = true }))

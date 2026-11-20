@@ -199,5 +199,17 @@ return function(Trap, Layout, sources)
 		has(sources.bossService, "sleeper.Parent = (not awake and not disguised) and workspace or nil")
 	end)
 
+	-- UR-C (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the cake line takes the kit's round display font and a darker outline.
+	-- The outline stays the text stroke, so the fade (which tweens TextStrokeTransparency) still hides all of it.
+	case("UR-C: the cake line uses the round display font with a dark outline that fades with the words", function()
+		local client = sources.client
+		assert(type(client) == "string", "pass the cake client source")
+		has(client, "line.Font = Enum.Font.FredokaOne", "the kit's round display font")
+		has(client, "line.TextStrokeColor3 = Color3.fromRGB(80, 20, 60)", "a darker candy outline")
+		has(client, "{ TextTransparency = 1, TextStrokeTransparency = 1 }", "the outline fades with the words")
+		assert(not string.find(client, "UIStroke", 1, true), "no UIStroke the fade would leave behind")
+	end)
+
 	return result
 end

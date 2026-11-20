@@ -278,6 +278,38 @@ build = function()
 		if input.KeyCode == Enum.KeyCode.F8 then setOpen(not panel.Visible) end
 	end)
 
+	-- UR-T (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's look for the developer panel
+	-- too: dark rounded panels with a thick border, an outlined title, chunky glossy buttons with the 3D lip (blue
+	-- toggle, systems and +/-, orange reset, green export, red close) and the kit's rounded slider tracks. Only the
+	-- look: every handler, word and size stays. Without the shared style module the plain panel stays.
+	local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
+	local Style = styleModule and styleModule:IsA("ModuleScript") and require(styleModule) or nil
+	if Style and Style.gloss then
+		Style.dressPanel(panel, "dark", 0.04)
+		Style.dressPanel(sheet, "dark")
+		local heading = panel:FindFirstChild("Title")
+		if heading and heading:IsA("TextLabel") then Style.loudText(heading) end
+		Style.gloss(toggle, "blue")
+		Style.gloss(resetAll, "orange")
+		Style.gloss(export, "green")
+		Style.gloss(close, "red")
+		Style.gloss(closeSheet, "red")
+		for _, item in ipairs(list:GetDescendants()) do
+			if item:IsA("TextButton") and item.Name == "Track" then
+				local trackFill = item:FindFirstChild("Fill")
+				Style.glossBar(item, trackFill, "green")
+			elseif item:IsA("TextButton") then
+				Style.gloss(item, "blue")
+			elseif item:IsA("TextBox") then
+				Style.outline(item, 2)
+			elseif item:IsA("Frame") and item.Name == "Knob" then
+				Style.outline(item, 2)
+			end
+		end
+		-- The gloss writes white words; the system headers get their amber "changed" colour back.
+		for _, refreshHeader in ipairs(headers) do refreshHeader() end
+	end
+
 	gui.Parent = player:WaitForChild("PlayerGui")
 end
 

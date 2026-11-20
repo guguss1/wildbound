@@ -381,5 +381,26 @@ return function(Gold, source, sources)
 		equal(Text.GOLD.farmPaused ~= nil and type(Text.GOLD.farmPaused), "string", "the pause notice words")
 	end)
 
+	-- Added (UR-H3, owner request 2026-11-20: "quiero que la ui de mi juego sea exactamente igual a la de la foto que te
+	-- envie"): the HUD counter wears the glossy kit and pops only without "Efectos suaves"; words and remote unchanged.
+	case("UR-H3: the gold counter is a glossy pill with a coin, its words and its one remote unchanged", function()
+		local goldClient = sources.goldClient or ""
+		local function has(needle, label)
+			assert(goldClient:find(needle, 1, true), (label or "missing") .. ": " .. needle)
+		end
+		has('counter.Name = "GoldCounter"'); has('label.Name = "GoldPopup"')
+		has("T.counter:format(amount)", "the words still come from WildboundText")
+		has("T.popup:format(amount)")
+		has('Style.gloss(counter, "dark")', "the navy glossy pill with the 3D edge")
+		has("Style.ICONS.gold", "the coin is a built-in emoji")
+		has("Style.bump(counter, Style.reduced(playerGui))", "the pop respects Efectos suaves")
+		has("Style.loudText(label", "the popup's thick outline")
+		has('type(Style.HUD_SIZES) == "table"', "the kit-less fallback never indexes a missing table")
+		for _, bad in ipairs({ "FireServer", "InvokeServer", "SetAttribute(\"WildboundGold\"", "Image", "rbxassetid",
+			"MarketplaceService" }) do
+			assert(not goldClient:find(bad, 1, true), "the gold client never " .. bad)
+		end
+	end)
+
 	return result
 end

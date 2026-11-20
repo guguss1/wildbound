@@ -75,24 +75,31 @@ local hint = make("TextLabel", { Name = "Hint", AnchorPoint = Vector2.new(0.5, 0
 	Text = words.hint or "" }, gui)
 make("UICorner", { CornerRadius = UDim.new(0, 8) }, hint)
 make("UISizeConstraint", { MaxSize = Vector2.new(520, 60) }, hint)
--- UI colorida: an outlined slate panel with a purple header strip under the title, outlined meters, a chunky blue
--- Mantener button (green while held) and an outlined hint pill. Without the shared style module nothing changes.
+-- UI colorida, then UR-A (owner request 2026-11-20, docs/design/refs/store-ui-reference.png): the kit's look. The panel
+-- is the reference's bright blue window (a thick dark border, 16 px corners); the title and the time are white round
+-- words with a thick dark outline that shrink to fit; the meters are dark wells with a thick border; Mantener is a
+-- chunky glossy button with the 3D lip (orange, so it stands out on the blue window; green while held: setHolding
+-- recolours it and the gloss stays); the hint
+-- is a dark rounded panel. Without the shared style module (or with an older one, no Style.gloss) nothing changes.
 do
 	local styleModule = ReplicatedStorage:WaitForChild("WildboundUiStyle", 10)
 	local Style = styleModule and require(styleModule)
-	if Style then
+	if Style and Style.gloss then
 		Style.screen(gui)
-		Style.panel(panel, 0.08)
-		Style.header(panel, 34, "purple")
-		Style.title(title)
-		Style.title(timeLabel, Style.COLORS.gold)
+		Style.dressPanel(panel, "blue", 0.04)
+		Style.loudText(title)
+		Style.fitText(title, 18, 10)
+		Style.loudText(timeLabel, nil, nil, Style.COLORS.gold)
+		Style.fitText(timeLabel, 18, 10)
 		for _, item in ipairs({ bar, meter }) do
 			item.BackgroundColor3 = Style.COLORS.panelDeep
-			Style.outline(item, 2)
+			Style.outline(item, 3)
 		end
 		Style.shade(fill, 0.8)
-		Style.button(holdButton, "blue")
-		Style.pill(hint, 0.1)
+		Style.outline(marker, 2)
+		Style.gloss(holdButton, "orange")
+		Style.fitText(holdButton, 20, 12)
+		Style.dressPanel(hint, "dark", 0.1)
 		Style.title(hint)
 	end
 end
@@ -106,7 +113,7 @@ local closeSerial = 0
 local function setHolding(value)
 	if value == holding then return end
 	holding = value
-	holdButton.BackgroundColor3 = holding and Color3.fromRGB(92, 214, 64) or Color3.fromRGB(58, 148, 245)
+	holdButton.BackgroundColor3 = holding and Color3.fromRGB(92, 214, 64) or Color3.fromRGB(255, 148, 32)
 	if remote and open then remote:FireServer(holding and "hold" or "release") end
 end
 

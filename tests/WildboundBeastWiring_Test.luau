@@ -875,5 +875,22 @@ return function(sources, Proxies)
 		end
 	end)
 
+	-- UR-B (owner request 2026-11-20, "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie";
+	-- docs/design/refs/store-ui-reference.png): the warning line and the Gaze meter wear the UI kit (WildboundUiStyle),
+	-- styled off the main thread so a beast is never drawn late. Source pins only; the look itself is checked in Play.
+	case("UR-B: loud warning words, the Gaze meter as a kit bar with its words above the fill, never blocking", function()
+		local client = sources.client
+		has(client, "Style.loudText(warning, Enum.Font.FredokaOne, 3, Color3.fromRGB(255, 235, 225))", "loud warning words")
+		has(client, "outline.Color = Color3.fromRGB(150, 0, 0)", "the warning keeps its dark red outline")
+		has(client, "meter.Size = UDim2.new(0.3, 0, 0, 26)", "a readable meter height")
+		has(client, "Style.glossBar(meter, meterFill)", "the kit's rounded bar, the Gaze colour kept")
+		has(client, 'Style.kitLabel(meter, "Words", meter.Text, 16, Style.FONT_TITLE, 2)', "the words above the fill")
+		has(client, 'meter:GetPropertyChangedSignal("Text"):Connect(function() words.Text = meter.Text end)', "mirrored")
+		local kit = client:find('WaitForChild("WildboundUiStyle"', 1, true)
+		local spawned = client:find("task.spawn(function()\n\tlocal found = ReplicatedStorage:WaitForChild(\"WildboundUiStyle\"", 1, true)
+		assert(kit and spawned and spawned < kit, "the kit is waited for off the main thread")
+		hasNot(client, 'WaitForChild("WildboundUiStyle")', "never an endless wait for the kit")
+	end)
+
 	return result
 end
