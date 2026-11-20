@@ -1,4 +1,4 @@
 - [Explain questions plainly](explain-questions-plainly.md) — plain Spanish, no task codes/jargon in questions and summaries
 - [Wildbound env: git/python/worktrees](wildbound-env-git-python.md) — git only via GitHub Desktop path, no Python, repo worktree layout
-- [Wildbound current state](wildbound-current-state.md) — Caramelo v9 deployed 2026-11-18 (arm 1200 long, 5x river end to end, d3f5c78); next: owner plays/saves, then the other 3 arms to 600x1200
+- [Wildbound current state](wildbound-current-state.md) — 2026-11-20: T1 thief rank deployed (c2797f2), Studio unsaved; next T2, paused UI polish, P0.2/P0.3, T3..T13, Bosque/Montañas arms; handoff HANDOFF-2026-11-20
 - [Lumipol rig pipeline](lumipol-rig-pipeline.md) — asset ownership blocks export; rig in Blender; sleep idle + walk/run anims

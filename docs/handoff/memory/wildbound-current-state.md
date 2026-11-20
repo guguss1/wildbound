@@ -5,7 +5,7 @@ metadata:
   node_type: memory
   type: project
   originSessionId: 6e13884a-c13d-46c1-86d0-627c2213786c
-  modified: 2026-11-19T15:07:08.822Z
+  modified: 2026-11-20T20:10:19.691Z
 ---
 
 **Status on 2026-11-18.**
@@ -42,6 +42,47 @@ metadata:
   - The owner judges the look. Fallbacks: cover up, or the pink skybox back.
 - **Not saved yet.** The OQ2, OQ3 and OQ1 Studio edits are unsaved until the owner saves.
 - **Next:** OQ4, the longer arms, starting with Pueblo Gatito. Run the research workflow script `gatito-long-research-wf_fc7bda19-8a0.js` fresh.
+
+**2026-11-20.**
+- Studio id now c21f0746-4241-42c7-a0a4-96f679bd77d4. OQ1 to OQ3 were saved by the owner.
+- **Pueblo Gatito 600 x 1200 is deployed** (`d1a86c1`, docs `436455d`): mark PuebloGatito=3, 2826 parts, backup GatitoGrowBackup, 16 nests, far portal parque2. **Not saved yet.**
+- Playtime plan: `docs/design/wildbound-playtime-and-gameplay-plan.md` (`ff27df1`). Today about 3-5 h; top proposals are ranks with a shop, a creature album with more species, and daily goals.
+- **Toolbox look pass** (`bbf427f`, docs `ddd6fb8`), deployed but not saved:
+  - Obby Sky on Lighting.Sky;
+  - the WildboundGatitoGrass MaterialVariant on the park floor;
+  - a scrolling chocolate texture client;
+  - gatitoMusic is APM Cute Cat 1839661368.
+  - The pink sky toolbox asset 97128825470015 was malware and was destroyed.
+- **Build plan:** `docs/design/wildbound-fun-build-plan.md` (`1766a06`). Steps P0.1 store UI kit, P0.2 offers catalog with DESBLOQUEAR_TODO, P0.3 world signs, then T1..T13.
+  - The owner wants Robux signs everywhere, but everything unlocked in dev, with no real purchases.
+- **Next:** P0.1, then the Bosque and Montañas arms.
+- **Gotchas:**
+  - multi_edit `replace_all` reported success but did not stick: verify, or rewrite the Source directly.
+  - Never poll a one-shot tool in the same execute_luau call that scheduled it: that call's undo recording stays open and the tool refuses.
+
+**Later on 2026-11-20 (handoff `docs/handoff/HANDOFF-2026-11-20.md`; pushed up to `c2797f2`):**
+- Deployed, all **unsaved**:
+  - Caramelo-only sky `48d4a3e`;
+  - P0.1 UI kit `4f556ce`;
+  - roulette wheel `5ec13a1`;
+  - full UI restyle `dea98cf`.
+- **T1, thief rank plus dodge fix** (`8b0052b`, `f8a7c23`), deployed and Play-checked:
+  - the count is `training.eggsHome`, added in State's bankItem; no schema step;
+  - WildboundGoldService.sync mirrors it on the attribute `WildboundThiefSteals`;
+  - the new scripts are WildboundRank, WildboundRankClient and WildboundRank_Test;
+  - only a perfect dodge sets dashInvulnUntil.
+- **UI polish pass:** paused with nothing written, after the owner switched to "jugar más tiempo".
+- **Next, in order:**
+  1. T2, the first egg in under 90 s;
+  2. the UI polish;
+  3. P0.2 and P0.3;
+  4. T3 to T13;
+  5. the Bosque and Montañas arms.
+- **Pre-existing failures:**
+  - State_Test: 14 cases, because Studio's economy values differ from the suite's (verified the same without T1);
+  - EggCarry Q3b and EggLoop EL12.
+  - Python sims and caramelo tests are stale against v9 (`Layout.ENTRANCE` not found).
+- **Test egg banking in Play:** `ServerStorage.WildboundTelemetry.IslandProbe:Invoke("egg", nil, userId)`.
 
 **Owner queue for 2026-11-20:** `odd/tasks/wildbound-owner-queue.md` (OQ1..OQ5), decided order:
 1. OQ5, game progression proposals (dash or speed bought or earned; Robux is design only);
