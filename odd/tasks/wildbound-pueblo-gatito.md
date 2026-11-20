@@ -184,3 +184,53 @@ haber huevos para robar". The plan and its decisions are in `docs/design/wildbou
   - the portal refusing a carrier in Play (both are covered by suites);
   - whether the kitten music ducks during a chase;
   - how the park looks (screen captures of the 3D view render white).
+
+## Pueblo Gatito 600 x 1200 (GL-D1..GL-D17, 2026-11-20)
+
+The owner asked (2026-11-19): "hace el mapa bastante mas largo y si hace falta colocar mas bichos de distintas zonas hazlo".
+- Plan: `docs/design/wildbound-pueblo-gatito-long-plan.md`.
+- Parent decisions: `docs/handoff/gatito-long/decisions.md`.
+- Code: `d1a86c1`.
+
+### Decisions taken for the user (deploy)
+- **Visiting candy critters: no** (GL-D12). Their home biome is Meadow, so the director and the summon landing refuse them in the park. Other-zone creatures go to the Bosque and Montañas arms later.
+- **Studio-only hand patches.**
+  - Biomes and BiomeLight: both CandyEast rows (`AREAS` and `AREAS_BIG4`) go to z 1537. The `replace_all` multi_edit reported success but did not stick; a direct Source rewrite of the row did.
+  - BiomeLight_Test (big4): the five repo hunks, minus a comment phrase the Studio copy never had.
+  - Big4Map_Test:
+    - the south arm is 1200 long, to z 1537;
+    - the volcanic clone check compares against the first 600;
+    - "parque2" is tagged CandyEast.
+  - WildboundText and WildboundText_Test: the parque2 hunk.
+
+### Evidence
+- **Deploy.**
+  - Before writing, 12 scripts matched `437bb9c`.
+  - After the hunks, all 12 matched `d1a86c1`, plus two new scripts: `WildboundPuebloGatitoGrow_Test` and `WildboundPuebloGatitoGrow` (disabled).
+  - The mixed copies (Biomes, BiomeLight, BiomeLight_Test, Text, Text_Test, Big4Map_Test) were hand-patched; see the decisions above.
+- **Suites, fresh Play server VM:**
+  - GatitoArea 5/0, KittenPark 22/0, PuebloGatitoGrow 2/0, CandyKittens 8/0, CandyKittenArt 5/0, CandyNests 27/0;
+  - Portal 13/0, PortalService 15/0, BiomeLight (big4) 13/0, Big4Map 20/0, BeastSight (big4) 8/0, Text 25/0;
+  - CandySky 6/0, CandyEast 15/0.
+- **Grow tool.**
+  - The dry run estimated 2826 root parts against a cap of 3037, with no refusals.
+  - The real run:
+    - made the backup `WildboundMapArchive.GatitoGrowBackup`;
+    - resized the floor from 520 x 520 at (282, 600) to 600 x 1200 at (297, 937), and added the Approach slab;
+    - created 1679 park parts and 506 edge parts, and 12 nest parts;
+    - left the root at 2826 parts, with mark `PuebloGatito = 3`.
+  - A rebuild check changed 0 parts, and a second run reported "already".
+  - Running the tool and polling in the same execute call fails: the call's own undo step stays open. Schedule the run in one call and read the summary attribute in the next.
+- **Play, solo.**
+  - Ground rays hit the Approach at (282, 330) and the Floor everywhere in the arm, out to (590, 1530) and (10, 1530). There is no void.
+  - Wall rays hit SideWallWest at x -3, SideWallEast at x 597 and the EndWall at z 1537.
+  - The park has 16 nests; 7 "Tomar el huevo" prompts stand beyond z 900. The far portal `WildboundPortal_parque2` is at (227, 1375).
+  - The director tried to summon Gatito Guerrero at the new post kittenPostK9 (refused only because he was already active elsewhere).
+- **Not seen:**
+  - a kitten standing at a new post;
+  - the far portal used;
+  - the Jardín de Ovillos look (3D captures render white);
+  - phone performance with about 2826 park parts and 2798 Caramelo parts.
+
+### Next step
+The owner plays the far half and saves the place. Then the Bosque and Montañas arms (OQ4).
