@@ -201,3 +201,16 @@ The owner, mid polish pass (2026-11-20): "quiero que comences eso de que se pued
   - errors in the Caramelo v3, cake move, tree resize, Lumipol v1 and economy/gold simulator tests. They are stale against the v9 layout: `Layout.ENTRANCE` not found.
 - **Review (two reviewers, then a check):** no logic defects. One style point (the kit's screen setup) was added in `f8a7c23`.
 - **Studio before loading:** WildboundDodge, WildboundDodge_Test, WildboundGoldService and WildboundState all match `7cd22ac`. The 3 new scripts are not there yet.
+- **Loaded into Studio c21f0746 (2026-11-20).** The four changed scripts matched `7cd22ac` before writing. All 7 scripts now match `f8a7c23`: WildboundDodge, WildboundDodge_Test, WildboundGoldService, WildboundState, plus the new WildboundRank, WildboundRankClient and WildboundRank_Test. Both locks are cleared.
+- **Suites in a Play server VM:**
+  - Passed clean: Rank 7/0, Dodge 15/0, Gold 21/0, Record 30/0, Save 23/0, Persistence 31/0, Training 13/0, MechanicsWiring 10/0, RouletteService 15/0, FallDamage 18/0, UiKit 30/0, TotemRecord 7/0.
+  - Failures that already existed: EggCarry 39/1 and EggLoop 13/1, the known mixed-server cases.
+  - State 75/14: the same 14 cases fail with T1's hunk taken out of a temporary probe copy. They already existed; Studio's economy values differ from the suite's.
+- **Solo Play check:**
+  - At 0 eggs the sign showed "Aprendiz" with the egg and "0/3 huevos".
+  - Three real eggs were banked through `IslandProbe` "egg" (pickup plus chest): `WildboundThiefSteals` went 0, then 2, then 3.
+  - The card "¡Ladronzuelo!" / "Nuevo rango de ladrón" / "Próximo: Ladrón con 8 huevos" showed with rays, and the sign became "Ladronzuelo 0/5 huevos".
+  - No console errors from the rank scripts.
+  - Screenshots: `docs/design/refs/rank-sign-2026-11-20.jpg` and `rank-up-card-2026-11-20.jpg`.
+- **Not checked:** a phone layout (under 700 px), the emoji on a phone, a real steal walked by hand, and a save surviving a leave (Studio has no data store access).
+- **Not saved:** the owner saves the place.
