@@ -102,3 +102,22 @@ Owner's words (2026-11-20): "quiero que investigues cosas de la toolbox para mej
   - Choco_River_3's offset changes every second.
   - gatitoMusic 1839661368 is loaded and playing at volume 0.18 in the park, 95 s long and looped.
 - **Not judged:** the scroll direction on screen, how the tint looks, and whether the sky looks right at night in the Bosque. 3D captures render white, so these are for the owner.
+## P0.1, the store-style UI kit (2026-11-20)
+
+Owner's words (2026-11-20): "Quiero que la estetica sea asi de la ui, con esa tipografia".
+- Plan: `docs/design/wildbound-fun-build-plan.md` (Paso 0).
+- Reference: `docs/design/refs/store-ui-reference.png`.
+- Code: `4f556ce`.
+
+### Evidence
+- **Deploy.** Before writing, 3 scripts matched `48d4a3e`. After the hunks they matched `4f556ce`, plus the new `WildboundUiKit_Test`.
+- **Suites, fresh Play server VM:** UiKit 18/0, RouletteService 10/0.
+- **Play, solo.**
+  - The roulette opened through its prompt.
+  - The window shows the blue frame, the FredokaOne title with a thick outline, the red LuckiestGuy X, the cyan sunburst card, the coloured odds rows, and the green Girar and red Cerrar buttons.
+  - The rays turned (rotation 34 → 50 in 1 s).
+  - Screenshot: `docs/design/refs/roulette-p01-2026-11-20.jpg`.
+- **Seen for later:**
+  - On a wide screen the left column has empty space between the card and the buttons.
+  - The rays are faint on the cyan card.
+  - Both are left for the owner's eye.
