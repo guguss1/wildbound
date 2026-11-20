@@ -137,3 +137,12 @@ Owner's words (2026-11-20): "quiero que la ui de mi juego sea exactamente igual 
 - [ ] RW-D1: deploy the 6 scripts and 2 new suites (deploy manifest rows added); the runner needs the new `WildboundRouletteService` sibling `WildboundFlags`.
 - [ ] RW-S1: suites in Studio: Roulette (R18), RouletteService (RS-9..RS-15), RouletteWheel (W1..W12), Offers (O1..O6).
 - [ ] RW-P1: solo Play: wheel opens from the prompt, spins and stops on the server's prize, packs grant free spins, "i" opens the odds; check a phone held upright and sideways (device emulator) and with "Efectos suaves".
+### Evidence (RW, 2026-11-20)
+- **Deploy.** Before writing, 6 scripts matched `771f66e`. After the hunks they matched `5ec13a1`, plus 4 new scripts: WildboundOffers, WildboundRouletteWheel, WildboundRouletteWheel_Test and WildboundOffers_Test.
+- **Suites, fresh Play server VM:** Roulette 18/0, RouletteService 15/0, RouletteWheel 12/0, Offers 6/0, UiKit 18/0.
+- **Play, solo.**
+  - The wheel opened through the station prompt: 11 wedges, the white pointer, "Tiradas: 1", three packs and "modo desarrollo: gratis".
+  - Clicking "+3 Tiradas" changed "Tiradas" from 1 to 4.
+  - Girar spun the wheel ("Girando...") and stopped on the "+2" Nightbloom wedge under the pointer. The server's result was "Tirada gratis: ¡ganaste 2 Nightbloom!", and "Tiradas" went to 3.
+  - Screenshots: `docs/design/refs/roulette-wheel-2026-11-20.jpg` and `roulette-wheel-result-2026-11-20.jpg`.
+- **Not checked:** a phone in portrait, and the odds panel ("i") on screen.
