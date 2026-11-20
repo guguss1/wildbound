@@ -146,3 +146,31 @@ Owner's words (2026-11-20): "quiero que la ui de mi juego sea exactamente igual 
   - Girar spun the wheel ("Girando...") and stopped on the "+2" Nightbloom wedge under the pointer. The server's result was "Tirada gratis: ¡ganaste 2 Nightbloom!", and "Tiradas" went to 3.
   - Screenshots: `docs/design/refs/roulette-wheel-2026-11-20.jpg` and `roulette-wheel-result-2026-11-20.jpg`.
 - **Not checked:** a phone in portrait, and the odds panel ("i") on screen.
+## UR, every screen in the store style (2026-11-20)
+
+Owner's words (2026-11-20): "quiero que la ui de mi juego sea exactamente igual a la de la foto que te envie".
+- Code: `dea98cf`, plus `5570800`.
+- The kit gained glossy 3D buttons, pill counters, outlined bars and round icon buttons.
+- 18 screen scripts were restyled; behaviour and texts are unchanged.
+
+### Decisions taken for the user
+- **No Toolbox UI kit.** They were rejected:
+  - "Simulator Icon Pack" 71964724767093 hid a require() backdoor script and was destroyed;
+  - "Cartoony UI Pack" 4996497901 is a flat teal style whose icons do not load;
+  - "Clicking Simulator UI Kit" 17542996966 has images that no longer load.
+- **The look comes from built-ins and emoji.** Exact icons (coins, gems) need uploaded images, which need the owner's approval.
+- **Two Studio-only HUD pieces are not restyled.** "Patio dev" and "Batería" exist only in Studio, not in the repo.
+
+### Evidence
+- **Deploy.** Before writing, 34 scripts matched `c8276f9`. WildboundWorldClient (a mixed copy) got its 2 hunks and grew by the exact repo delta. All 35 match `dea98cf`, and WildboundCandyCakeClient matches `5570800`.
+- **Suites, fresh Play server VM:**
+  - BeastWiring 54/0, CampView 25/0, CandyFlyers 26/0, CandyRaft 19/0, CandyTrapCake 12/0 (after the comment fix), CaptureView 49/0;
+  - FearWiring 11/0, Gold 21/0, HudLayout 24/0, HudView 62/0, HunterWiring 6/0, PortalService 16/0, RouletteWheel 12/0;
+  - Settings 10/0, StaminaWiring 10/0, StartView 8/0, StartWiring 10/0, TuningWiring 9/0, UiKit 30/0.
+- **Failures that already existed (WildboundServer is a mixed copy, untouched here):** BaseZone BZ7, EggLoop EL12, Hub HB-T3, IslandWiring I6 (7 RemoteEvents in Studio's server against 6 in the repo), and WaveClock RW4 and RW5.
+- **Play screenshots:** `docs/design/refs/hud-ur-2026-11-20.jpg` and `inventory-ur-2026-11-20.jpg`.
+- **Next, a polish pass against the photo:**
+  - big outlined window titles;
+  - white rows with icons instead of plain blue bars;
+  - a brighter gold pill;
+  - round icon buttons in the action bar.
