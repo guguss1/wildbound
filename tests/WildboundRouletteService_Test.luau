@@ -249,5 +249,33 @@ return function(Service, Roulette, State, Economy, Config, Text, sources)
 		has(client, "Text.ROULETTE", "the client words come from WildboundText")
 	end)
 
+	-- Deliberately changed (P0.1, owner request 2026-11-20): the roulette window leaves the dark Style.panel for the
+	-- store kit in WildboundUiStyle (docs/design/refs/store-ui-reference.png). Same words, same two remote words; the
+	-- price card's rays stand still with "Efectos suaves" (also when it is switched on while the window is open) and
+	-- while the window is shut; on a wide window the result fills the room between the card and the buttons, so a
+	-- short phone held sideways never draws it over the card; no price button, no purchase.
+	case("RS-10: the roulette window wears the store kit, keeps its words and closes from the X or Cerrar", function()
+		local client = sources.client or ""
+		assert(#client > 0, "client source")
+		hasNot(client, "Style.panel(panel)", "the old dark panel")
+		for _, needle in ipairs({ "Style.kitWindow(gui, \"Panel\"", "Style.kitTitle(panel, WORDS.title", "Style.kitClose(panel)",
+			"Style.kitCard(main, \"cyan\", true", "Style.kitButton(main, text, tone, name)", "button(\"Spin\", WORDS.spin, \"green\"",
+			"button(\"Close\", WORDS.close, \"red\"", "WORDS.oddsHeader", "WORDS.oddsNote", "WORDS.spinning",
+			"closeX.Activated:Connect(hidePanel)", "closeButton.Activated:Connect(hidePanel)",
+			"Style.setSpin(card, Style.motion(Style.reduced(playerGui)).spin)", "Style.setSpin(card, false)",
+			"Style.setLabel(spinButton, WORDS.spin)", "Style.isWide(inner.AbsoluteSize.X)", "Style.fitText(",
+			"world:GetAttributeChangedSignal(\"Reduced\")",
+			"resultLine.Position = UDim2.new(0, 0, 0, CARD_HEIGHT + 4)",
+			"resultLine.Size = UDim2.new(1, 0, 1, -(CARD_HEIGHT + 8 + Style.KIT_SIZES.buttonHeight))",
+			"resultLine.Position = UDim2.new(0, 0, 1, -56)" }) do
+			has(client, needle, "client")
+		end
+		hasNot(client, "spinButton.Text =", "the kit button's words live on its Label")
+		for _, banned in ipairs({ "MarketplaceService", "PromptProductPurchase", "PromptPurchase", "ProcessReceipt",
+			"kitPriceButton", "kitNewBadge", "kitTimerChip" }) do
+			hasNot(client, banned, "client")
+		end
+	end)
+
 	return result
 end

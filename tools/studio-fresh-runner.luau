@@ -82,6 +82,7 @@ SPECS["WildboundRouletteService_Test"] = {
 	"mod:WildboundEconomyConfig", "mod:WildboundText",
 	{ server = "src:WildboundServer", service = "src:WildboundRouletteService", client = "src:WildboundRouletteClient" },
 }
+SPECS["WildboundUiKit_Test"] = { "mod:WildboundUiStyle", "src:WildboundUiStyle" }
 SPECS["WildboundBaseZone_Test"] = {
 	"mod:WildboundBaseZone",
 	"src:WildboundBaseZone",

@@ -496,6 +496,7 @@ class DefaultMappingTests(unittest.TestCase):
         "src/wildbound/WildboundRouletteRecord.luau": "ServerScriptService.WildboundRouletteRecord",
         "src/wildbound/WildboundRouletteService.luau": "ServerScriptService.WildboundRouletteService",
         "tests/WildboundRouletteService_Test.luau": "ServerStorage.WildboundRouletteService_Test",
+        "tests/WildboundUiKit_Test.luau": "ServerStorage.WildboundUiKit_Test",
         "src/wildbound/WildboundRoulette.client.luau": "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient",
         # Caramelo biome: Gomibu and the candy blockout, pulled from Studio
         "src/wildbound/WildboundBeastGomibu.luau": "ServerScriptService.WildboundBeastGomibu",

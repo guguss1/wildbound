@@ -367,6 +367,8 @@ DEFAULT_MAPPINGS = [
     ("src/wildbound/WildboundRouletteService.luau", "ServerScriptService.WildboundRouletteService"),
     ("tests/WildboundRouletteService_Test.luau", "ServerStorage.WildboundRouletteService_Test"),
     ("src/wildbound/WildboundRoulette.client.luau", "StarterPlayer.StarterPlayerScripts.WildboundRouletteClient"),
+    # P0.1 (docs/design/wildbound-fun-build-plan.md): the store kit in WildboundUiStyle and its suite
+    ("tests/WildboundUiKit_Test.luau", "ServerStorage.WildboundUiKit_Test"),
     # Caramelo biome (odd/tasks/caramelo-bioma.md): Gomibu and the candy blockout, built in Studio and pulled into the
     # repo at the Explorer paths observed there
     ("src/wildbound/WildboundBeastGomibu.luau", "ServerScriptService.WildboundBeastGomibu"),
